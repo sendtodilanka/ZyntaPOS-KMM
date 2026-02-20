@@ -77,5 +77,27 @@ class ZentaLogger(val defaultTag: String = "ZentaPOS") {
     companion object {
         /** Convenience factory. Equivalent to `ZentaLogger(moduleName)`. */
         fun forModule(moduleName: String): ZentaLogger = ZentaLogger(defaultTag = moduleName)
+
+        // ── Static convenience methods (Android-style tag-first signature) ───────
+
+        /** Static [Severity.Verbose] — `ZentaLogger.v(TAG, "msg")` style. */
+        fun v(tag: String, message: String, throwable: Throwable? = null) =
+            Logger.withTag(tag).v(message, throwable)
+
+        /** Static [Severity.Debug] — `ZentaLogger.d(TAG, "msg")` style. */
+        fun d(tag: String, message: String, throwable: Throwable? = null) =
+            Logger.withTag(tag).d(message, throwable)
+
+        /** Static [Severity.Info] — `ZentaLogger.i(TAG, "msg")` style. */
+        fun i(tag: String, message: String, throwable: Throwable? = null) =
+            Logger.withTag(tag).i(message, throwable)
+
+        /** Static [Severity.Warn] — `ZentaLogger.w(TAG, "msg")` style. */
+        fun w(tag: String, message: String, throwable: Throwable? = null) =
+            Logger.withTag(tag).w(message, throwable)
+
+        /** Static [Severity.Error] — `ZentaLogger.e(TAG, "msg")` style. */
+        fun e(tag: String, message: String, throwable: Throwable? = null) =
+            Logger.withTag(tag).e(message, throwable)
     }
 }

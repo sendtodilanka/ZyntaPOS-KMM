@@ -33,6 +33,6 @@ object RegisterMapper {
         amount     = row.amount,
         reason     = row.reason,
         recordedBy = row.recorded_by,
-        timestamp  = Instant.fromEpochMilliseconds(row.timestamp_),
+        timestamp  = Instant.fromEpochMilliseconds(row.timestamp),
     )
 }

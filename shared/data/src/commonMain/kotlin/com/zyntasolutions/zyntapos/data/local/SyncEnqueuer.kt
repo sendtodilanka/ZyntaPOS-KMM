@@ -33,7 +33,7 @@ class SyncEnqueuer(private val db: ZyntaDatabase) {
         operation: SyncOperation.Operation,
         payload: String = "{}",
     ) {
-        db.pendingOperationsQueries.enqueueOperation(
+        db.sync_queueQueries.enqueueOperation(
             id          = IdGenerator.newId(),
             entity_type = entityType,
             entity_id   = entityId,

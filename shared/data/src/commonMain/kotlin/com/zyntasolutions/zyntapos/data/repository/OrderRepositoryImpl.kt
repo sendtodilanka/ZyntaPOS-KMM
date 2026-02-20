@@ -36,7 +36,7 @@ class OrderRepositoryImpl(
 ) : OrderRepository {
 
     private val q  get() = db.ordersQueries
-    private val iq get() = db.orderItemsQueries
+    private val iq get() = db.ordersQueries
     private val pq get() = db.productsQueries
 
     // ── Read ─────────────────────────────────────────────────────────────────

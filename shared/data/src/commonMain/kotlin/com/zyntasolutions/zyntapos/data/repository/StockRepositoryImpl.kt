@@ -41,9 +41,9 @@ class StockRepositoryImpl(
     private val syncEnqueuer: SyncEnqueuer,
 ) : StockRepository {
 
-    private val aq get() = db.stockAdjustmentsQueries
+    private val aq get() = db.stockQueries
     private val pq get() = db.productsQueries
-    private val lq get() = db.stockAlertsQueries
+    private val lq get() = db.stockQueries
 
     override suspend fun adjustStock(adjustment: StockAdjustment): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
@@ -73,7 +73,7 @@ class StockRepositoryImpl(
                 aq.insertAdjustment(
                     id = p.id, product_id = p.productId, type = p.type,
                     quantity = p.quantity, reason = p.reason, adjusted_by = p.adjustedBy,
-                    reference_id = p.referenceId, timestamp_ = p.timestamp, sync_status = p.syncStatus,
+                    reference_id = p.referenceId, timestamp = p.timestamp, sync_status = p.syncStatus,
                 )
                 pq.updateStockQty(stock_qty = newQty, updated_at = now, id = adjustment.productId)
                 // Upsert or delete low-stock alert

@@ -115,7 +115,7 @@ class CalculateOrderTotalsUseCase {
                 taxAmount = roundHalfUp(totalTax),
                 discountAmount = roundHalfUp(orderDiscountAmt),
                 total = roundHalfUp(total),
-                itemCount = items.size,
+                itemCount = items.size.toDouble(),
             ),
         )
     }

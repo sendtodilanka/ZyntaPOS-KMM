@@ -36,6 +36,7 @@ kotlin {
             implementation(libs.sqldelight.android.driver)
             implementation(libs.sqlcipher.android)
             implementation(libs.androidx.sqlite)
+            implementation(libs.androidx.work.runtime)
         }
         jvmMain.dependencies {
             implementation(libs.ktor.client.cio)
@@ -44,6 +45,15 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.bundles.testing.common)
             implementation(libs.ktor.client.mock)
+        }
+        // JVM integration tests use the in-memory SQLite driver (JdbcSqliteDriver.IN_MEMORY)
+        // for repository and SyncEngine tests that require a real SQLDelight database.
+        val jvmTest by getting {
+            dependencies {
+                implementation(libs.sqldelight.jvm.driver)
+                implementation(libs.ktor.client.mock)
+                implementation(libs.bundles.testing.common)
+            }
         }
     }
 }

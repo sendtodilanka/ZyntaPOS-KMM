@@ -23,6 +23,8 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
+            // MVI BaseViewModel shared foundation — promoted from feature/auth/mvi in Sprint 13b
+            implementation(project(":composeApp:core"))
             implementation(project(":composeApp:designsystem"))
             implementation(project(":shared:core"))
             implementation(project(":shared:domain"))

@@ -47,7 +47,7 @@ class SettingsRepositoryImpl(
     override suspend fun set(key: String, value: String): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
             val now = Clock.System.now().toEpochMilliseconds()
-            q.upsertSetting(key = key, value = value, updated_at = now)
+            q.upsertSetting(key = key, value_ = value, updated_at = now)
         }.fold(
             onSuccess = { Result.Success(Unit) },
             onFailure = { t ->

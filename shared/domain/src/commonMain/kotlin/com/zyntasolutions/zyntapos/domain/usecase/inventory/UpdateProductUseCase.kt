@@ -60,8 +60,8 @@ class UpdateProductUseCase(
         val existing = (existingResult as Result.Success).data
 
         // Barcode uniqueness check only if barcode changed
-        if (product.barcode.isNotBlank() && product.barcode != existing.barcode) {
-            val barcodeMatch = productRepository.getByBarcode(product.barcode)
+        if (!product.barcode.isNullOrBlank() && product.barcode != existing.barcode) {
+            val barcodeMatch = productRepository.getByBarcode(product.barcode!!)
             if (barcodeMatch is Result.Success) {
                 return Result.Error(
                     ValidationException(

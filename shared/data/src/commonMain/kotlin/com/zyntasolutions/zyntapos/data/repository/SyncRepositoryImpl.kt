@@ -53,7 +53,7 @@ class SyncRepositoryImpl(
     private val db: ZyntaDatabase,
 ) : SyncRepository {
 
-    private val q get() = db.pendingOperationsQueries
+    private val q get() = db.sync_queueQueries
 
     companion object {
         /** Maximum rows fetched per sync cycle. Keeps payload under ~500 KB. */
@@ -61,6 +61,9 @@ class SyncRepositoryImpl(
 
         /** Operations that exceed this retry ceiling are permanently marked FAILED. */
         const val MAX_RETRIES = 5
+
+        /** SYNCING rows left for more than 10 minutes are assumed stale (app crash). */
+        const val STALE_SYNCING_THRESHOLD_MS = 10L * 60 * 1000
     }
 
     // ── Read ─────────────────────────────────────────────────────────
@@ -191,10 +194,5 @@ class SyncRepositoryImpl(
                 onSuccess = { Result.Success(Unit) },
                 onFailure = { t -> Result.Error(DatabaseException(t.message ?: "deduplicatePending failed", cause = t)) },
             )
-    }
-
-    private companion object {
-        /** SYNCING rows left for more than 10 minutes are assumed stale (app crash). */
-        const val STALE_SYNCING_THRESHOLD_MS = 10L * 60 * 1000
     }
 }

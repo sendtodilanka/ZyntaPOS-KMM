@@ -91,6 +91,12 @@ include(":shared:hal")
 // JWT token management, RBAC engine, session management.
 include(":shared:security")
 
+// ── ComposeApp — Core (Shared UI Infrastructure) ─────────────
+// Generic MVI BaseViewModel<S,I,E>, shared Channel/StateFlow wiring,
+// and any future cross-feature UI infrastructure.
+// Every :composeApp:feature:* module depends on this.
+include(":composeApp:core")
+
 // ── ComposeApp — Design System ────────────────────────────────
 // Material 3 theme tokens, typography, shape, spacing, reusable
 // stateless components (ZentaButton, ZentaCard, NumericKeypad, …).

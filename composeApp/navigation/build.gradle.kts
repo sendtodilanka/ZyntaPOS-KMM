@@ -3,7 +3,7 @@
 // Contains: NavRoute sealed hierarchy, ZentaNavHost,
 //           platform-adaptive shell (Rail vs BottomBar),
 //           NavigationViewModel with RBAC route filtering,
-//           deep link scheme: zentapos://
+//           deep link scheme: zyntapos://
 // ============================================================
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -29,12 +29,14 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(project(":composeApp:designsystem"))
-            api(project(":shared:security"))     // RBAC route filtering
+            api(project(":shared:domain"))           // Role, Permission, domain models
+            api(project(":shared:security"))         // RBAC route filtering (Phase 2 expansion)
             // Explicit Compose Multiplatform artifact coordinates (accessors deprecated in CMP 1.8+)
             api(libs.compose.runtime)
             api(libs.compose.foundation)
             api(compose.material3)
             api(libs.compose.ui)
+            api(libs.compose.navigation)             // Type-safe KMP navigation
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.bundles.koin.common)
             implementation(libs.androidx.lifecycle.viewmodelCompose)

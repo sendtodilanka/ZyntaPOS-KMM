@@ -33,8 +33,8 @@ class RegisterRepositoryImpl(
     private val syncEnqueuer: SyncEnqueuer,
 ) : RegisterRepository {
 
-    private val sq get() = db.registerSessionsQueries
-    private val mq get() = db.cashMovementsQueries
+    private val sq get() = db.registersQueries
+    private val mq get() = db.registersQueries
 
     override fun getActive(): Flow<RegisterSession?> =
         sq.getActiveSession()
@@ -78,7 +78,7 @@ class RegisterRepositoryImpl(
                     closed_at        = null,
                     notes            = null,
                 )
-                db.cashRegistersQueries.updateRegisterSession(
+                db.registersQueries.updateRegisterSession(
                     current_session_id = sessionId,
                     id                 = registerId,
                 )
@@ -121,7 +121,7 @@ class RegisterRepositoryImpl(
                     notes            = null,
                     id               = sessionId,
                 )
-                db.cashRegistersQueries.updateRegisterSession(
+                db.registersQueries.updateRegisterSession(
                     current_session_id = null,
                     id                 = session.register_id,
                 )
@@ -144,7 +144,7 @@ class RegisterRepositoryImpl(
                     amount      = movement.amount,
                     reason      = movement.reason,
                     recorded_by = movement.recordedBy,
-                    timestamp_  = movement.timestamp.toEpochMilliseconds(),
+                    timestamp   = movement.timestamp.toEpochMilliseconds(),
                 )
                 syncEnqueuer.enqueue(SyncOperation.EntityType.CASH_MOVEMENT, movement.id, SyncOperation.Operation.INSERT)
             }

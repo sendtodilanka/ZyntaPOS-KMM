@@ -48,8 +48,8 @@ class CreateProductUseCase(
         }
 
         // Barcode uniqueness check
-        if (product.barcode.isNotBlank()) {
-            val existing = productRepository.getByBarcode(product.barcode)
+        if (!product.barcode.isNullOrBlank()) {
+            val existing = productRepository.getByBarcode(product.barcode!!)
             if (existing is Result.Success) {
                 return Result.Error(
                     ValidationException(
@@ -62,7 +62,7 @@ class CreateProductUseCase(
         }
 
         // SKU uniqueness check (search approach — repository may add dedicated method in Phase 2)
-        if (product.sku.isNotBlank()) {
+        if (!product.sku.isNullOrBlank()) {
             val skuMatch = productRepository.search(product.sku, null)
             // Flow-based; call first() in a coroutine context — delegated to the data layer
         }

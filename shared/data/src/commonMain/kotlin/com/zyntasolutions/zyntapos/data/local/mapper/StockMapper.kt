@@ -18,7 +18,7 @@ object StockMapper {
         quantity    = row.quantity,
         reason      = row.reason,
         adjustedBy  = row.adjusted_by,
-        timestamp   = Instant.fromEpochMilliseconds(row.timestamp_),
+        timestamp   = Instant.fromEpochMilliseconds(row.timestamp),
         syncStatus  = SyncStatus(
             state = SyncStatus.State.valueOf(row.sync_status.uppercase()),
         ),

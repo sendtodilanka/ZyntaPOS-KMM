@@ -5,6 +5,9 @@ import com.zyntasolutions.zyntapos.data.local.db.DatabaseFactory
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseMigrations
 import com.zyntasolutions.zyntapos.data.local.security.PasswordHasher
 import com.zyntasolutions.zyntapos.data.local.security.SecurePreferences
+import com.zyntasolutions.zyntapos.data.remote.api.ApiService
+import com.zyntasolutions.zyntapos.data.remote.api.KtorApiService
+import com.zyntasolutions.zyntapos.data.remote.api.buildApiClient
 import com.zyntasolutions.zyntapos.data.repository.AuthRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.CategoryRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.CustomerRepositoryImpl
@@ -15,6 +18,8 @@ import com.zyntasolutions.zyntapos.data.repository.SettingsRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.StockRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.SupplierRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.SyncRepositoryImpl
+import com.zyntasolutions.zyntapos.data.sync.NetworkMonitor
+import com.zyntasolutions.zyntapos.data.sync.SyncEngine
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.CategoryRepository
 import com.zyntasolutions.zyntapos.domain.repository.CustomerRepository
@@ -32,11 +37,11 @@ import org.koin.dsl.module
  *
  * Provides platform-agnostic bindings for the entire data layer.
  * Platform-specific bindings ([DatabaseDriverFactory], [DatabaseKeyProvider],
- * [PasswordHasher], [SecurePreferences]) must be registered in the platform Koin
- * modules (`androidDataModule` / `desktopDataModule`) and merged at the application
- * entry point.
+ * [PasswordHasher], [SecurePreferences], [NetworkMonitor]) must be registered
+ * in the platform Koin modules (`androidDataModule` / `desktopDataModule`) and
+ * merged at the application entry point.
  *
- * ## Full Module Graph (Sprint 6 — Steps 3.2 + 3.3)
+ * ## Full Module Graph (Sprint 6 — Steps 3.2 + 3.3 + 3.4)
  *
  * ```
  * DatabaseKeyProvider  ─┐
@@ -45,17 +50,28 @@ import org.koin.dsl.module
  * DatabaseMigrations   ─┘
  *
  * PasswordHasher   ──► AuthRepositoryImpl
- * SecurePreferences──► AuthRepositoryImpl
+ * SecurePreferences──► AuthRepositoryImpl, ApiClient, SyncEngine
  *
- * SyncEnqueuer  ─────► OrderRepositoryImpl
- *               ─────► StockRepositoryImpl
- *               ─────► (other write-path repos)
+ * SyncEnqueuer  ─────► OrderRepositoryImpl, StockRepositoryImpl, (write-path repos)
+ *
+ * ApiClient (Ktor HttpClient) ──► ApiService (KtorApiService)
+ *
+ * NetworkMonitor ─────────────┐
+ * ApiService ─────────────────┼─► SyncEngine
+ * ZyntaDatabase ──────────────┘
+ * SecurePreferences ──────────┘
  * ```
  *
- * ## Planned additions (Sprint 6 Step 3.4 — Ktor + SyncEngine)
- * - `ApiService` (Ktor HttpClient)
- * - `NetworkMonitor` (connectivity observer)
- * - `SyncEngine` (orchestrates push/pull cycle)
+ * ## Platform modules must additionally provide:
+ * - `DatabaseDriverFactory`  (expect/actual — platform constructor args differ)
+ * - `DatabaseKeyProvider`    (expect/actual — platform constructor args differ)
+ * - `NetworkMonitor`         (expect/actual — Android needs Context; Desktop no-arg)
+ * - `PasswordHasher`         (interface — Sprint 6: PlaceholderPasswordHasher; Sprint 8: BCrypt)
+ * - `SecurePreferences`      (interface — Sprint 6: InMemorySecurePreferences; Sprint 8: Encrypted)
+ *
+ * ## Android WorkManager integration (SyncWorker)
+ * `SyncEngine.runOnce()` is invoked from `SyncWorker` (androidMain) — no extra binding needed.
+ * `SyncEngine.startPeriodicSync(scope)` is called from the Desktop application entry point.
  */
 val dataModule = module {
 
@@ -130,4 +146,47 @@ val dataModule = module {
     // the SyncEngine can call maintenance methods (pruneSynced, deduplicatePending,
     // markFailed) that are not part of the domain contract.
     single { get<SyncRepository>() as SyncRepositoryImpl }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ── Network & Sync Layer (Step 3.4) ──────────────────────────────────────
+    // NetworkMonitor is an expect/actual class with platform-specific constructors;
+    // its binding MUST be registered in the platform modules (androidDataModule /
+    // desktopDataModule). The commonMain module resolves it via `get<NetworkMonitor>()`.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Ktor [HttpClient] configured with:
+     * - ContentNegotiation (kotlinx.serialization JSON)
+     * - Bearer Auth (tokens from [SecurePreferences])
+     * - HttpTimeout (connect 10s / request 30s / socket 30s)
+     * - Retry (3 attempts, exponential backoff 1s/2s/4s)
+     * - Logging (Kermit-backed, DEBUG only)
+     *
+     * The client is **not** exposed directly — callers receive [ApiService].
+     */
+    single { buildApiClient(prefs = get()) }
+
+    /**
+     * [ApiService] implementation backed by the configured [HttpClient].
+     * Bound as both the interface and the concrete [KtorApiService] type so that
+     * test code can inject a [MockEngine]-backed variant when needed.
+     */
+    single<ApiService> { KtorApiService(client = get()) }
+    single { get<ApiService>() as KtorApiService }
+
+    /**
+     * [SyncEngine] — offline-first push/pull coordinator.
+     *
+     * Scheduling:
+     * - Android: [SyncWorker] (WorkManager CoroutineWorker) calls [SyncEngine.runOnce]
+     * - Desktop: Application entry-point calls [SyncEngine.startPeriodicSync]
+     */
+    single {
+        SyncEngine(
+            db             = get(),
+            api            = get(),
+            prefs          = get(),
+            networkMonitor = get(),
+        )
+    }
 }

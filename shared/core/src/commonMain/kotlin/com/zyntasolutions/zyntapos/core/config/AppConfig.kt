@@ -11,6 +11,16 @@ package com.zyntasolutions.zyntapos.core.config
  */
 object AppConfig {
 
+    // ── Build ─────────────────────────────────────────────────────────────────
+
+    /**
+     * Set to `true` during application startup in debug builds.
+     * Android: read from `BuildConfig.DEBUG` in the androidApp module.
+     * Desktop: set via a Gradle `buildkonfig` flag.
+     * Controls verbose Ktor logging and other debug-only behavior.
+     */
+    var IS_DEBUG: Boolean = false
+
     // ── API ───────────────────────────────────────────────────────────────────
 
     /**
