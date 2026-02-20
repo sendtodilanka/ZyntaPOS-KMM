@@ -16,6 +16,8 @@ pluginManagement {
             }
         }
         mavenCentral()
+        // JetBrains Compose Multiplatform plugin releases (incl. hot-reload)
+        maven("https://maven.pkg.jetbrains.space/public/p/compose/dev/")
         gradlePluginPortal()
     }
 }
@@ -34,6 +36,8 @@ dependencyResolutionManagement {
             }
         }
         mavenCentral()
+        // JetBrains Compose Multiplatform library artifacts (org.jetbrains.compose.*)
+        maven("https://maven.pkg.jetbrains.space/public/p/compose/dev/")
         // SQLCipher Android (net.zetetic) lives on Maven Central.
         // JitPack fallback for any community libs not yet on Central.
         maven("https://jitpack.io") {
@@ -52,7 +56,13 @@ plugins {
 // ════════════════════════════════════════════════════════════
 
 // ── Application Shell ─────────────────────────────────────────
-// Root Compose Multiplatform module (Android + JVM desktop).
+// Android-only application module. Depends on :composeApp (KMP library).
+// Isolates com.android.application from KMP to comply with AGP 9.0.0+.
+include(":androidApp")
+
+// ── Compose Multiplatform Entry Point (KMP Library) ───────────
+// Root KMP module: JVM Desktop entry point + Android library target.
+// Provides App() composable and shared platform bootstrapping.
 include(":composeApp")
 
 // ── Shared — Tier 1: Core ─────────────────────────────────────

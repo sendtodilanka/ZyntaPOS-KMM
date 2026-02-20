@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  JAVA_VERSION: '21'
+  JAVA_DISTRIBUTION: 'zulu'
+
+jobs:
+  build:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      # ── Checkout ──────────────────────────────────────────────────────────
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      # ── Java ──────────────────────────────────────────────────────────────
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          java-version: ${{ env.JAVA_VERSION }}
+
+      # ── Gradle ────────────────────────────────────────────────────────────
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop' }}
+
+      # ── Secrets / local.properties ────────────────────────────────────────
+      - name: Create local.properties from template
+        run: |
+          cp local.properties.template local.properties
+          echo "API_BASE_URL=${{ secrets.API_BASE_URL }}" >> local.properties
+          echo "DB_ENCRYPTION_PASSWORD=${{ secrets.DB_ENCRYPTION_PASSWORD }}" >> local.properties
+
+      # ── Shared Modules ────────────────────────────────────────────────────
+      - name: Build :shared:core (JVM)
+        run: ./gradlew :shared:core:jvmJar --stacktrace
+
+      - name: Build :shared:domain (JVM)
+        run: ./gradlew :shared:domain:jvmJar --stacktrace
+
+      - name: Build :shared:data (JVM)
+        run: ./gradlew :shared:data:jvmJar --stacktrace
+
+      - name: Build :shared:hal (JVM)
+        run: ./gradlew :shared:hal:jvmJar --stacktrace
+
+      - name: Build :shared:security (JVM)
+        run: ./gradlew :shared:security:jvmJar --stacktrace
+
+      # ── Android ───────────────────────────────────────────────────────────
+      - name: Build Android debug APK
+        run: ./gradlew :androidApp:assembleDebug --stacktrace
+
+      # ── Desktop ───────────────────────────────────────────────────────────
+      - name: Build Desktop JVM JAR
+        run: ./gradlew :composeApp:jvmJar --stacktrace
+
+      # ── Tests ─────────────────────────────────────────────────────────────
+      - name: Run all tests (JVM targets)
+        run: ./gradlew allTests --stacktrace
+
+      # ── Artifacts ─────────────────────────────────────────────────────────
+      - name: Upload APK artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zyntapos-debug-apk
+          path: androidApp/build/outputs/apk/debug/*.apk
+          retention-days: 7
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: '**/build/reports/tests/'
+          retention-days: 7

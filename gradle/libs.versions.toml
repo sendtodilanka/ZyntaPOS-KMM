@@ -5,7 +5,7 @@
 
 [versions]
 # ── Core Toolchain ───────────────────────────────────────────
-agp                            = "8.11.2"
+agp                            = "8.13.2"
 kotlin                         = "2.3.0"
 
 # ── Android SDK Targets ───────────────────────────────────────
@@ -56,6 +56,10 @@ kermit                         = "2.0.4"
 junit                          = "4.13.2"
 mockative                      = "3.0.1"
 turbine                        = "1.2.0"
+
+# ── Desktop Serial / Security ────────────────────────────────
+jserialcomm                    = "2.10.4"
+jbcrypt                        = "0.4"
 
 # ── Build Tooling ─────────────────────────────────────────────
 secrets-gradle-plugin          = "2.0.1"
@@ -147,6 +151,10 @@ junit                                  = { module = "junit:junit",              
 mockative                              = { module = "io.mockative:mockative",                    version.ref = "mockative" }
 turbine                                = { module = "app.cash.turbine:turbine",                  version.ref = "turbine" }
 
+# ── Desktop Platform Libraries ────────────────────────────────
+jserialcomm                            = { module = "com.fazecast:jSerialComm",                  version.ref = "jserialcomm" }
+jbcrypt                                = { module = "org.mindrot:jbcrypt",                        version.ref = "jbcrypt" }
+
 # ─────────────────────────────────────────────────────────────
 
 [bundles]
@@ -196,6 +204,8 @@ testing-common = [
 # ── Core Toolchain ────────────────────────────────────────────
 androidApplication                     = { id = "com.android.application",                         version.ref = "agp" }
 androidLibrary                         = { id = "com.android.library",                             version.ref = "agp" }
+# com.android.kotlin.multiplatform.library is bundled within AGP — no separate version needed.
+androidKmpLibrary                      = { id = "com.android.kotlin.multiplatform.library" }
 kotlinMultiplatform                    = { id = "org.jetbrains.kotlin.multiplatform",               version.ref = "kotlin" }
 kotlinAndroid                          = { id = "org.jetbrains.kotlin.android",                    version.ref = "kotlin" }
 kotlinSerialization                    = { id = "org.jetbrains.kotlin.plugin.serialization",       version.ref = "kotlin" }

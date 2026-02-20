@@ -8,13 +8,16 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.androidLibrary)
+    alias(libs.plugins.androidKmpLibrary)          // replaces com.android.library (AGP 9.0 compat)
     alias(libs.plugins.sqldelight)
     alias(libs.plugins.kotlinSerialization)
 }
 
 kotlin {
-    androidTarget {
+    android {
+        namespace  = "com.zyntasolutions.zyntapos.data"
+        compileSdk = libs.versions.android.compileSdk.get().toInt()
+        minSdk     = libs.versions.android.minSdk.get().toInt()
         compilerOptions { jvmTarget.set(JvmTarget.JVM_11) }
     }
     jvm {
@@ -45,26 +48,12 @@ kotlin {
     }
 }
 
-android {
-    namespace   = "com.zynta.pos.data"
-    compileSdk  = libs.versions.android.compileSdk.get().toInt()
-    defaultConfig {
-        minSdk = libs.versions.android.minSdk.get().toInt()
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-}
-
 // ── SQLDelight Configuration ──────────────────────────────────
 sqldelight {
     databases {
         create("ZyntaDatabase") {
-            packageName.set("com.zynta.pos.db")
-            // Source directory for .sq schema files
+            packageName.set("com.zyntasolutions.zyntapos.db")
             srcDirs.setFrom("src/commonMain/sqldelight")
-            // Generate verify queries for compile-time SQL validation
             verifyMigrations.set(false)
             generateAsync.set(false)
         }

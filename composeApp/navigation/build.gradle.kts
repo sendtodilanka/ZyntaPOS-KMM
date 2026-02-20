@@ -9,14 +9,17 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.androidLibrary)
+    alias(libs.plugins.androidKmpLibrary)          // replaces com.android.library (AGP 9.0 compat)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
 }
 
 kotlin {
-    androidTarget {
+    android {
+        namespace  = "com.zyntasolutions.zyntapos.navigation"
+        compileSdk = libs.versions.android.compileSdk.get().toInt()
+        minSdk     = libs.versions.android.minSdk.get().toInt()
         compilerOptions { jvmTarget.set(JvmTarget.JVM_11) }
     }
     jvm {
@@ -27,10 +30,11 @@ kotlin {
         commonMain.dependencies {
             api(project(":composeApp:designsystem"))
             api(project(":shared:security"))     // RBAC route filtering
-            api(compose.runtime)
-            api(compose.foundation)
+            // Explicit Compose Multiplatform artifact coordinates (accessors deprecated in CMP 1.8+)
+            api(libs.compose.runtime)
+            api(libs.compose.foundation)
             api(compose.material3)
-            api(compose.ui)
+            api(libs.compose.ui)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.bundles.koin.common)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
@@ -46,17 +50,4 @@ kotlin {
             implementation(libs.bundles.testing.common)
         }
     }
-}
-
-android {
-    namespace   = "com.zynta.pos.navigation"
-    compileSdk  = libs.versions.android.compileSdk.get().toInt()
-    defaultConfig {
-        minSdk = libs.versions.android.minSdk.get().toInt()
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-    buildFeatures { compose = true }
 }

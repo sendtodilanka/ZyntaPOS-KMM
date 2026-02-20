@@ -8,13 +8,16 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.androidLibrary)
+    alias(libs.plugins.androidKmpLibrary)          // replaces com.android.library (AGP 9.0 compat)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
 }
 
 kotlin {
-    androidTarget {
+    android {
+        namespace  = "com.zyntasolutions.zyntapos.designsystem"
+        compileSdk = libs.versions.android.compileSdk.get().toInt()
+        minSdk     = libs.versions.android.minSdk.get().toInt()
         compilerOptions { jvmTarget.set(JvmTarget.JVM_11) }
     }
     jvm {
@@ -24,38 +27,26 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(project(":shared:core"))
-            api(compose.runtime)
-            api(compose.foundation)
+            // Explicit Compose Multiplatform artifact coordinates (accessors deprecated in CMP 1.8+)
+            api(libs.compose.runtime)
+            api(libs.compose.foundation)
             api(compose.material3)
-            api(compose.ui)
-            api(compose.components.resources)
-            api(libs.compose.material.icons.extended)
+            api(libs.compose.ui)
+            api(libs.compose.components.resources)
+            api(compose.materialIconsExtended)
             api(libs.compose.adaptive)
             implementation(libs.kotlinx.collections.immutable)
             implementation(libs.coil.compose)
         }
         androidMain.dependencies {
-            implementation(libs.compose.uiToolingPreview)
+            implementation(libs.compose.uiTooling)
         }
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
-            implementation(libs.compose.uiToolingPreview)
+            implementation(libs.compose.uiTooling)
         }
         commonTest.dependencies {
             implementation(libs.bundles.testing.common)
         }
     }
-}
-
-android {
-    namespace   = "com.zynta.pos.designsystem"
-    compileSdk  = libs.versions.android.compileSdk.get().toInt()
-    defaultConfig {
-        minSdk = libs.versions.android.minSdk.get().toInt()
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-    buildFeatures { compose = true }
 }
