@@ -32,35 +32,35 @@ class ZentaLogger(val defaultTag: String = "ZentaPOS") {
 
     /** Emits a [Severity.Verbose] log entry. */
     fun v(message: String, tag: String = defaultTag, throwable: Throwable? = null) {
-        Logger.v(tag = tag, throwable = throwable) { message }
+        Logger.withTag(tag).v(message, throwable)
     }
 
     // ── Debug ─────────────────────────────────────────────────────────────────
 
     /** Emits a [Severity.Debug] log entry. */
     fun d(message: String, tag: String = defaultTag, throwable: Throwable? = null) {
-        Logger.d(tag = tag, throwable = throwable) { message }
+        Logger.withTag(tag).d(message, throwable)
     }
 
     // ── Info ──────────────────────────────────────────────────────────────────
 
     /** Emits a [Severity.Info] log entry. */
     fun i(message: String, tag: String = defaultTag, throwable: Throwable? = null) {
-        Logger.i(tag = tag, throwable = throwable) { message }
+        Logger.withTag(tag).i(message, throwable)
     }
 
     // ── Warn ──────────────────────────────────────────────────────────────────
 
     /** Emits a [Severity.Warn] log entry. */
     fun w(message: String, tag: String = defaultTag, throwable: Throwable? = null) {
-        Logger.w(tag = tag, throwable = throwable) { message }
+        Logger.withTag(tag).w(message, throwable)
     }
 
     // ── Error ─────────────────────────────────────────────────────────────────
 
     /** Emits a [Severity.Error] log entry. */
     fun e(message: String, tag: String = defaultTag, throwable: Throwable? = null) {
-        Logger.e(tag = tag, throwable = throwable) { message }
+        Logger.withTag(tag).e(message, throwable)
     }
 
     // ── Convenience factory for module-tagged child loggers ───────────────────

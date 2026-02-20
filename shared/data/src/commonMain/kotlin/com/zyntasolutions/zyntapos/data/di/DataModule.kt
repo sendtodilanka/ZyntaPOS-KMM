@@ -1,15 +1,49 @@
 package com.zyntasolutions.zyntapos.data.di
 
+import com.zyntasolutions.zyntapos.data.local.db.DatabaseFactory
+import com.zyntasolutions.zyntapos.data.local.db.DatabaseMigrations
+import org.koin.dsl.module
+
 /**
- * ZentaPOS — :shared:data Koin DI Module
+ * ZentaPOS — :shared:data Koin DI Module (commonMain)
  *
- * Placeholder for Sprint 6 (Step 3.4.6) where real bindings are added:
- * - DatabaseDriverFactory (platform-specific, via expect/actual)
- * - All RepositoryImpl bindings (ProductRepositoryImpl, OrderRepositoryImpl, etc.)
+ * Provides platform-agnostic bindings. Platform-specific bindings for
+ * [DatabaseDriverFactory] and [DatabaseKeyProvider] are registered in
+ * the platform Koin modules (`androidDataModule` / `desktopDataModule`),
+ * which are included from the respective application entry points.
+ *
+ * ## Module Graph (Step 3.2 — SQLCipher)
+ * ```
+ * DatabaseKeyProvider  ─┐
+ *                        ├─► DatabaseFactory ─► ZyntaDatabase
+ * DatabaseDriverFactory ─┘
+ * DatabaseMigrations   ─┘
+ * ```
+ *
+ * ## Planned bindings (Step 3.3 — Repositories | Step 3.4 — Ktor + Sync)
+ * - ProductRepositoryImpl, OrderRepositoryImpl, etc.
  * - ApiClient (Ktor)
- * - SyncEngine
- * - NetworkMonitor (platform-specific)
- *
- * Registered in the root Koin graph via `startKoin { modules(dataModule) }`.
+ * - SyncEngine, NetworkMonitor
  */
-internal object DataModule
+val dataModule = module {
+
+    // ── Schema Migration Manager ─────────────────────────────────────
+    single { DatabaseMigrations() }
+
+    // ── Database Factory (orchestrates key + driver + migrations) ─────
+    // DatabaseDriverFactory & DatabaseKeyProvider are expect/actual — their
+    // actual instances are bound in platform-specific modules:
+    //   Android → androidDataModule (provides context-aware actuals)
+    //   Desktop → desktopDataModule (provides path-aware actuals)
+    single {
+        DatabaseFactory(
+            keyProvider   = get(),
+            driverFactory = get(),
+            migrations    = get(),
+        )
+    }
+
+    // ── ZyntaDatabase singleton ───────────────────────────────────────
+    // Lazy-opened on first use; backed by AES-256 SQLCipher + WAL mode.
+    single { get<DatabaseFactory>().openDatabase() }
+}
