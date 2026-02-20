@@ -3,6 +3,8 @@
 **Enterprise-Grade Point of Sale — Kotlin Multiplatform (KMP)**  
 Targets: Android (minSdk 24) · Desktop JVM (macOS, Windows, Linux)
 
+> **Brand vs. Code Name:** The product's display name and UI branding is **ZentaPOS**; the repository, directory, and all Kotlin package identifiers use **ZyntaPOS / `com.zyntasolutions.zyntapos`** (company: Zynta Solutions Pvt Ltd). These two names refer to the same system.
+
 ---
 
 ## Executive Summary
@@ -110,9 +112,14 @@ cd ZyntaPOS
 ```
 
 ### 2. Configure local secrets
+
+> ⚠️ **Required before first build.** The project will not compile without `local.properties`.
+> This file is git-ignored and must **never** be committed. Copy the template and fill in real values:
+
 ```bash
 cp local.properties.template local.properties
 ```
+
 Open `local.properties` and fill in the required values:
 
 | Key | Description |
@@ -126,6 +133,8 @@ Open `local.properties` and fill in the required values:
 | `ZYNTA_MAPS_API_KEY` | Google Maps API key (optional) |
 | `ZYNTA_SENTRY_DSN` | Sentry crash reporting DSN |
 | `ZYNTA_IRD_API_ENDPOINT` | IRD e-invoice API endpoint (Sri Lanka) |
+| `ZYNTA_IRD_CLIENT_CERTIFICATE_PATH` | Absolute path to IRD mutual-TLS `.p12` certificate |
+| `ZYNTA_IRD_CERTIFICATE_PASSWORD` | Password for the IRD `.p12` certificate |
 
 Generate a secure DB passphrase:
 ```bash
