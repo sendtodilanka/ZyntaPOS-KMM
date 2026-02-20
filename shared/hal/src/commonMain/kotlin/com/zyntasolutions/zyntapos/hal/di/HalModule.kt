@@ -1,22 +1,44 @@
 package com.zyntasolutions.zyntapos.hal.di
 
+import com.zyntasolutions.zyntapos.hal.printer.PrinterManager
+import org.koin.core.module.Module
+import org.koin.dsl.module
+
 /**
- * ZentaPOS — :shared:hal Koin DI Module
+ * ZentaPOS — Hardware Abstraction Layer · Koin DI
  *
- * Placeholder for Sprint 7 (Step 4.2.11) where platform-specific bindings are added
- * via `expect fun halModule(): Module`:
+ * Platform-specific Koin module factory.
  *
- * Android provides:
- * - AndroidUsbPrinterPort (Step 4.2.1)
- * - AndroidCameraScanner (Step 4.2.3)
+ * Each platform's actual declaration provides concrete bindings for:
+ * - **Android**: [com.zyntasolutions.zyntapos.hal.printer.AndroidUsbPrinterPort] /
+ *               [com.zyntasolutions.zyntapos.hal.scanner.AndroidCameraScanner]
+ * - **Desktop**: [com.zyntasolutions.zyntapos.hal.printer.DesktopTcpPrinterPort] /
+ *               [com.zyntasolutions.zyntapos.hal.scanner.DesktopHidScanner]
  *
- * Desktop (JVM) provides:
- * - DesktopTcpPrinterPort (Step 4.2.6)
- * - DesktopHidScanner (Step 4.2.8)
+ * The common [halCommonModule] then wraps whichever platform bindings were
+ * registered and provides [PrinterManager] — the single gateway used by all
+ * shared ViewModels and use cases.
  *
- * Common provides:
- * - PrinterManager wrapper (Step 4.1.6)
- *
- * Registered in the root Koin graph via `startKoin { modules(halModule()) }`.
+ * ### Usage
+ * ```kotlin
+ * // In your KoinApplication initialisation (androidMain / jvmMain app entry)
+ * startKoin {
+ *     modules(halModule())
+ * }
+ * ```
  */
-internal object HalModule
+expect fun halModule(): Module
+
+/**
+ * Common bindings that delegate to platform-provided [PrinterPort] and
+ * [ReceiptBuilder] singletons.
+ *
+ * This module is included by every platform's [halModule] actual.
+ */
+val halCommonModule: Module = module {
+    /**
+     * [PrinterManager] — single Koin singleton wrapping the active [PrinterPort].
+     * Platform actuals register the concrete port; this binding picks it up via `get()`.
+     */
+    single { PrinterManager(port = get()) }
+}

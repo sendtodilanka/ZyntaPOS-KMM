@@ -26,14 +26,25 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(project(":shared:core"))
+            api(project(":shared:domain"))
+            implementation(libs.koin.core)
             implementation(libs.kotlinx.coroutines.core)
         }
         androidMain.dependencies {
             implementation(libs.kotlinx.coroutines.android)
-            // ML Kit BarcodeScanning added here when integrated
+            implementation(libs.koin.android)
+            // CameraX — for AndroidCameraScanner (ML Kit ImageAnalysis pipeline)
+            implementation(libs.camerax.core)
+            implementation(libs.camerax.camera2)
+            implementation(libs.camerax.lifecycle)
+            implementation(libs.camerax.view)
+            // ML Kit Barcode Scanning — AndroidCameraScanner
+            implementation(libs.mlkit.barcode.scanning)
         }
         jvmMain.dependencies {
             implementation(libs.kotlinx.coroutinesSwing)
+            // jSerialComm — serial port access for DesktopSerialPrinterPort & DesktopSerialScanner
+            implementation(libs.jserialcomm)
         }
         commonTest.dependencies {
             implementation(libs.bundles.testing.common)

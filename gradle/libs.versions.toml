@@ -62,6 +62,12 @@ turbine                        = "1.2.0"
 jserialcomm                    = "2.10.4"
 jbcrypt                        = "0.4"
 
+# ── CameraX ──────────────────────────────────────────────────
+camerax                        = "1.4.1"
+
+# ── ML Kit ───────────────────────────────────────────────────
+mlkit-barcode                  = "17.3.0"
+
 # ── Build Tooling ─────────────────────────────────────────────
 secrets-gradle-plugin          = "2.0.1"
 buildkonfig                    = "0.15.2"
@@ -157,6 +163,15 @@ turbine                                = { module = "app.cash.turbine:turbine", 
 # ── Desktop Platform Libraries ────────────────────────────────
 jserialcomm                            = { module = "com.fazecast:jSerialComm",                  version.ref = "jserialcomm" }
 jbcrypt                                = { module = "org.mindrot:jbcrypt",                        version.ref = "jbcrypt" }
+
+# ── CameraX ───────────────────────────────────────────────────
+camerax-core                           = { module = "androidx.camera:camera-core",                version.ref = "camerax" }
+camerax-camera2                        = { module = "androidx.camera:camera-camera2",             version.ref = "camerax" }
+camerax-lifecycle                      = { module = "androidx.camera:camera-lifecycle",           version.ref = "camerax" }
+camerax-view                           = { module = "androidx.camera:camera-view",                version.ref = "camerax" }
+
+# ── ML Kit ────────────────────────────────────────────────────
+mlkit-barcode-scanning                 = { module = "com.google.mlkit:barcode-scanning",          version.ref = "mlkit-barcode" }
 
 # ─────────────────────────────────────────────────────────────
 

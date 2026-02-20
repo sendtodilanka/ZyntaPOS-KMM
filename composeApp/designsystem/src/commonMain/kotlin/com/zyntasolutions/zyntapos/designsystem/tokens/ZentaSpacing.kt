@@ -68,3 +68,14 @@ data class ZentaSpacingTokens(
  * In all production composables read via `LocalSpacing.current`.
  */
 val LocalSpacing = compositionLocalOf { ZentaSpacingTokens() }
+
+/**
+ * Convenience singleton providing static access to the default spacing scale.
+ *
+ * Use this for non-composable contexts or simple shorthand in composable lambdas:
+ * ```kotlin
+ * Modifier.padding(ZentaSpacing.md)
+ * ```
+ * For dynamic / theme-overridden spacing use [LocalSpacing].current instead.
+ */
+val ZentaSpacing = ZentaSpacingTokens()

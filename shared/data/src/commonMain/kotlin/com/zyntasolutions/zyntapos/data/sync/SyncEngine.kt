@@ -137,6 +137,10 @@ class SyncEngine(
             )
         } catch (e: Exception) {
             log.e(e) { "Sync cycle FAILED" }
+            // Reset any SYNCING rows back to PENDING so they are retried on the next cycle.
+            // (Equivalent to what resetStaleSync does on app restart after a crash.)
+            val futureCutoff = Clock.System.now().toEpochMilliseconds() + 1L
+            db.sync_queueQueries.resetStaleSync(futureCutoff)
             _lastSyncResult.value = SyncResult.Failure(
                 error = e.message ?: "Unknown sync error",
             )

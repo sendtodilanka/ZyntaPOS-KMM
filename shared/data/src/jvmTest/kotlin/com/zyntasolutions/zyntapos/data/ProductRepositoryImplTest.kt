@@ -154,8 +154,8 @@ class ProductRepositoryImplTest {
     @Test
     fun getByBarcode_unknown_barcode_returns_error() = runTest {
         val result = repo.getByBarcode("0000000000000")
-        assertIs<Result.Error<*>>(result)
-        assertIs<DatabaseException>((result as Result.Error<*>).error)
+        assertIs<Result.Error>(result)
+        assertIs<DatabaseException>((result as Result.Error).exception)
     }
 
     // ─── F. getCount increments ────────────────────────────────────────────────
@@ -177,10 +177,10 @@ class ProductRepositoryImplTest {
 
         val pending = db.sync_queueQueries.getEligibleOperations(10L).executeAsList()
         assertEquals(1, pending.size)
-        assertEquals("PRODUCT", pending[0].entity_type)
-        assertEquals("p-1",     pending[0].entity_id)
-        assertEquals("CREATE",  pending[0].operation)
-        assertEquals("PENDING", pending[0].status)
+        assertEquals("product", pending[0].entity_type)  // SyncOperation.EntityType.PRODUCT = "product"
+        assertEquals("p-1",    pending[0].entity_id)
+        assertEquals("CREATE", pending[0].operation)
+        assertEquals("PENDING",pending[0].status)
     }
 
     // ─── H. Update enqueues PENDING sync op ───────────────────────────────────
@@ -223,8 +223,8 @@ class ProductRepositoryImplTest {
     @Test
     fun getById_unknown_id_returns_error() = runTest {
         val result = repo.getById("nonexistent-id")
-        assertIs<Result.Error<*>>(result)
-        assertIs<DatabaseException>((result as Result.Error<*>).error)
+        assertIs<Result.Error>(result)
+        assertIs<DatabaseException>((result as Result.Error).exception)
     }
 
     // ─── K. delete nonexistent → DatabaseException ────────────────────────────
@@ -232,7 +232,7 @@ class ProductRepositoryImplTest {
     @Test
     fun delete_nonexistent_product_returns_error() = runTest {
         val result = repo.delete("ghost-id")
-        assertIs<Result.Error<*>>(result)
-        assertIs<DatabaseException>((result as Result.Error<*>).error)
+        assertIs<Result.Error>(result)
+        assertIs<DatabaseException>((result as Result.Error).exception)
     }
 }
