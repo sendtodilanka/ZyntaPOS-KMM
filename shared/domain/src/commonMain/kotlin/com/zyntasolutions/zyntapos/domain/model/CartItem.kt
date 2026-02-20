@@ -1,0 +1,33 @@
+package com.zyntasolutions.zyntapos.domain.model
+
+/**
+ * A transient cart line — **never persisted directly**.
+ *
+ * [CartItem] lives only in POS ViewModel memory while the cashier is
+ * building an order. When an order is confirmed, [CartItem]s are converted
+ * to [OrderItem]s by `ProcessPaymentUseCase`.
+ *
+ * @property productId FK to [Product]. Used for stock validation and barcode lookup.
+ * @property productName Snapshot of the product name at the time it was added to the cart.
+ * @property unitPrice The sell price per unit at the time the item was added.
+ * @property quantity Number of units. Must be ≥ 1.
+ * @property discount Discount value applied to this line (see [discountType]).
+ * @property discountType Whether [discount] is a [DiscountType.FIXED] amount or [DiscountType.PERCENT].
+ * @property taxRate Effective tax percentage for this item (sourced from its [TaxGroup]).
+ * @property lineTotal Computed: `(unitPrice × quantity) - discountAmount ± taxAmount`.
+ *                     Calculated by `CalculateOrderTotalsUseCase` — **do not set manually**.
+ */
+data class CartItem(
+    val productId: String,
+    val productName: String,
+    val unitPrice: Double,
+    val quantity: Double,
+    val discount: Double = 0.0,
+    val discountType: DiscountType = DiscountType.FIXED,
+    val taxRate: Double = 0.0,
+    val lineTotal: Double = 0.0,
+) {
+    init {
+        require(quantity >= 1.0) { "Cart item quantity must be at least 1, got $quantity" }
+    }
+}

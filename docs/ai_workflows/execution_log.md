@@ -153,32 +153,31 @@
 ### Step 1.2 — :shared:core Implementation
 **Goal:** Cross-platform foundation — constants, extensions, error handling, logging
 
-- [ ] 1.2.1 — Create `shared/core/build.gradle.kts` (commonMain only, no Android/Desktop-specific deps)
-- [ ] 1.2.2 — Implement `Result.kt` sealed class: `Success<T>`, `Error`, `Loading` + extension fns
+- [x] Finished: 1.2.1 — Create `shared/core/build.gradle.kts` (commonMain only, no Android/Desktop-specific deps) | 2026-02-20
+- [x] Finished: 1.2.2 — Implement `Result.kt` sealed class | 2026-02-20: `Success<T>`, `Error`, `Loading` + extension fns
            (`onSuccess`, `onError`, `mapSuccess`, `getOrNull`, `getOrDefault`)
-- [ ] 1.2.3 — Implement `ZentaException.kt` hierarchy:
+- [x] Finished: 1.2.3 — Implement `ZentaException.kt` hierarchy | 2026-02-20
            `NetworkException`, `DatabaseException`, `AuthException`,
            `ValidationException`, `HalException`, `SyncException`
-- [ ] 1.2.4 — Implement `ZentaLogger.kt` (Kermit wrapper) with log levels + platform tags
+- [x] Finished: 1.2.4 — Implement `ZentaLogger.kt` (Kermit wrapper) | 2026-02-20
            (DEBUG, INFO, WARN, ERROR; tag = module name)
-- [ ] 1.2.5 — Create `AppConfig.kt`: baseUrl, dbName, dbVersion, syncIntervalMs,
+- [x] Finished: 1.2.5 — Create `AppConfig.kt` | 2026-02-20
            sessionTimeoutMs, maxRetries, pageSizeDefault constants
-- [ ] 1.2.6 — Create `StringExtensions.kt`: isValidEmail(), isValidPhone(), truncate(),
+- [x] Finished: 1.2.6 — Create `StringExtensions.kt` | 2026-02-20
            toTitleCase(), maskSensitive()
-- [ ] 1.2.7 — Create `DoubleExtensions.kt`: toCurrencyString(), roundToCurrency(),
+- [x] Finished: 1.2.7 — Create `DoubleExtensions.kt` | 2026-02-20
            toPercentage(), isPositive()
-- [ ] 1.2.8 — Create `LongExtensions.kt`: toLocalDateTime(), toFormattedDate(),
+- [x] Finished: 1.2.8 — Create `LongExtensions.kt` | 2026-02-20
            toFormattedTime(), isToday(), daysBetween()
-- [ ] 1.2.9 — Create `IdGenerator.kt` (UUID v4 cross-platform via `kotlin.uuid.Uuid`)
-- [ ] 1.2.10 — Create `DateTimeUtils.kt` (kotlinx.datetime wrappers): now(), toIso(),
+- [x] Finished: 1.2.9 — Create `IdGenerator.kt` (UUID v4 via kotlin.uuid.Uuid) | 2026-02-20
+- [x] Finished: 1.2.10 — Create `DateTimeUtils.kt` | 2026-02-20
             fromIso(), startOfDay(), endOfDay(), formatForDisplay()
-- [ ] 1.2.11 — Create `CurrencyFormatter.kt`: locale-aware, configurable symbol + decimals,
+- [x] Finished: 1.2.11 — Create `CurrencyFormatter.kt` | 2026-02-20
             supports LKR/USD/EUR, format(amount, currencyCode)
-- [ ] 1.2.12 — Create Koin `coreModule`: provides ZentaLogger, coroutine dispatchers (IO/Main/Default)
-- [ ] 1.2.13 — Create MVI base interfaces: `UiState`, `UiIntent`, `UiEffect` marker interfaces;
+- [x] Finished: 1.2.12 — Create Koin `coreModule` | 2026-02-20
+- [x] Finished: 1.2.13 — Create MVI base interfaces + `BaseViewModel` | 2026-02-20
             `BaseViewModel<S,I,E>` with `StateFlow<S>`, `SharedFlow<E>`, `onIntent(I)` abstract fn
-- [ ] 1.2.14 — Unit tests `commonTest`: ResultTest, DateTimeUtilsTest, CurrencyFormatterTest,
-            ZentaExceptionTest (≥ 90% coverage target)
+- [x] Finished: 1.2.14 — Unit tests `commonTest`: ResultTest, DateTimeUtilsTest, CurrencyFormatterTest, ZentaExceptionTest | 2026-02-20
 
 **Files Output:**
 ```
@@ -203,41 +202,41 @@ shared/core/src/commonTest/kotlin/com/zyntasolutions/zyntapos/core/
 ### Step 2.1 — Domain Models
 **Goal:** Define all Phase 1 domain entities as pure Kotlin data classes (no framework deps)
 
-- [ ] 2.1.1 — `User.kt`: id, name, email, role(Role), storeId, isActive, pinHash, createdAt, updatedAt
-- [ ] 2.1.2 — `Role.kt`: enum ADMIN, STORE_MANAGER, CASHIER, ACCOUNTANT, STOCK_MANAGER
-- [ ] 2.1.3 — `Permission.kt`: enum of all actions + `val rolePermissions: Map<Role, Set<Permission>>`
+- [x] 2.1.1 — `User.kt`: id, name, email, role(Role), storeId, isActive, pinHash, createdAt, updatedAt | 2026-02-20
+- [x] 2.1.2 — `Role.kt`: enum ADMIN, STORE_MANAGER, CASHIER, ACCOUNTANT, STOCK_MANAGER | 2026-02-20
+- [x] 2.1.3 — `Permission.kt`: enum of all actions + `val rolePermissions: Map<Role, Set<Permission>>`
            (VIEW_REPORTS, PROCESS_SALE, VOID_ORDER, MANAGE_PRODUCTS, MANAGE_USERS,
-            OPEN_REGISTER, CLOSE_REGISTER, APPLY_DISCOUNT, MANAGE_SETTINGS, etc.)
-- [ ] 2.1.4 — `Product.kt`: id, name, barcode, sku, categoryId, unitId, price, costPrice,
-           taxGroupId, stockQty, minStockQty, imageUrl, description, isActive, createdAt, updatedAt
-- [ ] 2.1.5 — `ProductVariant.kt`: id, productId, name, attributes(Map<String,String>), price, stock, barcode
-- [ ] 2.1.6 — `Category.kt`: id, name, parentId(nullable), imageUrl, displayOrder, isActive
-- [ ] 2.1.7 — `UnitOfMeasure.kt`: id, name, abbreviation, baseUnit(Boolean), conversionRate
-- [ ] 2.1.8 — `TaxGroup.kt`: id, name, rate(Double 0.0–100.0), isInclusive, isActive
-- [ ] 2.1.9 — `Customer.kt`: id, name, phone, email, address, groupId, loyaltyPoints, notes, isActive
-- [ ] 2.1.10 — `Order.kt`: id, orderNumber, type(OrderType), status(OrderStatus), items(List<OrderItem>),
-            subtotal, taxAmount, discountAmount, total, paymentMethod, amountTendered,
-            changeAmount, customerId(nullable), cashierId, storeId, registerSessionId,
-            notes, reference, createdAt, updatedAt, syncStatus
-- [ ] 2.1.11 — `OrderItem.kt`: id, orderId, productId, productName(snapshot), unitPrice,
-            quantity, discount, taxRate, taxAmount, lineTotal
-- [ ] 2.1.12 — `OrderType.kt`: enum SALE, REFUND, HOLD
-- [ ] 2.1.13 — `OrderStatus.kt`: enum COMPLETED, VOIDED, HELD, IN_PROGRESS
-- [ ] 2.1.14 — `PaymentMethod.kt`: enum CASH, CARD, MOBILE, BANK_TRANSFER, SPLIT
-- [ ] 2.1.15 — `PaymentSplit.kt`: data class — method(PaymentMethod), amount(Double)
-- [ ] 2.1.16 — `CashRegister.kt`: id, name, storeId, currentSessionId(nullable), isActive
-- [ ] 2.1.17 — `RegisterSession.kt`: id, registerId, openedBy, closedBy(nullable),
+            OPEN_REGISTER, CLOSE_REGISTER, APPLY_DISCOUNT, MANAGE_SETTINGS, etc.) | 2026-02-20
+- [x] 2.1.4 — `Product.kt`: id, name, barcode, sku, categoryId, unitId, price, costPrice,
+           taxGroupId, stockQty, minStockQty, imageUrl, description, isActive, createdAt, updatedAt | 2026-02-20
+- [x] 2.1.5 — `ProductVariant.kt`: id, productId, name, attributes(Map<String,String>), price, stock, barcode | 2026-02-20
+- [x] 2.1.6 — `Category.kt`: id, name, parentId(nullable), imageUrl, displayOrder, isActive | 2026-02-20
+- [x] 2.1.7 — `UnitOfMeasure.kt`: id, name, abbreviation, baseUnit(Boolean), conversionRate | 2026-02-20
+- [x] 2.1.8 — `TaxGroup.kt`: id, name, rate(Double 0.0–100.0), isInclusive, isActive | 2026-02-20
+- [x] 2.1.9 — `Customer.kt`: id, name, phone, email, address, groupId, loyaltyPoints, notes, isActive | 2026-02-20
+- [x] 2.1.10 — `Order.kt`: id, orderNumber, type(OrderType), status(OrderStatus), items(List<OrderItem>),
+            subtotal, taxAmount, discountAmount, total, paymentMethod, paymentSplits(List<PaymentSplit>),
+            amountTendered, changeAmount, customerId(nullable), cashierId, storeId, registerSessionId,
+            notes, reference, createdAt, updatedAt, syncStatus | 2026-02-20
+- [x] 2.1.11 — `OrderItem.kt`: id, orderId, productId, productName(snapshot), unitPrice,
+            quantity, discount, discountType, taxRate, taxAmount, lineTotal | 2026-02-20
+- [x] 2.1.12 — `OrderType.kt`: enum SALE, REFUND, HOLD | 2026-02-20
+- [x] 2.1.13 — `OrderStatus.kt`: enum COMPLETED, VOIDED, HELD, IN_PROGRESS | 2026-02-20
+- [x] 2.1.14 — `PaymentMethod.kt`: enum CASH, CARD, MOBILE, BANK_TRANSFER, SPLIT | 2026-02-20
+- [x] 2.1.15 — `PaymentSplit.kt`: data class — method(PaymentMethod), amount(Double) | 2026-02-20
+- [x] 2.1.16 — `CashRegister.kt`: id, name, storeId, currentSessionId(nullable), isActive | 2026-02-20
+- [x] 2.1.17 — `RegisterSession.kt`: id, registerId, openedBy, closedBy(nullable),
             openingBalance, closingBalance(nullable), expectedBalance, actualBalance(nullable),
-            openedAt, closedAt(nullable), status(OPEN/CLOSED)
-- [ ] 2.1.18 — `CashMovement.kt`: id, sessionId, type(IN/OUT), amount, reason, recordedBy, timestamp
-- [ ] 2.1.19 — `Supplier.kt`: id, name, contactPerson, phone, email, address, notes, isActive
-- [ ] 2.1.20 — `StockAdjustment.kt`: id, productId, type(INCREASE/DECREASE/TRANSFER),
-            quantity, reason, adjustedBy, timestamp, syncStatus
-- [ ] 2.1.21 — `SyncStatus.kt`: enum PENDING, SYNCING, SYNCED, FAILED + retryCount, lastAttempt
-- [ ] 2.1.22 — `CartItem.kt`: productId, productName, unitPrice, quantity, discount,
-            discountType(FIXED/PERCENT), taxRate, lineTotal — transient (not persisted)
-- [ ] 2.1.23 — `DiscountType.kt`: enum FIXED, PERCENT
-- [ ] 2.1.24 — `OrderTotals.kt`: subtotal, taxAmount, discountAmount, total, itemCount — computed value object
+            openedAt, closedAt(nullable), status(OPEN/CLOSED) | 2026-02-20
+- [x] 2.1.18 — `CashMovement.kt`: id, sessionId, type(IN/OUT), amount, reason, recordedBy, timestamp | 2026-02-20
+- [x] 2.1.19 — `Supplier.kt`: id, name, contactPerson, phone, email, address, notes, isActive | 2026-02-20
+- [x] 2.1.20 — `StockAdjustment.kt`: id, productId, type(INCREASE/DECREASE/TRANSFER),
+            quantity, reason, adjustedBy, timestamp, syncStatus | 2026-02-20
+- [x] 2.1.21 — `SyncStatus.kt`: data class with State enum (PENDING/SYNCING/SYNCED/FAILED) + retryCount, lastAttempt | 2026-02-20
+- [x] 2.1.22 — `CartItem.kt`: productId, productName, unitPrice, quantity, discount,
+            discountType(FIXED/PERCENT), taxRate, lineTotal — transient (not persisted) | 2026-02-20
+- [x] 2.1.23 — `DiscountType.kt`: enum FIXED, PERCENT | 2026-02-20
+- [x] 2.1.24 — `OrderTotals.kt`: subtotal, taxAmount, discountAmount, total, itemCount — computed value object | 2026-02-20
 
 
 ---
