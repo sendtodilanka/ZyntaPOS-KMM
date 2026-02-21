@@ -266,46 +266,56 @@ sealed interface PosSideEffect {
 | M05 | `:shared:security` | Infrastructure | M01 | 1 |
 | M06 | `:composeApp:designsystem` | Presentation | M01 | 1 |
 | M07 | `:composeApp:navigation` | Presentation | M06 | 1 |
-| M08 | `:composeApp:feature:auth` | Feature | M02, M03, M05, M06 | 1 |
-| M09 | `:composeApp:feature:pos` | Feature | M02, M03, M04, M06 | 1 |
-| M10 | `:composeApp:feature:inventory` | Feature | M02, M03, M06 | 1 |
-| M11 | `:composeApp:feature:register` | Feature | M02, M03, M04, M06 | 1 |
-| M12 | `:composeApp:feature:reports` | Feature | M02, M03, M06 | 1 |
-| M13 | `:composeApp:feature:customers` | Feature | M02, M03, M06 | 2 |
-| M14 | `:composeApp:feature:coupons` | Feature | M02, M03, M06 | 2 |
-| M15 | `:composeApp:feature:multistore` | Feature | M02, M03, M06 | 2 |
-| M16 | `:composeApp:feature:expenses` | Feature | M02, M03, M06 | 2 |
-| M17 | `:composeApp:feature:staff` | Feature | M02, M03, M06 | 3 |
-| M18 | `:composeApp:feature:settings` | Feature | M02, M03, M04, M05, M06 | 1 |
-| M19 | `:composeApp:feature:admin` | Feature | M02, M03, M05, M06 | 3 |
-| M20 | `:composeApp:feature:media` | Feature | M02, M03, M06 | 3 |
+| M08 | `:composeApp:feature:auth` | Feature | M02, M03, M05, M06, M21 | 1 |
+| M09 | `:composeApp:feature:pos` | Feature | M02, M03, M04, M06, M21 | 1 |
+| M10 | `:composeApp:feature:inventory` | Feature | M02, M03, M06, M21 | 1 |
+| M11 | `:composeApp:feature:register` | Feature | M02, M03, M04, M06, M21 | 1 |
+| M12 | `:composeApp:feature:reports` | Feature | M02, M03, M06, M21 | 1 |
+| M13 | `:composeApp:feature:customers` | Feature | M02, M03, M06, M21 | 2 |
+| M14 | `:composeApp:feature:coupons` | Feature | M02, M03, M06, M21 | 2 |
+| M15 | `:composeApp:feature:multistore` | Feature | M02, M03, M06, M21 | 2 |
+| M16 | `:composeApp:feature:expenses` | Feature | M02, M03, M06, M21 | 2 |
+| M17 | `:composeApp:feature:staff` | Feature | M02, M03, M06, M21 | 3 |
+| M18 | `:composeApp:feature:settings` | Feature | M02, M03, M04, M05, M06, M21 | 1 |
+| M19 | `:composeApp:feature:admin` | Feature | M02, M03, M05, M06, M21 | 3 |
+| M20 | `:composeApp:feature:media` | Feature | M02, M03, M06, M21 | 3 |
+| M21 | `:composeApp:core` | Presentation | M02 | 1 |
 
 ### 4.2 Module Dependency Graph
 
 ```
-                        ┌──────────┐
-                        │  :core   │
-                        └────┬─────┘
-              ┌──────────────┼──────────────┬───────────┐
-              ▼              ▼              ▼           ▼
-        ┌──────────┐  ┌──────────┐  ┌──────────┐ ┌─────────┐
-        │ :domain  │  │ :security│  │   :hal   │ │  :data  │
-        └────┬─────┘  └────┬─────┘  └────┬─────┘ └────┬────┘
-             │              │             │            │
-             └──────────────┼─────────────┼────────────┘
-                            ▼             ▼
-                    ┌──────────────────────────┐
-                    │    :designsystem         │
-                    └────────────┬─────────────┘
-                                 ▼
-                    ┌──────────────────────────┐
-                    │     :navigation          │
-                    └────────────┬─────────────┘
-                                 ▼
-          ┌──────┬──────┬───────┬───────┬───────┬──────┐
-          ▼      ▼      ▼       ▼       ▼       ▼      ▼
-       :auth  :pos  :inventory :customers :register :reports :settings
-                                                        ... etc
+                        ┌──────────────┐
+                        │ :shared:core │  (M01)
+                        └──────┬───────┘
+              ┌────────────────┼───────────────┬────────────────┐
+              ▼                ▼               ▼                ▼
+        ┌──────────┐  ┌──────────────┐  ┌──────────┐  ┌──────────┐
+        │ :domain  │  │  :security   │  │   :hal   │  │  :data   │
+        │  (M02)   │  │   (M05)      │  │  (M04)   │  │  (M03)   │
+        └────┬─────┘  └──────┬───────┘  └────┬─────┘  └────┬─────┘
+             │               │               │              │
+             │               └───────────────┼──────────────┘
+             │                               ▼
+             │                   ┌───────────────────────┐
+             │                   │    :designsystem      │  (M06)
+             │                   └───────────┬───────────┘
+             │                               ▼
+             │                   ┌───────────────────────┐
+             │                   │      :navigation      │  (M07)
+             │                   └───────────────────────┘
+             │
+             ▼
+   ┌──────────────────────┐
+   │  :composeApp:core    │  (M21)  ← canonical BaseViewModel,
+   │                      │            UiState, UiEffect
+   └──────────┬───────────┘
+              │
+              ▼  (all 13 feature modules depend on :composeApp:core)
+   ┌──────┬──────┬───────────┬───────────┬──────────┬─────────┐
+   ▼      ▼      ▼           ▼           ▼          ▼         ▼
+:auth  :pos  :inventory :customers :register :reports :settings
+:coupons  :multistore  :expenses  :staff  :admin  :media
+                                                        ... (all via M21)
 ```
 
 ---
