@@ -2519,3 +2519,11 @@ settings.gradle.kts                                                           �
 > **Files created:** `SettingsHomeScreen.kt` (grouped card layout, 9 categories), `GeneralSettingsScreen.kt` (store identity + regional prefs), `PosSettingsScreen.kt` (order type, auto-print, tax mode, receipt template, max-discount slider), `TaxSettingsScreen.kt` (ZentaTable + FAB + TaxGroupFormSheet + delete confirm dialog), `PrinterSettingsScreen.kt` (conditional connection params, test print, header/footer editor), `UserManagementScreen.kt` (ZentaTable + UserFormSheet + RoleGuard note), `BackupSettingsScreen.kt` (manual backup, timestamp, restore with confirm dialog), `AboutScreen.kt` (app identity, build info, 12 OSS licences), `AppearanceSettingsScreen.kt` (Light/Dark/System RadioButton group), `SettingsModule.kt` (Koin `settingsModule` with `viewModelOf`), `SettingsViewModelTest.kt` (17 tests: general, pos, tax, printer, appearance, backup)
 > **Next: Sprint 24 — Integration, QA & Release Prep**
 
+---
+
+## 🔧 HOTFIX — Koin NoBeanDefFoundException Fix: TaxGroupRepository & UserRepository (2026-02-21)
+- [x] Finished: Step 1 — Read existing RepositoryImpl pattern + interface signatures | 2026-02-21
+- [x] Finished: Step 2 — Created TaxGroupRepositoryImpl.kt | 2026-02-21
+- [x] Finished: Step 3 — Created UserRepositoryImpl.kt | 2026-02-21
+- [x] Finished: Step 4 — Registered TaxGroupRepositoryImpl + UserRepositoryImpl in DataModule.kt | 2026-02-21
+

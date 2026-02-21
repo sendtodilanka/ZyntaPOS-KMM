@@ -18,6 +18,8 @@ import com.zyntasolutions.zyntapos.data.repository.SettingsRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.StockRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.SupplierRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.SyncRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.TaxGroupRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.UserRepositoryImpl
 import com.zyntasolutions.zyntapos.data.sync.NetworkMonitor
 import com.zyntasolutions.zyntapos.data.sync.SyncEngine
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
@@ -30,6 +32,8 @@ import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.domain.repository.StockRepository
 import com.zyntasolutions.zyntapos.domain.repository.SupplierRepository
 import com.zyntasolutions.zyntapos.domain.repository.SyncRepository
+import com.zyntasolutions.zyntapos.domain.repository.TaxGroupRepository
+import com.zyntasolutions.zyntapos.domain.repository.UserRepository
 import org.koin.dsl.module
 
 /**
@@ -138,6 +142,18 @@ val dataModule = module {
 
     // Settings: typed key-value wrappers over the `settings` SQLite table
     single<SettingsRepository> { SettingsRepositoryImpl(db = get()) }
+
+    // Tax groups: CRUD + soft-delete (SQLDelight queries tracked in MERGED-D2)
+    single<TaxGroupRepository> { TaxGroupRepositoryImpl(db = get(), syncEnqueuer = get()) }
+
+    // User accounts: CRUD + password lifecycle
+    single<UserRepository> {
+        UserRepositoryImpl(
+            db             = get(),
+            passwordHasher = get<PasswordHasher>(),
+            syncEnqueuer   = get(),
+        )
+    }
 
     // Sync queue: batch read + status transitions (PENDING→SYNCED/FAILED)
     single<SyncRepository> { SyncRepositoryImpl(db = get()) }
