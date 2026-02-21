@@ -1,26 +1,108 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// FakeOrderRepository
-// ─────────────────────────────────────────────────────────────────────────────
-
 package com.zyntasolutions.zyntapos.domain.usecase.fakes
 
 import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.ValidationException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.CartItem
+import com.zyntasolutions.zyntapos.domain.model.CashMovement
 import com.zyntasolutions.zyntapos.domain.model.DiscountType
 import com.zyntasolutions.zyntapos.domain.model.Order
 import com.zyntasolutions.zyntapos.domain.model.OrderItem
 import com.zyntasolutions.zyntapos.domain.model.OrderStatus
 import com.zyntasolutions.zyntapos.domain.model.OrderType
 import com.zyntasolutions.zyntapos.domain.model.PaymentMethod
+import com.zyntasolutions.zyntapos.domain.model.RegisterSession
 import com.zyntasolutions.zyntapos.domain.model.SyncStatus
 import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
+import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Fixtures
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Builds a [CartItem] with sensible defaults. */
+fun buildCartItem(
+    productId: String = "prod-01",
+    productName: String = "Test Product",
+    unitPrice: Double = 10.0,
+    quantity: Double = 1.0,
+    discount: Double = 0.0,
+    discountType: DiscountType = DiscountType.FIXED,
+    taxRate: Double = 0.0,
+) = CartItem(productId = productId, productName = productName, unitPrice = unitPrice,
+    quantity = quantity, discount = discount, discountType = discountType, taxRate = taxRate)
+
+/** Builds a test [Order] with sensible defaults. */
+fun buildOrder(
+    id: String = "order-01",
+    orderNumber: String = "ORD-0001",
+    status: OrderStatus = OrderStatus.COMPLETED,
+    items: List<OrderItem> = emptyList(),
+    total: Double = 10.0,
+    paymentMethod: PaymentMethod = PaymentMethod.CASH,
+    cashierId: String = "user-01",
+) = Order(
+    id = id, orderNumber = orderNumber, type = OrderType.SALE, status = status,
+    items = items, subtotal = total, taxAmount = 0.0, discountAmount = 0.0,
+    total = total, paymentMethod = paymentMethod, paymentSplits = emptyList(),
+    amountTendered = total, changeAmount = 0.0, customerId = null,
+    cashierId = cashierId, storeId = "store-01", registerSessionId = "session-01",
+    notes = null, reference = null, createdAt = Clock.System.now(),
+    updatedAt = Clock.System.now(), syncStatus = SyncStatus(state = SyncStatus.State.SYNCED)
+)
+
+/** Builds an [OrderItem] from a [CartItem]. */
+fun CartItem.toOrderItem(orderId: String = "order-01") = OrderItem(
+    id = "item-${productId}", orderId = orderId, productId = productId,
+    productName = productName, unitPrice = unitPrice, quantity = quantity,
+    discount = discount, discountType = discountType, taxRate = taxRate,
+    taxAmount = 0.0, lineTotal = unitPrice * quantity
+)
+
+/** Builds a [RegisterSession] with sensible defaults. */
+fun buildRegisterSession(
+    id: String = "session-01",
+    registerId: String = "register-01",
+    openedBy: String = "user-01",
+    status: RegisterSession.Status = RegisterSession.Status.OPEN,
+    openingBalance: Double = 500.0,
+    expectedBalance: Double = 500.0,
+    actualBalance: Double? = null,
+) = RegisterSession(
+    id = id, registerId = registerId, openedBy = openedBy, closedBy = null,
+    openingBalance = openingBalance, closingBalance = null, expectedBalance = expectedBalance,
+    actualBalance = actualBalance, openedAt = Clock.System.now(), closedAt = null, status = status
+)
+package com.zyntasolutions.zyntapos.domain.usecase.fakes
+
+import com.zyntasolutions.zyntapos.core.result.DatabaseException
+import com.zyntasolutions.zyntapos.core.result.ValidationException
+import com.zyntasolutions.zyntapos.core.result.Result
+import com.zyntasolutions.zyntapos.domain.model.CashMovement
+import com.zyntasolutions.zyntapos.domain.model.CartItem
+import com.zyntasolutions.zyntapos.domain.model.Order
+import com.zyntasolutions.zyntapos.domain.model.OrderItem
+import com.zyntasolutions.zyntapos.domain.model.OrderStatus
+import com.zyntasolutions.zyntapos.domain.model.OrderType
+import com.zyntasolutions.zyntapos.domain.model.PaymentMethod
+import com.zyntasolutions.zyntapos.domain.model.RegisterSession
+import com.zyntasolutions.zyntapos.domain.model.SyncStatus
+import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
+import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FakeOrderRepository
+// ─────────────────────────────────────────────────────────────────────────────
 
 class FakeOrderRepository : OrderRepository {
     val orders = mutableListOf<Order>()
@@ -65,11 +147,7 @@ class FakeOrderRepository : OrderRepository {
     }
 
     override fun getByDateRange(from: Instant, to: Instant): Flow<List<Order>> =
-        _orders.map { list ->
-            list.filter { order ->
-                order.createdAt >= from && order.createdAt <= to
-            }
-        }
+        _orders.map { list -> list.filter { it.createdAt >= from && it.createdAt <= to } }
 
     override suspend fun holdOrder(items: List<CartItem>): Result<String> {
         val holdId = "hold-${orders.size + 1}"
@@ -181,155 +259,4 @@ class FakeRegisterRepository : RegisterRepository {
 
     override fun getMovements(sessionId: String): Flow<List<CashMovement>> =
         MutableStateFlow(movements.filter { it.sessionId == sessionId })
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// FakeStockRepository
-// ─────────────────────────────────────────────────────────────────────────────
-
-class FakeStockRepository : StockRepository {
-    val adjustments = mutableListOf<StockAdjustment>()
-    var shouldFailAdjust: Boolean = false
-
-    override suspend fun adjustStock(adjustment: StockAdjustment): Result<Unit> {
-        if (shouldFailAdjust) return Result.Error(DatabaseException("Stock adjust failed"))
-        adjustments.add(adjustment)
-        return Result.Success(Unit)
-    }
-
-    override fun getMovements(productId: String): Flow<List<StockAdjustment>> =
-        MutableStateFlow(adjustments.filter { it.productId == productId })
-
-    override fun getAlerts(threshold: Double): Flow<List<com.zyntasolutions.zyntapos.domain.model.Product>> =
-        MutableStateFlow(emptyList())
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// FakeSettingsRepository
-// ─────────────────────────────────────────────────────────────────────────────
-
-class FakeSettingsRepository : SettingsRepository {
-    private val store = mutableMapOf<String, String>()
-
-    fun put(key: String, value: String) { store[key] = value }
-
-    override fun get(key: String): String? = store[key]
-
-    override suspend fun set(key: String, value: String): Result<Unit> {
-        store[key] = value
-        return Result.Success(Unit)
-    }
-
-    override fun getAll(): Map<String, String> = store.toMap()
-
-    override fun observe(key: String): Flow<String?> =
-        MutableStateFlow(store[key])
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// FakeCategoryRepository
-// ─────────────────────────────────────────────────────────────────────────────
-
-class FakeCategoryRepository : CategoryRepository {
-    val categories = mutableListOf<Category>()
-    private val _cats = MutableStateFlow<List<Category>>(emptyList())
-
-    override fun getAll(): Flow<List<Category>> = _cats
-
-    override suspend fun getById(id: String): Result<Category> {
-        return categories.firstOrNull { it.id == id }
-            ?.let { Result.Success(it) }
-            ?: Result.Error(DatabaseException("Category not found"))
-    }
-
-    override suspend fun insert(category: Category): Result<Unit> {
-        categories.add(category)
-        _cats.value = categories.toList()
-        return Result.Success(Unit)
-    }
-
-    override suspend fun update(category: Category): Result<Unit> {
-        val index = categories.indexOfFirst { it.id == category.id }
-        if (index == -1) return Result.Error(DatabaseException("Not found"))
-        categories[index] = category
-        _cats.value = categories.toList()
-        return Result.Success(Unit)
-    }
-
-    override suspend fun delete(id: String): Result<Unit> {
-        categories.removeAll { it.id == id }
-        _cats.value = categories.toList()
-        return Result.Success(Unit)
-    }
-
-    override fun getTree(): Flow<List<Category>> = _cats
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// FakeCustomerRepository, FakeSupplierRepository, FakeSyncRepository
-// ─────────────────────────────────────────────────────────────────────────────
-
-class FakeCustomerRepository : CustomerRepository {
-    val customers = mutableListOf<Customer>()
-    private val _flow = MutableStateFlow<List<Customer>>(emptyList())
-    override fun getAll(): Flow<List<Customer>> = _flow
-    override suspend fun getById(id: String): Result<Customer> =
-        customers.firstOrNull { it.id == id }?.let { Result.Success(it) }
-            ?: Result.Error(DatabaseException("Not found"))
-    override fun search(query: String): Flow<List<Customer>> =
-        _flow.map { list -> list.filter { it.name.contains(query, true) || it.phone.contains(query) } }
-    override suspend fun insert(customer: Customer): Result<Unit> {
-        customers.add(customer)
-        _flow.value = customers.toList()
-        return Result.Success(Unit)
-    }
-    override suspend fun update(customer: Customer): Result<Unit> {
-        val i = customers.indexOfFirst { it.id == customer.id }
-        if (i == -1) return Result.Error(DatabaseException("Not found"))
-        customers[i] = customer
-        _flow.value = customers.toList()
-        return Result.Success(Unit)
-    }
-    override suspend fun delete(id: String): Result<Unit> {
-        customers.removeAll { it.id == id }
-        _flow.value = customers.toList()
-        return Result.Success(Unit)
-    }
-}
-
-class FakeSupplierRepository : SupplierRepository {
-    val suppliers = mutableListOf<Supplier>()
-    private val _flow = MutableStateFlow<List<Supplier>>(emptyList())
-    override fun getAll(): Flow<List<Supplier>> = _flow
-    override suspend fun getById(id: String): Result<Supplier> =
-        suppliers.firstOrNull { it.id == id }?.let { Result.Success(it) }
-            ?: Result.Error(DatabaseException("Not found"))
-    override suspend fun insert(supplier: Supplier): Result<Unit> {
-        suppliers.add(supplier)
-        _flow.value = suppliers.toList()
-        return Result.Success(Unit)
-    }
-    override suspend fun update(supplier: Supplier): Result<Unit> {
-        val i = suppliers.indexOfFirst { it.id == supplier.id }
-        if (i == -1) return Result.Error(DatabaseException("Not found"))
-        suppliers[i] = supplier
-        _flow.value = suppliers.toList()
-        return Result.Success(Unit)
-    }
-    override suspend fun delete(id: String): Result<Unit> {
-        suppliers.removeAll { it.id == id }
-        _flow.value = suppliers.toList()
-        return Result.Success(Unit)
-    }
-}
-
-class FakeSyncRepository : SyncRepository {
-    val operations = mutableListOf<SyncOperation>()
-    override suspend fun getPendingOperations(): List<SyncOperation> = operations.toList()
-    override suspend fun markSynced(ids: List<String>): Result<Unit> {
-        operations.removeAll { it.id in ids }
-        return Result.Success(Unit)
-    }
-    override suspend fun pushToServer(ops: List<SyncOperation>): Result<Unit> = Result.Success(Unit)
-    override suspend fun pullFromServer(lastSyncTs: Long): Result<List<SyncOperation>> = Result.Success(emptyList())
 }

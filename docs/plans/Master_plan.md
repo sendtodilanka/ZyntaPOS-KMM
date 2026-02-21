@@ -144,7 +144,8 @@ Deliver a cross-platform POS system that operates seamlessly online and offline,
 ├── :composeApp:feature:multistore → Store management, dashboard
 ├── :composeApp:feature:staff  → Employee, attendance, payroll
 ├── :composeApp:feature:settings → All configuration screens
-└── :composeApp:feature:admin  → System admin, logs, backups
+├── :composeApp:feature:admin  → System admin, logs, backups
+└── :composeApp:feature:media  → Product image picker, crop, compression
 ```
 
 ### 3.2.1 :shared:data Security Stubs (Sprints 1–7)

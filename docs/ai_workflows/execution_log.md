@@ -2743,3 +2743,30 @@ settings.gradle.kts                                                           �
 - [x] Finished: ADR-002 Option B — Filled Consequences section with enforcement rules for domain vs. persistence naming | 2026-02-21
 - [x] Finished: ADR-002 Option B — Created CONTRIBUTING.md at project root with naming conventions, MVI, DI, testing standards, ADR table | 2026-02-21
 - [x] CLOSED: ADR-002 Domain Model Naming — Option B fully executed. No renames required. Convention documented and enforced. | 2026-02-21
+
+---
+
+## UI Component Naming Audit — §3.3 vs designsystem/components/ | 2026-02-21
+
+- [x] Finished: Step 1 — Read UI_UX_Main_Plan.md §3.3; extracted ZentaLoadingSkeleton reference and full 20-component list | 2026-02-21
+- [x] Finished: Step 2 — Read ZentaLoadingOverlay.kt in full; confirmed: scrim + CircularProgressIndicator, full-screen blocking overlay | 2026-02-21
+- [x] Finished: Step 3 — Listed all 15 .kt files in composeApp/designsystem/src/commonMain/.../designsystem/components/ | 2026-02-21
+- [x] Finished: Step 4 — Produced gap table: 4 missing components (ZentaLoadingSkeleton, ZentaStatusChip, ZentaDatePicker, ZentaCurrencyText); 2 name mismatches (CartItem→CartItemRow, Snackbar→SnackbarHost); ZentaLoadingOverlay unlisted | 2026-02-21
+- [x] Finished: Step 5 — Determined ZentaLoadingOverlay and ZentaLoadingSkeleton are DISTINCT; applied Recommendation B (keep overlay, create skeleton as new backlog item) | 2026-02-21
+- [x] Finished: Step 6 — Applied 4 edits to docs/plans/UI_UX_Main_Plan.md: (a) ZentaCartItem→ZentaCartItemRow, (b) ZentaSnackbar→ZentaSnackbarHost, (c) added ZentaLoadingOverlay row to §3.3 table, (d) added backlog note for 4 missing components, (e) updated §20.1 Loading States to distinguish overlay vs skeleton | 2026-02-21
+
+> **AUDIT STATUS: ✅ COMPLETE — docs/plans/UI_UX_Main_Plan.md updated. 4 components added to Sprint 9–10 backlog.**
+> **Next actions:** Create ZentaLoadingSkeleton.kt, ZentaStatusChip.kt, ZentaDatePicker.kt, ZentaCurrencyText.kt in Sprint 9–10.
+
+---
+
+## Test Fake Refactor — Domain-Grouped Split (2026-02-21)
+
+- [x] Finished: Read FakeRepositories.kt, FakeRepositoriesPart2.kt, FakeRepositoriesPart3.kt (719 lines total) | 2026-02-21
+- [x] Finished: Classified all fakes by domain (Auth / POS / Inventory / Shared) | 2026-02-21
+- [x] Finished: Created FakeAuthRepositories.kt — buildUser + FakeAuthRepository | 2026-02-21
+- [x] Finished: Created FakePosRepositories.kt — buildCartItem, buildOrder, buildRegisterSession, CartItem.toOrderItem + FakeOrderRepository, FakeRegisterRepository | 2026-02-21
+- [x] Finished: Created FakeInventoryRepositories.kt — buildProduct, buildTaxGroup, buildUnit + FakeProductRepository, FakeStockRepository, FakeCategoryRepository, FakeSupplierRepository, FakeTaxGroupRepository, FakeUnitGroupRepository | 2026-02-21
+- [x] Finished: Created FakeSharedRepositories.kt — FakeCustomerRepository, FakeSettingsRepository, FakeSyncRepository | 2026-02-21
+- [x] Finished: Deleted FakeRepositories.kt, FakeRepositoriesPart2.kt, FakeRepositoriesPart3.kt | 2026-02-21
+- [x] Finished: Confirmed no import-path updates needed (test files import class names from same package, not file names) | 2026-02-21

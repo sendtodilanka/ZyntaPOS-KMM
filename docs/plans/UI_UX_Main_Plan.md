@@ -143,14 +143,14 @@ The POS checkout screen is the most performance-critical UI in the entire system
 | `ZentaTextField` | Standard, Outlined, Search, Numeric | Validation state (error/success), leading/trailing icons, character counter |
 | `ZentaSearchBar` | Persistent, Expandable | Barcode icon trigger, voice input (future), debounced query emission |
 | `ZentaProductCard` | Grid tile, List row, Compact chip | Image, name, price, stock badge, tap-to-add behavior |
-| `ZentaCartItem` | Standard, Compact | Swipe-to-delete, inline qty stepper, discount badge |
+| `ZentaCartItemRow` | Standard, Compact | Swipe-to-delete, inline qty stepper, discount badge |
 | `ZentaNumericPad` | Calculator, Payment, PIN | Large 56dp buttons, backspace, decimal, clear, auto-format currency |
 | `ZentaDialog` | Alert, Confirm, Input, Multi-Step | Title, body, action row (max 3 buttons), dismiss-on-outside-tap toggle |
 | `ZentaBottomSheet` | Standard, Expanding, Full-screen | Drag handle, peek height, content slots |
 | `ZentaTable` | Sortable, Paginated, Selectable | Column definitions, row click action, bulk action toolbar |
 | `ZentaStatusChip` | Success, Warning, Error, Info, Neutral | Icon + label, compact sizing |
 | `ZentaBadge` | Dot, Count, Status | Overlay positioning for icons/nav items |
-| `ZentaSnackbar` | Info, Success, Warning, Error | Auto-dismiss (4s), action button, queue manager |
+| `ZentaSnackbarHost` | Info, Success, Warning, Error | Auto-dismiss (4s), action button, queue manager |
 | `ZentaLoadingSkeleton` | Card, Row, Grid, Text | Shimmer animation, matches target component dimensions |
 | `ZentaEmptyState` | Illustration + Title + Subtitle + CTA | Used when lists/grids have zero items |
 | `ZentaSyncIndicator` | Inline, AppBar chip | Pulsing dot (syncing), checkmark (synced), warning (pending), error (failed) |
@@ -158,6 +158,20 @@ The POS checkout screen is the most performance-critical UI in the entire system
 | `ZentaSplitPane` | Horizontal, Vertical | Resizable divider, min/max constraints, for Desktop master-detail |
 | `ZentaDatePicker` | Single, Range | Calendar view, preset ranges (Today, This Week, This Month, Custom) |
 | `ZentaCurrencyText` | Standard, Large, Compact | Auto-format by locale, symbol positioning, negative in red |
+| `ZentaLoadingOverlay` | Full-screen | Semi-transparent scrim (0.45α) + `CircularProgressIndicator`; placed in a `Box` above screen content when a blocking operation is running |
+
+> **⚠️ Component Backlog — Sprint 9–10 (pending creation)**
+>
+> The following components are specified in this table but do **not yet have a `.kt` implementation** file. They must be created under `:composeApp:designsystem` → `components/`:
+>
+> | # | Component | File to Create | Notes |
+> |---|---|---|---|
+> | 1 | `ZentaLoadingSkeleton` | `ZentaLoadingSkeleton.kt` | **Distinct from `ZentaLoadingOverlay`**. Renders shimmer-animated placeholder shapes (Card / Row / Grid / Text variants) that mirror the target layout. Non-blocking — chrome remains interactive. Show when data load exceeds 200ms (screen) or 300ms (refresh). |
+> | 2 | `ZentaStatusChip` | `ZentaStatusChip.kt` | Icon + label chip; variants: Success, Warning, Error, Info, Neutral. Used for order status, stock status, sync state labels across list rows and detail screens. |
+> | 3 | `ZentaDatePicker` | `ZentaDatePicker.kt` | Wraps M3 `DatePicker` / `DateRangePicker`. Preset ranges: Today, This Week, This Month, Custom. Used in Reports and Customer History screens. |
+> | 4 | `ZentaCurrencyText` | `ZentaCurrencyText.kt` | Locale-aware currency formatter composable. Variants: Standard, Large (totals), Compact (table cells). Negative values render in `MaterialTheme.colorScheme.error` (red). |
+>
+> `ZentaIconButton` (listed in this table) is intentionally implemented as an **Icon variant** inside `ZentaButton.kt` per PLAN_PHASE1.md §6.2.1 and does not require a separate file.
 
 ---
 
@@ -832,7 +846,8 @@ The POS checkout screen is the most performance-critical UI in the entire system
 | Scenario | Pattern | Duration Threshold |
 |----------|---------|-------------------|
 | Screen load | `ZentaLoadingSkeleton` matching target layout shape | Show if > 200ms |
-| Data refresh | Skeleton overlay on data region, keep chrome visible | Show if > 300ms |
+| Data refresh | `ZentaLoadingSkeleton` overlay on data region, keep chrome visible | Show if > 300ms |
+| Blocking operation | `ZentaLoadingOverlay` — full-screen scrim + spinner, blocks interaction | Immediate |
 | Button action | Button shows inline spinner, text changes to "Processing..." | Immediate on tap |
 | Form submit | Inline spinner on submit button + disable all form fields | Immediate on submit |
 | Background sync | `ZentaSyncIndicator` pulsing dot in app bar — non-blocking | Ambient, always visible |
