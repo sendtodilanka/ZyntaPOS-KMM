@@ -1,9 +1,9 @@
 package com.zyntasolutions.zyntapos.hal.scanner
 
 /**
- * ZentaPOS — Hardware Abstraction Layer
+ * ZyntaPOS — Hardware Abstraction Layer
  *
- * Symbologies (barcode formats) that ZentaPOS recognises from scanner hardware
+ * Symbologies (barcode formats) that ZyntaPOS recognises from scanner hardware
  * or ML Kit.
  *
  * Implementations map platform-specific constants to these values so that
@@ -43,7 +43,7 @@ enum class BarcodeFormat {
 }
 
 /**
- * ZentaPOS — Hardware Abstraction Layer
+ * ZyntaPOS — Hardware Abstraction Layer
  *
  * Discriminated union representing the outcome of a single scan attempt emitted
  * by [BarcodeScanner.scanEvents].

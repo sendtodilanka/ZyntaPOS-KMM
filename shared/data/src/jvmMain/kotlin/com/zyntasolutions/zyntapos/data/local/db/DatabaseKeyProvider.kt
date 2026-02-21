@@ -10,7 +10,7 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 
 /**
- * ZentaPOS — DatabaseKeyProvider (jvmMain actual)
+ * ZyntaPOS — DatabaseKeyProvider (jvmMain actual)
  *
  * Manages the SQLCipher AES-256 database encryption key using the JCE PKCS12 KeyStore,
  * persisted as an encrypted `.p12` file in the application's private data directory.
@@ -127,7 +127,7 @@ actual class DatabaseKeyProvider(private val appDataDir: String) {
         const val TAG             = "DatabaseKeyProvider"
         const val KEYSTORE_TYPE   = "PKCS12"
         const val KEYSTORE_FILE_NAME = ".db_keystore.p12"
-        const val KEY_ALIAS       = "ZentaPOS_DB_Key_v1"
+        const val KEY_ALIAS       = "ZyntaPOS_DB_Key_v1"
         const val KEY_SIZE_BITS   = 256
     }
 }

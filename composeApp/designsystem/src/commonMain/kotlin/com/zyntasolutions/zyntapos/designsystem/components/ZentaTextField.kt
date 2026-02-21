@@ -13,7 +13,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Standard outlined text input for ZentaPOS forms.
+ * Standard outlined text input for ZyntaPOS forms.
  *
  * @param value Current text value.
  * @param onValueChange Called on each keystroke with the new value.

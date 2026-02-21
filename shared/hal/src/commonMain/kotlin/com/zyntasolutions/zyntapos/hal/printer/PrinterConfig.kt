@@ -1,9 +1,9 @@
 package com.zyntasolutions.zyntapos.hal.printer
 
 /**
- * ZentaPOS — Hardware Abstraction Layer
+ * ZyntaPOS — Hardware Abstraction Layer
  *
- * Thermal printer paper roll widths supported by ZentaPOS.
+ * Thermal printer paper roll widths supported by ZyntaPOS.
  *
  * | Value      | Characters / line | Typical use           |
  * |------------|-------------------|-----------------------|

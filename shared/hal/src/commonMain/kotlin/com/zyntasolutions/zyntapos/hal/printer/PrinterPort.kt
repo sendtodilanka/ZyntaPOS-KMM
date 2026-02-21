@@ -1,7 +1,7 @@
 package com.zyntasolutions.zyntapos.hal.printer
 
 /**
- * ZentaPOS — Hardware Abstraction Layer
+ * ZyntaPOS — Hardware Abstraction Layer
  *
  * [PrinterPort] defines the platform-agnostic contract for communicating with a
  * physical thermal receipt printer over any transport (USB, Bluetooth, TCP/IP, Serial).

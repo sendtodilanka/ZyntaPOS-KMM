@@ -4,7 +4,7 @@ import com.zyntasolutions.zyntapos.domain.model.Order
 import com.zyntasolutions.zyntapos.domain.model.RegisterSession
 
 /**
- * ZentaPOS — Hardware Abstraction Layer
+ * ZyntaPOS — Hardware Abstraction Layer
  *
  * [ReceiptBuilder] translates high-level POS domain objects into raw ESC/POS byte
  * arrays ready to be forwarded to [PrinterPort.print].

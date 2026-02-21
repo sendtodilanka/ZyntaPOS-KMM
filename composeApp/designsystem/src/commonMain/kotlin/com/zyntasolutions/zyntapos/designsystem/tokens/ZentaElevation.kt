@@ -4,7 +4,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ZentaElevation — Material 3 Elevation Token System for ZentaPOS
+// ZentaElevation — Material 3 Elevation Token System for ZyntaPOS
 //
 // Per UI/UX Master Blueprint §3.2 Elevation System (M3 spec):
 //
@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.dp
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Material 3 elevation levels for ZentaPOS.
+ * Material 3 elevation levels for ZyntaPOS.
  *
  * Use the appropriate level for each component category:
  * ```kotlin

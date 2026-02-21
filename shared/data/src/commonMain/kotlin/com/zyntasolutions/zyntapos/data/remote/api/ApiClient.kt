@@ -17,7 +17,7 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 
 /**
- * ZentaPOS — Ktor HTTP Client factory.
+ * ZyntaPOS — Ktor HTTP Client factory.
  *
  * Configured with:
  * - **ContentNegotiation** — kotlinx.serialization JSON (lenient, snake_case friendly)
@@ -94,7 +94,7 @@ fun buildApiClient(
         install(Logging) {
             level  = LogLevel.HEADERS
             logger = object : KtorLogger {
-                private val log = Logger.withTag("ZentaPOS-Ktor")
+                private val log = Logger.withTag("ZyntaPOS-Ktor")
                 override fun log(message: String) = log.d { message }
             }
         }

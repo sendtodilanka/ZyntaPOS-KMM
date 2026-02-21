@@ -5,7 +5,7 @@ import org.koin.core.module.Module
 import org.koin.dsl.module
 
 /**
- * ZentaPOS — Hardware Abstraction Layer · Koin DI
+ * ZyntaPOS — Hardware Abstraction Layer · Koin DI
  *
  * Platform-specific Koin module factory.
  *

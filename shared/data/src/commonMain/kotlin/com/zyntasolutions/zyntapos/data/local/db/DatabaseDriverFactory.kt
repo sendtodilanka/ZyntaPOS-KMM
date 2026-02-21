@@ -3,7 +3,7 @@ package com.zyntasolutions.zyntapos.data.local.db
 import app.cash.sqldelight.db.SqlDriver
 
 /**
- * ZentaPOS — DatabaseDriverFactory (commonMain expect)
+ * ZyntaPOS — DatabaseDriverFactory (commonMain expect)
  *
  * Platform-agnostic factory contract for creating an encrypted SQLite [SqlDriver].
  * Each platform provides its own `actual` implementation that:

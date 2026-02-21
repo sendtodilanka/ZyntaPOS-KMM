@@ -3,7 +3,7 @@ package com.zyntasolutions.zyntapos.data.sync
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * ZentaPOS — Network connectivity monitor (expect/actual).
+ * ZyntaPOS — Network connectivity monitor (expect/actual).
  *
  * Provides a platform-agnostic [StateFlow] of the current network reachability.
  *

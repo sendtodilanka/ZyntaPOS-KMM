@@ -4,7 +4,7 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 /**
- * Cross-platform UUID v4 generator for ZentaPOS entity IDs.
+ * Cross-platform UUID v4 generator for ZyntaPOS entity IDs.
  *
  * Uses [kotlin.uuid.Uuid] (Kotlin 2.0+) which delegates to the platform's
  * secure random source:

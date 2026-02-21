@@ -4,7 +4,7 @@ import co.touchlab.kermit.Logger
 import co.touchlab.kermit.Severity
 
 /**
- * ZentaPOS centralised logging facade wrapping [Kermit](https://github.com/touchlab/Kermit).
+ * ZyntaPOS centralised logging facade wrapping [Kermit](https://github.com/touchlab/Kermit).
  *
  * ### Usage (inject via Koin `coreModule`)
  * ```kotlin
@@ -26,7 +26,7 @@ import co.touchlab.kermit.Severity
  *
  * @param defaultTag Default log tag; typically the module name (e.g., "shared:core").
  */
-class ZentaLogger(val defaultTag: String = "ZentaPOS") {
+class ZentaLogger(val defaultTag: String = "ZyntaPOS") {
 
     // ── Verbose ───────────────────────────────────────────────────────────────
 

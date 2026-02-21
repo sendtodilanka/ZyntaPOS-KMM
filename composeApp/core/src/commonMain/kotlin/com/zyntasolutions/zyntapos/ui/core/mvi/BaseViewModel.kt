@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 /**
  * Generic MVI ViewModel base shared by every `:composeApp:feature:*` module.
  *
- * Enforces a consistent **Model–View–Intent** contract across all ZentaPOS screens:
+ * Enforces a consistent **Model–View–Intent** contract across all ZyntaPOS screens:
  * - [S] — immutable **State** data class with meaningful defaults.
  * - [I] — sealed **Intent** class representing every user action.
  * - [E] — sealed **Effect** class for one-shot side-effects (navigation, snackbars).

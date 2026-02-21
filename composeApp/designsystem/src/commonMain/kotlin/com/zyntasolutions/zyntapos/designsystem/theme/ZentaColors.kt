@@ -6,7 +6,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ZentaColors — Material 3 Color Tokens for ZentaPOS Design System
+// ZentaColors — Material 3 Color Tokens for ZyntaPOS Design System
 //
 // Seed colors (per UI/UX Master Blueprint §1.3 / §3):
 //   Primary:   #1565C0  — Deep Blue  (primary actions, Pay button, main CTAs)
@@ -82,7 +82,7 @@ private val NeutralVar99  = Color(0xFFFAFCFF)
 // ── Light Color Scheme ───────────────────────────────────────────────────────
 
 /**
- * ZentaPOS Material 3 light [ColorScheme].
+ * ZyntaPOS Material 3 light [ColorScheme].
  *
  * Primary = Deep Blue (#1565C0) for POS primary actions.
  * Secondary = Amber (#F57C00) for warnings and pending states.
@@ -130,7 +130,7 @@ fun zentaLightColorScheme(): ColorScheme = lightColorScheme(
 // ── Dark Color Scheme ────────────────────────────────────────────────────────
 
 /**
- * ZentaPOS Material 3 dark [ColorScheme].
+ * ZyntaPOS Material 3 dark [ColorScheme].
  *
  * Roles invert compared to light — containers become the darker tones,
  * role colors become the lighter tonal values for legibility on dark surfaces.

@@ -5,7 +5,7 @@ import com.zyntasolutions.zyntapos.db.ZyntaDatabase
 import java.util.Properties
 
 /**
- * ZentaPOS — In-Memory SQLite database factory for JVM integration tests.
+ * ZyntaPOS — In-Memory SQLite database factory for JVM integration tests.
  *
  * Uses [JdbcSqliteDriver.IN_MEMORY] so every call returns a fresh, isolated
  * database instance — no file I/O, no encryption overhead, no cross-test pollution.

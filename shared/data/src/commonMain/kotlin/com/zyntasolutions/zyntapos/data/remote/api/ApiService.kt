@@ -12,7 +12,7 @@ import com.zyntasolutions.zyntapos.data.remote.dto.SyncPullResponseDto
 import com.zyntasolutions.zyntapos.data.remote.dto.SyncResponseDto
 
 /**
- * ZentaPOS — Remote API service contract.
+ * ZyntaPOS — Remote API service contract.
  *
  * Defines all Phase 1 server endpoints. Every function returns a typed result;
  * HTTP-level errors are mapped to [ZentaException] subclasses by implementations.

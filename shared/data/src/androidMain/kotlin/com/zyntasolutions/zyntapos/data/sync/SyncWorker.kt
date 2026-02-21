@@ -15,7 +15,7 @@ import org.koin.core.component.inject
 import java.util.concurrent.TimeUnit
 
 /**
- * ZentaPOS — Android WorkManager-based sync worker.
+ * ZyntaPOS — Android WorkManager-based sync worker.
  *
  * Delegates to [SyncEngine.runOnce] as a [CoroutineWorker] so the OS can
  * schedule it with battery/network constraints and handle retry policies.
@@ -50,7 +50,7 @@ class SyncWorker(
     }
 
     companion object {
-        private const val WORK_NAME = "ZentaPOS_SyncWorker"
+        private const val WORK_NAME = "ZyntaPOS_SyncWorker"
         private const val MAX_RUN_ATTEMPTS = 3
 
         /**

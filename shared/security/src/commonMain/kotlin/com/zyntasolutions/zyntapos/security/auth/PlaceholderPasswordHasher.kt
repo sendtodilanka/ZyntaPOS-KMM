@@ -1,7 +1,7 @@
 package com.zyntasolutions.zyntapos.security.auth
 
 /**
- * ZentaPOS — PlaceholderPasswordHasher (Debug / Test Utility)
+ * ZyntaPOS — PlaceholderPasswordHasher (Debug / Test Utility)
  *
  * A **non-secure** in-memory hasher for use in unit tests and debug builds ONLY.
  * Provides the same API surface as the canonical [PasswordHasher] expect object so

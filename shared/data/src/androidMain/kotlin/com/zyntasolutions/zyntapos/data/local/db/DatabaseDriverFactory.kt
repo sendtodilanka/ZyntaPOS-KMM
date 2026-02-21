@@ -8,7 +8,7 @@ import net.sqlcipher.database.SQLiteDatabase
 import net.sqlcipher.database.SupportFactory
 
 /**
- * ZentaPOS — DatabaseDriverFactory (androidMain actual)
+ * ZyntaPOS — DatabaseDriverFactory (androidMain actual)
  *
  * Creates an AES-256-CBC encrypted SQLite driver via SQLCipher for Android.
  *

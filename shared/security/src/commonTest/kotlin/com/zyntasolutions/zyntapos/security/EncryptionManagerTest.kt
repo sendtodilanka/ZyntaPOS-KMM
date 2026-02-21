@@ -20,7 +20,7 @@ class EncryptionManagerTest {
 
     @Test
     fun `encrypt and decrypt round-trip returns original plaintext`() {
-        val original = "hello, ZentaPOS!"
+        val original = "hello, ZyntaPOS!"
         val encrypted = manager.encrypt(original)
         val decrypted = manager.decrypt(encrypted)
         assertEquals(original, decrypted)

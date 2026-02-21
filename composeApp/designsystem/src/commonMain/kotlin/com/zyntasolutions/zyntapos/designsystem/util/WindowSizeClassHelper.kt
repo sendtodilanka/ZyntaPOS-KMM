@@ -3,7 +3,7 @@ package com.zyntasolutions.zyntapos.designsystem.util
 import androidx.compose.runtime.Composable
 
 // ─────────────────────────────────────────────────────────────────────────────
-// WindowSizeClassHelper — Responsive Breakpoint Utility for ZentaPOS
+// WindowSizeClassHelper — Responsive Breakpoint Utility for ZyntaPOS
 //
 // Per UI/UX Master Blueprint §2.1 WindowSizeClass Mapping:
 //
@@ -22,7 +22,7 @@ import androidx.compose.runtime.Composable
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Responsive window size class for ZentaPOS adaptive layouts.
+ * Responsive window size class for ZyntaPOS adaptive layouts.
  *
  * Maps directly to the three Material 3 WindowSizeClass width buckets.
  * Consume via [currentWindowSize] inside any `@Composable` function.

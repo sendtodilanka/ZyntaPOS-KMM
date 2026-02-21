@@ -28,7 +28,7 @@ import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 
 /**
- * ZentaPOS — Ktor-backed implementation of [ApiService].
+ * ZyntaPOS — Ktor-backed implementation of [ApiService].
  *
  * All HTTP errors are mapped to the [ZentaException] hierarchy so callers
  * (SyncEngine, AuthRepositoryImpl) never interact with raw HTTP status codes.
@@ -40,7 +40,7 @@ import io.ktor.http.isSuccess
  * - IOException / timeout → [ZentaException.NetworkException]
  *
  * @param client Ktor [HttpClient] configured via [buildApiClient].
- * @param baseUrl Base URL of the ZentaPOS API server (defaults to [AppConfig.BASE_URL]).
+ * @param baseUrl Base URL of the ZyntaPOS API server (defaults to [AppConfig.BASE_URL]).
  */
 class KtorApiService(
     private val client: HttpClient,

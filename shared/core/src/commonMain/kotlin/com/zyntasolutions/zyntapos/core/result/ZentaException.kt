@@ -1,7 +1,7 @@
 package com.zyntasolutions.zyntapos.core.result
 
 /**
- * Root of the ZentaPOS exception hierarchy.
+ * Root of the ZyntaPOS exception hierarchy.
  *
  * All domain-level errors extend [ZentaException] so callers can handle them uniformly
  * via `Result.Error(exception)` without catching raw [Throwable]s.

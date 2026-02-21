@@ -9,7 +9,7 @@ import androidx.compose.ui.Modifier
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * A Material 3 [ModalBottomSheet] wrapper standardised for ZentaPOS.
+ * A Material 3 [ModalBottomSheet] wrapper standardised for ZyntaPOS.
  *
  * The caller owns [sheetState] and is responsible for showing/hiding the sheet.
  * Typical usage:

@@ -5,7 +5,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ZentaSpacing — Spacing Token System for ZentaPOS
+// ZentaSpacing — Spacing Token System for ZyntaPOS
 //
 // Based on a 4 dp base grid (per UI/UX Master Blueprint §2.1 Grid & Spacing).
 // All layout measurements should snap to these tokens; never use raw dp literals
@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.dp
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Immutable spacing token set for ZentaPOS.
+ * Immutable spacing token set for ZyntaPOS.
  *
  * Consume via [LocalSpacing] in composable functions:
  * ```kotlin

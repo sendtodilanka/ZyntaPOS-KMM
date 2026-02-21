@@ -17,7 +17,7 @@ import androidx.window.core.layout.WindowWidthSizeClass
  *
  * Uses [currentWindowAdaptiveInfo] from `androidx.compose.material3.adaptive`
  * to retrieve the canonical [WindowWidthSizeClass] and maps it to
- * ZentaPOS [WindowSize] buckets.
+ * ZyntaPOS [WindowSize] buckets.
  */
 @Composable
 actual fun currentWindowSize(): WindowSize {

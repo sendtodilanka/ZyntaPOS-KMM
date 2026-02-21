@@ -1,7 +1,7 @@
 package com.zyntasolutions.zyntapos.data.local.security
 
 /**
- * ZentaPOS — InMemorySecurePreferences (Sprint 6 Development Scaffold)
+ * ZyntaPOS — InMemorySecurePreferences (Sprint 6 Development Scaffold)
  *
  * A non-persistent, in-memory implementation of [SecurePreferences] used during
  * Sprint 6 testing and development. All data is lost when the process exits.

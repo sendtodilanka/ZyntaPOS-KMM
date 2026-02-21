@@ -1,7 +1,7 @@
 package com.zyntasolutions.zyntapos.core.extensions
 
 /**
- * Extension functions for [String] used across ZentaPOS.
+ * Extension functions for [String] used across ZyntaPOS.
  */
 
 // ── Validation ────────────────────────────────────────────────────────────────

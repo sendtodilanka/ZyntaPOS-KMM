@@ -6,7 +6,7 @@ import kotlin.math.pow
 import kotlin.math.roundToLong
 
 /**
- * ZentaPOS locale-aware currency formatter.
+ * ZyntaPOS locale-aware currency formatter.
  *
  * Handles LKR, USD, EUR and any other ISO 4217 code with a configurable
  * symbol and decimal-place count. All monetary arithmetic uses HALF_UP rounding.

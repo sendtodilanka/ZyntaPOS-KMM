@@ -8,9 +8,9 @@ import com.zyntasolutions.zyntapos.core.logger.ZentaLogger
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
 
 /**
- * ZentaPOS — DatabaseMigrations (commonMain)
+ * ZyntaPOS — DatabaseMigrations (commonMain)
  *
- * Version-safe schema migration manager for the ZentaPOS encrypted SQLite database.
+ * Version-safe schema migration manager for the ZyntaPOS encrypted SQLite database.
  *
  * ## Migration Strategy
  * SQLDelight 2.x tracks the schema version in SQLite's `user_version` PRAGMA.
@@ -70,7 +70,7 @@ class DatabaseMigrations {
         when {
             currentVersion == 0L -> {
                 // Brand-new database: create all tables from the compiled schema
-                ZentaLogger.i(TAG, "Creating ZentaPOS schema at version $targetVersion (first launch).")
+                ZentaLogger.i(TAG, "Creating ZyntaPOS schema at version $targetVersion (first launch).")
                 schema.create(driver)
                 setSchemaVersion(driver, targetVersion)
                 ZentaLogger.i(TAG, "Schema v$targetVersion created successfully.")

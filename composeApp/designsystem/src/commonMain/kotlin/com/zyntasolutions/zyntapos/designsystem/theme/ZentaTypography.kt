@@ -7,7 +7,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ZentaTypography — Material 3 TypeScale for ZentaPOS
+// ZentaTypography — Material 3 TypeScale for ZyntaPOS
 //
 // Specification: UI/UX Master Blueprint §3.1 Typography Scale
 // Font family: system sans-serif (no custom font bundle; keeps APK/JAR slim)
@@ -29,7 +29,7 @@ import androidx.compose.ui.unit.sp
 private val ZentaFontFamily = FontFamily.SansSerif
 
 /**
- * ZentaPOS Material 3 [Typography] scale.
+ * ZyntaPOS Material 3 [Typography] scale.
  *
  * All styles use the system sans-serif font family so the design system
  * remains platform-agnostic without bundling custom font assets.

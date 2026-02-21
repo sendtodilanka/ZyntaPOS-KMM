@@ -12,7 +12,7 @@ import androidx.compose.ui.platform.LocalContext
 //
 // On Android 12+ (API 31+) Material You generates a dynamic color scheme
 // derived from the user's wallpaper. On older APIs we return null so ZentaTheme
-// falls back to the static ZentaPOS brand palette.
+// falls back to the static ZyntaPOS brand palette.
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -22,6 +22,6 @@ actual fun zentaDynamicColorScheme(isDark: Boolean): ColorScheme? {
         if (isDark) dynamicDarkColorScheme(context)
         else        dynamicLightColorScheme(context)
     } else {
-        null  // Pre-S: fall back to static ZentaPOS brand palette
+        null  // Pre-S: fall back to static ZyntaPOS brand palette
     }
 }

@@ -9,7 +9,7 @@ import kotlinx.datetime.daysUntil
 import kotlinx.datetime.toLocalDateTime
 
 /**
- * Extension functions for [Long] (Unix epoch milliseconds) used across ZentaPOS.
+ * Extension functions for [Long] (Unix epoch milliseconds) used across ZyntaPOS.
  *
  * All date/time conversions respect the [TimeZone.currentSystemDefault] unless
  * an explicit [tz] is provided, ensuring correct local-time display for the

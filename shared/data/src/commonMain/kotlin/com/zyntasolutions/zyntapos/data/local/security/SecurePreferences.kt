@@ -4,7 +4,7 @@ import com.zyntasolutions.zyntapos.security.prefs.SecurePreferencesKeys
 
 // ZENTA-FINAL-AUDIT MERGED-F1
 /**
- * ZentaPOS — SecurePreferences (Data layer interface scaffold)
+ * ZyntaPOS — SecurePreferences (Data layer interface scaffold)
  *
  * Temporary interface scaffold for Sprint 6 (Step 3.3) repository implementations.
  * Concrete implementations are provided by :shared:security (Sprint 8, Step 5.1.3):
@@ -12,7 +12,7 @@ import com.zyntasolutions.zyntapos.security.prefs.SecurePreferencesKeys
  * - Desktop: AES-256-GCM encrypted Properties file
  *
  * Key strings delegate to [SecurePreferencesKeys] — the single source of truth for
- * all secure-preference keys used across ZentaPOS modules.  Do **not** define raw
+ * all secure-preference keys used across ZyntaPOS modules.  Do **not** define raw
  * key literals here; always reference [SecurePreferencesKeys].
  *
  * Koin bindings for this interface are registered in the platform data modules

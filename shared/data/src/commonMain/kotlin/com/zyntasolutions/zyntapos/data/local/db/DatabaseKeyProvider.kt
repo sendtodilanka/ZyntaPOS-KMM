@@ -1,7 +1,7 @@
 package com.zyntasolutions.zyntapos.data.local.db
 
 /**
- * ZentaPOS — DatabaseKeyProvider (commonMain expect)
+ * ZyntaPOS — DatabaseKeyProvider (commonMain expect)
  *
  * Platform-agnostic contract for secure AES-256 database key management.
  *

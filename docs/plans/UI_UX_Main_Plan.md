@@ -1,4 +1,4 @@
-# ZentaPOS — Enterprise UI/UX Master Blueprint
+# ZyntaPOS — Enterprise UI/UX Master Blueprint
 
 > **Document ID:** ZENTA-UI-UX-PLAN-v1.0  
 > **Status:** APPROVED FOR EXECUTION  
@@ -199,7 +199,7 @@ The POS checkout screen is the most performance-critical UI in the entire system
 │  EXPANDED (Desktop)                                                     │
 │                                                                         │
 │  ┌──────────────┬──────────────────────────────────────────┐            │
-│  │  ZentaPOS     │                                          │            │
+│  │  ZyntaPOS     │                                          │            │
 │  │  ──────────   │          Screen Content                  │            │
 │  │  ▪ Dashboard  │                                          │            │
 │  │  ▪ POS        │                                          │            │
@@ -337,7 +337,7 @@ The POS checkout screen is the most performance-critical UI in the entire system
 - **[LAYOUT TOPOGRAPHY]:**
   ```
   ┌────────────────────────────────────────────────────────────────────────┐
-  │  [☰]  ZentaPOS  [🔍 Search / Barcode Input (auto-focus)]   [Held:3]  │
+  │  [☰]  ZyntaPOS  [🔍 Search / Barcode Input (auto-focus)]   [Held:3]  │
   │  Category Tabs: [All] [Beverages] [Snacks] [Dairy] [...] [+ Custom]  │
   ├──────────────────────────────────────┬─────────────────────────────────┤
   │                                      │  👤 Customer: [Walk-in ▼]      │
@@ -1021,4 +1021,4 @@ Pending sync operations should never be hidden from the user:
 
 ---
 
-*End of UI/UX Master Blueprint — ZentaPOS v1.0*
+*End of UI/UX Master Blueprint — ZyntaPOS v1.0*

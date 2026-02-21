@@ -1,7 +1,7 @@
 package com.zyntasolutions.zyntapos.data
 
 /**
- * ZentaPOS — ProductRepositoryImpl Integration Tests
+ * ZyntaPOS — ProductRepositoryImpl Integration Tests
  *
  * Step 3.4.7 | :shared:data | jvmTest
  *

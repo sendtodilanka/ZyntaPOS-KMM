@@ -18,7 +18,7 @@ import kotlinx.coroutines.supervisorScope
 import kotlinx.datetime.Clock
 
 /**
- * ZentaPOS — Offline-first background sync coordinator (commonMain).
+ * ZyntaPOS — Offline-first background sync coordinator (commonMain).
  *
  * Implements the core push/pull cycle shared across all platforms:
  * 1. Reads PENDING operations from the local outbox queue (batch of [BATCH_SIZE])

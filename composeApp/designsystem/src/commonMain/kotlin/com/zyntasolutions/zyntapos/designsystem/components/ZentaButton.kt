@@ -28,7 +28,7 @@ enum class ZentaButtonSize(val height: Dp, val horizontalPadding: Dp) {
 enum class ZentaButtonVariant { Primary, Secondary, Danger, Ghost, Icon }
 
 /**
- * The primary button component for ZentaPOS.
+ * The primary button component for ZyntaPOS.
  *
  * @param text Label text (unused for [ZentaButtonVariant.Icon]).
  * @param onClick Invoked when the button is tapped and not loading/disabled.

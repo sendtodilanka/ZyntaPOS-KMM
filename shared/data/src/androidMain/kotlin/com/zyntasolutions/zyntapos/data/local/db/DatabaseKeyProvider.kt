@@ -12,7 +12,7 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 /**
- * ZentaPOS — DatabaseKeyProvider (androidMain actual)
+ * ZyntaPOS — DatabaseKeyProvider (androidMain actual)
  *
  * Manages the SQLCipher AES-256 database encryption key using the Android Keystore System
  * via the **envelope-encryption** pattern.
@@ -45,7 +45,7 @@ import javax.crypto.spec.GCMParameterSpec
  * | Data | Location |
  * |------|---------|
  * | Wrapped DEK (IV + ciphertext) | `SharedPreferences("zyntapos_db_prefs")` |
- * | KEK | Android Keystore (`ZentaPOS_KEK_v1` alias) |
+ * | KEK | Android Keystore (`ZyntaPOS_KEK_v1` alias) |
  *
  * ## Key Spec
  * | Property | Value |
@@ -190,7 +190,7 @@ actual class DatabaseKeyProvider(private val context: Context) {
     private companion object {
         const val TAG                     = "DatabaseKeyProvider"
         const val ANDROID_KEYSTORE        = "AndroidKeyStore"
-        const val KEK_ALIAS               = "ZentaPOS_KEK_v1"          // Key Encryption Key alias
+        const val KEK_ALIAS               = "ZyntaPOS_KEK_v1"          // Key Encryption Key alias
         const val KEK_SIZE_BITS           = 256
         const val KEK_CIPHER_TRANSFORMATION = "AES/GCM/NoPadding"
         const val GCM_TAG_LENGTH_BITS     = 128

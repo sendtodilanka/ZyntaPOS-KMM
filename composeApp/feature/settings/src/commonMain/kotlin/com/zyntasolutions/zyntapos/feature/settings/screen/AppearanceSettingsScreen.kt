@@ -100,7 +100,7 @@ fun AppearanceSettingsScreen(
                 SectionHeader("Theme")
                 Spacer(Modifier.height(ZentaSpacing.sm))
                 Text(
-                    text = "Choose how ZentaPOS looks on this device.",
+                    text = "Choose how ZyntaPOS looks on this device.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = ZentaSpacing.sm),

@@ -1,7 +1,7 @@
 package com.zyntasolutions.zyntapos.data.remote
 
 /**
- * ZentaPOS — KtorApiService Integration Tests
+ * ZyntaPOS — KtorApiService Integration Tests
  *
  * Step 3.4.7 | :shared:data | commonTest
  *

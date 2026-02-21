@@ -6,7 +6,7 @@ import kotlin.math.pow
 import kotlin.math.roundToLong
 
 /**
- * Extension functions for [Double] used across ZentaPOS financial calculations.
+ * Extension functions for [Double] used across ZyntaPOS financial calculations.
  *
  * All monetary rounding uses **HALF_UP** semantics (standard for retail POS systems)
  * to comply with common accounting expectations.

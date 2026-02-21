@@ -77,7 +77,7 @@ fun AboutScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(
-                        text = "ZentaPOS",
+                        text = "ZyntaPOS",
                         style = MaterialTheme.typography.headlineMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.fillMaxWidth().padding(ZentaSpacing.lg),

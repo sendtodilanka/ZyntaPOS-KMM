@@ -14,7 +14,7 @@ import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Sealed hierarchy of ZentaPOS dialogs.
+ * Sealed hierarchy of ZyntaPOS dialogs.
  * Render via [ZentaDialogContent] by passing the desired variant.
  */
 sealed class ZentaDialogVariant {

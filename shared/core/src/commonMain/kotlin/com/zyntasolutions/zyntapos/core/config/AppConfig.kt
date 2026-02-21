@@ -1,7 +1,7 @@
 package com.zyntasolutions.zyntapos.core.config
 
 /**
- * ZentaPOS global application constants.
+ * ZyntaPOS global application constants.
  *
  * All values are compile-time constants (`const val`) so they can be used in
  * annotation arguments and inlined by the compiler.
@@ -24,7 +24,7 @@ object AppConfig {
     // ── API ───────────────────────────────────────────────────────────────────
 
     /**
-     * Base URL for the ZentaPOS backend API.
+     * Base URL for the ZyntaPOS backend API.
      * Override via `local.properties` / BuildKonfig in production builds.
      */
     const val BASE_URL: String = "https://api.zentapos.com"

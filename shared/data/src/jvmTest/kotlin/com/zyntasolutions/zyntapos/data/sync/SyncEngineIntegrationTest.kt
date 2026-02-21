@@ -22,7 +22,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
- * ZentaPOS — SyncEngine Integration Tests (jvmTest)
+ * ZyntaPOS — SyncEngine Integration Tests (jvmTest)
  *
  * Step 3.4.7 | :shared:data | jvmTest
  *

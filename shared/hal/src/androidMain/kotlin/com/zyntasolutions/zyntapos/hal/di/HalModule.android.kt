@@ -12,7 +12,7 @@ import org.koin.core.module.Module
 import org.koin.dsl.module
 
 /**
- * ZentaPOS — Hardware Abstraction Layer · Android Koin DI
+ * ZyntaPOS — Hardware Abstraction Layer · Android Koin DI
  *
  * Android actual for [halModule].
  *

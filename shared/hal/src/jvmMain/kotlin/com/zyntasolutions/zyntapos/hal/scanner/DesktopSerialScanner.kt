@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * ZentaPOS — HAL | Desktop (JVM) Implementation
+ * ZyntaPOS — HAL | Desktop (JVM) Implementation
  *
  * [DesktopSerialScanner] reads barcode data from a scanner connected via a
  * serial (COM/RS-232) port using the **jSerialComm** library.

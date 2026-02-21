@@ -10,10 +10,10 @@ import com.zyntasolutions.zyntapos.designsystem.tokens.LocalSpacing
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacingTokens
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ZentaTheme — Root Theme Composable for ZentaPOS
+// ZentaTheme — Root Theme Composable for ZyntaPOS
 //
 // Responsibilities:
-//   1. Wraps MaterialTheme with ZentaPOS color, typography, and shape tokens.
+//   1. Wraps MaterialTheme with ZyntaPOS color, typography, and shape tokens.
 //   2. Handles system dark-mode detection via isSystemInDarkTheme().
 //   3. Supports manual dark/light toggle via LocalThemeMode CompositionLocal.
 //   4. Provides LocalSpacing (ZentaSpacingTokens) to the composition tree.
@@ -68,7 +68,7 @@ val LocalThemeMode = compositionLocalOf { ThemeMode.SYSTEM }
  * Android 12+ actual: returns [dynamicDarkColorScheme] / [dynamicLightColorScheme].
  * Desktop actual: returns null (dynamic color not supported on JVM).
  *
- * [ZentaTheme] falls back to the static ZentaPOS brand palette when this
+ * [ZentaTheme] falls back to the static ZyntaPOS brand palette when this
  * returns null.
  *
  * @param isDark Whether the dark variant should be returned.
@@ -80,10 +80,10 @@ expect fun zentaDynamicColorScheme(isDark: Boolean): androidx.compose.material3.
 // ── ZentaTheme ────────────────────────────────────────────────────────────────
 
 /**
- * Root theme composable for ZentaPOS.
+ * Root theme composable for ZyntaPOS.
  *
  * Apply once at the top of the composition tree (in `App.kt` or each
- * platform entry point). All nested Composables will inherit the ZentaPOS
+ * platform entry point). All nested Composables will inherit the ZyntaPOS
  * [MaterialTheme] tokens and [LocalSpacing].
  *
  * @param themeMode      Explicit mode override; defaults to [LocalThemeMode] ambient.
@@ -106,7 +106,7 @@ fun ZentaTheme(
     }
 
     // Resolve color scheme: prefer dynamic (Material You) if enabled,
-    // fall back to static ZentaPOS brand palette.
+    // fall back to static ZyntaPOS brand palette.
     val dynamicScheme  = if (dynamicColor) zentaDynamicColorScheme(isDark) else null
     val colorScheme    = dynamicScheme
         ?: if (isDark) zentaDarkColorScheme() else zentaLightColorScheme()

@@ -19,7 +19,7 @@ val MAIN_DISPATCHER = named("Main")
 val DEFAULT_DISPATCHER = named("Default")
 
 /**
- * ZentaPOS core Koin module.
+ * ZyntaPOS core Koin module.
  *
  * Provides:
  * - [ZentaLogger] — singleton Kermit-backed logger
@@ -49,7 +49,7 @@ val DEFAULT_DISPATCHER = named("Default")
 val coreModule = module {
 
     // ── Logger ────────────────────────────────────────────────────────────────
-    single { ZentaLogger(defaultTag = "ZentaPOS") }
+    single { ZentaLogger(defaultTag = "ZyntaPOS") }
 
     // ── Currency formatter ─────────────────────────────────────────────────────
     single { CurrencyFormatter() }

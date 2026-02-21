@@ -9,7 +9,7 @@ import org.koin.dsl.module
 import java.io.File
 
 /**
- * ZentaPOS — Desktop (JVM) Data Koin Module
+ * ZyntaPOS — Desktop (JVM) Data Koin Module
  *
  * Provides platform-specific actual bindings for the Desktop JVM target:
  *
@@ -71,7 +71,7 @@ val desktopDataModule = module {
 }
 
 /**
- * Resolves the OS-appropriate application data directory for ZentaPOS.
+ * Resolves the OS-appropriate application data directory for ZyntaPOS.
  * Creates the directory (and parents) if it does not already exist.
  */
 private fun resolveAppDataDir(): String {

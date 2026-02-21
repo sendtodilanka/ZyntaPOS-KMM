@@ -5,7 +5,7 @@ import com.zyntasolutions.zyntapos.domain.model.User
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Contract for user account CRUD operations within ZentaPOS.
+ * Contract for user account CRUD operations within ZyntaPOS.
  *
  * This repository manages staff accounts that can log in and operate the system.
  * Authentication lifecycle (login / logout / session) remains in [AuthRepository].

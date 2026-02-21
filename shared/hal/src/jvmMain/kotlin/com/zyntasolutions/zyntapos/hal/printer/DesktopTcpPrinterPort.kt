@@ -6,7 +6,7 @@ import java.net.InetSocketAddress
 import java.net.Socket
 
 /**
- * ZentaPOS — HAL | Desktop (JVM) Implementation
+ * ZyntaPOS — HAL | Desktop (JVM) Implementation
  *
  * [DesktopTcpPrinterPort] communicates with a network-connected thermal receipt
  * printer over a raw TCP socket — the de-facto transport standard for Ethernet /

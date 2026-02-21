@@ -10,7 +10,7 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
 /**
- * ZentaPOS — Android Data Koin Module
+ * ZyntaPOS — Android Data Koin Module
  *
  * Provides platform-specific actual bindings for Android:
  *

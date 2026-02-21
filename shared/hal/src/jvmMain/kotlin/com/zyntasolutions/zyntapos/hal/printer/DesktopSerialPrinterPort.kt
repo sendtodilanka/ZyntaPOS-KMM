@@ -5,7 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * ZentaPOS — HAL | Desktop (JVM) Implementation
+ * ZyntaPOS — HAL | Desktop (JVM) Implementation
  *
  * [DesktopSerialPrinterPort] drives a thermal receipt printer connected via an
  * RS-232 serial (COM) port using the jSerialComm library.

@@ -13,7 +13,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * ZentaPOS — Product & Order SQLDelight Query Integration Tests (jvmTest)
+ * ZyntaPOS — Product & Order SQLDelight Query Integration Tests (jvmTest)
  *
  * Step 3.4.7 | :shared:data | jvmTest
  *

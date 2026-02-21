@@ -15,7 +15,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DesignSystemComponentTests — Unit / state-logic tests for ZentaPOS design system
+// DesignSystemComponentTests — Unit / state-logic tests for ZyntaPOS design system
 //
 // Architecture note:
 //   Full Compose UI rendering tests (SemanticsNodeInteraction, ComposeTestRule)

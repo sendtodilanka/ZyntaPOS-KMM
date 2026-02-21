@@ -5,7 +5,7 @@ import com.zyntasolutions.zyntapos.core.logger.ZentaLogger
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
 
 /**
- * ZentaPOS — DatabaseFactory (commonMain)
+ * ZyntaPOS — DatabaseFactory (commonMain)
  *
  * Singleton orchestrator that coordinates the full encrypted database lifecycle:
  *

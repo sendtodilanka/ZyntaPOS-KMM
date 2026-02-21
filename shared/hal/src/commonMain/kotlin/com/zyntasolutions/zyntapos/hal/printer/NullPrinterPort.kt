@@ -3,7 +3,7 @@ package com.zyntasolutions.zyntapos.hal.printer
 import com.zyntasolutions.zyntapos.core.result.ZentaException
 
 /**
- * ZentaPOS — Hardware Abstraction Layer
+ * ZyntaPOS — Hardware Abstraction Layer
  *
  * A no-operation [PrinterPort] used as the Phase 1 default binding when no
  * printer has been configured yet.

@@ -4,7 +4,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * ZentaPOS — HAL | Desktop (JVM) Implementation
+ * ZyntaPOS — HAL | Desktop (JVM) Implementation
  *
  * [DesktopUsbPrinterPort] provides USB direct-print capability for desktop
  * thermal receipt printers (e.g. Epson TM-T88, Star TSP100 in native USB mode).

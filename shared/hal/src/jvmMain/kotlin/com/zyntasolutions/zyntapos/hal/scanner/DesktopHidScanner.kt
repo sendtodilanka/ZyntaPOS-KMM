@@ -8,7 +8,7 @@ import java.awt.KeyboardFocusManager
 import java.awt.event.KeyEvent
 
 /**
- * ZentaPOS — HAL | Desktop (JVM) Implementation
+ * ZyntaPOS — HAL | Desktop (JVM) Implementation
  *
  * [DesktopHidScanner] captures barcode data from a **USB HID keyboard-wedge** scanner
  * — the most common desktop scanner connectivity mode.

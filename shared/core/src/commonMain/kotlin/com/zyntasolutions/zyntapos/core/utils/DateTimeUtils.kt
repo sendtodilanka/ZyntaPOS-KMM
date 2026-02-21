@@ -12,13 +12,13 @@ import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 
 /**
- * ZentaPOS date/time utilities wrapping [kotlinx.datetime].
+ * ZyntaPOS date/time utilities wrapping [kotlinx.datetime].
  *
  * All functions accept an optional [tz] parameter (defaults to system timezone)
  * so the POS can handle stores in any timezone without configuration changes.
  *
  * ### Epoch convention
- * ZentaPOS stores all timestamps as **Unix epoch milliseconds** (`Long`).
+ * ZyntaPOS stores all timestamps as **Unix epoch milliseconds** (`Long`).
  * Use these utilities to convert to/from display-friendly formats.
  */
 object DateTimeUtils {

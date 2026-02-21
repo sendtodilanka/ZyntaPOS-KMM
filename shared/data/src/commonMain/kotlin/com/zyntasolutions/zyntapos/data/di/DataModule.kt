@@ -36,7 +36,7 @@ import com.zyntasolutions.zyntapos.domain.repository.UserRepository
 import org.koin.dsl.module
 
 /**
- * ZentaPOS — :shared:data Koin DI Module (commonMain)
+ * ZyntaPOS — :shared:data Koin DI Module (commonMain)
  *
  * Provides platform-agnostic bindings for the entire data layer.
  * Platform-specific bindings ([DatabaseDriverFactory], [DatabaseKeyProvider],

@@ -11,7 +11,7 @@ import org.koin.core.module.Module
 import org.koin.dsl.module
 
 /**
- * ZentaPOS — Hardware Abstraction Layer · Desktop (JVM) Koin DI
+ * ZyntaPOS — Hardware Abstraction Layer · Desktop (JVM) Koin DI
  *
  * Desktop actual for [halModule].
  *

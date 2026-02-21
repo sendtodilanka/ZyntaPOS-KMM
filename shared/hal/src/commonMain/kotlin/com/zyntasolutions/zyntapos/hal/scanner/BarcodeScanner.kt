@@ -3,7 +3,7 @@ package com.zyntasolutions.zyntapos.hal.scanner
 import kotlinx.coroutines.flow.Flow
 
 /**
- * ZentaPOS — Hardware Abstraction Layer
+ * ZyntaPOS — Hardware Abstraction Layer
  *
  * [BarcodeScanner] is the platform-agnostic contract for any barcode/QR input
  * source — USB HID wedge, Bluetooth SPP scanner, camera-based ML Kit scanner,

@@ -8,7 +8,7 @@ import java.nio.file.Paths
 import java.util.Properties
 
 /**
- * ZentaPOS — DatabaseDriverFactory (jvmMain actual)
+ * ZyntaPOS — DatabaseDriverFactory (jvmMain actual)
  *
  * Creates an AES-256 encrypted SQLite driver for the Desktop (JVM) target.
  *

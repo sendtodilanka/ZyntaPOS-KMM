@@ -155,7 +155,7 @@ private fun LoginFormContent(
             fontWeight = FontWeight.Bold,
         )
         Text(
-            text = "Sign in to your ZentaPOS account",
+            text = "Sign in to your ZyntaPOS account",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -306,7 +306,7 @@ private fun ZentaLogoHeader(modifier: Modifier = Modifier) {
         }
         Spacer(Modifier.width(ZentaSpacing.sm))
         Text(
-            text = "ZentaPOS",
+            text = "ZyntaPOS",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
         )

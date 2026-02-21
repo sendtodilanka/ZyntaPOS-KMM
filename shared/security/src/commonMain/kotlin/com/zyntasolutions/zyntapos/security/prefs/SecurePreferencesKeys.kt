@@ -2,7 +2,7 @@ package com.zyntasolutions.zyntapos.security.prefs
 
 // ZENTA-FINAL-AUDIT MERGED-F1
 /**
- * Canonical key registry for [SecurePreferences] across all ZentaPOS modules.
+ * Canonical key registry for [SecurePreferences] across all ZyntaPOS modules.
  *
  * This is the **single source of truth** for all encrypted-preference key strings.
  * Every key follows the dotted-namespace convention `<domain>.<field>` to avoid

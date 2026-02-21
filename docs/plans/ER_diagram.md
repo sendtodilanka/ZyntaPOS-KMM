@@ -1,4 +1,4 @@
-# ZentaPOS — Enterprise ER Diagram Plan
+# ZyntaPOS — Enterprise ER Diagram Plan
 
 > **Document ID:** ZENTA-ER-DIAGRAM-v1.0  
 > **Status:** APPROVED FOR EXECUTION  
@@ -2027,4 +2027,4 @@ DELETE FROM customer_addresses WHERE customer_id = :customer_id;
 
 ---
 
-*End of ER Diagram Plan — ZentaPOS v1.0*
+*End of ER Diagram Plan — ZyntaPOS v1.0*

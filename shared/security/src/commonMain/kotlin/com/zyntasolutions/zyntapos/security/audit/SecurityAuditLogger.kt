@@ -9,7 +9,7 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 /**
- * ZentaPOS — Security Audit Logger
+ * ZyntaPOS — Security Audit Logger
  *
  * Append-only audit trail for security-sensitive POS events. All log functions
  * are **suspend fire-and-forget** — they catch all exceptions internally to prevent

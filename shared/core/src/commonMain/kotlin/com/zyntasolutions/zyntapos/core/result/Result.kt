@@ -1,7 +1,7 @@
 package com.zyntasolutions.zyntapos.core.result
 
 /**
- * ZentaPOS universal result wrapper for all use-case / repository return values.
+ * ZyntaPOS universal result wrapper for all use-case / repository return values.
  *
  * Represents three mutually-exclusive states:
  * - [Success] — operation succeeded with a typed payload

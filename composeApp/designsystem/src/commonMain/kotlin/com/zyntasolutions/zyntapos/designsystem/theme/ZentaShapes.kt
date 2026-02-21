@@ -5,7 +5,7 @@ import androidx.compose.material3.Shapes
 import androidx.compose.ui.unit.dp
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ZentaShapes — Material 3 Shape Scale for ZentaPOS
+// ZentaShapes — Material 3 Shape Scale for ZyntaPOS
 //
 // Scale: ExtraSmall(4dp) → Small(8dp) → Medium(12dp) → Large(16dp) → ExtraLarge(28dp)
 // Per M3 spec, shape roles are assigned to component categories:
@@ -15,11 +15,11 @@ import androidx.compose.ui.unit.dp
 //   Large       → Large FABs, nav drawers, side sheets
 //   ExtraLarge  → Bottom sheets, large dialogs
 //
-// ZentaPOS additions:
+// ZyntaPOS additions:
 //   Full (50%) → Circular indicators, avatar badges, numeric pad keys
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** ZentaPOS Material 3 [Shapes] scale. */
+/** ZyntaPOS Material 3 [Shapes] scale. */
 val ZentaShapes: Shapes = Shapes(
     /** 4 dp — chips, small badges, tooltips. */
     extraSmall  = RoundedCornerShape(4.dp),

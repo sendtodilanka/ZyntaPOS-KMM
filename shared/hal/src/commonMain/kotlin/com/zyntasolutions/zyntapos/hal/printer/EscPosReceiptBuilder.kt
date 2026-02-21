@@ -5,7 +5,7 @@ import com.zyntasolutions.zyntapos.domain.model.PaymentMethod
 import com.zyntasolutions.zyntapos.domain.model.RegisterSession
 
 /**
- * ZentaPOS — Hardware Abstraction Layer
+ * ZyntaPOS — Hardware Abstraction Layer
  *
  * Pure-Kotlin ESC/POS receipt generator that implements [ReceiptBuilder] for
  * 58 mm (32 chars/line) and 80 mm (48 chars/line) thermal paper rolls.

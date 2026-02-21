@@ -8,7 +8,7 @@ import androidx.compose.runtime.Composable
 //
 // Material You dynamic color is an Android 12+ feature and has no equivalent
 // on the JVM desktop platform. Always returns null so ZentaTheme falls back
-// to the static ZentaPOS brand palette on all desktop targets.
+// to the static ZyntaPOS brand palette on all desktop targets.
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable

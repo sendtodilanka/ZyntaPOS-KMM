@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 /**
- * ZentaPOS — Hardware Abstraction Layer
+ * ZyntaPOS — Hardware Abstraction Layer
  *
  * Connection states exposed by [PrinterManager.connectionState].
  */
@@ -35,7 +35,7 @@ sealed interface ConnectionState {
 }
 
 /**
- * ZentaPOS — Hardware Abstraction Layer
+ * ZyntaPOS — Hardware Abstraction Layer
  *
  * [PrinterManager] is the single Koin-provided gateway through which all shared
  * business logic (use cases, ViewModels) interacts with the physical thermal

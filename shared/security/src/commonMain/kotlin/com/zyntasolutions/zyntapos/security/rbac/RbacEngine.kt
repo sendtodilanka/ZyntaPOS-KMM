@@ -5,7 +5,7 @@ import com.zyntasolutions.zyntapos.domain.model.Role
 import com.zyntasolutions.zyntapos.domain.model.User
 
 /**
- * ZentaPOS Role-Based Access Control engine.
+ * ZyntaPOS Role-Based Access Control engine.
  *
  * Stateless, pure-computation component — no IO, no side effects. All permission
  * decisions are derived from [Permission.rolePermissions], the single source of

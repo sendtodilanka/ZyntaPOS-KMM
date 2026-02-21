@@ -11,7 +11,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * ZentaPOS — SyncRepositoryImpl Integration Tests (jvmTest)
+ * ZyntaPOS — SyncRepositoryImpl Integration Tests (jvmTest)
  *
  * Step 3.4.7 | :shared:data | jvmTest
  *

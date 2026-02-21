@@ -17,6 +17,26 @@
 
 ---
 
+## 🔧 HOTFIX — Product Name Canonicalization: ZentaPOS → ZyntaPOS (2026-02-21)
+> **Problem:** `UI_UX_Main_Plan.md` and `ER_diagram.md` used "ZentaPOS" throughout; 112 `.kt` doc comment occurrences also used "ZentaPOS". Canonical name = **ZyntaPOS** (matching code, packages, folder, and Master_plan.md).
+> **Rule:** `ZENTA-` prefixes in document IDs (e.g., `ZENTA-UI-v1.0`) were **preserved** — not renamed.
+
+- [x] NC-1 — Replace "ZentaPOS" → "ZyntaPOS" in `docs/plans/UI_UX_Main_Plan.md` (4 replacements, 0 remaining) | 2026-02-21
+- [x] NC-2 — Replace "ZentaPOS" → "ZyntaPOS" in `docs/plans/ER_diagram.md` (2 replacements, 0 remaining) | 2026-02-21
+- [x] NC-3 — Replace "ZentaPOS" → "ZyntaPOS" in all `.kt` source files (112 occurrences across 79 files, 0 remaining) | 2026-02-21
+
+### NC Integrity Report
+
+| File / Scope | Replacements | ZentaPOS Remaining |
+|---|---|---|
+| `docs/plans/UI_UX_Main_Plan.md` | 4 | ✅ 0 |
+| `docs/plans/ER_diagram.md` | 2 | ✅ 0 |
+| All `.kt` source files (79 files) | 112 | ✅ 0 |
+| **Total** | **118** | **✅ 0** |
+| `ZENTA-` doc ID prefixes preserved | — | ✅ Untouched |
+
+---
+
 ## 🔧 HOTFIX — PasswordHasher Deduplication (2026-02-21)
 > **Problem:** Two PasswordHasher types with incompatible APIs — data-layer interface (verify/hash)
 > vs canonical security expect object (verifyPassword/hashPassword). Post-Sprint 8 call sites
