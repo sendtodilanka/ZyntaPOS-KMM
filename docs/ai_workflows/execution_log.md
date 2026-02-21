@@ -2711,3 +2711,20 @@ settings.gradle.kts                                                           �
 - [x] Finished: Step 5 — Register both in `DataModule.kt` | 2026-02-21
 
 > **HOTFIX STATUS: ✅ COMPLETE — AuditRepositoryImpl + UnitGroupRepositoryImpl created and registered.**
+
+
+---
+
+## 🗄️ HOTFIX — Missing SQLDelight Schema Files (MERGED-D2)
+> **Problem:** `tax_groups.sq` and `units_of_measure.sq` absent from
+> `shared/data/src/commonMain/sqldelight/.../db/`.
+> Both `TaxGroupRepositoryImpl` and `UnitGroupRepositoryImpl` blocked on TODO("Requires ... .sq").
+
+- [x] Finished: Step 1 — Read TaxGroup.kt + UnitOfMeasure.kt domain models | 2026-02-21
+- [x] Finished: Step 2 — Read categories.sq for dialect + naming convention reference | 2026-02-21
+- [x] Finished: Step 3 — Read TaxGroupRepositoryImpl.kt + UnitGroupRepositoryImpl.kt for query name expectations | 2026-02-21
+- [x] Finished: Step 4 — Create tax_groups.sq (CREATE TABLE + 9 queries, soft-delete, indexes) | 2026-02-21
+- [x] Finished: Step 5 — Create units_of_measure.sq (CREATE TABLE + 10 queries, demoteBaseUnit, unique index on abbreviation) | 2026-02-21
+
+> **HOTFIX STATUS: ✅ COMPLETE — Both .sq files written. SQLDelight will generate TaxGroupsQueries and UnitsOfMeasureQueries on next build.**
+> **Next:** Implement TODO bodies in TaxGroupRepositoryImpl and UnitGroupRepositoryImpl using generated queries.
