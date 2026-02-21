@@ -3193,3 +3193,65 @@ The work they were scaffolded for is fully implemented in adjacent packages:
 - [x] Finished: Verification — `find` returned zero results, file confirmed absent | 2026-02-22
 
 ### Status: ✅ COMPLETE — MERGED-H1 resolved
+
+
+---
+
+## Fix: ReceiptFormatter Constructor Injection + PrintTestPageUseCase fun interface Contract
+**Date:** 2026-02-22
+
+### Pre-execution Check
+- [x] Finished: Read execution_log.md tail — confirmed last completed task was MERGED-H1 | 2026-02-22
+
+### Context
+Two compile errors blocked `:shared:domain:assemble`. Both were identified via `./gradlew :shared:domain:assemble` output. Fixes were planned, analysed for impact against Master_plan.md and PLAN_PHASE1.md, then executed as Option A for `PrintTestPageUseCase`.
+
+---
+
+### Fix 1 — ReceiptFormatter.kt: Constructor Injection of CurrencyFormatter
+
+- [x] Finished: Read ReceiptFormatter.kt — confirmed `fmt()` calling `CurrencyFormatter.format(...)` as a static method; `CurrencyFormatter` has no companion object | 2026-02-22
+- [x] Finished: Read CurrencyFormatter.kt — confirmed it is a class with instance method `fun format(amount, currencyCode)`, registered in CoreModule.kt as `single { CurrencyFormatter() }` | 2026-02-22
+- [x] Finished: Located Koin registration — `PosModule.kt` (DomainModule.kt is a stub); found `factory { ReceiptFormatter() }` | 2026-02-22
+- [x] Finished: Edited `shared/domain/.../formatter/ReceiptFormatter.kt` — added `private val currencyFormatter: CurrencyFormatter` as first constructor parameter | 2026-02-22
+- [x] Finished: Edited `shared/domain/.../formatter/ReceiptFormatter.kt` — changed `fmt()` from `CurrencyFormatter.format(amount, currencyCode)` to `currencyFormatter.format(amount, currencyCode)` | 2026-02-22
+- [x] Finished: Edited `composeApp/feature/pos/.../PosModule.kt` — `factory { ReceiptFormatter() }` → `factory { ReceiptFormatter(currencyFormatter = get()) }` | 2026-02-22
+
+---
+
+### Fix 2 — PrintTestPageUseCase.kt: Remove Illegal Default Parameter (Option A)
+
+**Decision rationale:**
+- Option A (remove default) chosen over Option B (convert to `interface`) because:
+  - Preserves SAM conversion → test fakes remain concise lambdas (SettingsViewModelTest already uses SAM)
+  - Forces all callers to supply paperWidth explicitly from state — mandatory for Phase 2 multi-store per-store printer config (Master_plan.md §10)
+  - Aligns with PLAN_PHASE1.md §4.2.10: 58mm and 80mm are equal first-class peers in EscPosReceiptBuilder
+  - Eliminates class of silent test gap where `invoke()` with no args would always use MM_80 regardless of store config
+
+- [x] Finished: Read PrintTestPageUseCase.kt — confirmed `fun interface` with illegal `= PrinterPaperWidth.MM_80` default on abstract method | 2026-02-22
+- [x] Finished: Read SettingsViewModel.kt `testPrint()` — confirmed it already maps `PaperWidthOption` (feature) → `PrinterPaperWidth` (domain) and calls `printTestPageUseCase(domainWidth)` explicitly; **zero ViewModel changes required** | 2026-02-22
+- [x] Finished: Read PrintTestPageUseCaseImpl.kt — confirmed override has no default; **zero impl changes required** | 2026-02-22
+- [x] Finished: Read SettingsViewModelTest.kt — confirmed SAM lambda accepts `paperWidth` as explicit param; **zero test changes required** | 2026-02-22
+- [x] Finished: Edited `shared/domain/.../usecase/settings/PrintTestPageUseCase.kt` — removed `= PrinterPaperWidth.MM_80` from abstract method signature | 2026-02-22
+
+---
+
+### Build Verification
+- [x] Finished: Ran `./gradlew :shared:domain:assemble` → **BUILD SUCCESSFUL in 4s** | 2026-02-22
+  - 4 pre-existing warnings only (unnecessary `!!` in CreateProductUseCase, UpdateProductUseCase; always-true Elvis in ProductValidator) — not errors, not introduced by these fixes
+  - Zero compile errors in ReceiptFormatter.kt, PrintTestPageUseCase.kt, or any downstream file
+
+---
+
+### Files Changed (2 source + 1 DI + 3 docs)
+| File | Change |
+|------|--------|
+| `shared/domain/.../formatter/ReceiptFormatter.kt` | Constructor injection of `CurrencyFormatter`; `fmt()` uses instance call |
+| `shared/domain/.../usecase/settings/PrintTestPageUseCase.kt` | Removed illegal default param from `fun interface` |
+| `composeApp/feature/pos/.../PosModule.kt` | Koin: `ReceiptFormatter(currencyFormatter = get())` |
+| `docs/ai_workflows/execution_log.md` | This entry |
+| `docs/audit_v2_phase_1_result.md` | NF-05 finding updated with compile error resolution note |
+| `docs/plans/Master_plan.md` | Appendix C: Known Issues & Resolutions added |
+| `docs/plans/PLAN_PHASE1.md` | Sprint 23 step 13.1.5 annotated; Appendix: Hotfixes added |
+
+### Status: ✅ COMPLETE — :shared:domain:assemble BUILD SUCCESSFUL

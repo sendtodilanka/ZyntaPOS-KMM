@@ -1196,4 +1196,57 @@ Storage: Append-only, tamper-evident (hash chain)
 
 ---
 
+---
+
+## Appendix C: Known Issues & Resolutions
+
+This appendix records compile errors, architectural violations, and design contract fixes discovered during Phase 1 implementation. Each entry states the root cause, the architectural principle violated, and the resolution applied.
+
+---
+
+### C.1 — ReceiptFormatter: Static CurrencyFormatter Call (Resolved 2026-02-22)
+
+**Module:** `:shared:domain` → `formatter/ReceiptFormatter.kt`
+**Symptom:** `:shared:domain:assemble` compile error — unresolved reference on `CurrencyFormatter.format(...)` static call.
+
+**Root Cause:** `CurrencyFormatter` (`:shared:core`) is a class with instance methods only. It has no companion object. The original `ReceiptFormatter` constructor did not declare it as a dependency and called it as if it were a static utility, violating the **Dependency Inversion Principle** — the formatter depended on a concrete, uninjected collaborator.
+
+**Resolution:** Constructor Injection (DI pattern).
+- `CurrencyFormatter` injected as `private val currencyFormatter: CurrencyFormatter`
+- `fmt()` updated to `currencyFormatter.format(amount, currencyCode)`
+- Koin registration in `PosModule.kt` updated: `factory { ReceiptFormatter(currencyFormatter = get()) }`
+- `CurrencyFormatter` is already registered in `CoreModule.kt` as `single { CurrencyFormatter() }` — no new binding needed
+
+**Architectural principle enforced:** §3.1 Clean Architecture — all collaborators must be injected; no implicit static coupling between shared modules.
+
+---
+
+### C.2 — PrintTestPageUseCase: Illegal Default on fun interface (Resolved 2026-02-22)
+
+**Module:** `:shared:domain` → `usecase/settings/PrintTestPageUseCase.kt`
+**Symptom:** `:shared:domain:assemble` compile error — *"Functional interface abstract method cannot have a default value"*.
+
+**Root Cause:** Kotlin forbids default parameter values on `fun interface` abstract methods. The original declaration included `= PrinterPaperWidth.MM_80` as a convenience default. Beyond the compile error, the default was architecturally incorrect: it encoded a hardware assumption (80mm paper) into the domain contract, conflicting with the HAL design (§9) where 58mm and 80mm are equal first-class peers, and with the Phase 2 multi-store requirement (§10) where each store has its own printer configuration.
+
+**Resolution:** Option A — remove the default value. The `fun interface` contract becomes:
+```kotlin
+fun interface PrintTestPageUseCase {
+    suspend operator fun invoke(paperWidth: PrinterPaperWidth): Result<Unit>
+}
+```
+
+**Impact confirmed zero** across all three call sites:
+- `SettingsViewModel.testPrint()` — already maps `PaperWidthOption` (feature state) → `PrinterPaperWidth` (domain) and passes it explicitly. No change required.
+- `PrintTestPageUseCaseImpl.kt` — override already had no default. No change required.
+- `SettingsViewModelTest.kt` — SAM lambda accepts `paperWidth` as an explicit parameter. No change required.
+
+**SAM conversion preserved:** Keeping `fun interface` (vs converting to `interface`) retains the SAM lambda syntax used in test fakes and future mock implementations.
+
+**Architectural principles enforced:**
+- §3.1 Clean Architecture — domain contracts must not encode infrastructure assumptions (paper width is a hardware/settings concern, not a domain default)
+- §9 HAL — 58mm and 80mm are equal peers; no width is "default"
+- §10 Multi-Store — per-store printer configuration requires explicit width threading from settings state through to the use case
+
+---
+
 *End of Master Blueprint — ZyntaPOS v1.0*

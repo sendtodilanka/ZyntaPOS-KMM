@@ -226,6 +226,10 @@ Tasks:
   1.2.7  Create IdGenerator (UUID v4 cross-platform via kotlin.uuid)
   1.2.8  Create DateTimeUtils (kotlinx.datetime wrappers: now(), toIso(), fromIso())
   1.2.9  Create CurrencyFormatter (locale-aware, configurable symbol + decimals)
+         ⚠️ HOTFIX-01 (2026-02-22): `ReceiptFormatter` (`:shared:domain`) called
+         `CurrencyFormatter.format(...)` as static — compile error. `CurrencyFormatter`
+         is an instance-only class (no companion object). Fixed via Constructor Injection
+         in `ReceiptFormatter`; Koin binding updated in `PosModule.kt`. See Appendix D.
   1.2.10 Unit tests for all utilities (commonTest)
 ```
 
@@ -884,6 +888,11 @@ Tasks:
            - Connection parameters (port, baud rate, IP/port)
            - Paper width selector (58mm / 80mm)
            - Test print button → PrintTestPageUseCase
+             ⚠️ HOTFIX-02 (2026-02-22): `PrintTestPageUseCase` `fun interface` had illegal
+             default `= PrinterPaperWidth.MM_80` on abstract method — compile error.
+             Fixed: default removed (Option A). `SettingsViewModel.testPrint()` already
+             passes `paperWidth` explicitly from `state.printer.paperWidth`. Zero call-site
+             changes required. See Appendix D.
            - Receipt customization: header, footer, show/hide fields
   13.1.6  UserManagementScreen.kt — list users, create/edit/deactivate, role assignment
            (Admin only — gated by RoleGuard)
@@ -1522,6 +1531,34 @@ com.zyntasolutions.zyntapos
           ├── reports/
           └── settings/
 ```
+
+---
+
+---
+
+## Appendix D: Phase 1 Hotfixes
+
+Compile errors and architectural violations discovered during Phase 1 execution and resolved post-sprint. Each hotfix references the affected sprint step and links to the master resolution in `Master_plan.md` Appendix C.
+
+---
+
+### HOTFIX-01 — ReceiptFormatter: Static CurrencyFormatter Call (2026-02-22)
+
+**Affects:** Sprint 1–2 (step 1.2.9 — CurrencyFormatter) + Sprint 3–4 (ReceiptFormatter)
+**Error:** `:shared:domain:assemble` — unresolved reference; `CurrencyFormatter` has no companion object
+**Fix:** Constructor Injection — `CurrencyFormatter` added as constructor parameter to `ReceiptFormatter`; `PosModule.kt` Koin binding updated to `factory { ReceiptFormatter(currencyFormatter = get()) }`
+**Files changed:** `shared/domain/.../formatter/ReceiptFormatter.kt`, `composeApp/feature/pos/.../PosModule.kt`
+**Full resolution:** Master_plan.md Appendix C.1
+
+---
+
+### HOTFIX-02 — PrintTestPageUseCase: Illegal Default on fun interface (2026-02-22)
+
+**Affects:** Sprint 23 (step 13.1.5 — PrinterSettingsScreen / PrintTestPageUseCase)
+**Error:** `:shared:domain:assemble` — *"Functional interface abstract method cannot have a default value"*
+**Fix:** Option A — removed `= PrinterPaperWidth.MM_80` default. `SettingsViewModel.testPrint()` was already architecturally correct (passes `paperWidth` explicitly from state). Zero call-site, impl, or test changes required.
+**Files changed:** `shared/domain/.../usecase/settings/PrintTestPageUseCase.kt`
+**Full resolution:** Master_plan.md Appendix C.2
 
 ---
 
