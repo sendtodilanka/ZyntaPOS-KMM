@@ -27,6 +27,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(project(":shared:domain"))
+            implementation(project(":shared:security"))
             implementation(libs.bundles.ktor.common)
             implementation(libs.bundles.sqldelight.common)
             implementation(libs.kotlinx.serialization.json)

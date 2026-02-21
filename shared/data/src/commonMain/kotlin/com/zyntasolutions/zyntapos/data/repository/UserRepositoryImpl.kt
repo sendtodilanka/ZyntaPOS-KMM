@@ -7,7 +7,7 @@ import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.core.result.ValidationException
 import com.zyntasolutions.zyntapos.data.local.SyncEnqueuer
 import com.zyntasolutions.zyntapos.data.local.mapper.UserMapper
-import com.zyntasolutions.zyntapos.data.local.security.PasswordHasher
+import com.zyntasolutions.zyntapos.security.auth.PasswordHasher
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
 import com.zyntasolutions.zyntapos.domain.model.SyncOperation
 import com.zyntasolutions.zyntapos.domain.model.User
@@ -39,12 +39,10 @@ import kotlinx.datetime.Clock
  * [Dispatchers.IO] via `mapToList(Dispatchers.IO)`.
  *
  * @param db             Encrypted [ZyntaDatabase] singleton, provided by Koin.
- * @param passwordHasher Platform-specific password hashing implementation.
  * @param syncEnqueuer   Writes a `pending_operations` row after every mutation.
  */
 class UserRepositoryImpl(
     private val db: ZyntaDatabase,
-    private val passwordHasher: PasswordHasher,
     private val syncEnqueuer: SyncEnqueuer,
 ) : UserRepository {
 
@@ -86,7 +84,7 @@ class UserRepositoryImpl(
                         ValidationException("Email already in use: ${user.email}", field = "email")
                     )
                 }
-                val passwordHash = passwordHasher.hash(plainPassword)
+                val passwordHash = PasswordHasher.hashPassword(plainPassword)
                 val p = UserMapper.toInsertParams(user, passwordHash)
                 val now = Clock.System.now().toEpochMilliseconds()
                 db.transaction {
@@ -134,7 +132,7 @@ class UserRepositoryImpl(
     override suspend fun updatePassword(userId: String, newPlainPassword: String): Result<Unit> =
         withContext(Dispatchers.IO) {
             runCatching {
-                val newHash = passwordHasher.hash(newPlainPassword)
+                val newHash = PasswordHasher.hashPassword(newPlainPassword)
                 val now = Clock.System.now().toEpochMilliseconds()
                 db.transaction {
                     q.updateUserPassword(

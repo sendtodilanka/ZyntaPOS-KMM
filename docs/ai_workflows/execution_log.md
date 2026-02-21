@@ -17,6 +17,47 @@
 
 ---
 
+## 🔧 HOTFIX — PasswordHasher Deduplication (2026-02-21)
+> **Problem:** Two PasswordHasher types with incompatible APIs — data-layer interface (verify/hash)
+> vs canonical security expect object (verifyPassword/hashPassword). Post-Sprint 8 call sites
+> would silently call the wrong implementation.
+> **Canonical:** `shared/security/.../security/auth/PasswordHasher.kt` (expect object, BCrypt)
+> **Zombie:** `shared/data/.../local/security/PasswordHasher.kt` (interface, no impl)
+
+- [ ] PHF-1 — Read both PasswordHasher files in full (DONE above — precondition met)
+- [ ] PHF-2 — Grep all import sites of data-layer PasswordHasher (DONE — 5 files found)
+- [x] PHF-3 — Add `:shared:security` dependency to `shared/data/build.gradle.kts` | 2026-02-21
+- [x] PHF-4 — Update `AuthRepositoryImpl.kt`: swap import (data.local.security→security.auth), remove constructor param `passwordHasher`, replace `passwordHasher.verify(...)` → `PasswordHasher.verifyPassword(...)`, `passwordHasher.hash(...)` → `PasswordHasher.hashPassword(...)` | 2026-02-21
+- [x] PHF-5 — Update `UserRepositoryImpl.kt`: swap import, remove constructor param `passwordHasher`, replace 2× `passwordHasher.hash(...)` → `PasswordHasher.hashPassword(...)` | 2026-02-21
+- [x] PHF-6 — Update `DataModule.kt`: remove `PasswordHasher` import, remove `passwordHasher = get<PasswordHasher>()` from `AuthRepositoryImpl` + `UserRepositoryImpl` bindings, update KDoc platform requirements list | 2026-02-21
+- [x] PHF-7 — Update `AndroidDataModule.kt`: remove `PasswordHasher`/`PlaceholderPasswordHasher` imports, remove `single<PasswordHasher>` binding, update KDoc table + Sprint 8 checklist | 2026-02-21
+- [x] PHF-8 — Update `DesktopDataModule.kt`: same as PHF-7 — remove imports, remove binding, update KDoc | 2026-02-21
+- [x] PHF-9 — Create `PlaceholderPasswordHasher.kt` in `shared/security/src/commonMain/.../security/auth/`: standalone class (no interface), methods `hashPassword(plain)` + `verifyPassword(plain, hash)`, full KDoc with ⚠️ warning | 2026-02-21
+- [x] PHF-10 — Delete `shared/data/.../local/security/PasswordHasher.kt` (zombie interface) | 2026-02-21
+- [x] PHF-11 — Delete `shared/data/.../local/security/PlaceholderPasswordHasher.kt` (zombie impl, moved to :shared:security) | 2026-02-21
+
+### PHF Integrity Report
+
+| Check | Result |
+|-------|--------|
+| Zero import sites of `data.local.security.PasswordHasher` remaining | ✅ PASS |
+| `AuthRepositoryImpl.kt` imports `security.auth.PasswordHasher` | ✅ PASS |
+| `UserRepositoryImpl.kt` imports `security.auth.PasswordHasher` | ✅ PASS |
+| `AuthRepositoryImpl` constructor has no `passwordHasher` param | ✅ PASS |
+| `UserRepositoryImpl` constructor has no `passwordHasher` param | ✅ PASS |
+| `DataModule.kt` — no `get<PasswordHasher>()` in repo bindings | ✅ PASS |
+| `AndroidDataModule.kt` — no `PasswordHasher`/`PlaceholderPasswordHasher` import or binding | ✅ PASS |
+| `DesktopDataModule.kt` — same | ✅ PASS |
+| `PlaceholderPasswordHasher.kt` created in `shared/security/.../security/auth/` | ✅ PASS |
+| `PlaceholderPasswordHasher` is a standalone class (no stale interface implementation) | ✅ PASS |
+| `shared/data/build.gradle.kts` now has `implementation(project(":shared:security"))` | ✅ PASS |
+| Zombie `shared/data/.../local/security/PasswordHasher.kt` DELETED | ✅ PASS |
+| Zombie `shared/data/.../local/security/PlaceholderPasswordHasher.kt` DELETED | ✅ PASS |
+
+> **Section status: ✅ HOTFIX PHF COMPLETE — all 11 tasks done, all integrity checks PASS**
+
+---
+
 ## 🔧 HOTFIX — MVI Architecture Violation Fix (2026-02-21)
 - [x] Finished: Step 1 — Grep confirmed zero external consumers of zombie `shared/core/.../core/mvi/BaseViewModel.kt` | 2026-02-21
 - [x] Finished: Step 2 — Deleted zombie `BaseViewModel.kt` (AutoCloseable / setState / onIntent API) from `shared/core/src/commonMain/.../core/mvi/` | 2026-02-21

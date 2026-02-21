@@ -5,8 +5,8 @@ import com.zyntasolutions.zyntapos.core.result.AuthFailureReason
 import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.data.local.mapper.UserMapper
-import com.zyntasolutions.zyntapos.data.local.security.PasswordHasher
 import com.zyntasolutions.zyntapos.data.local.security.SecurePreferences
+import com.zyntasolutions.zyntapos.security.auth.PasswordHasher
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
 import com.zyntasolutions.zyntapos.domain.model.User
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
@@ -36,12 +36,10 @@ import kotlinx.datetime.Clock
  * The in-memory [_session] StateFlow is the authoritative source for active session.
  *
  * @param db               Encrypted [ZyntaDatabase] singleton.
- * @param passwordHasher   BCrypt verifier (platform-injected via Koin).
  * @param securePrefs      Platform-encrypted key-value store.
  */
 class AuthRepositoryImpl(
     private val db: ZyntaDatabase,
-    private val passwordHasher: PasswordHasher,
     private val securePrefs: SecurePreferences,
 ) : AuthRepository {
 
@@ -78,7 +76,7 @@ class AuthRepositoryImpl(
                     )
                 )
             }
-            val valid = passwordHasher.verify(password, userRow.password_hash)
+            val valid = PasswordHasher.verifyPassword(password, userRow.password_hash)
             if (!valid) {
                 return@withContext Result.Error(
                     AuthException(
@@ -119,7 +117,7 @@ class AuthRepositoryImpl(
 
     override suspend fun updatePin(userId: String, pin: String): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
-            val pinHash = passwordHasher.hash(pin)
+            val pinHash = PasswordHasher.hashPassword(pin)
             val now     = Clock.System.now().toEpochMilliseconds()
             db.usersQueries.updateUserPin(pin_hash = pinHash, updated_at = now, id = userId)
         }.fold(

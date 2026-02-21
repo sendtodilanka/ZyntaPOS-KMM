@@ -3,7 +3,6 @@ package com.zyntasolutions.zyntapos.data.di
 import com.zyntasolutions.zyntapos.data.local.SyncEnqueuer
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseFactory
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseMigrations
-import com.zyntasolutions.zyntapos.data.local.security.PasswordHasher
 import com.zyntasolutions.zyntapos.data.local.security.SecurePreferences
 import com.zyntasolutions.zyntapos.data.remote.api.ApiService
 import com.zyntasolutions.zyntapos.data.remote.api.KtorApiService
@@ -70,8 +69,8 @@ import org.koin.dsl.module
  * - `DatabaseDriverFactory`  (expect/actual — platform constructor args differ)
  * - `DatabaseKeyProvider`    (expect/actual — platform constructor args differ)
  * - `NetworkMonitor`         (expect/actual — Android needs Context; Desktop no-arg)
- * - `PasswordHasher`         (interface — Sprint 6: PlaceholderPasswordHasher; Sprint 8: BCrypt)
  * - `SecurePreferences`      (interface — Sprint 6: InMemorySecurePreferences; Sprint 8: Encrypted)
+ * Note: `PasswordHasher` is now `expect object` in :shared:security — no platform binding needed.
  *
  * ## Android WorkManager integration (SyncWorker)
  * `SyncEngine.runOnce()` is invoked from `SyncWorker` (androidMain) — no extra binding needed.
@@ -130,13 +129,12 @@ val dataModule = module {
     single<SupplierRepository> { SupplierRepositoryImpl(db = get(), syncEnqueuer = get()) }
 
     // Auth: local BCrypt verification + SecurePreferences JWT cache
-    // PasswordHasher & SecurePreferences are platform expect/actual — injected
-    // from the platform-specific modules.
+    // PasswordHasher is now the canonical expect object in :shared:security.
+    // Called directly (no injection needed — it's a singleton object).
     single<AuthRepository> {
         AuthRepositoryImpl(
-            db            = get(),
-            passwordHasher = get<PasswordHasher>(),
-            securePrefs   = get<SecurePreferences>(),
+            db          = get(),
+            securePrefs = get<SecurePreferences>(),
         )
     }
 
@@ -147,11 +145,11 @@ val dataModule = module {
     single<TaxGroupRepository> { TaxGroupRepositoryImpl(db = get(), syncEnqueuer = get()) }
 
     // User accounts: CRUD + password lifecycle
+    // PasswordHasher.hashPassword() called directly via canonical expect object.
     single<UserRepository> {
         UserRepositoryImpl(
-            db             = get(),
-            passwordHasher = get<PasswordHasher>(),
-            syncEnqueuer   = get(),
+            db           = get(),
+            syncEnqueuer = get(),
         )
     }
 

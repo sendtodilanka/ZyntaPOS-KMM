@@ -3,8 +3,6 @@ package com.zyntasolutions.zyntapos.data.di
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseDriverFactory
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseKeyProvider
 import com.zyntasolutions.zyntapos.data.local.security.InMemorySecurePreferences
-import com.zyntasolutions.zyntapos.data.local.security.PasswordHasher
-import com.zyntasolutions.zyntapos.data.local.security.PlaceholderPasswordHasher
 import com.zyntasolutions.zyntapos.data.local.security.SecurePreferences
 import com.zyntasolutions.zyntapos.data.sync.NetworkMonitor
 import org.koin.dsl.module
@@ -21,7 +19,7 @@ import java.io.File
  * | [DatabaseDriverFactory] | JdbcSqliteDriver (WAL, 8 MB cache, 5s busy_timeout) | — |
  * | [NetworkMonitor] | Periodic InetAddress.isReachable() → StateFlow<Boolean> | Actual class — no-arg |
  * | [SecurePreferences] | [InMemorySecurePreferences] (Sprint 6 stub) | **Replace in Sprint 8** with AES-GCM file |
- * | [PasswordHasher] | [PlaceholderPasswordHasher] (Sprint 6 stub) | **Replace in Sprint 8** with BCrypt (jBCrypt) |
+ * Note: [PasswordHasher] is now `expect object` in :shared:security — no binding needed here.
  *
  * The application data directory is resolved from the OS-specific user home:
  * - macOS/Linux: `~/.zyntapos/data/`
@@ -44,7 +42,6 @@ import java.io.File
  *
  * ## Sprint 8 upgrade checklist
  * - [ ] Replace `InMemorySecurePreferences` with AES-256-GCM encrypted Properties file actual
- * - [ ] Replace `PlaceholderPasswordHasher` with `BCryptPasswordHasher(jBCrypt)`
  * - [ ] Remove Sprint 6 scaffold imports
  *
  * ## Production Deployment Note — SQLCipher Native Libs
@@ -71,7 +68,6 @@ val desktopDataModule = module {
     // ── Security Scaffolds (Sprint 6 — replace in Sprint 8) ──────────
     // ⚠️  These are NOT encrypted. For development / testing only.
     single<SecurePreferences> { InMemorySecurePreferences() }
-    single<PasswordHasher> { PlaceholderPasswordHasher() }
 }
 
 /**
