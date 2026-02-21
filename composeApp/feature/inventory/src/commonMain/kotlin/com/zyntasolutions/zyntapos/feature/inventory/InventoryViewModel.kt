@@ -8,6 +8,8 @@ import com.zyntasolutions.zyntapos.domain.model.ProductVariant
 import com.zyntasolutions.zyntapos.domain.model.StockAdjustment
 import com.zyntasolutions.zyntapos.domain.repository.CategoryRepository
 import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
+import com.zyntasolutions.zyntapos.domain.validation.ProductValidationParams
+import com.zyntasolutions.zyntapos.domain.validation.ProductValidator
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.AdjustStockUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.CreateProductUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.SearchProductsUseCase
@@ -244,7 +246,7 @@ class InventoryViewModel(
 
     private suspend fun onSaveProduct() {
         val form = currentState.editFormState
-        val errors = ProductFormValidator.validate(form)
+        val errors = ProductValidator.validate(form.toValidationParams())
         if (errors.isNotEmpty()) {
             updateState { copy(editFormState = form.copy(validationErrors = errors)) }
             return
@@ -478,5 +480,22 @@ class InventoryViewModel(
         imageUrl = imageUrl,
         isActive = isActive,
         isEditing = true,
+    )
+
+    /**
+     * Maps [ProductFormState] (feature-layer UI model) to [ProductValidationParams]
+     * (domain-layer value object) so that [ProductValidator] has no dependency on any
+     * presentation type.
+     */
+    private fun ProductFormState.toValidationParams() = ProductValidationParams(
+        name = name,
+        barcode = barcode,
+        sku = sku,
+        categoryId = categoryId,
+        unitId = unitId,
+        price = price,
+        costPrice = costPrice,
+        stockQty = stockQty,
+        minStockQty = minStockQty,
     )
 }

@@ -58,6 +58,43 @@
 
 ---
 
+## 🔧 HOTFIX — ProductFormValidator Layer Violation (2026-02-21)
+> **Problem:** `ProductFormValidator.kt` (136 lines, presentation layer) duplicates stock-quantity
+> validation already owned by `StockValidator.kt` in `:shared:domain`. Additionally, its API
+> couples domain validation to `ProductFormState` (a UI model), creating a dependency inversion violation.
+> **Fix:** (1) Introduce `ProductValidationParams` in domain. (2) Move + rename to `ProductValidator`
+> in `:shared:domain`. (3) Delegate stockQty/minStockQty checks to StockValidator. (4) Update
+> InventoryViewModel to map ProductFormState → ProductValidationParams and import domain validator.
+> (5) Delete zombie presentation-layer file.
+
+- [ ] PFV-1 — Read all source files in full (DONE above — precondition met)
+- [x] PFV-2 — Create `ProductValidationParams.kt` in `shared/domain/.../domain/validation/` | 2026-02-21
+- [x] PFV-3 — Create `ProductValidator.kt` in `shared/domain/.../domain/validation/` (delegates stock checks to StockValidator) | 2026-02-21
+- [x] PFV-4 — Update `InventoryViewModel.kt`: add domain import, map ProductFormState → ProductValidationParams, remove feature-layer ProductFormValidator reference | 2026-02-21
+- [x] PFV-5 — Delete `composeApp/feature/inventory/.../feature/inventory/ProductFormValidator.kt` | 2026-02-21
+
+### PFV Integrity Report
+
+| Check | Result |
+|-------|--------|
+| `ProductFormValidator.kt` absent from feature module | ✅ PASS |
+| `ProductValidationParams.kt` present in `shared/domain/.../domain/validation/` | ✅ PASS |
+| `ProductValidator.kt` present in `shared/domain/.../domain/validation/` | ✅ PASS |
+| `ProductValidator` has ZERO import of any `feature.*` type | ✅ PASS |
+| `ProductValidator.validate()` accepts `ProductValidationParams` (not `ProductFormState`) | ✅ PASS |
+| `stockQty` check delegates to `StockValidator.validateInitialStock()` | ✅ PASS |
+| `minStockQty` check delegates to `StockValidator.validateMinStock()` | ✅ PASS |
+| `InventoryViewModel` imports `ProductValidator` + `ProductValidationParams` from domain | ✅ PASS |
+| `InventoryViewModel` calls `ProductValidator.validate(form.toValidationParams())` | ✅ PASS |
+| `InventoryViewModel` has ZERO reference to `ProductFormValidator` | ✅ PASS |
+| `toValidationParams()` private extension maps all 9 form fields correctly | ✅ PASS |
+| `StockValidator.kt` unchanged — no rules removed or duplicated | ✅ PASS |
+| Domain validation package now: PaymentValidator, ProductValidationParams, ProductValidator, StockValidator, TaxValidator | ✅ PASS |
+
+> **Section status: ✅ HOTFIX PFV COMPLETE — all 5 tasks done, all integrity checks PASS**
+
+---
+
 ## 🔧 HOTFIX — MVI Architecture Violation Fix (2026-02-21)
 - [x] Finished: Step 1 — Grep confirmed zero external consumers of zombie `shared/core/.../core/mvi/BaseViewModel.kt` | 2026-02-21
 - [x] Finished: Step 2 — Deleted zombie `BaseViewModel.kt` (AutoCloseable / setState / onIntent API) from `shared/core/src/commonMain/.../core/mvi/` | 2026-02-21
