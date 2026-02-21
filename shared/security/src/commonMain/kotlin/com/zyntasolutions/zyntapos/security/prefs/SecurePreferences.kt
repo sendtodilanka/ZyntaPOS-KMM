@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.security.prefs
 
+// ZENTA-FINAL-AUDIT MERGED-F1
 /**
  * Cross-platform secure key-value storage for sensitive application preferences.
  *
@@ -7,6 +8,9 @@ package com.zyntasolutions.zyntapos.security.prefs
  * - JWT access and refresh tokens
  * - Session user identifiers
  * - Small application secrets
+ *
+ * Key strings are defined in [SecurePreferencesKeys] — **always use those constants**
+ * instead of raw string literals to prevent key-drift between modules.
  *
  * Implements [TokenStorage] so [com.zyntasolutions.zyntapos.security.auth.JwtManager]
  * can accept it without a platform-specific reference in commonMain.
@@ -19,6 +23,8 @@ package com.zyntasolutions.zyntapos.security.prefs
  *
  * ## Thread safety
  * Both implementations are thread-safe via synchronised read/write blocks.
+ *
+ * @see SecurePreferencesKeys for canonical key constants.
  */
 expect class SecurePreferences() : TokenStorage {
 
@@ -34,10 +40,5 @@ expect class SecurePreferences() : TokenStorage {
     /** Removes all entries from secure storage. */
     fun clear()
 
-    companion object {
-        const val KEY_ACCESS_TOKEN: String
-        const val KEY_REFRESH_TOKEN: String
-        const val KEY_DEVICE_ID: String
-        const val KEY_LAST_USER_ID: String
-    }
+    companion object
 }

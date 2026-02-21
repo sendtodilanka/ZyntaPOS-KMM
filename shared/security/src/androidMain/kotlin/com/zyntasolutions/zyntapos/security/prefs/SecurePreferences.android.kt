@@ -6,6 +6,7 @@ import androidx.security.crypto.MasterKey
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
+// ZENTA-FINAL-AUDIT MERGED-F1
 private const val PREFS_FILE = "zyntapos_secure_prefs"
 
 /**
@@ -14,6 +15,9 @@ private const val PREFS_FILE = "zyntapos_secure_prefs"
  * Keys are encrypted with AES-256-SIV and values with AES-256-GCM using a MasterKey
  * stored in the Android Keystore. The underlying file is stored in the standard
  * app SharedPreferences directory and is only accessible to this app.
+ *
+ * Key strings are sourced exclusively from [SecurePreferencesKeys].
+ * @see SecurePreferencesKeys
  */
 actual class SecurePreferences actual constructor() : TokenStorage, KoinComponent {
 
@@ -46,10 +50,5 @@ actual class SecurePreferences actual constructor() : TokenStorage, KoinComponen
         sharedPrefs.edit().clear().apply()
     }
 
-    actual companion object {
-        actual const val KEY_ACCESS_TOKEN: String = "access_token"
-        actual const val KEY_REFRESH_TOKEN: String = "refresh_token"
-        actual const val KEY_DEVICE_ID: String = "device_id"
-        actual const val KEY_LAST_USER_ID: String = "last_user_id"
-    }
+    actual companion object
 }

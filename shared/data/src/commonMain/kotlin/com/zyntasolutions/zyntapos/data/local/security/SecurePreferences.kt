@@ -1,12 +1,19 @@
 package com.zyntasolutions.zyntapos.data.local.security
 
+import com.zyntasolutions.zyntapos.security.prefs.SecurePreferencesKeys
+
+// ZENTA-FINAL-AUDIT MERGED-F1
 /**
- * ZentaPOS — SecurePreferences (Security Scaffold)
+ * ZentaPOS — SecurePreferences (Data layer interface scaffold)
  *
  * Temporary interface scaffold for Sprint 6 (Step 3.3) repository implementations.
- * Concrete implementations will be provided by :shared:security in Sprint 8 (Step 5.1.3):
+ * Concrete implementations are provided by :shared:security (Sprint 8, Step 5.1.3):
  * - Android: EncryptedSharedPreferences
  * - Desktop: AES-256-GCM encrypted Properties file
+ *
+ * Key strings delegate to [SecurePreferencesKeys] — the single source of truth for
+ * all secure-preference keys used across ZentaPOS modules.  Do **not** define raw
+ * key literals here; always reference [SecurePreferencesKeys].
  *
  * Koin bindings for this interface are registered in the platform data modules
  * (androidDataModule / desktopDataModule).
@@ -16,7 +23,7 @@ interface SecurePreferences {
     /**
      * Stores [value] for [key] in encrypted persistent storage.
      *
-     * @param key   A non-empty string key (recommended: namespaced, e.g. "auth.access_token").
+     * @param key   A non-empty string key. Use constants from [SecurePreferencesKeys].
      * @param value The plaintext value to encrypt and persist.
      */
     fun put(key: String, value: String)
@@ -48,11 +55,18 @@ interface SecurePreferences {
      */
     fun contains(key: String): Boolean
 
+    /**
+     * Key aliases that delegate to the canonical [SecurePreferencesKeys] constants.
+     *
+     * These aliases exist only for backwards-compatibility within the :shared:data module.
+     * New code should reference [SecurePreferencesKeys] directly.
+     */
     companion object Keys {
-        const val ACCESS_TOKEN   = "auth.access_token"
-        const val REFRESH_TOKEN  = "auth.refresh_token"
-        const val TOKEN_EXPIRY   = "auth.token_expiry"
-        const val CURRENT_USER_ID = "auth.user_id"
-        const val LAST_SYNC_TS   = "sync.last_timestamp"
+        // ZENTA-FINAL-AUDIT MERGED-F1 — all raw literals removed; delegate to canonical keys
+        const val ACCESS_TOKEN    = SecurePreferencesKeys.KEY_ACCESS_TOKEN
+        const val REFRESH_TOKEN   = SecurePreferencesKeys.KEY_REFRESH_TOKEN
+        const val TOKEN_EXPIRY    = SecurePreferencesKeys.KEY_TOKEN_EXPIRY
+        const val CURRENT_USER_ID = SecurePreferencesKeys.KEY_USER_ID
+        const val LAST_SYNC_TS    = SecurePreferencesKeys.KEY_LAST_SYNC_TS
     }
 }

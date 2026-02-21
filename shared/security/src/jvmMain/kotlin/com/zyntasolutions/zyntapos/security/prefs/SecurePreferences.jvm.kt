@@ -9,6 +9,7 @@ import java.io.FileOutputStream
 import java.util.Base64
 import java.util.Properties
 
+// ZENTA-FINAL-AUDIT MERGED-F1
 private const val TAG = "SecurePreferences"
 private const val PREFS_FILE = ".zentapos/secure_prefs.enc"
 private const val SEPARATOR = ":"
@@ -22,6 +23,9 @@ private const val SEPARATOR = ":"
  * key-value storage use a PKCS12-backed solution in a future security hardening sprint.
  *
  * File location: `~/.zentapos/secure_prefs.enc`
+ *
+ * Key strings are sourced exclusively from [SecurePreferencesKeys].
+ * @see SecurePreferencesKeys
  */
 actual class SecurePreferences actual constructor() : TokenStorage {
 
@@ -86,10 +90,5 @@ actual class SecurePreferences actual constructor() : TokenStorage {
     private fun encoded(bytes: ByteArray): String = Base64.getEncoder().encodeToString(bytes)
     private fun decoded(s: String): ByteArray = Base64.getDecoder().decode(s)
 
-    actual companion object {
-        actual const val KEY_ACCESS_TOKEN: String = "access_token"
-        actual const val KEY_REFRESH_TOKEN: String = "refresh_token"
-        actual const val KEY_DEVICE_ID: String = "device_id"
-        actual const val KEY_LAST_USER_ID: String = "last_user_id"
-    }
+    actual companion object
 }

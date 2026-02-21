@@ -2527,3 +2527,19 @@ settings.gradle.kts                                                           �
 - [x] Finished: Step 3 — Created UserRepositoryImpl.kt | 2026-02-21
 - [x] Finished: Step 4 — Registered TaxGroupRepositoryImpl + UserRepositoryImpl in DataModule.kt | 2026-02-21
 
+
+---
+
+## 🔐 SECURITY HOTFIX — SecurePreferences Key Consolidation (ZENTA-FINAL-AUDIT MERGED-F1)
+
+**Risk:** Two `SecurePreferences` implementations used different raw key strings; Sprint 6 auth writes would cause silent session-loss on upgrade.
+
+- [x] Finished: Step 1 — Read both SecurePreferences files (pre-condition) | 2026-02-21
+- [x] Finished: Step 2 — Create `SecurePreferencesKeys.kt` in :shared:security | 2026-02-21
+- [x] Finished: Step 3a — Update :shared:security `SecurePreferences.kt` (commonMain expect) | 2026-02-21
+- [x] Finished: Step 3b — Update :shared:security `SecurePreferences.android.kt` (androidMain actual) | 2026-02-21
+- [x] Finished: Step 3c — Update :shared:security `SecurePreferences.jvm.kt` (jvmMain actual) | 2026-02-21
+- [x] Finished: Step 3d — Update :shared:data `SecurePreferences.kt` (interface companion) | 2026-02-21
+- [x] Finished: Step 4 — Create `SecurePreferencesKeyMigration.kt` in :shared:data | 2026-02-21
+
+> **HOTFIX STATUS: ✅ COMPLETE — All 6 files written. Key divergence eliminated. Migration utility ready.**
