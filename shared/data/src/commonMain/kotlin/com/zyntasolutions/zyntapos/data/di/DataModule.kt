@@ -7,6 +7,7 @@ import com.zyntasolutions.zyntapos.data.local.security.SecurePreferences
 import com.zyntasolutions.zyntapos.data.remote.api.ApiService
 import com.zyntasolutions.zyntapos.data.remote.api.KtorApiService
 import com.zyntasolutions.zyntapos.data.remote.api.buildApiClient
+import com.zyntasolutions.zyntapos.data.repository.AuditRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.AuthRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.CategoryRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.CustomerRepositoryImpl
@@ -18,9 +19,11 @@ import com.zyntasolutions.zyntapos.data.repository.StockRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.SupplierRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.SyncRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.TaxGroupRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.UnitGroupRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.UserRepositoryImpl
 import com.zyntasolutions.zyntapos.data.sync.NetworkMonitor
 import com.zyntasolutions.zyntapos.data.sync.SyncEngine
+import com.zyntasolutions.zyntapos.domain.repository.AuditRepository
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.CategoryRepository
 import com.zyntasolutions.zyntapos.domain.repository.CustomerRepository
@@ -32,6 +35,7 @@ import com.zyntasolutions.zyntapos.domain.repository.StockRepository
 import com.zyntasolutions.zyntapos.domain.repository.SupplierRepository
 import com.zyntasolutions.zyntapos.domain.repository.SyncRepository
 import com.zyntasolutions.zyntapos.domain.repository.TaxGroupRepository
+import com.zyntasolutions.zyntapos.domain.repository.UnitGroupRepository
 import com.zyntasolutions.zyntapos.domain.repository.UserRepository
 import org.koin.dsl.module
 
@@ -143,6 +147,12 @@ val dataModule = module {
 
     // Tax groups: CRUD + soft-delete (SQLDelight queries tracked in MERGED-D2)
     single<TaxGroupRepository> { TaxGroupRepositoryImpl(db = get(), syncEnqueuer = get()) }
+
+    // Unit-of-Measure CRUD + base-unit promotion (SQLDelight queries tracked in MERGED-D2)
+    single<UnitGroupRepository> { UnitGroupRepositoryImpl(db = get(), syncEnqueuer = get()) }
+
+    // Security audit log: append-only; no remote sync in Phase 1
+    single<AuditRepository> { AuditRepositoryImpl(db = get()) }
 
     // User accounts: CRUD + password lifecycle
     // PasswordHasher.hashPassword() called directly via canonical expect object.

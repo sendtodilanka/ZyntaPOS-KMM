@@ -1030,23 +1030,25 @@ E-Inv:                          │                       │░░░░░░�
 
 ### 15.1 Core Stack
 
+> **Source of truth: `gradle/libs.versions.toml` — update this section when versions.toml changes.**
+
 | Layer | Technology | Version | Purpose |
 |-------|-----------|---------|---------|
-| Language | Kotlin | 2.1+ | Primary language |
+| Language | Kotlin | 2.3.0 | Primary language |
 | Build | Gradle (KTS) | 8.5+ | Build system |
-| KMP Plugin | kotlin-multiplatform | 2.1+ | Cross-platform compilation |
-| UI | Compose Multiplatform | 1.7+ | Shared UI framework |
+| KMP Plugin | kotlin-multiplatform | 2.3.0 | Cross-platform compilation |
+| UI | Compose Multiplatform | 1.10.0 | Shared UI framework |
 | Design | Material 3 | Latest | Design system |
 | Navigation | Compose Navigation | Latest | Type-safe routing |
-| DI | Koin | 4.0+ | Dependency injection |
-| Networking | Ktor Client | 3.0+ | HTTP client |
-| Serialization | Kotlinx.Serialization | 1.7+ | JSON/CBOR |
-| Local DB | SQLDelight | 2.0+ | Type-safe SQL |
-| Encryption | SQLCipher | 4.5+ | Database encryption |
-| Async | Kotlinx.Coroutines | 1.9+ | Concurrency |
-| DateTime | Kotlinx.DateTime | 0.6+ | Cross-platform dates |
-| Image Loading | Coil (Compose) | 3.0+ | Async image loading |
-| Logging | Kermit | 2.0+ | KMP-native logging |
+| DI | Koin | 4.0.4 | Dependency injection |
+| Networking | Ktor Client | 3.0.3 | HTTP client |
+| Serialization | Kotlinx.Serialization | 1.8.0 | JSON/CBOR |
+| Local DB | SQLDelight | 2.0.2 | Type-safe SQL |
+| Encryption | SQLCipher | 4.5.4 | Database encryption |
+| Async | Kotlinx.Coroutines | 1.10.2 | Concurrency |
+| DateTime | Kotlinx.DateTime | 0.6.1 | Cross-platform dates |
+| Image Loading | Coil (Compose) | 3.0.4 | Async image loading |
+| Logging | Kermit | 2.0.4 | KMP-native logging |
 | Testing | Kotlin Test + Mockative | Latest | Cross-platform tests |
 
 ### 15.2 Platform-Specific

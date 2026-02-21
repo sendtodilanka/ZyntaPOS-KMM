@@ -2697,3 +2697,17 @@ settings.gradle.kts                                                           �
 - [x] Finished: Step 4 — Create `SecurePreferencesKeyMigration.kt` in :shared:data | 2026-02-21
 
 > **HOTFIX STATUS: ✅ COMPLETE — All 6 files written. Key divergence eliminated. Migration utility ready.**
+
+---
+
+## 🔧 HOTFIX — Missing RepositoryImpl Classes (2026-02-21)
+> **Problem:** `AuditRepositoryImpl` and `UnitGroupRepositoryImpl` absent from
+> `shared/data/src/commonMain/.../data/repository/`. Neither registered in `DataModule.kt`.
+
+- [x] Finished: Step 1 — Read `AuditRepository.kt` + `UnitGroupRepository.kt` domain interfaces | 2026-02-21
+- [x] Finished: Step 2 — Read `TaxGroupRepositoryImpl.kt` for code style reference | 2026-02-21
+- [x] Finished: Step 3 — Create `AuditRepositoryImpl.kt` | 2026-02-21
+- [x] Finished: Step 4 — Create `UnitGroupRepositoryImpl.kt` | 2026-02-21
+- [x] Finished: Step 5 — Register both in `DataModule.kt` | 2026-02-21
+
+> **HOTFIX STATUS: ✅ COMPLETE — AuditRepositoryImpl + UnitGroupRepositoryImpl created and registered.**
