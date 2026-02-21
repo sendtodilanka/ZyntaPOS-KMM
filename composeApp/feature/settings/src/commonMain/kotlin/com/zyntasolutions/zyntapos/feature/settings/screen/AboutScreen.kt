@@ -1,0 +1,171 @@
+package com.zyntasolutions.zyntapos.feature.settings.screen
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
+import com.zyntasolutions.zyntapos.designsystem.components.ZentaTopAppBar
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZentaScaffold
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AboutScreen — app name, version, build date, open-source licences, support.
+// Sprint 23 — Step 13.1.8
+// ─────────────────────────────────────────────────────────────────────────────
+
+private data class Licence(val library: String, val spdx: String, val url: String)
+
+private val OPEN_SOURCE_LICENCES = listOf(
+    Licence("Kotlin",                    "Apache-2.0", "https://kotlinlang.org"),
+    Licence("Compose Multiplatform",     "Apache-2.0", "https://www.jetbrains.com/lp/compose-multiplatform/"),
+    Licence("SQLDelight",                "Apache-2.0", "https://cashapp.github.io/sqldelight/"),
+    Licence("SQLCipher",                 "BSD-style",  "https://www.zetetic.net/sqlcipher/"),
+    Licence("Koin",                      "Apache-2.0", "https://insert-koin.io/"),
+    Licence("Ktor",                      "Apache-2.0", "https://ktor.io/"),
+    Licence("Coil",                      "Apache-2.0", "https://coil-kt.github.io/coil/"),
+    Licence("Kotlinx.datetime",          "Apache-2.0", "https://github.com/Kotlin/kotlinx-datetime"),
+    Licence("Kotlinx.serialization",     "Apache-2.0", "https://github.com/Kotlin/kotlinx.serialization"),
+    Licence("Kotlinx.coroutines",        "Apache-2.0", "https://github.com/Kotlin/kotlinx.coroutines"),
+    Licence("Material Design 3",         "Apache-2.0", "https://m3.material.io/"),
+    Licence("Mockative",                 "MIT",        "https://github.com/mockative/mockative"),
+)
+
+/**
+ * About screen displaying app identity, version, and open-source licence notices.
+ *
+ * @param appVersion   Passed in from platform-specific [BuildConfig] wrapper.
+ * @param buildDate    Human-readable build date string, e.g. "2026-02-21".
+ * @param onBack       Back navigation.
+ */
+@Composable
+fun AboutScreen(
+    appVersion: String = "1.0.0",
+    buildDate: String = "2026-02-21",
+    onBack: () -> Unit,
+) {
+    ZentaScaffold(
+        topBar = { ZentaTopAppBar(title = "About", onNavigationClick = onBack) },
+    ) { innerPadding ->
+        LazyColumn(
+            contentPadding = PaddingValues(
+                start = ZentaSpacing.md,
+                end = ZentaSpacing.md,
+                top = innerPadding.calculateTopPadding() + ZentaSpacing.md,
+                bottom = innerPadding.calculateBottomPadding() + ZentaSpacing.md,
+            ),
+            verticalArrangement = Arrangement.spacedBy(ZentaSpacing.md),
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            // ── App identity card ─────────────────────────────────────────────
+            item {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text = "ZentaPOS",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.fillMaxWidth().padding(ZentaSpacing.lg),
+                        textAlign = TextAlign.Center,
+                    )
+                    Text(
+                        text = "Enterprise Point of Sale",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = ZentaSpacing.lg),
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
+
+            // ── Build info ────────────────────────────────────────────────────
+            item {
+                SectionHeader("Build Information")
+                Spacer(Modifier.height(ZentaSpacing.sm))
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    InfoRow(label = "Version", value = appVersion)
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = ZentaSpacing.md))
+                    InfoRow(label = "Build Date", value = buildDate)
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = ZentaSpacing.md))
+                    InfoRow(label = "Platform", value = "Kotlin Multiplatform")
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = ZentaSpacing.md))
+                    InfoRow(label = "UI Framework", value = "Compose Multiplatform")
+                }
+            }
+
+            // ── Support contact ───────────────────────────────────────────────
+            item {
+                SectionHeader("Support")
+                Spacer(Modifier.height(ZentaSpacing.sm))
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    InfoRow(label = "Email", value = "support@zentapos.com")
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = ZentaSpacing.md))
+                    InfoRow(label = "Website", value = "https://zentapos.com")
+                }
+            }
+
+            // ── Open-source licences ──────────────────────────────────────────
+            item { SectionHeader("Open-Source Licences") }
+
+            items(OPEN_SOURCE_LICENCES) { licence ->
+                LicenceRow(licence)
+            }
+        }
+    }
+}
+
+// ─── Sub-composables ──────────────────────────────────────────────────────────
+
+@Composable
+private fun InfoRow(label: String, value: String) {
+    ListItem(
+        headlineContent = { Text(label, style = MaterialTheme.typography.bodyMedium) },
+        trailingContent = {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        },
+    )
+}
+
+@Composable
+private fun LicenceRow(licence: Licence) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        ListItem(
+            headlineContent = { Text(licence.library, style = MaterialTheme.typography.bodyMedium) },
+            supportingContent = {
+                Text(
+                    text = "${licence.spdx}  •  ${licence.url}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+        )
+    }
+}

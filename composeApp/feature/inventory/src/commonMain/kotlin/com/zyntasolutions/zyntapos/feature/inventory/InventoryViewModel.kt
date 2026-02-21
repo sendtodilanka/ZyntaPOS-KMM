@@ -1,0 +1,482 @@
+package com.zyntasolutions.zyntapos.feature.inventory
+
+import androidx.lifecycle.viewModelScope
+import com.zyntasolutions.zyntapos.core.result.Result
+import com.zyntasolutions.zyntapos.core.utils.IdGenerator
+import com.zyntasolutions.zyntapos.domain.model.Product
+import com.zyntasolutions.zyntapos.domain.model.ProductVariant
+import com.zyntasolutions.zyntapos.domain.model.StockAdjustment
+import com.zyntasolutions.zyntapos.domain.repository.CategoryRepository
+import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
+import com.zyntasolutions.zyntapos.domain.usecase.inventory.AdjustStockUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.inventory.CreateProductUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.inventory.SearchProductsUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.inventory.UpdateProductUseCase
+import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.datetime.Clock
+
+/**
+ * Root ViewModel for the Inventory management screens (Sprint 18, task 10.1).
+ *
+ * ### Responsibilities
+ * - Subscribes to [ProductRepository] and [CategoryRepository] as reactive Flows,
+ *   pushing filtered snapshots into [InventoryState.products] and [InventoryState.categories].
+ * - Maintains a debounced search pipeline (300 ms) via [SearchProductsUseCase].
+ * - Supports list/grid toggle, category + stock status filtering, and column sorting.
+ * - Manages the product create/edit form lifecycle with validation.
+ * - Delegates stock adjustments to [AdjustStockUseCase] with audit trail.
+ * - Handles bulk CSV import via batch [CreateProductUseCase] calls.
+ *
+ * @param productRepository      Product catalogue source.
+ * @param categoryRepository     Category list source.
+ * @param searchProductsUseCase  FTS5 product search (debounced).
+ * @param createProductUseCase   Product creation with validation.
+ * @param updateProductUseCase   Product update with validation.
+ * @param adjustStockUseCase     Stock adjustment with audit trail.
+ * @param currentUserId          Authenticated user ID for audit entries.
+ */
+@OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
+class InventoryViewModel(
+    private val productRepository: ProductRepository,
+    private val categoryRepository: CategoryRepository,
+    private val searchProductsUseCase: SearchProductsUseCase,
+    private val createProductUseCase: CreateProductUseCase,
+    private val updateProductUseCase: UpdateProductUseCase,
+    private val adjustStockUseCase: AdjustStockUseCase,
+    private val currentUserId: String,
+) : BaseViewModel<InventoryState, InventoryIntent, InventoryEffect>(InventoryState()) {
+
+    // ── Reactive filter state flows ───────────────────────────────────────
+
+    private val _searchQuery = MutableStateFlow("")
+    private val _selectedCategoryId = MutableStateFlow<String?>(null)
+
+    init {
+        observeCategories()
+        observeProducts()
+    }
+
+    private fun observeCategories() {
+        categoryRepository.getAll()
+            .onEach { cats -> updateState { copy(categories = cats) } }
+            .launchIn(viewModelScope)
+    }
+
+    private fun observeProducts() {
+        combine(_searchQuery.debounce(300L), _selectedCategoryId) { q, cat -> q to cat }
+            .distinctUntilChanged()
+            .flatMapLatest { (q, cat) ->
+                if (q.isBlank() && cat == null) {
+                    productRepository.getAll()
+                } else {
+                    productRepository.search(q, cat)
+                }
+            }
+            .onEach { products ->
+                val filtered = applyLocalFilters(products)
+                val sorted = applySort(filtered)
+                updateState { copy(products = sorted, isLoading = false) }
+            }
+            .launchIn(viewModelScope)
+    }
+
+    // ── Intent handler ────────────────────────────────────────────────────
+
+    override suspend fun handleIntent(intent: InventoryIntent) {
+        when (intent) {
+            is InventoryIntent.LoadProducts -> onLoadProducts()
+            is InventoryIntent.SearchQueryChanged -> onSearchQueryChanged(intent.query)
+            is InventoryIntent.SelectCategory -> onSelectCategory(intent.categoryId)
+            is InventoryIntent.SetStockFilter -> onSetStockFilter(intent.filter)
+            is InventoryIntent.ToggleViewMode -> onToggleViewMode()
+            is InventoryIntent.SortByColumn -> onSortByColumn(intent.columnKey)
+            is InventoryIntent.SelectProduct -> onSelectProduct(intent.productId)
+            is InventoryIntent.BackToList -> onBackToList()
+            is InventoryIntent.UpdateFormField -> onUpdateFormField(intent.field, intent.value)
+            is InventoryIntent.ToggleFormActive -> onToggleFormActive()
+            is InventoryIntent.ClearForm -> onClearForm()
+            is InventoryIntent.SaveProduct -> onSaveProduct()
+            is InventoryIntent.DeleteProduct -> onDeleteProduct(intent.productId)
+            is InventoryIntent.AddVariant -> onAddVariant()
+            is InventoryIntent.RemoveVariant -> onRemoveVariant(intent.index)
+            is InventoryIntent.UpdateVariant -> onUpdateVariant(intent.index, intent.field, intent.value)
+            is InventoryIntent.OpenStockAdjustment -> updateState { copy(stockAdjustmentTarget = intent.product) }
+            is InventoryIntent.SubmitStockAdjustment -> onSubmitStockAdjustment(intent.type, intent.quantity, intent.reason)
+            is InventoryIntent.DismissStockAdjustment -> updateState { copy(stockAdjustmentTarget = null) }
+            is InventoryIntent.OpenBarcodeGenerator -> updateState { copy(barcodeGeneratorTarget = intent.product) }
+            is InventoryIntent.DismissBarcodeGenerator -> updateState { copy(barcodeGeneratorTarget = null) }
+            is InventoryIntent.OpenBulkImport -> updateState { copy(bulkImportState = BulkImportState(isVisible = true)) }
+            is InventoryIntent.SetImportFile -> onSetImportFile(intent.fileName, intent.columns, intent.rows)
+            is InventoryIntent.SetColumnMapping -> onSetColumnMapping(intent.csvColumn, intent.productField)
+            is InventoryIntent.ConfirmBulkImport -> onConfirmBulkImport()
+            is InventoryIntent.DismissBulkImport -> updateState { copy(bulkImportState = BulkImportState()) }
+            is InventoryIntent.DismissError -> updateState { copy(error = null) }
+            is InventoryIntent.DismissSuccess -> updateState { copy(successMessage = null) }
+        }
+    }
+
+    // ── Intent handler implementations ────────────────────────────────────
+
+    private fun onLoadProducts() {
+        updateState { copy(isLoading = true, error = null) }
+        _searchQuery.value = currentState.searchQuery
+        _selectedCategoryId.value = currentState.selectedCategoryId
+    }
+
+    private fun onSearchQueryChanged(query: String) {
+        updateState { copy(searchQuery = query) }
+        _searchQuery.value = query
+    }
+
+    private fun onSelectCategory(categoryId: String?) {
+        updateState { copy(selectedCategoryId = categoryId) }
+        _selectedCategoryId.value = categoryId
+    }
+
+    private fun onSetStockFilter(filter: StockFilter) {
+        updateState { copy(stockFilter = filter) }
+        // Re-apply local filters on current products
+        val filtered = applyLocalFilters(currentState.products)
+        val sorted = applySort(filtered)
+        updateState { copy(products = sorted) }
+    }
+
+    private fun onToggleViewMode() {
+        val newMode = if (currentState.viewMode == ViewMode.LIST) ViewMode.GRID else ViewMode.LIST
+        updateState { copy(viewMode = newMode) }
+    }
+
+    private fun onSortByColumn(columnKey: String) {
+        val newDir = if (currentState.sortColumn == columnKey) {
+            if (currentState.sortDirection == SortDir.ASC) SortDir.DESC else SortDir.ASC
+        } else SortDir.ASC
+        updateState { copy(sortColumn = columnKey, sortDirection = newDir) }
+        val sorted = applySort(currentState.products)
+        updateState { copy(products = sorted) }
+    }
+
+    private suspend fun onSelectProduct(productId: String?) {
+        if (productId == null) {
+            // New product — clear form
+            updateState {
+                copy(
+                    selectedProduct = null,
+                    editFormState = ProductFormState(isEditing = false),
+                    productVariants = emptyList(),
+                )
+            }
+            sendEffect(InventoryEffect.NavigateToDetail(null))
+            return
+        }
+        updateState { copy(isLoading = true) }
+        when (val result = productRepository.getById(productId)) {
+            is Result.Success -> {
+                val product = result.data
+                updateState {
+                    copy(
+                        selectedProduct = product,
+                        editFormState = product.toFormState(),
+                        productVariants = emptyList(), // Variants loaded separately in Phase 2
+                        isLoading = false,
+                    )
+                }
+                sendEffect(InventoryEffect.NavigateToDetail(productId))
+            }
+            is Result.Error -> {
+                updateState { copy(isLoading = false) }
+                sendEffect(InventoryEffect.ShowError(result.exception.message ?: "Product not found"))
+            }
+            is Result.Loading -> Unit
+        }
+    }
+
+    private fun onBackToList() {
+        updateState {
+            copy(
+                selectedProduct = null,
+                editFormState = ProductFormState(),
+                productVariants = emptyList(),
+            )
+        }
+        sendEffect(InventoryEffect.NavigateToList)
+    }
+
+    private fun onUpdateFormField(field: String, value: String) {
+        val form = currentState.editFormState
+        val updated = when (field) {
+            "name" -> form.copy(name = value)
+            "barcode" -> form.copy(barcode = value)
+            "sku" -> form.copy(sku = value)
+            "categoryId" -> form.copy(categoryId = value)
+            "unitId" -> form.copy(unitId = value)
+            "price" -> form.copy(price = value)
+            "costPrice" -> form.copy(costPrice = value)
+            "taxGroupId" -> form.copy(taxGroupId = value.ifBlank { null })
+            "stockQty" -> form.copy(stockQty = value)
+            "minStockQty" -> form.copy(minStockQty = value)
+            "description" -> form.copy(description = value)
+            "imageUrl" -> form.copy(imageUrl = value.ifBlank { null })
+            else -> form
+        }
+        // Clear validation error for updated field
+        val errors = updated.validationErrors.toMutableMap().apply { remove(field) }
+        updateState { copy(editFormState = updated.copy(validationErrors = errors)) }
+    }
+
+    private fun onToggleFormActive() {
+        updateState {
+            copy(editFormState = editFormState.copy(isActive = !editFormState.isActive))
+        }
+    }
+
+    private fun onClearForm() {
+        updateState { copy(editFormState = ProductFormState()) }
+    }
+
+    private suspend fun onSaveProduct() {
+        val form = currentState.editFormState
+        val errors = ProductFormValidator.validate(form)
+        if (errors.isNotEmpty()) {
+            updateState { copy(editFormState = form.copy(validationErrors = errors)) }
+            return
+        }
+
+        updateState { copy(isLoading = true) }
+        val now = Clock.System.now()
+        val product = Product(
+            id = form.id ?: IdGenerator.newId(),
+            name = form.name.trim(),
+            barcode = form.barcode.ifBlank { null },
+            sku = form.sku.ifBlank { null },
+            categoryId = form.categoryId,
+            unitId = form.unitId,
+            price = form.price.toDoubleOrNull() ?: 0.0,
+            costPrice = form.costPrice.toDoubleOrNull() ?: 0.0,
+            taxGroupId = form.taxGroupId,
+            stockQty = form.stockQty.toDoubleOrNull() ?: 0.0,
+            minStockQty = form.minStockQty.toDoubleOrNull() ?: 0.0,
+            imageUrl = form.imageUrl,
+            description = form.description.ifBlank { null },
+            isActive = form.isActive,
+            createdAt = currentState.selectedProduct?.createdAt ?: now,
+            updatedAt = now,
+        )
+
+        val result = if (form.id != null) {
+            updateProductUseCase(product)
+        } else {
+            createProductUseCase(product)
+        }
+
+        updateState { copy(isLoading = false) }
+        when (result) {
+            is Result.Success -> {
+                val action = if (form.id != null) "updated" else "created"
+                sendEffect(InventoryEffect.ShowSuccess("Product '${ product.name }' $action."))
+                onBackToList()
+            }
+            is Result.Error -> {
+                sendEffect(InventoryEffect.ShowError(result.exception.message ?: "Save failed"))
+            }
+            is Result.Loading -> Unit
+        }
+    }
+
+    private suspend fun onDeleteProduct(productId: String) {
+        updateState { copy(isLoading = true) }
+        when (val result = productRepository.delete(productId)) {
+            is Result.Success -> {
+                updateState { copy(isLoading = false) }
+                sendEffect(InventoryEffect.ShowSuccess("Product deactivated."))
+                if (currentState.selectedProduct?.id == productId) onBackToList()
+            }
+            is Result.Error -> {
+                updateState { copy(isLoading = false) }
+                sendEffect(InventoryEffect.ShowError(result.exception.message ?: "Delete failed"))
+            }
+            is Result.Loading -> Unit
+        }
+    }
+
+    // ── Variant management ────────────────────────────────────────────────
+
+    private fun onAddVariant() {
+        val variants = currentState.productVariants.toMutableList()
+        variants.add(
+            ProductVariant(
+                id = IdGenerator.newId(),
+                productId = currentState.editFormState.id ?: "",
+                name = "",
+            )
+        )
+        updateState { copy(productVariants = variants) }
+    }
+
+    private fun onRemoveVariant(index: Int) {
+        val variants = currentState.productVariants.toMutableList()
+        if (index in variants.indices) variants.removeAt(index)
+        updateState { copy(productVariants = variants) }
+    }
+
+    private fun onUpdateVariant(index: Int, field: String, value: String) {
+        val variants = currentState.productVariants.toMutableList()
+        if (index !in variants.indices) return
+        val v = variants[index]
+        variants[index] = when (field) {
+            "name" -> v.copy(name = value)
+            "price" -> v.copy(price = value.toDoubleOrNull())
+            "barcode" -> v.copy(barcode = value.ifBlank { null })
+            "stock" -> v.copy(stock = value.toDoubleOrNull() ?: 0.0)
+            else -> v
+        }
+        updateState { copy(productVariants = variants) }
+    }
+
+    // ── Stock Adjustment ──────────────────────────────────────────────────
+
+    private suspend fun onSubmitStockAdjustment(
+        type: StockAdjustment.Type,
+        quantity: Double,
+        reason: String,
+    ) {
+        val target = currentState.stockAdjustmentTarget ?: return
+        updateState { copy(isLoading = true) }
+        val result = adjustStockUseCase(
+            productId = target.id,
+            type = type,
+            quantity = quantity,
+            reason = reason,
+            adjustedBy = currentUserId,
+            currentStock = target.stockQty,
+            minStockQty = target.minStockQty,
+        )
+        updateState { copy(isLoading = false, stockAdjustmentTarget = null) }
+        when (result) {
+            is Result.Success -> sendEffect(InventoryEffect.ShowSuccess("Stock adjusted for '${target.name}'."))
+            is Result.Error -> sendEffect(InventoryEffect.ShowError(result.exception.message ?: "Adjustment failed"))
+            is Result.Loading -> Unit
+        }
+    }
+
+    // ── Bulk Import ───────────────────────────────────────────────────────
+
+    private fun onSetImportFile(fileName: String, columns: List<String>, rows: List<Map<String, String>>) {
+        updateState {
+            copy(
+                bulkImportState = bulkImportState.copy(
+                    fileName = fileName,
+                    availableColumns = columns,
+                    parsedRows = rows,
+                    columnMapping = emptyMap(),
+                )
+            )
+        }
+    }
+
+    private fun onSetColumnMapping(csvColumn: String, productField: String) {
+        val mapping = currentState.bulkImportState.columnMapping.toMutableMap()
+        mapping[csvColumn] = productField
+        updateState { copy(bulkImportState = bulkImportState.copy(columnMapping = mapping)) }
+    }
+
+    private suspend fun onConfirmBulkImport() {
+        val state = currentState.bulkImportState
+        if (state.parsedRows.isEmpty() || state.columnMapping.isEmpty()) return
+
+        updateState { copy(bulkImportState = state.copy(isImporting = true, importErrors = emptyList())) }
+        val mapping = state.columnMapping
+        var imported = 0
+        val errors = mutableListOf<String>()
+        val now = Clock.System.now()
+
+        state.parsedRows.forEachIndexed { idx, row ->
+            val product = Product(
+                id = IdGenerator.newId(),
+                name = row[mapping.entries.find { it.value == "name" }?.key] ?: "",
+                barcode = row[mapping.entries.find { it.value == "barcode" }?.key],
+                sku = row[mapping.entries.find { it.value == "sku" }?.key],
+                categoryId = row[mapping.entries.find { it.value == "categoryId" }?.key] ?: "",
+                unitId = row[mapping.entries.find { it.value == "unitId" }?.key] ?: "",
+                price = row[mapping.entries.find { it.value == "price" }?.key]?.toDoubleOrNull() ?: 0.0,
+                costPrice = row[mapping.entries.find { it.value == "costPrice" }?.key]?.toDoubleOrNull() ?: 0.0,
+                stockQty = row[mapping.entries.find { it.value == "stockQty" }?.key]?.toDoubleOrNull() ?: 0.0,
+                createdAt = now,
+                updatedAt = now,
+            )
+            when (val result = createProductUseCase(product)) {
+                is Result.Success -> imported++
+                is Result.Error -> errors.add("Row ${idx + 1}: ${result.exception.message}")
+                is Result.Loading -> Unit
+            }
+            val progress = (idx + 1).toFloat() / state.parsedRows.size
+            updateState { copy(bulkImportState = bulkImportState.copy(importProgress = progress)) }
+        }
+
+        updateState {
+            copy(bulkImportState = bulkImportState.copy(isImporting = false, importErrors = errors))
+        }
+        sendEffect(InventoryEffect.BulkImportComplete(imported, errors.size))
+        if (errors.isEmpty()) {
+            updateState { copy(bulkImportState = BulkImportState()) }
+        }
+    }
+
+    // ── Private helpers ───────────────────────────────────────────────────
+
+    /** Applies [StockFilter] locally after the DB query. */
+    private fun applyLocalFilters(products: List<Product>): List<Product> {
+        return when (currentState.stockFilter) {
+            StockFilter.ALL -> products
+            StockFilter.IN_STOCK -> products.filter { it.stockQty > 0.0 }
+            StockFilter.LOW_STOCK -> products.filter {
+                it.stockQty > 0.0 && it.stockQty <= it.minStockQty.coerceAtLeast(1.0)
+            }
+            StockFilter.OUT_OF_STOCK -> products.filter { it.stockQty <= 0.0 }
+        }
+    }
+
+    /** Applies column sort based on current [InventoryState.sortColumn] / [InventoryState.sortDirection]. */
+    private fun applySort(products: List<Product>): List<Product> {
+        val comparator: Comparator<Product> = when (currentState.sortColumn) {
+            "name" -> compareBy { it.name.lowercase() }
+            "sku" -> compareBy { it.sku?.lowercase() ?: "" }
+            "price" -> compareBy { it.price }
+            "stockQty" -> compareBy { it.stockQty }
+            "category" -> compareBy { it.categoryId }
+            else -> compareBy { it.name.lowercase() }
+        }
+        return if (currentState.sortDirection == SortDir.DESC) {
+            products.sortedWith(comparator.reversed())
+        } else {
+            products.sortedWith(comparator)
+        }
+    }
+
+    /** Converts a [Product] domain model to [ProductFormState] for the edit form. */
+    private fun Product.toFormState(): ProductFormState = ProductFormState(
+        id = id,
+        name = name,
+        barcode = barcode ?: "",
+        sku = sku ?: "",
+        categoryId = categoryId,
+        unitId = unitId,
+        price = price.toString(),
+        costPrice = costPrice.toString(),
+        taxGroupId = taxGroupId,
+        stockQty = stockQty.toString(),
+        minStockQty = minStockQty.toString(),
+        description = description ?: "",
+        imageUrl = imageUrl,
+        isActive = isActive,
+        isEditing = true,
+    )
+}

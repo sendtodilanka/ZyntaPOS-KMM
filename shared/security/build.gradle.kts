@@ -26,17 +26,19 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(project(":shared:core"))
+            api(project(":shared:domain"))
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
-            implementation(libs.datastore.preferences.core)
-            implementation(libs.datastore.core.okio)
+            implementation(libs.koin.core)
         }
         androidMain.dependencies {
             implementation(libs.kotlinx.coroutines.android)
             implementation(libs.androidx.security.crypto)
+            implementation(libs.jbcrypt)
         }
         jvmMain.dependencies {
             implementation(libs.kotlinx.coroutinesSwing)
+            implementation(libs.jbcrypt)
         }
         commonTest.dependencies {
             implementation(libs.bundles.testing.common)

@@ -1,0 +1,153 @@
+package com.zyntasolutions.zyntapos.feature.settings.screen
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import com.zyntasolutions.zyntapos.designsystem.components.ZentaSnackbarHost
+import com.zyntasolutions.zyntapos.designsystem.components.ZentaTopAppBar
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZentaScaffold
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.feature.settings.SettingsEffect
+import com.zyntasolutions.zyntapos.feature.settings.SettingsIntent
+import com.zyntasolutions.zyntapos.feature.settings.SettingsState
+import com.zyntasolutions.zyntapos.feature.settings.ThemeMode
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collectLatest
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AppearanceSettingsScreen — Light / Dark / System RadioButton group.
+//                            Selection writes to SettingsRepository and triggers
+//                            ZentaTheme recomposition via ThemeModeChanged effect.
+// Sprint 23 — Step 13.1.9
+// ─────────────────────────────────────────────────────────────────────────────
+
+private data class ThemeModeOption(
+    val mode: ThemeMode,
+    val label: String,
+    val description: String,
+)
+
+private val THEME_OPTIONS = listOf(
+    ThemeModeOption(ThemeMode.LIGHT,  "Light",  "Always use the light colour scheme"),
+    ThemeModeOption(ThemeMode.DARK,   "Dark",   "Always use the dark colour scheme"),
+    ThemeModeOption(ThemeMode.SYSTEM, "System", "Follow the device / OS preference"),
+)
+
+/**
+ * Appearance settings screen — selects the application theme mode.
+ *
+ * The selected [ThemeMode] is persisted via [SettingsRepository] and broadcast
+ * via [SettingsEffect.ThemeModeChanged] so the root [ZentaTheme] can recompose.
+ *
+ * @param state     Current [SettingsState.AppearanceState] slice.
+ * @param effects   Shared [SettingsEffect] flow.
+ * @param onIntent  Dispatch callback.
+ * @param onBack    Back navigation.
+ */
+@Composable
+fun AppearanceSettingsScreen(
+    state: SettingsState.AppearanceState,
+    effects: Flow<SettingsEffect>,
+    onIntent: (SettingsIntent) -> Unit,
+    onBack: () -> Unit,
+) {
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(Unit) { onIntent(SettingsIntent.LoadAppearance) }
+
+    LaunchedEffect(effects) {
+        effects.collectLatest { effect ->
+            when (effect) {
+                is SettingsEffect.ThemeModeChanged ->
+                    snackbarHostState.showSnackbar("Theme set to ${effect.mode.name.lowercase()}.")
+                is SettingsEffect.ShowSnackbar -> snackbarHostState.showSnackbar(effect.message)
+                else -> Unit
+            }
+        }
+    }
+
+    ZentaScaffold(
+        topBar = { ZentaTopAppBar(title = "Appearance", onNavigationClick = onBack) },
+        snackbarHost = { ZentaSnackbarHost(snackbarHostState) },
+    ) { innerPadding ->
+        LazyColumn(
+            contentPadding = PaddingValues(
+                start = ZentaSpacing.md,
+                end = ZentaSpacing.md,
+                top = innerPadding.calculateTopPadding() + ZentaSpacing.md,
+                bottom = innerPadding.calculateBottomPadding() + ZentaSpacing.md,
+            ),
+            verticalArrangement = Arrangement.spacedBy(ZentaSpacing.md),
+        ) {
+            item {
+                SectionHeader("Theme")
+                Spacer(Modifier.height(ZentaSpacing.sm))
+                Text(
+                    text = "Choose how ZentaPOS looks on this device.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = ZentaSpacing.sm),
+                )
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column {
+                        THEME_OPTIONS.forEach { option ->
+                            ThemeModeRow(
+                                option = option,
+                                selected = state.themeMode == option.mode,
+                                onClick = { onIntent(SettingsIntent.UpdateThemeMode(option.mode)) },
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ─── Sub-composable ───────────────────────────────────────────────────────────
+
+@Composable
+private fun ThemeModeRow(
+    option: ThemeModeOption,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = ZentaSpacing.md, vertical = ZentaSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+    ) {
+        RadioButton(selected = selected, onClick = onClick)
+        Column(modifier = Modifier.weight(1f)) {
+            Text(option.label, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                option.description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}

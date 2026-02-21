@@ -1,0 +1,25 @@
+package com.zyntasolutions.zyntapos.feature.reports
+
+import kotlinx.datetime.Instant
+
+/**
+ * MVI — user intents for the reports feature.
+ */
+sealed interface ReportsIntent {
+    // ── Sales Report ────────────────────────────────────────────────────────
+    data class SelectSalesRange(val range: DateRange) : ReportsIntent
+    data class SetCustomSalesRange(val from: Instant, val to: Instant) : ReportsIntent
+    data object LoadSalesReport : ReportsIntent
+    data object ExportSalesReportCsv : ReportsIntent
+    data object ExportSalesReportPdf : ReportsIntent
+    data object PrintSalesReport : ReportsIntent
+    data object DismissSalesError : ReportsIntent
+
+    // ── Stock Report ────────────────────────────────────────────────────────
+    data object LoadStockReport : ReportsIntent
+    data class FilterStockByCategory(val categoryId: String?) : ReportsIntent
+    data class SortStock(val column: StockSortColumn, val ascending: Boolean) : ReportsIntent
+    data object ExportStockReportCsv : ReportsIntent
+    data object ExportStockReportPdf : ReportsIntent
+    data object DismissStockError : ReportsIntent
+}
