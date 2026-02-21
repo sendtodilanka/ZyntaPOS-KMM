@@ -66,7 +66,7 @@ val posModule = module {
      * [PosState.receiptPreviewText] after a successful payment.
      * Stateless — safe to use as a factory.
      */
-    factory { ReceiptFormatter() }
+    factory { ReceiptFormatter(currencyFormatter = get()) }
 
     // ── Use cases ─────────────────────────────────────────────────────────────
 

@@ -47,6 +47,7 @@ import com.zyntasolutions.zyntapos.domain.model.PaymentMethod
  * @param currencyCode ISO 4217 currency code passed to [CurrencyFormatter] (default: "LKR").
  */
 class ReceiptFormatter(
+    private val currencyFormatter: CurrencyFormatter,
     private val currencyCode: String = "LKR",
 ) {
 
@@ -147,7 +148,7 @@ class ReceiptFormatter(
     }
 
     private fun fmt(amount: Double): String =
-        CurrencyFormatter.format(amount, currencyCode)
+        currencyFormatter.format(amount, currencyCode)
 
     private fun String.center(width: Int): String {
         if (length >= width) return take(width)

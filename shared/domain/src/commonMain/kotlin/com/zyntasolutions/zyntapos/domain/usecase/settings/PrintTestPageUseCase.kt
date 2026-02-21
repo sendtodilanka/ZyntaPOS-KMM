@@ -24,6 +24,6 @@ fun interface PrintTestPageUseCase {
      *         [Result.failure] wrapping the underlying [Throwable] on transport error.
      */
     suspend operator fun invoke(
-        paperWidth: PrinterPaperWidth = PrinterPaperWidth.MM_80,
+        paperWidth: PrinterPaperWidth,
     ): Result<Unit>
 }
