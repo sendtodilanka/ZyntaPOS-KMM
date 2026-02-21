@@ -2,7 +2,7 @@ package com.zyntasolutions.zyntapos.feature.pos
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import com.zyntasolutions.zyntapos.hal.BarcodeScanner
+import com.zyntasolutions.zyntapos.hal.scanner.BarcodeScanner
 
 /**
  * Side-effect composable that bridges the HAL [BarcodeScanner] to [PosViewModel] (Sprint 14, task 9.1.5).
