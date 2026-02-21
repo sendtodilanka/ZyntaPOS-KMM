@@ -2,7 +2,8 @@ package com.zyntasolutions.zyntapos.data.remote.api
 
 import co.touchlab.kermit.Logger
 import com.zyntasolutions.zyntapos.core.config.AppConfig
-import com.zyntasolutions.zyntapos.data.local.security.SecurePreferences
+import com.zyntasolutions.zyntapos.security.prefs.SecurePreferences
+import com.zyntasolutions.zyntapos.security.prefs.SecurePreferencesKeys
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpRequestRetry
 import io.ktor.client.plugins.HttpTimeout
@@ -53,16 +54,16 @@ fun buildApiClient(
     install(Auth) {
         bearer {
             loadTokens {
-                val access  = prefs.get(SecurePreferences.Keys.ACCESS_TOKEN)  ?: return@loadTokens null
-                val refresh = prefs.get(SecurePreferences.Keys.REFRESH_TOKEN) ?: return@loadTokens null
+                val access  = prefs.get(SecurePreferencesKeys.KEY_ACCESS_TOKEN)  ?: return@loadTokens null
+                val refresh = prefs.get(SecurePreferencesKeys.KEY_REFRESH_TOKEN) ?: return@loadTokens null
                 BearerTokens(accessToken = access, refreshToken = refresh)
             }
             refreshTokens {
                 // Refresh token flow: the caller (AuthRepositoryImpl) handles token persistence.
                 // Here we simply surface the stored refresh token so Ktor re-uses it on 401.
-                val refresh = prefs.get(SecurePreferences.Keys.REFRESH_TOKEN) ?: return@refreshTokens null
+                val refresh = prefs.get(SecurePreferencesKeys.KEY_REFRESH_TOKEN) ?: return@refreshTokens null
                 BearerTokens(
-                    accessToken  = prefs.get(SecurePreferences.Keys.ACCESS_TOKEN) ?: "",
+                    accessToken  = prefs.get(SecurePreferencesKeys.KEY_ACCESS_TOKEN) ?: "",
                     refreshToken = refresh,
                 )
             }

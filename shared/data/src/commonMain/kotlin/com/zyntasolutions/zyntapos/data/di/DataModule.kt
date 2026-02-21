@@ -3,7 +3,8 @@ package com.zyntasolutions.zyntapos.data.di
 import com.zyntasolutions.zyntapos.data.local.SyncEnqueuer
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseFactory
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseMigrations
-import com.zyntasolutions.zyntapos.data.local.security.SecurePreferences
+import com.zyntasolutions.zyntapos.data.local.db.SecurePreferencesKeyMigration
+import com.zyntasolutions.zyntapos.security.prefs.SecurePreferences
 import com.zyntasolutions.zyntapos.data.remote.api.ApiService
 import com.zyntasolutions.zyntapos.data.remote.api.KtorApiService
 import com.zyntasolutions.zyntapos.data.remote.api.buildApiClient
@@ -37,6 +38,7 @@ import com.zyntasolutions.zyntapos.domain.repository.SyncRepository
 import com.zyntasolutions.zyntapos.domain.repository.TaxGroupRepository
 import com.zyntasolutions.zyntapos.domain.repository.UnitGroupRepository
 import com.zyntasolutions.zyntapos.domain.repository.UserRepository
+import com.zyntasolutions.zyntapos.domain.port.PasswordHashPort
 import org.koin.dsl.module
 
 /**
@@ -56,7 +58,7 @@ import org.koin.dsl.module
  * DatabaseDriverFactory ─┘
  * DatabaseMigrations   ─┘
  *
- * PasswordHasher   ──► AuthRepositoryImpl
+ * PasswordHasher   ──► PasswordHasherAdapter ──► AuthRepositoryImpl, UserRepositoryImpl
  * SecurePreferences──► AuthRepositoryImpl, ApiClient, SyncEngine
  *
  * SyncEnqueuer  ─────► OrderRepositoryImpl, StockRepositoryImpl, (write-path repos)
@@ -73,8 +75,10 @@ import org.koin.dsl.module
  * - `DatabaseDriverFactory`  (expect/actual — platform constructor args differ)
  * - `DatabaseKeyProvider`    (expect/actual — platform constructor args differ)
  * - `NetworkMonitor`         (expect/actual — Android needs Context; Desktop no-arg)
- * - `SecurePreferences`      (interface — Sprint 6: InMemorySecurePreferences; Sprint 8: Encrypted)
- * Note: `PasswordHasher` is now `expect object` in :shared:security — no platform binding needed.
+ * - `SecurePreferences`      (expect/actual — bound by securityModule; MERGED-D3: adapter classes removed 2026-02-21)
+ * Note: `PasswordHashPort` is bound HERE as `single<PasswordHashPort> { PasswordHasherAdapter() }`.
+ *       PasswordHasherAdapter lives in :shared:security and wraps the BCrypt expect object.
+ *       MERGED-F3 (2026-02-22): removed direct :shared:security dependency from :shared:data.
  *
  * ## Android WorkManager integration (SyncWorker)
  * `SyncEngine.runOnce()` is invoked from `SyncWorker` (androidMain) — no extra binding needed.
@@ -84,6 +88,14 @@ val dataModule = module {
 
     // ── Schema Migration Manager ─────────────────────────────────────
     single { DatabaseMigrations() }
+
+    // ── Secure-Preferences Key Migration (MERGED-F1) ──────────────────
+    // Must be resolved and .migrate() called ONCE at application startup,
+    // before any auth operation. Call sites: ZyntaApplication.onCreate()
+    // and the Desktop main() function — both invoke getKoin().get<SecurePreferencesKeyMigration>().migrate()
+    // immediately after startKoin{} returns.
+    // migrate() is idempotent: safe to call on every launch.
+    single { SecurePreferencesKeyMigration(prefs = get()) }
 
     // ── Database Factory (orchestrates key + driver + migrations) ─────
     // DatabaseDriverFactory & DatabaseKeyProvider are expect/actual.
@@ -132,13 +144,13 @@ val dataModule = module {
     // Supplier CRUD
     single<SupplierRepository> { SupplierRepositoryImpl(db = get(), syncEnqueuer = get()) }
 
-    // Auth: local BCrypt verification + SecurePreferences JWT cache
-    // PasswordHasher is now the canonical expect object in :shared:security.
-    // Called directly (no injection needed — it's a singleton object).
+    // Auth: local BCrypt verification + SecurePreferences JWT cache.
+    // PasswordHashPort is provided by securityModule (PasswordHasherAdapter) — MERGED-F3.
     single<AuthRepository> {
         AuthRepositoryImpl(
-            db          = get(),
-            securePrefs = get<SecurePreferences>(),
+            db             = get(),
+            securePrefs    = get<SecurePreferences>(),
+            passwordHasher = get(),
         )
     }
 
@@ -154,12 +166,13 @@ val dataModule = module {
     // Security audit log: append-only; no remote sync in Phase 1
     single<AuditRepository> { AuditRepositoryImpl(db = get()) }
 
-    // User accounts: CRUD + password lifecycle
-    // PasswordHasher.hashPassword() called directly via canonical expect object.
+    // User accounts: CRUD + password lifecycle.
+    // PasswordHashPort injected via securityModule binding — MERGED-F3.
     single<UserRepository> {
         UserRepositoryImpl(
-            db           = get(),
-            syncEnqueuer = get(),
+            db             = get(),
+            syncEnqueuer   = get(),
+            passwordHasher = get(),
         )
     }
 

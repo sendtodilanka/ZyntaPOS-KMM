@@ -5,8 +5,9 @@ import com.zyntasolutions.zyntapos.core.result.AuthFailureReason
 import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.data.local.mapper.UserMapper
-import com.zyntasolutions.zyntapos.data.local.security.SecurePreferences
-import com.zyntasolutions.zyntapos.security.auth.PasswordHasher
+import com.zyntasolutions.zyntapos.security.prefs.SecurePreferences
+import com.zyntasolutions.zyntapos.security.prefs.SecurePreferencesKeys
+import com.zyntasolutions.zyntapos.domain.port.PasswordHashPort
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
 import com.zyntasolutions.zyntapos.domain.model.User
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
@@ -37,17 +38,19 @@ import kotlinx.datetime.Clock
  *
  * @param db               Encrypted [ZyntaDatabase] singleton.
  * @param securePrefs      Platform-encrypted key-value store.
+ * @param passwordHasher   Domain port for BCrypt hash + verify operations (injected; adapter lives in :shared:security).
  */
 class AuthRepositoryImpl(
     private val db: ZyntaDatabase,
     private val securePrefs: SecurePreferences,
+    private val passwordHasher: PasswordHashPort,
 ) : AuthRepository {
 
     private val _session = MutableStateFlow<User?>(null)
 
     init {
         // Restore session from secure storage on init
-        val cachedUserId = securePrefs.get(SecurePreferences.Keys.CURRENT_USER_ID)
+        val cachedUserId = securePrefs.get(SecurePreferencesKeys.KEY_USER_ID)
         if (cachedUserId != null) {
             val userRow = db.usersQueries.getUserById(cachedUserId).executeAsOneOrNull()
             if (userRow != null) {
@@ -76,7 +79,7 @@ class AuthRepositoryImpl(
                     )
                 )
             }
-            val valid = PasswordHasher.verifyPassword(password, userRow.password_hash)
+            val valid = passwordHasher.verify(password, userRow.password_hash)
             if (!valid) {
                 return@withContext Result.Error(
                     AuthException(
@@ -87,7 +90,7 @@ class AuthRepositoryImpl(
             }
             val user = UserMapper.toDomain(userRow)
             // Cache session
-            securePrefs.put(SecurePreferences.Keys.CURRENT_USER_ID, user.id)
+            securePrefs.put(SecurePreferencesKeys.KEY_USER_ID, user.id)
             _session.value = user
             user
         }.fold(
@@ -100,10 +103,10 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun logout() = withContext(Dispatchers.IO) {
-        securePrefs.remove(SecurePreferences.Keys.ACCESS_TOKEN)
-        securePrefs.remove(SecurePreferences.Keys.REFRESH_TOKEN)
-        securePrefs.remove(SecurePreferences.Keys.TOKEN_EXPIRY)
-        securePrefs.remove(SecurePreferences.Keys.CURRENT_USER_ID)
+        securePrefs.remove(SecurePreferencesKeys.KEY_ACCESS_TOKEN)
+        securePrefs.remove(SecurePreferencesKeys.KEY_REFRESH_TOKEN)
+        securePrefs.remove(SecurePreferencesKeys.KEY_TOKEN_EXPIRY)
+        securePrefs.remove(SecurePreferencesKeys.KEY_USER_ID)
         _session.value = null
     }
 
@@ -117,7 +120,7 @@ class AuthRepositoryImpl(
 
     override suspend fun updatePin(userId: String, pin: String): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
-            val pinHash = PasswordHasher.hashPassword(pin)
+            val pinHash = passwordHasher.hash(pin)
             val now     = Clock.System.now().toEpochMilliseconds()
             db.usersQueries.updateUserPin(pin_hash = pinHash, updated_at = now, id = userId)
         }.fold(

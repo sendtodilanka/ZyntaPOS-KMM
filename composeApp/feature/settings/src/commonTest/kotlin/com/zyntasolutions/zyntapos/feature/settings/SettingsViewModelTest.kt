@@ -11,7 +11,7 @@ import com.zyntasolutions.zyntapos.domain.repository.UserRepository
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.SaveTaxGroupUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.PrintTestPageUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.SaveUserUseCase
-import com.zyntasolutions.zyntapos.hal.printer.PaperWidth
+import com.zyntasolutions.zyntapos.domain.model.PrinterPaperWidth
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -87,14 +87,12 @@ class SettingsViewModelTest {
     }
 
     private var testPrintCalled = false
-    private var testPrintPaperWidth: PaperWidth? = null
+    private var testPrintPaperWidth: PrinterPaperWidth? = null
 
-    private val fakePrintTestPageUseCase = object : PrintTestPageUseCase {
-        override suspend operator fun invoke(paperWidth: PaperWidth): kotlin.Result<Unit> {
-            testPrintCalled = true
-            testPrintPaperWidth = paperWidth
-            return kotlin.Result.success(Unit)
-        }
+    private val fakePrintTestPageUseCase = PrintTestPageUseCase { paperWidth ->
+        testPrintCalled = true
+        testPrintPaperWidth = paperWidth
+        Result.success(Unit)
     }
 
     private lateinit var viewModel: SettingsViewModel

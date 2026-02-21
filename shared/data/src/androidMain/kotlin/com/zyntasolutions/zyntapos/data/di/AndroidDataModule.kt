@@ -3,8 +3,6 @@ package com.zyntasolutions.zyntapos.data.di
 import android.content.Context
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseDriverFactory
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseKeyProvider
-import com.zyntasolutions.zyntapos.data.local.security.InMemorySecurePreferences
-import com.zyntasolutions.zyntapos.data.local.security.SecurePreferences
 import com.zyntasolutions.zyntapos.data.sync.NetworkMonitor
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
@@ -19,7 +17,9 @@ import org.koin.dsl.module
  * | [DatabaseKeyProvider] | Envelope encryption: DEK wrapped by Android Keystore KEK | Replaces never after Sprint 8 |
  * | [DatabaseDriverFactory] | SQLCipher + AndroidSqliteDriver (WAL, 8 MB cache) | — |
  * | [NetworkMonitor] | ConnectivityManager.NetworkCallback → StateFlow<Boolean> | Actual class — needs Context |
- * | [SecurePreferences] | [InMemorySecurePreferences] (Sprint 6 stub) | **Replace in Sprint 8** with EncryptedSharedPreferences |
+ *
+ * Note: [SecurePreferences] is now bound directly by `securityModule` (canonical expect/actual).
+ * Adapter class `AndroidEncryptedSecurePreferences` deleted — MERGED-D3 (2026-02-21).
  * Note: [PasswordHasher] is now `expect object` in :shared:security — no binding needed here.
  *
  * Include this module alongside [dataModule] in the Android Application's
@@ -30,9 +30,9 @@ import org.koin.dsl.module
  * }
  * ```
  *
- * ## Sprint 8 upgrade checklist
- * - [ ] Replace `InMemorySecurePreferences` with `EncryptedSharedPreferences` actual
- * - [ ] Remove Sprint 6 scaffold imports
+ * ## Sprint 8 upgrade checklist (COMPLETED — MERGED-D2 + MERGED-D3)
+ * - [x] Replace `InMemorySecurePreferences` with encrypted platform actual (Sprint 23)
+ * - [x] Remove adapter classes; bind `securityModule.SecurePreferences` directly (MERGED-D3 2026-02-21)
  */
 val androidDataModule = module {
 
@@ -46,7 +46,6 @@ val androidDataModule = module {
     // app-level ViewModel initialization.
     single { NetworkMonitor(context = androidContext()) }
 
-    // ── Security Scaffolds (Sprint 6 — replace in Sprint 8) ──────────
-    // ⚠️  These are NOT encrypted. For development / testing only.
-    single<SecurePreferences> { InMemorySecurePreferences() }
+    // Note: SecurePreferences is bound by securityModule (canonical expect/actual).
+    // Adapter class AndroidEncryptedSecurePreferences removed — MERGED-D3 (2026-02-21).
 }

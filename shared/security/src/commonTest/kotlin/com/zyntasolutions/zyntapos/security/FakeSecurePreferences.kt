@@ -14,4 +14,5 @@ class FakeSecurePreferences : SecurePreferences() {
     override fun get(key: String): String? = store[key]
     override fun remove(key: String) { store.remove(key) }
     override fun clear() { store.clear() }
+    override fun contains(key: String): Boolean = store.containsKey(key)
 }

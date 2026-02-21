@@ -1,66 +1,42 @@
 package com.zyntasolutions.zyntapos.domain.usecase.register
 
-import com.zyntasolutions.zyntapos.core.result.HalException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.RegisterSession
-import com.zyntasolutions.zyntapos.hal.printer.EscPosReceiptBuilder
-import com.zyntasolutions.zyntapos.hal.printer.PrinterManager
+import com.zyntasolutions.zyntapos.domain.printer.ZReportPrinterPort
 
 /**
  * Prints the Z-report (end-of-shift summary) to the connected thermal printer.
  *
- * ### Workflow
- * 1. Receives a fully-closed [RegisterSession] containing opening balance,
- *    expected balance, actual balance, and timestamps.
- * 2. Delegates to [EscPosReceiptBuilder.buildZReport] to assemble ESC/POS bytes.
- * 3. Forwards the byte payload to [PrinterManager.print] which handles
- *    connection, retry, and queue management.
+ * ### Layering rationale
+ * This use case belongs in `:shared:domain` because printing a Z-report is a core
+ * register-management business operation. All ESC/POS byte generation, transport
+ * connection, and retry logic are delegated to [ZReportPrinterPort], keeping this
+ * class free of HAL and infrastructure dependencies.
  *
- * ### Error Handling
- * - If the printer is disconnected, [PrinterManager] queues the job and
- *   returns [Result.Success] (job will drain on reconnect).
- * - If all retries are exhausted, [Result.Error] is returned with a
- *   [HalException] wrapping the underlying transport error.
- * - The caller (ViewModel) translates failures into user-visible snackbar errors.
+ * ```
+ * :composeApp:feature:register   ← calls invoke()
+ *        ↓
+ * :shared:domain                 ← PrintZReportUseCase + ZReportPrinterPort (this file)
+ *        ↑
+ * :shared:hal                    ← ZReportPrinterAdapter (implements ZReportPrinterPort)
+ * ```
  *
- * @param receiptBuilder ESC/POS Z-report formatter.
- * @param printerManager Printer connection and delivery gateway.
+ * @param printerPort Adapter responsible for the complete Z-report print pipeline.
+ *
+ * @see ZReportPrinterPort
+ * @see com.zyntasolutions.zyntapos.feature.register.printer.ZReportPrinterAdapter
  */
 class PrintZReportUseCase(
-    private val receiptBuilder: EscPosReceiptBuilder,
-    private val printerManager: PrinterManager,
+    private val printerPort: ZReportPrinterPort,
 ) {
     /**
      * Generates and prints the Z-report for the given [session].
      *
-     * @param session The CLOSED [RegisterSession] to print.
-     * @return [Result.Success] when the print job is accepted (or queued),
-     *         [Result.Error] if all print retries are exhausted.
+     * @param session The **closed** [RegisterSession] to print.
+     * @return [Result.Success] when the print job is accepted or queued.
+     *         [Result.Error] wrapping a [com.zyntasolutions.zyntapos.core.result.HalException]
+     *         if all retries are exhausted.
      */
-    suspend operator fun invoke(session: RegisterSession): Result<Unit> {
-        return try {
-            val bytes = receiptBuilder.buildZReport(session)
-            val printResult = printerManager.print(bytes)
-            printResult.fold(
-                onSuccess = { Result.Success(Unit) },
-                onFailure = { error ->
-                    Result.Error(
-                        HalException(
-                            message = "Failed to print Z-report: ${error.message}",
-                            device = "thermal_printer",
-                            cause = error,
-                        ),
-                    )
-                },
-            )
-        } catch (e: Exception) {
-            Result.Error(
-                HalException(
-                    message = "Z-report generation failed: ${e.message}",
-                    device = "thermal_printer",
-                    cause = e,
-                ),
-            )
-        }
-    }
+    suspend operator fun invoke(session: RegisterSession): Result<Unit> =
+        printerPort.printZReport(session)
 }

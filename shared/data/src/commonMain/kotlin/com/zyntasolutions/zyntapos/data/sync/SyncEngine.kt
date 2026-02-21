@@ -3,7 +3,8 @@ package com.zyntasolutions.zyntapos.data.sync
 import co.touchlab.kermit.Logger
 import com.zyntasolutions.zyntapos.core.config.AppConfig
 import com.zyntasolutions.zyntapos.core.result.SyncException
-import com.zyntasolutions.zyntapos.data.local.security.SecurePreferences
+import com.zyntasolutions.zyntapos.security.prefs.SecurePreferences
+import com.zyntasolutions.zyntapos.security.prefs.SecurePreferencesKeys
 import com.zyntasolutions.zyntapos.data.remote.api.ApiService
 import com.zyntasolutions.zyntapos.data.remote.dto.SyncOperationDto
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
@@ -25,7 +26,7 @@ import kotlinx.datetime.Clock
  * 2. Pushes them to `POST /api/v1/sync/push` via [ApiService]
  * 3. Marks accepted IDs as SYNCED; increments retry count for rejected IDs
  * 4. Applies server-side delta operations (pull) from [SyncResponseDto.deltaOperations]
- * 5. Persists the new [SecurePreferences.Keys.LAST_SYNC_TS]
+ * 5. Persists the new [SecurePreferencesKeys.KEY_LAST_SYNC_TS]
  *
  * ## Platform scheduling (expect/actual wrapping)
  * - **Android**: [SyncWorker] (`CoroutineWorker` / WorkManager) calls [runOnce] per scheduled work.
@@ -126,7 +127,7 @@ class SyncEngine(
             val pulled = pullServerDelta()
 
             // 3. Persist new server timestamp
-            prefs.put(SecurePreferences.Keys.LAST_SYNC_TS, Clock.System.now().toEpochMilliseconds().toString())
+            prefs.put(SecurePreferencesKeys.KEY_LAST_SYNC_TS, Clock.System.now().toEpochMilliseconds().toString())
 
             val durationMs = Clock.System.now().toEpochMilliseconds() - cycleStart
             log.i { "=== Sync cycle DONE — pushed=$pushed pulled=$pulled duration=${durationMs}ms ===" }
@@ -225,12 +226,12 @@ class SyncEngine(
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
-     * Pulls server-side changes created after the stored [SecurePreferences.Keys.LAST_SYNC_TS].
+     * Pulls server-side changes created after the stored [SecurePreferencesKeys.KEY_LAST_SYNC_TS].
      *
      * @return Number of delta operations applied locally.
      */
     private suspend fun pullServerDelta(): Int {
-        val lastSyncTs = prefs.get(SecurePreferences.Keys.LAST_SYNC_TS)?.toLongOrNull() ?: 0L
+        val lastSyncTs = prefs.get(SecurePreferencesKeys.KEY_LAST_SYNC_TS)?.toLongOrNull() ?: 0L
         log.d { "Pulling delta since ts=$lastSyncTs" }
 
         val pullResponse = api.pullOperations(lastSyncTimestamp = lastSyncTs)

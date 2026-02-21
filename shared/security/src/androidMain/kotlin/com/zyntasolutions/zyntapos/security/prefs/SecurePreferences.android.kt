@@ -50,5 +50,8 @@ actual class SecurePreferences actual constructor() : TokenStorage, KoinComponen
         sharedPrefs.edit().clear().apply()
     }
 
+    /** Returns `true` if [key] exists in [EncryptedSharedPreferences]. */
+    actual fun contains(key: String): Boolean = sharedPrefs.contains(key)
+
     actual companion object
 }

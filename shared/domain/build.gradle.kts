@@ -22,6 +22,14 @@ kotlin {
         compilerOptions { jvmTarget.set(JvmTarget.JVM_17) }
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // ARCHITECTURE GUARD — DO NOT MODIFY without ADR approval
+    // ONLY :shared:core is a permitted dependency of :shared:domain.
+    // DO NOT add :shared:hal, :shared:security, :shared:data, or any
+    // feature module. HAL/security types must be accessed exclusively
+    // via port interfaces defined within this module.
+    // Violation will corrupt the Ports & Adapters boundary for all 23 modules.
+    // ═══════════════════════════════════════════════════════════════
     sourceSets {
         commonMain.dependencies {
             api(project(":shared:core"))

@@ -1,8 +1,10 @@
 package com.zyntasolutions.zyntapos.feature.reports
 
+import com.zyntasolutions.zyntapos.domain.printer.ReportPrinterPort
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateSalesReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateStockReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.PrintReportUseCase
+import com.zyntasolutions.zyntapos.feature.reports.printer.ReportPrinterAdapter
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
@@ -12,7 +14,8 @@ import org.koin.dsl.module
  * Provides:
  * - [GenerateSalesReportUseCase]   — aggregates sales by date range, payment method, product.
  * - [GenerateStockReportUseCase]   — current stock, low-stock, dead-stock classification.
- * - [PrintReportUseCase]           — condensed thermal Z-report summary.
+ * - [ReportPrinterAdapter]         — infrastructure adapter bound to [ReportPrinterPort].
+ * - [PrintReportUseCase]           — condensed thermal Z-report summary via the port.
  * - [ReportExporter]               — platform-specific CSV/PDF export (see platform modules).
  * - [ReportsViewModel]             — MVI ViewModel for all three report screens.
  *
@@ -21,7 +24,8 @@ import org.koin.dsl.module
  * ReportsViewModel
  *   ├─ GenerateSalesReportUseCase  → OrderRepository
  *   ├─ GenerateStockReportUseCase  → ProductRepository + StockRepository
- *   ├─ PrintReportUseCase          → EscPosReceiptBuilder + PrinterManager
+ *   ├─ PrintReportUseCase          → ReportPrinterPort (→ ReportPrinterAdapter)
+ *   │   └─ PrinterManager          (bound in :shared:hal module)
  *   └─ ReportExporter              → bound per platform (jvmMain / androidMain)
  * ```
  *
@@ -37,10 +41,13 @@ import org.koin.dsl.module
  * ```
  */
 val reportsModule = module {
+    // ── Port adapter (HAL orchestration lives here, NOT in the use case) ─────
+    single<ReportPrinterPort> { ReportPrinterAdapter(get()) }
+
     // ── Domain use cases ─────────────────────────────────────────────────────
     factory { GenerateSalesReportUseCase(get()) }
     factory { GenerateStockReportUseCase(get(), get()) }
-    factory { PrintReportUseCase(get(), get()) }
+    factory { PrintReportUseCase(get()) }
 
     // ── ViewModel ────────────────────────────────────────────────────────────
     viewModelOf(::ReportsViewModel)

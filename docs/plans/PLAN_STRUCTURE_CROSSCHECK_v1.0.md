@@ -1,3 +1,9 @@
+> ⚠️ SUPERSEDED — See `docs/audit_v2_phase_1_result.md` for the authoritative
+> current-state module registry (23 modules as of 2026-02-21).
+> This snapshot reflects Phase 0 / Sprint 1-3 state (22 modules) and does not
+> include `:composeApp:core`, which was added prior to Phase 1 execution.
+> Finding ID assigned: **MERGED-G8**. No further edits to this file.
+
 # ZyntaPOS — Structure Cross-Check Report
 > **Doc ID:** ZENTA-CROSSCHECK-v1.1
 > **Date:** 2026-02-20

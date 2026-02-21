@@ -45,34 +45,142 @@ class TaxGroupRepositoryImpl(
 
     // ── Reactive query ────────────────────────────────────────────────
 
-    override fun getAll(): Flow<List<TaxGroup>> {
-        TODO("Requires tax_groups.sq — tracked in MERGED-D2")
-    }
+    override fun getAll(): Flow<List<TaxGroup>> =
+        q.getAllTaxGroups()
+            .asFlow()
+            .mapToList(Dispatchers.IO)
+            .map { rows ->
+                rows.map { row ->
+                    TaxGroup(
+                        id          = row.id,
+                        name        = row.name,
+                        rate        = row.rate,
+                        isInclusive = row.is_inclusive == 1L,
+                        isActive    = row.is_active == 1L,
+                    )
+                }
+            }
 
     // ── One-shot read ─────────────────────────────────────────────────
 
     override suspend fun getById(id: String): Result<TaxGroup> = withContext(Dispatchers.IO) {
-        TODO("Requires tax_groups.sq — tracked in MERGED-D2")
+        runCatching {
+            q.getTaxGroupById(id).executeAsOneOrNull()
+                ?: return@withContext Result.Error(
+                    DatabaseException("TaxGroup not found: $id", operation = "getTaxGroupById")
+                )
+        }.fold(
+            onSuccess = { row ->
+                Result.Success(
+                    TaxGroup(
+                        id          = row.id,
+                        name        = row.name,
+                        rate        = row.rate,
+                        isInclusive = row.is_inclusive == 1L,
+                        isActive    = row.is_active == 1L,
+                    )
+                )
+            },
+            onFailure = { t ->
+                Result.Error(DatabaseException(t.message ?: "DB error", cause = t))
+            },
+        )
     }
 
     // ── Write operations ──────────────────────────────────────────────
 
     override suspend fun insert(taxGroup: TaxGroup): Result<Unit> = withContext(Dispatchers.IO) {
-        TODO("Requires tax_groups.sq — tracked in MERGED-D2")
+        runCatching {
+            val now = Clock.System.now().toEpochMilliseconds()
+            db.transaction {
+                q.insertTaxGroup(
+                    id           = taxGroup.id,
+                    name         = taxGroup.name,
+                    rate         = taxGroup.rate,
+                    is_inclusive = if (taxGroup.isInclusive) 1L else 0L,
+                    is_active    = if (taxGroup.isActive) 1L else 0L,
+                    created_at   = now,
+                    updated_at   = now,
+                    deleted_at   = null,
+                    sync_status  = "PENDING",
+                )
+                syncEnqueuer.enqueue("tax_group", taxGroup.id, SyncOperation.Operation.INSERT)
+            }
+        }.fold(
+            onSuccess = { Result.Success(Unit) },
+            onFailure = { t ->
+                Result.Error(
+                    DatabaseException(t.message ?: "Insert failed", operation = "insertTaxGroup", cause = t)
+                )
+            },
+        )
     }
 
     override suspend fun update(taxGroup: TaxGroup): Result<Unit> = withContext(Dispatchers.IO) {
-        TODO("Requires tax_groups.sq — tracked in MERGED-D2")
+        runCatching {
+            val now = Clock.System.now().toEpochMilliseconds()
+            db.transaction {
+                q.updateTaxGroup(
+                    name         = taxGroup.name,
+                    rate         = taxGroup.rate,
+                    is_inclusive = if (taxGroup.isInclusive) 1L else 0L,
+                    is_active    = if (taxGroup.isActive) 1L else 0L,
+                    updated_at   = now,
+                    sync_status  = "PENDING",
+                    id           = taxGroup.id,
+                )
+                syncEnqueuer.enqueue("tax_group", taxGroup.id, SyncOperation.Operation.UPDATE)
+            }
+        }.fold(
+            onSuccess = { Result.Success(Unit) },
+            onFailure = { t ->
+                Result.Error(
+                    DatabaseException(t.message ?: "Update failed", operation = "updateTaxGroup", cause = t)
+                )
+            },
+        )
     }
 
     /**
      * Soft-deletes the tax group identified by [id].
      *
      * Guards against deleting a group still referenced by active products.
-     * If the `products` table query is also unavailable, the guard itself
-     * falls under the same TODO contract.
+     * The product list is fetched via [db.productsQueries.getAllProducts] and
+     * filtered in Kotlin because no named `getProductsByTaxGroup` query exists
+     * in products.sq — avoids adding new SQL per the implementation contract.
      */
     override suspend fun delete(id: String): Result<Unit> = withContext(Dispatchers.IO) {
-        TODO("Requires tax_groups.sq + product reference check query — tracked in MERGED-D2")
+        runCatching {
+            // Guard: reject if any active product references this tax group
+            val productCount = db.productsQueries.getAllProducts()
+                .executeAsList()
+                .count { it.tax_group_id == id }
+            if (productCount > 0) {
+                return@withContext Result.Error(
+                    ValidationException(
+                        message = "Cannot delete tax group: $productCount active product(s) still assigned",
+                        field   = "taxGroupId",
+                        rule    = "TAX_GROUP_IN_USE",
+                    )
+                )
+            }
+            val now = Clock.System.now().toEpochMilliseconds()
+            db.transaction {
+                q.softDeleteTaxGroup(
+                    deleted_at = now,
+                    updated_at = now,
+                    id         = id,
+                )
+                syncEnqueuer.enqueue("tax_group", id, SyncOperation.Operation.DELETE)
+            }
+        }.fold(
+            onSuccess = { Result.Success(Unit) },
+            onFailure = { t ->
+                if (t is ValidationException) Result.Error(t)
+                else Result.Error(
+                    DatabaseException(t.message ?: "Delete failed", operation = "softDeleteTaxGroup", cause = t)
+                )
+            },
+        )
     }
 }

@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.feature.settings
 
+import com.zyntasolutions.zyntapos.core.utils.IdGenerator
 import com.zyntasolutions.zyntapos.core.result.onError
 import com.zyntasolutions.zyntapos.core.result.onSuccess
 import com.zyntasolutions.zyntapos.domain.model.OrderType
@@ -10,9 +11,9 @@ import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.domain.repository.TaxGroupRepository
 import com.zyntasolutions.zyntapos.domain.repository.UserRepository
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.SaveTaxGroupUseCase
+import com.zyntasolutions.zyntapos.domain.model.PrinterPaperWidth
 import com.zyntasolutions.zyntapos.domain.usecase.settings.PrintTestPageUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.SaveUserUseCase
-import com.zyntasolutions.zyntapos.hal.printer.PaperWidth
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.catch
@@ -291,8 +292,13 @@ class SettingsViewModel(
     private fun testPrint() {
         updateState { copy(printer = printer.copy(isTestPrinting = true)) }
         viewModelScope.launch {
-            val pw = if (currentState.printer.paperWidth == PaperWidthOption.MM_58) PaperWidth.MM_58 else PaperWidth.MM_80
-            printTestPageUseCase(pw).fold(
+            // UI-to-domain mapping: PaperWidthOption (feature layer) → PrinterPaperWidth (domain).
+            // No HAL types involved.
+            val domainWidth = when (currentState.printer.paperWidth) {
+                PaperWidthOption.MM_58 -> PrinterPaperWidth.MM_58
+                PaperWidthOption.MM_80 -> PrinterPaperWidth.MM_80
+            }
+            printTestPageUseCase(domainWidth).fold(
                 onSuccess = { sendEffect(SettingsEffect.PrintTestPageSent) },
                 onFailure = { e -> sendEffect(SettingsEffect.ShowSnackbar("Test print failed: ${e.message}")) },
             )
@@ -434,17 +440,6 @@ class SettingsViewModel(
 
     // ── Utilities ─────────────────────────────────────────────────────────────
 
-    /** Generates a naive UUID v4 string without platform-specific APIs. */
-    private fun generateUuid(): String = buildString {
-        val hex = "0123456789abcdef"
-        repeat(32) { i ->
-            if (i in listOf(8, 12, 16, 20)) append('-')
-            val nibble = when (i) {
-                12   -> 4
-                16   -> 8 + (0..3).random()
-                else -> (0..15).random()
-            }
-            append(hex[nibble])
-        }
-    }
+    /** Generates a cryptographically secure UUID v4 string via [IdGenerator]. */
+    private fun generateUuid(): String = IdGenerator.newId()
 }

@@ -27,7 +27,10 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(project(":shared:domain"))
-            implementation(project(":shared:security"))
+            // Note: :shared:security removed — MERGED-F3 (2026-02-22).
+            // PasswordHashPort is declared in :shared:domain; PasswordHasherAdapter
+            // is bound by securityModule in :shared:security. :shared:data no longer
+            // has a compile-time dependency on :shared:security.
             implementation(libs.bundles.ktor.common)
             implementation(libs.bundles.sqldelight.common)
             implementation(libs.kotlinx.serialization.json)

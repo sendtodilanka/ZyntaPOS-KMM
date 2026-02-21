@@ -20,7 +20,7 @@ import com.zyntasolutions.zyntapos.domain.model.PaymentMethod
  * ### Example output (48-char line / 80 mm paper)
  * ```
  * ================================================
- *             ZENTRA POINT OF SALE
+ *             ZYNTA POINT OF SALE
  *          123 Main Street, Colombo 03
  *             Tel: +94 11 234 5678
  * ================================================

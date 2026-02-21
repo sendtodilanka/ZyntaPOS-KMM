@@ -14,7 +14,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.pos.RetrieveHeldOrderUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.UpdateCartItemQuantityUseCase
 import com.zyntasolutions.zyntapos.feature.pos.printer.PrinterManagerReceiptAdapter
 import com.zyntasolutions.zyntapos.hal.printer.PrinterManager
-import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
+
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
@@ -44,9 +44,6 @@ import org.koin.dsl.module
 val posModule = module {
 
     // ── Shared infrastructure ─────────────────────────────────────────────────
-
-    /** Single audit logger shared across POS operations. */
-    single { SecurityAuditLogger() }
 
     /**
      * Infrastructure adapter that bridges [PrintReceiptUseCase] (domain) to the

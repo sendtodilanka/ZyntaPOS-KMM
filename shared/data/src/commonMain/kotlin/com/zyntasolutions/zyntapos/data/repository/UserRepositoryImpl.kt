@@ -7,7 +7,7 @@ import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.core.result.ValidationException
 import com.zyntasolutions.zyntapos.data.local.SyncEnqueuer
 import com.zyntasolutions.zyntapos.data.local.mapper.UserMapper
-import com.zyntasolutions.zyntapos.security.auth.PasswordHasher
+import com.zyntasolutions.zyntapos.domain.port.PasswordHashPort
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
 import com.zyntasolutions.zyntapos.domain.model.SyncOperation
 import com.zyntasolutions.zyntapos.domain.model.User
@@ -40,10 +40,12 @@ import kotlinx.datetime.Clock
  *
  * @param db             Encrypted [ZyntaDatabase] singleton, provided by Koin.
  * @param syncEnqueuer   Writes a `pending_operations` row after every mutation.
+ * @param passwordHasher Domain port for BCrypt hash operations (injected; adapter lives in :shared:security).
  */
 class UserRepositoryImpl(
     private val db: ZyntaDatabase,
     private val syncEnqueuer: SyncEnqueuer,
+    private val passwordHasher: PasswordHashPort,
 ) : UserRepository {
 
     private val q get() = db.usersQueries
@@ -84,7 +86,7 @@ class UserRepositoryImpl(
                         ValidationException("Email already in use: ${user.email}", field = "email")
                     )
                 }
-                val passwordHash = PasswordHasher.hashPassword(plainPassword)
+                val passwordHash = passwordHasher.hash(plainPassword)
                 val p = UserMapper.toInsertParams(user, passwordHash)
                 val now = Clock.System.now().toEpochMilliseconds()
                 db.transaction {
@@ -132,7 +134,7 @@ class UserRepositoryImpl(
     override suspend fun updatePassword(userId: String, newPlainPassword: String): Result<Unit> =
         withContext(Dispatchers.IO) {
             runCatching {
-                val newHash = PasswordHasher.hashPassword(newPlainPassword)
+                val newHash = passwordHasher.hash(newPlainPassword)
                 val now = Clock.System.now().toEpochMilliseconds()
                 db.transaction {
                     q.updateUserPassword(

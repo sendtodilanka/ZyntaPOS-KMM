@@ -1,8 +1,17 @@
 package com.zyntasolutions.zyntapos.security.prefs
 
-// ZENTA-FINAL-AUDIT MERGED-F1
+// ZENTA-FINAL-AUDIT MERGED-F1 | MERGED-D3 (2026-02-21)
 /**
- * Cross-platform secure key-value storage for sensitive application preferences.
+ * Canonical secure preferences contract for ZyntaPOS.
+ *
+ * Platform actuals:
+ *  - **Android** — `AndroidEncryptedSharedPreferences` (AES-256-GCM via EncryptedSharedPreferences)
+ *  - **Desktop (JVM)** — `DesktopAesSecurePreferences` (AES-256-GCM encrypted Properties file)
+ *
+ * Decision: ADR-003 (see docs/adr/) — `data.local.security.SecurePreferences` (interface) deleted
+ * 2026-02-21 in favour of this canonical `expect class`. All `:shared:data` consumers updated to
+ * import `security.prefs.SecurePreferences` directly. Adapter classes
+ * (`AndroidEncryptedSecurePreferences`, `DesktopAesSecurePreferences`) removed from `:shared:data`.
  *
  * All values are encrypted at rest. The storage is suitable for:
  * - JWT access and refresh tokens
@@ -14,12 +23,6 @@ package com.zyntasolutions.zyntapos.security.prefs
  *
  * Implements [TokenStorage] so [com.zyntasolutions.zyntapos.security.auth.JwtManager]
  * can accept it without a platform-specific reference in commonMain.
- *
- * ## Platform implementations
- * - **Android:** [androidx.security.crypto.EncryptedSharedPreferences] backed by
- *   AES-256-GCM (values) and AES-256-SIV (keys) via Android Keystore.
- * - **Desktop (JVM):** A `java.util.Properties` file at `~/.zentapos/secure_prefs.enc`
- *   where each value is individually encrypted by `EncryptionManager`.
  *
  * ## Thread safety
  * Both implementations are thread-safe via synchronised read/write blocks.
@@ -39,6 +42,14 @@ expect class SecurePreferences() : TokenStorage {
 
     /** Removes all entries from secure storage. */
     fun clear()
+
+    /**
+     * Returns `true` if a value is stored under [key].
+     *
+     * Migrated from `data.local.security.SecurePreferences` (ADR-003) to preserve
+     * the contract used by [SecurePreferencesKeyMigration] and auth session checks.
+     */
+    fun contains(key: String): Boolean
 
     companion object
 }

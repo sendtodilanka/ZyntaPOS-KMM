@@ -2,8 +2,8 @@ package com.zyntasolutions.zyntapos.data.sync
 
 import com.zyntasolutions.zyntapos.core.result.NetworkException
 import com.zyntasolutions.zyntapos.data.createTestDatabase
-import com.zyntasolutions.zyntapos.data.local.security.InMemorySecurePreferences
-import com.zyntasolutions.zyntapos.data.local.security.SecurePreferences
+import com.zyntasolutions.zyntapos.security.prefs.SecurePreferences
+import com.zyntasolutions.zyntapos.security.prefs.SecurePreferencesKeys
 import com.zyntasolutions.zyntapos.data.remote.api.ApiService
 import com.zyntasolutions.zyntapos.data.remote.dto.AuthRefreshResponseDto
 import com.zyntasolutions.zyntapos.data.remote.dto.AuthRequestDto
@@ -237,11 +237,11 @@ class SyncEngineIntegrationTest {
         )
         val eng = engine(api)
 
-        val tsBefore = prefs.get(SecurePreferences.Keys.LAST_SYNC_TS)?.toLongOrNull() ?: 0L
+        val tsBefore = prefs.get(SecurePreferencesKeys.KEY_LAST_SYNC_TS)?.toLongOrNull() ?: 0L
 
         eng.runOnce()
 
-        val tsAfter = prefs.get(SecurePreferences.Keys.LAST_SYNC_TS)?.toLongOrNull() ?: 0L
+        val tsAfter = prefs.get(SecurePreferencesKeys.KEY_LAST_SYNC_TS)?.toLongOrNull() ?: 0L
         assertTrue(tsAfter > tsBefore, "LAST_SYNC_TS should advance after a successful sync cycle")
     }
 

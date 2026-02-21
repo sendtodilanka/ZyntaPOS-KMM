@@ -113,6 +113,7 @@ All significant architectural decisions are documented in `docs/adr/`.
 
 | ADR | Topic | Status |
 |-----|-------|--------|
+| [ADR-001](docs/adr/ADR-001-ViewModelBaseClass.md) | ViewModel Base Class Policy | ACCEPTED |
 | [ADR-002](docs/adr/ADR-002-DomainModelNaming.md) | Domain Model Naming Convention | ACCEPTED |
 
 Before making a structural change (new module, new convention, tech adoption),

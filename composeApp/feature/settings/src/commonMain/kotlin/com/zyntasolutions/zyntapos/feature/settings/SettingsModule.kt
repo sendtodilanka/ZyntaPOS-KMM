@@ -1,5 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.settings
 
+import com.zyntasolutions.zyntapos.domain.usecase.settings.PrintTestPageUseCase
+import com.zyntasolutions.zyntapos.hal.printer.PrinterManager
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
@@ -20,5 +22,11 @@ import org.koin.dsl.module
  * - `:shared:domain` — provides [SaveTaxGroupUseCase], [SaveUserUseCase], [PrintTestPageUseCase]
  */
 val settingsModule = module {
+    // ── Use-case bindings ────────────────────────────────────────────────────
+    // PrinterManager is provided by :shared:hal; get() resolves it from the
+    // merged Koin graph at runtime.
+    factory<PrintTestPageUseCase> { PrintTestPageUseCaseImpl(get()) }
+
+    // ── ViewModel ────────────────────────────────────────────────────────────
     viewModelOf(::SettingsViewModel)
 }

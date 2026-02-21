@@ -2,8 +2,6 @@ package com.zyntasolutions.zyntapos.data.di
 
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseDriverFactory
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseKeyProvider
-import com.zyntasolutions.zyntapos.data.local.security.InMemorySecurePreferences
-import com.zyntasolutions.zyntapos.data.local.security.SecurePreferences
 import com.zyntasolutions.zyntapos.data.sync.NetworkMonitor
 import org.koin.dsl.module
 import java.io.File
@@ -18,7 +16,9 @@ import java.io.File
  * | [DatabaseKeyProvider] | JCE PKCS12 KeyStore AES-256, machine-fingerprint password | — |
  * | [DatabaseDriverFactory] | JdbcSqliteDriver (WAL, 8 MB cache, 5s busy_timeout) | — |
  * | [NetworkMonitor] | Periodic InetAddress.isReachable() → StateFlow<Boolean> | Actual class — no-arg |
- * | [SecurePreferences] | [InMemorySecurePreferences] (Sprint 6 stub) | **Replace in Sprint 8** with AES-GCM file |
+ *
+ * Note: [SecurePreferences] is now bound directly by `securityModule` (canonical expect/actual).
+ * Adapter class `DesktopAesSecurePreferences` deleted — MERGED-D3 (2026-02-21).
  * Note: [PasswordHasher] is now `expect object` in :shared:security — no binding needed here.
  *
  * The application data directory is resolved from the OS-specific user home:
@@ -40,9 +40,9 @@ import java.io.File
  * syncEngine.startPeriodicSync(applicationScope)
  * ```
  *
- * ## Sprint 8 upgrade checklist
- * - [ ] Replace `InMemorySecurePreferences` with AES-256-GCM encrypted Properties file actual
- * - [ ] Remove Sprint 6 scaffold imports
+ * ## Sprint 8 upgrade checklist (COMPLETED — MERGED-D2 + MERGED-D3)
+ * - [x] Replace `InMemorySecurePreferences` with encrypted platform actual (Sprint 23)
+ * - [x] Remove adapter classes; bind `securityModule.SecurePreferences` directly (MERGED-D3 2026-02-21)
  *
  * ## Production Deployment Note — SQLCipher Native Libs
  * For full AES-256 encryption bundle the native SQLCipher library:
@@ -65,9 +65,8 @@ val desktopDataModule = module {
     // Call NetworkMonitor.start() after Koin initialization.
     single { NetworkMonitor() }
 
-    // ── Security Scaffolds (Sprint 6 — replace in Sprint 8) ──────────
-    // ⚠️  These are NOT encrypted. For development / testing only.
-    single<SecurePreferences> { InMemorySecurePreferences() }
+    // Note: SecurePreferences is bound by securityModule (canonical expect/actual).
+    // Adapter class DesktopAesSecurePreferences removed — MERGED-D3 (2026-02-21).
 }
 
 /**

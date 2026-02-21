@@ -267,29 +267,34 @@ sealed interface PosSideEffect {
 
 ### 4.1 Complete Module Registry
 
-| Module ID | Module Name | Layer | Dependencies | Phase |
-|-----------|-------------|-------|--------------|-------|
-| M01 | `:shared:core` | Infrastructure | — | 1 |
-| M02 | `:shared:domain` | Domain | M01 | 1 |
-| M03 | `:shared:data` | Data | M01, M02 | 1 |
-| M04 | `:shared:hal` | Infrastructure | M01 | 1 |
-| M05 | `:shared:security` | Infrastructure | M01 | 1 |
-| M06 | `:composeApp:designsystem` | Presentation | M01 | 1 |
-| M07 | `:composeApp:navigation` | Presentation | M02, M05, M06 | 1 |
-| M08 | `:composeApp:feature:auth` | Feature | M02, M03, M05, M06, M21 | 1 |
-| M09 | `:composeApp:feature:pos` | Feature | M02, M03, M04, M06, M21 | 1 |
-| M10 | `:composeApp:feature:inventory` | Feature | M02, M03, M06, M21 | 1 |
-| M11 | `:composeApp:feature:register` | Feature | M02, M03, M04, M06, M21 | 1 |
-| M12 | `:composeApp:feature:reports` | Feature | M02, M03, M06, M21 | 1 |
-| M13 | `:composeApp:feature:customers` | Feature | M02, M03, M06, M21 | 2 |
-| M14 | `:composeApp:feature:coupons` | Feature | M02, M03, M06, M21 | 2 |
-| M15 | `:composeApp:feature:multistore` | Feature | M02, M03, M06, M21 | 2 |
-| M16 | `:composeApp:feature:expenses` | Feature | M02, M03, M06, M21 | 2 |
-| M17 | `:composeApp:feature:staff` | Feature | M02, M03, M06, M21 | 3 |
-| M18 | `:composeApp:feature:settings` | Feature | M02, M03, M04, M05, M06, M21 | 1 |
-| M19 | `:composeApp:feature:admin` | Feature | M02, M03, M05, M06, M21 | 3 |
-| M20 | `:composeApp:feature:media` | Feature | M02, M03, M06, M21 | 3 |
-| M21 | `:composeApp:core` | Presentation | M02 | 1 |
+| Module ID | Module Name | Layer | Dependencies | Phase | Status |
+|-----------|-------------|-------|--------------|-------|--------|
+| M01 | `:shared:core` | Infrastructure | — | 1 | ✅ IMPLEMENTED |
+| M02 | `:shared:domain` | Domain | M01 | 1 | ✅ IMPLEMENTED |
+| M03 | `:shared:data` | Data | M01, M02 | 1 | ✅ IMPLEMENTED |
+| M04 | `:shared:hal` | Infrastructure | M01 | 1 | ✅ IMPLEMENTED |
+| M05 | `:shared:security` | Infrastructure | M01 | 1 | ✅ IMPLEMENTED |
+| M06 | `:composeApp:designsystem` | Presentation | M01 | 1 | ✅ IMPLEMENTED |
+| M07 | `:composeApp:navigation` | Presentation | M02, M05, M06 | 1 | ✅ IMPLEMENTED |
+| M08 | `:composeApp:feature:auth` | Feature | M02, M06, M21 | 1 | ✅ IMPLEMENTED |
+| M09 | `:composeApp:feature:pos` | Feature | M02, M04, M05, M06, M21 | 1 | ✅ IMPLEMENTED |
+| M10 | `:composeApp:feature:inventory` | Feature | M02, M06, M21 | 1 | ✅ IMPLEMENTED |
+| M11 | `:composeApp:feature:register` | Feature | M02, M06, M21 | 1 | ✅ IMPLEMENTED |
+| M12 | `:composeApp:feature:reports` | Feature | M02, M06, M21 | 1 | ✅ IMPLEMENTED |
+| M13 | `:composeApp:feature:customers` | Feature | M02, M03, M06, M21 | 2 | 🔲 SCAFFOLD — Not Started |
+| M14 | `:composeApp:feature:coupons` | Feature | M02, M03, M06, M21 | 2 | 🔲 SCAFFOLD — Not Started |
+| M15 | `:composeApp:feature:multistore` | Feature | M02, M03, M06, M21 | 2 | 🔲 SCAFFOLD — Not Started |
+| M16 | `:composeApp:feature:expenses` | Feature | M02, M03, M06, M21 | 2 | 🔲 SCAFFOLD — Not Started |
+| M17 | `:composeApp:feature:staff` | Feature | M02, M03, M06, M21 | 3 | 🔲 SCAFFOLD — Not Started |
+| M18 | `:composeApp:feature:settings` | Feature | M02, M04, M06, M21 | 1 | ✅ IMPLEMENTED |
+| M19 | `:composeApp:feature:admin` | Feature | M02, M03, M05, M06, M21 | 3 | 🔲 SCAFFOLD — Not Started |
+| M20 | `:composeApp:feature:media` | Feature | M02, M03, M06, M21 | 3 | 🔲 SCAFFOLD — Not Started |
+| M21 | `:composeApp:core` | Presentation | M02 | 1 | ✅ IMPLEMENTED |
+
+> **Architecture Note:** Feature modules (M08–M20) depend only on M02 (`:shared:domain`) interfaces
+> and presentation utilities (M06, M21). M03 (`:shared:data`) is wired **at runtime** by
+> `DataModule` in the application DI graph. Direct feature→data layer dependencies are **forbidden**
+> per the Clean Architecture boundary — data access is injected through domain repository interfaces.
 
 ### 4.2 Module Dependency Graph
 

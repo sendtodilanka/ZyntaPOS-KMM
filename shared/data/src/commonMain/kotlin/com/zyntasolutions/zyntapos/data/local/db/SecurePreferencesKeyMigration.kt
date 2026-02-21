@@ -1,7 +1,7 @@
 package com.zyntasolutions.zyntapos.data.local.db
 
 import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
-import com.zyntasolutions.zyntapos.data.local.security.SecurePreferences
+import com.zyntasolutions.zyntapos.security.prefs.SecurePreferences
 import com.zyntasolutions.zyntapos.security.prefs.SecurePreferencesKeys
 
 // ZENTA-FINAL-AUDIT MERGED-F1

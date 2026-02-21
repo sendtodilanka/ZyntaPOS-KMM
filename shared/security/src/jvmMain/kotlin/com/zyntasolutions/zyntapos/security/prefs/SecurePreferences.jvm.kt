@@ -87,6 +87,9 @@ actual class SecurePreferences actual constructor() : TokenStorage {
         saveProps(props)
     }
 
+    /** Returns `true` if [key] is present in the encrypted properties file. */
+    actual fun contains(key: String): Boolean = loadProps().containsKey(key)
+
     private fun encoded(bytes: ByteArray): String = Base64.getEncoder().encodeToString(bytes)
     private fun decoded(s: String): ByteArray = Base64.getDecoder().decode(s)
 

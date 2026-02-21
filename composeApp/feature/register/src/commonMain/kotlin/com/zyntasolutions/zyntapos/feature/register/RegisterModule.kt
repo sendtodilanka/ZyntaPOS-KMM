@@ -1,9 +1,11 @@
 package com.zyntasolutions.zyntapos.feature.register
 
+import com.zyntasolutions.zyntapos.domain.printer.ZReportPrinterPort
 import com.zyntasolutions.zyntapos.domain.usecase.register.CloseRegisterSessionUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.OpenRegisterSessionUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.PrintZReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.RecordCashMovementUseCase
+import com.zyntasolutions.zyntapos.feature.register.printer.ZReportPrinterAdapter
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
@@ -14,7 +16,8 @@ import org.koin.dsl.module
  * - [OpenRegisterSessionUseCase]     — domain use case for opening a register session.
  * - [CloseRegisterSessionUseCase]    — domain use case for closing a session with balance reconciliation.
  * - [RecordCashMovementUseCase]      — domain use case for recording cash in/out movements.
- * - [PrintZReportUseCase]            — domain use case for printing Z-report via thermal printer.
+ * - [ZReportPrinterAdapter]          — infrastructure adapter bound to [ZReportPrinterPort].
+ * - [PrintZReportUseCase]            — domain use case for printing Z-report via the port.
  * - [RegisterViewModel]              — MVI ViewModel shared by all register screens.
  *
  * ### Dependency chain
@@ -24,10 +27,10 @@ import org.koin.dsl.module
  *   ├─ OpenRegisterSessionUseCase
  *   ├─ CloseRegisterSessionUseCase
  *   ├─ RecordCashMovementUseCase
- *   ├─ PrintZReportUseCase
- *   │   ├─ EscPosReceiptBuilder      (bound in :shared:hal module)
- *   │   └─ PrinterManager            (bound in :shared:hal module)
- *   └─ currentUserId : String        (provided by AuthModule / SessionManager)
+ *   └─ PrintZReportUseCase
+ *       └─ ZReportPrinterPort (→ ZReportPrinterAdapter)
+ *           ├─ PrinterManager        (bound in :shared:hal module)
+ *           └─ EscPosReceiptBuilder  (bound in :shared:hal module)
  * ```
  *
  * Include this module in the root application Koin graph:
@@ -38,11 +41,14 @@ import org.koin.dsl.module
  * ```
  */
 val registerModule = module {
+    // ── Port adapter (HAL orchestration lives here, NOT in the use case) ─────
+    single<ZReportPrinterPort> { ZReportPrinterAdapter(get(), get()) }
+
     // ── Domain use cases ─────────────────────────────────────────────────────
     factory { OpenRegisterSessionUseCase(get()) }
     factory { CloseRegisterSessionUseCase(get()) }
     factory { RecordCashMovementUseCase(get()) }
-    factory { PrintZReportUseCase(get(), get()) }
+    factory { PrintZReportUseCase(get()) }
 
     // ── ViewModel ────────────────────────────────────────────────────────────
     // currentUserId is expected to be bound as `named("currentUserId")` or
