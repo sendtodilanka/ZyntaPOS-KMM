@@ -27,6 +27,7 @@ kotlin {
             implementation(project(":composeApp:core"))
             implementation(project(":shared:core"))
             implementation(project(":shared:domain"))
+            implementation(project(":shared:hal"))
             implementation(libs.bundles.koin.common)
             api(libs.compose.runtime)
             api(libs.compose.foundation)
