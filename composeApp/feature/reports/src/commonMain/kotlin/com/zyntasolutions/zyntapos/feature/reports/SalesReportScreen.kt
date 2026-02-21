@@ -36,9 +36,9 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaLoadingOverlay
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaTopAppBar
-import com.zyntasolutions.zyntapos.designsystem.layouts.ZentaScaffold
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoadingOverlay
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTopAppBar
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaScaffold
 import com.zyntasolutions.zyntapos.domain.model.PaymentMethod
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateSalesReportUseCase
 import org.koin.compose.viewmodel.koinViewModel
@@ -70,9 +70,9 @@ fun SalesReportScreen(
         if (s.report == null && !s.isLoading) viewModel.onIntent(ReportsIntent.LoadSalesReport)
     }
 
-    ZentaScaffold(
+    ZyntaScaffold(
         topBar = {
-            ZentaTopAppBar(
+            ZyntaTopAppBar(
                 title = "Sales Report",
                 onNavigateUp = onNavigateUp,
                 actions = {
@@ -137,7 +137,7 @@ fun SalesReportScreen(
                 }
             }
 
-            if (s.isLoading) ZentaLoadingOverlay()
+            if (s.isLoading) ZyntaLoadingOverlay()
         }
     }
 }

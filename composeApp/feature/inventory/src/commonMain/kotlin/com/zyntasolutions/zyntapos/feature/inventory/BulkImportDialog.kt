@@ -15,7 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 /**
  * Bulk product import dialog via CSV files (Sprint 18, task 10.1.5).
  *
@@ -53,7 +53,7 @@ fun BulkImportDialog(
         title = {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
             ) {
                 Icon(Icons.Default.UploadFile, contentDescription = null)
                 Text("Bulk Import Products", style = MaterialTheme.typography.titleMedium)
@@ -61,7 +61,7 @@ fun BulkImportDialog(
         },
         text = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(ZentaSpacing.md),
+                verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                 modifier = Modifier
                     .widthIn(min = 400.dp, max = 640.dp)
                     .heightIn(max = 480.dp),
@@ -92,7 +92,7 @@ fun BulkImportDialog(
                     enabled = hasAllRequired && state.parsedRows.isNotEmpty(),
                 ) {
                     Icon(Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(ZentaSpacing.xs))
+                    Spacer(Modifier.width(ZyntaSpacing.xs))
                     Text("Import ${state.parsedRows.size} Products")
                 }
             }
@@ -113,7 +113,7 @@ fun BulkImportDialog(
 private fun FileSelectionStep(onIntent: (InventoryIntent) -> Unit) {    Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(ZentaSpacing.md),
+        verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
     ) {
         // Drop zone / file picker area
         Card(
@@ -123,9 +123,9 @@ private fun FileSelectionStep(onIntent: (InventoryIntent) -> Unit) {    Column(
             ),
         ) {
             Column(
-                modifier = Modifier.fillMaxWidth().padding(ZentaSpacing.lg),
+                modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.lg),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+                verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
             ) {
                 Icon(
                     Icons.Default.CloudUpload,
@@ -141,7 +141,7 @@ private fun FileSelectionStep(onIntent: (InventoryIntent) -> Unit) {    Column(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Spacer(Modifier.height(ZentaSpacing.sm))
+                Spacer(Modifier.height(ZyntaSpacing.sm))
                 OutlinedButton(onClick = {
                     // Platform file picker will be wired via expect/actual in Phase 2.
                     // For now, this triggers a demo/sample import for development.
@@ -156,7 +156,7 @@ private fun FileSelectionStep(onIntent: (InventoryIntent) -> Unit) {    Column(
                     )
                 }) {
                     Icon(Icons.Default.FolderOpen, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(ZentaSpacing.xs))
+                    Spacer(Modifier.width(ZyntaSpacing.xs))
                     Text("Choose File")
                 }
             }
@@ -196,12 +196,12 @@ private fun ColumnMappingStep(
     onIntent: (InventoryIntent) -> Unit,
 ) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
         modifier = Modifier.fillMaxWidth(),
     ) {        // ── File info header ──────────────────────────────────────
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
         ) {
             Icon(Icons.Default.Description, contentDescription = null,
                 modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
@@ -220,7 +220,7 @@ private fun ColumnMappingStep(
         Text("Map CSV Columns to Product Fields", style = MaterialTheme.typography.labelLarge)
 
         LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(ZentaSpacing.xs),
+            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.xs),
             modifier = Modifier.heightIn(max = 200.dp),
         ) {
             itemsIndexed(state.availableColumns) { _, csvColumn ->
@@ -261,7 +261,7 @@ private fun ColumnMappingStep(
                                 Text(
                                     text = productFieldOptions.firstOrNull { it.first == field }?.second ?: field,
                                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                    modifier = Modifier.width(120.dp).padding(ZentaSpacing.xs),
+                                    modifier = Modifier.width(120.dp).padding(ZyntaSpacing.xs),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                 )
@@ -279,7 +279,7 @@ private fun ColumnMappingStep(
                                     Text(
                                         text = row[csvCol] ?: "—",
                                         style = MaterialTheme.typography.bodySmall,
-                                        modifier = Modifier.width(120.dp).padding(ZentaSpacing.xs),
+                                        modifier = Modifier.width(120.dp).padding(ZyntaSpacing.xs),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                     )
@@ -316,7 +316,7 @@ private fun ColumnMappingRow(
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
         modifier = Modifier.fillMaxWidth(),
     ) {
         // CSV column label
@@ -383,7 +383,7 @@ private fun ImportProgressStep(state: BulkImportState) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(ZentaSpacing.md),
+        verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
     ) {
         CircularProgressIndicator()
 
@@ -417,12 +417,12 @@ private fun ImportProgressStep(state: BulkImportState) {
 @Composable
 private fun ImportErrorsStep(state: BulkImportState) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
         ) {
             Icon(
                 Icons.Default.Warning,
@@ -440,7 +440,7 @@ private fun ImportErrorsStep(state: BulkImportState) {
         HorizontalDivider()
 
         LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(ZentaSpacing.xs),
+            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.xs),
             modifier = Modifier.heightIn(max = 240.dp),
         ) {
             itemsIndexed(state.importErrors) { idx, error ->
@@ -450,7 +450,7 @@ private fun ImportErrorsStep(state: BulkImportState) {
                     ),
                 ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(ZentaSpacing.sm),
+                        modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.sm),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(

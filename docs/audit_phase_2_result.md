@@ -127,8 +127,8 @@
 |-------|--------|
 | 15 components in `designsystem/components/` | ✅ **FOUND & MATCHES** |
 | 4 layout files in `designsystem/layouts/` | ✅ **FOUND & MATCHES** |
-| Theme (`ZentaColors`, `ZentaShapes`, `ZentaTheme`, `ZentaTypography`) | ✅ **FOUND & MATCHES** |
-| Tokens (`ZentaElevation`, `ZentaSpacing`) | ✅ **FOUND & MATCHES** |
+| Theme (`ZyntaColors`, `ZyntaShapes`, `ZyntaTheme`, `ZyntaTypography`) | ✅ **FOUND & MATCHES** |
+| Tokens (`ZyntaElevation`, `ZyntaSpacing`) | ✅ **FOUND & MATCHES** |
 | Platform actuals (androidMain + jvmMain theme + WindowSizeClassHelper) | ✅ **FOUND & MATCHES** |
 
 ---
@@ -137,7 +137,7 @@
 
 | Check | Result |
 |-------|--------|
-| Navigation classes: `AuthNavGraph`, `MainNavGraph`, `MainNavScreens`, `NavigationController`, `NavigationItems`, `NavigationModule`, `ZentaNavGraph`, `ZentaRoute` | ✅ **FOUND & MATCHES** |
+| Navigation classes: `AuthNavGraph`, `MainNavGraph`, `MainNavScreens`, `NavigationController`, `NavigationItems`, `NavigationModule`, `ZyntaNavGraph`, `ZyntaRoute` | ✅ **FOUND & MATCHES** |
 | **Master_plan §4.1 M07: deps = [M06 only]** | ⚠️ **PARTIAL MATCH** — `navigation/build.gradle.kts` adds `:shared:domain` (M02) and `:shared:security` (M05). Doc says only M06. Undocumented but architecturally justifiable for RBAC route filtering |
 
 > **Recommendation:** Update Master_plan §4.1 M07 dependency column to `[M02, M05, M06]`. Add a comment explaining RBAC route gating as the driver.

@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.Flow
  * ```kotlin
  * SessionGuard(
  *     sessionFlow = authRepository.getSession(),
- *     onNavigateToLogin = { navController.navigateAndClear(ZentaRoute.Login) },
+ *     onNavigateToLogin = { navController.navigateAndClear(ZyntaRoute.Login) },
  * ) { user ->
  *     DashboardScreen(currentUser = user)
  * }

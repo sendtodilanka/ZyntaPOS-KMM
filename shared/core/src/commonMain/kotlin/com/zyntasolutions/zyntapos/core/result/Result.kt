@@ -5,7 +5,7 @@ package com.zyntasolutions.zyntapos.core.result
  *
  * Represents three mutually-exclusive states:
  * - [Success] — operation succeeded with a typed payload
- * - [Error]   — operation failed with a [ZentaException]
+ * - [Error]   — operation failed with a [ZyntaException]
  * - [Loading] — operation is in progress (used for UI state projection)
  *
  * ### Usage
@@ -22,11 +22,11 @@ sealed class Result<out T> {
     data class Success<out T>(val data: T) : Result<T>()
 
     /**
-     * Failed outcome carrying a [ZentaException] describing what went wrong.
+     * Failed outcome carrying a [ZyntaException] describing what went wrong.
      * Optionally wraps the [cause] throwable for debugging.
      */
     data class Error(
-        val exception: ZentaException,
+        val exception: ZyntaException,
         val cause: Throwable? = null,
     ) : Result<Nothing>()
 
@@ -57,10 +57,10 @@ inline fun <T> Result<T>.onSuccess(block: (T) -> Unit): Result<T> {
 }
 
 /**
- * Executes [block] if this is a [Result.Error], passing the [ZentaException].
+ * Executes [block] if this is a [Result.Error], passing the [ZyntaException].
  * Returns `this` for chaining.
  */
-inline fun <T> Result<T>.onError(block: (ZentaException) -> Unit): Result<T> {
+inline fun <T> Result<T>.onError(block: (ZyntaException) -> Unit): Result<T> {
     if (this is Result.Error) block(exception)
     return this
 }
@@ -97,7 +97,7 @@ fun <T> Result<T>.getOrDefault(default: T): T = (this as? Result.Success)?.data 
 /**
  * Throws the wrapped exception if this is a [Result.Error]; otherwise returns the data.
  *
- * @throws ZentaException when called on [Result.Error]
+ * @throws ZyntaException when called on [Result.Error]
  * @throws IllegalStateException when called on [Result.Loading]
  */
 fun <T> Result<T>.getOrThrow(): T = when (this) {

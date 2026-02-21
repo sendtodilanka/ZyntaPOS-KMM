@@ -20,10 +20,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaSnackbarHost
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaTopAppBar
-import com.zyntasolutions.zyntapos.designsystem.layouts.ZentaScaffold
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSnackbarHost
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTopAppBar
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaScaffold
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.feature.settings.SettingsEffect
 import com.zyntasolutions.zyntapos.feature.settings.SettingsIntent
 import com.zyntasolutions.zyntapos.feature.settings.SettingsState
@@ -34,7 +34,7 @@ import kotlinx.coroutines.flow.collectLatest
 // ─────────────────────────────────────────────────────────────────────────────
 // AppearanceSettingsScreen — Light / Dark / System RadioButton group.
 //                            Selection writes to SettingsRepository and triggers
-//                            ZentaTheme recomposition via ThemeModeChanged effect.
+//                            ZyntaTheme recomposition via ThemeModeChanged effect.
 // Sprint 23 — Step 13.1.9
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -54,7 +54,7 @@ private val THEME_OPTIONS = listOf(
  * Appearance settings screen — selects the application theme mode.
  *
  * The selected [ThemeMode] is persisted via [SettingsRepository] and broadcast
- * via [SettingsEffect.ThemeModeChanged] so the root [ZentaTheme] can recompose.
+ * via [SettingsEffect.ThemeModeChanged] so the root [ZyntaTheme] can recompose.
  *
  * @param state     Current [SettingsState.AppearanceState] slice.
  * @param effects   Shared [SettingsEffect] flow.
@@ -83,27 +83,27 @@ fun AppearanceSettingsScreen(
         }
     }
 
-    ZentaScaffold(
-        topBar = { ZentaTopAppBar(title = "Appearance", onNavigationClick = onBack) },
-        snackbarHost = { ZentaSnackbarHost(snackbarHostState) },
+    ZyntaScaffold(
+        topBar = { ZyntaTopAppBar(title = "Appearance", onNavigationClick = onBack) },
+        snackbarHost = { ZyntaSnackbarHost(snackbarHostState) },
     ) { innerPadding ->
         LazyColumn(
             contentPadding = PaddingValues(
-                start = ZentaSpacing.md,
-                end = ZentaSpacing.md,
-                top = innerPadding.calculateTopPadding() + ZentaSpacing.md,
-                bottom = innerPadding.calculateBottomPadding() + ZentaSpacing.md,
+                start = ZyntaSpacing.md,
+                end = ZyntaSpacing.md,
+                top = innerPadding.calculateTopPadding() + ZyntaSpacing.md,
+                bottom = innerPadding.calculateBottomPadding() + ZyntaSpacing.md,
             ),
-            verticalArrangement = Arrangement.spacedBy(ZentaSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
         ) {
             item {
                 SectionHeader("Theme")
-                Spacer(Modifier.height(ZentaSpacing.sm))
+                Spacer(Modifier.height(ZyntaSpacing.sm))
                 Text(
                     text = "Choose how ZyntaPOS looks on this device.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = ZentaSpacing.sm),
+                    modifier = Modifier.padding(bottom = ZyntaSpacing.sm),
                 )
                 Card(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
@@ -136,9 +136,9 @@ private fun ThemeModeRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = ZentaSpacing.md, vertical = ZentaSpacing.sm),
+            .padding(horizontal = ZyntaSpacing.md, vertical = ZyntaSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
     ) {
         RadioButton(selected = selected, onClick = onClick)
         Column(modifier = Modifier.weight(1f)) {

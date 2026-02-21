@@ -13,7 +13,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.CashMovement
 import com.zyntasolutions.zyntapos.domain.model.RegisterSession
 import kotlinx.datetime.TimeZone
@@ -95,14 +95,14 @@ fun RegisterDashboardScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(ZentaSpacing.md),
+                .padding(ZyntaSpacing.md),
         ) {
             val isWide = maxWidth >= 700.dp
 
             if (isWide) {
                 Row(
                     modifier = Modifier.fillMaxSize(),
-                    horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.lg),
+                    horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.lg),
                 ) {
                     // ── Left panel ───────────────────────────────────────
                     Column(
@@ -110,7 +110,7 @@ fun RegisterDashboardScreen(
                             .weight(0.35f)
                             .fillMaxHeight()
                             .verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.spacedBy(ZentaSpacing.md),
+                        verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                     ) {
                         SessionInfoCard(session = session)
                         QuickStatsRow(
@@ -143,7 +143,7 @@ fun RegisterDashboardScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(ZentaSpacing.md),
+                    verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                 ) {
                     SessionInfoCard(session = session)
                     QuickStatsRow(
@@ -203,12 +203,12 @@ private fun SessionInfoCard(session: RegisterSession) {
 
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier.padding(ZentaSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+            modifier = Modifier.padding(ZyntaSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
             ) {
                 Icon(
                     imageVector = Icons.Default.LockOpen,
@@ -257,7 +257,7 @@ private fun SessionRow(label: String, value: String) {
 private fun QuickStatsRow(orderCount: Int, revenue: Double) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.md),
+        horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
     ) {
         StatCard(
             modifier = Modifier.weight(1f),
@@ -283,8 +283,8 @@ private fun StatCard(
 ) {
     ElevatedCard(modifier = modifier) {
         Column(
-            modifier = Modifier.padding(ZentaSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(ZentaSpacing.xs),
+            modifier = Modifier.padding(ZyntaSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.xs),
         ) {
             Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -304,7 +304,7 @@ private fun CashActionButtons(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.md),
+        horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
     ) {
         Button(
             onClick = onCashIn,
@@ -314,7 +314,7 @@ private fun CashActionButtons(
             ),
         ) {
             Icon(Icons.Default.Add, contentDescription = null)
-            Spacer(Modifier.width(ZentaSpacing.xs))
+            Spacer(Modifier.width(ZyntaSpacing.xs))
             Text("Cash In")
         }
         OutlinedButton(
@@ -322,7 +322,7 @@ private fun CashActionButtons(
             modifier = Modifier.weight(1f),
         ) {
             Icon(Icons.Default.Remove, contentDescription = null)
-            Spacer(Modifier.width(ZentaSpacing.xs))
+            Spacer(Modifier.width(ZyntaSpacing.xs))
             Text("Cash Out")
         }
     }

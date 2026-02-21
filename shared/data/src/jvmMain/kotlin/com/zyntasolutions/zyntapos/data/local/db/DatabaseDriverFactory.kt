@@ -2,7 +2,7 @@ package com.zyntasolutions.zyntapos.data.local.db
 
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
-import com.zyntasolutions.zyntapos.core.logger.ZentaLogger  // :shared:core via :shared:domain api dep
+import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger  // :shared:core via :shared:domain api dep
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.Properties
@@ -50,7 +50,7 @@ actual class DatabaseDriverFactory(private val appDataDir: String) {
             "SQLCipher key MUST be exactly 32 bytes (256-bit AES). Received ${key.size} bytes."
         }
 
-        ZentaLogger.d(TAG, "Opening encrypted JVM SQLite database at: $appDataDir")
+        ZyntaLogger.d(TAG, "Opening encrypted JVM SQLite database at: $appDataDir")
 
         // Ensure the data directory exists before opening the database
         Files.createDirectories(Paths.get(appDataDir))
@@ -81,7 +81,7 @@ actual class DatabaseDriverFactory(private val appDataDir: String) {
         // This throws if the database is not accessible with the provided key.
         try {
             driver.execute(identifier = null, sql = "SELECT count(*) FROM sqlite_master;", parameters = 0)
-            ZentaLogger.d(TAG, "SQLCipher key verification passed — database decrypted successfully.")
+            ZyntaLogger.d(TAG, "SQLCipher key verification passed — database decrypted successfully.")
         } catch (e: Exception) {
             driver.close()
             throw IllegalStateException(
@@ -97,7 +97,7 @@ actual class DatabaseDriverFactory(private val appDataDir: String) {
         driver.execute(identifier = null, sql = "PRAGMA cache_size=-8000;", parameters = 0)  // ~8 MB cache
         driver.execute(identifier = null, sql = "PRAGMA busy_timeout=5000;", parameters = 0)  // 5s timeout
 
-        ZentaLogger.i(TAG, "JVM encrypted DB opened at '$dbFilePath' (WAL, 8MB cache).")
+        ZyntaLogger.i(TAG, "JVM encrypted DB opened at '$dbFilePath' (WAL, 8MB cache).")
         return driver
     }
 

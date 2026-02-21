@@ -14,7 +14,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.Supplier
 
 /**
@@ -84,12 +84,12 @@ fun SupplierDetailScreen(
             // ── Error Banner ─────────────────────────────────────────────
             if (errorMessage != null) {
                 Card(
-                    modifier = Modifier.fillMaxWidth().padding(ZentaSpacing.md),
+                    modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.md),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
                 ) {
-                    Row(Modifier.padding(ZentaSpacing.md), verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.padding(ZyntaSpacing.md), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Error, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-                        Spacer(Modifier.width(ZentaSpacing.sm))
+                        Spacer(Modifier.width(ZyntaSpacing.sm))
                         Text(errorMessage, color = MaterialTheme.colorScheme.onErrorContainer)
                     }
                 }
@@ -101,8 +101,8 @@ fun SupplierDetailScreen(
             SectionHeader("Contact Information")
 
             Column(
-                modifier = Modifier.padding(horizontal = ZentaSpacing.md),
-                verticalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+                modifier = Modifier.padding(horizontal = ZyntaSpacing.md),
+                verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
             ) {
                 // Name
                 OutlinedTextField(
@@ -200,7 +200,7 @@ fun SupplierDetailScreen(
 
                 // Active toggle
                 Row(
-                    Modifier.fillMaxWidth().padding(vertical = ZentaSpacing.sm),
+                    Modifier.fillMaxWidth().padding(vertical = ZyntaSpacing.sm),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
@@ -215,10 +215,10 @@ fun SupplierDetailScreen(
                     Switch(checked = isActive, onCheckedChange = { isActive = it })
                 }
 
-                Spacer(Modifier.height(ZentaSpacing.sm))
+                Spacer(Modifier.height(ZyntaSpacing.sm))
 
                 // Action buttons
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.sm)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                     OutlinedButton(onClick = onNavigateBack, modifier = Modifier.weight(1f)) { Text("Cancel") }
                     Button(
                         onClick = {
@@ -241,7 +241,7 @@ fun SupplierDetailScreen(
                     ) {
                         if (isLoading) {
                             CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                            Spacer(Modifier.width(ZentaSpacing.sm))
+                            Spacer(Modifier.width(ZyntaSpacing.sm))
                         }
                         Text(if (isEditing) "Update" else "Create")
                     }
@@ -252,27 +252,27 @@ fun SupplierDetailScreen(
             // Section 2: Purchase History (read-only, Phase 1 stub)
             // ──────────────────────────────────────────────────────────────
             if (isEditing) {
-                Spacer(Modifier.height(ZentaSpacing.lg))
+                Spacer(Modifier.height(ZyntaSpacing.lg))
                 SectionHeader("Purchase History")
 
                 if (purchaseHistory.isEmpty()) {
                     Box(
-                        Modifier.fillMaxWidth().padding(vertical = ZentaSpacing.lg),
+                        Modifier.fillMaxWidth().padding(vertical = ZyntaSpacing.lg),
                         contentAlignment = Alignment.Center,
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(Icons.Default.Receipt, contentDescription = null,
                                 modifier = Modifier.size(40.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Spacer(Modifier.height(ZentaSpacing.sm))
+                            Spacer(Modifier.height(ZyntaSpacing.sm))
                             Text("No purchase orders yet", style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 } else {
                     Column(
-                        modifier = Modifier.padding(horizontal = ZentaSpacing.md),
-                        verticalArrangement = Arrangement.spacedBy(ZentaSpacing.xs),
+                        modifier = Modifier.padding(horizontal = ZyntaSpacing.md),
+                        verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.xs),
                     ) {
                         purchaseHistory.forEach { order ->
                             PurchaseHistoryRow(order)
@@ -280,7 +280,7 @@ fun SupplierDetailScreen(
                     }
                 }
 
-                Spacer(Modifier.height(ZentaSpacing.xl))
+                Spacer(Modifier.height(ZyntaSpacing.xl))
             }
         }
     }
@@ -343,16 +343,16 @@ private fun SectionHeader(title: String) {
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(
-                start = ZentaSpacing.md,
-                end = ZentaSpacing.md,
-                top = ZentaSpacing.lg,
-                bottom = ZentaSpacing.xs,
+                start = ZyntaSpacing.md,
+                end = ZyntaSpacing.md,
+                top = ZyntaSpacing.lg,
+                bottom = ZyntaSpacing.xs,
             ),
         )
         HorizontalDivider(
-            modifier = Modifier.padding(horizontal = ZentaSpacing.md),
+            modifier = Modifier.padding(horizontal = ZyntaSpacing.md),
             color = MaterialTheme.colorScheme.outlineVariant,
         )
-        Spacer(Modifier.height(ZentaSpacing.sm))
+        Spacer(Modifier.height(ZyntaSpacing.sm))
     }
 }

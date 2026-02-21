@@ -10,7 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.Category
 
 /**
@@ -40,8 +40,8 @@ fun CategoryFilterRow(
 ) {
     LazyRow(
         modifier = modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = ZentaSpacing.md),
-        horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+        contentPadding = PaddingValues(horizontal = ZyntaSpacing.md),
+        horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
     ) {
         // "All" chip — always first
         item(key = "__all__") {

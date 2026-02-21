@@ -16,9 +16,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaDialogContent
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaDialogVariant
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaDialogContent
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaDialogVariant
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ReceiptScreen — Sprint 17, task 9.1.21 (refactored: RCV-7)
@@ -62,7 +62,7 @@ import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
  *   Typically produced by [com.zyntasolutions.zyntapos.domain.formatter.ReceiptFormatter].
  * @param orderNumber        The order number shown in the top app bar title.
  * @param isPrinting         When `true`, the Print button shows a loading indicator.
- * @param printError         Non-null error message triggers a retry [ZentaDialog].
+ * @param printError         Non-null error message triggers a retry [ZyntaDialog].
  * @param onPrint            Invoked when the cashier taps "Print".
  * @param onEmail            Invoked when the cashier taps "Email".
  * @param onSkip             Invoked when the cashier taps "Skip" to return to POS.
@@ -83,8 +83,8 @@ fun ReceiptScreen(
 ) {
     // ── Retry error dialog ────────────────────────────────────────────────────
     if (printError != null) {
-        ZentaDialogContent(
-            variant = ZentaDialogVariant.Confirm(
+        ZyntaDialogContent(
+            variant = ZyntaDialogVariant.Confirm(
                 title = "Print Failed",
                 message = "$printError\n\nWould you like to try again?",
                 confirmLabel = "Retry",
@@ -112,7 +112,7 @@ fun ReceiptScreen(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .padding(ZentaSpacing.md),
+                    .padding(ZyntaSpacing.md),
             ) {
                 Surface(
                     shape = MaterialTheme.shapes.medium,
@@ -125,7 +125,7 @@ fun ReceiptScreen(
                             .background(MaterialTheme.colorScheme.surface)
                             .verticalScroll(rememberScrollState())
                             .horizontalScroll(rememberScrollState())
-                            .padding(ZentaSpacing.md),
+                            .padding(ZyntaSpacing.md),
                     ) {
                         Text(
                             text = receiptPreviewText,
@@ -143,8 +143,8 @@ fun ReceiptScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = ZentaSpacing.md, vertical = ZentaSpacing.sm),
-                horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+                    .padding(horizontal = ZyntaSpacing.md, vertical = ZyntaSpacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 // Print button
@@ -159,7 +159,7 @@ fun ReceiptScreen(
                             strokeWidth = 2.dp,
                             color = MaterialTheme.colorScheme.onPrimary,
                         )
-                        Spacer(Modifier.width(ZentaSpacing.xs))
+                        Spacer(Modifier.width(ZyntaSpacing.xs))
                         Text("Printing…")
                     } else {
                         Icon(
@@ -167,7 +167,7 @@ fun ReceiptScreen(
                             contentDescription = null,
                             modifier = Modifier.size(18.dp),
                         )
-                        Spacer(Modifier.width(ZentaSpacing.xs))
+                        Spacer(Modifier.width(ZyntaSpacing.xs))
                         Text("Print")
                     }
                 }
@@ -182,7 +182,7 @@ fun ReceiptScreen(
                         contentDescription = null,
                         modifier = Modifier.size(18.dp),
                     )
-                    Spacer(Modifier.width(ZentaSpacing.xs))
+                    Spacer(Modifier.width(ZyntaSpacing.xs))
                     Text("Email")
                 }
 
@@ -196,7 +196,7 @@ fun ReceiptScreen(
                         contentDescription = null,
                         modifier = Modifier.size(18.dp),
                     )
-                    Spacer(Modifier.width(ZentaSpacing.xs))
+                    Spacer(Modifier.width(ZyntaSpacing.xs))
                     Text("Skip")
                 }
             }

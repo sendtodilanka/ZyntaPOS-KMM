@@ -22,7 +22,7 @@ interface StockRepository {
      * 2. Increment or decrement `products.stock_qty` based on [StockAdjustment.type].
      * 3. Enqueue a sync operation for both affected records.
      *
-     * @return [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZentaException.ValidationException]
+     * @return [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZyntaException.ValidationException]
      *         if the resulting stock would be negative and negative stock is disabled in settings.
      */
     suspend fun adjustStock(adjustment: StockAdjustment): Result<Unit>

@@ -18,7 +18,7 @@ interface SupplierRepository {
     /**
      * Returns a single [Supplier] by UUID [id].
      *
-     * @return [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZentaException.DatabaseException]
+     * @return [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZyntaException.DatabaseException]
      *         if no supplier with that ID exists.
      */
     suspend fun getById(id: String): Result<Supplier>
@@ -33,7 +33,7 @@ interface SupplierRepository {
      * Soft-deletes the supplier identified by [id] (`is_active = false`).
      *
      * The data layer must verify no pending purchase orders reference this supplier
-     * and return [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZentaException.ValidationException] if they do.
+     * and return [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZyntaException.ValidationException] if they do.
      */
     suspend fun delete(id: String): Result<Unit>
 }

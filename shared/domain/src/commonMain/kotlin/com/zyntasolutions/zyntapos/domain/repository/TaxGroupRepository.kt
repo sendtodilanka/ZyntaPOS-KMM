@@ -21,7 +21,7 @@ interface TaxGroupRepository {
     /**
      * Returns a single [TaxGroup] by UUID [id].
      *
-     * @return [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZentaException.DatabaseException]
+     * @return [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZyntaException.DatabaseException]
      *         if no tax group with that ID exists.
      */
     suspend fun getById(id: String): Result<TaxGroup>
@@ -30,7 +30,7 @@ interface TaxGroupRepository {
      * Inserts a new [taxGroup].
      *
      * Validates that [TaxGroup.name] is unique before persisting.
-     * Returns [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZentaException.ValidationException]
+     * Returns [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZyntaException.ValidationException]
      * if a duplicate name exists.
      */
     suspend fun insert(taxGroup: TaxGroup): Result<Unit>
@@ -45,7 +45,7 @@ interface TaxGroupRepository {
     /**
      * Soft-deletes (deactivates) the tax group identified by [id].
      *
-     * Returns [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZentaException.ValidationException]
+     * Returns [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZyntaException.ValidationException]
      * if any active product references this tax group.
      */
     suspend fun delete(id: String): Result<Unit>

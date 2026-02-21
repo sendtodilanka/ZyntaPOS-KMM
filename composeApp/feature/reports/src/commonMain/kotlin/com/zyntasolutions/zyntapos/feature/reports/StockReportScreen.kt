@@ -30,10 +30,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaBadge
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaLoadingOverlay
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaTopAppBar
-import com.zyntasolutions.zyntapos.designsystem.layouts.ZentaScaffold
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaBadge
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoadingOverlay
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTopAppBar
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaScaffold
 import com.zyntasolutions.zyntapos.domain.model.Product
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -41,7 +41,7 @@ import org.koin.compose.viewmodel.koinViewModel
  * Stock report screen — step 12.1.4 / 12.1.5.
  *
  * Features:
- * - Current stock levels ZentaTable (product, category, qty, value, status badge)
+ * - Current stock levels ZyntaTable (product, category, qty, value, status badge)
  * - Low stock section: items where qty < minStockQty (highlighted amber)
  * - Dead stock section: items with no movement in 30 days (highlighted gray)
  * - Category filter FilterChip row
@@ -72,9 +72,9 @@ fun StockReportScreen(
         .filter { s.selectedCategory == null || it.categoryId == s.selectedCategory }
         .sortedWith(stockComparator(s.sortColumn, s.sortAscending))
 
-    ZentaScaffold(
+    ZyntaScaffold(
         topBar = {
-            ZentaTopAppBar(
+            ZyntaTopAppBar(
                 title = "Stock Report",
                 onNavigateUp = onNavigateUp,
                 actions = {
@@ -162,7 +162,7 @@ fun StockReportScreen(
                 }
             }
 
-            if (s.isLoading) ZentaLoadingOverlay()
+            if (s.isLoading) ZyntaLoadingOverlay()
         }
     }
 }
@@ -275,7 +275,7 @@ private fun StockProductRow(product: Product, highlight: StockHighlight) {
             modifier = Modifier.weight(1f), textAlign = TextAlign.End)
         Text("LKR %.2f".format(product.stockQty * product.price), style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.weight(1f), textAlign = TextAlign.End)
-        ZentaBadge(label = statusLabel, color = statusColor, modifier = Modifier.weight(1f))
+        ZyntaBadge(label = statusLabel, color = statusColor, modifier = Modifier.weight(1f))
     }
     HorizontalDivider(thickness = 0.5.dp)
 }

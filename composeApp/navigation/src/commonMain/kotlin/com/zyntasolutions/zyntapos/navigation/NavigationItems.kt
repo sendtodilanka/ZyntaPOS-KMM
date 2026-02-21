@@ -14,14 +14,14 @@ import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.PointOfSale
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
-import com.zyntasolutions.zyntapos.designsystem.layouts.ZentaNavItem
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaNavItem
 import com.zyntasolutions.zyntapos.domain.model.Permission
 import com.zyntasolutions.zyntapos.domain.model.Role
 
 /**
  * Descriptor for a primary navigation destination within the authenticated area.
  *
- * @param route The [ZentaRoute] this item navigates to.
+ * @param route The [ZyntaRoute] this item navigates to.
  * @param label Human-readable display label.
  * @param icon Unselected icon vector.
  * @param selectedIcon Icon shown when this destination is active (defaults to [icon]).
@@ -29,14 +29,14 @@ import com.zyntasolutions.zyntapos.domain.model.Role
  *   `null` means visible to all authenticated users.
  */
 data class NavItem(
-    val route: ZentaRoute,
+    val route: ZyntaRoute,
     val label: String,
     val icon: ImageVector,
     val selectedIcon: ImageVector = icon,
     val requiredPermission: Permission? = null,
 ) {
-    /** Convert to the design-system [ZentaNavItem] for rendering in [ZentaScaffold]. */
-    fun toZentaNavItem(): ZentaNavItem = ZentaNavItem(
+    /** Convert to the design-system [ZyntaNavItem] for rendering in [ZyntaScaffold]. */
+    fun toZyntaNavItem(): ZyntaNavItem = ZyntaNavItem(
         label = label,
         icon = icon,
         selectedIcon = selectedIcon,
@@ -53,42 +53,42 @@ data class NavItem(
  */
 val AllNavItems: List<NavItem> = listOf(
     NavItem(
-        route = ZentaRoute.Dashboard,
+        route = ZyntaRoute.Dashboard,
         label = "Dashboard",
         icon = Icons.Outlined.Dashboard,
         selectedIcon = Icons.Filled.Dashboard,
         requiredPermission = null, // visible to all roles
     ),
     NavItem(
-        route = ZentaRoute.Pos,
+        route = ZyntaRoute.Pos,
         label = "POS",
         icon = Icons.Outlined.PointOfSale,
         selectedIcon = Icons.Filled.PointOfSale,
         requiredPermission = Permission.PROCESS_SALE,
     ),
     NavItem(
-        route = ZentaRoute.ProductList,
+        route = ZyntaRoute.ProductList,
         label = "Inventory",
         icon = Icons.Outlined.Inventory2,
         selectedIcon = Icons.Filled.Inventory2,
         requiredPermission = Permission.MANAGE_PRODUCTS,
     ),
     NavItem(
-        route = ZentaRoute.RegisterDashboard,
+        route = ZyntaRoute.RegisterDashboard,
         label = "Register",
         icon = Icons.Outlined.GridView,
         selectedIcon = Icons.Filled.GridView,
         requiredPermission = Permission.OPEN_REGISTER,
     ),
     NavItem(
-        route = ZentaRoute.SalesReport,
+        route = ZyntaRoute.SalesReport,
         label = "Reports",
         icon = Icons.Outlined.BarChart,
         selectedIcon = Icons.Filled.BarChart,
         requiredPermission = Permission.VIEW_REPORTS,
     ),
     NavItem(
-        route = ZentaRoute.Settings,
+        route = ZyntaRoute.Settings,
         label = "Settings",
         icon = Icons.Outlined.Settings,
         selectedIcon = Icons.Filled.Settings,

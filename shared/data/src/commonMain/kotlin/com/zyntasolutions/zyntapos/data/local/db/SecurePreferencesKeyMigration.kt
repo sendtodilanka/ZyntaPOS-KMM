@@ -1,6 +1,6 @@
 package com.zyntasolutions.zyntapos.data.local.db
 
-import com.zyntasolutions.zyntapos.core.logger.ZentaLogger
+import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import com.zyntasolutions.zyntapos.data.local.security.SecurePreferences
 import com.zyntasolutions.zyntapos.security.prefs.SecurePreferencesKeys
 
@@ -74,12 +74,12 @@ class SecurePreferencesKeyMigration(
                 // Only write to canonical if not already set (don't overwrite a newer token)
                 if (!prefs.contains(canonicalKey)) {
                     prefs.put(canonicalKey, legacyValue)
-                    ZentaLogger.i(TAG) {
+                    ZyntaLogger.i(TAG) {
                         "Migrated key: \"$legacyKey\" → \"$canonicalKey\""
                     }
                     migratedCount++
                 } else {
-                    ZentaLogger.d(TAG) {
+                    ZyntaLogger.d(TAG) {
                         "Canonical key \"$canonicalKey\" already populated; skipping migration of \"$legacyKey\""
                     }
                 }
@@ -87,7 +87,7 @@ class SecurePreferencesKeyMigration(
                 prefs.remove(legacyKey)
             }
         }
-        ZentaLogger.i(TAG) { "Migration complete. Keys migrated: $migratedCount / ${migrations.size}" }
+        ZyntaLogger.i(TAG) { "Migration complete. Keys migrated: $migratedCount / ${migrations.size}" }
     }
 
     private companion object {

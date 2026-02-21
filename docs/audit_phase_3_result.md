@@ -21,9 +21,9 @@
 
 ## 3A — DOC INTERNAL CONSISTENCY
 
-### DC-01 — Project Name: "ZentaPOS" vs "ZyntaPOS" 🔴 HIGH
-⚠️ **`UI_UX_Main_Plan.md`** title says `"ZentaPOS — Enterprise UI/UX Master Blueprint"` · Document ID: `ZENTA-UI-UX-PLAN-v1.0`  
-⚠️ **`ER_diagram.md`** title says `"ZentaPOS — Enterprise ER Diagram Plan"` · Document ID: `ZENTA-ER-DIAGRAM-v1.0`  
+### DC-01 — Project Name: "ZyntaPOS" vs "ZyntaPOS" 🔴 HIGH
+⚠️ **`UI_UX_Main_Plan.md`** title says `"ZyntaPOS — Enterprise UI/UX Master Blueprint"` · Document ID: `ZENTA-UI-UX-PLAN-v1.0`  
+⚠️ **`ER_diagram.md`** title says `"ZyntaPOS — Enterprise ER Diagram Plan"` · Document ID: `ZENTA-ER-DIAGRAM-v1.0`  
 ⚠️ **`Master_plan.md`** title says `"ZyntaPOS — Enterprise Master Blueprint"` · Document ID: `ZENTA-MASTER-PLAN-v1.0`  
 ⚠️ **All code** uses package `com.zyntasolutions.zyntapos`, project folder `ZyntaPOS/`, app name `ZyntaPOS`.
 
@@ -31,14 +31,14 @@
 
 | Document | Product Name Used | App Identifier |
 |----------|------------------|----------------|
-| `UI_UX_Main_Plan.md` | **ZentaPOS** | ZENTA- |
-| `ER_diagram.md` | **ZentaPOS** | ZENTA- |
+| `UI_UX_Main_Plan.md` | **ZyntaPOS** | ZENTA- |
+| `ER_diagram.md` | **ZyntaPOS** | ZENTA- |
 | `Master_plan.md` | **ZyntaPOS** | ZENTA- |
 | Codebase, folders, packages | **ZyntaPOS** / `zyntasolutions` | — |
 
 This is the most pervasive doc conflict in the project. Two of three planning documents use the wrong product name, causing consistent ambiguity in developer onboarding, brand references, and any grep/search over doc content.
 
-> **Recommendation:** Decide on the canonical spelling (codebase uses `ZyntaPOS`). Do a search-and-replace in `UI_UX_Main_Plan.md` and `ER_diagram.md`: replace all occurrences of `ZentaPOS` with `ZyntaPOS`. Update Document IDs from `ZENTA-` to `ZYNTA-` or choose a unified prefix. The doc comments inside source files (e.g., `ZentaPOS — PasswordHasher`) also use the wrong name and should be updated.
+> **Recommendation:** Decide on the canonical spelling (codebase uses `ZyntaPOS`). Do a search-and-replace in `UI_UX_Main_Plan.md` and `ER_diagram.md`: replace all occurrences of `ZyntaPOS` with `ZyntaPOS`. Update Document IDs from `ZENTA-` to `ZYNTA-` or choose a unified prefix. The doc comments inside source files (e.g., `ZyntaPOS — PasswordHasher`) also use the wrong name and should be updated.
 
 ---
 
@@ -148,16 +148,16 @@ The §3.2 architectural tree and the §4.1 registry are inconsistent with each o
 ---
 
 ### DC-07 — Design System Component Names: Doc vs Code 🟡 LOW
-⚠️ **`UI_UX_Main_Plan.md §3.3`** specifies component `ZentaLoadingSkeleton` (shimmer animation).  
-⚠️ **`composeApp/designsystem/src/.../components/`** contains `ZentaLoadingOverlay.kt` — no `ZentaLoadingSkeleton.kt` exists.
+⚠️ **`UI_UX_Main_Plan.md §3.3`** specifies component `ZyntaLoadingSkeleton` (shimmer animation).  
+⚠️ **`composeApp/designsystem/src/.../components/`** contains `ZyntaLoadingOverlay.kt` — no `ZyntaLoadingSkeleton.kt` exists.
 
 Additional components specified in UI_UX_Main_Plan §3.3 that have **no corresponding file**:
-- `ZentaIconButton` — MISSING
-- `ZentaStatusChip` — MISSING  
-- `ZentaDatePicker` — MISSING
-- `ZentaCurrencyText` — MISSING
+- `ZyntaIconButton` — MISSING
+- `ZyntaStatusChip` — MISSING  
+- `ZyntaDatePicker` — MISSING
+- `ZyntaCurrencyText` — MISSING
 
-> **Recommendation:** For `ZentaLoadingOverlay` vs `ZentaLoadingSkeleton`: if these are genuinely different components (overlay = blocking spinner, skeleton = shimmer placeholder), create both. If the same, update `UI_UX_Main_Plan.md §3.3` to match the code name. For the four missing components: add them to the design system implementation backlog (Sprint 5–6) or mark them as `Planned` in the doc with a sprint target.
+> **Recommendation:** For `ZyntaLoadingOverlay` vs `ZyntaLoadingSkeleton`: if these are genuinely different components (overlay = blocking spinner, skeleton = shimmer placeholder), create both. If the same, update `UI_UX_Main_Plan.md §3.3` to match the code name. For the four missing components: add them to the design system implementation backlog (Sprint 5–6) or mark them as `Planned` in the doc with a sprint target.
 
 ---
 
@@ -261,12 +261,12 @@ These are test fake implementations of domain repository interfaces. The split a
 
 ---
 
-### DUP-09 — `PosSearchBar.kt` vs `ZentaSearchBar.kt` (NEEDS CLARIFICATION) 🟡 LOW
-📄 `composeApp/feature/pos/src/commonMain/.../pos/PosSearchBar.kt` ↔ `composeApp/designsystem/src/commonMain/.../designsystem/components/ZentaSearchBar.kt`
+### DUP-09 — `PosSearchBar.kt` vs `ZyntaSearchBar.kt` (NEEDS CLARIFICATION) 🟡 LOW
+📄 `composeApp/feature/pos/src/commonMain/.../pos/PosSearchBar.kt` ↔ `composeApp/designsystem/src/commonMain/.../designsystem/components/ZyntaSearchBar.kt`
 
-A POS-specific search bar exists in the feature module alongside the canonical design system search bar. Without reading both implementations it is unclear whether `PosSearchBar` is: (a) a thin wrapper that adds POS-specific behavior (barcode scan trigger, debounce tuning) on top of `ZentaSearchBar`, or (b) a full reimplementation that bypasses the design system component.
+A POS-specific search bar exists in the feature module alongside the canonical design system search bar. Without reading both implementations it is unclear whether `PosSearchBar` is: (a) a thin wrapper that adds POS-specific behavior (barcode scan trigger, debounce tuning) on top of `ZyntaSearchBar`, or (b) a full reimplementation that bypasses the design system component.
 
-> **NEEDS CLARIFICATION:** Verify that `PosSearchBar.kt` delegates rendering to `ZentaSearchBar` internally. If it duplicates UI logic, move the POS-specific behavior to a stateless `ZentaSearchBar` parameter (`onBarcodeIconClick: (() -> Unit)?`) and delete `PosSearchBar.kt`. If it is a thin wrapper, document it as an intentional composition in the feature module's README.
+> **NEEDS CLARIFICATION:** Verify that `PosSearchBar.kt` delegates rendering to `ZyntaSearchBar` internally. If it duplicates UI logic, move the POS-specific behavior to a stateless `ZyntaSearchBar` parameter (`onBarcodeIconClick: (() -> Unit)?`) and delete `PosSearchBar.kt`. If it is a thin wrapper, document it as an intentional composition in the feature module's README.
 
 ---
 
@@ -287,13 +287,13 @@ This is a **literal version** (no `version.ref`) in the catalog. All other entri
 
 | ID | Type | Severity | Finding | Files Involved |
 |----|------|----------|---------|----------------|
-| DC-01 | Doc Conflict | 🔴 HIGH | "ZentaPOS" vs "ZyntaPOS" across docs | `UI_UX_Main_Plan.md`, `ER_diagram.md` vs `Master_plan.md` + all code |
+| DC-01 | Doc Conflict | 🔴 HIGH | "ZyntaPOS" vs "ZyntaPOS" across docs | `UI_UX_Main_Plan.md`, `ER_diagram.md` vs `Master_plan.md` + all code |
 | DC-02 | Doc↔Code | 🔴 HIGH | `PasswordHasher` API mismatch: `interface verify/hash` vs `expect object verifyPassword/hashPassword` | `shared/data/.../local/security/PasswordHasher.kt` vs `shared/security/.../auth/PasswordHasher.kt` |
 | DC-03 | Doc↔Code | 🔴 HIGH | `SecurePreferences` key constants differ: Sprint 8 migration will silently invalidate all user sessions | `shared/data/.../local/security/SecurePreferences.kt` vs `shared/security/.../prefs/SecurePreferences.kt` |
 | DC-04 | Doc Conflict | 🔴 HIGH | `Master_plan §3.3` MVI code sample matches zombie `BaseViewModel` API, not canonical `composeApp/core` API | `Master_plan.md §3.3` vs `composeApp/core/.../ui/core/mvi/BaseViewModel.kt` |
 | DC-05 | Doc↔Code | 🟠 MEDIUM | Tech stack versions in Master Plan stale: Kotlin, Compose, Coroutines, AGP | `Master_plan.md §15.1` vs `gradle/libs.versions.toml` |
 | DC-06 | Doc Conflict | 🟡 LOW | `:composeApp:feature:media` in §4.1 M20 but absent from §3.2 source tree | `Master_plan.md §3.2` vs `Master_plan.md §4.1` |
-| DC-07 | Doc↔Code | 🟡 LOW | `ZentaLoadingSkeleton` (docs) vs `ZentaLoadingOverlay.kt` (code); 4 other components missing | `UI_UX_Main_Plan.md §3.3` vs `composeApp/designsystem/src/.../components/` |
+| DC-07 | Doc↔Code | 🟡 LOW | `ZyntaLoadingSkeleton` (docs) vs `ZyntaLoadingOverlay.kt` (code); 4 other components missing | `UI_UX_Main_Plan.md §3.3` vs `composeApp/designsystem/src/.../components/` |
 | DUP-01 | Duplication | 🟠 MEDIUM | `BarcodeScanner.kt` orphan at root of `hal` package alongside canonical `scanner/BarcodeScanner.kt` | `shared/hal/.../hal/BarcodeScanner.kt` ↔ `shared/hal/.../hal/scanner/BarcodeScanner.kt` |
 | DUP-02 | Duplication | 🟡 LOW | `SecurityAuditLogger.kt` typealias bridge at root alongside canonical `audit/SecurityAuditLogger.kt` | `shared/security/.../security/SecurityAuditLogger.kt` ↔ `shared/security/.../security/audit/SecurityAuditLogger.kt` |
 | DUP-03 | Duplication | 🔴 HIGH | `BaseViewModel.kt` zombie in `shared/core` vs canonical in `composeApp/core` — incompatible APIs, 0 consumers of zombie | `shared/core/.../core/mvi/BaseViewModel.kt` ↔ `composeApp/core/.../ui/core/mvi/BaseViewModel.kt` |
@@ -302,7 +302,7 @@ This is a **literal version** (no `version.ref`) in the catalog. All other entri
 | DUP-06 | Dead Code | 🟠 MEDIUM | `UiState/UiIntent/UiEffect` marker interfaces defined in zombie module, never extended by any feature | `shared/core/.../core/mvi/BaseViewModel.kt` |
 | DUP-07 | Arch Violation | 🟠 MEDIUM | `ProductFormValidator` (136 lines, validation logic) lives in presentation feature layer, not domain | `composeApp/feature/inventory/.../ProductFormValidator.kt` vs `shared/domain/.../domain/validation/` |
 | DUP-08 | Fragmentation | 🟡 LOW | `FakeRepositories` split into 3 arbitrarily named test files with no domain-based grouping | `shared/domain/src/commonTest/.../fakes/FakeRepositories{,Part2,Part3}.kt` |
-| DUP-09 | NEEDS CLARIFICATION | 🟡 LOW | `PosSearchBar.kt` may duplicate `ZentaSearchBar.kt` — intent unclear without reading impl | `composeApp/feature/pos/.../pos/PosSearchBar.kt` vs `composeApp/designsystem/.../components/ZentaSearchBar.kt` |
+| DUP-09 | NEEDS CLARIFICATION | 🟡 LOW | `PosSearchBar.kt` may duplicate `ZyntaSearchBar.kt` — intent unclear without reading impl | `composeApp/feature/pos/.../pos/PosSearchBar.kt` vs `composeApp/designsystem/.../components/ZyntaSearchBar.kt` |
 | DUP-10 | Clean | ✅ CLEAN | Gradle version catalog used consistently; single `version.ref` violation in `androidx-work-runtime` | `gradle/libs.versions.toml` |
 
 ---
@@ -314,13 +314,13 @@ This is a **literal version** (no `version.ref`) in the catalog. All other entri
 | 🔴 P0 | DC-03 + DUP-05 | Design `SecurePreferencesKeys` migration utility before Sprint 8 writes to `SecurePreferences` | Arch lead | **Sprint 5 — before any production data written** |
 | 🔴 P0 | DUP-04 + DC-02 | Collapse `PasswordHasher` stubs — remove from `:shared:data`, import from `:shared:security` | Arch lead | **Sprint 5** |
 | 🔴 P1 | DC-04 + DUP-03 | Delete `shared/core/.../core/mvi/BaseViewModel.kt`; update `Master_plan §3.3` code sample | All feature devs | Sprint 4 (carried from Phase 2 P1) |
-| 🟠 P2 | DC-01 | Search-replace "ZentaPOS" → "ZyntaPOS" in `UI_UX_Main_Plan.md` and `ER_diagram.md`; update all source file doc comments | Tech writer | Sprint 4 |
+| 🟠 P2 | DC-01 | Search-replace "ZyntaPOS" → "ZyntaPOS" in `UI_UX_Main_Plan.md` and `ER_diagram.md`; update all source file doc comments | Tech writer | Sprint 4 |
 | 🟠 P2 | DUP-07 | Move `ProductFormValidator` to `shared/domain/.../validation/ProductValidator.kt` | Inventory dev | Sprint 4 |
 | 🟠 P2 | DUP-01 | Delete root `shared/hal/.../hal/BarcodeScanner.kt` (Phase 1 F-03, still open) | Any dev | Sprint 4 |
 | 🟠 P2 | DUP-06 | Remove orphan `UiState/UiIntent/UiEffect` from zombie BaseViewModel | Arch lead | Sprint 4 (part of DUP-03 deletion) |
 | 🟠 P2 | DC-05 | Update `Master_plan §15.1` versions to match `libs.versions.toml` exact values | Tech writer | Sprint 4 |
 | 🟡 P3 | DC-06 | Add `:composeApp:feature:media` and `:composeApp:core` to `Master_plan §3.2` source tree | Tech writer | Sprint 4 |
-| 🟡 P3 | DC-07 | Resolve `ZentaLoadingSkeleton` vs `ZentaLoadingOverlay` naming; backlog 4 missing components | Design lead | Sprint 5–6 |
+| 🟡 P3 | DC-07 | Resolve `ZyntaLoadingSkeleton` vs `ZyntaLoadingOverlay` naming; backlog 4 missing components | Design lead | Sprint 5–6 |
 | 🟡 P3 | DUP-02 | Clean up `SecurityAuditLogger` typealias bridge after F-04 root delete | Any dev | Sprint 4 |
 | 🟡 P3 | DUP-08 | Reorganize `FakeRepositories` test files by domain | Test dev | Sprint 5 |
 | 🟡 P3 | DUP-10 | Add `androidx-work` version ref to `[versions]` block in `libs.versions.toml` | Any dev | Sprint 4 |

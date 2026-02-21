@@ -10,13 +10,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaCartItemRow
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaCartItemRow
 import com.zyntasolutions.zyntapos.domain.model.CartItem
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CartItemList — Stateless LazyColumn of ZentaCartItemRow.
+// CartItemList — Stateless LazyColumn of ZyntaCartItemRow.
 // key = { it.productId } for stable recomposition on quantity / discount changes.
-// SwipeToDismissBox is handled inside ZentaCartItemRow (EndToStart → remove).
+// SwipeToDismissBox is handled inside ZyntaCartItemRow (EndToStart → remove).
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -26,7 +26,7 @@ import com.zyntasolutions.zyntapos.domain.model.CartItem
  * when a new product is added, an existing one is removed, or quantities change
  * — preventing full-list recomposition on every cart mutation.
  *
- * Swipe-to-remove is delegated to [ZentaCartItemRow]'s `SwipeToDismissBox`;
+ * Swipe-to-remove is delegated to [ZyntaCartItemRow]'s `SwipeToDismissBox`;
  * the [onRemove] lambda is forwarded from the cart intent dispatcher.
  *
  * @param cartItems    Ordered list of current cart lines. Empty list shows an
@@ -67,7 +67,7 @@ fun CartItemList(
             items = cartItems,
             key = { item -> item.productId },
         ) { item ->
-            ZentaCartItemRow(
+            ZyntaCartItemRow(
                 name = item.productName,
                 unitPrice = formatter.format(item.unitPrice),
                 quantity = item.quantity.toInt(),

@@ -15,12 +15,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaDialog
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaSnackbarHost
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaTable
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaTopAppBar
-import com.zyntasolutions.zyntapos.designsystem.layouts.ZentaScaffold
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaDialog
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSnackbarHost
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTable
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTopAppBar
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaScaffold
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.TaxGroup
 import com.zyntasolutions.zyntapos.feature.settings.SettingsEffect
 import com.zyntasolutions.zyntapos.feature.settings.SettingsIntent
@@ -29,8 +29,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TaxSettingsScreen — ZentaTable of tax groups, FAB → create, edit icon per row,
-//                     delete with ZentaDialog confirm.
+// TaxSettingsScreen — ZyntaTable of tax groups, FAB → create, edit icon per row,
+//                     delete with ZyntaDialog confirm.
 // Sprint 23 — Step 13.1.4
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -66,7 +66,7 @@ fun TaxSettingsScreen(
 
     // ── Delete confirmation dialog ────────────────────────────────────────────
     state.deleteTarget?.let { target ->
-        ZentaDialog(
+        ZyntaDialog(
             title = "Delete Tax Group",
             message = "Delete '${target.name}'? This cannot be undone.",
             confirmLabel = "Delete",
@@ -88,9 +88,9 @@ fun TaxSettingsScreen(
         )
     }
 
-    ZentaScaffold(
-        topBar = { ZentaTopAppBar(title = "Tax Groups", onNavigationClick = onBack) },
-        snackbarHost = { ZentaSnackbarHost(snackbarHostState) },
+    ZyntaScaffold(
+        topBar = { ZyntaTopAppBar(title = "Tax Groups", onNavigationClick = onBack) },
+        snackbarHost = { ZyntaSnackbarHost(snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(onClick = { onIntent(SettingsIntent.OpenCreateTaxGroup) }) {
                 Icon(Icons.Filled.Add, contentDescription = "Add Tax Group")
@@ -99,23 +99,23 @@ fun TaxSettingsScreen(
     ) { innerPadding ->
         LazyColumn(
             contentPadding = PaddingValues(
-                start = ZentaSpacing.md,
-                end = ZentaSpacing.md,
-                top = innerPadding.calculateTopPadding() + ZentaSpacing.md,
-                bottom = innerPadding.calculateBottomPadding() + ZentaSpacing.md,
+                start = ZyntaSpacing.md,
+                end = ZyntaSpacing.md,
+                top = innerPadding.calculateTopPadding() + ZyntaSpacing.md,
+                bottom = innerPadding.calculateBottomPadding() + ZyntaSpacing.md,
             ),
-            verticalArrangement = Arrangement.spacedBy(ZentaSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
         ) {
             item {
                 if (state.isLoading) {
                     Text("Loading tax groups…", style = MaterialTheme.typography.bodyMedium,
-                        modifier = androidx.compose.ui.Modifier.padding(ZentaSpacing.md))
+                        modifier = androidx.compose.ui.Modifier.padding(ZyntaSpacing.md))
                 } else if (state.taxGroups.isEmpty()) {
                     Text("No tax groups yet. Tap + to create one.",
                         style = MaterialTheme.typography.bodyMedium,
-                        modifier = androidx.compose.ui.Modifier.padding(ZentaSpacing.md))
+                        modifier = androidx.compose.ui.Modifier.padding(ZyntaSpacing.md))
                 } else {
-                    ZentaTable(
+                    ZyntaTable(
                         columns = TAX_COLUMNS,
                         rows = state.taxGroups.map { tg ->
                             listOf(tg.name, "${"%.2f".format(tg.rate)}%", if (tg.isInclusive) "Yes" else "No", "")
@@ -143,17 +143,17 @@ private fun TaxGroupFormSheet(
     val rateState = remember(initial) { androidx.compose.runtime.mutableStateOf(initial?.rate?.toString() ?: "") }
     val inclusiveState = remember(initial) { androidx.compose.runtime.mutableStateOf(initial?.isInclusive ?: false) }
 
-    com.zyntasolutions.zyntapos.designsystem.components.ZentaBottomSheet(
+    com.zyntasolutions.zyntapos.designsystem.components.ZyntaBottomSheet(
         title = if (initial != null) "Edit Tax Group" else "New Tax Group",
         onDismiss = onDismiss,
     ) {
-        com.zyntasolutions.zyntapos.designsystem.components.ZentaTextField(
+        com.zyntasolutions.zyntapos.designsystem.components.ZyntaTextField(
             value = nameState.value,
             onValueChange = { nameState.value = it },
             label = "Tax Name (e.g. VAT, GST)",
             modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
         )
-        com.zyntasolutions.zyntapos.designsystem.components.ZentaTextField(
+        com.zyntasolutions.zyntapos.designsystem.components.ZyntaTextField(
             value = rateState.value,
             onValueChange = { rateState.value = it },
             label = "Rate (%)",
@@ -165,7 +165,7 @@ private fun TaxGroupFormSheet(
             onCheckedChange = { inclusiveState.value = it },
         )
         saveError?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
-        com.zyntasolutions.zyntapos.designsystem.components.ZentaButton(
+        com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton(
             text = "Save Tax Group",
             onClick = {
                 val rate = rateState.value.toDoubleOrNull() ?: 0.0

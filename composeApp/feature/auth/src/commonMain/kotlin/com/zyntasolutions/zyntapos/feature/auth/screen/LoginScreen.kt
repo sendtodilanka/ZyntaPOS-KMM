@@ -18,8 +18,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.zyntasolutions.zyntapos.designsystem.components.*
-import com.zyntasolutions.zyntapos.designsystem.layouts.ZentaSplitPane
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaSplitPane
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.designsystem.util.WindowSize
 import com.zyntasolutions.zyntapos.designsystem.util.WindowSizeClassHelper
 import com.zyntasolutions.zyntapos.feature.auth.AuthViewModel
@@ -32,7 +32,7 @@ import org.koin.compose.viewmodel.koinViewModel
 /**
  * Root login screen — adapts layout based on [WindowSize].
  *
- * - **EXPANDED** (Desktop / landscape tablet ≥840dp): [ZentaSplitPane] with
+ * - **EXPANDED** (Desktop / landscape tablet ≥840dp): [ZyntaSplitPane] with
  *   illustration panel (40%) + login form (60%) per UI/UX plan §5.1.
  * - **COMPACT / MEDIUM** (phone, small tablet): Single-pane with centered logo + form.
  *
@@ -67,7 +67,7 @@ fun LoginScreen(
     }
 
     Scaffold(
-        snackbarHost = { ZentaSnackbarHost(snackbarHostState) },
+        snackbarHost = { ZyntaSnackbarHost(snackbarHostState) },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
         when (windowSize) {
@@ -86,7 +86,7 @@ fun LoginScreen(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// EXPANDED layout — ZentaSplitPane: illustration (left 40%) + form (right 60%)
+// EXPANDED layout — ZyntaSplitPane: illustration (left 40%) + form (right 60%)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -95,7 +95,7 @@ private fun ExpandedLoginLayout(
     onIntent: (AuthIntent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    ZentaSplitPane(
+    ZyntaSplitPane(
         primaryWeight = 0.40f,
         modifier = modifier.fillMaxSize(),
         primary = { LoginIllustrationPanel() },
@@ -104,7 +104,7 @@ private fun ExpandedLoginLayout(
                 LoginFormContent(
                     state = state,
                     onIntent = onIntent,
-                    modifier = Modifier.widthIn(max = 480.dp).padding(ZentaSpacing.xl),
+                    modifier = Modifier.widthIn(max = 480.dp).padding(ZyntaSpacing.xl),
                 )
             }
         },
@@ -122,7 +122,7 @@ private fun CompactLoginLayout(
     modifier: Modifier = Modifier,
 ) {
     Box(
-        modifier = modifier.fillMaxSize().padding(ZentaSpacing.lg),
+        modifier = modifier.fillMaxSize().padding(ZyntaSpacing.lg),
         contentAlignment = Alignment.Center,
     ) {
         Column(
@@ -130,8 +130,8 @@ private fun CompactLoginLayout(
             modifier = Modifier.widthIn(max = 400.dp),
         ) {
             // Logo / Brand header
-            ZentaLogoHeader()
-            Spacer(Modifier.height(ZentaSpacing.xl))
+            ZyntaLogoHeader()
+            Spacer(Modifier.height(ZyntaSpacing.xl))
             LoginFormContent(state = state, onIntent = onIntent)
         }
     }
@@ -160,10 +160,10 @@ private fun LoginFormContent(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
-        Spacer(Modifier.height(ZentaSpacing.xl))
+        Spacer(Modifier.height(ZyntaSpacing.xl))
 
         // Email field
-        ZentaTextField(
+        ZyntaTextField(
             label = "Email Address",
             value = state.email,
             onValueChange = { onIntent(AuthIntent.EmailChanged(it)) },
@@ -174,10 +174,10 @@ private fun LoginFormContent(
             modifier = Modifier.fillMaxWidth(),
         )
 
-        Spacer(Modifier.height(ZentaSpacing.md))
+        Spacer(Modifier.height(ZyntaSpacing.md))
 
         // Password field with visibility toggle
-        ZentaTextField(
+        ZyntaTextField(
             label = "Password",
             value = state.password,
             onValueChange = { onIntent(AuthIntent.PasswordChanged(it)) },
@@ -197,7 +197,7 @@ private fun LoginFormContent(
             modifier = Modifier.fillMaxWidth(),
         )
 
-        Spacer(Modifier.height(ZentaSpacing.sm))
+        Spacer(Modifier.height(ZyntaSpacing.sm))
 
         // Remember me + forgot password row
         Row(
@@ -219,7 +219,7 @@ private fun LoginFormContent(
 
         // Inline error banner
         if (state.error != null) {
-            Spacer(Modifier.height(ZentaSpacing.sm))
+            Spacer(Modifier.height(ZyntaSpacing.sm))
             Card(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
                 modifier = Modifier.fillMaxWidth(),
@@ -228,18 +228,18 @@ private fun LoginFormContent(
                     text = state.error,
                     color = MaterialTheme.colorScheme.onErrorContainer,
                     style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(ZentaSpacing.md),
+                    modifier = Modifier.padding(ZyntaSpacing.md),
                 )
             }
         }
 
-        Spacer(Modifier.height(ZentaSpacing.lg))
+        Spacer(Modifier.height(ZyntaSpacing.lg))
 
-        ZentaButton(
+        ZyntaButton(
             text = "Login to Dashboard",
             onClick = { onIntent(AuthIntent.LoginClicked) },
             isLoading = state.isLoading,
-            size = ZentaButtonSize.Large,
+            size = ZyntaButtonSize.Large,
             modifier = Modifier.fillMaxWidth(),
         )
     }
@@ -254,20 +254,20 @@ private fun LoginIllustrationPanel(modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .fillMaxSize()
-            .padding(ZentaSpacing.xxl),
+            .padding(ZyntaSpacing.xxl),
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             // Logo mark
-            ZentaLogoHeader()
-            Spacer(Modifier.height(ZentaSpacing.xl))
+            ZyntaLogoHeader()
+            Spacer(Modifier.height(ZyntaSpacing.xl))
             Text(
                 text = "Secure Point of Sale",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
             )
-            Spacer(Modifier.height(ZentaSpacing.md))
+            Spacer(Modifier.height(ZyntaSpacing.md))
             Text(
                 text = "Fast, reliable, and offline-ready POS for modern retail.",
                 style = MaterialTheme.typography.bodyMedium,
@@ -278,11 +278,11 @@ private fun LoginIllustrationPanel(modifier: Modifier = Modifier) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Zenta logo / brand header (shared between layouts)
+// Zynta logo / brand header (shared between layouts)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun ZentaLogoHeader(modifier: Modifier = Modifier) {
+private fun ZyntaLogoHeader(modifier: Modifier = Modifier) {
     // TODO: Replace with SVG vector asset in Sprint 9 design-system polish pass.
     // For now, render a text-based logotype consistent with Material 3 brand guidance.
     Row(
@@ -304,7 +304,7 @@ private fun ZentaLogoHeader(modifier: Modifier = Modifier) {
                 )
             }
         }
-        Spacer(Modifier.width(ZentaSpacing.sm))
+        Spacer(Modifier.width(ZyntaSpacing.sm))
         Text(
             text = "ZyntaPOS",
             style = MaterialTheme.typography.titleLarge,

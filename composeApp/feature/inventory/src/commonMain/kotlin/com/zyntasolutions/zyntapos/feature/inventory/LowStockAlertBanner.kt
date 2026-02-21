@@ -10,7 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 
 /**
  * Persistent low-stock alert banner for the Inventory home screen.
@@ -75,7 +75,7 @@ fun LowStockAlertBanner(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = ZentaSpacing.md, vertical = ZentaSpacing.sm),
+                    .padding(horizontal = ZyntaSpacing.md, vertical = ZyntaSpacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 // Warning icon
@@ -85,7 +85,7 @@ fun LowStockAlertBanner(
                     tint = MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(22.dp),
                 )
-                Spacer(Modifier.width(ZentaSpacing.sm))
+                Spacer(Modifier.width(ZyntaSpacing.sm))
 
                 // Message + count badge
                 Column(Modifier.weight(1f)) {
@@ -95,7 +95,7 @@ fun LowStockAlertBanner(
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.onErrorContainer,
                         )
-                        Spacer(Modifier.width(ZentaSpacing.xs))
+                        Spacer(Modifier.width(ZyntaSpacing.xs))
                         Badge(
                             containerColor = MaterialTheme.colorScheme.error,
                             contentColor = MaterialTheme.colorScheme.onError,

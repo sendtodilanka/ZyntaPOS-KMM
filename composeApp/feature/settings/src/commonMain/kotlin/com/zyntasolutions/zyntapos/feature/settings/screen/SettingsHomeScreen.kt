@@ -31,9 +31,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import com.zyntasolutions.zyntapos.designsystem.layouts.ZentaScaffold
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaTopAppBar
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaScaffold
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTopAppBar
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SettingsHomeScreen — grouped card layout with all settings categories.
@@ -54,9 +54,9 @@ fun SettingsHomeScreen(
     onNavigate: (SettingsRoute) -> Unit,
     onBack: () -> Unit,
 ) {
-    ZentaScaffold(
+    ZyntaScaffold(
         topBar = {
-            ZentaTopAppBar(
+            ZyntaTopAppBar(
                 title = "Settings",
                 onNavigationClick = onBack,
             )
@@ -64,12 +64,12 @@ fun SettingsHomeScreen(
     ) { innerPadding ->
         LazyColumn(
             contentPadding = PaddingValues(
-                start = ZentaSpacing.md,
-                end = ZentaSpacing.md,
-                top = innerPadding.calculateTopPadding() + ZentaSpacing.md,
-                bottom = innerPadding.calculateBottomPadding() + ZentaSpacing.md,
+                start = ZyntaSpacing.md,
+                end = ZyntaSpacing.md,
+                top = innerPadding.calculateTopPadding() + ZyntaSpacing.md,
+                bottom = innerPadding.calculateBottomPadding() + ZyntaSpacing.md,
             ),
-            verticalArrangement = Arrangement.spacedBy(ZentaSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
         ) {
             settingsGroups.forEach { group ->
                 item {
@@ -153,7 +153,7 @@ private fun SettingsCategoryCard(
             text = group.title.uppercase(),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(start = ZentaSpacing.xs, bottom = ZentaSpacing.xs),
+            modifier = Modifier.padding(start = ZyntaSpacing.xs, bottom = ZyntaSpacing.xs),
         )
         Card(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
@@ -189,7 +189,7 @@ private fun SettingsCategoryCard(
                         .also { },
                 )
                 if (index < group.entries.lastIndex) {
-                    HorizontalDivider(modifier = Modifier.padding(horizontal = ZentaSpacing.md))
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = ZyntaSpacing.md))
                 }
             }
         }

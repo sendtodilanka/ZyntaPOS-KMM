@@ -13,10 +13,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
 import com.zyntasolutions.zyntapos.designsystem.components.NumericPadMode
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaButton
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaButtonSize
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaNumericPad
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButtonSize
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaNumericPad
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.PaymentMethod
 import com.zyntasolutions.zyntapos.domain.model.PaymentSplit
 
@@ -65,7 +65,7 @@ fun SplitPaymentPanel(
 
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
     ) {
         // ── Amount Due header ─────────────────────────────────────────────────
         Surface(
@@ -76,7 +76,7 @@ fun SplitPaymentPanel(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = ZentaSpacing.md, vertical = ZentaSpacing.sm),
+                    .padding(horizontal = ZyntaSpacing.md, vertical = ZyntaSpacing.sm),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -153,7 +153,7 @@ fun SplitPaymentPanel(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = ZentaSpacing.md, vertical = ZentaSpacing.sm),
+                    .padding(horizontal = ZyntaSpacing.md, vertical = ZyntaSpacing.sm),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -177,10 +177,10 @@ fun SplitPaymentPanel(
         }
 
         // ── PAY button ────────────────────────────────────────────────────────
-        ZentaButton(
+        ZyntaButton(
             text = "PAY  ${formatter.format(orderTotal)}",
             onClick = onPayClicked,
-            size = ZentaButtonSize.Large,
+            size = ZyntaButtonSize.Large,
             enabled = isBalanced && splits.isNotEmpty(),
             modifier = Modifier.fillMaxWidth(),
         )
@@ -210,10 +210,10 @@ private fun PaymentSplitRow(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
-        Column(modifier = Modifier.padding(ZentaSpacing.sm)) {
+        Column(modifier = Modifier.padding(ZyntaSpacing.sm)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 // Method selector chip
@@ -288,11 +288,11 @@ private fun PaymentSplitRow(
 
             // Inline numpad for this row
             if (showNumpad.value) {
-                Spacer(Modifier.height(ZentaSpacing.xs))
+                Spacer(Modifier.height(ZyntaSpacing.xs))
                 var rawCents by remember(split.amount) {
                     mutableStateOf((split.amount * 100).toLong().toString())
                 }
-                ZentaNumericPad(
+                ZyntaNumericPad(
                     displayValue = formatter.format((rawCents.toLongOrNull() ?: 0L) / 100.0),
                     onDigit = { digit ->
                         rawCents = (rawCents + digit).trimStart('0').ifEmpty { "0" }

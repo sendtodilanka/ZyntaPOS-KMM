@@ -835,7 +835,7 @@ REST API Server (Ktor Server / Laravel)
 ```
 ZyntaPOS Design System (:composeApp:designsystem)
 ├── Theme
-│   ├── ZentaTheme (light/dark)
+│   ├── ZyntaTheme (light/dark)
 │   ├── ColorScheme (Material 3 dynamic)
 │   ├── Typography (scale)
 │   └── Shape (rounded corners)
@@ -847,20 +847,20 @@ ZyntaPOS Design System (:composeApp:designsystem)
 │   └── Breakpoints (compact/medium/expanded)
 │
 ├── Components
-│   ├── ZentaButton (primary, secondary, danger)
-│   ├── ZentaTextField (with validation)
-│   ├── ZentaCard (product, order, report)
-│   ├── ZentaDialog (confirm, alert, input)
-│   ├── ZentaTable (sortable, paginated)
-│   ├── ZentaSearchBar (with barcode icon)
-│   ├── ZentaNumericPad (for payment entry)
-│   └── ZentaBadge (notification, status)
+│   ├── ZyntaButton (primary, secondary, danger)
+│   ├── ZyntaTextField (with validation)
+│   ├── ZyntaCard (product, order, report)
+│   ├── ZyntaDialog (confirm, alert, input)
+│   ├── ZyntaTable (sortable, paginated)
+│   ├── ZyntaSearchBar (with barcode icon)
+│   ├── ZyntaNumericPad (for payment entry)
+│   └── ZyntaBadge (notification, status)
 │
 └── Layouts
-    ├── ZentaScaffold (adaptive navigation)
-    ├── ZentaSplitPane (master-detail for desktop)
-    ├── ZentaGrid (responsive product grid)
-    └── ZentaBottomSheet (mobile-friendly)
+    ├── ZyntaScaffold (adaptive navigation)
+    ├── ZyntaSplitPane (master-detail for desktop)
+    ├── ZyntaGrid (responsive product grid)
+    └── ZyntaBottomSheet (mobile-friendly)
 ```
 
 ### 12.2 Responsive Layout Strategy

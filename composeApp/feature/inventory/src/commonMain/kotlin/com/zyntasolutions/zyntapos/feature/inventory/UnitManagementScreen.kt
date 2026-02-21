@@ -12,7 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.UnitOfMeasure
 
 /**
@@ -78,10 +78,10 @@ fun UnitManagementScreen(
             LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
                 contentPadding = PaddingValues(
-                    horizontal = ZentaSpacing.md,
-                    vertical = ZentaSpacing.sm,
+                    horizontal = ZyntaSpacing.md,
+                    vertical = ZyntaSpacing.sm,
                 ),
-                verticalArrangement = Arrangement.spacedBy(ZentaSpacing.md),
+                verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
             ) {
                 items(unitGroups, key = { it.id }) { group ->
                     UnitGroupCard(
@@ -149,12 +149,12 @@ private fun UnitGroupCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = ZentaSpacing.md, vertical = ZentaSpacing.sm),
+                    .padding(horizontal = ZyntaSpacing.md, vertical = ZyntaSpacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(Icons.Default.ScaleOutlined, contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
-                Spacer(Modifier.width(ZentaSpacing.sm))
+                Spacer(Modifier.width(ZyntaSpacing.sm))
                 Text(group.name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                 TextButton(onClick = { showAddUnitDialog = true }) {
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -166,7 +166,7 @@ private fun UnitGroupCard(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
             if (group.units.isEmpty()) {
-                Box(Modifier.fillMaxWidth().padding(ZentaSpacing.md), contentAlignment = Alignment.Center) {
+                Box(Modifier.fillMaxWidth().padding(ZyntaSpacing.md), contentAlignment = Alignment.Center) {
                     Text("No units defined. Add the first unit above.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -175,7 +175,7 @@ private fun UnitGroupCard(
                 // Column headers
                 Row(
                     Modifier.fillMaxWidth()
-                        .padding(horizontal = ZentaSpacing.md, vertical = ZentaSpacing.xs),
+                        .padding(horizontal = ZyntaSpacing.md, vertical = ZyntaSpacing.xs),
                 ) {
                     Text("Unit Name", style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.weight(2f),
@@ -238,7 +238,7 @@ private fun UnitRow(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth()
-            .padding(horizontal = ZentaSpacing.md, vertical = ZentaSpacing.xs),
+            .padding(horizontal = ZyntaSpacing.md, vertical = ZyntaSpacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(unit.name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(2f))
@@ -289,7 +289,7 @@ private fun UnitEditDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (existingUnit == null) "Add Unit" else "Edit Unit") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(ZentaSpacing.sm)) {
+            Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                 OutlinedTextField(value = name, onValueChange = { name = it; nameError = null },
                     label = { Text("Unit Name *") }, isError = nameError != null,
                     supportingText = nameError?.let { { Text(it) } }, singleLine = true, modifier = Modifier.fillMaxWidth())
@@ -306,7 +306,7 @@ private fun UnitEditDialog(
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Switch(checked = isBaseUnit, onCheckedChange = { isBaseUnit = it })
-                    Spacer(Modifier.width(ZentaSpacing.sm))
+                    Spacer(Modifier.width(ZyntaSpacing.sm))
                     Text("Base Unit", style = MaterialTheme.typography.bodyMedium)
                 }
             }
@@ -353,11 +353,11 @@ private fun UnitEmptyState(onAdd: () -> Unit, modifier: Modifier = Modifier) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(Icons.Default.Scale, contentDescription = null, modifier = Modifier.size(64.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(ZentaSpacing.md))
+            Spacer(Modifier.height(ZyntaSpacing.md))
             Text("No unit groups defined", style = MaterialTheme.typography.titleMedium)
             Text("Create a group (e.g. Weight) then add units",
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(ZentaSpacing.lg))
+            Spacer(Modifier.height(ZyntaSpacing.lg))
             Button(onClick = onAdd) { Icon(Icons.Default.Add, contentDescription = null); Spacer(Modifier.width(4.dp)); Text("New Group") }
         }
     }

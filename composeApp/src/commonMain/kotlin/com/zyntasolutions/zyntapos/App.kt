@@ -30,7 +30,7 @@ fun App() {
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center,
             ) {
-                // TODO Sprint 11 — Replace with ZentaNavGraph(navController)
+                // TODO Sprint 11 — Replace with ZyntaNavGraph(navController)
                 Text(
                     text = "ZyntaPOS — Initializing…",
                     style = MaterialTheme.typography.headlineMedium,

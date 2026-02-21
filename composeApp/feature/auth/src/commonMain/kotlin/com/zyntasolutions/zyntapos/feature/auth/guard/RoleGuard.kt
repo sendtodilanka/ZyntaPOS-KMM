@@ -1,7 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.auth.guard
 
 import androidx.compose.runtime.Composable
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaEmptyState
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.domain.model.Permission
 import com.zyntasolutions.zyntapos.domain.usecase.auth.CheckPermissionUseCase
 
@@ -10,7 +10,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.auth.CheckPermissionUseCase
  *
  * Evaluates whether the current session user holds the required [permission].
  * Shows [content] when authorised, or [unauthorizedContent] (defaults to a
- * standard "Unauthorized" [ZentaEmptyState]) when not.
+ * standard "Unauthorized" [ZyntaEmptyState]) when not.
  *
  * Evaluation is synchronous using [CheckPermissionUseCase]'s in-memory RBAC matrix.
  * No network or database call is made.
@@ -30,7 +30,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.auth.CheckPermissionUseCase
  * @param permission             The [Permission] required to view [content].
  * @param checkPermissionUseCase Synchronous RBAC evaluator from `:shared:domain`.
  * @param unauthorizedContent    Fallback composable shown when access is denied.
- *                               Defaults to a ZentaEmptyState "Unauthorized" screen.
+ *                               Defaults to a ZyntaEmptyState "Unauthorized" screen.
  * @param content                Protected composable shown when permission is granted.
  */
 @Composable
@@ -39,7 +39,7 @@ fun RoleGuard(
     permission: Permission,
     checkPermissionUseCase: CheckPermissionUseCase,
     unauthorizedContent: @Composable () -> Unit = {
-        ZentaEmptyState(
+        ZyntaEmptyState(
             title = "Access Denied",
             subtitle = "You don't have permission to view this screen. Contact your administrator.",
         )

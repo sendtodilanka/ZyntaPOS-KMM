@@ -66,7 +66,7 @@ data class RegisterState(
  * Form state for the Open Register screen.
  *
  * @property selectedRegisterId UUID of the register the cashier has selected; null = none.
- * @property openingBalanceRaw Raw string from [ZentaNumericPad] (e.g. "150050" → LKR 1,500.50).
+ * @property openingBalanceRaw Raw string from [ZyntaNumericPad] (e.g. "150050" → LKR 1,500.50).
  * @property openingNotes Optional notes entered by the cashier.
  * @property validationErrors Field-level validation failures keyed by field name.
  */
@@ -85,7 +85,7 @@ data class OpenRegisterFormState(
  * State for the Cash In / Cash Out dialog.
  *
  * @property type Current selection: [CashMovement.Type.IN] or [CashMovement.Type.OUT].
- * @property amountRaw Raw string from [ZentaNumericPad].
+ * @property amountRaw Raw string from [ZyntaNumericPad].
  * @property reason Mandatory reason text for the audit trail.
  * @property validationErrors Field-level validation failures.
  */
@@ -105,9 +105,9 @@ data class CashInOutDialogState(
  *
  * The **expected balance** is auto-calculated from the session data
  * (`openingBalance + ∑cashIn − ∑cashOut + cashSales`) and shown as read-only.
- * The **actual balance** is entered by the operator via [ZentaNumericPad].
+ * The **actual balance** is entered by the operator via [ZyntaNumericPad].
  *
- * @property actualBalanceRaw Raw string from [ZentaNumericPad] (e.g. "250075" → 2,500.75).
+ * @property actualBalanceRaw Raw string from [ZyntaNumericPad] (e.g. "250075" → 2,500.75).
  * @property closingNotes Optional notes entered during the closing procedure.
  * @property expectedBalance System-calculated expected cash (read-only display).
  * @property discrepancy The difference `actualBalance − expectedBalance`. Negative = short.

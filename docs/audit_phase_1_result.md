@@ -46,22 +46,22 @@ ZyntaPOS/
 │   │   ├── build.gradle.kts
 │   │   └── src/
 │   │       ├── androidMain/kotlin/.../designsystem/
-│   │       │   ├── theme/ZentaTheme.android.kt
+│   │       │   ├── theme/ZyntaTheme.android.kt
 │   │       │   └── util/WindowSizeClassHelper.android.kt
 │   │       ├── commonMain/kotlin/.../designsystem/
 │   │       │   ├── DesignSystemModule.kt
-│   │       │   ├── components/  (15 files: ZentaBadge, ZentaButton, ZentaCartItemRow,
-│   │       │   │                 ZentaBottomSheet, ZentaDialog, ZentaEmptyState,
-│   │       │   │                 ZentaLoadingOverlay, ZentaNumericPad, ZentaProductCard,
-│   │       │   │                 ZentaSearchBar, ZentaSnackbarHost, ZentaSyncIndicator,
-│   │       │   │                 ZentaTable, ZentaTextField, ZentaTopAppBar)
-│   │       │   ├── layouts/  (ZentaGrid, ZentaListDetailLayout, ZentaScaffold, ZentaSplitPane)
-│   │       │   ├── theme/  (ZentaColors, ZentaShapes, ZentaTheme, ZentaTypography)
-│   │       │   ├── tokens/  (ZentaElevation, ZentaSpacing)
+│   │       │   ├── components/  (15 files: ZyntaBadge, ZyntaButton, ZyntaCartItemRow,
+│   │       │   │                 ZyntaBottomSheet, ZyntaDialog, ZyntaEmptyState,
+│   │       │   │                 ZyntaLoadingOverlay, ZyntaNumericPad, ZyntaProductCard,
+│   │       │   │                 ZyntaSearchBar, ZyntaSnackbarHost, ZyntaSyncIndicator,
+│   │       │   │                 ZyntaTable, ZyntaTextField, ZyntaTopAppBar)
+│   │       │   ├── layouts/  (ZyntaGrid, ZyntaListDetailLayout, ZyntaScaffold, ZyntaSplitPane)
+│   │       │   ├── theme/  (ZyntaColors, ZyntaShapes, ZyntaTheme, ZyntaTypography)
+│   │       │   ├── tokens/  (ZyntaElevation, ZyntaSpacing)
 │   │       │   └── util/WindowSizeClassHelper.kt
 │   │       ├── commonMain/composeResources/font/.gitkeep
 │   │       └── jvmMain/kotlin/.../designsystem/
-│   │           ├── theme/ZentaTheme.desktop.kt
+│   │           ├── theme/ZyntaTheme.desktop.kt
 │   │           └── util/WindowSizeClassHelper.desktop.kt
 │   ├── navigation/
 │   │   ├── build.gradle.kts
@@ -74,8 +74,8 @@ ZyntaPOS/
 │   │       │   ├── NavigationController.kt
 │   │       │   ├── NavigationItems.kt
 │   │       │   ├── NavigationModule.kt
-│   │       │   ├── ZentaNavGraph.kt
-│   │       │   └── ZentaRoute.kt
+│   │       │   ├── ZyntaNavGraph.kt
+│   │       │   └── ZyntaRoute.kt
 │   │       └── jvmMain/kotlin/.../navigation/.gitkeep
 │   └── feature/
 │       ├── auth/
@@ -148,9 +148,9 @@ ZyntaPOS/
 │   │       │   ├── config/AppConfig.kt
 │   │       │   ├── di/CoreModule.kt
 │   │       │   ├── extensions/ (DoubleExtensions, LongExtensions, StringExtensions)
-│   │       │   ├── logger/ZentaLogger.kt
+│   │       │   ├── logger/ZyntaLogger.kt
 │   │       │   ├── mvi/BaseViewModel.kt           ⚠️ DUPLICATE — see Finding F-01
-│   │       │   ├── result/ (Result.kt, ZentaException.kt)
+│   │       │   ├── result/ (Result.kt, ZyntaException.kt)
 │   │       │   └── utils/ (CurrencyFormatter, DateTimeUtils, IdGenerator)
 │   │       └── jvmMain/kotlin/.../core/Platform.jvm.kt
 │   ├── domain/

@@ -31,7 +31,7 @@ interface OrderRepository {
     /**
      * Returns a single [Order] (including its [Order.items]) by UUID [id].
      *
-     * @return [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZentaException.DatabaseException]
+     * @return [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZyntaException.DatabaseException]
      *         if no order with that ID exists.
      */
     suspend fun getById(id: String): Result<Order>
@@ -88,7 +88,7 @@ interface OrderRepository {
      * The held order record remains in the database with status HELD until the cashier
      * either completes or explicitly discards it.
      *
-     * @return [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZentaException.DatabaseException]
+     * @return [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZyntaException.DatabaseException]
      *         if no held order with that ID exists.
      */
     suspend fun retrieveHeld(holdId: String): Result<Order>

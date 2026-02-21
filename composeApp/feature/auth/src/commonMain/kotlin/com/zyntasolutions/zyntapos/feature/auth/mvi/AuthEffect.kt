@@ -13,14 +13,14 @@ sealed class AuthEffect {
 
     /**
      * Login succeeded and the user should be taken to the main dashboard.
-     * NavigationController.navigateAndClear(ZentaRoute.Dashboard) should be called.
+     * NavigationController.navigateAndClear(ZyntaRoute.Dashboard) should be called.
      */
     data object NavigateToDashboard : AuthEffect()
 
     /**
      * Login succeeded but no register session is open.
      * User must open the cash register before accessing the POS.
-     * NavigationController.navigate(ZentaRoute.OpenRegister) should be called.
+     * NavigationController.navigate(ZyntaRoute.OpenRegister) should be called.
      */
     data object NavigateToRegisterGuard : AuthEffect()
 

@@ -5,7 +5,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaBottomSheet
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaBottomSheet
 import com.zyntasolutions.zyntapos.designsystem.util.WindowSize
 import com.zyntasolutions.zyntapos.designsystem.util.currentWindowSize
 import com.zyntasolutions.zyntapos.domain.model.CartItem
@@ -16,7 +16,7 @@ import com.zyntasolutions.zyntapos.domain.model.OrderTotals
 // ─────────────────────────────────────────────────────────────────────────────
 // CartPanel — Adaptive cart container.
 //   EXPANDED: permanent right-side panel (40% width) alongside product grid.
-//   COMPACT/MEDIUM: ZentaBottomSheet (draggable) so product grid is full-screen.
+//   COMPACT/MEDIUM: ZyntaBottomSheet (draggable) so product grid is full-screen.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -27,7 +27,7 @@ import com.zyntasolutions.zyntapos.domain.model.OrderTotals
  * overlay, no interaction block.
  *
  * On **COMPACT** and **MEDIUM** window sizes, the cart is surfaced inside a
- * draggable [ZentaBottomSheet]. The caller controls visibility via [isSheetVisible]
+ * draggable [ZyntaBottomSheet]. The caller controls visibility via [isSheetVisible]
  * / [onDismissSheet] so the sheet can be toggled by a FAB or the cart-tab.
  *
  * State is fully hoisted; this composable is stateless.
@@ -73,7 +73,7 @@ fun CartPanel(
         // ── Compact / Medium: draggable bottom sheet ──────────────────────────
         if (isSheetVisible) {
             val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
-            ZentaBottomSheet(
+            ZyntaBottomSheet(
                 sheetState = sheetState,
                 onDismiss = onDismissSheet,
                 dragHandleVisible = true,

@@ -343,7 +343,7 @@ STATISTICS:
   [BC-02 / DUP-10 from Phase 3] androidx-work-runtime uses a literal version string ("2.10.1") instead
   of version.ref = "androidx-work". Two-line fix, Sprint 4.
 
-  [DC-01 from Phase 3] "ZentaPOS" vs "ZyntaPOS" name inconsistency across 2 of 3 planning documents.
+  [DC-01 from Phase 3] "ZyntaPOS" vs "ZyntaPOS" name inconsistency across 2 of 3 planning documents.
   All source code uses "ZyntaPOS". UI_UX_Main_Plan.md and ER_diagram.md use the wrong name.
 
   [DC-05 from Phase 3] Master_plan §15.1 tech stack versions are stale vs gradle/libs.versions.toml.
@@ -363,7 +363,7 @@ STATISTICS:
   [From Phase 3 — DUP-08] Consolidate FakeRepositories{,Part2,Part3}.kt test files into domain-grouped
   files for discoverability.
 
-  [From Phase 3 — DUP-09] Clarify whether PosSearchBar.kt is a thin wrapper over ZentaSearchBar or
+  [From Phase 3 — DUP-09] Clarify whether PosSearchBar.kt is a thin wrapper over ZyntaSearchBar or
   a full reimplementation. Resolve before Sprint 6 design system hardening.
 ```
 

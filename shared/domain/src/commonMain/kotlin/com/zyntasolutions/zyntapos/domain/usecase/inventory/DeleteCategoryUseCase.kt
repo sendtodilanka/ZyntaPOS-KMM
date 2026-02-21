@@ -8,7 +8,7 @@ import com.zyntasolutions.zyntapos.domain.repository.CategoryRepository
  *
  * Delegates referential-integrity checks (active products, child categories)
  * to [CategoryRepository.delete], which returns [Result.Error] with a
- * [com.zyntasolutions.zyntapos.core.result.ZentaException.ValidationException]
+ * [com.zyntasolutions.zyntapos.core.result.ZyntaException.ValidationException]
  * if the category cannot be safely removed.
  *
  * @param categoryRepository Provides the underlying delete operation.

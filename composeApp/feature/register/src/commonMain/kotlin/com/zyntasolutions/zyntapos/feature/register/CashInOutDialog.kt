@@ -11,8 +11,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.designsystem.components.NumericPadMode
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaNumericPad
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaNumericPad
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.CashMovement
 
 /**
@@ -21,7 +21,7 @@ import com.zyntasolutions.zyntapos.domain.model.CashMovement
  * ## Layout
  * Full-screen dialog (compact) / centred dialog (expanded):
  * 1. **Type toggle** — segmented-button row: "Cash In" / "Cash Out".
- * 2. **ZentaNumericPad (PRICE mode)** — amount entry with right-to-left formatting.
+ * 2. **ZyntaNumericPad (PRICE mode)** — amount entry with right-to-left formatting.
  * 3. **Reason text field** — mandatory audit-trail description.
  * 4. **Action row** — "Cancel" (outlined) + "Confirm" (primary).
  *
@@ -120,8 +120,8 @@ private fun CashInOutDialogContent(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = ZentaSpacing.sm),
-        verticalArrangement = Arrangement.spacedBy(ZentaSpacing.md),
+            .padding(top = ZyntaSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         // ── Type toggle ───────────────────────────────────────────────────
@@ -138,7 +138,7 @@ private fun CashInOutDialogContent(
             append(raw.takeLast(2))
         }
 
-        ZentaNumericPad(
+        ZyntaNumericPad(
             displayValue = displayValue,
             onDigit = onDigit,
             onDoubleZero = onDoubleZero,

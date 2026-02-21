@@ -11,10 +11,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.designsystem.components.NumericPadMode
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaButton
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaButtonSize
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaNumericPad
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButtonSize
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaNumericPad
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.User
 
 /**
@@ -59,7 +59,7 @@ fun PinLockScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(ZentaSpacing.xl),
+                .padding(ZyntaSpacing.xl),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
@@ -80,7 +80,7 @@ fun PinLockScreen(
                 }
             }
 
-            Spacer(Modifier.height(ZentaSpacing.md))
+            Spacer(Modifier.height(ZyntaSpacing.md))
 
             Text(
                 text = currentUser?.name ?: "Unknown User",
@@ -93,11 +93,11 @@ fun PinLockScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            Spacer(Modifier.height(ZentaSpacing.xl))
+            Spacer(Modifier.height(ZyntaSpacing.xl))
 
             // ── PIN dot indicators ────────────────────────────────────────────
             Row(
-                horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.md),
+                horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
             ) {
                 repeat(6) { index ->
                     Surface(
@@ -113,7 +113,7 @@ fun PinLockScreen(
 
             // Error message
             if (errorMessage != null) {
-                Spacer(Modifier.height(ZentaSpacing.sm))
+                Spacer(Modifier.height(ZyntaSpacing.sm))
                 Text(
                     text = errorMessage,
                     style = MaterialTheme.typography.bodySmall,
@@ -121,13 +121,13 @@ fun PinLockScreen(
                 )
             }
 
-            Spacer(Modifier.height(ZentaSpacing.xl))
+            Spacer(Modifier.height(ZyntaSpacing.xl))
 
-            // ── ZentaNumericPad in PIN mode ───────────────────────────────────
+            // ── ZyntaNumericPad in PIN mode ───────────────────────────────────
             if (isLoading) {
                 CircularProgressIndicator()
             } else {
-                ZentaNumericPad(
+                ZyntaNumericPad(
                     mode = NumericPadMode.PIN,
                     displayValue = pin,
                     onDigit = { digit ->
@@ -141,17 +141,17 @@ fun PinLockScreen(
                 )
             }
 
-            Spacer(Modifier.height(ZentaSpacing.lg))
+            Spacer(Modifier.height(ZyntaSpacing.lg))
 
             // Submit button (also handles 4-digit PINs explicitly)
             if (pin.length in 4..6 && !isLoading) {
-                ZentaButton(
+                ZyntaButton(
                     text = "Unlock",
                     onClick = { onPinEntered(pin); pin = "" },
-                    size = ZentaButtonSize.Large,
+                    size = ZyntaButtonSize.Large,
                     modifier = Modifier.widthIn(max = 320.dp).fillMaxWidth(),
                 )
-                Spacer(Modifier.height(ZentaSpacing.md))
+                Spacer(Modifier.height(ZyntaSpacing.md))
             }
 
             // ── Different user link ───────────────────────────────────────────

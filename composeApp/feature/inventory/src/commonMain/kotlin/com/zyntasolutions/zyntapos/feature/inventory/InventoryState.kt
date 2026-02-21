@@ -27,7 +27,7 @@ import com.zyntasolutions.zyntapos.domain.model.UnitOfMeasure
  * @property selectedCategoryId Active category filter; null means "All".
  * @property stockFilter Active stock status filter.
  * @property viewMode Current list/grid toggle state.
- * @property sortColumn Current sort column key for ZentaTable.
+ * @property sortColumn Current sort column key for ZyntaTable.
  * @property sortDirection Current sort direction.
  * @property selectedProduct Product loaded for detail/edit view; null = list mode.
  * @property editFormState Mutable form fields for create/edit product.
@@ -118,7 +118,7 @@ enum class StockFilter {
 
 /** Product list display mode toggle. */
 enum class ViewMode {
-    /** Tabular ZentaTable view (Expanded/Medium). */
+    /** Tabular ZyntaTable view (Expanded/Medium). */
     LIST,
     /** Card grid view (all breakpoints). */
     GRID,

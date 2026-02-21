@@ -5,7 +5,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 
 // ─────────────────────────────────────────────────────────────────────────────
 // OrderNotesDialog — Free-text notes + reference number input.
@@ -46,7 +46,7 @@ fun OrderNotesDialog(
         },
         text = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(ZentaSpacing.md),
+                verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 // ── Reference number ─────────────────────────────────────────

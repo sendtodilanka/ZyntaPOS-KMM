@@ -14,12 +14,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.designsystem.components.SortDirection
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaProductCard
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaSearchBar
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaTable
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaTableColumn
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaProductCard
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSearchBar
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTable
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTableColumn
 import com.zyntasolutions.zyntapos.designsystem.components.StockIndicator
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.designsystem.util.WindowSize
 import com.zyntasolutions.zyntapos.designsystem.util.currentWindowSize
 import com.zyntasolutions.zyntapos.domain.model.Category
@@ -35,8 +35,8 @@ import com.zyntasolutions.zyntapos.domain.model.Product
  * - **Compact:** Card list (single column). Tap → full-screen detail.
  *
  * ### Features
- * - ZentaTable (list) + grid toggle button
- * - ZentaSearchBar with FTS5 search via [SearchProductsUseCase]
+ * - ZyntaTable (list) + grid toggle button
+ * - ZyntaSearchBar with FTS5 search via [SearchProductsUseCase]
  * - Category [FilterChip] row for additive filtering
  * - Stock status filter chips (All, In Stock, Low Stock, Out of Stock)
  * - FAB → ProductDetail(productId=null) for new product
@@ -76,11 +76,11 @@ fun ProductListScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = ZentaSpacing.md),
+                .padding(horizontal = ZyntaSpacing.md),
         ) {
             // ── Search Bar ──────────────────────────────────────────────
-            Spacer(Modifier.height(ZentaSpacing.sm))
-            ZentaSearchBar(
+            Spacer(Modifier.height(ZyntaSpacing.sm))
+            ZyntaSearchBar(
                 query = state.searchQuery,
                 onQueryChange = { onIntent(InventoryIntent.SearchQueryChanged(it)) },
                 onClear = { onIntent(InventoryIntent.SearchQueryChanged("")) },
@@ -88,7 +88,7 @@ fun ProductListScreen(
                 placeholder = "Search products by name, barcode, SKU…",
             )
 
-            Spacer(Modifier.height(ZentaSpacing.sm))
+            Spacer(Modifier.height(ZyntaSpacing.sm))
 
             // ── Filter Row: Categories + Stock Filters + View Toggle ────
             ProductFilterRow(
@@ -101,7 +101,7 @@ fun ProductListScreen(
                 onToggleViewMode = { onIntent(InventoryIntent.ToggleViewMode) },
             )
 
-            Spacer(Modifier.height(ZentaSpacing.sm))
+            Spacer(Modifier.height(ZyntaSpacing.sm))
 
             // ── Product List / Grid ─────────────────────────────────────
             when (state.viewMode) {
@@ -162,7 +162,7 @@ private fun ProductFilterRow(
         @OptIn(ExperimentalLayoutApi::class)
         FlowRow(
             modifier = Modifier.weight(1f),
-            horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.xs),
+            horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.xs),
         ) {
             FilterChip(
                 selected = selectedCategoryId == null,
@@ -178,7 +178,7 @@ private fun ProductFilterRow(
             }
 
             // ── Stock status chips ──────────────────────────────────
-            Spacer(Modifier.width(ZentaSpacing.md))
+            Spacer(Modifier.width(ZyntaSpacing.md))
             StockFilter.entries.forEach { filter ->
                 FilterChip(
                     selected = stockFilter == filter,
@@ -199,7 +199,7 @@ private fun ProductFilterRow(
 }
 
 /**
- * Tabular product list using [ZentaTable] with sortable columns.
+ * Tabular product list using [ZyntaTable] with sortable columns.
  *
  * Columns: Image (thumb), Name, SKU, Category, Price, Stock Qty, Status.
  * Desktop: Right-click context menu support (Phase 2).
@@ -229,15 +229,15 @@ private fun ProductTableView(
     val categoryMap = remember(categories) { categories.associateBy { it.id } }
 
     val columns = buildList {
-        add(ZentaTableColumn("name", "Product Name", weight = 2.5f))
+        add(ZyntaTableColumn("name", "Product Name", weight = 2.5f))
         if (windowSize != WindowSize.COMPACT) {
-            add(ZentaTableColumn("sku", "SKU", weight = 1.2f))
-            add(ZentaTableColumn("category", "Category", weight = 1.5f))
+            add(ZyntaTableColumn("sku", "SKU", weight = 1.2f))
+            add(ZyntaTableColumn("category", "Category", weight = 1.5f))
         }
-        add(ZentaTableColumn("price", "Price", weight = 1f))
-        add(ZentaTableColumn("stockQty", "Stock", weight = 1f))
+        add(ZyntaTableColumn("price", "Price", weight = 1f))
+        add(ZyntaTableColumn("stockQty", "Stock", weight = 1f))
         if (windowSize == WindowSize.EXPANDED) {
-            add(ZentaTableColumn("status", "Status", weight = 1f, sortable = false))
+            add(ZyntaTableColumn("status", "Status", weight = 1f, sortable = false))
         }
     }
 
@@ -246,7 +246,7 @@ private fun ProductTableView(
         SortDir.DESC -> SortDirection.Descending
     }
 
-    ZentaTable(
+    ZyntaTable(
         columns = columns,
         items = products,
         sortColumnKey = sortColumn,
@@ -256,11 +256,11 @@ private fun ProductTableView(
         modifier = Modifier.fillMaxSize(),
         rowKey = { it.id },
         emptyContent = {
-            Box(Modifier.fillMaxWidth().padding(ZentaSpacing.xl), contentAlignment = Alignment.Center) {
+            Box(Modifier.fillMaxWidth().padding(ZyntaSpacing.xl), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Default.Inventory2, contentDescription = null, modifier = Modifier.size(48.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(Modifier.height(ZentaSpacing.sm))
+                    Spacer(Modifier.height(ZyntaSpacing.sm))
                     Text("No products found", style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text("Add your first product or adjust filters", style = MaterialTheme.typography.bodySmall,
@@ -354,7 +354,7 @@ private fun ProductGridView(
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(Icons.Default.Inventory2, contentDescription = null, modifier = Modifier.size(48.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.height(ZentaSpacing.sm))
+                Spacer(Modifier.height(ZyntaSpacing.sm))
                 Text("No products found", style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -371,12 +371,12 @@ private fun ProductGridView(
     LazyVerticalGrid(
         columns = GridCells.Fixed(columns),
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(ZentaSpacing.sm),
-        horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
-        verticalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+        contentPadding = PaddingValues(ZyntaSpacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
     ) {
         items(products, key = { it.id }) { product ->
-            ZentaProductCard(
+            ZyntaProductCard(
                 name = product.name,
                 price = formatPrice(product.price),
                 imageUrl = product.imageUrl,

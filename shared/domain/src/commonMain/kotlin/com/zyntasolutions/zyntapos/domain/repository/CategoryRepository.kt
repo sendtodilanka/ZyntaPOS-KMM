@@ -19,7 +19,7 @@ interface CategoryRepository {
     /**
      * Returns a single [Category] by its UUID [id].
      *
-     * @return [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZentaException.DatabaseException]
+     * @return [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZyntaException.DatabaseException]
      *         if no category with that ID exists.
      */
     suspend fun getById(id: String): Result<Category>

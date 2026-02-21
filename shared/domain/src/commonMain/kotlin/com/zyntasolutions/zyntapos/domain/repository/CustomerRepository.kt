@@ -18,7 +18,7 @@ interface CustomerRepository {
     /**
      * Returns a single [Customer] by UUID [id].
      *
-     * @return [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZentaException.DatabaseException]
+     * @return [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZyntaException.DatabaseException]
      *         if no customer with that ID exists.
      */
     suspend fun getById(id: String): Result<Customer>

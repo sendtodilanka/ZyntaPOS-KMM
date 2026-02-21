@@ -11,8 +11,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaTextField
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTextField
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.designsystem.util.WindowSize
 import com.zyntasolutions.zyntapos.designsystem.util.currentWindowSize
 import com.zyntasolutions.zyntapos.domain.model.Category
@@ -70,7 +70,7 @@ fun ProductDetailScreen(
                         enabled = !state.isLoading,
                     ) {
                         Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(ZentaSpacing.xs))
+                        Spacer(Modifier.width(ZyntaSpacing.xs))
                         Text(if (isNew) "Create" else "Save")
                     }
                 },
@@ -90,13 +90,13 @@ fun ProductDetailScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding)
-                        .padding(ZentaSpacing.md),
-                    horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.lg),
+                        .padding(ZyntaSpacing.md),
+                    horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.lg),
                 ) {
                     // Left column: core fields
                     Column(
                         modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.spacedBy(ZentaSpacing.md),
+                        verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                     ) {
                         CoreFieldsSection(form, state, onIntent)
                         ImageSection(form, onIntent)
@@ -104,7 +104,7 @@ fun ProductDetailScreen(
                     // Right column: pricing + stock + variants
                     Column(
                         modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.spacedBy(ZentaSpacing.md),
+                        verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                     ) {
                         PricingSection(form, state, onIntent)
                         StockSection(form, isNew, onIntent)
@@ -118,18 +118,18 @@ fun ProductDetailScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding)
-                        .padding(horizontal = ZentaSpacing.md)
+                        .padding(horizontal = ZyntaSpacing.md)
                         .verticalScroll(scrollState),
-                    verticalArrangement = Arrangement.spacedBy(ZentaSpacing.md),
+                    verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                 ) {
-                    Spacer(Modifier.height(ZentaSpacing.sm))
+                    Spacer(Modifier.height(ZyntaSpacing.sm))
                     CoreFieldsSection(form, state, onIntent)
                     PricingSection(form, state, onIntent)
                     StockSection(form, isNew, onIntent)
                     ImageSection(form, onIntent)
                     VariantSection(state.productVariants, onIntent)
                     ActiveToggleSection(form, onIntent)
-                    Spacer(Modifier.height(ZentaSpacing.xxl))
+                    Spacer(Modifier.height(ZyntaSpacing.xxl))
                 }
             }
         }
@@ -154,13 +154,13 @@ private fun CoreFieldsSection(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(
-            modifier = Modifier.padding(ZentaSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+            modifier = Modifier.padding(ZyntaSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
         ) {
             Text("Product Details", style = MaterialTheme.typography.titleMedium)
 
             // Name (required)
-            ZentaTextField(
+            ZyntaTextField(
                 value = form.name,
                 onValueChange = { onIntent(InventoryIntent.UpdateFormField("name", it)) },
                 label = "Product Name *",
@@ -170,8 +170,8 @@ private fun CoreFieldsSection(
             )
 
             // Barcode
-            Row(horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.sm)) {
-                ZentaTextField(
+            Row(horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
+                ZyntaTextField(
                     value = form.barcode,
                     onValueChange = { onIntent(InventoryIntent.UpdateFormField("barcode", it)) },
                     label = "Barcode (EAN-13 / Code128)",
@@ -188,7 +188,7 @@ private fun CoreFieldsSection(
             }
 
             // SKU
-            ZentaTextField(
+            ZyntaTextField(
                 value = form.sku,
                 onValueChange = { onIntent(InventoryIntent.UpdateFormField("sku", it)) },
                 label = "SKU",
@@ -216,7 +216,7 @@ private fun CoreFieldsSection(
             )
 
             // Description
-            ZentaTextField(
+            ZyntaTextField(
                 value = form.description,
                 onValueChange = { onIntent(InventoryIntent.UpdateFormField("description", it)) },
                 label = "Description",
@@ -242,13 +242,13 @@ private fun PricingSection(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(
-            modifier = Modifier.padding(ZentaSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+            modifier = Modifier.padding(ZyntaSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
         ) {
             Text("Pricing", style = MaterialTheme.typography.titleMedium)
 
-            Row(horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.sm)) {
-                ZentaTextField(
+            Row(horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
+                ZyntaTextField(
                     value = form.price,
                     onValueChange = { onIntent(InventoryIntent.UpdateFormField("price", it)) },
                     label = "Selling Price *",
@@ -256,7 +256,7 @@ private fun PricingSection(
                     supportingText = form.validationErrors["price"],
                     modifier = Modifier.weight(1f),
                 )
-                ZentaTextField(
+                ZyntaTextField(
                     value = form.costPrice,
                     onValueChange = { onIntent(InventoryIntent.UpdateFormField("costPrice", it)) },
                     label = "Cost Price",
@@ -290,13 +290,13 @@ private fun StockSection(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(
-            modifier = Modifier.padding(ZentaSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+            modifier = Modifier.padding(ZyntaSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
         ) {
             Text("Stock", style = MaterialTheme.typography.titleMedium)
 
-            Row(horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.sm)) {
-                ZentaTextField(
+            Row(horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
+                ZyntaTextField(
                     value = form.stockQty,
                     onValueChange = {
                         if (isNew) onIntent(InventoryIntent.UpdateFormField("stockQty", it))
@@ -305,7 +305,7 @@ private fun StockSection(
                     enabled = isNew,
                     modifier = Modifier.weight(1f),
                 )
-                ZentaTextField(
+                ZyntaTextField(
                     value = form.minStockQty,
                     onValueChange = { onIntent(InventoryIntent.UpdateFormField("minStockQty", it)) },
                     label = "Low Stock Alert Threshold",
@@ -338,12 +338,12 @@ private fun ImageSection(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(
-            modifier = Modifier.padding(ZentaSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+            modifier = Modifier.padding(ZyntaSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
         ) {
             Text("Image", style = MaterialTheme.typography.titleMedium)
 
-            ZentaTextField(
+            ZyntaTextField(
                 value = form.imageUrl ?: "",
                 onValueChange = { onIntent(InventoryIntent.UpdateFormField("imageUrl", it)) },
                 label = "Image URL",
@@ -373,8 +373,8 @@ private fun VariantSection(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(
-            modifier = Modifier.padding(ZentaSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+            modifier = Modifier.padding(ZyntaSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -384,7 +384,7 @@ private fun VariantSection(
                 Text("Variations", style = MaterialTheme.typography.titleMedium)
                 FilledTonalButton(onClick = { onIntent(InventoryIntent.AddVariant) }) {
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(ZentaSpacing.xs))
+                    Spacer(Modifier.width(ZyntaSpacing.xs))
                     Text("Add Variant")
                 }
             }
@@ -424,8 +424,8 @@ private fun VariantRow(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
         Column(
-            modifier = Modifier.padding(ZentaSpacing.sm),
-            verticalArrangement = Arrangement.spacedBy(ZentaSpacing.xs),
+            modifier = Modifier.padding(ZyntaSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.xs),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -439,14 +439,14 @@ private fun VariantRow(
                 }
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.sm)) {
-                ZentaTextField(
+            Row(horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
+                ZyntaTextField(
                     value = variant.name,
                     onValueChange = { onUpdate("name", it) },
                     label = "Variant Name",
                     modifier = Modifier.weight(1f),
                 )
-                ZentaTextField(
+                ZyntaTextField(
                     value = variant.price?.toString() ?: "",
                     onValueChange = { onUpdate("price", it) },
                     label = "Price Override",
@@ -454,14 +454,14 @@ private fun VariantRow(
                 )
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.sm)) {
-                ZentaTextField(
+            Row(horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
+                ZyntaTextField(
                     value = variant.barcode ?: "",
                     onValueChange = { onUpdate("barcode", it) },
                     label = "Barcode",
                     modifier = Modifier.weight(1f),
                 )
-                ZentaTextField(
+                ZyntaTextField(
                     value = variant.stock.toString(),
                     onValueChange = { onUpdate("stock", it) },
                     label = "Stock",
@@ -487,7 +487,7 @@ private fun ActiveToggleSection(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(ZentaSpacing.md),
+                .padding(ZyntaSpacing.md),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {

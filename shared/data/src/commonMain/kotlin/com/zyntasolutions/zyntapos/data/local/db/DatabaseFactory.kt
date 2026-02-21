@@ -1,7 +1,7 @@
 package com.zyntasolutions.zyntapos.data.local.db
 
 import app.cash.sqldelight.db.SqlDriver
-import com.zyntasolutions.zyntapos.core.logger.ZentaLogger
+import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
 
 /**
@@ -66,7 +66,7 @@ class DatabaseFactory(
      *
      * Subsequent calls return the cached instance immediately.
      *
-     * @throws com.zyntasolutions.zyntapos.core.result.ZentaException.DatabaseException
+     * @throws com.zyntasolutions.zyntapos.core.result.ZyntaException.DatabaseException
      *   if key retrieval or driver creation fails
      */
     fun openDatabase(): ZyntaDatabase {
@@ -76,7 +76,7 @@ class DatabaseFactory(
         // Slow path — synchronized initialization
         return synchronized(this) {
             cachedDatabase ?: run {
-                ZentaLogger.i(TAG, "Initializing ZyntaDatabase (first open).")
+                ZyntaLogger.i(TAG, "Initializing ZyntaDatabase (first open).")
 
                 val key: ByteArray = keyProvider.getOrCreateKey()
 
@@ -87,7 +87,7 @@ class DatabaseFactory(
 
                 ZyntaDatabase(driver).also { db ->
                     cachedDatabase = db
-                    ZentaLogger.i(TAG, "ZyntaDatabase ready — encrypted, WAL, migrations applied.")
+                    ZyntaLogger.i(TAG, "ZyntaDatabase ready — encrypted, WAL, migrations applied.")
                 }
             }
         }
@@ -107,7 +107,7 @@ class DatabaseFactory(
             cachedDriver?.close()
             cachedDriver = null
             cachedDatabase = null
-            ZentaLogger.i(TAG, "ZyntaDatabase connection closed and cache cleared.")
+            ZyntaLogger.i(TAG, "ZyntaDatabase connection closed and cache cleared.")
         }
     }
 

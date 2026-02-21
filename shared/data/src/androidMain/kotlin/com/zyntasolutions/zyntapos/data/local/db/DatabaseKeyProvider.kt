@@ -3,7 +3,7 @@ package com.zyntasolutions.zyntapos.data.local.db
 import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
-import com.zyntasolutions.zyntapos.core.logger.ZentaLogger
+import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import java.security.KeyStore
 import java.security.SecureRandom
 import javax.crypto.Cipher
@@ -102,7 +102,7 @@ actual class DatabaseKeyProvider(private val context: Context) {
      * persists `IV|ciphertext` as Base64 in SharedPreferences, then returns the raw DEK.
      */
     private fun createAndPersistDek(): ByteArray {
-        ZentaLogger.i(TAG, "First launch — generating and wrapping a new 256-bit DEK.")
+        ZyntaLogger.i(TAG, "First launch — generating and wrapping a new 256-bit DEK.")
         val rawDek = ByteArray(DEK_SIZE_BYTES).also { SecureRandom().nextBytes(it) }
 
         val kek = getKekFromKeystore()
@@ -115,7 +115,7 @@ actual class DatabaseKeyProvider(private val context: Context) {
         val encoded = "${iv.toBase64()}:${ciphertext.toBase64()}"
         prefs.edit().putString(PREF_WRAPPED_DEK, encoded).apply()
 
-        ZentaLogger.i(TAG, "DEK generated and stored (wrapped, ${ciphertext.size} bytes).")
+        ZyntaLogger.i(TAG, "DEK generated and stored (wrapped, ${ciphertext.size} bytes).")
         return rawDek
     }
 
@@ -137,7 +137,7 @@ actual class DatabaseKeyProvider(private val context: Context) {
         check(rawDek.size == DEK_SIZE_BYTES) {
             "Decrypted DEK is ${rawDek.size} bytes — expected $DEK_SIZE_BYTES."
         }
-        ZentaLogger.d(TAG, "DEK unwrapped successfully from Keystore envelope.")
+        ZyntaLogger.d(TAG, "DEK unwrapped successfully from Keystore envelope.")
         return rawDek
     }
 
@@ -146,7 +146,7 @@ actual class DatabaseKeyProvider(private val context: Context) {
     // ─────────────────────────────────────────────────────────────────
 
     private fun generateKek() {
-        ZentaLogger.i(TAG, "Generating AES-256-GCM KEK in Android Keystore (alias=$KEK_ALIAS).")
+        ZyntaLogger.i(TAG, "Generating AES-256-GCM KEK in Android Keystore (alias=$KEK_ALIAS).")
         val keyGenerator = KeyGenerator.getInstance(
             KeyProperties.KEY_ALGORITHM_AES,
             ANDROID_KEYSTORE,
@@ -164,7 +164,7 @@ actual class DatabaseKeyProvider(private val context: Context) {
 
         keyGenerator.init(spec)
         keyGenerator.generateKey()
-        ZentaLogger.i(TAG, "KEK generated in Android Keystore.")
+        ZyntaLogger.i(TAG, "KEK generated in Android Keystore.")
     }
 
     private fun getKekFromKeystore(): SecretKey {

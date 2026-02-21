@@ -13,8 +13,8 @@ package com.zyntasolutions.zyntapos.feature.pos
  * LaunchedEffect(Unit) {
  *     viewModel.effects.collect { effect ->
  *         when (effect) {
- *             is PosEffect.NavigateToPayment  -> navController.navigate(ZentaRoute.Payment(effect.orderId))
- *             is PosEffect.ShowReceiptScreen  -> navController.navigate(ZentaRoute.Receipt(effect.orderId))
+ *             is PosEffect.NavigateToPayment  -> navController.navigate(ZyntaRoute.Payment(effect.orderId))
+ *             is PosEffect.ShowReceiptScreen  -> navController.navigate(ZyntaRoute.Receipt(effect.orderId))
  *             is PosEffect.ShowError          -> snackbarHostState.showSnackbar(effect.msg)
  *             is PosEffect.PrintReceipt       -> /* delegate to HAL printer */
  *             is PosEffect.BarcodeNotFound    -> snackbarHostState.showSnackbar("Barcode not found: ${effect.barcode}")

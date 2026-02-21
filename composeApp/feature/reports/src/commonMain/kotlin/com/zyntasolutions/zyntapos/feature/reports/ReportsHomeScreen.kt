@@ -30,8 +30,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaTopAppBar
-import com.zyntasolutions.zyntapos.designsystem.layouts.ZentaScaffold
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTopAppBar
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaScaffold
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -59,9 +59,9 @@ fun ReportsHomeScreen(
     val state by viewModel.state.collectAsState()
     val homeState = state.reportsHome
 
-    ZentaScaffold(
+    ZyntaScaffold(
         topBar = {
-            ZentaTopAppBar(
+            ZyntaTopAppBar(
                 title = "Reports",
                 onNavigateUp = onNavigateUp,
             )

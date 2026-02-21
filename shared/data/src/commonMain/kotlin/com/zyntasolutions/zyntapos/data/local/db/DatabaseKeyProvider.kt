@@ -10,7 +10,7 @@ package com.zyntasolutions.zyntapos.data.local.db
  *    using `SecureRandom` and persist it in the platform's secure key store.
  * 2. **Subsequent launches:** Retrieve the existing key from the secure key store.
  * 3. **Key integrity:** If the stored key is missing, corrupted, or of wrong length,
- *    surface a recoverable [DatabaseKeyException] (subclass of [ZentaException]).
+ *    surface a recoverable [DatabaseKeyException] (subclass of [ZyntaException]).
  *
  * ## Platform Implementations
  * | Platform | Storage | Key Type |
@@ -34,7 +34,7 @@ expect class DatabaseKeyProvider {
      * if this is the first launch.
      *
      * @return a 32-byte raw AES key, ready to be passed to [DatabaseDriverFactory.createEncryptedDriver]
-     * @throws com.zyntasolutions.zyntapos.core.result.ZentaException.DatabaseException
+     * @throws com.zyntasolutions.zyntapos.core.result.ZyntaException.DatabaseException
      *   if the key cannot be retrieved or generated (e.g. hardware security module failure)
      */
     fun getOrCreateKey(): ByteArray

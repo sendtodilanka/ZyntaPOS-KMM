@@ -13,7 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.Category
 
 /**
@@ -93,8 +93,8 @@ fun CategoryDetailScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = ZentaSpacing.md, vertical = ZentaSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(ZentaSpacing.md),
+                .padding(horizontal = ZyntaSpacing.md, vertical = ZyntaSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
         ) {
             // ── Error banner ─────────────────────────────────────────────
             if (errorMessage != null) {
@@ -102,11 +102,11 @@ fun CategoryDetailScreen(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
                 ) {
                     Row(
-                        Modifier.padding(ZentaSpacing.md),
+                        Modifier.padding(ZyntaSpacing.md),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(Icons.Default.Error, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-                        Spacer(Modifier.width(ZentaSpacing.sm))
+                        Spacer(Modifier.width(ZyntaSpacing.sm))
                         Text(errorMessage, color = MaterialTheme.colorScheme.onErrorContainer)
                     }
                 }
@@ -211,7 +211,7 @@ fun CategoryDetailScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = ZentaSpacing.sm),
+                    .padding(vertical = ZyntaSpacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
@@ -230,12 +230,12 @@ fun CategoryDetailScreen(
                 )
             }
 
-            Spacer(Modifier.height(ZentaSpacing.sm))
+            Spacer(Modifier.height(ZyntaSpacing.sm))
 
             // ── Action Buttons ────────────────────────────────────────────
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
             ) {
                 OutlinedButton(
                     onClick = onNavigateBack,
@@ -273,7 +273,7 @@ fun CategoryDetailScreen(
                 ) {
                     if (isLoading) {
                         CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                        Spacer(Modifier.width(ZentaSpacing.sm))
+                        Spacer(Modifier.width(ZyntaSpacing.sm))
                     }
                     Text(if (isEditing) "Update" else "Create")
                 }

@@ -3,7 +3,7 @@
 **Enterprise-Grade Point of Sale — Kotlin Multiplatform (KMP)**  
 Targets: Android (minSdk 24) · Desktop JVM (macOS, Windows, Linux)
 
-> **Brand vs. Code Name:** The product's display name and UI branding is **ZentaPOS**; the repository, directory, and all Kotlin package identifiers use **ZyntaPOS / `com.zyntasolutions.zyntapos`** (company: Zynta Solutions Pvt Ltd). These two names refer to the same system.
+> **Naming:** The product display name, UI branding, and all Kotlin identifiers (design system prefix, route classes, exception types) consistently use **ZyntaPOS / `com.zyntasolutions.zyntapos`** (company: Zynta Solutions Pvt Ltd).
 
 ---
 
@@ -58,8 +58,8 @@ ZyntaPOS is a fully offline-capable, multi-store POS system built with Kotlin Mu
 | `:shared:data` | SQLDelight schema + DAOs, Ktor HTTP client, repository implementations, offline sync engine, `ConflictResolver` |
 | `:shared:hal` | `PrinterManager`, `BarcodeScanner`, `CashDrawerController` interfaces + `expect/actual` platform drivers, `EscPosEncoder` |
 | `:shared:security` | `SecureKeyStorage` (Keystore/JCE), `CryptoManager` (AES-256-GCM), `PinHasher` (PBKDF2), `TokenManager`, `RbacEngine`, `SessionManager` |
-| `:composeApp:designsystem` | `ZentaTheme`, Material 3 tokens, `ZentaButton/Card/TextField`, `NumericKeypad`, `ReceiptPreview`, responsive breakpoints |
-| `:composeApp:navigation` | Type-safe `NavRoute` sealed hierarchy, `ZentaNavHost`, adaptive nav shell (Rail vs Bottom Bar), RBAC route gating |
+| `:composeApp:designsystem` | `ZyntaTheme`, Material 3 tokens, `ZyntaButton/Card/TextField`, `NumericKeypad`, `ReceiptPreview`, responsive breakpoints |
+| `:composeApp:navigation` | Type-safe `NavRoute` sealed hierarchy, `ZyntaNavHost`, adaptive nav shell (Rail vs Bottom Bar), RBAC route gating |
 | `:composeApp:feature:auth` | Login, PIN quick-switch, biometric, auto-lock screen |
 | `:composeApp:feature:pos` | Product grid, cart, discounts, payment (split/cash/card), receipt, hold orders, refund |
 | `:composeApp:feature:inventory` | Product CRUD, category management, stock levels, adjustments, barcode label print |

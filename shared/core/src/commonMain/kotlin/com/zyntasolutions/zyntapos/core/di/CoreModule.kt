@@ -1,6 +1,6 @@
 package com.zyntasolutions.zyntapos.core.di
 
-import com.zyntasolutions.zyntapos.core.logger.ZentaLogger
+import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -22,7 +22,7 @@ val DEFAULT_DISPATCHER = named("Default")
  * ZyntaPOS core Koin module.
  *
  * Provides:
- * - [ZentaLogger] — singleton Kermit-backed logger
+ * - [ZyntaLogger] — singleton Kermit-backed logger
  * - [CurrencyFormatter] — singleton currency formatter (uses app default currency)
  * - `IO`, `Main`, `Default` coroutine dispatchers — injectable via [IO_DISPATCHER] etc.
  *
@@ -49,7 +49,7 @@ val DEFAULT_DISPATCHER = named("Default")
 val coreModule = module {
 
     // ── Logger ────────────────────────────────────────────────────────────────
-    single { ZentaLogger(defaultTag = "ZyntaPOS") }
+    single { ZyntaLogger(defaultTag = "ZyntaPOS") }
 
     // ── Currency formatter ─────────────────────────────────────────────────────
     single { CurrencyFormatter() }

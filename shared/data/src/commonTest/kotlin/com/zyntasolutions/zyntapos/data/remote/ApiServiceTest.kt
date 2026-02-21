@@ -10,10 +10,10 @@ package com.zyntasolutions.zyntapos.data.remote
  *
  * Coverage:
  *  A. HTTP 200 → correct DTO deserialization for each endpoint
- *  B. HTTP 401 → [ZentaException.AuthException] thrown
- *  C. HTTP 4xx  → [ZentaException.NetworkException] thrown
- *  D. HTTP 5xx  → [ZentaException.NetworkException] thrown
- *  E. HTTP 422  → [ZentaException.SyncException] thrown (pushOperations)
+ *  B. HTTP 401 → [ZyntaException.AuthException] thrown
+ *  C. HTTP 4xx  → [ZyntaException.NetworkException] thrown
+ *  D. HTTP 5xx  → [ZyntaException.NetworkException] thrown
+ *  E. HTTP 422  → [ZyntaException.SyncException] thrown (pushOperations)
  *  F. Partial acceptance in pushOperations handled correctly
  *  G. Empty pull delta handled correctly
  */

@@ -227,16 +227,16 @@ if possible.
 
 ---
 
-### SPRINT 11 — `@Serializable` sealed class `ZentaRoute`
+### SPRINT 11 — `@Serializable` sealed class `ZyntaRoute`
 **Status: ✅ COMPATIBLE — Confirmed pattern for Compose MP 1.10.0**
 
 Type-safe navigation with `@Serializable` sealed class routes works with Compose MP 1.10.0.
 The bundled `navigation-compose` version in Compose MP 1.10.0 supports:
 
 ```kotlin
-@Serializable sealed class ZentaRoute
-@Serializable object Login : ZentaRoute()
-@Serializable data class ProductDetail(val productId: String?) : ZentaRoute()
+@Serializable sealed class ZyntaRoute
+@Serializable object Login : ZyntaRoute()
+@Serializable data class ProductDetail(val productId: String?) : ZyntaRoute()
 ```
 
 Required: `kotlinx.serialization 1.8.0` — present in catalog ✅
@@ -274,7 +274,7 @@ advanceTimeBy(30_000L)
 | Sprint 6 | ✅ OK | Ktor `HttpRequestRetry` API confirmed | Use correct class name | Sprint 6 |
 | Sprint 8 | ⚠️ MONITOR | `security-crypto:1.1.0-alpha06` is alpha | Evaluate at S8 start | Sprint 8 |
 | Sprint 9-10 | ⚠️ MONITOR | `compose-adaptive:1.1.0-alpha04` is alpha | Evaluate at S9 start | Sprint 9 |
-| Sprint 11 | ✅ OK | `@Serializable ZentaRoute` confirmed | None | — |
+| Sprint 11 | ✅ OK | `@Serializable ZyntaRoute` confirmed | None | — |
 | Sprint 13 | ✅ OK | `advanceTimeBy` both overloads available | Use Duration form | Sprint 13 |
 | Sprint 12+ tests | ✅ OK with pattern | `Dispatchers.setMain()` required in test setUp | Add to test template | Sprint 12 |
 

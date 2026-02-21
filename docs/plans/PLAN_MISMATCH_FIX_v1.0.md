@@ -234,7 +234,7 @@ feature/[name]/
 - [ ] FIX-C.1 — Add "Canonical Package Namespace" section to execution log header:
   ```
   ## 📌 CANONICAL NAMESPACE RESOLUTION
-  - Project Name: ZyntaPOS (not ZentaPOS — log uses legacy name from initial planning)
+  - Project Name: ZyntaPOS (not ZyntaPOS — log uses legacy name from initial planning)
   - Root Package: com.zynta.pos (not com.zentapos)
   - File Path Mapping: All Sprint 2–24 "Files Output" sections using com/zentapos/
     must be read as com/zynta/pos/ on disk

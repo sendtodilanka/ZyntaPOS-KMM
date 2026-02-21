@@ -9,9 +9,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaButton
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaButtonSize
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButtonSize
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.OrderTotals
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -23,7 +23,7 @@ import com.zyntasolutions.zyntapos.domain.model.OrderTotals
  * Financial summary footer displayed at the bottom of the cart panel.
  *
  * Shows subtotal, tax, discount (only when > 0), and the grand total in bold
- * large text. A primary [ZentaButton] labelled "PAY" triggers [onPayClicked].
+ * large text. A primary [ZyntaButton] labelled "PAY" triggers [onPayClicked].
  *
  * All amounts are rendered through [CurrencyFormatter] to ensure consistent
  * locale-aware formatting across the entire application.
@@ -49,8 +49,8 @@ fun CartSummaryFooter(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(ZentaSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(ZentaSpacing.xs),
+                .padding(ZyntaSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.xs),
         ) {
             // ── Subtotal ────────────────────────────────────────────────────
             SummaryRow(
@@ -74,7 +74,7 @@ fun CartSummaryFooter(
             }
 
             Divider(
-                modifier = Modifier.padding(vertical = ZentaSpacing.xs),
+                modifier = Modifier.padding(vertical = ZyntaSpacing.xs),
                 thickness = 1.dp,
             )
 
@@ -100,13 +100,13 @@ fun CartSummaryFooter(
                 )
             }
 
-            Spacer(Modifier.height(ZentaSpacing.sm))
+            Spacer(Modifier.height(ZyntaSpacing.sm))
 
             // ── PAY Button ──────────────────────────────────────────────────
-            ZentaButton(
+            ZyntaButton(
                 text = "PAY  ${formatter.format(orderTotals.total)}",
                 onClick = onPayClicked,
-                size = ZentaButtonSize.Large,
+                size = ZyntaButtonSize.Large,
                 isLoading = isLoading,
                 enabled = orderTotals.itemCount > 0,
                 modifier = Modifier.fillMaxWidth(),

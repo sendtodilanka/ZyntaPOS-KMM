@@ -16,7 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.Category
 
 /**
@@ -141,7 +141,7 @@ fun CategoryListScreen(
                         // Divider after each root group
                         item(key = "${root.id}_divider") {
                             HorizontalDivider(
-                                modifier = Modifier.padding(horizontal = ZentaSpacing.md),
+                                modifier = Modifier.padding(horizontal = ZyntaSpacing.md),
                                 color = MaterialTheme.colorScheme.outlineVariant,
                             )
                         }
@@ -186,10 +186,10 @@ private fun CategoryRow(
             .fillMaxWidth()
             .clickable { onEdit() }
             .padding(
-                start = ZentaSpacing.md + (CHILD_INDENT_DP * depth),
-                end = ZentaSpacing.sm,
-                top = ZentaSpacing.sm,
-                bottom = ZentaSpacing.sm,
+                start = ZyntaSpacing.md + (CHILD_INDENT_DP * depth),
+                end = ZyntaSpacing.sm,
+                top = ZyntaSpacing.sm,
+                bottom = ZyntaSpacing.sm,
             ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -215,7 +215,7 @@ private fun CategoryRow(
             }
         }
 
-        Spacer(Modifier.width(ZentaSpacing.xs))
+        Spacer(Modifier.width(ZyntaSpacing.xs))
 
         // Category icon
         Icon(
@@ -225,7 +225,7 @@ private fun CategoryRow(
             modifier = Modifier.size(20.dp),
         )
 
-        Spacer(Modifier.width(ZentaSpacing.sm))
+        Spacer(Modifier.width(ZyntaSpacing.sm))
 
         // Category name + child count badge
         Column(modifier = Modifier.weight(1f)) {
@@ -252,7 +252,7 @@ private fun CategoryRow(
             text = "#${category.displayOrder}",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(end = ZentaSpacing.sm),
+            modifier = Modifier.padding(end = ZyntaSpacing.sm),
         )
 
         // Edit icon
@@ -311,18 +311,18 @@ private fun CategoryEmptyState(onAdd: () -> Unit) {
                 modifier = Modifier.size(64.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(Modifier.height(ZentaSpacing.md))
+            Spacer(Modifier.height(ZyntaSpacing.md))
             Text("No categories yet", style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(ZentaSpacing.xs))
+            Spacer(Modifier.height(ZyntaSpacing.xs))
             Text(
                 "Create your first category to organise products",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(Modifier.height(ZentaSpacing.lg))
+            Spacer(Modifier.height(ZyntaSpacing.lg))
             Button(onClick = onAdd) {
                 Icon(Icons.Default.Add, contentDescription = null)
-                Spacer(Modifier.width(ZentaSpacing.xs))
+                Spacer(Modifier.width(ZyntaSpacing.xs))
                 Text("Add Category")
             }
         }
@@ -331,11 +331,11 @@ private fun CategoryEmptyState(onAdd: () -> Unit) {
 
 @Composable
 private fun CategoryLoadingSkeleton() {
-    Column(Modifier.fillMaxSize().padding(ZentaSpacing.md)) {
+    Column(Modifier.fillMaxSize().padding(ZyntaSpacing.md)) {
         repeat(6) {
-            Row(Modifier.fillMaxWidth().padding(vertical = ZentaSpacing.sm)) {
+            Row(Modifier.fillMaxWidth().padding(vertical = ZyntaSpacing.sm)) {
                 Box(Modifier.size(28.dp).background(MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.small))
-                Spacer(Modifier.width(ZentaSpacing.sm))
+                Spacer(Modifier.width(ZyntaSpacing.sm))
                 Box(Modifier.height(20.dp).fillMaxWidth(0.6f).background(MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.small))
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)

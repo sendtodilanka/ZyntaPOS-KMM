@@ -18,9 +18,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaTopAppBar
-import com.zyntasolutions.zyntapos.designsystem.layouts.ZentaScaffold
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTopAppBar
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaScaffold
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 
 // ─────────────────────────────────────────────────────────────────────────────
 // AboutScreen — app name, version, build date, open-source licences, support.
@@ -57,17 +57,17 @@ fun AboutScreen(
     buildDate: String = "2026-02-21",
     onBack: () -> Unit,
 ) {
-    ZentaScaffold(
-        topBar = { ZentaTopAppBar(title = "About", onNavigationClick = onBack) },
+    ZyntaScaffold(
+        topBar = { ZyntaTopAppBar(title = "About", onNavigationClick = onBack) },
     ) { innerPadding ->
         LazyColumn(
             contentPadding = PaddingValues(
-                start = ZentaSpacing.md,
-                end = ZentaSpacing.md,
-                top = innerPadding.calculateTopPadding() + ZentaSpacing.md,
-                bottom = innerPadding.calculateBottomPadding() + ZentaSpacing.md,
+                start = ZyntaSpacing.md,
+                end = ZyntaSpacing.md,
+                top = innerPadding.calculateTopPadding() + ZyntaSpacing.md,
+                bottom = innerPadding.calculateBottomPadding() + ZyntaSpacing.md,
             ),
-            verticalArrangement = Arrangement.spacedBy(ZentaSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
             modifier = Modifier.fillMaxSize(),
         ) {
             // ── App identity card ─────────────────────────────────────────────
@@ -80,14 +80,14 @@ fun AboutScreen(
                         text = "ZyntaPOS",
                         style = MaterialTheme.typography.headlineMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.fillMaxWidth().padding(ZentaSpacing.lg),
+                        modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.lg),
                         textAlign = TextAlign.Center,
                     )
                     Text(
                         text = "Enterprise Point of Sale",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.fillMaxWidth().padding(bottom = ZentaSpacing.lg),
+                        modifier = Modifier.fillMaxWidth().padding(bottom = ZyntaSpacing.lg),
                         textAlign = TextAlign.Center,
                     )
                 }
@@ -96,17 +96,17 @@ fun AboutScreen(
             // ── Build info ────────────────────────────────────────────────────
             item {
                 SectionHeader("Build Information")
-                Spacer(Modifier.height(ZentaSpacing.sm))
+                Spacer(Modifier.height(ZyntaSpacing.sm))
                 Card(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     InfoRow(label = "Version", value = appVersion)
-                    HorizontalDivider(modifier = Modifier.padding(horizontal = ZentaSpacing.md))
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = ZyntaSpacing.md))
                     InfoRow(label = "Build Date", value = buildDate)
-                    HorizontalDivider(modifier = Modifier.padding(horizontal = ZentaSpacing.md))
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = ZyntaSpacing.md))
                     InfoRow(label = "Platform", value = "Kotlin Multiplatform")
-                    HorizontalDivider(modifier = Modifier.padding(horizontal = ZentaSpacing.md))
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = ZyntaSpacing.md))
                     InfoRow(label = "UI Framework", value = "Compose Multiplatform")
                 }
             }
@@ -114,13 +114,13 @@ fun AboutScreen(
             // ── Support contact ───────────────────────────────────────────────
             item {
                 SectionHeader("Support")
-                Spacer(Modifier.height(ZentaSpacing.sm))
+                Spacer(Modifier.height(ZyntaSpacing.sm))
                 Card(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     InfoRow(label = "Email", value = "support@zentapos.com")
-                    HorizontalDivider(modifier = Modifier.padding(horizontal = ZentaSpacing.md))
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = ZyntaSpacing.md))
                     InfoRow(label = "Website", value = "https://zentapos.com")
                 }
             }

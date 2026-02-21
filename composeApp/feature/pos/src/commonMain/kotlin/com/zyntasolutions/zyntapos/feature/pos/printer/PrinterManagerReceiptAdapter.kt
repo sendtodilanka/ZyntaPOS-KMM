@@ -1,6 +1,6 @@
 package com.zyntasolutions.zyntapos.feature.pos.printer
 
-import com.zyntasolutions.zyntapos.core.logger.ZentaLogger
+import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import com.zyntasolutions.zyntapos.core.result.HalException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.Order
@@ -53,7 +53,7 @@ class PrinterManagerReceiptAdapter(
         // 3. Ensure printer transport is open
         val connectResult = printerManager.connect()
         if (connectResult.isFailure) {
-            ZentaLogger.e(TAG, "Printer connect failed: ${connectResult.exceptionOrNull()?.message}")
+            ZyntaLogger.e(TAG, "Printer connect failed: ${connectResult.exceptionOrNull()?.message}")
             return Result.Error(
                 HalException(
                     "Printer connection failed: ${connectResult.exceptionOrNull()?.message}",
@@ -66,7 +66,7 @@ class PrinterManagerReceiptAdapter(
         // 4. Deliver to printer (PrinterManager retries internally up to MAX_RETRIES)
         val printResult = printerManager.print(receiptBytes)
         if (printResult.isFailure) {
-            ZentaLogger.e(TAG, "Receipt print failed: ${printResult.exceptionOrNull()?.message}")
+            ZyntaLogger.e(TAG, "Receipt print failed: ${printResult.exceptionOrNull()?.message}")
             return Result.Error(
                 HalException(
                     "Receipt print failed after retries: ${printResult.exceptionOrNull()?.message}",

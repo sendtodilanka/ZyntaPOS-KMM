@@ -16,9 +16,9 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaBottomSheet
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaEmptyState
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaBottomSheet
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.Order
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
@@ -31,7 +31,7 @@ import kotlinx.datetime.toLocalDateTime
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * A [ZentaBottomSheet] listing all orders with [OrderStatus.HELD] status.
+ * A [ZyntaBottomSheet] listing all orders with [OrderStatus.HELD] status.
  *
  * ### Keyboard Shortcut
  * The sheet is opened via **F9** from [PosScreen]'s [KeyboardShortcutHandler].
@@ -62,7 +62,7 @@ fun HeldOrdersBottomSheet(
     onRetrieve: (holdId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    ZentaBottomSheet(
+    ZyntaBottomSheet(
         sheetState = sheetState,
         onDismiss = onDismiss,
         modifier = modifier
@@ -80,7 +80,7 @@ fun HeldOrdersBottomSheet(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = ZentaSpacing.md, vertical = ZentaSpacing.sm),
+                    .padding(horizontal = ZyntaSpacing.md, vertical = ZyntaSpacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
@@ -101,18 +101,18 @@ fun HeldOrdersBottomSheet(
 
             // ── Body ─────────────────────────────────────────────────────────
             if (heldOrders.isEmpty()) {
-                ZentaEmptyState(
+                ZyntaEmptyState(
                     icon = Icons.Default.ShoppingCart,
                     title = "No Held Orders",
                     subtitle = "Hold the current order using F8 or the Hold button to save it here.",
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(ZentaSpacing.xl),
+                        .padding(ZyntaSpacing.xl),
                 )
             } else {
                 LazyColumn(
                     modifier = Modifier.heightIn(max = 400.dp),
-                    contentPadding = PaddingValues(vertical = ZentaSpacing.xs),
+                    contentPadding = PaddingValues(vertical = ZyntaSpacing.xs),
                 ) {
                     items(
                         items = heldOrders,
@@ -153,9 +153,9 @@ private fun HeldOrderRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = ZentaSpacing.md, vertical = ZentaSpacing.sm),
+            .padding(horizontal = ZyntaSpacing.md, vertical = ZyntaSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
     ) {
         // Cart icon badge
         Icon(
@@ -172,7 +172,7 @@ private fun HeldOrderRow(
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.xs)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.xs)) {
                 Text(
                     text = order.createdAt.formatHoldTime(),
                     style = MaterialTheme.typography.bodySmall,
@@ -205,7 +205,7 @@ private fun HeldOrderRow(
         // Retrieve button
         FilledTonalButton(
             onClick = onRetrieve,
-            contentPadding = PaddingValues(horizontal = ZentaSpacing.md, vertical = ZentaSpacing.xs),
+            contentPadding = PaddingValues(horizontal = ZyntaSpacing.md, vertical = ZyntaSpacing.xs),
         ) {
             Text("Retrieve", style = MaterialTheme.typography.labelMedium)
         }

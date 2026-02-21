@@ -1,6 +1,6 @@
 package com.zyntasolutions.zyntapos.data.local.db
 
-import com.zyntasolutions.zyntapos.core.logger.ZentaLogger
+import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -48,7 +48,7 @@ actual class DatabaseKeyProvider(private val appDataDir: String) {
         val keyStore = loadOrCreateKeyStore()
 
         if (!keyStore.containsAlias(KEY_ALIAS)) {
-            ZentaLogger.i(TAG, "No existing key found — generating new AES-256 DB key.")
+            ZyntaLogger.i(TAG, "No existing key found — generating new AES-256 DB key.")
             val key = generateAesKey()
             keyStore.setKeyEntry(
                 KEY_ALIAS,
@@ -57,7 +57,7 @@ actual class DatabaseKeyProvider(private val appDataDir: String) {
                 null,
             )
             saveKeyStore(keyStore)
-            ZentaLogger.i(TAG, "New AES-256 key generated and stored in PKCS12 keystore.")
+            ZyntaLogger.i(TAG, "New AES-256 key generated and stored in PKCS12 keystore.")
         }
 
         val entry = keyStore.getEntry(KEY_ALIAS, KeyStore.PasswordProtection(keystorePassword()))

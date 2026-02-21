@@ -23,7 +23,7 @@ interface UnitGroupRepository {
     /**
      * Returns a single [UnitOfMeasure] by UUID [id].
      *
-     * @return [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZentaException.DatabaseException]
+     * @return [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZyntaException.DatabaseException]
      *         if the unit does not exist.
      */
     suspend fun getById(id: String): Result<UnitOfMeasure>
@@ -48,7 +48,7 @@ interface UnitGroupRepository {
     /**
      * Deletes the unit identified by [id].
      *
-     * Returns [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZentaException.ValidationException]
+     * Returns [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZyntaException.ValidationException]
      * if any active product references this unit, or if the unit is the
      * designated base unit of its group (base unit cannot be deleted).
      */

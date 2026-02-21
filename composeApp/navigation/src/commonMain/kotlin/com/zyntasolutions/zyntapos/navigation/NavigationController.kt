@@ -19,7 +19,7 @@ import androidx.navigation.compose.rememberNavController
  * - `popBackStack()` — safe back navigation with Desktop fallback.
  * - `navigateAndClear(route)` — clear entire back stack (login → dashboard, logout).
  * - `navigateUp(fallback)` — pop or navigate to fallback if no back-stack entry exists.
- * - `lockScreen()` — navigate to [ZentaRoute.PinLock] on idle timeout.
+ * - `lockScreen()` — navigate to [ZyntaRoute.PinLock] on idle timeout.
  *
  * @param navController The underlying [NavHostController] managed by `rememberNavController`.
  */
@@ -34,10 +34,10 @@ class NavigationController(
      * Duplicate navigation to the same route as the current destination is
      * silently ignored to prevent double-push on rapid taps.
      *
-     * @param route Destination [ZentaRoute].
+     * @param route Destination [ZyntaRoute].
      * @param builder Optional [NavOptionsBuilder] for animations or launch modes.
      */
-    fun navigate(route: ZentaRoute, builder: NavOptionsBuilder.() -> Unit = {}) {
+    fun navigate(route: ZyntaRoute, builder: NavOptionsBuilder.() -> Unit = {}) {
         val currentRoute = navController.currentDestination?.route
         // Deduplicate: ignore if already at this destination (same class name)
         if (currentRoute == route::class.qualifiedName) return
@@ -63,7 +63,7 @@ class NavigationController(
      *
      * @param fallback Destination to navigate to if back stack is exhausted.
      */
-    fun navigateUp(fallback: ZentaRoute = ZentaRoute.Dashboard) {
+    fun navigateUp(fallback: ZyntaRoute = ZyntaRoute.Dashboard) {
         val popped = navController.popBackStack()
         if (!popped) navigate(fallback) { launchSingleTop = true }
     }
@@ -77,7 +77,7 @@ class NavigationController(
      *
      * @param route Destination to navigate to after clearing.
      */
-    fun navigateAndClear(route: ZentaRoute) {
+    fun navigateAndClear(route: ZyntaRoute) {
         navController.navigate(route) {
             popUpTo(navController.graph.startDestinationId) {
                 inclusive = true
@@ -87,13 +87,13 @@ class NavigationController(
     }
 
     /**
-     * Navigate to [ZentaRoute.PinLock] preserving the current back stack.
+     * Navigate to [ZyntaRoute.PinLock] preserving the current back stack.
      *
      * Called automatically after an idle timeout. The PIN lock screen pops
      * back to the previous destination upon successful PIN entry.
      */
     fun lockScreen() {
-        navController.navigate(ZentaRoute.PinLock) {
+        navController.navigate(ZyntaRoute.PinLock) {
             launchSingleTop = true
         }
     }
@@ -103,18 +103,18 @@ class NavigationController(
      * Convenience shortcut used by the quick-sale FAB.
      */
     fun goToPos() {
-        navigate(ZentaRoute.Pos) { launchSingleTop = true }
+        navigate(ZyntaRoute.Pos) { launchSingleTop = true }
     }
 
     /**
-     * Navigate to the [ZentaRoute.ProductDetail] screen, optionally via deep link.
+     * Navigate to the [ZyntaRoute.ProductDetail] screen, optionally via deep link.
      *
      * @param productId Product to open for editing. Pass `null` to create a new product.
      *   When triggered by a barcode scanner deep link (`zyntapos://product/{barcode}`),
      *   the barcode value is forwarded as [productId] for lookup.
      */
     fun openProductDetail(productId: String? = null) {
-        navigate(ZentaRoute.ProductDetail(productId = productId))
+        navigate(ZyntaRoute.ProductDetail(productId = productId))
     }
 
     /**
@@ -123,7 +123,7 @@ class NavigationController(
      * @param orderId Active order to pay.
      */
     fun openPayment(orderId: String) {
-        navigate(ZentaRoute.Payment(orderId = orderId))
+        navigate(ZyntaRoute.Payment(orderId = orderId))
     }
 }
 

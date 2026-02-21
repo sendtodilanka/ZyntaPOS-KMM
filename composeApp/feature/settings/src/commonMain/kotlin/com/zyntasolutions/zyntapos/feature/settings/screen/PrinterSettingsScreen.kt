@@ -13,12 +13,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaButton
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaSnackbarHost
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaTextField
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaTopAppBar
-import com.zyntasolutions.zyntapos.designsystem.layouts.ZentaScaffold
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSnackbarHost
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTextField
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTopAppBar
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaScaffold
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.feature.settings.PaperWidthOption
 import com.zyntasolutions.zyntapos.feature.settings.PrinterType
 import com.zyntasolutions.zyntapos.feature.settings.SettingsEffect
@@ -69,22 +69,22 @@ fun PrinterSettingsScreen(
         }
     }
 
-    ZentaScaffold(
-        topBar = { ZentaTopAppBar(title = "Printer Settings", onNavigationClick = onBack) },
-        snackbarHost = { ZentaSnackbarHost(snackbarHostState) },
+    ZyntaScaffold(
+        topBar = { ZyntaTopAppBar(title = "Printer Settings", onNavigationClick = onBack) },
+        snackbarHost = { ZyntaSnackbarHost(snackbarHostState) },
     ) { innerPadding ->
         LazyColumn(
             contentPadding = PaddingValues(
-                start = ZentaSpacing.md,
-                end = ZentaSpacing.md,
-                top = innerPadding.calculateTopPadding() + ZentaSpacing.md,
-                bottom = innerPadding.calculateBottomPadding() + ZentaSpacing.md,
+                start = ZyntaSpacing.md,
+                end = ZyntaSpacing.md,
+                top = innerPadding.calculateTopPadding() + ZyntaSpacing.md,
+                bottom = innerPadding.calculateBottomPadding() + ZyntaSpacing.md,
             ),
-            verticalArrangement = Arrangement.spacedBy(ZentaSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
         ) {
             item {
                 SectionHeader("Connection")
-                Spacer(Modifier.height(ZentaSpacing.sm))
+                Spacer(Modifier.height(ZyntaSpacing.sm))
                 DropdownField(
                     label = "Printer Type",
                     options = PrinterType.entries.map { it.name },
@@ -96,14 +96,14 @@ fun PrinterSettingsScreen(
             // Conditional connection params
             when (state.printerType) {
                 PrinterType.TCP -> item {
-                    Column(verticalArrangement = Arrangement.spacedBy(ZentaSpacing.sm)) {
-                        ZentaTextField(
+                    Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
+                        ZyntaTextField(
                             value = state.tcpHost,
                             onValueChange = { onIntent(SettingsIntent.UpdateTcpHost(it)) },
                             label = "IP Address / Hostname",
                             modifier = Modifier.fillMaxWidth(),
                         )
-                        ZentaTextField(
+                        ZyntaTextField(
                             value = state.tcpPort,
                             onValueChange = { onIntent(SettingsIntent.UpdateTcpPort(it)) },
                             label = "TCP Port",
@@ -112,14 +112,14 @@ fun PrinterSettingsScreen(
                     }
                 }
                 PrinterType.SERIAL -> item {
-                    Column(verticalArrangement = Arrangement.spacedBy(ZentaSpacing.sm)) {
-                        ZentaTextField(
+                    Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
+                        ZyntaTextField(
                             value = state.serialPort,
                             onValueChange = { onIntent(SettingsIntent.UpdateSerialPort(it)) },
                             label = "COM Port (e.g. COM3, /dev/ttyUSB0)",
                             modifier = Modifier.fillMaxWidth(),
                         )
-                        ZentaTextField(
+                        ZyntaTextField(
                             value = state.baudRate,
                             onValueChange = { onIntent(SettingsIntent.UpdateBaudRate(it)) },
                             label = "Baud Rate",
@@ -128,7 +128,7 @@ fun PrinterSettingsScreen(
                     }
                 }
                 PrinterType.BLUETOOTH -> item {
-                    ZentaTextField(
+                    ZyntaTextField(
                         value = state.btAddress,
                         onValueChange = { onIntent(SettingsIntent.UpdateBtAddress(it)) },
                         label = "Bluetooth Device Address (XX:XX:XX:XX:XX:XX)",
@@ -141,7 +141,7 @@ fun PrinterSettingsScreen(
 
             item {
                 SectionHeader("Paper")
-                Spacer(Modifier.height(ZentaSpacing.sm))
+                Spacer(Modifier.height(ZyntaSpacing.sm))
                 DropdownField(
                     label = "Paper Width",
                     options = PaperWidthOption.entries.map { "${it.mm}mm" },
@@ -151,7 +151,7 @@ fun PrinterSettingsScreen(
             }
 
             item {
-                ZentaButton(
+                ZyntaButton(
                     text = if (state.isTestPrinting) "Printing test page…" else "Test Print",
                     onClick = { onIntent(SettingsIntent.TestPrint) },
                     enabled = !state.isTestPrinting,
@@ -161,12 +161,12 @@ fun PrinterSettingsScreen(
 
             item {
                 SectionHeader("Receipt Customisation")
-                Spacer(Modifier.height(ZentaSpacing.sm))
+                Spacer(Modifier.height(ZyntaSpacing.sm))
                 Text("Header Lines", style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Column(verticalArrangement = Arrangement.spacedBy(ZentaSpacing.sm)) {
+                Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                     state.headerLines.forEachIndexed { index, line ->
-                        ZentaTextField(
+                        ZyntaTextField(
                             value = line,
                             onValueChange = { onIntent(SettingsIntent.UpdateHeaderLine(index, it)) },
                             label = "Header Line ${index + 1}",
@@ -179,9 +179,9 @@ fun PrinterSettingsScreen(
             item {
                 Text("Footer Lines", style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Column(verticalArrangement = Arrangement.spacedBy(ZentaSpacing.sm)) {
+                Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                     state.footerLines.forEachIndexed { index, line ->
-                        ZentaTextField(
+                        ZyntaTextField(
                             value = line,
                             onValueChange = { onIntent(SettingsIntent.UpdateFooterLine(index, it)) },
                             label = "Footer Line ${index + 1}",
@@ -193,7 +193,7 @@ fun PrinterSettingsScreen(
 
             item {
                 SectionHeader("Show / Hide Fields")
-                Spacer(Modifier.height(ZentaSpacing.sm))
+                Spacer(Modifier.height(ZyntaSpacing.sm))
                 ToggleRow(
                     label = "Show QR code on receipt",
                     checked = state.showQrCode,
@@ -210,7 +210,7 @@ fun PrinterSettingsScreen(
                 state.saveError?.let {
                     Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 }
-                ZentaButton(
+                ZyntaButton(
                     text = if (state.isSaving) "Saving…" else "Save Printer Settings",
                     onClick = { onIntent(SettingsIntent.SavePrinter) },
                     enabled = !state.isSaving,

@@ -15,9 +15,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaButton
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaButtonSize
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButtonSize
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.designsystem.util.WindowSize
 import com.zyntasolutions.zyntapos.designsystem.util.currentWindowSize
 import com.zyntasolutions.zyntapos.domain.model.CartItem
@@ -142,8 +142,8 @@ fun PaymentScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
-                    .padding(ZentaSpacing.md),
-                horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.md),
+                    .padding(ZyntaSpacing.md),
+                horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
             ) {
                 OrderSummaryPane(
                     cartItems = state.cartItems,
@@ -173,8 +173,8 @@ fun PaymentScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
-                    .padding(horizontal = ZentaSpacing.md),
-                verticalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+                    .padding(horizontal = ZyntaSpacing.md),
+                verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
                 contentPadding = PaddingValues(bottom = 96.dp),
             ) {
                 item {
@@ -239,8 +239,8 @@ private fun PaymentInputPane(
         modifier = modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
-            .padding(ZentaSpacing.sm),
-        verticalArrangement = Arrangement.spacedBy(ZentaSpacing.md),
+            .padding(ZyntaSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
     ) {
         Text(
             "Select Payment Method",
@@ -260,10 +260,10 @@ private fun PaymentInputPane(
                     onTenderedChanged = onTenderedChanged,
                     formatter = formatter,
                 )
-                ZentaButton(
+                ZyntaButton(
                     text = if (isLoading) "Processing…" else "PAY  ${formatter.format(orderTotal)}",
                     onClick = onPayClicked,
-                    size = ZentaButtonSize.Large,
+                    size = ZyntaButtonSize.Large,
                     enabled = isPayEnabled && !isLoading,
                     isLoading = isLoading,
                     modifier = Modifier.fillMaxWidth(),
@@ -283,10 +283,10 @@ private fun PaymentInputPane(
 
             PaymentMethod.CARD, PaymentMethod.MOBILE, PaymentMethod.BANK_TRANSFER -> {
                 NonCashSummary(orderTotal = orderTotal, method = selectedMethod, formatter = formatter)
-                ZentaButton(
+                ZyntaButton(
                     text = if (isLoading) "Processing…" else "PAY  ${formatter.format(orderTotal)}",
                     onClick = onPayClicked,
-                    size = ZentaButtonSize.Large,
+                    size = ZyntaButtonSize.Large,
                     enabled = !isLoading,
                     isLoading = isLoading,
                     modifier = Modifier.fillMaxWidth(),
@@ -301,7 +301,7 @@ private fun PaymentInputPane(
                 ) {
                     Box(
                         contentAlignment = Alignment.Center,
-                        modifier = Modifier.padding(ZentaSpacing.lg),
+                        modifier = Modifier.padding(ZyntaSpacing.lg),
                     ) {
                         Text(
                             "Please select a payment method above",
@@ -331,9 +331,9 @@ private fun NonCashSummary(
         shape = MaterialTheme.shapes.medium,
     ) {
         Column(
-            modifier = Modifier.padding(ZentaSpacing.md),
+            modifier = Modifier.padding(ZyntaSpacing.md),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(ZentaSpacing.xs),
+            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.xs),
         ) {
             if (method != null) {
                 Icon(
@@ -374,7 +374,7 @@ private fun OrderSummaryPane(
         tonalElevation = 1.dp,
         shape = MaterialTheme.shapes.medium,
     ) {
-        Column(modifier = Modifier.padding(ZentaSpacing.md)) {
+        Column(modifier = Modifier.padding(ZyntaSpacing.md)) {
             Text("Order Summary", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
 
             if (selectedCustomer != null) {
@@ -386,20 +386,20 @@ private fun OrderSummaryPane(
                 )
             }
 
-            Spacer(Modifier.height(ZentaSpacing.sm))
+            Spacer(Modifier.height(ZyntaSpacing.sm))
             Divider()
-            Spacer(Modifier.height(ZentaSpacing.sm))
+            Spacer(Modifier.height(ZyntaSpacing.sm))
 
             LazyColumn(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(ZentaSpacing.xs),
+                verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.xs),
             ) {
                 items(cartItems, key = { it.productId }) { item ->
                     OrderSummaryItem(item = item, formatter = formatter)
                 }
             }
 
-            Divider(modifier = Modifier.padding(vertical = ZentaSpacing.sm))
+            Divider(modifier = Modifier.padding(vertical = ZyntaSpacing.sm))
             OrderSummaryTotals(orderTotals = orderTotals, formatter = formatter)
         }
     }
@@ -429,7 +429,7 @@ private fun OrderSummaryItem(item: CartItem, formatter: CurrencyFormatter) {
 
 @Composable
 private fun OrderSummaryTotals(orderTotals: OrderTotals, formatter: CurrencyFormatter) {
-    Column(verticalArrangement = Arrangement.spacedBy(ZentaSpacing.xs)) {
+    Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.xs)) {
         SummaryLine("Subtotal", formatter.format(orderTotals.subtotal))
         SummaryLine("Tax", formatter.format(orderTotals.taxAmount))
         if (orderTotals.discountAmount > 0) {
@@ -476,7 +476,7 @@ private fun CollapsibleOrderSummary(
     formatter: CurrencyFormatter,
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(ZentaSpacing.sm)) {
+        Column(modifier = Modifier.padding(ZyntaSpacing.sm)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -499,9 +499,9 @@ private fun CollapsibleOrderSummary(
                 }
             }
             if (isExpanded) {
-                Spacer(Modifier.height(ZentaSpacing.xs))
+                Spacer(Modifier.height(ZyntaSpacing.xs))
                 cartItems.forEach { item -> OrderSummaryItem(item = item, formatter = formatter) }
-                Divider(modifier = Modifier.padding(vertical = ZentaSpacing.xs))
+                Divider(modifier = Modifier.padding(vertical = ZyntaSpacing.xs))
                 OrderSummaryTotals(orderTotals = orderTotals, formatter = formatter)
             }
         }

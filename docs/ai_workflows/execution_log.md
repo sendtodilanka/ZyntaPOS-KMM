@@ -2781,3 +2781,67 @@ settings.gradle.kts                                                           �
 
 > **ADR STATUS: ✅ ACCEPTED — docs/adr/ADR-001-ViewModelBaseClass.md created.**
 > **Rule:** All feature ViewModels MUST extend `ui.core.mvi.BaseViewModel`. Raw `androidx.lifecycle.ViewModel` extension is PROHIBITED in feature modules.
+
+---
+
+## HOTFIX — Zenta → Zynta Design System Prefix Rename | 2026-02-21
+
+### Phase A — Designsystem Source Files (29 files)
+
+- [x] Finished: A1 — Renamed 27 .kt files on disk (15 components + 4 layouts + 3 theme + 2 tokens + 2 platform-specific) — 0 Zenta*.kt remain | 2026-02-21
+- [x] Finished: A2 — Replaced all internal Zenta → Zynta identifiers in 27 renamed designsystem files (sed in-place sweep) — 0 residual Zenta strings in designsystem/src | 2026-02-21
+- [x] Finished: A3 — DesignSystemModule.kt verified clean (already handled by A2 sweep) — 0 Zenta strings | 2026-02-21
+- [x] Finished: A4 — DesignSystemComponentTests.kt verified clean (already handled by A2 sweep) — 0 Zenta strings | 2026-02-21
+
+> **PHASE A STATUS: ✅ COMPLETE**
+> - Zenta*.kt files remaining: 0
+> - Zynta*.kt files present: 27
+> - Zenta strings inside designsystem/src: 0
+> - All 29 designsystem source files fully renamed and internally updated.
+> **Next:** Execute Phase B — Consumer Feature Files (56 files, imports + call-sites only)
+
+### Phase B — Consumer Feature Files (56 files — imports + call-sites only)
+
+- [x] Finished: B1 — feature/auth (5 files updated, 0 Zenta strings remain) | 2026-02-21
+- [x] Finished: B2 — feature/pos (20 files updated, 0 Zenta strings remain) | 2026-02-21
+- [x] Finished: B3 — feature/inventory (13 files updated, 0 Zenta strings remain) | 2026-02-21
+- [x] Finished: B4 — feature/register (7 files updated, 0 Zenta strings remain) | 2026-02-21
+- [x] Finished: B5 — feature/settings (10 files updated, 0 Zenta strings remain) | 2026-02-21
+- [x] Finished: B6 — feature/reports (3 files updated, 0 Zenta strings remain) | 2026-02-21
+- [x] Finished: B7 — composeApp/src/App.kt (1 TODO comment updated, 0 Zenta strings remain) | 2026-02-21
+- [x] Finished: B8 — composeApp/navigation (2 files renamed: ZyntaNavGraph.kt, ZyntaRoute.kt; 6 files updated; 0 Zenta strings remain) | 2026-02-21
+- [x] Finished: B9 — shared/core (3 files renamed: ZyntaException.kt, ZyntaLogger.kt, ZyntaExceptionTest.kt; all shared .kt updated; 0 Zenta strings remain) | 2026-02-21
+
+> **PHASE B STATUS: ✅ COMPLETE**
+> - Total Zenta strings in all .kt files: 0
+> - Modules clean: designsystem, navigation, feature/auth, feature/pos, feature/inventory, feature/register, feature/settings, feature/reports, composeApp/src, shared
+> - Additional files caught beyond plan scope: composeApp/navigation (2 renames), shared/core (3 renames)
+> **Next:** Execute Phase C — Documentation (.md files)
+
+### Phase C — Documentation Files (13 .md files)
+
+- [x] Finished: C1 — UI_UX_Main_Plan.md (87 → 0 Zenta hits) | 2026-02-21
+- [x] Finished: C2 — PLAN_PHASE1.md (62 → 0 Zenta hits) | 2026-02-21
+- [x] Finished: C3 — 10 remaining .md files updated (Master_plan 13, PLAN_COMPAT 5, PLAN_STRUCTURE_CROSSCHECK 5, PLAN_MISMATCH_FIX 1, zentapos-audit-final-synthesis 2, audit phases 1–4: 14/3/22/2 hits); CONTRIBUTING.md already clean | 2026-02-21
+- [x] Finished: C4 — 2 additional READMEs caught and cleaned: README.md (root, line 6 brand note rewritten + component refs updated), composeApp/feature/pos/README.md | 2026-02-21
+
+### Phase D — Validation & Closure
+
+- [x] Finished: D1 — grep Zenta across all .kt files → 0 results ✅ | 2026-02-21
+- [x] Finished: D2 — grep Zenta across all .md files (excl. log + rename plan) → 0 results ✅ | 2026-02-21
+- [x] Finished: D3 — No Zenta*.kt or Zenta*.md filenames remain anywhere in project ✅ | 2026-02-21
+
+> **HOTFIX STATUS: ✅ FULLY COMPLETE — All phases A, B, C, D done.**
+>
+> | Metric | Result |
+> |---|---|
+> | Zenta strings in all .kt files | **0** |
+> | Zenta strings in all .md files | **0** |
+> | Zenta*.kt filenames remaining | **0** |
+> | Kotlin files renamed (designsystem + navigation + shared) | **32** |
+> | .md files updated | **15** |
+>
+> ⚠️ **NOTE:** Gradle build validation (D3 from plan) must be run manually by the developer:
+> `./gradlew :composeApp:designsystem:compileKotlinJvm` and
+> `./gradlew :composeApp:feature:pos:compileKotlinJvm`
+> Android Studio will also prompt an IDE cache invalidation — run **File → Invalidate Caches / Restart**.

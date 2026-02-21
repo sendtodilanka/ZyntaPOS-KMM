@@ -6,7 +6,7 @@ import com.zyntasolutions.zyntapos.core.result.AuthException
 import com.zyntasolutions.zyntapos.core.result.AuthFailureReason
 import com.zyntasolutions.zyntapos.core.result.NetworkException
 import com.zyntasolutions.zyntapos.core.result.SyncException
-import com.zyntasolutions.zyntapos.core.result.ZentaException
+import com.zyntasolutions.zyntapos.core.result.ZyntaException
 import com.zyntasolutions.zyntapos.data.remote.dto.AuthRefreshRequestDto
 import com.zyntasolutions.zyntapos.data.remote.dto.AuthRefreshResponseDto
 import com.zyntasolutions.zyntapos.data.remote.dto.AuthRequestDto
@@ -30,14 +30,14 @@ import io.ktor.http.isSuccess
 /**
  * ZyntaPOS — Ktor-backed implementation of [ApiService].
  *
- * All HTTP errors are mapped to the [ZentaException] hierarchy so callers
+ * All HTTP errors are mapped to the [ZyntaException] hierarchy so callers
  * (SyncEngine, AuthRepositoryImpl) never interact with raw HTTP status codes.
  *
  * Error mapping:
- * - 401 → [ZentaException.AuthException]
- * - 4xx → [ZentaException.NetworkException] (client error)
- * - 5xx → [ZentaException.NetworkException] (server error)
- * - IOException / timeout → [ZentaException.NetworkException]
+ * - 401 → [ZyntaException.AuthException]
+ * - 4xx → [ZyntaException.NetworkException] (client error)
+ * - 5xx → [ZyntaException.NetworkException] (server error)
+ * - IOException / timeout → [ZyntaException.NetworkException]
  *
  * @param client Ktor [HttpClient] configured via [buildApiClient].
  * @param baseUrl Base URL of the ZyntaPOS API server (defaults to [AppConfig.BASE_URL]).
@@ -98,7 +98,7 @@ class KtorApiService(
 
     /**
      * Executes an HTTP request, maps non-2xx responses and transport exceptions
-     * to the appropriate [ZentaException] subclass, and deserializes the body.
+     * to the appropriate [ZyntaException] subclass, and deserializes the body.
      */
     private suspend inline fun <reified T> safeRequest(
         crossinline block: suspend () -> HttpResponse,
@@ -126,7 +126,7 @@ class KtorApiService(
                         )
                 }
             }
-        } catch (e: ZentaException) {
+        } catch (e: ZyntaException) {
             throw e          // re-throw domain exceptions untouched
         } catch (e: Exception) {
             log.e(e) { "Network transport error" }

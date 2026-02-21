@@ -6,13 +6,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaSearchBar
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSearchBar
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 
 /**
  * POS product search bar composable (Sprint 14, task 9.1.4).
  *
- * Wraps [ZentaSearchBar] with POS-specific wiring:
+ * Wraps [ZyntaSearchBar] with POS-specific wiring:
  * - Forwards keystroke changes as [PosIntent.SearchQueryChanged] — debounce (300 ms) is
  *   applied inside [PosViewModel], **not** here. The composable remains stateless.
  * - Focus changes dispatch [PosIntent.SearchFocusChanged] to drive [PosState.isSearchFocused]
@@ -43,7 +43,7 @@ fun PosSearchBar(
     modifier: Modifier = Modifier,
     focusRequester: FocusRequester = remember { FocusRequester() },
 ) {
-    ZentaSearchBar(
+    ZyntaSearchBar(
         query = query,
         onQueryChange = onQueryChange,
         onClear = { onQueryChange("") },
@@ -52,6 +52,6 @@ fun PosSearchBar(
         focusRequester = focusRequester,
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = ZentaSpacing.md, vertical = ZentaSpacing.sm),
+            .padding(horizontal = ZyntaSpacing.md, vertical = ZyntaSpacing.sm),
     )
 }

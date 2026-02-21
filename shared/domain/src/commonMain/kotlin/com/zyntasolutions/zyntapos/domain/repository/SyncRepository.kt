@@ -44,7 +44,7 @@ interface SyncRepository {
      *
      * @param ops The batch of pending [SyncOperation]s to push.
      * @return [Result.Success] with [Unit] when ALL operations were accepted by the server,
-     *         or [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZentaException.NetworkException]
+     *         or [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZyntaException.NetworkException]
      *         on a total connectivity failure.
      */
     suspend fun pushToServer(ops: List<SyncOperation>): Result<Unit>
@@ -58,7 +58,7 @@ interface SyncRepository {
      * @param lastSyncTimestamp Epoch-millis of the last successful pull. Pass `0` for
      *                          initial full sync.
      * @return [Result.Success] with the list of remote [SyncOperation] deltas, or
-     *         [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZentaException.NetworkException].
+     *         [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZyntaException.NetworkException].
      */
     suspend fun pullFromServer(lastSyncTimestamp: Long): Result<List<SyncOperation>>
 }

@@ -27,7 +27,7 @@ interface AuthRepository {
      * authenticated online (no cached hash available).
      *
      * @return [Result.Success] wrapping the authenticated [User], or
-     *         [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZentaException.AuthException].
+     *         [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZyntaException.AuthException].
      */
     suspend fun login(email: String, password: String): Result<User>
 
@@ -55,7 +55,7 @@ interface AuthRepository {
      * a background coroutine 60 s before expiry) or reactively on a 401 response.
      *
      * @return [Result.Success] with [Unit] on success, or
-     *         [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZentaException.AuthException]
+     *         [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZyntaException.AuthException]
      *         if the refresh token is also expired (forces full logout).
      */
     suspend fun refreshToken(): Result<Unit>

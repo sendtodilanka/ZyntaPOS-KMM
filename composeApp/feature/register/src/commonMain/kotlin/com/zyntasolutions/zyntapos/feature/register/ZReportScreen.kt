@@ -14,7 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.CashMovement
 import com.zyntasolutions.zyntapos.domain.model.RegisterSession
 import org.koin.compose.viewmodel.koinViewModel
@@ -134,8 +134,8 @@ fun ZReportScreen(
                     .widthIn(max = maxReportWidth)
                     .fillMaxHeight()
                     .verticalScroll(rememberScrollState())
-                    .padding(ZentaSpacing.md),
-                verticalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+                    .padding(ZyntaSpacing.md),
+                verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
             ) {
                 // ── 1. Store header ──────────────────────────────────────
                 ZReportHeader()
@@ -170,7 +170,7 @@ fun ZReportScreen(
                 // ── 8. Signature line ────────────────────────────────────
                 ZReportSignatureLine()
 
-                Spacer(Modifier.height(ZentaSpacing.xl))
+                Spacer(Modifier.height(ZyntaSpacing.xl))
 
                 // ── Print button (bottom of report) ──────────────────────
                 Button(
@@ -190,12 +190,12 @@ fun ZReportScreen(
                             contentDescription = null,
                             modifier = Modifier.size(20.dp),
                         )
-                        Spacer(Modifier.width(ZentaSpacing.sm))
+                        Spacer(Modifier.width(ZyntaSpacing.sm))
                         Text("Print Z-Report", fontWeight = FontWeight.Bold)
                     }
                 }
 
-                Spacer(Modifier.height(ZentaSpacing.lg))
+                Spacer(Modifier.height(ZyntaSpacing.lg))
             }
         }
     }
@@ -363,8 +363,8 @@ private fun ZReportBalanceReconciliation(session: RegisterSession) {
 @Composable
 private fun ZReportSignatureLine() {
     Column(
-        modifier = Modifier.fillMaxWidth().padding(top = ZentaSpacing.lg),
-        verticalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+        modifier = Modifier.fillMaxWidth().padding(top = ZyntaSpacing.lg),
+        verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
     ) {
         Text(
             text = "Operator Signature",
@@ -376,7 +376,7 @@ private fun ZReportSignatureLine() {
             thickness = 1.dp,
             color = MaterialTheme.colorScheme.outline,
         )
-        Spacer(Modifier.height(ZentaSpacing.lg))
+        Spacer(Modifier.height(ZyntaSpacing.lg))
         Text(
             text = "Manager Signature",
             style = MaterialTheme.typography.labelMedium,
@@ -398,7 +398,7 @@ private fun ZReportSignatureLine() {
 @Composable
 private fun ReportDivider() {
     HorizontalDivider(
-        modifier = Modifier.padding(vertical = ZentaSpacing.sm),
+        modifier = Modifier.padding(vertical = ZyntaSpacing.sm),
         thickness = 1.dp,
         color = MaterialTheme.colorScheme.outlineVariant,
     )

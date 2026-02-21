@@ -25,7 +25,7 @@ interface ProductRepository {
     /**
      * Returns a single [Product] by its UUID [id].
      *
-     * @return [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZentaException.DatabaseException]
+     * @return [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZyntaException.DatabaseException]
      *         if no product with that ID exists.
      */
     suspend fun getById(id: String): Result<Product>
@@ -48,7 +48,7 @@ interface ProductRepository {
      * Designed for the critical sub-200 ms POS barcode scan path — must complete
      * within one SQLite index lookup.
      *
-     * @return [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZentaException.DatabaseException]
+     * @return [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZyntaException.DatabaseException]
      *         if no product with that barcode exists.
      */
     suspend fun getByBarcode(barcode: String): Result<Product>

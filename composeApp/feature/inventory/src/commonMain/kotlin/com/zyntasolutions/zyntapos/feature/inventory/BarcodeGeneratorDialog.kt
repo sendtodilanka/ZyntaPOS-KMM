@@ -17,7 +17,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.Product
 import kotlin.random.Random
 // ─────────────────────────────────────────────────────────────────────────────
@@ -82,12 +82,12 @@ fun BarcodeGeneratorDialog(
         },
         text = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(ZentaSpacing.md),
+                verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                 modifier = Modifier.widthIn(min = 320.dp),
             ) {
                 // ── Barcode type selector ────────────────────────────────
                 Text("Barcode Type", style = MaterialTheme.typography.labelLarge)
-                Row(horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.sm)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                     BarcodeType.entries.forEach { type ->
                         FilterChip(
                             selected = barcodeType == type,
@@ -131,7 +131,7 @@ fun BarcodeGeneratorDialog(
                         ),
                     ) {
                         Column(
-                            modifier = Modifier.padding(ZentaSpacing.md),
+                            modifier = Modifier.padding(ZyntaSpacing.md),
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
                             Text(
@@ -139,7 +139,7 @@ fun BarcodeGeneratorDialog(
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                            Spacer(Modifier.height(ZentaSpacing.sm))
+                            Spacer(Modifier.height(ZyntaSpacing.sm))
                             BarcodeCanvas(
                                 value = barcodeValue,
                                 type = barcodeType,
@@ -158,7 +158,7 @@ fun BarcodeGeneratorDialog(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(ZentaSpacing.xs))
+                        Spacer(Modifier.width(ZyntaSpacing.xs))
                         Text("Print Label")
                     }
                 }

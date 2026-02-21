@@ -1,6 +1,6 @@
 package com.zyntasolutions.zyntapos.security.crypto
 
-import com.zyntasolutions.zyntapos.core.logger.ZentaLogger
+import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -79,7 +79,7 @@ actual class EncryptionManager actual constructor(keyAlias: String) {
             KeyStore.PasswordProtection(keystorePassword),
         )
         saveKeyStore(ks)
-        ZentaLogger.d(TAG) { "Generated new AES-256 key for alias=$alias in PKCS12 store" }
+        ZyntaLogger.d(TAG) { "Generated new AES-256 key for alias=$alias in PKCS12 store" }
         return secretKey
     }
 

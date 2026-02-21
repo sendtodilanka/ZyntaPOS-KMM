@@ -13,7 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.TaxGroup
 
 /**
@@ -82,10 +82,10 @@ fun TaxGroupScreen(
             else -> LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
                 contentPadding = PaddingValues(
-                    horizontal = ZentaSpacing.md,
-                    vertical = ZentaSpacing.sm,
+                    horizontal = ZyntaSpacing.md,
+                    vertical = ZyntaSpacing.sm,
                 ),
-                verticalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+                verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
             ) {
                 items(taxGroups, key = { it.id }) { group ->
                     TaxGroupCard(
@@ -138,7 +138,7 @@ private fun TaxGroupCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = ZentaSpacing.md, vertical = ZentaSpacing.sm),
+                .padding(horizontal = ZyntaSpacing.md, vertical = ZyntaSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             // Tax icon
@@ -149,7 +149,7 @@ private fun TaxGroupCard(
                 else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(36.dp),
             )
-            Spacer(Modifier.width(ZentaSpacing.md))
+            Spacer(Modifier.width(ZyntaSpacing.md))
 
             // Name + badges
             Column(Modifier.weight(1f)) {
@@ -160,7 +160,7 @@ private fun TaxGroupCard(
                     else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                 )
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.xs),
+                    horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.xs),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     // Rate chip
@@ -261,7 +261,7 @@ private fun TaxGroupEditDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (existingGroup == null) "New Tax Group" else "Edit Tax Group") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(ZentaSpacing.sm)) {
+            Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                 // Name
                 OutlinedTextField(
                     value = name,
@@ -298,7 +298,7 @@ private fun TaxGroupEditDialog(
 
                 // Inclusive toggle
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = ZentaSpacing.xs),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = ZyntaSpacing.xs),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
@@ -316,7 +316,7 @@ private fun TaxGroupEditDialog(
 
                 // Active toggle
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = ZentaSpacing.xs),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = ZyntaSpacing.xs),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
@@ -358,12 +358,12 @@ private fun TaxGroupEmptyState(modifier: Modifier = Modifier, onAdd: () -> Unit)
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(Icons.Default.Percent, contentDescription = null, modifier = Modifier.size(64.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(ZentaSpacing.md))
+            Spacer(Modifier.height(ZyntaSpacing.md))
             Text("No tax groups configured", style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(ZentaSpacing.xs))
+            Spacer(Modifier.height(ZyntaSpacing.xs))
             Text("Create your first tax group to assign to products",
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(ZentaSpacing.lg))
+            Spacer(Modifier.height(ZyntaSpacing.lg))
             Button(onClick = onAdd) { Icon(Icons.Default.Add, contentDescription = null); Spacer(Modifier.width(4.dp)); Text("New Tax Group") }
         }
     }

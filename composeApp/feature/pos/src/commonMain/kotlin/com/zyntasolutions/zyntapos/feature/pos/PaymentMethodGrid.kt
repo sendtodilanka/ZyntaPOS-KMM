@@ -12,7 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.PaymentMethod
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -51,12 +51,12 @@ fun PaymentMethodGrid(
     // 2-column grid layout
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
     ) {
         availableMethods.chunked(2).forEach { row ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
             ) {
                 row.forEach { method ->
                     PaymentMethodTile(
@@ -117,7 +117,7 @@ private fun PaymentMethodTile(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 10.dp, horizontal = ZentaSpacing.sm),
+                .padding(vertical = 10.dp, horizontal = ZyntaSpacing.sm),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {

@@ -2,7 +2,7 @@ package com.zyntasolutions.zyntapos.security.crypto
 
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
-import com.zyntasolutions.zyntapos.core.logger.ZentaLogger
+import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -42,7 +42,7 @@ actual class EncryptionManager actual constructor(keyAlias: String) {
             .setRandomizedEncryptionRequired(true)
             .build()
         keyGenerator.init(spec)
-        ZentaLogger.d(TAG) { "Generated new AES-256-GCM key for alias=$alias" }
+        ZyntaLogger.d(TAG) { "Generated new AES-256-GCM key for alias=$alias" }
         return keyGenerator.generateKey()
     }
 

@@ -13,10 +13,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.designsystem.components.SortDirection
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaEmptyState
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaTable
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaTableColumn
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTable
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTableColumn
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.Order
 import com.zyntasolutions.zyntapos.domain.model.OrderStatus
 import kotlinx.datetime.TimeZone
@@ -24,7 +24,7 @@ import kotlinx.datetime.toLocalDateTime
 
 // ─────────────────────────────────────────────────────────────────────────────
 // OrderHistoryScreen — Sprint 17, task 9.1.25
-// Today's orders ZentaTable (order #, time, items, total, status);
+// Today's orders ZyntaTable (order #, time, items, total, status);
 // filter by status chips; tap → order detail; reprint button per row
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -58,7 +58,7 @@ private val STATUS_FILTERS = listOf(
  * Sorting is handled entirely in this composable via [remember] — no extra state in ViewModel.
  *
  * @param orders         Full list of today's [Order] objects (all statuses).
- * @param isLoading      When `true`, shows a loading skeleton inside [ZentaTable].
+ * @param isLoading      When `true`, shows a loading skeleton inside [ZyntaTable].
  * @param onOrderTap     Invoked when a table row is tapped (navigate to order detail).
  * @param onReprintOrder Invoked when the reprint icon button is tapped.
  * @param modifier       Optional [Modifier].
@@ -99,7 +99,7 @@ fun OrderHistoryScreen(
                     Icon(
                         imageVector = Icons.Default.History,
                         contentDescription = null,
-                        modifier = Modifier.padding(start = ZentaSpacing.md),
+                        modifier = Modifier.padding(start = ZyntaSpacing.md),
                     )
                 },
             )
@@ -113,8 +113,8 @@ fun OrderHistoryScreen(
         ) {
             // ── Status filter chips ────────────────────────────────────────────
             LazyRow(
-                contentPadding = PaddingValues(horizontal = ZentaSpacing.md, vertical = ZentaSpacing.sm),
-                horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.xs),
+                contentPadding = PaddingValues(horizontal = ZyntaSpacing.md, vertical = ZyntaSpacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.xs),
             ) {
                 items(STATUS_FILTERS) { status ->
                     val selected = selectedStatus == status
@@ -129,7 +129,7 @@ fun OrderHistoryScreen(
             HorizontalDivider()
 
             // ── Orders table ──────────────────────────────────────────────────
-            ZentaTable(
+            ZyntaTable(
                 columns = TABLE_COLUMNS,
                 items = displayOrders,
                 sortColumnKey = sortColumn,
@@ -152,14 +152,14 @@ fun OrderHistoryScreen(
                 rowKey = { it.id },
                 modifier = Modifier.fillMaxSize(),
                 emptyContent = {
-                    ZentaEmptyState(
+                    ZyntaEmptyState(
                         icon = Icons.Default.History,
                         title = "No Orders",
                         subtitle = if (selectedStatus != null)
                             "No ${selectedStatus!!.label()} orders today."
                         else
                             "No orders have been processed today.",
-                        modifier = Modifier.fillMaxWidth().padding(ZentaSpacing.xl),
+                        modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.xl),
                     )
                 },
             ) { order ->
@@ -254,11 +254,11 @@ private const val COL_TOTAL  = "total"
 private const val COL_STATUS = "status"
 
 private val TABLE_COLUMNS = listOf(
-    ZentaTableColumn(key = COL_ORDER,  header = "ORDER #",  weight = 1.8f),
-    ZentaTableColumn(key = COL_TIME,   header = "TIME",     weight = 0.8f),
-    ZentaTableColumn(key = COL_ITEMS,  header = "ITEMS",    weight = 0.7f, sortable = true),
-    ZentaTableColumn(key = COL_TOTAL,  header = "TOTAL",    weight = 1.0f),
-    ZentaTableColumn(key = COL_STATUS, header = "STATUS",   weight = 1.2f),
+    ZyntaTableColumn(key = COL_ORDER,  header = "ORDER #",  weight = 1.8f),
+    ZyntaTableColumn(key = COL_TIME,   header = "TIME",     weight = 0.8f),
+    ZyntaTableColumn(key = COL_ITEMS,  header = "ITEMS",    weight = 0.7f, sortable = true),
+    ZyntaTableColumn(key = COL_TOTAL,  header = "TOTAL",    weight = 1.0f),
+    ZyntaTableColumn(key = COL_STATUS, header = "STATUS",   weight = 1.2f),
 )
 
 /** Human-readable label for [OrderStatus] filter chips. */

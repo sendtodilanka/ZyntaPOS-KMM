@@ -10,8 +10,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
 import com.zyntasolutions.zyntapos.designsystem.components.NumericPadMode
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaNumericPad
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaNumericPad
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CashPaymentPanel — Amount Received numpad + real-time change calculation.
@@ -26,7 +26,7 @@ import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
  * Displays:
  * 1. A "Amount Due" summary row showing the order total.
  * 2. Quick-amount shortcut buttons (±$50, ±$100, Exact).
- * 3. A [ZentaNumericPad] in [NumericPadMode.PRICE] for free-form amount entry.
+ * 3. A [ZyntaNumericPad] in [NumericPadMode.PRICE] for free-form amount entry.
  * 4. A real-time change calculation row displayed in green when
  *    `change ≥ 0`, or red when tendered < total.
  *
@@ -56,7 +56,7 @@ fun CashPaymentPanel(
 
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
     ) {
         // ── Amount Due ────────────────────────────────────────────────────────
         Surface(
@@ -68,7 +68,7 @@ fun CashPaymentPanel(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = ZentaSpacing.md, vertical = ZentaSpacing.sm),
+                    .padding(horizontal = ZyntaSpacing.md, vertical = ZyntaSpacing.sm),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -97,7 +97,7 @@ fun CashPaymentPanel(
         )
 
         // ── Numpad ────────────────────────────────────────────────────────────
-        ZentaNumericPad(
+        ZyntaNumericPad(
             displayValue = formatter.format(tenderedAmount),
             onDigit = { digit ->
                 val updated = (tenderedRaw + digit).trimStart('0').ifEmpty { "0" }
@@ -128,7 +128,7 @@ fun CashPaymentPanel(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = ZentaSpacing.md, vertical = ZentaSpacing.sm),
+                    .padding(horizontal = ZyntaSpacing.md, vertical = ZyntaSpacing.sm),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -176,7 +176,7 @@ private fun QuickAmountRow(
 
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.xs),
+        horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.xs),
     ) {
         shortcuts.forEach { amount ->
             OutlinedButton(

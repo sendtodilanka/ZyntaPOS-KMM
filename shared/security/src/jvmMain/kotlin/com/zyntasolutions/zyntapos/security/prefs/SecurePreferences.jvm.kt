@@ -1,6 +1,6 @@
 package com.zyntasolutions.zyntapos.security.prefs
 
-import com.zyntasolutions.zyntapos.core.logger.ZentaLogger
+import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import com.zyntasolutions.zyntapos.security.crypto.EncryptedData
 import com.zyntasolutions.zyntapos.security.crypto.EncryptionManager
 import java.io.File
@@ -53,7 +53,7 @@ actual class SecurePreferences actual constructor() : TokenStorage {
         val props = loadProps()
         props[key] = encoded
         saveProps(props)
-        ZentaLogger.d(TAG) { "put key=$key" }
+        ZyntaLogger.d(TAG) { "put key=$key" }
     }
 
     actual fun get(key: String): String? {
@@ -69,7 +69,7 @@ actual class SecurePreferences actual constructor() : TokenStorage {
             )
             encryption.decrypt(data)
         } catch (e: Exception) {
-            ZentaLogger.e(TAG, e) { "Failed to decrypt key=$key — removing corrupt entry" }
+            ZyntaLogger.e(TAG, e) { "Failed to decrypt key=$key — removing corrupt entry" }
             remove(key)
             null
         }

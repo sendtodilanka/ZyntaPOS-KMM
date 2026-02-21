@@ -1,6 +1,6 @@
 package com.zyntasolutions.zyntapos.security.crypto
 
-import com.zyntasolutions.zyntapos.core.logger.ZentaLogger
+import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -63,7 +63,7 @@ actual class DatabaseKeyManager actual constructor() {
             require(raw != null && raw.size == DEK_SIZE_BYTES) {
                 "Stored DEK has unexpected size: ${raw?.size}"
             }
-            ZentaLogger.d(TAG) { "DEK loaded from PKCS12 store" }
+            ZyntaLogger.d(TAG) { "DEK loaded from PKCS12 store" }
             return raw
         }
 
@@ -73,7 +73,7 @@ actual class DatabaseKeyManager actual constructor() {
         val secretKey: SecretKey = generator.generateKey()
         ks.setEntry(KEY_ALIAS, KeyStore.SecretKeyEntry(secretKey), protection)
         saveKeyStore(ks)
-        ZentaLogger.d(TAG) { "DEK generated and stored in PKCS12 on first launch" }
+        ZyntaLogger.d(TAG) { "DEK generated and stored in PKCS12 on first launch" }
         return secretKey.encoded!!
     }
 

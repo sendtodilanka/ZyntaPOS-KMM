@@ -13,7 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.CashMovement
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -52,7 +52,7 @@ fun CashMovementHistory(
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.xs),
+                horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.xs),
             ) {
                 Icon(
                     imageVector = Icons.Default.History,
@@ -70,9 +70,9 @@ fun CashMovementHistory(
             }
         }
 
-        Spacer(Modifier.height(ZentaSpacing.sm))
+        Spacer(Modifier.height(ZyntaSpacing.sm))
         HorizontalDivider()
-        Spacer(Modifier.height(ZentaSpacing.sm))
+        Spacer(Modifier.height(ZyntaSpacing.sm))
 
         // ── Content ───────────────────────────────────────────────────────
         if (movements.isEmpty()) {
@@ -80,7 +80,7 @@ fun CashMovementHistory(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(ZentaSpacing.xs),
+                verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.xs),
             ) {
                 // Show newest first
                 items(
@@ -114,9 +114,9 @@ private fun CashMovementRow(movement: CashMovement) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = ZentaSpacing.sm),
+            .padding(vertical = ZyntaSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
     ) {
         // Type badge
         Surface(
@@ -124,7 +124,7 @@ private fun CashMovementRow(movement: CashMovement) {
             shape = MaterialTheme.shapes.small,
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = ZentaSpacing.sm, vertical = ZentaSpacing.xs),
+                modifier = Modifier.padding(horizontal = ZyntaSpacing.sm, vertical = ZyntaSpacing.xs),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(2.dp),
             ) {
@@ -175,9 +175,9 @@ private fun CashMovementRow(movement: CashMovement) {
 @Composable
 private fun EmptyMovementsState(modifier: Modifier = Modifier) {
     Column(
-        modifier = modifier.padding(ZentaSpacing.xl),
+        modifier = modifier.padding(ZyntaSpacing.xl),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
     ) {
         Icon(
             imageVector = Icons.Default.History,

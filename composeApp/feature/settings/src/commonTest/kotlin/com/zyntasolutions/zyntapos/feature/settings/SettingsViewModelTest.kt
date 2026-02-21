@@ -137,11 +137,11 @@ class SettingsViewModelTest {
 
     @Test
     fun `SaveGeneral persists all general settings keys`() = runTest(UnconfinedTestDispatcher()) {
-        viewModel.onIntent(SettingsIntent.UpdateStoreName("ZentaShop"))
+        viewModel.onIntent(SettingsIntent.UpdateStoreName("ZyntaShop"))
         viewModel.onIntent(SettingsIntent.UpdateCurrency(Currency.EUR))
         viewModel.onIntent(SettingsIntent.SaveGeneral)
 
-        assertEquals("ZentaShop", store[SettingsKeys.STORE_NAME])
+        assertEquals("ZyntaShop", store[SettingsKeys.STORE_NAME])
         assertEquals("EUR",       store[SettingsKeys.CURRENCY])
     }
 

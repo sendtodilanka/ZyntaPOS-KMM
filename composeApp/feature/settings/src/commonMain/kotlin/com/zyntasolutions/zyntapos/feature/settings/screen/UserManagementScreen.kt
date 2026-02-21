@@ -15,14 +15,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaBottomSheet
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaButton
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaSnackbarHost
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaTable
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaTextField
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaTopAppBar
-import com.zyntasolutions.zyntapos.designsystem.layouts.ZentaScaffold
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaBottomSheet
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSnackbarHost
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTable
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTextField
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTopAppBar
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaScaffold
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.Role
 import com.zyntasolutions.zyntapos.domain.model.User
 import com.zyntasolutions.zyntapos.feature.settings.SettingsEffect
@@ -32,7 +32,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
 
 // ─────────────────────────────────────────────────────────────────────────────
-// UserManagementScreen — ZentaTable of users, create/edit slide-over,
+// UserManagementScreen — ZyntaTable of users, create/edit slide-over,
 //                        gated by ADMIN role via RoleGuard.
 // Sprint 23 — Step 13.1.6
 // ─────────────────────────────────────────────────────────────────────────────
@@ -82,9 +82,9 @@ fun UserManagementScreen(
         )
     }
 
-    ZentaScaffold(
-        topBar = { ZentaTopAppBar(title = "User Management", onNavigationClick = onBack) },
-        snackbarHost = { ZentaSnackbarHost(snackbarHostState) },
+    ZyntaScaffold(
+        topBar = { ZyntaTopAppBar(title = "User Management", onNavigationClick = onBack) },
+        snackbarHost = { ZyntaSnackbarHost(snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(onClick = { onIntent(SettingsIntent.OpenCreateUser) }) {
                 Icon(Icons.Filled.Add, contentDescription = "Add User")
@@ -93,19 +93,19 @@ fun UserManagementScreen(
     ) { innerPadding ->
         LazyColumn(
             contentPadding = PaddingValues(
-                start = ZentaSpacing.md,
-                end = ZentaSpacing.md,
-                top = innerPadding.calculateTopPadding() + ZentaSpacing.md,
-                bottom = innerPadding.calculateBottomPadding() + ZentaSpacing.md,
+                start = ZyntaSpacing.md,
+                end = ZyntaSpacing.md,
+                top = innerPadding.calculateTopPadding() + ZyntaSpacing.md,
+                bottom = innerPadding.calculateBottomPadding() + ZyntaSpacing.md,
             ),
-            verticalArrangement = Arrangement.spacedBy(ZentaSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
         ) {
             item {
                 when {
                     state.isLoading -> Text("Loading users…", style = MaterialTheme.typography.bodyMedium)
                     state.users.isEmpty() -> Text("No users found. Tap + to create one.",
                         style = MaterialTheme.typography.bodyMedium)
-                    else -> ZentaTable(
+                    else -> ZyntaTable(
                         columns = USER_COLUMNS,
                         rows = state.users.map { u ->
                             listOf(u.name, u.email, u.role.name, if (u.isActive) "Active" else "Inactive", "")
@@ -130,18 +130,18 @@ private fun UserFormSheet(
     onIntent: (SettingsIntent) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    ZentaBottomSheet(
+    ZyntaBottomSheet(
         title = if (isCreating) "Create User" else "Edit User",
         onDismiss = onDismiss,
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(ZentaSpacing.sm)) {
-            ZentaTextField(
+        Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
+            ZyntaTextField(
                 value = form.name,
                 onValueChange = { onIntent(SettingsIntent.UpdateUserFormName(it)) },
                 label = "Full Name",
                 modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
             )
-            ZentaTextField(
+            ZyntaTextField(
                 value = form.email,
                 onValueChange = { onIntent(SettingsIntent.UpdateUserFormEmail(it)) },
                 label = "Email Address",
@@ -149,7 +149,7 @@ private fun UserFormSheet(
                 enabled = isCreating, // email is immutable once created
             )
             if (isCreating) {
-                ZentaTextField(
+                ZyntaTextField(
                     value = form.password,
                     onValueChange = { onIntent(SettingsIntent.UpdateUserFormPassword(it)) },
                     label = "Password",
@@ -171,7 +171,7 @@ private fun UserFormSheet(
             saveError?.let {
                 Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
-            ZentaButton(
+            ZyntaButton(
                 text = "Save User",
                 onClick = { onIntent(SettingsIntent.SaveUser) },
                 modifier = androidx.compose.ui.Modifier.fillMaxWidth(),

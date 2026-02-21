@@ -8,15 +8,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
 import com.zyntasolutions.zyntapos.designsystem.components.NumericPadMode
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaNumericPad
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaNumericPad
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.DiscountType
 import com.zyntasolutions.zyntapos.domain.model.Permission
 import com.zyntasolutions.zyntapos.feature.auth.guard.RoleGuard
 import com.zyntasolutions.zyntapos.domain.usecase.auth.CheckPermissionUseCase
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ItemDiscountDialog — FLAT / PERCENT toggle + ZentaNumericPad.
+// ItemDiscountDialog — FLAT / PERCENT toggle + ZyntaNumericPad.
 // Max-cap validation from settings. Wrapped in RoleGuard(APPLY_DISCOUNT).
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -29,7 +29,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.auth.CheckPermissionUseCase
  *
  * Max-cap validation ensures the discount cannot exceed [maxDiscountPercent]
  * percent of the line total (policy loaded from app settings). Input is provided
- * via [ZentaNumericPad] in PRICE mode.
+ * via [ZyntaNumericPad] in PRICE mode.
  *
  * The entire dialog is wrapped in a [RoleGuard] for [Permission.APPLY_DISCOUNT].
  * Users without that permission will see an access-denied state.
@@ -151,7 +151,7 @@ internal fun DiscountDialogContent(
         },
         text = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(ZentaSpacing.md),
+                verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
             ) {
                 // ── FLAT / PERCENT toggle ───────────────────────────────────
                 SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
@@ -173,7 +173,7 @@ internal fun DiscountDialogContent(
                 }
 
                 // ── Numeric pad ─────────────────────────────────────────────
-                ZentaNumericPad(
+                ZyntaNumericPad(
                     displayValue = buildDisplayValue(rawInput, selectedType, formatter),
                     onDigit = { digit -> rawInput = appendDigit(rawInput, digit) },
                     onDoubleZero = { rawInput = appendDigit(rawInput, "00") },

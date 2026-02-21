@@ -10,8 +10,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.designsystem.components.NumericPadMode
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaNumericPad
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaNumericPad
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.Product
 import com.zyntasolutions.zyntapos.domain.model.StockAdjustment
 
@@ -25,7 +25,7 @@ import com.zyntasolutions.zyntapos.domain.model.StockAdjustment
  * ### Features
  * 1. **Product Info Header:** Shows target product name, SKU, and current stock.
  * 2. **Adjustment Type Selector:** Increase / Decrease / Transfer via `FilterChip` row.
- * 3. **Quantity Input:** Uses [ZentaNumericPad] in QUANTITY mode for precise entry.
+ * 3. **Quantity Input:** Uses [ZyntaNumericPad] in QUANTITY mode for precise entry.
  * 4. **Reason Field:** Required free-text explanation for audit trail compliance.
  * 5. **Confirm Action:** Dispatches [InventoryIntent.SubmitStockAdjustment] which
  *    triggers [AdjustStockUseCase] → persists [StockAdjustment] → logs to audit trail
@@ -60,7 +60,7 @@ fun StockAdjustmentDialog(
         title = {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
             ) {
                 Icon(Icons.Default.Inventory, contentDescription = null)
                 Text("Adjust Stock", style = MaterialTheme.typography.titleMedium)
@@ -68,7 +68,7 @@ fun StockAdjustmentDialog(
         },
         text = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(ZentaSpacing.md),
+                verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                 modifier = Modifier.widthIn(min = 320.dp, max = 480.dp),
             ) {
                 // ── Product info header ──────────────────────────────────
@@ -78,7 +78,7 @@ fun StockAdjustmentDialog(
 
                 // ── Adjustment type selector ─────────────────────────────
                 Text("Adjustment Type", style = MaterialTheme.typography.labelLarge)
-                Row(horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.sm)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                     StockAdjustment.Type.entries.forEach { type ->
                         FilterChip(
                             selected = adjustmentType == type,
@@ -97,7 +97,7 @@ fun StockAdjustmentDialog(
 
                 // ── Quantity input ───────────────────────────────────────
                 Text("Quantity", style = MaterialTheme.typography.labelLarge)
-                ZentaNumericPad(
+                ZyntaNumericPad(
                     displayValue = quantityText,
                     onDigit = { digit ->
                         quantityText = if (quantityText == "0") digit else quantityText + digit
@@ -159,7 +159,7 @@ fun StockAdjustmentDialog(
                         ),
                     ) {
                         Row(
-                            modifier = Modifier.fillMaxWidth().padding(ZentaSpacing.sm),
+                            modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.sm),
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
                             Text("Current: ${product.stockQty}", style = MaterialTheme.typography.bodySmall)
@@ -193,7 +193,7 @@ fun StockAdjustmentDialog(
                 },
             ) {
                 Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(ZentaSpacing.xs))
+                Spacer(Modifier.width(ZyntaSpacing.xs))
                 Text("Confirm Adjustment")
             }
         },
@@ -220,9 +220,9 @@ private fun ProductInfoCard(product: Product) {
         ),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(ZentaSpacing.md),
+            modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.md),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.md),
+            horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(

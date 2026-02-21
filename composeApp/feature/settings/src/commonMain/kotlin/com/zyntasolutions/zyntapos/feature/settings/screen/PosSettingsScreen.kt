@@ -19,11 +19,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaButton
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaSnackbarHost
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaTopAppBar
-import com.zyntasolutions.zyntapos.designsystem.layouts.ZentaScaffold
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSnackbarHost
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTopAppBar
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaScaffold
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.OrderType
 import com.zyntasolutions.zyntapos.feature.settings.ReceiptTemplate
 import com.zyntasolutions.zyntapos.feature.settings.SettingsEffect
@@ -68,22 +68,22 @@ fun PosSettingsScreen(
         }
     }
 
-    ZentaScaffold(
-        topBar = { ZentaTopAppBar(title = "POS Settings", onNavigationClick = onBack) },
-        snackbarHost = { ZentaSnackbarHost(snackbarHostState) },
+    ZyntaScaffold(
+        topBar = { ZyntaTopAppBar(title = "POS Settings", onNavigationClick = onBack) },
+        snackbarHost = { ZyntaSnackbarHost(snackbarHostState) },
     ) { innerPadding ->
         LazyColumn(
             contentPadding = PaddingValues(
-                start = ZentaSpacing.md,
-                end = ZentaSpacing.md,
-                top = innerPadding.calculateTopPadding() + ZentaSpacing.md,
-                bottom = innerPadding.calculateBottomPadding() + ZentaSpacing.md,
+                start = ZyntaSpacing.md,
+                end = ZyntaSpacing.md,
+                top = innerPadding.calculateTopPadding() + ZyntaSpacing.md,
+                bottom = innerPadding.calculateBottomPadding() + ZyntaSpacing.md,
             ),
-            verticalArrangement = Arrangement.spacedBy(ZentaSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
         ) {
             item {
                 SectionHeader("Order")
-                Spacer(Modifier.height(ZentaSpacing.sm))
+                Spacer(Modifier.height(ZyntaSpacing.sm))
                 DropdownField(
                     label = "Default Order Type",
                     options = OrderType.entries.map { it.name },
@@ -93,7 +93,7 @@ fun PosSettingsScreen(
             }
             item {
                 SectionHeader("Receipts")
-                Spacer(Modifier.height(ZentaSpacing.sm))
+                Spacer(Modifier.height(ZyntaSpacing.sm))
                 ToggleRow(
                     label = "Auto-print receipt after sale",
                     checked = state.autoPrintReceipt,
@@ -118,7 +118,7 @@ fun PosSettingsScreen(
             }
             item {
                 SectionHeader("Discounts")
-                Spacer(Modifier.height(ZentaSpacing.sm))
+                Spacer(Modifier.height(ZyntaSpacing.sm))
                 Text(
                     text = "Max Discount: ${state.maxDiscountPercent.toInt()}%",
                     style = MaterialTheme.typography.bodyMedium,
@@ -135,7 +135,7 @@ fun PosSettingsScreen(
                 state.saveError?.let {
                     Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 }
-                ZentaButton(
+                ZyntaButton(
                     text = if (state.isSaving) "Saving…" else "Save POS Settings",
                     onClick = { onIntent(SettingsIntent.SavePos) },
                     enabled = !state.isSaving,
@@ -156,7 +156,7 @@ internal fun ToggleRow(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier.fillMaxWidth().padding(vertical = ZentaSpacing.xs),
+        modifier = modifier.fillMaxWidth().padding(vertical = ZyntaSpacing.xs),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {

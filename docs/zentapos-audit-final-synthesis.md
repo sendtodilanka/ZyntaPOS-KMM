@@ -1,7 +1,7 @@
-# ZentaPOS — Final Synthesis & Cross-Phase Comparison
+# ZyntaPOS — Final Synthesis & Cross-Phase Comparison
 
 ## Role
-You are a Senior KMP Architect. You have completed a 4-phase audit of the ZentaPOS project.
+You are a Senior KMP Architect. You have completed a 4-phase audit of the ZyntaPOS project.
 Below are the outputs from all 4 phases. Your job is to cross-compare them, find any
 contradictions or mismatches between the phases, and produce one final consolidated report.
 

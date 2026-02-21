@@ -11,8 +11,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaSearchBar
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSearchBar
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.Customer
 import com.zyntasolutions.zyntapos.domain.repository.CustomerRepository
 import kotlinx.coroutines.FlowPreview
@@ -87,7 +87,7 @@ fun CustomerSelectorDialog(
         text = {
             Column {
                 // ── Search bar ───────────────────────────────────────────
-                ZentaSearchBar(
+                ZyntaSearchBar(
                     query = query,
                     onQueryChange = { query = it },
                     onClear = { query = "" },
@@ -95,7 +95,7 @@ fun CustomerSelectorDialog(
                     modifier = Modifier.fillMaxWidth(),
                 )
 
-                Spacer(Modifier.height(ZentaSpacing.sm))
+                Spacer(Modifier.height(ZyntaSpacing.sm))
 
                 LazyColumn(
                     modifier = Modifier
@@ -133,7 +133,7 @@ fun CustomerSelectorDialog(
                                 text = "No customers found for \"$query\"",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(ZentaSpacing.md),
+                                modifier = Modifier.padding(ZyntaSpacing.md),
                             )
                         }
                     }
@@ -158,7 +158,7 @@ private fun CustomerRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = ZentaSpacing.sm, vertical = ZentaSpacing.sm),
+            .padding(horizontal = ZyntaSpacing.sm, vertical = ZyntaSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
@@ -167,7 +167,7 @@ private fun CustomerRow(
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(40.dp).padding(4.dp),
         )
-        Spacer(Modifier.width(ZentaSpacing.sm))
+        Spacer(Modifier.width(ZyntaSpacing.sm))
         Column {
             Text(text = name, style = MaterialTheme.typography.bodyMedium)
             if (subtitle.isNotBlank()) {

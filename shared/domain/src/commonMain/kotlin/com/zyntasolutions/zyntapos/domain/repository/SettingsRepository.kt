@@ -30,7 +30,7 @@ interface SettingsRepository {
      *
      * Triggers a new emission from any active [observe] collector for the same [key].
      *
-     * @return [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZentaException.DatabaseException]
+     * @return [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZyntaException.DatabaseException]
      *         on a storage failure.
      */
     suspend fun set(key: String, value: String): Result<Unit>

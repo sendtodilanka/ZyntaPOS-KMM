@@ -28,12 +28,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaButton
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaSnackbarHost
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaTextField
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaTopAppBar
-import com.zyntasolutions.zyntapos.designsystem.layouts.ZentaScaffold
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSnackbarHost
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTextField
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTopAppBar
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaScaffold
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.feature.settings.Currency
 import com.zyntasolutions.zyntapos.feature.settings.SettingsEffect
 import com.zyntasolutions.zyntapos.feature.settings.SettingsIntent
@@ -83,25 +83,25 @@ fun GeneralSettingsScreen(
         }
     }
 
-    ZentaScaffold(
+    ZyntaScaffold(
         topBar = {
-            ZentaTopAppBar(title = "General", onNavigationClick = onBack)
+            ZyntaTopAppBar(title = "General", onNavigationClick = onBack)
         },
-        snackbarHost = { ZentaSnackbarHost(snackbarHostState) },
+        snackbarHost = { ZyntaSnackbarHost(snackbarHostState) },
     ) { innerPadding ->
         LazyColumn(
             contentPadding = PaddingValues(
-                start = ZentaSpacing.md,
-                end = ZentaSpacing.md,
-                top = innerPadding.calculateTopPadding() + ZentaSpacing.md,
-                bottom = innerPadding.calculateBottomPadding() + ZentaSpacing.md,
+                start = ZyntaSpacing.md,
+                end = ZyntaSpacing.md,
+                top = innerPadding.calculateTopPadding() + ZyntaSpacing.md,
+                bottom = innerPadding.calculateBottomPadding() + ZyntaSpacing.md,
             ),
-            verticalArrangement = Arrangement.spacedBy(ZentaSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
         ) {
             item {
                 SectionHeader("Store Identity")
-                Spacer(Modifier.height(ZentaSpacing.sm))
-                ZentaTextField(
+                Spacer(Modifier.height(ZyntaSpacing.sm))
+                ZyntaTextField(
                     value = state.storeName,
                     onValueChange = { onIntent(SettingsIntent.UpdateStoreName(it)) },
                     label = "Store Name",
@@ -109,7 +109,7 @@ fun GeneralSettingsScreen(
                 )
             }
             item {
-                ZentaTextField(
+                ZyntaTextField(
                     value = state.storeAddress,
                     onValueChange = { onIntent(SettingsIntent.UpdateStoreAddress(it)) },
                     label = "Store Address",
@@ -118,7 +118,7 @@ fun GeneralSettingsScreen(
                 )
             }
             item {
-                ZentaTextField(
+                ZyntaTextField(
                     value = state.storePhone,
                     onValueChange = { onIntent(SettingsIntent.UpdateStorePhone(it)) },
                     label = "Phone Number",
@@ -133,7 +133,7 @@ fun GeneralSettingsScreen(
             }
             item {
                 SectionHeader("Regional")
-                Spacer(Modifier.height(ZentaSpacing.sm))
+                Spacer(Modifier.height(ZyntaSpacing.sm))
                 DropdownField(
                     label = "Currency",
                     options = Currency.entries.map { "${it.code} (${it.symbol})" },
@@ -158,7 +158,7 @@ fun GeneralSettingsScreen(
                 )
             }
             item {
-                ZentaTextField(
+                ZyntaTextField(
                     value = state.language,
                     onValueChange = {},
                     label = "Language",
@@ -171,7 +171,7 @@ fun GeneralSettingsScreen(
                 state.saveError?.let {
                     Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 }
-                ZentaButton(
+                ZyntaButton(
                     text = if (state.isSaving) "Saving…" else "Save General Settings",
                     onClick = { onIntent(SettingsIntent.SaveGeneral) },
                     enabled = !state.isSaving,
@@ -190,7 +190,7 @@ internal fun SectionHeader(title: String, modifier: Modifier = Modifier) {
         text = title,
         style = MaterialTheme.typography.titleSmall,
         color = MaterialTheme.colorScheme.primary,
-        modifier = modifier.padding(top = ZentaSpacing.sm),
+        modifier = modifier.padding(top = ZyntaSpacing.sm),
     )
 }
 
@@ -208,7 +208,7 @@ internal fun DropdownField(
         onExpandedChange = { expanded = !expanded },
         modifier = modifier.fillMaxWidth(),
     ) {
-        ZentaTextField(
+        ZyntaTextField(
             value = options.getOrElse(selectedIndex) { "" },
             onValueChange = {},
             label = label,
@@ -235,7 +235,7 @@ internal fun DropdownField(
 
 @Composable
 private fun LogoUriRow(uri: String, onUriChange: (String) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(ZentaSpacing.sm)) {
+    Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
         Text("Store Logo", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
         if (uri.isNotBlank()) {
             Icon(
@@ -245,7 +245,7 @@ private fun LogoUriRow(uri: String, onUriChange: (String) -> Unit) {
                 tint = MaterialTheme.colorScheme.primary,
             )
         }
-        ZentaTextField(
+        ZyntaTextField(
             value = uri,
             onValueChange = onUriChange,
             label = "Logo URI / Path",

@@ -60,8 +60,8 @@
 | Planned File | Actual File | Status |
 |-------------|------------|--------|
 | `result/Result.kt` | ✅ | Present |
-| `result/ZentaException.kt` | ✅ | Present |
-| `logger/ZentaLogger.kt` | ✅ | Present |
+| `result/ZyntaException.kt` | ✅ | Present |
+| `logger/ZyntaLogger.kt` | ✅ | Present |
 | `config/AppConfig.kt` | ✅ | Present |
 | `extensions/StringExtensions.kt` | ✅ | Present |
 | `extensions/DoubleExtensions.kt` | ✅ | Present |
@@ -75,7 +75,7 @@
 | `Platform.android.kt` | ✅ | Present |
 | `Platform.jvm.kt` | ✅ | Present |
 | Tests: `ResultTest.kt` | ✅ | Present |
-| Tests: `ZentaExceptionTest.kt` | ✅ | Present (added beyond plan) |
+| Tests: `ZyntaExceptionTest.kt` | ✅ | Present (added beyond plan) |
 | Tests: `DateTimeUtilsTest.kt` | ✅ | Present |
 | Tests: `CurrencyFormatterTest.kt` | ✅ | Present |
 
@@ -131,7 +131,7 @@
 - **Impact:** Kotlin 2.3.0 and Compose MP 1.10.0 are newer — verify API compatibility in Sprint 4 before use-case wiring
 
 ### 4.3 Project Name — ✅ DOCUMENTED
-- **Brand / UI display name:** ZentaPOS  
+- **Brand / UI display name:** ZyntaPOS  
 - **Repository, directory, rootProject.name:** ZyntaPOS  
 - **App ID / Package:** `com.zyntasolutions.zyntapos` (company: Zynta Solutions Pvt Ltd)  
 - **Clarification note:** Added to `README.md` header (2026-02-20)
@@ -162,7 +162,7 @@
 | No Ktor `ApiClient.kt` | 🟡 Planned | Sprint 6 | Step 3.4.x |
 | No HAL interface contracts | 🟡 Planned | Sprint 7 | Step 4.1.x |
 | No encryption/security implementations | 🟡 Planned | Sprint 8 | Step 5.1.x |
-| No ZentaTheme / design tokens | 🟡 Planned | Sprint 9 | Step 6.1.x |
+| No ZyntaTheme / design tokens | 🟡 Planned | Sprint 9 | Step 6.1.x |
 | No navigation graph | 🟡 Planned | Sprint 11 | Step 7.1.x |
 | No feature screens | 🟡 Planned | Sprints 12–23 | All feature modules |
 | PLAN_PHASE1.md Appendix B package paths outdated | 🔴 Doc debt | Pre-Sprint 4 | Must update `com.zentapos` → `com.zyntasolutions.zyntapos` |

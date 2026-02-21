@@ -2,10 +2,10 @@ package com.zyntasolutions.zyntapos.designsystem
 
 import com.zyntasolutions.zyntapos.designsystem.components.NumericPadMode
 import com.zyntasolutions.zyntapos.designsystem.components.SortDirection
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaButtonSize
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaButtonVariant
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaTableColumn
-import com.zyntasolutions.zyntapos.designsystem.layouts.ZentaNavItem
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButtonSize
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButtonVariant
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTableColumn
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaNavItem
 import com.zyntasolutions.zyntapos.designsystem.layouts.columnCountDescription
 import com.zyntasolutions.zyntapos.designsystem.util.WindowSize
 import kotlin.test.Test
@@ -23,65 +23,65 @@ import kotlin.test.assertTrue
 //   the Compose UI test harness requires a platform runtime.
 //
 //   These commonTest tests cover:
-//     A. ZentaButton   — size/variant enum coverage, disabled state model
-//     B. ZentaNumericPad — mode-driven key visibility rules, PIN masking logic
-//     C. ZentaTable    — column sort state, empty/loading state transitions
-//     D. ZentaScaffold — ZentaNavItem construction, selection state
-//     E. ZentaGrid     — WindowSize → column count mapping (§2.3)
-//     F. ZentaListDetailLayout — weight validation, single/two-pane determination
+//     A. ZyntaButton   — size/variant enum coverage, disabled state model
+//     B. ZyntaNumericPad — mode-driven key visibility rules, PIN masking logic
+//     C. ZyntaTable    — column sort state, empty/loading state transitions
+//     D. ZyntaScaffold — ZyntaNavItem construction, selection state
+//     E. ZyntaGrid     — WindowSize → column count mapping (§2.3)
+//     F. ZyntaListDetailLayout — weight validation, single/two-pane determination
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ══════════════════════════════════════════════════════════════════════════════
-// A. ZentaButton — Enum coverage & size tokens
+// A. ZyntaButton — Enum coverage & size tokens
 // ══════════════════════════════════════════════════════════════════════════════
 
-class ZentaButtonEnumTest {
+class ZyntaButtonEnumTest {
 
     @Test
     fun allVariantsAreDefined() {
-        val variants = ZentaButtonVariant.entries
-        assertTrue(variants.contains(ZentaButtonVariant.Primary), "Primary variant missing")
-        assertTrue(variants.contains(ZentaButtonVariant.Secondary), "Secondary variant missing")
-        assertTrue(variants.contains(ZentaButtonVariant.Danger), "Danger variant missing")
-        assertTrue(variants.contains(ZentaButtonVariant.Ghost), "Ghost variant missing")
-        assertTrue(variants.contains(ZentaButtonVariant.Icon), "Icon variant missing")
+        val variants = ZyntaButtonVariant.entries
+        assertTrue(variants.contains(ZyntaButtonVariant.Primary), "Primary variant missing")
+        assertTrue(variants.contains(ZyntaButtonVariant.Secondary), "Secondary variant missing")
+        assertTrue(variants.contains(ZyntaButtonVariant.Danger), "Danger variant missing")
+        assertTrue(variants.contains(ZyntaButtonVariant.Ghost), "Ghost variant missing")
+        assertTrue(variants.contains(ZyntaButtonVariant.Icon), "Icon variant missing")
         assertEquals(5, variants.size, "Expected exactly 5 button variants")
     }
 
     @Test
     fun smallButtonHeightIs32dp() {
-        assertEquals(32f, ZentaButtonSize.Small.height.value, "Small height must be 32dp per §3.3")
+        assertEquals(32f, ZyntaButtonSize.Small.height.value, "Small height must be 32dp per §3.3")
     }
 
     @Test
     fun mediumButtonHeightIs40dp() {
-        assertEquals(40f, ZentaButtonSize.Medium.height.value, "Medium height must be 40dp per §3.3")
+        assertEquals(40f, ZyntaButtonSize.Medium.height.value, "Medium height must be 40dp per §3.3")
     }
 
     @Test
     fun largeButtonHeightIs56dp() {
         // POS touch target spec: preferred height 56dp (UI/UX §2.2 touch_preferred)
-        assertEquals(56f, ZentaButtonSize.Large.height.value, "Large height must be 56dp per §2.2")
+        assertEquals(56f, ZyntaButtonSize.Large.height.value, "Large height must be 56dp per §2.2")
     }
 
     @Test
     fun horizontalPaddingScalesWithSize() {
         assertTrue(
-            ZentaButtonSize.Small.horizontalPadding < ZentaButtonSize.Medium.horizontalPadding,
+            ZyntaButtonSize.Small.horizontalPadding < ZyntaButtonSize.Medium.horizontalPadding,
             "Small padding must be less than Medium",
         )
         assertTrue(
-            ZentaButtonSize.Medium.horizontalPadding < ZentaButtonSize.Large.horizontalPadding,
+            ZyntaButtonSize.Medium.horizontalPadding < ZyntaButtonSize.Large.horizontalPadding,
             "Medium padding must be less than Large",
         )
     }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// B. ZentaNumericPad — Mode rules & PIN masking contract
+// B. ZyntaNumericPad — Mode rules & PIN masking contract
 // ══════════════════════════════════════════════════════════════════════════════
 
-class ZentaNumericPadModeTest {
+class ZyntaNumericPadModeTest {
 
     /** Model of the key-visibility rules to test without a Compose runtime. */
     private fun decimalKeyVisible(mode: NumericPadMode) = mode != NumericPadMode.PIN
@@ -136,15 +136,15 @@ class ZentaNumericPadModeTest {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// C. ZentaTable — Column model, sort state, empty/loading logic
+// C. ZyntaTable — Column model, sort state, empty/loading logic
 // ══════════════════════════════════════════════════════════════════════════════
 
-class ZentaTableStateTest {
+class ZyntaTableStateTest {
 
     private val testColumns = listOf(
-        ZentaTableColumn(key = "name", header = "Product", weight = 2f, sortable = true),
-        ZentaTableColumn(key = "price", header = "Price", weight = 1f, sortable = true),
-        ZentaTableColumn(key = "stock", header = "Stock", weight = 1f, sortable = false),
+        ZyntaTableColumn(key = "name", header = "Product", weight = 2f, sortable = true),
+        ZyntaTableColumn(key = "price", header = "Price", weight = 1f, sortable = true),
+        ZyntaTableColumn(key = "stock", header = "Stock", weight = 1f, sortable = false),
     )
 
     @Test
@@ -184,13 +184,13 @@ class ZentaTableStateTest {
 
     @Test
     fun weightDefaultIs1f() {
-        val col = ZentaTableColumn(key = "test", header = "Test")
+        val col = ZyntaTableColumn(key = "test", header = "Test")
         assertEquals(1f, col.weight)
     }
 
     @Test
     fun sortableDefaultIsTrue() {
-        val col = ZentaTableColumn(key = "test", header = "Test")
+        val col = ZyntaTableColumn(key = "test", header = "Test")
         assertTrue(col.sortable)
     }
 
@@ -214,10 +214,10 @@ class ZentaTableStateTest {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// D. ZentaScaffold / ZentaNavItem — Item model validation
+// D. ZyntaScaffold / ZyntaNavItem — Item model validation
 // ══════════════════════════════════════════════════════════════════════════════
 
-class ZentaNavItemTest {
+class ZyntaNavItemTest {
 
     @Test
     fun navItemSelectionIndexInBounds() {
@@ -258,10 +258,10 @@ class ZentaNavItemTest {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// E. ZentaGrid — WindowSize → column count mapping (§2.3)
+// E. ZyntaGrid — WindowSize → column count mapping (§2.3)
 // ══════════════════════════════════════════════════════════════════════════════
 
-class ZentaGridColumnCountTest {
+class ZyntaGridColumnCountTest {
 
     @Test
     fun compactWindowGivesFixedTwoColumns() {
@@ -293,10 +293,10 @@ class ZentaGridColumnCountTest {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// F. ZentaListDetailLayout / ZentaSplitPane — Weight validation & pane logic
+// F. ZyntaListDetailLayout / ZyntaSplitPane — Weight validation & pane logic
 // ══════════════════════════════════════════════════════════════════════════════
 
-class ZentaLayoutWeightTest {
+class ZyntaLayoutWeightTest {
 
     @Test
     fun compactWindowIsSinglePane() {

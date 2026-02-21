@@ -157,11 +157,11 @@ class ResultTest {
     }
 
     @Test
-    fun `getOrThrow throws ZentaException for Error`() {
+    fun `getOrThrow throws ZyntaException for Error`() {
         val ex = AuthException("no session")
         val result = Result.Error(ex)
         var caught: Throwable? = null
-        try { result.getOrThrow() } catch (e: ZentaException) { caught = e }
+        try { result.getOrThrow() } catch (e: ZyntaException) { caught = e }
         assertEquals(ex, caught)
     }
 

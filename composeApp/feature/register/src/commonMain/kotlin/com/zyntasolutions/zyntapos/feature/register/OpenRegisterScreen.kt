@@ -16,8 +16,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.zyntasolutions.zyntapos.designsystem.components.NumericPadMode
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaNumericPad
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaNumericPad
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.CashRegister
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -28,7 +28,7 @@ import org.koin.compose.viewmodel.koinViewModel
  * Left pane (40 %): Scrollable list of available registers — each is a selectable card
  * showing register name and status badge. Already-open registers show an error chip.
  *
- * Right pane (60 %): ZentaNumericPad (PRICE mode) for entering the opening balance,
+ * Right pane (60 %): ZyntaNumericPad (PRICE mode) for entering the opening balance,
  * optional notes field, and a primary "Open Register" button.
  *
  * ## Layout (Compact / Phone)
@@ -76,7 +76,7 @@ fun OpenRegisterScreen(
                     Icon(
                         imageVector = Icons.Default.PointOfSale,
                         contentDescription = null,
-                        modifier = Modifier.padding(start = ZentaSpacing.md),
+                        modifier = Modifier.padding(start = ZyntaSpacing.md),
                         tint = MaterialTheme.colorScheme.primary,
                     )
                 },
@@ -90,14 +90,14 @@ fun OpenRegisterScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(ZentaSpacing.md),
+                .padding(ZyntaSpacing.md),
         ) {
             val isWide = maxWidth >= 600.dp
 
             if (isWide) {
                 Row(
                     modifier = Modifier.fillMaxSize(),
-                    horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.lg),
+                    horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.lg),
                 ) {
                     // ── Left: Register selector ──────────────────────────
                     RegisterSelectorPanel(
@@ -126,7 +126,7 @@ fun OpenRegisterScreen(
                 // Compact: single scrollable column
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(ZentaSpacing.md),
+                    verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                 ) {
                     item {
                         RegisterSelectorPanel(
@@ -176,7 +176,7 @@ private fun RegisterSelectorPanel(
             fontWeight = FontWeight.SemiBold,
         )
 
-        Spacer(Modifier.height(ZentaSpacing.sm))
+        Spacer(Modifier.height(ZyntaSpacing.sm))
 
         if (error != null) {
             Text(
@@ -184,12 +184,12 @@ private fun RegisterSelectorPanel(
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall,
             )
-            Spacer(Modifier.height(ZentaSpacing.xs))
+            Spacer(Modifier.height(ZyntaSpacing.xs))
         }
 
         if (registers.isEmpty()) {
             Box(
-                modifier = Modifier.fillMaxWidth().padding(vertical = ZentaSpacing.xl),
+                modifier = Modifier.fillMaxWidth().padding(vertical = ZyntaSpacing.xl),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -200,7 +200,7 @@ private fun RegisterSelectorPanel(
             }
         } else {
             LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+                verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 items(registers, key = { it.id }) { register ->
@@ -243,7 +243,7 @@ private fun RegisterCard(
         colors = CardDefaults.outlinedCardColors(containerColor = containerColor),
     ) {
         Row(
-            modifier = Modifier.padding(ZentaSpacing.md),
+            modifier = Modifier.padding(ZyntaSpacing.md),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
@@ -306,7 +306,7 @@ private fun OpeningBalancePanel(
             fontWeight = FontWeight.SemiBold,
         )
 
-        Spacer(Modifier.height(ZentaSpacing.md))
+        Spacer(Modifier.height(ZyntaSpacing.md))
 
         // Format: right-to-left → "12345" shows as "123.45"
         val displayValue = buildString {
@@ -316,7 +316,7 @@ private fun OpeningBalancePanel(
             append(raw.takeLast(2))
         }
 
-        ZentaNumericPad(
+        ZyntaNumericPad(
             displayValue = displayValue,
             onDigit = onDigit,
             onDoubleZero = onDoubleZero,
@@ -326,7 +326,7 @@ private fun OpeningBalancePanel(
             mode = NumericPadMode.PRICE,
         )
 
-        Spacer(Modifier.height(ZentaSpacing.md))
+        Spacer(Modifier.height(ZyntaSpacing.md))
 
         // Opening notes (optional)
         OutlinedTextField(
@@ -337,7 +337,7 @@ private fun OpeningBalancePanel(
             maxLines = 2,
         )
 
-        Spacer(Modifier.height(ZentaSpacing.lg))
+        Spacer(Modifier.height(ZyntaSpacing.lg))
 
         // Confirm button
         Button(

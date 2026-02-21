@@ -14,12 +14,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaButton
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaDialog
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaSnackbarHost
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaTopAppBar
-import com.zyntasolutions.zyntapos.designsystem.layouts.ZentaScaffold
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaDialog
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSnackbarHost
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTopAppBar
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaScaffold
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.feature.settings.SettingsEffect
 import com.zyntasolutions.zyntapos.feature.settings.SettingsIntent
 import com.zyntasolutions.zyntapos.feature.settings.SettingsState
@@ -39,7 +39,7 @@ import kotlinx.datetime.toLocalDateTime
  *
  * "Backup Now" writes an encrypted copy of the DB and updates the timestamp.
  * "Restore" opens a file picker (via [SettingsEffect.OpenFilePicker]); once the
- * user selects a file, a [ZentaDialog] requires explicit confirmation before
+ * user selects a file, a [ZyntaDialog] requires explicit confirmation before
  * the restore proceeds.
  *
  * @param state     Current [SettingsState.BackupState] slice.
@@ -73,7 +73,7 @@ fun BackupSettingsScreen(
 
     // ── Restore confirmation dialog ───────────────────────────────────────────
     if (state.confirmRestore) {
-        ZentaDialog(
+        ZyntaDialog(
             title = "Confirm Restore",
             message = "Restore from '${state.restoreFilePath}'? All current data will be replaced.",
             confirmLabel = "Restore",
@@ -84,22 +84,22 @@ fun BackupSettingsScreen(
         )
     }
 
-    ZentaScaffold(
-        topBar = { ZentaTopAppBar(title = "Backup & Restore", onNavigationClick = onBack) },
-        snackbarHost = { ZentaSnackbarHost(snackbarHostState) },
+    ZyntaScaffold(
+        topBar = { ZyntaTopAppBar(title = "Backup & Restore", onNavigationClick = onBack) },
+        snackbarHost = { ZyntaSnackbarHost(snackbarHostState) },
     ) { innerPadding ->
         LazyColumn(
             contentPadding = PaddingValues(
-                start = ZentaSpacing.md,
-                end = ZentaSpacing.md,
-                top = innerPadding.calculateTopPadding() + ZentaSpacing.md,
-                bottom = innerPadding.calculateBottomPadding() + ZentaSpacing.md,
+                start = ZyntaSpacing.md,
+                end = ZyntaSpacing.md,
+                top = innerPadding.calculateTopPadding() + ZyntaSpacing.md,
+                bottom = innerPadding.calculateBottomPadding() + ZyntaSpacing.md,
             ),
-            verticalArrangement = Arrangement.spacedBy(ZentaSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
         ) {
             item {
                 SectionHeader("Backup")
-                Spacer(Modifier.height(ZentaSpacing.sm))
+                Spacer(Modifier.height(ZyntaSpacing.sm))
                 val lastBackupText = state.lastBackupAt?.let { instant ->
                     val local = instant.toLocalDateTime(TimeZone.currentSystemDefault())
                     "Last backup: ${local.date} at ${local.hour.toString().padStart(2, '0')}:${local.minute.toString().padStart(2, '0')}"
@@ -108,13 +108,13 @@ fun BackupSettingsScreen(
                     text = lastBackupText,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = ZentaSpacing.sm),
+                    modifier = Modifier.padding(bottom = ZyntaSpacing.sm),
                 )
                 state.backupError?.let {
                     Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(bottom = ZentaSpacing.sm))
+                        modifier = Modifier.padding(bottom = ZyntaSpacing.sm))
                 }
-                ZentaButton(
+                ZyntaButton(
                     text = if (state.isBackingUp) "Backing up…" else "Backup Now",
                     onClick = { onIntent(SettingsIntent.TriggerBackup) },
                     enabled = !state.isBackingUp && !state.isRestoring,
@@ -123,14 +123,14 @@ fun BackupSettingsScreen(
             }
             item {
                 SectionHeader("Restore")
-                Spacer(Modifier.height(ZentaSpacing.sm))
+                Spacer(Modifier.height(ZyntaSpacing.sm))
                 Text(
                     text = "Select a previously exported .db backup file to restore.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = ZentaSpacing.sm),
+                    modifier = Modifier.padding(bottom = ZyntaSpacing.sm),
                 )
-                ZentaButton(
+                ZyntaButton(
                     text = if (state.isRestoring) "Restoring…" else "Restore from Backup",
                     onClick = {
                         // In real implementation this triggers a platform file picker.

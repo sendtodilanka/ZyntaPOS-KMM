@@ -40,7 +40,7 @@ import kotlinx.coroutines.delay
  * if (showSuccessOverlay) {
  *     PaymentSuccessOverlay(onDismissed = {
  *         showSuccessOverlay = false
- *         navController.navigate(ZentaRoute.Receipt(orderId))
+ *         navController.navigate(ZyntaRoute.Receipt(orderId))
  *     })
  * }
  * ```

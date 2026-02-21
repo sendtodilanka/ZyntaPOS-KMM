@@ -4,12 +4,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.zyntasolutions.zyntapos.designsystem.components.StockIndicator
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaProductCard
-import com.zyntasolutions.zyntapos.designsystem.layouts.ZentaGrid
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaProductCard
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaGrid
 import com.zyntasolutions.zyntapos.domain.model.Product
 
 /**
- * Displays the product catalogue as a responsive [ZentaGrid] driven by [WindowSizeClass].
+ * Displays the product catalogue as a responsive [ZyntaGrid] driven by [WindowSizeClass].
  *
  * ### Column rules (per UI/UX plan §7.1 and PLAN_PHASE1.md §6.3.3):
  * - **COMPACT**  → 2 columns (phone portrait)
@@ -33,12 +33,12 @@ fun ProductGridSection(
     onAddToCart: (Product) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    ZentaGrid(
+    ZyntaGrid(
         items = products,
         key = { it.id },
         modifier = modifier.fillMaxSize(),
     ) { product ->
-        ZentaProductCard(
+        ZyntaProductCard(
             name = product.name,
             price = formatPrice(product.price),
             imageUrl = product.imageUrl,

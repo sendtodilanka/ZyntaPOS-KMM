@@ -138,27 +138,27 @@ The POS checkout screen is the most performance-critical UI in the entire system
 
 | Component | Variants | Key Properties |
 |-----------|----------|----------------|
-| `ZentaButton` | Primary, Secondary, Tertiary, Danger, Ghost | Stateless, size: SM/MD/LG, loading state, icon slot |
-| `ZentaIconButton` | Filled, Tonal, Outlined, Standard | 40dp/48dp, badge overlay |
-| `ZentaTextField` | Standard, Outlined, Search, Numeric | Validation state (error/success), leading/trailing icons, character counter |
-| `ZentaSearchBar` | Persistent, Expandable | Barcode icon trigger, voice input (future), debounced query emission |
-| `ZentaProductCard` | Grid tile, List row, Compact chip | Image, name, price, stock badge, tap-to-add behavior |
-| `ZentaCartItemRow` | Standard, Compact | Swipe-to-delete, inline qty stepper, discount badge |
-| `ZentaNumericPad` | Calculator, Payment, PIN | Large 56dp buttons, backspace, decimal, clear, auto-format currency |
-| `ZentaDialog` | Alert, Confirm, Input, Multi-Step | Title, body, action row (max 3 buttons), dismiss-on-outside-tap toggle |
-| `ZentaBottomSheet` | Standard, Expanding, Full-screen | Drag handle, peek height, content slots |
-| `ZentaTable` | Sortable, Paginated, Selectable | Column definitions, row click action, bulk action toolbar |
-| `ZentaStatusChip` | Success, Warning, Error, Info, Neutral | Icon + label, compact sizing |
-| `ZentaBadge` | Dot, Count, Status | Overlay positioning for icons/nav items |
-| `ZentaSnackbarHost` | Info, Success, Warning, Error | Auto-dismiss (4s), action button, queue manager |
-| `ZentaLoadingSkeleton` | Card, Row, Grid, Text | Shimmer animation, matches target component dimensions |
-| `ZentaEmptyState` | Illustration + Title + Subtitle + CTA | Used when lists/grids have zero items |
-| `ZentaSyncIndicator` | Inline, AppBar chip | Pulsing dot (syncing), checkmark (synced), warning (pending), error (failed) |
-| `ZentaScaffold` | Adaptive navigation scaffold | Switches between bottom bar (Compact), rail (Medium), drawer (Expanded) |
-| `ZentaSplitPane` | Horizontal, Vertical | Resizable divider, min/max constraints, for Desktop master-detail |
-| `ZentaDatePicker` | Single, Range | Calendar view, preset ranges (Today, This Week, This Month, Custom) |
-| `ZentaCurrencyText` | Standard, Large, Compact | Auto-format by locale, symbol positioning, negative in red |
-| `ZentaLoadingOverlay` | Full-screen | Semi-transparent scrim (0.45α) + `CircularProgressIndicator`; placed in a `Box` above screen content when a blocking operation is running |
+| `ZyntaButton` | Primary, Secondary, Tertiary, Danger, Ghost | Stateless, size: SM/MD/LG, loading state, icon slot |
+| `ZyntaIconButton` | Filled, Tonal, Outlined, Standard | 40dp/48dp, badge overlay |
+| `ZyntaTextField` | Standard, Outlined, Search, Numeric | Validation state (error/success), leading/trailing icons, character counter |
+| `ZyntaSearchBar` | Persistent, Expandable | Barcode icon trigger, voice input (future), debounced query emission |
+| `ZyntaProductCard` | Grid tile, List row, Compact chip | Image, name, price, stock badge, tap-to-add behavior |
+| `ZyntaCartItemRow` | Standard, Compact | Swipe-to-delete, inline qty stepper, discount badge |
+| `ZyntaNumericPad` | Calculator, Payment, PIN | Large 56dp buttons, backspace, decimal, clear, auto-format currency |
+| `ZyntaDialog` | Alert, Confirm, Input, Multi-Step | Title, body, action row (max 3 buttons), dismiss-on-outside-tap toggle |
+| `ZyntaBottomSheet` | Standard, Expanding, Full-screen | Drag handle, peek height, content slots |
+| `ZyntaTable` | Sortable, Paginated, Selectable | Column definitions, row click action, bulk action toolbar |
+| `ZyntaStatusChip` | Success, Warning, Error, Info, Neutral | Icon + label, compact sizing |
+| `ZyntaBadge` | Dot, Count, Status | Overlay positioning for icons/nav items |
+| `ZyntaSnackbarHost` | Info, Success, Warning, Error | Auto-dismiss (4s), action button, queue manager |
+| `ZyntaLoadingSkeleton` | Card, Row, Grid, Text | Shimmer animation, matches target component dimensions |
+| `ZyntaEmptyState` | Illustration + Title + Subtitle + CTA | Used when lists/grids have zero items |
+| `ZyntaSyncIndicator` | Inline, AppBar chip | Pulsing dot (syncing), checkmark (synced), warning (pending), error (failed) |
+| `ZyntaScaffold` | Adaptive navigation scaffold | Switches between bottom bar (Compact), rail (Medium), drawer (Expanded) |
+| `ZyntaSplitPane` | Horizontal, Vertical | Resizable divider, min/max constraints, for Desktop master-detail |
+| `ZyntaDatePicker` | Single, Range | Calendar view, preset ranges (Today, This Week, This Month, Custom) |
+| `ZyntaCurrencyText` | Standard, Large, Compact | Auto-format by locale, symbol positioning, negative in red |
+| `ZyntaLoadingOverlay` | Full-screen | Semi-transparent scrim (0.45α) + `CircularProgressIndicator`; placed in a `Box` above screen content when a blocking operation is running |
 
 > **⚠️ Component Backlog — Sprint 9–10 (pending creation)**
 >
@@ -166,12 +166,12 @@ The POS checkout screen is the most performance-critical UI in the entire system
 >
 > | # | Component | File to Create | Notes |
 > |---|---|---|---|
-> | 1 | `ZentaLoadingSkeleton` | `ZentaLoadingSkeleton.kt` | **Distinct from `ZentaLoadingOverlay`**. Renders shimmer-animated placeholder shapes (Card / Row / Grid / Text variants) that mirror the target layout. Non-blocking — chrome remains interactive. Show when data load exceeds 200ms (screen) or 300ms (refresh). |
-> | 2 | `ZentaStatusChip` | `ZentaStatusChip.kt` | Icon + label chip; variants: Success, Warning, Error, Info, Neutral. Used for order status, stock status, sync state labels across list rows and detail screens. |
-> | 3 | `ZentaDatePicker` | `ZentaDatePicker.kt` | Wraps M3 `DatePicker` / `DateRangePicker`. Preset ranges: Today, This Week, This Month, Custom. Used in Reports and Customer History screens. |
-> | 4 | `ZentaCurrencyText` | `ZentaCurrencyText.kt` | Locale-aware currency formatter composable. Variants: Standard, Large (totals), Compact (table cells). Negative values render in `MaterialTheme.colorScheme.error` (red). |
+> | 1 | `ZyntaLoadingSkeleton` | `ZyntaLoadingSkeleton.kt` | **Distinct from `ZyntaLoadingOverlay`**. Renders shimmer-animated placeholder shapes (Card / Row / Grid / Text variants) that mirror the target layout. Non-blocking — chrome remains interactive. Show when data load exceeds 200ms (screen) or 300ms (refresh). |
+> | 2 | `ZyntaStatusChip` | `ZyntaStatusChip.kt` | Icon + label chip; variants: Success, Warning, Error, Info, Neutral. Used for order status, stock status, sync state labels across list rows and detail screens. |
+> | 3 | `ZyntaDatePicker` | `ZyntaDatePicker.kt` | Wraps M3 `DatePicker` / `DateRangePicker`. Preset ranges: Today, This Week, This Month, Custom. Used in Reports and Customer History screens. |
+> | 4 | `ZyntaCurrencyText` | `ZyntaCurrencyText.kt` | Locale-aware currency formatter composable. Variants: Standard, Large (totals), Compact (table cells). Negative values render in `MaterialTheme.colorScheme.error` (red). |
 >
-> `ZentaIconButton` (listed in this table) is intentionally implemented as an **Icon variant** inside `ZentaButton.kt` per PLAN_PHASE1.md §6.2.1 and does not require a separate file.
+> `ZyntaIconButton` (listed in this table) is intentionally implemented as an **Icon variant** inside `ZyntaButton.kt` per PLAN_PHASE1.md §6.2.1 and does not require a separate file.
 
 ---
 
@@ -271,11 +271,11 @@ The POS checkout screen is the most performance-critical UI in the entire system
   - **Compact:** Single centered column. Logo at top (20% height), form fields center, CTA bottom-anchored.
   - **Medium/Expanded:** Centered card (400dp max width) overlaid on a branded gradient background. Logo above card.
 - **[KEY UI COMPONENTS]:**
-  - `ZentaTextField` — Email/username field with leading person icon
-  - `ZentaTextField` — Password field with visibility toggle
-  - `ZentaButton(Primary)` — "Sign In" (full width within card)
+  - `ZyntaTextField` — Email/username field with leading person icon
+  - `ZyntaTextField` — Password field with visibility toggle
+  - `ZyntaButton(Primary)` — "Sign In" (full width within card)
   - Text link — "Forgot Password?"
-  - `ZentaStatusChip` — Offline mode indicator (when no network): "Offline — Cached login available"
+  - `ZyntaStatusChip` — Offline mode indicator (when no network): "Offline — Cached login available"
   - Store selector dropdown — visible only for multi-store deployments
 - **[USER FLOW & INTERACTIONS]:**
   1. User enters credentials → taps "Sign In"
@@ -295,7 +295,7 @@ The POS checkout screen is the most performance-critical UI in the entire system
 - **[LAYOUT TOPOGRAPHY]:** Full-screen overlay. Current user avatar + name at top, 4–6 digit PIN pad center, "Switch User" text button below pad.
 - **[KEY UI COMPONENTS]:**
   - User avatar circle (64dp) + name label
-  - `ZentaNumericPad(PIN)` — 3×4 grid: digits 0–9, backspace, clear. No decimal.
+  - `ZyntaNumericPad(PIN)` — 3×4 grid: digits 0–9, backspace, clear. No decimal.
   - PIN dot indicators (4–6 filled circles)
   - "Switch User" link → navigates to full Login screen
   - "Lock" button in app bar triggers this screen
@@ -322,12 +322,12 @@ The POS checkout screen is the most performance-critical UI in the entire system
   - **Medium (Tablet):** Single-column scrollable. KPI cards in 2×2 grid → Chart (full width) → Quick actions (3-column grid) → Alerts → Recent orders.
   - **Compact (Phone):** Single-column scrollable. KPI cards as horizontal scroll chips → Spark chart (compact) → Quick actions (2-column) → Alerts (collapsible) → Recent orders (card list).
 - **[KEY UI COMPONENTS]:**
-  - `ZentaKpiCard` — Icon, label, large number (DisplayLarge for revenue), delta badge (+12.5% ↑)
-  - `ZentaSalesChart` — Line chart (default), bar chart toggle. Uses recharts/compose-charts. Period selector (Today, 7D, 30D, Custom).
-  - `ZentaQuickActionGrid` — Large icon tiles: "New Sale", "Open Register", "Add Product", "Stock Check", "View Reports", "Scan Barcode"
-  - `ZentaAlertCard` — Priority-colored left border. Types: Low Stock, Sync Failure, Register Not Closed, Expiring Products.
-  - `ZentaRecentOrdersTable` — Columns: Order#, Customer, Items, Total, Status, Time. Row click → order detail.
-  - `ZentaSyncStatusPanel` — Last sync time, pending operations count, force-sync button.
+  - `ZyntaKpiCard` — Icon, label, large number (DisplayLarge for revenue), delta badge (+12.5% ↑)
+  - `ZyntaSalesChart` — Line chart (default), bar chart toggle. Uses recharts/compose-charts. Period selector (Today, 7D, 30D, Custom).
+  - `ZyntaQuickActionGrid` — Large icon tiles: "New Sale", "Open Register", "Add Product", "Stock Check", "View Reports", "Scan Barcode"
+  - `ZyntaAlertCard` — Priority-colored left border. Types: Low Stock, Sync Failure, Register Not Closed, Expiring Products.
+  - `ZyntaRecentOrdersTable` — Columns: Order#, Customer, Items, Total, Status, Time. Row click → order detail.
+  - `ZyntaSyncStatusPanel` — Last sync time, pending operations count, force-sync button.
 - **[USER FLOW & INTERACTIONS]:**
   1. Dashboard auto-refreshes every 60s (configurable). Uses StateFlow from `DashboardViewModel`.
   2. Quick action tiles → navigate directly to respective screens.
@@ -383,14 +383,14 @@ The POS checkout screen is the most performance-critical UI in the entire system
   - **Right pane (40%):** Customer selector → Order type selector → Cart item list (scrollable) → Totals summary → Action buttons → PAY button (largest element, primary color).
 
 - **[KEY UI COMPONENTS]:**
-  - `ZentaSearchBar` — Persistent at top. Dual-mode: text search (FTS5) OR barcode input. Barcode icon toggles camera scan (mobile) or keeps focus for USB scanner wedge input (desktop). Auto-clears after product added.
-  - `ZentaCategoryTabRow` — Horizontally scrollable chip tabs. "All" is default. Fetched from categories table. Supports nested sub-categories via long-press dropdown.
-  - `ZentaProductCard(Grid)` — Image (or placeholder initial), product name (max 2 lines), price (bold), stock badge (green ✅ / amber ⚠️ / red ❌). Tap → add 1 to cart with haptic feedback. Long-press → variant selector bottom sheet if product has variations.
-  - `ZentaCartItemRow` — Product name, unit, quantity stepper (−/+), line total, swipe-left to reveal delete. Tap on name → edit item dialog (discount, notes, unit change).
-  - `ZentaOrderSummary` — Subtotal, tax breakdown, discount line (tap to modify), delivery fee (if applicable), bold total.
-  - `ZentaButton(Primary, LG)` — "PAY $77.80" — full width of right pane, 64dp height, primary color. Disabled + grayed when cart is empty.
-  - `ZentaActionButtonRow` — Secondary buttons: Clear Cart, Hold Order, Apply Discount, Order Info, Apply Coupon. Icon + label, wrapped row.
-  - `ZentaHeldOrdersBadge` — Displayed in app bar showing count of held orders. Tap → bottom sheet listing held orders with resume/delete actions.
+  - `ZyntaSearchBar` — Persistent at top. Dual-mode: text search (FTS5) OR barcode input. Barcode icon toggles camera scan (mobile) or keeps focus for USB scanner wedge input (desktop). Auto-clears after product added.
+  - `ZyntaCategoryTabRow` — Horizontally scrollable chip tabs. "All" is default. Fetched from categories table. Supports nested sub-categories via long-press dropdown.
+  - `ZyntaProductCard(Grid)` — Image (or placeholder initial), product name (max 2 lines), price (bold), stock badge (green ✅ / amber ⚠️ / red ❌). Tap → add 1 to cart with haptic feedback. Long-press → variant selector bottom sheet if product has variations.
+  - `ZyntaCartItemRow` — Product name, unit, quantity stepper (−/+), line total, swipe-left to reveal delete. Tap on name → edit item dialog (discount, notes, unit change).
+  - `ZyntaOrderSummary` — Subtotal, tax breakdown, discount line (tap to modify), delivery fee (if applicable), bold total.
+  - `ZyntaButton(Primary, LG)` — "PAY $77.80" — full width of right pane, 64dp height, primary color. Disabled + grayed when cart is empty.
+  - `ZyntaActionButtonRow` — Secondary buttons: Clear Cart, Hold Order, Apply Discount, Order Info, Apply Coupon. Icon + label, wrapped row.
+  - `ZyntaHeldOrdersBadge` — Displayed in app bar showing count of held orders. Tap → bottom sheet listing held orders with resume/delete actions.
 
 - **[USER FLOW & INTERACTIONS]:**
   1. **Add product:** Tap product card → item appears in cart with qty 1. Subsequent taps increment qty.
@@ -480,13 +480,13 @@ The POS checkout screen is the most performance-critical UI in the entire system
   └──────────────────────────────────┴──────────────────────────────────┘
   ```
 - **[KEY UI COMPONENTS]:**
-  - `ZentaPaymentMethodSelector` — Large icon chips for each method. Active chip highlighted. "Split" opens multi-tender mode.
-  - `ZentaNumericPad(Calculator)` — Full numeric pad with decimal, backspace, clear. 56dp buttons.
-  - `ZentaQuickAmountRow` — Preset denomination buttons calculated contextually (nearest round-ups to total).
-  - `ZentaCurrencyText(Large)` — Entered amount, auto-formatted with currency symbol.
-  - `ZentaChangeDisplay` — Shows "Change: $22.20" in green when overpaid. Shows "Remaining: $27.80" in amber when underpaid.
-  - `ZentaButton(Primary, LG)` — "CONFIRM PAYMENT" — disabled until amount ≥ total (for cash) or gateway confirmed (for card).
-  - `ZentaSplitPaymentPanel` — Shown when "Split" selected: list of tender lines, each with method + amount, running remaining balance.
+  - `ZyntaPaymentMethodSelector` — Large icon chips for each method. Active chip highlighted. "Split" opens multi-tender mode.
+  - `ZyntaNumericPad(Calculator)` — Full numeric pad with decimal, backspace, clear. 56dp buttons.
+  - `ZyntaQuickAmountRow` — Preset denomination buttons calculated contextually (nearest round-ups to total).
+  - `ZyntaCurrencyText(Large)` — Entered amount, auto-formatted with currency symbol.
+  - `ZyntaChangeDisplay` — Shows "Change: $22.20" in green when overpaid. Shows "Remaining: $27.80" in amber when underpaid.
+  - `ZyntaButton(Primary, LG)` — "CONFIRM PAYMENT" — disabled until amount ≥ total (for cash) or gateway confirmed (for card).
+  - `ZyntaSplitPaymentPanel` — Shown when "Split" selected: list of tender lines, each with method + amount, running remaining balance.
 - **[USER FLOW & INTERACTIONS]:**
   1. Select payment method → numeric pad activates for Cash/Bank Transfer.
   2. For Card: tap "Card" → triggers payment gateway flow (external SDK dialog or redirect).
@@ -511,10 +511,10 @@ The POS checkout screen is the most performance-critical UI in the entire system
   - **Medium:** Full-width product table. Row tap → navigate to product detail screen.
   - **Compact:** Card list (single column). Tap → full-screen detail.
 - **[KEY UI COMPONENTS]:**
-  - `ZentaSearchBar` — With barcode scan trigger, category filter chip row, stock status filter (All, In Stock, Low, Out)
-  - `ZentaTable` (Expanded/Medium) / `ZentaProductCard(List)` (Compact) — Columns: Image (48dp thumb), Name, SKU, Category, Price, Stock Qty, Status
-  - `ZentaFAB` — "+ Add Product" floating action button
-  - `ZentaFilterChipRow` — Category, Stock Status, Product Type (Stockable/Service/Non-stockable)
+  - `ZyntaSearchBar` — With barcode scan trigger, category filter chip row, stock status filter (All, In Stock, Low, Out)
+  - `ZyntaTable` (Expanded/Medium) / `ZyntaProductCard(List)` (Compact) — Columns: Image (48dp thumb), Name, SKU, Category, Price, Stock Qty, Status
+  - `ZyntaFAB` — "+ Add Product" floating action button
+  - `ZyntaFilterChipRow` — Category, Stock Status, Product Type (Stockable/Service/Non-stockable)
   - Bulk action toolbar (on multi-select): Delete, Change Category, Adjust Price, Export
   - View toggle: Grid / List
 - **[USER FLOW & INTERACTIONS]:**
@@ -536,11 +536,11 @@ The POS checkout screen is the most performance-critical UI in the entire system
 - **[KEY UI COMPONENTS]:**
   - Product search autocomplete field
   - Radio group: Increase / Decrease / Transfer
-  - `ZentaNumericPad` or standard number input for quantity
+  - `ZyntaNumericPad` or standard number input for quantity
   - Reason dropdown (Received Stock, Damaged, Expired, Count Correction, Other)
   - Warehouse selector (if multi-warehouse enabled)
   - Notes text area
-  - `ZentaButton(Primary)` — "Submit Adjustment"
+  - `ZyntaButton(Primary)` — "Submit Adjustment"
 - **[USER FLOW & INTERACTIONS]:**
   1. Search product → select → current stock displayed.
   2. Choose adjustment type → enter qty → select reason.
@@ -558,11 +558,11 @@ The POS checkout screen is the most performance-critical UI in the entire system
   - **Expanded:** Left panel: Register list with status badges (Open/Closed). Right panel: Active register detail (current session, cash movements, balance).
   - **Medium/Compact:** Register list → tap to open detail.
 - **[KEY UI COMPONENTS]:**
-  - `ZentaRegisterCard` — Register name, assigned user, status badge (Open=green, Closed=neutral), opening balance, current balance.
-  - Open Register dialog: Starting cash input via `ZentaNumericPad`, denominations breakdown (optional).
+  - `ZyntaRegisterCard` — Register name, assigned user, status badge (Open=green, Closed=neutral), opening balance, current balance.
+  - Open Register dialog: Starting cash input via `ZyntaNumericPad`, denominations breakdown (optional).
   - Close Register dialog: Multi-step wizard — physical count input → system-calculated expected amount → discrepancy display → notes → confirm close → generates closing report.
   - Cash In/Out dialog: Amount input, reason dropdown (Petty Cash, Tip Deposit, Bank Run, etc.), notes.
-  - `ZentaTransactionHistory` — Chronological list of all cash movements in current session.
+  - `ZyntaTransactionHistory` — Chronological list of all cash movements in current session.
 - **[USER FLOW & INTERACTIONS]:**
   1. Cashier must open register before POS is accessible (enforced).
   2. Open → enter float amount → confirm → register session starts.
@@ -582,10 +582,10 @@ The POS checkout screen is the most performance-critical UI in the entire system
   - **Expanded:** Master-detail. Left: Searchable customer table (Name, Phone, Group, Balance, Points). Right: Customer 360° profile.
   - **Medium/Compact:** Customer list → tap for full profile screen.
 - **[KEY UI COMPONENTS]:**
-  - `ZentaSearchBar` — Search by name, phone, email, customer code.
-  - `ZentaTable` / `ZentaCustomerCard(List)` — Name, phone, group, wallet balance, loyalty points, last purchase date.
+  - `ZyntaSearchBar` — Search by name, phone, email, customer code.
+  - `ZyntaTable` / `ZyntaCustomerCard(List)` — Name, phone, group, wallet balance, loyalty points, last purchase date.
   - Customer 360° Profile view: Tabbed — Overview (contact + stats), Orders (purchase history), Wallet (balance + transaction log), Loyalty (points, tier, rewards), Notes.
-  - `ZentaFAB` — "+ Add Customer"
+  - `ZyntaFAB` — "+ Add Customer"
   - Quick Add Customer bottom sheet: Name, Phone, Email (minimal). Full form accessible from profile edit.
   - Wallet actions: Add Funds, Deduct, Transfer. Each requires amount + reason.
 - **[USER FLOW & INTERACTIONS]:**
@@ -609,12 +609,12 @@ The POS checkout screen is the most performance-critical UI in the entire system
   - **Compact:** Category dropdown → report content.
 - **[KEY UI COMPONENTS]:**
   - Report category navigation (sidebar/tabs/dropdown)
-  - `ZentaDatePicker(Range)` — Period selector with presets (Today, Yesterday, This Week, This Month, Last 30 Days, Custom)
+  - `ZyntaDatePicker(Range)` — Period selector with presets (Today, Yesterday, This Week, This Month, Last 30 Days, Custom)
   - Filter panel: Store, Cashier, Payment Method, Product Category (varies per report type)
-  - `ZentaSalesChart` — Line, Bar, Pie chart options. Interactive with tooltips.
-  - `ZentaTable(Sortable, Paginated)` — Tabular data display for detailed reports.
+  - `ZyntaSalesChart` — Line, Bar, Pie chart options. Interactive with tooltips.
+  - `ZyntaTable(Sortable, Paginated)` — Tabular data display for detailed reports.
   - Export actions bar: CSV, Excel, PDF, Print buttons.
-  - `ZentaKpiCard` row — Summary metrics at top of each report (Total Revenue, # Orders, Avg Ticket, etc.)
+  - `ZyntaKpiCard` row — Summary metrics at top of each report (Total Revenue, # Orders, Avg Ticket, etc.)
 - **[USER FLOW & INTERACTIONS]:**
   1. Select report category → default report loads with "Today" period.
   2. Adjust date range → data reloads with skeleton loading.
@@ -635,10 +635,10 @@ The POS checkout screen is the most performance-critical UI in the entire system
   - **Expanded:** Table list of coupons with inline status badges → side panel for creation/edit.
   - **Medium/Compact:** Card list → full-screen form.
 - **[KEY UI COMPONENTS]:**
-  - `ZentaTable` / Card list — Code, Description, Type (Flat/Percentage/BOGO), Value, Status (Active/Expired/Disabled), Uses/Limit, Validity dates.
-  - `ZentaFAB` — "+ Create Coupon"
+  - `ZyntaTable` / Card list — Code, Description, Type (Flat/Percentage/BOGO), Value, Status (Active/Expired/Disabled), Uses/Limit, Validity dates.
+  - `ZyntaFAB` — "+ Create Coupon"
   - Coupon creation form: Code (auto-generate or manual), Type picker, Value, Min order amount, Applicable products/categories, Usage limits (per customer, total), Date range, Customer restrictions.
-  - `ZentaStatusChip` — Active (green), Scheduled (blue), Expired (gray), Disabled (red).
+  - `ZyntaStatusChip` — Active (green), Scheduled (blue), Expired (gray), Disabled (red).
 - **[USER FLOW & INTERACTIONS]:**
   1. List shows all coupons sorted by creation date.
   2. Status filter tabs: All, Active, Scheduled, Expired.
@@ -659,10 +659,10 @@ The POS checkout screen is the most performance-critical UI in the entire system
   - **Medium:** Store cards in 2-column grid.
   - **Compact:** Scrollable card list.
 - **[KEY UI COMPONENTS]:**
-  - `ZentaStoreCard` — Store name, address, status (Online/Offline), today's revenue, today's orders, active registers count.
+  - `ZyntaStoreCard` — Store name, address, status (Online/Offline), today's revenue, today's orders, active registers count.
   - Store detail view: tabbed — Overview (KPIs + chart), Inventory (stock summary), Staff (active users), Transfers (pending/completed).
   - Inter-store transfer wizard: Source store → Product selection → Quantity → Destination store → Confirm.
-  - `ZentaComparisonChart` — Multi-line chart overlaying metrics from selected stores.
+  - `ZyntaComparisonChart` — Multi-line chart overlaying metrics from selected stores.
   - Store creation form: Name, address, phone, tax settings, warehouse assignment.
 - **[USER FLOW & INTERACTIONS]:**
   1. Admin sees all stores at a glance. Clickable for drilldown.
@@ -709,7 +709,7 @@ The POS checkout screen is the most performance-critical UI in the entire system
   - Expense creation form: Category (from chart of accounts), Amount, Date, Recurrence toggle (one-time/daily/weekly/monthly), Receipt photo upload, Notes.
   - Chart of Accounts tree: Expandable tree view showing account hierarchy.
   - Financial statements: P&L, Cash Flow, Balance Sheet — rendered as formatted tables with period comparison.
-  - `ZentaFAB` — "+ Record Expense"
+  - `ZyntaFAB` — "+ Record Expense"
 - **[USER FLOW & INTERACTIONS]:**
   1. Default view: expenses for current period.
   2. Add expense → form with category autocomplete → optional receipt photo → submit.
@@ -845,12 +845,12 @@ The POS checkout screen is the most performance-critical UI in the entire system
 
 | Scenario | Pattern | Duration Threshold |
 |----------|---------|-------------------|
-| Screen load | `ZentaLoadingSkeleton` matching target layout shape | Show if > 200ms |
-| Data refresh | `ZentaLoadingSkeleton` overlay on data region, keep chrome visible | Show if > 300ms |
-| Blocking operation | `ZentaLoadingOverlay` — full-screen scrim + spinner, blocks interaction | Immediate |
+| Screen load | `ZyntaLoadingSkeleton` matching target layout shape | Show if > 200ms |
+| Data refresh | `ZyntaLoadingSkeleton` overlay on data region, keep chrome visible | Show if > 300ms |
+| Blocking operation | `ZyntaLoadingOverlay` — full-screen scrim + spinner, blocks interaction | Immediate |
 | Button action | Button shows inline spinner, text changes to "Processing..." | Immediate on tap |
 | Form submit | Inline spinner on submit button + disable all form fields | Immediate on submit |
-| Background sync | `ZentaSyncIndicator` pulsing dot in app bar — non-blocking | Ambient, always visible |
+| Background sync | `ZyntaSyncIndicator` pulsing dot in app bar — non-blocking | Ambient, always visible |
 
 ### 20.2 Snackbar Notifications
 
@@ -901,7 +901,7 @@ The UX must never block the cashier due to network state. Offline-first means th
 
 | Component | Location | Online State | Offline State | Syncing State |
 |-----------|----------|-------------|---------------|---------------|
-| `ZentaSyncIndicator` | App Bar (right) | Green dot + "Synced" | Amber dot + "Offline" | Pulsing blue dot + "Syncing..." |
+| `ZyntaSyncIndicator` | App Bar (right) | Green dot + "Synced" | Amber dot + "Offline" | Pulsing blue dot + "Syncing..." |
 | Sync detail panel | Settings → Sync, or long-press on sync indicator | Last sync: 2 min ago. Pending: 0. | Pending: 47 operations. [View Queue] | Progress: 23/47 operations. |
 | Data freshness hint | Below lists/tables (optional) | Hidden | "Showing cached data from {timestamp}" | "Updating data..." |
 
@@ -1025,14 +1025,14 @@ Pending sync operations should never be hidden from the user:
 
 | Design Component | Compose Composable | Module |
 |------------------|--------------------|--------|
-| ZentaButton | `@Composable fun ZentaButton(text, onClick, variant, size, enabled, loading)` | `:composeApp:designsystem` |
-| ZentaTextField | `@Composable fun ZentaTextField(value, onValueChange, label, error, leadingIcon, trailingIcon)` | `:composeApp:designsystem` |
-| ZentaProductCard | `@Composable fun ZentaProductCard(product, onClick, onLongClick, variant)` | `:composeApp:designsystem` |
-| ZentaNumericPad | `@Composable fun ZentaNumericPad(onDigit, onClear, onBackspace, onDecimal, mode)` | `:composeApp:designsystem` |
-| ZentaScaffold | `@Composable fun ZentaScaffold(windowSizeClass, navigationItems, content)` | `:composeApp:designsystem` |
-| ZentaSplitPane | `@Composable fun ZentaSplitPane(firstWeight, firstContent, secondContent)` | `:composeApp:designsystem` |
-| ZentaSyncIndicator | `@Composable fun ZentaSyncIndicator(syncState)` | `:composeApp:designsystem` |
-| ZentaCartItemRow | `@Composable fun ZentaCartItemRow(item, onQtyChange, onRemove, onItemClick)` | `:composeApp:feature:pos` |
+| ZyntaButton | `@Composable fun ZyntaButton(text, onClick, variant, size, enabled, loading)` | `:composeApp:designsystem` |
+| ZyntaTextField | `@Composable fun ZyntaTextField(value, onValueChange, label, error, leadingIcon, trailingIcon)` | `:composeApp:designsystem` |
+| ZyntaProductCard | `@Composable fun ZyntaProductCard(product, onClick, onLongClick, variant)` | `:composeApp:designsystem` |
+| ZyntaNumericPad | `@Composable fun ZyntaNumericPad(onDigit, onClear, onBackspace, onDecimal, mode)` | `:composeApp:designsystem` |
+| ZyntaScaffold | `@Composable fun ZyntaScaffold(windowSizeClass, navigationItems, content)` | `:composeApp:designsystem` |
+| ZyntaSplitPane | `@Composable fun ZyntaSplitPane(firstWeight, firstContent, secondContent)` | `:composeApp:designsystem` |
+| ZyntaSyncIndicator | `@Composable fun ZyntaSyncIndicator(syncState)` | `:composeApp:designsystem` |
+| ZyntaCartItemRow | `@Composable fun ZyntaCartItemRow(item, onQtyChange, onRemove, onItemClick)` | `:composeApp:feature:pos` |
 
 ---
 

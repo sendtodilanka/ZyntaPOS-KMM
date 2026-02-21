@@ -4,7 +4,7 @@ import app.cash.sqldelight.db.AfterVersion
 import app.cash.sqldelight.db.QueryResult
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.db.SqlSchema
-import com.zyntasolutions.zyntapos.core.logger.ZentaLogger
+import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
 
 /**
@@ -65,32 +65,32 @@ class DatabaseMigrations {
         val currentVersion = getSchemaVersion(driver)
         val targetVersion  = schema.version
 
-        ZentaLogger.d(TAG, "Schema check — disk: v$currentVersion, compiled: v$targetVersion")
+        ZyntaLogger.d(TAG, "Schema check — disk: v$currentVersion, compiled: v$targetVersion")
 
         when {
             currentVersion == 0L -> {
                 // Brand-new database: create all tables from the compiled schema
-                ZentaLogger.i(TAG, "Creating ZyntaPOS schema at version $targetVersion (first launch).")
+                ZyntaLogger.i(TAG, "Creating ZyntaPOS schema at version $targetVersion (first launch).")
                 schema.create(driver)
                 setSchemaVersion(driver, targetVersion)
-                ZentaLogger.i(TAG, "Schema v$targetVersion created successfully.")
+                ZyntaLogger.i(TAG, "Schema v$targetVersion created successfully.")
             }
 
             currentVersion < targetVersion -> {
                 // Upgrade path: apply incremental migrations from currentVersion → targetVersion
-                ZentaLogger.i(TAG, "Migrating schema: v$currentVersion → v$targetVersion")
+                ZyntaLogger.i(TAG, "Migrating schema: v$currentVersion → v$targetVersion")
                 schema.migrate(
                     driver  = driver,
                     oldVersion = currentVersion,
                     newVersion = targetVersion,
                     *afterVersionCallbacks,
                 )
-                ZentaLogger.i(TAG, "Migration to v$targetVersion completed successfully.")
+                ZyntaLogger.i(TAG, "Migration to v$targetVersion completed successfully.")
             }
 
             currentVersion == targetVersion -> {
                 // No-op: database is already at the correct version
-                ZentaLogger.d(TAG, "Schema is current at v$currentVersion — no migration needed.")
+                ZyntaLogger.d(TAG, "Schema is current at v$currentVersion — no migration needed.")
             }
 
             else -> {
@@ -134,7 +134,7 @@ class DatabaseMigrations {
         // Phase 1: No post-migration data transforms required.
         // Phase 2+ entries will follow the pattern:
         // AfterVersion(1) { driver ->
-        //     ZentaLogger.i(TAG, "Running post-v1 data transform: encrypting email column.")
+        //     ZyntaLogger.i(TAG, "Running post-v1 data transform: encrypting email column.")
         //     // ... batch encryption via AES-256-GCM EncryptionManager ...
         // }
     )

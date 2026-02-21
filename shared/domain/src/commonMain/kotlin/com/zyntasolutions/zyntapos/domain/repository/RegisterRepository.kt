@@ -32,7 +32,7 @@ interface RegisterRepository {
      * @param openingBalance Physical cash counted in the drawer at open time.
      * @param userId         UUID of the [User] performing the open.
      * @return [Result.Success] with the created [RegisterSession], or
-     *         [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZentaException.ValidationException]
+     *         [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZyntaException.ValidationException]
      *         if a session is already open.
      */
     suspend fun openSession(

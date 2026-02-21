@@ -15,8 +15,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.zyntasolutions.zyntapos.designsystem.components.NumericPadMode
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaNumericPad
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaNumericPad
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -26,7 +26,7 @@ import org.koin.compose.viewmodel.koinViewModel
  * Left pane (45 %): Session summary showing expected balance (read-only),
  * discrepancy display (green if within threshold, red if exceeds), and closing notes.
  *
- * Right pane (55 %): [ZentaNumericPad] (PRICE mode) for entering the actual
+ * Right pane (55 %): [ZyntaNumericPad] (PRICE mode) for entering the actual
  * counted cash, with the formatted amount displayed prominently above the pad.
  *
  * ## Layout (Compact / Phone)
@@ -101,13 +101,13 @@ fun CloseRegisterScreen(
             if (isExpanded) {
                 // ── Expanded: Two-pane layout ──────────────────────────────
                 Row(
-                    modifier = Modifier.fillMaxSize().padding(ZentaSpacing.lg),
-                    horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.lg),
+                    modifier = Modifier.fillMaxSize().padding(ZyntaSpacing.lg),
+                    horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.lg),
                 ) {
                     // Left pane: Session summary + discrepancy
                     Column(
                         modifier = Modifier.weight(0.45f).verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.spacedBy(ZentaSpacing.md),
+                        verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                     ) {
                         SessionSummarySection(state)
                         DiscrepancySection(closeForm)
@@ -124,7 +124,7 @@ fun CloseRegisterScreen(
                     // Right pane: Actual balance entry
                     Column(
                         modifier = Modifier.weight(0.55f),
-                        verticalArrangement = Arrangement.spacedBy(ZentaSpacing.md),
+                        verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         ActualBalanceDisplay(closeForm.actualBalanceDouble)
@@ -137,8 +137,8 @@ fun CloseRegisterScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .padding(ZentaSpacing.md),
-                    verticalArrangement = Arrangement.spacedBy(ZentaSpacing.md),
+                        .padding(ZyntaSpacing.md),
+                    verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                 ) {
                     SessionSummarySection(state)
                     ActualBalanceDisplay(closeForm.actualBalanceDouble)
@@ -184,8 +184,8 @@ private fun SessionSummarySection(state: RegisterState) {
         ),
     ) {
         Column(
-            modifier = Modifier.padding(ZentaSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+            modifier = Modifier.padding(ZyntaSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
         ) {
             Text(
                 text = "Session Summary",
@@ -259,7 +259,7 @@ private fun DiscrepancySection(closeForm: CloseRegisterFormState) {
         ),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(ZentaSpacing.md),
+            modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.md),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
@@ -308,7 +308,7 @@ private fun ActualBalanceDisplay(actualBalance: Double) {
         ),
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(ZentaSpacing.lg),
+            modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.lg),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
@@ -316,7 +316,7 @@ private fun ActualBalanceDisplay(actualBalance: Double) {
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
-            Spacer(Modifier.height(ZentaSpacing.sm))
+            Spacer(Modifier.height(ZyntaSpacing.sm))
             Text(
                 text = formatCurrency(actualBalance),
                 style = MaterialTheme.typography.displaySmall,
@@ -329,11 +329,11 @@ private fun ActualBalanceDisplay(actualBalance: Double) {
 }
 
 /**
- * ZentaNumericPad wired to actual balance intents for the close-register flow.
+ * ZyntaNumericPad wired to actual balance intents for the close-register flow.
  */
 @Composable
 private fun ActualBalanceNumericPad(viewModel: RegisterViewModel) {
-    ZentaNumericPad(
+    ZyntaNumericPad(
         mode = NumericPadMode.PRICE,
         onDigit = { viewModel.dispatch(RegisterIntent.ActualBalanceDigit(it)) },
         onDoubleZero = { viewModel.dispatch(RegisterIntent.ActualBalanceDoubleZero) },
@@ -428,7 +428,7 @@ private fun CloseConfirmationDialog(
             )
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(ZentaSpacing.sm)) {
+            Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                 Text("Expected: ${formatCurrency(closeForm.expectedBalance)}")
                 Text("Actual: ${formatCurrency(closeForm.actualBalanceDouble)}")
 

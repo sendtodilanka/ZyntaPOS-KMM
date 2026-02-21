@@ -3,7 +3,7 @@ package com.zyntasolutions.zyntapos.data.local.db
 import android.content.Context
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
-import com.zyntasolutions.zyntapos.core.logger.ZentaLogger
+import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import net.sqlcipher.database.SQLiteDatabase
 import net.sqlcipher.database.SupportFactory
 
@@ -39,7 +39,7 @@ actual class DatabaseDriverFactory(private val context: Context) {
             "SQLCipher key MUST be exactly 32 bytes (256-bit AES). Received ${key.size} bytes."
         }
 
-        ZentaLogger.d(TAG, "Opening encrypted Android SQLite database with SQLCipher.")
+        ZyntaLogger.d(TAG, "Opening encrypted Android SQLite database with SQLCipher.")
 
         // Convert raw key bytes → char array → SQLCipher-ready passphrase ByteArray
         // Using SQLiteDatabase.getBytes() avoids the PBKDF2 derivation round-trip,
@@ -64,7 +64,7 @@ actual class DatabaseDriverFactory(private val context: Context) {
         // Tune cache for POS product-catalogue workloads
         driver.execute(identifier = null, sql = "PRAGMA cache_size=-8000;", parameters = 0)  // 8 MB cache
 
-        ZentaLogger.i(TAG, "Android encrypted DB opened successfully (WAL mode, 8 MB cache).")
+        ZyntaLogger.i(TAG, "Android encrypted DB opened successfully (WAL mode, 8 MB cache).")
         return driver
     }
 

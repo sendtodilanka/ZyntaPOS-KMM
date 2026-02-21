@@ -5,7 +5,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.toRoute
-import com.zyntasolutions.zyntapos.designsystem.layouts.ZentaScaffold
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaScaffold
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MAIN NAV GRAPH
@@ -14,7 +14,7 @@ import com.zyntasolutions.zyntapos.designsystem.layouts.ZentaScaffold
 /**
  * Nested navigation graph for the authenticated area of ZyntaPOS.
  *
- * Wraps all authenticated destinations inside [ZentaScaffold], providing the
+ * Wraps all authenticated destinations inside [ZyntaScaffold], providing the
  * adaptive navigation chrome (BottomBar → Rail → Drawer) based on window size.
  *
  * Sub-graphs: POS, Inventory, Register, Reports, Settings.
@@ -29,7 +29,7 @@ import com.zyntasolutions.zyntapos.designsystem.layouts.ZentaScaffold
  * - Scoped ViewModels are created per nested graph entry via
  *   `NavBackStackEntry.getBackStackEntry(graphRoute)`.
  * - Desktop: no physical back button — [NavigationController.navigateUp] provides
- *   a safe fallback to [ZentaRoute.Dashboard].
+ *   a safe fallback to [ZyntaRoute.Dashboard].
  *
  * @param navigationController Wraps the underlying [NavHostController].
  * @param navItems RBAC-filtered list of primary navigation destinations.
@@ -40,7 +40,7 @@ fun NavGraphBuilder.mainNavGraph(
     navItems: List<NavItem>,
     screens: MainNavScreens,
 ) {
-    navigation<ZentaRoute.Dashboard>(startDestination = ZentaRoute.Dashboard) {
+    navigation<ZyntaRoute.Dashboard>(startDestination = ZyntaRoute.Dashboard) {
 
         // ── Scaffold wrapper composable ──────────────────────────────────────
         // Each composable destination is individually registered but rendered
@@ -51,42 +51,42 @@ fun NavGraphBuilder.mainNavGraph(
         // the content pane. This keeps the nav chrome stable and avoids
         // recomposition of the rail/drawer on every navigation event.
 
-        composable<ZentaRoute.Dashboard> { entry ->
+        composable<ZyntaRoute.Dashboard> { entry ->
             MainScaffoldShell(
                 navigationController = navigationController,
                 navItems = navItems,
-                currentRoute = ZentaRoute.Dashboard,
+                currentRoute = ZyntaRoute.Dashboard,
             ) {
                 screens.dashboard(
-                    onNavigateToPos = { navigationController.navigate(ZentaRoute.Pos) },
-                    onNavigateToRegister = { navigationController.navigate(ZentaRoute.RegisterDashboard) },
-                    onNavigateToReports = { navigationController.navigate(ZentaRoute.SalesReport) },
+                    onNavigateToPos = { navigationController.navigate(ZyntaRoute.Pos) },
+                    onNavigateToRegister = { navigationController.navigate(ZyntaRoute.RegisterDashboard) },
+                    onNavigateToReports = { navigationController.navigate(ZyntaRoute.SalesReport) },
                 )
             }
         }
 
-        composable<ZentaRoute.Pos> {
+        composable<ZyntaRoute.Pos> {
             MainScaffoldShell(
                 navigationController = navigationController,
                 navItems = navItems,
-                currentRoute = ZentaRoute.Pos,
+                currentRoute = ZyntaRoute.Pos,
             ) {
                 screens.pos(
                     onNavigateToPayment = { orderId ->
-                        navigationController.navigate(ZentaRoute.Payment(orderId))
+                        navigationController.navigate(ZyntaRoute.Payment(orderId))
                     },
                 )
             }
         }
 
-        composable<ZentaRoute.Payment> { entry ->
-            val route = entry.toRoute<ZentaRoute.Payment>()
+        composable<ZyntaRoute.Payment> { entry ->
+            val route = entry.toRoute<ZyntaRoute.Payment>()
             screens.payment(
                 orderId = route.orderId,
                 onPaymentComplete = {
                     // Clear payment from back stack, return to POS
                     navigationController.navController.popBackStack(
-                        route = ZentaRoute.Pos,
+                        route = ZyntaRoute.Pos,
                         inclusive = false,
                     )
                 },
@@ -95,79 +95,79 @@ fun NavGraphBuilder.mainNavGraph(
         }
 
         // ── Inventory sub-graph ──────────────────────────────────────────────
-        navigation<ZentaRoute.ProductList>(startDestination = ZentaRoute.ProductList) {
-            composable<ZentaRoute.ProductList> {
+        navigation<ZyntaRoute.ProductList>(startDestination = ZyntaRoute.ProductList) {
+            composable<ZyntaRoute.ProductList> {
                 MainScaffoldShell(
                     navigationController = navigationController,
                     navItems = navItems,
-                    currentRoute = ZentaRoute.ProductList,
+                    currentRoute = ZyntaRoute.ProductList,
                 ) {
                     screens.productList(
                         onNavigateToDetail = { productId ->
                             navigationController.openProductDetail(productId)
                         },
                         onNavigateToCategories = {
-                            navigationController.navigate(ZentaRoute.CategoryList)
+                            navigationController.navigate(ZyntaRoute.CategoryList)
                         },
                         onNavigateToSuppliers = {
-                            navigationController.navigate(ZentaRoute.SupplierList)
+                            navigationController.navigate(ZyntaRoute.SupplierList)
                         },
                     )
                 }
             }
 
-            composable<ZentaRoute.ProductDetail> { entry ->
-                val route = entry.toRoute<ZentaRoute.ProductDetail>()
+            composable<ZyntaRoute.ProductDetail> { entry ->
+                val route = entry.toRoute<ZyntaRoute.ProductDetail>()
                 screens.productDetail(
                     productId = route.productId,
-                    onNavigateUp = { navigationController.navigateUp(ZentaRoute.ProductList) },
+                    onNavigateUp = { navigationController.navigateUp(ZyntaRoute.ProductList) },
                 )
             }
 
-            composable<ZentaRoute.CategoryList> {
+            composable<ZyntaRoute.CategoryList> {
                 screens.categoryList(
-                    onNavigateUp = { navigationController.navigateUp(ZentaRoute.ProductList) },
+                    onNavigateUp = { navigationController.navigateUp(ZyntaRoute.ProductList) },
                 )
             }
 
-            composable<ZentaRoute.SupplierList> {
+            composable<ZyntaRoute.SupplierList> {
                 screens.supplierList(
-                    onNavigateUp = { navigationController.navigateUp(ZentaRoute.ProductList) },
+                    onNavigateUp = { navigationController.navigateUp(ZyntaRoute.ProductList) },
                 )
             }
         }
 
         // ── Register sub-graph ───────────────────────────────────────────────
-        navigation<ZentaRoute.RegisterDashboard>(startDestination = ZentaRoute.RegisterDashboard) {
-            composable<ZentaRoute.RegisterDashboard> {
+        navigation<ZyntaRoute.RegisterDashboard>(startDestination = ZyntaRoute.RegisterDashboard) {
+            composable<ZyntaRoute.RegisterDashboard> {
                 MainScaffoldShell(
                     navigationController = navigationController,
                     navItems = navItems,
-                    currentRoute = ZentaRoute.RegisterDashboard,
+                    currentRoute = ZyntaRoute.RegisterDashboard,
                 ) {
                     screens.registerDashboard(
-                        onOpenRegister = { navigationController.navigate(ZentaRoute.OpenRegister) },
-                        onCloseRegister = { navigationController.navigate(ZentaRoute.CloseRegister) },
+                        onOpenRegister = { navigationController.navigate(ZyntaRoute.OpenRegister) },
+                        onCloseRegister = { navigationController.navigate(ZyntaRoute.CloseRegister) },
                     )
                 }
             }
 
-            composable<ZentaRoute.OpenRegister> {
+            composable<ZyntaRoute.OpenRegister> {
                 screens.openRegister(
                     onComplete = {
                         navigationController.navController.popBackStack(
-                            route = ZentaRoute.RegisterDashboard,
+                            route = ZyntaRoute.RegisterDashboard,
                             inclusive = false,
                         )
                     },
                 )
             }
 
-            composable<ZentaRoute.CloseRegister> {
+            composable<ZyntaRoute.CloseRegister> {
                 screens.closeRegister(
                     onComplete = {
                         navigationController.navController.popBackStack(
-                            route = ZentaRoute.RegisterDashboard,
+                            route = ZyntaRoute.RegisterDashboard,
                             inclusive = false,
                         )
                     },
@@ -176,22 +176,22 @@ fun NavGraphBuilder.mainNavGraph(
         }
 
         // ── Reports sub-graph ────────────────────────────────────────────────
-        navigation<ZentaRoute.SalesReport>(startDestination = ZentaRoute.SalesReport) {
-            composable<ZentaRoute.SalesReport> {
+        navigation<ZyntaRoute.SalesReport>(startDestination = ZyntaRoute.SalesReport) {
+            composable<ZyntaRoute.SalesReport> {
                 MainScaffoldShell(
                     navigationController = navigationController,
                     navItems = navItems,
-                    currentRoute = ZentaRoute.SalesReport,
+                    currentRoute = ZyntaRoute.SalesReport,
                 ) {
                     screens.salesReport()
                 }
             }
 
-            composable<ZentaRoute.StockReport> {
+            composable<ZyntaRoute.StockReport> {
                 MainScaffoldShell(
                     navigationController = navigationController,
                     navItems = navItems,
-                    currentRoute = ZentaRoute.StockReport,
+                    currentRoute = ZyntaRoute.StockReport,
                 ) {
                     screens.stockReport()
                 }
@@ -199,52 +199,52 @@ fun NavGraphBuilder.mainNavGraph(
         }
 
         // ── Settings sub-graph ───────────────────────────────────────────────
-        navigation<ZentaRoute.Settings>(startDestination = ZentaRoute.Settings) {
-            composable<ZentaRoute.Settings> {
+        navigation<ZyntaRoute.Settings>(startDestination = ZyntaRoute.Settings) {
+            composable<ZyntaRoute.Settings> {
                 MainScaffoldShell(
                     navigationController = navigationController,
                     navItems = navItems,
-                    currentRoute = ZentaRoute.Settings,
+                    currentRoute = ZyntaRoute.Settings,
                 ) {
                     screens.settings(
                         onNavigateToPrinterSettings = {
-                            navigationController.navigate(ZentaRoute.PrinterSettings)
+                            navigationController.navigate(ZyntaRoute.PrinterSettings)
                         },
                         onNavigateToTaxSettings = {
-                            navigationController.navigate(ZentaRoute.TaxSettings)
+                            navigationController.navigate(ZyntaRoute.TaxSettings)
                         },
                         onNavigateToUserManagement = {
-                            navigationController.navigate(ZentaRoute.UserManagement)
+                            navigationController.navigate(ZyntaRoute.UserManagement)
                         },
                     )
                 }
             }
 
-            composable<ZentaRoute.PrinterSettings> {
+            composable<ZyntaRoute.PrinterSettings> {
                 screens.printerSettings(
-                    onNavigateUp = { navigationController.navigateUp(ZentaRoute.Settings) },
+                    onNavigateUp = { navigationController.navigateUp(ZyntaRoute.Settings) },
                 )
             }
 
-            composable<ZentaRoute.TaxSettings> {
+            composable<ZyntaRoute.TaxSettings> {
                 screens.taxSettings(
-                    onNavigateUp = { navigationController.navigateUp(ZentaRoute.Settings) },
+                    onNavigateUp = { navigationController.navigateUp(ZyntaRoute.Settings) },
                 )
             }
 
-            composable<ZentaRoute.UserManagement> {
+            composable<ZyntaRoute.UserManagement> {
                 screens.userManagement(
-                    onNavigateUp = { navigationController.navigateUp(ZentaRoute.Settings) },
+                    onNavigateUp = { navigationController.navigateUp(ZyntaRoute.Settings) },
                 )
             }
         }
 
         // ── Deep-link target: OrderHistory ───────────────────────────────────
-        composable<ZentaRoute.OrderHistory> { entry ->
-            val route = entry.toRoute<ZentaRoute.OrderHistory>()
+        composable<ZyntaRoute.OrderHistory> { entry ->
+            val route = entry.toRoute<ZyntaRoute.OrderHistory>()
             screens.orderHistory(
                 orderId = route.orderId,
-                onNavigateUp = { navigationController.navigateUp(ZentaRoute.Dashboard) },
+                onNavigateUp = { navigationController.navigateUp(ZyntaRoute.Dashboard) },
             )
         }
     }
@@ -255,7 +255,7 @@ fun NavGraphBuilder.mainNavGraph(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Internal composable that wraps any authenticated destination inside [ZentaScaffold].
+ * Internal composable that wraps any authenticated destination inside [ZyntaScaffold].
  *
  * Resolves the selected index by matching the [currentRoute]'s target route
  * against [navItems], providing back-stack-aware highlighting.
@@ -264,39 +264,39 @@ fun NavGraphBuilder.mainNavGraph(
 private fun MainScaffoldShell(
     navigationController: NavigationController,
     navItems: List<NavItem>,
-    currentRoute: ZentaRoute,
+    currentRoute: ZyntaRoute,
     content: @Composable () -> Unit,
 ) {
     // Find the selected index based on the current route
     val selectedIndex = navItems.indexOfFirst { item ->
         when (currentRoute) {
             // Inventory sub-graph: highlight Inventory item for all sub-routes
-            is ZentaRoute.ProductList,
-            is ZentaRoute.ProductDetail,
-            is ZentaRoute.CategoryList,
-            is ZentaRoute.SupplierList -> item.route is ZentaRoute.ProductList
+            is ZyntaRoute.ProductList,
+            is ZyntaRoute.ProductDetail,
+            is ZyntaRoute.CategoryList,
+            is ZyntaRoute.SupplierList -> item.route is ZyntaRoute.ProductList
 
             // Register sub-graph
-            is ZentaRoute.RegisterDashboard,
-            is ZentaRoute.OpenRegister,
-            is ZentaRoute.CloseRegister -> item.route is ZentaRoute.RegisterDashboard
+            is ZyntaRoute.RegisterDashboard,
+            is ZyntaRoute.OpenRegister,
+            is ZyntaRoute.CloseRegister -> item.route is ZyntaRoute.RegisterDashboard
 
             // Reports sub-graph
-            is ZentaRoute.SalesReport,
-            is ZentaRoute.StockReport -> item.route is ZentaRoute.SalesReport
+            is ZyntaRoute.SalesReport,
+            is ZyntaRoute.StockReport -> item.route is ZyntaRoute.SalesReport
 
             // Settings sub-graph
-            is ZentaRoute.Settings,
-            is ZentaRoute.PrinterSettings,
-            is ZentaRoute.TaxSettings,
-            is ZentaRoute.UserManagement -> item.route is ZentaRoute.Settings
+            is ZyntaRoute.Settings,
+            is ZyntaRoute.PrinterSettings,
+            is ZyntaRoute.TaxSettings,
+            is ZyntaRoute.UserManagement -> item.route is ZyntaRoute.Settings
 
             else -> item.route::class == currentRoute::class
         }
     }.coerceAtLeast(0)
 
-    ZentaScaffold(
-        items = navItems.map { it.toZentaNavItem() },
+    ZyntaScaffold(
+        items = navItems.map { it.toZyntaNavItem() },
         selectedIndex = selectedIndex,
         onItemSelected = { index ->
             navItems.getOrNull(index)?.let { item ->

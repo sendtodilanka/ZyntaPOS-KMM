@@ -13,8 +13,8 @@ import androidx.navigation.compose.navigation
  * Nested navigation graph for unauthenticated / lock-screen flows.
  *
  * Destinations:
- * - [ZentaRoute.Login]   — credential entry; start destination of the auth graph.
- * - [ZentaRoute.PinLock] — quick PIN re-authentication after idle timeout.
+ * - [ZyntaRoute.Login]   — credential entry; start destination of the auth graph.
+ * - [ZyntaRoute.PinLock] — quick PIN re-authentication after idle timeout.
  *
  * Flow:
  * ```
@@ -38,16 +38,16 @@ fun NavGraphBuilder.authNavGraph(
     loginScreen: @Composable (onLoginSuccess: () -> Unit) -> Unit,
     pinLockScreen: @Composable (onUnlocked: () -> Unit) -> Unit,
 ) {
-    navigation<ZentaRoute.Login>(startDestination = ZentaRoute.Login) {
-        composable<ZentaRoute.Login> {
+    navigation<ZyntaRoute.Login>(startDestination = ZyntaRoute.Login) {
+        composable<ZyntaRoute.Login> {
             loginScreen(
                 onLoginSuccess = {
-                    navigationController.navigateAndClear(ZentaRoute.Dashboard)
+                    navigationController.navigateAndClear(ZyntaRoute.Dashboard)
                 },
             )
         }
 
-        composable<ZentaRoute.PinLock> {
+        composable<ZyntaRoute.PinLock> {
             pinLockScreen(
                 onUnlocked = {
                     // Pop back to whatever screen triggered the lock

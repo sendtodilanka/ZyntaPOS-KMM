@@ -128,7 +128,7 @@ Phase 1 delivers a **fully functional single-store POS** with offline capability
                                    │
                      ┌─────────────▼────────────┐
                      │  :composeApp:designsystem │  ← Pure UI, no business logic
-                     │  (ZentaTheme, components, │
+                     │  (ZyntaTheme, components, │
                      │   tokens, layouts)        │
                      └─────────────┬─────────────┘
                                    │
@@ -160,8 +160,8 @@ Phase 1 delivers a **fully functional single-store POS** with offline capability
 | 6 | W06 | `:shared:data` (Part 2) | Ktor client, repository impls, basic sync |
 | 7 | W07 | `:shared:hal` | Printer & scanner interfaces + platform actuals |
 | 8 | W08 | `:shared:security` | Encryption, JWT handling, key storage |
-| 9 | W09 | `:composeApp:designsystem` (Part 1) | ZentaTheme, tokens, typography, colors |
-| 10 | W10 | `:composeApp:designsystem` (Part 2) | All Zenta components, responsive layouts |
+| 9 | W09 | `:composeApp:designsystem` (Part 1) | ZyntaTheme, tokens, typography, colors |
+| 10 | W10 | `:composeApp:designsystem` (Part 2) | All Zynta components, responsive layouts |
 | 11 | W11 | `:composeApp:navigation` | NavGraph, type-safe routes, adaptive nav |
 | 12 | W12 | `:composeApp:feature:auth` (Part 1) | Login screen UI + ViewModel + MVI |
 | 13 | W13 | `:composeApp:feature:auth` (Part 2) | Session management, RBAC guard, PIN lock |
@@ -218,8 +218,8 @@ Tasks:
 Tasks:
   1.2.1  Create shared/core/build.gradle.kts (commonMain only, no Android/Desktop specific)
   1.2.2  Implement sealed class Result<T> with Success, Error, Loading states
-  1.2.3  Implement ZentaException hierarchy (NetworkException, DatabaseException, etc.)
-  1.2.4  Implement ZentaLogger (Kermit wrapper) with log levels + platform tags
+  1.2.3  Implement ZyntaException hierarchy (NetworkException, DatabaseException, etc.)
+  1.2.4  Implement ZyntaLogger (Kermit wrapper) with log levels + platform tags
   1.2.5  Create AppConfig (baseUrl, dbName, dbVersion, syncIntervalMs constants)
   1.2.6  Create extension functions: String (validation, formatting), 
          Double (currency rounding), Long (timestamp helpers)
@@ -233,8 +233,8 @@ Tasks:
 ```
 shared/core/src/commonMain/kotlin/com/zyntasolutions/zyntapos/core/
   ├── result/Result.kt
-  ├── result/ZentaException.kt
-  ├── logger/ZentaLogger.kt
+  ├── result/ZyntaException.kt
+  ├── logger/ZyntaLogger.kt
   ├── config/AppConfig.kt
   ├── extensions/StringExtensions.kt
   ├── extensions/DoubleExtensions.kt
@@ -549,16 +549,16 @@ Tasks:
 
 ```
 Tasks:
-  6.1.1  ZentaColors.kt — Material 3 ColorScheme (light + dark):
+  6.1.1  ZyntaColors.kt — Material 3 ColorScheme (light + dark):
          - Primary: #1565C0 (blue), Secondary: #F57C00 (amber), 
            Tertiary: #2E7D32 (green for success), Error: #C62828
          - All surface/on-surface/container variants per M3 spec
-  6.1.2  ZentaTypography.kt — Material 3 TypeScale using system sans-serif:
+  6.1.2  ZyntaTypography.kt — Material 3 TypeScale using system sans-serif:
          Display/Headline/Title/Body/Label at all sizes per UI/UX plan §3.1
-  6.1.3  ZentaShapes.kt — M3 shape scale (Extra Small 4dp → Extra Large 28dp)
-  6.1.4  ZentaSpacing.kt — spacing tokens: xs(4), sm(8), md(16), lg(24), xl(32), xxl(48)
-  6.1.5  ZentaElevation.kt — elevation levels 0–5 per M3 spec
-  6.1.6  ZentaTheme.kt — wraps MaterialTheme, provides ZentaColors, 
+  6.1.3  ZyntaShapes.kt — M3 shape scale (Extra Small 4dp → Extra Large 28dp)
+  6.1.4  ZyntaSpacing.kt — spacing tokens: xs(4), sm(8), md(16), lg(24), xl(32), xxl(48)
+  6.1.5  ZyntaElevation.kt — elevation levels 0–5 per M3 spec
+  6.1.6  ZyntaTheme.kt — wraps MaterialTheme, provides ZyntaColors, 
                           handles system dark mode + manual toggle
   6.1.7  WindowSizeClassHelper.kt — CompactMediumExpanded enum + current() expect/actual
 ```
@@ -567,44 +567,44 @@ Tasks:
 
 ```
 Tasks:
-  6.2.1  ZentaButton.kt — variants: Primary, Secondary, Danger, Ghost, Icon
+  6.2.1  ZyntaButton.kt — variants: Primary, Secondary, Danger, Ghost, Icon
                           sizes: Small(32dp), Medium(40dp), Large(56dp)
                           states: enabled, loading(CircularProgress), disabled
-  6.2.2  ZentaTextField.kt — label, value, error message, leading/trailing icons,
+  6.2.2  ZyntaTextField.kt — label, value, error message, leading/trailing icons,
                               keyboard type support, validation state display
-  6.2.3  ZentaSearchBar.kt — with barcode scan icon, clear button, focus management
-  6.2.4  ZentaProductCard.kt — image(Coil), name, price, stock indicator badge,
+  6.2.3  ZyntaSearchBar.kt — with barcode scan icon, clear button, focus management
+  6.2.4  ZyntaProductCard.kt — image(Coil), name, price, stock indicator badge,
                                 variants: Grid (square), List, Compact
-  6.2.5  ZentaCartItemRow.kt — thumbnail, name, price, qty stepper (+/-), remove
-  6.2.6  ZentaNumericPad.kt — 0-9, decimal, 00, backspace, clear; 
+  6.2.5  ZyntaCartItemRow.kt — thumbnail, name, price, qty stepper (+/-), remove
+  6.2.6  ZyntaNumericPad.kt — 0-9, decimal, 00, backspace, clear; 
                                modes: PRICE, QUANTITY, PIN (masked)
-  6.2.7  ZentaDialog.kt — Confirm (title, message, confirm/cancel), 
+  6.2.7  ZyntaDialog.kt — Confirm (title, message, confirm/cancel), 
                            Alert (title, message, ok), 
                            Input (title, single text field + confirm)
-  6.2.8  ZentaBottomSheet.kt — M3 ModalBottomSheet wrapper with handle
-  6.2.9  ZentaTable.kt — sortable columns, paginated rows, empty state
-  6.2.10 ZentaBadge.kt — count badge, status badge (color + label)
-  6.2.11 ZentaSyncIndicator.kt — SYNCED(green dot), SYNCING(spinner), 
+  6.2.8  ZyntaBottomSheet.kt — M3 ModalBottomSheet wrapper with handle
+  6.2.9  ZyntaTable.kt — sortable columns, paginated rows, empty state
+  6.2.10 ZyntaBadge.kt — count badge, status badge (color + label)
+  6.2.11 ZyntaSyncIndicator.kt — SYNCED(green dot), SYNCING(spinner), 
                                   OFFLINE(orange dot), FAILED(red dot)
-  6.2.12 ZentaEmptyState.kt — icon + title + subtitle + optional CTA button
-  6.2.13 ZentaLoadingOverlay.kt — semi-transparent scrim + CircularProgressIndicator
-  6.2.14 ZentaSnackbarHost.kt — success/error/info variants with icon
-  6.2.15 ZentaTopAppBar.kt — adaptive: collapses on scroll, back/menu actions
+  6.2.12 ZyntaEmptyState.kt — icon + title + subtitle + optional CTA button
+  6.2.13 ZyntaLoadingOverlay.kt — semi-transparent scrim + CircularProgressIndicator
+  6.2.14 ZyntaSnackbarHost.kt — success/error/info variants with icon
+  6.2.15 ZyntaTopAppBar.kt — adaptive: collapses on scroll, back/menu actions
 ```
 
 #### Step 6.3 — Adaptive Layouts
 
 ```
 Tasks:
-  6.3.1  ZentaScaffold.kt — adaptive navigation:
+  6.3.1  ZyntaScaffold.kt — adaptive navigation:
          - Compact: bottomNavigationBar
          - Medium: NavigationRail (left)
          - Expanded: NavigationDrawer (persistent, 240dp)
-  6.3.2  ZentaSplitPane.kt — horizontal split with configurable weight (default 40/60),
+  6.3.2  ZyntaSplitPane.kt — horizontal split with configurable weight (default 40/60),
                               collapsible on Compact
-  6.3.3  ZentaGrid.kt — LazyVerticalGrid with WindowSizeClass-driven column count:
+  6.3.3  ZyntaGrid.kt — LazyVerticalGrid with WindowSizeClass-driven column count:
                          Compact=2, Medium=3-4, Expanded=4-6
-  6.3.4  ZentaListDetailLayout.kt — master list + detail pane for Expanded
+  6.3.4  ZyntaListDetailLayout.kt — master list + detail pane for Expanded
 ```
 
 ---
@@ -615,44 +615,44 @@ Tasks:
 
 ```kotlin
 // Type-safe route definitions
-sealed class ZentaRoute {
+sealed class ZyntaRoute {
     // Auth
-    @Serializable object Login : ZentaRoute()
-    @Serializable object PinLock : ZentaRoute()
+    @Serializable object Login : ZyntaRoute()
+    @Serializable object PinLock : ZyntaRoute()
 
     // Main
-    @Serializable object Dashboard : ZentaRoute()
-    @Serializable object Pos : ZentaRoute()
-    @Serializable data class Payment(val orderId: String) : ZentaRoute()
+    @Serializable object Dashboard : ZyntaRoute()
+    @Serializable object Pos : ZyntaRoute()
+    @Serializable data class Payment(val orderId: String) : ZyntaRoute()
 
     // Inventory
-    @Serializable object ProductList : ZentaRoute()
-    @Serializable data class ProductDetail(val productId: String?) : ZentaRoute()
-    @Serializable object CategoryList : ZentaRoute()
-    @Serializable object SupplierList : ZentaRoute()
+    @Serializable object ProductList : ZyntaRoute()
+    @Serializable data class ProductDetail(val productId: String?) : ZyntaRoute()
+    @Serializable object CategoryList : ZyntaRoute()
+    @Serializable object SupplierList : ZyntaRoute()
 
     // Register
-    @Serializable object RegisterDashboard : ZentaRoute()
-    @Serializable object OpenRegister : ZentaRoute()
-    @Serializable object CloseRegister : ZentaRoute()
+    @Serializable object RegisterDashboard : ZyntaRoute()
+    @Serializable object OpenRegister : ZyntaRoute()
+    @Serializable object CloseRegister : ZyntaRoute()
 
     // Reports
-    @Serializable object SalesReport : ZentaRoute()
-    @Serializable object StockReport : ZentaRoute()
+    @Serializable object SalesReport : ZyntaRoute()
+    @Serializable object StockReport : ZyntaRoute()
 
     // Settings
-    @Serializable object Settings : ZentaRoute()
-    @Serializable object PrinterSettings : ZentaRoute()
-    @Serializable object TaxSettings : ZentaRoute()
-    @Serializable object UserManagement : ZentaRoute()
+    @Serializable object Settings : ZyntaRoute()
+    @Serializable object PrinterSettings : ZyntaRoute()
+    @Serializable object TaxSettings : ZyntaRoute()
+    @Serializable object UserManagement : ZyntaRoute()
 }
 ```
 
 ```
 Tasks:
-  7.1.1  ZentaNavGraph.kt — main NavHost wiring all routes
+  7.1.1  ZyntaNavGraph.kt — main NavHost wiring all routes
   7.1.2  AuthNavGraph.kt — nested graph: Login → PinLock
-  7.1.3  MainNavGraph.kt — nested graph for authenticated area with ZentaScaffold
+  7.1.3  MainNavGraph.kt — nested graph for authenticated area with ZyntaScaffold
   7.1.4  NavigationItems.kt — nav items per role (RBAC-filtered destinations)
   7.1.5  NavigationController.kt — wrapper with type-safe navigate(), popBackStack()
   7.1.6  DeepLink support — for hardware scanner barcode → auto-navigate to product
@@ -746,16 +746,16 @@ data class OrderTotals(
 ```
 Sprint 14 Tasks — Product Grid & Search:
   9.1.1  PosViewModel.kt — root ViewModel, subscribes to product/category Flows
-  9.1.2  ProductGridSection.kt — ZentaGrid with ZentaProductCard, 
+  9.1.2  ProductGridSection.kt — ZyntaGrid with ZyntaProductCard, 
                                   Compact: 2col, Medium: 3-4col, Expanded: 4-6col
   9.1.3  CategoryFilterRow.kt — horizontal scrollable chip row, "All" + category names
-  9.1.4  PosSearchBar.kt — ZentaSearchBar with barcode scan mode toggle
+  9.1.4  PosSearchBar.kt — ZyntaSearchBar with barcode scan mode toggle
   9.1.5  BarcodeInputHandler.kt — intercepts scanner events → auto-add-to-cart
   9.1.6  KeyboardShortcutHandler.kt (Desktop) — F2 focus search, +/- qty, Delete remove
 
 Sprint 15 Tasks — Cart:
   9.1.7  CartPanel.kt — right panel on Expanded, bottom sheet on Compact
-  9.1.8  CartItemList.kt — LazyColumn of ZentaCartItemRow with swipe-to-remove
+  9.1.8  CartItemList.kt — LazyColumn of ZyntaCartItemRow with swipe-to-remove
   9.1.9  CartSummaryFooter.kt — subtotal, tax, discount, total, PAY button
   9.1.10 CustomerSelectorDialog.kt — search customers, walk-in default, quick-add
   9.1.11 ItemDiscountDialog.kt — flat/percent, role-gated, max cap validation
@@ -795,7 +795,7 @@ Sprint 17 Tasks — Receipt & Order Management:
 
 ```
 Sprint 18 Tasks — Products:
-  10.1.1 ProductListScreen.kt — ZentaTable (list) + grid toggle, search, filter by category
+  10.1.1 ProductListScreen.kt — ZyntaTable (list) + grid toggle, search, filter by category
   10.1.2 ProductDetailScreen.kt — create/edit form: all product fields, 
                                    image picker (Coil + platform file chooser),
                                    variation management, tax group selector
@@ -807,7 +807,7 @@ Sprint 18 Tasks — Products:
 Sprint 19 Tasks — Categories & Suppliers:
   10.1.7  CategoryListScreen.kt — tree view of categories, CRUD
   10.1.8  CategoryDetailScreen.kt — name, parent selector, image, display order
-  10.1.9  SupplierListScreen.kt — ZentaTable, search
+  10.1.9  SupplierListScreen.kt — ZyntaTable, search
   10.1.10 SupplierDetailScreen.kt — contact info, notes, purchase history (read-only)
   10.1.11 UnitManagementScreen.kt — unit groups, conversion rates
   10.1.12 TaxGroupScreen.kt — create/edit tax groups (name, rate, inclusive toggle)
@@ -822,7 +822,7 @@ Sprint 19 Tasks — Categories & Suppliers:
 ```
 Sprint 20 Tasks — Open & Operations:
   11.1.1  RegisterGuard.kt — on login, checks if register is open; if not → OpenRegister
-  11.1.2  OpenRegisterScreen.kt — select register, enter opening balance (ZentaNumericPad),
+  11.1.2  OpenRegisterScreen.kt — select register, enter opening balance (ZyntaNumericPad),
                                    confirm → OpenRegisterSessionUseCase
   11.1.3  RegisterDashboardScreen.kt — current session info, balance, cash in/out buttons,
                                         quick stats (orders today, revenue)
@@ -1218,7 +1218,7 @@ CREATE INDEX idx_audit_log_timestamp ON audit_log(timestamp);
  * - [effects] as one-shot SharedFlow for navigation and UI events
  * - [processIntent] as the single entry point for all UI interactions
  */
-abstract class ZentaViewModel<S, I, E>(
+abstract class ZyntaViewModel<S, I, E>(
     initialState: S
 ) : ViewModel() {
 
@@ -1240,7 +1240,7 @@ abstract class ZentaViewModel<S, I, E>(
     }
 
     protected fun launchSafe(
-        onError: (Throwable) -> Unit = { ZentaLogger.e("ViewModel", it) },
+        onError: (Throwable) -> Unit = { ZyntaLogger.e("ViewModel", it) },
         block: suspend CoroutineScope.() -> Unit
     ) = viewModelScope.launch {
         runCatching { block() }.onFailure(onError)
@@ -1467,7 +1467,7 @@ Logging:
 | Repository Impl | `{Entity}RepositoryImpl.kt` | `ProductRepositoryImpl.kt` |
 | ViewModel | `{Feature}ViewModel.kt` | `PosViewModel.kt` |
 | Screen | `{Feature}Screen.kt` | `LoginScreen.kt` |
-| Component | `Zenta{Component}.kt` | `ZentaButton.kt` |
+| Component | `Zynta{Component}.kt` | `ZyntaButton.kt` |
 | MVI State | `{Feature}State.kt` | `PosState.kt` |
 | MVI Intent | `{Feature}Intent.kt` | `PosIntent.kt` |
 | MVI Effect | `{Feature}Effect.kt` | `PosEffect.kt` |

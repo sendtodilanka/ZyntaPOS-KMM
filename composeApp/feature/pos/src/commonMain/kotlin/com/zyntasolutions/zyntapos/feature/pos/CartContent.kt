@@ -8,7 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.CartItem
 import com.zyntasolutions.zyntapos.domain.model.Customer
 import com.zyntasolutions.zyntapos.domain.model.OrderTotals
@@ -48,7 +48,7 @@ internal fun CartContent(
             onSelectCustomer = { onIntent(PosIntent.ClearCustomer) }, // re-open dialog from parent
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = ZentaSpacing.md, vertical = ZentaSpacing.sm),
+                .padding(horizontal = ZyntaSpacing.md, vertical = ZyntaSpacing.sm),
         )
 
         // ── Cart action row (Order Notes | Order Discount | Clear) ─────────
@@ -58,12 +58,12 @@ internal fun CartContent(
             onClearClicked = { onIntent(PosIntent.ClearCart) },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = ZentaSpacing.md),
+                .padding(horizontal = ZyntaSpacing.md),
         )
 
         HorizontalDivider(
             thickness = 1.dp,
-            modifier = Modifier.padding(top = ZentaSpacing.xs),
+            modifier = Modifier.padding(top = ZyntaSpacing.xs),
         )
 
         // ── Cart item list ────────────────────────────────────────────────
@@ -110,10 +110,10 @@ private fun CustomerRow(
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
         )
-        Spacer(Modifier.width(ZentaSpacing.xs))
+        Spacer(Modifier.width(ZyntaSpacing.xs))
         TextButton(
             onClick = onSelectCustomer,
-            contentPadding = PaddingValues(horizontal = ZentaSpacing.xs, vertical = 0.dp),
+            contentPadding = PaddingValues(horizontal = ZyntaSpacing.xs, vertical = 0.dp),
         ) {
             Text(
                 text = selectedCustomer?.name ?: "Walk-in Customer ▼",
@@ -132,7 +132,7 @@ private fun CartActionRow(
 ) {
     Row(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(ZentaSpacing.xs),
+        horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.xs),
     ) {
         IconButton(onClick = onNotesClicked) {
             Icon(Icons.Default.Notes, contentDescription = "Order notes")

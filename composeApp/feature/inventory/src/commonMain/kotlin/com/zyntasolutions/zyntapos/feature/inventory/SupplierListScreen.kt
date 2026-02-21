@@ -13,10 +13,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.designsystem.components.SortDirection
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaSearchBar
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaTable
-import com.zyntasolutions.zyntapos.designsystem.components.ZentaTableColumn
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSearchBar
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTable
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTableColumn
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.designsystem.util.WindowSize
 import com.zyntasolutions.zyntapos.designsystem.util.currentWindowSize
 import com.zyntasolutions.zyntapos.domain.model.Supplier
@@ -24,7 +24,7 @@ import com.zyntasolutions.zyntapos.domain.model.Supplier
 /**
  * Supplier list management screen — Sprint 19, Step 10.1.9.
  *
- * Renders a searchable [ZentaTable] of all active suppliers with columns for
+ * Renders a searchable [ZyntaTable] of all active suppliers with columns for
  * name, contact person, phone, and email. A FAB opens the supplier detail
  * screen for creating a new supplier.
  *
@@ -101,18 +101,18 @@ fun SupplierListScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = ZentaSpacing.md),
+                .padding(horizontal = ZyntaSpacing.md),
         ) {
-            Spacer(Modifier.height(ZentaSpacing.sm))
+            Spacer(Modifier.height(ZyntaSpacing.sm))
             // ── Search Bar ────────────────────────────────────────────────
-            ZentaSearchBar(
+            ZyntaSearchBar(
                 query = searchQuery,
                 onQueryChange = { searchQuery = it },
                 onClear = { searchQuery = "" },
                 onScanToggle = {},
                 placeholder = "Search suppliers by name, contact, phone…",
             )
-            Spacer(Modifier.height(ZentaSpacing.sm))
+            Spacer(Modifier.height(ZyntaSpacing.sm))
 
             // ── Content ───────────────────────────────────────────────────
             if (windowSize == WindowSize.COMPACT) {
@@ -158,16 +158,16 @@ private fun SupplierTableView(
     onSupplierClick: (Supplier) -> Unit,
 ) {
     val columns = buildList {
-        add(ZentaTableColumn("name", "Supplier Name", weight = 2f))
+        add(ZyntaTableColumn("name", "Supplier Name", weight = 2f))
         if (windowSize == WindowSize.EXPANDED)
-            add(ZentaTableColumn("contactPerson", "Contact", weight = 1.5f))
-        add(ZentaTableColumn("phone", "Phone", weight = 1.4f))
-        add(ZentaTableColumn("email", "Email", weight = 1.8f))
+            add(ZyntaTableColumn("contactPerson", "Contact", weight = 1.5f))
+        add(ZyntaTableColumn("phone", "Phone", weight = 1.4f))
+        add(ZyntaTableColumn("email", "Email", weight = 1.8f))
     }
 
     val tableSortDir = if (sortDir == SortDir.ASC) SortDirection.Ascending else SortDirection.Descending
 
-    ZentaTable(
+    ZyntaTable(
         columns = columns,
         items = suppliers,
         sortColumnKey = sortColumnKey,
@@ -230,7 +230,7 @@ private fun SupplierCardList(
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = 88.dp),
-        verticalArrangement = Arrangement.spacedBy(ZentaSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
     ) {
         items(suppliers, key = { it.id }) { supplier ->
             Card(
@@ -239,7 +239,7 @@ private fun SupplierCardList(
                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
             ) {
                 Row(
-                    modifier = Modifier.padding(ZentaSpacing.md),
+                    modifier = Modifier.padding(ZyntaSpacing.md),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
@@ -247,7 +247,7 @@ private fun SupplierCardList(
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(40.dp),
                     )
-                    Spacer(Modifier.width(ZentaSpacing.md))
+                    Spacer(Modifier.width(ZyntaSpacing.md))
                     Column(Modifier.weight(1f)) {
                         Text(supplier.name, style = MaterialTheme.typography.titleSmall)
                         supplier.contactPerson?.let {
@@ -275,7 +275,7 @@ private fun SupplierEmptyState() {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(Icons.Default.Business, contentDescription = null, modifier = Modifier.size(52.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(ZentaSpacing.sm))
+            Spacer(Modifier.height(ZyntaSpacing.sm))
             Text("No suppliers found", style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text("Add your first supplier using the + button",

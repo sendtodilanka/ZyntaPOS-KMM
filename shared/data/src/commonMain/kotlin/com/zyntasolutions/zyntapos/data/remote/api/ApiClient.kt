@@ -22,7 +22,7 @@ import kotlinx.serialization.json.Json
  * Configured with:
  * - **ContentNegotiation** — kotlinx.serialization JSON (lenient, snake_case friendly)
  * - **Auth** — Bearer token injected from [SecurePreferences]; refresh callback reuses
- *   the stored refresh token (caller must handle 401 propagation via [ZentaException.AuthException])
+ *   the stored refresh token (caller must handle 401 propagation via [ZyntaException.AuthException])
  * - **HttpTimeout** — connect: 10 s | request: 30 s | socket: 30 s
  * - **HttpRequestRetry** — 3 attempts, exponential backoff: 1 s → 2 s → 4 s
  * - **Logging** — Kermit-backed; active **only in DEBUG builds** (controlled by [AppConfig.isDebug])
