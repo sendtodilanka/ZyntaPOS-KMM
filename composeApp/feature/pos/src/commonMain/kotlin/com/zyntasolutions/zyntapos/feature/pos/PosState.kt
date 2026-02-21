@@ -8,6 +8,10 @@ import com.zyntasolutions.zyntapos.domain.model.Order
 import com.zyntasolutions.zyntapos.domain.model.OrderTotals
 import com.zyntasolutions.zyntapos.domain.model.Product
 
+// NOTE: receiptPreviewText is populated by PosViewModel via ReceiptFormatter after payment
+// succeeds. currentReceiptOrder is retained so PosViewModel can call PrintReceiptUseCase
+// when the cashier taps "Print" in ReceiptScreen.
+
 /**
  * Immutable UI state for the POS (Point-of-Sale) checkout screen.
  *
@@ -57,6 +61,16 @@ import com.zyntasolutions.zyntapos.domain.model.Product
  *   (listening for scan events). Used to render the scanner status indicator.
  * @property error A non-null string contains a user-visible error message to be
  *   surfaced via a snackbar or inline banner. `null` = no current error.
+ * @property receiptPreviewText Human-readable receipt text for [ReceiptScreen]. Populated by
+ *   [PosViewModel] via [com.zyntasolutions.zyntapos.domain.formatter.ReceiptFormatter] immediately
+ *   after a successful payment. Empty string when no receipt is pending.
+ * @property currentReceiptOrder The [Order] produced by the most recent successful payment.
+ *   Retained so [PosViewModel] can call [com.zyntasolutions.zyntapos.domain.usecase.pos.PrintReceiptUseCase]
+ *   when the cashier taps "Print" in [ReceiptScreen]. Set to `null` after the receipt flow is dismissed.
+ * @property isPrinting `true` while a print job is in-flight; drives the loading indicator on the
+ *   Print button in [ReceiptScreen].
+ * @property printError Non-null when the last print attempt failed. Cleared after the cashier
+ *   acknowledges the retry dialog.
  */
 data class PosState(
     val products: List<Product> = emptyList(),
@@ -73,4 +87,9 @@ data class PosState(
     val isLoading: Boolean = false,
     val scannerActive: Boolean = false,
     val error: String? = null,
+    // ── Receipt preview state ─────────────────────────────────────────────────
+    val receiptPreviewText: String = "",
+    val currentReceiptOrder: Order? = null,
+    val isPrinting: Boolean = false,
+    val printError: String? = null,
 )

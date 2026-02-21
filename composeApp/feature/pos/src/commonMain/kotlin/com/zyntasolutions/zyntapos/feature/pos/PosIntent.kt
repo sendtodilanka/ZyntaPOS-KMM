@@ -192,4 +192,23 @@ sealed interface PosIntent {
         val splits: List<PaymentSplit> = emptyList(),
         val tendered: Double = 0.0,
     ) : PosIntent
+
+    // ─── Receipt ───────────────────────────────────────────────────────────────
+
+    /**
+     * Requests thermal printing of the receipt for the order currently stored in
+     * [PosState.currentReceiptOrder]. Dispatched from [ReceiptScreen] when the
+     * cashier taps the "Print" button.
+     *
+     * The ViewModel calls [com.zyntasolutions.zyntapos.domain.usecase.pos.PrintReceiptUseCase]
+     * with `PosState.currentReceiptOrder` and updates [PosState.isPrinting] /
+     * [PosState.printError] accordingly.
+     */
+    data object PrintCurrentReceipt : PosIntent
+
+    /**
+     * Clears [PosState.printError] after the cashier dismisses the retry dialog
+     * in [ReceiptScreen] without retrying.
+     */
+    data object DismissPrintError : PosIntent
 }

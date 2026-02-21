@@ -1,5 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.pos
 
+import com.zyntasolutions.zyntapos.domain.formatter.ReceiptFormatter
+import com.zyntasolutions.zyntapos.domain.printer.ReceiptPrinterPort
 import com.zyntasolutions.zyntapos.domain.usecase.pos.AddItemToCartUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.ApplyItemDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.ApplyOrderDiscountUseCase
@@ -10,8 +12,9 @@ import com.zyntasolutions.zyntapos.domain.usecase.pos.ProcessPaymentUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.RemoveItemFromCartUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.RetrieveHeldOrderUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.UpdateCartItemQuantityUseCase
+import com.zyntasolutions.zyntapos.feature.pos.printer.PrinterManagerReceiptAdapter
 import com.zyntasolutions.zyntapos.hal.printer.PrinterManager
-import com.zyntasolutions.zyntapos.security.SecurityAuditLogger
+import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
@@ -20,6 +23,8 @@ import org.koin.dsl.module
  *
  * Provides:
  * - All POS use cases (stateless — factory scope)
+ * - [PrinterManagerReceiptAdapter] bound as [ReceiptPrinterPort] (single — one printer pipeline)
+ * - [ReceiptFormatter] (factory — stateless, safe to share or re-create)
  * - [SecurityAuditLogger] (singleton — shared across modules)
  * - [PosViewModel] (viewModel scope — one instance per screen)
  *
@@ -42,6 +47,29 @@ val posModule = module {
 
     /** Single audit logger shared across POS operations. */
     single { SecurityAuditLogger() }
+
+    /**
+     * Infrastructure adapter that bridges [PrintReceiptUseCase] (domain) to the
+     * HAL printer pipeline. Bound as [ReceiptPrinterPort] so the use case never
+     * imports HAL or security modules directly.
+     *
+     * Requires [PrinterManager] from the platform HAL module and
+     * [SecurityAuditLogger] from above.
+     */
+    single<ReceiptPrinterPort> {
+        PrinterManagerReceiptAdapter(
+            settingsRepository = get(),
+            printerManager = get<PrinterManager>(),
+            auditLogger = get(),
+        )
+    }
+
+    /**
+     * Plain-text receipt formatter used by [PosViewModel] to populate
+     * [PosState.receiptPreviewText] after a successful payment.
+     * Stateless — safe to use as a factory.
+     */
+    factory { ReceiptFormatter() }
 
     // ── Use cases ─────────────────────────────────────────────────────────────
 
@@ -73,16 +101,13 @@ val posModule = module {
     /**
      * Receipt printing use case.
      *
-     * Requires:
-     * - [PrinterManager] — provided by the platform HAL module (`HalModule`)
-     * - [SecurityAuditLogger] — provided above in this module
-     * - [SettingsRepository] — provided by `:shared:data` module
+     * Requires [ReceiptPrinterPort] — provided above as [PrinterManagerReceiptAdapter].
+     * The use case itself has no HAL or security imports; all infrastructure is
+     * encapsulated behind the port interface.
      */
     factory {
         PrintReceiptUseCase(
-            settingsRepository = get(),
-            printerManager = get<PrinterManager>(),
-            auditLogger = get(),
+            printerPort = get<ReceiptPrinterPort>(),
         )
     }
 
@@ -102,6 +127,8 @@ val posModule = module {
             holdOrderUseCase = get(),
             retrieveHeldUseCase = get(),
             processPaymentUseCase = get(),
+            printReceiptUseCase = get(),
+            receiptFormatter = get(),
             cashierId = params.get(),
             storeId = params.get(),
             registerSessionId = params.get(),

@@ -19,27 +19,30 @@ import androidx.compose.ui.unit.sp
 import com.zyntasolutions.zyntapos.designsystem.components.ZentaDialogContent
 import com.zyntasolutions.zyntapos.designsystem.components.ZentaDialogVariant
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZentaSpacing
-import com.zyntasolutions.zyntapos.domain.model.Order
-import com.zyntasolutions.zyntapos.hal.printer.EscPosReceiptBuilder
-import com.zyntasolutions.zyntapos.hal.printer.PrinterConfig
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ReceiptScreen — Sprint 17, task 9.1.21
-// Scrollable text-based receipt preview using EscPosReceiptBuilder output
-// rendered as monospace text; action row: Print / Email / Skip buttons.
+// ReceiptScreen — Sprint 17, task 9.1.21 (refactored: RCV-7)
+//
+// BEFORE: received Order + PrinterConfig, built ESC/POS bytes inline via
+//   EscPosReceiptBuilder, stripped control bytes in receiptTextFrom().
+//
+// AFTER: receives pre-computed receiptPreviewText: String from PosState.
+//   The text is built in PosViewModel via ReceiptFormatter (domain layer).
+//   No HAL imports remain in this file — presentation layer is clean.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Full-screen receipt preview shown after a successful payment.
  *
- * Renders the receipt as a scrollable monospace text block constructed by
- * [EscPosReceiptBuilder.buildReceipt] and decoded to a UTF-8 string (ESC/POS
- * control bytes are stripped so the preview is human-readable).
+ * Renders [receiptPreviewText] — a plain monospace string pre-computed by
+ * [com.zyntasolutions.zyntapos.domain.formatter.ReceiptFormatter] and stored in
+ * [PosState.receiptPreviewText] — as a scrollable text block. This composable
+ * performs **no receipt formatting** itself; it is a pure display component.
  *
  * ### Layout
  * ```
  * ┌──────────────────────────────────────┐
- * │  ZentaTopAppBar — "Receipt"          │
+ * │  TopAppBar — "Receipt #<orderNumber>"│
  * ├──────────────────────────────────────┤
  * │  Receipt preview (scrollable)        │
  * │  ┌────────────────────────────────┐  │
@@ -50,31 +53,26 @@ import com.zyntasolutions.zyntapos.hal.printer.PrinterConfig
  * └──────────────────────────────────────┘
  * ```
  *
- * ### Receipt Text Rendering
- * The raw ESC/POS bytes from [EscPosReceiptBuilder] contain binary control sequences
- * that are meaningless on screen. [receiptTextFrom] strips all bytes < 0x20 (except
- * `0x0A` line-feed) before decoding to a [String] so the preview matches the printed
- * layout faithfully.
- *
  * ### Action Row
- * - **Print** → invokes [onPrint]; caller dispatches [PosIntent] or use case.
- * - **Email** → invokes [onEmail]; opens email dialog or starts email intent.
- * - **Skip** → invokes [onSkip]; navigates back to the POS screen.
+ * - **Print** → invokes [onPrint]; ViewModel dispatches [PosIntent.PrintCurrentReceipt].
+ * - **Email** → invokes [onEmail].
+ * - **Skip** → invokes [onSkip]; returns to POS screen without printing.
  *
- * @param order         The completed [Order] whose receipt is being previewed.
- * @param printerConfig Active [PrinterConfig] used for preview layout width.
- * @param isPrinting    When `true`, the Print button shows a loading indicator.
- * @param printError    Non-null error message triggers a retry [ZentaDialog].
- * @param onPrint       Invoked when the operator taps "Print".
- * @param onEmail       Invoked when the operator taps "Email".
- * @param onSkip        Invoked when the operator taps "Skip" to return to POS.
- * @param onDismissError Invoked to clear [printError] (typically after retry dialog).
- * @param modifier      Optional [Modifier].
+ * @param receiptPreviewText Pre-formatted receipt string from [PosState.receiptPreviewText].
+ *   Typically produced by [com.zyntasolutions.zyntapos.domain.formatter.ReceiptFormatter].
+ * @param orderNumber        The order number shown in the top app bar title.
+ * @param isPrinting         When `true`, the Print button shows a loading indicator.
+ * @param printError         Non-null error message triggers a retry [ZentaDialog].
+ * @param onPrint            Invoked when the cashier taps "Print".
+ * @param onEmail            Invoked when the cashier taps "Email".
+ * @param onSkip             Invoked when the cashier taps "Skip" to return to POS.
+ * @param onDismissError     Invoked to clear [printError] after the retry dialog is handled.
+ * @param modifier           Optional [Modifier].
  */
 @Composable
 fun ReceiptScreen(
-    order: Order,
-    printerConfig: PrinterConfig = PrinterConfig.DEFAULT,
+    receiptPreviewText: String,
+    orderNumber: String,
     isPrinting: Boolean = false,
     printError: String? = null,
     onPrint: () -> Unit,
@@ -83,12 +81,6 @@ fun ReceiptScreen(
     onDismissError: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // ── Build receipt preview text ────────────────────────────────────────────
-    val receiptText: String = remember(order, printerConfig) {
-        val bytes = EscPosReceiptBuilder(printerConfig).buildReceipt(order, printerConfig)
-        receiptTextFrom(bytes)
-    }
-
     // ── Retry error dialog ────────────────────────────────────────────────────
     if (printError != null) {
         ZentaDialogContent(
@@ -106,7 +98,7 @@ fun ReceiptScreen(
     Scaffold(
         topBar = {
             @OptIn(ExperimentalMaterial3Api::class)
-            TopAppBar(title = { Text("Receipt — Order #${order.orderNumber}") })
+            TopAppBar(title = { Text("Receipt — Order #$orderNumber") })
         },
         modifier = modifier,
     ) { innerPadding ->
@@ -136,7 +128,7 @@ fun ReceiptScreen(
                             .padding(ZentaSpacing.md),
                     ) {
                         Text(
-                            text = receiptText,
+                            text = receiptPreviewText,
                             fontFamily = FontFamily.Monospace,
                             fontSize = 12.sp,
                             lineHeight = 16.sp,
@@ -210,22 +202,4 @@ fun ReceiptScreen(
             }
         }
     }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Helper: strip ESC/POS control bytes for human-readable preview
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Converts raw ESC/POS [bytes] to a printable string suitable for on-screen preview.
- *
- * - Keeps printable ASCII (0x20–0x7E) and line-feed (0x0A).
- * - Replaces all other control bytes (ESC sequences, GS commands, etc.) with nothing.
- * - Decodes the remaining bytes as UTF-8.
- */
-private fun receiptTextFrom(bytes: ByteArray): String {
-    val cleaned = bytes.filter { b ->
-        b == 0x0A.toByte() || (b >= 0x20 && b <= 0x7E)
-    }.toByteArray()
-    return cleaned.toString(Charsets.UTF_8)
 }

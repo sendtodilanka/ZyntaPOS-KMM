@@ -14,10 +14,12 @@ import com.zyntasolutions.zyntapos.domain.usecase.pos.ApplyItemDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.ApplyOrderDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.CalculateOrderTotalsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.HoldOrderUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.pos.PrintReceiptUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.ProcessPaymentUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.RemoveItemFromCartUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.RetrieveHeldOrderUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.UpdateCartItemQuantityUseCase
+import com.zyntasolutions.zyntapos.domain.formatter.ReceiptFormatter
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -83,6 +85,10 @@ class PosViewModel(
     private val holdOrderUseCase: HoldOrderUseCase,
     private val retrieveHeldUseCase: RetrieveHeldOrderUseCase,
     private val processPaymentUseCase: ProcessPaymentUseCase,
+    /** Domain use case for thermal receipt printing; called when cashier taps "Print" in [ReceiptScreen]. */
+    private val printReceiptUseCase: PrintReceiptUseCase,
+    /** Pure-domain formatter that converts an [Order] into a monospace preview string for [ReceiptScreen]. */
+    private val receiptFormatter: ReceiptFormatter,
     val cashierId: String,
     val storeId: String,
     val registerSessionId: String,
@@ -166,6 +172,8 @@ class PosViewModel(
             is PosIntent.HoldOrder -> onHoldOrder()
             is PosIntent.RetrieveHeld -> onRetrieveHeld(intent.holdId)
             is PosIntent.ProcessPayment -> onProcessPayment(intent)
+            is PosIntent.PrintCurrentReceipt -> onPrintCurrentReceipt()
+            is PosIntent.DismissPrintError -> updateState { copy(printError = null) }
         }
     }
 
@@ -334,16 +342,46 @@ class PosViewModel(
         updateState { copy(isLoading = false) }
         when (result) {
             is Result.Success -> {
-                val orderId = result.data.id
+                val order = result.data
+                // Build receipt preview text in domain — no HAL bytes in state
+                val previewText = receiptFormatter.format(order)
                 if (intent.method == PaymentMethod.CASH) {
                     sendEffect(PosEffect.OpenCashDrawer(registerSessionId))
                 }
-                sendEffect(PosEffect.PrintReceipt(orderId))
-                sendEffect(PosEffect.ShowReceiptScreen(orderId))
+                sendEffect(PosEffect.PrintReceipt(order.id))
+                sendEffect(PosEffect.ShowReceiptScreen(order.id))
+                // Persist order + preview text so ReceiptScreen can display and reprint
+                updateState {
+                    copy(
+                        receiptPreviewText = previewText,
+                        currentReceiptOrder = order,
+                    )
+                }
                 onClearCart()
             }
             is Result.Error -> sendEffect(PosEffect.ShowError(result.exception.message ?: "Payment failed"))
             is Result.Loading -> Unit
         }
     }
-}
+
+    /**
+     * Handles [PosIntent.PrintCurrentReceipt]: calls [PrintReceiptUseCase] with the order
+     * stored in [PosState.currentReceiptOrder] and updates [PosState.isPrinting] /
+     * [PosState.printError] accordingly.
+     *
+     * No-ops silently when [PosState.currentReceiptOrder] is null (guards against stale taps).
+     */
+    private suspend fun onPrintCurrentReceipt() {
+        val order = currentState.currentReceiptOrder ?: return
+        updateState { copy(isPrinting = true, printError = null) }
+        when (val result = printReceiptUseCase(order, cashierId)) {
+            is Result.Success -> updateState { copy(isPrinting = false) }
+            is Result.Error   -> updateState {
+                copy(
+                    isPrinting = false,
+                    printError = result.exception.message ?: "Print failed — please retry",
+                )
+            }
+            is Result.Loading -> Unit
+        }
+    }
