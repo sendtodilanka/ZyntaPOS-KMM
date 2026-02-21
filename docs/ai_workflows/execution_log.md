@@ -2770,3 +2770,14 @@ settings.gradle.kts                                                           �
 - [x] Finished: Created FakeSharedRepositories.kt — FakeCustomerRepository, FakeSettingsRepository, FakeSyncRepository | 2026-02-21
 - [x] Finished: Deleted FakeRepositories.kt, FakeRepositoriesPart2.kt, FakeRepositoriesPart3.kt | 2026-02-21
 - [x] Finished: Confirmed no import-path updates needed (test files import class names from same package, not file names) | 2026-02-21
+
+---
+
+## ADR-001 ViewModel Base Class Policy — Formalisation (2026-02-21)
+
+- [x] Finished: Step 1 — Confirmed docs/adr/ directory exists (already present, contains ADR-002) | 2026-02-21
+- [x] Finished: Step 2 — Created docs/adr/ADR-001-ViewModelBaseClass.md with full policy, rationale, enforcement table, and Sprint-4 fix record | 2026-02-21
+- [x] Finished: Step 3 — Verified file written (96 lines); content confirmed correct | 2026-02-21
+
+> **ADR STATUS: ✅ ACCEPTED — docs/adr/ADR-001-ViewModelBaseClass.md created.**
+> **Rule:** All feature ViewModels MUST extend `ui.core.mvi.BaseViewModel`. Raw `androidx.lifecycle.ViewModel` extension is PROHIBITED in feature modules.
