@@ -1,3 +1,11 @@
+> ⚠️ SUPERSEDED — DO NOT EXECUTE
+> This plan has been superseded by PLAN_CONSOLIDATED_FIX_v1.0.md.
+> All items from this document are covered in the consolidated plan.
+> Executing this document independently may cause conflicts.
+> Status updated: 2026-02-21 — ZENTA-FINAL-AUDIT MERGED-01
+
+---
+
 # ZyntaPOS — Mismatch Fix Plan
 > **Doc ID:** ZENTA-MISMATCH-FIX-v1.0  
 > **Created:** 2026-02-20  
