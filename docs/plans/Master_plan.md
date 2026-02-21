@@ -164,7 +164,65 @@ Deliver a cross-platform POS system that operates seamlessly online and offline,
                          └──────────┘
 ```
 
-Each feature module follows this contract:
+All feature ViewModels extend the **canonical** `BaseViewModel` in
+`:composeApp:core` (`com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel`).
+The canonical API uses `updateState {}` for atomic state mutations,
+`sendEffect()` for one-shot Channel-backed effects, and
+`abstract suspend fun handleIntent(I)` for intent processing.
+Intents are dispatched from the UI via `viewModel.dispatch(intent)`.
+
+```kotlin
+// Canonical ViewModel contract (composeApp:core)
+class PosViewModel(
+    private val addItemUseCase: AddItemToCartUseCase,
+) : BaseViewModel<PosState, PosIntent, PosEffect>(PosState()) {
+
+    override suspend fun handleIntent(intent: PosIntent) {
+        when (intent) {
+            is PosIntent.AddToCart     -> onAddToCart(intent.product)
+            is PosIntent.ApplyDiscount -> updateState { copy(discount = intent.value) }
+            PosIntent.ProcessPayment   -> processPayment()
+        }
+    }
+
+    private suspend fun onAddToCart(product: Product) {
+        updateState { copy(isLoading = true) }
+        val result = addItemUseCase(product)
+        updateState { copy(cart = result, isLoading = false) }
+    }
+
+    private fun processPayment() {
+        viewModelScope.launch {
+            // … payment logic …
+            sendEffect(PosEffect.PrintReceipt(orderId = currentState.cart.orderId))
+        }
+    }
+}
+
+// UI side — dispatch intents via the stable dispatch() entry-point
+@Composable
+fun PosScreen(viewModel: PosViewModel = koinViewModel()) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                is PosEffect.PrintReceipt -> printer.print(effect.orderId)
+            }
+        }
+    }
+
+    Button(onClick = { viewModel.dispatch(PosIntent.ProcessPayment) }) {
+        Text("Charge ${state.cart.total}")
+    }
+}
+```
+
+> ⚠️ **Never** extend raw `androidx.lifecycle.ViewModel` directly in feature modules.
+> Always extend `BaseViewModel<S, I, E>` to get `updateState {}`, `sendEffect()`,
+> `currentState`, and Channel-backed effect delivery for free.
+
+Each feature module also defines its contract types:
 
 ```kotlin
 // Intent: User actions

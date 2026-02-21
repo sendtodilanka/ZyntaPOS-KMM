@@ -1,19 +1,11 @@
 package com.zyntasolutions.zyntapos.feature.reports
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateSalesReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateStockReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.PrintReportUseCase
+import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
@@ -26,8 +18,13 @@ import kotlin.time.Duration.Companion.days
  * MVI ViewModel for the Reports feature (Sprint 22).
  *
  * Manages state for [ReportsHomeScreen], [SalesReportScreen], and [StockReportScreen].
- * Results are cached in [_state] — re-opening a screen does not trigger a re-query
+ * Results are cached in state — re-opening a screen does not trigger a re-query
  * unless the user explicitly changes the date range or pulls to refresh.
+ *
+ * Extends [BaseViewModel] which provides:
+ *  - [updateState] for atomic state mutations
+ *  - [sendEffect] for one-shot side-effects
+ *  - [dispatch] as the UI entry-point (launches [handleIntent] in viewModelScope)
  *
  * @param generateSalesReport Aggregates sales data for a date range.
  * @param generateStockReport Fetches current stock levels with low/dead stock categorisation.
@@ -39,48 +36,46 @@ class ReportsViewModel(
     private val generateStockReport: GenerateStockReportUseCase,
     private val printReport: PrintReportUseCase,
     private val reportExporter: ReportExporter,
-) : ViewModel() {
-
-    private val _state = MutableStateFlow(ReportsState())
-    val state: StateFlow<ReportsState> = _state.asStateFlow()
-
-    private val _effect = MutableSharedFlow<ReportsEffect>(extraBufferCapacity = 16)
-    val effect: SharedFlow<ReportsEffect> = _effect.asSharedFlow()
+) : BaseViewModel<ReportsState, ReportsIntent, ReportsEffect>(ReportsState()) {
 
     private var salesJob: Job? = null
     private var stockJob: Job? = null
 
     // ── Intent dispatch ──────────────────────────────────────────────────────
 
-    fun onIntent(intent: ReportsIntent) {
+    override suspend fun handleIntent(intent: ReportsIntent) {
         when (intent) {
-            is ReportsIntent.SelectSalesRange    -> selectSalesRange(intent.range)
-            is ReportsIntent.SetCustomSalesRange -> setCustomRange(intent.from, intent.to)
-            ReportsIntent.LoadSalesReport        -> loadSalesReport()
-            ReportsIntent.ExportSalesReportCsv  -> exportSales(pdf = false)
-            ReportsIntent.ExportSalesReportPdf  -> exportSales(pdf = true)
-            ReportsIntent.PrintSalesReport       -> printSalesReport()
-            ReportsIntent.DismissSalesError      -> _state.update { it.copy(salesReport = it.salesReport.copy(error = null)) }
-            ReportsIntent.LoadStockReport        -> loadStockReport()
+            is ReportsIntent.SelectSalesRange      -> selectSalesRange(intent.range)
+            is ReportsIntent.SetCustomSalesRange   -> setCustomRange(intent.from, intent.to)
+            ReportsIntent.LoadSalesReport          -> loadSalesReport()
+            ReportsIntent.ExportSalesReportCsv     -> exportSales(pdf = false)
+            ReportsIntent.ExportSalesReportPdf     -> exportSales(pdf = true)
+            ReportsIntent.PrintSalesReport         -> printSalesReport()
+            ReportsIntent.DismissSalesError        -> updateState {
+                copy(salesReport = salesReport.copy(error = null))
+            }
+            ReportsIntent.LoadStockReport          -> loadStockReport()
             is ReportsIntent.FilterStockByCategory -> filterStock(intent.categoryId)
-            is ReportsIntent.SortStock           -> sortStock(intent.column, intent.ascending)
-            ReportsIntent.ExportStockReportCsv  -> exportStock(pdf = false)
-            ReportsIntent.ExportStockReportPdf  -> exportStock(pdf = true)
-            ReportsIntent.DismissStockError      -> _state.update { it.copy(stockReport = it.stockReport.copy(error = null)) }
+            is ReportsIntent.SortStock             -> sortStock(intent.column, intent.ascending)
+            ReportsIntent.ExportStockReportCsv     -> exportStock(pdf = false)
+            ReportsIntent.ExportStockReportPdf     -> exportStock(pdf = true)
+            ReportsIntent.DismissStockError        -> updateState {
+                copy(stockReport = stockReport.copy(error = null))
+            }
         }
     }
 
     // ── Sales ────────────────────────────────────────────────────────────────
 
     private fun selectSalesRange(range: DateRange) {
-        _state.update { it.copy(salesReport = it.salesReport.copy(selectedRange = range)) }
+        updateState { copy(salesReport = salesReport.copy(selectedRange = range)) }
         loadSalesReport()
     }
 
     private fun setCustomRange(from: Instant, to: Instant) {
-        _state.update {
-            it.copy(
-                salesReport = it.salesReport.copy(
+        updateState {
+            copy(
+                salesReport = salesReport.copy(
                     selectedRange = DateRange.CUSTOM,
                     customFrom = from,
                     customTo = to,
@@ -93,24 +88,24 @@ class ReportsViewModel(
     private fun loadSalesReport() {
         salesJob?.cancel()
         val (from, to) = resolveDateRange()
-        _state.update { it.copy(salesReport = it.salesReport.copy(isLoading = true, error = null)) }
+        updateState { copy(salesReport = salesReport.copy(isLoading = true, error = null)) }
 
         salesJob = viewModelScope.launch {
             generateSalesReport(from, to)
                 .catch { e ->
-                    _state.update { s ->
-                        s.copy(salesReport = s.salesReport.copy(isLoading = false, error = e.message))
+                    updateState {
+                        copy(salesReport = salesReport.copy(isLoading = false, error = e.message))
                     }
                 }
                 .collect { report ->
-                    _state.update { s ->
-                        s.copy(
-                            salesReport = s.salesReport.copy(
+                    updateState {
+                        copy(
+                            salesReport = salesReport.copy(
                                 isLoading = false,
                                 report = report,
                                 error = null,
                             ),
-                            reportsHome = s.reportsHome.copy(lastSalesReportAt = Clock.System.now()),
+                            reportsHome = reportsHome.copy(lastSalesReportAt = Clock.System.now()),
                         )
                     }
                 }
@@ -118,8 +113,8 @@ class ReportsViewModel(
     }
 
     private fun exportSales(pdf: Boolean) {
-        val report = _state.value.salesReport.report ?: return
-        _state.update { it.copy(salesReport = it.salesReport.copy(isExporting = true)) }
+        val report = currentState.salesReport.report ?: return
+        updateState { copy(salesReport = salesReport.copy(isExporting = true)) }
         viewModelScope.launch {
             try {
                 val path = if (pdf) {
@@ -127,24 +122,24 @@ class ReportsViewModel(
                 } else {
                     reportExporter.exportSalesCsv(report)
                 }
-                _effect.emit(ReportsEffect.ExportComplete(path))
+                sendEffect(ReportsEffect.ExportComplete(path))
             } catch (e: Exception) {
-                _effect.emit(ReportsEffect.ShowSnackbar("Export failed: ${e.message}"))
+                sendEffect(ReportsEffect.ShowSnackbar("Export failed: ${e.message}"))
             } finally {
-                _state.update { it.copy(salesReport = it.salesReport.copy(isExporting = false)) }
+                updateState { copy(salesReport = salesReport.copy(isExporting = false)) }
             }
         }
     }
 
     private fun printSalesReport() {
-        val report = _state.value.salesReport.report ?: return
-        _state.update { it.copy(salesReport = it.salesReport.copy(isPrinting = true)) }
+        val report = currentState.salesReport.report ?: return
+        updateState { copy(salesReport = salesReport.copy(isPrinting = true)) }
         viewModelScope.launch {
             printReport.printSalesSummary(report).fold(
-                onSuccess = { _effect.emit(ReportsEffect.PrintJobSent) },
-                onFailure = { e -> _effect.emit(ReportsEffect.ShowSnackbar("Print failed: ${e.message}")) },
+                onSuccess = { sendEffect(ReportsEffect.PrintJobSent) },
+                onFailure = { e -> sendEffect(ReportsEffect.ShowSnackbar("Print failed: ${e.message}")) },
             )
-            _state.update { it.copy(salesReport = it.salesReport.copy(isPrinting = false)) }
+            updateState { copy(salesReport = salesReport.copy(isPrinting = false)) }
         }
     }
 
@@ -152,26 +147,26 @@ class ReportsViewModel(
 
     private fun loadStockReport() {
         stockJob?.cancel()
-        _state.update { it.copy(stockReport = it.stockReport.copy(isLoading = true, error = null)) }
+        updateState { copy(stockReport = stockReport.copy(isLoading = true, error = null)) }
 
         stockJob = viewModelScope.launch {
             generateStockReport()
                 .catch { e ->
-                    _state.update { s ->
-                        s.copy(stockReport = s.stockReport.copy(isLoading = false, error = e.message))
+                    updateState {
+                        copy(stockReport = stockReport.copy(isLoading = false, error = e.message))
                     }
                 }
                 .collect { report ->
-                    _state.update { s ->
-                        s.copy(
-                            stockReport = s.stockReport.copy(
+                    updateState {
+                        copy(
+                            stockReport = stockReport.copy(
                                 isLoading = false,
                                 allProducts = report.allProducts,
                                 lowStockItems = report.lowStockItems,
                                 deadStockItems = report.deadStockItems,
                                 error = null,
                             ),
-                            reportsHome = s.reportsHome.copy(lastStockReportAt = Clock.System.now()),
+                            reportsHome = reportsHome.copy(lastStockReportAt = Clock.System.now()),
                         )
                     }
                 }
@@ -179,16 +174,16 @@ class ReportsViewModel(
     }
 
     private fun filterStock(categoryId: String?) {
-        _state.update { it.copy(stockReport = it.stockReport.copy(selectedCategory = categoryId)) }
+        updateState { copy(stockReport = stockReport.copy(selectedCategory = categoryId)) }
     }
 
     private fun sortStock(column: StockSortColumn, ascending: Boolean) {
-        _state.update { it.copy(stockReport = it.stockReport.copy(sortColumn = column, sortAscending = ascending)) }
+        updateState { copy(stockReport = stockReport.copy(sortColumn = column, sortAscending = ascending)) }
     }
 
     private fun exportStock(pdf: Boolean) {
-        val s = _state.value.stockReport
-        _state.update { it.copy(stockReport = it.stockReport.copy(isExporting = true)) }
+        val s = currentState.stockReport
+        updateState { copy(stockReport = stockReport.copy(isExporting = true)) }
         viewModelScope.launch {
             try {
                 val report = GenerateStockReportUseCase.StockReport(
@@ -198,11 +193,11 @@ class ReportsViewModel(
                 )
                 val path = if (pdf) reportExporter.exportStockPdf(report)
                            else reportExporter.exportStockCsv(report)
-                _effect.emit(ReportsEffect.ExportComplete(path))
+                sendEffect(ReportsEffect.ExportComplete(path))
             } catch (e: Exception) {
-                _effect.emit(ReportsEffect.ShowSnackbar("Export failed: ${e.message}"))
+                sendEffect(ReportsEffect.ShowSnackbar("Export failed: ${e.message}"))
             } finally {
-                _state.update { it.copy(stockReport = it.stockReport.copy(isExporting = false)) }
+                updateState { copy(stockReport = stockReport.copy(isExporting = false)) }
             }
         }
     }
@@ -210,18 +205,16 @@ class ReportsViewModel(
     // ── Date range resolution ────────────────────────────────────────────────
 
     private fun resolveDateRange(): Pair<Instant, Instant> {
-        val tz   = TimeZone.currentSystemDefault()
-        val now  = Clock.System.now()
+        val tz    = TimeZone.currentSystemDefault()
+        val now   = Clock.System.now()
         val today = now.toLocalDateTime(tz).date
 
-        return when (_state.value.salesReport.selectedRange) {
+        return when (currentState.salesReport.selectedRange) {
             DateRange.TODAY      -> today.atStartOfDayIn(tz) to now
             DateRange.THIS_WEEK  -> (today - today.dayOfWeek.ordinal.days).atStartOfDayIn(tz) to now
-            DateRange.THIS_MONTH -> today.let {
-                it.copy(dayOfMonth = 1).atStartOfDayIn(tz) to now
-            }
-            DateRange.CUSTOM     -> (_state.value.salesReport.customFrom ?: now) to
-                                    (_state.value.salesReport.customTo   ?: now)
+            DateRange.THIS_MONTH -> today.copy(dayOfMonth = 1).atStartOfDayIn(tz) to now
+            DateRange.CUSTOM     -> (currentState.salesReport.customFrom ?: now) to
+                                    (currentState.salesReport.customTo   ?: now)
         }
     }
 }

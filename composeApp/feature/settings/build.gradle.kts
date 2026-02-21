@@ -24,6 +24,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(project(":composeApp:designsystem"))
+            implementation(project(":composeApp:core"))
             implementation(project(":shared:core"))
             implementation(project(":shared:domain"))
             implementation(libs.bundles.koin.common)

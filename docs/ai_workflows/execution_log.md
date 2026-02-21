@@ -17,6 +17,22 @@
 
 ---
 
+## 🔧 HOTFIX — MVI Architecture Violation Fix (2026-02-21)
+- [x] Finished: Step 1 — Grep confirmed zero external consumers of zombie `shared/core/.../core/mvi/BaseViewModel.kt` | 2026-02-21
+- [x] Finished: Step 2 — Deleted zombie `BaseViewModel.kt` (AutoCloseable / setState / onIntent API) from `shared/core/src/commonMain/.../core/mvi/` | 2026-02-21
+- [x] Finished: Step 3 — Read & noted canonical `BaseViewModel` API: extends `ViewModel()`, `updateState{}`, `abstract suspend fun handleIntent(I)`, `dispatch(intent)`, Channel-backed effects | 2026-02-21
+- [x] Finished: Step 4 — Migrated `ReportsViewModel` to canonical BaseViewModel: removed manual StateFlow/SharedFlow fields, replaced `onIntent` with `override suspend fun handleIntent`, replaced `_state.update{it.copy}` with `updateState{copy}`, replaced `_effect.emit` with `sendEffect` | 2026-02-21
+- [x] Finished: Step 5 — Migrated `SettingsViewModel` to canonical BaseViewModel: same migration pattern as Step 4 — all 50+ intent handlers + 10 private helpers updated | 2026-02-21
+- [x] Finished: Step 6 — Updated `docs/plans/Master_plan.md §3.3` with canonical BaseViewModel usage example (handleIntent / updateState / dispatch / sendEffect). Updated `PLAN_COMPAT_VERIFICATION_v1.0.md` PRE-SPRINT-12 entry and tracking tables to ✅ RESOLVED | 2026-02-21
+
+---
+
+## 🔧 HOTFIX — CI Build Fix (2026-02-21)
+- [x] Finished: Added `implementation(project(":composeApp:core"))` to `commonMain.dependencies {}` in all 12 feature modules | 2026-02-21
+  - composeApp/feature/pos, inventory, settings, register, reports, customers, admin, coupons, expenses, staff, multistore, media
+  - Insertion point: immediately after `implementation(project(":composeApp:designsystem"))` in each file
+  - Pre-check: none of the 12 files contained `:composeApp:core` before edit (no duplicates introduced)
+
 ## 📌 EXECUTION STATUS LEGEND
 - `[ ]` Not Started
 - `[~]` In Progress

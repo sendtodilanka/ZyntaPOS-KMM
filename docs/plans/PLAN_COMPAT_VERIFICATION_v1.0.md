@@ -112,8 +112,15 @@ This is a documentation clarification — the code itself is correct.
 
 ---
 
-### PRE-SPRINT 12 — `BaseViewModel` extends `AutoCloseable` — MUST FIX BEFORE ViewModels
-**Status: ⚠️ ACTION REQUIRED before Sprint 12 execution**
+### PRE-SPRINT 12 — `BaseViewModel` extends `AutoCloseable` — ✅ RESOLVED (2026-02-21)
+**Status: ✅ COMPLETED — Zombie BaseViewModel deleted; canonical BaseViewModel confirmed active**
+
+The zombie `shared/core/…/core/mvi/BaseViewModel.kt` (AutoCloseable, `setState{}`,
+`abstract fun onIntent(I)`) has been **deleted**. The canonical BaseViewModel at
+`composeApp/core/…/ui/core/mvi/BaseViewModel.kt` (extends `ViewModel()`, `updateState{}`,
+`abstract suspend fun handleIntent(I)`, Channel-backed effects) is the sole implementation.
+`ReportsViewModel` and `SettingsViewModel` have been migrated to the canonical API.
+No action required before Sprint 12 — the ViewModel base is already correct.
 
 **Issue:** `BaseViewModel<S,I,E>` currently extends `AutoCloseable`. For Koin 4.0.4's
 `viewModelOf {}` to bind the ViewModel to the Compose lifecycle (automatic `close()` on
@@ -263,7 +270,7 @@ advanceTimeBy(30_000L)
 |--------|-----------|---------|-----------------|--------|
 | Sprint 4 | ✅ CLEAR | No issues | None | Start now |
 | Sprint 2 existing | ✅ OK | `@OptIn(ExperimentalUuidApi)` is correct | None | — |
-| Pre-Sprint 12 | ⚠️ MUST FIX | `BaseViewModel` must extend KMP `ViewModel` | Fix before S12 | Sprint 11 end |
+| Pre-Sprint 12 | ✅ RESOLVED | `BaseViewModel` zombie deleted; canonical `ViewModel()` base confirmed | Completed 2026-02-21 |
 | Sprint 6 | ✅ OK | Ktor `HttpRequestRetry` API confirmed | Use correct class name | Sprint 6 |
 | Sprint 8 | ⚠️ MONITOR | `security-crypto:1.1.0-alpha06` is alpha | Evaluate at S8 start | Sprint 8 |
 | Sprint 9-10 | ⚠️ MONITOR | `compose-adaptive:1.1.0-alpha04` is alpha | Evaluate at S9 start | Sprint 9 |
@@ -281,7 +288,7 @@ advanceTimeBy(30_000L)
 
 | ID | When | Action |
 |----|------|--------|
-| COMPAT-FIX-1 | Sprint 11 end | Update `BaseViewModel` to extend KMP `ViewModel` from `lifecycle-viewmodel 2.9.6` |
+| COMPAT-FIX-1 | ✅ RESOLVED 2026-02-21 | `BaseViewModel` zombie deleted; canonical `ViewModel()` base with `handleIntent` + `updateState` is live |
 | COMPAT-FIX-2 | Sprint 8 start | Evaluate `security-crypto` alpha → upgrade or replace with DataStore |
 | COMPAT-FIX-3 | Sprint 9 start | Check `compose-adaptive` for stable/beta release |
 | COMPAT-FIX-4 | Sprint 12 start | Add `Dispatchers.setMain(UnconfinedTestDispatcher())` to ViewModel test template |
