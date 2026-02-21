@@ -147,6 +147,15 @@ Deliver a cross-platform POS system that operates seamlessly online and offline,
 └── :composeApp:feature:admin  → System admin, logs, backups
 ```
 
+### 3.2.1 :shared:data Security Stubs (Sprints 1–7)
+
+> **⚠ Development Stubs — Not for Production Use**
+> The `data/local/security/` package (`InMemorySecurePreferences`, `PlaceholderPasswordHasher`,
+> `SecurePreferences`) contains placeholder implementations used during Sprints 1–7 while
+> `:shared:security` is being built. These stubs are **replaced by the production
+> `:shared:security` actual implementations in Sprint 8** and must never be referenced
+> in production or release-variant code.
+
 ### 3.3 MVI State Management Pattern
 
 ```

@@ -2728,3 +2728,18 @@ settings.gradle.kts                                                           �
 
 > **HOTFIX STATUS: ✅ COMPLETE — Both .sq files written. SQLDelight will generate TaxGroupsQueries and UnitsOfMeasureQueries on next build.**
 > **Next:** Implement TODO bodies in TaxGroupRepositoryImpl and UnitGroupRepositoryImpl using generated queries.
+
+---
+
+## ADR-002 Domain Model Naming Audit | 2026-02-21
+
+- [x] Finished: Scanned shared/domain/src/commonMain/.../domain/model/ — found 26 domain model files (plain names, no *Entity suffix) | 2026-02-21
+- [x] Finished: Checked docs/adr/ — directory did not exist, created it | 2026-02-21
+- [x] Finished: Created docs/adr/ADR-002-DomainModelNaming.md with full Option A/B analysis | 2026-02-21
+- [ ] Pending: Team decision on ADR-002 (Option A or Option B) — awaiting tech lead sign-off
+- [ ] Pending: If Option A chosen → execute automated rename of all 26 files + import updates
+
+- [x] Finished: ADR-002 Option B — Updated Status to ACCEPTED, Decision to Option B (confirmed by Dilanka, 2026-02-21) | 2026-02-21
+- [x] Finished: ADR-002 Option B — Filled Consequences section with enforcement rules for domain vs. persistence naming | 2026-02-21
+- [x] Finished: ADR-002 Option B — Created CONTRIBUTING.md at project root with naming conventions, MVI, DI, testing standards, ADR table | 2026-02-21
+- [x] CLOSED: ADR-002 Domain Model Naming — Option B fully executed. No renames required. Convention documented and enforced. | 2026-02-21
