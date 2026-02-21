@@ -265,7 +265,7 @@ sealed interface PosSideEffect {
 | M04 | `:shared:hal` | Infrastructure | M01 | 1 |
 | M05 | `:shared:security` | Infrastructure | M01 | 1 |
 | M06 | `:composeApp:designsystem` | Presentation | M01 | 1 |
-| M07 | `:composeApp:navigation` | Presentation | M06 | 1 |
+| M07 | `:composeApp:navigation` | Presentation | M02, M05, M06 | 1 |
 | M08 | `:composeApp:feature:auth` | Feature | M02, M03, M05, M06, M21 | 1 |
 | M09 | `:composeApp:feature:pos` | Feature | M02, M03, M04, M06, M21 | 1 |
 | M10 | `:composeApp:feature:inventory` | Feature | M02, M03, M06, M21 | 1 |
@@ -294,15 +294,17 @@ sealed interface PosSideEffect {
         │  (M02)   │  │   (M05)      │  │  (M04)   │  │  (M03)   │
         └────┬─────┘  └──────┬───────┘  └────┬─────┘  └────┬─────┘
              │               │               │              │
-             │               └───────────────┼──────────────┘
-             │                               ▼
-             │                   ┌───────────────────────┐
-             │                   │    :designsystem      │  (M06)
-             │                   └───────────┬───────────┘
-             │                               ▼
-             │                   ┌───────────────────────┐
-             │                   │      :navigation      │  (M07)
-             │                   └───────────────────────┘
+             │    ┌──────────┘               └──────────────┘
+             │    │                                  ▼
+             │    │               ┌───────────────────────┐
+             │    │               │    :designsystem      │  (M06)
+             │    │               └───────────┬───────────┘
+             │    │                           │
+             │    │           ┌───────────────┘
+             ▼    ▼           ▼
+             ┌───────────────────────┐
+             │      :navigation      │  (M07)  ← depends on M02, M05, M06
+             └───────────────────────┘
              │
              ▼
    ┌──────────────────────┐
