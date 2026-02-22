@@ -3291,3 +3291,31 @@ Two compile errors blocked `:shared:domain:assemble`. Both were identified via `
 - [x] Finished: Fix OrderTotals.kt — itemCount: Double → Int; EMPTY itemCount = 0 | 2026-02-22
 - [x] Finished: Fix CalculateOrderTotalsUseCase.kt — itemCount = items.size (Int) | 2026-02-22
 - [ ] Doing: Fix PosViewModelTest.kt — add missing printReceiptUseCase & receiptFormatter constructor params
+
+---
+
+## 🔴 PRIORITY ACTION — MERGED-G1.1: Add named("deviceId") Koin Provider (2026-02-22)
+> **Source:** Audit v3 Final Report §4 — P0 CRITICAL
+> **Problem:** `SecurityAuditLogger` in `securityModule` requires `get(named("deviceId"))` but
+> zero providers existed across all 24 DI modules. App crashes with `NoBeanDefFoundException`
+> on startup on ALL platforms — blocks all testing and deployment.
+> **Fix:** Add `single(named("deviceId"))` to both platform data modules:
+> - Android: `Settings.Secure.ANDROID_ID` with UUID fallback for emulators
+> - Desktop: Random UUID persisted to `<appDataDir>/.device_id` on first launch
+
+- [x] G1.1-1 — Add `single(named("deviceId"))` to `AndroidDataModule.kt` using `Settings.Secure.ANDROID_ID` + UUID fallback | 2026-02-22
+- [x] G1.1-2 — Add `single(named("deviceId"))` to `DesktopDataModule.kt` using UUID persisted to `.device_id` file | 2026-02-22
+- [x] G1.1-3 — Update KDoc binding tables in both modules to document the new binding | 2026-02-22
+
+### G1.1 Integrity Report
+
+| Check | Result |
+|---|---|
+| `AndroidDataModule.kt` — `single(named("deviceId"))` present | ✅ |
+| `AndroidDataModule.kt` — uses `Settings.Secure.ANDROID_ID` with UUID fallback | ✅ |
+| `DesktopDataModule.kt` — `single(named("deviceId"))` present | ✅ |
+| `DesktopDataModule.kt` — persists UUID to `.device_id` file | ✅ |
+| `SecurityModule.kt` — `get(named("deviceId"))` in `SecurityAuditLogger` binding matches | ✅ |
+| KDoc tables updated in both platform modules | ✅ |
+
+> **Section status: ✅ MERGED-G1.1 COMPLETE — P0 CRITICAL resolved, startup crash fixed**

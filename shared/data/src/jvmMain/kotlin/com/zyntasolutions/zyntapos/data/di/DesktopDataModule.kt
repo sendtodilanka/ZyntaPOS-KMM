@@ -3,8 +3,11 @@ package com.zyntasolutions.zyntapos.data.di
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseDriverFactory
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseKeyProvider
 import com.zyntasolutions.zyntapos.data.sync.NetworkMonitor
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import java.io.File
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 /**
  * ZyntaPOS — Desktop (JVM) Data Koin Module
@@ -13,6 +16,7 @@ import java.io.File
  *
  * | Binding | Implementation | Notes |
  * |---------|---------------|-------|
+ * | `String` named("deviceId") | UUID persisted to `.device_id` in app data dir | Required by `securityModule` ([SecurityAuditLogger]) — MERGED-G1.1 |
  * | [DatabaseKeyProvider] | JCE PKCS12 KeyStore AES-256, machine-fingerprint password | — |
  * | [DatabaseDriverFactory] | JdbcSqliteDriver (WAL, 8 MB cache, 5s busy_timeout) | — |
  * | [NetworkMonitor] | Periodic InetAddress.isReachable() → StateFlow<Boolean> | Actual class — no-arg |
@@ -51,10 +55,27 @@ import java.io.File
  * - Windows → `sqlcipher.dll` in app root
  * Set: `-Dorg.xerial.sqlite.lib.path=/path/to/lib`
  */
+@OptIn(ExperimentalUuidApi::class)
 val desktopDataModule = module {
 
     // ── App data directory (OS-resolved) ──────────────────────────────
     single { resolveAppDataDir() }
+
+    // ── Device ID (required by securityModule → SecurityAuditLogger) ──
+    // Persists a random UUID to `<appDataDir>/.device_id` on first launch.
+    // Reads and returns the same ID on subsequent launches.
+    // MERGED-G1.1 (2026-02-22).
+    single(named("deviceId")) {
+        val appDataDir: String = get()
+        val deviceIdFile = File(appDataDir, ".device_id")
+        if (deviceIdFile.exists()) {
+            deviceIdFile.readText().trim()
+        } else {
+            val id = Uuid.random().toString()
+            deviceIdFile.writeText(id)
+            id
+        }
+    }
 
     // ── Database (platform expect/actual) ─────────────────────────────
     single { DatabaseKeyProvider(appDataDir = get()) }

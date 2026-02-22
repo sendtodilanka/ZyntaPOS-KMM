@@ -231,18 +231,14 @@ SECTION 2: COMPLETE FINDINGS (Deduplicated)
 2D. Architectural & Integrity Violations (from Phase 3 & 4):
 ──────────────────────────────────────────────────────
 
-  🔴 [MERGED-G1.1] named("deviceId") has ZERO providers — guaranteed startup crash
+  ✅ [MERGED-G1.1] named("deviceId") has ZERO providers — guaranteed startup crash
      Severity: 🔴 P0 CRITICAL
+     Status: ✅ RESOLVED (2026-02-22)
      Source: Phase 3 NEW-04 + Phase 4 AV-04 carry-forward
      File: shared/security/src/commonMain/.../security/di/SecurityModule.kt
-     Evidence: SecurityAuditLogger(deviceId = get(named("deviceId")))
-              All 23 DI modules, both entry points, and App.kt scanned — zero providers.
-              securityModule loads at Tier 2 → NoBeanDefFoundException on first launch.
-     Impact: Blocks ALL testing and deployment on Android and Desktop.
-     Recommendation: Add single(named("deviceId")) { ... } to:
-       → AndroidDataModule.kt (Settings.Secure.ANDROID_ID + UUID fallback)
-       → DesktopDataModule.kt (UUID persisted to config file)
-       Document in Master_plan.md §4.2 as securityModule precondition.
+     Resolution:
+       → AndroidDataModule.kt: single(named("deviceId")) using Settings.Secure.ANDROID_ID + UUID fallback
+       → DesktopDataModule.kt: single(named("deviceId")) using UUID persisted to .device_id file
 
   🚫 [MERGED-G2.1] PrinterManagerReceiptAdapter imports SecurityAuditLogger (feature→infra)
      Severity: 🟠 MEDIUM
