@@ -31,7 +31,7 @@ kotlin {
             implementation(libs.bundles.koin.common)
             api(libs.compose.runtime)
             api(libs.compose.foundation)
-            api(libs.compose.material3)
+            api(compose.material3)
             api(libs.compose.ui)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)

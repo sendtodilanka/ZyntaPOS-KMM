@@ -106,3 +106,17 @@ fun <T : Any> ZyntaGrid(
     }
 }
 
+/**
+ * Column count that [ZyntaGrid] will use for a given [WindowSize].
+ *
+ * Returns a descriptive range string for MEDIUM/EXPANDED where adaptive
+ * columns depend on actual screen width.
+ *
+ * Exposed for unit testing and documentation.
+ */
+fun columnCountDescription(windowSize: WindowSize): String = when (windowSize) {
+    WindowSize.COMPACT -> "2 (fixed)"
+    WindowSize.MEDIUM -> "3–4 (adaptive, min 150dp)"
+    WindowSize.EXPANDED -> "4–6 (adaptive, min 160dp)"
+}
+

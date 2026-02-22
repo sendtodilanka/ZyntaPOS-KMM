@@ -5,6 +5,15 @@
 // opts in explicitly. This avoids classloader conflicts on Gradle 8+.
 // ============================================================
 
+buildscript {
+    dependencies {
+        // Detekt loaded via buildscript classpath so it resolves from
+        // dependency repositories (mavenCentral) rather than the plugin
+        // portal, which may be unavailable in restricted CI environments.
+        classpath("io.gitlab.arturbosch.detekt:detekt-gradle-plugin:${libs.versions.detekt.get()}")
+    }
+}
+
 plugins {
     // ── Android ────────────────────────────────────────────────
     alias(libs.plugins.androidApplication)     apply false
@@ -27,17 +36,16 @@ plugins {
     alias(libs.plugins.buildkonfig)            apply false   // BuildKonfig (typed config per flavor)
     alias(libs.plugins.secretsGradle)          apply false   // Secrets Gradle Plugin (API key injection)
     alias(libs.plugins.mockative)              apply false   // Mockative KSP processor
-
-    // ── Static Analysis ──────────────────────────────────────
-    alias(libs.plugins.detekt)
 }
+
+apply(plugin = "io.gitlab.arturbosch.detekt")
 
 // ─── Detekt — Static Analysis ─────────────────────────────────────────────
 // Applied at root level to scan all Kotlin sources across all modules.
 // Config: config/detekt/detekt.yml
 // Run:    ./gradlew detekt
 // ──────────────────────────────────────────────────────────────────────────
-detekt {
+configure<io.gitlab.arturbosch.detekt.extensions.DetektExtension> {
     buildUponDefaultConfig = true            // use built-in rules as baseline
     config.setFrom(files("config/detekt/detekt.yml"))
     source.setFrom(
