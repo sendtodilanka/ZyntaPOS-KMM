@@ -16,6 +16,7 @@ import com.zyntasolutions.zyntapos.feature.pos.printer.PrinterManagerReceiptAdap
 import com.zyntasolutions.zyntapos.hal.printer.PrinterManager
 
 import org.koin.core.module.dsl.viewModel
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
 /**
@@ -25,7 +26,6 @@ import org.koin.dsl.module
  * - All POS use cases (stateless — factory scope)
  * - [PrinterManagerReceiptAdapter] bound as [ReceiptPrinterPort] (single — one printer pipeline)
  * - [ReceiptFormatter] (factory — stateless, safe to share or re-create)
- * - [SecurityAuditLogger] (singleton — shared across modules)
  * - [PosViewModel] (viewModel scope — one instance per screen)
  *
  * ### Session context
@@ -51,13 +51,14 @@ val posModule = module {
      * imports HAL or security modules directly.
      *
      * Requires [PrinterManager] from the platform HAL module and
-     * [SecurityAuditLogger] from above.
+     * [AuditRepository] from the data layer (MERGED-G2.1).
      */
     single<ReceiptPrinterPort> {
         PrinterManagerReceiptAdapter(
             settingsRepository = get(),
             printerManager = get<PrinterManager>(),
-            auditLogger = get(),
+            auditRepository = get(),
+            deviceId = get(named("deviceId")),
         )
     }
 

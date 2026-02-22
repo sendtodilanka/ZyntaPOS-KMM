@@ -3319,3 +3319,32 @@ Two compile errors blocked `:shared:domain:assemble`. Both were identified via `
 | KDoc tables updated in both platform modules | ✅ |
 
 > **Section status: ✅ MERGED-G1.1 COMPLETE — P0 CRITICAL resolved, startup crash fixed**
+
+---
+
+## 🟡 PRIORITY ACTION — MERGED-G2.1: Replace SecurityAuditLogger with AuditRepository (2026-02-22)
+> **Source:** Audit v3 Final Report §4 — WARNING
+> **Problem:** `PrinterManagerReceiptAdapter` imported `SecurityAuditLogger` from `:shared:security`,
+> creating a feature→infrastructure boundary violation. Only remaining cross-boundary import
+> in the feature layer.
+> **Fix:** Replace `SecurityAuditLogger` with domain-layer `AuditRepository` interface.
+> Adapter builds `AuditEntry` directly. Remove `:shared:security` dependency from pos module.
+
+- [x] G2.1-1 — Refactor `PrinterManagerReceiptAdapter.kt`: replace `SecurityAuditLogger` with `AuditRepository` + `deviceId` constructor params, build `AuditEntry` inline | 2026-02-22
+- [x] G2.1-2 — Update `PosModule.kt`: change binding to `auditRepository = get()`, `deviceId = get(named("deviceId"))` | 2026-02-22
+- [x] G2.1-3 — Remove `implementation(project(":shared:security"))` from `composeApp/feature/pos/build.gradle.kts` | 2026-02-22
+- [x] G2.1-4 — Update KDoc in both `PrinterManagerReceiptAdapter.kt` and `PosModule.kt` | 2026-02-22
+
+### G2.1 Integrity Report
+
+| Check | Result |
+|---|---|
+| `PrinterManagerReceiptAdapter.kt` — imports `AuditRepository`, NOT `SecurityAuditLogger` | ✅ |
+| `PrinterManagerReceiptAdapter.kt` — constructor has `auditRepository: AuditRepository` + `deviceId: String` | ✅ |
+| `PrinterManagerReceiptAdapter.kt` — builds `AuditEntry` inline with correct `AuditEventType.DATA_EXPORT` | ✅ |
+| `PosModule.kt` — binding passes `auditRepository = get()`, `deviceId = get(named("deviceId"))` | ✅ |
+| `pos/build.gradle.kts` — `implementation(project(":shared:security"))` REMOVED | ✅ |
+| grep `security.audit.SecurityAuditLogger` in `:composeApp:feature:pos` → 0 results | ✅ |
+| Feature→infrastructure boundary violations remaining | 0 |
+
+> **Section status: ✅ MERGED-G2.1 COMPLETE — feature→infra violation eliminated**

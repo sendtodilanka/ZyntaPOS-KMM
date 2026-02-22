@@ -240,20 +240,15 @@ SECTION 2: COMPLETE FINDINGS (Deduplicated)
        → AndroidDataModule.kt: single(named("deviceId")) using Settings.Secure.ANDROID_ID + UUID fallback
        → DesktopDataModule.kt: single(named("deviceId")) using UUID persisted to .device_id file
 
-  🚫 [MERGED-G2.1] PrinterManagerReceiptAdapter imports SecurityAuditLogger (feature→infra)
+  ✅ [MERGED-G2.1] PrinterManagerReceiptAdapter imports SecurityAuditLogger (feature→infra)
      Severity: 🟠 MEDIUM
+     Status: ✅ RESOLVED (2026-02-22)
      Source: Phase 3 NEW-01 + Phase 4 AV-04 carry-forward
-     File: composeApp/feature/pos/src/commonMain/.../pos/printer/PrinterManagerReceiptAdapter.kt
-     Evidence: import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
-              Only remaining cross-boundary infrastructure import in the feature layer.
-              Sole usage: auditLogger.logReceiptPrint(orderId, userId) — achievable
-              via AuditRepository.log(AuditEntry(...)) which is a domain port.
-     Cross-phase: Phase 2 validated this dep as matching the Master Plan.
-                  Phase 3 identified it as an architectural violation.
-                  Verdict: Phase 3 takes precedence — Master Plan is also wrong.
-     Recommendation: Replace SecurityAuditLogger with AuditRepository injection.
-                     Remove implementation(project(":shared:security")) from pos/build.gradle.kts.
-                     Remove M05 from M09's dep list in Master_plan.md §4.1.
+     Resolution:
+       → Replaced SecurityAuditLogger with AuditRepository (domain interface) in constructor
+       → Adapter now builds AuditEntry directly — same audit event, no infra import
+       → Removed implementation(project(":shared:security")) from pos/build.gradle.kts
+       → Updated PosModule.kt binding: auditRepository = get(), deviceId = get(named("deviceId"))
 
   📛 [MERGED-G1.2] Bare single { PasswordHasher } Koin binding — possible dead code
      Severity: 🟡 LOW
