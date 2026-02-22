@@ -48,7 +48,7 @@ kotlin {
             // Explicit Compose Multiplatform artifact coordinates (accessors deprecated in CMP 1.8+)
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
-            implementation(compose.material3)
+            implementation(libs.compose.material3)
             implementation(libs.compose.ui)
             implementation(libs.compose.components.resources)
             // AndroidX Lifecycle (KMP-compatible)

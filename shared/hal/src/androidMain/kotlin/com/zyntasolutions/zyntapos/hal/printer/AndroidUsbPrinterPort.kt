@@ -7,7 +7,7 @@ import android.hardware.usb.UsbDeviceConnection
 import android.hardware.usb.UsbEndpoint
 import android.hardware.usb.UsbInterface
 import android.hardware.usb.UsbManager
-import co.touchlab.kermit.Logger
+import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -45,7 +45,7 @@ class AndroidUsbPrinterPort(
     private val timeoutMs: Int = DEFAULT_TIMEOUT_MS,
 ) : PrinterPort {
 
-    private val log = Logger.withTag("AndroidUsbPrinterPort")
+    private val log = ZyntaLogger.forModule("AndroidUsbPrinterPort")
 
     /** Serialises all USB operations; prevents concurrent [bulkTransfer] calls. */
     private val mutex = Mutex()
@@ -60,7 +60,7 @@ class AndroidUsbPrinterPort(
         withContext(Dispatchers.IO) {
             runCatching {
                 if (connection != null) {
-                    log.d { "connect() called while already connected — no-op" }
+                    log.d("connect() called while already connected — no-op")
                     return@runCatching
                 }
 
@@ -90,10 +90,10 @@ class AndroidUsbPrinterPort(
                 usbInterface = iface
                 bulkOut = endpoint
 
-                log.i {
+                log.i(
                     "USB printer connected: ${device.deviceName} " +
-                            "interface=${iface.id} endpoint=0x${endpoint.address.toString(16)}"
-                }
+                            "interface=${iface.id} endpoint=0x${endpoint.address.toString(16)}",
+                )
             }
         }
     }
@@ -107,7 +107,7 @@ class AndroidUsbPrinterPort(
                 connection = null
                 usbInterface = null
                 bulkOut = null
-                log.i { "USB printer disconnected: ${device.deviceName}" }
+                log.i("USB printer disconnected: ${device.deviceName}")
             }
         }
     }
@@ -133,7 +133,7 @@ class AndroidUsbPrinterPort(
                 val endpoint = bulkOut ?: error("Bulk-OUT endpoint not available")
                 // ESC p 0 25 250 — standard cash drawer kick pulse
                 bulkWrite(conn, endpoint, ESC_CASH_DRAWER_KICK)
-                log.d { "Cash drawer kick sent via USB" }
+                log.d("Cash drawer kick sent via USB")
             }
         }
     }
@@ -145,7 +145,7 @@ class AndroidUsbPrinterPort(
                 val endpoint = bulkOut ?: error("Bulk-OUT endpoint not available")
                 // GS V 1 — partial cut
                 bulkWrite(conn, endpoint, ESC_PARTIAL_CUT)
-                log.d { "Paper cut command sent via USB" }
+                log.d("Paper cut command sent via USB")
             }
         }
     }

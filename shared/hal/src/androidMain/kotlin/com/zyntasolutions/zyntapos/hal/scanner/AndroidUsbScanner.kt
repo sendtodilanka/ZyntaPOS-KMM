@@ -9,7 +9,7 @@ import android.view.InputDevice
 import android.view.KeyCharacterMap
 import android.view.KeyEvent
 import androidx.core.content.ContextCompat
-import co.touchlab.kermit.Logger
+import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -61,7 +61,7 @@ class AndroidUsbScanner(
     private val minBarcodeLength: Int = MIN_BARCODE_LENGTH,
 ) : BarcodeScanner {
 
-    private val log = Logger.withTag("AndroidUsbScanner")
+    private val log = ZyntaLogger.forModule("AndroidUsbScanner")
 
     private val _scanEvents = MutableSharedFlow<ScanResult>(
         replay = 0,
@@ -93,14 +93,14 @@ class AndroidUsbScanner(
         override fun onInputDeviceAdded(deviceId: Int) {
             val dev = InputDevice.getDevice(deviceId) ?: return
             if (dev.isKeyboard) {
-                log.i { "USB keyboard device added: id=$deviceId name=${dev.name}" }
+                log.i("USB keyboard device added: id=$deviceId name=${dev.name}")
             }
         }
 
         override fun onInputDeviceChanged(deviceId: Int) = Unit
 
         override fun onInputDeviceRemoved(deviceId: Int) {
-            log.i { "USB keyboard device removed: id=$deviceId" }
+            log.i("USB keyboard device removed: id=$deviceId")
         }
     }
 
@@ -108,7 +108,7 @@ class AndroidUsbScanner(
 
     override suspend fun startListening(): Result<Unit> = runCatching {
         if (listening) {
-            log.d { "startListening() called while already listening — no-op" }
+            log.d("startListening() called while already listening — no-op")
             return@runCatching
         }
         inputManager.registerInputDeviceListener(
@@ -118,10 +118,10 @@ class AndroidUsbScanner(
         buffer.clear()
         accumulating = prefixChar == null
         listening = true
-        log.i {
+        log.i(
             "USB HID scanner listening — prefix=${prefixChar?.code?.toString(16) ?: "none"} " +
-                    "terminator=0x${terminatorChar.code.toString(16)}"
-        }
+                    "terminator=0x${terminatorChar.code.toString(16)}",
+        )
     }
 
     override suspend fun stopListening() {
@@ -129,7 +129,7 @@ class AndroidUsbScanner(
         buffer.clear()
         accumulating = prefixChar == null
         listening = false
-        log.i { "USB HID scanner stopped" }
+        log.i("USB HID scanner stopped")
     }
 
     // ── Public key-event bridge ──────────────────────────────────────────────────
@@ -172,9 +172,9 @@ class AndroidUsbScanner(
                 // Infer format heuristically from payload length and character set
                 val format = inferFormat(payload)
                 _scanEvents.tryEmit(ScanResult.Barcode(value = payload, format = format))
-                log.d { "USB HID scan emitted: $payload (format=$format, len=${payload.length})" }
+                log.d("USB HID scan emitted: $payload (format=$format, len=${payload.length})")
             } else {
-                log.d { "USB HID payload too short (len=${payload.length}) — discarded: $payload" }
+                log.d("USB HID payload too short (len=${payload.length}) — discarded: $payload")
             }
             return true
         }

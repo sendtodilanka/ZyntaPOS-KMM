@@ -1,0 +1,94 @@
+# ============================================================
+# ZyntaPOS — Detekt Configuration
+# Builds upon the default ruleset and customises for a
+# Compose Multiplatform / KMM project.
+# ============================================================
+
+config:
+  validation: true
+  warningsAsErrors: false          # Phase 1: warnings only; Phase 2: promote to errors
+
+# ── Style ───────────────────────────────────────────────────────
+style:
+  WildcardImport:
+    active: true
+    excludeImports:
+      # Compose framework packages that are idiomatic to wildcard-import
+      - 'androidx.compose.animation.*'
+      - 'androidx.compose.animation.core.*'
+      - 'androidx.compose.foundation.*'
+      - 'androidx.compose.foundation.layout.*'
+      - 'androidx.compose.foundation.lazy.*'
+      - 'androidx.compose.foundation.lazy.grid.*'
+      - 'androidx.compose.material.icons.*'
+      - 'androidx.compose.material.icons.filled.*'
+      - 'androidx.compose.material.icons.outlined.*'
+      - 'androidx.compose.material3.*'
+      - 'androidx.compose.runtime.*'
+      - 'androidx.compose.ui.*'
+      - 'androidx.compose.ui.unit.*'
+  MaxLineLength:
+    active: true
+    maxLineLength: 120
+    excludeCommentStatements: true
+  MagicNumber:
+    active: false                  # too noisy for UI code with dp/sp literals
+  ReturnCount:
+    active: false                  # Compose screens legitimately use early returns
+  ForbiddenComment:
+    active: false                  # TODO/FIXME are acceptable during active development
+
+# ── Complexity ──────────────────────────────────────────────────
+complexity:
+  LongMethod:
+    active: true
+    threshold: 80                  # Composable screens tend to be long; 80 lines is generous
+  ComplexMethod:
+    active: true
+    threshold: 20
+  LargeClass:
+    active: true
+    threshold: 600
+  TooManyFunctions:
+    active: false                  # Extension-file patterns generate false positives
+
+# ── Naming ──────────────────────────────────────────────────────
+naming:
+  FunctionNaming:
+    active: true
+    excludes:
+      - '**/designsystem/**'       # Composable functions use PascalCase by convention
+      - '**/feature/**'            # Screen composables are PascalCase
+    functionPattern: '[a-z][a-zA-Z0-9]*'
+  TopLevelPropertyNaming:
+    active: true
+    constantPattern: '[A-Z][A-Za-z0-9_]*'
+    propertyPattern: '[A-Za-z][A-Za-z0-9_]*'
+
+# ── Potential Bugs ──────────────────────────────────────────────
+potential-bugs:
+  UnsafeCast:
+    active: true
+  UselessPostfixExpression:
+    active: true
+
+# ── Performance ─────────────────────────────────────────────────
+performance:
+  SpreadOperator:
+    active: false                  # used idiomatically in Compose modifier chains
+
+# ── Exceptions ──────────────────────────────────────────────────
+exceptions:
+  TooGenericExceptionCaught:
+    active: true
+    exceptionNames:
+      - 'Error'
+      - 'Throwable'
+    allowedExceptionNameRegex: '_'
+  SwallowedException:
+    active: true
+    ignoredExceptionTypes:
+      - 'InterruptedException'
+      - 'MalformedURLException'
+      - 'NumberFormatException'
+      - 'ParseException'

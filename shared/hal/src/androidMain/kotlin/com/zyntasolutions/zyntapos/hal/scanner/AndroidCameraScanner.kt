@@ -8,7 +8,7 @@ import androidx.camera.core.ImageProxy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
-import co.touchlab.kermit.Logger
+import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
@@ -61,7 +61,7 @@ class AndroidCameraScanner(
     private val cameraSelector: CameraSelector = CameraSelector.DEFAULT_BACK_CAMERA,
 ) : BarcodeScanner {
 
-    private val log = Logger.withTag("AndroidCameraScanner")
+    private val log = ZyntaLogger.forModule("AndroidCameraScanner")
 
     private val _scanEvents = MutableSharedFlow<ScanResult>(
         replay = 0,
@@ -81,7 +81,7 @@ class AndroidCameraScanner(
 
     override suspend fun startListening(): Result<Unit> = runCatching {
         if (analysisExecutor != null) {
-            log.d { "startListening() called while already listening — no-op" }
+            log.d("startListening() called while already listening — no-op")
             return@runCatching
         }
 
@@ -118,7 +118,7 @@ class AndroidCameraScanner(
         provider.unbindAll()
         provider.bindToLifecycle(lifecycleOwner, cameraSelector, imageAnalysis)
 
-        log.i { "Camera scanner started — ML Kit ImageAnalysis bound to lifecycle" }
+        log.i("Camera scanner started — ML Kit ImageAnalysis bound to lifecycle")
     }
 
     override suspend fun stopListening() {
@@ -128,7 +128,7 @@ class AndroidCameraScanner(
         cameraProvider = null
         lastBarcode = null
         lastBarcodeTime = 0L
-        log.i { "Camera scanner stopped" }
+        log.i("Camera scanner stopped")
     }
 
     // ── Private — CameraX provider ──────────────────────────────────────────────
@@ -186,12 +186,12 @@ class AndroidCameraScanner(
 
                         val format = barcode.format.toZyntaFormat()
                         _scanEvents.tryEmit(ScanResult.Barcode(value = raw, format = format))
-                        log.d { "Barcode scanned: $raw (format=$format)" }
+                        log.d("Barcode scanned: $raw (format=$format)")
                     }
                 }
                 .addOnFailureListener { ex ->
                     _scanEvents.tryEmit(ScanResult.Error(ex.message ?: "ML Kit scan error"))
-                    log.e(ex) { "ML Kit barcode scanning error" }
+                    log.e("ML Kit barcode scanning error", throwable = ex)
                 }
                 .addOnCompleteListener {
                     imageProxy.close()

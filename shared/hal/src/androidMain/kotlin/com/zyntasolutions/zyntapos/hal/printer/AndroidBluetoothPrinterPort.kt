@@ -4,7 +4,7 @@ import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
-import co.touchlab.kermit.Logger
+import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -43,7 +43,7 @@ class AndroidBluetoothPrinterPort(
     private val connectTimeoutMs: Int = DEFAULT_CONNECT_TIMEOUT_MS,
 ) : PrinterPort {
 
-    private val log = Logger.withTag("AndroidBluetoothPrinterPort")
+    private val log = ZyntaLogger.forModule("AndroidBluetoothPrinterPort")
 
     /** Serialises all Bluetooth socket operations. */
     private val mutex = Mutex()
@@ -57,14 +57,14 @@ class AndroidBluetoothPrinterPort(
         withContext(Dispatchers.IO) {
             runCatching {
                 if (socket?.isConnected == true) {
-                    log.d { "connect() called while already connected — no-op" }
+                    log.d("connect() called while already connected — no-op")
                     return@runCatching
                 }
 
                 if (bluetoothAdapter.isDiscovering) {
                     // Discovery interferes with connection — cancel it first
                     bluetoothAdapter.cancelDiscovery()
-                    log.d { "Cancelled Bluetooth discovery before connecting to printer" }
+                    log.d("Cancelled Bluetooth discovery before connecting to printer")
                 }
 
                 val rfcommSocket = bluetoothDevice.createRfcommSocketToServiceRecord(SPP_UUID)
@@ -72,10 +72,10 @@ class AndroidBluetoothPrinterPort(
                 outputStream = rfcommSocket.outputStream
                 socket = rfcommSocket
 
-                log.i {
+                log.i(
                     "Bluetooth printer connected: ${bluetoothDevice.address} " +
-                            "(name=${bluetoothDevice.name})"
-                }
+                            "(name=${bluetoothDevice.name})",
+                )
             }
         }
     }
@@ -87,7 +87,7 @@ class AndroidBluetoothPrinterPort(
                 socket?.runCatching { close() }
                 outputStream = null
                 socket = null
-                log.i { "Bluetooth printer disconnected: ${bluetoothDevice.address}" }
+                log.i("Bluetooth printer disconnected: ${bluetoothDevice.address}")
             }
         }
     }
@@ -113,7 +113,7 @@ class AndroidBluetoothPrinterPort(
                 // ESC p 0 25 250 — standard cash drawer kick
                 out.write(ESC_CASH_DRAWER_KICK)
                 out.flush()
-                log.d { "Cash drawer kick sent via Bluetooth" }
+                log.d("Cash drawer kick sent via Bluetooth")
             }
         }
     }
@@ -125,7 +125,7 @@ class AndroidBluetoothPrinterPort(
                 // GS V 1 — partial cut
                 out.write(ESC_PARTIAL_CUT)
                 out.flush()
-                log.d { "Paper cut command sent via Bluetooth" }
+                log.d("Paper cut command sent via Bluetooth")
             }
         }
     }

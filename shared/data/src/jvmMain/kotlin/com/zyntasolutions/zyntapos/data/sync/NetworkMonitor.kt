@@ -1,6 +1,6 @@
 package com.zyntasolutions.zyntapos.data.sync
 
-import co.touchlab.kermit.Logger
+import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -22,7 +22,7 @@ import java.net.InetAddress
  */
 actual class NetworkMonitor {
 
-    private val log = Logger.withTag("NetworkMonitor-Desktop")
+    private val log = ZyntaLogger.forModule("NetworkMonitor-Desktop")
 
     private val _isConnected = MutableStateFlow(checkReachable())
     actual val isConnected: StateFlow<Boolean> = _isConnected.asStateFlow()
@@ -33,13 +33,13 @@ actual class NetworkMonitor {
     actual fun start() {
         if (job?.isActive == true) return
         job = scope.launch {
-            log.d { "Desktop reachability polling started (interval: ${CHECK_INTERVAL_MS}ms)" }
+            log.d("Desktop reachability polling started (interval: ${CHECK_INTERVAL_MS}ms)")
             while (true) {
                 delay(CHECK_INTERVAL_MS)
                 val reachable = checkReachable()
                 if (reachable != _isConnected.value) {
                     _isConnected.value = reachable
-                    log.d { "Connectivity changed → connected=$reachable" }
+                    log.d("Connectivity changed → connected=$reachable")
                 }
             }
         }
@@ -48,13 +48,13 @@ actual class NetworkMonitor {
     actual fun stop() {
         job?.cancel()
         job = null
-        log.d { "Desktop reachability polling stopped" }
+        log.d("Desktop reachability polling stopped")
     }
 
     private fun checkReachable(): Boolean = try {
         InetAddress.getByName(PING_HOST).isReachable(3_000)
     } catch (e: Exception) {
-        log.d { "Reachability check failed: ${e.message}" }
+        log.d("Reachability check failed: ${e.message}")
         false
     }
 

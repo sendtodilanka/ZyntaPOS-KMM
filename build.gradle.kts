@@ -27,6 +27,27 @@ plugins {
     alias(libs.plugins.buildkonfig)            apply false   // BuildKonfig (typed config per flavor)
     alias(libs.plugins.secretsGradle)          apply false   // Secrets Gradle Plugin (API key injection)
     alias(libs.plugins.mockative)              apply false   // Mockative KSP processor
+
+    // ── Static Analysis ──────────────────────────────────────
+    alias(libs.plugins.detekt)
+}
+
+// ─── Detekt — Static Analysis ─────────────────────────────────────────────
+// Applied at root level to scan all Kotlin sources across all modules.
+// Config: config/detekt/detekt.yml
+// Run:    ./gradlew detekt
+// ──────────────────────────────────────────────────────────────────────────
+detekt {
+    buildUponDefaultConfig = true            // use built-in rules as baseline
+    config.setFrom(files("config/detekt/detekt.yml"))
+    source.setFrom(
+        fileTree(".") {
+            include("**/src/commonMain/kotlin/**/*.kt")
+            include("**/src/androidMain/kotlin/**/*.kt")
+            include("**/src/jvmMain/kotlin/**/*.kt")
+        }
+    )
+    parallel = true
 }
 
 // ─── Dependency Resolution ─────────────────────────────────────────────────

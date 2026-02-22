@@ -34,7 +34,7 @@ kotlin {
             // Explicit Compose Multiplatform artifact coordinates (accessors deprecated in CMP 1.8+)
             api(libs.compose.runtime)
             api(libs.compose.foundation)
-            api(compose.material3)
+            api(libs.compose.material3)
             api(libs.compose.ui)
             api(libs.compose.navigation)             // Type-safe KMP navigation
             implementation(libs.kotlinx.serialization.json)

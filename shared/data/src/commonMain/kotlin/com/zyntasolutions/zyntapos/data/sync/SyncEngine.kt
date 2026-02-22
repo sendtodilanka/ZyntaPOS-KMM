@@ -1,7 +1,7 @@
 package com.zyntasolutions.zyntapos.data.sync
 
-import co.touchlab.kermit.Logger
 import com.zyntasolutions.zyntapos.core.config.AppConfig
+import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import com.zyntasolutions.zyntapos.core.result.SyncException
 import com.zyntasolutions.zyntapos.domain.port.SecureStorageKeys
 import com.zyntasolutions.zyntapos.domain.port.SecureStoragePort
@@ -51,7 +51,7 @@ class SyncEngine(
     private val prefs: SecureStoragePort,
     private val networkMonitor: NetworkMonitor,
 ) {
-    private val log = Logger.withTag("SyncEngine")
+    private val log = ZyntaLogger.forModule("SyncEngine")
 
     // ── State ──────────────────────────────────────────────────────────────────
 
@@ -76,16 +76,16 @@ class SyncEngine(
      */
     fun startPeriodicSync(scope: CoroutineScope) {
         if (periodicJob?.isActive == true) {
-            log.d { "Periodic sync already running — skipping start" }
+            log.d("Periodic sync already running — skipping start")
             return
         }
         periodicJob = scope.launch {
-            log.i { "Periodic sync started (interval: ${AppConfig.SYNC_INTERVAL_MS} ms)" }
+            log.i("Periodic sync started (interval: ${AppConfig.SYNC_INTERVAL_MS} ms)")
             while (true) {
                 if (networkMonitor.isConnected.value) {
                     runOnce()
                 } else {
-                    log.d { "No network — skipping sync cycle" }
+                    log.d("No network — skipping sync cycle")
                 }
                 delay(AppConfig.SYNC_INTERVAL_MS)
             }
@@ -96,7 +96,7 @@ class SyncEngine(
     fun stopPeriodicSync() {
         periodicJob?.cancel()
         periodicJob = null
-        log.i { "Periodic sync stopped" }
+        log.i("Periodic sync stopped")
     }
 
     /**
@@ -107,7 +107,7 @@ class SyncEngine(
      */
     suspend fun runOnce() {
         if (!_isSyncing.compareAndSet(expect = false, update = true)) {
-            log.d { "Sync already in progress — skipping" }
+            log.d("Sync already in progress — skipping")
             return
         }
         try {
@@ -120,7 +120,7 @@ class SyncEngine(
     // ── Core Sync Cycle ────────────────────────────────────────────────────────
 
     private suspend fun executeSyncCycle() {
-        log.d { "=== Sync cycle START ===" }
+        log.d("=== Sync cycle START ===")
         val cycleStart = Clock.System.now().toEpochMilliseconds()
 
         try {
@@ -134,14 +134,14 @@ class SyncEngine(
             prefs.put(SecureStorageKeys.KEY_LAST_SYNC_TS, Clock.System.now().toEpochMilliseconds().toString())
 
             val durationMs = Clock.System.now().toEpochMilliseconds() - cycleStart
-            log.i { "=== Sync cycle DONE — pushed=$pushed pulled=$pulled duration=${durationMs}ms ===" }
+            log.i("=== Sync cycle DONE — pushed=$pushed pulled=$pulled duration=${durationMs}ms ===")
             _lastSyncResult.value = SyncResult.Success(
                 pushedCount = pushed,
                 pulledCount = pulled,
                 durationMs  = durationMs,
             )
         } catch (e: Exception) {
-            log.e(e) { "Sync cycle FAILED" }
+            log.e("Sync cycle FAILED", throwable = e)
             // Reset any SYNCING rows back to PENDING so they are retried on the next cycle.
             // (Equivalent to what resetStaleSync does on app restart after a crash.)
             val futureCutoff = Clock.System.now().toEpochMilliseconds() + 1L
@@ -168,11 +168,11 @@ class SyncEngine(
             .executeAsList()
 
         if (pending.isEmpty()) {
-            log.d { "No eligible operations — skipping push" }
+            log.d("No eligible operations — skipping push")
             return 0
         }
 
-        log.d { "Pushing ${pending.size} operation(s)" }
+        log.d("Pushing ${pending.size} operation(s)")
 
         val dtos = pending.map { row ->
             SyncOperationDto(
@@ -199,7 +199,7 @@ class SyncEngine(
             response.accepted.forEach { id -> db.sync_queueQueries.markSynced(id) }
         }
         if (response.accepted.isNotEmpty()) {
-            log.d { "Marked ${response.accepted.size} as SYNCED" }
+            log.d("Marked ${response.accepted.size} as SYNCED")
         }
 
         // Increment retry count for rejected; markPermanentlyFailed if max retries reached
@@ -209,11 +209,11 @@ class SyncEngine(
             val newCount = row.retry_count + 1
             if (newCount >= AppConfig.SYNC_MAX_RETRIES) {
                 db.sync_queueQueries.markPermanentlyFailed(rejectedId)
-                log.w { "Operation $rejectedId permanently FAILED after $newCount retries" }
+                log.w("Operation $rejectedId permanently FAILED after $newCount retries")
             } else {
                 // markFailed increments retry_count automatically
                 db.sync_queueQueries.markFailed(nowTs, rejectedId)
-                log.d { "Operation $rejectedId retry count=$newCount" }
+                log.d("Operation $rejectedId retry count=$newCount")
             }
         }
 
@@ -236,16 +236,16 @@ class SyncEngine(
      */
     private suspend fun pullServerDelta(): Int {
         val lastSyncTs = prefs.get(SecureStorageKeys.KEY_LAST_SYNC_TS)?.toLongOrNull() ?: 0L
-        log.d { "Pulling delta since ts=$lastSyncTs" }
+        log.d("Pulling delta since ts=$lastSyncTs")
 
         val pullResponse = api.pullOperations(lastSyncTimestamp = lastSyncTs)
 
         if (pullResponse.operations.isEmpty()) {
-            log.d { "No server-side delta — up to date" }
+            log.d("No server-side delta — up to date")
             return 0
         }
 
-        log.d { "Applying ${pullResponse.operations.size} server delta operation(s)" }
+        log.d("Applying ${pullResponse.operations.size} server delta operation(s)")
         applyDeltaOperations(pullResponse.operations)
         return pullResponse.operations.size
     }
@@ -266,12 +266,12 @@ class SyncEngine(
     private fun applyDeltaOperations(ops: List<SyncOperationDto>) {
         for (op in ops) {
             try {
-                log.d { "Applying delta: ${op.operation} on ${op.entityType}(${op.entityId})" }
+                log.d("Applying delta: ${op.operation} on ${op.entityType}(${op.entityId})")
                 // Phase 1: payload is a JSON snapshot; entities are re-seeded via their
                 // respective RepositoryImpl "upsert" queries. Full dispatcher added in Sprint 7.
                 // TODO Sprint 7: route by entityType → appropriate RepositoryImpl.upsertFromSync(op.payload)
             } catch (e: Exception) {
-                log.e(e) { "Failed to apply delta for ${op.entityType}(${op.entityId})" }
+                log.e("Failed to apply delta for ${op.entityType}(${op.entityId})", throwable = e)
             }
         }
     }

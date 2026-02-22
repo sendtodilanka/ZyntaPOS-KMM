@@ -74,6 +74,7 @@ mlkit-barcode                  = "17.3.0"
 # ── Build Tooling ─────────────────────────────────────────────
 secrets-gradle-plugin          = "2.0.1"
 buildkonfig                    = "0.15.2"
+detekt                         = "1.23.7"
 
 # ─────────────────────────────────────────────────────────────
 
@@ -244,5 +245,6 @@ sqldelight                             = { id = "app.cash.sqldelight",          
 # ── Build Tooling ─────────────────────────────────────────────
 buildkonfig                            = { id = "com.codingfeline.buildkonfig",                    version.ref = "buildkonfig" }
 secretsGradle                          = { id = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin", version.ref = "secrets-gradle-plugin" }
+detekt                                 = { id = "io.gitlab.arturbosch.detekt",                    version.ref = "detekt" }
 ksp                                    = { id = "com.google.devtools.ksp",                        version.ref = "ksp" }
 mockative                              = { id = "io.mockative",                                    version.ref = "mockative" }

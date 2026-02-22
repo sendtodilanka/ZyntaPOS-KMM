@@ -1,6 +1,6 @@
 package com.zyntasolutions.zyntapos.data.remote.api
 
-import co.touchlab.kermit.Logger
+import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import com.zyntasolutions.zyntapos.core.config.AppConfig
 import com.zyntasolutions.zyntapos.core.result.AuthException
 import com.zyntasolutions.zyntapos.core.result.AuthFailureReason
@@ -47,7 +47,7 @@ class KtorApiService(
     private val baseUrl: String = AppConfig.BASE_URL,
 ) : ApiService {
 
-    private val log = Logger.withTag("KtorApiService")
+    private val log = ZyntaLogger.forModule("KtorApiService")
     private val apiRoot = "$baseUrl/api/${AppConfig.API_VERSION}"
 
     // ── Auth ──────────────────────────────────────────────────────────────────
@@ -108,7 +108,7 @@ class KtorApiService(
             if (response.status.isSuccess()) {
                 response.body<T>()
             } else {
-                log.e { "HTTP ${response.status.value} on ${response.call.request.url}" }
+                log.e("HTTP ${response.status.value} on ${response.call.request.url}")
                 when (response.status) {
                     HttpStatusCode.Unauthorized ->
                         throw AuthException(
@@ -129,7 +129,7 @@ class KtorApiService(
         } catch (e: ZyntaException) {
             throw e          // re-throw domain exceptions untouched
         } catch (e: Exception) {
-            log.e(e) { "Network transport error" }
+            log.e("Network transport error", throwable = e)
             throw NetworkException(
                 message = "Network error: ${e.message}",
                 cause   = e,

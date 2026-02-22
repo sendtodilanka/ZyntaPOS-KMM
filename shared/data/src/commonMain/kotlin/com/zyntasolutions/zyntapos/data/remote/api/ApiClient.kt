@@ -1,6 +1,6 @@
 package com.zyntasolutions.zyntapos.data.remote.api
 
-import co.touchlab.kermit.Logger
+import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import com.zyntasolutions.zyntapos.core.config.AppConfig
 import com.zyntasolutions.zyntapos.domain.port.SecureStorageKeys
 import com.zyntasolutions.zyntapos.domain.port.SecureStoragePort
@@ -99,8 +99,8 @@ fun buildApiClient(
         install(Logging) {
             level  = LogLevel.HEADERS
             logger = object : KtorLogger {
-                private val log = Logger.withTag("ZyntaPOS-Ktor")
-                override fun log(message: String) = log.d { message }
+                private val log = ZyntaLogger.forModule("ZyntaPOS-Ktor")
+                override fun log(message: String) = log.d(message)
             }
         }
     }
