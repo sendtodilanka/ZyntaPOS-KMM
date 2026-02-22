@@ -128,33 +128,23 @@ SECTION 2: COMPLETE FINDINGS (Deduplicated)
 2B. Documentation Conflicts (from Phase 3):
 ──────────────────────────────────────────────────────
 
-  ⚠️ [MERGED-G9.1] Brand naming: residual "Zenta"/"ZentaPOS" across docs and code
+  ✅ [MERGED-G9.1] Brand naming: residual "Zenta"/"ZentaPOS" across docs and code
      Severity: 🟠 MEDIUM
      Source: Phase 1 obs 3.5 + Phase 2 F7/F8/F10 + Phase 3 DC-01/DC-05
+     Status: ✅ RESOLVED (2026-02-22)
      Canonical: Product = ZyntaPOS, prefix = Zynta, package = com.zyntasolutions.zyntapos
-     6 sub-items:
-       DC-01a: UI_UX_Main_Plan.md title + Doc ID use "ZentaPOS" / "ZENTA-"
-               → search-replace to "ZyntaPOS" / "ZYNTA-"
-       DC-01b: ER_diagram.md title + Doc ID use "ZentaPOS" / "ZENTA-"
-               → same search-replace
-       DC-05:  UI_UX_Main_Plan.md §3.3 has 15 components with "Zenta" prefix
-               → bulk rename to "Zynta"; also fix LoadingSkeleton → LoadingOverlay
-       F7:     ZyntaTheme.kt function zentaDynamicColorScheme()
-               → rename to zyntaDynamicColorScheme() in common + platform actuals
-       F8:     designsystem/build.gradle.kts + navigation/build.gradle.kts comments
-               → update "Zenta*" → "Zynta*" in comments
-       F10:    Master_plan.md Doc ID "ZENTA-MASTER-PLAN-v1.0"
-               → update to "ZYNTA-MASTER-PLAN-v1.0"
-     Recommendation: Batch execution across all affected files in one commit.
+     Resolution:
+       DC-01a/b: "ZentaPOS" already fixed in NC hotfix; Doc IDs updated ZENTA- → ZYNTA-
+       DC-05: Component names already corrected to Zynta prefix
+       F7: zentaDynamicColorScheme() → zyntaDynamicColorScheme() in all 3 theme files
+       F8: build.gradle.kts comments updated Zenta* → Zynta*
+       F10: Master_plan.md Doc ID updated to ZYNTA-MASTER-PLAN-v1.0
 
-  ⚠️ [MERGED-G7.1] Master Plan §3.3 MVI code sample matches deleted zombie API
+  ✅ [MERGED-G7.1] Master Plan §3.3 MVI code sample matches deleted zombie API
      Severity: 🟠 MEDIUM
+     Status: ✅ ALREADY RESOLVED — §3.3 now uses live BaseViewModel API
      Source: Phase 3 DC-02
-     File: docs/plans/Master_plan.md §3.3
-     Doc says: onIntent(), setState { }, SharedFlow effects, AutoCloseable
-     Code has: dispatch(), handleIntent() (suspend), updateState { }, Channel<E>
-     Recommendation: Replace §3.3 code sample with the live BaseViewModel API.
-                     All 6 active ViewModels already use the correct patterns.
+     Verified: §3.3 uses dispatch(), handleIntent() (suspend), updateState {}, Channel<E>, sendEffect()
 
   ⚠️ [MERGED-G7.2] Master Plan §15.1 tech stack versions stale
      Severity: 🟡 LOW

@@ -3393,3 +3393,19 @@ Two compile errors blocked `:shared:domain:assemble`. Both were identified via `
 - [x] G6.1-NOTE — Added Architecture Note with MERGED-G6.1 correction summary | 2026-02-22
 
 > **Section status: ✅ MERGED-G6.1 COMPLETE — all 8 sub-issues corrected in §4.1**
+
+---
+
+## 🟡 PRIORITY ACTION — MERGED-G9.1: Complete Zenta → Zynta Brand Rename (2026-02-22)
+> **Source:** Audit v3 Final Report §4 — WARNING
+> **Problem:** Residual "Zenta" brand naming across code and docs.
+> **Fix:** Batch rename across all affected files.
+
+- [x] G9.1-F7 — Rename `zentaDynamicColorScheme()` → `zyntaDynamicColorScheme()` in ZyntaTheme.kt (common + android + desktop) | 2026-02-22
+- [x] G9.1-F8 — Update build.gradle.kts comments: Zenta* → Zynta* in designsystem, navigation, composeApp | 2026-02-22
+- [x] G9.1-F10 — Update Master_plan.md Doc ID: ZENTA-MASTER-PLAN-v1.0 → ZYNTA-MASTER-PLAN-v1.0 | 2026-02-22
+- [x] G9.1-DC01a — Update UI_UX_Main_Plan.md Doc ID: ZENTA- → ZYNTA- | 2026-02-22
+- [x] G9.1-DC01b — Update ER_diagram.md Doc ID: ZENTA- → ZYNTA- | 2026-02-22
+- [x] G9.1-DC05 — Component names already corrected to Zynta prefix (verified) | 2026-02-22
+
+> **Section status: ✅ MERGED-G9.1 COMPLETE — brand rename executed across code and docs**

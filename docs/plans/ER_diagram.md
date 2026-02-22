@@ -1,6 +1,6 @@
 # ZyntaPOS — Enterprise ER Diagram Plan
 
-> **Document ID:** ZENTA-ER-DIAGRAM-v1.0  
+> **Document ID:** ZYNTA-ER-DIAGRAM-v1.0
 > **Status:** APPROVED FOR EXECUTION  
 > **Database:** SQLDelight (SQLite local) + PostgreSQL (cloud server)  
 > **Encryption:** SQLCipher AES-256 for local storage  

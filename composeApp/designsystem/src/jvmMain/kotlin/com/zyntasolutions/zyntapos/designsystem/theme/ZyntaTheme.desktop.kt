@@ -4,7 +4,7 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.runtime.Composable
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Desktop (JVM) actual — zentaDynamicColorScheme
+// Desktop (JVM) actual — zyntaDynamicColorScheme
 //
 // Material You dynamic color is an Android 12+ feature and has no equivalent
 // on the JVM desktop platform. Always returns null so ZyntaTheme falls back
@@ -12,4 +12,4 @@ import androidx.compose.runtime.Composable
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-actual fun zentaDynamicColorScheme(isDark: Boolean): ColorScheme? = null
+actual fun zyntaDynamicColorScheme(isDark: Boolean): ColorScheme? = null

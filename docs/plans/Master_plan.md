@@ -1,6 +1,6 @@
 # ZyntaPOS — Enterprise Master Blueprint
 
-> **Document ID:** ZENTA-MASTER-PLAN-v1.0  
+> **Document ID:** ZYNTA-MASTER-PLAN-v1.0
 > **Status:** APPROVED FOR EXECUTION  
 > **Architecture:** Kotlin Multiplatform (KMP) — Desktop (JVM) + Android  
 > **Author:** Senior KMP Architect & Lead Engineer  

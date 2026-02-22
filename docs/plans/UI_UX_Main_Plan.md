@@ -1,6 +1,6 @@
 # ZyntaPOS — Enterprise UI/UX Master Blueprint
 
-> **Document ID:** ZENTA-UI-UX-PLAN-v1.0  
+> **Document ID:** ZYNTA-UI-UX-PLAN-v1.0
 > **Status:** APPROVED FOR EXECUTION  
 > **Platforms:** Desktop (JVM — Win/Mac/Linux), Android Tablet, Android Phone  
 > **UI Framework:** Compose Multiplatform + Material 3  

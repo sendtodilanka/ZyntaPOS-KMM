@@ -1,8 +1,8 @@
 // ============================================================
 // :composeApp:designsystem — Material 3 Design System
-// Contains: ZentaTheme, color tokens, typography, shapes,
+// Contains: ZyntaTheme, color tokens, typography, shapes,
 //           spacing constants, reusable stateless Composables
-//           (ZentaButton, ZentaCard, NumericKeypad, etc.).
+//           (ZyntaButton, ZyntaCard, NumericKeypad, etc.).
 // ============================================================
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 

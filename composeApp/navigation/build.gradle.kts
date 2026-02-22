@@ -1,6 +1,6 @@
 // ============================================================
 // :composeApp:navigation — Type-safe Navigation Graph
-// Contains: NavRoute sealed hierarchy, ZentaNavHost,
+// Contains: NavRoute sealed hierarchy, ZyntaNavHost,
 //           platform-adaptive shell (Rail vs BottomBar),
 //           NavigationViewModel with RBAC route filtering,
 //           deep link scheme: zyntapos://

@@ -75,7 +75,7 @@ val LocalThemeMode = compositionLocalOf { ThemeMode.SYSTEM }
  * @return A platform dynamic [androidx.compose.material3.ColorScheme], or null.
  */
 @Composable
-expect fun zentaDynamicColorScheme(isDark: Boolean): androidx.compose.material3.ColorScheme?
+expect fun zyntaDynamicColorScheme(isDark: Boolean): androidx.compose.material3.ColorScheme?
 
 // ── ZyntaTheme ────────────────────────────────────────────────────────────────
 
@@ -107,7 +107,7 @@ fun ZyntaTheme(
 
     // Resolve color scheme: prefer dynamic (Material You) if enabled,
     // fall back to static ZyntaPOS brand palette.
-    val dynamicScheme  = if (dynamicColor) zentaDynamicColorScheme(isDark) else null
+    val dynamicScheme  = if (dynamicColor) zyntaDynamicColorScheme(isDark) else null
     val colorScheme    = dynamicScheme
         ?: if (isDark) zentaDarkColorScheme() else zentaLightColorScheme()
 
