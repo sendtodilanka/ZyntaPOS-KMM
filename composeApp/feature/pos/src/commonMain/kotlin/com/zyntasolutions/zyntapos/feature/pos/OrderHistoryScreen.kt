@@ -162,58 +162,59 @@ fun OrderHistoryScreen(
                         modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.xl),
                     )
                 },
-            ) { order ->
-                // ORDER # column
-                Column(modifier = Modifier.weight(TABLE_COLUMNS[0].weight)) {
+                rowContent = { order: Order ->
+                    // ORDER # column
+                    Column(modifier = Modifier.weight(TABLE_COLUMNS[0].weight)) {
+                        Text(
+                            text = order.orderNumber,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
+
+                    // TIME column
                     Text(
-                        text = order.orderNumber,
+                        text = order.createdAt.toLocalDateTime(TimeZone.currentSystemDefault())
+                            .let { "${it.hour.toString().padStart(2,'0')}:${it.minute.toString().padStart(2,'0')}" },
                         style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.weight(TABLE_COLUMNS[1].weight),
                     )
-                }
 
-                // TIME column
-                Text(
-                    text = order.createdAt.toLocalDateTime(TimeZone.currentSystemDefault())
-                        .let { "${it.hour.toString().padStart(2,'0')}:${it.minute.toString().padStart(2,'0')}" },
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.weight(TABLE_COLUMNS[1].weight),
-                )
-
-                // ITEMS column
-                Text(
-                    text = order.items.size.toString(),
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.weight(TABLE_COLUMNS[2].weight),
-                )
-
-                // TOTAL column
-                Text(
-                    text = "$%.2f".format(order.total),
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.weight(TABLE_COLUMNS[3].weight),
-                )
-
-                // STATUS column
-                Box(modifier = Modifier.weight(TABLE_COLUMNS[4].weight)) {
-                    StatusBadge(status = order.status)
-                }
-
-                // REPRINT icon button (no column weight — fixed width)
-                IconButton(
-                    onClick = { onReprintOrder(order.id) },
-                    modifier = Modifier.size(36.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Print,
-                        contentDescription = "Reprint order ${order.orderNumber}",
-                        tint = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.size(18.dp),
+                    // ITEMS column
+                    Text(
+                        text = order.items.size.toString(),
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(TABLE_COLUMNS[2].weight),
                     )
-                }
-            }
+
+                    // TOTAL column
+                    Text(
+                        text = "$%.2f".format(order.total),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.weight(TABLE_COLUMNS[3].weight),
+                    )
+
+                    // STATUS column
+                    Box(modifier = Modifier.weight(TABLE_COLUMNS[4].weight)) {
+                        StatusBadge(status = order.status)
+                    }
+
+                    // REPRINT icon button (no column weight — fixed width)
+                    IconButton(
+                        onClick = { onReprintOrder(order.id) },
+                        modifier = Modifier.size(36.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Print,
+                            contentDescription = "Reprint order ${order.orderNumber}",
+                            tint = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                },
+            )
         }
     }
 }

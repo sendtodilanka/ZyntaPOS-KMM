@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
@@ -21,8 +22,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSnackbarHost
+import androidx.compose.material3.ExperimentalMaterial3Api
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTopAppBar
-import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.OrderType
 import com.zyntasolutions.zyntapos.feature.settings.ReceiptTemplate
@@ -48,6 +49,7 @@ import kotlinx.coroutines.flow.collectLatest
  * @param onBack    Back navigation.
  */
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun PosSettingsScreen(
     state: SettingsState.PosState,
     effects: Flow<SettingsEffect>,
@@ -68,8 +70,8 @@ fun PosSettingsScreen(
         }
     }
 
-    ZyntaScaffold(
-        topBar = { ZyntaTopAppBar(title = "POS Settings", onNavigationClick = onBack) },
+    Scaffold(
+        topBar = { ZyntaTopAppBar(title = "POS Settings", onNavigateBack = onBack) },
         snackbarHost = { ZyntaSnackbarHost(snackbarHostState) },
     ) { innerPadding ->
         LazyColumn(

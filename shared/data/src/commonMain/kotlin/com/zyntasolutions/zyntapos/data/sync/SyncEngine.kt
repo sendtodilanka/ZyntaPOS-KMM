@@ -3,8 +3,8 @@ package com.zyntasolutions.zyntapos.data.sync
 import co.touchlab.kermit.Logger
 import com.zyntasolutions.zyntapos.core.config.AppConfig
 import com.zyntasolutions.zyntapos.core.result.SyncException
-import com.zyntasolutions.zyntapos.security.prefs.SecurePreferences
-import com.zyntasolutions.zyntapos.security.prefs.SecurePreferencesKeys
+import com.zyntasolutions.zyntapos.domain.port.SecureStorageKeys
+import com.zyntasolutions.zyntapos.domain.port.SecureStoragePort
 import com.zyntasolutions.zyntapos.data.remote.api.ApiService
 import com.zyntasolutions.zyntapos.data.remote.dto.SyncOperationDto
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
@@ -26,7 +26,7 @@ import kotlinx.datetime.Clock
  * 2. Pushes them to `POST /api/v1/sync/push` via [ApiService]
  * 3. Marks accepted IDs as SYNCED; increments retry count for rejected IDs
  * 4. Applies server-side delta operations (pull) from [SyncResponseDto.deltaOperations]
- * 5. Persists the new [SecurePreferencesKeys.KEY_LAST_SYNC_TS]
+ * 5. Persists the new [SecureStorageKeys.KEY_LAST_SYNC_TS]
  *
  * ## Platform scheduling (expect/actual wrapping)
  * - **Android**: [SyncWorker] (`CoroutineWorker` / WorkManager) calls [runOnce] per scheduled work.
@@ -36,15 +36,19 @@ import kotlinx.datetime.Clock
  * [_isSyncing] prevents overlapping sync cycles. Each [runOnce] invocation is guarded
  * by a compare-and-set so concurrent calls (e.g. foreground trigger + background tick) are no-ops.
  *
+ * MERGED-F3 (2026-02-22): [prefs] parameter type changed from `SecurePreferences`
+ * (`:shared:security`) to [SecureStoragePort] (`:shared:domain`) so `:shared:data`
+ * holds no compile-time dependency on `:shared:security`.
+ *
  * @param db           Encrypted [ZyntaDatabase] singleton.
  * @param api          [ApiService] Ktor client.
- * @param prefs        [SecurePreferences] for last-sync timestamp + auth tokens.
+ * @param prefs        [SecureStoragePort] for last-sync timestamp + auth tokens.
  * @param networkMonitor Provides real-time connectivity state.
  */
 class SyncEngine(
     private val db: ZyntaDatabase,
     private val api: ApiService,
-    private val prefs: SecurePreferences,
+    private val prefs: SecureStoragePort,
     private val networkMonitor: NetworkMonitor,
 ) {
     private val log = Logger.withTag("SyncEngine")
@@ -127,7 +131,7 @@ class SyncEngine(
             val pulled = pullServerDelta()
 
             // 3. Persist new server timestamp
-            prefs.put(SecurePreferencesKeys.KEY_LAST_SYNC_TS, Clock.System.now().toEpochMilliseconds().toString())
+            prefs.put(SecureStorageKeys.KEY_LAST_SYNC_TS, Clock.System.now().toEpochMilliseconds().toString())
 
             val durationMs = Clock.System.now().toEpochMilliseconds() - cycleStart
             log.i { "=== Sync cycle DONE — pushed=$pushed pulled=$pulled duration=${durationMs}ms ===" }
@@ -226,12 +230,12 @@ class SyncEngine(
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
-     * Pulls server-side changes created after the stored [SecurePreferencesKeys.KEY_LAST_SYNC_TS].
+     * Pulls server-side changes created after the stored [SecureStorageKeys.KEY_LAST_SYNC_TS].
      *
      * @return Number of delta operations applied locally.
      */
     private suspend fun pullServerDelta(): Int {
-        val lastSyncTs = prefs.get(SecurePreferencesKeys.KEY_LAST_SYNC_TS)?.toLongOrNull() ?: 0L
+        val lastSyncTs = prefs.get(SecureStorageKeys.KEY_LAST_SYNC_TS)?.toLongOrNull() ?: 0L
         log.d { "Pulling delta since ts=$lastSyncTs" }
 
         val pullResponse = api.pullOperations(lastSyncTimestamp = lastSyncTs)

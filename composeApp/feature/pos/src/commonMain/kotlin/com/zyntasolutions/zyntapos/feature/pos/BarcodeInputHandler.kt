@@ -3,6 +3,7 @@ package com.zyntasolutions.zyntapos.feature.pos
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import com.zyntasolutions.zyntapos.hal.scanner.BarcodeScanner
+import com.zyntasolutions.zyntapos.hal.scanner.ScanResult
 
 /**
  * Side-effect composable that bridges the HAL [BarcodeScanner] to [PosViewModel] (Sprint 14, task 9.1.5).
@@ -45,17 +46,21 @@ fun BarcodeInputHandler(
     LaunchedEffect(scannerActive) {
         if (scannerActive) {
             try {
-                barcodeScanner.startScanning()
-                barcodeScanner.scanEvents.collect { barcode ->
-                    onBarcodeScan(barcode)
+                barcodeScanner.startListening()
+                barcodeScanner.scanEvents.collect { result ->
+                    // Only forward successful barcode decodes; errors are transient and
+                    // do not terminate the flow (per BarcodeScanner HAL contract).
+                    if (result is ScanResult.Barcode) {
+                        onBarcodeScan(result.value)
+                    }
                 }
             } finally {
                 // Ensure scanner is stopped if the composable leaves composition
                 // or scannerActive is toggled to false (LaunchedEffect cancels the coroutine).
-                barcodeScanner.stopScanning()
+                barcodeScanner.stopListening()
             }
         } else {
-            barcodeScanner.stopScanning()
+            barcodeScanner.stopListening()
         }
     }
 }

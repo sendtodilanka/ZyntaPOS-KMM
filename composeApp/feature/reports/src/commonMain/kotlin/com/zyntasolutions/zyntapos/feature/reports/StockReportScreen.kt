@@ -30,10 +30,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.zyntasolutions.zyntapos.designsystem.components.ZyntaBadge
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Scaffold
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoadingOverlay
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaStatusBadge
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTopAppBar
-import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaScaffold
 import com.zyntasolutions.zyntapos.domain.model.Product
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -51,6 +52,7 @@ import org.koin.compose.viewmodel.koinViewModel
  *
  * @param onNavigateUp Back navigation handler.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StockReportScreen(
     onNavigateUp: () -> Unit,
@@ -61,7 +63,7 @@ fun StockReportScreen(
 
     // Auto-load on first composition
     LaunchedEffect(Unit) {
-        if (s.allProducts.isEmpty() && !s.isLoading) viewModel.onIntent(ReportsIntent.LoadStockReport)
+        if (s.allProducts.isEmpty() && !s.isLoading) viewModel.dispatch(ReportsIntent.LoadStockReport)
     }
 
     // Derive distinct categories for filter chips
@@ -72,16 +74,16 @@ fun StockReportScreen(
         .filter { s.selectedCategory == null || it.categoryId == s.selectedCategory }
         .sortedWith(stockComparator(s.sortColumn, s.sortAscending))
 
-    ZyntaScaffold(
+    Scaffold(
         topBar = {
             ZyntaTopAppBar(
                 title = "Stock Report",
-                onNavigateUp = onNavigateUp,
+                onNavigateBack = onNavigateUp,
                 actions = {
-                    IconButton(onClick = { viewModel.onIntent(ReportsIntent.ExportStockReportCsv) }) {
+                    IconButton(onClick = { viewModel.dispatch(ReportsIntent.ExportStockReportCsv) }) {
                         Icon(Icons.Default.FileDownload, contentDescription = "Export CSV")
                     }
-                    IconButton(onClick = { viewModel.onIntent(ReportsIntent.ExportStockReportPdf) }) {
+                    IconButton(onClick = { viewModel.dispatch(ReportsIntent.ExportStockReportPdf) }) {
                         Icon(Icons.Default.PictureAsPdf, contentDescription = "Export PDF")
                     }
                 },
@@ -103,7 +105,7 @@ fun StockReportScreen(
                             categories = categories,
                             selectedCategory = s.selectedCategory,
                             onCategorySelected = {
-                                viewModel.onIntent(ReportsIntent.FilterStockByCategory(it))
+                                viewModel.dispatch(ReportsIntent.FilterStockByCategory(it))
                             },
                         )
                     }
@@ -141,7 +143,7 @@ fun StockReportScreen(
                         sortAscending = s.sortAscending,
                         onSort = { col ->
                             val asc = if (s.sortColumn == col) !s.sortAscending else true
-                            viewModel.onIntent(ReportsIntent.SortStock(col, asc))
+                            viewModel.dispatch(ReportsIntent.SortStock(col, asc))
                         },
                     )
                 }
@@ -162,7 +164,7 @@ fun StockReportScreen(
                 }
             }
 
-            if (s.isLoading) ZyntaLoadingOverlay()
+            if (s.isLoading) ZyntaLoadingOverlay(isLoading = true)
         }
     }
 }
@@ -275,7 +277,7 @@ private fun StockProductRow(product: Product, highlight: StockHighlight) {
             modifier = Modifier.weight(1f), textAlign = TextAlign.End)
         Text("LKR %.2f".format(product.stockQty * product.price), style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.weight(1f), textAlign = TextAlign.End)
-        ZyntaBadge(label = statusLabel, color = statusColor, modifier = Modifier.weight(1f))
+        ZyntaStatusBadge(label = statusLabel, customColor = statusColor, modifier = Modifier.weight(1f))
     }
     HorizontalDivider(thickness = 0.5.dp)
 }

@@ -79,7 +79,7 @@ actual class EncryptionManager actual constructor(keyAlias: String) {
             KeyStore.PasswordProtection(keystorePassword),
         )
         saveKeyStore(ks)
-        ZyntaLogger.d(TAG) { "Generated new AES-256 key for alias=$alias in PKCS12 store" }
+        ZyntaLogger.d(TAG, "Generated new AES-256 key for alias=$alias in PKCS12 store")
         return secretKey
     }
 

@@ -39,6 +39,7 @@ import com.zyntasolutions.zyntapos.domain.model.Category
  * @param onDeleteCategory   Callback invoked with category ID to soft-delete.
  * @param modifier           Optional root modifier.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoryListScreen(
     categories: List<Category>,

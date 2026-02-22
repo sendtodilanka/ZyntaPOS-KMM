@@ -21,7 +21,7 @@ import com.zyntasolutions.zyntapos.designsystem.components.*
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaSplitPane
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.designsystem.util.WindowSize
-import com.zyntasolutions.zyntapos.designsystem.util.WindowSizeClassHelper
+import com.zyntasolutions.zyntapos.designsystem.util.currentWindowSize
 import com.zyntasolutions.zyntapos.feature.auth.AuthViewModel
 import com.zyntasolutions.zyntapos.feature.auth.mvi.AuthEffect
 import com.zyntasolutions.zyntapos.feature.auth.mvi.AuthIntent
@@ -49,7 +49,7 @@ fun LoginScreen(
     viewModel: AuthViewModel = koinViewModel(),
     onNavigateToDashboard: () -> Unit = {},
     onNavigateToRegisterGuard: () -> Unit = {},
-    windowSize: WindowSize = WindowSizeClassHelper.current(),
+    windowSize: WindowSize = currentWindowSize(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -98,8 +98,8 @@ private fun ExpandedLoginLayout(
     ZyntaSplitPane(
         primaryWeight = 0.40f,
         modifier = modifier.fillMaxSize(),
-        primary = { LoginIllustrationPanel() },
-        secondary = {
+        primaryContent = { LoginIllustrationPanel() },
+        secondaryContent = {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 LoginFormContent(
                     state = state,

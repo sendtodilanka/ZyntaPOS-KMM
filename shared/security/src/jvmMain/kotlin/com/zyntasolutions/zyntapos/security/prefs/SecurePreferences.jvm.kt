@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.security.prefs
 
 import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
+import com.zyntasolutions.zyntapos.domain.port.SecureStoragePort
 import com.zyntasolutions.zyntapos.security.crypto.EncryptedData
 import com.zyntasolutions.zyntapos.security.crypto.EncryptionManager
 import java.io.File
@@ -9,7 +10,7 @@ import java.io.FileOutputStream
 import java.util.Base64
 import java.util.Properties
 
-// ZENTA-FINAL-AUDIT MERGED-F1
+// ZENTA-FINAL-AUDIT MERGED-F1 | MERGED-F3 (2026-02-22)
 private const val TAG = "SecurePreferences"
 private const val PREFS_FILE = ".zentapos/secure_prefs.enc"
 private const val SEPARATOR = ":"
@@ -24,10 +25,13 @@ private const val SEPARATOR = ":"
  *
  * File location: `~/.zentapos/secure_prefs.enc`
  *
- * Key strings are sourced exclusively from [SecurePreferencesKeys].
+ * Implements both [TokenStorage] (for [JwtManager]) and [SecureStoragePort] (for
+ * `:shared:data` injection via Koin — MERGED-F3 2026-02-22).
+ *
+ * Key strings are sourced exclusively from [SecurePreferencesKeys] / [com.zyntasolutions.zyntapos.domain.port.SecureStorageKeys].
  * @see SecurePreferencesKeys
  */
-actual class SecurePreferences actual constructor() : TokenStorage {
+actual class SecurePreferences actual constructor() : TokenStorage, SecureStoragePort {
 
     private val prefsFile: File = File(System.getProperty("user.home"), PREFS_FILE)
     private val encryption = EncryptionManager()
@@ -47,16 +51,16 @@ actual class SecurePreferences actual constructor() : TokenStorage {
         FileOutputStream(prefsFile).use { props.store(it, "ZyntaPOS Secure Preferences") }
     }
 
-    actual fun put(key: String, value: String) {
+    actual override fun put(key: String, value: String) {
         val encrypted = encryption.encrypt(value)
         val encoded = "${encoded(encrypted.iv)}$SEPARATOR${encoded(encrypted.ciphertext)}$SEPARATOR${encoded(encrypted.tag)}"
         val props = loadProps()
         props[key] = encoded
         saveProps(props)
-        ZyntaLogger.d(TAG) { "put key=$key" }
+        ZyntaLogger.d(TAG, "put key=$key")
     }
 
-    actual fun get(key: String): String? {
+    actual override fun get(key: String): String? {
         val props = loadProps()
         val encoded = props.getProperty(key) ?: return null
         return try {
@@ -69,26 +73,26 @@ actual class SecurePreferences actual constructor() : TokenStorage {
             )
             encryption.decrypt(data)
         } catch (e: Exception) {
-            ZyntaLogger.e(TAG, e) { "Failed to decrypt key=$key — removing corrupt entry" }
+            ZyntaLogger.e(TAG, "Failed to decrypt key=$key — removing corrupt entry", e)
             remove(key)
             null
         }
     }
 
-    actual fun remove(key: String) {
+    actual override fun remove(key: String) {
         val props = loadProps()
         props.remove(key)
         saveProps(props)
     }
 
-    actual fun clear() {
+    actual override fun clear() {
         val props = loadProps()
         props.clear()
         saveProps(props)
     }
 
     /** Returns `true` if [key] is present in the encrypted properties file. */
-    actual fun contains(key: String): Boolean = loadProps().containsKey(key)
+    actual override fun contains(key: String): Boolean = loadProps().containsKey(key)
 
     private fun encoded(bytes: ByteArray): String = Base64.getEncoder().encodeToString(bytes)
     private fun decoded(s: String): ByteArray = Base64.getDecoder().decode(s)

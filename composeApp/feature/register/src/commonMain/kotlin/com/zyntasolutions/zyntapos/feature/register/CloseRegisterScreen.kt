@@ -128,7 +128,10 @@ fun CloseRegisterScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         ActualBalanceDisplay(closeForm.actualBalanceDouble)
-                        ActualBalanceNumericPad(viewModel)
+                        ActualBalanceNumericPad(
+                            displayValue = formatCurrency(closeForm.actualBalanceDouble),
+                            viewModel = viewModel,
+                        )
                     }
                 }
             } else {
@@ -142,7 +145,10 @@ fun CloseRegisterScreen(
                 ) {
                     SessionSummarySection(state)
                     ActualBalanceDisplay(closeForm.actualBalanceDouble)
-                    ActualBalanceNumericPad(viewModel)
+                    ActualBalanceNumericPad(
+                        displayValue = formatCurrency(closeForm.actualBalanceDouble),
+                        viewModel = viewModel,
+                    )
                     DiscrepancySection(closeForm)
                     ClosingNotesSection(
                         notes = closeForm.closingNotes,
@@ -332,8 +338,12 @@ private fun ActualBalanceDisplay(actualBalance: Double) {
  * ZyntaNumericPad wired to actual balance intents for the close-register flow.
  */
 @Composable
-private fun ActualBalanceNumericPad(viewModel: RegisterViewModel) {
+private fun ActualBalanceNumericPad(
+    displayValue: String,
+    viewModel: RegisterViewModel,
+) {
     ZyntaNumericPad(
+        displayValue = displayValue,
         mode = NumericPadMode.PRICE,
         onDigit = { viewModel.dispatch(RegisterIntent.ActualBalanceDigit(it)) },
         onDoubleZero = { viewModel.dispatch(RegisterIntent.ActualBalanceDoubleZero) },

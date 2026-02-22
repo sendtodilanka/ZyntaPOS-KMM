@@ -4,6 +4,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateSalesReportUse
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateStockReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.PrintReportUseCase
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
@@ -211,8 +212,8 @@ class ReportsViewModel(
 
         return when (currentState.salesReport.selectedRange) {
             DateRange.TODAY      -> today.atStartOfDayIn(tz) to now
-            DateRange.THIS_WEEK  -> (today - today.dayOfWeek.ordinal.days).atStartOfDayIn(tz) to now
-            DateRange.THIS_MONTH -> today.copy(dayOfMonth = 1).atStartOfDayIn(tz) to now
+            DateRange.THIS_WEEK  -> (today - today.dayOfWeek.ordinal.toLong().days).atStartOfDayIn(tz) to now
+            DateRange.THIS_MONTH -> kotlinx.datetime.LocalDate(today.year, today.monthNumber, 1).atStartOfDayIn(tz) to now
             DateRange.CUSTOM     -> (currentState.salesReport.customFrom ?: now) to
                                     (currentState.salesReport.customTo   ?: now)
         }
@@ -220,8 +221,7 @@ class ReportsViewModel(
 }
 
 // helper to subtract days from kotlinx-datetime LocalDate
-private val Int.days get() = kotlin.time.Duration.days(this.toLong())
-private operator fun kotlinx.datetime.LocalDate.minus(days: kotlin.time.Duration): kotlinx.datetime.LocalDate {
-    val epoch = this.toEpochDays() - days.inWholeDays.toInt()
+private operator fun kotlinx.datetime.LocalDate.minus(durationDays: kotlin.time.Duration): kotlinx.datetime.LocalDate {
+    val epoch = this.toEpochDays() - durationDays.inWholeDays.toInt()
     return kotlinx.datetime.LocalDate.fromEpochDays(epoch)
 }

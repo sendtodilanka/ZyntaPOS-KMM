@@ -1,7 +1,7 @@
 package com.zyntasolutions.zyntapos.security.auth
 
 import com.zyntasolutions.zyntapos.domain.model.Role
-import com.zyntasolutions.zyntapos.security.prefs.SecurePreferences
+import com.zyntasolutions.zyntapos.security.prefs.SecurePreferencesKeys
 import com.zyntasolutions.zyntapos.security.prefs.TokenStorage
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
@@ -57,20 +57,20 @@ class JwtManager(private val prefs: TokenStorage) {
      * @param refreshToken Long-lived JWT used to obtain a new access token.
      */
     fun saveTokens(accessToken: String, refreshToken: String) {
-        prefs.put(SecurePreferences.KEY_ACCESS_TOKEN, accessToken)
-        prefs.put(SecurePreferences.KEY_REFRESH_TOKEN, refreshToken)
+        prefs.put(SecurePreferencesKeys.KEY_ACCESS_TOKEN, accessToken)
+        prefs.put(SecurePreferencesKeys.KEY_REFRESH_TOKEN, refreshToken)
     }
 
     /** Returns the persisted access token, or `null` if none is stored. */
-    fun getAccessToken(): String? = prefs.get(SecurePreferences.KEY_ACCESS_TOKEN)
+    fun getAccessToken(): String? = prefs.get(SecurePreferencesKeys.KEY_ACCESS_TOKEN)
 
     /** Returns the persisted refresh token, or `null` if none is stored. */
-    fun getRefreshToken(): String? = prefs.get(SecurePreferences.KEY_REFRESH_TOKEN)
+    fun getRefreshToken(): String? = prefs.get(SecurePreferencesKeys.KEY_REFRESH_TOKEN)
 
     /** Clears both access and refresh tokens from storage (logout). */
     fun clearTokens() {
-        prefs.remove(SecurePreferences.KEY_ACCESS_TOKEN)
-        prefs.remove(SecurePreferences.KEY_REFRESH_TOKEN)
+        prefs.remove(SecurePreferencesKeys.KEY_ACCESS_TOKEN)
+        prefs.remove(SecurePreferencesKeys.KEY_REFRESH_TOKEN)
     }
 
     // ── Token inspection ──────────────────────────────────────────────────────
@@ -85,7 +85,7 @@ class JwtManager(private val prefs: TokenStorage) {
         val parts = token.split(".")
         require(parts.size == 3) { "Invalid JWT: expected 3 parts, got ${parts.size}" }
         val payloadJson = decodeBase64Url(parts[1]).decodeToString()
-        return json.decodeFromString(JwtClaims.serializer(), payloadJson)
+        return json.decodeFromString<JwtClaims>(payloadJson)
     }
 
     /**

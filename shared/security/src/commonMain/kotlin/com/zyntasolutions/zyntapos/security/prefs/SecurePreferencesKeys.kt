@@ -1,58 +1,53 @@
 package com.zyntasolutions.zyntapos.security.prefs
 
-// ZENTA-FINAL-AUDIT MERGED-F1
+import com.zyntasolutions.zyntapos.domain.port.SecureStorageKeys
+
+// ZENTA-FINAL-AUDIT MERGED-F1 | MERGED-F3 (2026-02-22)
 /**
- * Canonical key registry for [SecurePreferences] across all ZyntaPOS modules.
+ * Key registry for [SecurePreferences] — delegates to [SecureStorageKeys] (domain port).
  *
- * This is the **single source of truth** for all encrypted-preference key strings.
- * Every key follows the dotted-namespace convention `<domain>.<field>` to avoid
- * collisions and to make log/debug output self-documenting.
+ * ## MERGED-F3 (2026-02-22) — Delegation to domain layer
+ * [SecureStorageKeys] (in `:shared:domain:port`) is now the **single source of truth**
+ * for all encrypted-preference key strings. This object delegates every constant so that
+ * existing `:shared:security` call sites (e.g. [JwtManager]) continue to compile
+ * unchanged while the canonical definitions live in the domain layer — accessible to
+ * `:shared:data` without a direct `:shared:security` dependency.
  *
  * ## Migration note
  * Keys were unified from two previously divergent sets:
  * - `:shared:data` used dotted keys  (`"auth.access_token"`, …)
  * - `:shared:security` used bare keys (`"access_token"`, …)
- *
- * The dotted-namespace variant was chosen as canonical because it is namespaced,
- * human-readable in debug logs, and already used by the `:shared:data` sprint code.
+ * The dotted-namespace variant was chosen as canonical (see [SecureStorageKeys] for rationale).
  * See [com.zyntasolutions.zyntapos.data.local.db.SecurePreferencesKeyMigration] for the
- * one-time upgrade migration that rewrites any old bare-key entries.
+ * one-time upgrade migration.
  *
- * @since Sprint 8 / ZENTA-FINAL-AUDIT MERGED-F1
+ * @see com.zyntasolutions.zyntapos.domain.port.SecureStorageKeys for key definitions.
+ * @since Sprint 8 / ZENTA-FINAL-AUDIT MERGED-F1 | MERGED-F3 (2026-02-22)
  */
+@Suppress("unused") // Properties are consumed by JwtManager and SecurePreferences actuals
 object SecurePreferencesKeys {
 
     // ── Authentication tokens ──────────────────────────────────────────────────
 
-    /** JWT access token. Short-lived (e.g. 15 min). */
-    const val KEY_ACCESS_TOKEN: String  = "auth.access_token"
+    /** @see SecureStorageKeys.KEY_ACCESS_TOKEN */
+    val KEY_ACCESS_TOKEN: String  get() = SecureStorageKeys.KEY_ACCESS_TOKEN
 
-    /** JWT refresh token. Long-lived (e.g. 30 days). */
-    const val KEY_REFRESH_TOKEN: String = "auth.refresh_token"
+    /** @see SecureStorageKeys.KEY_REFRESH_TOKEN */
+    val KEY_REFRESH_TOKEN: String get() = SecureStorageKeys.KEY_REFRESH_TOKEN
 
-    /**
-     * Unix epoch milliseconds at which [KEY_ACCESS_TOKEN] expires.
-     * Stored as a decimal string, e.g. `"1735689600000"`.
-     */
-    const val KEY_TOKEN_EXPIRY: String  = "auth.token_expiry"
+    /** @see SecureStorageKeys.KEY_TOKEN_EXPIRY */
+    val KEY_TOKEN_EXPIRY: String  get() = SecureStorageKeys.KEY_TOKEN_EXPIRY
 
-    /** UUID of the currently authenticated user. */
-    const val KEY_USER_ID: String       = "auth.user_id"
+    /** @see SecureStorageKeys.KEY_USER_ID */
+    val KEY_USER_ID: String       get() = SecureStorageKeys.KEY_USER_ID
 
     // ── Device identity ────────────────────────────────────────────────────────
 
-    /**
-     * Stable device/installation identifier generated on first launch.
-     * Used for multi-device session tracking and audit-log attribution.
-     */
-    const val KEY_DEVICE_ID: String     = "auth.device_id"
+    /** @see SecureStorageKeys.KEY_DEVICE_ID */
+    val KEY_DEVICE_ID: String     get() = SecureStorageKeys.KEY_DEVICE_ID
 
     // ── Sync state ─────────────────────────────────────────────────────────────
 
-    /**
-     * ISO-8601 timestamp of the last successful sync with the remote server.
-     * The [com.zyntasolutions.zyntapos.data.sync.SyncEngine] reads and writes
-     * this key to implement incremental delta-pull.
-     */
-    const val KEY_LAST_SYNC_TS: String  = "sync.last_timestamp"
+    /** @see SecureStorageKeys.KEY_LAST_SYNC_TS */
+    val KEY_LAST_SYNC_TS: String  get() = SecureStorageKeys.KEY_LAST_SYNC_TS
 }

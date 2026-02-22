@@ -142,7 +142,7 @@ private object PdfBoxRenderer {
             doc.addPage(page)
             val stream = org.apache.pdfbox.pdmodel.PDPageContentStream(doc, page)
             stream.beginText()
-            stream.setFont(org.apache.pdfbox.pdmodel.font.PDType1Font.HELVETICA, 10f)
+            stream.setFont(org.apache.pdfbox.pdmodel.font.PDType1Font(org.apache.pdfbox.pdmodel.font.Standard14Fonts.FontName.HELVETICA), 10f)
             stream.newLineAtOffset(25f, 750f)
             // Strip HTML tags for plain text fallback
             val plain = html.replace(Regex("<[^>]+>"), "").lines()

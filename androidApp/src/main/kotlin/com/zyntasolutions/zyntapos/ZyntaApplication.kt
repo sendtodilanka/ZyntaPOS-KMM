@@ -23,6 +23,7 @@ import com.zyntasolutions.zyntapos.navigation.navigationModule
 import com.zyntasolutions.zyntapos.security.di.securityModule
 import com.zyntasolutions.zyntapos.data.local.db.SecurePreferencesKeyMigration
 import org.koin.android.ext.koin.androidContext
+import org.koin.core.Koin
 import org.koin.core.context.startKoin
 
 /**
@@ -51,7 +52,7 @@ class ZyntaApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        startKoin {
+        val koin = startKoin {
             androidContext(this@ZyntaApplication)
 
             modules(
@@ -97,6 +98,6 @@ class ZyntaApplication : Application() {
         // keys ("auth.access_token", …) introduced in the Sprint 8 canonical-key
         // upgrade.  Must run BEFORE any auth operation.
         // migrate() is idempotent — safe to call on every launch.
-        getKoin().get<SecurePreferencesKeyMigration>().migrate()
+        koin.koin.get<SecurePreferencesKeyMigration>().migrate()
     }
 }

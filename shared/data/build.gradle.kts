@@ -41,6 +41,8 @@ kotlin {
             implementation(libs.sqlcipher.android)
             implementation(libs.androidx.sqlite)
             implementation(libs.androidx.work.runtime)
+            // koin-android required by AndroidDataModule.androidContext() extension
+            implementation(libs.koin.android)
         }
         jvmMain.dependencies {
             implementation(libs.ktor.client.cio)

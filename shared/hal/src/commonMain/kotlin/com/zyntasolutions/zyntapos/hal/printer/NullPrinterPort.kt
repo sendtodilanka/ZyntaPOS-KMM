@@ -1,6 +1,6 @@
 package com.zyntasolutions.zyntapos.hal.printer
 
-import com.zyntasolutions.zyntapos.core.result.ZyntaException
+import com.zyntasolutions.zyntapos.core.result.HalException
 
 /**
  * ZyntaPOS — Hardware Abstraction Layer
@@ -8,7 +8,7 @@ import com.zyntasolutions.zyntapos.core.result.ZyntaException
  * A no-operation [PrinterPort] used as the Phase 1 default binding when no
  * printer has been configured yet.
  *
- * All operations return a descriptive [ZyntaException.HalException] so that
+ * All operations return a descriptive [HalException] so that
  * the UI can surface a "Printer not configured" message rather than crashing.
  *
  * ### When this is replaced
@@ -40,7 +40,7 @@ class NullPrinterPort : PrinterPort {
 
     // ─── Helper ──────────────────────────────────────────────────────────────
 
-    private fun notConfigured(op: String) = ZyntaException.HalException(
+    private fun notConfigured(op: String) = HalException(
         message = "Printer not configured — cannot execute '$op'. " +
                   "Go to Settings → Hardware → Printer to configure a connection.",
     )

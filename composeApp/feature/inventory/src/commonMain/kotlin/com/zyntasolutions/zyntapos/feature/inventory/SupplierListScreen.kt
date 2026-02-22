@@ -41,6 +41,7 @@ import com.zyntasolutions.zyntapos.domain.model.Supplier
  * @param onNavigateToDetail     Callback with supplier ID (edit) or null (create).
  * @param modifier               Optional root modifier.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SupplierListScreen(
     suppliers: List<Supplier>,
@@ -147,6 +148,7 @@ fun SupplierListScreen(
 // Private: Table View
 // ─────────────────────────────────────────────────────────────────────────────
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SupplierTableView(
     suppliers: List<Supplier>,
@@ -177,7 +179,7 @@ private fun SupplierTableView(
         modifier = Modifier.fillMaxSize(),
         rowKey = { it.id },
         emptyContent = { SupplierEmptyState() },
-    ) { supplier ->
+        rowContent = { supplier: Supplier ->
         Text(
             supplier.name,
             modifier = Modifier.weight(2f).clickable { onSupplierClick(supplier) },
@@ -206,7 +208,8 @@ private fun SupplierTableView(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1, overflow = TextOverflow.Ellipsis,
         )
-    }
+    },
+)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

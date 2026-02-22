@@ -56,8 +56,8 @@ class ZReportPrinterAdapter(
 
             // 3. Deliver to printer (PrinterManager retries internally)
             printerManager.print(bytes).fold(
-                onSuccess = { Result.Success(Unit) },
-                onFailure = { error ->
+                onSuccess = { _ -> Result.Success(Unit) },
+                onFailure = { error: Throwable ->
                     ZyntaLogger.e(TAG, "Z-report print failed: ${error.message}")
                     Result.Error(
                         HalException(

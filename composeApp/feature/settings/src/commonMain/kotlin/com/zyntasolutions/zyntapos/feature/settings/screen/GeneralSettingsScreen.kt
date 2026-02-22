@@ -13,10 +13,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,7 +34,6 @@ import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSnackbarHost
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTextField
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTopAppBar
-import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.feature.settings.Currency
 import com.zyntasolutions.zyntapos.feature.settings.SettingsEffect
@@ -62,6 +63,7 @@ private val DATE_FORMATS = listOf("dd/MM/yyyy", "MM/dd/yyyy", "yyyy-MM-dd", "d M
  * @param onBack     Back navigation callback.
  */
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun GeneralSettingsScreen(
     viewModel: SettingsViewModel,
     state: SettingsState.GeneralState,
@@ -83,9 +85,9 @@ fun GeneralSettingsScreen(
         }
     }
 
-    ZyntaScaffold(
+    Scaffold(
         topBar = {
-            ZyntaTopAppBar(title = "General", onNavigationClick = onBack)
+            ZyntaTopAppBar(title = "General", onNavigateBack = onBack)
         },
         snackbarHost = { ZyntaSnackbarHost(snackbarHostState) },
     ) { innerPadding ->
@@ -114,7 +116,8 @@ fun GeneralSettingsScreen(
                     onValueChange = { onIntent(SettingsIntent.UpdateStoreAddress(it)) },
                     label = "Store Address",
                     modifier = Modifier.fillMaxWidth(),
-                    minLines = 2,
+                    singleLine = false,
+                    maxLines = 3,
                 )
             }
             item {
@@ -164,7 +167,11 @@ fun GeneralSettingsScreen(
                     label = "Language",
                     modifier = Modifier.fillMaxWidth(),
                     enabled = false, // English only in Phase 1
-                    supportingText = "English only (Phase 1)",
+                )
+                Text(
+                    text = "English only (Phase 1)",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             item {
@@ -194,6 +201,7 @@ internal fun SectionHeader(title: String, modifier: Modifier = Modifier) {
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun DropdownField(
     label: String,
@@ -250,7 +258,11 @@ private fun LogoUriRow(uri: String, onUriChange: (String) -> Unit) {
             onValueChange = onUriChange,
             label = "Logo URI / Path",
             modifier = Modifier.fillMaxWidth(),
-            supportingText = "Paste an image URI or pick from file picker",
+        )
+        Text(
+            text = "Paste an image URI or pick from file picker",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }

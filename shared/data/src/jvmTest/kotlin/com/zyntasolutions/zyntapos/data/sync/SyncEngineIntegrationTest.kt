@@ -2,8 +2,8 @@ package com.zyntasolutions.zyntapos.data.sync
 
 import com.zyntasolutions.zyntapos.core.result.NetworkException
 import com.zyntasolutions.zyntapos.data.createTestDatabase
-import com.zyntasolutions.zyntapos.security.prefs.SecurePreferences
-import com.zyntasolutions.zyntapos.security.prefs.SecurePreferencesKeys
+import com.zyntasolutions.zyntapos.domain.port.SecureStorageKeys
+import com.zyntasolutions.zyntapos.domain.port.SecureStoragePort
 import com.zyntasolutions.zyntapos.data.remote.api.ApiService
 import com.zyntasolutions.zyntapos.data.remote.dto.AuthRefreshResponseDto
 import com.zyntasolutions.zyntapos.data.remote.dto.AuthRequestDto
@@ -103,7 +103,7 @@ private class OfflineApiService : ApiService {
 class SyncEngineIntegrationTest {
 
     private lateinit var db: ZyntaDatabase
-    private lateinit var prefs: SecurePreferences
+    private lateinit var prefs: SecureStoragePort
 
     /** Real Desktop NetworkMonitor — never started, so no background polling in tests. */
     private val networkMonitor = NetworkMonitor()
@@ -237,11 +237,11 @@ class SyncEngineIntegrationTest {
         )
         val eng = engine(api)
 
-        val tsBefore = prefs.get(SecurePreferencesKeys.KEY_LAST_SYNC_TS)?.toLongOrNull() ?: 0L
+        val tsBefore = prefs.get(SecureStorageKeys.KEY_LAST_SYNC_TS)?.toLongOrNull() ?: 0L
 
         eng.runOnce()
 
-        val tsAfter = prefs.get(SecurePreferencesKeys.KEY_LAST_SYNC_TS)?.toLongOrNull() ?: 0L
+        val tsAfter = prefs.get(SecureStorageKeys.KEY_LAST_SYNC_TS)?.toLongOrNull() ?: 0L
         assertTrue(tsAfter > tsBefore, "LAST_SYNC_TS should advance after a successful sync cycle")
     }
 

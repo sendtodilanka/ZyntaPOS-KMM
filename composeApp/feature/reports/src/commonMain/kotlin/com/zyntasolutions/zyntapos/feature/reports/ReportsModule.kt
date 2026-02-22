@@ -5,6 +5,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateSalesReportUse
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateStockReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.PrintReportUseCase
 import com.zyntasolutions.zyntapos.feature.reports.printer.ReportPrinterAdapter
+import com.zyntasolutions.zyntapos.hal.printer.PrinterManager
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
@@ -42,7 +43,7 @@ import org.koin.dsl.module
  */
 val reportsModule = module {
     // ── Port adapter (HAL orchestration lives here, NOT in the use case) ─────
-    single<ReportPrinterPort> { ReportPrinterAdapter(get()) }
+    single<ReportPrinterPort> { ReportPrinterAdapter(get<PrinterManager>()) }
 
     // ── Domain use cases ─────────────────────────────────────────────────────
     factory { GenerateSalesReportUseCase(get()) }
@@ -51,9 +52,4 @@ val reportsModule = module {
 
     // ── ViewModel ────────────────────────────────────────────────────────────
     viewModelOf(::ReportsViewModel)
-}
-
-/** JVM-specific Koin module — binds [JvmReportExporter] as [ReportExporter]. */
-val jvmReportsModule = module {
-    single<ReportExporter> { JvmReportExporter() }
 }

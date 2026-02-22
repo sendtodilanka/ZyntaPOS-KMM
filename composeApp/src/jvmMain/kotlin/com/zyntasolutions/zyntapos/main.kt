@@ -5,6 +5,7 @@ import androidx.compose.ui.window.application
 import com.zyntasolutions.zyntapos.core.di.coreModule
 import com.zyntasolutions.zyntapos.data.di.dataModule
 import com.zyntasolutions.zyntapos.data.di.desktopDataModule
+import com.zyntasolutions.zyntapos.data.local.db.SecurePreferencesKeyMigration
 import com.zyntasolutions.zyntapos.feature.admin.adminModule
 import com.zyntasolutions.zyntapos.feature.auth.authModule
 import com.zyntasolutions.zyntapos.feature.coupons.couponsModule
@@ -22,7 +23,6 @@ import com.zyntasolutions.zyntapos.feature.staff.staffModule
 import com.zyntasolutions.zyntapos.hal.di.halModule
 import com.zyntasolutions.zyntapos.navigation.navigationModule
 import com.zyntasolutions.zyntapos.security.di.securityModule
-import com.zyntasolutions.zyntapos.data.local.db.SecurePreferencesKeyMigration
 import org.koin.core.context.startKoin
 
 /**
@@ -46,7 +46,7 @@ import org.koin.core.context.startKoin
  */
 fun main() {
     // Load order: core → security → hal → data → domain → feature modules
-    startKoin {
+    val koin = startKoin {
         modules(
             // ── Tier 1: Core infrastructure ──────────────────────────────────
             coreModule,          // Logger, CurrencyFormatter, Dispatchers
@@ -83,13 +83,10 @@ fun main() {
     }
 
     // ── MERGED-F1: One-time key migration ────────────────────────────────────
-    // Rewrites any auth tokens stored under legacy bare-key literals
-    // ("access_token", "refresh_token", …) into the canonical dotted-namespace
-    // keys ("auth.access_token", …) introduced in the Sprint 8 canonical-key
-    // upgrade.  Must run BEFORE any auth operation and BEFORE the Compose
-    // application window opens (so the auth screen never sees stale null tokens).
+    // Resolves SecurePreferencesKeyMigration directly from the KoinApplication
+    // returned by startKoin — avoids GlobalContext (Service Locator antipattern).
     // migrate() is idempotent — safe to call on every launch.
-    getKoin().get<SecurePreferencesKeyMigration>().migrate()
+    koin.koin.get<SecurePreferencesKeyMigration>().migrate()
 
     application {
         Window(

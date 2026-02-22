@@ -19,14 +19,14 @@ package com.zyntasolutions.zyntapos.domain.model
  * @property taxAmount Total tax amount across all items (rounded to 2 d.p.). Always ≥ 0.
  * @property discountAmount Total order-level discount applied. Always ≥ 0.
  * @property total Grand total: `subtotal + taxAmount - discountAmount`. Always ≥ 0.
- * @property itemCount Total number of individual units across all cart/order lines.
+ * @property itemCount Total number of line items (cart rows) in the order.
  */
 data class OrderTotals(
     val subtotal: Double,
     val taxAmount: Double,
     val discountAmount: Double,
     val total: Double,
-    val itemCount: Double,
+    val itemCount: Int,
 ) {
     companion object {
         /** A zeroed-out totals object — useful as an initial state for an empty cart. */
@@ -35,7 +35,7 @@ data class OrderTotals(
             taxAmount = 0.0,
             discountAmount = 0.0,
             total = 0.0,
-            itemCount = 0.0,
+            itemCount = 0,
         )
     }
 }

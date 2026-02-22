@@ -31,7 +31,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaScaffold
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ExperimentalMaterial3Api
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTopAppBar
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 
@@ -50,15 +51,16 @@ import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
  * @param onBack      Lambda invoked when the user presses the system back button.
  */
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun SettingsHomeScreen(
     onNavigate: (SettingsRoute) -> Unit,
     onBack: () -> Unit,
 ) {
-    ZyntaScaffold(
+    Scaffold(
         topBar = {
             ZyntaTopAppBar(
                 title = "Settings",
-                onNavigationClick = onBack,
+                onNavigateBack = onBack,
             )
         }
     ) { innerPadding ->

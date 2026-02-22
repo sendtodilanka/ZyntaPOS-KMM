@@ -10,6 +10,7 @@ import com.zyntasolutions.zyntapos.security.crypto.EncryptionManager
 import com.zyntasolutions.zyntapos.security.prefs.SecurePreferences
 import com.zyntasolutions.zyntapos.security.rbac.RbacEngine
 import com.zyntasolutions.zyntapos.domain.port.PasswordHashPort
+import com.zyntasolutions.zyntapos.domain.port.SecureStoragePort
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
@@ -90,6 +91,14 @@ val securityModule = module {
      * Android: EncryptedSharedPreferences; Desktop: AES-encrypted Properties file.
      */
     single { SecurePreferences() }
+
+    /**
+     * Domain port binding for [SecurePreferences].
+     * `:shared:data` injects [SecureStoragePort] — not [SecurePreferences] directly —
+     * so the data layer holds no compile-time dependency on `:shared:security`.
+     * MERGED-F3 (2026-02-22).
+     */
+    single<SecureStoragePort> { get<SecurePreferences>() }
 
     /**
      * BCrypt password hasher — work factor 12.

@@ -385,3 +385,4 @@ class PosViewModel(
             is Result.Loading -> Unit
         }
     }
+}

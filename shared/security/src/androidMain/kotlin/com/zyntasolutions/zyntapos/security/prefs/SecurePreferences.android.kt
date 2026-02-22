@@ -3,10 +3,11 @@ package com.zyntasolutions.zyntapos.security.prefs
 import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import com.zyntasolutions.zyntapos.domain.port.SecureStoragePort
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
-// ZENTA-FINAL-AUDIT MERGED-F1
+// ZENTA-FINAL-AUDIT MERGED-F1 | MERGED-F3 (2026-02-22)
 private const val PREFS_FILE = "zyntapos_secure_prefs"
 
 /**
@@ -16,10 +17,13 @@ private const val PREFS_FILE = "zyntapos_secure_prefs"
  * stored in the Android Keystore. The underlying file is stored in the standard
  * app SharedPreferences directory and is only accessible to this app.
  *
- * Key strings are sourced exclusively from [SecurePreferencesKeys].
+ * Implements both [TokenStorage] (for [JwtManager]) and [SecureStoragePort] (for
+ * `:shared:data` injection via Koin — MERGED-F3 2026-02-22).
+ *
+ * Key strings are sourced exclusively from [SecurePreferencesKeys] / [com.zyntasolutions.zyntapos.domain.port.SecureStorageKeys].
  * @see SecurePreferencesKeys
  */
-actual class SecurePreferences actual constructor() : TokenStorage, KoinComponent {
+actual class SecurePreferences actual constructor() : TokenStorage, SecureStoragePort, KoinComponent {
 
     private val context: Context by inject()
 
@@ -46,12 +50,12 @@ actual class SecurePreferences actual constructor() : TokenStorage, KoinComponen
         sharedPrefs.edit().remove(key).apply()
     }
 
-    actual fun clear() {
+    actual override fun clear() {
         sharedPrefs.edit().clear().apply()
     }
 
     /** Returns `true` if [key] exists in [EncryptedSharedPreferences]. */
-    actual fun contains(key: String): Boolean = sharedPrefs.contains(key)
+    actual override fun contains(key: String): Boolean = sharedPrefs.contains(key)
 
     actual companion object
 }

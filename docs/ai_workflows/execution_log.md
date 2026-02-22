@@ -3255,3 +3255,39 @@ Two compile errors blocked `:shared:domain:assemble`. Both were identified via `
 | `docs/plans/PLAN_PHASE1.md` | Sprint 23 step 13.1.5 annotated; Appendix: Hotfixes added |
 
 ### Status: ✅ COMPLETE — :shared:domain:assemble BUILD SUCCESSFUL
+
+
+---
+
+## Session: Build Failure Fix — 182 Compile Errors | 2026-02-22
+
+### Root Cause Analysis
+`./gradlew :build` → 182 errors across 6 targets. Root causes:
+
+| Target | Errors | Root Cause |
+|--------|--------|-----------|
+| `:shared:domain:compileTestKotlinJvm` | 13 | Fake impls don't match updated interfaces |
+| `:composeApp:feature:auth:compileTestKotlinJvm` | 39 | Mockative class mocking + signature mismatch |
+| `:composeApp:feature:pos:compileTestKotlinJvm` | 114 | PosViewModel constructor missing `printReceiptUseCase`/`receiptFormatter` in test |
+| `:composeApp:feature:settings:compileTestKotlinJvm` | 15 | Incomplete anonymous repository objects in test |
+| `:shared:security:allTests` | 1 | Runtime test failure (investigated separately) |
+
+### Fix Tasks
+
+- [ ] Doing: Fix FakeAuthRepositories.kt — logout() return type Unit not Result<Unit>
+
+- [x] Finished: Fix FakeAuthRepositories.kt — logout() return type Unit not Result<Unit> | 2026-02-22
+- [ ] Doing: Fix FakeInventoryRepositories.kt — (a) remove syncStatus from buildProduct, (b) fix nullable barcode/sku in search, (c) fix getAlerts signature Double?
+
+- [x] Finished: Fix FakeInventoryRepositories.kt — removed syncStatus, fixed nullable barcode/sku, getAlerts(Double?) | 2026-02-22
+- [ ] Doing: Fix FakePosRepositories.kt — getAll(Map<String,String>?) → non-nullable with default
+
+- [x] Finished: Fix FakePosRepositories.kt — getAll(Map<String,String>) non-nullable | 2026-02-22
+- [ ] Doing: Fix FakeSharedRepositories.kt — add suspend to get() and getAll()
+
+- [x] Finished: Fix FakeSharedRepositories.kt — get/getAll are now suspend | 2026-02-22
+- [ ] Doing: Fix OrderTotals.kt — itemCount: Double → Int; fix EMPTY companion
+
+- [x] Finished: Fix OrderTotals.kt — itemCount: Double → Int; EMPTY itemCount = 0 | 2026-02-22
+- [x] Finished: Fix CalculateOrderTotalsUseCase.kt — itemCount = items.size (Int) | 2026-02-22
+- [ ] Doing: Fix PosViewModelTest.kt — add missing printReceiptUseCase & receiptFormatter constructor params

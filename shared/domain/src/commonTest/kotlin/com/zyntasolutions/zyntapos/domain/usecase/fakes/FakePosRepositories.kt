@@ -34,8 +34,10 @@ fun buildCartItem(
     discount: Double = 0.0,
     discountType: DiscountType = DiscountType.FIXED,
     taxRate: Double = 0.0,
-) = CartItem(productId = productId, productName = productName, unitPrice = unitPrice,
-    quantity = quantity, discount = discount, discountType = discountType, taxRate = taxRate)
+) = CartItem(
+    productId = productId, productName = productName, unitPrice = unitPrice,
+    quantity = quantity, discount = discount, discountType = discountType, taxRate = taxRate,
+)
 
 /** Builds a test [Order] with sensible defaults. */
 fun buildOrder(
@@ -53,7 +55,7 @@ fun buildOrder(
     amountTendered = total, changeAmount = 0.0, customerId = null,
     cashierId = cashierId, storeId = "store-01", registerSessionId = "session-01",
     notes = null, reference = null, createdAt = Clock.System.now(),
-    updatedAt = Clock.System.now(), syncStatus = SyncStatus(state = SyncStatus.State.SYNCED)
+    updatedAt = Clock.System.now(), syncStatus = SyncStatus(state = SyncStatus.State.SYNCED),
 )
 
 /** Builds an [OrderItem] from a [CartItem]. */
@@ -61,7 +63,7 @@ fun CartItem.toOrderItem(orderId: String = "order-01") = OrderItem(
     id = "item-${productId}", orderId = orderId, productId = productId,
     productName = productName, unitPrice = unitPrice, quantity = quantity,
     discount = discount, discountType = discountType, taxRate = taxRate,
-    taxAmount = 0.0, lineTotal = unitPrice * quantity
+    taxAmount = 0.0, lineTotal = unitPrice * quantity,
 )
 
 /** Builds a [RegisterSession] with sensible defaults. */
@@ -76,29 +78,8 @@ fun buildRegisterSession(
 ) = RegisterSession(
     id = id, registerId = registerId, openedBy = openedBy, closedBy = null,
     openingBalance = openingBalance, closingBalance = null, expectedBalance = expectedBalance,
-    actualBalance = actualBalance, openedAt = Clock.System.now(), closedAt = null, status = status
+    actualBalance = actualBalance, openedAt = Clock.System.now(), closedAt = null, status = status,
 )
-package com.zyntasolutions.zyntapos.domain.usecase.fakes
-
-import com.zyntasolutions.zyntapos.core.result.DatabaseException
-import com.zyntasolutions.zyntapos.core.result.ValidationException
-import com.zyntasolutions.zyntapos.core.result.Result
-import com.zyntasolutions.zyntapos.domain.model.CashMovement
-import com.zyntasolutions.zyntapos.domain.model.CartItem
-import com.zyntasolutions.zyntapos.domain.model.Order
-import com.zyntasolutions.zyntapos.domain.model.OrderItem
-import com.zyntasolutions.zyntapos.domain.model.OrderStatus
-import com.zyntasolutions.zyntapos.domain.model.OrderType
-import com.zyntasolutions.zyntapos.domain.model.PaymentMethod
-import com.zyntasolutions.zyntapos.domain.model.RegisterSession
-import com.zyntasolutions.zyntapos.domain.model.SyncStatus
-import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
-import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FakeOrderRepository
@@ -114,7 +95,7 @@ class FakeOrderRepository : OrderRepository {
         if (shouldFailCreate) return Result.Error(DatabaseException("Create failed"))
         val saved = order.copy(
             orderNumber = "ORD-${nextOrderNumber.toString().padStart(4, '0')}",
-            items = order.items.map { it.copy(orderId = order.id) }
+            items = order.items.map { it.copy(orderId = order.id) },
         )
         nextOrderNumber++
         orders.add(saved)
@@ -128,7 +109,7 @@ class FakeOrderRepository : OrderRepository {
         return Result.Success(order)
     }
 
-    override fun getAll(filters: Map<String, String>?): Flow<List<Order>> = _orders
+    override fun getAll(filters: Map<String, String>): Flow<List<Order>> = _orders
 
     override suspend fun update(order: Order): Result<Unit> {
         val index = orders.indexOfFirst { it.id == order.id }
@@ -161,7 +142,7 @@ class FakeOrderRepository : OrderRepository {
                     unitPrice = cart.unitPrice, quantity = cart.quantity,
                     discount = cart.discount, discountType = cart.discountType,
                     taxRate = cart.taxRate, taxAmount = 0.0,
-                    lineTotal = cart.unitPrice * cart.quantity
+                    lineTotal = cart.unitPrice * cart.quantity,
                 )
             },
             subtotal = items.sumOf { it.unitPrice * it.quantity },
@@ -171,7 +152,7 @@ class FakeOrderRepository : OrderRepository {
             amountTendered = 0.0, changeAmount = 0.0, customerId = null,
             cashierId = "system", storeId = "store-01", registerSessionId = "session-01",
             notes = null, reference = null, createdAt = Clock.System.now(),
-            updatedAt = Clock.System.now(), syncStatus = SyncStatus(state = SyncStatus.State.PENDING)
+            updatedAt = Clock.System.now(), syncStatus = SyncStatus(state = SyncStatus.State.PENDING),
         )
         orders.add(holdOrder)
         _orders.value = orders.toList()
@@ -203,21 +184,21 @@ class FakeRegisterRepository : RegisterRepository {
     override suspend fun openSession(
         registerId: String,
         openingBalance: Double,
-        userId: String
+        userId: String,
     ): Result<RegisterSession> {
         if (shouldFailOpen) return Result.Error(DatabaseException("DB error"))
         if (activeSessionAlreadyExists) {
             return Result.Error(
                 ValidationException(
                     "An active session already exists for register '$registerId'.",
-                    field = "registerId", rule = "SESSION_ALREADY_OPEN"
-                )
+                    field = "registerId", rule = "SESSION_ALREADY_OPEN",
+                ),
             )
         }
         val session = buildRegisterSession(
             registerId = registerId, openedBy = userId,
             openingBalance = openingBalance, expectedBalance = openingBalance,
-            status = RegisterSession.Status.OPEN
+            status = RegisterSession.Status.OPEN,
         )
         sessions.add(session)
         _active.value = session
@@ -228,22 +209,29 @@ class FakeRegisterRepository : RegisterRepository {
     override suspend fun closeSession(
         sessionId: String,
         actualBalance: Double,
-        userId: String
+        userId: String,
     ): Result<RegisterSession> {
         val session = sessions.firstOrNull { it.id == sessionId }
             ?: return Result.Error(DatabaseException("Session not found"))
         if (session.status == RegisterSession.Status.CLOSED) {
             return Result.Error(
-                ValidationException("Session already closed", field = "sessionId", rule = "SESSION_ALREADY_CLOSED")
+                ValidationException(
+                    "Session already closed",
+                    field = "sessionId", rule = "SESSION_ALREADY_CLOSED",
+                ),
             )
         }
-        val cashIn = movements.filter { it.sessionId == sessionId && it.type == CashMovement.Type.IN }.sumOf { it.amount }
-        val cashOut = movements.filter { it.sessionId == sessionId && it.type == CashMovement.Type.OUT }.sumOf { it.amount }
+        val cashIn = movements
+            .filter { it.sessionId == sessionId && it.type == CashMovement.Type.IN }
+            .sumOf { it.amount }
+        val cashOut = movements
+            .filter { it.sessionId == sessionId && it.type == CashMovement.Type.OUT }
+            .sumOf { it.amount }
         val expectedBalance = session.openingBalance + cashIn - cashOut
         val closed = session.copy(
             closedBy = userId, closingBalance = actualBalance,
             actualBalance = actualBalance, expectedBalance = expectedBalance,
-            closedAt = Clock.System.now(), status = RegisterSession.Status.CLOSED
+            closedAt = Clock.System.now(), status = RegisterSession.Status.CLOSED,
         )
         val index = sessions.indexOfFirst { it.id == sessionId }
         sessions[index] = closed

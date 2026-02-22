@@ -62,7 +62,15 @@ expect class EncryptionManager(keyAlias: String = DEFAULT_KEY_ALIAS) {
     fun decrypt(data: EncryptedData): String
 
     companion object {
-        /** Default key alias used for general-purpose symmetric encryption. */
-        const val DEFAULT_KEY_ALIAS: String
+        /**
+         * Default key alias used for general-purpose symmetric encryption.
+         * Concrete value is defined in each platform actual:
+         *   Android → "zyntapos_enc_key_v1" (Android Keystore alias)
+         *   Desktop → "zyntapos_enc_key_v1" (PKCS12 entry alias)
+         *
+         * NOTE: `const val` is NOT permitted in `expect class` companions (no initializer
+         * can be provided on the expect side). The actuals declare `actual const val`.
+         */
+        val DEFAULT_KEY_ALIAS: String
     }
 }

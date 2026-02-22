@@ -164,8 +164,7 @@ private fun CoreFieldsSection(
                 value = form.name,
                 onValueChange = { onIntent(InventoryIntent.UpdateFormField("name", it)) },
                 label = "Product Name *",
-                isError = form.validationErrors.containsKey("name"),
-                supportingText = form.validationErrors["name"],
+                error = form.validationErrors["name"],
                 modifier = Modifier.fillMaxWidth(),
             )
 
@@ -175,8 +174,7 @@ private fun CoreFieldsSection(
                     value = form.barcode,
                     onValueChange = { onIntent(InventoryIntent.UpdateFormField("barcode", it)) },
                     label = "Barcode (EAN-13 / Code128)",
-                    isError = form.validationErrors.containsKey("barcode"),
-                    supportingText = form.validationErrors["barcode"],
+                    error = form.validationErrors["barcode"],
                     modifier = Modifier.weight(1f),
                 )
                 IconButton(
@@ -192,8 +190,7 @@ private fun CoreFieldsSection(
                 value = form.sku,
                 onValueChange = { onIntent(InventoryIntent.UpdateFormField("sku", it)) },
                 label = "SKU",
-                isError = form.validationErrors.containsKey("sku"),
-                supportingText = form.validationErrors["sku"],
+                error = form.validationErrors["sku"],
                 modifier = Modifier.fillMaxWidth(),
             )
 
@@ -252,16 +249,14 @@ private fun PricingSection(
                     value = form.price,
                     onValueChange = { onIntent(InventoryIntent.UpdateFormField("price", it)) },
                     label = "Selling Price *",
-                    isError = form.validationErrors.containsKey("price"),
-                    supportingText = form.validationErrors["price"],
+                    error = form.validationErrors["price"],
                     modifier = Modifier.weight(1f),
                 )
                 ZyntaTextField(
                     value = form.costPrice,
                     onValueChange = { onIntent(InventoryIntent.UpdateFormField("costPrice", it)) },
                     label = "Cost Price",
-                    isError = form.validationErrors.containsKey("costPrice"),
-                    supportingText = form.validationErrors["costPrice"],
+                    error = form.validationErrors["costPrice"],
                     modifier = Modifier.weight(1f),
                 )
             }

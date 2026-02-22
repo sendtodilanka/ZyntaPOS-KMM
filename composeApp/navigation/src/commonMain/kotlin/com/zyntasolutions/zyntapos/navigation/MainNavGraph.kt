@@ -58,9 +58,9 @@ fun NavGraphBuilder.mainNavGraph(
                 currentRoute = ZyntaRoute.Dashboard,
             ) {
                 screens.dashboard(
-                    onNavigateToPos = { navigationController.navigate(ZyntaRoute.Pos) },
-                    onNavigateToRegister = { navigationController.navigate(ZyntaRoute.RegisterDashboard) },
-                    onNavigateToReports = { navigationController.navigate(ZyntaRoute.SalesReport) },
+                    { navigationController.navigate(ZyntaRoute.Pos) },
+                    { navigationController.navigate(ZyntaRoute.RegisterDashboard) },
+                    { navigationController.navigate(ZyntaRoute.SalesReport) },
                 )
             }
         }
@@ -72,9 +72,7 @@ fun NavGraphBuilder.mainNavGraph(
                 currentRoute = ZyntaRoute.Pos,
             ) {
                 screens.pos(
-                    onNavigateToPayment = { orderId ->
-                        navigationController.navigate(ZyntaRoute.Payment(orderId))
-                    },
+                    { orderId -> navigationController.navigate(ZyntaRoute.Payment(orderId)) },
                 )
             }
         }
@@ -82,15 +80,15 @@ fun NavGraphBuilder.mainNavGraph(
         composable<ZyntaRoute.Payment> { entry ->
             val route = entry.toRoute<ZyntaRoute.Payment>()
             screens.payment(
-                orderId = route.orderId,
-                onPaymentComplete = {
+                route.orderId,
+                {
                     // Clear payment from back stack, return to POS
                     navigationController.navController.popBackStack(
                         route = ZyntaRoute.Pos,
                         inclusive = false,
                     )
                 },
-                onCancel = { navigationController.popBackStack() },
+                { navigationController.popBackStack() },
             )
         }
 
@@ -103,15 +101,9 @@ fun NavGraphBuilder.mainNavGraph(
                     currentRoute = ZyntaRoute.ProductList,
                 ) {
                     screens.productList(
-                        onNavigateToDetail = { productId ->
-                            navigationController.openProductDetail(productId)
-                        },
-                        onNavigateToCategories = {
-                            navigationController.navigate(ZyntaRoute.CategoryList)
-                        },
-                        onNavigateToSuppliers = {
-                            navigationController.navigate(ZyntaRoute.SupplierList)
-                        },
+                        { productId -> navigationController.openProductDetail(productId) },
+                        { navigationController.navigate(ZyntaRoute.CategoryList) },
+                        { navigationController.navigate(ZyntaRoute.SupplierList) },
                     )
                 }
             }
@@ -119,20 +111,20 @@ fun NavGraphBuilder.mainNavGraph(
             composable<ZyntaRoute.ProductDetail> { entry ->
                 val route = entry.toRoute<ZyntaRoute.ProductDetail>()
                 screens.productDetail(
-                    productId = route.productId,
-                    onNavigateUp = { navigationController.navigateUp(ZyntaRoute.ProductList) },
+                    route.productId,
+                    { navigationController.navigateUp(ZyntaRoute.ProductList) },
                 )
             }
 
             composable<ZyntaRoute.CategoryList> {
                 screens.categoryList(
-                    onNavigateUp = { navigationController.navigateUp(ZyntaRoute.ProductList) },
+                    { navigationController.navigateUp(ZyntaRoute.ProductList) },
                 )
             }
 
             composable<ZyntaRoute.SupplierList> {
                 screens.supplierList(
-                    onNavigateUp = { navigationController.navigateUp(ZyntaRoute.ProductList) },
+                    { navigationController.navigateUp(ZyntaRoute.ProductList) },
                 )
             }
         }
@@ -146,15 +138,15 @@ fun NavGraphBuilder.mainNavGraph(
                     currentRoute = ZyntaRoute.RegisterDashboard,
                 ) {
                     screens.registerDashboard(
-                        onOpenRegister = { navigationController.navigate(ZyntaRoute.OpenRegister) },
-                        onCloseRegister = { navigationController.navigate(ZyntaRoute.CloseRegister) },
+                        { navigationController.navigate(ZyntaRoute.OpenRegister) },
+                        { navigationController.navigate(ZyntaRoute.CloseRegister) },
                     )
                 }
             }
 
             composable<ZyntaRoute.OpenRegister> {
                 screens.openRegister(
-                    onComplete = {
+                    {
                         navigationController.navController.popBackStack(
                             route = ZyntaRoute.RegisterDashboard,
                             inclusive = false,
@@ -165,7 +157,7 @@ fun NavGraphBuilder.mainNavGraph(
 
             composable<ZyntaRoute.CloseRegister> {
                 screens.closeRegister(
-                    onComplete = {
+                    {
                         navigationController.navController.popBackStack(
                             route = ZyntaRoute.RegisterDashboard,
                             inclusive = false,
@@ -207,34 +199,28 @@ fun NavGraphBuilder.mainNavGraph(
                     currentRoute = ZyntaRoute.Settings,
                 ) {
                     screens.settings(
-                        onNavigateToPrinterSettings = {
-                            navigationController.navigate(ZyntaRoute.PrinterSettings)
-                        },
-                        onNavigateToTaxSettings = {
-                            navigationController.navigate(ZyntaRoute.TaxSettings)
-                        },
-                        onNavigateToUserManagement = {
-                            navigationController.navigate(ZyntaRoute.UserManagement)
-                        },
+                        { navigationController.navigate(ZyntaRoute.PrinterSettings) },
+                        { navigationController.navigate(ZyntaRoute.TaxSettings) },
+                        { navigationController.navigate(ZyntaRoute.UserManagement) },
                     )
                 }
             }
 
             composable<ZyntaRoute.PrinterSettings> {
                 screens.printerSettings(
-                    onNavigateUp = { navigationController.navigateUp(ZyntaRoute.Settings) },
+                    { navigationController.navigateUp(ZyntaRoute.Settings) },
                 )
             }
 
             composable<ZyntaRoute.TaxSettings> {
                 screens.taxSettings(
-                    onNavigateUp = { navigationController.navigateUp(ZyntaRoute.Settings) },
+                    { navigationController.navigateUp(ZyntaRoute.Settings) },
                 )
             }
 
             composable<ZyntaRoute.UserManagement> {
                 screens.userManagement(
-                    onNavigateUp = { navigationController.navigateUp(ZyntaRoute.Settings) },
+                    { navigationController.navigateUp(ZyntaRoute.Settings) },
                 )
             }
         }
@@ -243,8 +229,8 @@ fun NavGraphBuilder.mainNavGraph(
         composable<ZyntaRoute.OrderHistory> { entry ->
             val route = entry.toRoute<ZyntaRoute.OrderHistory>()
             screens.orderHistory(
-                orderId = route.orderId,
-                onNavigateUp = { navigationController.navigateUp(ZyntaRoute.Dashboard) },
+                route.orderId,
+                { navigationController.navigateUp(ZyntaRoute.Dashboard) },
             )
         }
     }

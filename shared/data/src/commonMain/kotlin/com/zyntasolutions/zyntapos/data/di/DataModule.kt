@@ -4,7 +4,7 @@ import com.zyntasolutions.zyntapos.data.local.SyncEnqueuer
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseFactory
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseMigrations
 import com.zyntasolutions.zyntapos.data.local.db.SecurePreferencesKeyMigration
-import com.zyntasolutions.zyntapos.security.prefs.SecurePreferences
+import com.zyntasolutions.zyntapos.domain.port.SecureStoragePort
 import com.zyntasolutions.zyntapos.data.remote.api.ApiService
 import com.zyntasolutions.zyntapos.data.remote.api.KtorApiService
 import com.zyntasolutions.zyntapos.data.remote.api.buildApiClient
@@ -149,7 +149,7 @@ val dataModule = module {
     single<AuthRepository> {
         AuthRepositoryImpl(
             db             = get(),
-            securePrefs    = get<SecurePreferences>(),
+            securePrefs    = get<SecureStoragePort>(),
             passwordHasher = get(),
         )
     }

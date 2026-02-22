@@ -38,8 +38,12 @@ kotlin {
             implementation(libs.androidx.activity.compose)
         }
         commonMain.dependencies {
-            // ── Shared modules ────────────────────────────────────────────
-            implementation(project(":shared:core"))   // Platform, ZentaLogger, Result, etc.
+            // ── Shared KMP modules ────────────────────────────────────────
+            implementation(project(":shared:core"))         // Platform, ZentaLogger, Result, etc.
+
+            // ── Navigation (App.kt root composable needs ZyntaNavGraph) ──
+            // Exposed via api() so :androidApp can see navigation transitively.
+            api(project(":composeApp:navigation"))
 
             // Explicit Compose Multiplatform artifact coordinates (accessors deprecated in CMP 1.8+)
             implementation(libs.compose.runtime)
@@ -57,6 +61,33 @@ kotlin {
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
+
+            // ── JVM Composition Root (main.kt) ────────────────────────────
+            // main.kt is the JVM entry point and acts as the DI composition
+            // root — it must see every Koin module it registers at startup.
+            // Tier 1: Core
+            implementation(project(":shared:core"))
+            // Tier 2: Security
+            implementation(project(":shared:security"))
+            // Tier 3: HAL
+            implementation(project(":shared:hal"))
+            // Tier 4: Data
+            implementation(project(":shared:data"))
+            // Tier 5: Navigation (already via commonMain api(), re-stated for clarity)
+            // Tier 6: Feature modules
+            implementation(project(":composeApp:feature:auth"))
+            implementation(project(":composeApp:feature:pos"))
+            implementation(project(":composeApp:feature:inventory"))
+            implementation(project(":composeApp:feature:register"))
+            implementation(project(":composeApp:feature:reports"))
+            implementation(project(":composeApp:feature:settings"))
+            implementation(project(":composeApp:feature:customers"))
+            implementation(project(":composeApp:feature:coupons"))
+            implementation(project(":composeApp:feature:expenses"))
+            implementation(project(":composeApp:feature:staff"))
+            implementation(project(":composeApp:feature:multistore"))
+            implementation(project(":composeApp:feature:admin"))
+            implementation(project(":composeApp:feature:media"))
         }
     }
 }

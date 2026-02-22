@@ -41,7 +41,7 @@ class TaxGroupRepositoryImpl(
     private val syncEnqueuer: SyncEnqueuer,
 ) : TaxGroupRepository {
 
-    private val q get() = db.taxGroupsQueries
+    private val q get() = db.tax_groupsQueries
 
     // ── Reactive query ────────────────────────────────────────────────
 

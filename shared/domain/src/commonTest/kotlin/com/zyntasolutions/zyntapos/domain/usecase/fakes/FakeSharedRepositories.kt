@@ -52,14 +52,14 @@ class FakeSettingsRepository : SettingsRepository {
 
     fun put(key: String, value: String) { store[key] = value }
 
-    override fun get(key: String): String? = store[key]
+    override suspend fun get(key: String): String? = store[key]
 
     override suspend fun set(key: String, value: String): Result<Unit> {
         store[key] = value
         return Result.Success(Unit)
     }
 
-    override fun getAll(): Map<String, String> = store.toMap()
+    override suspend fun getAll(): Map<String, String> = store.toMap()
 
     override fun observe(key: String): Flow<String?> =
         MutableStateFlow(store[key])

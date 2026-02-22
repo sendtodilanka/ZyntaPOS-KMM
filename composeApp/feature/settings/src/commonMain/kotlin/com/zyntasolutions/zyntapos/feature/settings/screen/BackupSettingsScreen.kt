@@ -1,7 +1,6 @@
 package com.zyntasolutions.zyntapos.feature.settings.screen
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -9,16 +8,19 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
-import com.zyntasolutions.zyntapos.designsystem.components.ZyntaDialog
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaDialogContent
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaDialogVariant
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSnackbarHost
+import androidx.compose.material3.ExperimentalMaterial3Api
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTopAppBar
-import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.feature.settings.SettingsEffect
 import com.zyntasolutions.zyntapos.feature.settings.SettingsIntent
@@ -39,8 +41,8 @@ import kotlinx.datetime.toLocalDateTime
  *
  * "Backup Now" writes an encrypted copy of the DB and updates the timestamp.
  * "Restore" opens a file picker (via [SettingsEffect.OpenFilePicker]); once the
- * user selects a file, a [ZyntaDialog] requires explicit confirmation before
- * the restore proceeds.
+ * user selects a file, a [ZyntaDialogContent] requires explicit confirmation
+ * before the restore proceeds.
  *
  * @param state     Current [SettingsState.BackupState] slice.
  * @param effects   Shared [SettingsEffect] flow.
@@ -48,6 +50,7 @@ import kotlinx.datetime.toLocalDateTime
  * @param onBack    Back navigation.
  */
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun BackupSettingsScreen(
     state: SettingsState.BackupState,
     effects: Flow<SettingsEffect>,
@@ -73,19 +76,21 @@ fun BackupSettingsScreen(
 
     // ── Restore confirmation dialog ───────────────────────────────────────────
     if (state.confirmRestore) {
-        ZyntaDialog(
-            title = "Confirm Restore",
-            message = "Restore from '${state.restoreFilePath}'? All current data will be replaced.",
-            confirmLabel = "Restore",
-            dismissLabel = "Cancel",
-            onConfirm = { onIntent(SettingsIntent.ConfirmRestore) },
-            onDismiss = { onIntent(SettingsIntent.CancelRestore) },
-            isDestructive = true,
+        ZyntaDialogContent(
+            variant = ZyntaDialogVariant.Confirm(
+                title = "Confirm Restore",
+                message = "Restore from '${state.restoreFilePath}'? All current data will be replaced.",
+                confirmLabel = "Restore",
+                cancelLabel = "Cancel",
+                onConfirm = { onIntent(SettingsIntent.ConfirmRestore) },
+                onCancel = { onIntent(SettingsIntent.CancelRestore) },
+                isDangerous = true,
+            ),
         )
     }
 
-    ZyntaScaffold(
-        topBar = { ZyntaTopAppBar(title = "Backup & Restore", onNavigationClick = onBack) },
+    Scaffold(
+        topBar = { ZyntaTopAppBar(title = "Backup & Restore", onNavigateBack = onBack) },
         snackbarHost = { ZyntaSnackbarHost(snackbarHostState) },
     ) { innerPadding ->
         LazyColumn(
@@ -102,7 +107,8 @@ fun BackupSettingsScreen(
                 Spacer(Modifier.height(ZyntaSpacing.sm))
                 val lastBackupText = state.lastBackupAt?.let { instant ->
                     val local = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-                    "Last backup: ${local.date} at ${local.hour.toString().padStart(2, '0')}:${local.minute.toString().padStart(2, '0')}"
+                    "Last backup: ${local.date} at ${local.hour.toString().padStart(2, '0')}:" +
+                        local.minute.toString().padStart(2, '0')
                 } ?: "No backup found"
                 Text(
                     text = lastBackupText,
@@ -111,8 +117,12 @@ fun BackupSettingsScreen(
                     modifier = Modifier.padding(bottom = ZyntaSpacing.sm),
                 )
                 state.backupError?.let {
-                    Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(bottom = ZyntaSpacing.sm))
+                    Text(
+                        text = it,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(bottom = ZyntaSpacing.sm),
+                    )
                 }
                 ZyntaButton(
                     text = if (state.isBackingUp) "Backing up…" else "Backup Now",
@@ -133,8 +143,6 @@ fun BackupSettingsScreen(
                 ZyntaButton(
                     text = if (state.isRestoring) "Restoring…" else "Restore from Backup",
                     onClick = {
-                        // In real implementation this triggers a platform file picker.
-                        // For now we simulate by sending a mock file path via intent.
                         onIntent(SettingsIntent.RestoreSelected("/storage/emulated/0/Downloads/backup.db"))
                     },
                     enabled = !state.isBackingUp && !state.isRestoring,

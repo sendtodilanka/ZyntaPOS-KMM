@@ -41,7 +41,7 @@ fun NavGraphBuilder.authNavGraph(
     navigation<ZyntaRoute.Login>(startDestination = ZyntaRoute.Login) {
         composable<ZyntaRoute.Login> {
             loginScreen(
-                onLoginSuccess = {
+                {
                     navigationController.navigateAndClear(ZyntaRoute.Dashboard)
                 },
             )
@@ -49,7 +49,7 @@ fun NavGraphBuilder.authNavGraph(
 
         composable<ZyntaRoute.PinLock> {
             pinLockScreen(
-                onUnlocked = {
+                {
                     // Pop back to whatever screen triggered the lock
                     navigationController.popBackStack()
                 },

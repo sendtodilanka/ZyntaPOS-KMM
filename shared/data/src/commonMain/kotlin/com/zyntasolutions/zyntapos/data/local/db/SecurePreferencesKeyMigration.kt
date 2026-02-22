@@ -1,14 +1,14 @@
 package com.zyntasolutions.zyntapos.data.local.db
 
 import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
-import com.zyntasolutions.zyntapos.security.prefs.SecurePreferences
-import com.zyntasolutions.zyntapos.security.prefs.SecurePreferencesKeys
+import com.zyntasolutions.zyntapos.domain.port.SecureStorageKeys
+import com.zyntasolutions.zyntapos.domain.port.SecureStoragePort
 
-// ZENTA-FINAL-AUDIT MERGED-F1
+// ZENTA-FINAL-AUDIT MERGED-F1 | MERGED-F3 (2026-02-22)
 /**
  * One-time migration utility that rewrites secure-preference entries stored under
  * legacy (bare) key strings into the canonical dotted-namespace keys defined in
- * [SecurePreferencesKeys].
+ * [SecureStorageKeys].
  *
  * ## Background
  * Prior to Sprint 8 / ZENTA-FINAL-AUDIT MERGED-F1, the `:shared:security` actual
@@ -18,13 +18,19 @@ import com.zyntasolutions.zyntapos.security.prefs.SecurePreferencesKeys
  * after the canonical-key upgrade because reads would target the new keys and return
  * `null`.
  *
+ * ## MERGED-F3 (2026-02-22)
+ * Constructor type changed from `SecurePreferences` (`:shared:security`) to
+ * [SecureStoragePort] (`:shared:domain`) so `:shared:data` holds no compile-time
+ * dependency on `:shared:security`. Key constants migrated from `SecurePreferencesKeys`
+ * to [SecureStorageKeys].
+ *
  * ## When to run
  * Call [migrate] **once** during application startup, before any auth operation, on
  * the first launch after upgrading to the canonical-key build.  A safe pattern:
  *
  * ```kotlin
  * // In Application.onCreate() or the Koin app-start module
- * SecurePreferencesKeyMigration(securePrefs).migrate()
+ * SecurePreferencesKeyMigration(secureStorage).migrate()
  * ```
  *
  * [migrate] is idempotent — it checks whether the legacy key still holds a value and
@@ -35,10 +41,10 @@ import com.zyntasolutions.zyntapos.security.prefs.SecurePreferencesKeys
  * The `KEY_DEVICE_ID` key (`"auth.device_id"`) was new in the canonical set and has
  * no legacy counterpart — it requires no migration.
  *
- * @param prefs The platform [SecurePreferences] instance (injected via Koin).
+ * @param prefs The [SecureStoragePort] instance (injected via Koin).
  */
 class SecurePreferencesKeyMigration(
-    private val prefs: SecurePreferences,
+    private val prefs: SecureStoragePort,
 ) {
 
     /**
@@ -47,10 +53,10 @@ class SecurePreferencesKeyMigration(
      * Bare-key format (old `:shared:security` actuals) → dotted-namespace (canonical).
      */
     private val migrations: List<Pair<String, String>> = listOf(
-        "access_token"  to SecurePreferencesKeys.KEY_ACCESS_TOKEN,   // auth.access_token
-        "refresh_token" to SecurePreferencesKeys.KEY_REFRESH_TOKEN,   // auth.refresh_token
-        "device_id"     to SecurePreferencesKeys.KEY_DEVICE_ID,       // auth.device_id
-        "last_user_id"  to SecurePreferencesKeys.KEY_USER_ID,         // auth.user_id
+        "access_token"  to SecureStorageKeys.KEY_ACCESS_TOKEN,   // auth.access_token
+        "refresh_token" to SecureStorageKeys.KEY_REFRESH_TOKEN,   // auth.refresh_token
+        "device_id"     to SecureStorageKeys.KEY_DEVICE_ID,       // auth.device_id
+        "last_user_id"  to SecureStorageKeys.KEY_USER_ID,         // auth.user_id
     )
 
     /**
@@ -64,7 +70,7 @@ class SecurePreferencesKeyMigration(
      *    to avoid stale data lingering under the old key name).
      *
      * This method is synchronous and must be called from a coroutine dispatcher or
-     * background thread if the [SecurePreferences] implementation performs I/O.
+     * background thread if the [SecureStoragePort] implementation performs I/O.
      */
     fun migrate() {
         var migratedCount = 0
@@ -74,20 +80,16 @@ class SecurePreferencesKeyMigration(
                 // Only write to canonical if not already set (don't overwrite a newer token)
                 if (!prefs.contains(canonicalKey)) {
                     prefs.put(canonicalKey, legacyValue)
-                    ZyntaLogger.i(TAG) {
-                        "Migrated key: \"$legacyKey\" → \"$canonicalKey\""
-                    }
+                    ZyntaLogger.i(TAG, "Migrated key: \"$legacyKey\" → \"$canonicalKey\"")
                     migratedCount++
                 } else {
-                    ZyntaLogger.d(TAG) {
-                        "Canonical key \"$canonicalKey\" already populated; skipping migration of \"$legacyKey\""
-                    }
+                    ZyntaLogger.d(TAG, "Canonical key \"$canonicalKey\" already populated; skipping migration of \"$legacyKey\"")
                 }
                 // Always remove the stale legacy key
                 prefs.remove(legacyKey)
             }
         }
-        ZyntaLogger.i(TAG) { "Migration complete. Keys migrated: $migratedCount / ${migrations.size}" }
+        ZyntaLogger.i(TAG, "Migration complete. Keys migrated: $migratedCount / ${migrations.size}")
     }
 
     private companion object {

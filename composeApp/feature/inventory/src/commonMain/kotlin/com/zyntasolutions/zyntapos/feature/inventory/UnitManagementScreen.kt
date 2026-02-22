@@ -39,6 +39,7 @@ import com.zyntasolutions.zyntapos.domain.model.UnitOfMeasure
  * @param onSaveGroup        Called when user adds or renames a group.
  * @param modifier           Optional root modifier.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UnitManagementScreen(
     unitGroups: List<UnitGroup> = emptyList(),
@@ -152,7 +153,7 @@ private fun UnitGroupCard(
                     .padding(horizontal = ZyntaSpacing.md, vertical = ZyntaSpacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(Icons.Default.ScaleOutlined, contentDescription = null,
+                Icon(Icons.Default.Scale, contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
                 Spacer(Modifier.width(ZyntaSpacing.sm))
                 Text(group.name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))

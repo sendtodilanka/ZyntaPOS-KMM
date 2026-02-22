@@ -8,16 +8,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSnackbarHost
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTextField
+import androidx.compose.material3.ExperimentalMaterial3Api
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTopAppBar
-import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.feature.settings.PaperWidthOption
 import com.zyntasolutions.zyntapos.feature.settings.PrinterType
@@ -48,6 +50,7 @@ import kotlinx.coroutines.flow.collectLatest
  * @param onBack    Back navigation.
  */
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun PrinterSettingsScreen(
     state: SettingsState.PrinterState,
     effects: Flow<SettingsEffect>,
@@ -69,8 +72,8 @@ fun PrinterSettingsScreen(
         }
     }
 
-    ZyntaScaffold(
-        topBar = { ZyntaTopAppBar(title = "Printer Settings", onNavigationClick = onBack) },
+    Scaffold(
+        topBar = { ZyntaTopAppBar(title = "Printer Settings", onNavigateBack = onBack) },
         snackbarHost = { ZyntaSnackbarHost(snackbarHostState) },
     ) { innerPadding ->
         LazyColumn(
@@ -133,7 +136,11 @@ fun PrinterSettingsScreen(
                         onValueChange = { onIntent(SettingsIntent.UpdateBtAddress(it)) },
                         label = "Bluetooth Device Address (XX:XX:XX:XX:XX:XX)",
                         modifier = Modifier.fillMaxWidth(),
-                        supportingText = "Pair the device in system settings first",
+                    )
+                    Text(
+                        text = "Pair the device in system settings first",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 PrinterType.USB -> Unit // no extra params

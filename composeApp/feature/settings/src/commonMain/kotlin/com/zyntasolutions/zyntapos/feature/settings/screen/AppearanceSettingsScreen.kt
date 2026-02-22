@@ -13,6 +13,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSnackbarHost
+import androidx.compose.material3.ExperimentalMaterial3Api
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTopAppBar
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
@@ -62,6 +64,7 @@ private val THEME_OPTIONS = listOf(
  * @param onBack    Back navigation.
  */
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun AppearanceSettingsScreen(
     state: SettingsState.AppearanceState,
     effects: Flow<SettingsEffect>,
@@ -83,8 +86,8 @@ fun AppearanceSettingsScreen(
         }
     }
 
-    ZyntaScaffold(
-        topBar = { ZyntaTopAppBar(title = "Appearance", onNavigationClick = onBack) },
+    Scaffold(
+        topBar = { ZyntaTopAppBar(title = "Appearance", onNavigateBack = onBack) },
         snackbarHost = { ZyntaSnackbarHost(snackbarHostState) },
     ) { innerPadding ->
         LazyColumn(

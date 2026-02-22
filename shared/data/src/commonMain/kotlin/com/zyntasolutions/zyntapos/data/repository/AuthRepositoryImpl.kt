@@ -5,8 +5,8 @@ import com.zyntasolutions.zyntapos.core.result.AuthFailureReason
 import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.data.local.mapper.UserMapper
-import com.zyntasolutions.zyntapos.security.prefs.SecurePreferences
-import com.zyntasolutions.zyntapos.security.prefs.SecurePreferencesKeys
+import com.zyntasolutions.zyntapos.domain.port.SecureStorageKeys
+import com.zyntasolutions.zyntapos.domain.port.SecureStoragePort
 import com.zyntasolutions.zyntapos.domain.port.PasswordHashPort
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
 import com.zyntasolutions.zyntapos.domain.model.User
@@ -29,20 +29,24 @@ import kotlinx.datetime.Clock
  *
  * **Offline (Phase 1 MVP)**:
  * Compares the supplied [password] against the BCrypt hash stored in the `users` table
- * via [PasswordHasher.verify]. The hash is written during first-time setup / import.
+ * via [PasswordHashPort.verify]. The hash is written during first-time setup / import.
  * If no user record exists locally, returns [AuthFailureReason.OFFLINE_NO_CACHE].
  *
  * ## Session storage
- * JWT tokens are persisted in [SecurePreferences] (platform-encrypted storage).
+ * JWT tokens are persisted in [SecureStoragePort] (platform-encrypted storage).
  * The in-memory [_session] StateFlow is the authoritative source for active session.
  *
+ * MERGED-F3 (2026-02-22): [securePrefs] parameter type changed from `SecurePreferences`
+ * (`:shared:security`) to [SecureStoragePort] (`:shared:domain`) so `:shared:data`
+ * holds no compile-time dependency on `:shared:security`.
+ *
  * @param db               Encrypted [ZyntaDatabase] singleton.
- * @param securePrefs      Platform-encrypted key-value store.
- * @param passwordHasher   Domain port for BCrypt hash + verify operations (injected; adapter lives in :shared:security).
+ * @param securePrefs      [SecureStoragePort] — platform-encrypted key-value store.
+ * @param passwordHasher   Domain port for BCrypt hash + verify operations.
  */
 class AuthRepositoryImpl(
     private val db: ZyntaDatabase,
-    private val securePrefs: SecurePreferences,
+    private val securePrefs: SecureStoragePort,
     private val passwordHasher: PasswordHashPort,
 ) : AuthRepository {
 
@@ -50,7 +54,7 @@ class AuthRepositoryImpl(
 
     init {
         // Restore session from secure storage on init
-        val cachedUserId = securePrefs.get(SecurePreferencesKeys.KEY_USER_ID)
+        val cachedUserId = securePrefs.get(SecureStorageKeys.KEY_USER_ID)
         if (cachedUserId != null) {
             val userRow = db.usersQueries.getUserById(cachedUserId).executeAsOneOrNull()
             if (userRow != null) {
@@ -90,7 +94,7 @@ class AuthRepositoryImpl(
             }
             val user = UserMapper.toDomain(userRow)
             // Cache session
-            securePrefs.put(SecurePreferencesKeys.KEY_USER_ID, user.id)
+            securePrefs.put(SecureStorageKeys.KEY_USER_ID, user.id)
             _session.value = user
             user
         }.fold(
@@ -103,10 +107,10 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun logout() = withContext(Dispatchers.IO) {
-        securePrefs.remove(SecurePreferencesKeys.KEY_ACCESS_TOKEN)
-        securePrefs.remove(SecurePreferencesKeys.KEY_REFRESH_TOKEN)
-        securePrefs.remove(SecurePreferencesKeys.KEY_TOKEN_EXPIRY)
-        securePrefs.remove(SecurePreferencesKeys.KEY_USER_ID)
+        securePrefs.remove(SecureStorageKeys.KEY_ACCESS_TOKEN)
+        securePrefs.remove(SecureStorageKeys.KEY_REFRESH_TOKEN)
+        securePrefs.remove(SecureStorageKeys.KEY_TOKEN_EXPIRY)
+        securePrefs.remove(SecureStorageKeys.KEY_USER_ID)
         _session.value = null
     }
 

@@ -42,6 +42,7 @@ import com.zyntasolutions.zyntapos.domain.model.TaxGroup
  * @param onDeleteTaxGroup   Called with the group ID on delete confirmation.
  * @param modifier           Optional root modifier.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TaxGroupScreen(
     taxGroups: List<TaxGroup> = emptyList(),

@@ -24,7 +24,7 @@ composeMultiplatform           = "1.10.0"
 composeHotReload               = "1.0.0"
 material3                      = "1.10.0-alpha05"
 compose-adaptive               = "1.1.0-alpha04"
-compose-navigation             = "2.9.0-alpha07"
+compose-navigation             = "2.9.2"
 
 # ── Jetpack / AndroidX ────────────────────────────────────────
 androidx-activity              = "1.12.2"
@@ -46,7 +46,7 @@ ktor                           = "3.0.3"
 
 # ── Persistence ──────────────────────────────────────────────
 sqldelight                     = "2.0.2"
-sqlcipher-android              = "4.5.4"
+sqlcipher-android              = "4.5.0"
 
 # ── Image Loading ────────────────────────────────────────────
 coil                           = "3.0.4"
@@ -56,12 +56,14 @@ kermit                         = "2.0.4"
 
 # ── Testing ───────────────────────────────────────────────────
 junit                          = "4.13.2"
+ksp                            = "2.2.0-2.0.2"
 mockative                      = "3.0.1"
 turbine                        = "1.2.0"
 
 # ── Desktop Serial / Security ────────────────────────────────
 jserialcomm                    = "2.10.4"
 jbcrypt                        = "0.4"
+pdfbox                         = "3.0.3"
 
 # ── CameraX ──────────────────────────────────────────────────
 camerax                        = "1.4.1"
@@ -146,7 +148,7 @@ sqldelight-jvm-driver                  = { module = "app.cash.sqldelight:sqlite-
 sqldelight-primitive-adapters          = { module = "app.cash.sqldelight:primitive-adapters",        version.ref = "sqldelight" }
 
 # ── SQLCipher ─────────────────────────────────────────────────
-sqlcipher-android                      = { module = "net.zetetic:sqlcipher-android",             version.ref = "sqlcipher-android" }
+sqlcipher-android                      = { module = "net.zetetic:android-database-sqlcipher",   version.ref = "sqlcipher-android" }
 
 # ── Coil ──────────────────────────────────────────────────────
 coil-compose                           = { module = "io.coil-kt.coil3:coil-compose",            version.ref = "coil" }
@@ -164,6 +166,7 @@ turbine                                = { module = "app.cash.turbine:turbine", 
 # ── Desktop Platform Libraries ────────────────────────────────
 jserialcomm                            = { module = "com.fazecast:jSerialComm",                  version.ref = "jserialcomm" }
 jbcrypt                                = { module = "org.mindrot:jbcrypt",                        version.ref = "jbcrypt" }
+pdfbox                                 = { module = "org.apache.pdfbox:pdfbox",                   version.ref = "pdfbox" }
 
 # ── CameraX ───────────────────────────────────────────────────
 camerax-core                           = { module = "androidx.camera:camera-core",                version.ref = "camerax" }
@@ -240,4 +243,5 @@ sqldelight                             = { id = "app.cash.sqldelight",          
 # ── Build Tooling ─────────────────────────────────────────────
 buildkonfig                            = { id = "com.codingfeline.buildkonfig",                    version.ref = "buildkonfig" }
 secretsGradle                          = { id = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin", version.ref = "secrets-gradle-plugin" }
+ksp                                    = { id = "com.google.devtools.ksp",                        version.ref = "ksp" }
 mockative                              = { id = "io.mockative",                                    version.ref = "mockative" }

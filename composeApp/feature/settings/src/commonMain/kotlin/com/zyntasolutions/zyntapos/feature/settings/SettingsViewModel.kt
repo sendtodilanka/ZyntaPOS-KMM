@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.feature.settings
 
+import androidx.lifecycle.viewModelScope
 import com.zyntasolutions.zyntapos.core.utils.IdGenerator
 import com.zyntasolutions.zyntapos.core.result.onError
 import com.zyntasolutions.zyntapos.core.result.onSuccess

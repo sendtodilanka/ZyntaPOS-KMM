@@ -7,7 +7,6 @@ import com.zyntasolutions.zyntapos.domain.model.Category
 import com.zyntasolutions.zyntapos.domain.model.Product
 import com.zyntasolutions.zyntapos.domain.model.StockAdjustment
 import com.zyntasolutions.zyntapos.domain.model.Supplier
-import com.zyntasolutions.zyntapos.domain.model.SyncStatus
 import com.zyntasolutions.zyntapos.domain.model.TaxGroup
 import com.zyntasolutions.zyntapos.domain.model.UnitOfMeasure
 import com.zyntasolutions.zyntapos.domain.repository.CategoryRepository
@@ -41,8 +40,7 @@ fun buildProduct(
     unitId = "unit-01", price = price, costPrice = costPrice, taxGroupId = "tax-01",
     stockQty = stockQty, minStockQty = minStockQty, imageUrl = null,
     description = "Test product description", isActive = isActive,
-    createdAt = Clock.System.now(), updatedAt = Clock.System.now(),
-    syncStatus = SyncStatus(state = SyncStatus.State.SYNCED))
+    createdAt = Clock.System.now(), updatedAt = Clock.System.now())
 
 /** Builds a [TaxGroup] with sensible test defaults. */
 fun buildTaxGroup(
@@ -93,8 +91,8 @@ class FakeProductRepository : ProductRepository {
         _products.map { list ->
             list.filter { p ->
                 p.name.contains(query, ignoreCase = true) ||
-                    p.barcode.contains(query) ||
-                    p.sku.contains(query, ignoreCase = true)
+                    (p.barcode?.contains(query) == true) ||
+                    (p.sku?.contains(query, ignoreCase = true) == true)
             }.let { filtered ->
                 if (categoryId != null) filtered.filter { it.categoryId == categoryId } else filtered
             }
@@ -150,7 +148,7 @@ class FakeStockRepository : StockRepository {
     override fun getMovements(productId: String): Flow<List<StockAdjustment>> =
         MutableStateFlow(adjustments.filter { it.productId == productId })
 
-    override fun getAlerts(threshold: Double): Flow<List<Product>> =
+    override fun getAlerts(threshold: Double?): Flow<List<Product>> =
         MutableStateFlow(emptyList())
 }
 

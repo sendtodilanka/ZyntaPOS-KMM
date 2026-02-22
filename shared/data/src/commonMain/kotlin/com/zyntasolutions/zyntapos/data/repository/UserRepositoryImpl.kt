@@ -115,7 +115,9 @@ class UserRepositoryImpl(
         runCatching {
             val now = Clock.System.now().toEpochMilliseconds()
             db.transaction {
-                q.updateUser(
+                // updateUserProfile targets only non-sensitive profile fields (name, role, active status).
+                // Email and password_hash are never changed through this path — use dedicated use-cases.
+                q.updateUserProfile(
                     name        = user.name,
                     role        = user.role.name,
                     is_active   = if (user.isActive) 1L else 0L,
@@ -153,15 +155,15 @@ class UserRepositoryImpl(
 
     override suspend fun deactivate(userId: String): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
-            val row = q.getUserById(userId).executeAsOneOrNull()
+            // Verify user exists before deactivating
+            q.getUserById(userId).executeAsOneOrNull()
                 ?: return@withContext Result.Error(
                     DatabaseException("User not found: $userId", operation = "deactivateUser")
                 )
             val now = Clock.System.now().toEpochMilliseconds()
             db.transaction {
-                q.updateUser(
-                    name        = row.name,
-                    role        = row.role,
+                // setUserActive targets only is_active flag — no risk of accidental field overwrites.
+                q.setUserActive(
                     is_active   = 0L,
                     updated_at  = now,
                     sync_status = "PENDING",

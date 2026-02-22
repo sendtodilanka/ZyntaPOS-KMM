@@ -1,15 +1,20 @@
 package com.zyntasolutions.zyntapos.security
 
-import com.zyntasolutions.zyntapos.security.prefs.SecurePreferences
+import com.zyntasolutions.zyntapos.domain.port.SecureStoragePort
+import com.zyntasolutions.zyntapos.security.prefs.TokenStorage
 
 /**
- * In-memory [SecurePreferences] stub for unit tests.
+ * In-memory fake implementing [SecureStoragePort] and [TokenStorage] for unit tests.
  *
- * Not suitable for production — values are stored as plain strings.
- * Only used in commonTest to avoid expect/actual resolution complexity.
+ * Avoids extending the `expect class SecurePreferences` (which is final and cannot be
+ * subclassed in commonTest). Implements the same port interfaces so production code
+ * under test can accept this stub via dependency injection.
+ *
+ * Not suitable for production — values are stored as plain strings in memory only.
  */
-class FakeSecurePreferences : SecurePreferences() {
+class FakeSecurePreferences : SecureStoragePort, TokenStorage {
     private val store = mutableMapOf<String, String>()
+
     override fun put(key: String, value: String) { store[key] = value }
     override fun get(key: String): String? = store[key]
     override fun remove(key: String) { store.remove(key) }

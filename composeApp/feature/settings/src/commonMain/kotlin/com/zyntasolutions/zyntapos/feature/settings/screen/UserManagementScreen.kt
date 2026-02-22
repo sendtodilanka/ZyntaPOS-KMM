@@ -4,27 +4,34 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaBottomSheet
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSnackbarHost
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTable
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTableColumn
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTextField
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTopAppBar
-import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.Role
-import com.zyntasolutions.zyntapos.domain.model.User
 import com.zyntasolutions.zyntapos.feature.settings.SettingsEffect
 import com.zyntasolutions.zyntapos.feature.settings.SettingsIntent
 import com.zyntasolutions.zyntapos.feature.settings.SettingsState
@@ -37,7 +44,13 @@ import kotlinx.coroutines.flow.collectLatest
 // Sprint 23 — Step 13.1.6
 // ─────────────────────────────────────────────────────────────────────────────
 
-private val USER_COLUMNS = listOf("Name", "Email", "Role", "Status", "")
+private val USER_COLUMNS = listOf(
+    ZyntaTableColumn(key = "name",   header = "Name",   weight = 2f),
+    ZyntaTableColumn(key = "email",  header = "Email",  weight = 2f),
+    ZyntaTableColumn(key = "role",   header = "Role",   weight = 1f),
+    ZyntaTableColumn(key = "status", header = "Status", weight = 1f),
+    ZyntaTableColumn(key = "action", header = "",       weight = 1f, sortable = false),
+)
 
 /**
  * User management screen — list, create, edit and deactivate staff accounts.
@@ -49,6 +62,7 @@ private val USER_COLUMNS = listOf("Name", "Email", "Role", "Status", "")
  * @param onIntent  Dispatch callback.
  * @param onBack    Back navigation.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserManagementScreen(
     state: SettingsState.UserState,
@@ -82,8 +96,8 @@ fun UserManagementScreen(
         )
     }
 
-    ZyntaScaffold(
-        topBar = { ZyntaTopAppBar(title = "User Management", onNavigationClick = onBack) },
+    Scaffold(
+        topBar = { ZyntaTopAppBar(title = "User Management", onNavigateBack = onBack) },
         snackbarHost = { ZyntaSnackbarHost(snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(onClick = { onIntent(SettingsIntent.OpenCreateUser) }) {
@@ -102,17 +116,35 @@ fun UserManagementScreen(
         ) {
             item {
                 when {
-                    state.isLoading -> Text("Loading users…", style = MaterialTheme.typography.bodyMedium)
-                    state.users.isEmpty() -> Text("No users found. Tap + to create one.",
-                        style = MaterialTheme.typography.bodyMedium)
+                    state.isLoading -> Text(
+                        "Loading users…",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    state.users.isEmpty() -> Text(
+                        "No users found. Tap + to create one.",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
                     else -> ZyntaTable(
                         columns = USER_COLUMNS,
-                        rows = state.users.map { u ->
-                            listOf(u.name, u.email, u.role.name, if (u.isActive) "Active" else "Inactive", "")
+                        items = state.users,
+                        rowKey = { it.id },
+                        modifier = Modifier.fillMaxWidth(),
+                        rowContent = { u ->
+                            Text(u.name,  modifier = Modifier.weight(2f),
+                                style = MaterialTheme.typography.bodyMedium)
+                            Text(u.email, modifier = Modifier.weight(2f),
+                                style = MaterialTheme.typography.bodyMedium)
+                            Text(u.role.name, modifier = Modifier.weight(1f),
+                                style = MaterialTheme.typography.bodyMedium)
+                            Text(if (u.isActive) "Active" else "Inactive",
+                                modifier = Modifier.weight(1f),
+                                style = MaterialTheme.typography.bodyMedium)
+                            ZyntaButton(
+                                text = "Edit",
+                                onClick = { onIntent(SettingsIntent.OpenEditUser(u)) },
+                                modifier = Modifier.weight(1f),
+                            )
                         },
-                        onEditRow = { index -> onIntent(SettingsIntent.OpenEditUser(state.users[index])) },
-                        onDeleteRow = null, // deactivate via edit form; no hard delete from UI
-                        modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
                     )
                 }
             }
@@ -122,6 +154,7 @@ fun UserManagementScreen(
 
 // ─── UserFormSheet ────────────────────────────────────────────────────────────
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun UserFormSheet(
     isCreating: Boolean,
@@ -130,22 +163,35 @@ private fun UserFormSheet(
     onIntent: (SettingsIntent) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
     ZyntaBottomSheet(
-        title = if (isCreating) "Create User" else "Edit User",
+        sheetState = sheetState,
         onDismiss = onDismiss,
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = ZyntaSpacing.md)
+                .padding(bottom = ZyntaSpacing.lg),
+        ) {
+            Text(
+                text = if (isCreating) "Create User" else "Edit User",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(bottom = ZyntaSpacing.sm),
+            )
             ZyntaTextField(
                 value = form.name,
                 onValueChange = { onIntent(SettingsIntent.UpdateUserFormName(it)) },
                 label = "Full Name",
-                modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
             )
             ZyntaTextField(
                 value = form.email,
                 onValueChange = { onIntent(SettingsIntent.UpdateUserFormEmail(it)) },
                 label = "Email Address",
-                modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
                 enabled = isCreating, // email is immutable once created
             )
             if (isCreating) {
@@ -153,8 +199,9 @@ private fun UserFormSheet(
                     value = form.password,
                     onValueChange = { onIntent(SettingsIntent.UpdateUserFormPassword(it)) },
                     label = "Password",
-                    modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
-                    isPassword = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 )
             }
             DropdownField(
@@ -169,12 +216,13 @@ private fun UserFormSheet(
                 onCheckedChange = { onIntent(SettingsIntent.UpdateUserFormActive(it)) },
             )
             saveError?.let {
-                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                Text(it, color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall)
             }
             ZyntaButton(
                 text = "Save User",
                 onClick = { onIntent(SettingsIntent.SaveUser) },
-                modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
             )
         }
     }

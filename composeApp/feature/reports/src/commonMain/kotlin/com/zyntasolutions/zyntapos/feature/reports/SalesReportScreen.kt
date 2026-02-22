@@ -36,9 +36,10 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Scaffold
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoadingOverlay
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTopAppBar
-import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaScaffold
 import com.zyntasolutions.zyntapos.domain.model.PaymentMethod
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateSalesReportUseCase
 import org.koin.compose.viewmodel.koinViewModel
@@ -57,6 +58,7 @@ import org.koin.compose.viewmodel.koinViewModel
  *
  * @param onNavigateUp Back navigation handler.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SalesReportScreen(
     onNavigateUp: () -> Unit,
@@ -67,22 +69,22 @@ fun SalesReportScreen(
 
     // Auto-load on first composition
     LaunchedEffect(Unit) {
-        if (s.report == null && !s.isLoading) viewModel.onIntent(ReportsIntent.LoadSalesReport)
+        if (s.report == null && !s.isLoading) viewModel.dispatch(ReportsIntent.LoadSalesReport)
     }
 
-    ZyntaScaffold(
+    Scaffold(
         topBar = {
             ZyntaTopAppBar(
                 title = "Sales Report",
-                onNavigateUp = onNavigateUp,
+                onNavigateBack = onNavigateUp,
                 actions = {
-                    IconButton(onClick = { viewModel.onIntent(ReportsIntent.ExportSalesReportCsv) }) {
+                    IconButton(onClick = { viewModel.dispatch(ReportsIntent.ExportSalesReportCsv) }) {
                         Icon(Icons.Default.FileDownload, contentDescription = "Export CSV")
                     }
-                    IconButton(onClick = { viewModel.onIntent(ReportsIntent.ExportSalesReportPdf) }) {
+                    IconButton(onClick = { viewModel.dispatch(ReportsIntent.ExportSalesReportPdf) }) {
                         Icon(Icons.Default.PictureAsPdf, contentDescription = "Export PDF")
                     }
-                    IconButton(onClick = { viewModel.onIntent(ReportsIntent.PrintSalesReport) }) {
+                    IconButton(onClick = { viewModel.dispatch(ReportsIntent.PrintSalesReport) }) {
                         Icon(Icons.Default.Print, contentDescription = "Print")
                     }
                 },
@@ -101,9 +103,9 @@ fun SalesReportScreen(
                 item {
                     DateRangePickerBar(
                         selectedRange = s.selectedRange,
-                        onRangeSelected = { viewModel.onIntent(ReportsIntent.SelectSalesRange(it)) },
+                        onRangeSelected = { viewModel.dispatch(ReportsIntent.SelectSalesRange(it)) },
                         onCustomRange = { from, to ->
-                            viewModel.onIntent(ReportsIntent.SetCustomSalesRange(from, to))
+                            viewModel.dispatch(ReportsIntent.SetCustomSalesRange(from, to))
                         },
                     )
                 }
@@ -137,7 +139,7 @@ fun SalesReportScreen(
                 }
             }
 
-            if (s.isLoading) ZyntaLoadingOverlay()
+            if (s.isLoading) ZyntaLoadingOverlay(isLoading = true)
         }
     }
 }

@@ -30,8 +30,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Scaffold
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTopAppBar
-import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaScaffold
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -49,6 +50,7 @@ import org.koin.compose.viewmodel.koinViewModel
  * @param onNavigateToStockReport Called when the user taps the Stock Report tile.
  * @param onNavigateUp            Back navigation handler.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportsHomeScreen(
     onNavigateToSalesReport: () -> Unit,
@@ -59,11 +61,11 @@ fun ReportsHomeScreen(
     val state by viewModel.state.collectAsState()
     val homeState = state.reportsHome
 
-    ZyntaScaffold(
+    Scaffold(
         topBar = {
             ZyntaTopAppBar(
                 title = "Reports",
-                onNavigateUp = onNavigateUp,
+                onNavigateBack = onNavigateUp,
             )
         },
     ) { paddingValues ->

@@ -123,6 +123,29 @@ class InventoryViewModel(
             is InventoryIntent.DismissBulkImport -> updateState { copy(bulkImportState = BulkImportState()) }
             is InventoryIntent.DismissError -> updateState { copy(error = null) }
             is InventoryIntent.DismissSuccess -> updateState { copy(successMessage = null) }
+            // ── Sprint 19 Category Management (stubs — full impl in Sprint 19 execution)
+            is InventoryIntent.LoadCategories -> Unit
+            is InventoryIntent.OpenCategoryDetail -> Unit
+            is InventoryIntent.SaveCategory -> Unit
+            is InventoryIntent.DeleteCategory -> Unit
+            is InventoryIntent.CloseCategoryDetail -> Unit
+            // ── Sprint 19 Supplier Management
+            is InventoryIntent.LoadSuppliers -> Unit
+            is InventoryIntent.OpenSupplierDetail -> Unit
+            is InventoryIntent.SaveSupplier -> Unit
+            is InventoryIntent.DeleteSupplier -> Unit
+            is InventoryIntent.CloseSupplierDetail -> Unit
+            // ── Sprint 19 Tax Group Management
+            is InventoryIntent.OpenTaxGroupManagement -> Unit
+            is InventoryIntent.CloseTaxGroupManagement -> Unit
+            is InventoryIntent.SaveTaxGroup -> Unit
+            is InventoryIntent.DeleteTaxGroup -> Unit
+            // ── Sprint 19 Unit Management
+            is InventoryIntent.OpenUnitManagement -> Unit
+            is InventoryIntent.CloseUnitManagement -> Unit
+            is InventoryIntent.SaveUnit -> Unit
+            is InventoryIntent.DeleteUnit -> Unit
+            is InventoryIntent.SaveUnitGroup -> Unit
         }
     }
 

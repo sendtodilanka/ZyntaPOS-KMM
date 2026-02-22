@@ -18,8 +18,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ExperimentalMaterial3Api
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTopAppBar
-import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -52,13 +53,14 @@ private val OPEN_SOURCE_LICENCES = listOf(
  * @param onBack       Back navigation.
  */
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun AboutScreen(
     appVersion: String = "1.0.0",
     buildDate: String = "2026-02-21",
     onBack: () -> Unit,
 ) {
-    ZyntaScaffold(
-        topBar = { ZyntaTopAppBar(title = "About", onNavigationClick = onBack) },
+    Scaffold(
+        topBar = { ZyntaTopAppBar(title = "About", onNavigateBack = onBack) },
     ) { innerPadding ->
         LazyColumn(
             contentPadding = PaddingValues(

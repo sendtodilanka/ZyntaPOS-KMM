@@ -46,7 +46,7 @@ class UnitGroupRepositoryImpl(
     private val syncEnqueuer: SyncEnqueuer,
 ) : UnitGroupRepository {
 
-    private val q get() = db.unitsOfMeasureQueries
+    private val q get() = db.units_of_measureQueries
 
     // ── Reactive query ────────────────────────────────────────────────
 

@@ -42,7 +42,7 @@ actual class EncryptionManager actual constructor(keyAlias: String) {
             .setRandomizedEncryptionRequired(true)
             .build()
         keyGenerator.init(spec)
-        ZyntaLogger.d(TAG) { "Generated new AES-256-GCM key for alias=$alias" }
+        ZyntaLogger.d(TAG, "Generated new AES-256-GCM key for alias=$alias")
         return keyGenerator.generateKey()
     }
 

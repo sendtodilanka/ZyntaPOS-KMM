@@ -2,8 +2,8 @@ package com.zyntasolutions.zyntapos.data.remote.api
 
 import co.touchlab.kermit.Logger
 import com.zyntasolutions.zyntapos.core.config.AppConfig
-import com.zyntasolutions.zyntapos.security.prefs.SecurePreferences
-import com.zyntasolutions.zyntapos.security.prefs.SecurePreferencesKeys
+import com.zyntasolutions.zyntapos.domain.port.SecureStorageKeys
+import com.zyntasolutions.zyntapos.domain.port.SecureStoragePort
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpRequestRetry
 import io.ktor.client.plugins.HttpTimeout
@@ -22,18 +22,22 @@ import kotlinx.serialization.json.Json
  *
  * Configured with:
  * - **ContentNegotiation** — kotlinx.serialization JSON (lenient, snake_case friendly)
- * - **Auth** — Bearer token injected from [SecurePreferences]; refresh callback reuses
+ * - **Auth** — Bearer token injected from [SecureStoragePort]; refresh callback reuses
  *   the stored refresh token (caller must handle 401 propagation via [ZyntaException.AuthException])
  * - **HttpTimeout** — connect: 10 s | request: 30 s | socket: 30 s
  * - **HttpRequestRetry** — 3 attempts, exponential backoff: 1 s → 2 s → 4 s
  * - **Logging** — Kermit-backed; active **only in DEBUG builds** (controlled by [AppConfig.isDebug])
  *
- * @param prefs [SecurePreferences] used to load/store the JWT access & refresh tokens.
+ * MERGED-F3 (2026-02-22): [prefs] parameter type changed from `SecurePreferences`
+ * (`:shared:security`) to [SecureStoragePort] (`:shared:domain`) so `:shared:data`
+ * holds no compile-time dependency on `:shared:security`.
+ *
+ * @param prefs [SecureStoragePort] used to load/store the JWT access & refresh tokens.
  * @param baseUrl Override for the server base URL (defaults to [AppConfig.BASE_URL]).
  *                Useful for injecting a [MockEngine] base URL in integration tests.
  */
 fun buildApiClient(
-    prefs: SecurePreferences,
+    prefs: SecureStoragePort,
     baseUrl: String = AppConfig.BASE_URL,
 ): HttpClient = HttpClient {
 
@@ -54,16 +58,16 @@ fun buildApiClient(
     install(Auth) {
         bearer {
             loadTokens {
-                val access  = prefs.get(SecurePreferencesKeys.KEY_ACCESS_TOKEN)  ?: return@loadTokens null
-                val refresh = prefs.get(SecurePreferencesKeys.KEY_REFRESH_TOKEN) ?: return@loadTokens null
+                val access  = prefs.get(SecureStorageKeys.KEY_ACCESS_TOKEN)  ?: return@loadTokens null
+                val refresh = prefs.get(SecureStorageKeys.KEY_REFRESH_TOKEN) ?: return@loadTokens null
                 BearerTokens(accessToken = access, refreshToken = refresh)
             }
             refreshTokens {
                 // Refresh token flow: the caller (AuthRepositoryImpl) handles token persistence.
                 // Here we simply surface the stored refresh token so Ktor re-uses it on 401.
-                val refresh = prefs.get(SecurePreferencesKeys.KEY_REFRESH_TOKEN) ?: return@refreshTokens null
+                val refresh = prefs.get(SecureStorageKeys.KEY_REFRESH_TOKEN) ?: return@refreshTokens null
                 BearerTokens(
-                    accessToken  = prefs.get(SecurePreferencesKeys.KEY_ACCESS_TOKEN) ?: "",
+                    accessToken  = prefs.get(SecureStorageKeys.KEY_ACCESS_TOKEN) ?: "",
                     refreshToken = refresh,
                 )
             }

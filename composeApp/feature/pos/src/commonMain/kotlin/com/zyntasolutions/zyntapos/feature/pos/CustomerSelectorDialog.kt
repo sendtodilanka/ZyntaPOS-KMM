@@ -91,6 +91,7 @@ fun CustomerSelectorDialog(
                     query = query,
                     onQueryChange = { query = it },
                     onClear = { query = "" },
+                    onScanToggle = {}, // Customer search dialog has no scanner toggle
                     placeholder = "Search by name, phone or email",
                     modifier = Modifier.fillMaxWidth(),
                 )

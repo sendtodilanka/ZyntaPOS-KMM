@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.androidKmpLibrary)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    //alias(libs.plugins.mockative)
 }
 
 kotlin {
@@ -25,6 +26,7 @@ kotlin {
         commonMain.dependencies {
             implementation(project(":composeApp:designsystem"))
             implementation(project(":composeApp:core"))
+            implementation(project(":composeApp:feature:auth"))
             implementation(project(":shared:core"))
             implementation(project(":shared:domain"))
             implementation(project(":shared:hal"))

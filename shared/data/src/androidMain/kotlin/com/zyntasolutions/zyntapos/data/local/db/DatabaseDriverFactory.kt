@@ -15,7 +15,7 @@ import net.sqlcipher.database.SupportFactory
  * ## Implementation Details
  * - Uses [net.sqlcipher.database.SupportFactory] as the `SupportSQLiteOpenHelper.Factory`
  *   injected into [AndroidSqliteDriver]. This is the official SQLDelight 2.x integration
- *   path for `net.zetetic:sqlcipher-android`.
+ *   path for `net.zetetic:sqlcipher-android` .
  * - We pass the raw 32-byte key (not a passphrase string) via [SQLiteDatabase.getBytes]
  *   to bypass PBKDF2 derivation and maintain symmetric key parity with the JVM actual.
  * - WAL mode is enabled post-connection for concurrent read/write access between

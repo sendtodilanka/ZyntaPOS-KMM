@@ -4,7 +4,6 @@ import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
-import androidx.core.content.edit
 import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -55,7 +54,7 @@ actual class DatabaseKeyManager actual constructor() : KoinComponent {
                 .setRandomizedEncryptionRequired(false) // we supply IV for unwrapping
                 .build(),
         )
-        ZyntaLogger.d(TAG) { "Generated KEK in Android Keystore" }
+        ZyntaLogger.d(TAG, "Generated KEK in Android Keystore")
         return kg.generateKey()
     }
 
@@ -71,7 +70,7 @@ actual class DatabaseKeyManager actual constructor() : KoinComponent {
             cipher.init(Cipher.DECRYPT_MODE, kek, GCMParameterSpec(GCM_TAG_LENGTH, iv))
             val dek = cipher.doFinal(Base64.decode(wrappedDek, Base64.DEFAULT))
             require(dek.size == DEK_SIZE_BYTES) { "Decrypted DEK has unexpected size: ${dek.size}" }
-            ZyntaLogger.d(TAG) { "DEK unwrapped successfully" }
+            ZyntaLogger.d(TAG, "DEK unwrapped successfully")
             return dek
         }
 
@@ -83,11 +82,12 @@ actual class DatabaseKeyManager actual constructor() : KoinComponent {
         cipher.init(Cipher.ENCRYPT_MODE, kek, GCMParameterSpec(GCM_TAG_LENGTH, iv))
         val wrapped = cipher.doFinal(dek)
 
-        prefs.edit {
-            putString(PREFS_KEY_WRAPPED_DEK, Base64.encodeToString(wrapped, Base64.DEFAULT))
-            putString(PREFS_KEY_DEK_IV, Base64.encodeToString(iv, Base64.DEFAULT))
-        }
-        ZyntaLogger.d(TAG) { "DEK generated and wrapped on first launch" }
+        val editor = prefs.edit()
+        editor.putString(PREFS_KEY_WRAPPED_DEK, Base64.encodeToString(wrapped, Base64.DEFAULT))
+        editor.putString(PREFS_KEY_DEK_IV, Base64.encodeToString(iv, Base64.DEFAULT))
+        editor.apply()
+
+        ZyntaLogger.d(TAG, "DEK generated and wrapped on first launch")
         return dek
     }
 

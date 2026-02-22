@@ -52,10 +52,9 @@ class FakeAuthRepository : AuthRepository {
         return Result.Success(user)
     }
 
-    override suspend fun logout(): Result<Unit> {
+    override suspend fun logout() {
         logoutCalled = true
         _session.value = null
-        return Result.Success(Unit)
     }
 
     override fun getSession(): Flow<User?> = _session

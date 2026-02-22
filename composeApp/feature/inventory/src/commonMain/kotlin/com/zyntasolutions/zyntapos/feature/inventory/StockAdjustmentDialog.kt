@@ -230,14 +230,14 @@ private fun ProductInfoCard(product: Product) {
                     style = MaterialTheme.typography.titleSmall,
                     maxLines = 1,
                 )
-                if (product.sku.isNotBlank()) {
+                if (!product.sku.isNullOrBlank()) {
                     Text(
                         text = "SKU: ${product.sku}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                if (product.barcode.isNotBlank()) {
+                if (!product.barcode.isNullOrBlank()) {
                     Text(
                         text = "Barcode: ${product.barcode}",
                         style = MaterialTheme.typography.bodySmall,

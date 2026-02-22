@@ -63,7 +63,7 @@ actual class DatabaseKeyManager actual constructor() {
             require(raw != null && raw.size == DEK_SIZE_BYTES) {
                 "Stored DEK has unexpected size: ${raw?.size}"
             }
-            ZyntaLogger.d(TAG) { "DEK loaded from PKCS12 store" }
+            ZyntaLogger.d(TAG, "DEK loaded from PKCS12 store")
             return raw
         }
 
@@ -73,7 +73,7 @@ actual class DatabaseKeyManager actual constructor() {
         val secretKey: SecretKey = generator.generateKey()
         ks.setEntry(KEY_ALIAS, KeyStore.SecretKeyEntry(secretKey), protection)
         saveKeyStore(ks)
-        ZyntaLogger.d(TAG) { "DEK generated and stored in PKCS12 on first launch" }
+        ZyntaLogger.d(TAG, "DEK generated and stored in PKCS12 on first launch")
         return secretKey.encoded!!
     }
 

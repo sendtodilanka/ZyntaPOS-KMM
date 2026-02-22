@@ -109,7 +109,7 @@ class PosViewModelTest {
         name = "Drinks",
         parentId = null,
         imageUrl = null,
-        sortOrder = 0,
+        displayOrder = 0,
     )
 
     @BeforeTest

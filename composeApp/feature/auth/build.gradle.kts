@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.androidKmpLibrary)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    //alias(libs.plugins.mockative)
 }
 
 kotlin {

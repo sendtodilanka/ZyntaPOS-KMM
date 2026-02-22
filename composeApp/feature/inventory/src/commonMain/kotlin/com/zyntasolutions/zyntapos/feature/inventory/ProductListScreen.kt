@@ -268,7 +268,7 @@ private fun ProductTableView(
                 }
             }
         },
-    ) { product ->
+        rowContent = { product: Product ->
         // Name column
         Text(
             text = product.name,
@@ -319,7 +319,8 @@ private fun ProductTableView(
                 )
             }
         }
-    }
+    },
+)
 }
 
 /**

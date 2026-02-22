@@ -7,6 +7,18 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 // ── Plugin Repositories ───────────────────────────────────────
 pluginManagement {
+    // Force KSP to use the Kotlin-2.3.x-compatible version across all sub-modules.
+    // Mockative 3.0.1 internally applies ksp-2.0.21-1.0.26 which is incompatible
+    // with Kotlin 2.3.0 (missing KotlinCompile.ClasspathSnapshotProperties API).
+    // This resolution strategy ensures the correct KSP version is used regardless
+    // of what the Mockative plugin declares as its own KSP dependency.
+    resolutionStrategy {
+        eachPlugin {
+            if (requested.id.id == "com.google.devtools.ksp") {
+                useVersion("2.3.4")
+            }
+        }
+    }
     repositories {
         google {
             mavenContent {
