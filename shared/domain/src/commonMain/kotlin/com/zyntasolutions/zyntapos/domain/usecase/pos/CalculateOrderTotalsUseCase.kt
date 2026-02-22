@@ -107,7 +107,13 @@ class CalculateOrderTotalsUseCase {
             DiscountType.PERCENT -> subtotalBeforeTax * (orderDiscount / 100.0)
         }
 
-        val total = subtotalBeforeTax + totalTax - orderDiscountAmt
+        // For inclusive tax, the tax is already contained within subtotalBeforeTax,
+        // so we must not add totalTax again (that would double-count).
+        val total = if (taxInclusive) {
+            subtotalBeforeTax - orderDiscountAmt
+        } else {
+            subtotalBeforeTax + totalTax - orderDiscountAmt
+        }
 
         return Result.Success(
             OrderTotals(

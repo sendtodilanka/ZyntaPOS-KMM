@@ -72,6 +72,7 @@ sqldelight {
             srcDirs.setFrom("src/commonMain/sqldelight")
             verifyMigrations.set(false)
             generateAsync.set(false)
+            dialect(libs.sqldelight.sqlite.dialect)
         }
     }
 }

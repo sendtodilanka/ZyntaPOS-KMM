@@ -113,8 +113,8 @@ fun CloseRegisterScreen(
                         modifier = Modifier.weight(0.45f).verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                     ) {
-                        SessionSummarySection(state)
-                        DiscrepancySection(closeForm)
+                        SessionSummarySection(state, fmt)
+                        DiscrepancySection(closeForm, fmt)
                         ClosingNotesSection(
                             notes = closeForm.closingNotes,
                             onNotesChanged = { viewModel.dispatch(RegisterIntent.ClosingNotesChanged(it)) },
@@ -131,7 +131,7 @@ fun CloseRegisterScreen(
                         verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        ActualBalanceDisplay(closeForm.actualBalanceDouble)
+                        ActualBalanceDisplay(closeForm.actualBalanceDouble, fmt)
                         ActualBalanceNumericPad(
                             displayValue = fmt(closeForm.actualBalanceDouble),
                             viewModel = viewModel,
@@ -147,13 +147,13 @@ fun CloseRegisterScreen(
                         .padding(ZyntaSpacing.md),
                     verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                 ) {
-                    SessionSummarySection(state)
-                    ActualBalanceDisplay(closeForm.actualBalanceDouble)
+                    SessionSummarySection(state, fmt)
+                    ActualBalanceDisplay(closeForm.actualBalanceDouble, fmt)
                     ActualBalanceNumericPad(
                         displayValue = fmt(closeForm.actualBalanceDouble),
                         viewModel = viewModel,
                     )
-                    DiscrepancySection(closeForm)
+                    DiscrepancySection(closeForm, fmt)
                     ClosingNotesSection(
                         notes = closeForm.closingNotes,
                         onNotesChanged = { viewModel.dispatch(RegisterIntent.ClosingNotesChanged(it)) },
@@ -170,7 +170,7 @@ fun CloseRegisterScreen(
         // ── Close Confirmation Dialog ──────────────────────────────────────
         if (closeForm.showConfirmation) {
             CloseConfirmationDialog(
-                closeForm = closeForm,
+                closeForm = closeForm, fmt = fmt,
                 onConfirm = { viewModel.dispatch(RegisterIntent.ConfirmCloseRegister) },
                 onDismiss = { viewModel.dispatch(RegisterIntent.DismissCloseConfirmation) },
             )
@@ -185,7 +185,7 @@ fun CloseRegisterScreen(
  * and the system-calculated expected balance.
  */
 @Composable
-private fun SessionSummarySection(state: RegisterState) {
+private fun SessionSummarySection(state: RegisterState, fmt: (Double) -> String) {
     val session = state.activeSession ?: return
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -249,7 +249,7 @@ private fun SummaryRow(
  * Green when within threshold, red with warning icon when exceeding.
  */
 @Composable
-private fun DiscrepancySection(closeForm: CloseRegisterFormState) {
+private fun DiscrepancySection(closeForm: CloseRegisterFormState, fmt: (Double) -> String) {
     val discrepancy = closeForm.discrepancy
     val isWarning = closeForm.isDiscrepancyWarning
     val discrepancyColor = if (isWarning) {
@@ -310,7 +310,7 @@ private fun DiscrepancySection(closeForm: CloseRegisterFormState) {
  * Large formatted display of the entered actual balance amount.
  */
 @Composable
-private fun ActualBalanceDisplay(actualBalance: Double) {
+private fun ActualBalanceDisplay(actualBalance: Double, fmt: (Double) -> String) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -421,6 +421,7 @@ private fun CloseRegisterButton(
 @Composable
 private fun CloseConfirmationDialog(
     closeForm: CloseRegisterFormState,
+    fmt: (Double) -> String,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {

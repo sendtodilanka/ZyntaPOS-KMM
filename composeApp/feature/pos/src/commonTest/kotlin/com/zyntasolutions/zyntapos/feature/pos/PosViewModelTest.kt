@@ -1,34 +1,43 @@
 package com.zyntasolutions.zyntapos.feature.pos
 
 import app.cash.turbine.test
+import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
-import com.zyntasolutions.zyntapos.core.result.ValidationException
+import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
+import com.zyntasolutions.zyntapos.domain.formatter.ReceiptFormatter
 import com.zyntasolutions.zyntapos.domain.model.CartItem
 import com.zyntasolutions.zyntapos.domain.model.Category
 import com.zyntasolutions.zyntapos.domain.model.DiscountType
 import com.zyntasolutions.zyntapos.domain.model.Order
 import com.zyntasolutions.zyntapos.domain.model.OrderStatus
+import com.zyntasolutions.zyntapos.domain.model.OrderType
 import com.zyntasolutions.zyntapos.domain.model.PaymentMethod
+import com.zyntasolutions.zyntapos.domain.model.Product
+import com.zyntasolutions.zyntapos.domain.model.StockAdjustment
+import com.zyntasolutions.zyntapos.domain.model.SyncStatus
+import com.zyntasolutions.zyntapos.domain.model.User
+import com.zyntasolutions.zyntapos.domain.printer.ReceiptPrinterPort
 import com.zyntasolutions.zyntapos.domain.repository.CategoryRepository
 import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
 import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
+import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
+import com.zyntasolutions.zyntapos.domain.repository.StockRepository
+import com.zyntasolutions.zyntapos.domain.usecase.auth.CheckPermissionUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.AddItemToCartUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.ApplyItemDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.ApplyOrderDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.CalculateOrderTotalsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.HoldOrderUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.pos.PrintReceiptUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.ProcessPaymentUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.RemoveItemFromCartUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.RetrieveHeldOrderUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.UpdateCartItemQuantityUseCase
-import io.mockative.Mock
-import io.mockative.classOf
-import io.mockative.every
-import io.mockative.everySuspend
-import io.mockative.mock
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -41,68 +50,151 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PosViewModelTest — Sprint 17, task 9.1.27
-// Tests key PosViewModel MVI state transitions using fake repositories
-// and StandardTestDispatcher for coroutine control.
+// Tests key PosViewModel MVI state transitions using hand-rolled fake
+// repositories and real use case instances.
+// Mockative replaced with pure Kotlin stubs (KSP1 incompatible with Kotlin 2.3+).
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Unit tests for [PosViewModel] MVI state transitions.
- *
- * Tests validate:
- * - Initial default state is correct.
- * - [PosIntent.SearchQueryChanged] updates [PosState.searchQuery].
- * - [PosIntent.SelectCategory] updates [PosState.selectedCategoryId].
- * - [PosIntent.ClearCart] resets cart, totals, and customer.
- * - [PosIntent.AddToCart] success adds item and recalculates totals.
- * - [PosIntent.AddToCart] failure emits [PosEffect.ShowError].
- * - [PosIntent.RemoveFromCart] removes cart line.
- * - [PosIntent.HoldOrder] clears cart after success.
- * - [PosIntent.ProcessPayment] emits [PosEffect.ShowReceiptScreen] on success.
- * - [PosIntent.ScanBarcode] emits [PosEffect.BarcodeNotFound] on no-match.
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 class PosViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
+    private val now: Instant = Clock.System.now()
 
-    // ── Mocks ─────────────────────────────────────────────────────────────────
+    // ── Fake Repositories ──────────────────────────────────────────────────────
 
-    @Mock private val productRepository = mock(classOf<ProductRepository>())
-    @Mock private val categoryRepository = mock(classOf<CategoryRepository>())
-    @Mock private val orderRepository = mock(classOf<OrderRepository>())
-    @Mock private val addItemUseCase = mock(classOf<AddItemToCartUseCase>())
-    @Mock private val removeItemUseCase = mock(classOf<RemoveItemFromCartUseCase>())
-    @Mock private val updateQtyUseCase = mock(classOf<UpdateCartItemQuantityUseCase>())
-    @Mock private val applyItemDiscountUseCase = mock(classOf<ApplyItemDiscountUseCase>())
-    @Mock private val applyOrderDiscountUseCase = mock(classOf<ApplyOrderDiscountUseCase>())
-    @Mock private val holdOrderUseCase = mock(classOf<HoldOrderUseCase>())
-    @Mock private val retrieveHeldUseCase = mock(classOf<RetrieveHeldOrderUseCase>())
-    @Mock private val processPaymentUseCase = mock(classOf<ProcessPaymentUseCase>())
+    private val productsMap = mutableMapOf<String, Product>()
+    private val productsFlow = MutableStateFlow<List<Product>>(emptyList())
 
-    // Real stateless use cases (no external I/O)
+    private val fakeProductRepository = object : ProductRepository {
+        override fun getAll(): Flow<List<Product>> = productsFlow
+
+        override suspend fun getById(id: String): Result<Product> {
+            return productsMap[id]?.let { Result.Success(it) }
+                ?: Result.Error(DatabaseException("Product not found"))
+        }
+
+        override fun search(query: String, categoryId: String?): Flow<List<Product>> {
+            return productsFlow.map { list ->
+                list.filter { p ->
+                    (categoryId == null || p.categoryId == categoryId) &&
+                        (query.isBlank() || p.name.contains(query, ignoreCase = true))
+                }
+            }
+        }
+
+        override suspend fun getByBarcode(barcode: String): Result<Product> {
+            return productsMap.values.firstOrNull { it.barcode == barcode }
+                ?.let { Result.Success(it) }
+                ?: Result.Error(DatabaseException("Not found"))
+        }
+
+        override suspend fun insert(product: Product): Result<Unit> = Result.Success(Unit)
+        override suspend fun update(product: Product): Result<Unit> = Result.Success(Unit)
+        override suspend fun delete(id: String): Result<Unit> = Result.Success(Unit)
+        override suspend fun getCount(): Int = productsMap.size
+    }
+
+    private val categoriesFlow = MutableStateFlow<List<Category>>(emptyList())
+
+    private val fakeCategoryRepository = object : CategoryRepository {
+        override fun getAll(): Flow<List<Category>> = categoriesFlow
+
+        override suspend fun getById(id: String): Result<Category> {
+            return categoriesFlow.value.firstOrNull { it.id == id }
+                ?.let { Result.Success(it) }
+                ?: Result.Error(DatabaseException("Category not found"))
+        }
+
+        override suspend fun insert(category: Category): Result<Unit> = Result.Success(Unit)
+        override suspend fun update(category: Category): Result<Unit> = Result.Success(Unit)
+        override suspend fun delete(id: String): Result<Unit> = Result.Success(Unit)
+        override fun getTree(): Flow<List<Category>> = categoriesFlow
+    }
+
+    private val createdOrders = mutableListOf<Order>()
+    private val ordersFlow = MutableStateFlow<List<Order>>(emptyList())
+
+    private val fakeOrderRepository = object : OrderRepository {
+        override suspend fun create(order: Order): Result<Order> {
+            val saved = order.copy(orderNumber = "ORD-${createdOrders.size + 1}")
+            createdOrders.add(saved)
+            ordersFlow.value = createdOrders.toList()
+            return Result.Success(saved)
+        }
+
+        override suspend fun getById(id: String): Result<Order> {
+            return ordersFlow.value.firstOrNull { it.id == id }
+                ?.let { Result.Success(it) }
+                ?: Result.Error(DatabaseException("Order not found"))
+        }
+
+        override fun getAll(filters: Map<String, String>): Flow<List<Order>> {
+            return ordersFlow.map { orders ->
+                orders.filter { order ->
+                    filters.all { (key, value) ->
+                        when (key) {
+                            "status" -> order.status.name == value
+                            else -> true
+                        }
+                    }
+                }
+            }
+        }
+
+        override suspend fun update(order: Order): Result<Unit> = Result.Success(Unit)
+        override suspend fun void(id: String, reason: String): Result<Unit> = Result.Success(Unit)
+
+        override fun getByDateRange(from: Instant, to: Instant): Flow<List<Order>> {
+            return ordersFlow.map { orders ->
+                orders.filter { it.createdAt in from..to }
+            }
+        }
+
+        override suspend fun holdOrder(cart: List<CartItem>): Result<String> =
+            Result.Success("held-order-id")
+
+        override suspend fun retrieveHeld(holdId: String): Result<Order> =
+            Result.Error(DatabaseException("Not implemented"))
+    }
+
+    private val fakeStockRepository = object : StockRepository {
+        override suspend fun adjustStock(adjustment: StockAdjustment): Result<Unit> =
+            Result.Success(Unit)
+
+        override fun getMovements(productId: String): Flow<List<StockAdjustment>> =
+            MutableStateFlow(emptyList())
+
+        override fun getAlerts(threshold: Double?): Flow<List<Product>> =
+            MutableStateFlow(emptyList())
+    }
+
+    private val fakeSettingsRepository = object : SettingsRepository {
+        private val store = mutableMapOf<String, String>()
+        override suspend fun get(key: String): String? = store[key]
+        override suspend fun set(key: String, value: String): Result<Unit> {
+            store[key] = value
+            return Result.Success(Unit)
+        }
+        override suspend fun getAll(): Map<String, String> = store.toMap()
+        override fun observe(key: String): Flow<String?> = MutableStateFlow(store[key])
+    }
+
+    private val fakeReceiptPrinterPort = object : ReceiptPrinterPort {
+        override suspend fun print(order: Order, cashierId: String): Result<Unit> =
+            Result.Success(Unit)
+    }
+
+    // ── Real use cases wired to fake repositories ──────────────────────────────
+
     private val calculateTotalsUseCase = CalculateOrderTotalsUseCase()
 
     private lateinit var viewModel: PosViewModel
-
-    // ── Shared test data ──────────────────────────────────────────────────────
-
-    private val now: Instant = Clock.System.now()
-
-    private val testCartItem = CartItem(
-        productId = "p1",
-        productName = "Test Coffee",
-        unitPrice = 4.50,
-        quantity = 1.0,
-        discount = 0.0,
-        discountType = DiscountType.FIXED,
-        taxRate = 0.0,
-    )
 
     private val testCategory = Category(
         id = "cat-drinks",
@@ -116,25 +208,30 @@ class PosViewModelTest {
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
 
-        // Stub reactive flows used by init blocks
-        every { categoryRepository.getAll() }.returns(flowOf(listOf(testCategory)))
-        every { productRepository.getAll() }.returns(flowOf(emptyList()))
-        every { productRepository.search(any(), any()) }.returns(flowOf(emptyList()))
-        every { orderRepository.getAll(any()) }.returns(flowOf(emptyList()))
+        productsMap.clear()
+        productsFlow.value = emptyList()
+        categoriesFlow.value = listOf(testCategory)
+        createdOrders.clear()
+        ordersFlow.value = emptyList()
+
+        val sessionFlow = MutableStateFlow<User?>(null)
+        val checkPermissionUseCase = CheckPermissionUseCase(sessionFlow)
 
         viewModel = PosViewModel(
-            productRepository = productRepository,
-            categoryRepository = categoryRepository,
-            orderRepository = orderRepository,
-            addItemUseCase = addItemUseCase,
-            removeItemUseCase = removeItemUseCase,
-            updateQtyUseCase = updateQtyUseCase,
-            applyItemDiscountUseCase = applyItemDiscountUseCase,
-            applyOrderDiscountUseCase = applyOrderDiscountUseCase,
+            productRepository = fakeProductRepository,
+            categoryRepository = fakeCategoryRepository,
+            orderRepository = fakeOrderRepository,
+            addItemUseCase = AddItemToCartUseCase(fakeProductRepository),
+            removeItemUseCase = RemoveItemFromCartUseCase(),
+            updateQtyUseCase = UpdateCartItemQuantityUseCase(fakeProductRepository),
+            applyItemDiscountUseCase = ApplyItemDiscountUseCase(checkPermissionUseCase),
+            applyOrderDiscountUseCase = ApplyOrderDiscountUseCase(fakeSettingsRepository, calculateTotalsUseCase),
             calculateTotalsUseCase = calculateTotalsUseCase,
-            holdOrderUseCase = holdOrderUseCase,
-            retrieveHeldUseCase = retrieveHeldUseCase,
-            processPaymentUseCase = processPaymentUseCase,
+            holdOrderUseCase = HoldOrderUseCase(fakeOrderRepository),
+            retrieveHeldUseCase = RetrieveHeldOrderUseCase(fakeOrderRepository),
+            processPaymentUseCase = ProcessPaymentUseCase(fakeOrderRepository, fakeStockRepository, calculateTotalsUseCase),
+            printReceiptUseCase = PrintReceiptUseCase(fakeReceiptPrinterPort),
+            receiptFormatter = ReceiptFormatter(CurrencyFormatter()),
             cashierId = "cashier-01",
             storeId = "store-01",
             registerSessionId = "session-01",
@@ -144,6 +241,37 @@ class PosViewModelTest {
     @AfterTest
     fun tearDown() {
         Dispatchers.resetMain()
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private fun addTestProduct(
+        id: String = "p1",
+        name: String = "Test Coffee",
+        price: Double = 4.50,
+        stockQty: Double = 100.0,
+    ): Product {
+        val product = Product(
+            id = id,
+            name = name,
+            barcode = "1234567890123",
+            sku = "SKU-COFFEE",
+            categoryId = "cat-drinks",
+            unitId = "unit-01",
+            price = price,
+            costPrice = 2.00,
+            taxGroupId = null,
+            stockQty = stockQty,
+            minStockQty = 5.0,
+            imageUrl = null,
+            description = "Test product",
+            isActive = true,
+            createdAt = now,
+            updatedAt = now,
+        )
+        productsMap[product.id] = product
+        productsFlow.value = productsMap.values.toList()
+        return product
     }
 
     // ── Initial state ─────────────────────────────────────────────────────────
@@ -220,7 +348,6 @@ class PosViewModelTest {
 
     @Test
     fun `ClearCart empties cart and resets totals`() = runTest {
-        // Seed some cart items by directly injecting state (whitebox)
         viewModel.dispatch(PosIntent.ClearCart)
         advanceUntilIdle()
         val state = viewModel.state.value
@@ -234,14 +361,7 @@ class PosViewModelTest {
 
     @Test
     fun `AddToCart success adds item to cartItems and recalculates totals`() = runTest {
-        val product = buildTestProduct()
-        everySuspend {
-            addItemUseCase.invoke(
-                currentCart = any(),
-                productId = any(),
-                quantity = any(),
-            )
-        }.returns(Result.Success(listOf(testCartItem)))
+        val product = addTestProduct()
 
         viewModel.dispatch(PosIntent.AddToCart(product))
         advanceUntilIdle()
@@ -254,18 +374,8 @@ class PosViewModelTest {
 
     @Test
     fun `AddToCart failure emits ShowError effect`() = runTest {
-        val product = buildTestProduct()
-        everySuspend {
-            addItemUseCase.invoke(
-                currentCart = any(),
-                productId = any(),
-                quantity = any(),
-            )
-        }.returns(
-            Result.Error(
-                ValidationException("Not enough stock", field = "quantity", rule = "OUT_OF_STOCK"),
-            ),
-        )
+        // Product with zero stock triggers OUT_OF_STOCK validation error
+        val product = addTestProduct(stockQty = 0.0)
 
         viewModel.effects.test {
             viewModel.dispatch(PosIntent.AddToCart(product))
@@ -281,19 +391,14 @@ class PosViewModelTest {
 
     @Test
     fun `RemoveFromCart removes item from cartItems`() = runTest {
-        // Stub add first to seed item
-        val product = buildTestProduct()
-        everySuspend {
-            addItemUseCase.invoke(currentCart = any(), productId = any(), quantity = any())
-        }.returns(Result.Success(listOf(testCartItem)))
+        val product = addTestProduct()
+
+        // Seed item via AddToCart
         viewModel.dispatch(PosIntent.AddToCart(product))
         advanceUntilIdle()
+        assertEquals(1, viewModel.state.value.cartItems.size)
 
-        // Stub remove
-        everySuspend {
-            removeItemUseCase.invoke(currentCart = any(), productId = "p1")
-        }.returns(Result.Success(emptyList()))
-
+        // Remove the item
         viewModel.dispatch(PosIntent.RemoveFromCart("p1"))
         advanceUntilIdle()
 
@@ -304,23 +409,10 @@ class PosViewModelTest {
 
     @Test
     fun `HoldOrder clears active cart on success`() = runTest {
-        // Seed cart
-        val product = buildTestProduct()
-        everySuspend {
-            addItemUseCase.invoke(currentCart = any(), productId = any(), quantity = any())
-        }.returns(Result.Success(listOf(testCartItem)))
+        val product = addTestProduct()
+
         viewModel.dispatch(PosIntent.AddToCart(product))
         advanceUntilIdle()
-
-        // Stub hold success
-        everySuspend {
-            holdOrderUseCase.invoke(
-                cartItems = any(),
-                cashierId = any(),
-                storeId = any(),
-                registerSessionId = any(),
-            )
-        }.returns(Result.Success("held-order-id"))
 
         viewModel.dispatch(PosIntent.HoldOrder)
         advanceUntilIdle()
@@ -332,14 +424,6 @@ class PosViewModelTest {
 
     @Test
     fun `ScanBarcode with unknown barcode emits BarcodeNotFound effect`() = runTest {
-        everySuspend {
-            productRepository.getByBarcode(any())
-        }.returns(
-            Result.Error(
-                com.zyntasolutions.zyntapos.core.result.DatabaseException("Not found"),
-            ),
-        )
-
         viewModel.effects.test {
             viewModel.dispatch(PosIntent.ScanBarcode("9999999999999"))
             advanceUntilIdle()
@@ -354,33 +438,11 @@ class PosViewModelTest {
     // ── ProcessPayment ────────────────────────────────────────────────────────
 
     @Test
-    fun `ProcessPayment success emits ShowReceiptScreen effect`() = runTest {
-        // Seed cart
-        val product = buildTestProduct()
-        everySuspend {
-            addItemUseCase.invoke(currentCart = any(), productId = any(), quantity = any())
-        }.returns(Result.Success(listOf(testCartItem)))
+    fun `ProcessPayment success emits receipt or cash drawer effect`() = runTest {
+        val product = addTestProduct()
+
         viewModel.dispatch(PosIntent.AddToCart(product))
         advanceUntilIdle()
-
-        // Stub payment success
-        val fakeOrder = buildTestOrder()
-        everySuspend {
-            processPaymentUseCase.invoke(
-                items = any(),
-                paymentMethod = any(),
-                paymentSplits = any(),
-                amountTendered = any(),
-                customerId = any(),
-                cashierId = any(),
-                storeId = any(),
-                registerSessionId = any(),
-                orderDiscount = any(),
-                orderDiscountType = any(),
-                taxInclusive = any(),
-                notes = any(),
-            )
-        }.returns(Result.Success(fakeOrder))
 
         viewModel.effects.test {
             viewModel.dispatch(
@@ -392,7 +454,11 @@ class PosViewModelTest {
             advanceUntilIdle()
 
             val effect = awaitItem()
-            assertTrue(effect is PosEffect.ShowReceiptScreen || effect is PosEffect.OpenCashDrawer || effect is PosEffect.PrintReceipt)
+            assertTrue(
+                effect is PosEffect.ShowReceiptScreen ||
+                    effect is PosEffect.OpenCashDrawer ||
+                    effect is PosEffect.PrintReceipt,
+            )
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -413,51 +479,4 @@ class PosViewModelTest {
         advanceUntilIdle()
         assertFalse(viewModel.state.value.scannerActive)
     }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
-
-    private fun buildTestProduct() = com.zyntasolutions.zyntapos.domain.model.Product(
-        id = "p1",
-        name = "Test Coffee",
-        barcode = "1234567890123",
-        sku = "SKU-COFFEE",
-        categoryId = "cat-drinks",
-        unitId = "unit-01",
-        price = 4.50,
-        costPrice = 2.00,
-        taxGroupId = null,
-        stockQty = 100.0,
-        minStockQty = 5.0,
-        imageUrl = null,
-        description = "Test product",
-        isActive = true,
-        createdAt = now,
-        updatedAt = now,
-        syncStatus = com.zyntasolutions.zyntapos.domain.model.SyncStatus(
-            state = com.zyntasolutions.zyntapos.domain.model.SyncStatus.State.SYNCED,
-        ),
-    )
-
-    private fun buildTestOrder() = Order(
-        id = "order-test",
-        orderNumber = "ORD-0001",
-        type = com.zyntasolutions.zyntapos.domain.model.OrderType.SALE,
-        status = OrderStatus.COMPLETED,
-        items = emptyList(),
-        subtotal = 4.50,
-        taxAmount = 0.0,
-        discountAmount = 0.0,
-        total = 4.50,
-        paymentMethod = PaymentMethod.CASH,
-        amountTendered = 10.0,
-        changeAmount = 5.50,
-        cashierId = "cashier-01",
-        storeId = "store-01",
-        registerSessionId = "session-01",
-        createdAt = now,
-        updatedAt = now,
-        syncStatus = com.zyntasolutions.zyntapos.domain.model.SyncStatus(
-            state = com.zyntasolutions.zyntapos.domain.model.SyncStatus.State.PENDING,
-        ),
-    )
 }

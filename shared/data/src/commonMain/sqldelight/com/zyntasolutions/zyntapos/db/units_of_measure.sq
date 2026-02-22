@@ -1,0 +1,39 @@
+-- Units of measure table: measurement units with conversion rates
+CREATE TABLE units_of_measure (
+    id              TEXT    NOT NULL PRIMARY KEY,
+    name            TEXT    NOT NULL,
+    abbreviation    TEXT    NOT NULL,
+    is_base_unit    INTEGER NOT NULL DEFAULT 0,
+    conversion_rate REAL    NOT NULL DEFAULT 1.0,
+    created_at      INTEGER NOT NULL,
+    updated_at      INTEGER NOT NULL,
+    deleted_at      INTEGER,
+    sync_status     TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+-- ── Read queries ────────────────────────────────────────────────────────────
+
+getAllUnits:
+SELECT * FROM units_of_measure WHERE deleted_at IS NULL ORDER BY is_base_unit DESC, name ASC;
+
+getUnitById:
+SELECT * FROM units_of_measure WHERE id = ?;
+
+-- ── Write queries ───────────────────────────────────────────────────────────
+
+insertUnit:
+INSERT INTO units_of_measure(id, name, abbreviation, is_base_unit, conversion_rate, created_at, updated_at, deleted_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateUnit:
+UPDATE units_of_measure SET
+    name = ?, abbreviation = ?, is_base_unit = ?,
+    conversion_rate = ?, updated_at = ?, sync_status = ?
+WHERE id = ?;
+
+-- Demote any existing base unit (except the one being promoted)
+demoteBaseUnit:
+UPDATE units_of_measure SET is_base_unit = 0, updated_at = ? WHERE is_base_unit = 1 AND id != ?;
+
+softDeleteUnit:
+UPDATE units_of_measure SET deleted_at = ?, updated_at = ? WHERE id = ?;

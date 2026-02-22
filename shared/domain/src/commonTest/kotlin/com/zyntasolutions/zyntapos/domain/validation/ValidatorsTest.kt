@@ -8,6 +8,7 @@ import com.zyntasolutions.zyntapos.domain.model.StockAdjustment
 import com.zyntasolutions.zyntapos.domain.model.TaxGroup
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
@@ -101,27 +102,21 @@ class ValidatorsTest {
     }
 
     @Test
-    fun `validateSplitPayment - split leg with zero amount - returns MIN_VALUE error`() {
-        val splits = listOf(
-            PaymentSplit(PaymentMethod.CASH, 0.0),
-            PaymentSplit(PaymentMethod.CARD, 100.0),
-        )
-        val result = PaymentValidator.validateSplitPayment(splits, 100.0)
-        assertIs<Result.Error>(result)
-        val ex = (result as Result.Error).exception as ValidationException
-        assertEquals("MIN_VALUE", ex.rule)
+    fun `validateSplitPayment - split leg with zero amount - model init guard rejects`() {
+        // PaymentSplit init requires amount > 0, so constructing one with 0.0 throws.
+        // This validates the model-level invariant (defence in depth with the validator).
+        assertFailsWith<IllegalArgumentException> {
+            PaymentSplit(PaymentMethod.CASH, 0.0)
+        }
     }
 
     @Test
-    fun `validateSplitPayment - SPLIT as a leg method - returns INVALID_SPLIT_METHOD error`() {
-        val splits = listOf(
-            PaymentSplit(PaymentMethod.CASH, 50.0),
-            PaymentSplit(PaymentMethod.SPLIT, 50.0), // recursive SPLIT not allowed
-        )
-        val result = PaymentValidator.validateSplitPayment(splits, 100.0)
-        assertIs<Result.Error>(result)
-        val ex = (result as Result.Error).exception as ValidationException
-        assertEquals("INVALID_SPLIT_METHOD", ex.rule)
+    fun `validateSplitPayment - SPLIT as a leg method - model init guard rejects`() {
+        // PaymentSplit init disallows PaymentMethod.SPLIT as a leg method.
+        // This validates the model-level invariant (defence in depth with the validator).
+        assertFailsWith<IllegalArgumentException> {
+            PaymentSplit(PaymentMethod.SPLIT, 50.0)
+        }
     }
 
     @Test

@@ -51,8 +51,8 @@ class CustomerRepositoryImpl(
     override fun search(query: String): Flow<List<Customer>> =
         if (query.isBlank()) getAll()
         else {
-            val ftsQuery = if (query.endsWith("*")) query else "$query*"
-            q.searchCustomers(ftsQuery)
+            val likePattern = "%${query.trimEnd('*')}%"
+            q.searchCustomers(likePattern)
                 .asFlow()
                 .mapToList(Dispatchers.IO)
                 .map { rows -> rows.map(CustomerMapper::toDomain) }

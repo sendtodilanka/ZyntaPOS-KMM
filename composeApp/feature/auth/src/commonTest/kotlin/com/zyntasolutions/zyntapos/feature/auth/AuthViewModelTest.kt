@@ -4,7 +4,6 @@ import app.cash.turbine.test
 import com.zyntasolutions.zyntapos.core.result.AuthException
 import com.zyntasolutions.zyntapos.core.result.AuthFailureReason
 import com.zyntasolutions.zyntapos.core.result.Result
-import com.zyntasolutions.zyntapos.domain.model.Permission
 import com.zyntasolutions.zyntapos.domain.model.Role
 import com.zyntasolutions.zyntapos.domain.model.User
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
@@ -12,15 +11,10 @@ import com.zyntasolutions.zyntapos.domain.usecase.auth.LoginUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.auth.LogoutUseCase
 import com.zyntasolutions.zyntapos.feature.auth.mvi.AuthEffect
 import com.zyntasolutions.zyntapos.feature.auth.mvi.AuthIntent
-import com.zyntasolutions.zyntapos.feature.auth.mvi.AuthState
-import io.mockative.Mock
-import io.mockative.classOf
-import io.mockative.every
-import io.mockative.everySuspend
-import io.mockative.mock
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -38,25 +32,40 @@ import kotlin.test.assertTrue
 /**
  * Unit tests for [AuthViewModel].
  *
- * Covers all [AuthIntent] transitions and verifies that:
- * - State is mutated correctly for each intent.
- * - [AuthEffect.NavigateToDashboard] is emitted on successful login.
- * - Validation errors prevent the login call.
- * - Network / backend errors surface as [AuthState.error].
+ * Uses hand-rolled fakes instead of Mockative (KSP1 is incompatible with Kotlin 2.3+).
+ * All tests run under [StandardTestDispatcher] for deterministic coroutine execution.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class AuthViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
 
-    @Mock
-    private val loginUseCase = mock(classOf<LoginUseCase>())
+    // ── Fake AuthRepository ────────────────────────────────────────────────────
 
-    @Mock
-    private val logoutUseCase = mock(classOf<LogoutUseCase>())
+    private val sessionFlow = MutableStateFlow<User?>(null)
+    private val loginResponses = mutableMapOf<Pair<String, String>, Result<User>>()
 
-    @Mock
-    private val authRepository = mock(classOf<AuthRepository>())
+    private val fakeAuthRepository = object : AuthRepository {
+        override suspend fun login(email: String, password: String): Result<User> {
+            return loginResponses[email to password]
+                ?: Result.Error(AuthException("Invalid credentials", reason = AuthFailureReason.INVALID_CREDENTIALS))
+        }
+
+        override suspend fun logout() {
+            sessionFlow.value = null
+        }
+
+        override fun getSession(): Flow<User?> = sessionFlow
+
+        override suspend fun refreshToken(): Result<Unit> = Result.Success(Unit)
+
+        override suspend fun updatePin(userId: String, pin: String): Result<Unit> = Result.Success(Unit)
+    }
+
+    // ── Real use cases wired to the fake repository ────────────────────────────
+
+    private val loginUseCase = LoginUseCase(fakeAuthRepository)
+    private val logoutUseCase = LogoutUseCase(fakeAuthRepository)
 
     private lateinit var viewModel: AuthViewModel
 
@@ -75,11 +84,13 @@ class AuthViewModelTest {
     @BeforeTest
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        every { authRepository.getSession() }.returns(flowOf(null))
+        loginResponses.clear()
+        sessionFlow.value = null
+
         viewModel = AuthViewModel(
             loginUseCase = loginUseCase,
             logoutUseCase = logoutUseCase,
-            authRepository = authRepository,
+            authRepository = fakeAuthRepository,
         )
     }
 
@@ -189,8 +200,7 @@ class AuthViewModelTest {
 
     @Test
     fun `LoginClicked with valid credentials emits NavigateToDashboard effect`() = runTest {
-        everySuspend { loginUseCase.invoke(email = "user@test.com", password = "password123") }
-            .returns(Result.Success(fakeUser))
+        loginResponses["user@test.com" to "password123"] = Result.Success(fakeUser)
 
         viewModel.effects.test {
             viewModel.dispatch(AuthIntent.EmailChanged("user@test.com"))
@@ -206,8 +216,7 @@ class AuthViewModelTest {
 
     @Test
     fun `LoginClicked success clears isLoading`() = runTest {
-        everySuspend { loginUseCase.invoke(email = "user@test.com", password = "password123") }
-            .returns(Result.Success(fakeUser))
+        loginResponses["user@test.com" to "password123"] = Result.Success(fakeUser)
 
         viewModel.dispatch(AuthIntent.EmailChanged("user@test.com"))
         viewModel.dispatch(AuthIntent.PasswordChanged("password123"))
@@ -221,12 +230,9 @@ class AuthViewModelTest {
 
     @Test
     fun `LoginClicked on auth failure sets error state`() = runTest {
-        everySuspend { loginUseCase.invoke(email = "user@test.com", password = "wrong") }
-            .returns(
-                Result.Error(
-                    AuthException("Invalid credentials", reason = AuthFailureReason.INVALID_CREDENTIALS)
-                )
-            )
+        loginResponses["user@test.com" to "wrong!!!"] = Result.Error(
+            AuthException("Invalid credentials", reason = AuthFailureReason.INVALID_CREDENTIALS),
+        )
 
         viewModel.dispatch(AuthIntent.EmailChanged("user@test.com"))
         viewModel.dispatch(AuthIntent.PasswordChanged("wrong!!!"))
@@ -239,12 +245,9 @@ class AuthViewModelTest {
 
     @Test
     fun `LoginClicked on offline no-cache error sets error state`() = runTest {
-        everySuspend { loginUseCase.invoke(email = "new@test.com", password = "password123") }
-            .returns(
-                Result.Error(
-                    AuthException("No local account found", reason = AuthFailureReason.OFFLINE_NO_CACHE)
-                )
-            )
+        loginResponses["new@test.com" to "password123"] = Result.Error(
+            AuthException("No local account found", reason = AuthFailureReason.OFFLINE_NO_CACHE),
+        )
 
         viewModel.dispatch(AuthIntent.EmailChanged("new@test.com"))
         viewModel.dispatch(AuthIntent.PasswordChanged("password123"))

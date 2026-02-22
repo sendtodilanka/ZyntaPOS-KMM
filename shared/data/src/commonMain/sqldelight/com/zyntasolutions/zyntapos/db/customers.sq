@@ -1,0 +1,47 @@
+-- Customers table: client records with loyalty tracking
+CREATE TABLE customers (
+    id              TEXT    NOT NULL PRIMARY KEY,
+    name            TEXT    NOT NULL,
+    phone           TEXT,
+    email           TEXT,
+    address         TEXT,
+    group_id        TEXT,
+    loyalty_points  INTEGER NOT NULL DEFAULT 0,
+    notes           TEXT,
+    is_active       INTEGER NOT NULL DEFAULT 1,
+    created_at      INTEGER NOT NULL,
+    updated_at      INTEGER NOT NULL,
+    sync_status     TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE INDEX idx_customers_active ON customers(is_active);
+
+-- ── Read queries ────────────────────────────────────────────────────────────
+
+getAllCustomers:
+SELECT * FROM customers WHERE is_active = 1 ORDER BY name ASC;
+
+getCustomerById:
+SELECT * FROM customers WHERE id = ?;
+
+-- LIKE-based search (caller provides pattern with % wildcards)
+searchCustomers:
+SELECT * FROM customers
+WHERE is_active = 1
+AND (
+    name LIKE :query
+    OR COALESCE(phone, '') LIKE :query
+    OR COALESCE(email, '') LIKE :query
+);
+
+-- ── Write queries ───────────────────────────────────────────────────────────
+
+insertCustomer:
+INSERT INTO customers(id, name, phone, email, address, group_id, loyalty_points, notes, is_active, created_at, updated_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateCustomer:
+UPDATE customers SET
+    name = ?, phone = ?, email = ?, address = ?, group_id = ?,
+    notes = ?, is_active = ?, updated_at = ?, sync_status = ?
+WHERE id = ?;

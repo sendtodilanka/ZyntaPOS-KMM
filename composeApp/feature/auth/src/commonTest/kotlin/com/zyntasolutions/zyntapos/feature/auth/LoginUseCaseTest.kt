@@ -7,10 +7,9 @@ import com.zyntasolutions.zyntapos.domain.model.Role
 import com.zyntasolutions.zyntapos.domain.model.User
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.usecase.auth.LoginUseCase
-import io.mockative.Mock
-import io.mockative.classOf
-import io.mockative.everySuspend
-import io.mockative.mock
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Clock
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -19,16 +18,33 @@ import kotlin.test.assertTrue
 /**
  * Unit tests for [LoginUseCase].
  *
- * Validates the use case's delegation to [AuthRepository.login] across all
- * scenarios: successful authentication, invalid credentials, offline no-cache,
- * and network errors.
+ * Uses a hand-rolled fake [AuthRepository] instead of Mockative
+ * (KSP1 is incompatible with Kotlin 2.3+).
  */
 class LoginUseCaseTest {
 
-    @Mock
-    private val authRepository = mock(classOf<AuthRepository>())
+    // ── Fake AuthRepository ────────────────────────────────────────────────────
 
-    private val useCase = LoginUseCase(authRepository)
+    private val loginResponses = mutableMapOf<Pair<String, String>, Result<User>>()
+    private var loginThrows: Throwable? = null
+
+    private val fakeAuthRepository = object : AuthRepository {
+        override suspend fun login(email: String, password: String): Result<User> {
+            loginThrows?.let { throw it }
+            return loginResponses[email to password]
+                ?: Result.Error(AuthException("Invalid credentials", reason = AuthFailureReason.INVALID_CREDENTIALS))
+        }
+
+        override suspend fun logout() {}
+
+        override fun getSession(): Flow<User?> = MutableStateFlow(null)
+
+        override suspend fun refreshToken(): Result<Unit> = Result.Success(Unit)
+
+        override suspend fun updatePin(userId: String, pin: String): Result<Unit> = Result.Success(Unit)
+    }
+
+    private val useCase = LoginUseCase(fakeAuthRepository)
 
     private val fakeUser = User(
         id = "user-001",
@@ -45,9 +61,8 @@ class LoginUseCaseTest {
     // ── Success ───────────────────────────────────────────────────────────────
 
     @Test
-    fun `invoke returns Success with User on valid credentials`() = kotlinx.coroutines.test.runTest {
-        everySuspend { authRepository.login(email = "admin@zentapos.com", password = "secure123") }
-            .returns(Result.Success(fakeUser))
+    fun `invoke returns Success with User on valid credentials`() = runTest {
+        loginResponses["admin@zentapos.com" to "secure123"] = Result.Success(fakeUser)
 
         val result = useCase(email = "admin@zentapos.com", password = "secure123")
 
@@ -58,10 +73,9 @@ class LoginUseCaseTest {
     // ── Invalid credentials ───────────────────────────────────────────────────
 
     @Test
-    fun `invoke returns AuthException on wrong password`() = kotlinx.coroutines.test.runTest {
+    fun `invoke returns AuthException on wrong password`() = runTest {
         val error = AuthException("Invalid credentials", reason = AuthFailureReason.INVALID_CREDENTIALS)
-        everySuspend { authRepository.login(email = "admin@zentapos.com", password = "wrongpass") }
-            .returns(Result.Error(error))
+        loginResponses["admin@zentapos.com" to "wrongpass"] = Result.Error(error)
 
         val result = useCase(email = "admin@zentapos.com", password = "wrongpass")
 
@@ -74,10 +88,9 @@ class LoginUseCaseTest {
     // ── Account disabled ──────────────────────────────────────────────────────
 
     @Test
-    fun `invoke returns ACCOUNT_DISABLED when user is inactive`() = kotlinx.coroutines.test.runTest {
+    fun `invoke returns ACCOUNT_DISABLED when user is inactive`() = runTest {
         val error = AuthException("Account is disabled", reason = AuthFailureReason.ACCOUNT_DISABLED)
-        everySuspend { authRepository.login(email = "disabled@zentapos.com", password = "pass123") }
-            .returns(Result.Error(error))
+        loginResponses["disabled@zentapos.com" to "pass123"] = Result.Error(error)
 
         val result = useCase(email = "disabled@zentapos.com", password = "pass123")
 
@@ -91,10 +104,9 @@ class LoginUseCaseTest {
     // ── Offline no cache ──────────────────────────────────────────────────────
 
     @Test
-    fun `invoke returns OFFLINE_NO_CACHE when device has no local user record`() = kotlinx.coroutines.test.runTest {
+    fun `invoke returns OFFLINE_NO_CACHE when device has no local user record`() = runTest {
         val error = AuthException("No local account found", reason = AuthFailureReason.OFFLINE_NO_CACHE)
-        everySuspend { authRepository.login(email = "new@device.com", password = "anypass") }
-            .returns(Result.Error(error))
+        loginResponses["new@device.com" to "anypass"] = Result.Error(error)
 
         val result = useCase(email = "new@device.com", password = "anypass")
 
@@ -108,10 +120,8 @@ class LoginUseCaseTest {
     // ── Network error ─────────────────────────────────────────────────────────
 
     @Test
-    fun `invoke propagates generic exception as Result Error`() = kotlinx.coroutines.test.runTest {
-        val networkError = RuntimeException("Network timeout")
-        everySuspend { authRepository.login(email = "user@test.com", password = "pass") }
-            .throws(networkError)
+    fun `invoke propagates generic exception as Result Error`() = runTest {
+        loginThrows = RuntimeException("Network timeout")
 
         // The repository implementation wraps exceptions; for pure use case testing
         // we verify it does not silently swallow errors raised by the repository.

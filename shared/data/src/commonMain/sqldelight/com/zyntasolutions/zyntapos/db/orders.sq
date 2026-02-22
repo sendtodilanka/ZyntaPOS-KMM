@@ -1,0 +1,74 @@
+-- Orders table: sale/return header
+CREATE TABLE orders (
+    id                  TEXT    NOT NULL PRIMARY KEY,
+    order_number        TEXT    NOT NULL,
+    type                TEXT    NOT NULL,
+    status              TEXT    NOT NULL,
+    customer_id         TEXT,
+    cashier_id          TEXT    NOT NULL,
+    store_id            TEXT    NOT NULL,
+    register_session_id TEXT,
+    subtotal            REAL    NOT NULL DEFAULT 0.0,
+    tax_amount          REAL    NOT NULL DEFAULT 0.0,
+    discount_amount     REAL    NOT NULL DEFAULT 0.0,
+    total               REAL    NOT NULL DEFAULT 0.0,
+    payment_method      TEXT    NOT NULL,
+    payment_splits_json TEXT,
+    amount_tendered     REAL,
+    change_amount       REAL,
+    notes               TEXT,
+    reference           TEXT,
+    created_at          INTEGER NOT NULL,
+    updated_at          INTEGER NOT NULL,
+    sync_status         TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE INDEX idx_orders_status     ON orders(status);
+CREATE INDEX idx_orders_created_at ON orders(created_at);
+CREATE INDEX idx_orders_cashier    ON orders(cashier_id);
+CREATE INDEX idx_orders_customer   ON orders(customer_id);
+
+-- Order line items
+CREATE TABLE order_items (
+    id            TEXT NOT NULL PRIMARY KEY,
+    order_id      TEXT NOT NULL,
+    product_id    TEXT NOT NULL,
+    product_name  TEXT NOT NULL,
+    unit_price    REAL NOT NULL DEFAULT 0.0,
+    quantity      REAL NOT NULL DEFAULT 1.0,
+    discount      REAL NOT NULL DEFAULT 0.0,
+    discount_type TEXT NOT NULL DEFAULT 'NONE',
+    tax_rate      REAL NOT NULL DEFAULT 0.0,
+    tax_amount    REAL NOT NULL DEFAULT 0.0,
+    line_total    REAL NOT NULL DEFAULT 0.0,
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_order_items_order ON order_items(order_id);
+
+-- ── Read queries ────────────────────────────────────────────────────────────
+
+getAllOrders:
+SELECT * FROM orders ORDER BY created_at DESC;
+
+getOrderById:
+SELECT * FROM orders WHERE id = ?;
+
+getItemsByOrderId:
+SELECT * FROM order_items WHERE order_id = ?;
+
+getOrdersByDateRange:
+SELECT * FROM orders WHERE created_at >= ? AND created_at <= ? ORDER BY created_at DESC;
+
+-- ── Write queries ───────────────────────────────────────────────────────────
+
+insertOrder:
+INSERT INTO orders(id, order_number, type, status, customer_id, cashier_id, store_id, register_session_id, subtotal, tax_amount, discount_amount, total, payment_method, payment_splits_json, amount_tendered, change_amount, notes, reference, created_at, updated_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+insertOrderItem:
+INSERT INTO order_items(id, order_id, product_id, product_name, unit_price, quantity, discount, discount_type, tax_rate, tax_amount, line_total)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+voidOrder:
+UPDATE orders SET status = 'VOIDED', notes = ?, updated_at = ? WHERE id = ?;

@@ -1,0 +1,19 @@
+-- Settings table: key-value configuration store
+CREATE TABLE settings (
+    key        TEXT    NOT NULL PRIMARY KEY,
+    value_     TEXT    NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+
+-- ── Read queries ────────────────────────────────────────────────────────────
+
+getSetting:
+SELECT value_ FROM settings WHERE key = ?;
+
+getAllSettings:
+SELECT key, value_ FROM settings;
+
+-- ── Write queries ───────────────────────────────────────────────────────────
+
+upsertSetting:
+INSERT OR REPLACE INTO settings(key, value_, updated_at) VALUES (?, ?, ?);

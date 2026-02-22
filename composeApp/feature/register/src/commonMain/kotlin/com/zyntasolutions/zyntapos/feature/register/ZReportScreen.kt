@@ -157,17 +157,17 @@ fun ZReportScreen(
                 ReportDivider()
 
                 // ── 4. Cash movements ────────────────────────────────────
-                ZReportCashMovements(movements)
+                ZReportCashMovements(movements, fmt)
 
                 ReportDivider()
 
                 // ── 5. Sales summary (placeholder) ───────────────────────
-                ZReportSalesSummary()
+                ZReportSalesSummary(fmt)
 
                 ReportDivider()
 
                 // ── 6 & 7. Expected vs Actual + Discrepancy ──────────────
-                ZReportBalanceReconciliation(session)
+                ZReportBalanceReconciliation(session, fmt)
 
                 ReportDivider()
 
@@ -255,7 +255,7 @@ private fun ZReportSessionInfo(session: RegisterSession) {
  * Chronological list of cash in/out movements during the session.
  */
 @Composable
-private fun ZReportCashMovements(movements: List<CashMovement>) {
+private fun ZReportCashMovements(movements: List<CashMovement>, fmt: (Double) -> String) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
             text = "Cash Movements",
@@ -292,7 +292,7 @@ private fun ZReportCashMovements(movements: List<CashMovement>) {
  * Phase 1 placeholder — will be wired to OrderRepository in Phase 2.
  */
 @Composable
-private fun ZReportSalesSummary() {
+private fun ZReportSalesSummary(fmt: (Double) -> String) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
             text = "Sales Summary",
@@ -317,7 +317,7 @@ private fun ZReportSalesSummary() {
  * Expected vs Actual balance reconciliation with discrepancy.
  */
 @Composable
-private fun ZReportBalanceReconciliation(session: RegisterSession) {
+private fun ZReportBalanceReconciliation(session: RegisterSession, fmt: (Double) -> String) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
             text = "Balance Reconciliation",

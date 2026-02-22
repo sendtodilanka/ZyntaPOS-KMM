@@ -62,8 +62,8 @@ class ProductRepositoryImpl(
                 .mapToList(Dispatchers.IO)
                 .map { rows -> rows.map(ProductMapper::toDomain) }
             else -> {
-                val ftsQuery = if (query.endsWith("*")) query else "$query*"
-                q.searchProducts(ftsQuery)
+                val likePattern = "%${query.trimEnd('*')}%"
+                q.searchProducts(likePattern)
                     .asFlow()
                     .mapToList(Dispatchers.IO)
                     .map { rows ->
