@@ -3409,3 +3409,26 @@ Two compile errors blocked `:shared:domain:assemble`. Both were identified via `
 - [x] G9.1-DC05 — Component names already corrected to Zynta prefix (verified) | 2026-02-22
 
 > **Section status: ✅ MERGED-G9.1 COMPLETE — brand rename executed across code and docs**
+
+## 🟡 PRIORITY ACTION — Batch Fix: G7.2+G7.3+G8.1+G10.1+G1.2+G1.3 (2026-02-22)
+> **Source:** Audit v3 Final Report §4 — SUGGESTION (6 items batched)
+> **Scope:** Documentation accuracy, dead code removal, prerequisite documentation
+
+- [x] G8.1 — Updated Master_plan.md §3.1 diagram: "desktopMain" → "jvmMain" | 2026-02-22
+- [x] G7.3 — Added `:composeApp:core` to Master_plan.md §3.2 tree diagram (`:feature:media` already present) | 2026-02-22
+- [x] G7.2 — Pinned exact versions in §15.1: Material 3 → 1.10.0-alpha05, Navigation → 2.9.2, SQLCipher → 4.5.0, Testing → 2.3.0/3.0.1 | 2026-02-22
+- [x] G10.1 — Fixed DataModule.kt KDoc: "bound HERE" → "bound in securityModule (:shared:security)" | 2026-02-22
+- [x] G1.2 — Removed bare `single { PasswordHasher }` from SecurityModule.kt (grep confirmed zero Koin consumers); cleaned up import + KDoc table | 2026-02-22
+- [x] G1.3 — Added `named("deviceId")` platform prerequisite blockquote to Master_plan.md §4.2 | 2026-02-22
+
+### Batch Fix Integrity Report
+| Check | Result |
+|-------|--------|
+| §3.1 diagram label | ✅ "jvmMain" matches actual source set name |
+| §3.2 tree completeness | ✅ All 23 modules from settings.gradle.kts now listed |
+| §15.1 version drift | ✅ All 4 "Latest"/wrong entries pinned to libs.versions.toml values |
+| DataModule.kt KDoc accuracy | ✅ Correctly references SecurityModule as PasswordHashPort provider |
+| SecurityModule.kt PasswordHasher | ✅ Bare binding removed; PasswordHasherAdapter (line 113) wraps PasswordHasher directly |
+| §4.2 deviceId prerequisite | ✅ Blockquote documents Android + Desktop provider implementations |
+
+> **Section status: ✅ BATCH FIX COMPLETE — 6 items resolved in single pass**

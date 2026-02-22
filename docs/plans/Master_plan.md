@@ -110,7 +110,7 @@ Deliver a cross-platform POS system that operates seamlessly online and offline,
 │               PLATFORM / INFRASTRUCTURE                   │
 │         HAL · DI · Security · Platform APIs               │
 │  ┌───────────────────┐   ┌───────────────────────────┐  │
-│  │  androidMain       │   │  desktopMain               │  │
+│  │  androidMain       │   │  jvmMain                   │  │
 │  │  ├── hal/          │   │  ├── hal/                  │  │
 │  │  │  (USB/BT print) │   │  │  (ESC/POS TCP, COM)    │  │
 │  │  ├── security/     │   │  ├── security/             │  │
@@ -131,6 +131,7 @@ Deliver a cross-platform POS system that operates seamlessly online and offline,
 └── :shared:security        → Encryption, token management, key storage
 
 :composeApp
+├── :composeApp:core            → BaseViewModel, MVI base classes, UI utilities
 ├── :composeApp:designsystem  → Material 3 theme, components, tokens
 ├── :composeApp:navigation    → Type-safe navigation graph
 ├── :composeApp:feature:auth  → Login, registration, session UI
@@ -341,6 +342,12 @@ sealed interface PosSideEffect {
 :coupons  :multistore  :expenses  :staff  :admin  :media
                                                         ... (all via M21)
 ```
+
+> **Platform prerequisite:** Both `androidDataModule` and `desktopDataModule`
+> must provide a `named("deviceId")` `String` binding. This value is consumed
+> by `SecurityAuditLogger` (`:shared:security`) and `PrinterManagerReceiptAdapter`
+> (`:composeApp:feature:pos`). Android sources `Settings.Secure.ANDROID_ID`;
+> Desktop persists a random UUID to `<appDataDir>/.device_id`.
 
 ---
 
@@ -1060,18 +1067,18 @@ E-Inv:                          │                       │░░░░░░�
 | Build | Gradle (KTS) | 8.5+ | Build system |
 | KMP Plugin | kotlin-multiplatform | 2.3.0 | Cross-platform compilation |
 | UI | Compose Multiplatform | 1.10.0 | Shared UI framework |
-| Design | Material 3 | Latest | Design system |
-| Navigation | Compose Navigation | Latest | Type-safe routing |
+| Design | Material 3 | 1.10.0-alpha05 | Design system |
+| Navigation | Compose Navigation | 2.9.2 | Type-safe routing |
 | DI | Koin | 4.0.4 | Dependency injection |
 | Networking | Ktor Client | 3.0.3 | HTTP client |
 | Serialization | Kotlinx.Serialization | 1.8.0 | JSON/CBOR |
 | Local DB | SQLDelight | 2.0.2 | Type-safe SQL |
-| Encryption | SQLCipher | 4.5.4 | Database encryption |
+| Encryption | SQLCipher | 4.5.0 | Database encryption |
 | Async | Kotlinx.Coroutines | 1.10.2 | Concurrency |
 | DateTime | Kotlinx.DateTime | 0.6.1 | Cross-platform dates |
 | Image Loading | Coil (Compose) | 3.0.4 | Async image loading |
 | Logging | Kermit | 2.0.4 | KMP-native logging |
-| Testing | Kotlin Test + Mockative | Latest | Cross-platform tests |
+| Testing | Kotlin Test + Mockative | 2.3.0 / 3.0.1 | Cross-platform tests |
 
 ### 15.2 Platform-Specific
 

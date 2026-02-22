@@ -2,7 +2,6 @@ package com.zyntasolutions.zyntapos.security.di
 
 import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
 import com.zyntasolutions.zyntapos.security.auth.JwtManager
-import com.zyntasolutions.zyntapos.security.auth.PasswordHasher
 import com.zyntasolutions.zyntapos.security.auth.PasswordHasherAdapter
 import com.zyntasolutions.zyntapos.security.auth.PinManager
 import com.zyntasolutions.zyntapos.security.crypto.DatabaseKeyManager
@@ -23,7 +22,6 @@ import org.koin.dsl.module
  * | [EncryptionManager]    | Singleton | expect/actual — AES-256-GCM                       |
  * | [DatabaseKeyManager]   | Singleton | expect/actual — Android Keystore / PKCS12          |
  * | [SecurePreferences]    | Singleton | expect/actual — EncryptedSharedPreferences / file  |
- * | [PasswordHasher]       | Singleton | BCrypt work-factor 12 (expect object)              |
  * | [PasswordHashPort]     | Singleton | Domain port → [PasswordHasherAdapter] (MERGED-F3)  |
  * | [JwtManager]           | Singleton | Base64url JWT parse; tokens persisted in prefs     |
  * | [PinManager]           | Singleton | SHA-256 + salt; stateless object                   |
@@ -100,11 +98,9 @@ val securityModule = module {
      */
     single<SecureStoragePort> { get<SecurePreferences>() }
 
-    /**
-     * BCrypt password hasher — work factor 12.
-     * Stateless object; single instance is sufficient.
-     */
-    single { PasswordHasher }
+    // NOTE: The bare `single { PasswordHasher }` binding was removed (audit G1.2, 2026-02-22).
+    // PasswordHasher is a stateless expect object consumed only by PasswordHasherAdapter below.
+    // No Koin consumer ever injected PasswordHasher directly — all callers use PasswordHashPort.
 
     /**
      * Domain port for password hashing — [PasswordHashPort] bound to [PasswordHasherAdapter].

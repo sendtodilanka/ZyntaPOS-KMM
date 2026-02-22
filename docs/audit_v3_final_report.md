@@ -114,11 +114,12 @@ SECTION 2: COMPLETE FINDINGS (Deduplicated)
      Source: Phase 2 F1, F2, F3, F4, F5, F6, P2-07
      Resolution: All 8 sub-issues corrected in single editing pass on Master_plan.md §4.1.
 
-  ❌ [MERGED-G8.1] Master Plan §3.1 diagram uses "desktopMain", code uses "jvmMain"
+  ✅ [MERGED-G8.1] Master Plan §3.1 diagram uses "desktopMain", code uses "jvmMain"
      Severity: 🟡 LOW
+     Status: ✅ RESOLVED (2026-02-22)
      Source: Phase 2 F9 (recovered — was dropped from Phase 3/4 tracking)
      File: docs/plans/Master_plan.md §3.1
-     Recommendation: Update diagram label from "desktopMain" to "jvmMain".
+     Resolution: Updated diagram label from "desktopMain" to "jvmMain" in §3.1.
 
   🗑️ [CLOSED-19 / P2-08] :composeApp:core absent from Master Plan §4.1
      Status: CLOSED (stale carry-forward from v2 audit — Phase 4 NC-03
@@ -146,29 +147,30 @@ SECTION 2: COMPLETE FINDINGS (Deduplicated)
      Source: Phase 3 DC-02
      Verified: §3.3 uses dispatch(), handleIntent() (suspend), updateState {}, Channel<E>, sendEffect()
 
-  ⚠️ [MERGED-G7.2] Master Plan §15.1 tech stack versions stale
+  ✅ [MERGED-G7.2] Master Plan §15.1 tech stack versions stale
      Severity: 🟡 LOW
+     Status: ✅ RESOLVED (2026-02-22)
      Source: Phase 3 DC-03
      File: docs/plans/Master_plan.md §15.1
-     Doc says: Kotlin 2.1+, Compose 1.7+, AGP 8.5+
-     Actual:   Kotlin 2.3.0, Compose 1.10.0, AGP 8.13.2
-     Recommendation: Pin exact versions from libs.versions.toml. Remove "+" notation.
+     Resolution: Pinned exact versions from libs.versions.toml —
+       Material 3: Latest → 1.10.0-alpha05, Navigation: Latest → 2.9.2,
+       SQLCipher: 4.5.4 → 4.5.0, Testing: Latest → 2.3.0 / 3.0.1.
 
-  ⚠️ [MERGED-G7.3] Master Plan §3.2 source tree omits :feature:media and :composeApp:core
+  ✅ [MERGED-G7.3] Master Plan §3.2 source tree omits :feature:media and :composeApp:core
      Severity: 🟡 LOW
+     Status: ✅ RESOLVED (2026-02-22)
      Source: Phase 3 DC-04
      File: docs/plans/Master_plan.md §3.2
-     Note: Both ARE in §4.1 (as M20, M21) and in settings.gradle.kts and in code.
-           Only the §3.2 tree diagram is incomplete.
-     Recommendation: Add both modules to the §3.2 tree diagram.
+     Resolution: Added `:composeApp:core` to §3.2 tree diagram.
+       Note: `:feature:media` was already present at the bottom of the tree (line 148).
 
-  ⚠️ [MERGED-G10.1] DataModule.kt KDoc misattributes PasswordHashPort binding
+  ✅ [MERGED-G10.1] DataModule.kt KDoc misattributes PasswordHashPort binding
      Severity: 🟡 LOW
+     Status: ✅ RESOLVED (2026-02-22)
      Source: Phase 3 NEW-02
      File: shared/data/src/commonMain/.../data/di/DataModule.kt
-     KDoc says: "PasswordHashPort is bound HERE"
-     Reality:   Binding is in SecurityModule.kt; DataModule consumes via get()
-     Recommendation: Update KDoc to reference SecurityModule as the provider.
+     Resolution: Updated KDoc to: "PasswordHashPort is bound in securityModule (:shared:security)
+       as single<PasswordHashPort> { PasswordHasherAdapter() }, NOT in this module."
 
 ──────────────────────────────────────────────────────
 2C. Code Duplications (from Phase 3):
@@ -224,22 +226,24 @@ SECTION 2: COMPLETE FINDINGS (Deduplicated)
        → Removed implementation(project(":shared:security")) from pos/build.gradle.kts
        → Updated PosModule.kt binding: auditRepository = get(), deviceId = get(named("deviceId"))
 
-  📛 [MERGED-G1.2] Bare single { PasswordHasher } Koin binding — possible dead code
+  ✅ [MERGED-G1.2] Bare single { PasswordHasher } Koin binding — possible dead code
      Severity: 🟡 LOW
+     Status: ✅ RESOLVED (2026-02-22)
      Source: Phase 3 NEW-03
      File: shared/security/src/commonMain/.../security/di/SecurityModule.kt
-     Evidence: single { PasswordHasher } alongside correct single<PasswordHashPort> { ... }.
-              PinManager calls PasswordHasher directly (not via Koin). Binding may have
-              zero Koin consumers. Allows bypassing the domain port contract.
-     Recommendation: Grep for get<PasswordHasher>() / inject<PasswordHasher>().
-                     If zero consumers, remove the bare binding.
+     Resolution: Confirmed zero Koin consumers via codebase-wide grep for
+       get<PasswordHasher>() / inject<PasswordHasher>(). Removed bare binding.
+       PasswordHasherAdapter wraps PasswordHasher directly (not via Koin).
+       Import cleaned up; KDoc table updated.
 
-  📛 [MERGED-G1.3] named("deviceId") prerequisite not documented
-     Severity: 🟡 LOW (becomes relevant after G1.1 is fixed)
+  ✅ [MERGED-G1.3] named("deviceId") prerequisite not documented
+     Severity: 🟡 LOW
+     Status: ✅ RESOLVED (2026-02-22)
      Source: Phase 3 NEW-04 (documentation aspect)
      File: docs/plans/Master_plan.md §4.2
-     Recommendation: Add to §4.2: "Platform modules must provide String named('deviceId')
-                     before securityModule loads."
+     Resolution: Added blockquote to §4.2 documenting the platform prerequisite:
+       both androidDataModule and desktopDataModule must provide named("deviceId")
+       String binding, consumed by SecurityAuditLogger and PrinterManagerReceiptAdapter.
 
   🔧 [MERGED-G12.1] 8 unused library entries in libs.versions.toml
      Severity: 🟡 LOW
@@ -413,32 +417,14 @@ SECTION 4: PRIORITY ACTION PLAN
 
 🟢 SUGGESTION — Nice to have (Sprint 4–5):
 
-   1. [G4.1] Replace 4 private *EmptyState composables with ZyntaEmptyState(...)
-      → Files: CategoryListScreen.kt, SupplierListScreen.kt,
-               UnitManagementScreen.kt, TaxGroupScreen.kt
-
-   2. [G5.1] Audit 17 raw CircularProgressIndicator usages; replace ~8 full-screen
-      ones with ZyntaLoadingOverlay
-      → 17 screens across auth, register, pos, inventory modules
-
-   3. [G7.2] Update Master_plan.md §15.1 with exact pinned versions from libs.versions.toml
-      → File: docs/plans/Master_plan.md §15.1
-
-   4. [G7.3] Add :feature:media + :composeApp:core to Master_plan.md §3.2 tree diagram
-      → File: docs/plans/Master_plan.md §3.2
-
-   5. [G8.1] Update Master_plan.md §3.1 diagram: "desktopMain" → "jvmMain"
-      → File: docs/plans/Master_plan.md §3.1
-
-   6. [G10.1] Fix DataModule.kt KDoc: PasswordHashPort is bound in SecurityModule
-      → File: shared/data/src/commonMain/.../data/di/DataModule.kt
-
-   7. [G1.2] Remove bare single { PasswordHasher } from SecurityModule if unused
-      → Grep for get<PasswordHasher>() / inject<PasswordHasher>() first
-      → File: shared/security/.../di/SecurityModule.kt
-
-   8. [G1.3] Document named("deviceId") prerequisite in Master_plan.md §4.2
-      → File: docs/plans/Master_plan.md §4.2
+   1. ✅ [G4.1] Replace 4 private *EmptyState composables with ZyntaEmptyState(...) — DONE 2026-02-22
+   2. 🔁 [G5.1] Audit 17 raw CircularProgressIndicator usages — DEFERRED to UX sprint
+   3. ✅ [G7.2] Update Master_plan.md §15.1 with exact pinned versions — DONE 2026-02-22
+   4. ✅ [G7.3] Add :composeApp:core to Master_plan.md §3.2 tree diagram — DONE 2026-02-22
+   5. ✅ [G8.1] Update Master_plan.md §3.1 diagram: "desktopMain" → "jvmMain" — DONE 2026-02-22
+   6. ✅ [G10.1] Fix DataModule.kt KDoc: PasswordHashPort bound in SecurityModule — DONE 2026-02-22
+   7. ✅ [G1.2] Remove bare single { PasswordHasher } (confirmed zero consumers) — DONE 2026-02-22
+   8. ✅ [G1.3] Document named("deviceId") prerequisite in §4.2 — DONE 2026-02-22
 
    9. [G11.1] Delete 4 empty keystore/ and token/ directories
       → Files: shared/security/src/{commonMain,androidMain,jvmMain}/.../keystore/
