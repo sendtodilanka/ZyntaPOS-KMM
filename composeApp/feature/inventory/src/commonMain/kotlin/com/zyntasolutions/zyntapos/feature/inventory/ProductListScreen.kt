@@ -13,11 +13,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
 import com.zyntasolutions.zyntapos.designsystem.components.SortDirection
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaProductCard
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSearchBar
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTable
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTableColumn
+import org.koin.compose.koinInject
 import com.zyntasolutions.zyntapos.designsystem.components.StockIndicator
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.designsystem.util.WindowSize
@@ -53,6 +55,7 @@ fun ProductListScreen(
     onIntent: (InventoryIntent) -> Unit,
     onNavigateToDetail: (String?) -> Unit,
     modifier: Modifier = Modifier,
+    currencyFormatter: CurrencyFormatter = koinInject(),
 ) {
     val windowSize = currentWindowSize()
 
@@ -115,12 +118,14 @@ fun ProductListScreen(
                     onProductClick = { onNavigateToDetail(it.id) },
                     onStockAdjust = { onIntent(InventoryIntent.OpenStockAdjustment(it)) },
                     windowSize = windowSize,
+                    currencyFormatter = currencyFormatter,
                 )
                 ViewMode.GRID -> ProductGridView(
                     products = state.products,
                     isLoading = state.isLoading,
                     onProductClick = { onNavigateToDetail(it.id) },
                     windowSize = windowSize,
+                    currencyFormatter = currencyFormatter,
                 )
             }
         }
@@ -225,6 +230,7 @@ private fun ProductTableView(
     onProductClick: (Product) -> Unit,
     onStockAdjust: (Product) -> Unit,
     windowSize: WindowSize,
+    currencyFormatter: CurrencyFormatter,
 ) {
     val categoryMap = remember(categories) { categories.associateBy { it.id } }
 
@@ -295,7 +301,7 @@ private fun ProductTableView(
         }
         // Price
         Text(
-            text = formatPrice(product.price),
+            text = currencyFormatter.format(product.price),
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.weight(1f),
         )
@@ -342,6 +348,7 @@ private fun ProductGridView(
     isLoading: Boolean,
     onProductClick: (Product) -> Unit,
     windowSize: WindowSize,
+    currencyFormatter: CurrencyFormatter,
 ) {
     if (isLoading) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -379,7 +386,7 @@ private fun ProductGridView(
         items(products, key = { it.id }) { product ->
             ZyntaProductCard(
                 name = product.name,
-                price = formatPrice(product.price),
+                price = currencyFormatter.format(product.price),
                 imageUrl = product.imageUrl,
                 stockIndicator = product.toStockIndicator(),
                 onClick = { onProductClick(product) },
@@ -389,14 +396,6 @@ private fun ProductGridView(
 }
 
 // ── Private helpers ───────────────────────────────────────────────────────────
-
-/** Format a [Double] price to currency display string. */
-private fun formatPrice(price: Double): String {
-    val cents = (price * 100.0).toLong()
-    val lkr = cents / 100
-    val sen = cents % 100
-    return "LKR $lkr.${sen.toString().padStart(2, '0')}"
-}
 
 /** Display label for [StockFilter] enum values. */
 private fun StockFilter.displayLabel(): String = when (this) {

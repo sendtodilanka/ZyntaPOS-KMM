@@ -3348,3 +3348,30 @@ Two compile errors blocked `:shared:domain:assemble`. Both were identified via `
 | Feature→infrastructure boundary violations remaining | 0 |
 
 > **Section status: ✅ MERGED-G2.1 COMPLETE — feature→infra violation eliminated**
+
+---
+
+## 🟡 PRIORITY ACTION — MERGED-G3.1: Eliminate 4 Duplicate Currency Formatters (2026-02-22)
+> **Source:** Audit v3 Final Report §4 — WARNING
+> **Problem:** 4 private currency formatting functions bypassed the canonical `CurrencyFormatter`
+> in `:shared:core`. The register screen formatters used floating-point math that could produce
+> rounding artifacts (e.g., "2.499999" for 2.50). The POS/inventory formatters hardcoded "LKR".
+> **Fix:** Deleted all 4 private functions. All screens now inject `CurrencyFormatter` via Koin.
+
+- [x] G3.1-1 — Delete `formatPrice()` from `ProductGridSection.kt`, replace with `CurrencyFormatter.format()` via `koinInject` | 2026-02-22
+- [x] G3.1-2 — Delete `formatPrice()` from `ProductListScreen.kt`, replace with `CurrencyFormatter.format()` threaded from top-level composable | 2026-02-22
+- [x] G3.1-3 — Delete `formatCurrency()` from `CloseRegisterScreen.kt`, replace with `CurrencyFormatter.formatPlain()` via `koinInject` | 2026-02-22
+- [x] G3.1-4 — Delete `formatZCurrency()` from `ZReportScreen.kt`, replace with `CurrencyFormatter.formatPlain()` via `koinInject` | 2026-02-22
+
+### G3.1 Integrity Report
+
+| Check | Result |
+|---|---|
+| `ProductGridSection.kt` — no private `formatPrice`, uses `currencyFormatter.format()` | ✅ |
+| `ProductListScreen.kt` — no private `formatPrice`, uses `currencyFormatter.format()` | ✅ |
+| `CloseRegisterScreen.kt` — no private `formatCurrency`, uses `currencyFormatter.formatPlain()` | ✅ |
+| `ZReportScreen.kt` — no private `formatZCurrency`, uses `currencyFormatter.formatPlain()` | ✅ |
+| All 4 screens inject `CurrencyFormatter` via Koin (locale-aware, HALF_UP rounding) | ✅ |
+| Floating-point rounding risk in register screens eliminated | ✅ |
+
+> **Section status: ✅ MERGED-G3.1 COMPLETE — 4 duplicate formatters eliminated, HALF_UP rounding everywhere**

@@ -14,9 +14,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.CashMovement
 import com.zyntasolutions.zyntapos.domain.model.RegisterSession
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -48,11 +50,13 @@ fun ZReportScreen(
     sessionId: String,
     viewModel: RegisterViewModel = koinViewModel(),
     onBack: () -> Unit = {},
+    currencyFormatter: CurrencyFormatter = koinInject(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
     val session = state.zReportSession
     val movements = state.zReportMovements
+    val fmt: (Double) -> String = { currencyFormatter.formatPlain(it) }
 
     // Load Z-report data on first composition
     LaunchedEffect(sessionId) {
@@ -148,7 +152,7 @@ fun ZReportScreen(
                 ReportDivider()
 
                 // ── 3. Opening balance ───────────────────────────────────
-                ReportRow("Opening Balance", formatZCurrency(session.openingBalance))
+                ReportRow("Opening Balance", fmt(session.openingBalance))
 
                 ReportDivider()
 
@@ -272,13 +276,13 @@ private fun ZReportCashMovements(movements: List<CashMovement>) {
             movements.forEach { movement ->
                 val prefix = if (movement.type == CashMovement.Type.IN) "+" else "-"
                 val label = "${movement.type.name}: ${movement.reason}"
-                ReportRow(label, "$prefix${formatZCurrency(movement.amount)}")
+                ReportRow(label, "$prefix${fmt(movement.amount)}")
             }
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
-            ReportRow("Total Cash In", "+${formatZCurrency(totalIn)}")
-            ReportRow("Total Cash Out", "-${formatZCurrency(totalOut)}")
-            ReportRow("Net Movement", formatZCurrency(totalIn - totalOut))
+            ReportRow("Total Cash In", "+${fmt(totalIn)}")
+            ReportRow("Total Cash Out", "-${fmt(totalOut)}")
+            ReportRow("Net Movement", fmt(totalIn - totalOut))
         }
     }
 }
@@ -301,11 +305,11 @@ private fun ZReportSalesSummary() {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         // Placeholder totals — these will be populated from OrderRepository
-        ReportRow("Cash Sales", formatZCurrency(0.0))
-        ReportRow("Card Sales", formatZCurrency(0.0))
-        ReportRow("Mobile Sales", formatZCurrency(0.0))
+        ReportRow("Cash Sales", fmt(0.0))
+        ReportRow("Card Sales", fmt(0.0))
+        ReportRow("Mobile Sales", fmt(0.0))
         HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
-        ReportRow("Total Sales", formatZCurrency(0.0))
+        ReportRow("Total Sales", fmt(0.0))
     }
 }
 
@@ -320,17 +324,17 @@ private fun ZReportBalanceReconciliation(session: RegisterSession) {
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold,
         )
-        ReportRow("Expected Balance", formatZCurrency(session.expectedBalance))
+        ReportRow("Expected Balance", fmt(session.expectedBalance))
         session.actualBalance?.let { actual ->
-            ReportRow("Actual Balance", formatZCurrency(actual))
+            ReportRow("Actual Balance", fmt(actual))
 
             val variance = actual - session.expectedBalance
             val isWarning = kotlin.math.abs(variance) > 10.0 // matches default threshold
 
             val varianceText = when {
-                variance > 0.0 -> "+${formatZCurrency(variance)} (OVER)"
-                variance < 0.0 -> "${formatZCurrency(variance)} (SHORT)"
-                else -> "${formatZCurrency(0.0)} (EXACT)"
+                variance > 0.0 -> "+${fmt(variance)} (OVER)"
+                variance < 0.0 -> "${fmt(variance)} (SHORT)"
+                else -> "${fmt(0.0)} (EXACT)"
             }
 
             Row(
@@ -428,13 +432,3 @@ private fun ReportRow(label: String, value: String) {
     }
 }
 
-/**
- * Formats a [Double] as a currency string with 2 decimal places for Z-report display.
- */
-private fun formatZCurrency(amount: Double): String {
-    val abs = kotlin.math.abs(amount)
-    val int = abs.toLong()
-    val frac = ((abs - int) * 100).toLong()
-    val formatted = "$int.${frac.toString().padStart(2, '0')}"
-    return if (amount < 0.0) "-$formatted" else formatted
-}

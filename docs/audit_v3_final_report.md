@@ -193,19 +193,16 @@ SECTION 2: COMPLETE FINDINGS (Deduplicated)
 2C. Code Duplications (from Phase 3):
 ──────────────────────────────────────────────────────
 
-  🔁 [MERGED-G3.1] 4 private currency formatters bypass CurrencyFormatter
+  ✅ [MERGED-G3.1] 4 private currency formatters bypass CurrencyFormatter
      Severity: 🟠 MEDIUM
+     Status: ✅ RESOLVED (2026-02-22)
      Source: Phase 3 NEW-05
-     Locations:
-       feature/register/.../CloseRegisterScreen.kt:501   — formatCurrency()
-       feature/register/.../ZReportScreen.kt:434          — formatZCurrency() [identical]
-       feature/pos/.../ProductGridSection.kt:58            — formatPrice()
-       feature/inventory/.../ProductListScreen.kt:394      — formatPrice() [adds "LKR "]
-     Canonical: shared/core/.../utils/CurrencyFormatter.kt (locale-aware, HALF_UP rounding)
-     Risk: CloseRegisterScreen uses floating-point math that can produce "2.499999"
-           for amounts like 2.50. Z-report reconciliation totals may be incorrect.
-     Recommendation: Delete all 4 private functions. Route through CurrencyFormatter
-                     from ViewModel state. Priority: CloseRegisterScreen + ZReportScreen.
+     Resolution:
+       → Deleted formatCurrency() from CloseRegisterScreen.kt — replaced with CurrencyFormatter.formatPlain()
+       → Deleted formatZCurrency() from ZReportScreen.kt — replaced with CurrencyFormatter.formatPlain()
+       → Deleted formatPrice() from ProductGridSection.kt — replaced with CurrencyFormatter.format()
+       → Deleted formatPrice() from ProductListScreen.kt — replaced with CurrencyFormatter.format()
+       → All screens inject CurrencyFormatter via koinInject() — locale-aware, HALF_UP rounding
 
   🔁 [MERGED-G4.1] 4 private *EmptyState composables bypass ZyntaEmptyState
      Severity: 🟡 LOW
