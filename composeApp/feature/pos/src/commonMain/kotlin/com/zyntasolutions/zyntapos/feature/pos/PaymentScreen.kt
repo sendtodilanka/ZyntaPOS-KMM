@@ -6,7 +6,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,6 +16,7 @@ import androidx.compose.ui.unit.sp
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButtonSize
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.designsystem.util.WindowSize
 import com.zyntasolutions.zyntapos.designsystem.util.currentWindowSize
@@ -62,7 +62,6 @@ import kotlinx.coroutines.flow.Flow
  * @param modifier            Optional [Modifier].
  * @param formatter           [CurrencyFormatter] for all monetary display.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PaymentScreen(
     state: PosState,
@@ -120,21 +119,10 @@ fun PaymentScreen(
     }
 
     // ── Scaffold ───────────────────────────────────────────────────────────────
-    Scaffold(
+    ZyntaPageScaffold(
+        title = "Payment",
         modifier = modifier,
-        topBar = {
-            TopAppBar(
-                title = { Text("Payment") },
-                navigationIcon = {
-                    IconButton(onClick = onDismiss) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
-            )
-        },
+        onNavigateBack = onDismiss,
     ) { innerPadding ->
         if (isExpandedLayout) {
             // ── EXPANDED two-pane ──────────────────────────────────────────────

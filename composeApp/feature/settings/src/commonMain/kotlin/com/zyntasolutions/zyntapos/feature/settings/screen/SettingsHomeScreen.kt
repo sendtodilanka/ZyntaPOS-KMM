@@ -31,9 +31,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ExperimentalMaterial3Api
-import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTopAppBar
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -56,13 +55,9 @@ fun SettingsHomeScreen(
     onNavigate: (SettingsRoute) -> Unit,
     onBack: () -> Unit,
 ) {
-    Scaffold(
-        topBar = {
-            ZyntaTopAppBar(
-                title = "Settings",
-                onNavigateBack = onBack,
-            )
-        }
+    ZyntaPageScaffold(
+        title = "Settings",
+        onNavigateBack = onBack,
     ) { innerPadding ->
         LazyColumn(
             contentPadding = PaddingValues(

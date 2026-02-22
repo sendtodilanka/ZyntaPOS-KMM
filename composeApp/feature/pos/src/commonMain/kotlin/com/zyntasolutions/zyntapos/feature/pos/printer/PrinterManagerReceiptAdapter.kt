@@ -3,43 +3,49 @@ package com.zyntasolutions.zyntapos.feature.pos.printer
 import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import com.zyntasolutions.zyntapos.core.result.HalException
 import com.zyntasolutions.zyntapos.core.result.Result
+import com.zyntasolutions.zyntapos.domain.model.AuditEntry
+import com.zyntasolutions.zyntapos.domain.model.AuditEventType
 import com.zyntasolutions.zyntapos.domain.model.Order
 import com.zyntasolutions.zyntapos.domain.printer.ReceiptPrinterPort
+import com.zyntasolutions.zyntapos.domain.repository.AuditRepository
 import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.hal.printer.CharacterSet
 import com.zyntasolutions.zyntapos.hal.printer.EscPosReceiptBuilder
 import com.zyntasolutions.zyntapos.hal.printer.PaperWidth
 import com.zyntasolutions.zyntapos.hal.printer.PrinterConfig
 import com.zyntasolutions.zyntapos.hal.printer.PrinterManager
-import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
+import kotlinx.datetime.Clock
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 /**
  * Infrastructure adapter that implements [ReceiptPrinterPort] using the HAL printer
- * pipeline and the security audit logger.
+ * pipeline and the domain [AuditRepository] for audit logging.
  *
  * This class is the **sole owner** of all printing infrastructure concerns:
  * 1. Resolves [PrinterConfig] from [SettingsRepository].
  * 2. Builds ESC/POS byte commands via [EscPosReceiptBuilder].
  * 3. Opens the printer transport via [PrinterManager.connect].
  * 4. Delivers the byte buffer via [PrinterManager.print].
- * 5. Appends a [SecurityAuditLogger] entry on success.
+ * 5. Appends an [AuditEntry] on success via [AuditRepository].
  *
- * Lives in `:composeApp:feature:pos` — the only module that can safely import from
- * both `:shared:hal` and `:shared:security` without creating circular dependencies.
- *
- * ### Dependency note
- * `:shared:domain` defines [ReceiptPrinterPort]; `:shared:hal` and `:shared:security`
- * depend on `:shared:domain`. Placing this adapter in `:composeApp:feature:pos`
- * (which depends on all three) resolves the layering constraint.
+ * ### Clean Architecture note (MERGED-G2.1)
+ * Previously this adapter imported `SecurityAuditLogger` from `:shared:security`,
+ * creating a feature→infrastructure boundary violation. Refactored to use the
+ * domain-layer [AuditRepository] interface instead, eliminating the need for the
+ * `:shared:security` dependency in `:composeApp:feature:pos`.
  *
  * @param settingsRepository  Key-value settings source for [PrinterConfig] assembly.
  * @param printerManager      HAL gateway for ESC/POS command delivery.
- * @param auditLogger         Security audit trail for receipt print events.
+ * @param auditRepository     Domain audit trail for receipt print events.
+ * @param deviceId            Hardware/installation ID for audit entries.
  */
+@OptIn(ExperimentalUuidApi::class)
 class PrinterManagerReceiptAdapter(
     private val settingsRepository: SettingsRepository,
     private val printerManager: PrinterManager,
-    private val auditLogger: SecurityAuditLogger,
+    private val auditRepository: AuditRepository,
+    private val deviceId: String,
 ) : ReceiptPrinterPort {
 
     override suspend fun print(order: Order, cashierId: String): Result<Unit> {
@@ -77,7 +83,19 @@ class PrinterManagerReceiptAdapter(
         }
 
         // 5. Audit trail — fire-and-forget; must not block or throw
-        runCatching { auditLogger.logReceiptPrint(orderId = order.id, userId = cashierId) }
+        runCatching {
+            auditRepository.insert(
+                AuditEntry(
+                    id = Uuid.random().toString(),
+                    eventType = AuditEventType.DATA_EXPORT,
+                    userId = cashierId,
+                    deviceId = deviceId,
+                    payload = """{"action":"RECEIPT_PRINT","orderId":"${order.id}"}""",
+                    success = true,
+                    createdAt = Clock.System.now(),
+                ),
+            )
+        }
 
         return Result.Success(Unit)
     }

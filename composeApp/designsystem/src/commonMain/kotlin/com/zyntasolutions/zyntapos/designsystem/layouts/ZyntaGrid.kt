@@ -119,3 +119,4 @@ fun columnCountDescription(windowSize: WindowSize): String = when (windowSize) {
     WindowSize.MEDIUM -> "3–4 (adaptive, min 150dp)"
     WindowSize.EXPANDED -> "4–6 (adaptive, min 160dp)"
 }
+

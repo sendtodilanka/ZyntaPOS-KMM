@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -12,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTextField
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.designsystem.util.WindowSize
 import com.zyntasolutions.zyntapos.designsystem.util.currentWindowSize
@@ -40,7 +40,6 @@ import com.zyntasolutions.zyntapos.domain.model.UnitOfMeasure
  * @param onBack   Navigation callback to return to the list.
  * @param modifier Optional root [Modifier].
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductDetailScreen(
     state: InventoryState,
@@ -53,35 +52,27 @@ fun ProductDetailScreen(
     val isNew = form.id == null
     val scrollState = rememberScrollState()
 
-    Scaffold(
+    ZyntaPageScaffold(
+        title = if (isNew) "New Product" else "Edit Product",
         modifier = modifier,
-        topBar = {
-            TopAppBar(
-                title = { Text(if (isNew) "New Product" else "Edit Product") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    // Save button
-                    FilledTonalButton(
-                        onClick = { onIntent(InventoryIntent.SaveProduct) },
-                        enabled = !state.isLoading,
-                    ) {
-                        Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(ZyntaSpacing.xs))
-                        Text(if (isNew) "Create" else "Save")
-                    }
-                },
-            )
+        onNavigateBack = onBack,
+        actions = {
+            // Save button
+            FilledTonalButton(
+                onClick = { onIntent(InventoryIntent.SaveProduct) },
+                enabled = !state.isLoading,
+            ) {
+                Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(ZyntaSpacing.xs))
+                Text(if (isNew) "Create" else "Save")
+            }
         },
     ) { innerPadding ->
         if (state.isLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
-            return@Scaffold
+            return@ZyntaPageScaffold
         }
 
         when (windowSize) {

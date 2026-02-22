@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -14,9 +13,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.CashMovement
 import com.zyntasolutions.zyntapos.domain.model.RegisterSession
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -42,17 +44,18 @@ import org.koin.compose.viewmodel.koinViewModel
  * @param viewModel Shared [RegisterViewModel]; default resolved by Koin.
  * @param onBack    Navigate back (to Dashboard or home).
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ZReportScreen(
     sessionId: String,
     viewModel: RegisterViewModel = koinViewModel(),
     onBack: () -> Unit = {},
+    currencyFormatter: CurrencyFormatter = koinInject(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
     val session = state.zReportSession
     val movements = state.zReportMovements
+    val fmt: (Double) -> String = { currencyFormatter.formatPlain(it) }
 
     // Load Z-report data on first composition
     LaunchedEffect(sessionId) {
@@ -70,39 +73,28 @@ fun ZReportScreen(
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHost) },
-        topBar = {
-            TopAppBar(
-                title = { Text("Z-Report") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                        )
-                    }
-                },
-                actions = {
-                    // Print button in toolbar
-                    IconButton(
-                        onClick = { viewModel.dispatch(RegisterIntent.PrintZReport(sessionId)) },
-                        enabled = !state.isPrintingZReport && session != null,
-                    ) {
-                        if (state.isPrintingZReport) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
-                                strokeWidth = 2.dp,
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.Print,
-                                contentDescription = "Print Z-Report",
-                            )
-                        }
-                    }
-                },
-            )
+    ZyntaPageScaffold(
+        title = "Z-Report",
+        onNavigateBack = onBack,
+        snackbarHostState = snackbarHost,
+        actions = {
+            // Print button in toolbar
+            IconButton(
+                onClick = { viewModel.dispatch(RegisterIntent.PrintZReport(sessionId)) },
+                enabled = !state.isPrintingZReport && session != null,
+            ) {
+                if (state.isPrintingZReport) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp,
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Print,
+                        contentDescription = "Print Z-Report",
+                    )
+                }
+            }
         },
     ) { padding ->
         if (session == null) {
@@ -120,7 +112,7 @@ fun ZReportScreen(
                     )
                 }
             }
-            return@Scaffold
+            return@ZyntaPageScaffold
         }
 
         BoxWithConstraints(
@@ -148,22 +140,22 @@ fun ZReportScreen(
                 ReportDivider()
 
                 // ── 3. Opening balance ───────────────────────────────────
-                ReportRow("Opening Balance", formatZCurrency(session.openingBalance))
+                ReportRow("Opening Balance", fmt(session.openingBalance))
 
                 ReportDivider()
 
                 // ── 4. Cash movements ────────────────────────────────────
-                ZReportCashMovements(movements)
+                ZReportCashMovements(movements, fmt)
 
                 ReportDivider()
 
                 // ── 5. Sales summary (placeholder) ───────────────────────
-                ZReportSalesSummary()
+                ZReportSalesSummary(fmt)
 
                 ReportDivider()
 
                 // ── 6 & 7. Expected vs Actual + Discrepancy ──────────────
-                ZReportBalanceReconciliation(session)
+                ZReportBalanceReconciliation(session, fmt)
 
                 ReportDivider()
 
@@ -251,7 +243,7 @@ private fun ZReportSessionInfo(session: RegisterSession) {
  * Chronological list of cash in/out movements during the session.
  */
 @Composable
-private fun ZReportCashMovements(movements: List<CashMovement>) {
+private fun ZReportCashMovements(movements: List<CashMovement>, fmt: (Double) -> String) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
             text = "Cash Movements",
@@ -272,13 +264,13 @@ private fun ZReportCashMovements(movements: List<CashMovement>) {
             movements.forEach { movement ->
                 val prefix = if (movement.type == CashMovement.Type.IN) "+" else "-"
                 val label = "${movement.type.name}: ${movement.reason}"
-                ReportRow(label, "$prefix${formatZCurrency(movement.amount)}")
+                ReportRow(label, "$prefix${fmt(movement.amount)}")
             }
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
-            ReportRow("Total Cash In", "+${formatZCurrency(totalIn)}")
-            ReportRow("Total Cash Out", "-${formatZCurrency(totalOut)}")
-            ReportRow("Net Movement", formatZCurrency(totalIn - totalOut))
+            ReportRow("Total Cash In", "+${fmt(totalIn)}")
+            ReportRow("Total Cash Out", "-${fmt(totalOut)}")
+            ReportRow("Net Movement", fmt(totalIn - totalOut))
         }
     }
 }
@@ -288,7 +280,7 @@ private fun ZReportCashMovements(movements: List<CashMovement>) {
  * Phase 1 placeholder — will be wired to OrderRepository in Phase 2.
  */
 @Composable
-private fun ZReportSalesSummary() {
+private fun ZReportSalesSummary(fmt: (Double) -> String) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
             text = "Sales Summary",
@@ -301,11 +293,11 @@ private fun ZReportSalesSummary() {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         // Placeholder totals — these will be populated from OrderRepository
-        ReportRow("Cash Sales", formatZCurrency(0.0))
-        ReportRow("Card Sales", formatZCurrency(0.0))
-        ReportRow("Mobile Sales", formatZCurrency(0.0))
+        ReportRow("Cash Sales", fmt(0.0))
+        ReportRow("Card Sales", fmt(0.0))
+        ReportRow("Mobile Sales", fmt(0.0))
         HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
-        ReportRow("Total Sales", formatZCurrency(0.0))
+        ReportRow("Total Sales", fmt(0.0))
     }
 }
 
@@ -313,24 +305,24 @@ private fun ZReportSalesSummary() {
  * Expected vs Actual balance reconciliation with discrepancy.
  */
 @Composable
-private fun ZReportBalanceReconciliation(session: RegisterSession) {
+private fun ZReportBalanceReconciliation(session: RegisterSession, fmt: (Double) -> String) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
             text = "Balance Reconciliation",
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold,
         )
-        ReportRow("Expected Balance", formatZCurrency(session.expectedBalance))
+        ReportRow("Expected Balance", fmt(session.expectedBalance))
         session.actualBalance?.let { actual ->
-            ReportRow("Actual Balance", formatZCurrency(actual))
+            ReportRow("Actual Balance", fmt(actual))
 
             val variance = actual - session.expectedBalance
             val isWarning = kotlin.math.abs(variance) > 10.0 // matches default threshold
 
             val varianceText = when {
-                variance > 0.0 -> "+${formatZCurrency(variance)} (OVER)"
-                variance < 0.0 -> "${formatZCurrency(variance)} (SHORT)"
-                else -> "${formatZCurrency(0.0)} (EXACT)"
+                variance > 0.0 -> "+${fmt(variance)} (OVER)"
+                variance < 0.0 -> "${fmt(variance)} (SHORT)"
+                else -> "${fmt(0.0)} (EXACT)"
             }
 
             Row(
@@ -428,13 +420,3 @@ private fun ReportRow(label: String, value: String) {
     }
 }
 
-/**
- * Formats a [Double] as a currency string with 2 decimal places for Z-report display.
- */
-private fun formatZCurrency(amount: Double): String {
-    val abs = kotlin.math.abs(amount)
-    val int = abs.toLong()
-    val frac = ((abs - int) * 100).toLong()
-    val formatted = "$int.${frac.toString().padStart(2, '0')}"
-    return if (amount < 0.0) "-$formatted" else formatted
-}

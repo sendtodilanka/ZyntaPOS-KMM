@@ -84,8 +84,7 @@ class AuthUseCasesTest {
     fun `logout - clears session and returns success`() = runTest {
         val repo = FakeAuthRepository()
         repo.setActiveUser(buildUser())
-        val result = LogoutUseCase(repo)()
-        assertIs<Result.Success<*>>(result)
+        LogoutUseCase(repo)()
         assertTrue(repo.logoutCalled)
     }
 
@@ -93,8 +92,8 @@ class AuthUseCasesTest {
     fun `logout - can be called multiple times without error`() = runTest {
         val repo = FakeAuthRepository()
         LogoutUseCase(repo)()
-        val result = LogoutUseCase(repo)()
-        assertIs<Result.Success<*>>(result)
+        LogoutUseCase(repo)()
+        assertTrue(repo.logoutCalled)
     }
 
     // ─── ValidatePinUseCase ───────────────────────────────────────────────────

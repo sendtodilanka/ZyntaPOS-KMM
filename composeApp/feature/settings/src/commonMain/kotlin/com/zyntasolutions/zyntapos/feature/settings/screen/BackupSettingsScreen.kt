@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -18,9 +17,8 @@ import androidx.compose.ui.Modifier
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaDialogContent
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaDialogVariant
-import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSnackbarHost
 import androidx.compose.material3.ExperimentalMaterial3Api
-import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTopAppBar
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.feature.settings.SettingsEffect
 import com.zyntasolutions.zyntapos.feature.settings.SettingsIntent
@@ -89,9 +87,10 @@ fun BackupSettingsScreen(
         )
     }
 
-    Scaffold(
-        topBar = { ZyntaTopAppBar(title = "Backup & Restore", onNavigateBack = onBack) },
-        snackbarHost = { ZyntaSnackbarHost(snackbarHostState) },
+    ZyntaPageScaffold(
+        title = "Backup & Restore",
+        onNavigateBack = onBack,
+        snackbarHostState = snackbarHostState,
     ) { innerPadding ->
         LazyColumn(
             contentPadding = PaddingValues(

@@ -1,0 +1,44 @@
+-- Stock adjustments: audit trail for inventory changes
+CREATE TABLE stock_adjustments (
+    id            TEXT    NOT NULL PRIMARY KEY,
+    product_id    TEXT    NOT NULL,
+    type          TEXT    NOT NULL,
+    quantity      REAL    NOT NULL DEFAULT 0.0,
+    reason        TEXT    NOT NULL,
+    adjusted_by   TEXT    NOT NULL,
+    reference_id  TEXT,
+    timestamp     INTEGER NOT NULL,
+    sync_status   TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE INDEX idx_stock_adj_product ON stock_adjustments(product_id);
+
+-- Stock alerts: low-stock threshold tracking
+CREATE TABLE stock_alerts (
+    id            TEXT    NOT NULL PRIMARY KEY,
+    product_id    TEXT    NOT NULL UNIQUE,
+    current_qty   REAL    NOT NULL,
+    threshold_qty REAL    NOT NULL,
+    triggered_at  INTEGER NOT NULL
+);
+
+CREATE UNIQUE INDEX idx_alerts_product ON stock_alerts(product_id);
+
+-- ── Read queries ────────────────────────────────────────────────────────────
+
+getAdjustmentsByProduct:
+SELECT * FROM stock_adjustments WHERE product_id = ? ORDER BY timestamp DESC;
+
+-- ── Write queries ───────────────────────────────────────────────────────────
+
+insertAdjustment:
+INSERT INTO stock_adjustments(id, product_id, type, quantity, reason, adjusted_by, reference_id, timestamp, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- Upsert alert: insert or update by product_id
+upsertAlert:
+INSERT OR REPLACE INTO stock_alerts(id, product_id, current_qty, threshold_qty, triggered_at)
+VALUES (?, ?, ?, ?, ?);
+
+deleteAlert:
+DELETE FROM stock_alerts WHERE product_id = ?;

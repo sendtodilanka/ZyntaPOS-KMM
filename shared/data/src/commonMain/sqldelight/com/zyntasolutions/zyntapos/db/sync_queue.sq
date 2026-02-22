@@ -1,0 +1,114 @@
+-- ============================================================
+-- sync_queue.sq — Offline-first outbox queue for sync operations
+-- ============================================================
+-- Stores locally-created write operations (INSERT/UPDATE/DELETE)
+-- that are pending push to the remote server.
+--
+-- Lifecycle: PENDING → SYNCING → SYNCED | FAILED
+-- See SyncEngine.kt and SyncRepositoryImpl.kt for queue management.
+-- ============================================================
+
+CREATE TABLE pending_operations (
+    id          TEXT    NOT NULL PRIMARY KEY,
+    entity_type TEXT    NOT NULL,
+    entity_id   TEXT    NOT NULL,
+    operation   TEXT    NOT NULL,                -- CREATE | UPDATE | DELETE
+    payload     TEXT    NOT NULL DEFAULT '{}',
+    status      TEXT    NOT NULL DEFAULT 'PENDING',  -- PENDING | SYNCING | SYNCED | FAILED
+    retry_count INTEGER NOT NULL DEFAULT 0,
+    created_at  INTEGER NOT NULL,                -- epoch millis
+    last_tried  INTEGER NOT NULL DEFAULT 0       -- epoch millis
+);
+
+CREATE INDEX idx_pending_ops_status_retry
+    ON pending_operations(status, retry_count, created_at);
+
+CREATE INDEX idx_pending_ops_entity
+    ON pending_operations(entity_type, entity_id, status);
+
+-- ── Enqueue ─────────────────────────────────────────────────────
+
+enqueueOperation:
+INSERT OR IGNORE INTO pending_operations(id, entity_type, entity_id, operation, payload, created_at)
+VALUES (?, ?, ?, ?, ?, ?);
+
+-- ── Read ────────────────────────────────────────────────────────
+
+getEligibleOperations:
+SELECT *
+FROM pending_operations
+WHERE status = 'PENDING'
+  AND retry_count < 5
+ORDER BY created_at ASC
+LIMIT ?;
+
+getByEntityId:
+SELECT *
+FROM pending_operations
+WHERE id = ?;
+
+getPendingCount:
+SELECT COUNT(*)
+FROM pending_operations
+WHERE status = 'PENDING';
+
+getFailedCount:
+SELECT COUNT(*)
+FROM pending_operations
+WHERE status = 'FAILED';
+
+-- ── Status transitions ──────────────────────────────────────────
+
+markSyncing:
+UPDATE pending_operations
+SET status = 'SYNCING',
+    last_tried = ?
+WHERE id = ?;
+
+markSynced:
+UPDATE pending_operations
+SET status = 'SYNCED'
+WHERE id = ?;
+
+markFailed:
+UPDATE pending_operations
+SET status = 'PENDING',
+    retry_count = retry_count + 1,
+    last_tried = ?
+WHERE id = ?;
+
+markPermanentlyFailed:
+UPDATE pending_operations
+SET status = 'FAILED'
+WHERE id = ?;
+
+-- ── Recovery ────────────────────────────────────────────────────
+
+-- Resets SYNCING rows left over from a crashed session back to PENDING.
+-- Called with a cutoff timestamp; rows with last_tried < cutoff are considered stale.
+resetStaleSync:
+UPDATE pending_operations
+SET status = 'PENDING'
+WHERE status = 'SYNCING'
+  AND last_tried < ?;
+
+-- ── Maintenance ─────────────────────────────────────────────────
+
+-- Removes SYNCED rows older than the given epoch-millis cutoff.
+pruneSynced:
+DELETE FROM pending_operations
+WHERE status = 'SYNCED'
+  AND created_at < ?;
+
+-- Keeps only the latest PENDING operation per (entity_type, entity_id).
+-- Older duplicates are removed to reduce redundant sync pushes.
+deduplicatePending:
+DELETE FROM pending_operations
+WHERE status = 'PENDING'
+  AND EXISTS (
+    SELECT 1 FROM pending_operations AS newer
+    WHERE newer.entity_type = pending_operations.entity_type
+      AND newer.entity_id   = pending_operations.entity_id
+      AND newer.status       = 'PENDING'
+      AND newer.created_at   > pending_operations.created_at
+  );

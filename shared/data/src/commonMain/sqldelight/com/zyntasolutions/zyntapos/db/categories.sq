@@ -1,0 +1,46 @@
+-- Categories table: product classification hierarchy
+CREATE TABLE categories (
+    id            TEXT    NOT NULL PRIMARY KEY,
+    name          TEXT    NOT NULL,
+    parent_id     TEXT,
+    image_url     TEXT,
+    display_order INTEGER NOT NULL DEFAULT 0,
+    is_active     INTEGER NOT NULL DEFAULT 1,
+    created_at    INTEGER NOT NULL,
+    updated_at    INTEGER NOT NULL,
+    sync_status   TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE INDEX idx_categories_parent ON categories(parent_id);
+
+-- ── Read queries ────────────────────────────────────────────────────────────
+
+getAllCategories:
+SELECT * FROM categories WHERE is_active = 1 ORDER BY display_order ASC, name ASC;
+
+getCategoryById:
+SELECT * FROM categories WHERE id = ?;
+
+-- Depth-ordered flat list: root categories first, then children sorted by display_order.
+-- Two-level ordering approximates the recursive CTE without SQLDelight codegen limitations.
+getCategoryTree:
+SELECT id, name, parent_id, image_url, display_order, is_active
+FROM categories
+WHERE is_active = 1
+ORDER BY
+    CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END,
+    COALESCE(parent_id, id),
+    display_order,
+    name;
+
+-- ── Write queries ───────────────────────────────────────────────────────────
+
+insertCategory:
+INSERT INTO categories(id, name, parent_id, image_url, display_order, is_active, created_at, updated_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateCategory:
+UPDATE categories SET
+    name = ?, parent_id = ?, image_url = ?, display_order = ?,
+    is_active = ?, updated_at = ?, sync_status = ?
+WHERE id = ?;

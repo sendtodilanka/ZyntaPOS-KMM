@@ -13,7 +13,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,10 +20,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSnackbarHost
 import androidx.compose.material3.ExperimentalMaterial3Api
-import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTopAppBar
-import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaScaffold
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.feature.settings.SettingsEffect
 import com.zyntasolutions.zyntapos.feature.settings.SettingsIntent
@@ -86,9 +83,10 @@ fun AppearanceSettingsScreen(
         }
     }
 
-    Scaffold(
-        topBar = { ZyntaTopAppBar(title = "Appearance", onNavigateBack = onBack) },
-        snackbarHost = { ZyntaSnackbarHost(snackbarHostState) },
+    ZyntaPageScaffold(
+        title = "Appearance",
+        onNavigateBack = onBack,
+        snackbarHostState = snackbarHostState,
     ) { innerPadding ->
         LazyColumn(
             contentPadding = PaddingValues(

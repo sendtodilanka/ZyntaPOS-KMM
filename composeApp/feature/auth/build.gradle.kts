@@ -45,6 +45,10 @@ kotlin {
         }
         commonTest.dependencies {
             implementation(libs.bundles.testing.common)
+            implementation(libs.kotlinx.datetime)
+        }
+        jvmTest.dependencies {
+            implementation(libs.kotlinx.datetime)
         }
     }
 }

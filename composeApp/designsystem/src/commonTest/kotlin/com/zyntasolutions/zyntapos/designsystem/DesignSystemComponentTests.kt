@@ -264,31 +264,18 @@ class ZyntaNavItemTest {
 class ZyntaGridColumnCountTest {
 
     @Test
-    fun compactWindowGivesFixedTwoColumns() {
-        val description = columnCountDescription(WindowSize.COMPACT)
-        assertTrue(description.startsWith("2"), "COMPACT must map to 2 columns, got: $description")
+    fun compactWindowUsesFixedTwoColumns() {
+        assertEquals("2 (fixed)", columnCountDescription(WindowSize.COMPACT))
     }
 
     @Test
-    fun mediumWindowGivesAdaptiveThreeToFourColumns() {
-        val description = columnCountDescription(WindowSize.MEDIUM)
-        assertTrue(description.contains("3–4") || description.contains("3-4"),
-            "MEDIUM must describe 3–4 adaptive columns, got: $description")
+    fun mediumWindowUsesAdaptiveThreeToFour() {
+        assertEquals("3–4 (adaptive, min 150dp)", columnCountDescription(WindowSize.MEDIUM))
     }
 
     @Test
-    fun expandedWindowGivesAdaptiveFourToSixColumns() {
-        val description = columnCountDescription(WindowSize.EXPANDED)
-        assertTrue(description.contains("4–6") || description.contains("4-6"),
-            "EXPANDED must describe 4–6 adaptive columns, got: $description")
-    }
-
-    @Test
-    fun allWindowSizesHaveMappings() {
-        WindowSize.entries.forEach { size ->
-            val desc = columnCountDescription(size)
-            assertTrue(desc.isNotBlank(), "Column count description must not be blank for $size")
-        }
+    fun expandedWindowUsesAdaptiveFourToSix() {
+        assertEquals("4–6 (adaptive, min 160dp)", columnCountDescription(WindowSize.EXPANDED))
     }
 }
 

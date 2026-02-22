@@ -12,7 +12,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -26,11 +25,10 @@ import com.zyntasolutions.zyntapos.designsystem.components.ZyntaBottomSheet
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaDialogContent
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaDialogVariant
-import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSnackbarHost
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTable
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTableColumn
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTextField
-import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTopAppBar
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.TaxGroup
 import com.zyntasolutions.zyntapos.feature.settings.SettingsEffect
@@ -107,9 +105,10 @@ fun TaxSettingsScreen(
         )
     }
 
-    Scaffold(
-        topBar = { ZyntaTopAppBar(title = "Tax Groups", onNavigateBack = onBack) },
-        snackbarHost = { ZyntaSnackbarHost(snackbarHostState) },
+    ZyntaPageScaffold(
+        title = "Tax Groups",
+        onNavigateBack = onBack,
+        snackbarHostState = snackbarHostState,
         floatingActionButton = {
             FloatingActionButton(onClick = { onIntent(SettingsIntent.OpenCreateTaxGroup) }) {
                 Icon(Icons.Filled.Add, contentDescription = "Add Tax Group")

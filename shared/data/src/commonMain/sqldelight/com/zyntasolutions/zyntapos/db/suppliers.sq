@@ -1,0 +1,34 @@
+-- Suppliers table: vendor/procurement contacts
+CREATE TABLE suppliers (
+    id              TEXT    NOT NULL PRIMARY KEY,
+    name            TEXT    NOT NULL,
+    contact_person  TEXT,
+    phone           TEXT,
+    email           TEXT,
+    address         TEXT,
+    notes           TEXT,
+    is_active       INTEGER NOT NULL DEFAULT 1,
+    created_at      INTEGER NOT NULL,
+    updated_at      INTEGER NOT NULL,
+    sync_status     TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+-- ── Read queries ────────────────────────────────────────────────────────────
+
+getAllSuppliers:
+SELECT * FROM suppliers WHERE is_active = 1 ORDER BY name ASC;
+
+getSupplierById:
+SELECT * FROM suppliers WHERE id = ?;
+
+-- ── Write queries ───────────────────────────────────────────────────────────
+
+insertSupplier:
+INSERT INTO suppliers(id, name, contact_person, phone, email, address, notes, is_active, created_at, updated_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateSupplier:
+UPDATE suppliers SET
+    name = ?, contact_person = ?, phone = ?, email = ?, address = ?,
+    notes = ?, is_active = ?, updated_at = ?, sync_status = ?
+WHERE id = ?;

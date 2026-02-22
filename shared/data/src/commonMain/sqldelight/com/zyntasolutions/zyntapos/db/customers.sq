@@ -1,0 +1,66 @@
+-- Customers table: client records with loyalty tracking
+CREATE TABLE customers (
+    id              TEXT    NOT NULL PRIMARY KEY,
+    name            TEXT    NOT NULL,
+    phone           TEXT,
+    email           TEXT,
+    address         TEXT,
+    group_id        TEXT,
+    loyalty_points  INTEGER NOT NULL DEFAULT 0,
+    notes           TEXT,
+    is_active       INTEGER NOT NULL DEFAULT 1,
+    created_at      INTEGER NOT NULL,
+    updated_at      INTEGER NOT NULL,
+    sync_status     TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE INDEX idx_customers_active ON customers(is_active);
+
+-- ── FTS5 full-text search index ───────────────────────────────────────────────
+CREATE VIRTUAL TABLE customers_fts USING fts5(
+    customer_id UNINDEXED,
+    name,
+    phone,
+    email
+);
+
+CREATE TRIGGER customers_fts_insert AFTER INSERT ON customers BEGIN
+    INSERT INTO customers_fts(customer_id, name, phone, email)
+    VALUES (new.id, new.name, COALESCE(new.phone, ''), COALESCE(new.email, ''));
+END;
+
+CREATE TRIGGER customers_fts_delete AFTER DELETE ON customers BEGIN
+    DELETE FROM customers_fts WHERE customer_id = old.id;
+END;
+
+CREATE TRIGGER customers_fts_update AFTER UPDATE ON customers BEGIN
+    DELETE FROM customers_fts WHERE customer_id = old.id;
+    INSERT INTO customers_fts(customer_id, name, phone, email)
+    VALUES (new.id, new.name, COALESCE(new.phone, ''), COALESCE(new.email, ''));
+END;
+
+-- ── Read queries ────────────────────────────────────────────────────────────
+
+getAllCustomers:
+SELECT * FROM customers WHERE is_active = 1 ORDER BY name ASC;
+
+getCustomerById:
+SELECT * FROM customers WHERE id = ?;
+
+-- FTS5 full-text search (caller provides FTS5 query, e.g. "john*")
+searchCustomers:
+SELECT c.* FROM customers c
+INNER JOIN customers_fts fts ON fts.customer_id = c.id
+WHERE customers_fts MATCH :query AND c.is_active = 1;
+
+-- ── Write queries ───────────────────────────────────────────────────────────
+
+insertCustomer:
+INSERT INTO customers(id, name, phone, email, address, group_id, loyalty_points, notes, is_active, created_at, updated_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateCustomer:
+UPDATE customers SET
+    name = ?, phone = ?, email = ?, address = ?, group_id = ?,
+    notes = ?, is_active = ?, updated_at = ?, sync_status = ?
+WHERE id = ?;

@@ -51,6 +51,13 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
+    lint {
+        // GradleDependency demoted to informational: kotlinx-datetime is intentionally
+        // pinned to 0.6.1 — 0.7.1 has binary-incompatible JVM class removals.
+        // See root build.gradle.kts resolutionStrategy force block for details.
+        informational += "GradleDependency"
+    }
 }
 
 kotlin {

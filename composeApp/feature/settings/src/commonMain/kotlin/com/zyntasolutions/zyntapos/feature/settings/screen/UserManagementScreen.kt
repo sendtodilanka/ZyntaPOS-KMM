@@ -13,7 +13,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -25,11 +24,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaBottomSheet
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
-import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSnackbarHost
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTable
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTableColumn
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTextField
-import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTopAppBar
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.Role
 import com.zyntasolutions.zyntapos.feature.settings.SettingsEffect
@@ -96,9 +94,10 @@ fun UserManagementScreen(
         )
     }
 
-    Scaffold(
-        topBar = { ZyntaTopAppBar(title = "User Management", onNavigateBack = onBack) },
-        snackbarHost = { ZyntaSnackbarHost(snackbarHostState) },
+    ZyntaPageScaffold(
+        title = "User Management",
+        onNavigateBack = onBack,
+        snackbarHostState = snackbarHostState,
         floatingActionButton = {
             FloatingActionButton(onClick = { onIntent(SettingsIntent.OpenCreateUser) }) {
                 Icon(Icons.Filled.Add, contentDescription = "Add User")

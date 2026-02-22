@@ -1,11 +1,15 @@
 package com.zyntasolutions.zyntapos.data.di
 
 import android.content.Context
+import android.provider.Settings
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseDriverFactory
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseKeyProvider
 import com.zyntasolutions.zyntapos.data.sync.NetworkMonitor
 import org.koin.android.ext.koin.androidContext
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 /**
  * ZyntaPOS — Android Data Koin Module
@@ -14,6 +18,7 @@ import org.koin.dsl.module
  *
  * | Binding | Implementation | Notes |
  * |---------|---------------|-------|
+ * | `String` named("deviceId") | `Settings.Secure.ANDROID_ID` + UUID fallback | Required by `securityModule` ([SecurityAuditLogger]) — MERGED-G1.1 |
  * | [DatabaseKeyProvider] | Envelope encryption: DEK wrapped by Android Keystore KEK | Replaces never after Sprint 8 |
  * | [DatabaseDriverFactory] | SQLCipher + AndroidSqliteDriver (WAL, 8 MB cache) | — |
  * | [NetworkMonitor] | ConnectivityManager.NetworkCallback → StateFlow<Boolean> | Actual class — needs Context |
@@ -34,7 +39,19 @@ import org.koin.dsl.module
  * - [x] Replace `InMemorySecurePreferences` with encrypted platform actual (Sprint 23)
  * - [x] Remove adapter classes; bind `securityModule.SecurePreferences` directly (MERGED-D3 2026-02-21)
  */
+@OptIn(ExperimentalUuidApi::class)
 val androidDataModule = module {
+
+    // ── Device ID (required by securityModule → SecurityAuditLogger) ──
+    // Uses Settings.Secure.ANDROID_ID where available (stable per app
+    // signing key + device). Falls back to a random UUID for emulators
+    // or restricted builds where ANDROID_ID returns null/blank.
+    // MERGED-G1.1 (2026-02-22).
+    single(named("deviceId")) {
+        val context: Context = androidContext()
+        val androidId = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
+        if (!androidId.isNullOrBlank()) androidId else Uuid.random().toString()
+    }
 
     // ── Database (platform expect/actual) ─────────────────────────────
     single { DatabaseKeyProvider(androidContext()) }

@@ -5,7 +5,7 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
-import co.touchlab.kermit.Logger
+import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,7 +21,7 @@ import kotlinx.coroutines.flow.asStateFlow
  */
 actual class NetworkMonitor(private val context: Context) {
 
-    private val log = Logger.withTag("NetworkMonitor-Android")
+    private val log = ZyntaLogger.forModule("NetworkMonitor-Android")
     private val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
     private val _isConnected = MutableStateFlow(readCurrentState())
@@ -29,14 +29,14 @@ actual class NetworkMonitor(private val context: Context) {
 
     private val callback = object : ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: Network) {
-            log.d { "Network available: $network" }
+            log.d("Network available: $network")
             _isConnected.value = true
         }
 
         override fun onLost(network: Network) {
             // Re-check if any other usable network remains before declaring offline
             _isConnected.value = readCurrentState()
-            log.d { "Network lost: $network — connected=${_isConnected.value}" }
+            log.d("Network lost: $network — connected=${_isConnected.value}")
         }
 
         override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) {
@@ -51,12 +51,12 @@ actual class NetworkMonitor(private val context: Context) {
             .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
             .build()
         cm.registerNetworkCallback(request, callback)
-        log.d { "NetworkCallback registered" }
+        log.d("NetworkCallback registered")
     }
 
     actual fun stop() {
         runCatching { cm.unregisterNetworkCallback(callback) }
-        log.d { "NetworkCallback unregistered" }
+        log.d("NetworkCallback unregistered")
     }
 
     private fun readCurrentState(): Boolean {

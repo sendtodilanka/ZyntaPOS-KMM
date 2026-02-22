@@ -12,6 +12,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.UnitOfMeasure
 
@@ -39,7 +41,6 @@ import com.zyntasolutions.zyntapos.domain.model.UnitOfMeasure
  * @param onSaveGroup        Called when user adds or renames a group.
  * @param modifier           Optional root modifier.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UnitManagementScreen(
     unitGroups: List<UnitGroup> = emptyList(),
@@ -51,14 +52,9 @@ fun UnitManagementScreen(
 ) {
     var showAddGroupDialog by remember { mutableStateOf(false) }
 
-    Scaffold(
+    ZyntaPageScaffold(
+        title = "Units of Measure",
         modifier = modifier,
-        topBar = {
-            TopAppBar(
-                title = { Text("Units of Measure") },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
-            )
-        },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { showAddGroupDialog = true },
@@ -74,7 +70,14 @@ fun UnitManagementScreen(
                 CircularProgressIndicator()
             }
         } else if (unitGroups.isEmpty()) {
-            UnitEmptyState(onAdd = { showAddGroupDialog = true }, modifier = Modifier.padding(innerPadding))
+            ZyntaEmptyState(
+                title = "No unit groups defined",
+                icon = Icons.Default.Scale,
+                subtitle = "Create a group (e.g. Weight) then add units",
+                ctaLabel = "New Group",
+                onCtaClick = { showAddGroupDialog = true },
+                modifier = Modifier.padding(innerPadding),
+            )
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
@@ -348,18 +351,3 @@ private fun AddGroupDialog(onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
     )
 }
 
-@Composable
-private fun UnitEmptyState(onAdd: () -> Unit, modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(Icons.Default.Scale, contentDescription = null, modifier = Modifier.size(64.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(ZyntaSpacing.md))
-            Text("No unit groups defined", style = MaterialTheme.typography.titleMedium)
-            Text("Create a group (e.g. Weight) then add units",
-                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(ZyntaSpacing.lg))
-            Button(onClick = onAdd) { Icon(Icons.Default.Add, contentDescription = null); Spacer(Modifier.width(4.dp)); Text("New Group") }
-        }
-    }
-}

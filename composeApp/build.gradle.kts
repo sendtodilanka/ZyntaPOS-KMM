@@ -39,7 +39,7 @@ kotlin {
         }
         commonMain.dependencies {
             // ── Shared KMP modules ────────────────────────────────────────
-            implementation(project(":shared:core"))         // Platform, ZentaLogger, Result, etc.
+            implementation(project(":shared:core"))         // Platform, ZyntaLogger, Result, etc.
 
             // ── Navigation (App.kt root composable needs ZyntaNavGraph) ──
             // Exposed via api() so :androidApp can see navigation transitively.

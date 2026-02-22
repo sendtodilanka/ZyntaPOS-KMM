@@ -65,6 +65,13 @@ jobs:
       - name: Build Desktop JVM JAR
         run: ./gradlew :composeApp:jvmJar --stacktrace
 
+      # ── Lint ──────────────────────────────────────────────────────────────
+      - name: Run Android Lint (debug)
+        run: ./gradlew :androidApp:lintDebug --stacktrace
+
+      - name: Run Detekt (static analysis)
+        run: ./gradlew detekt --stacktrace
+
       # ── Tests ─────────────────────────────────────────────────────────────
       - name: Run all tests (JVM targets)
         run: ./gradlew allTests --stacktrace
@@ -84,4 +91,14 @@ jobs:
         with:
           name: test-reports
           path: '**/build/reports/tests/'
+          retention-days: 7
+
+      - name: Upload lint & Detekt reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-reports
+          path: |
+            **/build/reports/lint-results*.html
+            **/build/reports/detekt/
           retention-days: 7

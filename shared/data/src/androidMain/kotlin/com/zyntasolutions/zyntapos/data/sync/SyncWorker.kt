@@ -9,7 +9,7 @@ import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import co.touchlab.kermit.Logger
+import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.concurrent.TimeUnit
@@ -34,17 +34,17 @@ class SyncWorker(
     params: WorkerParameters,
 ) : CoroutineWorker(context, params), KoinComponent {
 
-    private val log = Logger.withTag("SyncWorker")
+    private val log = ZyntaLogger.forModule("SyncWorker")
     private val syncEngine: SyncEngine by inject()
 
     override suspend fun doWork(): Result {
-        log.i { "SyncWorker.doWork() — starting sync cycle" }
+        log.i("SyncWorker.doWork() — starting sync cycle")
         return try {
             syncEngine.runOnce()
-            log.i { "SyncWorker.doWork() — sync cycle completed" }
+            log.i("SyncWorker.doWork() — sync cycle completed")
             Result.success()
         } catch (e: Exception) {
-            log.e(e) { "SyncWorker.doWork() — sync cycle failed" }
+            log.e("SyncWorker.doWork() — sync cycle failed", throwable = e)
             if (runAttemptCount < MAX_RUN_ATTEMPTS) Result.retry() else Result.failure()
         }
     }

@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.feature.settings
 
+import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.OrderType
 import com.zyntasolutions.zyntapos.domain.model.Role
@@ -12,11 +13,17 @@ import com.zyntasolutions.zyntapos.domain.usecase.inventory.SaveTaxGroupUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.PrintTestPageUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.SaveUserUseCase
 import com.zyntasolutions.zyntapos.domain.model.PrinterPaperWidth
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -41,9 +48,12 @@ class SettingsViewModelTest {
 
     private val fakeSettingsRepository = object : SettingsRepository {
         override suspend fun get(key: String): String? = store[key]
-        override suspend fun set(key: String, value: String) { store[key] = value }
+        override suspend fun set(key: String, value: String): Result<Unit> {
+            store[key] = value
+            return Result.Success(Unit)
+        }
         override suspend fun getAll(): Map<String, String> = store.toMap()
-        override suspend fun remove(key: String) { store.remove(key) }
+        override fun observe(key: String): Flow<String?> = MutableStateFlow(store[key])
     }
 
     private val taxGroupsFlow = MutableStateFlow<List<TaxGroup>>(emptyList())
@@ -52,6 +62,19 @@ class SettingsViewModelTest {
 
     private val fakeTaxGroupRepository = object : TaxGroupRepository {
         override fun getAll() = taxGroupsFlow
+        override suspend fun getById(id: String): Result<TaxGroup> {
+            val tg = taxGroupsFlow.value.firstOrNull { it.id == id }
+                ?: return Result.Error(DatabaseException("Not found"))
+            return Result.Success(tg)
+        }
+        override suspend fun insert(taxGroup: TaxGroup): Result<Unit> {
+            taxGroupsFlow.value = taxGroupsFlow.value + taxGroup
+            return Result.Success(Unit)
+        }
+        override suspend fun update(taxGroup: TaxGroup): Result<Unit> {
+            taxGroupsFlow.value = taxGroupsFlow.value.map { if (it.id == taxGroup.id) taxGroup else it }
+            return Result.Success(Unit)
+        }
         override suspend fun delete(id: String): Result<Unit> {
             deletedTaxGroupIds.add(id)
             taxGroupsFlow.value = taxGroupsFlow.value.filter { it.id != id }
@@ -62,28 +85,24 @@ class SettingsViewModelTest {
     private val usersFlow = MutableStateFlow<List<User>>(emptyList())
 
     private val fakeUserRepository = object : UserRepository {
-        override fun getAll() = usersFlow
+        override fun getAll(storeId: String?) = usersFlow
+        override suspend fun getById(id: String): Result<User> =
+            Result.Error(DatabaseException("Not implemented"))
+        override suspend fun create(user: User, plainPassword: String): Result<Unit> =
+            Result.Success(Unit)
+        override suspend fun update(user: User): Result<Unit> =
+            Result.Success(Unit)
+        override suspend fun updatePassword(userId: String, newPlainPassword: String): Result<Unit> =
+            Result.Success(Unit)
+        override suspend fun deactivate(userId: String): Result<Unit> =
+            Result.Success(Unit)
     }
 
-    private val fakeSaveTaxGroupUseCase = object : SaveTaxGroupUseCase {
-        override suspend operator fun invoke(taxGroup: TaxGroup, isUpdate: Boolean): Result<Unit> {
-            savedTaxGroups.add(taxGroup)
-            val updated = taxGroupsFlow.value.toMutableList()
-            val idx = updated.indexOfFirst { it.id == taxGroup.id }
-            if (idx >= 0) updated[idx] = taxGroup else updated.add(taxGroup)
-            taxGroupsFlow.value = updated
-            return Result.Success(Unit)
-        }
-    }
+    private val fakeSaveTaxGroupUseCase = SaveTaxGroupUseCase(fakeTaxGroupRepository)
 
     private val savedUsers = mutableListOf<User>()
 
-    private val fakeSaveUserUseCase = object : SaveUserUseCase {
-        override suspend operator fun invoke(user: User, isUpdate: Boolean, rawPassword: String): Result<Unit> {
-            savedUsers.add(user)
-            return Result.Success(Unit)
-        }
-    }
+    private val fakeSaveUserUseCase = SaveUserUseCase(fakeUserRepository)
 
     private var testPrintCalled = false
     private var testPrintPaperWidth: PrinterPaperWidth? = null
@@ -91,13 +110,14 @@ class SettingsViewModelTest {
     private val fakePrintTestPageUseCase = PrintTestPageUseCase { paperWidth ->
         testPrintCalled = true
         testPrintPaperWidth = paperWidth
-        Result.success(Unit)
+        kotlin.Result.success(Unit)
     }
 
     private lateinit var viewModel: SettingsViewModel
 
     @BeforeTest
     fun setUp() {
+        Dispatchers.setMain(UnconfinedTestDispatcher())
         store.clear()
         savedTaxGroups.clear()
         deletedTaxGroupIds.clear()
@@ -114,6 +134,11 @@ class SettingsViewModelTest {
             saveUserUseCase      = fakeSaveUserUseCase,
             printTestPageUseCase = fakePrintTestPageUseCase,
         )
+    }
+
+    @AfterTest
+    fun tearDown() {
+        Dispatchers.resetMain()
     }
 
     // ── General settings tests ────────────────────────────────────────────────

@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material3.*
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,7 +64,6 @@ private val STATUS_FILTERS = listOf(
  * @param onReprintOrder Invoked when the reprint icon button is tapped.
  * @param modifier       Optional [Modifier].
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OrderHistoryScreen(
     orders: List<Order>,
@@ -91,19 +91,8 @@ fun OrderHistoryScreen(
         list
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Order History") },
-                navigationIcon = {
-                    Icon(
-                        imageVector = Icons.Default.History,
-                        contentDescription = null,
-                        modifier = Modifier.padding(start = ZyntaSpacing.md),
-                    )
-                },
-            )
-        },
+    ZyntaPageScaffold(
+        title = "Order History",
         modifier = modifier,
     ) { innerPadding ->
         Column(

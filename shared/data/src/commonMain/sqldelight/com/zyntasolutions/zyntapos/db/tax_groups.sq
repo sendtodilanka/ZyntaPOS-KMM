@@ -1,0 +1,35 @@
+-- Tax groups table: tax rate definitions
+CREATE TABLE tax_groups (
+    id           TEXT    NOT NULL PRIMARY KEY,
+    name         TEXT    NOT NULL,
+    rate         REAL    NOT NULL DEFAULT 0.0,
+    is_inclusive INTEGER NOT NULL DEFAULT 0,
+    is_active    INTEGER NOT NULL DEFAULT 1,
+    created_at   INTEGER NOT NULL,
+    updated_at   INTEGER NOT NULL,
+    deleted_at   INTEGER,
+    sync_status  TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+-- ── Read queries ────────────────────────────────────────────────────────────
+
+getAllTaxGroups:
+SELECT * FROM tax_groups WHERE deleted_at IS NULL AND is_active = 1 ORDER BY name ASC;
+
+getTaxGroupById:
+SELECT * FROM tax_groups WHERE id = ?;
+
+-- ── Write queries ───────────────────────────────────────────────────────────
+
+insertTaxGroup:
+INSERT INTO tax_groups(id, name, rate, is_inclusive, is_active, created_at, updated_at, deleted_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateTaxGroup:
+UPDATE tax_groups SET
+    name = ?, rate = ?, is_inclusive = ?, is_active = ?,
+    updated_at = ?, sync_status = ?
+WHERE id = ?;
+
+softDeleteTaxGroup:
+UPDATE tax_groups SET deleted_at = ?, updated_at = ? WHERE id = ?;

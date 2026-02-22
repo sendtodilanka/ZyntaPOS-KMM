@@ -19,8 +19,8 @@ import kotlinx.datetime.Clock
 /**
  * Concrete implementation of [CustomerRepository].
  *
- * FTS5 search via `searchCustomers` matches on name, phone, and email with
- * automatic prefix-wildcard appending for partial match support.
+ * FTS5 search via `searchCustomers` matches on name, phone, and email —
+ * each token gets a prefix wildcard (e.g. "john*") for partial match support.
  * Soft-delete sets `is_active = 0` to preserve order history integrity.
  */
 class CustomerRepositoryImpl(
@@ -51,12 +51,23 @@ class CustomerRepositoryImpl(
     override fun search(query: String): Flow<List<Customer>> =
         if (query.isBlank()) getAll()
         else {
-            val ftsQuery = if (query.endsWith("*")) query else "$query*"
+            val ftsQuery = toFtsQuery(query)
             q.searchCustomers(ftsQuery)
                 .asFlow()
                 .mapToList(Dispatchers.IO)
                 .map { rows -> rows.map(CustomerMapper::toDomain) }
         }
+
+    /**
+     * Converts a user-typed search string into an FTS5 query with prefix matching.
+     * "john sm" → "john* sm*"
+     */
+    private fun toFtsQuery(raw: String): String =
+        raw.trim()
+            .replace("\"", "")
+            .split("\\s+".toRegex())
+            .filter { it.isNotBlank() }
+            .joinToString(" ") { "$it*" }
 
     override suspend fun insert(customer: Customer): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {

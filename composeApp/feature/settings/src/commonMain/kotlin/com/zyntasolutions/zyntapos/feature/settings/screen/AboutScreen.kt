@@ -18,9 +18,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ExperimentalMaterial3Api
-import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTopAppBar
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -59,8 +58,9 @@ fun AboutScreen(
     buildDate: String = "2026-02-21",
     onBack: () -> Unit,
 ) {
-    Scaffold(
-        topBar = { ZyntaTopAppBar(title = "About", onNavigateBack = onBack) },
+    ZyntaPageScaffold(
+        title = "About",
+        onNavigateBack = onBack,
     ) { innerPadding ->
         LazyColumn(
             contentPadding = PaddingValues(

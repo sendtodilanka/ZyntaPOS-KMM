@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaDialogContent
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaDialogVariant
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -95,11 +96,8 @@ fun ReceiptScreen(
         )
     }
 
-    Scaffold(
-        topBar = {
-            @OptIn(ExperimentalMaterial3Api::class)
-            TopAppBar(title = { Text("Receipt — Order #$orderNumber") })
-        },
+    ZyntaPageScaffold(
+        title = "Receipt — Order #$orderNumber",
         modifier = modifier,
     ) { innerPadding ->
         Column(

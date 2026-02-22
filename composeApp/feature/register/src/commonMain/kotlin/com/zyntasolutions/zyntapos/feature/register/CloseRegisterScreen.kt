@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,7 +15,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.zyntasolutions.zyntapos.designsystem.components.NumericPadMode
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaNumericPad
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
+import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -47,16 +49,17 @@ import org.koin.compose.viewmodel.koinViewModel
  * @param onBack    Called when the back button is pressed (navigate to Dashboard).
  * @param onClosed  Called after the register is successfully closed (navigate to Z-Report).
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CloseRegisterScreen(
     viewModel: RegisterViewModel = koinViewModel(),
     onBack: () -> Unit = {},
     onClosed: (sessionId: String) -> Unit = {},
+    currencyFormatter: CurrencyFormatter = koinInject(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
     val closeForm = state.closeRegisterForm
+    val fmt: (Double) -> String = { currencyFormatter.formatPlain(it) }
 
     // Load expected balance on first composition
     LaunchedEffect(Unit) {
@@ -75,21 +78,10 @@ fun CloseRegisterScreen(
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHost) },
-        topBar = {
-            TopAppBar(
-                title = { Text("Close Register") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                        )
-                    }
-                },
-            )
-        },
+    ZyntaPageScaffold(
+        title = "Close Register",
+        onNavigateBack = onBack,
+        snackbarHostState = snackbarHost,
     ) { padding ->
         BoxWithConstraints(
             modifier = Modifier
@@ -109,8 +101,8 @@ fun CloseRegisterScreen(
                         modifier = Modifier.weight(0.45f).verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                     ) {
-                        SessionSummarySection(state)
-                        DiscrepancySection(closeForm)
+                        SessionSummarySection(state, fmt)
+                        DiscrepancySection(closeForm, fmt)
                         ClosingNotesSection(
                             notes = closeForm.closingNotes,
                             onNotesChanged = { viewModel.dispatch(RegisterIntent.ClosingNotesChanged(it)) },
@@ -127,9 +119,9 @@ fun CloseRegisterScreen(
                         verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        ActualBalanceDisplay(closeForm.actualBalanceDouble)
+                        ActualBalanceDisplay(closeForm.actualBalanceDouble, fmt)
                         ActualBalanceNumericPad(
-                            displayValue = formatCurrency(closeForm.actualBalanceDouble),
+                            displayValue = fmt(closeForm.actualBalanceDouble),
                             viewModel = viewModel,
                         )
                     }
@@ -143,13 +135,13 @@ fun CloseRegisterScreen(
                         .padding(ZyntaSpacing.md),
                     verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                 ) {
-                    SessionSummarySection(state)
-                    ActualBalanceDisplay(closeForm.actualBalanceDouble)
+                    SessionSummarySection(state, fmt)
+                    ActualBalanceDisplay(closeForm.actualBalanceDouble, fmt)
                     ActualBalanceNumericPad(
-                        displayValue = formatCurrency(closeForm.actualBalanceDouble),
+                        displayValue = fmt(closeForm.actualBalanceDouble),
                         viewModel = viewModel,
                     )
-                    DiscrepancySection(closeForm)
+                    DiscrepancySection(closeForm, fmt)
                     ClosingNotesSection(
                         notes = closeForm.closingNotes,
                         onNotesChanged = { viewModel.dispatch(RegisterIntent.ClosingNotesChanged(it)) },
@@ -166,7 +158,7 @@ fun CloseRegisterScreen(
         // ── Close Confirmation Dialog ──────────────────────────────────────
         if (closeForm.showConfirmation) {
             CloseConfirmationDialog(
-                closeForm = closeForm,
+                closeForm = closeForm, fmt = fmt,
                 onConfirm = { viewModel.dispatch(RegisterIntent.ConfirmCloseRegister) },
                 onDismiss = { viewModel.dispatch(RegisterIntent.DismissCloseConfirmation) },
             )
@@ -181,7 +173,7 @@ fun CloseRegisterScreen(
  * and the system-calculated expected balance.
  */
 @Composable
-private fun SessionSummarySection(state: RegisterState) {
+private fun SessionSummarySection(state: RegisterState, fmt: (Double) -> String) {
     val session = state.activeSession ?: return
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -201,10 +193,10 @@ private fun SessionSummarySection(state: RegisterState) {
             HorizontalDivider()
             SummaryRow("Session ID", session.id.takeLast(8))
             SummaryRow("Opened At", session.openedAt.toString())
-            SummaryRow("Opening Balance", formatCurrency(session.openingBalance))
+            SummaryRow("Opening Balance", fmt(session.openingBalance))
             SummaryRow(
                 label = "Expected Balance",
-                value = formatCurrency(session.expectedBalance),
+                value = fmt(session.expectedBalance),
                 valueColor = MaterialTheme.colorScheme.primary,
                 isBold = true,
             )
@@ -245,7 +237,7 @@ private fun SummaryRow(
  * Green when within threshold, red with warning icon when exceeding.
  */
 @Composable
-private fun DiscrepancySection(closeForm: CloseRegisterFormState) {
+private fun DiscrepancySection(closeForm: CloseRegisterFormState, fmt: (Double) -> String) {
     val discrepancy = closeForm.discrepancy
     val isWarning = closeForm.isDiscrepancyWarning
     val discrepancyColor = if (isWarning) {
@@ -281,9 +273,9 @@ private fun DiscrepancySection(closeForm: CloseRegisterFormState) {
                 )
                 Text(
                     text = when {
-                        discrepancy > 0.0 -> "+${formatCurrency(discrepancy)} (over)"
-                        discrepancy < 0.0 -> "${formatCurrency(discrepancy)} (short)"
-                        else -> formatCurrency(0.0) + " (exact)"
+                        discrepancy > 0.0 -> "+${fmt(discrepancy)} (over)"
+                        discrepancy < 0.0 -> "${fmt(discrepancy)} (short)"
+                        else -> fmt(0.0) + " (exact)"
                     },
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
@@ -306,7 +298,7 @@ private fun DiscrepancySection(closeForm: CloseRegisterFormState) {
  * Large formatted display of the entered actual balance amount.
  */
 @Composable
-private fun ActualBalanceDisplay(actualBalance: Double) {
+private fun ActualBalanceDisplay(actualBalance: Double, fmt: (Double) -> String) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -324,7 +316,7 @@ private fun ActualBalanceDisplay(actualBalance: Double) {
             )
             Spacer(Modifier.height(ZyntaSpacing.sm))
             Text(
-                text = formatCurrency(actualBalance),
+                text = fmt(actualBalance),
                 style = MaterialTheme.typography.displaySmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -417,6 +409,7 @@ private fun CloseRegisterButton(
 @Composable
 private fun CloseConfirmationDialog(
     closeForm: CloseRegisterFormState,
+    fmt: (Double) -> String,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -439,14 +432,14 @@ private fun CloseConfirmationDialog(
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
-                Text("Expected: ${formatCurrency(closeForm.expectedBalance)}")
-                Text("Actual: ${formatCurrency(closeForm.actualBalanceDouble)}")
+                Text("Expected: ${fmt(closeForm.expectedBalance)}")
+                Text("Actual: ${fmt(closeForm.actualBalanceDouble)}")
 
                 val discrepancy = closeForm.discrepancy
                 val discText = when {
-                    discrepancy > 0.0 -> "+${formatCurrency(discrepancy)} (over)"
-                    discrepancy < 0.0 -> "${formatCurrency(discrepancy)} (short)"
-                    else -> formatCurrency(0.0) + " (exact)"
+                    discrepancy > 0.0 -> "+${fmt(discrepancy)} (over)"
+                    discrepancy < 0.0 -> "${fmt(discrepancy)} (short)"
+                    else -> fmt(0.0) + " (exact)"
                 }
                 Text(
                     text = "Discrepancy: $discText",
@@ -460,7 +453,7 @@ private fun CloseConfirmationDialog(
 
                 if (closeForm.isDiscrepancyWarning) {
                     Text(
-                        text = "⚠ The discrepancy exceeds the threshold of ${formatCurrency(closeForm.discrepancyThreshold)}. " +
+                        text = "⚠ The discrepancy exceeds the threshold of ${fmt(closeForm.discrepancyThreshold)}. " +
                             "Manager review may be required.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
@@ -492,16 +485,3 @@ private fun CloseConfirmationDialog(
     )
 }
 
-// ─── Formatting Helpers ──────────────────────────────────────────────────────
-
-/**
- * Formats a [Double] as a currency string with 2 decimal places.
- * Uses locale-neutral formatting suitable for display.
- */
-private fun formatCurrency(amount: Double): String {
-    val abs = kotlin.math.abs(amount)
-    val int = abs.toLong()
-    val frac = ((abs - int) * 100).toLong()
-    val formatted = "$int.${frac.toString().padStart(2, '0')}"
-    return if (amount < 0.0) "-$formatted" else formatted
-}

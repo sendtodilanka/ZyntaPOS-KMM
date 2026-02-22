@@ -84,7 +84,8 @@ crash_log*.txt
 # ── Generated sources (SQLDelight, KSP, BuildConfig) ────────────────
 # These are regenerated on build — never commit generated code.
 **/generated/
-**/sqldelight/
+# Note: source .sq files in src/commonMain/sqldelight/ MUST be tracked;
+# generated output in build/ is already covered by the build/ rule above.
 # Exception: KSP processor configuration
 !**/ksp/
 

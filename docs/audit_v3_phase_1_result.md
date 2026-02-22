@@ -288,7 +288,11 @@ ZyntaPOS/
 │   │       └── validation/
 │   │           ├── PaymentValidator.kt, ProductValidationParams.kt, ProductValidator.kt
 │   │           ├── StockValidator.kt, TaxValidator.kt
-│   │       [+ commonTest: AuthUseCasesTest, InventoryUseCasesTest, PosUseCasesTests,
+│   │       [+ commonTest: AuthUseCasesTest, InventoryUseCasesTest,
+│   │                      AddItemToCartUseCaseTest, CalculateOrderTotalsUseCaseTest,
+│   │                      CartManagementUseCasesTest, DiscountUseCasesTest,
+│   │                      ProcessPaymentUseCaseTest, VoidOrderUseCaseTest,
+│   │                      CategorySupplierTaxUseCasesTest,
 │   │                      RegisterUseCasesTest, ReportUseCasesTest, ValidatorsTest,
 │   │                      Fakes: FakeAuthRepositories, FakeInventoryRepositories,
 │   │                             FakePosRepositories, FakeSharedRepositories]

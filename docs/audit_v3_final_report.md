@@ -108,26 +108,18 @@ SECTION 2: COMPLETE FINDINGS (Deduplicated)
 2A. Alignment Issues (from Phase 1 & 2):
 ──────────────────────────────────────────────────────
 
-  ❌ [MERGED-G6.1] Master Plan §4.1 dependency table has 8+ errors
+  ✅ [MERGED-G6.1] Master Plan §4.1 dependency table has 8+ errors
      Severity: 🟠 MEDIUM
+     Status: ✅ RESOLVED (2026-02-22)
      Source: Phase 2 F1, F2, F3, F4, F5, F6, P2-07
-     File: docs/plans/Master_plan.md §4.1
-     Sub-issues:
-       F1: Scaffold modules (M13-M17, M19-M20) incorrectly list M03 (:shared:data)
-       F2: M04 (:shared:hal) deps understated — actual: M01, M02 (doc says M01 only)
-       F2: M05 (:shared:security) deps understated — actual: M01, M02 (doc says M01 only)
-       F3: M21 (:composeApp:core) dep overstated — actual: zero project deps (doc says M02)
-       F4: M11 (:feature:register), M12 (:feature:reports) missing M04 (:shared:hal)
-       F5: M09 (:feature:pos) missing M08 (:feature:auth)
-       F6: All features explicitly depend on M01 (:shared:core), undocumented
-       P2-07: M07 (:composeApp:navigation) dep list understated
-     Recommendation: Single editing pass on Master_plan.md §4.1 to correct all 8.
+     Resolution: All 8 sub-issues corrected in single editing pass on Master_plan.md §4.1.
 
-  ❌ [MERGED-G8.1] Master Plan §3.1 diagram uses "desktopMain", code uses "jvmMain"
+  ✅ [MERGED-G8.1] Master Plan §3.1 diagram uses "desktopMain", code uses "jvmMain"
      Severity: 🟡 LOW
+     Status: ✅ RESOLVED (2026-02-22)
      Source: Phase 2 F9 (recovered — was dropped from Phase 3/4 tracking)
      File: docs/plans/Master_plan.md §3.1
-     Recommendation: Update diagram label from "desktopMain" to "jvmMain".
+     Resolution: Updated diagram label from "desktopMain" to "jvmMain" in §3.1.
 
   🗑️ [CLOSED-19 / P2-08] :composeApp:core absent from Master Plan §4.1
      Status: CLOSED (stale carry-forward from v2 audit — Phase 4 NC-03
@@ -137,86 +129,70 @@ SECTION 2: COMPLETE FINDINGS (Deduplicated)
 2B. Documentation Conflicts (from Phase 3):
 ──────────────────────────────────────────────────────
 
-  ⚠️ [MERGED-G9.1] Brand naming: residual "Zenta"/"ZentaPOS" across docs and code
+  ✅ [MERGED-G9.1] Brand naming: residual "Zenta"/"ZentaPOS" across docs and code
      Severity: 🟠 MEDIUM
      Source: Phase 1 obs 3.5 + Phase 2 F7/F8/F10 + Phase 3 DC-01/DC-05
+     Status: ✅ RESOLVED (2026-02-22)
      Canonical: Product = ZyntaPOS, prefix = Zynta, package = com.zyntasolutions.zyntapos
-     6 sub-items:
-       DC-01a: UI_UX_Main_Plan.md title + Doc ID use "ZentaPOS" / "ZENTA-"
-               → search-replace to "ZyntaPOS" / "ZYNTA-"
-       DC-01b: ER_diagram.md title + Doc ID use "ZentaPOS" / "ZENTA-"
-               → same search-replace
-       DC-05:  UI_UX_Main_Plan.md §3.3 has 15 components with "Zenta" prefix
-               → bulk rename to "Zynta"; also fix LoadingSkeleton → LoadingOverlay
-       F7:     ZyntaTheme.kt function zentaDynamicColorScheme()
-               → rename to zyntaDynamicColorScheme() in common + platform actuals
-       F8:     designsystem/build.gradle.kts + navigation/build.gradle.kts comments
-               → update "Zenta*" → "Zynta*" in comments
-       F10:    Master_plan.md Doc ID "ZENTA-MASTER-PLAN-v1.0"
-               → update to "ZYNTA-MASTER-PLAN-v1.0"
-     Recommendation: Batch execution across all affected files in one commit.
+     Resolution:
+       DC-01a/b: "ZentaPOS" already fixed in NC hotfix; Doc IDs updated ZENTA- → ZYNTA-
+       DC-05: Component names already corrected to Zynta prefix
+       F7: zentaDynamicColorScheme() → zyntaDynamicColorScheme() in all 3 theme files
+       F8: build.gradle.kts comments updated Zenta* → Zynta*
+       F10: Master_plan.md Doc ID updated to ZYNTA-MASTER-PLAN-v1.0
 
-  ⚠️ [MERGED-G7.1] Master Plan §3.3 MVI code sample matches deleted zombie API
+  ✅ [MERGED-G7.1] Master Plan §3.3 MVI code sample matches deleted zombie API
      Severity: 🟠 MEDIUM
+     Status: ✅ ALREADY RESOLVED — §3.3 now uses live BaseViewModel API
      Source: Phase 3 DC-02
-     File: docs/plans/Master_plan.md §3.3
-     Doc says: onIntent(), setState { }, SharedFlow effects, AutoCloseable
-     Code has: dispatch(), handleIntent() (suspend), updateState { }, Channel<E>
-     Recommendation: Replace §3.3 code sample with the live BaseViewModel API.
-                     All 6 active ViewModels already use the correct patterns.
+     Verified: §3.3 uses dispatch(), handleIntent() (suspend), updateState {}, Channel<E>, sendEffect()
 
-  ⚠️ [MERGED-G7.2] Master Plan §15.1 tech stack versions stale
+  ✅ [MERGED-G7.2] Master Plan §15.1 tech stack versions stale
      Severity: 🟡 LOW
+     Status: ✅ RESOLVED (2026-02-22)
      Source: Phase 3 DC-03
      File: docs/plans/Master_plan.md §15.1
-     Doc says: Kotlin 2.1+, Compose 1.7+, AGP 8.5+
-     Actual:   Kotlin 2.3.0, Compose 1.10.0, AGP 8.13.2
-     Recommendation: Pin exact versions from libs.versions.toml. Remove "+" notation.
+     Resolution: Pinned exact versions from libs.versions.toml —
+       Material 3: Latest → 1.10.0-alpha05, Navigation: Latest → 2.9.2,
+       SQLCipher: 4.5.4 → 4.5.0, Testing: Latest → 2.3.0 / 3.0.1.
 
-  ⚠️ [MERGED-G7.3] Master Plan §3.2 source tree omits :feature:media and :composeApp:core
+  ✅ [MERGED-G7.3] Master Plan §3.2 source tree omits :feature:media and :composeApp:core
      Severity: 🟡 LOW
+     Status: ✅ RESOLVED (2026-02-22)
      Source: Phase 3 DC-04
      File: docs/plans/Master_plan.md §3.2
-     Note: Both ARE in §4.1 (as M20, M21) and in settings.gradle.kts and in code.
-           Only the §3.2 tree diagram is incomplete.
-     Recommendation: Add both modules to the §3.2 tree diagram.
+     Resolution: Added `:composeApp:core` to §3.2 tree diagram.
+       Note: `:feature:media` was already present at the bottom of the tree (line 148).
 
-  ⚠️ [MERGED-G10.1] DataModule.kt KDoc misattributes PasswordHashPort binding
+  ✅ [MERGED-G10.1] DataModule.kt KDoc misattributes PasswordHashPort binding
      Severity: 🟡 LOW
+     Status: ✅ RESOLVED (2026-02-22)
      Source: Phase 3 NEW-02
      File: shared/data/src/commonMain/.../data/di/DataModule.kt
-     KDoc says: "PasswordHashPort is bound HERE"
-     Reality:   Binding is in SecurityModule.kt; DataModule consumes via get()
-     Recommendation: Update KDoc to reference SecurityModule as the provider.
+     Resolution: Updated KDoc to: "PasswordHashPort is bound in securityModule (:shared:security)
+       as single<PasswordHashPort> { PasswordHasherAdapter() }, NOT in this module."
 
 ──────────────────────────────────────────────────────
 2C. Code Duplications (from Phase 3):
 ──────────────────────────────────────────────────────
 
-  🔁 [MERGED-G3.1] 4 private currency formatters bypass CurrencyFormatter
+  ✅ [MERGED-G3.1] 4 private currency formatters bypass CurrencyFormatter
      Severity: 🟠 MEDIUM
+     Status: ✅ RESOLVED (2026-02-22)
      Source: Phase 3 NEW-05
-     Locations:
-       feature/register/.../CloseRegisterScreen.kt:501   — formatCurrency()
-       feature/register/.../ZReportScreen.kt:434          — formatZCurrency() [identical]
-       feature/pos/.../ProductGridSection.kt:58            — formatPrice()
-       feature/inventory/.../ProductListScreen.kt:394      — formatPrice() [adds "LKR "]
-     Canonical: shared/core/.../utils/CurrencyFormatter.kt (locale-aware, HALF_UP rounding)
-     Risk: CloseRegisterScreen uses floating-point math that can produce "2.499999"
-           for amounts like 2.50. Z-report reconciliation totals may be incorrect.
-     Recommendation: Delete all 4 private functions. Route through CurrencyFormatter
-                     from ViewModel state. Priority: CloseRegisterScreen + ZReportScreen.
+     Resolution:
+       → Deleted formatCurrency() from CloseRegisterScreen.kt — replaced with CurrencyFormatter.formatPlain()
+       → Deleted formatZCurrency() from ZReportScreen.kt — replaced with CurrencyFormatter.formatPlain()
+       → Deleted formatPrice() from ProductGridSection.kt — replaced with CurrencyFormatter.format()
+       → Deleted formatPrice() from ProductListScreen.kt — replaced with CurrencyFormatter.format()
+       → All screens inject CurrencyFormatter via koinInject() — locale-aware, HALF_UP rounding
 
-  🔁 [MERGED-G4.1] 4 private *EmptyState composables bypass ZyntaEmptyState
+  ✅ [MERGED-G4.1] 4 private *EmptyState composables bypass ZyntaEmptyState
      Severity: 🟡 LOW
+     Status: ✅ RESOLVED (2026-02-22)
      Source: Phase 3 NEW-06
-     Locations:
-       feature/inventory/.../CategoryListScreen.kt:306     — CategoryEmptyState
-       feature/inventory/.../SupplierListScreen.kt:276     — SupplierEmptyState
-       feature/inventory/.../UnitManagementScreen.kt:352   — UnitEmptyState
-       feature/inventory/.../TaxGroupScreen.kt:357         — TaxGroupEmptyState
-     Canonical: composeApp/designsystem/.../components/ZyntaEmptyState.kt
-     Recommendation: Replace all 4 with ZyntaEmptyState(...) calls.
+     Resolution: All 4 private EmptyState composables deleted and replaced with
+                 ZyntaEmptyState(...) from the design system.
 
   🔁 [MERGED-G5.1] 17 raw CircularProgressIndicator vs 2 ZyntaLoadingOverlay
      Severity: 🟡 LOW
@@ -231,86 +207,79 @@ SECTION 2: COMPLETE FINDINGS (Deduplicated)
 2D. Architectural & Integrity Violations (from Phase 3 & 4):
 ──────────────────────────────────────────────────────
 
-  🔴 [MERGED-G1.1] named("deviceId") has ZERO providers — guaranteed startup crash
+  ✅ [MERGED-G1.1] named("deviceId") has ZERO providers — guaranteed startup crash
      Severity: 🔴 P0 CRITICAL
+     Status: ✅ RESOLVED (2026-02-22)
      Source: Phase 3 NEW-04 + Phase 4 AV-04 carry-forward
      File: shared/security/src/commonMain/.../security/di/SecurityModule.kt
-     Evidence: SecurityAuditLogger(deviceId = get(named("deviceId")))
-              All 23 DI modules, both entry points, and App.kt scanned — zero providers.
-              securityModule loads at Tier 2 → NoBeanDefFoundException on first launch.
-     Impact: Blocks ALL testing and deployment on Android and Desktop.
-     Recommendation: Add single(named("deviceId")) { ... } to:
-       → AndroidDataModule.kt (Settings.Secure.ANDROID_ID + UUID fallback)
-       → DesktopDataModule.kt (UUID persisted to config file)
-       Document in Master_plan.md §4.2 as securityModule precondition.
+     Resolution:
+       → AndroidDataModule.kt: single(named("deviceId")) using Settings.Secure.ANDROID_ID + UUID fallback
+       → DesktopDataModule.kt: single(named("deviceId")) using UUID persisted to .device_id file
 
-  🚫 [MERGED-G2.1] PrinterManagerReceiptAdapter imports SecurityAuditLogger (feature→infra)
+  ✅ [MERGED-G2.1] PrinterManagerReceiptAdapter imports SecurityAuditLogger (feature→infra)
      Severity: 🟠 MEDIUM
+     Status: ✅ RESOLVED (2026-02-22)
      Source: Phase 3 NEW-01 + Phase 4 AV-04 carry-forward
-     File: composeApp/feature/pos/src/commonMain/.../pos/printer/PrinterManagerReceiptAdapter.kt
-     Evidence: import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
-              Only remaining cross-boundary infrastructure import in the feature layer.
-              Sole usage: auditLogger.logReceiptPrint(orderId, userId) — achievable
-              via AuditRepository.log(AuditEntry(...)) which is a domain port.
-     Cross-phase: Phase 2 validated this dep as matching the Master Plan.
-                  Phase 3 identified it as an architectural violation.
-                  Verdict: Phase 3 takes precedence — Master Plan is also wrong.
-     Recommendation: Replace SecurityAuditLogger with AuditRepository injection.
-                     Remove implementation(project(":shared:security")) from pos/build.gradle.kts.
-                     Remove M05 from M09's dep list in Master_plan.md §4.1.
+     Resolution:
+       → Replaced SecurityAuditLogger with AuditRepository (domain interface) in constructor
+       → Adapter now builds AuditEntry directly — same audit event, no infra import
+       → Removed implementation(project(":shared:security")) from pos/build.gradle.kts
+       → Updated PosModule.kt binding: auditRepository = get(), deviceId = get(named("deviceId"))
 
-  📛 [MERGED-G1.2] Bare single { PasswordHasher } Koin binding — possible dead code
+  ✅ [MERGED-G1.2] Bare single { PasswordHasher } Koin binding — possible dead code
      Severity: 🟡 LOW
+     Status: ✅ RESOLVED (2026-02-22)
      Source: Phase 3 NEW-03
      File: shared/security/src/commonMain/.../security/di/SecurityModule.kt
-     Evidence: single { PasswordHasher } alongside correct single<PasswordHashPort> { ... }.
-              PinManager calls PasswordHasher directly (not via Koin). Binding may have
-              zero Koin consumers. Allows bypassing the domain port contract.
-     Recommendation: Grep for get<PasswordHasher>() / inject<PasswordHasher>().
-                     If zero consumers, remove the bare binding.
+     Resolution: Confirmed zero Koin consumers via codebase-wide grep for
+       get<PasswordHasher>() / inject<PasswordHasher>(). Removed bare binding.
+       PasswordHasherAdapter wraps PasswordHasher directly (not via Koin).
+       Import cleaned up; KDoc table updated.
 
-  📛 [MERGED-G1.3] named("deviceId") prerequisite not documented
-     Severity: 🟡 LOW (becomes relevant after G1.1 is fixed)
+  ✅ [MERGED-G1.3] named("deviceId") prerequisite not documented
+     Severity: 🟡 LOW
+     Status: ✅ RESOLVED (2026-02-22)
      Source: Phase 3 NEW-04 (documentation aspect)
      File: docs/plans/Master_plan.md §4.2
-     Recommendation: Add to §4.2: "Platform modules must provide String named('deviceId')
-                     before securityModule loads."
+     Resolution: Added blockquote to §4.2 documenting the platform prerequisite:
+       both androidDataModule and desktopDataModule must provide named("deviceId")
+       String binding, consumed by SecurityAuditLogger and PrinterManagerReceiptAdapter.
 
-  🔧 [MERGED-G12.1] 8 unused library entries in libs.versions.toml
+  ✅ [MERGED-G12.1] 8 unused library entries in libs.versions.toml
      Severity: 🟡 LOW
+     Status: ✅ RESOLVED (2026-02-22)
      Source: Phase 4 BC-03
      File: gradle/libs.versions.toml
-     Entries: androidx-appcompat, androidx-espresso-core, androidx-testExt-junit,
-              datastore-preferences-core, datastore-core-okio, kermit-crashlytics,
-              coil-network-ktor, turbine
-     Recommendation: Add "# RESERVED FOR: <feature>" comments to entries planned
-                     for near-term sprints. Remove entries with no concrete plan.
+     Resolution: All 8 entries annotated with "# RESERVED: Phase 2 — <purpose>" comments.
+       All have concrete Phase 2 plans; none removed.
 
-  🔧 [MERGED-G11.1] Empty keystore/ and token/ directories persist after ADR-004
+  ✅ [MERGED-G11.1] Empty keystore/ and token/ directories persist after ADR-004
      Severity: 🟡 LOW
-     Source: Phase 2 F11 (recovered — was dropped from Phase 3/4 tracking)
-     Files: shared/security/src/{commonMain,androidMain,jvmMain}/.../security/keystore/
-            shared/security/src/commonMain/.../security/token/
-     Evidence: ADR-004 removed .gitkeep files but left 4 empty dirs.
+     Status: ✅ ALREADY RESOLVED — directories no longer exist on disk
+     Source: Phase 2 F11 (recovered)
+     Verification: File-system scan confirms neither keystore/ nor token/
+       directories exist under shared/security/src/. ADR-004 cleanup was complete.
      Recommendation: Delete all 4 empty directories.
 
 ──────────────────────────────────────────────────────
 2E. Test & Documentation Gaps:
 ──────────────────────────────────────────────────────
 
-  📝 [MERGED-G13.1] CategorySupplierTaxUseCasesTest.kt not documented in project tree
+  ✅ [MERGED-G13.1] CategorySupplierTaxUseCasesTest.kt not documented in project tree
      Severity: 🟡 LOW
+     Status: ✅ RESOLVED (2026-02-22)
      Source: Phase 2 F12 (recovered)
-     File: shared/domain/src/commonTest/.../CategorySupplierTaxUseCasesTest.kt
-     Recommendation: Add to project tree listing.
+     Resolution: Added CategorySupplierTaxUseCasesTest to project tree listing in
+       audit_v3_phase_1_result.md.
 
-  📝 [MERGED-G13.2] Phase 1 tree aggregated 6 POS test files as "PosUseCasesTests"
+  ✅ [MERGED-G13.2] Phase 1 tree aggregated 6 POS test files as "PosUseCasesTests"
      Severity: 🟡 LOW
+     Status: ✅ RESOLVED (2026-02-22)
      Source: Phase 2 F13
-     Files: AddItemToCartUseCaseTest, CalculateOrderTotalsUseCaseTest,
-            CartManagementUseCasesTest, DiscountUseCasesTest,
-            ProcessPaymentUseCaseTest, VoidOrderUseCaseTest
-     Recommendation: List all 6 individual test files in project tree.
+     Resolution: Expanded "PosUseCasesTests" to list all 6 individual test files:
+       AddItemToCartUseCaseTest, CalculateOrderTotalsUseCaseTest,
+       CartManagementUseCasesTest, DiscountUseCasesTest,
+       ProcessPaymentUseCaseTest, VoidOrderUseCaseTest.
 
 ──────────────────────────────────────────────────────
 2F. Expected Gaps (Not Defects):
@@ -448,48 +417,25 @@ SECTION 4: PRIORITY ACTION PLAN
 
 🟢 SUGGESTION — Nice to have (Sprint 4–5):
 
-   1. [G4.1] Replace 4 private *EmptyState composables with ZyntaEmptyState(...)
-      → Files: CategoryListScreen.kt, SupplierListScreen.kt,
-               UnitManagementScreen.kt, TaxGroupScreen.kt
+   1. ✅ [G4.1] Replace 4 private *EmptyState composables with ZyntaEmptyState(...) — DONE 2026-02-22
+   2. 🔁 [G5.1] Audit 17 raw CircularProgressIndicator usages — DEFERRED to UX sprint
+   3. ✅ [G7.2] Update Master_plan.md §15.1 with exact pinned versions — DONE 2026-02-22
+   4. ✅ [G7.3] Add :composeApp:core to Master_plan.md §3.2 tree diagram — DONE 2026-02-22
+   5. ✅ [G8.1] Update Master_plan.md §3.1 diagram: "desktopMain" → "jvmMain" — DONE 2026-02-22
+   6. ✅ [G10.1] Fix DataModule.kt KDoc: PasswordHashPort bound in SecurityModule — DONE 2026-02-22
+   7. ✅ [G1.2] Remove bare single { PasswordHasher } (confirmed zero consumers) — DONE 2026-02-22
+   8. ✅ [G1.3] Document named("deviceId") prerequisite in §4.2 — DONE 2026-02-22
 
-   2. [G5.1] Audit 17 raw CircularProgressIndicator usages; replace ~8 full-screen
-      ones with ZyntaLoadingOverlay
-      → 17 screens across auth, register, pos, inventory modules
-
-   3. [G7.2] Update Master_plan.md §15.1 with exact pinned versions from libs.versions.toml
-      → File: docs/plans/Master_plan.md §15.1
-
-   4. [G7.3] Add :feature:media + :composeApp:core to Master_plan.md §3.2 tree diagram
-      → File: docs/plans/Master_plan.md §3.2
-
-   5. [G8.1] Update Master_plan.md §3.1 diagram: "desktopMain" → "jvmMain"
-      → File: docs/plans/Master_plan.md §3.1
-
-   6. [G10.1] Fix DataModule.kt KDoc: PasswordHashPort is bound in SecurityModule
-      → File: shared/data/src/commonMain/.../data/di/DataModule.kt
-
-   7. [G1.2] Remove bare single { PasswordHasher } from SecurityModule if unused
-      → Grep for get<PasswordHasher>() / inject<PasswordHasher>() first
-      → File: shared/security/.../di/SecurityModule.kt
-
-   8. [G1.3] Document named("deviceId") prerequisite in Master_plan.md §4.2
-      → File: docs/plans/Master_plan.md §4.2
-
-   9. [G11.1] Delete 4 empty keystore/ and token/ directories
-      → Files: shared/security/src/{commonMain,androidMain,jvmMain}/.../keystore/
-               shared/security/src/commonMain/.../token/
-
-  10. [G12.1] Annotate or remove 8 unused catalog entries in libs.versions.toml
-      → File: gradle/libs.versions.toml
-
-  11. [G13.1] Add CategorySupplierTaxUseCasesTest.kt to project tree docs
-  12. [G13.2] Expand "PosUseCasesTests" to list all 6 individual test files
+   9. ✅ [G11.1] Delete 4 empty keystore/ and token/ directories — ALREADY RESOLVED (dirs don't exist)
+  10. ✅ [G12.1] Annotate 8 unused catalog entries with "# RESERVED" comments — DONE 2026-02-22
+  11. ✅ [G13.1] Add CategorySupplierTaxUseCasesTest.kt to project tree — DONE 2026-02-22
+  12. ✅ [G13.2] Expand "PosUseCasesTests" to list all 6 individual test files — DONE 2026-02-22
 
 ══════════════════════════════════════════════════════
 SECTION 5: HEALTH SCORE
 ══════════════════════════════════════════════════════
 
-Structure Alignment:     7 /10
+Structure Alignment:     9 /10
   ✅ 23/23 modules exist and match settings.gradle.kts
   ✅ All 4 ADRs fully compliant
   ✅ All 21 package paths correct
@@ -516,13 +462,14 @@ Code Quality:            7 /10
   ✅ All 6 ViewModels correctly extend BaseViewModel
   ✅ 14/14 repository interface↔implementation pairs
   ✅ Hexagonal port/adapter pattern correctly implemented
-  ❌ 1 P0 runtime crash: named("deviceId") zero providers
-  ⚠️ 1 feature→infrastructure cross-boundary import
-  ⚠️ 4 private currency formatters (floating-point rounding risk)
-  ⚠️ 4 private EmptyState composables bypassing design system
-  ⚠️ 1 potentially dead Koin binding
+  ✅ P0 crash FIXED: named("deviceId") providers added (G1.1)
+  ✅ Feature→infra violation FIXED: AuditRepository replaces SecurityAuditLogger (G2.1)
+  ✅ Currency formatters FIXED: all 4 replaced with CurrencyFormatter (G3.1)
+  ✅ EmptyState composables FIXED: all 4 replaced with ZyntaEmptyState (G4.1)
+  ✅ Dead Koin binding FIXED: bare PasswordHasher removed (G1.2)
+  🔁 17 raw CircularProgressIndicator — deferred to UX sprint (G5.1)
 
-Build Configuration:     9 /10
+Build Configuration:    10 /10
   ✅ 100% version catalog compliance (55/55 used deps)
   ✅ Zero hardcoded version strings
   ✅ 23/23 modules registered in settings.gradle.kts
@@ -530,15 +477,15 @@ Build Configuration:     9 /10
   ✅ JVM targets consistent (JVM_11 Android, JVM_17 Desktop)
   ✅ All 5 bundles actively used
   ✅ Compose DSL accessors correctly applied
-  ⚠️ 8 unused library entries in version catalog
+  ✅ 8 unused catalog entries annotated with "# RESERVED" + Phase 2 purpose (G12.1)
 
 ──────────────────────────────────────────────────────
 
-Overall Project Health:  7 /10
+Overall Project Health:  9 /10  (was 7/10 — all P0/P1 issues resolved)
 
 ──────────────────────────────────────────────────────
 
-EXECUTIVE SUMMARY:
+EXECUTIVE SUMMARY (updated 2026-02-22):
 
 The ZyntaPOS KMM codebase demonstrates exceptional architectural discipline.
 Clean Architecture boundaries are rigorously enforced — zero presentation→data
@@ -546,9 +493,17 @@ violations, zero domain platform leaks, zero circular dependencies. All 186
 audited components conform to documented naming conventions (100%). The build
 configuration is production-grade with full version catalog compliance.
 
-ONE BLOCKING ISSUE remains: the named("deviceId") Koin binding has zero
-providers across all modules (MERGED-G1.1). This causes a NoBeanDefFoundException
-on app startup on ALL platforms. This must be fixed before any integration testing.
+ALL BLOCKING AND WARNING ISSUES RESOLVED (13/13 priority action items complete):
+- P0 CRITICAL: named("deviceId") startup crash fixed (G1.1)
+- Feature→infra boundary violation eliminated (G2.1)
+- 4 duplicate currency formatters consolidated (G3.1)
+- 4 duplicate EmptyState composables consolidated (G4.1)
+- Master Plan documentation fully synchronized (G6.1, G7.1–G7.3, G8.1, G9.1)
+- Dead code removed (G1.2), prerequisites documented (G1.3, G10.1)
+- Catalog hygiene applied (G12.1), test docs updated (G13.1, G13.2)
+- Empty directories confirmed clean (G11.1)
+
+REMAINING: 1 cosmetic item deferred to UX sprint (G5.1 — loading indicator consistency).
 
 DOCUMENTATION DEBT accounts for 10 of the 18 open findings. A focused 1–2 hour
 doc sprint — covering the brand rename (G9.1), dependency table (G6.1), MVI sample

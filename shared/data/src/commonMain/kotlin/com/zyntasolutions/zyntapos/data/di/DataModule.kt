@@ -76,8 +76,8 @@ import org.koin.dsl.module
  * - `DatabaseKeyProvider`    (expect/actual — platform constructor args differ)
  * - `NetworkMonitor`         (expect/actual — Android needs Context; Desktop no-arg)
  * - `SecurePreferences`      (expect/actual — bound by securityModule; MERGED-D3: adapter classes removed 2026-02-21)
- * Note: `PasswordHashPort` is bound HERE as `single<PasswordHashPort> { PasswordHasherAdapter() }`.
- *       PasswordHasherAdapter lives in :shared:security and wraps the BCrypt expect object.
+ * Note: `PasswordHashPort` is bound in `securityModule` (`:shared:security`) as
+ *       `single<PasswordHashPort> { PasswordHasherAdapter() }`, NOT in this module.
  *       MERGED-F3 (2026-02-22): removed direct :shared:security dependency from :shared:data.
  *
  * ## Android WorkManager integration (SyncWorker)

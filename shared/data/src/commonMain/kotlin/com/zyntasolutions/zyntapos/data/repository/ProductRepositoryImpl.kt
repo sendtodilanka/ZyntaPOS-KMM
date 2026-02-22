@@ -20,7 +20,7 @@ import kotlinx.datetime.Clock
  * Concrete implementation of [ProductRepository] delegating to SQLDelight queries.
  *
  * - Reactive queries via [asFlow] + [mapToList] re-emit on every table write.
- * - FTS5 full-text search via `searchProducts` with prefix wildcard appended automatically.
+ * - FTS5 full-text search via `searchProducts` — each token gets a prefix wildcard (e.g. "coff*").
  * - Soft-delete sets `is_active = 0`; products are never hard-deleted.
  * - Every mutating operation enqueues a [SyncOperation] via [SyncEnqueuer].
  *
@@ -62,7 +62,7 @@ class ProductRepositoryImpl(
                 .mapToList(Dispatchers.IO)
                 .map { rows -> rows.map(ProductMapper::toDomain) }
             else -> {
-                val ftsQuery = if (query.endsWith("*")) query else "$query*"
+                val ftsQuery = toFtsQuery(query)
                 q.searchProducts(ftsQuery)
                     .asFlow()
                     .mapToList(Dispatchers.IO)
@@ -133,6 +133,21 @@ class ProductRepositoryImpl(
             onFailure = { t -> Result.Error(DatabaseException(t.message ?: "Update failed", operation = "updateProduct", cause = t)) },
         )
     }
+
+    // ── FTS ────────────────────────────────────────────────────────────────
+
+    /**
+     * Converts a user-typed search string into an FTS5 query with prefix matching.
+     * "coff cak" → "coff* cak*" (each token gets a prefix wildcard).
+     */
+    private fun toFtsQuery(raw: String): String =
+        raw.trim()
+            .replace("\"", "")
+            .split("\\s+".toRegex())
+            .filter { it.isNotBlank() }
+            .joinToString(" ") { "$it*" }
+
+    // ── Delete ────────────────────────────────────────────────────────────────
 
     override suspend fun delete(id: String): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {

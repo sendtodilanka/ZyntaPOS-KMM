@@ -31,10 +31,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Scaffold
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoadingOverlay
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaStatusBadge
-import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTopAppBar
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.domain.model.Product
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -74,20 +73,16 @@ fun StockReportScreen(
         .filter { s.selectedCategory == null || it.categoryId == s.selectedCategory }
         .sortedWith(stockComparator(s.sortColumn, s.sortAscending))
 
-    Scaffold(
-        topBar = {
-            ZyntaTopAppBar(
-                title = "Stock Report",
-                onNavigateBack = onNavigateUp,
-                actions = {
-                    IconButton(onClick = { viewModel.dispatch(ReportsIntent.ExportStockReportCsv) }) {
-                        Icon(Icons.Default.FileDownload, contentDescription = "Export CSV")
-                    }
-                    IconButton(onClick = { viewModel.dispatch(ReportsIntent.ExportStockReportPdf) }) {
-                        Icon(Icons.Default.PictureAsPdf, contentDescription = "Export PDF")
-                    }
-                },
-            )
+    ZyntaPageScaffold(
+        title = "Stock Report",
+        onNavigateBack = onNavigateUp,
+        actions = {
+            IconButton(onClick = { viewModel.dispatch(ReportsIntent.ExportStockReportCsv) }) {
+                Icon(Icons.Default.FileDownload, contentDescription = "Export CSV")
+            }
+            IconButton(onClick = { viewModel.dispatch(ReportsIntent.ExportStockReportPdf) }) {
+                Icon(Icons.Default.PictureAsPdf, contentDescription = "Export PDF")
+            }
         },
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize()) {
