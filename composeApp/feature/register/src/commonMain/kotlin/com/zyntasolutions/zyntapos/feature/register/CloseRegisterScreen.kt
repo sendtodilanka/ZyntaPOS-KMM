@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.zyntasolutions.zyntapos.designsystem.components.NumericPadMode
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaNumericPad
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
 import org.koin.compose.koinInject
@@ -49,7 +49,6 @@ import org.koin.compose.viewmodel.koinViewModel
  * @param onBack    Called when the back button is pressed (navigate to Dashboard).
  * @param onClosed  Called after the register is successfully closed (navigate to Z-Report).
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CloseRegisterScreen(
     viewModel: RegisterViewModel = koinViewModel(),
@@ -79,21 +78,10 @@ fun CloseRegisterScreen(
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHost) },
-        topBar = {
-            TopAppBar(
-                title = { Text("Close Register") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                        )
-                    }
-                },
-            )
-        },
+    ZyntaPageScaffold(
+        title = "Close Register",
+        onNavigateBack = onBack,
+        snackbarHostState = snackbarHost,
     ) { padding ->
         BoxWithConstraints(
             modifier = Modifier

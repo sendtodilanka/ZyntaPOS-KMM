@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.Category
 
@@ -40,7 +41,6 @@ import com.zyntasolutions.zyntapos.domain.model.Category
  * @param onDeleteCategory   Callback invoked with category ID to soft-delete.
  * @param modifier           Optional root modifier.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoryListScreen(
     categories: List<Category>,
@@ -63,16 +63,9 @@ fun CategoryListScreen(
     // Track which root IDs are expanded; all expanded by default
     val expandedIds = remember(roots) { mutableStateSetOf<String>().apply { addAll(roots.map { it.id }) } }
 
-    Scaffold(
+    ZyntaPageScaffold(
+        title = "Categories",
         modifier = modifier,
-        topBar = {
-            TopAppBar(
-                title = { Text("Categories") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
-            )
-        },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { onNavigateToDetail(null) },

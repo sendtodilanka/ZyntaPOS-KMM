@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.CashMovement
 import com.zyntasolutions.zyntapos.domain.model.RegisterSession
@@ -40,7 +41,6 @@ import org.koin.compose.viewmodel.koinViewModel
  * @param viewModel      Shared [RegisterViewModel]; resolved by Koin.
  * @param onNavigateBack Optional back navigation callback (e.g., to Dashboard or POS).
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterDashboardScreen(
     viewModel: RegisterViewModel = koinViewModel(),
@@ -67,18 +67,10 @@ fun RegisterDashboardScreen(
 
     val session = state.activeSession
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHost) },
-        topBar = {
-            TopAppBar(
-                title = { Text("Register") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                },
-            )
-        },
+    ZyntaPageScaffold(
+        title = "Register",
+        onNavigateBack = onNavigateBack,
+        snackbarHostState = snackbarHost,
     ) { innerPadding ->
         if (session == null) {
             // Guard re-routes before this is shown, but handle null defensively
@@ -88,7 +80,7 @@ fun RegisterDashboardScreen(
             ) {
                 CircularProgressIndicator()
             }
-            return@Scaffold
+            return@ZyntaPageScaffold
         }
 
         BoxWithConstraints(

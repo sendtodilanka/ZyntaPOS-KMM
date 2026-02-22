@@ -31,8 +31,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Scaffold
-import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTopAppBar
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -61,13 +60,9 @@ fun ReportsHomeScreen(
     val state by viewModel.state.collectAsState()
     val homeState = state.reportsHome
 
-    Scaffold(
-        topBar = {
-            ZyntaTopAppBar(
-                title = "Reports",
-                onNavigateBack = onNavigateUp,
-            )
-        },
+    ZyntaPageScaffold(
+        title = "Reports",
+        onNavigateBack = onNavigateUp,
     ) { paddingValues ->
         LazyVerticalGrid(
             columns = GridCells.Adaptive(minSize = 240.dp),

@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.Category
 
@@ -72,21 +73,10 @@ fun CategoryDetailScreen(
     var parentDropdownExpanded by remember { mutableStateOf(false) }
     val selectedParentName = parentCandidates.find { it.id == selectedParentId }?.name ?: "None (Root Category)"
 
-    Scaffold(
+    ZyntaPageScaffold(
+        title = if (isEditing) "Edit Category" else "New Category",
         modifier = modifier,
-        topBar = {
-            TopAppBar(
-                title = { Text(if (isEditing) "Edit Category" else "New Category") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
-            )
-        },
+        onNavigateBack = onNavigateBack,
     ) { innerPadding ->
         Column(
             modifier = Modifier

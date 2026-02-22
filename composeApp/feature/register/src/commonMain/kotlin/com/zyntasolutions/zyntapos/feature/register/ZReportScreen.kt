@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -15,6 +14,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.CashMovement
 import com.zyntasolutions.zyntapos.domain.model.RegisterSession
@@ -44,7 +44,6 @@ import org.koin.compose.viewmodel.koinViewModel
  * @param viewModel Shared [RegisterViewModel]; default resolved by Koin.
  * @param onBack    Navigate back (to Dashboard or home).
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ZReportScreen(
     sessionId: String,
@@ -74,39 +73,28 @@ fun ZReportScreen(
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHost) },
-        topBar = {
-            TopAppBar(
-                title = { Text("Z-Report") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                        )
-                    }
-                },
-                actions = {
-                    // Print button in toolbar
-                    IconButton(
-                        onClick = { viewModel.dispatch(RegisterIntent.PrintZReport(sessionId)) },
-                        enabled = !state.isPrintingZReport && session != null,
-                    ) {
-                        if (state.isPrintingZReport) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
-                                strokeWidth = 2.dp,
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.Print,
-                                contentDescription = "Print Z-Report",
-                            )
-                        }
-                    }
-                },
-            )
+    ZyntaPageScaffold(
+        title = "Z-Report",
+        onNavigateBack = onBack,
+        snackbarHostState = snackbarHost,
+        actions = {
+            // Print button in toolbar
+            IconButton(
+                onClick = { viewModel.dispatch(RegisterIntent.PrintZReport(sessionId)) },
+                enabled = !state.isPrintingZReport && session != null,
+            ) {
+                if (state.isPrintingZReport) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp,
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Print,
+                        contentDescription = "Print Z-Report",
+                    )
+                }
+            }
         },
     ) { padding ->
         if (session == null) {
@@ -124,7 +112,7 @@ fun ZReportScreen(
                     )
                 }
             }
-            return@Scaffold
+            return@ZyntaPageScaffold
         }
 
         BoxWithConstraints(

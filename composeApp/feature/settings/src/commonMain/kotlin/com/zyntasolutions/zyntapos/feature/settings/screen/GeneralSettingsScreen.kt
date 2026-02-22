@@ -18,7 +18,6 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,9 +30,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
-import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSnackbarHost
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTextField
-import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTopAppBar
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.feature.settings.Currency
 import com.zyntasolutions.zyntapos.feature.settings.SettingsEffect
@@ -85,11 +83,10 @@ fun GeneralSettingsScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            ZyntaTopAppBar(title = "General", onNavigateBack = onBack)
-        },
-        snackbarHost = { ZyntaSnackbarHost(snackbarHostState) },
+    ZyntaPageScaffold(
+        title = "General",
+        onNavigateBack = onBack,
+        snackbarHostState = snackbarHostState,
     ) { innerPadding ->
         LazyColumn(
             contentPadding = PaddingValues(

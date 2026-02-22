@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.TaxGroup
 
@@ -43,7 +44,6 @@ import com.zyntasolutions.zyntapos.domain.model.TaxGroup
  * @param onDeleteTaxGroup   Called with the group ID on delete confirmation.
  * @param modifier           Optional root modifier.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TaxGroupScreen(
     taxGroups: List<TaxGroup> = emptyList(),
@@ -55,14 +55,9 @@ fun TaxGroupScreen(
     var showEditDialog by remember { mutableStateOf(false) }
     var editingGroup by remember { mutableStateOf<TaxGroup?>(null) }
 
-    Scaffold(
+    ZyntaPageScaffold(
+        title = "Tax Groups",
         modifier = modifier,
-        topBar = {
-            TopAppBar(
-                title = { Text("Tax Groups") },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
-            )
-        },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { editingGroup = null; showEditDialog = true },

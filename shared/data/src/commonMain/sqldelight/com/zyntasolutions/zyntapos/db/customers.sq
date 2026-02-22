@@ -16,6 +16,29 @@ CREATE TABLE customers (
 
 CREATE INDEX idx_customers_active ON customers(is_active);
 
+-- ── FTS5 full-text search index ───────────────────────────────────────────────
+CREATE VIRTUAL TABLE customers_fts USING fts5(
+    customer_id UNINDEXED,
+    name,
+    phone,
+    email
+);
+
+CREATE TRIGGER customers_fts_insert AFTER INSERT ON customers BEGIN
+    INSERT INTO customers_fts(customer_id, name, phone, email)
+    VALUES (new.id, new.name, COALESCE(new.phone, ''), COALESCE(new.email, ''));
+END;
+
+CREATE TRIGGER customers_fts_delete AFTER DELETE ON customers BEGIN
+    DELETE FROM customers_fts WHERE customer_id = old.id;
+END;
+
+CREATE TRIGGER customers_fts_update AFTER UPDATE ON customers BEGIN
+    DELETE FROM customers_fts WHERE customer_id = old.id;
+    INSERT INTO customers_fts(customer_id, name, phone, email)
+    VALUES (new.id, new.name, COALESCE(new.phone, ''), COALESCE(new.email, ''));
+END;
+
 -- ── Read queries ────────────────────────────────────────────────────────────
 
 getAllCustomers:
@@ -24,15 +47,11 @@ SELECT * FROM customers WHERE is_active = 1 ORDER BY name ASC;
 getCustomerById:
 SELECT * FROM customers WHERE id = ?;
 
--- LIKE-based search (caller provides pattern with % wildcards)
+-- FTS5 full-text search (caller provides FTS5 query, e.g. "john*")
 searchCustomers:
-SELECT * FROM customers
-WHERE is_active = 1
-AND (
-    name LIKE :query
-    OR COALESCE(phone, '') LIKE :query
-    OR COALESCE(email, '') LIKE :query
-);
+SELECT c.* FROM customers c
+INNER JOIN customers_fts fts ON fts.customer_id = c.id
+WHERE customers_fts MATCH :query AND c.is_active = 1;
 
 -- ── Write queries ───────────────────────────────────────────────────────────
 

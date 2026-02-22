@@ -17,6 +17,7 @@ import com.zyntasolutions.zyntapos.designsystem.components.SortDirection
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSearchBar
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTable
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTableColumn
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.designsystem.util.WindowSize
 import com.zyntasolutions.zyntapos.designsystem.util.currentWindowSize
@@ -42,7 +43,6 @@ import com.zyntasolutions.zyntapos.domain.model.Supplier
  * @param onNavigateToDetail     Callback with supplier ID (edit) or null (create).
  * @param modifier               Optional root modifier.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SupplierListScreen(
     suppliers: List<Supplier>,
@@ -81,14 +81,9 @@ fun SupplierListScreen(
         else filteredSuppliers.sortedWith(comparator.reversed())
     }
 
-    Scaffold(
+    ZyntaPageScaffold(
+        title = "Suppliers",
         modifier = modifier,
-        topBar = {
-            TopAppBar(
-                title = { Text("Suppliers") },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
-            )
-        },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { onNavigateToDetail(null) },

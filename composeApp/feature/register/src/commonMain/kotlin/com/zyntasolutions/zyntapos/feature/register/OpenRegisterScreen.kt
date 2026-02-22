@@ -7,7 +7,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.PointOfSale
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.zyntasolutions.zyntapos.designsystem.components.NumericPadMode
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaNumericPad
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.CashRegister
 import org.koin.compose.viewmodel.koinViewModel
@@ -41,7 +41,6 @@ import org.koin.compose.viewmodel.koinViewModel
  * @param viewModel   Shared [RegisterViewModel]; default resolved by Koin.
  * @param onOpened    Called after a session is successfully opened (navigate to Dashboard).
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OpenRegisterScreen(
     viewModel: RegisterViewModel = koinViewModel(),
@@ -67,21 +66,9 @@ fun OpenRegisterScreen(
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHost) },
-        topBar = {
-            TopAppBar(
-                title = { Text("Open Register") },
-                navigationIcon = {
-                    Icon(
-                        imageVector = Icons.Default.PointOfSale,
-                        contentDescription = null,
-                        modifier = Modifier.padding(start = ZyntaSpacing.md),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                },
-            )
-        },
+    ZyntaPageScaffold(
+        title = "Open Register",
+        snackbarHostState = snackbarHost,
     ) { innerPadding ->
         val form = state.openRegisterForm
 

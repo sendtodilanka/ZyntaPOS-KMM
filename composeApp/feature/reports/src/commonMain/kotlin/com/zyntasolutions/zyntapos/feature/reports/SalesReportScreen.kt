@@ -37,9 +37,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Scaffold
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoadingOverlay
-import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTopAppBar
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.domain.model.PaymentMethod
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateSalesReportUseCase
 import org.koin.compose.viewmodel.koinViewModel
@@ -72,23 +71,19 @@ fun SalesReportScreen(
         if (s.report == null && !s.isLoading) viewModel.dispatch(ReportsIntent.LoadSalesReport)
     }
 
-    Scaffold(
-        topBar = {
-            ZyntaTopAppBar(
-                title = "Sales Report",
-                onNavigateBack = onNavigateUp,
-                actions = {
-                    IconButton(onClick = { viewModel.dispatch(ReportsIntent.ExportSalesReportCsv) }) {
-                        Icon(Icons.Default.FileDownload, contentDescription = "Export CSV")
-                    }
-                    IconButton(onClick = { viewModel.dispatch(ReportsIntent.ExportSalesReportPdf) }) {
-                        Icon(Icons.Default.PictureAsPdf, contentDescription = "Export PDF")
-                    }
-                    IconButton(onClick = { viewModel.dispatch(ReportsIntent.PrintSalesReport) }) {
-                        Icon(Icons.Default.Print, contentDescription = "Print")
-                    }
-                },
-            )
+    ZyntaPageScaffold(
+        title = "Sales Report",
+        onNavigateBack = onNavigateUp,
+        actions = {
+            IconButton(onClick = { viewModel.dispatch(ReportsIntent.ExportSalesReportCsv) }) {
+                Icon(Icons.Default.FileDownload, contentDescription = "Export CSV")
+            }
+            IconButton(onClick = { viewModel.dispatch(ReportsIntent.ExportSalesReportPdf) }) {
+                Icon(Icons.Default.PictureAsPdf, contentDescription = "Export PDF")
+            }
+            IconButton(onClick = { viewModel.dispatch(ReportsIntent.PrintSalesReport) }) {
+                Icon(Icons.Default.Print, contentDescription = "Print")
+            }
         },
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize()) {

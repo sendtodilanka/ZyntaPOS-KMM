@@ -23,6 +23,31 @@ CREATE INDEX idx_products_category ON products(category_id);
 CREATE INDEX idx_products_barcode  ON products(barcode);
 CREATE INDEX idx_products_active   ON products(is_active);
 
+-- ── FTS5 full-text search index ───────────────────────────────────────────────
+-- Standalone FTS5 table keyed by product_id (UNINDEXED) so we can JOIN back
+-- to the products table. Kept in sync via AFTER INSERT/UPDATE/DELETE triggers.
+CREATE VIRTUAL TABLE products_fts USING fts5(
+    product_id UNINDEXED,
+    name,
+    barcode,
+    sku
+);
+
+CREATE TRIGGER products_fts_insert AFTER INSERT ON products BEGIN
+    INSERT INTO products_fts(product_id, name, barcode, sku)
+    VALUES (new.id, new.name, COALESCE(new.barcode, ''), COALESCE(new.sku, ''));
+END;
+
+CREATE TRIGGER products_fts_delete AFTER DELETE ON products BEGIN
+    DELETE FROM products_fts WHERE product_id = old.id;
+END;
+
+CREATE TRIGGER products_fts_update AFTER UPDATE ON products BEGIN
+    DELETE FROM products_fts WHERE product_id = old.id;
+    INSERT INTO products_fts(product_id, name, barcode, sku)
+    VALUES (new.id, new.name, COALESCE(new.barcode, ''), COALESCE(new.sku, ''));
+END;
+
 -- ── Read queries ────────────────────────────────────────────────────────────
 
 getAllProducts:
@@ -40,15 +65,11 @@ SELECT * FROM products WHERE barcode = ? AND is_active = 1 LIMIT 1;
 countProducts:
 SELECT COUNT(*) FROM products WHERE is_active = 1;
 
--- LIKE-based search (caller provides pattern with % wildcards)
+-- FTS5 full-text search (caller provides FTS5 query, e.g. "espresso*")
 searchProducts:
-SELECT * FROM products
-WHERE is_active = 1
-AND (
-    name LIKE :query
-    OR COALESCE(barcode, '') LIKE :query
-    OR COALESCE(sku, '') LIKE :query
-);
+SELECT p.* FROM products p
+INNER JOIN products_fts fts ON fts.product_id = p.id
+WHERE products_fts MATCH :query AND p.is_active = 1;
 
 getLowStockProducts:
 SELECT * FROM products WHERE is_active = 1 AND stock_qty <= min_stock_qty AND min_stock_qty > 0.0;

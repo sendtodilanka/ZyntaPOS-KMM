@@ -14,6 +14,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.Supplier
 
@@ -37,7 +38,6 @@ import com.zyntasolutions.zyntapos.domain.model.Supplier
  * @param onConfirm         Called with the updated [Supplier] when the user confirms.
  * @param onNavigateBack    Called on Back / Cancel tap.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SupplierDetailScreen(
     existingSupplier: Supplier? = null,
@@ -61,19 +61,10 @@ fun SupplierDetailScreen(
 
     var nameError by remember { mutableStateOf<String?>(null) }
 
-    Scaffold(
+    ZyntaPageScaffold(
+        title = if (isEditing) "Edit Supplier" else "New Supplier",
         modifier = modifier,
-        topBar = {
-            TopAppBar(
-                title = { Text(if (isEditing) "Edit Supplier" else "New Supplier") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
-            )
-        },
+        onNavigateBack = onNavigateBack,
     ) { innerPadding ->
         Column(
             modifier = Modifier
