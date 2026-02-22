@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.UnitOfMeasure
 
@@ -74,7 +75,14 @@ fun UnitManagementScreen(
                 CircularProgressIndicator()
             }
         } else if (unitGroups.isEmpty()) {
-            UnitEmptyState(onAdd = { showAddGroupDialog = true }, modifier = Modifier.padding(innerPadding))
+            ZyntaEmptyState(
+                title = "No unit groups defined",
+                icon = Icons.Default.Scale,
+                subtitle = "Create a group (e.g. Weight) then add units",
+                ctaLabel = "New Group",
+                onCtaClick = { showAddGroupDialog = true },
+                modifier = Modifier.padding(innerPadding),
+            )
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
@@ -348,18 +356,3 @@ private fun AddGroupDialog(onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
     )
 }
 
-@Composable
-private fun UnitEmptyState(onAdd: () -> Unit, modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(Icons.Default.Scale, contentDescription = null, modifier = Modifier.size(64.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(ZyntaSpacing.md))
-            Text("No unit groups defined", style = MaterialTheme.typography.titleMedium)
-            Text("Create a group (e.g. Weight) then add units",
-                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(ZyntaSpacing.lg))
-            Button(onClick = onAdd) { Icon(Icons.Default.Add, contentDescription = null); Spacer(Modifier.width(4.dp)); Text("New Group") }
-        }
-    }
-}

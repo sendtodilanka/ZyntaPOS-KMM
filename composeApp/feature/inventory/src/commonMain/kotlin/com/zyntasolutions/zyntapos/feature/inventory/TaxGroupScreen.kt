@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.TaxGroup
 
@@ -76,9 +77,13 @@ fun TaxGroupScreen(
             isLoading -> Box(Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
-            taxGroups.isEmpty() -> TaxGroupEmptyState(
+            taxGroups.isEmpty() -> ZyntaEmptyState(
+                title = "No tax groups configured",
+                icon = Icons.Default.Percent,
+                subtitle = "Create your first tax group to assign to products",
+                ctaLabel = "New Tax Group",
+                onCtaClick = { editingGroup = null; showEditDialog = true },
                 modifier = Modifier.padding(innerPadding),
-                onAdd = { editingGroup = null; showEditDialog = true },
             )
             else -> LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
@@ -350,22 +355,3 @@ private fun TaxGroupEditDialog(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Private: Empty State
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun TaxGroupEmptyState(modifier: Modifier = Modifier, onAdd: () -> Unit) {
-    Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(Icons.Default.Percent, contentDescription = null, modifier = Modifier.size(64.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(ZyntaSpacing.md))
-            Text("No tax groups configured", style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(ZyntaSpacing.xs))
-            Text("Create your first tax group to assign to products",
-                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(ZyntaSpacing.lg))
-            Button(onClick = onAdd) { Icon(Icons.Default.Add, contentDescription = null); Spacer(Modifier.width(4.dp)); Text("New Tax Group") }
-        }
-    }
-}

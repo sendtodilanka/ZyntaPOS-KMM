@@ -185,16 +185,12 @@ SECTION 2: COMPLETE FINDINGS (Deduplicated)
        → Deleted formatPrice() from ProductListScreen.kt — replaced with CurrencyFormatter.format()
        → All screens inject CurrencyFormatter via koinInject() — locale-aware, HALF_UP rounding
 
-  🔁 [MERGED-G4.1] 4 private *EmptyState composables bypass ZyntaEmptyState
+  ✅ [MERGED-G4.1] 4 private *EmptyState composables bypass ZyntaEmptyState
      Severity: 🟡 LOW
+     Status: ✅ RESOLVED (2026-02-22)
      Source: Phase 3 NEW-06
-     Locations:
-       feature/inventory/.../CategoryListScreen.kt:306     — CategoryEmptyState
-       feature/inventory/.../SupplierListScreen.kt:276     — SupplierEmptyState
-       feature/inventory/.../UnitManagementScreen.kt:352   — UnitEmptyState
-       feature/inventory/.../TaxGroupScreen.kt:357         — TaxGroupEmptyState
-     Canonical: composeApp/designsystem/.../components/ZyntaEmptyState.kt
-     Recommendation: Replace all 4 with ZyntaEmptyState(...) calls.
+     Resolution: All 4 private EmptyState composables deleted and replaced with
+                 ZyntaEmptyState(...) from the design system.
 
   🔁 [MERGED-G5.1] 17 raw CircularProgressIndicator vs 2 ZyntaLoadingOverlay
      Severity: 🟡 LOW

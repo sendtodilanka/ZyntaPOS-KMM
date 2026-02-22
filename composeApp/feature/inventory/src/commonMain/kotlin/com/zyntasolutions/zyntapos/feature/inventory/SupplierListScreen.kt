@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.components.SortDirection
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSearchBar
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTable
@@ -178,7 +179,11 @@ private fun SupplierTableView(
         isLoading = isLoading,
         modifier = Modifier.fillMaxSize(),
         rowKey = { it.id },
-        emptyContent = { SupplierEmptyState() },
+        emptyContent = { ZyntaEmptyState(
+                    title = "No suppliers found",
+                    icon = Icons.Default.Business,
+                    subtitle = "Add your first supplier using the + button",
+                ) },
         rowContent = { supplier: Supplier ->
         Text(
             supplier.name,
@@ -228,7 +233,11 @@ private fun SupplierCardList(
         }
         return
     }
-    if (suppliers.isEmpty()) { SupplierEmptyState(); return }
+    if (suppliers.isEmpty()) { ZyntaEmptyState(
+                    title = "No suppliers found",
+                    icon = Icons.Default.Business,
+                    subtitle = "Add your first supplier using the + button",
+                ); return }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -268,22 +277,3 @@ private fun SupplierCardList(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Private: Empty State
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun SupplierEmptyState() {
-    Box(Modifier.fillMaxWidth().padding(vertical = 64.dp), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(Icons.Default.Business, contentDescription = null, modifier = Modifier.size(52.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(ZyntaSpacing.sm))
-            Text("No suppliers found", style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("Add your first supplier using the + button",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}
