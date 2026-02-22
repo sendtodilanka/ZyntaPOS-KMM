@@ -3432,3 +3432,48 @@ Two compile errors blocked `:shared:domain:assemble`. Both were identified via `
 | §4.2 deviceId prerequisite | ✅ Blockquote documents Android + Desktop provider implementations |
 
 > **Section status: ✅ BATCH FIX COMPLETE — 6 items resolved in single pass**
+
+## 🟢 PRIORITY ACTION — Cleanup: G11.1+G12.1+G13.1+G13.2 (2026-02-22)
+> **Source:** Audit v3 Final Report §4 — SUGGESTION (4 hygiene items)
+> **Scope:** Catalog annotations, test tree docs, directory verification
+
+- [x] G11.1 — Verified keystore/ and token/ directories already removed (ADR-004 cleanup was complete) | 2026-02-22
+- [x] G12.1 — Annotated 8 unused libs.versions.toml entries with "# RESERVED: Phase 2 — <purpose>" comments | 2026-02-22
+- [x] G13.1 — Added CategorySupplierTaxUseCasesTest.kt to project tree in audit_v3_phase_1_result.md | 2026-02-22
+- [x] G13.2 — Expanded "PosUseCasesTests" to list all 6 individual test files in phase_1_result tree | 2026-02-22
+
+### Cleanup Integrity Report
+| Check | Result |
+|-------|--------|
+| keystore/ dirs | ✅ Confirmed absent — no action needed |
+| token/ dirs | ✅ Confirmed absent — no action needed |
+| Catalog entries | ✅ All 8 annotated with Phase 2 rationale |
+| Test tree: CategorySupplierTaxUseCasesTest | ✅ Listed in commonTest section |
+| Test tree: 6 POS test files | ✅ Individually listed (replaces aggregated "PosUseCasesTests") |
+
+> **Section status: ✅ CLEANUP COMPLETE — 4 hygiene items resolved**
+
+## 📊 AUDIT PRIORITY ACTION PLAN — FINAL STATUS (2026-02-22)
+
+| # | Finding | Severity | Status |
+|---|---------|----------|--------|
+| G1.1 | named("deviceId") zero providers — startup crash | 🔴 P0 CRITICAL | ✅ RESOLVED |
+| G2.1 | SecurityAuditLogger feature→infra violation | 🟠 MEDIUM | ✅ RESOLVED |
+| G3.1 | 4 private currency formatters | 🟠 MEDIUM | ✅ RESOLVED |
+| G6.1 | Master Plan §4.1 dependency table errors | 🟠 MEDIUM | ✅ RESOLVED |
+| G9.1 | Residual "Zenta" brand naming | 🟠 MEDIUM | ✅ RESOLVED |
+| G7.1 | §3.3 MVI code sample stale | 🟠 MEDIUM | ✅ ALREADY RESOLVED |
+| G4.1 | 4 private EmptyState composables | 🟡 LOW | ✅ RESOLVED |
+| G7.2 | §15.1 tech versions stale | 🟡 LOW | ✅ RESOLVED |
+| G7.3 | §3.2 tree incomplete | 🟡 LOW | ✅ RESOLVED |
+| G8.1 | §3.1 desktopMain label | 🟡 LOW | ✅ RESOLVED |
+| G10.1 | DataModule KDoc error | 🟡 LOW | ✅ RESOLVED |
+| G1.2 | Dead PasswordHasher binding | 🟡 LOW | ✅ RESOLVED |
+| G1.3 | deviceId prerequisite undocumented | 🟡 LOW | ✅ RESOLVED |
+| G11.1 | Empty keystore/token dirs | 🟡 LOW | ✅ ALREADY RESOLVED |
+| G12.1 | 8 unused catalog entries | 🟡 LOW | ✅ RESOLVED |
+| G13.1 | Test file missing from tree | 🟡 LOW | ✅ RESOLVED |
+| G13.2 | Test files aggregated in tree | 🟡 LOW | ✅ RESOLVED |
+| G5.1 | 17 raw CircularProgressIndicator | 🟡 LOW | 🔁 DEFERRED (UX sprint) |
+
+**Result: 17/18 items resolved. 1 cosmetic item deferred. Health score: 7/10 → 9/10.**

@@ -245,41 +245,41 @@ SECTION 2: COMPLETE FINDINGS (Deduplicated)
        both androidDataModule and desktopDataModule must provide named("deviceId")
        String binding, consumed by SecurityAuditLogger and PrinterManagerReceiptAdapter.
 
-  🔧 [MERGED-G12.1] 8 unused library entries in libs.versions.toml
+  ✅ [MERGED-G12.1] 8 unused library entries in libs.versions.toml
      Severity: 🟡 LOW
+     Status: ✅ RESOLVED (2026-02-22)
      Source: Phase 4 BC-03
      File: gradle/libs.versions.toml
-     Entries: androidx-appcompat, androidx-espresso-core, androidx-testExt-junit,
-              datastore-preferences-core, datastore-core-okio, kermit-crashlytics,
-              coil-network-ktor, turbine
-     Recommendation: Add "# RESERVED FOR: <feature>" comments to entries planned
-                     for near-term sprints. Remove entries with no concrete plan.
+     Resolution: All 8 entries annotated with "# RESERVED: Phase 2 — <purpose>" comments.
+       All have concrete Phase 2 plans; none removed.
 
-  🔧 [MERGED-G11.1] Empty keystore/ and token/ directories persist after ADR-004
+  ✅ [MERGED-G11.1] Empty keystore/ and token/ directories persist after ADR-004
      Severity: 🟡 LOW
-     Source: Phase 2 F11 (recovered — was dropped from Phase 3/4 tracking)
-     Files: shared/security/src/{commonMain,androidMain,jvmMain}/.../security/keystore/
-            shared/security/src/commonMain/.../security/token/
-     Evidence: ADR-004 removed .gitkeep files but left 4 empty dirs.
+     Status: ✅ ALREADY RESOLVED — directories no longer exist on disk
+     Source: Phase 2 F11 (recovered)
+     Verification: File-system scan confirms neither keystore/ nor token/
+       directories exist under shared/security/src/. ADR-004 cleanup was complete.
      Recommendation: Delete all 4 empty directories.
 
 ──────────────────────────────────────────────────────
 2E. Test & Documentation Gaps:
 ──────────────────────────────────────────────────────
 
-  📝 [MERGED-G13.1] CategorySupplierTaxUseCasesTest.kt not documented in project tree
+  ✅ [MERGED-G13.1] CategorySupplierTaxUseCasesTest.kt not documented in project tree
      Severity: 🟡 LOW
+     Status: ✅ RESOLVED (2026-02-22)
      Source: Phase 2 F12 (recovered)
-     File: shared/domain/src/commonTest/.../CategorySupplierTaxUseCasesTest.kt
-     Recommendation: Add to project tree listing.
+     Resolution: Added CategorySupplierTaxUseCasesTest to project tree listing in
+       audit_v3_phase_1_result.md.
 
-  📝 [MERGED-G13.2] Phase 1 tree aggregated 6 POS test files as "PosUseCasesTests"
+  ✅ [MERGED-G13.2] Phase 1 tree aggregated 6 POS test files as "PosUseCasesTests"
      Severity: 🟡 LOW
+     Status: ✅ RESOLVED (2026-02-22)
      Source: Phase 2 F13
-     Files: AddItemToCartUseCaseTest, CalculateOrderTotalsUseCaseTest,
-            CartManagementUseCasesTest, DiscountUseCasesTest,
-            ProcessPaymentUseCaseTest, VoidOrderUseCaseTest
-     Recommendation: List all 6 individual test files in project tree.
+     Resolution: Expanded "PosUseCasesTests" to list all 6 individual test files:
+       AddItemToCartUseCaseTest, CalculateOrderTotalsUseCaseTest,
+       CartManagementUseCasesTest, DiscountUseCasesTest,
+       ProcessPaymentUseCaseTest, VoidOrderUseCaseTest.
 
 ──────────────────────────────────────────────────────
 2F. Expected Gaps (Not Defects):
@@ -426,21 +426,16 @@ SECTION 4: PRIORITY ACTION PLAN
    7. ✅ [G1.2] Remove bare single { PasswordHasher } (confirmed zero consumers) — DONE 2026-02-22
    8. ✅ [G1.3] Document named("deviceId") prerequisite in §4.2 — DONE 2026-02-22
 
-   9. [G11.1] Delete 4 empty keystore/ and token/ directories
-      → Files: shared/security/src/{commonMain,androidMain,jvmMain}/.../keystore/
-               shared/security/src/commonMain/.../token/
-
-  10. [G12.1] Annotate or remove 8 unused catalog entries in libs.versions.toml
-      → File: gradle/libs.versions.toml
-
-  11. [G13.1] Add CategorySupplierTaxUseCasesTest.kt to project tree docs
-  12. [G13.2] Expand "PosUseCasesTests" to list all 6 individual test files
+   9. ✅ [G11.1] Delete 4 empty keystore/ and token/ directories — ALREADY RESOLVED (dirs don't exist)
+  10. ✅ [G12.1] Annotate 8 unused catalog entries with "# RESERVED" comments — DONE 2026-02-22
+  11. ✅ [G13.1] Add CategorySupplierTaxUseCasesTest.kt to project tree — DONE 2026-02-22
+  12. ✅ [G13.2] Expand "PosUseCasesTests" to list all 6 individual test files — DONE 2026-02-22
 
 ══════════════════════════════════════════════════════
 SECTION 5: HEALTH SCORE
 ══════════════════════════════════════════════════════
 
-Structure Alignment:     7 /10
+Structure Alignment:     9 /10
   ✅ 23/23 modules exist and match settings.gradle.kts
   ✅ All 4 ADRs fully compliant
   ✅ All 21 package paths correct
@@ -467,13 +462,14 @@ Code Quality:            7 /10
   ✅ All 6 ViewModels correctly extend BaseViewModel
   ✅ 14/14 repository interface↔implementation pairs
   ✅ Hexagonal port/adapter pattern correctly implemented
-  ❌ 1 P0 runtime crash: named("deviceId") zero providers
-  ⚠️ 1 feature→infrastructure cross-boundary import
-  ⚠️ 4 private currency formatters (floating-point rounding risk)
-  ⚠️ 4 private EmptyState composables bypassing design system
-  ⚠️ 1 potentially dead Koin binding
+  ✅ P0 crash FIXED: named("deviceId") providers added (G1.1)
+  ✅ Feature→infra violation FIXED: AuditRepository replaces SecurityAuditLogger (G2.1)
+  ✅ Currency formatters FIXED: all 4 replaced with CurrencyFormatter (G3.1)
+  ✅ EmptyState composables FIXED: all 4 replaced with ZyntaEmptyState (G4.1)
+  ✅ Dead Koin binding FIXED: bare PasswordHasher removed (G1.2)
+  🔁 17 raw CircularProgressIndicator — deferred to UX sprint (G5.1)
 
-Build Configuration:     9 /10
+Build Configuration:    10 /10
   ✅ 100% version catalog compliance (55/55 used deps)
   ✅ Zero hardcoded version strings
   ✅ 23/23 modules registered in settings.gradle.kts
@@ -481,15 +477,15 @@ Build Configuration:     9 /10
   ✅ JVM targets consistent (JVM_11 Android, JVM_17 Desktop)
   ✅ All 5 bundles actively used
   ✅ Compose DSL accessors correctly applied
-  ⚠️ 8 unused library entries in version catalog
+  ✅ 8 unused catalog entries annotated with "# RESERVED" + Phase 2 purpose (G12.1)
 
 ──────────────────────────────────────────────────────
 
-Overall Project Health:  7 /10
+Overall Project Health:  9 /10  (was 7/10 — all P0/P1 issues resolved)
 
 ──────────────────────────────────────────────────────
 
-EXECUTIVE SUMMARY:
+EXECUTIVE SUMMARY (updated 2026-02-22):
 
 The ZyntaPOS KMM codebase demonstrates exceptional architectural discipline.
 Clean Architecture boundaries are rigorously enforced — zero presentation→data
@@ -497,9 +493,17 @@ violations, zero domain platform leaks, zero circular dependencies. All 186
 audited components conform to documented naming conventions (100%). The build
 configuration is production-grade with full version catalog compliance.
 
-ONE BLOCKING ISSUE remains: the named("deviceId") Koin binding has zero
-providers across all modules (MERGED-G1.1). This causes a NoBeanDefFoundException
-on app startup on ALL platforms. This must be fixed before any integration testing.
+ALL BLOCKING AND WARNING ISSUES RESOLVED (13/13 priority action items complete):
+- P0 CRITICAL: named("deviceId") startup crash fixed (G1.1)
+- Feature→infra boundary violation eliminated (G2.1)
+- 4 duplicate currency formatters consolidated (G3.1)
+- 4 duplicate EmptyState composables consolidated (G4.1)
+- Master Plan documentation fully synchronized (G6.1, G7.1–G7.3, G8.1, G9.1)
+- Dead code removed (G1.2), prerequisites documented (G1.3, G10.1)
+- Catalog hygiene applied (G12.1), test docs updated (G13.1, G13.2)
+- Empty directories confirmed clean (G11.1)
+
+REMAINING: 1 cosmetic item deferred to UX sprint (G5.1 — loading indicator consistency).
 
 DOCUMENTATION DEBT accounts for 10 of the 18 open findings. A focused 1–2 hour
 doc sprint — covering the brand rename (G9.1), dependency table (G6.1), MVI sample
