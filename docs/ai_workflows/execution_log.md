@@ -3375,3 +3375,21 @@ Two compile errors blocked `:shared:domain:assemble`. Both were identified via `
 | Floating-point rounding risk in register screens eliminated | ✅ |
 
 > **Section status: ✅ MERGED-G3.1 COMPLETE — 4 duplicate formatters eliminated, HALF_UP rounding everywhere**
+
+---
+
+## 🟡 PRIORITY ACTION — MERGED-G6.1: Fix Master Plan §4.1 Dependency Table (2026-02-22)
+> **Source:** Audit v3 Final Report §4 — WARNING
+> **Problem:** §4.1 dependency table had 8 errors vs actual build.gradle.kts files.
+> **Fix:** Verified all 21 module build.gradle.kts files and corrected the table.
+
+- [x] G6.1-F1 — Remove M03 from scaffold modules M13-M17, M20 (Clean Architecture violation) | 2026-02-22
+- [x] G6.1-F2 — Add M02 to M04 (:shared:hal) and M05 (:shared:security) deps | 2026-02-22
+- [x] G6.1-F3 — M21 (:composeApp:core) set to zero project deps (was M02) | 2026-02-22
+- [x] G6.1-F4 — Add M04 to M11 (:feature:register) and M12 (:feature:reports) | 2026-02-22
+- [x] G6.1-F5 — Add M08 to M09 (:feature:pos), remove M05 after G2.1 | 2026-02-22
+- [x] G6.1-F6 — Add M01 to all feature module dep lists | 2026-02-22
+- [x] G6.1-P2-07 — M07 dep list verified correct (M02, M05, M06) | 2026-02-22
+- [x] G6.1-NOTE — Added Architecture Note with MERGED-G6.1 correction summary | 2026-02-22
+
+> **Section status: ✅ MERGED-G6.1 COMPLETE — all 8 sub-issues corrected in §4.1**

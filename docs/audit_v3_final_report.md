@@ -108,20 +108,11 @@ SECTION 2: COMPLETE FINDINGS (Deduplicated)
 2A. Alignment Issues (from Phase 1 & 2):
 ──────────────────────────────────────────────────────
 
-  ❌ [MERGED-G6.1] Master Plan §4.1 dependency table has 8+ errors
+  ✅ [MERGED-G6.1] Master Plan §4.1 dependency table has 8+ errors
      Severity: 🟠 MEDIUM
+     Status: ✅ RESOLVED (2026-02-22)
      Source: Phase 2 F1, F2, F3, F4, F5, F6, P2-07
-     File: docs/plans/Master_plan.md §4.1
-     Sub-issues:
-       F1: Scaffold modules (M13-M17, M19-M20) incorrectly list M03 (:shared:data)
-       F2: M04 (:shared:hal) deps understated — actual: M01, M02 (doc says M01 only)
-       F2: M05 (:shared:security) deps understated — actual: M01, M02 (doc says M01 only)
-       F3: M21 (:composeApp:core) dep overstated — actual: zero project deps (doc says M02)
-       F4: M11 (:feature:register), M12 (:feature:reports) missing M04 (:shared:hal)
-       F5: M09 (:feature:pos) missing M08 (:feature:auth)
-       F6: All features explicitly depend on M01 (:shared:core), undocumented
-       P2-07: M07 (:composeApp:navigation) dep list understated
-     Recommendation: Single editing pass on Master_plan.md §4.1 to correct all 8.
+     Resolution: All 8 sub-issues corrected in single editing pass on Master_plan.md §4.1.
 
   ❌ [MERGED-G8.1] Master Plan §3.1 diagram uses "desktopMain", code uses "jvmMain"
      Severity: 🟡 LOW
