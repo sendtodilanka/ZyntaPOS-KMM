@@ -9,6 +9,7 @@ import com.zyntasolutions.zyntapos.hal.scanner.AndroidUsbScanner
 import com.zyntasolutions.zyntapos.hal.scanner.BarcodeScanner
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
+import org.koin.dsl.bind
 import org.koin.dsl.module
 
 /**
@@ -51,10 +52,8 @@ actual fun halModule(): Module = module {
         AndroidUsbScanner(context = androidContext())
     }
 
-    // ── Receipt builder ────────────────────────────────────────────────────
-    single<ReceiptBuilder> {
-        EscPosReceiptBuilder(config = PrinterConfig.DEFAULT)
-    }
+    // ── Receipt builder (concrete + interface binding for DI resolution) ───
+    single { EscPosReceiptBuilder(config = PrinterConfig.DEFAULT) } bind ReceiptBuilder::class
 
     // ── Common bindings (PrinterManager) ──────────────────────────────────
     includes(halCommonModule)

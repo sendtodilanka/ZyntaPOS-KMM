@@ -3,12 +3,14 @@ package com.zyntasolutions.zyntapos
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import com.zyntasolutions.zyntapos.designsystem.theme.ThemeMode
 import com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
+import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.feature.auth.screen.LoginScreen
 import com.zyntasolutions.zyntapos.feature.auth.screen.PinLockScreen
 import com.zyntasolutions.zyntapos.feature.auth.screen.SignUpScreen
@@ -57,7 +59,17 @@ import org.koin.compose.viewmodel.koinViewModel
  */
 @Composable
 fun App() {
-    ZyntaTheme {
+    // ── Observe persisted theme mode so ZyntaTheme recomposes on change ─────
+    val settingsRepository: SettingsRepository = koinInject()
+    val themeModeRaw by settingsRepository.observe("appearance.theme_mode")
+        .collectAsState(initial = null)
+    val themeMode = when (themeModeRaw) {
+        "LIGHT" -> ThemeMode.LIGHT
+        "DARK" -> ThemeMode.DARK
+        else -> ThemeMode.SYSTEM
+    }
+
+    ZyntaTheme(themeMode = themeMode) {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background,
@@ -105,11 +117,12 @@ fun App() {
 private fun buildMainNavScreens() = MainNavScreens(
 
     // ── Dashboard ──────────────────────────────────────────────────────────
-    dashboard = { onNavigateToPos, onNavigateToRegister, onNavigateToReports ->
+    dashboard = { onNavigateToPos, onNavigateToRegister, onNavigateToReports, onNavigateToSettings ->
         DashboardScreen(
             onNavigateToPos = onNavigateToPos,
             onNavigateToRegister = onNavigateToRegister,
             onNavigateToReports = onNavigateToReports,
+            onNavigateToSettings = onNavigateToSettings,
         )
     },
 

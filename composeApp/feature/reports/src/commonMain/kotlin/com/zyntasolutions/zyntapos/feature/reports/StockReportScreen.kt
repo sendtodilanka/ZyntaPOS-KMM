@@ -6,29 +6,44 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PrimaryScrollableTabRow
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
@@ -40,6 +55,14 @@ import com.zyntasolutions.zyntapos.domain.model.Product
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
+// ─── Tab definitions ─────────────────────────────────────────────────────────
+
+private enum class StockTab(val title: String, val icon: ImageVector) {
+    ALL("All Stock", Icons.Default.Inventory2),
+    LOW("Low Stock", Icons.Default.Warning),
+    DEAD("Dead Stock", Icons.Default.Block),
+}
+
 /**
  * Stock report screen — step 12.1.4 / 12.1.5.
  *
@@ -49,6 +72,8 @@ import org.koin.compose.viewmodel.koinViewModel
  * - Dead stock section: items with no movement in 30 days (highlighted gray)
  * - Category filter FilterChip row
  * - Export CSV / PDF actions
+ * - Tab-based layout: All Stock, Low Stock, Dead Stock
+ * - Summary card with total, low stock, and dead stock counts
  *
  * Uses paged SQLDelight query via [GenerateStockReportUseCase] to handle 10K+ products.
  *
@@ -63,6 +88,8 @@ fun StockReportScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val s = state.stockReport
+
+    var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
 
     // Auto-load on first composition
     LaunchedEffect(Unit) {
@@ -90,111 +117,351 @@ fun StockReportScreen(
         },
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize()) {
-            LazyColumn(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues),
-                contentPadding = PaddingValues(ZyntaSpacing.md),
-                verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
             ) {
-                // Category filter chips
-                if (categories.isNotEmpty()) {
-                    item {
-                        CategoryFilterRow(
-                            categories = categories,
-                            selectedCategory = s.selectedCategory,
-                            onCategorySelected = {
-                                viewModel.dispatch(ReportsIntent.FilterStockByCategory(it))
+                // ── Summary card ──────────────────────────────────────────────
+                if (s.allProducts.isNotEmpty()) {
+                    StockSummaryCard(
+                        totalProducts = s.allProducts.size,
+                        lowStockCount = s.lowStockItems.size,
+                        deadStockCount = s.deadStockItems.size,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                start = ZyntaSpacing.md,
+                                end = ZyntaSpacing.md,
+                                top = ZyntaSpacing.md,
+                                bottom = ZyntaSpacing.sm,
+                            ),
+                    )
+                }
+
+                // ── Tab row ──────────────────────────────────────────────────
+                PrimaryScrollableTabRow(
+                    selectedTabIndex = selectedTabIndex,
+                    edgePadding = ZyntaSpacing.md,
+                    divider = {},
+                ) {
+                    StockTab.entries.forEachIndexed { index, tab ->
+                        val badgeCount = when (tab) {
+                            StockTab.LOW -> s.lowStockItems.size
+                            StockTab.DEAD -> s.deadStockItems.size
+                            else -> 0
+                        }
+                        Tab(
+                            selected = selectedTabIndex == index,
+                            onClick = { selectedTabIndex = index },
+                            text = { Text(tab.title) },
+                            icon = {
+                                if (badgeCount > 0) {
+                                    BadgedBox(
+                                        badge = {
+                                            Badge { Text(badgeCount.toString()) }
+                                        },
+                                    ) {
+                                        Icon(tab.icon, contentDescription = tab.title)
+                                    }
+                                } else {
+                                    Icon(tab.icon, contentDescription = tab.title)
+                                }
                             },
                         )
                     }
                 }
 
-                // ── Low stock section ──────────────────────────────────────
-                if (s.lowStockItems.isNotEmpty()) {
-                    item {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.xs),
+                HorizontalDivider()
+
+                // ── Tab content ──────────────────────────────────────────────
+                when {
+                    // Empty state
+                    s.allProducts.isEmpty() && !s.isLoading && s.error == null -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center,
                         ) {
-                            Icon(
-                                Icons.Default.Warning,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.secondary,
-                            )
-                            Text(
-                                text = "Low Stock",
-                                style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.secondary,
+                            ZyntaEmptyState(
+                                icon = Icons.Default.Inventory2,
+                                title = "No Stock Data",
+                                subtitle = "Stock data will appear here once products are added to inventory.",
+                                modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.xl),
                             )
                         }
                     }
-                    items(s.lowStockItems, key = { "low-${it.id}" }) { product ->
-                        StockProductRow(product = product, highlight = StockHighlight.LOW, formatter = formatter)
-                    }
-                    item { HorizontalDivider() }
-                }
 
-                // ── Dead stock section ─────────────────────────────────────
-                if (s.deadStockItems.isNotEmpty()) {
-                    item {
-                        Text(
-                            text = "Dead Stock (no movement in 30 days)",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        )
+                    // Error
+                    s.error != null -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = s.error,
+                                color = MaterialTheme.colorScheme.error,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.md),
+                            )
+                        }
                     }
-                    items(s.deadStockItems, key = { "dead-${it.id}" }) { product ->
-                        StockProductRow(product = product, highlight = StockHighlight.DEAD, formatter = formatter)
-                    }
-                    item { HorizontalDivider() }
-                }
 
-                // ── All products table ────────────────────────────────────
-                if (filteredProducts.isNotEmpty()) {
-                    item {
-                        Text("All Products (${filteredProducts.size})", style = MaterialTheme.typography.titleSmall)
-                    }
-                    item {
-                        StockTableHeader(
-                            sortColumn = s.sortColumn,
-                            sortAscending = s.sortAscending,
-                            onSort = { col ->
-                                val asc = if (s.sortColumn == col) !s.sortAscending else true
-                                viewModel.dispatch(ReportsIntent.SortStock(col, asc))
-                            },
-                        )
-                    }
-                    items(filteredProducts, key = { it.id }) { product ->
-                        StockProductRow(product = product, highlight = StockHighlight.NONE, formatter = formatter)
-                    }
-                }
+                    // Tab content
+                    else -> {
+                        when (StockTab.entries[selectedTabIndex]) {
+                            StockTab.ALL -> AllStockTabContent(
+                                categories = categories,
+                                selectedCategory = s.selectedCategory,
+                                onCategorySelected = {
+                                    viewModel.dispatch(ReportsIntent.FilterStockByCategory(it))
+                                },
+                                filteredProducts = filteredProducts,
+                                sortColumn = s.sortColumn,
+                                sortAscending = s.sortAscending,
+                                onSort = { col ->
+                                    val asc = if (s.sortColumn == col) !s.sortAscending else true
+                                    viewModel.dispatch(ReportsIntent.SortStock(col, asc))
+                                },
+                                formatter = formatter,
+                            )
 
-                // Empty state
-                if (s.allProducts.isEmpty() && !s.isLoading && s.error == null) {
-                    item {
-                        ZyntaEmptyState(
-                            icon = Icons.Default.Inventory2,
-                            title = "No Stock Data",
-                            subtitle = "Stock data will appear here once products are added to inventory.",
-                            modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.xl),
-                        )
-                    }
-                }
+                            StockTab.LOW -> LowStockTabContent(
+                                lowStockItems = s.lowStockItems,
+                                formatter = formatter,
+                            )
 
-                // Error
-                s.error?.let { error ->
-                    item {
-                        Text(
-                            text = error,
-                            color = MaterialTheme.colorScheme.error,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
+                            StockTab.DEAD -> DeadStockTabContent(
+                                deadStockItems = s.deadStockItems,
+                                formatter = formatter,
+                            )
+                        }
                     }
                 }
             }
 
             if (s.isLoading) ZyntaLoadingOverlay(isLoading = true)
+        }
+    }
+}
+
+// ─── Summary card ────────────────────────────────────────────────────────────
+
+@Composable
+private fun StockSummaryCard(
+    totalProducts: Int,
+    lowStockCount: Int,
+    deadStockCount: Int,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        ),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(ZyntaSpacing.md),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+        ) {
+            SummaryMetric(
+                label = "Total Products",
+                value = totalProducts.toString(),
+                modifier = Modifier.weight(1f),
+            )
+            SummaryMetric(
+                label = "Low Stock",
+                value = lowStockCount.toString(),
+                valueColor = if (lowStockCount > 0) MaterialTheme.colorScheme.secondary else null,
+                modifier = Modifier.weight(1f),
+            )
+            SummaryMetric(
+                label = "Dead Stock",
+                value = deadStockCount.toString(),
+                valueColor = if (deadStockCount > 0) MaterialTheme.colorScheme.onSurfaceVariant else null,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SummaryMetric(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    valueColor: androidx.compose.ui.graphics.Color? = null,
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.height(ZyntaSpacing.xs))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+            color = valueColor ?: MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+// ─── Tab content composables ─────────────────────────────────────────────────
+
+@Composable
+private fun AllStockTabContent(
+    categories: List<String>,
+    selectedCategory: String?,
+    onCategorySelected: (String?) -> Unit,
+    filteredProducts: List<Product>,
+    sortColumn: StockSortColumn,
+    sortAscending: Boolean,
+    onSort: (StockSortColumn) -> Unit,
+    formatter: CurrencyFormatter,
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(ZyntaSpacing.md),
+        verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
+    ) {
+        // Category filter chips
+        if (categories.isNotEmpty()) {
+            item {
+                CategoryFilterRow(
+                    categories = categories,
+                    selectedCategory = selectedCategory,
+                    onCategorySelected = onCategorySelected,
+                )
+            }
+        }
+
+        if (filteredProducts.isNotEmpty()) {
+            item {
+                Text(
+                    "All Products (${filteredProducts.size})",
+                    style = MaterialTheme.typography.titleSmall,
+                )
+            }
+            item {
+                StockTableHeader(
+                    sortColumn = sortColumn,
+                    sortAscending = sortAscending,
+                    onSort = onSort,
+                )
+            }
+            items(filteredProducts, key = { it.id }) { product ->
+                StockProductCard(
+                    product = product,
+                    highlight = StockHighlight.NONE,
+                    formatter = formatter,
+                )
+            }
+        } else {
+            item {
+                ZyntaEmptyState(
+                    icon = Icons.Default.Inventory2,
+                    title = "No Products Found",
+                    subtitle = "Try adjusting the category filter.",
+                    modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.xl),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LowStockTabContent(
+    lowStockItems: List<Product>,
+    formatter: CurrencyFormatter,
+) {
+    if (lowStockItems.isEmpty()) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) {
+            ZyntaEmptyState(
+                icon = Icons.Default.Warning,
+                title = "No Low Stock Items",
+                subtitle = "All products are above their minimum stock threshold.",
+                modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.xl),
+            )
+        }
+    } else {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(ZyntaSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
+        ) {
+            item {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.xs),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.secondary,
+                    )
+                    Text(
+                        text = "Low Stock (${lowStockItems.size} items)",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.secondary,
+                    )
+                }
+            }
+            items(lowStockItems, key = { "low-${it.id}" }) { product ->
+                StockProductCard(
+                    product = product,
+                    highlight = StockHighlight.LOW,
+                    formatter = formatter,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DeadStockTabContent(
+    deadStockItems: List<Product>,
+    formatter: CurrencyFormatter,
+) {
+    if (deadStockItems.isEmpty()) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) {
+            ZyntaEmptyState(
+                icon = Icons.Default.Block,
+                title = "No Dead Stock",
+                subtitle = "All products have had movement in the last 30 days.",
+                modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.xl),
+            )
+        }
+    } else {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(ZyntaSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
+        ) {
+            item {
+                Text(
+                    text = "Dead Stock (${deadStockItems.size} items — no movement in 30 days)",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                )
+            }
+            items(deadStockItems, key = { "dead-${it.id}" }) { product ->
+                StockProductCard(
+                    product = product,
+                    highlight = StockHighlight.DEAD,
+                    formatter = formatter,
+                )
+            }
         }
     }
 }
@@ -265,8 +532,12 @@ private fun SortableHeader(
     )
 }
 
+/**
+ * Enhanced stock product row wrapped in a [Card] with surfaceContainerLow background,
+ * status badge with color coding, and category helper text.
+ */
 @Composable
-private fun StockProductRow(product: Product, highlight: StockHighlight, formatter: CurrencyFormatter) {
+private fun StockProductCard(product: Product, highlight: StockHighlight, formatter: CurrencyFormatter) {
     val statusLabel = when {
         product.stockQty <= 0              -> "Out"
         product.stockQty < product.minStockQty -> "Low"
@@ -278,24 +549,59 @@ private fun StockProductRow(product: Product, highlight: StockHighlight, formatt
         else  -> MaterialTheme.colorScheme.tertiary
     }
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = ZyntaSpacing.xs),
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Column(modifier = Modifier.weight(2f)) {
-            Text(product.name, style = MaterialTheme.typography.bodyMedium)
-            Text(product.categoryId, style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        Text("%.0f".format(product.stockQty), style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.weight(1f), textAlign = TextAlign.End)
-        Text(formatter.format(product.stockQty * product.price), style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.weight(1f), textAlign = TextAlign.End)
-        ZyntaStatusBadge(label = statusLabel, customColor = statusColor, modifier = Modifier.weight(1f))
+    val containerColor = when (highlight) {
+        StockHighlight.LOW -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
+        StockHighlight.DEAD -> MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f)
+        StockHighlight.NONE -> MaterialTheme.colorScheme.surfaceContainerLow
     }
-    HorizontalDivider()
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = ZyntaSpacing.md, vertical = ZyntaSpacing.sm),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(2f)) {
+                Text(product.name, style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    product.categoryId,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Text(
+                "%.0f".format(product.stockQty),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.End,
+            )
+            Text(
+                formatter.format(product.stockQty * product.price),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.End,
+            )
+            ZyntaStatusBadge(
+                label = statusLabel,
+                customColor = statusColor,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+/**
+ * Legacy row composable retained for backward compatibility.
+ * Delegates to the enhanced [StockProductCard].
+ */
+@Composable
+private fun StockProductRow(product: Product, highlight: StockHighlight, formatter: CurrencyFormatter) {
+    StockProductCard(product = product, highlight = highlight, formatter = formatter)
 }
 
 // ─── Sort comparator ──────────────────────────────────────────────────────────

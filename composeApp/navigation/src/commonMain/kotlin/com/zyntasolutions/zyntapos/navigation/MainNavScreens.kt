@@ -24,6 +24,7 @@ data class MainNavScreens(
         onNavigateToPos: () -> Unit,
         onNavigateToRegister: () -> Unit,
         onNavigateToReports: () -> Unit,
+        onNavigateToSettings: () -> Unit,
     ) -> Unit,
 
     val pos: @Composable (

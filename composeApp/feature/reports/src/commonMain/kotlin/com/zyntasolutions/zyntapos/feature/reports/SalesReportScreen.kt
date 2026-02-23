@@ -16,25 +16,37 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Print
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PrimaryScrollableTabRow
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
@@ -49,11 +61,21 @@ import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateSalesReportUse
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
+// ─── Tab definitions ─────────────────────────────────────────────────────────
+
+private enum class SalesTab(val title: String, val icon: ImageVector) {
+    OVERVIEW("Overview", Icons.Default.Dashboard),
+    TREND("Trend", Icons.AutoMirrored.Filled.TrendingUp),
+    PAYMENT("Payment", Icons.Default.Payment),
+    PRODUCTS("Products", Icons.Default.ShoppingCart),
+}
+
 /**
  * Sales report screen — step 12.1.2 / 12.1.3.
  *
  * Features:
  * - [DateRangePickerBar] with Today / This Week / This Month / Custom presets
+ * - Tab-based layout: Overview, Trend, Payment, Products
  * - KPI cards: Total Sales, Order Count, Average Order Value, Top Product
  * - Canvas-based line chart (revenue per day in range)
  * - Horizontal bar chart for payment method breakdown
@@ -73,6 +95,8 @@ fun SalesReportScreen(
     val state by viewModel.state.collectAsState()
     val s = state.salesReport
     val windowSize = currentWindowSize()
+
+    var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
 
     // Auto-load on first composition
     LaunchedEffect(Unit) {
@@ -95,66 +119,169 @@ fun SalesReportScreen(
         },
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize()) {
-            LazyColumn(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues),
-                contentPadding = PaddingValues(ZyntaSpacing.md),
-                verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
             ) {
-                // Date range picker
-                item {
-                    DateRangePickerBar(
-                        selectedRange = s.selectedRange,
-                        onRangeSelected = { viewModel.dispatch(ReportsIntent.SelectSalesRange(it)) },
-                        onCustomRange = { from, to ->
-                            viewModel.dispatch(ReportsIntent.SetCustomSalesRange(from, to))
-                        },
-                    )
-                }
+                // ── Date range picker — always visible above tabs ────────────
+                DateRangePickerBar(
+                    selectedRange = s.selectedRange,
+                    onRangeSelected = { viewModel.dispatch(ReportsIntent.SelectSalesRange(it)) },
+                    onCustomRange = { from, to ->
+                        viewModel.dispatch(ReportsIntent.SetCustomSalesRange(from, to))
+                    },
+                    modifier = Modifier.padding(
+                        start = ZyntaSpacing.md,
+                        end = ZyntaSpacing.md,
+                        top = ZyntaSpacing.md,
+                        bottom = ZyntaSpacing.sm,
+                    ),
+                )
 
-                // Report content
-                s.report?.let { report ->
-                    item { SalesKpiRow(report = report, formatter = formatter, isExpanded = windowSize == WindowSize.EXPANDED) }
-                    item { SalesTrendChart(report = report) }
-                    item { PaymentBreakdownChart(report = report, formatter = formatter) }
-                    item {
-                        Text("Per-Product Sales", style = MaterialTheme.typography.titleSmall)
-                    }
-                    items(
-                        items = report.topProducts.entries.toList(),
-                        key = { it.key },
-                    ) { (productId, revenue) ->
-                        ProductSalesRow(productId = productId, revenue = revenue, formatter = formatter)
-                    }
-                }
-
-                // Empty state when not loading and no report
-                if (s.report == null && !s.isLoading && s.error == null) {
-                    item {
-                        ZyntaEmptyState(
-                            icon = Icons.Default.Assessment,
-                            title = "No Report Data",
-                            subtitle = "Select a date range to generate a sales report.",
-                            modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.xl),
+                // ── Tab row ──────────────────────────────────────────────────
+                PrimaryScrollableTabRow(
+                    selectedTabIndex = selectedTabIndex,
+                    edgePadding = ZyntaSpacing.md,
+                    divider = {},
+                ) {
+                    SalesTab.entries.forEachIndexed { index, tab ->
+                        Tab(
+                            selected = selectedTabIndex == index,
+                            onClick = { selectedTabIndex = index },
+                            text = { Text(tab.title) },
+                            icon = { Icon(tab.icon, contentDescription = tab.title) },
                         )
                     }
                 }
 
-                // Error
-                s.error?.let { error ->
-                    item {
-                        Text(
-                            text = error,
-                            color = MaterialTheme.colorScheme.error,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
+                HorizontalDivider()
+
+                // ── Tab content ──────────────────────────────────────────────
+                when {
+                    // Empty state when not loading and no report
+                    s.report == null && !s.isLoading && s.error == null -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            ZyntaEmptyState(
+                                icon = Icons.Default.Assessment,
+                                title = "No Report Data",
+                                subtitle = "Select a date range to generate a sales report.",
+                                modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.xl),
+                            )
+                        }
+                    }
+
+                    // Error
+                    s.error != null -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = s.error,
+                                color = MaterialTheme.colorScheme.error,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.xl),
+                            )
+                        }
+                    }
+
+                    // Report loaded — render the selected tab
+                    s.report != null -> {
+                        val report = s.report
+                        when (SalesTab.entries[selectedTabIndex]) {
+                            SalesTab.OVERVIEW -> OverviewTabContent(
+                                report = report,
+                                formatter = formatter,
+                                isExpanded = windowSize == WindowSize.EXPANDED,
+                            )
+
+                            SalesTab.TREND -> TrendTabContent(report = report)
+
+                            SalesTab.PAYMENT -> PaymentTabContent(
+                                report = report,
+                                formatter = formatter,
+                            )
+
+                            SalesTab.PRODUCTS -> ProductsTabContent(
+                                report = report,
+                                formatter = formatter,
+                            )
+                        }
                     }
                 }
             }
 
             if (s.isLoading) ZyntaLoadingOverlay(isLoading = true)
+        }
+    }
+}
+
+// ─── Tab content composables ─────────────────────────────────────────────────
+
+@Composable
+private fun OverviewTabContent(
+    report: GenerateSalesReportUseCase.SalesReport,
+    formatter: CurrencyFormatter,
+    isExpanded: Boolean,
+) {
+    LazyColumn(
+        contentPadding = PaddingValues(ZyntaSpacing.md),
+        verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
+    ) {
+        item {
+            SalesKpiRow(report = report, formatter = formatter, isExpanded = isExpanded)
+        }
+    }
+}
+
+@Composable
+private fun TrendTabContent(report: GenerateSalesReportUseCase.SalesReport) {
+    LazyColumn(
+        contentPadding = PaddingValues(ZyntaSpacing.md),
+        verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
+    ) {
+        item {
+            SalesTrendChart(report = report)
+        }
+    }
+}
+
+@Composable
+private fun PaymentTabContent(
+    report: GenerateSalesReportUseCase.SalesReport,
+    formatter: CurrencyFormatter,
+) {
+    LazyColumn(
+        contentPadding = PaddingValues(ZyntaSpacing.md),
+        verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
+    ) {
+        item {
+            PaymentBreakdownChart(report = report, formatter = formatter)
+        }
+    }
+}
+
+@Composable
+private fun ProductsTabContent(
+    report: GenerateSalesReportUseCase.SalesReport,
+    formatter: CurrencyFormatter,
+) {
+    LazyColumn(
+        contentPadding = PaddingValues(ZyntaSpacing.md),
+        verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
+    ) {
+        item {
+            Text("Per-Product Sales", style = MaterialTheme.typography.titleSmall)
+        }
+        items(
+            items = report.topProducts.entries.toList(),
+            key = { it.key },
+        ) { (productId, revenue) ->
+            ProductSalesRow(productId = productId, revenue = revenue, formatter = formatter)
         }
     }
 }
@@ -174,47 +301,113 @@ private fun SalesKpiRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
         ) {
-            KpiCard(label = "Total Sales",     value = formatter.format(report.totalSales),    modifier = Modifier.weight(1f))
-            KpiCard(label = "Orders",          value = report.orderCount.toString(),            modifier = Modifier.weight(1f))
-            KpiCard(label = "Avg Order Value", value = formatter.format(report.avgOrderValue),  modifier = Modifier.weight(1f))
-            KpiCard(label = "Top Product",     value = topProduct?.key ?: "—",                  modifier = Modifier.weight(1f))
+            KpiCard(
+                label = "Total Sales",
+                value = formatter.format(report.totalSales),
+                helper = "Total revenue in the selected period",
+                isPrimary = true,
+                modifier = Modifier.weight(1f),
+            )
+            KpiCard(
+                label = "Orders",
+                value = report.orderCount.toString(),
+                helper = "Number of completed orders",
+                modifier = Modifier.weight(1f),
+            )
+            KpiCard(
+                label = "Avg Order Value",
+                value = formatter.format(report.avgOrderValue),
+                helper = "Average revenue per order",
+                modifier = Modifier.weight(1f),
+            )
+            KpiCard(
+                label = "Top Product",
+                value = topProduct?.key ?: "\u2014",
+                helper = if (topProduct != null) formatter.format(topProduct.value) else "No data",
+                modifier = Modifier.weight(1f),
+            )
         }
     } else {
-        // Compact: 2×2 grid
+        // Compact: 2x2 grid
         Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
             ) {
-                KpiCard(label = "Total Sales",     value = formatter.format(report.totalSales),    modifier = Modifier.weight(1f))
-                KpiCard(label = "Orders",          value = report.orderCount.toString(),            modifier = Modifier.weight(1f))
+                KpiCard(
+                    label = "Total Sales",
+                    value = formatter.format(report.totalSales),
+                    helper = "Total revenue in the selected period",
+                    isPrimary = true,
+                    modifier = Modifier.weight(1f),
+                )
+                KpiCard(
+                    label = "Orders",
+                    value = report.orderCount.toString(),
+                    helper = "Number of completed orders",
+                    modifier = Modifier.weight(1f),
+                )
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
             ) {
-                KpiCard(label = "Avg Order Value", value = formatter.format(report.avgOrderValue),  modifier = Modifier.weight(1f))
-                KpiCard(label = "Top Product",     value = topProduct?.key ?: "—",                  modifier = Modifier.weight(1f))
+                KpiCard(
+                    label = "Avg Order Value",
+                    value = formatter.format(report.avgOrderValue),
+                    helper = "Average revenue per order",
+                    modifier = Modifier.weight(1f),
+                )
+                KpiCard(
+                    label = "Top Product",
+                    value = topProduct?.key ?: "\u2014",
+                    helper = if (topProduct != null) formatter.format(topProduct.value) else "No data",
+                    modifier = Modifier.weight(1f),
+                )
             }
         }
     }
 }
 
 @Composable
-private fun KpiCard(label: String, value: String, modifier: Modifier = Modifier) {
+private fun KpiCard(
+    label: String,
+    value: String,
+    helper: String,
+    modifier: Modifier = Modifier,
+    isPrimary: Boolean = false,
+) {
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        ),
     ) {
         Column(
-            modifier = Modifier.padding(ZyntaSpacing.sm),
+            modifier = Modifier.padding(ZyntaSpacing.md),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(label, style = MaterialTheme.typography.labelSmall)
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             Spacer(Modifier.height(ZyntaSpacing.xs))
             Text(
                 text = value,
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                color = if (isPrimary) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(ZyntaSpacing.xs))
+            Text(
+                text = helper,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
         }
