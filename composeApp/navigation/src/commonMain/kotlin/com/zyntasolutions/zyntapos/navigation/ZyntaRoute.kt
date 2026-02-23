@@ -167,6 +167,26 @@ sealed class ZyntaRoute {
     @Serializable
     data object UserManagement : ZyntaRoute()
 
+    /** General store configuration (name, address, currency, logo). */
+    @Serializable
+    data object GeneralSettings : ZyntaRoute()
+
+    /** Appearance configuration (theme mode, dynamic color). */
+    @Serializable
+    data object AppearanceSettings : ZyntaRoute()
+
+    /** About screen (version, licenses, legal). */
+    @Serializable
+    data object AboutSettings : ZyntaRoute()
+
+    /** Backup & restore settings. */
+    @Serializable
+    data object BackupSettings : ZyntaRoute()
+
+    /** POS-specific settings (receipt format, payment defaults). */
+    @Serializable
+    data object PosSettings : ZyntaRoute()
+
     // ─────────────────────────────────────────────────────────────────
     // DEEP-LINK TARGETS (not primary nav destinations)
     // ─────────────────────────────────────────────────────────────────

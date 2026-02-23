@@ -1,22 +1,13 @@
 package com.zyntasolutions.zyntapos
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.feature.auth.screen.LoginScreen
 import com.zyntasolutions.zyntapos.feature.auth.screen.PinLockScreen
@@ -26,6 +17,7 @@ import com.zyntasolutions.zyntapos.feature.inventory.InventoryViewModel
 import com.zyntasolutions.zyntapos.feature.inventory.ProductDetailScreen
 import com.zyntasolutions.zyntapos.feature.inventory.ProductListScreen
 import com.zyntasolutions.zyntapos.feature.inventory.SupplierListScreen
+import com.zyntasolutions.zyntapos.feature.pos.OrderHistoryScreen
 import com.zyntasolutions.zyntapos.feature.pos.PaymentScreen
 import com.zyntasolutions.zyntapos.feature.pos.PosScreen
 import com.zyntasolutions.zyntapos.feature.pos.PosViewModel
@@ -35,9 +27,13 @@ import com.zyntasolutions.zyntapos.feature.register.RegisterDashboardScreen
 import com.zyntasolutions.zyntapos.feature.reports.SalesReportScreen
 import com.zyntasolutions.zyntapos.feature.reports.StockReportScreen
 import com.zyntasolutions.zyntapos.feature.settings.SettingsViewModel
+import com.zyntasolutions.zyntapos.feature.settings.screen.AboutScreen
+import com.zyntasolutions.zyntapos.feature.settings.screen.AppearanceSettingsScreen
+import com.zyntasolutions.zyntapos.feature.settings.screen.BackupSettingsScreen
+import com.zyntasolutions.zyntapos.feature.settings.screen.GeneralSettingsScreen
+import com.zyntasolutions.zyntapos.feature.settings.screen.PosSettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.PrinterSettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.SettingsHomeScreen
-import com.zyntasolutions.zyntapos.feature.settings.screen.SettingsRoute
 import com.zyntasolutions.zyntapos.feature.settings.screen.TaxSettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.UserManagementScreen
 import com.zyntasolutions.zyntapos.navigation.MainNavScreens
@@ -51,12 +47,12 @@ import org.koin.compose.viewmodel.koinViewModel
  *
  * This is the top-level entry point shared across Android and Desktop targets.
  * Koin is guaranteed to be started before this composable runs:
- * - Android: [ZyntaApplication.onCreate] → startKoin
- * - Desktop: `main()` first statement → startKoin
+ * - Android: [ZyntaApplication.onCreate] -> startKoin
+ * - Desktop: `main()` first statement -> startKoin
  *
- * Wires [ZyntaNavGraph] with all feature screen composables. Screens that are
- * not yet implemented render a placeholder. ViewModel instances are resolved
- * per-screen via [koinViewModel] to respect NavBackStackEntry scoping.
+ * Wires [ZyntaNavGraph] with all feature screen composables. ViewModel
+ * instances are resolved per-screen via [koinViewModel] to respect
+ * NavBackStackEntry scoping.
  */
 @Composable
 fun App() {
@@ -199,16 +195,9 @@ private fun buildMainNavScreens() = MainNavScreens(
     stockReport = { StockReportScreen(onNavigateUp = { }) },
 
     // ── Settings: Home ──────────────────────────────────────────────────────
-    settings = { onPrinter, onTax, onUsers ->
+    settings = { onNavigateToRoute ->
         SettingsHomeScreen(
-            onNavigate = { route ->
-                when (route) {
-                    SettingsRoute.PRINTER -> onPrinter()
-                    SettingsRoute.TAX -> onTax()
-                    SettingsRoute.USERS -> onUsers()
-                    else -> { }
-                }
-            },
+            onNavigate = { route -> onNavigateToRoute(route.name) },
             onBack = { },
         )
     },
@@ -249,30 +238,66 @@ private fun buildMainNavScreens() = MainNavScreens(
         )
     },
 
-    // ── Order History (placeholder) ─────────────────────────────────────────
-    orderHistory = { orderId, _ ->
-        PlaceholderScreen(title = "Order: $orderId")
+    // ── Settings: General ───────────────────────────────────────────────────
+    generalSettings = { onNavigateUp ->
+        val vm: SettingsViewModel = koinViewModel()
+        val state by vm.state.collectAsState()
+        GeneralSettingsScreen(
+            viewModel = vm,
+            state = state.general,
+            effects = vm.effects,
+            onIntent = vm::dispatch,
+            onBack = onNavigateUp,
+        )
+    },
+
+    // ── Settings: Appearance ────────────────────────────────────────────────
+    appearanceSettings = { onNavigateUp ->
+        val vm: SettingsViewModel = koinViewModel()
+        val state by vm.state.collectAsState()
+        AppearanceSettingsScreen(
+            state = state.appearance,
+            effects = vm.effects,
+            onIntent = vm::dispatch,
+            onBack = onNavigateUp,
+        )
+    },
+
+    // ── Settings: About ─────────────────────────────────────────────────────
+    aboutSettings = { onNavigateUp ->
+        AboutScreen(onBack = onNavigateUp)
+    },
+
+    // ── Settings: Backup ────────────────────────────────────────────────────
+    backupSettings = { onNavigateUp ->
+        val vm: SettingsViewModel = koinViewModel()
+        val state by vm.state.collectAsState()
+        BackupSettingsScreen(
+            state = state.backup,
+            effects = vm.effects,
+            onIntent = vm::dispatch,
+            onBack = onNavigateUp,
+        )
+    },
+
+    // ── Settings: POS ───────────────────────────────────────────────────────
+    posSettings = { onNavigateUp ->
+        val vm: SettingsViewModel = koinViewModel()
+        val state by vm.state.collectAsState()
+        PosSettingsScreen(
+            state = state.pos,
+            effects = vm.effects,
+            onIntent = vm::dispatch,
+            onBack = onNavigateUp,
+        )
+    },
+
+    // ── Order History ───────────────────────────────────────────────────────
+    orderHistory = { _, onNavigateUp ->
+        OrderHistoryScreen(
+            orders = emptyList(),
+            onOrderTap = { },
+            onReprintOrder = { },
+        )
     },
 )
-
-/** Placeholder composable for screens not yet implemented. */
-@Composable
-private fun PlaceholderScreen(
-    title: String,
-    actions: List<Pair<String, () -> Unit>> = emptyList(),
-) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(title, style = MaterialTheme.typography.headlineMedium)
-            if (actions.isNotEmpty()) {
-                Spacer(Modifier.height(8.dp))
-                actions.forEach { (label, onClick) ->
-                    TextButton(onClick = onClick) { Text(label) }
-                }
-            }
-        }
-    }
-}
