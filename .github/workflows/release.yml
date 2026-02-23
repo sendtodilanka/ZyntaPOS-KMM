@@ -6,7 +6,7 @@ on:
 
 env:
   JAVA_VERSION: '21'
-  JAVA_DISTRIBUTION: 'zulu'
+  JAVA_DISTRIBUTION: 'temurin'
 
 jobs:
   # ═════════════════════════════════════════════════════════════════════
