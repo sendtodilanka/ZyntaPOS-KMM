@@ -46,6 +46,10 @@ CREATE INDEX idx_movements_session ON cash_movements(session_id);
 
 -- ── Register queries ────────────────────────────────────────────────────────
 
+insertRegister:
+INSERT INTO registers(id, name, current_session_id, is_active, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?);
+
 updateRegisterSession:
 UPDATE registers SET current_session_id = ? WHERE id = ?;
 

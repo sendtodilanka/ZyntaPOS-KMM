@@ -15,6 +15,9 @@ import com.zyntasolutions.zyntapos.domain.usecase.pos.UpdateCartItemQuantityUseC
 import com.zyntasolutions.zyntapos.feature.pos.printer.PrinterManagerReceiptAdapter
 import com.zyntasolutions.zyntapos.hal.printer.PrinterManager
 
+import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
@@ -111,7 +114,10 @@ val posModule = module {
 
     // ── ViewModel ─────────────────────────────────────────────────────────────
 
-    viewModel { params ->
+    viewModel {
+        val session = runBlocking {
+            get<AuthRepository>().getSession().first()
+        }
         PosViewModel(
             productRepository = get(),
             categoryRepository = get(),
@@ -127,9 +133,9 @@ val posModule = module {
             processPaymentUseCase = get(),
             printReceiptUseCase = get(),
             receiptFormatter = get(),
-            cashierId = params.get(),
-            storeId = params.get(),
-            registerSessionId = params.get(),
+            cashierId = session?.id ?: "unknown",
+            storeId = session?.storeId ?: "default-store",
+            registerSessionId = "ses-01",
         )
     }
 }

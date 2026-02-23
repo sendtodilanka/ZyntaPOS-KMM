@@ -27,6 +27,7 @@ import com.zyntasolutions.zyntapos.feature.inventory.ProductDetailScreen
 import com.zyntasolutions.zyntapos.feature.inventory.ProductListScreen
 import com.zyntasolutions.zyntapos.feature.inventory.SupplierListScreen
 import com.zyntasolutions.zyntapos.feature.pos.PaymentScreen
+import com.zyntasolutions.zyntapos.feature.pos.PosScreen
 import com.zyntasolutions.zyntapos.feature.pos.PosViewModel
 import com.zyntasolutions.zyntapos.feature.register.CloseRegisterScreen
 import com.zyntasolutions.zyntapos.feature.register.OpenRegisterScreen
@@ -106,21 +107,18 @@ fun App() {
 @Composable
 private fun buildMainNavScreens() = MainNavScreens(
 
-    // ── Dashboard (placeholder) ─────────────────────────────────────────────
+    // ── Dashboard ──────────────────────────────────────────────────────────
     dashboard = { onNavigateToPos, onNavigateToRegister, onNavigateToReports ->
-        PlaceholderScreen(
-            title = "ZyntaPOS Dashboard",
-            actions = listOf(
-                "Open POS" to onNavigateToPos,
-                "Register" to onNavigateToRegister,
-                "Reports" to onNavigateToReports,
-            ),
+        DashboardScreen(
+            onNavigateToPos = onNavigateToPos,
+            onNavigateToRegister = onNavigateToRegister,
+            onNavigateToReports = onNavigateToReports,
         )
     },
 
-    // ── POS (placeholder) ───────────────────────────────────────────────────
-    pos = { _ ->
-        PlaceholderScreen(title = "Point of Sale — Coming Soon")
+    // ── POS ─────────────────────────────────────────────────────────────────
+    pos = { onNavigateToPayment ->
+        PosScreen(onNavigateToPayment = onNavigateToPayment)
     },
 
     // ── Payment ─────────────────────────────────────────────────────────────
