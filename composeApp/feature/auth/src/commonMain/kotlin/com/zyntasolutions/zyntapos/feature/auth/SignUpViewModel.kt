@@ -112,7 +112,7 @@ class SignUpViewModel(
             id = userId,
             name = s.name,
             email = s.email,
-            role = Role.CASHIER,
+            role = Role.ADMIN,
             storeId = "default-store",
             isActive = true,
             createdAt = now,
