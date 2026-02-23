@@ -179,8 +179,8 @@ class DatabaseFactory(
     }
 
     private fun seedTaxGroups(db: ZyntaDatabase, now: Long) {
-        db.tax_groupsQueries.insertTaxGroup("tax-std", "Standard (10%)", 10.0, 0L, 1L, now, now, "SYNCED")
-        db.tax_groupsQueries.insertTaxGroup("tax-zero", "Zero Rate", 0.0, 0L, 1L, now, now, "SYNCED")
+        db.tax_groupsQueries.insertTaxGroup("tax-std", "Standard (10%)", 10.0, 0L, 1L, now, now, null, "SYNCED")
+        db.tax_groupsQueries.insertTaxGroup("tax-zero", "Zero Rate", 0.0, 0L, 1L, now, now, null, "SYNCED")
     }
 
     private fun seedCategories(db: ZyntaDatabase, now: Long) {
