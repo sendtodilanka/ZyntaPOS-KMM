@@ -19,8 +19,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material3.ExperimentalMaterial3Api
+import com.zyntasolutions.zyntapos.core.platform.AppInfoProvider
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
+import org.koin.compose.koinInject
 
 // ─────────────────────────────────────────────────────────────────────────────
 // AboutScreen — app name, version, build date, open-source licences, support.
@@ -47,17 +49,20 @@ private val OPEN_SOURCE_LICENCES = listOf(
 /**
  * About screen displaying app identity, version, and open-source licence notices.
  *
- * @param appVersion   Passed in from platform-specific [BuildConfig] wrapper.
- * @param buildDate    Human-readable build date string, e.g. "2026-02-21".
+ * Version and build date are resolved from the platform-specific [AppInfoProvider]
+ * via Koin injection — no hardcoded defaults needed.
+ *
  * @param onBack       Back navigation.
+ * @param appInfo      Platform-specific build metadata provider (injected via Koin).
  */
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun AboutScreen(
-    appVersion: String = "1.0.0",
-    buildDate: String = "2026-02-21",
     onBack: () -> Unit,
+    appInfo: AppInfoProvider = koinInject(),
 ) {
+    val appVersion = appInfo.appVersion
+    val buildDate = appInfo.buildDate
     ZyntaPageScaffold(
         title = "About",
         onNavigateBack = onBack,
@@ -107,7 +112,7 @@ fun AboutScreen(
                     HorizontalDivider(modifier = Modifier.padding(horizontal = ZyntaSpacing.md))
                     InfoRow(label = "Build Date", value = buildDate)
                     HorizontalDivider(modifier = Modifier.padding(horizontal = ZyntaSpacing.md))
-                    InfoRow(label = "Platform", value = "Kotlin Multiplatform")
+                    InfoRow(label = "Platform", value = appInfo.platformName)
                     HorizontalDivider(modifier = Modifier.padding(horizontal = ZyntaSpacing.md))
                     InfoRow(label = "UI Framework", value = "Compose Multiplatform")
                 }

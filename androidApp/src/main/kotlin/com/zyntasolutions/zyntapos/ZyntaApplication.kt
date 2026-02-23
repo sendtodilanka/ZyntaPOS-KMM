@@ -16,6 +16,7 @@ import com.zyntasolutions.zyntapos.feature.pos.posModule
 import com.zyntasolutions.zyntapos.feature.register.registerModule
 import com.zyntasolutions.zyntapos.feature.reports.androidReportsModule
 import com.zyntasolutions.zyntapos.feature.reports.reportsModule
+import com.zyntasolutions.zyntapos.feature.settings.androidSettingsModule
 import com.zyntasolutions.zyntapos.feature.settings.settingsModule
 import com.zyntasolutions.zyntapos.feature.staff.staffModule
 import com.zyntasolutions.zyntapos.hal.di.halModule
@@ -88,6 +89,7 @@ class ZyntaApplication : Application() {
                 reportsModule,       // Sales/Stock report use cases, ReportsViewModel
                 androidReportsModule(this@ZyntaApplication), // AndroidReportExporter
                 settingsModule,      // SettingsViewModel
+                androidSettingsModule(this@ZyntaApplication), // AndroidBackupService
                 staffModule,         // (placeholder — bindings added per sprint)
             )
         }

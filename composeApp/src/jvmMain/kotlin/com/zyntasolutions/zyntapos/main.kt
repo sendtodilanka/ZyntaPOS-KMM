@@ -18,6 +18,7 @@ import com.zyntasolutions.zyntapos.feature.pos.posModule
 import com.zyntasolutions.zyntapos.feature.register.registerModule
 import com.zyntasolutions.zyntapos.feature.reports.jvmReportsModule
 import com.zyntasolutions.zyntapos.feature.reports.reportsModule
+import com.zyntasolutions.zyntapos.feature.settings.jvmSettingsModule
 import com.zyntasolutions.zyntapos.feature.settings.settingsModule
 import com.zyntasolutions.zyntapos.feature.staff.staffModule
 import com.zyntasolutions.zyntapos.hal.di.halModule
@@ -78,6 +79,7 @@ fun main() {
             reportsModule,       // Sales/Stock report use cases, ReportsViewModel
             jvmReportsModule,    // JvmReportExporter (JVM-only)
             settingsModule,      // SettingsViewModel
+            jvmSettingsModule,   // JvmBackupService (JVM-only)
             staffModule,         // (placeholder — bindings added per sprint)
         )
     }

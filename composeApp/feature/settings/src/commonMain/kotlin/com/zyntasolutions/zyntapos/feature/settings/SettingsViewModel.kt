@@ -4,6 +4,7 @@ import androidx.lifecycle.viewModelScope
 import com.zyntasolutions.zyntapos.core.utils.IdGenerator
 import com.zyntasolutions.zyntapos.core.result.onError
 import com.zyntasolutions.zyntapos.core.result.onSuccess
+import com.zyntasolutions.zyntapos.feature.settings.backup.BackupService
 import com.zyntasolutions.zyntapos.domain.model.OrderType
 import com.zyntasolutions.zyntapos.domain.model.Role
 import com.zyntasolutions.zyntapos.domain.model.TaxGroup
@@ -39,6 +40,7 @@ import kotlinx.datetime.Clock
  * @param saveTaxGroupUseCase  Validated tax group insert/update.
  * @param saveUserUseCase      Validated user account insert/update.
  * @param printTestPageUseCase Sends ESC/POS test page via HAL printer.
+ * @param backupService        Platform-specific database backup & restore.
  */
 class SettingsViewModel(
     private val settingsRepository: SettingsRepository,
@@ -47,6 +49,7 @@ class SettingsViewModel(
     private val saveTaxGroupUseCase: SaveTaxGroupUseCase,
     private val saveUserUseCase: SaveUserUseCase,
     private val printTestPageUseCase: PrintTestPageUseCase,
+    private val backupService: BackupService,
 ) : BaseViewModel<SettingsState, SettingsIntent, SettingsEffect>(SettingsState()) {
 
     private var taxGroupJob: Job? = null
@@ -395,29 +398,34 @@ class SettingsViewModel(
     private fun triggerBackup() {
         updateState { copy(backup = backup.copy(isBackingUp = true, backupError = null)) }
         viewModelScope.launch {
-            try {
-                val now = Clock.System.now()
-                settingsRepository.set(SettingsKeys.LAST_BACKUP_TIMESTAMP, now.toString())
-                updateState { copy(backup = backup.copy(lastBackupAt = now)) }
-                sendEffect(SettingsEffect.BackupComplete("backup_${now.epochSeconds}.db"))
-            } catch (e: Exception) {
-                updateState { copy(backup = backup.copy(backupError = e.message)) }
-            } finally {
-                updateState { copy(backup = backup.copy(isBackingUp = false)) }
-            }
+            backupService.createBackup().fold(
+                onSuccess = { result ->
+                    val now = Clock.System.now()
+                    settingsRepository.set(SettingsKeys.LAST_BACKUP_TIMESTAMP, now.toString())
+                    updateState { copy(backup = backup.copy(lastBackupAt = now)) }
+                    sendEffect(SettingsEffect.BackupComplete(result.filePath))
+                },
+                onFailure = { e ->
+                    updateState { copy(backup = backup.copy(backupError = e.message ?: "Backup failed")) }
+                },
+            )
+            updateState { copy(backup = backup.copy(isBackingUp = false)) }
         }
     }
 
     private fun confirmRestore() {
+        val filePath = currentState.backup.restoreFilePath ?: return
         updateState { copy(backup = backup.copy(isRestoring = true, confirmRestore = false)) }
         viewModelScope.launch {
-            try {
-                sendEffect(SettingsEffect.RestoreComplete)
-            } catch (e: Exception) {
-                updateState { copy(backup = backup.copy(backupError = e.message)) }
-            } finally {
-                updateState { copy(backup = backup.copy(isRestoring = false, restoreFilePath = null)) }
-            }
+            backupService.restoreFromBackup(filePath).fold(
+                onSuccess = {
+                    sendEffect(SettingsEffect.RestoreComplete)
+                },
+                onFailure = { e ->
+                    updateState { copy(backup = backup.copy(backupError = e.message ?: "Restore failed")) }
+                },
+            )
+            updateState { copy(backup = backup.copy(isRestoring = false, restoreFilePath = null)) }
         }
     }
 

@@ -12,7 +12,10 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaDialogContent
@@ -20,6 +23,8 @@ import com.zyntasolutions.zyntapos.designsystem.components.ZyntaDialogVariant
 import androidx.compose.material3.ExperimentalMaterial3Api
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
+import com.zyntasolutions.zyntapos.designsystem.util.FilePickerMode
+import com.zyntasolutions.zyntapos.designsystem.util.PlatformFilePicker
 import com.zyntasolutions.zyntapos.feature.settings.SettingsEffect
 import com.zyntasolutions.zyntapos.feature.settings.SettingsIntent
 import com.zyntasolutions.zyntapos.feature.settings.SettingsState
@@ -37,10 +42,10 @@ import kotlinx.datetime.toLocalDateTime
 /**
  * Backup & restore settings screen.
  *
- * "Backup Now" writes an encrypted copy of the DB and updates the timestamp.
- * "Restore" opens a file picker (via [SettingsEffect.OpenFilePicker]); once the
- * user selects a file, a [ZyntaDialogContent] requires explicit confirmation
- * before the restore proceeds.
+ * "Backup Now" creates an encrypted copy of the database via [BackupService].
+ * "Restore" opens a platform-native file picker via [PlatformFilePicker];
+ * once the user selects a file, a [ZyntaDialogContent] requires explicit
+ * confirmation before the restore proceeds.
  *
  * @param state     Current [SettingsState.BackupState] slice.
  * @param effects   Shared [SettingsEffect] flow.
@@ -56,6 +61,7 @@ fun BackupSettingsScreen(
     onBack: () -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
+    var showFilePicker by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) { onIntent(SettingsIntent.LoadBackupInfo) }
 
@@ -71,6 +77,18 @@ fun BackupSettingsScreen(
             }
         }
     }
+
+    // ── Platform file picker for restore ─────────────────────────────────────
+    PlatformFilePicker(
+        show = showFilePicker,
+        mode = FilePickerMode.DATABASE,
+        onResult = { pickedFile ->
+            showFilePicker = false
+            if (pickedFile != null) {
+                onIntent(SettingsIntent.RestoreSelected(pickedFile.path))
+            }
+        },
+    )
 
     // ── Restore confirmation dialog ───────────────────────────────────────────
     if (state.confirmRestore) {
@@ -134,16 +152,14 @@ fun BackupSettingsScreen(
                 SectionHeader("Restore")
                 Spacer(Modifier.height(ZyntaSpacing.sm))
                 Text(
-                    text = "Restore from the default backup location (Downloads/backup.db).",
+                    text = "Select a database backup file (.db) to restore from.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = ZyntaSpacing.sm),
                 )
                 ZyntaButton(
-                    text = if (state.isRestoring) "Restoring…" else "Restore from Backup",
-                    onClick = {
-                        onIntent(SettingsIntent.RestoreSelected("backup.db"))
-                    },
+                    text = if (state.isRestoring) "Restoring…" else "Select Backup File",
+                    onClick = { showFilePicker = true },
                     enabled = !state.isBackingUp && !state.isRestoring,
                     modifier = Modifier.fillMaxWidth(),
                 )

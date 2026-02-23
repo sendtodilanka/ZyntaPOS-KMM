@@ -1,6 +1,8 @@
 package com.zyntasolutions.zyntapos.core.di
 
 import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
+import com.zyntasolutions.zyntapos.core.platform.AppInfoProvider
+import com.zyntasolutions.zyntapos.core.platform.createAppInfoProvider
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -53,6 +55,9 @@ val coreModule = module {
 
     // ── Currency formatter ─────────────────────────────────────────────────────
     single { CurrencyFormatter() }
+
+    // ── App info provider (platform-specific build metadata) ─────────────────
+    single<AppInfoProvider> { createAppInfoProvider() }
 
     // ── Coroutine dispatchers ─────────────────────────────────────────────────
     single<CoroutineDispatcher>(IO_DISPATCHER)      { Dispatchers.IO }

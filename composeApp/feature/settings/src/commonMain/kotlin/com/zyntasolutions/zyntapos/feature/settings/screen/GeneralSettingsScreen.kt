@@ -33,6 +33,8 @@ import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTextField
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
+import com.zyntasolutions.zyntapos.designsystem.util.FilePickerMode
+import com.zyntasolutions.zyntapos.designsystem.util.PlatformFilePicker
 import com.zyntasolutions.zyntapos.feature.settings.Currency
 import com.zyntasolutions.zyntapos.feature.settings.SettingsEffect
 import com.zyntasolutions.zyntapos.feature.settings.SettingsIntent
@@ -240,6 +242,19 @@ internal fun DropdownField(
 
 @Composable
 private fun LogoUriRow(uri: String, onUriChange: (String) -> Unit) {
+    var showImagePicker by remember { mutableStateOf(false) }
+
+    PlatformFilePicker(
+        show = showImagePicker,
+        mode = FilePickerMode.IMAGE,
+        onResult = { pickedFile ->
+            showImagePicker = false
+            if (pickedFile != null) {
+                onUriChange(pickedFile.path)
+            }
+        },
+    )
+
     Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
         Text("Store Logo", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
         if (uri.isNotBlank()) {
@@ -256,10 +271,10 @@ private fun LogoUriRow(uri: String, onUriChange: (String) -> Unit) {
             label = "Logo URI / Path",
             modifier = Modifier.fillMaxWidth(),
         )
-        Text(
-            text = "Paste an image URI or pick from file picker",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        ZyntaButton(
+            text = "Browse Image",
+            onClick = { showImagePicker = true },
+            modifier = Modifier.fillMaxWidth(),
         )
     }
 }
