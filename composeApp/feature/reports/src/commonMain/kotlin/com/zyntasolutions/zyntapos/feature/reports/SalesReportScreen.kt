@@ -15,11 +15,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -31,16 +33,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.material3.ExperimentalMaterial3Api
+import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoadingOverlay
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
+import com.zyntasolutions.zyntapos.designsystem.util.WindowSize
+import com.zyntasolutions.zyntapos.designsystem.util.currentWindowSize
 import com.zyntasolutions.zyntapos.domain.model.PaymentMethod
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateSalesReportUseCase
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -62,9 +68,11 @@ import org.koin.compose.viewmodel.koinViewModel
 fun SalesReportScreen(
     onNavigateUp: () -> Unit,
     viewModel: ReportsViewModel = koinViewModel(),
+    formatter: CurrencyFormatter = koinInject(),
 ) {
     val state by viewModel.state.collectAsState()
     val s = state.salesReport
+    val windowSize = currentWindowSize()
 
     // Auto-load on first composition
     LaunchedEffect(Unit) {
@@ -91,8 +99,8 @@ fun SalesReportScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(ZyntaSpacing.md),
+                verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
             ) {
                 // Date range picker
                 item {
@@ -105,11 +113,11 @@ fun SalesReportScreen(
                     )
                 }
 
-                // KPI cards
+                // Report content
                 s.report?.let { report ->
-                    item { SalesKpiRow(report = report) }
+                    item { SalesKpiRow(report = report, formatter = formatter, isExpanded = windowSize == WindowSize.EXPANDED) }
                     item { SalesTrendChart(report = report) }
-                    item { PaymentBreakdownChart(report = report) }
+                    item { PaymentBreakdownChart(report = report, formatter = formatter) }
                     item {
                         Text("Per-Product Sales", style = MaterialTheme.typography.titleSmall)
                     }
@@ -117,7 +125,19 @@ fun SalesReportScreen(
                         items = report.topProducts.entries.toList(),
                         key = { it.key },
                     ) { (productId, revenue) ->
-                        ProductSalesRow(productId = productId, revenue = revenue)
+                        ProductSalesRow(productId = productId, revenue = revenue, formatter = formatter)
+                    }
+                }
+
+                // Empty state when not loading and no report
+                if (s.report == null && !s.isLoading && s.error == null) {
+                    item {
+                        ZyntaEmptyState(
+                            icon = Icons.Default.Assessment,
+                            title = "No Report Data",
+                            subtitle = "Select a date range to generate a sales report.",
+                            modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.xl),
+                        )
                     }
                 }
 
@@ -142,17 +162,41 @@ fun SalesReportScreen(
 // ─── KPI cards ────────────────────────────────────────────────────────────────
 
 @Composable
-private fun SalesKpiRow(report: GenerateSalesReportUseCase.SalesReport) {
+private fun SalesKpiRow(
+    report: GenerateSalesReportUseCase.SalesReport,
+    formatter: CurrencyFormatter,
+    isExpanded: Boolean,
+) {
     val topProduct = report.topProducts.entries.firstOrNull()
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        KpiCard(label = "Total Sales",      value = "LKR %.2f".format(report.totalSales),     modifier = Modifier.weight(1f))
-        KpiCard(label = "Orders",           value = report.orderCount.toString(),              modifier = Modifier.weight(1f))
-        KpiCard(label = "Avg Order Value",  value = "LKR %.2f".format(report.avgOrderValue),  modifier = Modifier.weight(1f))
-        KpiCard(label = "Top Product",      value = topProduct?.key ?: "—",                   modifier = Modifier.weight(1f))
+    if (isExpanded) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
+        ) {
+            KpiCard(label = "Total Sales",     value = formatter.format(report.totalSales),    modifier = Modifier.weight(1f))
+            KpiCard(label = "Orders",          value = report.orderCount.toString(),            modifier = Modifier.weight(1f))
+            KpiCard(label = "Avg Order Value", value = formatter.format(report.avgOrderValue),  modifier = Modifier.weight(1f))
+            KpiCard(label = "Top Product",     value = topProduct?.key ?: "—",                  modifier = Modifier.weight(1f))
+        }
+    } else {
+        // Compact: 2×2 grid
+        Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
+            ) {
+                KpiCard(label = "Total Sales",     value = formatter.format(report.totalSales),    modifier = Modifier.weight(1f))
+                KpiCard(label = "Orders",          value = report.orderCount.toString(),            modifier = Modifier.weight(1f))
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
+            ) {
+                KpiCard(label = "Avg Order Value", value = formatter.format(report.avgOrderValue),  modifier = Modifier.weight(1f))
+                KpiCard(label = "Top Product",     value = topProduct?.key ?: "—",                  modifier = Modifier.weight(1f))
+            }
+        }
     }
 }
 
@@ -163,11 +207,11 @@ private fun KpiCard(label: String, value: String, modifier: Modifier = Modifier)
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
         Column(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(ZyntaSpacing.sm),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(label, style = MaterialTheme.typography.labelSmall)
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(ZyntaSpacing.xs))
             Text(
                 text = value,
                 style = MaterialTheme.typography.titleMedium,
@@ -195,9 +239,9 @@ private fun SalesTrendChart(report: GenerateSalesReportUseCase.SalesReport) {
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(ZyntaSpacing.md)) {
             Text("Sales Trend", style = MaterialTheme.typography.titleSmall)
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(ZyntaSpacing.sm))
             val values = report.topProducts.values.toList().ifEmpty { listOf(0.0) }
             val maxVal = values.max().coerceAtLeast(1.0).toFloat()
 
@@ -241,7 +285,10 @@ private fun SalesTrendChart(report: GenerateSalesReportUseCase.SalesReport) {
 // ─── Payment method breakdown (horizontal bar chart) ─────────────────────────
 
 @Composable
-private fun PaymentBreakdownChart(report: GenerateSalesReportUseCase.SalesReport) {
+private fun PaymentBreakdownChart(
+    report: GenerateSalesReportUseCase.SalesReport,
+    formatter: CurrencyFormatter,
+) {
     if (report.salesByPaymentMethod.isEmpty()) return
     val maxAmount = report.salesByPaymentMethod.values.max().coerceAtLeast(1.0)
 
@@ -249,40 +296,46 @@ private fun PaymentBreakdownChart(report: GenerateSalesReportUseCase.SalesReport
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(ZyntaSpacing.md)) {
             Text("Payment Breakdown", style = MaterialTheme.typography.titleSmall)
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(ZyntaSpacing.sm))
             report.salesByPaymentMethod.forEach { (method, amount) ->
                 PaymentBar(
                     method = method,
                     amount = amount,
                     fraction = (amount / maxAmount).toFloat(),
+                    formatter = formatter,
                 )
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(ZyntaSpacing.xs))
             }
         }
     }
 }
 
 @Composable
-private fun PaymentBar(method: PaymentMethod, amount: Double, fraction: Float) {
+private fun PaymentBar(
+    method: PaymentMethod,
+    amount: Double,
+    fraction: Float,
+    formatter: CurrencyFormatter,
+) {
     val primary = MaterialTheme.colorScheme.primary
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
-            text = method.name,
+            text = method.name.lowercase().replaceFirstChar { it.uppercaseChar() },
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.width(80.dp),
         )
         Canvas(
             modifier = Modifier
                 .weight(1f)
-                .height(16.dp),
+                .height(ZyntaSpacing.md),
         ) {
             drawRect(color = primary, size = size.copy(width = size.width * fraction))
         }
-        Spacer(Modifier.width(8.dp))
+        Spacer(Modifier.width(ZyntaSpacing.sm))
         Text(
-            text = "LKR %.2f".format(amount),
+            text = formatter.format(amount),
             style = MaterialTheme.typography.bodySmall,
         )
     }
@@ -291,14 +344,14 @@ private fun PaymentBar(method: PaymentMethod, amount: Double, fraction: Float) {
 // ─── Product sales row ────────────────────────────────────────────────────────
 
 @Composable
-private fun ProductSalesRow(productId: String, revenue: Double) {
+private fun ProductSalesRow(productId: String, revenue: Double, formatter: CurrencyFormatter) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = ZyntaSpacing.xs),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Text(productId, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-        Text("LKR %.2f".format(revenue), style = MaterialTheme.typography.bodyMedium)
+        Text(formatter.format(revenue), style = MaterialTheme.typography.bodyMedium)
     }
 }

@@ -198,11 +198,18 @@ fun NavGraphBuilder.mainNavGraph(
                     navItems = navItems,
                     currentRoute = ZyntaRoute.Settings,
                 ) {
-                    screens.settings(
-                        { navigationController.navigate(ZyntaRoute.PrinterSettings) },
-                        { navigationController.navigate(ZyntaRoute.TaxSettings) },
-                        { navigationController.navigate(ZyntaRoute.UserManagement) },
-                    )
+                    screens.settings { routeKey ->
+                        when (routeKey) {
+                            "PRINTER" -> navigationController.navigate(ZyntaRoute.PrinterSettings)
+                            "TAX" -> navigationController.navigate(ZyntaRoute.TaxSettings)
+                            "USERS" -> navigationController.navigate(ZyntaRoute.UserManagement)
+                            "GENERAL" -> navigationController.navigate(ZyntaRoute.GeneralSettings)
+                            "APPEARANCE" -> navigationController.navigate(ZyntaRoute.AppearanceSettings)
+                            "ABOUT" -> navigationController.navigate(ZyntaRoute.AboutSettings)
+                            "BACKUP" -> navigationController.navigate(ZyntaRoute.BackupSettings)
+                            "POS" -> navigationController.navigate(ZyntaRoute.PosSettings)
+                        }
+                    }
                 }
             }
 
@@ -220,6 +227,36 @@ fun NavGraphBuilder.mainNavGraph(
 
             composable<ZyntaRoute.UserManagement> {
                 screens.userManagement(
+                    { navigationController.navigateUp(ZyntaRoute.Settings) },
+                )
+            }
+
+            composable<ZyntaRoute.GeneralSettings> {
+                screens.generalSettings(
+                    { navigationController.navigateUp(ZyntaRoute.Settings) },
+                )
+            }
+
+            composable<ZyntaRoute.AppearanceSettings> {
+                screens.appearanceSettings(
+                    { navigationController.navigateUp(ZyntaRoute.Settings) },
+                )
+            }
+
+            composable<ZyntaRoute.AboutSettings> {
+                screens.aboutSettings(
+                    { navigationController.navigateUp(ZyntaRoute.Settings) },
+                )
+            }
+
+            composable<ZyntaRoute.BackupSettings> {
+                screens.backupSettings(
+                    { navigationController.navigateUp(ZyntaRoute.Settings) },
+                )
+            }
+
+            composable<ZyntaRoute.PosSettings> {
+                screens.posSettings(
                     { navigationController.navigateUp(ZyntaRoute.Settings) },
                 )
             }
@@ -275,7 +312,12 @@ private fun MainScaffoldShell(
             is ZyntaRoute.Settings,
             is ZyntaRoute.PrinterSettings,
             is ZyntaRoute.TaxSettings,
-            is ZyntaRoute.UserManagement -> item.route is ZyntaRoute.Settings
+            is ZyntaRoute.UserManagement,
+            is ZyntaRoute.GeneralSettings,
+            is ZyntaRoute.AppearanceSettings,
+            is ZyntaRoute.AboutSettings,
+            is ZyntaRoute.BackupSettings,
+            is ZyntaRoute.PosSettings -> item.route is ZyntaRoute.Settings
 
             else -> item.route::class == currentRoute::class
         }

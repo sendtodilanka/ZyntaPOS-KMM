@@ -76,9 +76,7 @@ data class MainNavScreens(
 
     // ── Settings sub-graph ────────────────────────────────────────────────────
     val settings: @Composable (
-        onNavigateToPrinterSettings: () -> Unit,
-        onNavigateToTaxSettings: () -> Unit,
-        onNavigateToUserManagement: () -> Unit,
+        onNavigateToRoute: (settingsRoute: String) -> Unit,
     ) -> Unit,
 
     val printerSettings: @Composable (
@@ -90,6 +88,26 @@ data class MainNavScreens(
     ) -> Unit,
 
     val userManagement: @Composable (
+        onNavigateUp: () -> Unit,
+    ) -> Unit,
+
+    val generalSettings: @Composable (
+        onNavigateUp: () -> Unit,
+    ) -> Unit,
+
+    val appearanceSettings: @Composable (
+        onNavigateUp: () -> Unit,
+    ) -> Unit,
+
+    val aboutSettings: @Composable (
+        onNavigateUp: () -> Unit,
+    ) -> Unit,
+
+    val backupSettings: @Composable (
+        onNavigateUp: () -> Unit,
+    ) -> Unit,
+
+    val posSettings: @Composable (
         onNavigateUp: () -> Unit,
     ) -> Unit,
 
