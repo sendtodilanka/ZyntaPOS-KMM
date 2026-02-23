@@ -73,7 +73,7 @@ fun CartSummaryFooter(
                 )
             }
 
-            Divider(
+            HorizontalDivider(
                 modifier = Modifier.padding(vertical = ZyntaSpacing.xs),
                 thickness = 1.dp,
             )

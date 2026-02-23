@@ -377,7 +377,7 @@ private fun OrderSummaryPane(
             }
 
             Spacer(Modifier.height(ZyntaSpacing.sm))
-            Divider()
+            HorizontalDivider()
             Spacer(Modifier.height(ZyntaSpacing.sm))
 
             LazyColumn(
@@ -389,7 +389,7 @@ private fun OrderSummaryPane(
                 }
             }
 
-            Divider(modifier = Modifier.padding(vertical = ZyntaSpacing.sm))
+            HorizontalDivider(modifier = Modifier.padding(vertical = ZyntaSpacing.sm))
             OrderSummaryTotals(orderTotals = orderTotals, formatter = formatter)
         }
     }
@@ -494,7 +494,7 @@ private fun CollapsibleOrderSummary(
             if (isExpanded) {
                 Spacer(Modifier.height(ZyntaSpacing.xs))
                 cartItems.forEach { item -> OrderSummaryItem(item = item, formatter = formatter) }
-                Divider(modifier = Modifier.padding(vertical = ZyntaSpacing.xs))
+                HorizontalDivider(modifier = Modifier.padding(vertical = ZyntaSpacing.xs))
                 OrderSummaryTotals(orderTotals = orderTotals, formatter = formatter)
             }
         }

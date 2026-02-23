@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -269,7 +270,7 @@ private fun TaxGroupEditDialog(
                     onValueChange = { name = it; nameError = if (it.isBlank()) "Required" else null },
                     label = { Text("Name *") },
                     placeholder = { Text("e.g. VAT 15%") },
-                    leadingIcon = { Icon(Icons.Default.Label, contentDescription = null) },
+                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.Label, contentDescription = null) },
                     isError = nameError != null,
                     supportingText = nameError?.let { { Text(it) } },
                     singleLine = true,

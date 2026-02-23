@@ -5,6 +5,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -111,7 +112,7 @@ fun CategoryDetailScreen(
                 },
                 label = { Text("Category Name *") },
                 placeholder = { Text("e.g. Beverages") },
-                leadingIcon = { Icon(Icons.Default.Label, contentDescription = null) },
+                leadingIcon = { Icon(Icons.AutoMirrored.Filled.Label, contentDescription = null) },
                 isError = nameError != null,
                 supportingText = nameError?.let { { Text(it) } },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
@@ -131,7 +132,7 @@ fun CategoryDetailScreen(
                     label = { Text("Parent Category") },
                     leadingIcon = { Icon(Icons.Default.AccountTree, contentDescription = null) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = parentDropdownExpanded) },
-                    modifier = Modifier.menuAnchor().fillMaxWidth(),
+                    modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
                 )
                 ExposedDropdownMenu(
                     expanded = parentDropdownExpanded,
