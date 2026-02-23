@@ -28,6 +28,10 @@ jobs:
           distribution: ${{ env.JAVA_DISTRIBUTION }}
           java-version: ${{ env.JAVA_VERSION }}
 
+      # ── Override macOS-specific JDK path from gradle.properties ──────────
+      - name: Point org.gradle.java.home to CI JDK
+        run: sed -i 's|^org.gradle.java.home=.*|org.gradle.java.home='"$JAVA_HOME"'|' gradle.properties
+
       # ── Gradle ────────────────────────────────────────────────────────────
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v3
