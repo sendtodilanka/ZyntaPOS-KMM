@@ -134,7 +134,7 @@ fun BackupSettingsScreen(
                 SectionHeader("Restore")
                 Spacer(Modifier.height(ZyntaSpacing.sm))
                 Text(
-                    text = "Select a previously exported .db backup file to restore.",
+                    text = "Restore from the default backup location (Downloads/backup.db).",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = ZyntaSpacing.sm),
@@ -142,7 +142,7 @@ fun BackupSettingsScreen(
                 ZyntaButton(
                     text = if (state.isRestoring) "Restoring…" else "Restore from Backup",
                     onClick = {
-                        onIntent(SettingsIntent.RestoreSelected("/storage/emulated/0/Downloads/backup.db"))
+                        onIntent(SettingsIntent.RestoreSelected("backup.db"))
                     },
                     enabled = !state.isBackingUp && !state.isRestoring,
                     modifier = Modifier.fillMaxWidth(),

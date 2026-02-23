@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
 import com.zyntasolutions.zyntapos.designsystem.components.SortDirection
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTable
@@ -22,6 +23,7 @@ import com.zyntasolutions.zyntapos.domain.model.Order
 import com.zyntasolutions.zyntapos.domain.model.OrderStatus
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import org.koin.compose.koinInject
 
 // ─────────────────────────────────────────────────────────────────────────────
 // OrderHistoryScreen — Sprint 17, task 9.1.25
@@ -71,6 +73,7 @@ fun OrderHistoryScreen(
     onOrderTap: (orderId: String) -> Unit,
     onReprintOrder: (orderId: String) -> Unit,
     modifier: Modifier = Modifier,
+    formatter: CurrencyFormatter = koinInject(),
 ) {
     // ── Local filter / sort state ─────────────────────────────────────────────
     var selectedStatus by remember { mutableStateOf<OrderStatus?>(null) }
@@ -178,7 +181,7 @@ fun OrderHistoryScreen(
 
                     // TOTAL column
                     Text(
-                        text = "$%.2f".format(order.total),
+                        text = formatter.format(order.total),
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.primary,
@@ -228,7 +231,7 @@ private fun StatusBadge(status: OrderStatus) {
             text = status.label(),
             style = MaterialTheme.typography.labelSmall,
             color = content,
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+            modifier = Modifier.padding(horizontal = ZyntaSpacing.xs, vertical = 2.dp),
         )
     }
 }

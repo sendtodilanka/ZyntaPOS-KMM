@@ -121,9 +121,9 @@ fun AboutScreen(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    InfoRow(label = "Email", value = "support@zentapos.com")
+                    InfoRow(label = "Email", value = "support@zyntapos.com")
                     HorizontalDivider(modifier = Modifier.padding(horizontal = ZyntaSpacing.md))
-                    InfoRow(label = "Website", value = "https://zentapos.com")
+                    InfoRow(label = "Website", value = "https://zyntapos.com")
                 }
             }
 

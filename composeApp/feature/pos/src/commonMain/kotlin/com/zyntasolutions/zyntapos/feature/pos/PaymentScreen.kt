@@ -6,6 +6,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -366,7 +368,7 @@ private fun OrderSummaryPane(
             Text("Order Summary", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
 
             if (selectedCustomer != null) {
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(ZyntaSpacing.xs))
                 Text(
                     "Customer: $selectedCustomer",
                     style = MaterialTheme.typography.bodySmall,
@@ -423,7 +425,7 @@ private fun OrderSummaryTotals(orderTotals: OrderTotals, formatter: CurrencyForm
         if (orderTotals.discountAmount > 0) {
             SummaryLine("Discount", "− ${formatter.format(orderTotals.discountAmount)}", MaterialTheme.colorScheme.error)
         }
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(ZyntaSpacing.xs))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -480,9 +482,12 @@ private fun CollapsibleOrderSummary(
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.primary,
                     )
-                    Spacer(Modifier.width(4.dp))
-                    TextButton(onClick = onToggle, contentPadding = PaddingValues(4.dp)) {
-                        Text(if (isExpanded) "▲" else "▼", style = MaterialTheme.typography.bodySmall)
+                    Spacer(Modifier.width(ZyntaSpacing.xs))
+                    IconButton(onClick = onToggle) {
+                        Icon(
+                            imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                            contentDescription = if (isExpanded) "Collapse" else "Expand",
+                        )
                     }
                 }
             }

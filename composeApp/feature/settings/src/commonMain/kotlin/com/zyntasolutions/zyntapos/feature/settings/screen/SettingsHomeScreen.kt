@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.feature.settings.screen
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -30,7 +31,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.unit.dp
 import androidx.compose.material3.ExperimentalMaterial3Api
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
@@ -171,19 +171,10 @@ private fun SettingsCategoryCard(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
                             contentDescription = "Navigate",
-                            modifier = Modifier.padding(4.dp),
+                            modifier = Modifier.padding(ZyntaSpacing.xs),
                         )
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .then(
-                            Modifier.let { m ->
-                                if (index < group.entries.lastIndex)
-                                    m // divider added below
-                                else m
-                            }
-                        )
-                        .also { },
+                    modifier = Modifier.fillMaxWidth().clickable { onItemClick(entry) },
                 )
                 if (index < group.entries.lastIndex) {
                     HorizontalDivider(modifier = Modifier.padding(horizontal = ZyntaSpacing.md))
