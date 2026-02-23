@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.feature.auth.screen.LoginScreen
 import com.zyntasolutions.zyntapos.feature.auth.screen.PinLockScreen
+import com.zyntasolutions.zyntapos.feature.auth.screen.SignUpScreen
 import com.zyntasolutions.zyntapos.feature.inventory.CategoryListScreen
 import com.zyntasolutions.zyntapos.feature.inventory.InventoryViewModel
 import com.zyntasolutions.zyntapos.feature.inventory.ProductDetailScreen
@@ -73,8 +74,17 @@ fun App() {
                 isSessionActive = isSessionActive,
                 userRole = userRole,
                 screens = buildMainNavScreens(),
-                loginScreen = { onLoginSuccess ->
-                    LoginScreen(onNavigateToDashboard = onLoginSuccess)
+                loginScreen = { onLoginSuccess, onNavigateToSignUp ->
+                    LoginScreen(
+                        onNavigateToDashboard = onLoginSuccess,
+                        onNavigateToSignUp = onNavigateToSignUp,
+                    )
+                },
+                signUpScreen = { onSignUpSuccess, onNavigateToLogin ->
+                    SignUpScreen(
+                        onSignUpSuccess = onSignUpSuccess,
+                        onNavigateToLogin = onNavigateToLogin,
+                    )
                 },
                 pinLockScreen = { onUnlocked ->
                     PinLockScreen(

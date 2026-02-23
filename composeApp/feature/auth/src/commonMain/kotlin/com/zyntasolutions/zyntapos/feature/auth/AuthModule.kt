@@ -91,4 +91,10 @@ val authModule = module {
      * primary constructor, so all dependencies are resolved via Koin.
      */
     viewModelOf(::AuthViewModel)
+
+    /**
+     * ViewModel for the sign-up / registration flow.
+     * Creates new local user accounts via [UserRepository].
+     */
+    viewModelOf(::SignUpViewModel)
 }

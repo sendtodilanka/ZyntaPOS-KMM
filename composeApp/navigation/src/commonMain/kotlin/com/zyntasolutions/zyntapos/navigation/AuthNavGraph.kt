@@ -35,15 +35,22 @@ import androidx.navigation.compose.navigation
  */
 fun NavGraphBuilder.authNavGraph(
     navigationController: NavigationController,
-    loginScreen: @Composable (onLoginSuccess: () -> Unit) -> Unit,
+    loginScreen: @Composable (onLoginSuccess: () -> Unit, onNavigateToSignUp: () -> Unit) -> Unit,
+    signUpScreen: @Composable (onSignUpSuccess: () -> Unit, onNavigateToLogin: () -> Unit) -> Unit,
     pinLockScreen: @Composable (onUnlocked: () -> Unit) -> Unit,
 ) {
     navigation<ZyntaRoute.AuthGraph>(startDestination = ZyntaRoute.Login) {
         composable<ZyntaRoute.Login> {
             loginScreen(
-                {
-                    navigationController.navigateAndClear(ZyntaRoute.Dashboard)
-                },
+                { navigationController.navigateAndClear(ZyntaRoute.Dashboard) },
+                { navigationController.navigate(ZyntaRoute.SignUp) },
+            )
+        }
+
+        composable<ZyntaRoute.SignUp> {
+            signUpScreen(
+                { navigationController.popBackStack() },
+                { navigationController.popBackStack() },
             )
         }
 

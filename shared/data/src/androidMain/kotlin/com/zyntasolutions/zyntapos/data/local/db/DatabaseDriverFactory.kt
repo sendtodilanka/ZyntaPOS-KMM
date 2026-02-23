@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.data.local.db
 
 import android.content.Context
+import app.cash.sqldelight.db.QueryResult
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
@@ -59,10 +60,12 @@ actual class DatabaseDriverFactory(private val context: Context) {
         )
 
         // WAL mode: concurrent readers + single writer — essential for POS throughput
-        driver.execute(identifier = null, sql = "PRAGMA journal_mode=WAL;", parameters = 0)
+        // Use executeQuery (not execute) because PRAGMA journal_mode returns a result row;
+        // leaving it unconsumed causes SQLCipher error code 100 on Android.
+        driver.executeQuery(identifier = null, sql = "PRAGMA journal_mode=WAL;", mapper = { QueryResult.Value(Unit) }, parameters = 0)
 
         // Tune cache for POS product-catalogue workloads
-        driver.execute(identifier = null, sql = "PRAGMA cache_size=-8000;", parameters = 0)  // 8 MB cache
+        driver.executeQuery(identifier = null, sql = "PRAGMA cache_size=-8000;", mapper = { QueryResult.Value(Unit) }, parameters = 0)
 
         ZyntaLogger.i(TAG, "Android encrypted DB opened successfully (WAL mode, 8 MB cache).")
         return driver

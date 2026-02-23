@@ -11,6 +11,11 @@ ZYNTA_API_BASE_URL=https://api.your-backend.com
 ZYNTA_API_CLIENT_ID=YOUR_CLIENT_ID_HERE
 ZYNTA_API_CLIENT_SECRET=YOUR_CLIENT_SECRET_HERE
 
+# ── BuildConfig fields consumed by Secrets Gradle Plugin ────────────
+# These MUST have non-empty values or the generated Java will not compile.
+API_BASE_URL=https://localhost/api
+DB_ENCRYPTION_PASSWORD=dev-only-not-for-production
+
 # ── Database Encryption ─────────────────────────────────────────────
 # Generate: openssl rand -hex 32
 ZYNTA_DB_PASSPHRASE=YOUR_64_CHAR_HEX_PASSPHRASE_HERE
