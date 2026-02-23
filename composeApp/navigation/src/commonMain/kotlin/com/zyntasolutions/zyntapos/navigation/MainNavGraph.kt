@@ -40,7 +40,7 @@ fun NavGraphBuilder.mainNavGraph(
     navItems: List<NavItem>,
     screens: MainNavScreens,
 ) {
-    navigation<ZyntaRoute.Dashboard>(startDestination = ZyntaRoute.Dashboard) {
+    navigation<ZyntaRoute.MainGraph>(startDestination = ZyntaRoute.Dashboard) {
 
         // ── Scaffold wrapper composable ──────────────────────────────────────
         // Each composable destination is individually registered but rendered
@@ -93,7 +93,7 @@ fun NavGraphBuilder.mainNavGraph(
         }
 
         // ── Inventory sub-graph ──────────────────────────────────────────────
-        navigation<ZyntaRoute.ProductList>(startDestination = ZyntaRoute.ProductList) {
+        navigation<ZyntaRoute.InventoryGraph>(startDestination = ZyntaRoute.ProductList) {
             composable<ZyntaRoute.ProductList> {
                 MainScaffoldShell(
                     navigationController = navigationController,
@@ -130,7 +130,7 @@ fun NavGraphBuilder.mainNavGraph(
         }
 
         // ── Register sub-graph ───────────────────────────────────────────────
-        navigation<ZyntaRoute.RegisterDashboard>(startDestination = ZyntaRoute.RegisterDashboard) {
+        navigation<ZyntaRoute.RegisterGraph>(startDestination = ZyntaRoute.RegisterDashboard) {
             composable<ZyntaRoute.RegisterDashboard> {
                 MainScaffoldShell(
                     navigationController = navigationController,
@@ -168,7 +168,7 @@ fun NavGraphBuilder.mainNavGraph(
         }
 
         // ── Reports sub-graph ────────────────────────────────────────────────
-        navigation<ZyntaRoute.SalesReport>(startDestination = ZyntaRoute.SalesReport) {
+        navigation<ZyntaRoute.ReportsGraph>(startDestination = ZyntaRoute.SalesReport) {
             composable<ZyntaRoute.SalesReport> {
                 MainScaffoldShell(
                     navigationController = navigationController,
@@ -191,7 +191,7 @@ fun NavGraphBuilder.mainNavGraph(
         }
 
         // ── Settings sub-graph ───────────────────────────────────────────────
-        navigation<ZyntaRoute.Settings>(startDestination = ZyntaRoute.Settings) {
+        navigation<ZyntaRoute.SettingsGraph>(startDestination = ZyntaRoute.Settings) {
             composable<ZyntaRoute.Settings> {
                 MainScaffoldShell(
                     navigationController = navigationController,

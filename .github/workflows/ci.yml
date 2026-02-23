@@ -8,7 +8,7 @@ on:
 
 env:
   JAVA_VERSION: '21'
-  JAVA_DISTRIBUTION: 'zulu'
+  JAVA_DISTRIBUTION: 'temurin'
 
 jobs:
   build:
@@ -42,6 +42,7 @@ jobs:
       - name: Create local.properties from template
         run: |
           cp local.properties.template local.properties
+          sed -i "s|^sdk.dir=.*|sdk.dir=$ANDROID_HOME|" local.properties
           echo "API_BASE_URL=${{ secrets.API_BASE_URL }}" >> local.properties
           echo "DB_ENCRYPTION_PASSWORD=${{ secrets.DB_ENCRYPTION_PASSWORD }}" >> local.properties
 
