@@ -2,7 +2,9 @@ package com.zyntasolutions.zyntapos.data.local.db
 
 import app.cash.sqldelight.db.SqlDriver
 import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
+import com.zyntasolutions.zyntapos.domain.port.PasswordHashPort
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
+import kotlinx.datetime.Clock
 
 /**
  * ZyntaPOS — DatabaseFactory (commonMain)
@@ -47,6 +49,7 @@ class DatabaseFactory(
     private val keyProvider: DatabaseKeyProvider,
     private val driverFactory: DatabaseDriverFactory,
     private val migrations: DatabaseMigrations,
+    private val passwordHasher: PasswordHashPort,
 ) {
 
     @Volatile
@@ -87,6 +90,7 @@ class DatabaseFactory(
 
                 ZyntaDatabase(driver).also { db ->
                     cachedDatabase = db
+                    seedDefaultAdminIfEmpty(db)
                     ZyntaLogger.i(TAG, "ZyntaDatabase ready — encrypted, WAL, migrations applied.")
                 }
             }
@@ -113,6 +117,39 @@ class DatabaseFactory(
 
     /** Returns `true` if the database has been opened and is currently cached. */
     val isOpen: Boolean get() = cachedDatabase != null
+
+    /**
+     * Seeds a default admin account on first launch so the offline-only MVP is usable
+     * without a server. No-ops if any user already exists.
+     *
+     * Default credentials: admin@zentapos.com / admin123
+     */
+    private fun seedDefaultAdminIfEmpty(db: ZyntaDatabase) {
+        try {
+            val hasAdmin = db.usersQueries.getUserByEmail("admin@zentapos.com")
+                .executeAsOneOrNull() != null
+            if (hasAdmin) return
+
+            val now = Clock.System.now().toEpochMilliseconds()
+            val passwordHash = passwordHasher.hash("admin123")
+            db.usersQueries.insertUser(
+                id            = "00000000-0000-0000-0000-000000000001",
+                name          = "Admin",
+                email         = "admin@zentapos.com",
+                password_hash = passwordHash,
+                role          = "ADMIN",
+                pin_hash      = null,
+                store_id      = "default-store",
+                is_active     = 1L,
+                created_at    = now,
+                updated_at    = now,
+                sync_status   = "SYNCED",
+            )
+            ZyntaLogger.i(TAG, "Seeded default admin user (admin@zentapos.com).")
+        } catch (e: Exception) {
+            ZyntaLogger.e(TAG, "Failed to seed default admin user: ${e.message}")
+        }
+    }
 
     private companion object {
         const val TAG = "DatabaseFactory"

@@ -96,7 +96,8 @@ fun ZyntaNavGraph(
     isSessionActive: Boolean,
     userRole: Role?,
     screens: MainNavScreens,
-    loginScreen: @Composable (onLoginSuccess: () -> Unit) -> Unit,
+    loginScreen: @Composable (onLoginSuccess: () -> Unit, onNavigateToSignUp: () -> Unit) -> Unit,
+    signUpScreen: @Composable (onSignUpSuccess: () -> Unit, onNavigateToLogin: () -> Unit) -> Unit,
     pinLockScreen: @Composable (onUnlocked: () -> Unit) -> Unit,
 ) {
     // Compute RBAC-filtered nav items once per role change
@@ -114,6 +115,7 @@ fun ZyntaNavGraph(
         authNavGraph(
             navigationController = navigationController,
             loginScreen = loginScreen,
+            signUpScreen = signUpScreen,
             pinLockScreen = pinLockScreen,
         )
 

@@ -102,9 +102,10 @@ val dataModule = module {
     // Their concrete instances are bound in platform-specific modules.
     single {
         DatabaseFactory(
-            keyProvider   = get(),
-            driverFactory = get(),
-            migrations    = get(),
+            keyProvider     = get(),
+            driverFactory   = get(),
+            migrations      = get(),
+            passwordHasher  = get(),
         )
     }
 
