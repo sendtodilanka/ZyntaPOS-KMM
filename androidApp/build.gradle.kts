@@ -11,6 +11,8 @@
 // therefore declared as implementation() dependencies here.
 // ============================================================
 
+import java.time.LocalDate
+
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlinAndroid)
@@ -34,7 +36,7 @@ android {
         buildConfigField("String", "APP_VERSION_NAME", "\"${rootProject.extra["appVersionName"]}\"")
         buildConfigField("int", "APP_VERSION_CODE", "${rootProject.extra["appVersionCode"]}")
         buildConfigField("int", "APP_BUILD_NUMBER", "${rootProject.extra["appVersionBuild"]}")
-        buildConfigField("String", "BUILD_DATE", "\"${java.time.LocalDate.now()}\"")
+        buildConfigField("String", "BUILD_DATE", "\"${LocalDate.now()}\"")
     }
 
     packaging {
