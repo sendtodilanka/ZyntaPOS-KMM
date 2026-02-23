@@ -235,7 +235,7 @@ private fun TaxGroupFormSheet(
                         )
                     } else {
                         TaxGroup(
-                            id = java.util.UUID.randomUUID().toString(),
+                            id = com.zyntasolutions.zyntapos.core.utils.IdGenerator.newId(),
                             name = nameState.value,
                             rate = rate,
                             isInclusive = inclusiveState.value,

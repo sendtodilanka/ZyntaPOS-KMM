@@ -17,7 +17,7 @@ private const val DEK_SIZE_BYTES = 32
 /**
  * Desktop (JVM) actual: 256-bit AES key stored in a PKCS12 KeyStore.
  *
- * The KeyStore file is located at `~/.zentapos/.db_keystore.p12` and protected
+ * The KeyStore file is located at `~/.zyntapos/.db_keystore.p12` and protected
  * with a machine-fingerprint derived password (SHA-256 of `user.name|os.name|os.arch`).
  * The 32-byte key is directly extractable on the JVM (`secretKey.encoded` returns raw bytes).
  */
@@ -25,7 +25,7 @@ actual class DatabaseKeyManager actual constructor() {
 
     private val keystoreFile: File = File(
         System.getProperty("user.home"),
-        ".zentapos/.db_keystore.p12",
+        ".zyntapos/.db_keystore.p12",
     )
 
     private val keystorePassword: CharArray by lazy {
