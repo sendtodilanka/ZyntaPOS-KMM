@@ -7,6 +7,7 @@
 // NOTE: com.android.application has been extracted to :androidApp
 // to comply with AGP 9.0.0+ / KMP plugin compatibility rules.
 // ============================================================
+import java.time.LocalDate
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -49,7 +50,7 @@ kotlin {
             // Explicit Compose Multiplatform artifact coordinates (accessors deprecated in CMP 1.8+)
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
-            implementation(compose.material3)
+            implementation(libs.compose.material3)
             implementation(libs.compose.ui)
             implementation(libs.compose.components.resources)
             // AndroidX Lifecycle (KMP-compatible)
@@ -105,7 +106,7 @@ compose.desktop {
             "-Dfile.encoding=UTF-8",
             "-Dapp.version=$appVersion",
             "-Dapp.build.number=$appBuild",
-            "-Dapp.build.date=${java.time.LocalDate.now()}",
+            "-Dapp.build.date=${LocalDate.now()}",
         )
 
         nativeDistributions {

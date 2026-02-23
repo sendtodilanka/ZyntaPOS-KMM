@@ -94,6 +94,7 @@ class JvmBackupService(private val appDataDir: String) : BackupService {
                 dbFile.toPath(),
                 StandardCopyOption.REPLACE_EXISTING,
             )
+            Unit
         }
     }
 
