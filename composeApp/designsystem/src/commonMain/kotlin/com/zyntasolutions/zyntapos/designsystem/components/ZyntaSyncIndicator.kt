@@ -41,9 +41,9 @@ fun ZyntaSyncIndicator(
     modifier: Modifier = Modifier,
     showLabel: Boolean = true,
 ) {
-    val syncedColor = Color(0xFF2E7D32)
+    val syncedColor = MaterialTheme.colorScheme.tertiary
     val syncingColor = MaterialTheme.colorScheme.primary
-    val offlineColor = Color(0xFFF57C00)
+    val offlineColor = MaterialTheme.colorScheme.secondary
     val failedColor = MaterialTheme.colorScheme.error
 
     Row(
@@ -82,7 +82,7 @@ fun ZyntaSyncIndicator(
                     Icon(
                         imageVector = Icons.Default.Sync,
                         contentDescription = "Syncing",
-                        tint = Color.White,
+                        tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.fillMaxSize(),
                     )
                 }

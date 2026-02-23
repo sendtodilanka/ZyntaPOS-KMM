@@ -67,7 +67,7 @@ fun ZyntaSnackbarHost(
         val visuals = snackbarData.visuals
         val (containerColor, contentColor, icon) = when {
             visuals is ZyntaSnackbarVisuals && visuals.variant == SnackbarVariant.SUCCESS ->
-                Triple(Color(0xFF2E7D32), Color.White, Icons.Default.CheckCircle as ImageVector)
+                Triple(MaterialTheme.colorScheme.tertiary, MaterialTheme.colorScheme.onTertiary, Icons.Default.CheckCircle as ImageVector)
 
             visuals is ZyntaSnackbarVisuals && visuals.variant == SnackbarVariant.ERROR ->
                 Triple(MaterialTheme.colorScheme.error, MaterialTheme.colorScheme.onError, Icons.Default.Error as ImageVector)

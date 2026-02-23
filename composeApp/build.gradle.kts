@@ -96,10 +96,43 @@ kotlin {
 compose.desktop {
     application {
         mainClass = "com.zyntasolutions.zyntapos.MainKt"
+
+        // JVM args for the packaged application
+        jvmArgs += listOf(
+            "-Xmx512m",
+            "-Dfile.encoding=UTF-8",
+        )
+
         nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Exe, TargetFormat.Deb)
-            packageName    = "com.zyntasolutions.zyntapos"
+            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+            packageName    = "ZyntaPOS"
             packageVersion = "1.0.0"
+            description    = "ZyntaPOS — Cross-platform Point of Sale system"
+            vendor         = "Zynta Solutions"
+            copyright      = "Copyright 2026 Zynta Solutions. All rights reserved."
+
+            // Bundled JVM runtime (JDK 17+)
+            includeAllModules = true
+
+            linux {
+                debPackageVersion    = "1.0.0"
+                debMaintainer        = "dev@zyntasolutions.com"
+                appCategory          = "Office"
+                menuGroup            = "Office"
+            }
+
+            macOS {
+                bundleID             = "com.zyntasolutions.zyntapos"
+                dpiAware             = true
+            }
+
+            windows {
+                menuGroup            = "ZyntaPOS"
+                upgradeUuid          = "b2f8c3a1-7d4e-4f5a-9b6c-1e2d3f4a5b6c"
+                dirChooser           = true
+                perUserInstall       = false
+                shortcut             = true
+            }
         }
     }
 }

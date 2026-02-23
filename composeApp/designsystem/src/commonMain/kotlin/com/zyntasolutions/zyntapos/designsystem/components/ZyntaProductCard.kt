@@ -188,8 +188,8 @@ private fun CompactCard(
 @Composable
 private fun StockBadge(stock: StockIndicator, modifier: Modifier = Modifier) {
     val (label, color) = when (stock) {
-        StockIndicator.InStock -> "In Stock" to Color(0xFF2E7D32)
-        StockIndicator.LowStock -> "Low Stock" to Color(0xFFF57C00)
+        StockIndicator.InStock -> "In Stock" to MaterialTheme.colorScheme.tertiary
+        StockIndicator.LowStock -> "Low Stock" to MaterialTheme.colorScheme.secondary
         StockIndicator.OutOfStock -> "Out" to MaterialTheme.colorScheme.error
     }
     Surface(
