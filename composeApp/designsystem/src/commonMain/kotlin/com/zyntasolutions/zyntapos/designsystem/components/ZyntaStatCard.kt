@@ -12,9 +12,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.TrendingDown
-import androidx.compose.material.icons.filled.TrendingFlat
-import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingFlat
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -217,9 +217,9 @@ fun ZyntaCompactStatCard(
 @Composable
 private fun TrendIndicator(trend: TrendDirection, label: String) {
     val (icon, color) = when (trend) {
-        TrendDirection.Up -> Icons.Default.TrendingUp to MaterialTheme.colorScheme.tertiary
-        TrendDirection.Down -> Icons.Default.TrendingDown to MaterialTheme.colorScheme.error
-        TrendDirection.Flat -> Icons.Default.TrendingFlat to MaterialTheme.colorScheme.onSurfaceVariant
+        TrendDirection.Up -> Icons.AutoMirrored.Filled.TrendingUp to MaterialTheme.colorScheme.tertiary
+        TrendDirection.Down -> Icons.AutoMirrored.Filled.TrendingDown to MaterialTheme.colorScheme.error
+        TrendDirection.Flat -> Icons.AutoMirrored.Filled.TrendingFlat to MaterialTheme.colorScheme.onSurfaceVariant
     }
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(

@@ -22,7 +22,7 @@ import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -30,7 +30,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -65,7 +65,7 @@ import org.koin.compose.viewmodel.koinViewModel
 
 private enum class SalesTab(val title: String, val icon: ImageVector) {
     OVERVIEW("Overview", Icons.Default.Dashboard),
-    TREND("Trend", Icons.Default.TrendingUp),
+    TREND("Trend", Icons.AutoMirrored.Filled.TrendingUp),
     PAYMENT("Payment", Icons.Default.Payment),
     PRODUCTS("Products", Icons.Default.ShoppingCart),
 }
@@ -140,7 +140,7 @@ fun SalesReportScreen(
                 )
 
                 // ── Tab row ──────────────────────────────────────────────────
-                ScrollableTabRow(
+                PrimaryScrollableTabRow(
                     selectedTabIndex = selectedTabIndex,
                     edgePadding = ZyntaSpacing.md,
                     divider = {},

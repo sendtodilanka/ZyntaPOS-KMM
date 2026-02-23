@@ -11,24 +11,32 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Store
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTextField
@@ -44,8 +52,8 @@ import com.zyntasolutions.zyntapos.feature.settings.SettingsViewModel
 import kotlinx.coroutines.flow.collectLatest
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GeneralSettingsScreen — store name, address, phone, logo, currency, timezone,
-//                         date format, language.
+// GeneralSettingsScreen — Tab-based enterprise layout
+// Tabs: Store Identity | Regional
 // Sprint 23 — Step 13.1.2
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -73,6 +81,8 @@ fun GeneralSettingsScreen(
     onBack: () -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
+    var selectedTab by remember { mutableIntStateOf(0) }
+    val tabTitles = listOf("Store Identity", "Regional")
 
     LaunchedEffect(Unit) { onIntent(SettingsIntent.LoadGeneral) }
 
@@ -91,99 +101,274 @@ fun GeneralSettingsScreen(
         onNavigateBack = onBack,
         snackbarHostState = snackbarHostState,
     ) { innerPadding ->
-        LazyColumn(
-            contentPadding = PaddingValues(
-                start = ZyntaSpacing.md,
-                end = ZyntaSpacing.md,
-                top = innerPadding.calculateTopPadding() + ZyntaSpacing.md,
-                bottom = innerPadding.calculateBottomPadding() + ZyntaSpacing.md,
-            ),
-            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
         ) {
-            item {
-                SectionHeader("Store Identity")
-                Spacer(Modifier.height(ZyntaSpacing.sm))
-                ZyntaTextField(
-                    value = state.storeName,
-                    onValueChange = { onIntent(SettingsIntent.UpdateStoreName(it)) },
-                    label = "Store Name",
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-            item {
-                ZyntaTextField(
-                    value = state.storeAddress,
-                    onValueChange = { onIntent(SettingsIntent.UpdateStoreAddress(it)) },
-                    label = "Store Address",
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = false,
-                    maxLines = 3,
-                )
-            }
-            item {
-                ZyntaTextField(
-                    value = state.storePhone,
-                    onValueChange = { onIntent(SettingsIntent.UpdateStorePhone(it)) },
-                    label = "Phone Number",
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-            item {
-                LogoUriRow(
-                    uri = state.logoUri,
-                    onUriChange = { onIntent(SettingsIntent.UpdateLogoUri(it)) },
-                )
-            }
-            item {
-                SectionHeader("Regional")
-                Spacer(Modifier.height(ZyntaSpacing.sm))
-                DropdownField(
-                    label = "Currency",
-                    options = Currency.entries.map { "${it.code} (${it.symbol})" },
-                    selectedIndex = Currency.entries.indexOf(state.currency).coerceAtLeast(0),
-                    onSelect = { onIntent(SettingsIntent.UpdateCurrency(Currency.entries[it])) },
-                )
-            }
-            item {
-                DropdownField(
-                    label = "Timezone",
-                    options = TIMEZONES,
-                    selectedIndex = TIMEZONES.indexOf(state.timezone).coerceAtLeast(0),
-                    onSelect = { onIntent(SettingsIntent.UpdateTimezone(TIMEZONES[it])) },
-                )
-            }
-            item {
-                DropdownField(
-                    label = "Date Format",
-                    options = DATE_FORMATS,
-                    selectedIndex = DATE_FORMATS.indexOf(state.dateFormat).coerceAtLeast(0),
-                    onSelect = { onIntent(SettingsIntent.UpdateDateFormat(DATE_FORMATS[it])) },
-                )
-            }
-            item {
-                ZyntaTextField(
-                    value = state.language,
-                    onValueChange = {},
-                    label = "Language",
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = false, // English only in Phase 1
-                )
-                Text(
-                    text = "English only (Phase 1)",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            item {
-                state.saveError?.let {
-                    Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            // ── Tab Row ─────────────────────────────────────────────────
+            PrimaryScrollableTabRow(
+                selectedTabIndex = selectedTab,
+                edgePadding = ZyntaSpacing.md,
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.primary,
+                divider = { HorizontalDivider() },
+            ) {
+                tabTitles.forEachIndexed { index, title ->
+                    Tab(
+                        selected = selectedTab == index,
+                        onClick = { selectedTab = index },
+                        text = { Text(title) },
+                        icon = {
+                            Icon(
+                                imageVector = when (index) {
+                                    0 -> Icons.Default.Store
+                                    else -> Icons.Default.Language
+                                },
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        },
+                    )
                 }
-                ZyntaButton(
-                    text = if (state.isSaving) "Saving…" else "Save General Settings",
-                    onClick = { onIntent(SettingsIntent.SaveGeneral) },
-                    enabled = !state.isSaving,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+            }
+
+            // ── Tab Content ─────────────────────────────────────────────
+            LazyColumn(
+                contentPadding = PaddingValues(ZyntaSpacing.md),
+                verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                when (selectedTab) {
+                    0 -> {
+                        // ── Store Identity Tab ──────────────────────────
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                ),
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(ZyntaSpacing.md),
+                                    verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
+                                ) {
+                                    Text(
+                                        "Store Details",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                    Text(
+                                        "Enter the core information that identifies your store. This appears on receipts, invoices, and reports.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    ZyntaTextField(
+                                        value = state.storeName,
+                                        onValueChange = { onIntent(SettingsIntent.UpdateStoreName(it)) },
+                                        label = "Store Name",
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+                                    Text(
+                                        "The business name displayed on receipts and customer-facing materials.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    ZyntaTextField(
+                                        value = state.storeAddress,
+                                        onValueChange = { onIntent(SettingsIntent.UpdateStoreAddress(it)) },
+                                        label = "Store Address",
+                                        modifier = Modifier.fillMaxWidth(),
+                                        singleLine = false,
+                                        maxLines = 3,
+                                    )
+                                    Text(
+                                        "Full street address including city, state/province, and postal code.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    ZyntaTextField(
+                                        value = state.storePhone,
+                                        onValueChange = { onIntent(SettingsIntent.UpdateStorePhone(it)) },
+                                        label = "Phone Number",
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+                                    Text(
+                                        "Contact phone number printed on receipts for customer enquiries.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                        }
+
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                ),
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(ZyntaSpacing.md),
+                                    verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
+                                ) {
+                                    Text(
+                                        "Store Logo",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                    Text(
+                                        "Upload your store logo to display on receipts and the POS dashboard. Recommended size: 200x200px.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    LogoUriRow(
+                                        uri = state.logoUri,
+                                        onUriChange = { onIntent(SettingsIntent.UpdateLogoUri(it)) },
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    1 -> {
+                        // ── Regional Tab ─────────────────────────────────
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                ),
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(ZyntaSpacing.md),
+                                    verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
+                                ) {
+                                    Text(
+                                        "Currency",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                    Text(
+                                        "Select the currency used for pricing, transactions, and reports across your store.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    DropdownField(
+                                        label = "Currency",
+                                        options = Currency.entries.map { "${it.code} (${it.symbol})" },
+                                        selectedIndex = Currency.entries.indexOf(state.currency).coerceAtLeast(0),
+                                        onSelect = { onIntent(SettingsIntent.UpdateCurrency(Currency.entries[it])) },
+                                    )
+                                    Text(
+                                        "This affects how monetary values are formatted and displayed throughout the application.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                        }
+
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                ),
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(ZyntaSpacing.md),
+                                    verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
+                                ) {
+                                    Text(
+                                        "Timezone & Date Format",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                    Text(
+                                        "Configure how dates and times are displayed across reports, receipts, and order history.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    DropdownField(
+                                        label = "Timezone",
+                                        options = TIMEZONES,
+                                        selectedIndex = TIMEZONES.indexOf(state.timezone).coerceAtLeast(0),
+                                        onSelect = { onIntent(SettingsIntent.UpdateTimezone(TIMEZONES[it])) },
+                                    )
+                                    Text(
+                                        "All timestamps on receipts, reports, and audit logs use this timezone.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    DropdownField(
+                                        label = "Date Format",
+                                        options = DATE_FORMATS,
+                                        selectedIndex = DATE_FORMATS.indexOf(state.dateFormat).coerceAtLeast(0),
+                                        onSelect = { onIntent(SettingsIntent.UpdateDateFormat(DATE_FORMATS[it])) },
+                                    )
+                                    Text(
+                                        "Controls the order of day, month, and year in all displayed dates.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                        }
+
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                ),
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(ZyntaSpacing.md),
+                                    verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
+                                ) {
+                                    Text(
+                                        "Language",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                    Text(
+                                        "Set the display language for the POS interface and printed receipts.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    ZyntaTextField(
+                                        value = state.language,
+                                        onValueChange = {},
+                                        label = "Language",
+                                        modifier = Modifier.fillMaxWidth(),
+                                        enabled = false, // English only in Phase 1
+                                    )
+                                    Text(
+                                        "English only (Phase 1). Additional languages will be available in a future update.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // ── Save Button (always visible) ────────────────────────
+                item {
+                    Spacer(Modifier.height(ZyntaSpacing.sm))
+                    state.saveError?.let {
+                        Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    }
+                    ZyntaButton(
+                        text = if (state.isSaving) "Saving..." else "Save General Settings",
+                        onClick = { onIntent(SettingsIntent.SaveGeneral) },
+                        enabled = !state.isSaving,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
         }
     }
@@ -257,7 +442,6 @@ private fun LogoUriRow(uri: String, onUriChange: (String) -> Unit) {
     )
 
     Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
-        Text("Store Logo", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
         if (uri.isNotBlank()) {
             Icon(
                 imageVector = Icons.Filled.Store,
