@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -196,7 +197,7 @@ private fun ProductFilterRow(
         // ── View toggle ─────────────────────────────────────────────
         IconButton(onClick = onToggleViewMode) {
             Icon(
-                imageVector = if (viewMode == ViewMode.LIST) Icons.Default.GridView else Icons.Default.ViewList,
+                imageVector = if (viewMode == ViewMode.LIST) Icons.Default.GridView else Icons.AutoMirrored.Filled.ViewList,
                 contentDescription = if (viewMode == ViewMode.LIST) "Switch to grid view" else "Switch to list view",
             )
         }

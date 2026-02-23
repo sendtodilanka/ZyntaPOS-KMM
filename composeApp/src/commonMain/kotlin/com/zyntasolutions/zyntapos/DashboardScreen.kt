@@ -44,16 +44,18 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
-import com.zyntasolutions.zyntapos.db.ZyntaDatabase
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoadingOverlay
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.designsystem.util.WindowSize
 import com.zyntasolutions.zyntapos.designsystem.util.currentWindowSize
+import com.zyntasolutions.zyntapos.domain.model.Order
+import com.zyntasolutions.zyntapos.domain.model.OrderStatus
 import com.zyntasolutions.zyntapos.domain.model.User
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
-import kotlinx.coroutines.Dispatchers
+import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
+import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
+import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
@@ -74,7 +76,9 @@ fun DashboardScreen(
     onNavigateToRegister: () -> Unit,
     onNavigateToReports: () -> Unit,
 ) {
-    val db: ZyntaDatabase = koinInject()
+    val orderRepository: OrderRepository = koinInject()
+    val productRepository: ProductRepository = koinInject()
+    val registerRepository: RegisterRepository = koinInject()
     val authRepository: AuthRepository = koinInject()
     val currencyFormatter: CurrencyFormatter = koinInject()
     val windowSize = currentWindowSize()
@@ -90,38 +94,42 @@ fun DashboardScreen(
 
     LaunchedEffect(Unit) {
         currentUser = authRepository.getSession().first()
-        withContext(Dispatchers.Default) {
-            val tz = TimeZone.currentSystemDefault()
-            val now = Clock.System.now()
-            val todayStart = now.toLocalDateTime(tz).date.atStartOfDayIn(tz).toEpochMilliseconds()
 
-            val allOrders = db.ordersQueries.getAllOrders().executeAsList()
-            val todayOrders = allOrders.filter {
-                it.status == "COMPLETED" && it.created_at >= todayStart
+        val tz = TimeZone.currentSystemDefault()
+        val now = Clock.System.now()
+        val todayStart = now.toLocalDateTime(tz).date.atStartOfDayIn(tz)
+
+        // Fetch today's orders through the domain repository
+        val todayOrders = orderRepository.getByDateRange(todayStart, now).first()
+        val completedToday = todayOrders.filter { it.status == OrderStatus.COMPLETED }
+        todaysSales = completedToday.sumOf { it.total }
+        totalOrders = completedToday.size.toLong()
+
+        // Low stock: filter products where stockQty <= minStockQty
+        val allProducts = productRepository.getAll().first()
+        val lowStockProducts = allProducts.filter { it.stockQty <= it.minStockQty }
+        lowStockCount = lowStockProducts.size.toLong()
+        lowStockNames = lowStockProducts.take(5).map { it.name }
+
+        // Active registers
+        val activeSession = registerRepository.getActive().first()
+        activeRegisters = if (activeSession != null) 1L else 0L
+
+        // Recent completed orders (last 10)
+        val allOrders = orderRepository.getAll().first()
+        recentOrders = allOrders
+            .filter { it.status == OrderStatus.COMPLETED }
+            .sortedByDescending { it.createdAt }
+            .take(10)
+            .map { order ->
+                RecentOrder(
+                    orderNumber = order.orderNumber,
+                    total = order.total,
+                    method = order.paymentMethod.name,
+                    timestamp = order.createdAt.toEpochMilliseconds(),
+                )
             }
-            todaysSales = todayOrders.sumOf { it.total }
-            totalOrders = todayOrders.size.toLong()
-
-            val lowStockProducts = db.productsQueries.getLowStockProducts().executeAsList()
-            lowStockCount = lowStockProducts.size.toLong()
-            lowStockNames = lowStockProducts.take(5).map { it.name }
-
-            activeRegisters = db.registersQueries.getActiveSession().executeAsList().size.toLong()
-
-            recentOrders = allOrders
-                .filter { it.status == "COMPLETED" }
-                .sortedByDescending { it.created_at }
-                .take(10)
-                .map { order ->
-                    RecentOrder(
-                        orderNumber = order.order_number,
-                        total = order.total,
-                        method = order.payment_method,
-                        timestamp = order.created_at,
-                    )
-                }
-            isLoading = false
-        }
+        isLoading = false
     }
 
     if (isLoading) {

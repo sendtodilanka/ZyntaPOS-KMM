@@ -226,7 +226,7 @@ private fun PaymentSplitRow(
                         onClick = { showMethodMenu = true },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor()
+                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                             .heightIn(min = 44.dp),
                     ) {
                         Icon(split.method.icon, contentDescription = null, modifier = Modifier.size(16.dp))

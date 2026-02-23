@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.CallSplit
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -157,5 +158,5 @@ val PaymentMethod.icon: ImageVector
         PaymentMethod.CARD -> Icons.Filled.CreditCard
         PaymentMethod.MOBILE -> Icons.Filled.PhoneAndroid
         PaymentMethod.BANK_TRANSFER -> Icons.Filled.AccountBalance
-        PaymentMethod.SPLIT -> Icons.Filled.CallSplit
+        PaymentMethod.SPLIT -> Icons.AutoMirrored.Filled.CallSplit
     }

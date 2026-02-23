@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -329,7 +330,7 @@ private fun ColumnMappingRow(
         )
 
         Icon(
-            Icons.Default.ArrowForward,
+            Icons.AutoMirrored.Filled.ArrowForward,
             contentDescription = "maps to",
             modifier = Modifier.size(16.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -345,7 +346,7 @@ private fun ColumnMappingRow(
                 value = selectedLabel,
                 onValueChange = {},
                 readOnly = true,
-                modifier = Modifier.menuAnchor(),
+                modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                 textStyle = MaterialTheme.typography.bodySmall,
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
                 singleLine = true,

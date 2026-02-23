@@ -15,6 +15,7 @@ import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSearchBar
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.Customer
 import com.zyntasolutions.zyntapos.domain.repository.CustomerRepository
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapLatest
@@ -43,7 +44,7 @@ import kotlinx.coroutines.flow.flowOf
  * @param customerRepository  [CustomerRepository] injected from Koin in the caller.
  * @param onQuickAdd          Invoked when the quick-add button is tapped.
  */
-@OptIn(FlowPreview::class, ExperimentalMaterial3Api::class)
+@OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun CustomerSelectorDialog(
     onCustomerSelected: (Customer?) -> Unit,

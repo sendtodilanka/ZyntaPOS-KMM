@@ -2,6 +2,7 @@ package com.zyntasolutions.zyntapos.feature.pos
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -135,7 +136,7 @@ private fun CartActionRow(
         horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.xs),
     ) {
         IconButton(onClick = onNotesClicked) {
-            Icon(Icons.Default.Notes, contentDescription = "Order notes")
+            Icon(Icons.AutoMirrored.Filled.Notes, contentDescription = "Order notes")
         }
         IconButton(onClick = onDiscountClicked) {
             Icon(Icons.Default.LocalOffer, contentDescription = "Order discount")
