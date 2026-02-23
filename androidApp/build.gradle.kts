@@ -27,8 +27,14 @@ android {
         applicationId = "com.zyntasolutions.zyntapos"
         minSdk        = libs.versions.android.minSdk.get().toInt()
         targetSdk     = libs.versions.android.targetSdk.get().toInt()
-        versionCode   = 1
-        versionName   = "1.0"
+        versionCode   = rootProject.extra["appVersionCode"] as Int
+        versionName   = rootProject.extra["appVersionName"] as String
+
+        // Inject version info into BuildConfig for runtime access
+        buildConfigField("String", "APP_VERSION_NAME", "\"${rootProject.extra["appVersionName"]}\"")
+        buildConfigField("int", "APP_VERSION_CODE", "${rootProject.extra["appVersionCode"]}")
+        buildConfigField("int", "APP_BUILD_NUMBER", "${rootProject.extra["appVersionBuild"]}")
+        buildConfigField("String", "BUILD_DATE", "\"${java.time.LocalDate.now()}\"")
     }
 
     packaging {

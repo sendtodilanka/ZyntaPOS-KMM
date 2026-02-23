@@ -14,6 +14,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.ColorLens
+import androidx.compose.material.icons.filled.HealthAndSafety
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material.icons.filled.PersonOutline
@@ -98,7 +99,7 @@ data class SettingsGroup(
 
 /** All routes the settings home screen can navigate to. */
 enum class SettingsRoute {
-    GENERAL, POS, TAX, PRINTER, USERS, SECURITY, BACKUP, APPEARANCE, ABOUT,
+    GENERAL, POS, TAX, PRINTER, USERS, SECURITY, BACKUP, APPEARANCE, SYSTEM_HEALTH, ABOUT,
 }
 
 private val settingsGroups: List<SettingsGroup> = listOf(
@@ -132,6 +133,7 @@ private val settingsGroups: List<SettingsGroup> = listOf(
     SettingsGroup(
         title = "Support",
         entries = listOf(
+            SettingsEntry("System Health", "Memory, disk, database & runtime diagnostics", Icons.Filled.HealthAndSafety, SettingsRoute.SYSTEM_HEALTH),
             SettingsEntry("About", "Version, build info & licences", Icons.Filled.Info, SettingsRoute.ABOUT),
         ),
     ),

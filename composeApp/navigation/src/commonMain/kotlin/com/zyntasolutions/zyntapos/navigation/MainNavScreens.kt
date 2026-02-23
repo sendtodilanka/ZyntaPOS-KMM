@@ -111,6 +111,10 @@ data class MainNavScreens(
         onNavigateUp: () -> Unit,
     ) -> Unit,
 
+    val systemHealthSettings: @Composable (
+        onNavigateUp: () -> Unit,
+    ) -> Unit,
+
     // ── Deep-link target ──────────────────────────────────────────────────────
     val orderHistory: @Composable (
         orderId: String,

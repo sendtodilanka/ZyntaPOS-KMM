@@ -22,7 +22,7 @@ private const val KEY_ENTRY_TYPE = "zyntapos_sym_key"
 /**
  * Desktop (JVM) actual: AES-256-GCM encryption via JCE + PKCS12 KeyStore.
  *
- * The secret key is stored in a PKCS12 KeyStore at `~/.zentapos/.zyntapos.p12`.
+ * The secret key is stored in a PKCS12 KeyStore at `~/.zyntapos/.zyntapos.p12`.
  * The keystore password is derived from a machine fingerprint (SHA-256 of
  * `user.name + os.name + os.arch`) so it survives restarts without user input,
  * while remaining machine-specific.
@@ -36,7 +36,7 @@ actual class EncryptionManager actual constructor(keyAlias: String) {
     private val alias: String = keyAlias
     private val keystoreFile: File = File(
         System.getProperty("user.home"),
-        ".zentapos/.zyntapos.p12",
+        ".zyntapos/.zyntapos.p12",
     )
     private val keystorePassword: CharArray by lazy { deriveKeystorePassword() }
 

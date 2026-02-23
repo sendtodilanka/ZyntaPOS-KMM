@@ -187,6 +187,10 @@ sealed class ZyntaRoute {
     @Serializable
     data object PosSettings : ZyntaRoute()
 
+    /** System health diagnostics (memory, disk, database, runtime). */
+    @Serializable
+    data object SystemHealthSettings : ZyntaRoute()
+
     // ─────────────────────────────────────────────────────────────────
     // DEEP-LINK TARGETS (not primary nav destinations)
     // ─────────────────────────────────────────────────────────────────

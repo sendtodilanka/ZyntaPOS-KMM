@@ -12,7 +12,7 @@ import java.util.Properties
 
 // ZENTA-FINAL-AUDIT MERGED-F1 | MERGED-F3 (2026-02-22)
 private const val TAG = "SecurePreferences"
-private const val PREFS_FILE = ".zentapos/secure_prefs.enc"
+private const val PREFS_FILE = ".zyntapos/secure_prefs.enc"
 private const val SEPARATOR = ":"
 
 /**
@@ -23,7 +23,7 @@ private const val SEPARATOR = ":"
  * (the key names are visible) but all values are encrypted. For fully encrypted
  * key-value storage use a PKCS12-backed solution in a future security hardening sprint.
  *
- * File location: `~/.zentapos/secure_prefs.enc`
+ * File location: `~/.zyntapos/secure_prefs.enc`
  *
  * Implements both [TokenStorage] (for [JwtManager]) and [SecureStoragePort] (for
  * `:shared:data` injection via Koin — MERGED-F3 2026-02-22).

@@ -10,9 +10,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTextField
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
+import com.zyntasolutions.zyntapos.designsystem.util.FilePickerMode
+import com.zyntasolutions.zyntapos.designsystem.util.PlatformFilePicker
 import com.zyntasolutions.zyntapos.designsystem.util.WindowSize
 import com.zyntasolutions.zyntapos.designsystem.util.currentWindowSize
 import com.zyntasolutions.zyntapos.domain.model.Category
@@ -311,14 +314,27 @@ private fun StockSection(
 }
 
 /**
- * Image picker section (Coil + platform file chooser).
- * Phase 1 accepts a URL input; Phase 2 adds native file picker.
+ * Image picker section — URL input + platform-native file picker.
+ * Users can either enter a URL directly or browse for a local image file.
  */
 @Composable
 private fun ImageSection(
     form: ProductFormState,
     onIntent: (InventoryIntent) -> Unit,
 ) {
+    var showImagePicker by remember { mutableStateOf(false) }
+
+    PlatformFilePicker(
+        show = showImagePicker,
+        mode = FilePickerMode.IMAGE,
+        onResult = { pickedFile ->
+            showImagePicker = false
+            if (pickedFile != null) {
+                onIntent(InventoryIntent.UpdateFormField("imageUrl", pickedFile.path))
+            }
+        },
+    )
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -332,15 +348,14 @@ private fun ImageSection(
             ZyntaTextField(
                 value = form.imageUrl ?: "",
                 onValueChange = { onIntent(InventoryIntent.UpdateFormField("imageUrl", it)) },
-                label = "Image URL",
+                label = "Image URL or file path",
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            // TODO Phase 2: Native file picker via expect/actual + Coil AsyncImage preview
-            Text(
-                "Tip: Enter a URL or use the image picker (Phase 2).",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            ZyntaButton(
+                text = "Browse Image",
+                onClick = { showImagePicker = true },
+                modifier = Modifier.fillMaxWidth(),
             )
         }
     }

@@ -34,6 +34,7 @@ import com.zyntasolutions.zyntapos.feature.settings.screen.GeneralSettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.PosSettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.PrinterSettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.SettingsHomeScreen
+import com.zyntasolutions.zyntapos.feature.settings.screen.SystemHealthScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.TaxSettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.UserManagementScreen
 import com.zyntasolutions.zyntapos.navigation.MainNavScreens
@@ -290,6 +291,11 @@ private fun buildMainNavScreens() = MainNavScreens(
             onIntent = vm::dispatch,
             onBack = onNavigateUp,
         )
+    },
+
+    // ── Settings: System Health ──────────────────────────────────────────────
+    systemHealthSettings = { onNavigateUp ->
+        SystemHealthScreen(onBack = onNavigateUp)
     },
 
     // ── Order History ───────────────────────────────────────────────────────
