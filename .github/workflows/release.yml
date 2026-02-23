@@ -37,8 +37,11 @@ jobs:
         run: |
           cp local.properties.template local.properties
           sed -i "s|^sdk.dir=.*|sdk.dir=$ANDROID_HOME|" local.properties
-          echo "API_BASE_URL=${{ secrets.API_BASE_URL }}" >> local.properties
-          echo "DB_ENCRYPTION_PASSWORD=${{ secrets.DB_ENCRYPTION_PASSWORD }}" >> local.properties
+          echo "API_BASE_URL=${API_BASE_URL:-https://localhost/api}" >> local.properties
+          echo "DB_ENCRYPTION_PASSWORD=${DB_ENCRYPTION_PASSWORD:-ci-placeholder-not-for-production}" >> local.properties
+        env:
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+          DB_ENCRYPTION_PASSWORD: ${{ secrets.DB_ENCRYPTION_PASSWORD }}
 
       # TODO: Switch to assembleRelease once signing config is added
       - name: Build debug APK
