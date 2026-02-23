@@ -13,6 +13,8 @@ import com.zyntasolutions.zyntapos.domain.usecase.inventory.SaveTaxGroupUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.PrintTestPageUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.SaveUserUseCase
 import com.zyntasolutions.zyntapos.domain.model.PrinterPaperWidth
+import com.zyntasolutions.zyntapos.feature.settings.backup.BackupResult
+import com.zyntasolutions.zyntapos.feature.settings.backup.BackupService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -113,6 +115,14 @@ class SettingsViewModelTest {
         kotlin.Result.success(Unit)
     }
 
+    private val fakeBackupService = object : BackupService {
+        override suspend fun createBackup(): kotlin.Result<BackupResult> =
+            kotlin.Result.success(BackupResult(filePath = "/tmp/backup.db", sizeBytes = 1024L))
+        override suspend fun restoreFromBackup(sourcePath: String): kotlin.Result<Unit> =
+            kotlin.Result.success(Unit)
+        override fun getDefaultBackupDirectory(): String = "/tmp/backups"
+    }
+
     private lateinit var viewModel: SettingsViewModel
 
     @BeforeTest
@@ -133,6 +143,7 @@ class SettingsViewModelTest {
             saveTaxGroupUseCase  = fakeSaveTaxGroupUseCase,
             saveUserUseCase      = fakeSaveUserUseCase,
             printTestPageUseCase = fakePrintTestPageUseCase,
+            backupService        = fakeBackupService,
         )
     }
 
