@@ -104,6 +104,7 @@ class AndroidBackupService(private val context: Context) : BackupService {
                     input.copyTo(output, BUFFER_SIZE)
                 }
             }
+            Unit
         }
     }
 
