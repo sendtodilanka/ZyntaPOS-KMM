@@ -61,6 +61,7 @@ fun NavGraphBuilder.mainNavGraph(
                     { navigationController.navigate(ZyntaRoute.Pos) },
                     { navigationController.navigate(ZyntaRoute.RegisterDashboard) },
                     { navigationController.navigate(ZyntaRoute.SalesReport) },
+                    { navigationController.navigate(ZyntaRoute.Settings) },
                 )
             }
         }

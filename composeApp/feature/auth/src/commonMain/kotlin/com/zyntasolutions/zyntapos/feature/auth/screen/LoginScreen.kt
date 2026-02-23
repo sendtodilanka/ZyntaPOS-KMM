@@ -1,16 +1,20 @@
 package com.zyntasolutions.zyntapos.feature.auth.screen
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.PointOfSale
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -35,15 +39,15 @@ import org.koin.compose.viewmodel.koinViewModel
 /**
  * Root login screen — adapts layout based on [WindowSize].
  *
- * - **EXPANDED** (Desktop / landscape tablet ≥840dp): [ZyntaSplitPane] with
- *   illustration panel (40%) + login form (60%) per UI/UX plan §5.1.
+ * - **EXPANDED** (Desktop / landscape tablet >=840dp): [ZyntaSplitPane] with
+ *   illustration panel (40%) + login form (60%) per UI/UX plan S5.1.
  * - **COMPACT / MEDIUM** (phone, small tablet): Single-pane with centered logo + form.
  *
  * This composable is stateless — it collects state from [AuthViewModel] and
  * delegates all events back as [AuthIntent] dispatches.
  *
  * @param viewModel  Provided by Koin via `koinViewModel()` — no constructor injection here.
- * @param onNavigateToDashboard  Callback invoked on successful login → dashboard navigation.
+ * @param onNavigateToDashboard  Callback invoked on successful login -> dashboard navigation.
  * @param onNavigateToRegisterGuard Callback when no open register session exists.
  * @param windowSize Override for preview/testing; defaults to the current window.
  */
@@ -108,12 +112,21 @@ private fun ExpandedLoginLayout(
         primaryContent = { LoginIllustrationPanel() },
         secondaryContent = {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                LoginFormContent(
-                    state = state,
-                    onIntent = onIntent,
-                    onNavigateToSignUp = onNavigateToSignUp,
+                Card(
                     modifier = Modifier.widthIn(max = 480.dp).padding(ZyntaSpacing.xl),
-                )
+                    shape = MaterialTheme.shapes.large,
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                    ),
+                ) {
+                    LoginFormContent(
+                        state = state,
+                        onIntent = onIntent,
+                        onNavigateToSignUp = onNavigateToSignUp,
+                        modifier = Modifier.padding(ZyntaSpacing.xl),
+                    )
+                }
             }
         },
     )
@@ -141,7 +154,20 @@ private fun CompactLoginLayout(
             // Logo / Brand header
             ZyntaLogoHeader()
             Spacer(Modifier.height(ZyntaSpacing.xl))
-            LoginFormContent(state = state, onIntent = onIntent, onNavigateToSignUp = onNavigateToSignUp)
+            Card(
+                shape = MaterialTheme.shapes.large,
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                ),
+            ) {
+                LoginFormContent(
+                    state = state,
+                    onIntent = onIntent,
+                    onNavigateToSignUp = onNavigateToSignUp,
+                    modifier = Modifier.padding(ZyntaSpacing.lg),
+                )
+            }
         }
     }
 }
@@ -272,32 +298,58 @@ private fun LoginFormContent(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Illustration panel (EXPANDED layout left side)
+// Illustration panel (EXPANDED layout left side) — gradient branded panel
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun LoginIllustrationPanel(modifier: Modifier = Modifier) {
+    val gradientBrush = Brush.linearGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.primary,
+            MaterialTheme.colorScheme.tertiary,
+        ),
+    )
+
     Box(
         modifier = modifier
             .fillMaxSize()
-            .padding(ZyntaSpacing.xxl),
+            .background(brush = gradientBrush),
         contentAlignment = Alignment.Center,
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            // Logo mark
-            ZyntaLogoHeader()
-            Spacer(Modifier.height(ZyntaSpacing.xl))
-            Text(
-                text = "Secure Point of Sale",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Filled.PointOfSale,
+                contentDescription = "Point of Sale",
+                tint = Color.White,
+                modifier = Modifier.size(120.dp),
             )
-            Spacer(Modifier.height(ZyntaSpacing.md))
+
+            Spacer(Modifier.height(ZyntaSpacing.xl))
+
             Text(
-                text = "Fast, reliable, and offline-ready POS for modern retail.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                text = "ZyntaPOS",
+                style = MaterialTheme.typography.displaySmall,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+            )
+
+            Spacer(Modifier.height(ZyntaSpacing.sm))
+
+            Text(
+                text = "Enterprise Point of Sale",
+                style = MaterialTheme.typography.titleMedium,
+                color = Color.White.copy(alpha = 0.8f),
+            )
+
+            Spacer(Modifier.height(ZyntaSpacing.md))
+
+            Text(
+                text = "Fast. Reliable. Intelligent.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color.White.copy(alpha = 0.6f),
             )
         }
     }

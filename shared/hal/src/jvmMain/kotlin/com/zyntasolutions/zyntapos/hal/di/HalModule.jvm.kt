@@ -8,6 +8,7 @@ import com.zyntasolutions.zyntapos.hal.printer.ReceiptBuilder
 import com.zyntasolutions.zyntapos.hal.scanner.BarcodeScanner
 import com.zyntasolutions.zyntapos.hal.scanner.DesktopHidScanner
 import org.koin.core.module.Module
+import org.koin.dsl.bind
 import org.koin.dsl.module
 
 /**
@@ -41,10 +42,8 @@ actual fun halModule(): Module = module {
         DesktopHidScanner()
     }
 
-    // ── Receipt builder ────────────────────────────────────────────────────
-    single<ReceiptBuilder> {
-        EscPosReceiptBuilder(config = PrinterConfig.DEFAULT)
-    }
+    // ── Receipt builder (concrete + interface binding for DI resolution) ───
+    single { EscPosReceiptBuilder(config = PrinterConfig.DEFAULT) } bind ReceiptBuilder::class
 
     // ── Common bindings (PrinterManager) ──────────────────────────────────
     includes(halCommonModule)

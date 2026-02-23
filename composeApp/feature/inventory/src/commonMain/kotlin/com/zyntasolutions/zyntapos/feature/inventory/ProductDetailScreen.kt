@@ -9,6 +9,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTextField
@@ -26,17 +27,17 @@ import com.zyntasolutions.zyntapos.domain.model.UnitOfMeasure
 /**
  * Product create/edit form screen (Sprint 18, task 10.1.2).
  *
- * ### Form Fields
- * - Name, barcode (scan or type), SKU, category selector, unit selector
- * - Price/cost price fields, tax group selector
- * - Stock qty (read-only for existing products or manual entry for new), minStockQty
- * - Description, AsyncImage picker (Coil + platform file chooser)
- * - Variation management section (add/remove ProductVariant rows)
- * - isActive toggle
+ * ### Tab-based layout (NexoPOS-style)
+ * Uses a [TabRow] to organize product fields into logical tabs:
+ * - **Identification**: Name, barcode, SKU, category, unit, description, active toggle
+ * - **Pricing**: Price, cost price, tax group
+ * - **Stock**: Qty, min stock threshold
+ * - **Variants**: Product variation management (add/remove)
+ * - **Images**: Image URL / file picker
  *
- * ### Layout (per UI/UX plan §9.1)
- * - **Expanded:** Two-column form (left: core fields, right: pricing + stock + variants)
- * - **Medium/Compact:** Single-column scrollable form
+ * ### Responsive
+ * - **Expanded:** Two-column layout within each tab (fields + helpers side-by-side)
+ * - **Medium/Compact:** Single-column scrollable form with tabs
  *
  * @param state    Current [InventoryState] snapshot.
  * @param onIntent Dispatches [InventoryIntent] to the ViewModel.
@@ -51,16 +52,15 @@ fun ProductDetailScreen(
     modifier: Modifier = Modifier,
 ) {
     val form = state.editFormState
-    val windowSize = currentWindowSize()
     val isNew = form.id == null
-    val scrollState = rememberScrollState()
+    var selectedTab by remember { mutableIntStateOf(0) }
+    val tabTitles = listOf("Identification", "Pricing", "Stock", "Variants", "Images")
 
     ZyntaPageScaffold(
         title = if (isNew) "New Product" else "Edit Product",
         modifier = modifier,
         onNavigateBack = onBack,
         actions = {
-            // Save button
             FilledTonalButton(
                 onClick = { onIntent(InventoryIntent.SaveProduct) },
                 enabled = !state.isLoading,
@@ -78,53 +78,61 @@ fun ProductDetailScreen(
             return@ZyntaPageScaffold
         }
 
-        when (windowSize) {
-            WindowSize.EXPANDED -> {
-                Row(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)
-                        .padding(ZyntaSpacing.md),
-                    horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.lg),
-                ) {
-                    // Left column: core fields
-                    Column(
-                        modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
-                    ) {
-                        CoreFieldsSection(form, state, onIntent)
-                        ImageSection(form, onIntent)
-                    }
-                    // Right column: pricing + stock + variants
-                    Column(
-                        modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
-                    ) {
-                        PricingSection(form, state, onIntent)
-                        StockSection(form, isNew, onIntent)
-                        VariantSection(state.productVariants, onIntent)
-                        ActiveToggleSection(form, onIntent)
-                    }
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+        ) {
+            // ── Tab Row ─────────────────────────────────────────────────
+            PrimaryScrollableTabRow(
+                selectedTabIndex = selectedTab,
+                edgePadding = ZyntaSpacing.md,
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.primary,
+                divider = { HorizontalDivider() },
+            ) {
+                tabTitles.forEachIndexed { index, title ->
+                    Tab(
+                        selected = selectedTab == index,
+                        onClick = { selectedTab = index },
+                        text = { Text(title) },
+                        icon = {
+                            Icon(
+                                imageVector = when (index) {
+                                    0 -> Icons.Default.Badge
+                                    1 -> Icons.Default.AttachMoney
+                                    2 -> Icons.Default.Inventory
+                                    3 -> Icons.Default.Layers
+                                    else -> Icons.Default.Image
+                                },
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        },
+                    )
                 }
             }
-            else -> {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)
-                        .padding(horizontal = ZyntaSpacing.md)
-                        .verticalScroll(scrollState),
-                    verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
-                ) {
-                    Spacer(Modifier.height(ZyntaSpacing.sm))
-                    CoreFieldsSection(form, state, onIntent)
-                    PricingSection(form, state, onIntent)
-                    StockSection(form, isNew, onIntent)
-                    ImageSection(form, onIntent)
-                    VariantSection(state.productVariants, onIntent)
-                    ActiveToggleSection(form, onIntent)
-                    Spacer(Modifier.height(ZyntaSpacing.xxl))
+
+            // ── Tab Content ─────────────────────────────────────────────
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = ZyntaSpacing.md)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
+            ) {
+                Spacer(Modifier.height(ZyntaSpacing.sm))
+                when (selectedTab) {
+                    0 -> {
+                        CoreFieldsSection(form, state, onIntent)
+                        ActiveToggleSection(form, onIntent)
+                    }
+                    1 -> PricingSection(form, state, onIntent)
+                    2 -> StockSection(form, isNew, onIntent)
+                    3 -> VariantSection(state.productVariants, onIntent)
+                    4 -> ImageSection(form, onIntent)
                 }
+                Spacer(Modifier.height(ZyntaSpacing.xxl))
             }
         }
     }
