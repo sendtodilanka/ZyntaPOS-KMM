@@ -28,6 +28,28 @@ import kotlinx.serialization.Serializable
 sealed class ZyntaRoute {
 
     // ─────────────────────────────────────────────────────────────────
+    // GRAPH ROUTES (used as nested-graph identifiers, NOT destinations)
+    // ─────────────────────────────────────────────────────────────────
+
+    /** Graph route for the unauthenticated auth flow (Login, PinLock). */
+    @Serializable data object AuthGraph : ZyntaRoute()
+
+    /** Graph route for the authenticated main area. */
+    @Serializable data object MainGraph : ZyntaRoute()
+
+    /** Graph route for the inventory sub-graph. */
+    @Serializable data object InventoryGraph : ZyntaRoute()
+
+    /** Graph route for the register sub-graph. */
+    @Serializable data object RegisterGraph : ZyntaRoute()
+
+    /** Graph route for the reports sub-graph. */
+    @Serializable data object ReportsGraph : ZyntaRoute()
+
+    /** Graph route for the settings sub-graph. */
+    @Serializable data object SettingsGraph : ZyntaRoute()
+
+    // ─────────────────────────────────────────────────────────────────
     // AUTH GROUP
     // ─────────────────────────────────────────────────────────────────
 

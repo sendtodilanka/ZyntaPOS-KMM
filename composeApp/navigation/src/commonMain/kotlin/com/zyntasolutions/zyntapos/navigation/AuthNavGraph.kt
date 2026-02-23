@@ -38,7 +38,7 @@ fun NavGraphBuilder.authNavGraph(
     loginScreen: @Composable (onLoginSuccess: () -> Unit) -> Unit,
     pinLockScreen: @Composable (onUnlocked: () -> Unit) -> Unit,
 ) {
-    navigation<ZyntaRoute.Login>(startDestination = ZyntaRoute.Login) {
+    navigation<ZyntaRoute.AuthGraph>(startDestination = ZyntaRoute.Login) {
         composable<ZyntaRoute.Login> {
             loginScreen(
                 {
