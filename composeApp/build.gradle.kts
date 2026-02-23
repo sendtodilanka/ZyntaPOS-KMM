@@ -40,6 +40,7 @@ kotlin {
         commonMain.dependencies {
             // ── Shared KMP modules ────────────────────────────────────────
             implementation(project(":shared:core"))         // Platform, ZyntaLogger, Result, etc.
+            implementation(project(":composeApp:core"))     // BaseViewModel — needed to resolve VM supertypes
 
             // ── Navigation (App.kt root composable needs ZyntaNavGraph) ──
             // Exposed via api() so :androidApp can see navigation transitively.
@@ -54,27 +55,12 @@ kotlin {
             // AndroidX Lifecycle (KMP-compatible)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
-        }
-        commonTest.dependencies {
-            implementation(libs.kotlin.test)
-        }
-        jvmMain.dependencies {
-            implementation(compose.desktop.currentOs)
-            implementation(libs.kotlinx.coroutinesSwing)
+            // Koin Compose — koinInject() / koinViewModel() used in App.kt wiring
+            implementation(libs.bundles.koin.common)
 
-            // ── JVM Composition Root (main.kt) ────────────────────────────
-            // main.kt is the JVM entry point and acts as the DI composition
-            // root — it must see every Koin module it registers at startup.
-            // Tier 1: Core
-            implementation(project(":shared:core"))
-            // Tier 2: Security
-            implementation(project(":shared:security"))
-            // Tier 3: HAL
-            implementation(project(":shared:hal"))
-            // Tier 4: Data
-            implementation(project(":shared:data"))
-            // Tier 5: Navigation (already via commonMain api(), re-stated for clarity)
-            // Tier 6: Feature modules
+            // ── Feature modules ─────────────────────────────────────────
+            // App.kt wires all screen composables into ZyntaNavGraph;
+            // compile-time visibility of every feature module is required.
             implementation(project(":composeApp:feature:auth"))
             implementation(project(":composeApp:feature:pos"))
             implementation(project(":composeApp:feature:inventory"))
@@ -88,6 +74,20 @@ kotlin {
             implementation(project(":composeApp:feature:multistore"))
             implementation(project(":composeApp:feature:admin"))
             implementation(project(":composeApp:feature:media"))
+        }
+        commonTest.dependencies {
+            implementation(libs.kotlin.test)
+        }
+        jvmMain.dependencies {
+            implementation(compose.desktop.currentOs)
+            implementation(libs.kotlinx.coroutinesSwing)
+
+            // ── JVM Composition Root (main.kt) ────────────────────────────
+            // main.kt imports Koin modules from these shared modules.
+            // Feature modules moved to commonMain (App.kt screen wiring).
+            implementation(project(":shared:security"))
+            implementation(project(":shared:hal"))
+            implementation(project(":shared:data"))
         }
     }
 }
