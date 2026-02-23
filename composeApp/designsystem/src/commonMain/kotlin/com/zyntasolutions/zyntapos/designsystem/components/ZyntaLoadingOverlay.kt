@@ -41,7 +41,7 @@ fun ZyntaLoadingOverlay(
 
     Box(
         modifier = modifier
-            .background(Color.Black.copy(alpha = scrimAlpha)),
+            .background(MaterialTheme.colorScheme.scrim.copy(alpha = scrimAlpha)),
         contentAlignment = Alignment.Center,
     ) {
         CircularProgressIndicator(

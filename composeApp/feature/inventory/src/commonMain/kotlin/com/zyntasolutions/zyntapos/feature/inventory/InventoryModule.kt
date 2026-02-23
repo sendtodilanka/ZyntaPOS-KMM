@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.feature.inventory
 
+import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.AdjustStockUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.CreateProductUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.DeleteCategoryUseCase
@@ -9,6 +10,8 @@ import com.zyntasolutions.zyntapos.domain.usecase.inventory.SaveSupplierUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.SaveTaxGroupUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.SearchProductsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.UpdateProductUseCase
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
@@ -65,8 +68,13 @@ val inventoryModule = module {
     factoryOf(::ManageUnitGroupUseCase)
 
     // ── ViewModel ─────────────────────────────────────────────────────────────
-    // InventoryViewModel receives `currentUserId: String` as a parametrised arg.
-    viewModel { params ->
+    // Resolves currentUserId from the AuthRepository session StateFlow at
+    // ViewModel creation time. Safe to use runBlocking here because getSession()
+    // is backed by a StateFlow (always has a value, returns immediately).
+    viewModel {
+        val userId = runBlocking {
+            get<AuthRepository>().getSession().first()?.id ?: "unknown"
+        }
         InventoryViewModel(
             productRepository       = get(),
             categoryRepository      = get(),
@@ -74,7 +82,7 @@ val inventoryModule = module {
             createProductUseCase    = get(),
             updateProductUseCase    = get(),
             adjustStockUseCase      = get(),
-            currentUserId           = params.get(),
+            currentUserId           = userId,
         )
     }
 }

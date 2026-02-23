@@ -71,8 +71,8 @@ fun ZyntaStatusBadge(
     customColor: Color? = null,
 ) {
     val color = customColor ?: when (status) {
-        BadgeStatus.Success -> Color(0xFF2E7D32)
-        BadgeStatus.Warning -> Color(0xFFF57C00)
+        BadgeStatus.Success -> MaterialTheme.colorScheme.tertiary
+        BadgeStatus.Warning -> MaterialTheme.colorScheme.secondary
         BadgeStatus.Error -> MaterialTheme.colorScheme.error
         BadgeStatus.Info -> MaterialTheme.colorScheme.primary
         BadgeStatus.Neutral -> MaterialTheme.colorScheme.onSurfaceVariant

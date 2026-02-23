@@ -41,9 +41,39 @@ android {
         buildConfig = true   // required for Secrets Gradle Plugin to inject API keys
     }
 
+    signingConfigs {
+        create("release") {
+            // CI: read from environment variables (GitHub Secrets)
+            // Local: fallback to debug keystore for testing release builds
+            val ksFile    = System.getenv("RELEASE_KEYSTORE_PATH")
+            val ksPass    = System.getenv("RELEASE_KEYSTORE_PASSWORD")
+            val keyAlias  = System.getenv("RELEASE_KEY_ALIAS")
+            val keyPass   = System.getenv("RELEASE_KEY_PASSWORD")
+
+            if (ksFile != null && file(ksFile).exists()) {
+                storeFile     = file(ksFile)
+                storePassword = ksPass
+                this.keyAlias      = keyAlias
+                keyPassword   = keyPass
+            } else {
+                // Fallback to debug keystore so `assembleRelease` works locally
+                storeFile     = file("${System.getProperty("user.home")}/.android/debug.keystore")
+                storePassword = "android"
+                this.keyAlias      = "androiddebugkey"
+                keyPassword   = "android"
+            }
+        }
+    }
+
     buildTypes {
         getByName("release") {
-            isMinifyEnabled = false
+            isMinifyEnabled   = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 

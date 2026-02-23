@@ -109,7 +109,7 @@ fun StockReportScreen(
                 // ── Low stock section ──────────────────────────────────────
                 if (s.lowStockItems.isNotEmpty()) {
                     item {
-                        SectionHeader(title = "⚠️ Low Stock", color = androidx.compose.ui.graphics.Color(0xFFF59E0B))
+                        SectionHeader(title = "⚠️ Low Stock", color = MaterialTheme.colorScheme.secondary)
                     }
                     items(s.lowStockItems, key = { "low-${it.id}" }) { product ->
                         StockProductRow(product = product, highlight = StockHighlight.LOW)
@@ -253,8 +253,8 @@ private fun StockProductRow(product: Product, highlight: StockHighlight) {
     }
     val statusColor = when (statusLabel) {
         "Out" -> MaterialTheme.colorScheme.error
-        "Low" -> androidx.compose.ui.graphics.Color(0xFFF59E0B)
-        else  -> androidx.compose.ui.graphics.Color(0xFF22C55E)
+        "Low" -> MaterialTheme.colorScheme.secondary
+        else  -> MaterialTheme.colorScheme.tertiary
     }
 
     Row(

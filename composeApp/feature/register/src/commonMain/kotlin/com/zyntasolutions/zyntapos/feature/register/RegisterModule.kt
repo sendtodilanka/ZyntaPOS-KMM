@@ -1,12 +1,15 @@
 package com.zyntasolutions.zyntapos.feature.register
 
 import com.zyntasolutions.zyntapos.domain.printer.ZReportPrinterPort
+import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.usecase.register.CloseRegisterSessionUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.OpenRegisterSessionUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.PrintZReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.RecordCashMovementUseCase
 import com.zyntasolutions.zyntapos.feature.register.printer.ZReportPrinterAdapter
-import org.koin.core.module.dsl.viewModelOf
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 /**
@@ -51,8 +54,18 @@ val registerModule = module {
     factory { PrintZReportUseCase(get()) }
 
     // ── ViewModel ────────────────────────────────────────────────────────────
-    // currentUserId is expected to be bound as `named("currentUserId")` or
-    // resolved from SessionManager. Update the qualifier below to match the
-    // session-management strategy established in :shared:security (Sprint 8).
-    viewModelOf(::RegisterViewModel)
+    // Resolves currentUserId from the AuthRepository session StateFlow.
+    viewModel {
+        val userId = runBlocking {
+            get<AuthRepository>().getSession().first()?.id ?: "unknown"
+        }
+        RegisterViewModel(
+            registerRepository          = get(),
+            openRegisterSessionUseCase  = get(),
+            closeRegisterSessionUseCase = get(),
+            recordCashMovementUseCase   = get(),
+            printZReportUseCase         = get(),
+            currentUserId               = userId,
+        )
+    }
 }

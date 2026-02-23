@@ -10,7 +10,7 @@ env:
 
 jobs:
   # ═════════════════════════════════════════════════════════════════════
-  # Android APK
+  # Android APK (Release signed)
   # ═════════════════════════════════════════════════════════════════════
   build-android:
     name: Android APK
@@ -43,15 +43,26 @@ jobs:
           API_BASE_URL: ${{ secrets.API_BASE_URL }}
           DB_ENCRYPTION_PASSWORD: ${{ secrets.DB_ENCRYPTION_PASSWORD }}
 
-      # TODO: Switch to assembleRelease once signing config is added
-      - name: Build debug APK
-        run: ./gradlew :androidApp:assembleDebug --stacktrace
+      # Decode base64-encoded keystore from GitHub secret (if available)
+      - name: Decode release keystore
+        if: env.RELEASE_KEYSTORE_BASE64 != ''
+        run: echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > ${{ github.workspace }}/release.keystore
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+
+      - name: Build release APK
+        run: ./gradlew :androidApp:assembleRelease --stacktrace
+        env:
+          RELEASE_KEYSTORE_PATH: ${{ github.workspace }}/release.keystore
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: android-apk
-          path: androidApp/build/outputs/apk/debug/*.apk
+          path: androidApp/build/outputs/apk/release/*.apk
           retention-days: 1
 
   # ═════════════════════════════════════════════════════════════════════
@@ -78,6 +89,15 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v3
 
+      - name: Create local.properties
+        run: |
+          cp local.properties.template local.properties
+          echo "API_BASE_URL=${API_BASE_URL:-https://localhost/api}" >> local.properties
+          echo "DB_ENCRYPTION_PASSWORD=${DB_ENCRYPTION_PASSWORD:-ci-placeholder-not-for-production}" >> local.properties
+        env:
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+          DB_ENCRYPTION_PASSWORD: ${{ secrets.DB_ENCRYPTION_PASSWORD }}
+
       - name: Package DMG
         run: ./gradlew :composeApp:packageDmg --stacktrace
 
@@ -89,10 +109,10 @@ jobs:
           retention-days: 1
 
   # ═════════════════════════════════════════════════════════════════════
-  # Windows EXE
+  # Windows MSI
   # ═════════════════════════════════════════════════════════════════════
   build-windows:
-    name: Windows EXE
+    name: Windows MSI
     runs-on: windows-latest
     timeout-minutes: 60
 
@@ -113,14 +133,70 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Package EXE
-        run: ./gradlew :composeApp:packageExe --stacktrace
+      - name: Create local.properties
+        shell: bash
+        run: |
+          cp local.properties.template local.properties
+          echo "API_BASE_URL=${API_BASE_URL:-https://localhost/api}" >> local.properties
+          echo "DB_ENCRYPTION_PASSWORD=${DB_ENCRYPTION_PASSWORD:-ci-placeholder-not-for-production}" >> local.properties
+        env:
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+          DB_ENCRYPTION_PASSWORD: ${{ secrets.DB_ENCRYPTION_PASSWORD }}
 
-      - name: Upload EXE
+      - name: Package MSI
+        run: ./gradlew :composeApp:packageMsi --stacktrace
+
+      - name: Upload MSI
         uses: actions/upload-artifact@v4
         with:
-          name: windows-exe
-          path: composeApp/build/compose/binaries/main/exe/*.exe
+          name: windows-msi
+          path: composeApp/build/compose/binaries/main/msi/*.msi
+          retention-days: 1
+
+  # ═════════════════════════════════════════════════════════════════════
+  # Linux DEB
+  # ═════════════════════════════════════════════════════════════════════
+  build-linux:
+    name: Linux DEB
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Override gradle.properties for CI
+        run: sed -i 's|^org.gradle.java.home=.*|org.gradle.java.home='"$JAVA_HOME"'|' gradle.properties
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Create local.properties
+        run: |
+          cp local.properties.template local.properties
+          echo "API_BASE_URL=${API_BASE_URL:-https://localhost/api}" >> local.properties
+          echo "DB_ENCRYPTION_PASSWORD=${DB_ENCRYPTION_PASSWORD:-ci-placeholder-not-for-production}" >> local.properties
+        env:
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+          DB_ENCRYPTION_PASSWORD: ${{ secrets.DB_ENCRYPTION_PASSWORD }}
+
+      - name: Install packaging dependencies
+        run: sudo apt-get update && sudo apt-get install -y fakeroot
+
+      - name: Package DEB
+        run: ./gradlew :composeApp:packageDeb --stacktrace
+
+      - name: Upload DEB
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-deb
+          path: composeApp/build/compose/binaries/main/deb/*.deb
           retention-days: 1
 
   # ═════════════════════════════════════════════════════════════════════
@@ -128,7 +204,7 @@ jobs:
   # ═════════════════════════════════════════════════════════════════════
   release:
     name: Publish Release
-    needs: [ build-android, build-macos, build-windows ]
+    needs: [ build-android, build-macos, build-windows, build-linux ]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -158,4 +234,5 @@ jobs:
           files: |
             release-assets/android-apk/*.apk
             release-assets/macos-dmg/*.dmg
-            release-assets/windows-exe/*.exe
+            release-assets/windows-msi/*.msi
+            release-assets/linux-deb/*.deb
