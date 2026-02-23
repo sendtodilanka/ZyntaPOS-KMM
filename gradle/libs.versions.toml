@@ -23,6 +23,7 @@ kotlinx-collections-immutable  = "0.3.8"
 composeMultiplatform           = "1.10.0"
 composeHotReload               = "1.0.0"
 material3                      = "1.10.0-alpha05"
+material-icons-extended        = "1.7.3"
 compose-adaptive               = "1.1.0-alpha04"
 compose-navigation             = "2.9.2"
 
@@ -118,8 +119,8 @@ compose-foundation                     = { module = "org.jetbrains.compose.found
 compose-ui                             = { module = "org.jetbrains.compose.ui:ui",                               version.ref = "composeMultiplatform" }
 compose-uiTooling                      = { module = "org.jetbrains.compose.ui:ui-tooling",                       version.ref = "composeMultiplatform" }
 compose-uiToolingPreview               = { module = "org.jetbrains.compose.ui:ui-tooling-preview",               version.ref = "composeMultiplatform" }
-compose-material3                      = { module = "org.jetbrains.compose.material3:material3",                 version.ref = "composeMultiplatform" }
-compose-material-icons-extended        = { module = "org.jetbrains.compose.material:material-icons-extended",    version.ref = "composeMultiplatform" }
+compose-material3                      = { module = "org.jetbrains.compose.material3:material3",                 version.ref = "material3" }
+compose-material-icons-extended        = { module = "org.jetbrains.compose.material:material-icons-extended",    version.ref = "material-icons-extended" }
 compose-components-resources           = { module = "org.jetbrains.compose.components:components-resources",     version.ref = "composeMultiplatform" }
 compose-adaptive                       = { module = "org.jetbrains.compose.material3.adaptive:adaptive",         version.ref = "compose-adaptive" }
 compose-navigation                     = { module = "org.jetbrains.androidx.navigation:navigation-compose",       version.ref = "compose-navigation" }
