@@ -89,10 +89,10 @@ jobs:
           retention-days: 1
 
   # ═════════════════════════════════════════════════════════════════════
-  # Windows EXE
+  # Windows MSI
   # ═════════════════════════════════════════════════════════════════════
   build-windows:
-    name: Windows EXE
+    name: Windows MSI
     runs-on: windows-latest
     timeout-minutes: 60
 
@@ -113,14 +113,14 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Package EXE
-        run: ./gradlew :composeApp:packageExe --stacktrace
+      - name: Package MSI
+        run: ./gradlew :composeApp:packageMsi --stacktrace
 
-      - name: Upload EXE
+      - name: Upload MSI
         uses: actions/upload-artifact@v4
         with:
-          name: windows-exe
-          path: composeApp/build/compose/binaries/main/exe/*.exe
+          name: windows-msi
+          path: composeApp/build/compose/binaries/main/msi/*.msi
           retention-days: 1
 
   # ═════════════════════════════════════════════════════════════════════
@@ -158,4 +158,4 @@ jobs:
           files: |
             release-assets/android-apk/*.apk
             release-assets/macos-dmg/*.dmg
-            release-assets/windows-exe/*.exe
+            release-assets/windows-msi/*.msi
