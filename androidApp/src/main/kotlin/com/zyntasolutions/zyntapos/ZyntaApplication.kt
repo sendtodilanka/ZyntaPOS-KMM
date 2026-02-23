@@ -1,6 +1,8 @@
 package com.zyntasolutions.zyntapos
 
 import android.app.Application
+import com.zyntasolutions.zyntapos.core.platform.AndroidAppInfoProvider
+import com.zyntasolutions.zyntapos.core.platform.AppInfoProvider
 import com.zyntasolutions.zyntapos.core.di.coreModule
 import com.zyntasolutions.zyntapos.data.di.androidDataModule
 import com.zyntasolutions.zyntapos.data.di.dataModule
@@ -101,5 +103,14 @@ class ZyntaApplication : Application() {
         // upgrade.  Must run BEFORE any auth operation.
         // migrate() is idempotent — safe to call on every launch.
         koin.koin.get<SecurePreferencesKeyMigration>().migrate()
+
+        // ── Initialise AppInfoProvider with Android BuildConfig values ────────
+        val appInfo = koin.koin.get<AppInfoProvider>()
+        (appInfo as? AndroidAppInfoProvider)?.init(
+            version     = BuildConfig.APP_VERSION_NAME,
+            buildNumber = BuildConfig.APP_BUILD_NUMBER,
+            buildDate   = BuildConfig.BUILD_DATE,
+            debug       = BuildConfig.DEBUG,
+        )
     }
 }

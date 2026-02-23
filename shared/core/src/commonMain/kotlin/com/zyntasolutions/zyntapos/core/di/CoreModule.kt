@@ -1,5 +1,7 @@
 package com.zyntasolutions.zyntapos.core.di
 
+import com.zyntasolutions.zyntapos.core.health.SystemHealthTracker
+import com.zyntasolutions.zyntapos.core.health.createSystemHealthTracker
 import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import com.zyntasolutions.zyntapos.core.platform.AppInfoProvider
 import com.zyntasolutions.zyntapos.core.platform.createAppInfoProvider
@@ -58,6 +60,9 @@ val coreModule = module {
 
     // ── App info provider (platform-specific build metadata) ─────────────────
     single<AppInfoProvider> { createAppInfoProvider() }
+
+    // ── System health tracker (platform-specific diagnostics) ────────────────
+    single<SystemHealthTracker> { createSystemHealthTracker() }
 
     // ── Coroutine dispatchers ─────────────────────────────────────────────────
     single<CoroutineDispatcher>(IO_DISPATCHER)      { Dispatchers.IO }

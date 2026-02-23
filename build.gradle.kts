@@ -58,6 +58,35 @@ configure<io.gitlab.arturbosch.detekt.extensions.DetektExtension> {
     parallel = true
 }
 
+// ─── Version Properties ───────────────────────────────────────────────────
+// Single source of truth for version information across all modules.
+// Loaded from version.properties and exposed as extra properties.
+// ──────────────────────────────────────────────────────────────────────────
+val versionProps = java.util.Properties().apply {
+    file("version.properties").inputStream().use { load(it) }
+}
+val versionMajor = versionProps.getProperty("VERSION_MAJOR", "1").toInt()
+val versionMinor = versionProps.getProperty("VERSION_MINOR", "0").toInt()
+val versionPatch = versionProps.getProperty("VERSION_PATCH", "0").toInt()
+val versionLabel = versionProps.getProperty("VERSION_LABEL", "").trim()
+val versionBuild = versionProps.getProperty("VERSION_BUILD", "1").toInt()
+
+val versionName = buildString {
+    append("$versionMajor.$versionMinor.$versionPatch")
+    if (versionLabel.isNotEmpty()) append("-$versionLabel")
+}
+val versionCode = versionMajor * 10_000 + versionMinor * 100 + versionPatch
+
+// Expose to all subprojects via extra properties
+allprojects {
+    extra["appVersionName"]  = versionName
+    extra["appVersionCode"]  = versionCode
+    extra["appVersionBuild"] = versionBuild
+    extra["appVersionMajor"] = versionMajor
+    extra["appVersionMinor"] = versionMinor
+    extra["appVersionPatch"] = versionPatch
+}
+
 // ─── Dependency Resolution ─────────────────────────────────────────────────
 // Force kotlinx-datetime to 0.6.1 across all modules.
 // Compose Material3 1.9.0 pulls in 0.7.1 which has binary-incompatible JVM

@@ -20,6 +20,9 @@ interface AppInfoProvider {
     /** Application version string, e.g. "1.0.0". */
     val appVersion: String
 
+    /** Build number (integer, auto-incremented per release). */
+    val buildNumber: Int
+
     /** Build date string, e.g. "2026-02-23". */
     val buildDate: String
 
@@ -28,6 +31,10 @@ interface AppInfoProvider {
 
     /** Whether this is a debug build. */
     val isDebug: Boolean
+
+    /** Full version display string, e.g. "1.0.0 (build 1)". */
+    val fullVersionString: String
+        get() = "$appVersion (build $buildNumber)"
 }
 
 /**

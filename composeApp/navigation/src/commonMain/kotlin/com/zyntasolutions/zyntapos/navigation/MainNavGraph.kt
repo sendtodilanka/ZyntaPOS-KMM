@@ -208,6 +208,7 @@ fun NavGraphBuilder.mainNavGraph(
                             "ABOUT" -> navigationController.navigate(ZyntaRoute.AboutSettings)
                             "BACKUP" -> navigationController.navigate(ZyntaRoute.BackupSettings)
                             "POS" -> navigationController.navigate(ZyntaRoute.PosSettings)
+                            "SYSTEM_HEALTH" -> navigationController.navigate(ZyntaRoute.SystemHealthSettings)
                         }
                     }
                 }
@@ -257,6 +258,12 @@ fun NavGraphBuilder.mainNavGraph(
 
             composable<ZyntaRoute.PosSettings> {
                 screens.posSettings(
+                    { navigationController.navigateUp(ZyntaRoute.Settings) },
+                )
+            }
+
+            composable<ZyntaRoute.SystemHealthSettings> {
+                screens.systemHealthSettings(
                     { navigationController.navigateUp(ZyntaRoute.Settings) },
                 )
             }
@@ -317,7 +324,8 @@ private fun MainScaffoldShell(
             is ZyntaRoute.AppearanceSettings,
             is ZyntaRoute.AboutSettings,
             is ZyntaRoute.BackupSettings,
-            is ZyntaRoute.PosSettings -> item.route is ZyntaRoute.Settings
+            is ZyntaRoute.PosSettings,
+            is ZyntaRoute.SystemHealthSettings -> item.route is ZyntaRoute.Settings
 
             else -> item.route::class == currentRoute::class
         }

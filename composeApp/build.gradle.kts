@@ -97,16 +97,21 @@ compose.desktop {
     application {
         mainClass = "com.zyntasolutions.zyntapos.MainKt"
 
-        // JVM args for the packaged application
+        // JVM args for the packaged application — inject version info as system properties
+        val appVersion = rootProject.extra["appVersionName"] as String
+        val appBuild   = rootProject.extra["appVersionBuild"] as Int
         jvmArgs += listOf(
             "-Xmx512m",
             "-Dfile.encoding=UTF-8",
+            "-Dapp.version=$appVersion",
+            "-Dapp.build.number=$appBuild",
+            "-Dapp.build.date=${java.time.LocalDate.now()}",
         )
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName    = "ZyntaPOS"
-            packageVersion = "1.0.0"
+            packageVersion = appVersion
             description    = "ZyntaPOS — Cross-platform Point of Sale system"
             vendor         = "Zynta Solutions"
             copyright      = "Copyright 2026 Zynta Solutions. All rights reserved."
@@ -115,7 +120,7 @@ compose.desktop {
             includeAllModules = true
 
             linux {
-                debPackageVersion    = "1.0.0"
+                debPackageVersion    = appVersion
                 debMaintainer        = "dev@zyntasolutions.com"
                 appCategory          = "Office"
                 menuGroup            = "Office"

@@ -21,6 +21,9 @@ class AndroidAppInfoProvider : AppInfoProvider {
     override var appVersion: String = "1.0.0"
         private set
 
+    override var buildNumber: Int = 1
+        private set
+
     override var buildDate: String = "2026-02-23"
         private set
 
@@ -36,14 +39,16 @@ class AndroidAppInfoProvider : AppInfoProvider {
      * Call this from `Application.onCreate()`:
      * ```kotlin
      * (appInfoProvider as AndroidAppInfoProvider).init(
-     *     version = BuildConfig.VERSION_NAME,
+     *     version = BuildConfig.APP_VERSION_NAME,
+     *     buildNumber = BuildConfig.APP_BUILD_NUMBER,
      *     buildDate = BuildConfig.BUILD_DATE,
      *     debug = BuildConfig.DEBUG,
      * )
      * ```
      */
-    fun init(version: String, buildDate: String, debug: Boolean) {
+    fun init(version: String, buildNumber: Int = 1, buildDate: String, debug: Boolean) {
         this.appVersion = version
+        this.buildNumber = buildNumber
         this.buildDate = buildDate
         this.isDebug = debug
     }

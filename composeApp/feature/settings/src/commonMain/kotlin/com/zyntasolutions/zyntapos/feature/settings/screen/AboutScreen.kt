@@ -108,7 +108,7 @@ fun AboutScreen(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    InfoRow(label = "Version", value = appVersion)
+                    InfoRow(label = "Version", value = appInfo.fullVersionString)
                     HorizontalDivider(modifier = Modifier.padding(horizontal = ZyntaSpacing.md))
                     InfoRow(label = "Build Date", value = buildDate)
                     HorizontalDivider(modifier = Modifier.padding(horizontal = ZyntaSpacing.md))

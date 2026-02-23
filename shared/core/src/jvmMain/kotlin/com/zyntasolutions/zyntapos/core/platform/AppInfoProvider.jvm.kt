@@ -24,6 +24,9 @@ class JvmAppInfoProvider : AppInfoProvider {
             ?: JvmAppInfoProvider::class.java.`package`?.implementationVersion
             ?: "1.0.0"
 
+    override val buildNumber: Int =
+        System.getProperty("app.build.number")?.toIntOrNull() ?: 1
+
     override val buildDate: String =
         System.getProperty("app.build.date") ?: "2026-02-23"
 
