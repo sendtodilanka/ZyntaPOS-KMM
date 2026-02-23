@@ -46,7 +46,7 @@ val deepLinkOrder: NavDeepLink = navDeepLink<ZyntaRoute.OrderHistory>(
  *
  * **Back-stack architecture:**
  * ```
- * NavHost (startDestination = ZyntaRoute.Login)
+ * NavHost (startDestination = ZyntaRoute.AuthGraph)
  * │
  * ├── authNavGraph
  * │   ├── Login (start)
@@ -108,7 +108,7 @@ fun ZyntaNavGraph(
 
     NavHost(
         navController = navigationController.navController,
-        startDestination = ZyntaRoute.Login,
+        startDestination = ZyntaRoute.AuthGraph,
     ) {
         // ── Unauthenticated graph ────────────────────────────────────────────
         authNavGraph(

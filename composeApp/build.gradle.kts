@@ -97,7 +97,7 @@ compose.desktop {
     application {
         mainClass = "com.zyntasolutions.zyntapos.MainKt"
         nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Exe, TargetFormat.Deb)
             packageName    = "com.zyntasolutions.zyntapos"
             packageVersion = "1.0.0"
         }
