@@ -123,7 +123,6 @@ compose.desktop {
 
             macOS {
                 bundleID             = "com.zyntasolutions.zyntapos"
-                dpiAware             = true
             }
 
             windows {
