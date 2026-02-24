@@ -1,13 +1,14 @@
 package com.zyntasolutions.zyntapos.feature.expenses
 
 import com.zyntasolutions.zyntapos.core.result.Result
-import com.zyntasolutions.zyntapos.core.ui.mvi.BaseViewModel
+import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import com.zyntasolutions.zyntapos.core.utils.IdGenerator
 import com.zyntasolutions.zyntapos.domain.model.Expense
 import com.zyntasolutions.zyntapos.domain.model.ExpenseCategory
 import com.zyntasolutions.zyntapos.domain.repository.ExpenseRepository
 import com.zyntasolutions.zyntapos.domain.usecase.expenses.ApproveExpenseUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.expenses.SaveExpenseUseCase
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.datetime.Clock
@@ -121,6 +122,7 @@ class ExpenseViewModel(
                 updateState { copy(isLoading = false) }
                 sendEffect(ExpenseEffect.ShowError(result.exception.message ?: "Failed to load expense"))
             }
+            is Result.Loading -> {}
         }
     }
 
@@ -167,6 +169,7 @@ class ExpenseViewModel(
                 updateState { copy(isLoading = false) }
                 sendEffect(ExpenseEffect.ShowError(result.exception.message ?: "Save failed"))
             }
+            is Result.Loading -> {}
         }
     }
 
@@ -182,6 +185,7 @@ class ExpenseViewModel(
                 updateState { copy(isLoading = false) }
                 sendEffect(ExpenseEffect.ShowError(result.exception.message ?: "Delete failed"))
             }
+            is Result.Loading -> {}
         }
     }
 
@@ -191,6 +195,7 @@ class ExpenseViewModel(
         when (val result = approveExpenseUseCase.approve(expenseId, currentUserId)) {
             is Result.Success -> sendEffect(ExpenseEffect.ShowSuccess("Expense approved"))
             is Result.Error -> sendEffect(ExpenseEffect.ShowError(result.exception.message ?: "Approval failed"))
+            is Result.Loading -> {}
         }
     }
 
@@ -198,6 +203,7 @@ class ExpenseViewModel(
         when (val result = approveExpenseUseCase.reject(expenseId, currentUserId, reason)) {
             is Result.Success -> sendEffect(ExpenseEffect.ShowSuccess("Expense rejected"))
             is Result.Error -> sendEffect(ExpenseEffect.ShowError(result.exception.message ?: "Rejection failed"))
+            is Result.Loading -> {}
         }
     }
 
@@ -232,6 +238,7 @@ class ExpenseViewModel(
                 }
             }
             is Result.Error -> sendEffect(ExpenseEffect.ShowError(result.exception.message ?: "Failed to load category"))
+            is Result.Loading -> {}
         }
     }
 
@@ -271,6 +278,7 @@ class ExpenseViewModel(
                 sendEffect(ExpenseEffect.ShowSuccess(msg))
             }
             is Result.Error -> sendEffect(ExpenseEffect.ShowError(result.exception.message ?: "Save category failed"))
+            is Result.Loading -> {}
         }
     }
 
@@ -281,6 +289,7 @@ class ExpenseViewModel(
                 sendEffect(ExpenseEffect.ShowSuccess("Category deleted"))
             }
             is Result.Error -> sendEffect(ExpenseEffect.ShowError(result.exception.message ?: "Delete failed"))
+            is Result.Loading -> {}
         }
     }
 

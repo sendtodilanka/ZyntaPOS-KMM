@@ -1,9 +1,10 @@
 package com.zyntasolutions.zyntapos.feature.admin.notification
 
 import com.zyntasolutions.zyntapos.core.result.Result
-import com.zyntasolutions.zyntapos.core.ui.mvi.BaseViewModel
+import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import com.zyntasolutions.zyntapos.domain.repository.NotificationRepository
 import kotlinx.coroutines.flow.catch
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
@@ -59,6 +60,7 @@ class NotificationViewModel(
             is Result.Error   -> sendEffect(NotificationEffect.ShowSnackbar(
                 result.exception.message ?: "Failed to mark notification as read"
             ))
+            is Result.Loading -> {}
         }
     }
 
@@ -68,6 +70,7 @@ class NotificationViewModel(
             is Result.Error   -> sendEffect(NotificationEffect.ShowSnackbar(
                 result.exception.message ?: "Failed to mark all as read"
             ))
+            is Result.Loading -> {}
         }
     }
 }

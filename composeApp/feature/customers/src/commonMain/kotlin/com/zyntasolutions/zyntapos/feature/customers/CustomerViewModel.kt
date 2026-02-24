@@ -1,7 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.customers
 
 import com.zyntasolutions.zyntapos.core.result.Result
-import com.zyntasolutions.zyntapos.core.ui.mvi.BaseViewModel
+import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import com.zyntasolutions.zyntapos.core.utils.IdGenerator
 import com.zyntasolutions.zyntapos.domain.model.Customer
 import com.zyntasolutions.zyntapos.domain.model.CustomerGroup
@@ -19,6 +19,8 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
@@ -73,7 +75,7 @@ class CustomerViewModel(
             .distinctUntilChanged()
             .flatMapLatest { (query, groupId) ->
                 when {
-                    groupId != null -> customerRepository.getByGroup(groupId)
+                    groupId != null -> customerRepository.getAll().map { list -> list.filter { it.groupId == groupId } }
                     query.isNotBlank() -> customerRepository.search(query)
                     else -> customerRepository.getAll()
                 }
@@ -181,6 +183,7 @@ class CustomerViewModel(
                 updateState { copy(isLoading = false, error = result.exception.message) }
                 sendEffect(CustomerEffect.ShowError(result.exception.message ?: "Failed to load customer"))
             }
+            is Result.Loading -> {}
         }
     }
 
@@ -250,6 +253,7 @@ class CustomerViewModel(
                 updateState { copy(isLoading = false, error = result.exception.message) }
                 sendEffect(CustomerEffect.ShowError(result.exception.message ?: "Save failed"))
             }
+            is Result.Loading -> {}
         }
     }
 
@@ -265,6 +269,7 @@ class CustomerViewModel(
                 updateState { copy(isLoading = false, error = result.exception.message) }
                 sendEffect(CustomerEffect.ShowError(result.exception.message ?: "Delete failed"))
             }
+            is Result.Loading -> {}
         }
     }
 
@@ -300,6 +305,7 @@ class CustomerViewModel(
                 }
             }
             is Result.Error -> sendEffect(CustomerEffect.ShowError(result.exception.message ?: "Failed to load group"))
+            is Result.Loading -> {}
         }
     }
 
@@ -348,6 +354,7 @@ class CustomerViewModel(
                 sendEffect(CustomerEffect.ShowSuccess(if (form.isEditing) "Group updated" else "Group created"))
             }
             is Result.Error -> sendEffect(CustomerEffect.ShowError(result.exception.message ?: "Save group failed"))
+            is Result.Loading -> {}
         }
     }
 
@@ -358,6 +365,7 @@ class CustomerViewModel(
                 sendEffect(CustomerEffect.ShowSuccess("Group deleted"))
             }
             is Result.Error -> sendEffect(CustomerEffect.ShowError(result.exception.message ?: "Delete failed"))
+            is Result.Loading -> {}
         }
     }
 
@@ -386,6 +394,7 @@ class CustomerViewModel(
                 updateState { copy(isWalletLoading = false) }
                 sendEffect(CustomerEffect.ShowError(walletResult.exception.message ?: "Failed to load wallet"))
             }
+            is Result.Loading -> {}
         }
     }
 
@@ -400,6 +409,7 @@ class CustomerViewModel(
                 updateState { copy(isWalletLoading = false) }
                 sendEffect(CustomerEffect.ShowError(result.exception.message ?: "Top-up failed"))
             }
+            is Result.Loading -> {}
         }
     }
 

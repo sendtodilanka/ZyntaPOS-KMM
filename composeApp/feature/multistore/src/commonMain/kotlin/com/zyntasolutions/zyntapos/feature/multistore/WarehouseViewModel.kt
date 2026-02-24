@@ -1,12 +1,13 @@
 package com.zyntasolutions.zyntapos.feature.multistore
 
 import com.zyntasolutions.zyntapos.core.result.Result
-import com.zyntasolutions.zyntapos.core.ui.mvi.BaseViewModel
+import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import com.zyntasolutions.zyntapos.core.utils.IdGenerator
 import com.zyntasolutions.zyntapos.domain.model.StockTransfer
 import com.zyntasolutions.zyntapos.domain.model.Warehouse
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseRepository
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.CommitStockTransferUseCase
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.datetime.Clock
@@ -103,6 +104,7 @@ class WarehouseViewModel(
                 updateState { copy(isLoading = false) }
                 sendEffect(WarehouseEffect.ShowError(result.exception.message ?: "Failed to load warehouse"))
             }
+            is Result.Loading -> {}
         }
     }
 
@@ -152,6 +154,7 @@ class WarehouseViewModel(
                 updateState { copy(isLoading = false) }
                 sendEffect(WarehouseEffect.ShowError(result.exception.message ?: "Save failed"))
             }
+            is Result.Loading -> {}
         }
     }
 
@@ -227,6 +230,7 @@ class WarehouseViewModel(
                 updateState { copy(isLoading = false) }
                 sendEffect(WarehouseEffect.ShowError(result.exception.message ?: "Transfer creation failed"))
             }
+            is Result.Loading -> {}
         }
     }
 
@@ -241,6 +245,7 @@ class WarehouseViewModel(
                 updateState { copy(isLoading = false) }
                 sendEffect(WarehouseEffect.ShowError(result.exception.message ?: "Commit failed"))
             }
+            is Result.Loading -> {}
         }
     }
 
@@ -255,6 +260,7 @@ class WarehouseViewModel(
                 updateState { copy(isLoading = false) }
                 sendEffect(WarehouseEffect.ShowError(result.exception.message ?: "Cancel failed"))
             }
+            is Result.Loading -> {}
         }
     }
 

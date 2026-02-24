@@ -89,6 +89,7 @@ fun CustomerListScreen(
                 query = state.searchQuery,
                 onQueryChange = { onIntent(CustomerIntent.SearchQueryChanged(it)) },
                 onClear = { onIntent(CustomerIntent.SearchQueryChanged("")) },
+                onScanToggle = {},
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
@@ -240,7 +241,7 @@ private fun CustomerTableRow(
             Text(customer.name, style = MaterialTheme.typography.bodyMedium)
             if (!customer.email.isNullOrBlank()) {
                 Text(
-                    customer.email,
+                    customer.email!!,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

@@ -251,7 +251,7 @@ private fun WalletTransactionRow(tx: WalletTransaction) {
         Column(Modifier.weight(1f)) {
             Text(tx.type.name, style = MaterialTheme.typography.bodySmall)
             if (!tx.note.isNullOrBlank()) {
-                Text(tx.note, style = MaterialTheme.typography.bodySmall,
+                Text(tx.note!!, style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Text(formatEpoch(tx.createdAt), style = MaterialTheme.typography.bodySmall,

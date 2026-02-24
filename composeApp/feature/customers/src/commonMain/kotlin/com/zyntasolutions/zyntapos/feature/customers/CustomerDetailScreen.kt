@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.customers
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -90,7 +91,7 @@ fun CustomerDetailScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
-        ZyntaLoadingOverlay(isLoading = state.isLoading) {
+        Box(modifier = Modifier.fillMaxSize()) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -104,18 +105,14 @@ fun CustomerDetailScreen(
                     value = form.name,
                     onValueChange = { onIntent(CustomerIntent.UpdateFormField("name", it)) },
                     label = "Full Name *",
-                    isError = "name" in form.validationErrors,
-                    errorMessage = form.validationErrors["name"],
-                    modifier = Modifier.fillMaxWidth(),
+                    error = form.validationErrors["name"],                    modifier = Modifier.fillMaxWidth(),
                 )
 
                 ZyntaTextField(
                     value = form.phone,
                     onValueChange = { onIntent(CustomerIntent.UpdateFormField("phone", it)) },
                     label = "Phone *",
-                    isError = "phone" in form.validationErrors,
-                    errorMessage = form.validationErrors["phone"],
-                    modifier = Modifier.fillMaxWidth(),
+                    error = form.validationErrors["phone"],                    modifier = Modifier.fillMaxWidth(),
                 )
 
                 ZyntaTextField(
@@ -178,9 +175,7 @@ fun CustomerDetailScreen(
                         value = form.creditLimit,
                         onValueChange = { onIntent(CustomerIntent.UpdateFormField("creditLimit", it)) },
                         label = "Credit Limit",
-                        isError = "creditLimit" in form.validationErrors,
-                        errorMessage = form.validationErrors["creditLimit"],
-                        modifier = Modifier.fillMaxWidth(),
+                        error = form.validationErrors["creditLimit"],                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
 
@@ -205,6 +200,7 @@ fun CustomerDetailScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
+            ZyntaLoadingOverlay(isLoading = state.isLoading)
         }
     }
 

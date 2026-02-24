@@ -23,8 +23,8 @@ class InstallmentRepositoryImpl(
     private val syncEnqueuer: SyncEnqueuer,
 ) : InstallmentRepository {
 
-    private val planQ get() = db.installmentPlansQueries
-    private val payQ get() = db.installmentPaymentsQueries
+    private val planQ get() = db.installment_plansQueries
+    private val payQ get() = db.installment_plansQueries
 
     override fun getPlansByCustomer(customerId: String): Flow<List<InstallmentPlan>> =
         planQ.getInstallmentPlansByCustomer(customerId)

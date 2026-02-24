@@ -46,7 +46,7 @@ fun WarehouseListScreen(
     val state by viewModel.state.collectAsState()
 
     LaunchedEffect(Unit) {
-        viewModel.handleIntent(WarehouseIntent.LoadWarehouses)
+        viewModel.dispatch(WarehouseIntent.LoadWarehouses)
     }
 
     Scaffold(

@@ -52,7 +52,7 @@ fun ExpenseDetailScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(expenseId) {
-        viewModel.handleIntent(ExpenseIntent.SelectExpense(expenseId))
+        viewModel.dispatch(ExpenseIntent.SelectExpense(expenseId))
     }
 
     LaunchedEffect(Unit) {
@@ -92,7 +92,7 @@ fun ExpenseDetailScreen(
         ) {
             OutlinedTextField(
                 value = form.description,
-                onValueChange = { viewModel.handleIntent(ExpenseIntent.UpdateFormField("description", it)) },
+                onValueChange = { viewModel.dispatch(ExpenseIntent.UpdateFormField("description", it)) },
                 label = { Text("Description *") },
                 isError = form.validationErrors.containsKey("description"),
                 supportingText = form.validationErrors["description"]?.let { { Text(it) } },
@@ -102,7 +102,7 @@ fun ExpenseDetailScreen(
 
             OutlinedTextField(
                 value = form.amount,
-                onValueChange = { viewModel.handleIntent(ExpenseIntent.UpdateFormField("amount", it)) },
+                onValueChange = { viewModel.dispatch(ExpenseIntent.UpdateFormField("amount", it)) },
                 label = { Text("Amount (LKR) *") },
                 isError = form.validationErrors.containsKey("amount"),
                 supportingText = form.validationErrors["amount"]?.let { { Text(it) } },
@@ -113,7 +113,7 @@ fun ExpenseDetailScreen(
 
             OutlinedTextField(
                 value = form.expenseDate,
-                onValueChange = { viewModel.handleIntent(ExpenseIntent.UpdateFormField("expenseDate", it)) },
+                onValueChange = { viewModel.dispatch(ExpenseIntent.UpdateFormField("expenseDate", it)) },
                 label = { Text("Expense Date (epoch ms) *") },
                 isError = form.validationErrors.containsKey("expenseDate"),
                 supportingText = form.validationErrors["expenseDate"]?.let { { Text(it) } },
@@ -124,7 +124,7 @@ fun ExpenseDetailScreen(
 
             OutlinedTextField(
                 value = form.categoryId,
-                onValueChange = { viewModel.handleIntent(ExpenseIntent.UpdateFormField("categoryId", it)) },
+                onValueChange = { viewModel.dispatch(ExpenseIntent.UpdateFormField("categoryId", it)) },
                 label = { Text("Category ID") },
                 placeholder = { Text("Leave blank for uncategorized") },
                 modifier = Modifier.fillMaxWidth(),
@@ -133,7 +133,7 @@ fun ExpenseDetailScreen(
 
             OutlinedTextField(
                 value = form.receiptUrl,
-                onValueChange = { viewModel.handleIntent(ExpenseIntent.UpdateFormField("receiptUrl", it)) },
+                onValueChange = { viewModel.dispatch(ExpenseIntent.UpdateFormField("receiptUrl", it)) },
                 label = { Text("Receipt URL") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
@@ -156,7 +156,7 @@ fun ExpenseDetailScreen(
 
             ZyntaButton(
                 text = if (form.isEditing) "Update Expense" else "Log Expense",
-                onClick = { viewModel.handleIntent(ExpenseIntent.SaveExpense) },
+                onClick = { viewModel.dispatch(ExpenseIntent.SaveExpense) },
                 modifier = Modifier.fillMaxWidth(),
                 isLoading = state.isLoading,
             )
@@ -172,7 +172,7 @@ fun ExpenseDetailScreen(
                 TextButton(
                     onClick = {
                         showDeleteDialog = false
-                        viewModel.handleIntent(ExpenseIntent.DeleteExpense(expenseId))
+                        viewModel.dispatch(ExpenseIntent.DeleteExpense(expenseId))
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
                 ) { Text("Delete") }

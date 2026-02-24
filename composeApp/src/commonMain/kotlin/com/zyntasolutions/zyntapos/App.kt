@@ -29,6 +29,21 @@ import com.zyntasolutions.zyntapos.feature.pos.OrderHistoryScreen
 import com.zyntasolutions.zyntapos.feature.pos.PaymentScreen
 import com.zyntasolutions.zyntapos.feature.pos.PosScreen
 import com.zyntasolutions.zyntapos.feature.pos.PosViewModel
+import com.zyntasolutions.zyntapos.feature.admin.notification.NotificationInboxScreen
+import com.zyntasolutions.zyntapos.feature.coupons.CouponDetailScreen
+import com.zyntasolutions.zyntapos.feature.coupons.CouponListScreen
+import com.zyntasolutions.zyntapos.feature.customers.CustomerDetailScreen
+import com.zyntasolutions.zyntapos.feature.customers.CustomerGroupScreen
+import com.zyntasolutions.zyntapos.feature.customers.CustomerListScreen
+import com.zyntasolutions.zyntapos.feature.customers.CustomerViewModel
+import com.zyntasolutions.zyntapos.feature.customers.CustomerWalletScreen
+import com.zyntasolutions.zyntapos.feature.expenses.ExpenseCategoryListScreen
+import com.zyntasolutions.zyntapos.feature.expenses.ExpenseDetailScreen
+import com.zyntasolutions.zyntapos.feature.expenses.ExpenseListScreen
+import com.zyntasolutions.zyntapos.feature.multistore.NewStockTransferScreen
+import com.zyntasolutions.zyntapos.feature.multistore.StockTransferListScreen
+import com.zyntasolutions.zyntapos.feature.multistore.WarehouseDetailScreen
+import com.zyntasolutions.zyntapos.feature.multistore.WarehouseListScreen
 import com.zyntasolutions.zyntapos.feature.register.CloseRegisterScreen
 import com.zyntasolutions.zyntapos.feature.register.OpenRegisterScreen
 import com.zyntasolutions.zyntapos.feature.register.RegisterDashboardScreen
@@ -350,5 +365,107 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
             onOrderTap = { },
             onReprintOrder = { },
         )
+    },
+
+    // ── CRM: Customers ──────────────────────────────────────────────────────
+    customerList = { onNavigateToDetail, onNavigateToGroups ->
+        val vm: CustomerViewModel = koinViewModel()
+        val state by vm.state.collectAsState()
+        CustomerListScreen(
+            state = state,
+            onIntent = vm::dispatch,
+            onNavigateToDetail = onNavigateToDetail,
+            onNavigateToGroups = onNavigateToGroups,
+        )
+    },
+
+    customerDetail = { customerId, onNavigateUp, onNavigateToWallet ->
+        val vm: CustomerViewModel = koinViewModel()
+        val state by vm.state.collectAsState()
+        CustomerDetailScreen(
+            customerId = customerId,
+            state = state,
+            onIntent = vm::dispatch,
+            onNavigateUp = onNavigateUp,
+            onNavigateToWallet = onNavigateToWallet,
+        )
+    },
+
+    customerGroupList = { onNavigateUp ->
+        val vm: CustomerViewModel = koinViewModel()
+        val state by vm.state.collectAsState()
+        CustomerGroupScreen(
+            state = state,
+            onIntent = vm::dispatch,
+            onNavigateUp = onNavigateUp,
+        )
+    },
+
+    customerWallet = { customerId, onNavigateUp ->
+        val vm: CustomerViewModel = koinViewModel()
+        val state by vm.state.collectAsState()
+        CustomerWalletScreen(
+            customerId = customerId,
+            state = state,
+            onIntent = vm::dispatch,
+            onNavigateUp = onNavigateUp,
+        )
+    },
+
+    // ── Coupons ─────────────────────────────────────────────────────────────
+    couponList = { onNavigateToDetail ->
+        CouponListScreen(onNavigateToDetail = onNavigateToDetail)
+    },
+
+    couponDetail = { couponId, onNavigateUp ->
+        CouponDetailScreen(couponId = couponId, onNavigateUp = onNavigateUp)
+    },
+
+    // ── Expenses ────────────────────────────────────────────────────────────
+    expenseList = { onNavigateToDetail, onNavigateToCategories ->
+        ExpenseListScreen(
+            onNavigateToDetail = onNavigateToDetail,
+            onNavigateToCategories = onNavigateToCategories,
+        )
+    },
+
+    expenseDetail = { expenseId, onNavigateUp ->
+        ExpenseDetailScreen(expenseId = expenseId, onNavigateUp = onNavigateUp)
+    },
+
+    expenseCategoryList = { onNavigateUp ->
+        ExpenseCategoryListScreen(onNavigateUp = onNavigateUp)
+    },
+
+    // ── Multi-store / Warehouses ─────────────────────────────────────────────
+    warehouseList = { onNavigateToDetail, onNavigateToTransfers ->
+        WarehouseListScreen(
+            onNavigateToDetail = onNavigateToDetail,
+            onNavigateToTransfers = onNavigateToTransfers,
+        )
+    },
+
+    warehouseDetail = { warehouseId, onNavigateUp ->
+        WarehouseDetailScreen(warehouseId = warehouseId, onNavigateUp = onNavigateUp)
+    },
+
+    stockTransferList = { onNavigateToNewTransfer, onNavigateUp ->
+        StockTransferListScreen(
+            onNavigateToNewTransfer = onNavigateToNewTransfer,
+            onNavigateUp = onNavigateUp,
+        )
+    },
+
+    newStockTransfer = { sourceWarehouseId, onComplete, onCancel ->
+        NewStockTransferScreen(
+            sourceWarehouseId = sourceWarehouseId,
+            onComplete = onComplete,
+            onCancel = onCancel,
+        )
+    },
+
+    // ── Notifications ────────────────────────────────────────────────────────
+    notificationInbox = { onNavigateUp ->
+        NotificationInboxScreen(onNavigateUp = onNavigateUp)
     },
 )

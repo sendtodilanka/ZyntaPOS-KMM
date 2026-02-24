@@ -46,7 +46,7 @@ fun ExpenseListScreen(
     val state by viewModel.state.collectAsState()
 
     LaunchedEffect(Unit) {
-        viewModel.handleIntent(ExpenseIntent.LoadExpenses)
+        viewModel.dispatch(ExpenseIntent.LoadExpenses)
     }
 
     Scaffold(
@@ -77,14 +77,14 @@ fun ExpenseListScreen(
                 item {
                     FilterChip(
                         selected = state.statusFilter == null,
-                        onClick = { viewModel.handleIntent(ExpenseIntent.FilterByStatus(null)) },
+                        onClick = { viewModel.dispatch(ExpenseIntent.FilterByStatus(null)) },
                         label = { Text("All") },
                     )
                 }
                 items(Expense.Status.entries) { status ->
                     FilterChip(
                         selected = state.statusFilter == status,
-                        onClick = { viewModel.handleIntent(ExpenseIntent.FilterByStatus(status)) },
+                        onClick = { viewModel.dispatch(ExpenseIntent.FilterByStatus(status)) },
                         label = { Text(status.name) },
                     )
                 }
@@ -112,8 +112,8 @@ fun ExpenseListScreen(
                             expense = expense,
                             categoryName = state.categories.find { it.id == expense.categoryId }?.name,
                             onClick = { onNavigateToDetail(expense.id) },
-                            onApprove = { viewModel.handleIntent(ExpenseIntent.ApproveExpense(expense.id)) },
-                            onReject = { viewModel.handleIntent(ExpenseIntent.RejectExpense(expense.id, null)) },
+                            onApprove = { viewModel.dispatch(ExpenseIntent.ApproveExpense(expense.id)) },
+                            onReject = { viewModel.dispatch(ExpenseIntent.RejectExpense(expense.id, null)) },
                         )
                     }
                 }

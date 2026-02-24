@@ -33,6 +33,7 @@ class ValidateCouponUseCase(
         val coupon = when (couponResult) {
             is Result.Success -> couponResult.data
             is Result.Error -> return Result.Error(ValidationException("Coupon code '$code' not found"))
+            is Result.Loading -> return Result.Loading
         }
 
         if (!coupon.isActive) {
@@ -56,6 +57,7 @@ class ValidateCouponUseCase(
             val usageCount = when (usageCountResult) {
                 is Result.Success -> usageCountResult.data
                 is Result.Error -> return usageCountResult
+                is Result.Loading -> return Result.Loading
             }
             if (usageCount >= coupon.perCustomerLimit) {
                 return Result.Error(

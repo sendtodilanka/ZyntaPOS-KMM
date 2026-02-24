@@ -28,6 +28,7 @@ class RedeemRewardPointsUseCase(
         val currentBalance = when (currentBalanceResult) {
             is Result.Success -> currentBalanceResult.data
             is Result.Error -> return currentBalanceResult
+            is Result.Loading -> return Result.Loading
         }
 
         if (currentBalance < pointsToRedeem) {
@@ -50,6 +51,7 @@ class RedeemRewardPointsUseCase(
         return when (val result = loyaltyRepo.recordPoints(entry)) {
             is Result.Success -> Result.Success(newBalance)
             is Result.Error -> result
+            is Result.Loading -> Result.Loading
         }
     }
 }

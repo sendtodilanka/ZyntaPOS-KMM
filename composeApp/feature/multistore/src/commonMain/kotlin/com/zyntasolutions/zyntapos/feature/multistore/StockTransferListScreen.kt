@@ -104,7 +104,7 @@ fun StockTransferListScreen(
             confirmButton = {
                 TextButton(onClick = {
                     pendingCommitId = null
-                    viewModel.handleIntent(WarehouseIntent.CommitTransfer(id))
+                    viewModel.dispatch(WarehouseIntent.CommitTransfer(id))
                 }) { Text("Confirm") }
             },
             dismissButton = {
@@ -122,7 +122,7 @@ fun StockTransferListScreen(
                 TextButton(
                     onClick = {
                         pendingCancelId = null
-                        viewModel.handleIntent(WarehouseIntent.CancelTransfer(id))
+                        viewModel.dispatch(WarehouseIntent.CancelTransfer(id))
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
                 ) { Text("Cancel Transfer") }

@@ -24,6 +24,7 @@ class WalletTopUpUseCase(
         val wallet = when (walletResult) {
             is Result.Success -> walletResult.data
             is Result.Error -> return walletResult
+            is Result.Loading -> return Result.Loading
         }
         return walletRepo.credit(wallet.id, amount, note = note)
     }

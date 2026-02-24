@@ -46,7 +46,7 @@ fun NewStockTransferScreen(
     val form = state.transferForm
 
     LaunchedEffect(sourceWarehouseId) {
-        viewModel.handleIntent(WarehouseIntent.InitTransferForm(sourceWarehouseId))
+        viewModel.dispatch(WarehouseIntent.InitTransferForm(sourceWarehouseId))
     }
 
     LaunchedEffect(Unit) {
@@ -82,7 +82,7 @@ fun NewStockTransferScreen(
         ) {
             OutlinedTextField(
                 value = form.sourceWarehouseId,
-                onValueChange = { viewModel.handleIntent(WarehouseIntent.UpdateTransferField("sourceWarehouseId", it)) },
+                onValueChange = { viewModel.dispatch(WarehouseIntent.UpdateTransferField("sourceWarehouseId", it)) },
                 label = { Text("Source Warehouse ID *") },
                 isError = form.validationErrors.containsKey("sourceWarehouseId"),
                 supportingText = form.validationErrors["sourceWarehouseId"]?.let { { Text(it) } },
@@ -92,7 +92,7 @@ fun NewStockTransferScreen(
 
             OutlinedTextField(
                 value = form.destWarehouseId,
-                onValueChange = { viewModel.handleIntent(WarehouseIntent.UpdateTransferField("destWarehouseId", it)) },
+                onValueChange = { viewModel.dispatch(WarehouseIntent.UpdateTransferField("destWarehouseId", it)) },
                 label = { Text("Destination Warehouse ID *") },
                 isError = form.validationErrors.containsKey("destWarehouseId"),
                 supportingText = form.validationErrors["destWarehouseId"]?.let { { Text(it) } },
@@ -102,7 +102,7 @@ fun NewStockTransferScreen(
 
             OutlinedTextField(
                 value = form.productId,
-                onValueChange = { viewModel.handleIntent(WarehouseIntent.UpdateTransferField("productId", it)) },
+                onValueChange = { viewModel.dispatch(WarehouseIntent.UpdateTransferField("productId", it)) },
                 label = { Text("Product ID *") },
                 isError = form.validationErrors.containsKey("productId"),
                 supportingText = form.validationErrors["productId"]?.let { { Text(it) } },
@@ -112,7 +112,7 @@ fun NewStockTransferScreen(
 
             OutlinedTextField(
                 value = form.quantity,
-                onValueChange = { viewModel.handleIntent(WarehouseIntent.UpdateTransferField("quantity", it)) },
+                onValueChange = { viewModel.dispatch(WarehouseIntent.UpdateTransferField("quantity", it)) },
                 label = { Text("Quantity *") },
                 isError = form.validationErrors.containsKey("quantity"),
                 supportingText = form.validationErrors["quantity"]?.let { { Text(it) } },
@@ -123,7 +123,7 @@ fun NewStockTransferScreen(
 
             OutlinedTextField(
                 value = form.notes,
-                onValueChange = { viewModel.handleIntent(WarehouseIntent.UpdateTransferField("notes", it)) },
+                onValueChange = { viewModel.dispatch(WarehouseIntent.UpdateTransferField("notes", it)) },
                 label = { Text("Notes") },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
@@ -134,7 +134,7 @@ fun NewStockTransferScreen(
 
             ZyntaButton(
                 text = "Create Transfer",
-                onClick = { viewModel.handleIntent(WarehouseIntent.SubmitTransfer) },
+                onClick = { viewModel.dispatch(WarehouseIntent.SubmitTransfer) },
                 modifier = Modifier.fillMaxWidth(),
                 isLoading = state.isLoading,
             )

@@ -18,6 +18,7 @@ class ApproveExpenseUseCase(
         val expense = when (val r = repo.getById(id)) {
             is Result.Success -> r.data
             is Result.Error -> return r
+            is Result.Loading -> return Result.Loading
         }
         if (expense.status != Expense.Status.PENDING) {
             return Result.Error(ValidationException("Expense is already ${expense.status}"))
@@ -29,6 +30,7 @@ class ApproveExpenseUseCase(
         val expense = when (val r = repo.getById(id)) {
             is Result.Success -> r.data
             is Result.Error -> return r
+            is Result.Loading -> return Result.Loading
         }
         if (expense.status != Expense.Status.PENDING) {
             return Result.Error(ValidationException("Expense is already ${expense.status}"))

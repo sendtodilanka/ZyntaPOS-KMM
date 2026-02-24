@@ -65,7 +65,7 @@ fun ExpenseCategoryListScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { viewModel.handleIntent(ExpenseIntent.SelectCategory(null)) }) {
+            FloatingActionButton(onClick = { viewModel.dispatch(ExpenseIntent.SelectCategory(null)) }) {
                 Icon(Icons.Default.Add, contentDescription = "New Category")
             }
         },
@@ -100,7 +100,7 @@ fun ExpenseCategoryListScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
-                            IconButton(onClick = { viewModel.handleIntent(ExpenseIntent.SelectCategory(category.id)) }) {
+                            IconButton(onClick = { viewModel.dispatch(ExpenseIntent.SelectCategory(category.id)) }) {
                                 Icon(Icons.Default.Edit, contentDescription = "Edit")
                             }
                             IconButton(onClick = { pendingDeleteId = category.id }) {
@@ -118,7 +118,7 @@ fun ExpenseCategoryListScreen(
     if (state.showCategoryDetail) {
         val form = state.categoryForm
         ModalBottomSheet(
-            onDismissRequest = { viewModel.handleIntent(ExpenseIntent.DismissCategoryDetail) },
+            onDismissRequest = { viewModel.dispatch(ExpenseIntent.DismissCategoryDetail) },
             sheetState = sheetState,
         ) {
             Column(
@@ -132,7 +132,7 @@ fun ExpenseCategoryListScreen(
 
                 OutlinedTextField(
                     value = form.name,
-                    onValueChange = { viewModel.handleIntent(ExpenseIntent.UpdateCategoryField("name", it)) },
+                    onValueChange = { viewModel.dispatch(ExpenseIntent.UpdateCategoryField("name", it)) },
                     label = { Text("Name *") },
                     isError = form.validationErrors.containsKey("name"),
                     supportingText = form.validationErrors["name"]?.let { { Text(it) } },
@@ -142,7 +142,7 @@ fun ExpenseCategoryListScreen(
 
                 OutlinedTextField(
                     value = form.description,
-                    onValueChange = { viewModel.handleIntent(ExpenseIntent.UpdateCategoryField("description", it)) },
+                    onValueChange = { viewModel.dispatch(ExpenseIntent.UpdateCategoryField("description", it)) },
                     label = { Text("Description") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
@@ -152,12 +152,12 @@ fun ExpenseCategoryListScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,
                 ) {
-                    TextButton(onClick = { viewModel.handleIntent(ExpenseIntent.DismissCategoryDetail) }) {
+                    TextButton(onClick = { viewModel.dispatch(ExpenseIntent.DismissCategoryDetail) }) {
                         Text("Cancel")
                     }
                     ZyntaButton(
                         text = if (form.isEditing) "Update" else "Create",
-                        onClick = { viewModel.handleIntent(ExpenseIntent.SaveCategory) },
+                        onClick = { viewModel.dispatch(ExpenseIntent.SaveCategory) },
                         modifier = Modifier.padding(start = 8.dp),
                     )
                 }
@@ -176,7 +176,7 @@ fun ExpenseCategoryListScreen(
                 TextButton(
                     onClick = {
                         pendingDeleteId = null
-                        viewModel.handleIntent(ExpenseIntent.DeleteCategory(id))
+                        viewModel.dispatch(ExpenseIntent.DeleteCategory(id))
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
                 ) { Text("Delete") }

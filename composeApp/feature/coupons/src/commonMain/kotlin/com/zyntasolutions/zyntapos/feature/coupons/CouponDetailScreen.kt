@@ -61,7 +61,7 @@ fun CouponDetailScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(couponId) {
-        viewModel.handleIntent(CouponIntent.SelectCoupon(couponId))
+        viewModel.dispatch(CouponIntent.SelectCoupon(couponId))
     }
 
     LaunchedEffect(Unit) {
@@ -102,7 +102,7 @@ fun CouponDetailScreen(
         ) {
             OutlinedTextField(
                 value = form.code,
-                onValueChange = { viewModel.handleIntent(CouponIntent.UpdateFormField("code", it)) },
+                onValueChange = { viewModel.dispatch(CouponIntent.UpdateFormField("code", it)) },
                 label = { Text("Coupon Code *") },
                 isError = form.validationErrors.containsKey("code"),
                 supportingText = form.validationErrors["code"]?.let { { Text(it) } },
@@ -112,7 +112,7 @@ fun CouponDetailScreen(
 
             OutlinedTextField(
                 value = form.name,
-                onValueChange = { viewModel.handleIntent(CouponIntent.UpdateFormField("name", it)) },
+                onValueChange = { viewModel.dispatch(CouponIntent.UpdateFormField("name", it)) },
                 label = { Text("Name *") },
                 isError = form.validationErrors.containsKey("name"),
                 supportingText = form.validationErrors["name"]?.let { { Text(it) } },
@@ -142,7 +142,7 @@ fun CouponDetailScreen(
                         DropdownMenuItem(
                             text = { Text(if (type == DiscountType.FIXED) "Fixed Amount (LKR)" else "Percentage (%)") },
                             onClick = {
-                                viewModel.handleIntent(CouponIntent.UpdateFormField("discountType", type.name))
+                                viewModel.dispatch(CouponIntent.UpdateFormField("discountType", type.name))
                                 discountTypeExpanded = false
                             },
                         )
@@ -152,7 +152,7 @@ fun CouponDetailScreen(
 
             OutlinedTextField(
                 value = form.discountValue,
-                onValueChange = { viewModel.handleIntent(CouponIntent.UpdateFormField("discountValue", it)) },
+                onValueChange = { viewModel.dispatch(CouponIntent.UpdateFormField("discountValue", it)) },
                 label = { Text("Discount Value *") },
                 isError = form.validationErrors.containsKey("discountValue"),
                 supportingText = form.validationErrors["discountValue"]?.let { { Text(it) } },
@@ -163,7 +163,7 @@ fun CouponDetailScreen(
 
             OutlinedTextField(
                 value = form.minimumPurchase,
-                onValueChange = { viewModel.handleIntent(CouponIntent.UpdateFormField("minimumPurchase", it)) },
+                onValueChange = { viewModel.dispatch(CouponIntent.UpdateFormField("minimumPurchase", it)) },
                 label = { Text("Minimum Purchase (LKR)") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),
@@ -173,7 +173,7 @@ fun CouponDetailScreen(
             if (form.discountType == DiscountType.PERCENT.name) {
                 OutlinedTextField(
                     value = form.maximumDiscount,
-                    onValueChange = { viewModel.handleIntent(CouponIntent.UpdateFormField("maximumDiscount", it)) },
+                    onValueChange = { viewModel.dispatch(CouponIntent.UpdateFormField("maximumDiscount", it)) },
                     label = { Text("Maximum Discount Cap (LKR)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth(),
@@ -183,7 +183,7 @@ fun CouponDetailScreen(
 
             OutlinedTextField(
                 value = form.usageLimit,
-                onValueChange = { viewModel.handleIntent(CouponIntent.UpdateFormField("usageLimit", it)) },
+                onValueChange = { viewModel.dispatch(CouponIntent.UpdateFormField("usageLimit", it)) },
                 label = { Text("Total Usage Limit") },
                 placeholder = { Text("Unlimited") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -193,7 +193,7 @@ fun CouponDetailScreen(
 
             OutlinedTextField(
                 value = form.perCustomerLimit,
-                onValueChange = { viewModel.handleIntent(CouponIntent.UpdateFormField("perCustomerLimit", it)) },
+                onValueChange = { viewModel.dispatch(CouponIntent.UpdateFormField("perCustomerLimit", it)) },
                 label = { Text("Per-Customer Limit") },
                 placeholder = { Text("Unlimited") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -203,7 +203,7 @@ fun CouponDetailScreen(
 
             OutlinedTextField(
                 value = form.validFrom,
-                onValueChange = { viewModel.handleIntent(CouponIntent.UpdateFormField("validFrom", it)) },
+                onValueChange = { viewModel.dispatch(CouponIntent.UpdateFormField("validFrom", it)) },
                 label = { Text("Valid From (epoch ms) *") },
                 isError = form.validationErrors.containsKey("validFrom"),
                 supportingText = form.validationErrors["validFrom"]?.let { { Text(it) } },
@@ -214,7 +214,7 @@ fun CouponDetailScreen(
 
             OutlinedTextField(
                 value = form.validTo,
-                onValueChange = { viewModel.handleIntent(CouponIntent.UpdateFormField("validTo", it)) },
+                onValueChange = { viewModel.dispatch(CouponIntent.UpdateFormField("validTo", it)) },
                 label = { Text("Valid To (epoch ms) *") },
                 isError = form.validationErrors.containsKey("validTo"),
                 supportingText = form.validationErrors["validTo"]?.let { { Text(it) } },
@@ -231,7 +231,7 @@ fun CouponDetailScreen(
                 Text("Active", style = MaterialTheme.typography.bodyLarge)
                 Switch(
                     checked = form.isActive,
-                    onCheckedChange = { viewModel.handleIntent(CouponIntent.UpdateIsActive(it)) },
+                    onCheckedChange = { viewModel.dispatch(CouponIntent.UpdateIsActive(it)) },
                 )
             }
 
@@ -239,7 +239,7 @@ fun CouponDetailScreen(
 
             ZyntaButton(
                 text = if (form.isEditing) "Update Coupon" else "Create Coupon",
-                onClick = { viewModel.handleIntent(CouponIntent.SaveCoupon) },
+                onClick = { viewModel.dispatch(CouponIntent.SaveCoupon) },
                 modifier = Modifier.fillMaxWidth(),
                 isLoading = state.isLoading,
             )
@@ -255,7 +255,7 @@ fun CouponDetailScreen(
                 TextButton(
                     onClick = {
                         showDeleteDialog = false
-                        viewModel.handleIntent(CouponIntent.DeleteCoupon(couponId))
+                        viewModel.dispatch(CouponIntent.DeleteCoupon(couponId))
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
                 ) { Text("Delete") }

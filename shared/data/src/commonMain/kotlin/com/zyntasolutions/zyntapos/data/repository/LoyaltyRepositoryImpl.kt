@@ -24,8 +24,8 @@ class LoyaltyRepositoryImpl(
     private val db: ZyntaDatabase,
 ) : LoyaltyRepository {
 
-    private val rpq get() = db.rewardPointsQueries
-    private val ltq get() = db.loyaltyTiersQueries
+    private val rpq get() = db.reward_pointsQueries
+    private val ltq get() = db.reward_pointsQueries
 
     override fun getPointsHistory(customerId: String): Flow<List<RewardPoints>> =
         rpq.getPointsByCustomer(customerId)

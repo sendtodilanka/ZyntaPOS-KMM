@@ -26,8 +26,8 @@ class ExpenseRepositoryImpl(
 ) : ExpenseRepository {
 
     private val eq get() = db.expensesQueries
-    private val ecq get() = db.expenseCategoriesQueries
-    private val req get() = db.recurringExpensesQueries
+    private val ecq get() = db.expense_categoriesQueries
+    private val req get() = db.expensesQueries
 
     override fun getAll(): Flow<List<Expense>> =
         eq.getAllExpenses().asFlow().mapToList(Dispatchers.IO).map { rows -> rows.map(::toExpenseDomain) }

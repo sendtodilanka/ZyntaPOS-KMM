@@ -307,7 +307,7 @@ class PosViewModelTest {
 
         override fun getAllPromotions() = MutableStateFlow(emptyList<com.zyntasolutions.zyntapos.domain.model.Promotion>())
         override fun getActivePromotions(nowEpochMillis: Long) = MutableStateFlow(emptyList<com.zyntasolutions.zyntapos.domain.model.Promotion>())
-        override suspend fun getPromotionById(id: String) = Result.Error<com.zyntasolutions.zyntapos.domain.model.Promotion>(DatabaseException("Not found"))
+        override suspend fun getPromotionById(id: String): Result<com.zyntasolutions.zyntapos.domain.model.Promotion> = Result.Error(DatabaseException("Not found"))
         override suspend fun insertPromotion(promotion: com.zyntasolutions.zyntapos.domain.model.Promotion) = Result.Success(Unit)
         override suspend fun updatePromotion(promotion: com.zyntasolutions.zyntapos.domain.model.Promotion) = Result.Success(Unit)
         override suspend fun deletePromotion(id: String) = Result.Success(Unit)

@@ -100,7 +100,7 @@ fun NotificationInboxScreen(
                 }
             }
         },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        snackbarHostState = snackbarHostState,
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize()) {
             Column(
@@ -165,7 +165,7 @@ fun NotificationInboxScreen(
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
-                                text = state.error,
+                                text = state.error!!,
                                 color = MaterialTheme.colorScheme.error,
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.xl),

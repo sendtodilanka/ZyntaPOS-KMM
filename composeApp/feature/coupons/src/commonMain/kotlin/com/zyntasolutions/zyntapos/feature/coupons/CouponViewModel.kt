@@ -1,13 +1,14 @@
 package com.zyntasolutions.zyntapos.feature.coupons
 
 import com.zyntasolutions.zyntapos.core.result.Result
-import com.zyntasolutions.zyntapos.core.ui.mvi.BaseViewModel
+import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import com.zyntasolutions.zyntapos.core.utils.IdGenerator
 import com.zyntasolutions.zyntapos.domain.model.Coupon
 import com.zyntasolutions.zyntapos.domain.model.DiscountType
 import com.zyntasolutions.zyntapos.domain.repository.CouponRepository
 import com.zyntasolutions.zyntapos.domain.usecase.coupons.SaveCouponUseCase
 import kotlinx.coroutines.flow.first
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.datetime.Clock
@@ -115,6 +116,7 @@ class CouponViewModel(
                 updateState { copy(isLoading = false) }
                 sendEffect(CouponEffect.ShowError(result.exception.message ?: "Failed to load coupon"))
             }
+            is Result.Loading -> {}
         }
     }
 
@@ -180,6 +182,7 @@ class CouponViewModel(
                 updateState { copy(isLoading = false) }
                 sendEffect(CouponEffect.ShowError(result.exception.message ?: "Save failed"))
             }
+            is Result.Loading -> {}
         }
     }
 
@@ -195,6 +198,7 @@ class CouponViewModel(
                 updateState { copy(isLoading = false) }
                 sendEffect(CouponEffect.ShowError(result.exception.message ?: "Delete failed"))
             }
+            is Result.Loading -> {}
         }
     }
 
@@ -205,6 +209,7 @@ class CouponViewModel(
                 sendEffect(CouponEffect.ShowSuccess(msg))
             }
             is Result.Error -> sendEffect(CouponEffect.ShowError(result.exception.message ?: "Toggle failed"))
+            is Result.Loading -> {}
         }
     }
 

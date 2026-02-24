@@ -26,7 +26,7 @@ class CustomerWalletRepositoryImpl(
     private val syncEnqueuer: SyncEnqueuer,
 ) : CustomerWalletRepository {
 
-    private val wq get() = db.customerWalletsQueries
+    private val wq get() = db.customer_walletsQueries
 
     override suspend fun getOrCreate(customerId: String): Result<CustomerWallet> = withContext(Dispatchers.IO) {
         runCatching {
@@ -47,7 +47,7 @@ class CustomerWalletRepositoryImpl(
             .map { row -> row?.let { toDomain(it) } }
 
     override fun getTransactions(walletId: String): Flow<List<WalletTransaction>> =
-        db.customerWalletsQueries.getTransactionsByWallet(walletId)
+        db.customer_walletsQueries.getTransactionsByWallet(walletId)
             .asFlow()
             .mapToList(Dispatchers.IO)
             .map { rows -> rows.map(::toTransactionDomain) }

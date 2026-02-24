@@ -31,7 +31,7 @@ class CouponRepositoryImpl(
 ) : CouponRepository {
 
     private val cq get() = db.couponsQueries
-    private val pq get() = db.promotionsQueries
+    private val pq get() = db.couponsQueries
 
     override fun getAll(): Flow<List<Coupon>> =
         cq.getAllCoupons().asFlow().mapToList(Dispatchers.IO).map { rows -> rows.map(::toCouponDomain) }

@@ -71,6 +71,7 @@ class ApplyOrderDiscountUseCase(
                     )
                 }
             }
+            DiscountType.BOGO -> { /* BOGO promotions are resolved at line-item level; no order-level cap needed */ }
         }
 
         return calculateOrderTotalsUseCase(items, discount, discountType)

@@ -26,8 +26,8 @@ class WarehouseRepositoryImpl(
 ) : WarehouseRepository {
 
     private val wq get() = db.warehousesQueries
-    private val tq get() = db.stockTransfersQueries
-    private val sq get() = db.stockAdjustmentsQueries
+    private val tq get() = db.stock_transfersQueries
+    private val sq get() = db.stockQueries
     private val pq get() = db.productsQueries
 
     override fun getByStore(storeId: String): Flow<List<Warehouse>> =

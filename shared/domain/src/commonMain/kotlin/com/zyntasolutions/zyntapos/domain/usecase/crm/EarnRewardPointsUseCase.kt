@@ -34,6 +34,7 @@ class EarnRewardPointsUseCase(
         val currentBalance = when (currentBalanceResult) {
             is Result.Success -> currentBalanceResult.data
             is Result.Error -> return currentBalanceResult
+            is Result.Loading -> return Result.Loading
         }
 
         val newBalance = currentBalance + earned
@@ -50,6 +51,7 @@ class EarnRewardPointsUseCase(
         return when (val result = loyaltyRepo.recordPoints(entry)) {
             is Result.Success -> Result.Success(newBalance)
             is Result.Error -> result
+            is Result.Loading -> Result.Loading
         }
     }
 

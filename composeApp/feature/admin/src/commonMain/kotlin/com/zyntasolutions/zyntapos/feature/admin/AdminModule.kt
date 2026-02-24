@@ -4,6 +4,7 @@ import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.feature.admin.notification.NotificationViewModel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 /**

@@ -45,7 +45,7 @@ fun WarehouseDetailScreen(
     val form = state.warehouseForm
 
     LaunchedEffect(warehouseId) {
-        viewModel.handleIntent(WarehouseIntent.SelectWarehouse(warehouseId))
+        viewModel.dispatch(WarehouseIntent.SelectWarehouse(warehouseId))
     }
 
     LaunchedEffect(Unit) {
@@ -78,7 +78,7 @@ fun WarehouseDetailScreen(
         ) {
             OutlinedTextField(
                 value = form.name,
-                onValueChange = { viewModel.handleIntent(WarehouseIntent.UpdateWarehouseField("name", it)) },
+                onValueChange = { viewModel.dispatch(WarehouseIntent.UpdateWarehouseField("name", it)) },
                 label = { Text("Warehouse Name *") },
                 isError = form.validationErrors.containsKey("name"),
                 supportingText = form.validationErrors["name"]?.let { { Text(it) } },
@@ -88,7 +88,7 @@ fun WarehouseDetailScreen(
 
             OutlinedTextField(
                 value = form.address,
-                onValueChange = { viewModel.handleIntent(WarehouseIntent.UpdateWarehouseField("address", it)) },
+                onValueChange = { viewModel.dispatch(WarehouseIntent.UpdateWarehouseField("address", it)) },
                 label = { Text("Address") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
@@ -109,7 +109,7 @@ fun WarehouseDetailScreen(
                 }
                 Switch(
                     checked = form.isDefault,
-                    onCheckedChange = { viewModel.handleIntent(WarehouseIntent.UpdateIsDefault(it)) },
+                    onCheckedChange = { viewModel.dispatch(WarehouseIntent.UpdateIsDefault(it)) },
                 )
             }
 
@@ -117,7 +117,7 @@ fun WarehouseDetailScreen(
 
             ZyntaButton(
                 text = if (form.isEditing) "Update Warehouse" else "Create Warehouse",
-                onClick = { viewModel.handleIntent(WarehouseIntent.SaveWarehouse) },
+                onClick = { viewModel.dispatch(WarehouseIntent.SaveWarehouse) },
                 modifier = Modifier.fillMaxWidth(),
                 isLoading = state.isLoading,
             )

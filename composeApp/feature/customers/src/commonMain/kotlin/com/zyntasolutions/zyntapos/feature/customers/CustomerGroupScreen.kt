@@ -150,7 +150,7 @@ private fun GroupListItem(
         Column(modifier = Modifier.weight(1f)) {
             Text(group.name, style = MaterialTheme.typography.bodyMedium)
             if (!group.description.isNullOrBlank()) {
-                Text(group.description, style = MaterialTheme.typography.bodySmall,
+                Text(group.description!!, style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
@@ -183,9 +183,7 @@ private fun GroupDetailSheet(
             value = form.name,
             onValueChange = { onIntent(CustomerIntent.UpdateGroupField("name", it)) },
             label = "Group Name *",
-            isError = "name" in form.validationErrors,
-            errorMessage = form.validationErrors["name"],
-            modifier = Modifier.fillMaxWidth(),
+            error = form.validationErrors["name"],            modifier = Modifier.fillMaxWidth(),
         )
 
         ZyntaTextField(

@@ -46,7 +46,7 @@ fun CouponListScreen(
     val state by viewModel.state.collectAsState()
 
     LaunchedEffect(Unit) {
-        viewModel.handleIntent(CouponIntent.LoadCoupons)
+        viewModel.dispatch(CouponIntent.LoadCoupons)
     }
 
     Scaffold(
@@ -71,12 +71,12 @@ fun CouponListScreen(
             ) {
                 FilterChip(
                     selected = !state.showActiveOnly,
-                    onClick = { viewModel.handleIntent(CouponIntent.ToggleActiveFilter(false)) },
+                    onClick = { viewModel.dispatch(CouponIntent.ToggleActiveFilter(false)) },
                     label = { Text("All") },
                 )
                 FilterChip(
                     selected = state.showActiveOnly,
-                    onClick = { viewModel.handleIntent(CouponIntent.ToggleActiveFilter(true)) },
+                    onClick = { viewModel.dispatch(CouponIntent.ToggleActiveFilter(true)) },
                     label = { Text("Active") },
                 )
             }
@@ -96,7 +96,7 @@ fun CouponListScreen(
                             coupon = coupon,
                             onEdit = { onNavigateToDetail(coupon.id) },
                             onToggleActive = { isActive ->
-                                viewModel.handleIntent(CouponIntent.ToggleCouponActive(coupon.id, isActive))
+                                viewModel.dispatch(CouponIntent.ToggleCouponActive(coupon.id, isActive))
                             },
                         )
                     }

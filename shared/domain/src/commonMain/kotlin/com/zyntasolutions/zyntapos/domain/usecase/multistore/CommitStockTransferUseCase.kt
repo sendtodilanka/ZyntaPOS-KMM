@@ -24,6 +24,7 @@ class CommitStockTransferUseCase(
         val transfer = when (val r = warehouseRepo.getTransferById(transferId)) {
             is Result.Success -> r.data
             is Result.Error -> return r
+            is Result.Loading -> return Result.Loading
         }
         if (transfer.status != StockTransfer.Status.PENDING) {
             return Result.Error(ValidationException("Transfer is already ${transfer.status}"))

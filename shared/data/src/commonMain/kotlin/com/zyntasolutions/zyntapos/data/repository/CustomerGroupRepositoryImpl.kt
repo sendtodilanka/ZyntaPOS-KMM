@@ -22,7 +22,7 @@ class CustomerGroupRepositoryImpl(
     private val syncEnqueuer: SyncEnqueuer,
 ) : CustomerGroupRepository {
 
-    private val q get() = db.customerGroupsQueries
+    private val q get() = db.customer_groupsQueries
 
     override fun getAll(): Flow<List<CustomerGroup>> =
         q.getAllCustomerGroups()

@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.domain.usecase.fakes
 
+import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.Notification
 import com.zyntasolutions.zyntapos.domain.repository.NotificationRepository
@@ -53,18 +54,18 @@ class FakeNotificationRepository(
         _store.map { list -> list.filter { it.recipientId == recipientId } }
 
     override suspend fun getUnreadCount(recipientId: String): Result<Int> {
-        if (shouldFail) return Result.Error(Exception("DB error"))
+        if (shouldFail) return Result.Error(DatabaseException("DB error"))
         return Result.Success(_store.value.count { it.recipientId == recipientId && !it.isRead })
     }
 
     override suspend fun insert(notification: Notification): Result<Unit> {
-        if (shouldFail) return Result.Error(Exception("DB error"))
+        if (shouldFail) return Result.Error(DatabaseException("DB error"))
         _store.value = _store.value + notification
         return Result.Success(Unit)
     }
 
     override suspend fun markRead(id: String): Result<Unit> {
-        if (shouldFail) return Result.Error(Exception("DB error"))
+        if (shouldFail) return Result.Error(DatabaseException("DB error"))
         _store.value = _store.value.map { n ->
             if (n.id == id) n.copy(isRead = true, readAt = System.currentTimeMillis()) else n
         }
@@ -72,7 +73,7 @@ class FakeNotificationRepository(
     }
 
     override suspend fun markAllRead(recipientId: String): Result<Unit> {
-        if (shouldFail) return Result.Error(Exception("DB error"))
+        if (shouldFail) return Result.Error(DatabaseException("DB error"))
         _store.value = _store.value.map { n ->
             if (n.recipientId == recipientId && !n.isRead) {
                 n.copy(isRead = true, readAt = System.currentTimeMillis())
@@ -82,7 +83,7 @@ class FakeNotificationRepository(
     }
 
     override suspend fun pruneOld(beforeEpochMillis: Long): Result<Unit> {
-        if (shouldFail) return Result.Error(Exception("DB error"))
+        if (shouldFail) return Result.Error(DatabaseException("DB error"))
         _store.value = _store.value.filter { n ->
             !(n.isRead && n.readAt != null && n.readAt < beforeEpochMillis)
         }
