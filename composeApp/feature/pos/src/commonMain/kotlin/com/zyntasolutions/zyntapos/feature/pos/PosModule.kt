@@ -2,6 +2,9 @@ package com.zyntasolutions.zyntapos.feature.pos
 
 import com.zyntasolutions.zyntapos.domain.formatter.ReceiptFormatter
 import com.zyntasolutions.zyntapos.domain.printer.ReceiptPrinterPort
+import com.zyntasolutions.zyntapos.domain.usecase.coupons.CalculateCouponDiscountUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.coupons.ValidateCouponUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.crm.EarnRewardPointsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.AddItemToCartUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.ApplyItemDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.ApplyOrderDiscountUseCase
@@ -23,13 +26,20 @@ import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
 /**
- * Koin DI module for the `:composeApp:feature:pos` feature (Sprint 14–17).
+ * Koin DI module for the `:composeApp:feature:pos` feature (Sprint 14–17, extended Sprint 22).
  *
  * Provides:
  * - All POS use cases (stateless — factory scope)
  * - [PrinterManagerReceiptAdapter] bound as [ReceiptPrinterPort] (single — one printer pipeline)
  * - [ReceiptFormatter] (factory — stateless, safe to share or re-create)
  * - [PosViewModel] (viewModel scope — one instance per screen)
+ *
+ * ### Sprint 22 additions
+ * - [ValidateCouponUseCase] — validates coupon codes at checkout
+ * - [CalculateCouponDiscountUseCase] — computes the monetary coupon discount
+ * - [EarnRewardPointsUseCase] — awards loyalty points after successful payment
+ * - [CustomerWalletRepository] + [LoyaltyRepository] injected into [PosViewModel]
+ *   for wallet balance display and post-payment wallet debit
  *
  * ### Session context
  * [PosViewModel] requires [cashierId], [storeId], and [registerSessionId].
@@ -112,6 +122,17 @@ val posModule = module {
         )
     }
 
+    // ── Sprint 22: coupon + loyalty use cases ─────────────────────────────────
+
+    /** Validates coupon codes against the CouponRepository. */
+    factory { ValidateCouponUseCase(couponRepo = get()) }
+
+    /** Pure function — computes the monetary coupon discount. No repository dep. */
+    factory { CalculateCouponDiscountUseCase() }
+
+    /** Awards loyalty points to a customer after a successful sale. */
+    factory { EarnRewardPointsUseCase(loyaltyRepo = get()) }
+
     // ── ViewModel ─────────────────────────────────────────────────────────────
 
     viewModel {
@@ -133,6 +154,11 @@ val posModule = module {
             processPaymentUseCase = get(),
             printReceiptUseCase = get(),
             receiptFormatter = get(),
+            walletRepository = get(),
+            loyaltyRepository = get(),
+            validateCouponUseCase = get(),
+            calculateCouponDiscountUseCase = get(),
+            earnRewardPointsUseCase = get(),
             cashierId = session?.id ?: "unknown",
             storeId = session?.storeId ?: "default-store",
             registerSessionId = "ses-01",

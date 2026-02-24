@@ -1,0 +1,45 @@
+-- ============================================================
+-- customer_groups.sq — Customer group / price-tier definitions
+-- ============================================================
+-- Groups assign a shared pricing rule (discount or price-tier) to
+-- a set of customers. Used at POS to apply automatic group pricing.
+-- ============================================================
+
+CREATE TABLE customer_groups (
+    id             TEXT    NOT NULL PRIMARY KEY,
+    name           TEXT    NOT NULL,
+    description    TEXT,
+    discount_type  TEXT,                           -- 'FLAT' | 'PERCENTAGE' | NULL
+    discount_value REAL    NOT NULL DEFAULT 0.0,
+    price_type     TEXT    NOT NULL DEFAULT 'RETAIL', -- 'RETAIL' | 'WHOLESALE' | 'CUSTOM'
+    created_at     INTEGER NOT NULL,
+    updated_at     INTEGER NOT NULL,
+    deleted_at     INTEGER,
+    sync_status    TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE INDEX idx_customer_groups_name ON customer_groups(name);
+
+-- ── Read queries ─────────────────────────────────────────────────────────────
+
+getAllCustomerGroups:
+SELECT * FROM customer_groups WHERE deleted_at IS NULL ORDER BY name ASC;
+
+getCustomerGroupById:
+SELECT * FROM customer_groups WHERE id = ?;
+
+-- ── Write queries ────────────────────────────────────────────────────────────
+
+insertCustomerGroup:
+INSERT INTO customer_groups(id, name, description, discount_type, discount_value, price_type, created_at, updated_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateCustomerGroup:
+UPDATE customer_groups SET
+    name = ?, description = ?, discount_type = ?, discount_value = ?,
+    price_type = ?, updated_at = ?, sync_status = ?
+WHERE id = ?;
+
+softDeleteCustomerGroup:
+UPDATE customer_groups SET deleted_at = ?, updated_at = ?, sync_status = 'PENDING'
+WHERE id = ?;

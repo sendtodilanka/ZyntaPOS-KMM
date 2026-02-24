@@ -1,0 +1,68 @@
+-- ============================================================
+-- customer_wallets.sq — Customer wallet balance + ledger
+-- ============================================================
+-- Each customer has exactly one wallet (1:1). The balance is the
+-- authoritative source of truth — never derived from transactions.
+-- All balance mutations are atomic (balance update + transaction insert
+-- in a single SQLDelight transaction).
+-- ============================================================
+
+CREATE TABLE customer_wallets (
+    id          TEXT    NOT NULL PRIMARY KEY,
+    customer_id TEXT    NOT NULL REFERENCES customers(id),
+    balance     REAL    NOT NULL DEFAULT 0.0,
+    created_at  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL,
+    sync_status TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE UNIQUE INDEX idx_wallets_customer ON customer_wallets(customer_id);
+
+CREATE TABLE wallet_transactions (
+    id              TEXT    NOT NULL PRIMARY KEY,
+    wallet_id       TEXT    NOT NULL REFERENCES customer_wallets(id),
+    type            TEXT    NOT NULL,   -- 'CREDIT' | 'DEBIT' | 'REFUND'
+    amount          REAL    NOT NULL,
+    balance_after   REAL    NOT NULL,
+    reference_type  TEXT,               -- 'ORDER' | 'MANUAL' | 'REFUND' | null
+    reference_id    TEXT,
+    note            TEXT,
+    created_at      INTEGER NOT NULL,
+    sync_status     TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE INDEX idx_wallet_txn_wallet   ON wallet_transactions(wallet_id, created_at DESC);
+CREATE INDEX idx_wallet_txn_ref      ON wallet_transactions(reference_type, reference_id);
+
+-- ── Wallet read queries ──────────────────────────────────────────────────────
+
+getWalletByCustomer:
+SELECT * FROM customer_wallets WHERE customer_id = ?;
+
+getWalletById:
+SELECT * FROM customer_wallets WHERE id = ?;
+
+-- ── Wallet write queries ─────────────────────────────────────────────────────
+
+insertWallet:
+INSERT INTO customer_wallets(id, customer_id, balance, created_at, updated_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?);
+
+-- Atomic balance update — always called inside a transaction alongside insertWalletTransaction
+updateWalletBalance:
+UPDATE customer_wallets SET balance = ?, updated_at = ?, sync_status = 'PENDING'
+WHERE id = ?;
+
+-- ── Wallet transaction read queries ─────────────────────────────────────────
+
+getTransactionsByWallet:
+SELECT * FROM wallet_transactions WHERE wallet_id = ? ORDER BY created_at DESC;
+
+getTransactionById:
+SELECT * FROM wallet_transactions WHERE id = ?;
+
+-- ── Wallet transaction write queries ─────────────────────────────────────────
+
+insertWalletTransaction:
+INSERT INTO wallet_transactions(id, wallet_id, type, amount, balance_after, reference_type, reference_id, note, created_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);

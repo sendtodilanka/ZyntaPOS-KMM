@@ -1,0 +1,143 @@
+-- ============================================================
+-- coupons.sq — Coupon engine: coupons, usage, promotions
+-- ============================================================
+
+CREATE TABLE coupons (
+    id                TEXT    NOT NULL PRIMARY KEY,
+    code              TEXT    NOT NULL UNIQUE,
+    name              TEXT    NOT NULL,
+    discount_type     TEXT    NOT NULL,             -- 'FLAT' | 'PERCENTAGE' | 'BOGO'
+    discount_value    REAL    NOT NULL DEFAULT 0.0,
+    minimum_purchase  REAL    NOT NULL DEFAULT 0.0,
+    maximum_discount  REAL,                         -- cap for PERCENTAGE coupons, null = no cap
+    usage_limit       INTEGER,                      -- null = unlimited
+    usage_count       INTEGER NOT NULL DEFAULT 0,
+    per_customer_limit INTEGER,                     -- null = unlimited per customer
+    scope             TEXT    NOT NULL DEFAULT 'CART', -- 'CART' | 'PRODUCT' | 'CATEGORY' | 'CUSTOMER'
+    scope_ids         TEXT    NOT NULL DEFAULT '[]', -- JSON array of applicable IDs
+    valid_from        INTEGER NOT NULL,
+    valid_to          INTEGER NOT NULL,
+    is_active         INTEGER NOT NULL DEFAULT 1,
+    created_at        INTEGER NOT NULL,
+    updated_at        INTEGER NOT NULL,
+    sync_status       TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE UNIQUE INDEX idx_coupons_code   ON coupons(code);
+CREATE INDEX       idx_coupons_active  ON coupons(is_active, valid_from, valid_to);
+
+CREATE TABLE coupon_usage (
+    id              TEXT    NOT NULL PRIMARY KEY,
+    coupon_id       TEXT    NOT NULL REFERENCES coupons(id),
+    order_id        TEXT    NOT NULL,
+    customer_id     TEXT,
+    discount_amount REAL    NOT NULL DEFAULT 0.0,
+    used_at         INTEGER NOT NULL,
+    sync_status     TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE INDEX idx_coupon_usage_coupon   ON coupon_usage(coupon_id);
+CREATE INDEX idx_coupon_usage_customer ON coupon_usage(customer_id);
+CREATE INDEX idx_coupon_usage_order    ON coupon_usage(order_id);
+
+CREATE TABLE promotions (
+    id         TEXT    NOT NULL PRIMARY KEY,
+    name       TEXT    NOT NULL,
+    type       TEXT    NOT NULL,              -- 'BUY_X_GET_Y' | 'BUNDLE' | 'FLASH_SALE' | 'SCHEDULED'
+    config     TEXT    NOT NULL DEFAULT '{}', -- JSON config object (type-specific)
+    valid_from INTEGER NOT NULL,
+    valid_to   INTEGER NOT NULL,
+    priority   INTEGER NOT NULL DEFAULT 0,
+    is_active  INTEGER NOT NULL DEFAULT 1,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    sync_status TEXT   NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE INDEX idx_promotions_active ON promotions(is_active, valid_from, valid_to, priority DESC);
+
+CREATE TABLE customer_coupons (
+    id          TEXT    NOT NULL PRIMARY KEY,
+    customer_id TEXT    NOT NULL REFERENCES customers(id),
+    coupon_id   TEXT    NOT NULL REFERENCES coupons(id),
+    assigned_at INTEGER NOT NULL,
+    expires_at  INTEGER,
+    is_used     INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE UNIQUE INDEX idx_customer_coupons_pair ON customer_coupons(customer_id, coupon_id);
+CREATE INDEX        idx_customer_coupons_cust ON customer_coupons(customer_id, is_used);
+
+-- ── Coupon read queries ───────────────────────────────────────────────────────
+
+getAllCoupons:
+SELECT * FROM coupons ORDER BY created_at DESC;
+
+getActiveCoupons:
+SELECT * FROM coupons WHERE is_active = 1 AND valid_from <= ? AND valid_to >= ? ORDER BY name ASC;
+
+getCouponByCode:
+SELECT * FROM coupons WHERE code = ? LIMIT 1;
+
+getCouponById:
+SELECT * FROM coupons WHERE id = ?;
+
+-- Count how many times a specific customer used a coupon
+countCustomerUsage:
+SELECT COUNT(*) FROM coupon_usage WHERE coupon_id = ? AND customer_id = ?;
+
+-- ── Coupon write queries ──────────────────────────────────────────────────────
+
+insertCoupon:
+INSERT INTO coupons(id, code, name, discount_type, discount_value, minimum_purchase, maximum_discount, usage_limit, usage_count, per_customer_limit, scope, scope_ids, valid_from, valid_to, is_active, created_at, updated_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateCoupon:
+UPDATE coupons SET
+    code = ?, name = ?, discount_type = ?, discount_value = ?, minimum_purchase = ?,
+    maximum_discount = ?, usage_limit = ?, per_customer_limit = ?, scope = ?, scope_ids = ?,
+    valid_from = ?, valid_to = ?, is_active = ?, updated_at = ?, sync_status = ?
+WHERE id = ?;
+
+-- Atomic usage increment — called within a transaction alongside insertCouponUsage
+incrementCouponUsage:
+UPDATE coupons SET usage_count = usage_count + 1, updated_at = ? WHERE id = ?;
+
+toggleCouponActive:
+UPDATE coupons SET is_active = ?, updated_at = ?, sync_status = 'PENDING' WHERE id = ?;
+
+deleteCoupon:
+DELETE FROM coupons WHERE id = ?;
+
+insertCouponUsage:
+INSERT INTO coupon_usage(id, coupon_id, order_id, customer_id, discount_amount, used_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+getUsageByCoupon:
+SELECT * FROM coupon_usage WHERE coupon_id = ? ORDER BY used_at DESC;
+
+-- ── Promotion read queries ────────────────────────────────────────────────────
+
+getAllPromotions:
+SELECT * FROM promotions ORDER BY priority DESC, created_at DESC;
+
+getActivePromotions:
+SELECT * FROM promotions WHERE is_active = 1 AND valid_from <= ? AND valid_to >= ? ORDER BY priority DESC;
+
+getPromotionById:
+SELECT * FROM promotions WHERE id = ?;
+
+-- ── Promotion write queries ───────────────────────────────────────────────────
+
+insertPromotion:
+INSERT INTO promotions(id, name, type, config, valid_from, valid_to, priority, is_active, created_at, updated_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updatePromotion:
+UPDATE promotions SET
+    name = ?, type = ?, config = ?, valid_from = ?, valid_to = ?,
+    priority = ?, is_active = ?, updated_at = ?, sync_status = ?
+WHERE id = ?;
+
+deletePromotion:
+DELETE FROM promotions WHERE id = ?;

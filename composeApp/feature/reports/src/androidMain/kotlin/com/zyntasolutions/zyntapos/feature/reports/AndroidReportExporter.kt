@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.core.content.FileProvider
+import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateCustomerReportUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateExpenseReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateSalesReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateStockReportUseCase
 import java.io.File
@@ -91,6 +93,47 @@ class AndroidReportExporter(private val context: Context) : ReportExporter {
             val file = File(context.cacheDir, "stock_report_$dateStamp.pdf")
             file.writeText(html)
             shareFile(file, "application/pdf")
+            file.absolutePath
+        }
+
+    override suspend fun exportCustomerCsv(report: GenerateCustomerReportUseCase.CustomerReport): String =
+        withContext(Dispatchers.IO) {
+            val file = File(context.cacheDir, "customer_report_$dateStamp.csv")
+            FileWriter(file).use { writer ->
+                writer.appendLine("Customer Report")
+                writer.appendLine("Total Customers,${report.totalCustomers}")
+                writer.appendLine("Registered,${report.registeredCustomers}")
+                writer.appendLine("Walk-In,${report.walkInCustomers}")
+                writer.appendLine("Credit Enabled,${report.creditEnabledCustomers}")
+                writer.appendLine("Total Loyalty Points,${report.totalLoyaltyPoints}")
+                writer.appendLine()
+                writer.appendLine("Top Customers by Loyalty Points")
+                writer.appendLine("Name,Phone,Loyalty Points,Group")
+                report.topByLoyaltyPoints.forEach { c ->
+                    writer.appendLine("${c.name},${c.phone},${c.loyaltyPoints},${c.groupId ?: ""}")
+                }
+            }
+            shareFile(file, "text/csv")
+            file.absolutePath
+        }
+
+    override suspend fun exportExpenseCsv(report: GenerateExpenseReportUseCase.ExpenseReport): String =
+        withContext(Dispatchers.IO) {
+            val file = File(context.cacheDir, "expense_report_$dateStamp.csv")
+            FileWriter(file).use { writer ->
+                writer.appendLine("Expense Report — ${report.from} to ${report.to}")
+                writer.appendLine("Status,Total Amount,Count")
+                writer.appendLine("Approved,${report.totalApproved},${report.approvedCount}")
+                writer.appendLine("Pending,${report.totalPending},${report.pendingCount}")
+                writer.appendLine("Rejected,${report.totalRejected},${report.rejectedCount}")
+                writer.appendLine()
+                writer.appendLine("Category Breakdown (Approved)")
+                writer.appendLine("Category ID,Total")
+                report.byCategory.forEach { (categoryId, total) ->
+                    writer.appendLine("${categoryId ?: "Uncategorised"},$total")
+                }
+            }
+            shareFile(file, "text/csv")
             file.absolutePath
         }
 

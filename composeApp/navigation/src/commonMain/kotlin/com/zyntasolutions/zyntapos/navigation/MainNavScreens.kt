@@ -121,4 +121,77 @@ data class MainNavScreens(
         orderId: String,
         onNavigateUp: () -> Unit,
     ) -> Unit,
+
+    // ── CRM sub-graph ─────────────────────────────────────────────────────────
+    val customerList: @Composable (
+        onNavigateToDetail: (customerId: String?) -> Unit,
+        onNavigateToGroups: () -> Unit,
+    ) -> Unit,
+
+    val customerDetail: @Composable (
+        customerId: String?,
+        onNavigateUp: () -> Unit,
+        onNavigateToWallet: (customerId: String) -> Unit,
+    ) -> Unit,
+
+    val customerGroupList: @Composable (
+        onNavigateUp: () -> Unit,
+    ) -> Unit,
+
+    val customerWallet: @Composable (
+        customerId: String,
+        onNavigateUp: () -> Unit,
+    ) -> Unit,
+
+    // ── Coupons sub-graph ─────────────────────────────────────────────────────
+    val couponList: @Composable (
+        onNavigateToDetail: (couponId: String?) -> Unit,
+    ) -> Unit,
+
+    val couponDetail: @Composable (
+        couponId: String?,
+        onNavigateUp: () -> Unit,
+    ) -> Unit,
+
+    // ── Expenses sub-graph ────────────────────────────────────────────────────
+    val expenseList: @Composable (
+        onNavigateToDetail: (expenseId: String?) -> Unit,
+        onNavigateToCategories: () -> Unit,
+    ) -> Unit,
+
+    val expenseDetail: @Composable (
+        expenseId: String?,
+        onNavigateUp: () -> Unit,
+    ) -> Unit,
+
+    val expenseCategoryList: @Composable (
+        onNavigateUp: () -> Unit,
+    ) -> Unit,
+
+    // ── Multi-store sub-graph ─────────────────────────────────────────────────
+    val warehouseList: @Composable (
+        onNavigateToDetail: (warehouseId: String?) -> Unit,
+        onNavigateToTransfers: () -> Unit,
+    ) -> Unit,
+
+    val warehouseDetail: @Composable (
+        warehouseId: String?,
+        onNavigateUp: () -> Unit,
+    ) -> Unit,
+
+    val stockTransferList: @Composable (
+        onNavigateToNewTransfer: (sourceWarehouseId: String?) -> Unit,
+        onNavigateUp: () -> Unit,
+    ) -> Unit,
+
+    val newStockTransfer: @Composable (
+        sourceWarehouseId: String?,
+        onComplete: () -> Unit,
+        onCancel: () -> Unit,
+    ) -> Unit,
+
+    // ── Notifications ─────────────────────────────────────────────────────────
+    val notificationInbox: @Composable (
+        onNavigateUp: () -> Unit,
+    ) -> Unit,
 )

@@ -9,4 +9,6 @@ sealed interface ReportsEffect {
     data object PrintJobSent : ReportsEffect
     data class NavigateToSalesReport(val range: DateRange) : ReportsEffect
     data object NavigateToStockReport : ReportsEffect
+    data object NavigateToCustomerReport : ReportsEffect
+    data object NavigateToExpenseReport : ReportsEffect
 }

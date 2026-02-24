@@ -1,12 +1,14 @@
 package com.zyntasolutions.zyntapos.feature.reports
 
+import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateCustomerReportUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateExpenseReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateSalesReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateStockReportUseCase
 
 /**
  * Platform-specific report exporter interface.
  *
- * Provides CSV and PDF export for both Sales and Stock reports.
+ * Provides CSV and PDF export for Sales, Stock, Customer, and Expense reports.
  *
  * ### Platform implementations
  * - **JVM (Desktop):** CSV written via [java.io.FileWriter]; PDF via Apache PDFBox.
@@ -41,4 +43,16 @@ interface ReportExporter {
      * @return Absolute path of the written file.
      */
     suspend fun exportStockPdf(report: GenerateStockReportUseCase.StockReport): String
+
+    /**
+     * Export the customer report as a CSV file.
+     * @return Absolute path of the written file.
+     */
+    suspend fun exportCustomerCsv(report: GenerateCustomerReportUseCase.CustomerReport): String
+
+    /**
+     * Export the expense report as a CSV file.
+     * @return Absolute path of the written file.
+     */
+    suspend fun exportExpenseCsv(report: GenerateExpenseReportUseCase.ExpenseReport): String
 }

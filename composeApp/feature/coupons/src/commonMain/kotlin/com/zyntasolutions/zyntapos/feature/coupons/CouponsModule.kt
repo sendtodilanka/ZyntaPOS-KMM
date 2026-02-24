@@ -1,15 +1,29 @@
 package com.zyntasolutions.zyntapos.feature.coupons
 
+import com.zyntasolutions.zyntapos.domain.usecase.coupons.CalculateCouponDiscountUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.coupons.SaveCouponUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.coupons.ValidateCouponUseCase
+import org.koin.core.module.dsl.factoryOf
+import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
 /**
- * Koin DI module for the :composeApp:feature:coupons feature.
+ * Koin DI module for `:composeApp:feature:coupons`.
  *
- * Register ViewModels, UseCases, and feature-scoped dependencies here.
- * This module is included in the application-level Koin graph.
+ * ### Use Cases (factory — new instance per injection)
+ * - [SaveCouponUseCase]               — validates and persists coupons
+ * - [ValidateCouponUseCase]           — checks coupon applicability at POS
+ * - [CalculateCouponDiscountUseCase]  — pure discount calculator
+ *
+ * ### Repository Dependencies (resolved from `:shared:data` DI graph)
+ * - `CouponRepository` — coupon + promotion CRUD and redemption ledger
  */
 val couponsModule = module {
-    // TODO: register ViewModels and feature-scoped dependencies
-    // Example:
-    // viewModelOf(::CouponsViewModel)
+    // ── Use Cases ─────────────────────────────────────────────────────────────
+    factoryOf(::SaveCouponUseCase)
+    factoryOf(::ValidateCouponUseCase)
+    factory { CalculateCouponDiscountUseCase() }
+
+    // ── ViewModel ─────────────────────────────────────────────────────────────
+    viewModelOf(::CouponViewModel)
 }

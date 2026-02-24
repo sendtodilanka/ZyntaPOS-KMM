@@ -1,0 +1,45 @@
+-- ============================================================
+-- warehouses.sq — Warehouse / store locations
+-- ============================================================
+
+CREATE TABLE warehouses (
+    id         TEXT    NOT NULL PRIMARY KEY,
+    store_id   TEXT    NOT NULL,
+    name       TEXT    NOT NULL,
+    manager_id TEXT,
+    is_active  INTEGER NOT NULL DEFAULT 1,
+    is_default INTEGER NOT NULL DEFAULT 0,
+    address    TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    sync_status TEXT   NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE INDEX idx_warehouses_store ON warehouses(store_id, is_active);
+
+-- ── Read queries ─────────────────────────────────────────────────────────────
+
+getWarehousesByStore:
+SELECT * FROM warehouses WHERE store_id = ? AND is_active = 1 ORDER BY is_default DESC, name ASC;
+
+getWarehouseById:
+SELECT * FROM warehouses WHERE id = ?;
+
+getDefaultWarehouseForStore:
+SELECT * FROM warehouses WHERE store_id = ? AND is_default = 1 AND is_active = 1 LIMIT 1;
+
+-- ── Write queries ────────────────────────────────────────────────────────────
+
+insertWarehouse:
+INSERT INTO warehouses(id, store_id, name, manager_id, is_active, is_default, address, created_at, updated_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateWarehouse:
+UPDATE warehouses SET
+    name = ?, manager_id = ?, is_active = ?, is_default = ?,
+    address = ?, updated_at = ?, sync_status = ?
+WHERE id = ?;
+
+clearDefaultForStore:
+UPDATE warehouses SET is_default = 0, updated_at = ?
+WHERE store_id = ? AND is_default = 1;

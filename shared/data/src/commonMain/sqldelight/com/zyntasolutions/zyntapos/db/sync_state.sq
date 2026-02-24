@@ -1,0 +1,28 @@
+-- ============================================================
+-- sync_state.sq — Per-entity-type sync cursor for incremental sync
+-- ============================================================
+
+CREATE TABLE sync_state (
+    entity_type  TEXT    NOT NULL PRIMARY KEY,  -- e.g. 'customers', 'products', 'orders'
+    last_sync_at INTEGER NOT NULL DEFAULT 0,    -- epoch millis of last successful full sync
+    cursor       TEXT,                          -- opaque server cursor for incremental pull
+    updated_at   INTEGER NOT NULL
+);
+
+-- ── Read queries ─────────────────────────────────────────────────────────────
+
+getSyncState:
+SELECT * FROM sync_state WHERE entity_type = ?;
+
+getAllSyncStates:
+SELECT * FROM sync_state ORDER BY entity_type ASC;
+
+-- ── Write queries ────────────────────────────────────────────────────────────
+
+upsertSyncState:
+INSERT INTO sync_state(entity_type, last_sync_at, cursor, updated_at)
+VALUES (?, ?, ?, ?)
+ON CONFLICT(entity_type) DO UPDATE SET
+    last_sync_at = excluded.last_sync_at,
+    cursor       = excluded.cursor,
+    updated_at   = excluded.updated_at;

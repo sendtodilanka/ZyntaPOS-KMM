@@ -78,7 +78,11 @@ class CustomerRepositoryImpl(
                     id = p.id, name = p.name, phone = p.phone, email = p.email,
                     address = p.address, group_id = p.groupId,
                     loyalty_points = p.loyaltyPoints, notes = p.notes,
-                    is_active = p.isActive, created_at = now, updated_at = now,
+                    is_active = p.isActive,
+                    credit_limit = p.creditLimit, credit_enabled = p.creditEnabled,
+                    gender = p.gender, birthday = p.birthday,
+                    is_walk_in = p.isWalkIn, store_id = p.storeId,
+                    created_at = now, updated_at = now,
                     sync_status = p.syncStatus,
                 )
                 syncEnqueuer.enqueue(SyncOperation.EntityType.CUSTOMER, p.id, SyncOperation.Operation.INSERT)
@@ -96,9 +100,13 @@ class CustomerRepositoryImpl(
             db.transaction {
                 q.updateCustomer(
                     name = p.name, phone = p.phone, email = p.email,
-                    address = p.address, group_id = p.groupId, notes = p.notes,
-                    is_active = p.isActive, updated_at = now,
-                    sync_status = "PENDING", id = p.id,
+                    address = p.address, group_id = p.groupId,
+                    loyalty_points = p.loyaltyPoints, notes = p.notes,
+                    is_active = p.isActive,
+                    credit_limit = p.creditLimit, credit_enabled = p.creditEnabled,
+                    gender = p.gender, birthday = p.birthday,
+                    is_walk_in = p.isWalkIn, store_id = p.storeId,
+                    updated_at = now, sync_status = "PENDING", id = p.id,
                 )
                 syncEnqueuer.enqueue(SyncOperation.EntityType.CUSTOMER, p.id, SyncOperation.Operation.UPDATE)
             }
@@ -118,9 +126,13 @@ class CustomerRepositoryImpl(
             db.transaction {
                 q.updateCustomer(
                     name = row.name, phone = row.phone, email = row.email,
-                    address = row.address, group_id = row.group_id, notes = row.notes,
-                    is_active = 0L, updated_at = now,
-                    sync_status = "PENDING", id = id,
+                    address = row.address, group_id = row.group_id,
+                    loyalty_points = row.loyalty_points, notes = row.notes,
+                    is_active = 0L,
+                    credit_limit = row.credit_limit, credit_enabled = row.credit_enabled,
+                    gender = row.gender, birthday = row.birthday,
+                    is_walk_in = row.is_walk_in, store_id = row.store_id,
+                    updated_at = now, sync_status = "PENDING", id = id,
                 )
                 syncEnqueuer.enqueue(SyncOperation.EntityType.CUSTOMER, id, SyncOperation.Operation.DELETE)
             }

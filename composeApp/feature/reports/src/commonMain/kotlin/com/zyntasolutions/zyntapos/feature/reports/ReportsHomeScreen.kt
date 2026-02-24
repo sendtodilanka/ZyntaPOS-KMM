@@ -16,7 +16,9 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -38,22 +40,26 @@ import kotlinx.datetime.toLocalDateTime
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
- * Reports home screen — tile grid providing navigation to Sales and Stock reports.
+ * Reports home screen — tile grid navigating to all report screens.
  *
  * Each tile shows:
  * - Icon
  * - Title
  * - Last-generated timestamp (or "Not yet generated")
  *
- * @param onNavigateToSalesReport Called when the user taps the Sales Report tile.
- * @param onNavigateToStockReport Called when the user taps the Stock Report tile.
- * @param onNavigateUp            Back navigation handler.
+ * @param onNavigateToSalesReport    Sales Report tile tap handler.
+ * @param onNavigateToStockReport    Stock Report tile tap handler.
+ * @param onNavigateToCustomerReport Customer Report tile tap handler.
+ * @param onNavigateToExpenseReport  Expense Report tile tap handler.
+ * @param onNavigateUp               Back navigation handler.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportsHomeScreen(
     onNavigateToSalesReport: () -> Unit,
     onNavigateToStockReport: () -> Unit,
+    onNavigateToCustomerReport: () -> Unit,
+    onNavigateToExpenseReport: () -> Unit,
     onNavigateUp: () -> Unit,
     viewModel: ReportsViewModel = koinViewModel(),
 ) {
@@ -87,6 +93,22 @@ fun ReportsHomeScreen(
                     title = "Stock Report",
                     lastGeneratedAt = homeState.lastStockReportAt,
                     onClick = onNavigateToStockReport,
+                )
+            }
+            item {
+                ReportTile(
+                    icon = Icons.Default.Group,
+                    title = "Customer Report",
+                    lastGeneratedAt = homeState.lastCustomerReportAt,
+                    onClick = onNavigateToCustomerReport,
+                )
+            }
+            item {
+                ReportTile(
+                    icon = Icons.Default.Receipt,
+                    title = "Expense Report",
+                    lastGeneratedAt = homeState.lastExpenseReportAt,
+                    onClick = onNavigateToExpenseReport,
                 )
             }
         }

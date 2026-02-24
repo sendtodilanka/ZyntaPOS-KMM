@@ -1,0 +1,79 @@
+-- ============================================================
+-- reward_points.sq — Loyalty points ledger + tier definitions
+-- ============================================================
+-- The reward_points table is an append-only ledger. The customer's
+-- current points balance is the SUM of all points entries.
+-- The loyalty_tiers table defines the tier thresholds.
+-- ============================================================
+
+CREATE TABLE reward_points (
+    id             TEXT    NOT NULL PRIMARY KEY,
+    customer_id    TEXT    NOT NULL REFERENCES customers(id),
+    points         INTEGER NOT NULL,               -- positive = EARNED, negative = REDEEMED/EXPIRED
+    balance_after  INTEGER NOT NULL,
+    type           TEXT    NOT NULL,               -- 'EARNED' | 'REDEEMED' | 'EXPIRED' | 'ADJUSTED'
+    reference_type TEXT,                           -- 'ORDER' | 'MANUAL' | null
+    reference_id   TEXT,
+    note           TEXT,
+    expires_at     INTEGER,
+    created_at     INTEGER NOT NULL,
+    sync_status    TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE INDEX idx_reward_points_customer ON reward_points(customer_id, created_at DESC);
+CREATE INDEX idx_reward_points_expiry   ON reward_points(expires_at, type);
+
+CREATE TABLE loyalty_tiers (
+    id               TEXT    NOT NULL PRIMARY KEY,
+    name             TEXT    NOT NULL,
+    min_points       INTEGER NOT NULL DEFAULT 0,
+    discount_percent REAL    NOT NULL DEFAULT 0.0,
+    points_multiplier REAL   NOT NULL DEFAULT 1.0,
+    benefits         TEXT    NOT NULL DEFAULT '[]',  -- JSON array of benefit strings
+    created_at       INTEGER NOT NULL,
+    updated_at       INTEGER NOT NULL,
+    sync_status      TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE INDEX idx_loyalty_tiers_points ON loyalty_tiers(min_points ASC);
+
+-- ── Reward points read queries ────────────────────────────────────────────────
+
+getPointsByCustomer:
+SELECT * FROM reward_points WHERE customer_id = ? ORDER BY created_at DESC;
+
+getPointsBalanceForCustomer:
+SELECT COALESCE(SUM(points), 0) FROM reward_points WHERE customer_id = ?;
+
+-- ── Reward points write queries ───────────────────────────────────────────────
+
+insertRewardPoints:
+INSERT INTO reward_points(id, customer_id, points, balance_after, type, reference_type, reference_id, note, expires_at, created_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- ── Loyalty tier read queries ─────────────────────────────────────────────────
+
+getAllLoyaltyTiers:
+SELECT * FROM loyalty_tiers ORDER BY min_points ASC;
+
+getLoyaltyTierById:
+SELECT * FROM loyalty_tiers WHERE id = ?;
+
+-- Get the highest tier the customer qualifies for based on their points
+getTierForPoints:
+SELECT * FROM loyalty_tiers WHERE min_points <= ? ORDER BY min_points DESC LIMIT 1;
+
+-- ── Loyalty tier write queries ────────────────────────────────────────────────
+
+insertLoyaltyTier:
+INSERT INTO loyalty_tiers(id, name, min_points, discount_percent, points_multiplier, benefits, created_at, updated_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateLoyaltyTier:
+UPDATE loyalty_tiers SET
+    name = ?, min_points = ?, discount_percent = ?, points_multiplier = ?,
+    benefits = ?, updated_at = ?, sync_status = 'PENDING'
+WHERE id = ?;
+
+deleteLoyaltyTier:
+DELETE FROM loyalty_tiers WHERE id = ?;

@@ -7,22 +7,35 @@ import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
 import com.zyntasolutions.zyntapos.domain.formatter.ReceiptFormatter
 import com.zyntasolutions.zyntapos.domain.model.CartItem
 import com.zyntasolutions.zyntapos.domain.model.Category
+import com.zyntasolutions.zyntapos.domain.model.Coupon
+import com.zyntasolutions.zyntapos.domain.model.CouponUsage
+import com.zyntasolutions.zyntapos.domain.model.Customer
+import com.zyntasolutions.zyntapos.domain.model.CustomerWallet
 import com.zyntasolutions.zyntapos.domain.model.DiscountType
+import com.zyntasolutions.zyntapos.domain.model.LoyaltyTier
 import com.zyntasolutions.zyntapos.domain.model.Order
 import com.zyntasolutions.zyntapos.domain.model.OrderStatus
 import com.zyntasolutions.zyntapos.domain.model.OrderType
 import com.zyntasolutions.zyntapos.domain.model.PaymentMethod
 import com.zyntasolutions.zyntapos.domain.model.Product
+import com.zyntasolutions.zyntapos.domain.model.RewardPoints
 import com.zyntasolutions.zyntapos.domain.model.StockAdjustment
 import com.zyntasolutions.zyntapos.domain.model.SyncStatus
 import com.zyntasolutions.zyntapos.domain.model.User
+import com.zyntasolutions.zyntapos.domain.model.WalletTransaction
 import com.zyntasolutions.zyntapos.domain.printer.ReceiptPrinterPort
 import com.zyntasolutions.zyntapos.domain.repository.CategoryRepository
+import com.zyntasolutions.zyntapos.domain.repository.CouponRepository
+import com.zyntasolutions.zyntapos.domain.repository.CustomerWalletRepository
+import com.zyntasolutions.zyntapos.domain.repository.LoyaltyRepository
 import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
 import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
 import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.domain.repository.StockRepository
 import com.zyntasolutions.zyntapos.domain.usecase.auth.CheckPermissionUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.coupons.CalculateCouponDiscountUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.coupons.ValidateCouponUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.crm.EarnRewardPointsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.AddItemToCartUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.ApplyItemDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.ApplyOrderDiscountUseCase
@@ -50,14 +63,14 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PosViewModelTest — Sprint 17, task 9.1.27
+// PosViewModelTest — Sprint 17 + Sprint 22 extension
 // Tests key PosViewModel MVI state transitions using hand-rolled fake
 // repositories and real use case instances.
-// Mockative replaced with pure Kotlin stubs (KSP1 incompatible with Kotlin 2.3+).
 // ─────────────────────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -190,6 +203,116 @@ class PosViewModelTest {
             Result.Success(Unit)
     }
 
+    // ── Sprint 22 fakes: wallet, loyalty, coupon ───────────────────────────────
+
+    private val walletStore = mutableMapOf<String, CustomerWallet>()  // customerId -> wallet
+    private val walletDebits = mutableListOf<Triple<String, Double, String>>() // walletId, amount, orderId
+
+    private val fakeWalletRepository = object : CustomerWalletRepository {
+        override suspend fun getOrCreate(customerId: String): Result<CustomerWallet> {
+            val existing = walletStore[customerId]
+            return if (existing != null) {
+                Result.Success(existing)
+            } else {
+                val w = CustomerWallet(id = "wallet-$customerId", customerId = customerId, balance = 500.0)
+                walletStore[customerId] = w
+                Result.Success(w)
+            }
+        }
+
+        override fun observeWallet(customerId: String): Flow<CustomerWallet?> =
+            MutableStateFlow(walletStore[customerId])
+
+        override fun getTransactions(walletId: String): Flow<List<WalletTransaction>> =
+            MutableStateFlow(emptyList())
+
+        override suspend fun credit(
+            walletId: String, amount: Double,
+            referenceType: String?, referenceId: String?, note: String?,
+        ): Result<Unit> = Result.Success(Unit)
+
+        override suspend fun debit(
+            walletId: String, amount: Double,
+            referenceType: String?, referenceId: String?, note: String?,
+        ): Result<Unit> {
+            walletDebits.add(Triple(walletId, amount, referenceId ?: ""))
+            val wallet = walletStore.values.find { it.id == walletId } ?: return Result.Success(Unit)
+            walletStore[wallet.customerId] = wallet.copy(balance = wallet.balance - amount)
+            return Result.Success(Unit)
+        }
+    }
+
+    private val loyaltyStore = mutableMapOf<String, Int>()  // customerId -> points
+    private val earnedPointsLog = mutableListOf<Pair<String, Int>>()  // customerId, points
+
+    private val fakeLoyaltyRepository = object : LoyaltyRepository {
+        override fun getPointsHistory(customerId: String): Flow<List<RewardPoints>> =
+            MutableStateFlow(emptyList())
+
+        override suspend fun getBalance(customerId: String): Result<Int> =
+            Result.Success(loyaltyStore.getOrDefault(customerId, 0))
+
+        override suspend fun recordPoints(entry: RewardPoints): Result<Unit> {
+            earnedPointsLog.add(entry.customerId to entry.points)
+            loyaltyStore[entry.customerId] = entry.balanceAfter
+            return Result.Success(Unit)
+        }
+
+        override fun getAllTiers(): Flow<List<LoyaltyTier>> = MutableStateFlow(emptyList())
+
+        override suspend fun getTierForPoints(points: Int): Result<LoyaltyTier?> =
+            Result.Success(null)
+
+        override suspend fun saveTier(tier: LoyaltyTier): Result<Unit> = Result.Success(Unit)
+        override suspend fun deleteTier(id: String): Result<Unit> = Result.Success(Unit)
+    }
+
+    private val couponStore = mutableMapOf<String, Coupon>()  // code -> Coupon
+
+    private val fakeCouponRepository = object : CouponRepository {
+        override fun getAll(): Flow<List<Coupon>> = MutableStateFlow(couponStore.values.toList())
+
+        override fun getActiveCoupons(nowEpochMillis: Long): Flow<List<Coupon>> =
+            MutableStateFlow(couponStore.values.filter { it.isActive }.toList())
+
+        override suspend fun getByCode(code: String): Result<Coupon> {
+            return couponStore[code]?.let { Result.Success(it) }
+                ?: Result.Error(DatabaseException("Coupon not found: $code"))
+        }
+
+        override suspend fun getById(id: String): Result<Coupon> {
+            return couponStore.values.find { it.id == id }?.let { Result.Success(it) }
+                ?: Result.Error(DatabaseException("Not found"))
+        }
+
+        override suspend fun insert(coupon: Coupon): Result<Unit> {
+            couponStore[coupon.code] = coupon
+            return Result.Success(Unit)
+        }
+
+        override suspend fun update(coupon: Coupon): Result<Unit> {
+            couponStore[coupon.code] = coupon
+            return Result.Success(Unit)
+        }
+
+        override suspend fun toggleActive(id: String, isActive: Boolean): Result<Unit> = Result.Success(Unit)
+        override suspend fun delete(id: String): Result<Unit> = Result.Success(Unit)
+        override suspend fun recordRedemption(usage: CouponUsage): Result<Unit> = Result.Success(Unit)
+
+        override suspend fun getCustomerUsageCount(couponId: String, customerId: String): Result<Int> =
+            Result.Success(0)
+
+        override fun getUsageByCoupon(couponId: String): Flow<List<CouponUsage>> =
+            MutableStateFlow(emptyList())
+
+        override fun getAllPromotions() = MutableStateFlow(emptyList<com.zyntasolutions.zyntapos.domain.model.Promotion>())
+        override fun getActivePromotions(nowEpochMillis: Long) = MutableStateFlow(emptyList<com.zyntasolutions.zyntapos.domain.model.Promotion>())
+        override suspend fun getPromotionById(id: String) = Result.Error<com.zyntasolutions.zyntapos.domain.model.Promotion>(DatabaseException("Not found"))
+        override suspend fun insertPromotion(promotion: com.zyntasolutions.zyntapos.domain.model.Promotion) = Result.Success(Unit)
+        override suspend fun updatePromotion(promotion: com.zyntasolutions.zyntapos.domain.model.Promotion) = Result.Success(Unit)
+        override suspend fun deletePromotion(id: String) = Result.Success(Unit)
+    }
+
     // ── Real use cases wired to fake repositories ──────────────────────────────
 
     private val calculateTotalsUseCase = CalculateOrderTotalsUseCase()
@@ -213,6 +336,11 @@ class PosViewModelTest {
         categoriesFlow.value = listOf(testCategory)
         createdOrders.clear()
         ordersFlow.value = emptyList()
+        walletStore.clear()
+        walletDebits.clear()
+        loyaltyStore.clear()
+        earnedPointsLog.clear()
+        couponStore.clear()
 
         val sessionFlow = MutableStateFlow<User?>(null)
         val checkPermissionUseCase = CheckPermissionUseCase(sessionFlow)
@@ -232,6 +360,11 @@ class PosViewModelTest {
             processPaymentUseCase = ProcessPaymentUseCase(fakeOrderRepository, fakeStockRepository, calculateTotalsUseCase),
             printReceiptUseCase = PrintReceiptUseCase(fakeReceiptPrinterPort),
             receiptFormatter = ReceiptFormatter(CurrencyFormatter()),
+            walletRepository = fakeWalletRepository,
+            loyaltyRepository = fakeLoyaltyRepository,
+            validateCouponUseCase = ValidateCouponUseCase(fakeCouponRepository),
+            calculateCouponDiscountUseCase = CalculateCouponDiscountUseCase(),
+            earnRewardPointsUseCase = EarnRewardPointsUseCase(fakeLoyaltyRepository),
             cashierId = "cashier-01",
             storeId = "store-01",
             registerSessionId = "session-01",
@@ -274,6 +407,33 @@ class PosViewModelTest {
         return product
     }
 
+    private fun buildTestCustomer(id: String = "cust-01") = Customer(
+        id = id,
+        name = "Alice Smith",
+        phone = "+94771234567",
+        email = "alice@example.com",
+    )
+
+    private fun buildTestCoupon(
+        code: String = "SAVE10",
+        discountType: DiscountType = DiscountType.FIXED,
+        discountValue: Double = 10.0,
+        minimumPurchase: Double = 0.0,
+    ): Coupon {
+        val nowMs = Clock.System.now().toEpochMilliseconds()
+        return Coupon(
+            id = "coupon-01",
+            code = code,
+            name = "Test Coupon",
+            discountType = discountType,
+            discountValue = discountValue,
+            minimumPurchase = minimumPurchase,
+            validFrom = nowMs - 86_400_000L,
+            validTo = nowMs + 86_400_000L,
+            isActive = true,
+        )
+    }
+
     // ── Initial state ─────────────────────────────────────────────────────────
 
     @Test
@@ -290,6 +450,16 @@ class PosViewModelTest {
     @Test
     fun `initial state has no selected category`() {
         assertNull(viewModel.state.value.selectedCategoryId)
+    }
+
+    @Test
+    fun `initial state has no wallet balance and no coupon`() {
+        val state = viewModel.state.value
+        assertNull(state.walletBalance)
+        assertNull(state.loyaltyPointsBalance)
+        assertEquals(0.0, state.walletPaymentAmount, 0.001)
+        assertNull(state.appliedCoupon)
+        assertEquals(0.0, state.couponDiscount, 0.001)
     }
 
     // ── SearchQueryChanged ────────────────────────────────────────────────────
@@ -357,6 +527,29 @@ class PosViewModelTest {
         assertEquals(0.0, state.orderDiscount, 0.001)
     }
 
+    @Test
+    fun `ClearCart also resets wallet and coupon fields`() = runTest {
+        // Pre-load coupon state
+        val coupon = buildTestCoupon()
+        couponStore[coupon.code] = coupon
+        val product = addTestProduct()
+        viewModel.dispatch(PosIntent.AddToCart(product))
+        advanceUntilIdle()
+        viewModel.dispatch(PosIntent.EnterCouponCode(coupon.code))
+        viewModel.dispatch(PosIntent.ValidateCoupon)
+        advanceUntilIdle()
+
+        viewModel.dispatch(PosIntent.ClearCart)
+        advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertNull(state.appliedCoupon)
+        assertEquals(0.0, state.couponDiscount, 0.001)
+        assertEquals("", state.couponCode)
+        assertNull(state.walletBalance)
+        assertEquals(0.0, state.walletPaymentAmount, 0.001)
+    }
+
     // ── AddToCart — success ───────────────────────────────────────────────────
 
     @Test
@@ -393,12 +586,10 @@ class PosViewModelTest {
     fun `RemoveFromCart removes item from cartItems`() = runTest {
         val product = addTestProduct()
 
-        // Seed item via AddToCart
         viewModel.dispatch(PosIntent.AddToCart(product))
         advanceUntilIdle()
         assertEquals(1, viewModel.state.value.cartItems.size)
 
-        // Remove the item
         viewModel.dispatch(PosIntent.RemoveFromCart("p1"))
         advanceUntilIdle()
 
@@ -478,5 +669,314 @@ class PosViewModelTest {
         viewModel.dispatch(PosIntent.SetScannerActive(false))
         advanceUntilIdle()
         assertFalse(viewModel.state.value.scannerActive)
+    }
+
+    // ── Sprint 22: SelectCustomer loads wallet + loyalty ──────────────────────
+
+    @Test
+    fun `SelectCustomer loads wallet balance and loyalty points`() = runTest {
+        val customer = buildTestCustomer()
+        loyaltyStore[customer.id] = 150
+
+        viewModel.dispatch(PosIntent.SelectCustomer(customer))
+        advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertEquals(customer, state.selectedCustomer)
+        assertNotNull(state.walletBalance, "Wallet balance should be loaded after customer selection")
+        assertEquals(500.0, state.walletBalance!!, 0.001)
+        assertEquals(150, state.loyaltyPointsBalance)
+    }
+
+    @Test
+    fun `SelectCustomer with zero loyalty points shows 0 balance`() = runTest {
+        val customer = buildTestCustomer()
+        // loyaltyStore is empty — defaults to 0
+
+        viewModel.dispatch(PosIntent.SelectCustomer(customer))
+        advanceUntilIdle()
+
+        assertEquals(0, viewModel.state.value.loyaltyPointsBalance)
+    }
+
+    // ── Sprint 22: ClearCustomer resets wallet state ──────────────────────────
+
+    @Test
+    fun `ClearCustomer resets selectedCustomer and wallet fields`() = runTest {
+        val customer = buildTestCustomer()
+        viewModel.dispatch(PosIntent.SelectCustomer(customer))
+        advanceUntilIdle()
+
+        viewModel.dispatch(PosIntent.ClearCustomer)
+        advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertNull(state.selectedCustomer)
+        assertNull(state.walletBalance)
+        assertNull(state.loyaltyPointsBalance)
+        assertEquals(0.0, state.walletPaymentAmount, 0.001)
+    }
+
+    // ── Sprint 22: SetWalletPaymentAmount ─────────────────────────────────────
+
+    @Test
+    fun `SetWalletPaymentAmount updates walletPaymentAmount in state`() = runTest {
+        viewModel.dispatch(PosIntent.SetWalletPaymentAmount(75.0))
+        advanceUntilIdle()
+        assertEquals(75.0, viewModel.state.value.walletPaymentAmount, 0.001)
+    }
+
+    @Test
+    fun `SetWalletPaymentAmount to zero clears wallet contribution`() = runTest {
+        viewModel.dispatch(PosIntent.SetWalletPaymentAmount(50.0))
+        viewModel.dispatch(PosIntent.SetWalletPaymentAmount(0.0))
+        advanceUntilIdle()
+        assertEquals(0.0, viewModel.state.value.walletPaymentAmount, 0.001)
+    }
+
+    // ── Sprint 22: EnterCouponCode ────────────────────────────────────────────
+
+    @Test
+    fun `EnterCouponCode updates couponCode and clears previous error`() = runTest {
+        // Simulate a prior error state
+        viewModel.dispatch(PosIntent.EnterCouponCode("BAD"))
+        viewModel.dispatch(PosIntent.ValidateCoupon)
+        advanceUntilIdle()
+        // couponError should be set now
+
+        viewModel.dispatch(PosIntent.EnterCouponCode("SAVE10"))
+        advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertEquals("SAVE10", state.couponCode)
+        assertNull(state.couponError, "Entering a new code should clear the previous error")
+    }
+
+    // ── Sprint 22: ValidateCoupon — success ───────────────────────────────────
+
+    @Test
+    fun `ValidateCoupon with valid code sets appliedCoupon and couponDiscount`() = runTest {
+        val product = addTestProduct(price = 100.0)
+        viewModel.dispatch(PosIntent.AddToCart(product))
+        advanceUntilIdle()
+
+        val coupon = buildTestCoupon(code = "FLAT20", discountType = DiscountType.FIXED, discountValue = 20.0)
+        couponStore[coupon.code] = coupon
+
+        viewModel.dispatch(PosIntent.EnterCouponCode("FLAT20"))
+        viewModel.dispatch(PosIntent.ValidateCoupon)
+        advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertNotNull(state.appliedCoupon, "Coupon should be applied after successful validation")
+        assertEquals("FLAT20", state.appliedCoupon!!.code)
+        assertEquals(20.0, state.couponDiscount, 0.001)
+        assertNull(state.couponError)
+        assertFalse(state.couponValidating)
+    }
+
+    @Test
+    fun `ValidateCoupon with percent coupon computes correct discount`() = runTest {
+        val product = addTestProduct(price = 200.0)
+        viewModel.dispatch(PosIntent.AddToCart(product))
+        advanceUntilIdle()
+
+        val coupon = buildTestCoupon(code = "PCT10", discountType = DiscountType.PERCENT, discountValue = 10.0)
+        couponStore[coupon.code] = coupon
+
+        viewModel.dispatch(PosIntent.EnterCouponCode("PCT10"))
+        viewModel.dispatch(PosIntent.ValidateCoupon)
+        advanceUntilIdle()
+
+        // 10% of 200 = 20
+        assertEquals(20.0, viewModel.state.value.couponDiscount, 0.001)
+    }
+
+    // ── Sprint 22: ValidateCoupon — failure ───────────────────────────────────
+
+    @Test
+    fun `ValidateCoupon with unknown code sets couponError`() = runTest {
+        viewModel.dispatch(PosIntent.EnterCouponCode("NOSUCHCODE"))
+        viewModel.dispatch(PosIntent.ValidateCoupon)
+        advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertNull(state.appliedCoupon)
+        assertEquals(0.0, state.couponDiscount, 0.001)
+        assertNotNull(state.couponError, "Unknown coupon should produce a couponError")
+        assertFalse(state.couponValidating)
+    }
+
+    @Test
+    fun `ValidateCoupon below minimum purchase sets couponError`() = runTest {
+        // Product price = 4.50, coupon minimum = 50 → should fail
+        val product = addTestProduct(price = 4.50)
+        viewModel.dispatch(PosIntent.AddToCart(product))
+        advanceUntilIdle()
+
+        val coupon = buildTestCoupon(code = "BIGBUY", minimumPurchase = 50.0)
+        couponStore[coupon.code] = coupon
+
+        viewModel.dispatch(PosIntent.EnterCouponCode("BIGBUY"))
+        viewModel.dispatch(PosIntent.ValidateCoupon)
+        advanceUntilIdle()
+
+        assertNotNull(viewModel.state.value.couponError)
+        assertNull(viewModel.state.value.appliedCoupon)
+    }
+
+    @Test
+    fun `ValidateCoupon with blank code is a no-op`() = runTest {
+        viewModel.dispatch(PosIntent.EnterCouponCode("   "))
+        viewModel.dispatch(PosIntent.ValidateCoupon)
+        advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertNull(state.appliedCoupon)
+        assertNull(state.couponError)
+        assertFalse(state.couponValidating)
+    }
+
+    // ── Sprint 22: ClearCoupon ────────────────────────────────────────────────
+
+    @Test
+    fun `ClearCoupon resets all coupon fields`() = runTest {
+        val product = addTestProduct(price = 100.0)
+        viewModel.dispatch(PosIntent.AddToCart(product))
+        advanceUntilIdle()
+
+        val coupon = buildTestCoupon()
+        couponStore[coupon.code] = coupon
+        viewModel.dispatch(PosIntent.EnterCouponCode(coupon.code))
+        viewModel.dispatch(PosIntent.ValidateCoupon)
+        advanceUntilIdle()
+
+        viewModel.dispatch(PosIntent.ClearCoupon)
+        advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertNull(state.appliedCoupon)
+        assertEquals(0.0, state.couponDiscount, 0.001)
+        assertEquals("", state.couponCode)
+        assertNull(state.couponError)
+    }
+
+    // ── Sprint 22: ProcessPayment earns loyalty points ────────────────────────
+
+    @Test
+    fun `ProcessPayment with customer earns loyalty points after success`() = runTest {
+        val product = addTestProduct(price = 100.0)  // 100 / 10 = 10 points
+        val customer = buildTestCustomer()
+
+        viewModel.dispatch(PosIntent.AddToCart(product))
+        advanceUntilIdle()
+        viewModel.dispatch(PosIntent.SelectCustomer(customer))
+        advanceUntilIdle()
+
+        viewModel.effects.test {
+            viewModel.dispatch(PosIntent.ProcessPayment(method = PaymentMethod.CASH, tendered = 100.0))
+            advanceUntilIdle()
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        assertTrue(earnedPointsLog.isNotEmpty(), "Loyalty points should have been earned after payment")
+        val earned = earnedPointsLog.first { it.first == customer.id }
+        assertTrue(earned.second > 0, "Earned points must be positive")
+    }
+
+    @Test
+    fun `ProcessPayment without customer does not earn loyalty points`() = runTest {
+        val product = addTestProduct(price = 100.0)
+        viewModel.dispatch(PosIntent.AddToCart(product))
+        advanceUntilIdle()
+        // No customer selected
+
+        viewModel.effects.test {
+            viewModel.dispatch(PosIntent.ProcessPayment(method = PaymentMethod.CASH, tendered = 100.0))
+            advanceUntilIdle()
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        assertTrue(earnedPointsLog.isEmpty(), "No loyalty points should be earned for walk-in sales")
+    }
+
+    // ── Sprint 22: ProcessPayment debits wallet ───────────────────────────────
+
+    @Test
+    fun `ProcessPayment with wallet amount debits customer wallet after success`() = runTest {
+        val product = addTestProduct(price = 100.0)
+        val customer = buildTestCustomer()
+        walletStore[customer.id] = CustomerWallet(id = "wallet-cust-01", customerId = customer.id, balance = 200.0)
+
+        viewModel.dispatch(PosIntent.AddToCart(product))
+        advanceUntilIdle()
+        viewModel.dispatch(PosIntent.SelectCustomer(customer))
+        advanceUntilIdle()
+        viewModel.dispatch(PosIntent.SetWalletPaymentAmount(50.0))
+        advanceUntilIdle()
+
+        viewModel.effects.test {
+            // Tendered 50 cash + 50 wallet = 100 total
+            viewModel.dispatch(PosIntent.ProcessPayment(method = PaymentMethod.CASH, tendered = 50.0))
+            advanceUntilIdle()
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        assertTrue(walletDebits.isNotEmpty(), "Wallet should have been debited after payment")
+        val debit = walletDebits.first()
+        assertEquals(50.0, debit.second, 0.001)
+    }
+
+    @Test
+    fun `ProcessPayment with no wallet amount does not debit wallet`() = runTest {
+        val product = addTestProduct(price = 10.0)
+        val customer = buildTestCustomer()
+        walletStore[customer.id] = CustomerWallet(id = "wallet-cust-01", customerId = customer.id, balance = 200.0)
+
+        viewModel.dispatch(PosIntent.AddToCart(product))
+        advanceUntilIdle()
+        viewModel.dispatch(PosIntent.SelectCustomer(customer))
+        advanceUntilIdle()
+        // walletPaymentAmount stays 0.0
+
+        viewModel.effects.test {
+            viewModel.dispatch(PosIntent.ProcessPayment(method = PaymentMethod.CASH, tendered = 10.0))
+            advanceUntilIdle()
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        assertTrue(walletDebits.isEmpty(), "Wallet should NOT be debited when walletPaymentAmount is 0")
+    }
+
+    // ── Sprint 22: Coupon discount is included in ProcessPayment totals ───────
+
+    @Test
+    fun `ProcessPayment with applied coupon uses combined discount`() = runTest {
+        val product = addTestProduct(price = 100.0)
+        val coupon = buildTestCoupon(code = "OFF20", discountType = DiscountType.FIXED, discountValue = 20.0)
+        couponStore[coupon.code] = coupon
+
+        viewModel.dispatch(PosIntent.AddToCart(product))
+        advanceUntilIdle()
+        viewModel.dispatch(PosIntent.EnterCouponCode("OFF20"))
+        viewModel.dispatch(PosIntent.ValidateCoupon)
+        advanceUntilIdle()
+
+        assertEquals(20.0, viewModel.state.value.couponDiscount, 0.001)
+
+        // Effective total = 100 - 20 = 80 → tendering exactly 80 should succeed
+        viewModel.effects.test {
+            viewModel.dispatch(PosIntent.ProcessPayment(method = PaymentMethod.CASH, tendered = 80.0))
+            advanceUntilIdle()
+
+            val effect = awaitItem()
+            assertTrue(
+                effect is PosEffect.ShowReceiptScreen ||
+                    effect is PosEffect.OpenCashDrawer ||
+                    effect is PosEffect.PrintReceipt,
+                "Expected success effects but got: $effect",
+            )
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 }

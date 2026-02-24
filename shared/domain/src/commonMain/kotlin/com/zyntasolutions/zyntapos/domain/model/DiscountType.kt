@@ -7,4 +7,7 @@ enum class DiscountType {
 
     /** Discount is a percentage of the line total or order total (e.g., 10% off). */
     PERCENT,
+
+    /** Buy-one-get-one — handled by the promotion engine, not the coupon discount calculator. */
+    BOGO,
 }
