@@ -30,8 +30,6 @@ import com.zyntasolutions.zyntapos.navigation.navigationModule
 import com.zyntasolutions.zyntapos.security.di.securityModule
 import com.zyntasolutions.zyntapos.data.local.db.SecurePreferencesKeyMigration
 import org.koin.android.ext.koin.androidContext
-import org.koin.core.Koin
-import org.koin.core.context.loadKoinModules
 import org.koin.core.context.startKoin
 
 /**
@@ -125,7 +123,7 @@ class ZyntaApplication : Application() {
         // and DebugViewModel. Both are loaded AFTER dataModule so all repository
         // bindings are already in the Koin graph.
         if (BuildConfig.DEBUG) {
-            loadKoinModules(listOf(seedModule, debugModule))
+            koin.koin.loadModules(listOf(seedModule, debugModule))
         }
     }
 }

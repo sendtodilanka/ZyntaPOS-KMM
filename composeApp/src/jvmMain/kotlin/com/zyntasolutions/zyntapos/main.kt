@@ -29,7 +29,6 @@ import com.zyntasolutions.zyntapos.feature.staff.staffModule
 import com.zyntasolutions.zyntapos.hal.di.halModule
 import com.zyntasolutions.zyntapos.navigation.navigationModule
 import com.zyntasolutions.zyntapos.security.di.securityModule
-import org.koin.core.context.loadKoinModules
 import org.koin.core.context.startKoin
 
 /**
@@ -103,7 +102,7 @@ fun main() {
     // and DebugViewModel. Loaded AFTER dataModule so all repository bindings exist.
     val appInfoProvider = koin.koin.get<AppInfoProvider>()
     if (appInfoProvider.isDebug) {
-        loadKoinModules(listOf(seedModule, debugModule))
+        koin.koin.loadModules(listOf(seedModule, debugModule))
     }
 
     application {
