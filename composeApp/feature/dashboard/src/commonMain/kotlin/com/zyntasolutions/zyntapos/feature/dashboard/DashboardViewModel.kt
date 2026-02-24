@@ -1,4 +1,4 @@
-package com.zyntasolutions.zyntapos.dashboard
+package com.zyntasolutions.zyntapos.feature.dashboard
 
 import com.zyntasolutions.zyntapos.designsystem.components.ChartDataPoint
 import com.zyntasolutions.zyntapos.domain.model.OrderStatus
@@ -6,6 +6,10 @@ import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
 import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
 import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
+import com.zyntasolutions.zyntapos.feature.dashboard.mvi.DashboardEffect
+import com.zyntasolutions.zyntapos.feature.dashboard.mvi.DashboardIntent
+import com.zyntasolutions.zyntapos.feature.dashboard.mvi.DashboardState
+import com.zyntasolutions.zyntapos.feature.dashboard.mvi.RecentOrderItem
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlinx.coroutines.flow.first
 import kotlinx.datetime.Clock

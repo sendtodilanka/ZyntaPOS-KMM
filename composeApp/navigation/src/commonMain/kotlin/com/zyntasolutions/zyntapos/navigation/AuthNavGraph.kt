@@ -13,33 +13,52 @@ import androidx.navigation.compose.navigation
  * Nested navigation graph for unauthenticated / lock-screen flows.
  *
  * Destinations:
- * - [ZyntaRoute.Login]   — credential entry; start destination of the auth graph.
- * - [ZyntaRoute.PinLock] — quick PIN re-authentication after idle timeout.
+ * - [ZyntaRoute.Onboarding] — first-run setup wizard (shown only once on first launch).
+ * - [ZyntaRoute.Login]      — credential entry; normal start destination.
+ * - [ZyntaRoute.SignUp]     — new account registration.
+ * - [ZyntaRoute.PinLock]   — quick PIN re-authentication after idle timeout.
  *
  * Flow:
  * ```
- * App start ──► Login ──► (success) ──► Main graph (via navigateAndClear)
+ * App first launch ──► Onboarding ──► (done) ──► Login
+ * App normal start ──► Login ──► (success) ──► Main graph (via navigateAndClear)
  *                  ▲
  *                  │  idle timeout
  * Main area ──► PinLock ──► (success) ──► pop back to previous screen
  * ```
  *
  * Screen composables are passed as lambdas to keep this graph decoupled from
- * feature module implementations (screens live in `:composeApp:feature:auth`).
+ * feature module implementations (screens live in feature sub-modules).
  *
- * @param navigationController Controller used to trigger navigateAndClear on success.
- * @param loginScreen Composable for the Login screen. Receives a `onLoginSuccess`
- *   callback that the screen should invoke after a successful authentication.
- * @param pinLockScreen Composable for the PinLock screen. Receives `onUnlocked`
- *   callback invoked when the user enters the correct PIN.
+ * @param navigationController  Controller used to trigger navigateAndClear on success.
+ * @param isFirstRun            When `true`, [ZyntaRoute.Onboarding] is the start destination.
+ * @param loginScreen           Composable for the Login screen.
+ * @param signUpScreen          Composable for the Sign-Up screen.
+ * @param onboardingScreen      Composable for the first-run Onboarding wizard.
+ * @param pinLockScreen         Composable for the PinLock screen.
  */
 fun NavGraphBuilder.authNavGraph(
     navigationController: NavigationController,
+    isFirstRun: Boolean,
     loginScreen: @Composable (onLoginSuccess: () -> Unit, onNavigateToSignUp: () -> Unit) -> Unit,
     signUpScreen: @Composable (onSignUpSuccess: () -> Unit, onNavigateToLogin: () -> Unit) -> Unit,
+    onboardingScreen: @Composable (onOnboardingComplete: () -> Unit) -> Unit,
     pinLockScreen: @Composable (onUnlocked: () -> Unit) -> Unit,
 ) {
-    navigation<ZyntaRoute.AuthGraph>(startDestination = ZyntaRoute.Login) {
+    val startDestination: ZyntaRoute = if (isFirstRun) ZyntaRoute.Onboarding else ZyntaRoute.Login
+
+    navigation<ZyntaRoute.AuthGraph>(startDestination = startDestination) {
+        // ── First-run onboarding ───────────────────────────────────────────────
+        composable<ZyntaRoute.Onboarding> {
+            // On wizard completion, navigate to Login and remove onboarding from the back-stack.
+            onboardingScreen {
+                navigationController.navigate(ZyntaRoute.Login) {
+                    popUpTo<ZyntaRoute.Onboarding> { inclusive = true }
+                }
+            }
+        }
+
+        // ── Login ─────────────────────────────────────────────────────────────
         composable<ZyntaRoute.Login> {
             loginScreen(
                 { navigationController.navigateAndClear(ZyntaRoute.Dashboard) },
@@ -47,6 +66,7 @@ fun NavGraphBuilder.authNavGraph(
             )
         }
 
+        // ── Sign-up ───────────────────────────────────────────────────────────
         composable<ZyntaRoute.SignUp> {
             signUpScreen(
                 { navigationController.popBackStack() },
@@ -54,6 +74,7 @@ fun NavGraphBuilder.authNavGraph(
             )
         }
 
+        // ── PIN lock ──────────────────────────────────────────────────────────
         composable<ZyntaRoute.PinLock> {
             pinLockScreen(
                 {

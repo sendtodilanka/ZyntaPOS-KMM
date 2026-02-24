@@ -1,4 +1,4 @@
-package com.zyntasolutions.zyntapos
+package com.zyntasolutions.zyntapos.feature.dashboard.screen
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -44,10 +44,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
-import com.zyntasolutions.zyntapos.dashboard.DashboardIntent
-import com.zyntasolutions.zyntapos.dashboard.DashboardState
-import com.zyntasolutions.zyntapos.dashboard.DashboardViewModel
-import com.zyntasolutions.zyntapos.dashboard.RecentOrderItem
 import com.zyntasolutions.zyntapos.designsystem.components.ChartSeries
 import com.zyntasolutions.zyntapos.designsystem.components.InfoCardVariant
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaActivityItem
@@ -62,6 +58,10 @@ import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.designsystem.util.WindowSize
 import com.zyntasolutions.zyntapos.designsystem.util.currentWindowSize
 import com.zyntasolutions.zyntapos.domain.model.User
+import com.zyntasolutions.zyntapos.feature.dashboard.DashboardViewModel
+import com.zyntasolutions.zyntapos.feature.dashboard.mvi.DashboardIntent
+import com.zyntasolutions.zyntapos.feature.dashboard.mvi.DashboardState
+import com.zyntasolutions.zyntapos.feature.dashboard.mvi.RecentOrderItem
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -72,12 +72,20 @@ import org.koin.compose.viewmodel.koinViewModel
  * Home dashboard screen — Professional KPI cards, weekly sales chart,
  * recent activity log, quick actions, alerts, profile avatar, and logout.
  *
- * Fully responsive layout:
- * - **EXPANDED** (Desktop >=840dp): Two-column (KPIs + Chart | Activity + Alerts)
- * - **MEDIUM** (Tablet 600-840dp): Single-column with chart below KPIs
- * - **COMPACT** (Mobile <600dp): Single-column scrollable with horizontal stat cards
+ * **Navigation chrome** is provided by [ZyntaScaffold] (via [MainScaffoldShell]) —
+ * this screen does not render its own nav shell.
+ *
+ * **Content layout** adapts to the available content area:
+ * - **EXPANDED** (Desktop ≥840 dp): Two-column (KPIs + Chart | Activity + Alerts)
+ * - **MEDIUM** (Tablet 600–840 dp): Single-column with chart below KPIs
+ * - **COMPACT** (Mobile <600 dp): Single-column scrollable with horizontal stat cards
  *
  * All business logic is delegated to [DashboardViewModel] via MVI intents.
+ *
+ * @param onNavigateToPos       Called when the user taps "New Sale".
+ * @param onNavigateToRegister  Called when the user taps "Register".
+ * @param onNavigateToReports   Called when the user taps "Reports" or "See All".
+ * @param onNavigateToSettings  Called when the user taps the settings icon.
  */
 @Composable
 fun DashboardScreen(
@@ -91,7 +99,6 @@ fun DashboardScreen(
     val currencyFormatter: CurrencyFormatter = koinInject()
     val windowSize = currentWindowSize()
 
-    // Trigger initial data load
     LaunchedEffect(Unit) {
         viewModel.dispatch(DashboardIntent.LoadDashboard)
     }
@@ -122,7 +129,7 @@ fun DashboardScreen(
     }
 }
 
-// ── EXPANDED LAYOUT (Desktop >=840dp) ───────────────────────────────────────
+// ── EXPANDED LAYOUT (Desktop ≥840 dp) ─────────────────────────────────────
 
 @Composable
 private fun ExpandedDashboard(
@@ -142,7 +149,7 @@ private fun ExpandedDashboard(
         ) {
             item { ProfileHeader(state.currentUser, onNavigateToSettings, onLogout) }
 
-            // 4 KPI cards in 2x2 using Row (NOT LazyVerticalGrid — avoids nested scrollable crash)
+            // 4 KPI cards in 2×2 grid using Row (avoids nested-scrollable crashes)
             item {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.md)) {
                     ZyntaStatCard(
@@ -229,7 +236,7 @@ private fun ExpandedDashboard(
     }
 }
 
-// ── MEDIUM LAYOUT (Tablet 600-840dp) ────────────────────────────────────────
+// ── MEDIUM LAYOUT (Tablet 600–840 dp) ────────────────────────────────────
 
 @Composable
 private fun MediumDashboard(
@@ -296,7 +303,7 @@ private fun MediumDashboard(
     }
 }
 
-// ── COMPACT LAYOUT (Mobile <600dp) ──────────────────────────────────────────
+// ── COMPACT LAYOUT (Mobile <600 dp) ──────────────────────────────────────
 
 @Composable
 private fun CompactDashboard(
@@ -360,7 +367,7 @@ private fun CompactDashboard(
     }
 }
 
-// ── Shared sub-composables ──────────────────────────────────────────────────
+// ── Shared sub-composables ────────────────────────────────────────────────
 
 @Composable
 private fun ProfileHeader(
@@ -374,7 +381,6 @@ private fun ProfileHeader(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            // Profile avatar with initials
             Surface(
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.primaryContainer,

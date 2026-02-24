@@ -38,7 +38,6 @@ import com.zyntasolutions.zyntapos.domain.repository.SyncRepository
 import com.zyntasolutions.zyntapos.domain.repository.TaxGroupRepository
 import com.zyntasolutions.zyntapos.domain.repository.UnitGroupRepository
 import com.zyntasolutions.zyntapos.domain.repository.UserRepository
-import com.zyntasolutions.zyntapos.domain.port.PasswordHashPort
 import org.koin.dsl.module
 
 /**
@@ -102,10 +101,9 @@ val dataModule = module {
     // Their concrete instances are bound in platform-specific modules.
     single {
         DatabaseFactory(
-            keyProvider     = get(),
-            driverFactory   = get(),
-            migrations      = get(),
-            passwordHasher  = get(),
+            keyProvider   = get(),
+            driverFactory = get(),
+            migrations    = get(),
         )
     }
 

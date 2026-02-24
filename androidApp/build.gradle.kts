@@ -86,8 +86,8 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
 
     lint {
@@ -99,7 +99,7 @@ android {
 }
 
 kotlin {
-    jvmToolchain(11)
+    jvmToolchain(21)
 }
 
 dependencies {
@@ -133,6 +133,8 @@ dependencies {
     implementation(project(":composeApp:navigation"))
 
     // ── Tier 7: Feature modules ───────────────────────────────────────────
+    implementation(project(":composeApp:feature:dashboard"))
+    implementation(project(":composeApp:feature:onboarding"))
     implementation(project(":composeApp:feature:auth"))
     implementation(project(":composeApp:feature:pos"))
     implementation(project(":composeApp:feature:inventory"))

@@ -58,9 +58,12 @@ ZyntaPOS is a fully offline-capable, multi-store POS system built with Kotlin Mu
 | `:shared:data` | SQLDelight schema + DAOs, Ktor HTTP client, repository implementations, offline sync engine, `ConflictResolver` |
 | `:shared:hal` | `PrinterManager`, `BarcodeScanner`, `CashDrawerController` interfaces + `expect/actual` platform drivers, `EscPosEncoder` |
 | `:shared:security` | `SecureKeyStorage` (Keystore/JCE), `CryptoManager` (AES-256-GCM), `PinHasher` (PBKDF2), `TokenManager`, `RbacEngine`, `SessionManager` |
+| `:shared:seed` | **Debug-only.** `SeedRunner` populates the local DB with realistic sample data (8 categories, 5 suppliers, 25 products, 15 customers) for UI/UX testing. Include only as `debugImplementation`. |
 | `:composeApp:designsystem` | `ZyntaTheme`, Material 3 tokens, `ZyntaButton/Card/TextField`, `NumericKeypad`, `ReceiptPreview`, responsive breakpoints |
 | `:composeApp:navigation` | Type-safe `NavRoute` sealed hierarchy, `ZyntaNavHost`, adaptive nav shell (Rail vs Bottom Bar), RBAC route gating |
 | `:composeApp:feature:auth` | Login, PIN quick-switch, biometric, auto-lock screen |
+| `:composeApp:feature:dashboard` | Home KPI dashboard — today's sales, order count, low-stock alerts, weekly sales chart, recent-order activity. Responsive: 3 layout variants (Compact / Medium / Expanded). |
+| `:composeApp:feature:onboarding` | First-run wizard (2 steps: business name → admin account). Writes `general.business_name` + creates the initial ADMIN user. Shown exactly once; gated by `onboarding.completed` in `SettingsRepository`. |
 | `:composeApp:feature:pos` | Product grid, cart, discounts, payment (split/cash/card), receipt, hold orders, refund |
 | `:composeApp:feature:inventory` | Product CRUD, category management, stock levels, adjustments, barcode label print |
 | `:composeApp:feature:register` | Cash register open/close, cash in/out, EOD Z-report |

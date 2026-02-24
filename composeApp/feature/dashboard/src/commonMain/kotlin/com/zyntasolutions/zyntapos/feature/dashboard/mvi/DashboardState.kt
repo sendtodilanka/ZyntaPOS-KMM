@@ -1,4 +1,4 @@
-package com.zyntasolutions.zyntapos.dashboard
+package com.zyntasolutions.zyntapos.feature.dashboard.mvi
 
 import com.zyntasolutions.zyntapos.designsystem.components.ChartDataPoint
 import com.zyntasolutions.zyntapos.domain.model.User

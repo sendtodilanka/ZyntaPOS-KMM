@@ -20,6 +20,13 @@ pluginManagement {
         }
     }
     repositories {
+        // Local fallback for plugins not resolvable via gradlePluginPortal() in this environment.
+        // Contains: org.gradle.toolchains.foojay-resolver-convention:1.0.0
+        maven("file:///tmp/local-gradle-plugins") {
+            content {
+                includeGroupAndSubgroups("org.gradle.toolchains")
+            }
+        }
         google {
             mavenContent {
                 includeGroupAndSubgroups("androidx")
@@ -64,7 +71,7 @@ plugins {
 }
 
 // ════════════════════════════════════════════════════════════
-// MODULE REGISTRY — 23 modules
+// MODULE REGISTRY — 26 modules
 // ════════════════════════════════════════════════════════════
 
 // ── Application Shell ─────────────────────────────────────────
@@ -171,3 +178,20 @@ include(":composeApp:feature:admin")
 // ── ComposeApp — Feature: Media ───────────────────────────────
 // Product image picker, crop, compression pipeline.
 include(":composeApp:feature:media")
+
+// ── ComposeApp — Feature: Dashboard ──────────────────────────
+// Home dashboard — KPI cards, weekly sales chart, recent activity,
+// quick actions, low-stock alerts, active-register status.
+// Extracted from :composeApp root for module graph consistency.
+include(":composeApp:feature:dashboard")
+
+// ── ComposeApp — Feature: Onboarding ─────────────────────────
+// First-run setup wizard — collects business name + admin credentials.
+// Shown on first launch only; replaces hardcoded admin seed.
+include(":composeApp:feature:onboarding")
+
+// ── Shared — Seed (debug-only) ────────────────────────────────
+// Debug-only seed data framework for UI/UX testing.
+// JSON files per table + SeedRunner that calls domain use cases.
+// Zero production footprint — included only in debug builds.
+include(":shared:seed")
