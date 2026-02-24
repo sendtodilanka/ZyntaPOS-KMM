@@ -133,6 +133,8 @@ dependencies {
     implementation(project(":composeApp:navigation"))
 
     // ── Tier 7: Feature modules ───────────────────────────────────────────
+    implementation(project(":composeApp:feature:dashboard"))
+    implementation(project(":composeApp:feature:onboarding"))
     implementation(project(":composeApp:feature:auth"))
     implementation(project(":composeApp:feature:pos"))
     implementation(project(":composeApp:feature:inventory"))

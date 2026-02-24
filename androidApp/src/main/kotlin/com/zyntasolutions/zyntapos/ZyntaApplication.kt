@@ -6,7 +6,8 @@ import com.zyntasolutions.zyntapos.core.platform.AppInfoProvider
 import com.zyntasolutions.zyntapos.core.di.coreModule
 import com.zyntasolutions.zyntapos.data.di.androidDataModule
 import com.zyntasolutions.zyntapos.data.di.dataModule
-import com.zyntasolutions.zyntapos.dashboard.dashboardModule
+import com.zyntasolutions.zyntapos.feature.dashboard.dashboardModule
+import com.zyntasolutions.zyntapos.feature.onboarding.onboardingModule
 import com.zyntasolutions.zyntapos.feature.admin.adminModule
 import com.zyntasolutions.zyntapos.feature.auth.authModule
 import com.zyntasolutions.zyntapos.feature.coupons.couponsModule
@@ -79,7 +80,8 @@ class ZyntaApplication : Application() {
                 navigationModule,    // RbacNavFilter
 
                 // ── Tier 6: Feature modules ───────────────────────────────────
-                dashboardModule,     // DashboardViewModel
+                dashboardModule,     // DashboardViewModel (:composeApp:feature:dashboard)
+                onboardingModule,    // OnboardingViewModel (:composeApp:feature:onboarding)
                 authModule,          // LoginUseCase, SessionManager, AuthViewModel
                 posModule,           // Cart use cases, PosViewModel
                 inventoryModule,     // Product/Category/Stock use cases, InventoryViewModel

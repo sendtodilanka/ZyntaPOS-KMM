@@ -1,12 +1,12 @@
-package com.zyntasolutions.zyntapos.dashboard
+package com.zyntasolutions.zyntapos.feature.dashboard
 
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 /**
- * Koin module for the home dashboard.
+ * Koin module for the home dashboard feature.
  *
- * Registered alongside feature modules in [ZyntaApplication] (Android)
+ * Registered alongside other feature modules in [ZyntaApplication] (Android)
  * and `main()` (Desktop).
  */
 val dashboardModule = module {

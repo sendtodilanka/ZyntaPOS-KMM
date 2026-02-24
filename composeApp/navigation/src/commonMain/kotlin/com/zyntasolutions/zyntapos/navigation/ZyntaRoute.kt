@@ -54,6 +54,14 @@ sealed class ZyntaRoute {
     // ─────────────────────────────────────────────────────────────────
 
     /**
+     * First-run onboarding wizard.
+     * Shown exactly once before the login screen if `onboarding.completed` is
+     * not set in [SettingsRepository]. Collects business name + admin credentials.
+     */
+    @Serializable
+    data object Onboarding : ZyntaRoute()
+
+    /**
      * Email / password login screen.
      * Start destination before a valid session is established.
      */

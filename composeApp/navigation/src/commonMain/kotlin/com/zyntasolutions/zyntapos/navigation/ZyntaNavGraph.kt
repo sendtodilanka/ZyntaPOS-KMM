@@ -39,6 +39,10 @@ val deepLinkOrder: NavDeepLink = navDeepLink<ZyntaRoute.OrderHistory>(
 /**
  * Root navigation host for the ZyntaPOS application.
  *
+ * **First-run (onboarding) redirect:**
+ * If [isFirstRun] is `true`, the auth graph starts at [ZyntaRoute.Onboarding]
+ * instead of [ZyntaRoute.Login]. Once the wizard completes it navigates to Login.
+ *
  * **Authentication redirect:**
  * If [isSessionActive] is `true` on launch, the NavHost immediately navigates
  * to [ZyntaRoute.Dashboard], bypassing [ZyntaRoute.Login]. The redirect is
@@ -49,7 +53,9 @@ val deepLinkOrder: NavDeepLink = navDeepLink<ZyntaRoute.OrderHistory>(
  * NavHost (startDestination = ZyntaRoute.AuthGraph)
  * │
  * ├── authNavGraph
- * │   ├── Login (start)
+ * │   ├── Onboarding   ← only on first launch (isFirstRun = true)
+ * │   ├── Login (default start)
+ * │   ├── SignUp
  * │   └── PinLock
  * │
  * └── mainNavGraph
@@ -82,22 +88,27 @@ val deepLinkOrder: NavDeepLink = navDeepLink<ZyntaRoute.OrderHistory>(
  * by each screen's ViewModel via [CheckPermissionUseCase].
  *
  * @param navigationController Wrapper around [NavHostController].
+ * @param isFirstRun Whether this is the first launch (onboarding not completed).
  * @param isSessionActive Whether a valid JWT session exists on startup.
  *   When `true`, skip Login and go directly to Dashboard.
  * @param userRole The authenticated user's [Role], used to filter navigation items.
  *   Pass `null` when unauthenticated (shows auth graph only).
  * @param screens Lambda factories for every screen composable (injected from app layer).
  * @param loginScreen Composable factory for the Login screen.
+ * @param signUpScreen Composable factory for the Sign-Up screen.
+ * @param onboardingScreen Composable factory for the Onboarding wizard screen.
  * @param pinLockScreen Composable factory for the PinLock screen.
  */
 @Composable
 fun ZyntaNavGraph(
     navigationController: NavigationController,
+    isFirstRun: Boolean,
     isSessionActive: Boolean,
     userRole: Role?,
     screens: MainNavScreens,
     loginScreen: @Composable (onLoginSuccess: () -> Unit, onNavigateToSignUp: () -> Unit) -> Unit,
     signUpScreen: @Composable (onSignUpSuccess: () -> Unit, onNavigateToLogin: () -> Unit) -> Unit,
+    onboardingScreen: @Composable (onOnboardingComplete: () -> Unit) -> Unit,
     pinLockScreen: @Composable (onUnlocked: () -> Unit) -> Unit,
 ) {
     // Compute RBAC-filtered nav items once per role change
@@ -114,8 +125,10 @@ fun ZyntaNavGraph(
         // ── Unauthenticated graph ────────────────────────────────────────────
         authNavGraph(
             navigationController = navigationController,
+            isFirstRun = isFirstRun,
             loginScreen = loginScreen,
             signUpScreen = signUpScreen,
+            onboardingScreen = onboardingScreen,
             pinLockScreen = pinLockScreen,
         )
 

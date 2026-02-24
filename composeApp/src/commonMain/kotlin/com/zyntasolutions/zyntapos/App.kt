@@ -3,6 +3,7 @@ package com.zyntasolutions.zyntapos
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoadingOverlay
 import com.zyntasolutions.zyntapos.designsystem.theme.ThemeMode
 import com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme
 import androidx.compose.runtime.Composable
@@ -14,6 +15,9 @@ import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.feature.auth.screen.LoginScreen
 import com.zyntasolutions.zyntapos.feature.auth.screen.PinLockScreen
 import com.zyntasolutions.zyntapos.feature.auth.screen.SignUpScreen
+import com.zyntasolutions.zyntapos.feature.dashboard.screen.DashboardScreen
+import com.zyntasolutions.zyntapos.feature.onboarding.OnboardingViewModel
+import com.zyntasolutions.zyntapos.feature.onboarding.screen.OnboardingScreen
 import com.zyntasolutions.zyntapos.feature.inventory.CategoryListScreen
 import com.zyntasolutions.zyntapos.feature.inventory.InventoryViewModel
 import com.zyntasolutions.zyntapos.feature.inventory.ProductDetailScreen
@@ -80,8 +84,24 @@ fun App() {
             val isSessionActive = currentUser != null
             val userRole = currentUser?.role
 
+            // ── First-run detection via SettingsRepository ────────────────────
+            // "loading" sentinel = settings DB has not yet emitted the first value.
+            // Once resolved: "true" means onboarding done, anything else = first run.
+            val onboardingCompleted by settingsRepository
+                .observe(OnboardingViewModel.ONBOARDING_COMPLETED_KEY)
+                .collectAsState(initial = "loading")
+
+            // Show a brief loading overlay while the settings DB resolves.
+            if (onboardingCompleted == "loading") {
+                ZyntaLoadingOverlay(isLoading = true)
+                return@Surface
+            }
+
+            val isFirstRun = onboardingCompleted != "true"
+
             ZyntaNavGraph(
                 navigationController = navController,
+                isFirstRun = isFirstRun,
                 isSessionActive = isSessionActive,
                 userRole = userRole,
                 screens = buildMainNavScreens(),
@@ -96,6 +116,9 @@ fun App() {
                         onSignUpSuccess = onSignUpSuccess,
                         onNavigateToLogin = onNavigateToLogin,
                     )
+                },
+                onboardingScreen = { onOnboardingComplete ->
+                    OnboardingScreen(onOnboardingComplete = onOnboardingComplete)
                 },
                 pinLockScreen = { onUnlocked ->
                     PinLockScreen(
@@ -117,6 +140,7 @@ fun App() {
 private fun buildMainNavScreens() = MainNavScreens(
 
     // ── Dashboard ──────────────────────────────────────────────────────────
+    // Provided by :composeApp:feature:dashboard (extracted from composeApp root)
     dashboard = { onNavigateToPos, onNavigateToRegister, onNavigateToReports, onNavigateToSettings ->
         DashboardScreen(
             onNavigateToPos = onNavigateToPos,

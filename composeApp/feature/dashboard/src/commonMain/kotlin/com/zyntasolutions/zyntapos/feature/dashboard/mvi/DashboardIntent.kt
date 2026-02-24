@@ -1,4 +1,4 @@
-package com.zyntasolutions.zyntapos.dashboard
+package com.zyntasolutions.zyntapos.feature.dashboard.mvi
 
 /**
  * Sealed interface representing every user-driven action on the dashboard.

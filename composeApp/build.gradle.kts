@@ -75,6 +75,8 @@ kotlin {
             implementation(project(":composeApp:feature:multistore"))
             implementation(project(":composeApp:feature:admin"))
             implementation(project(":composeApp:feature:media"))
+            implementation(project(":composeApp:feature:dashboard"))
+            implementation(project(":composeApp:feature:onboarding"))
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

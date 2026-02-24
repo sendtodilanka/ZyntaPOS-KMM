@@ -1,4 +1,4 @@
-package com.zyntasolutions.zyntapos.dashboard
+package com.zyntasolutions.zyntapos.feature.dashboard.mvi
 
 /**
  * One-shot side effects emitted by [DashboardViewModel].
