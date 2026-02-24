@@ -20,6 +20,13 @@ pluginManagement {
         }
     }
     repositories {
+        // Local fallback for plugins not resolvable via gradlePluginPortal() in this environment.
+        // Contains: org.gradle.toolchains.foojay-resolver-convention:1.0.0
+        maven("file:///tmp/local-gradle-plugins") {
+            content {
+                includeGroupAndSubgroups("org.gradle.toolchains")
+            }
+        }
         google {
             mavenContent {
                 includeGroupAndSubgroups("androidx")
