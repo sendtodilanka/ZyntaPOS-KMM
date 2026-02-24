@@ -422,12 +422,12 @@ gradle <task>      # wrong — may use wrong version
 
 ## Testing Standards
 
-| Layer | Coverage Target | Tools |
-|-------|----------------|-------|
-| Use Cases | 95% | Kotlin Test + Mockative 3 |
-| Repositories | 80% | Kotlin Test + Mockative 3 |
-| ViewModels | 80% | Kotlin Test + Turbine (for Flows) |
-| Compose UI | Critical flows only | Compose UI Test (Phase 2) |
+| Layer | Coverage Target   | Tools |
+|-------|-------------------|-------|
+| Use Cases | 95%               | Kotlin Test + Mockative 3 |
+| Repositories | 80%               | Kotlin Test + Mockative 3 |
+| ViewModels | 80%               | Kotlin Test + Turbine (for Flows) |
+| Compose UI | Need for all flow | Compose UI Test (Phase 2) |
 
 **Test organization:**
 - `src/commonTest/` — shared cross-platform tests (domain logic, use cases)
