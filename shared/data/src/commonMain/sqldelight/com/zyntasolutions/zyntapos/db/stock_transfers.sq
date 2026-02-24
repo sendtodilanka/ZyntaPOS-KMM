@@ -1,0 +1,59 @@
+-- ============================================================
+-- stock_transfers.sq — Inter-warehouse stock transfer records
+-- ============================================================
+-- Two-phase commit pattern:
+--   1. Create record with status PENDING
+--   2. Decrement source warehouse stock
+--   3. Increment dest warehouse stock
+--   4. Update record status to COMMITTED
+
+CREATE TABLE stock_transfers (
+    id                   TEXT    NOT NULL PRIMARY KEY,
+    source_warehouse_id  TEXT    NOT NULL REFERENCES warehouses(id),
+    dest_warehouse_id    TEXT    NOT NULL REFERENCES warehouses(id),
+    product_id           TEXT    NOT NULL,
+    quantity             REAL    NOT NULL,
+    status               TEXT    NOT NULL DEFAULT 'PENDING',  -- 'PENDING' | 'COMMITTED' | 'CANCELLED'
+    notes                TEXT,
+    transferred_by       TEXT,
+    transferred_at       INTEGER,
+    created_at           INTEGER NOT NULL,
+    updated_at           INTEGER NOT NULL,
+    sync_status          TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE INDEX idx_stock_transfers_source ON stock_transfers(source_warehouse_id, status);
+CREATE INDEX idx_stock_transfers_dest   ON stock_transfers(dest_warehouse_id, status);
+CREATE INDEX idx_stock_transfers_product ON stock_transfers(product_id);
+
+-- ── Read queries ─────────────────────────────────────────────────────────────
+
+getTransfersByWarehouse:
+SELECT * FROM stock_transfers
+WHERE source_warehouse_id = ? OR dest_warehouse_id = ?
+ORDER BY created_at DESC;
+
+getPendingTransfers:
+SELECT * FROM stock_transfers WHERE status = 'PENDING' ORDER BY created_at ASC;
+
+getTransferById:
+SELECT * FROM stock_transfers WHERE id = ?;
+
+getTransfersByProduct:
+SELECT * FROM stock_transfers WHERE product_id = ? ORDER BY created_at DESC;
+
+-- ── Write queries ────────────────────────────────────────────────────────────
+
+insertStockTransfer:
+INSERT INTO stock_transfers(id, source_warehouse_id, dest_warehouse_id, product_id, quantity, status, notes, transferred_by, created_at, updated_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+commitTransfer:
+UPDATE stock_transfers SET
+    status = 'COMMITTED', transferred_at = ?, updated_at = ?, sync_status = 'PENDING'
+WHERE id = ?;
+
+cancelTransfer:
+UPDATE stock_transfers SET
+    status = 'CANCELLED', updated_at = ?, sync_status = 'PENDING'
+WHERE id = ?;

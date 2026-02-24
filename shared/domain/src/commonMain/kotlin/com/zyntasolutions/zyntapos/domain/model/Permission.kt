@@ -78,6 +78,34 @@ enum class Permission {
 
     /** Trigger manual data backup or restore. */
     MANAGE_BACKUP,
+
+    // ── Phase 2: CRM & Loyalty ────────────────────────────────────────────────
+    /** Manage customer groups, pricing tiers, and group discounts. */
+    MANAGE_CUSTOMER_GROUPS,
+
+    /** Credit, debit, and view customer wallet balances. */
+    MANAGE_WALLETS,
+
+    /** Create and manage loyalty tiers and reward points configuration. */
+    MANAGE_LOYALTY,
+
+    // ── Phase 2: Coupons & Promotions ─────────────────────────────────────────
+    /** Create, edit, activate, and deactivate coupons and promotions. */
+    MANAGE_COUPONS,
+
+    // ── Phase 2: Expenses ─────────────────────────────────────────────────────
+    /** Submit and edit expense records. */
+    MANAGE_EXPENSES,
+
+    /** Approve or reject expense submissions. */
+    APPROVE_EXPENSES,
+
+    // ── Phase 2: Multi-Store / Warehouses ─────────────────────────────────────
+    /** Create, edit, and manage warehouses. */
+    MANAGE_WAREHOUSES,
+
+    /** Initiate and commit inter-warehouse stock transfers. */
+    MANAGE_STOCK_TRANSFERS,
     ;
 
     companion object {
@@ -101,22 +129,33 @@ enum class Permission {
                 MANAGE_USERS, MANAGE_SETTINGS, MANAGE_TAX, MANAGE_HARDWARE,
                 MANAGE_CUSTOMERS,
                 VIEW_AUDIT_LOG,
+                // Phase 2
+                MANAGE_CUSTOMER_GROUPS, MANAGE_WALLETS, MANAGE_LOYALTY,
+                MANAGE_COUPONS,
+                MANAGE_EXPENSES, APPROVE_EXPENSES,
+                MANAGE_WAREHOUSES, MANAGE_STOCK_TRANSFERS,
             ),
 
             Role.CASHIER to setOf(
                 PROCESS_SALE, VOID_ORDER, APPLY_DISCOUNT, HOLD_ORDER, PROCESS_REFUND,
                 OPEN_REGISTER, CLOSE_REGISTER, RECORD_CASH_MOVEMENT,
                 MANAGE_CUSTOMERS,
+                // Phase 2 — cashiers can apply coupons and manage wallets at POS
+                MANAGE_WALLETS,
             ),
 
             Role.ACCOUNTANT to setOf(
                 VIEW_REPORTS, EXPORT_REPORTS,
                 VIEW_AUDIT_LOG,
+                // Phase 2 — accountants approve and view expenses
+                MANAGE_EXPENSES, APPROVE_EXPENSES,
             ),
 
             Role.STOCK_MANAGER to setOf(
                 MANAGE_PRODUCTS, MANAGE_CATEGORIES, ADJUST_STOCK, MANAGE_SUPPLIERS,
                 VIEW_REPORTS,
+                // Phase 2 — stock managers handle warehouse transfers
+                MANAGE_WAREHOUSES, MANAGE_STOCK_TRANSFERS,
             ),
         )
     }

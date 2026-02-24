@@ -100,6 +100,7 @@ class ProcessPaymentUseCase(
             val itemDiscountAmt = when (cart.discountType) {
                 DiscountType.FIXED -> cart.discount
                 DiscountType.PERCENT -> cart.unitPrice * cart.quantity * (cart.discount / 100.0)
+                DiscountType.BOGO -> 0.0 // BOGO qty already adjusted upstream
             }
             val baseAmount = cart.unitPrice * cart.quantity - itemDiscountAmt
             val taxAmt = if (taxInclusive && cart.taxRate > 0.0) {

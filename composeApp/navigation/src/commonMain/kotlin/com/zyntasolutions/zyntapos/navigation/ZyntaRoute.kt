@@ -49,6 +49,18 @@ sealed class ZyntaRoute {
     /** Graph route for the settings sub-graph. */
     @Serializable data object SettingsGraph : ZyntaRoute()
 
+    /** Graph route for the CRM / customers sub-graph. */
+    @Serializable data object CrmGraph : ZyntaRoute()
+
+    /** Graph route for the coupons & promotions sub-graph. */
+    @Serializable data object CouponsGraph : ZyntaRoute()
+
+    /** Graph route for the expenses sub-graph. */
+    @Serializable data object ExpensesGraph : ZyntaRoute()
+
+    /** Graph route for the multi-store / warehouses sub-graph. */
+    @Serializable data object MultiStoreGraph : ZyntaRoute()
+
     // ─────────────────────────────────────────────────────────────────
     // AUTH GROUP
     // ─────────────────────────────────────────────────────────────────
@@ -207,6 +219,102 @@ sealed class ZyntaRoute {
      */
     @Serializable
     data object Debug : ZyntaRoute()
+
+    // ─────────────────────────────────────────────────────────────────
+    // CRM GROUP
+    // ─────────────────────────────────────────────────────────────────
+
+    /** Customer directory list with search and loyalty info. */
+    @Serializable
+    data object CustomerList : ZyntaRoute()
+
+    /**
+     * Customer profile detail / edit.
+     *
+     * @param customerId Existing ID for edit; `null` for create.
+     */
+    @Serializable
+    data class CustomerDetail(val customerId: String? = null) : ZyntaRoute()
+
+    /** Customer group management list (pricing tiers, discounts). */
+    @Serializable
+    data object CustomerGroupList : ZyntaRoute()
+
+    /** Customer wallet and transaction history. */
+    @Serializable
+    data class CustomerWallet(val customerId: String) : ZyntaRoute()
+
+    // ─────────────────────────────────────────────────────────────────
+    // COUPONS GROUP
+    // ─────────────────────────────────────────────────────────────────
+
+    /** Coupon and promotion management list. */
+    @Serializable
+    data object CouponList : ZyntaRoute()
+
+    /**
+     * Coupon detail / edit.
+     *
+     * @param couponId Existing coupon ID for edit; `null` for create.
+     */
+    @Serializable
+    data class CouponDetail(val couponId: String? = null) : ZyntaRoute()
+
+    // ─────────────────────────────────────────────────────────────────
+    // EXPENSES GROUP
+    // ─────────────────────────────────────────────────────────────────
+
+    /** Expense log with filter and date range picker. */
+    @Serializable
+    data object ExpenseList : ZyntaRoute()
+
+    /**
+     * Expense detail / edit with receipt attachment and approval actions.
+     *
+     * @param expenseId Existing expense ID for edit; `null` for create.
+     */
+    @Serializable
+    data class ExpenseDetail(val expenseId: String? = null) : ZyntaRoute()
+
+    /** Expense category management. */
+    @Serializable
+    data object ExpenseCategoryList : ZyntaRoute()
+
+    // ─────────────────────────────────────────────────────────────────
+    // MULTI-STORE GROUP
+    // ─────────────────────────────────────────────────────────────────
+
+    /** Warehouse list for the current store. */
+    @Serializable
+    data object WarehouseList : ZyntaRoute()
+
+    /**
+     * Warehouse detail / edit.
+     *
+     * @param warehouseId Existing ID for edit; `null` for create.
+     */
+    @Serializable
+    data class WarehouseDetail(val warehouseId: String? = null) : ZyntaRoute()
+
+    /** Stock transfer list — pending and committed transfers. */
+    @Serializable
+    data object StockTransferList : ZyntaRoute()
+
+    /**
+     * New stock transfer creation screen.
+     *
+     * @param sourceWarehouseId Pre-selected source warehouse, if any.
+     */
+    @Serializable
+    data class NewStockTransfer(val sourceWarehouseId: String? = null) : ZyntaRoute()
+
+    // ─────────────────────────────────────────────────────────────────
+    // NOTIFICATIONS
+    // ─────────────────────────────────────────────────────────────────
+
+    /** In-app notification inbox. */
+    @Serializable
+    data object NotificationInbox : ZyntaRoute()
 
     // ─────────────────────────────────────────────────────────────────
     // DEEP-LINK TARGETS (not primary nav destinations)

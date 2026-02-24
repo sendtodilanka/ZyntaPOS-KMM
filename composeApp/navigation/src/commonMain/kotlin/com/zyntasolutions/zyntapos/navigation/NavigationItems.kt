@@ -5,14 +5,22 @@ import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.LocalOffer
+import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.PointOfSale
+import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Store
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Inventory2
+import androidx.compose.material.icons.outlined.LocalOffer
+import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.PointOfSale
+import androidx.compose.material.icons.outlined.Receipt
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Store
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaNavItem
 import com.zyntasolutions.zyntapos.domain.model.Permission
@@ -93,6 +101,37 @@ val AllNavItems: List<NavItem> = listOf(
         icon = Icons.Outlined.Settings,
         selectedIcon = Icons.Filled.Settings,
         requiredPermission = Permission.MANAGE_SETTINGS,
+    ),
+
+    // ── Phase 2 nav items ────────────────────────────────────────────────────
+
+    NavItem(
+        route = ZyntaRoute.CustomerList,
+        label = "Customers",
+        icon = Icons.Outlined.People,
+        selectedIcon = Icons.Filled.People,
+        requiredPermission = Permission.MANAGE_CUSTOMERS,
+    ),
+    NavItem(
+        route = ZyntaRoute.CouponList,
+        label = "Coupons",
+        icon = Icons.Outlined.LocalOffer,
+        selectedIcon = Icons.Filled.LocalOffer,
+        requiredPermission = Permission.MANAGE_COUPONS,
+    ),
+    NavItem(
+        route = ZyntaRoute.ExpenseList,
+        label = "Expenses",
+        icon = Icons.Outlined.Receipt,
+        selectedIcon = Icons.Filled.Receipt,
+        requiredPermission = Permission.MANAGE_EXPENSES,
+    ),
+    NavItem(
+        route = ZyntaRoute.WarehouseList,
+        label = "Warehouses",
+        icon = Icons.Outlined.Store,
+        selectedIcon = Icons.Filled.Store,
+        requiredPermission = Permission.MANAGE_WAREHOUSES,
     ),
 )
 

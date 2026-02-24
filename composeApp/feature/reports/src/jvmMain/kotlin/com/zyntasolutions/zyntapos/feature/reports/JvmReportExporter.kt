@@ -1,5 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.reports
 
+import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateCustomerReportUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateExpenseReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateSalesReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateStockReportUseCase
 import java.io.File
@@ -7,7 +9,6 @@ import java.io.FileWriter
 import java.text.SimpleDateFormat
 import java.util.Date
 import javax.swing.JFileChooser
-import javax.swing.filechooser.FileNameExtensionFilter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -86,6 +87,47 @@ class JvmReportExporter : ReportExporter {
             val file = File(dir, "stock_report_$dateStamp.pdf")
             val html = buildStockHtml(report)
             PdfBoxRenderer.renderHtmlToPdf(html, file)
+            file.absolutePath
+        }
+
+    override suspend fun exportCustomerCsv(report: GenerateCustomerReportUseCase.CustomerReport): String =
+        withContext(Dispatchers.IO) {
+            val dir = chooseSaveDirectory() ?: throw Exception("Export cancelled by user")
+            val file = File(dir, "customer_report_$dateStamp.csv")
+            FileWriter(file).use { writer ->
+                writer.appendLine("Customer Report")
+                writer.appendLine("Total Customers,${report.totalCustomers}")
+                writer.appendLine("Registered,${report.registeredCustomers}")
+                writer.appendLine("Walk-In,${report.walkInCustomers}")
+                writer.appendLine("Credit Enabled,${report.creditEnabledCustomers}")
+                writer.appendLine("Total Loyalty Points,${report.totalLoyaltyPoints}")
+                writer.appendLine()
+                writer.appendLine("Top Customers by Loyalty Points")
+                writer.appendLine("Name,Phone,Loyalty Points,Group")
+                report.topByLoyaltyPoints.forEach { c ->
+                    writer.appendLine("${c.name},${c.phone},${c.loyaltyPoints},${c.groupId ?: ""}")
+                }
+            }
+            file.absolutePath
+        }
+
+    override suspend fun exportExpenseCsv(report: GenerateExpenseReportUseCase.ExpenseReport): String =
+        withContext(Dispatchers.IO) {
+            val dir = chooseSaveDirectory() ?: throw Exception("Export cancelled by user")
+            val file = File(dir, "expense_report_$dateStamp.csv")
+            FileWriter(file).use { writer ->
+                writer.appendLine("Expense Report — ${report.from} to ${report.to}")
+                writer.appendLine("Status,Total Amount,Count")
+                writer.appendLine("Approved,${report.totalApproved},${report.approvedCount}")
+                writer.appendLine("Pending,${report.totalPending},${report.pendingCount}")
+                writer.appendLine("Rejected,${report.totalRejected},${report.rejectedCount}")
+                writer.appendLine()
+                writer.appendLine("Category Breakdown (Approved)")
+                writer.appendLine("Category ID,Total")
+                report.byCategory.forEach { (categoryId, total) ->
+                    writer.appendLine("${categoryId ?: "Uncategorised"},$total")
+                }
+            }
             file.absolutePath
         }
 

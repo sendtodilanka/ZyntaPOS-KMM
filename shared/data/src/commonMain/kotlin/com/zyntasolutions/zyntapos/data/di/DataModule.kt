@@ -11,7 +11,14 @@ import com.zyntasolutions.zyntapos.data.remote.api.buildApiClient
 import com.zyntasolutions.zyntapos.data.repository.AuditRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.AuthRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.CategoryRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.CouponRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.CustomerGroupRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.CustomerRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.CustomerWalletRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.ExpenseRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.InstallmentRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.LoyaltyRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.NotificationRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.OrderRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.ProductRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.RegisterRepositoryImpl
@@ -22,12 +29,20 @@ import com.zyntasolutions.zyntapos.data.repository.SyncRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.TaxGroupRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.UnitGroupRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.UserRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.WarehouseRepositoryImpl
 import com.zyntasolutions.zyntapos.data.sync.NetworkMonitor
 import com.zyntasolutions.zyntapos.data.sync.SyncEngine
 import com.zyntasolutions.zyntapos.domain.repository.AuditRepository
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.CategoryRepository
+import com.zyntasolutions.zyntapos.domain.repository.CouponRepository
+import com.zyntasolutions.zyntapos.domain.repository.CustomerGroupRepository
 import com.zyntasolutions.zyntapos.domain.repository.CustomerRepository
+import com.zyntasolutions.zyntapos.domain.repository.CustomerWalletRepository
+import com.zyntasolutions.zyntapos.domain.repository.ExpenseRepository
+import com.zyntasolutions.zyntapos.domain.repository.InstallmentRepository
+import com.zyntasolutions.zyntapos.domain.repository.LoyaltyRepository
+import com.zyntasolutions.zyntapos.domain.repository.NotificationRepository
 import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
 import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
 import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
@@ -38,6 +53,7 @@ import com.zyntasolutions.zyntapos.domain.repository.SyncRepository
 import com.zyntasolutions.zyntapos.domain.repository.TaxGroupRepository
 import com.zyntasolutions.zyntapos.domain.repository.UnitGroupRepository
 import com.zyntasolutions.zyntapos.domain.repository.UserRepository
+import com.zyntasolutions.zyntapos.domain.repository.WarehouseRepository
 import org.koin.dsl.module
 
 /**
@@ -182,6 +198,50 @@ val dataModule = module {
     // the SyncEngine can call maintenance methods (pruneSynced, deduplicatePending,
     // markFailed) that are not part of the domain contract.
     single { get<SyncRepository>() as SyncRepositoryImpl }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ── Phase 2 CRM Repositories ─────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Customer groups: pricing tiers, group discounts, price type per group
+    single<CustomerGroupRepository> { CustomerGroupRepositoryImpl(db = get(), syncEnqueuer = get()) }
+
+    // Customer wallets: pre-paid balance with atomic credit/debit operations
+    single<CustomerWalletRepository> { CustomerWalletRepositoryImpl(db = get(), syncEnqueuer = get()) }
+
+    // Loyalty points ledger + tier management; benefits stored as JSON
+    single<LoyaltyRepository> { LoyaltyRepositoryImpl(db = get()) }
+
+    // Installment plans + payment schedule lifecycle
+    single<InstallmentRepository> { InstallmentRepositoryImpl(db = get(), syncEnqueuer = get()) }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ── Phase 2 Coupons & Promotions ─────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Coupons: CRUD, redemption tracking, customer-coupon assignments, promotions
+    single<CouponRepository> { CouponRepositoryImpl(db = get(), syncEnqueuer = get()) }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ── Phase 2 Expenses ─────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Expenses: CRUD, approval workflow, categories, recurring schedules
+    single<ExpenseRepository> { ExpenseRepositoryImpl(db = get(), syncEnqueuer = get()) }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ── Phase 2 Multi-Store / Warehouses ─────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Warehouses: locations per store, default warehouse, two-phase stock transfers
+    single<WarehouseRepository> { WarehouseRepositoryImpl(db = get(), syncEnqueuer = get()) }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ── Phase 2 Notifications ────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // In-app notifications: insert, mark-read, prune old; no remote sync queue
+    single<NotificationRepository> { NotificationRepositoryImpl(db = get()) }
 
     // ─────────────────────────────────────────────────────────────────────────
     // ── Network & Sync Layer (Step 3.4) ──────────────────────────────────────

@@ -1,0 +1,115 @@
+-- ============================================================
+-- expenses.sq — Expense log + recurring expense scheduler
+-- ============================================================
+
+CREATE TABLE expenses (
+    id           TEXT    NOT NULL PRIMARY KEY,
+    store_id     TEXT,
+    category_id  TEXT    REFERENCES expense_categories(id),
+    amount       REAL    NOT NULL,
+    description  TEXT    NOT NULL,
+    expense_date INTEGER NOT NULL,
+    receipt_url  TEXT,
+    is_recurring INTEGER NOT NULL DEFAULT 0,
+    status       TEXT    NOT NULL DEFAULT 'PENDING',  -- 'PENDING' | 'APPROVED' | 'REJECTED'
+    approved_by  TEXT,
+    approved_at  INTEGER,
+    reject_reason TEXT,
+    created_by   TEXT,
+    created_at   INTEGER NOT NULL,
+    updated_at   INTEGER NOT NULL,
+    sync_status  TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE INDEX idx_expenses_status   ON expenses(status, expense_date DESC);
+CREATE INDEX idx_expenses_category ON expenses(category_id);
+CREATE INDEX idx_expenses_date     ON expenses(expense_date DESC);
+CREATE INDEX idx_expenses_store    ON expenses(store_id, expense_date DESC);
+
+CREATE TABLE recurring_expenses (
+    id          TEXT    NOT NULL PRIMARY KEY,
+    store_id    TEXT,
+    category_id TEXT    REFERENCES expense_categories(id),
+    amount      REAL    NOT NULL,
+    description TEXT    NOT NULL,
+    frequency   TEXT    NOT NULL DEFAULT 'MONTHLY',  -- 'DAILY' | 'WEEKLY' | 'MONTHLY'
+    start_date  INTEGER NOT NULL,
+    end_date    INTEGER,
+    is_active   INTEGER NOT NULL DEFAULT 1,
+    last_run    INTEGER,
+    created_at  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL,
+    sync_status TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE INDEX idx_recurring_expenses_active ON recurring_expenses(is_active, frequency);
+
+-- ── Expense read queries ─────────────────────────────────────────────────────
+
+getAllExpenses:
+SELECT * FROM expenses ORDER BY expense_date DESC;
+
+getExpensesByStatus:
+SELECT * FROM expenses WHERE status = ? ORDER BY expense_date DESC;
+
+getExpensesByDateRange:
+SELECT * FROM expenses WHERE expense_date BETWEEN ? AND ? ORDER BY expense_date DESC;
+
+getExpensesByCategory:
+SELECT * FROM expenses WHERE category_id = ? ORDER BY expense_date DESC;
+
+getExpenseById:
+SELECT * FROM expenses WHERE id = ?;
+
+getTotalExpensesByPeriod:
+SELECT COALESCE(SUM(amount), 0.0) FROM expenses WHERE status = 'APPROVED' AND expense_date BETWEEN ? AND ?;
+
+-- ── Expense write queries ─────────────────────────────────────────────────────
+
+insertExpense:
+INSERT INTO expenses(id, store_id, category_id, amount, description, expense_date, receipt_url, is_recurring, status, created_by, created_at, updated_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateExpense:
+UPDATE expenses SET
+    category_id = ?, amount = ?, description = ?, expense_date = ?,
+    receipt_url = ?, updated_at = ?, sync_status = ?
+WHERE id = ?;
+
+approveExpense:
+UPDATE expenses SET
+    status = 'APPROVED', approved_by = ?, approved_at = ?, updated_at = ?, sync_status = 'PENDING'
+WHERE id = ?;
+
+rejectExpense:
+UPDATE expenses SET
+    status = 'REJECTED', reject_reason = ?, approved_by = ?, approved_at = ?,
+    updated_at = ?, sync_status = 'PENDING'
+WHERE id = ?;
+
+deleteExpense:
+DELETE FROM expenses WHERE id = ?;
+
+-- ── Recurring expense queries ─────────────────────────────────────────────────
+
+getAllRecurringExpenses:
+SELECT * FROM recurring_expenses ORDER BY description ASC;
+
+getActiveRecurringExpenses:
+SELECT * FROM recurring_expenses WHERE is_active = 1 ORDER BY frequency ASC;
+
+getRecurringExpenseById:
+SELECT * FROM recurring_expenses WHERE id = ?;
+
+insertRecurringExpense:
+INSERT INTO recurring_expenses(id, store_id, category_id, amount, description, frequency, start_date, end_date, is_active, created_at, updated_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateRecurringExpense:
+UPDATE recurring_expenses SET
+    category_id = ?, amount = ?, description = ?, frequency = ?,
+    end_date = ?, is_active = ?, last_run = ?, updated_at = ?, sync_status = ?
+WHERE id = ?;
+
+deleteRecurringExpense:
+DELETE FROM recurring_expenses WHERE id = ?;

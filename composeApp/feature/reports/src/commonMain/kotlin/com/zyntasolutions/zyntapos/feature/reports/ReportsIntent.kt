@@ -22,4 +22,16 @@ sealed interface ReportsIntent {
     data object ExportStockReportCsv : ReportsIntent
     data object ExportStockReportPdf : ReportsIntent
     data object DismissStockError : ReportsIntent
+
+    // ── Customer Report ─────────────────────────────────────────────────────
+    data object LoadCustomerReport : ReportsIntent
+    data object ExportCustomerReportCsv : ReportsIntent
+    data object DismissCustomerError : ReportsIntent
+
+    // ── Expense Report ──────────────────────────────────────────────────────
+    data object LoadExpenseReport : ReportsIntent
+    data class SelectExpenseRange(val range: DateRange) : ReportsIntent
+    data class SetCustomExpenseRange(val from: Instant, val to: Instant) : ReportsIntent
+    data object ExportExpenseReportCsv : ReportsIntent
+    data object DismissExpenseError : ReportsIntent
 }

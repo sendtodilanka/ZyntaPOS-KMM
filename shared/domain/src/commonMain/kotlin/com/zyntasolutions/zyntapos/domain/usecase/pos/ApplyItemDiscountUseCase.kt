@@ -85,6 +85,7 @@ class ApplyItemDiscountUseCase(
                     ),
                 )
             }
+            DiscountType.BOGO -> { /* BOGO is applied at the cart level; no per-item validation needed */ }
         }
 
         val updatedCart = currentCart.map {

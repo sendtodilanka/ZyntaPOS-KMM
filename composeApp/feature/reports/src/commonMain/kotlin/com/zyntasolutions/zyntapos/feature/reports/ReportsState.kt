@@ -2,25 +2,33 @@ package com.zyntasolutions.zyntapos.feature.reports
 
 import com.zyntasolutions.zyntapos.domain.model.PaymentMethod
 import com.zyntasolutions.zyntapos.domain.model.Product
+import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateCustomerReportUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateExpenseReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateSalesReportUseCase
 import kotlinx.datetime.Instant
 
 /**
  * MVI — UI state for the reports feature.
  *
- * @property reportsHome State for [ReportsHomeScreen].
- * @property salesReport State for [SalesReportScreen].
- * @property stockReport State for [StockReportScreen].
+ * @property reportsHome     State for [ReportsHomeScreen] (tile grid).
+ * @property salesReport     State for [SalesReportScreen].
+ * @property stockReport     State for [StockReportScreen].
+ * @property customerReport  State for [CustomerReportScreen].
+ * @property expenseReport   State for [ExpenseReportScreen].
  */
 data class ReportsState(
     val reportsHome: HomeState = HomeState(),
     val salesReport: SalesState = SalesState(),
     val stockReport: StockState = StockState(),
+    val customerReport: CustomerReportState = CustomerReportState(),
+    val expenseReport: ExpenseReportState = ExpenseReportState(),
 ) {
     /** State slice for the reports home tile grid. */
     data class HomeState(
         val lastSalesReportAt: Instant? = null,
         val lastStockReportAt: Instant? = null,
+        val lastCustomerReportAt: Instant? = null,
+        val lastExpenseReportAt: Instant? = null,
     )
 
     /** State slice for the sales report screen. */
@@ -49,9 +57,33 @@ data class ReportsState(
         val sortColumn: StockSortColumn = StockSortColumn.NAME,
         val sortAscending: Boolean = true,
     )
+
+    /** State slice for the customer report screen. */
+    data class CustomerReportState(
+        val isLoading: Boolean = false,
+        val report: GenerateCustomerReportUseCase.CustomerReport? = null,
+        val error: String? = null,
+        val isExporting: Boolean = false,
+    )
+
+    /**
+     * State slice for the expense report screen.
+     *
+     * Uses a separate [selectedRange] / [customFrom] / [customTo] from the sales report
+     * so each report screen retains independent date picker state.
+     */
+    data class ExpenseReportState(
+        val isLoading: Boolean = false,
+        val selectedRange: DateRange = DateRange.THIS_MONTH,
+        val customFrom: Instant? = null,
+        val customTo: Instant? = null,
+        val report: GenerateExpenseReportUseCase.ExpenseReport? = null,
+        val error: String? = null,
+        val isExporting: Boolean = false,
+    )
 }
 
-/** Preset date ranges for the sales report. */
+/** Preset date ranges for the sales and expense reports. */
 enum class DateRange { TODAY, THIS_WEEK, THIS_MONTH, CUSTOM }
 
 /** Stock table sort columns. */

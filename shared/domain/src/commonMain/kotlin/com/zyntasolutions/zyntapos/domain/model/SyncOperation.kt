@@ -71,5 +71,21 @@ data class SyncOperation(
         const val REGISTER_SESSION = "register_session"
         const val CASH_MOVEMENT = "cash_movement"
         const val SETTINGS = "settings"
+        // Phase 2 entity types
+        const val CUSTOMER_GROUP = "customer_group"
+        const val CUSTOMER_WALLET = "customer_wallet"
+        const val WALLET_TRANSACTION = "wallet_transaction"
+        const val REWARD_POINTS = "reward_points"
+        const val LOYALTY_TIER = "loyalty_tier"
+        const val INSTALLMENT_PLAN = "installment_plan"
+        const val INSTALLMENT_PAYMENT = "installment_payment"
+        const val COUPON = "coupon"
+        const val COUPON_USAGE = "coupon_usage"
+        const val PROMOTION = "promotion"
+        const val EXPENSE = "expense"
+        const val EXPENSE_CATEGORY = "expense_category"
+        const val RECURRING_EXPENSE = "recurring_expense"
+        const val WAREHOUSE = "warehouse"
+        const val STOCK_TRANSFER = "stock_transfer"
     }
 }

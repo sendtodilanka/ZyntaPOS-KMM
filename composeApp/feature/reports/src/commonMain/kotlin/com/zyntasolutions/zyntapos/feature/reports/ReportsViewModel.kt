@@ -1,5 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.reports
 
+import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateCustomerReportUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateExpenseReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateSalesReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateStockReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.PrintReportUseCase
@@ -16,9 +18,11 @@ import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Duration.Companion.days
 
 /**
- * MVI ViewModel for the Reports feature (Sprint 22).
+ * MVI ViewModel for the Reports feature.
  *
- * Manages state for [ReportsHomeScreen], [SalesReportScreen], and [StockReportScreen].
+ * Manages state for [ReportsHomeScreen], [SalesReportScreen], [StockReportScreen],
+ * [CustomerReportScreen], and [ExpenseReportScreen].
+ *
  * Results are cached in state — re-opening a screen does not trigger a re-query
  * unless the user explicitly changes the date range or pulls to refresh.
  *
@@ -27,20 +31,26 @@ import kotlin.time.Duration.Companion.days
  *  - [sendEffect] for one-shot side-effects
  *  - [dispatch] as the UI entry-point (launches [handleIntent] in viewModelScope)
  *
- * @param generateSalesReport Aggregates sales data for a date range.
- * @param generateStockReport Fetches current stock levels with low/dead stock categorisation.
- * @param printReport         Sends a condensed report summary to the thermal printer.
- * @param reportExporter      Platform-specific CSV/PDF export implementation.
+ * @param generateSalesReport    Aggregates sales data for a date range.
+ * @param generateStockReport    Fetches current stock levels with low/dead stock categorisation.
+ * @param generateCustomerReport Aggregates customer base statistics (live snapshot).
+ * @param generateExpenseReport  Aggregates expense totals by status and category for a date range.
+ * @param printReport            Sends a condensed report summary to the thermal printer.
+ * @param reportExporter         Platform-specific CSV/PDF export implementation.
  */
 class ReportsViewModel(
     private val generateSalesReport: GenerateSalesReportUseCase,
     private val generateStockReport: GenerateStockReportUseCase,
+    private val generateCustomerReport: GenerateCustomerReportUseCase,
+    private val generateExpenseReport: GenerateExpenseReportUseCase,
     private val printReport: PrintReportUseCase,
     private val reportExporter: ReportExporter,
 ) : BaseViewModel<ReportsState, ReportsIntent, ReportsEffect>(ReportsState()) {
 
     private var salesJob: Job? = null
     private var stockJob: Job? = null
+    private var customerJob: Job? = null
+    private var expenseJob: Job? = null
 
     // ── Intent dispatch ──────────────────────────────────────────────────────
 
@@ -62,6 +72,18 @@ class ReportsViewModel(
             ReportsIntent.ExportStockReportPdf     -> exportStock(pdf = true)
             ReportsIntent.DismissStockError        -> updateState {
                 copy(stockReport = stockReport.copy(error = null))
+            }
+            ReportsIntent.LoadCustomerReport       -> loadCustomerReport()
+            ReportsIntent.ExportCustomerReportCsv  -> exportCustomer()
+            ReportsIntent.DismissCustomerError     -> updateState {
+                copy(customerReport = customerReport.copy(error = null))
+            }
+            ReportsIntent.LoadExpenseReport        -> loadExpenseReport()
+            is ReportsIntent.SelectExpenseRange    -> selectExpenseRange(intent.range)
+            is ReportsIntent.SetCustomExpenseRange -> setCustomExpenseRange(intent.from, intent.to)
+            ReportsIntent.ExportExpenseReportCsv   -> exportExpense()
+            ReportsIntent.DismissExpenseError      -> updateState {
+                copy(expenseReport = expenseReport.copy(error = null))
             }
         }
     }
@@ -88,7 +110,7 @@ class ReportsViewModel(
 
     private fun loadSalesReport() {
         salesJob?.cancel()
-        val (from, to) = resolveDateRange()
+        val (from, to) = resolveSalesDateRange()
         updateState { copy(salesReport = salesReport.copy(isLoading = true, error = null)) }
 
         salesJob = viewModelScope.launch {
@@ -203,19 +225,141 @@ class ReportsViewModel(
         }
     }
 
+    // ── Customer ─────────────────────────────────────────────────────────────
+
+    private fun loadCustomerReport() {
+        customerJob?.cancel()
+        updateState { copy(customerReport = customerReport.copy(isLoading = true, error = null)) }
+
+        customerJob = viewModelScope.launch {
+            generateCustomerReport()
+                .catch { e ->
+                    updateState {
+                        copy(customerReport = customerReport.copy(isLoading = false, error = e.message))
+                    }
+                }
+                .collect { report ->
+                    updateState {
+                        copy(
+                            customerReport = customerReport.copy(
+                                isLoading = false,
+                                report = report,
+                                error = null,
+                            ),
+                            reportsHome = reportsHome.copy(lastCustomerReportAt = Clock.System.now()),
+                        )
+                    }
+                }
+        }
+    }
+
+    private fun exportCustomer() {
+        val report = currentState.customerReport.report ?: return
+        updateState { copy(customerReport = customerReport.copy(isExporting = true)) }
+        viewModelScope.launch {
+            try {
+                val path = reportExporter.exportCustomerCsv(report)
+                sendEffect(ReportsEffect.ExportComplete(path))
+            } catch (e: Exception) {
+                sendEffect(ReportsEffect.ShowSnackbar("Export failed: ${e.message}"))
+            } finally {
+                updateState { copy(customerReport = customerReport.copy(isExporting = false)) }
+            }
+        }
+    }
+
+    // ── Expense ───────────────────────────────────────────────────────────────
+
+    private fun selectExpenseRange(range: DateRange) {
+        updateState { copy(expenseReport = expenseReport.copy(selectedRange = range)) }
+        loadExpenseReport()
+    }
+
+    private fun setCustomExpenseRange(from: Instant, to: Instant) {
+        updateState {
+            copy(
+                expenseReport = expenseReport.copy(
+                    selectedRange = DateRange.CUSTOM,
+                    customFrom = from,
+                    customTo = to,
+                ),
+            )
+        }
+        loadExpenseReport()
+    }
+
+    private fun loadExpenseReport() {
+        expenseJob?.cancel()
+        val (from, to) = resolveExpenseDateRange()
+        updateState { copy(expenseReport = expenseReport.copy(isLoading = true, error = null)) }
+
+        expenseJob = viewModelScope.launch {
+            generateExpenseReport(from.toEpochMilliseconds(), to.toEpochMilliseconds())
+                .catch { e ->
+                    updateState {
+                        copy(expenseReport = expenseReport.copy(isLoading = false, error = e.message))
+                    }
+                }
+                .collect { report ->
+                    updateState {
+                        copy(
+                            expenseReport = expenseReport.copy(
+                                isLoading = false,
+                                report = report,
+                                error = null,
+                            ),
+                            reportsHome = reportsHome.copy(lastExpenseReportAt = Clock.System.now()),
+                        )
+                    }
+                }
+        }
+    }
+
+    private fun exportExpense() {
+        val report = currentState.expenseReport.report ?: return
+        updateState { copy(expenseReport = expenseReport.copy(isExporting = true)) }
+        viewModelScope.launch {
+            try {
+                val path = reportExporter.exportExpenseCsv(report)
+                sendEffect(ReportsEffect.ExportComplete(path))
+            } catch (e: Exception) {
+                sendEffect(ReportsEffect.ShowSnackbar("Export failed: ${e.message}"))
+            } finally {
+                updateState { copy(expenseReport = expenseReport.copy(isExporting = false)) }
+            }
+        }
+    }
+
     // ── Date range resolution ────────────────────────────────────────────────
 
-    private fun resolveDateRange(): Pair<Instant, Instant> {
+    private fun resolveSalesDateRange(): Pair<Instant, Instant> =
+        resolveDateRange(
+            range     = currentState.salesReport.selectedRange,
+            customFrom = currentState.salesReport.customFrom,
+            customTo   = currentState.salesReport.customTo,
+        )
+
+    private fun resolveExpenseDateRange(): Pair<Instant, Instant> =
+        resolveDateRange(
+            range     = currentState.expenseReport.selectedRange,
+            customFrom = currentState.expenseReport.customFrom,
+            customTo   = currentState.expenseReport.customTo,
+        )
+
+    private fun resolveDateRange(
+        range: DateRange,
+        customFrom: Instant?,
+        customTo: Instant?,
+    ): Pair<Instant, Instant> {
         val tz    = TimeZone.currentSystemDefault()
         val now   = Clock.System.now()
         val today = now.toLocalDateTime(tz).date
 
-        return when (currentState.salesReport.selectedRange) {
+        return when (range) {
             DateRange.TODAY      -> today.atStartOfDayIn(tz) to now
             DateRange.THIS_WEEK  -> (today - today.dayOfWeek.ordinal.toLong().days).atStartOfDayIn(tz) to now
             DateRange.THIS_MONTH -> kotlinx.datetime.LocalDate(today.year, today.monthNumber, 1).atStartOfDayIn(tz) to now
-            DateRange.CUSTOM     -> (currentState.salesReport.customFrom ?: now) to
-                                    (currentState.salesReport.customTo   ?: now)
+            DateRange.CUSTOM     -> (customFrom ?: now) to (customTo ?: now)
         }
     }
 }

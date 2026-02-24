@@ -1,0 +1,49 @@
+-- ============================================================
+-- customer_addresses.sq — Customer address book
+-- ============================================================
+
+CREATE TABLE customer_addresses (
+    id           TEXT    NOT NULL PRIMARY KEY,
+    customer_id  TEXT    NOT NULL REFERENCES customers(id),
+    label        TEXT    NOT NULL DEFAULT 'Home',   -- 'Home' | 'Work' | 'Other'
+    address_line TEXT    NOT NULL,
+    city         TEXT,
+    postal_code  TEXT,
+    country      TEXT,
+    is_default   INTEGER NOT NULL DEFAULT 0,
+    created_at   INTEGER NOT NULL,
+    updated_at   INTEGER NOT NULL,
+    sync_status  TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE INDEX idx_customer_addresses_customer ON customer_addresses(customer_id);
+
+-- ── Read queries ─────────────────────────────────────────────────────────────
+
+getAddressesByCustomer:
+SELECT * FROM customer_addresses WHERE customer_id = ? ORDER BY is_default DESC, label ASC;
+
+getDefaultAddress:
+SELECT * FROM customer_addresses WHERE customer_id = ? AND is_default = 1 LIMIT 1;
+
+getAddressById:
+SELECT * FROM customer_addresses WHERE id = ?;
+
+-- ── Write queries ────────────────────────────────────────────────────────────
+
+insertAddress:
+INSERT INTO customer_addresses(id, customer_id, label, address_line, city, postal_code, country, is_default, created_at, updated_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateAddress:
+UPDATE customer_addresses SET
+    label = ?, address_line = ?, city = ?, postal_code = ?,
+    country = ?, is_default = ?, updated_at = ?, sync_status = ?
+WHERE id = ?;
+
+clearDefaultForCustomer:
+UPDATE customer_addresses SET is_default = 0, updated_at = ?
+WHERE customer_id = ? AND is_default = 1;
+
+deleteAddress:
+DELETE FROM customer_addresses WHERE id = ?;

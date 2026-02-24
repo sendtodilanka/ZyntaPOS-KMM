@@ -193,6 +193,44 @@ sealed interface PosIntent {
         val tendered: Double = 0.0,
     ) : PosIntent
 
+    // ─── Wallet ────────────────────────────────────────────────────────────────
+
+    /**
+     * Loads or refreshes the wallet balance and loyalty points for the currently
+     * [selectedCustomer]. Dispatched automatically when [SelectCustomer] is processed.
+     */
+    data object LoadCustomerWallet : PosIntent
+
+    /**
+     * Sets the portion of the order total the cashier wants to pay via the customer's
+     * store-credit wallet.
+     *
+     * @param amount Wallet debit amount (0.0 = no wallet payment). Must not exceed [PosState.walletBalance].
+     */
+    data class SetWalletPaymentAmount(val amount: Double) : PosIntent
+
+    // ─── Coupon ────────────────────────────────────────────────────────────────
+
+    /**
+     * Updates the coupon code text field. Clears any previous validation error.
+     *
+     * @param code Current text in the coupon code input.
+     */
+    data class EnterCouponCode(val code: String) : PosIntent
+
+    /**
+     * Triggers async validation of [PosState.couponCode] via [ValidateCouponUseCase].
+     * On success, populates [PosState.appliedCoupon] and [PosState.couponDiscount].
+     * On failure, sets [PosState.couponError].
+     */
+    data object ValidateCoupon : PosIntent
+
+    /**
+     * Removes the applied coupon, resets [PosState.couponDiscount] to 0, and clears
+     * [PosState.couponCode] and [PosState.couponError].
+     */
+    data object ClearCoupon : PosIntent
+
     // ─── Receipt ───────────────────────────────────────────────────────────────
 
     /**

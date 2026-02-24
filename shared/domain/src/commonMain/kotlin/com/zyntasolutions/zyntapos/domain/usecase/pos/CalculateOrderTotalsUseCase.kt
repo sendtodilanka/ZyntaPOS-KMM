@@ -85,6 +85,7 @@ class CalculateOrderTotalsUseCase {
             val itemDiscountAmt = when (item.discountType) {
                 DiscountType.FIXED -> item.discount
                 DiscountType.PERCENT -> rawLine * (item.discount / 100.0)
+                DiscountType.BOGO -> 0.0 // BOGO qty handled upstream; discount amount already 0 here
             }
 
             val baseAmount = rawLine - itemDiscountAmt
@@ -105,6 +106,7 @@ class CalculateOrderTotalsUseCase {
         val orderDiscountAmt = when (orderDiscountType) {
             DiscountType.FIXED -> orderDiscount
             DiscountType.PERCENT -> subtotalBeforeTax * (orderDiscount / 100.0)
+            DiscountType.BOGO -> 0.0 // BOGO applied per-item; no extra order-level deduction
         }
 
         // For inclusive tax, the tax is already contained within subtotalBeforeTax,

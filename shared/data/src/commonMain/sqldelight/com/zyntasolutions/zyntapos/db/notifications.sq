@@ -1,0 +1,55 @@
+-- ============================================================
+-- notifications.sq — In-app notification queue
+-- ============================================================
+
+CREATE TABLE notifications (
+    id             TEXT    NOT NULL PRIMARY KEY,
+    type           TEXT    NOT NULL,   -- 'LOW_STOCK' | 'PAYMENT_DUE' | 'EXPIRY' | 'SYNC_CONFLICT' | 'SYSTEM'
+    title          TEXT    NOT NULL,
+    message        TEXT    NOT NULL,
+    channel        TEXT    NOT NULL DEFAULT 'IN_APP',  -- 'IN_APP' | 'EMAIL' | 'PUSH'
+    recipient_type TEXT    NOT NULL DEFAULT 'ROLE',    -- 'ROLE' | 'USER'
+    recipient_id   TEXT    NOT NULL,   -- role name or user ID
+    is_read        INTEGER NOT NULL DEFAULT 0,
+    reference_type TEXT,               -- 'PRODUCT' | 'CUSTOMER' | 'ORDER' | null
+    reference_id   TEXT,
+    created_at     INTEGER NOT NULL,
+    read_at        INTEGER
+);
+
+CREATE INDEX idx_notifications_recipient ON notifications(recipient_type, recipient_id, is_read, created_at DESC);
+CREATE INDEX idx_notifications_type      ON notifications(type, is_read);
+
+-- ── Read queries ─────────────────────────────────────────────────────────────
+
+getUnreadNotifications:
+SELECT * FROM notifications
+WHERE recipient_id = ? AND is_read = 0
+ORDER BY created_at DESC;
+
+getAllNotificationsForRecipient:
+SELECT * FROM notifications
+WHERE recipient_id = ?
+ORDER BY created_at DESC
+LIMIT 50;
+
+getUnreadCountForRecipient:
+SELECT COUNT(*) FROM notifications WHERE recipient_id = ? AND is_read = 0;
+
+getNotificationById:
+SELECT * FROM notifications WHERE id = ?;
+
+-- ── Write queries ────────────────────────────────────────────────────────────
+
+insertNotification:
+INSERT INTO notifications(id, type, title, message, channel, recipient_type, recipient_id, is_read, reference_type, reference_id, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+markNotificationRead:
+UPDATE notifications SET is_read = 1, read_at = ? WHERE id = ?;
+
+markAllRead:
+UPDATE notifications SET is_read = 1, read_at = ? WHERE recipient_id = ? AND is_read = 0;
+
+deleteOldNotifications:
+DELETE FROM notifications WHERE is_read = 1 AND created_at < ?;

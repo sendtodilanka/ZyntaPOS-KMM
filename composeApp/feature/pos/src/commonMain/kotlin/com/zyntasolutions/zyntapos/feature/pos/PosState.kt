@@ -2,6 +2,7 @@ package com.zyntasolutions.zyntapos.feature.pos
 
 import com.zyntasolutions.zyntapos.domain.model.CartItem
 import com.zyntasolutions.zyntapos.domain.model.Category
+import com.zyntasolutions.zyntapos.domain.model.Coupon
 import com.zyntasolutions.zyntapos.domain.model.Customer
 import com.zyntasolutions.zyntapos.domain.model.DiscountType
 import com.zyntasolutions.zyntapos.domain.model.Order
@@ -87,6 +88,24 @@ data class PosState(
     val isLoading: Boolean = false,
     val scannerActive: Boolean = false,
     val error: String? = null,
+    // ── Wallet & Loyalty (populated when a customer is selected) ─────────────
+    /** Current store-credit balance for [selectedCustomer]. `null` if no customer or not yet loaded. */
+    val walletBalance: Double? = null,
+    /** Current loyalty points balance for [selectedCustomer]. `null` if no customer or not yet loaded. */
+    val loyaltyPointsBalance: Int? = null,
+    /** Monetary amount the cashier has elected to pay via the customer's store-credit wallet. */
+    val walletPaymentAmount: Double = 0.0,
+    // ── Coupon ────────────────────────────────────────────────────────────────
+    /** Raw code text currently in the coupon entry field. */
+    val couponCode: String = "",
+    /** `true` while [ValidateCouponUseCase] is running. */
+    val couponValidating: Boolean = false,
+    /** The validated coupon that has been applied to this transaction. `null` if none. */
+    val appliedCoupon: Coupon? = null,
+    /** Pre-computed monetary discount for [appliedCoupon] on the current cart total. */
+    val couponDiscount: Double = 0.0,
+    /** Non-null when coupon validation fails; cleared when a new code is entered or coupon is cleared. */
+    val couponError: String? = null,
     // ── Receipt preview state ─────────────────────────────────────────────────
     val receiptPreviewText: String = "",
     val currentReceiptOrder: Order? = null,

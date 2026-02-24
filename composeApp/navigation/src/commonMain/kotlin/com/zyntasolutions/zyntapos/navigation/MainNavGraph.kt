@@ -283,6 +283,150 @@ fun NavGraphBuilder.mainNavGraph(
             }
         }
 
+        // ── CRM sub-graph ────────────────────────────────────────────────────
+        navigation<ZyntaRoute.CrmGraph>(startDestination = ZyntaRoute.CustomerList) {
+            composable<ZyntaRoute.CustomerList> {
+                MainScaffoldShell(
+                    navigationController = navigationController,
+                    navItems = navItems,
+                    currentRoute = ZyntaRoute.CustomerList,
+                ) {
+                    screens.customerList(
+                        { customerId -> navigationController.navigate(ZyntaRoute.CustomerDetail(customerId)) },
+                        { navigationController.navigate(ZyntaRoute.CustomerGroupList) },
+                    )
+                }
+            }
+
+            composable<ZyntaRoute.CustomerDetail> { entry ->
+                val route = entry.toRoute<ZyntaRoute.CustomerDetail>()
+                screens.customerDetail(
+                    route.customerId,
+                    { navigationController.navigateUp(ZyntaRoute.CustomerList) },
+                    { cid -> navigationController.navigate(ZyntaRoute.CustomerWallet(cid)) },
+                )
+            }
+
+            composable<ZyntaRoute.CustomerGroupList> {
+                screens.customerGroupList(
+                    { navigationController.navigateUp(ZyntaRoute.CustomerList) },
+                )
+            }
+
+            composable<ZyntaRoute.CustomerWallet> { entry ->
+                val route = entry.toRoute<ZyntaRoute.CustomerWallet>()
+                screens.customerWallet(
+                    route.customerId,
+                    { navigationController.navigateUp(ZyntaRoute.CustomerList) },
+                )
+            }
+        }
+
+        // ── Coupons sub-graph ────────────────────────────────────────────────
+        navigation<ZyntaRoute.CouponsGraph>(startDestination = ZyntaRoute.CouponList) {
+            composable<ZyntaRoute.CouponList> {
+                MainScaffoldShell(
+                    navigationController = navigationController,
+                    navItems = navItems,
+                    currentRoute = ZyntaRoute.CouponList,
+                ) {
+                    screens.couponList(
+                        { couponId -> navigationController.navigate(ZyntaRoute.CouponDetail(couponId)) },
+                    )
+                }
+            }
+
+            composable<ZyntaRoute.CouponDetail> { entry ->
+                val route = entry.toRoute<ZyntaRoute.CouponDetail>()
+                screens.couponDetail(
+                    route.couponId,
+                    { navigationController.navigateUp(ZyntaRoute.CouponList) },
+                )
+            }
+        }
+
+        // ── Expenses sub-graph ───────────────────────────────────────────────
+        navigation<ZyntaRoute.ExpensesGraph>(startDestination = ZyntaRoute.ExpenseList) {
+            composable<ZyntaRoute.ExpenseList> {
+                MainScaffoldShell(
+                    navigationController = navigationController,
+                    navItems = navItems,
+                    currentRoute = ZyntaRoute.ExpenseList,
+                ) {
+                    screens.expenseList(
+                        { expenseId -> navigationController.navigate(ZyntaRoute.ExpenseDetail(expenseId)) },
+                        { navigationController.navigate(ZyntaRoute.ExpenseCategoryList) },
+                    )
+                }
+            }
+
+            composable<ZyntaRoute.ExpenseDetail> { entry ->
+                val route = entry.toRoute<ZyntaRoute.ExpenseDetail>()
+                screens.expenseDetail(
+                    route.expenseId,
+                    { navigationController.navigateUp(ZyntaRoute.ExpenseList) },
+                )
+            }
+
+            composable<ZyntaRoute.ExpenseCategoryList> {
+                screens.expenseCategoryList(
+                    { navigationController.navigateUp(ZyntaRoute.ExpenseList) },
+                )
+            }
+        }
+
+        // ── Multi-store sub-graph ────────────────────────────────────────────
+        navigation<ZyntaRoute.MultiStoreGraph>(startDestination = ZyntaRoute.WarehouseList) {
+            composable<ZyntaRoute.WarehouseList> {
+                MainScaffoldShell(
+                    navigationController = navigationController,
+                    navItems = navItems,
+                    currentRoute = ZyntaRoute.WarehouseList,
+                ) {
+                    screens.warehouseList(
+                        { warehouseId -> navigationController.navigate(ZyntaRoute.WarehouseDetail(warehouseId)) },
+                        { navigationController.navigate(ZyntaRoute.StockTransferList) },
+                    )
+                }
+            }
+
+            composable<ZyntaRoute.WarehouseDetail> { entry ->
+                val route = entry.toRoute<ZyntaRoute.WarehouseDetail>()
+                screens.warehouseDetail(
+                    route.warehouseId,
+                    { navigationController.navigateUp(ZyntaRoute.WarehouseList) },
+                )
+            }
+
+            composable<ZyntaRoute.StockTransferList> {
+                screens.stockTransferList(
+                    { srcId -> navigationController.navigate(ZyntaRoute.NewStockTransfer(srcId)) },
+                    { navigationController.navigateUp(ZyntaRoute.WarehouseList) },
+                )
+            }
+
+            composable<ZyntaRoute.NewStockTransfer> { entry ->
+                val route = entry.toRoute<ZyntaRoute.NewStockTransfer>()
+                screens.newStockTransfer(
+                    route.sourceWarehouseId,
+                    {
+                        navigationController.navController.popBackStack(
+                            route = ZyntaRoute.StockTransferList,
+                            inclusive = false,
+                        )
+                    },
+                    { navigationController.popBackStack() },
+                )
+            }
+        }
+
+        // ── Notification inbox ───────────────────────────────────────────────
+        composable<ZyntaRoute.NotificationInbox> {
+            screens.notificationInbox(
+                { navigationController.popBackStack() },
+            )
+        }
+
         // ── Deep-link target: OrderHistory ───────────────────────────────────
         composable<ZyntaRoute.OrderHistory> { entry ->
             val route = entry.toRoute<ZyntaRoute.OrderHistory>()
@@ -340,6 +484,27 @@ private fun MainScaffoldShell(
             is ZyntaRoute.BackupSettings,
             is ZyntaRoute.PosSettings,
             is ZyntaRoute.SystemHealthSettings -> item.route is ZyntaRoute.Settings
+
+            // CRM sub-graph
+            is ZyntaRoute.CustomerList,
+            is ZyntaRoute.CustomerDetail,
+            is ZyntaRoute.CustomerGroupList,
+            is ZyntaRoute.CustomerWallet -> item.route is ZyntaRoute.CustomerList
+
+            // Coupons sub-graph
+            is ZyntaRoute.CouponList,
+            is ZyntaRoute.CouponDetail -> item.route is ZyntaRoute.CouponList
+
+            // Expenses sub-graph
+            is ZyntaRoute.ExpenseList,
+            is ZyntaRoute.ExpenseDetail,
+            is ZyntaRoute.ExpenseCategoryList -> item.route is ZyntaRoute.ExpenseList
+
+            // Multi-store sub-graph
+            is ZyntaRoute.WarehouseList,
+            is ZyntaRoute.WarehouseDetail,
+            is ZyntaRoute.StockTransferList,
+            is ZyntaRoute.NewStockTransfer -> item.route is ZyntaRoute.WarehouseList
 
             else -> item.route::class == currentRoute::class
         }

@@ -1,0 +1,324 @@
+-- ============================================================
+-- Migration 1 → 2: Phase 2 Growth — CRM, Coupons, Expenses,
+--                  Multi-Store, Notifications, CRDT sync
+-- ============================================================
+-- This migration is applied when the existing DB is at version 1
+-- (Phase 1 schema). It adds all Phase 2 tables and extends the
+-- customers table with new CRM columns.
+-- ============================================================
+
+-- ── Extend customers table with Phase 2 CRM fields ──────────────────────────
+ALTER TABLE customers ADD COLUMN credit_limit    REAL    NOT NULL DEFAULT 0.0;
+ALTER TABLE customers ADD COLUMN credit_enabled  INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE customers ADD COLUMN gender          TEXT;
+ALTER TABLE customers ADD COLUMN birthday        TEXT;
+ALTER TABLE customers ADD COLUMN is_walk_in      INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE customers ADD COLUMN store_id        TEXT;
+
+-- Add group index that was not present in Phase 1
+CREATE INDEX IF NOT EXISTS idx_customers_group ON customers(group_id);
+
+-- ── Customer Groups ──────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS customer_groups (
+    id             TEXT    NOT NULL PRIMARY KEY,
+    name           TEXT    NOT NULL,
+    description    TEXT,
+    discount_type  TEXT,
+    discount_value REAL    NOT NULL DEFAULT 0.0,
+    price_type     TEXT    NOT NULL DEFAULT 'RETAIL',
+    created_at     INTEGER NOT NULL,
+    updated_at     INTEGER NOT NULL,
+    deleted_at     INTEGER,
+    sync_status    TEXT    NOT NULL DEFAULT 'PENDING'
+);
+CREATE INDEX IF NOT EXISTS idx_customer_groups_name ON customer_groups(name);
+
+-- ── Customer Addresses ───────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS customer_addresses (
+    id           TEXT    NOT NULL PRIMARY KEY,
+    customer_id  TEXT    NOT NULL REFERENCES customers(id),
+    label        TEXT    NOT NULL DEFAULT 'Home',
+    address_line TEXT    NOT NULL,
+    city         TEXT,
+    postal_code  TEXT,
+    country      TEXT,
+    is_default   INTEGER NOT NULL DEFAULT 0,
+    created_at   INTEGER NOT NULL,
+    updated_at   INTEGER NOT NULL,
+    sync_status  TEXT    NOT NULL DEFAULT 'PENDING'
+);
+CREATE INDEX IF NOT EXISTS idx_customer_addresses_customer ON customer_addresses(customer_id);
+
+-- ── Customer Wallets ─────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS customer_wallets (
+    id          TEXT    NOT NULL PRIMARY KEY,
+    customer_id TEXT    NOT NULL REFERENCES customers(id),
+    balance     REAL    NOT NULL DEFAULT 0.0,
+    created_at  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL,
+    sync_status TEXT    NOT NULL DEFAULT 'PENDING'
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_wallets_customer ON customer_wallets(customer_id);
+
+CREATE TABLE IF NOT EXISTS wallet_transactions (
+    id              TEXT    NOT NULL PRIMARY KEY,
+    wallet_id       TEXT    NOT NULL REFERENCES customer_wallets(id),
+    type            TEXT    NOT NULL,
+    amount          REAL    NOT NULL,
+    balance_after   REAL    NOT NULL,
+    reference_type  TEXT,
+    reference_id    TEXT,
+    note            TEXT,
+    created_at      INTEGER NOT NULL,
+    sync_status     TEXT    NOT NULL DEFAULT 'PENDING'
+);
+CREATE INDEX IF NOT EXISTS idx_wallet_txn_wallet ON wallet_transactions(wallet_id, created_at DESC);
+
+-- ── Installment Plans ────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS installment_plans (
+    id               TEXT    NOT NULL PRIMARY KEY,
+    order_id         TEXT    NOT NULL,
+    customer_id      TEXT    NOT NULL REFERENCES customers(id),
+    total_amount     REAL    NOT NULL,
+    paid_amount      REAL    NOT NULL DEFAULT 0.0,
+    remaining_amount REAL    NOT NULL,
+    num_installments INTEGER NOT NULL DEFAULT 1,
+    frequency        TEXT    NOT NULL DEFAULT 'MONTHLY',
+    start_date       INTEGER NOT NULL,
+    end_date         INTEGER,
+    status           TEXT    NOT NULL DEFAULT 'ACTIVE',
+    notes            TEXT,
+    created_at       INTEGER NOT NULL,
+    updated_at       INTEGER NOT NULL,
+    sync_status      TEXT    NOT NULL DEFAULT 'PENDING'
+);
+CREATE INDEX IF NOT EXISTS idx_installment_plans_customer ON installment_plans(customer_id);
+CREATE INDEX IF NOT EXISTS idx_installment_plans_status   ON installment_plans(status);
+
+CREATE TABLE IF NOT EXISTS installment_payments (
+    id          TEXT    NOT NULL PRIMARY KEY,
+    plan_id     TEXT    NOT NULL REFERENCES installment_plans(id),
+    due_date    INTEGER NOT NULL,
+    amount      REAL    NOT NULL,
+    paid_amount REAL    NOT NULL DEFAULT 0.0,
+    paid_at     INTEGER,
+    status      TEXT    NOT NULL DEFAULT 'PENDING',
+    payment_id  TEXT,
+    created_at  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL,
+    sync_status TEXT    NOT NULL DEFAULT 'PENDING'
+);
+CREATE INDEX IF NOT EXISTS idx_installment_payments_plan ON installment_payments(plan_id);
+CREATE INDEX IF NOT EXISTS idx_installment_payments_due  ON installment_payments(due_date, status);
+
+-- ── Loyalty / Reward Points ──────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS reward_points (
+    id             TEXT    NOT NULL PRIMARY KEY,
+    customer_id    TEXT    NOT NULL REFERENCES customers(id),
+    points         INTEGER NOT NULL,
+    balance_after  INTEGER NOT NULL,
+    type           TEXT    NOT NULL,
+    reference_type TEXT,
+    reference_id   TEXT,
+    note           TEXT,
+    expires_at     INTEGER,
+    created_at     INTEGER NOT NULL,
+    sync_status    TEXT    NOT NULL DEFAULT 'PENDING'
+);
+CREATE INDEX IF NOT EXISTS idx_reward_points_customer ON reward_points(customer_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS loyalty_tiers (
+    id               TEXT    NOT NULL PRIMARY KEY,
+    name             TEXT    NOT NULL,
+    min_points       INTEGER NOT NULL DEFAULT 0,
+    discount_percent REAL    NOT NULL DEFAULT 0.0,
+    points_multiplier REAL   NOT NULL DEFAULT 1.0,
+    benefits         TEXT    NOT NULL DEFAULT '[]',
+    created_at       INTEGER NOT NULL,
+    updated_at       INTEGER NOT NULL,
+    sync_status      TEXT    NOT NULL DEFAULT 'PENDING'
+);
+CREATE INDEX IF NOT EXISTS idx_loyalty_tiers_points ON loyalty_tiers(min_points ASC);
+
+-- ── Coupons ──────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS coupons (
+    id                TEXT    NOT NULL PRIMARY KEY,
+    code              TEXT    NOT NULL UNIQUE,
+    name              TEXT    NOT NULL,
+    discount_type     TEXT    NOT NULL,
+    discount_value    REAL    NOT NULL DEFAULT 0.0,
+    minimum_purchase  REAL    NOT NULL DEFAULT 0.0,
+    maximum_discount  REAL,
+    usage_limit       INTEGER,
+    usage_count       INTEGER NOT NULL DEFAULT 0,
+    per_customer_limit INTEGER,
+    scope             TEXT    NOT NULL DEFAULT 'CART',
+    scope_ids         TEXT    NOT NULL DEFAULT '[]',
+    valid_from        INTEGER NOT NULL,
+    valid_to          INTEGER NOT NULL,
+    is_active         INTEGER NOT NULL DEFAULT 1,
+    created_at        INTEGER NOT NULL,
+    updated_at        INTEGER NOT NULL,
+    sync_status       TEXT    NOT NULL DEFAULT 'PENDING'
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_coupons_code  ON coupons(code);
+CREATE INDEX       IF NOT EXISTS idx_coupons_active ON coupons(is_active, valid_from, valid_to);
+
+CREATE TABLE IF NOT EXISTS coupon_usage (
+    id              TEXT    NOT NULL PRIMARY KEY,
+    coupon_id       TEXT    NOT NULL REFERENCES coupons(id),
+    order_id        TEXT    NOT NULL,
+    customer_id     TEXT,
+    discount_amount REAL    NOT NULL DEFAULT 0.0,
+    used_at         INTEGER NOT NULL,
+    sync_status     TEXT    NOT NULL DEFAULT 'PENDING'
+);
+CREATE INDEX IF NOT EXISTS idx_coupon_usage_coupon ON coupon_usage(coupon_id);
+
+CREATE TABLE IF NOT EXISTS promotions (
+    id          TEXT    NOT NULL PRIMARY KEY,
+    name        TEXT    NOT NULL,
+    type        TEXT    NOT NULL,
+    config      TEXT    NOT NULL DEFAULT '{}',
+    valid_from  INTEGER NOT NULL,
+    valid_to    INTEGER NOT NULL,
+    priority    INTEGER NOT NULL DEFAULT 0,
+    is_active   INTEGER NOT NULL DEFAULT 1,
+    created_at  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL,
+    sync_status TEXT    NOT NULL DEFAULT 'PENDING'
+);
+CREATE INDEX IF NOT EXISTS idx_promotions_active ON promotions(is_active, valid_from, valid_to, priority DESC);
+
+CREATE TABLE IF NOT EXISTS customer_coupons (
+    id          TEXT    NOT NULL PRIMARY KEY,
+    customer_id TEXT    NOT NULL REFERENCES customers(id),
+    coupon_id   TEXT    NOT NULL REFERENCES coupons(id),
+    assigned_at INTEGER NOT NULL,
+    expires_at  INTEGER,
+    is_used     INTEGER NOT NULL DEFAULT 0
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_customer_coupons_pair ON customer_coupons(customer_id, coupon_id);
+
+-- ── Expense Categories ────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS expense_categories (
+    id          TEXT NOT NULL PRIMARY KEY,
+    name        TEXT NOT NULL,
+    description TEXT,
+    parent_id   TEXT REFERENCES expense_categories(id),
+    created_at  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL,
+    sync_status TEXT NOT NULL DEFAULT 'PENDING'
+);
+CREATE INDEX IF NOT EXISTS idx_expense_categories_parent ON expense_categories(parent_id);
+
+-- ── Expenses ─────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS expenses (
+    id           TEXT    NOT NULL PRIMARY KEY,
+    store_id     TEXT,
+    category_id  TEXT    REFERENCES expense_categories(id),
+    amount       REAL    NOT NULL,
+    description  TEXT    NOT NULL,
+    expense_date INTEGER NOT NULL,
+    receipt_url  TEXT,
+    is_recurring INTEGER NOT NULL DEFAULT 0,
+    status       TEXT    NOT NULL DEFAULT 'PENDING',
+    approved_by  TEXT,
+    approved_at  INTEGER,
+    reject_reason TEXT,
+    created_by   TEXT,
+    created_at   INTEGER NOT NULL,
+    updated_at   INTEGER NOT NULL,
+    sync_status  TEXT    NOT NULL DEFAULT 'PENDING'
+);
+CREATE INDEX IF NOT EXISTS idx_expenses_status ON expenses(status, expense_date DESC);
+CREATE INDEX IF NOT EXISTS idx_expenses_date   ON expenses(expense_date DESC);
+
+CREATE TABLE IF NOT EXISTS recurring_expenses (
+    id          TEXT    NOT NULL PRIMARY KEY,
+    store_id    TEXT,
+    category_id TEXT    REFERENCES expense_categories(id),
+    amount      REAL    NOT NULL,
+    description TEXT    NOT NULL,
+    frequency   TEXT    NOT NULL DEFAULT 'MONTHLY',
+    start_date  INTEGER NOT NULL,
+    end_date    INTEGER,
+    is_active   INTEGER NOT NULL DEFAULT 1,
+    last_run    INTEGER,
+    created_at  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL,
+    sync_status TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+-- ── Warehouses ────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS warehouses (
+    id         TEXT    NOT NULL PRIMARY KEY,
+    store_id   TEXT    NOT NULL,
+    name       TEXT    NOT NULL,
+    manager_id TEXT,
+    is_active  INTEGER NOT NULL DEFAULT 1,
+    is_default INTEGER NOT NULL DEFAULT 0,
+    address    TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    sync_status TEXT   NOT NULL DEFAULT 'PENDING'
+);
+CREATE INDEX IF NOT EXISTS idx_warehouses_store ON warehouses(store_id, is_active);
+
+-- ── Stock Transfers ───────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS stock_transfers (
+    id                   TEXT    NOT NULL PRIMARY KEY,
+    source_warehouse_id  TEXT    NOT NULL REFERENCES warehouses(id),
+    dest_warehouse_id    TEXT    NOT NULL REFERENCES warehouses(id),
+    product_id           TEXT    NOT NULL,
+    quantity             REAL    NOT NULL,
+    status               TEXT    NOT NULL DEFAULT 'PENDING',
+    notes                TEXT,
+    transferred_by       TEXT,
+    transferred_at       INTEGER,
+    created_at           INTEGER NOT NULL,
+    updated_at           INTEGER NOT NULL,
+    sync_status          TEXT    NOT NULL DEFAULT 'PENDING'
+);
+CREATE INDEX IF NOT EXISTS idx_stock_transfers_source  ON stock_transfers(source_warehouse_id, status);
+CREATE INDEX IF NOT EXISTS idx_stock_transfers_product ON stock_transfers(product_id);
+
+-- ── Notifications ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS notifications (
+    id             TEXT    NOT NULL PRIMARY KEY,
+    type           TEXT    NOT NULL,
+    title          TEXT    NOT NULL,
+    message        TEXT    NOT NULL,
+    channel        TEXT    NOT NULL DEFAULT 'IN_APP',
+    recipient_type TEXT    NOT NULL DEFAULT 'ROLE',
+    recipient_id   TEXT    NOT NULL,
+    is_read        INTEGER NOT NULL DEFAULT 0,
+    reference_type TEXT,
+    reference_id   TEXT,
+    created_at     INTEGER NOT NULL,
+    read_at        INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_notifications_recipient ON notifications(recipient_type, recipient_id, is_read, created_at DESC);
+
+-- ── Sync State ────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS sync_state (
+    entity_type  TEXT    NOT NULL PRIMARY KEY,
+    last_sync_at INTEGER NOT NULL DEFAULT 0,
+    cursor       TEXT,
+    updated_at   INTEGER NOT NULL
+);
+
+-- ── Conflict Log ──────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS conflict_log (
+    id            TEXT    NOT NULL PRIMARY KEY,
+    entity_type   TEXT    NOT NULL,
+    entity_id     TEXT    NOT NULL,
+    field_name    TEXT    NOT NULL,
+    local_value   TEXT,
+    server_value  TEXT,
+    resolved_by   TEXT,
+    resolution    TEXT,
+    resolved_at   INTEGER,
+    created_at    INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_conflict_log_entity ON conflict_log(entity_type, entity_id);

@@ -1,0 +1,48 @@
+-- ============================================================
+-- conflict_log.sq — CRDT conflict audit trail
+-- ============================================================
+
+CREATE TABLE conflict_log (
+    id            TEXT    NOT NULL PRIMARY KEY,
+    entity_type   TEXT    NOT NULL,
+    entity_id     TEXT    NOT NULL,
+    field_name    TEXT    NOT NULL,
+    local_value   TEXT,
+    server_value  TEXT,
+    resolved_by   TEXT,   -- 'LOCAL' | 'SERVER' | 'MERGE' | 'MANUAL'
+    resolution    TEXT,   -- the final value chosen
+    resolved_at   INTEGER,
+    created_at    INTEGER NOT NULL
+);
+
+CREATE INDEX idx_conflict_log_entity    ON conflict_log(entity_type, entity_id);
+CREATE INDEX idx_conflict_log_resolved  ON conflict_log(resolved_at);
+CREATE INDEX idx_conflict_log_unresolved ON conflict_log(resolved_at) WHERE resolved_at IS NULL;
+
+-- ── Read queries ─────────────────────────────────────────────────────────────
+
+getUnresolvedConflicts:
+SELECT * FROM conflict_log WHERE resolved_at IS NULL ORDER BY created_at ASC;
+
+getConflictsByEntity:
+SELECT * FROM conflict_log WHERE entity_type = ? AND entity_id = ? ORDER BY created_at DESC;
+
+getConflictById:
+SELECT * FROM conflict_log WHERE id = ?;
+
+getUnresolvedCount:
+SELECT COUNT(*) FROM conflict_log WHERE resolved_at IS NULL;
+
+-- ── Write queries ────────────────────────────────────────────────────────────
+
+insertConflict:
+INSERT INTO conflict_log(id, entity_type, entity_id, field_name, local_value, server_value, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+resolveConflict:
+UPDATE conflict_log SET
+    resolved_by = ?, resolution = ?, resolved_at = ?
+WHERE id = ?;
+
+pruneOldResolved:
+DELETE FROM conflict_log WHERE resolved_at IS NOT NULL AND resolved_at < ?;
