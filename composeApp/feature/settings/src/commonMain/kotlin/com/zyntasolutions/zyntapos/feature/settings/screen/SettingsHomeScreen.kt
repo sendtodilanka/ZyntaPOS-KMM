@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Backup
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.HealthAndSafety
 import androidx.compose.material.icons.filled.Info
@@ -47,15 +48,20 @@ import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
  * Each category is a clickable [ListItem] inside a [Card].
  * Navigation is handled by the caller via [onNavigate].
  *
+ * @param isDebug     When `true`, adds a "Developer Tools" group with the Debug Console entry.
+ *   Should reflect `AppInfoProvider.isDebug` at the call site.
  * @param onNavigate  Lambda invoked with the [SettingsRoute] the user selected.
  * @param onBack      Lambda invoked when the user presses the system back button.
  */
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun SettingsHomeScreen(
+    isDebug: Boolean = false,
     onNavigate: (SettingsRoute) -> Unit,
     onBack: () -> Unit,
 ) {
+    val groups = if (isDebug) settingsGroups + debugGroup else settingsGroups
+
     ZyntaPageScaffold(
         title = "Settings",
         onNavigateBack = onBack,
@@ -69,7 +75,7 @@ fun SettingsHomeScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
         ) {
-            settingsGroups.forEach { group ->
+            groups.forEach { group ->
                 item {
                     SettingsCategoryCard(
                         group = group,
@@ -100,6 +106,8 @@ data class SettingsGroup(
 /** All routes the settings home screen can navigate to. */
 enum class SettingsRoute {
     GENERAL, POS, TAX, PRINTER, USERS, SECURITY, BACKUP, APPEARANCE, SYSTEM_HEALTH, ABOUT,
+    /** Debug Console — only presented when [SettingsHomeScreen] receives `isDebug = true`. */
+    DEBUG_CONSOLE,
 }
 
 private val settingsGroups: List<SettingsGroup> = listOf(
@@ -135,6 +143,22 @@ private val settingsGroups: List<SettingsGroup> = listOf(
         entries = listOf(
             SettingsEntry("System Health", "Memory, disk, database & runtime diagnostics", Icons.Filled.HealthAndSafety, SettingsRoute.SYSTEM_HEALTH),
             SettingsEntry("About", "Version, build info & licences", Icons.Filled.Info, SettingsRoute.ABOUT),
+        ),
+    ),
+)
+
+/**
+ * Debug-only settings group appended when [SettingsHomeScreen] receives `isDebug = true`.
+ * Never shown in production builds.
+ */
+private val debugGroup = SettingsGroup(
+    title = "Developer Tools",
+    entries = listOf(
+        SettingsEntry(
+            label = "Debug Console",
+            subtitle = "Seeds, database, auth, network & diagnostics tools",
+            icon = Icons.Filled.BugReport,
+            route = SettingsRoute.DEBUG_CONSOLE,
         ),
     ),
 )

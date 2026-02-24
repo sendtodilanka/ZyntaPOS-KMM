@@ -98,6 +98,8 @@ val deepLinkOrder: NavDeepLink = navDeepLink<ZyntaRoute.OrderHistory>(
  * @param signUpScreen Composable factory for the Sign-Up screen.
  * @param onboardingScreen Composable factory for the Onboarding wizard screen.
  * @param pinLockScreen Composable factory for the PinLock screen.
+ * @param debugScreen Optional composable factory for the Debug Console. Non-null only when
+ *   `AppInfoProvider.isDebug == true`. When null, [ZyntaRoute.Debug] is not registered.
  */
 @Composable
 fun ZyntaNavGraph(
@@ -110,6 +112,7 @@ fun ZyntaNavGraph(
     signUpScreen: @Composable (onSignUpSuccess: () -> Unit, onNavigateToLogin: () -> Unit) -> Unit,
     onboardingScreen: @Composable (onOnboardingComplete: () -> Unit) -> Unit,
     pinLockScreen: @Composable (onUnlocked: () -> Unit) -> Unit,
+    debugScreen: (@Composable (onNavigateUp: () -> Unit) -> Unit)? = null,
 ) {
     // Compute RBAC-filtered nav items once per role change
     val navItems: List<NavItem> = if (userRole != null) {
@@ -137,6 +140,7 @@ fun ZyntaNavGraph(
             navigationController = navigationController,
             navItems = navItems,
             screens = screens,
+            debugScreen = debugScreen,
         )
     }
 

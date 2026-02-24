@@ -34,11 +34,14 @@ import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaScaffold
  * @param navigationController Wraps the underlying [NavHostController].
  * @param navItems RBAC-filtered list of primary navigation destinations.
  * @param screens Composable factories for every authenticated screen.
+ * @param debugScreen Optional composable for the Debug Console. When non-null,
+ *   [ZyntaRoute.Debug] is registered and "DEBUG_CONSOLE" settings key navigates to it.
  */
 fun NavGraphBuilder.mainNavGraph(
     navigationController: NavigationController,
     navItems: List<NavItem>,
     screens: MainNavScreens,
+    debugScreen: (@Composable (onNavigateUp: () -> Unit) -> Unit)? = null,
 ) {
     navigation<ZyntaRoute.MainGraph>(startDestination = ZyntaRoute.Dashboard) {
 
@@ -210,6 +213,9 @@ fun NavGraphBuilder.mainNavGraph(
                             "BACKUP" -> navigationController.navigate(ZyntaRoute.BackupSettings)
                             "POS" -> navigationController.navigate(ZyntaRoute.PosSettings)
                             "SYSTEM_HEALTH" -> navigationController.navigate(ZyntaRoute.SystemHealthSettings)
+                            "DEBUG_CONSOLE" -> if (debugScreen != null) {
+                                navigationController.navigate(ZyntaRoute.Debug)
+                            }
                         }
                     }
                 }
@@ -267,6 +273,13 @@ fun NavGraphBuilder.mainNavGraph(
                 screens.systemHealthSettings(
                     { navigationController.navigateUp(ZyntaRoute.Settings) },
                 )
+            }
+
+            // ── Debug Console — only registered in debug builds ──────────────
+            if (debugScreen != null) {
+                composable<ZyntaRoute.Debug> {
+                    debugScreen { navigationController.navigateUp(ZyntaRoute.Settings) }
+                }
             }
         }
 

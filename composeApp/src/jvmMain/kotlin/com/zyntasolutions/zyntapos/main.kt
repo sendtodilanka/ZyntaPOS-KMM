@@ -3,7 +3,10 @@ package com.zyntasolutions.zyntapos
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import com.zyntasolutions.zyntapos.core.di.coreModule
+import com.zyntasolutions.zyntapos.core.platform.AppInfoProvider
 import com.zyntasolutions.zyntapos.data.di.dataModule
+import com.zyntasolutions.zyntapos.debug.debugModule
+import com.zyntasolutions.zyntapos.seed.seedModule
 import com.zyntasolutions.zyntapos.data.di.desktopDataModule
 import com.zyntasolutions.zyntapos.data.local.db.SecurePreferencesKeyMigration
 import com.zyntasolutions.zyntapos.feature.dashboard.dashboardModule
@@ -26,6 +29,7 @@ import com.zyntasolutions.zyntapos.feature.staff.staffModule
 import com.zyntasolutions.zyntapos.hal.di.halModule
 import com.zyntasolutions.zyntapos.navigation.navigationModule
 import com.zyntasolutions.zyntapos.security.di.securityModule
+import org.koin.core.context.loadKoinModules
 import org.koin.core.context.startKoin
 
 /**
@@ -93,6 +97,14 @@ fun main() {
     // returned by startKoin — avoids GlobalContext (Service Locator antipattern).
     // migrate() is idempotent — safe to call on every launch.
     koin.koin.get<SecurePreferencesKeyMigration>().migrate()
+
+    // ── Tier 7: Debug tools — loaded only when isDebug == true ───────────────
+    // seedModule registers SeedRunner; debugModule registers action handlers
+    // and DebugViewModel. Loaded AFTER dataModule so all repository bindings exist.
+    val appInfoProvider = koin.koin.get<AppInfoProvider>()
+    if (appInfoProvider.isDebug) {
+        loadKoinModules(listOf(seedModule, debugModule))
+    }
 
     application {
         Window(

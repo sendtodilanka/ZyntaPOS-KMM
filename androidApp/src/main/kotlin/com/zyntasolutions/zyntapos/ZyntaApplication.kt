@@ -4,6 +4,8 @@ import android.app.Application
 import com.zyntasolutions.zyntapos.core.platform.AndroidAppInfoProvider
 import com.zyntasolutions.zyntapos.core.platform.AppInfoProvider
 import com.zyntasolutions.zyntapos.core.di.coreModule
+import com.zyntasolutions.zyntapos.debug.debugModule
+import com.zyntasolutions.zyntapos.seed.seedModule
 import com.zyntasolutions.zyntapos.data.di.androidDataModule
 import com.zyntasolutions.zyntapos.data.di.dataModule
 import com.zyntasolutions.zyntapos.feature.dashboard.dashboardModule
@@ -29,6 +31,7 @@ import com.zyntasolutions.zyntapos.security.di.securityModule
 import com.zyntasolutions.zyntapos.data.local.db.SecurePreferencesKeyMigration
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.Koin
+import org.koin.core.context.loadKoinModules
 import org.koin.core.context.startKoin
 
 /**
@@ -116,5 +119,13 @@ class ZyntaApplication : Application() {
             buildDate   = BuildConfig.BUILD_DATE,
             debug       = BuildConfig.DEBUG,
         )
+
+        // ── Tier 7: Debug tools — loaded only in debug builds ─────────────────
+        // seedModule registers SeedRunner; debugModule registers action handlers
+        // and DebugViewModel. Both are loaded AFTER dataModule so all repository
+        // bindings are already in the Koin graph.
+        if (BuildConfig.DEBUG) {
+            loadKoinModules(listOf(seedModule, debugModule))
+        }
     }
 }
