@@ -36,18 +36,18 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
-import com.zyntasolutions.zyntapos.designsystem.components.ChartDataPoint
+import com.zyntasolutions.zyntapos.dashboard.DashboardIntent
+import com.zyntasolutions.zyntapos.dashboard.DashboardState
+import com.zyntasolutions.zyntapos.dashboard.DashboardViewModel
+import com.zyntasolutions.zyntapos.dashboard.RecentOrderItem
 import com.zyntasolutions.zyntapos.designsystem.components.ChartSeries
 import com.zyntasolutions.zyntapos.designsystem.components.InfoCardVariant
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaActivityItem
@@ -61,22 +61,12 @@ import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaElevation
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.designsystem.util.WindowSize
 import com.zyntasolutions.zyntapos.designsystem.util.currentWindowSize
-import com.zyntasolutions.zyntapos.domain.model.OrderStatus
 import com.zyntasolutions.zyntapos.domain.model.User
-import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
-import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
-import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
-import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
-import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.atStartOfDayIn
-import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
 import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
 
 /**
  * Home dashboard screen — Professional KPI cards, weekly sales chart,
@@ -86,6 +76,8 @@ import org.koin.compose.koinInject
  * - **EXPANDED** (Desktop >=840dp): Two-column (KPIs + Chart | Activity + Alerts)
  * - **MEDIUM** (Tablet 600-840dp): Single-column with chart below KPIs
  * - **COMPACT** (Mobile <600dp): Single-column scrollable with horizontal stat cards
+ *
+ * All business logic is delegated to [DashboardViewModel] via MVI intents.
  */
 @Composable
 fun DashboardScreen(
@@ -93,123 +85,39 @@ fun DashboardScreen(
     onNavigateToRegister: () -> Unit,
     onNavigateToReports: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    viewModel: DashboardViewModel = koinViewModel(),
 ) {
-    val orderRepository: OrderRepository = koinInject()
-    val productRepository: ProductRepository = koinInject()
-    val registerRepository: RegisterRepository = koinInject()
-    val authRepository: AuthRepository = koinInject()
+    val state by viewModel.state.collectAsState()
     val currencyFormatter: CurrencyFormatter = koinInject()
     val windowSize = currentWindowSize()
-    val scope = rememberCoroutineScope()
 
-    var currentUser by remember { mutableStateOf<User?>(null) }
-    var todaysSales by remember { mutableStateOf(0.0) }
-    var totalOrders by remember { mutableStateOf(0L) }
-    var lowStockCount by remember { mutableStateOf(0L) }
-    var lowStockNames by remember { mutableStateOf<List<String>>(emptyList()) }
-    var activeRegisters by remember { mutableStateOf(0L) }
-    var recentOrders by remember { mutableStateOf<List<RecentOrder>>(emptyList()) }
-    var weeklySalesData by remember { mutableStateOf<List<ChartDataPoint>>(emptyList()) }
-    var todaySparkline by remember { mutableStateOf<List<Float>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
-
-    val onLogout: () -> Unit = {
-        scope.launch { authRepository.logout() }
-    }
-
+    // Trigger initial data load
     LaunchedEffect(Unit) {
-        currentUser = authRepository.getSession().first()
-
-        val tz = TimeZone.currentSystemDefault()
-        val now = Clock.System.now()
-        val todayStart = now.toLocalDateTime(tz).date.atStartOfDayIn(tz)
-
-        // Today's orders
-        val todayOrders = orderRepository.getByDateRange(todayStart, now).first()
-        val completedToday = todayOrders.filter { it.status == OrderStatus.COMPLETED }
-        todaysSales = completedToday.sumOf { it.total }
-        totalOrders = completedToday.size.toLong()
-
-        // Build sparkline from today's hourly sales
-        val hourlyBuckets = FloatArray(24)
-        completedToday.forEach { order ->
-            val hour = order.createdAt.toLocalDateTime(tz).hour
-            hourlyBuckets[hour] += order.total.toFloat()
-        }
-        val currentHour = now.toLocalDateTime(tz).hour
-        todaySparkline = hourlyBuckets.take(currentHour + 1).map { it }
-
-        // Weekly sales data (last 7 days)
-        val dayNames = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-        val weeklyPoints = mutableListOf<ChartDataPoint>()
-        for (i in 6 downTo 0) {
-            val dayDate = now.toLocalDateTime(tz).date.minus(i.toLong(), DateTimeUnit.DAY)
-            val dayStart = dayDate.atStartOfDayIn(tz)
-            val dayEnd = if (i == 0) {
-                now
-            } else {
-                now.toLocalDateTime(tz).date.minus((i - 1).toLong(), DateTimeUnit.DAY)
-                    .atStartOfDayIn(tz)
-            }
-            val dayOrders = orderRepository.getByDateRange(dayStart, dayEnd).first()
-            val daySales = dayOrders
-                .filter { it.status == OrderStatus.COMPLETED }
-                .sumOf { it.total }
-            val dayOfWeek = dayDate.dayOfWeek.ordinal // 0=Monday
-            weeklyPoints.add(ChartDataPoint(label = dayNames[dayOfWeek], value = daySales.toFloat()))
-        }
-        weeklySalesData = weeklyPoints
-
-        // Low stock
-        val allProducts = productRepository.getAll().first()
-        val lowStockProducts = allProducts.filter { it.stockQty <= it.minStockQty }
-        lowStockCount = lowStockProducts.size.toLong()
-        lowStockNames = lowStockProducts.take(5).map { it.name }
-
-        // Active registers
-        val activeSession = registerRepository.getActive().first()
-        activeRegisters = if (activeSession != null) 1L else 0L
-
-        // Recent completed orders (last 10)
-        val allOrders = orderRepository.getAll().first()
-        recentOrders = allOrders
-            .filter { it.status == OrderStatus.COMPLETED }
-            .sortedByDescending { it.createdAt }
-            .take(10)
-            .map { order ->
-                RecentOrder(
-                    orderNumber = order.orderNumber,
-                    total = order.total,
-                    method = order.paymentMethod.name,
-                    timestamp = order.createdAt.toEpochMilliseconds(),
-                )
-            }
-        isLoading = false
+        viewModel.dispatch(DashboardIntent.LoadDashboard)
     }
 
-    if (isLoading) {
+    if (state.isLoading) {
         ZyntaLoadingOverlay(isLoading = true)
         return
     }
 
+    val onLogout: () -> Unit = { viewModel.dispatch(DashboardIntent.Logout) }
+
     when (windowSize) {
         WindowSize.EXPANDED -> ExpandedDashboard(
-            currentUser, todaysSales, totalOrders, lowStockCount, lowStockNames,
-            activeRegisters, recentOrders, weeklySalesData, todaySparkline,
-            currencyFormatter, onNavigateToPos, onNavigateToRegister,
-            onNavigateToReports, onNavigateToSettings, onLogout,
+            state, currencyFormatter,
+            onNavigateToPos, onNavigateToRegister, onNavigateToReports, onNavigateToSettings,
+            onLogout,
         )
         WindowSize.MEDIUM -> MediumDashboard(
-            currentUser, todaysSales, totalOrders, lowStockCount, lowStockNames,
-            activeRegisters, recentOrders, weeklySalesData, todaySparkline,
-            currencyFormatter, onNavigateToPos, onNavigateToRegister,
-            onNavigateToReports, onNavigateToSettings, onLogout,
+            state, currencyFormatter,
+            onNavigateToPos, onNavigateToRegister, onNavigateToReports, onNavigateToSettings,
+            onLogout,
         )
         WindowSize.COMPACT -> CompactDashboard(
-            currentUser, todaysSales, totalOrders, lowStockCount, lowStockNames,
-            activeRegisters, recentOrders, weeklySalesData, todaySparkline,
-            currencyFormatter, onNavigateToPos, onNavigateToRegister,
-            onNavigateToReports, onNavigateToSettings, onLogout,
+            state, currencyFormatter,
+            onNavigateToPos, onNavigateToRegister, onNavigateToReports, onNavigateToSettings,
+            onLogout,
         )
     }
 }
@@ -218,10 +126,7 @@ fun DashboardScreen(
 
 @Composable
 private fun ExpandedDashboard(
-    currentUser: User?, todaysSales: Double, totalOrders: Long,
-    lowStockCount: Long, lowStockNames: List<String>, activeRegisters: Long,
-    recentOrders: List<RecentOrder>, weeklySalesData: List<ChartDataPoint>,
-    todaySparkline: List<Float>, currencyFormatter: CurrencyFormatter,
+    state: DashboardState, currencyFormatter: CurrencyFormatter,
     onNavigateToPos: () -> Unit, onNavigateToRegister: () -> Unit,
     onNavigateToReports: () -> Unit, onNavigateToSettings: () -> Unit,
     onLogout: () -> Unit,
@@ -235,20 +140,20 @@ private fun ExpandedDashboard(
             modifier = Modifier.weight(0.65f),
             verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
         ) {
-            item { ProfileHeader(currentUser, onNavigateToSettings, onLogout) }
+            item { ProfileHeader(state.currentUser, onNavigateToSettings, onLogout) }
 
             // 4 KPI cards in 2x2 using Row (NOT LazyVerticalGrid — avoids nested scrollable crash)
             item {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.md)) {
                     ZyntaStatCard(
                         icon = Icons.Default.AttachMoney, label = "Today's Sales",
-                        value = currencyFormatter.format(todaysSales),
+                        value = currencyFormatter.format(state.todaysSales),
                         accentColor = MaterialTheme.colorScheme.primary,
-                        sparklineData = todaySparkline, modifier = Modifier.weight(1f),
+                        sparklineData = state.todaySparkline, modifier = Modifier.weight(1f),
                     )
                     ZyntaStatCard(
                         icon = Icons.Default.Receipt, label = "Total Orders",
-                        value = totalOrders.toString(),
+                        value = state.totalOrders.toString(),
                         accentColor = MaterialTheme.colorScheme.tertiary,
                         subtitle = "Completed today", modifier = Modifier.weight(1f),
                     )
@@ -258,16 +163,16 @@ private fun ExpandedDashboard(
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.md)) {
                     ZyntaStatCard(
                         icon = Icons.Default.Warning, label = "Low Stock",
-                        value = "$lowStockCount items",
-                        accentColor = if (lowStockCount > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary,
-                        subtitle = if (lowStockCount > 0) "Requires attention" else "All stocked",
+                        value = "${state.lowStockCount} items",
+                        accentColor = if (state.lowStockCount > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary,
+                        subtitle = if (state.lowStockCount > 0) "Requires attention" else "All stocked",
                         modifier = Modifier.weight(1f),
                     )
                     ZyntaStatCard(
                         icon = Icons.Default.PointOfSale, label = "Active Registers",
-                        value = activeRegisters.toString(),
-                        accentColor = if (activeRegisters > 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.secondary,
-                        subtitle = if (activeRegisters > 0) "Ready for sales" else "No register open",
+                        value = state.activeRegisters.toString(),
+                        accentColor = if (state.activeRegisters > 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.secondary,
+                        subtitle = if (state.activeRegisters > 0) "Ready for sales" else "No register open",
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -276,7 +181,7 @@ private fun ExpandedDashboard(
             item {
                 ZyntaLineChart(
                     title = "Weekly Sales Trend",
-                    series = listOf(ChartSeries("Sales", weeklySalesData, MaterialTheme.colorScheme.primary)),
+                    series = listOf(ChartSeries("Sales", state.weeklySalesData, MaterialTheme.colorScheme.primary)),
                     chartHeight = 220, showLegend = false,
                 )
             }
@@ -297,21 +202,21 @@ private fun ExpandedDashboard(
             verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
         ) {
             item { ZyntaSectionHeader("Recent Activity", actionLabel = "See All", onAction = onNavigateToReports) }
-            if (recentOrders.isEmpty()) {
+            if (state.recentOrders.isEmpty()) {
                 item { EmptyActivityCard() }
             } else {
-                item { RecentOrdersCard(recentOrders.take(8), currencyFormatter) }
+                item { RecentOrdersCard(state.recentOrders.take(8), currencyFormatter) }
             }
-            if (lowStockCount > 0) {
+            if (state.lowStockCount > 0) {
                 item {
                     ZyntaInfoCard(
-                        Icons.Default.Warning, "$lowStockCount items running low",
-                        description = lowStockNames.joinToString(", ") + if (lowStockCount > 5) ", ..." else "",
+                        Icons.Default.Warning, "${state.lowStockCount} items running low",
+                        description = state.lowStockNames.joinToString(", ") + if (state.lowStockCount > 5) ", ..." else "",
                         variant = InfoCardVariant.Warning,
                     )
                 }
             }
-            if (activeRegisters == 0L) {
+            if (state.activeRegisters == 0L) {
                 item {
                     ZyntaInfoCard(
                         Icons.Default.PointOfSale, "No register is open",
@@ -328,10 +233,7 @@ private fun ExpandedDashboard(
 
 @Composable
 private fun MediumDashboard(
-    currentUser: User?, todaysSales: Double, totalOrders: Long,
-    lowStockCount: Long, lowStockNames: List<String>, activeRegisters: Long,
-    recentOrders: List<RecentOrder>, weeklySalesData: List<ChartDataPoint>,
-    todaySparkline: List<Float>, currencyFormatter: CurrencyFormatter,
+    state: DashboardState, currencyFormatter: CurrencyFormatter,
     onNavigateToPos: () -> Unit, onNavigateToRegister: () -> Unit,
     onNavigateToReports: () -> Unit, onNavigateToSettings: () -> Unit,
     onLogout: () -> Unit,
@@ -341,23 +243,23 @@ private fun MediumDashboard(
         contentPadding = PaddingValues(ZyntaSpacing.md),
         verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
     ) {
-        item { ProfileHeader(currentUser, onNavigateToSettings, onLogout) }
+        item { ProfileHeader(state.currentUser, onNavigateToSettings, onLogout) }
 
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
-                ZyntaStatCard(Icons.Default.AttachMoney, "Today's Sales", currencyFormatter.format(todaysSales),
-                    MaterialTheme.colorScheme.primary, sparklineData = todaySparkline, modifier = Modifier.weight(1f))
-                ZyntaStatCard(Icons.Default.Receipt, "Total Orders", totalOrders.toString(),
+                ZyntaStatCard(Icons.Default.AttachMoney, "Today's Sales", currencyFormatter.format(state.todaysSales),
+                    MaterialTheme.colorScheme.primary, sparklineData = state.todaySparkline, modifier = Modifier.weight(1f))
+                ZyntaStatCard(Icons.Default.Receipt, "Total Orders", state.totalOrders.toString(),
                     MaterialTheme.colorScheme.tertiary, modifier = Modifier.weight(1f))
             }
         }
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
-                ZyntaStatCard(Icons.Default.Warning, "Low Stock", "$lowStockCount items",
-                    if (lowStockCount > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary,
+                ZyntaStatCard(Icons.Default.Warning, "Low Stock", "${state.lowStockCount} items",
+                    if (state.lowStockCount > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier.weight(1f))
-                ZyntaStatCard(Icons.Default.PointOfSale, "Registers", activeRegisters.toString(),
-                    if (activeRegisters > 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.secondary,
+                ZyntaStatCard(Icons.Default.PointOfSale, "Registers", state.activeRegisters.toString(),
+                    if (state.activeRegisters > 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.weight(1f))
             }
         }
@@ -372,24 +274,24 @@ private fun MediumDashboard(
 
         item {
             ZyntaLineChart("Weekly Sales Trend",
-                listOf(ChartSeries("Sales", weeklySalesData, MaterialTheme.colorScheme.primary)),
+                listOf(ChartSeries("Sales", state.weeklySalesData, MaterialTheme.colorScheme.primary)),
                 chartHeight = 180, showLegend = false)
         }
 
-        if (lowStockCount > 0) {
-            item { ZyntaInfoCard(Icons.Default.Warning, "$lowStockCount items running low",
-                description = lowStockNames.joinToString(", "), variant = InfoCardVariant.Warning) }
+        if (state.lowStockCount > 0) {
+            item { ZyntaInfoCard(Icons.Default.Warning, "${state.lowStockCount} items running low",
+                description = state.lowStockNames.joinToString(", "), variant = InfoCardVariant.Warning) }
         }
-        if (activeRegisters == 0L) {
+        if (state.activeRegisters == 0L) {
             item { ZyntaInfoCard(Icons.Default.PointOfSale, "No register is open",
                 description = "Open a register to start", variant = InfoCardVariant.Info, onClick = onNavigateToRegister) }
         }
 
         item { ZyntaSectionHeader("Recent Activity", actionLabel = "See All", onAction = onNavigateToReports) }
-        if (recentOrders.isEmpty()) {
+        if (state.recentOrders.isEmpty()) {
             item { EmptyActivityCard() }
         } else {
-            item { RecentOrdersCard(recentOrders.take(5), currencyFormatter) }
+            item { RecentOrdersCard(state.recentOrders.take(5), currencyFormatter) }
         }
     }
 }
@@ -398,10 +300,7 @@ private fun MediumDashboard(
 
 @Composable
 private fun CompactDashboard(
-    currentUser: User?, todaysSales: Double, totalOrders: Long,
-    lowStockCount: Long, lowStockNames: List<String>, activeRegisters: Long,
-    recentOrders: List<RecentOrder>, weeklySalesData: List<ChartDataPoint>,
-    todaySparkline: List<Float>, currencyFormatter: CurrencyFormatter,
+    state: DashboardState, currencyFormatter: CurrencyFormatter,
     onNavigateToPos: () -> Unit, onNavigateToRegister: () -> Unit,
     onNavigateToReports: () -> Unit, onNavigateToSettings: () -> Unit,
     onLogout: () -> Unit,
@@ -411,14 +310,14 @@ private fun CompactDashboard(
         contentPadding = PaddingValues(ZyntaSpacing.md),
         verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
     ) {
-        item { ProfileHeader(currentUser, onNavigateToSettings, onLogout) }
+        item { ProfileHeader(state.currentUser, onNavigateToSettings, onLogout) }
 
         item {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm), modifier = Modifier.fillMaxWidth()) {
-                item { ZyntaCompactStatCard(Icons.Default.AttachMoney, "Today's Sales", currencyFormatter.format(todaysSales), MaterialTheme.colorScheme.primary) }
-                item { ZyntaCompactStatCard(Icons.Default.Receipt, "Orders", totalOrders.toString(), MaterialTheme.colorScheme.tertiary) }
-                item { ZyntaCompactStatCard(Icons.Default.Warning, "Low Stock", "$lowStockCount", if (lowStockCount > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary) }
-                item { ZyntaCompactStatCard(Icons.Default.PointOfSale, "Registers", activeRegisters.toString(), if (activeRegisters > 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.secondary) }
+                item { ZyntaCompactStatCard(Icons.Default.AttachMoney, "Today's Sales", currencyFormatter.format(state.todaysSales), MaterialTheme.colorScheme.primary) }
+                item { ZyntaCompactStatCard(Icons.Default.Receipt, "Orders", state.totalOrders.toString(), MaterialTheme.colorScheme.tertiary) }
+                item { ZyntaCompactStatCard(Icons.Default.Warning, "Low Stock", "${state.lowStockCount}", if (state.lowStockCount > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary) }
+                item { ZyntaCompactStatCard(Icons.Default.PointOfSale, "Registers", state.activeRegisters.toString(), if (state.activeRegisters > 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.secondary) }
             }
         }
 
@@ -430,26 +329,26 @@ private fun CompactDashboard(
             }
         }
 
-        if (lowStockCount > 0) {
-            item { ZyntaInfoCard(Icons.Default.Warning, "$lowStockCount items running low",
-                description = lowStockNames.joinToString(", "), variant = InfoCardVariant.Warning) }
+        if (state.lowStockCount > 0) {
+            item { ZyntaInfoCard(Icons.Default.Warning, "${state.lowStockCount} items running low",
+                description = state.lowStockNames.joinToString(", "), variant = InfoCardVariant.Warning) }
         }
-        if (activeRegisters == 0L) {
+        if (state.activeRegisters == 0L) {
             item { ZyntaInfoCard(Icons.Default.PointOfSale, "No register is open",
                 description = "Open a register to start", variant = InfoCardVariant.Info, onClick = onNavigateToRegister) }
         }
 
         item {
             ZyntaLineChart("Weekly Sales Trend",
-                listOf(ChartSeries("Sales", weeklySalesData, MaterialTheme.colorScheme.primary)),
+                listOf(ChartSeries("Sales", state.weeklySalesData, MaterialTheme.colorScheme.primary)),
                 chartHeight = 160, showLegend = false)
         }
 
         item { ZyntaSectionHeader("Recent Activity") }
-        if (recentOrders.isEmpty()) {
+        if (state.recentOrders.isEmpty()) {
             item { EmptyActivityCard() }
         } else {
-            items(recentOrders.take(5), key = { it.orderNumber }) { order ->
+            items(state.recentOrders.take(5), key = { it.orderNumber }) { order ->
                 val tz = TimeZone.currentSystemDefault()
                 val orderTime = Instant.fromEpochMilliseconds(order.timestamp).toLocalDateTime(tz)
                 val timeStr = "${orderTime.hour.toString().padStart(2, '0')}:${orderTime.minute.toString().padStart(2, '0')}"
@@ -526,7 +425,7 @@ private fun ProfileHeader(
 }
 
 @Composable
-private fun RecentOrdersCard(orders: List<RecentOrder>, currencyFormatter: CurrencyFormatter) {
+private fun RecentOrdersCard(orders: List<RecentOrderItem>, currencyFormatter: CurrencyFormatter) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = ZyntaElevation.Level1),
@@ -595,10 +494,3 @@ private fun QuickActionCard(label: String, icon: ImageVector, onClick: () -> Uni
         }
     }
 }
-
-private data class RecentOrder(
-    val orderNumber: String,
-    val total: Double,
-    val method: String,
-    val timestamp: Long,
-)

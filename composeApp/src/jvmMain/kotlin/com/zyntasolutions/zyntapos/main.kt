@@ -6,6 +6,7 @@ import com.zyntasolutions.zyntapos.core.di.coreModule
 import com.zyntasolutions.zyntapos.data.di.dataModule
 import com.zyntasolutions.zyntapos.data.di.desktopDataModule
 import com.zyntasolutions.zyntapos.data.local.db.SecurePreferencesKeyMigration
+import com.zyntasolutions.zyntapos.dashboard.dashboardModule
 import com.zyntasolutions.zyntapos.feature.admin.adminModule
 import com.zyntasolutions.zyntapos.feature.auth.authModule
 import com.zyntasolutions.zyntapos.feature.coupons.couponsModule
@@ -66,6 +67,7 @@ fun main() {
             navigationModule,    // RbacNavFilter
 
             // ── Tier 6: Feature modules ───────────────────────────────────────
+            dashboardModule,     // DashboardViewModel
             authModule,          // LoginUseCase, SessionManager, AuthViewModel
             posModule,           // Cart use cases, PosViewModel
             inventoryModule,     // Product/Category/Stock use cases, InventoryViewModel
