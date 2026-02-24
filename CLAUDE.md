@@ -256,7 +256,7 @@ All ViewModels **MUST** extend `BaseViewModel`. Direct extension of `androidx.li
 
 ```kotlin
 // ✅ CORRECT
-import com.zynta.pos.ui.core.mvi.BaseViewModel
+import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 
 class MyFeatureViewModel(...) : BaseViewModel<MyState, MyIntent, MyEffect>(MyState.Initial) { ... }
 
