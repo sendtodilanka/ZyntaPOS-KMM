@@ -507,6 +507,155 @@ All structural decisions are documented in `docs/adr/`. Create a new ADR before 
 
 ---
 
+## Koin Module Loading Order (Critical)
+
+`ZyntaApplication` initializes Koin in this exact 7-tier order. Changing the order will cause missing binding errors at runtime.
+
+1. `coreModule` — Logger, CurrencyFormatter, Dispatchers (IO, Main, Default)
+2. `securityModule` — Encryption, JWT, PIN hashing, RBAC
+3. `halModule()` — Printer port, Barcode scanner port
+4. `androidDataModule` / `desktopDataModule` — Platform DB driver (SQLCipher/JVM SQLite), Keystore, Network monitor, SecurePreferences
+5. `dataModule` — Repositories, SyncEngine, ApiService
+6. `navigationModule` — RbacNavFilter
+7. Feature modules (14) + `debugModule` / `seedModule` (debug builds only)
+
+`SecurePreferencesKeyMigration.migrate()` is called before any auth operations during startup.
+
+**Named dispatcher qualifiers:**
+```kotlin
+val IO_DISPATCHER = named("IO")      // For repository/database work
+val MAIN_DISPATCHER = named("Main")  // For UI updates
+val DEFAULT_DISPATCHER = named("Default")  // For CPU-bound computation
+```
+
+---
+
+## Navigation Routes
+
+Type-safe navigation using `kotlinx.serialization`. Routes are defined in `:composeApp:navigation` as a sealed class hierarchy.
+
+```kotlin
+sealed class ZyntaRoute {
+    // Graph nodes
+    data object AuthGraph : ZyntaRoute()
+    data object MainGraph : ZyntaRoute()
+    data object InventoryGraph : ZyntaRoute()
+    data object RegisterGraph : ZyntaRoute()
+    data object ReportsGraph : ZyntaRoute()
+    data object SettingsGraph : ZyntaRoute()
+
+    // Auth
+    data object Login : ZyntaRoute()
+    data object SignUp : ZyntaRoute()
+    data object PinLock : ZyntaRoute()
+
+    // Main
+    data object Dashboard : ZyntaRoute()
+    data object Pos : ZyntaRoute()
+    data class Payment(val orderId: String) : ZyntaRoute()
+
+    // Inventory
+    data object ProductList : ZyntaRoute()
+    data class ProductDetail(val productId: String? = null) : ZyntaRoute()
+    data object CategoryList : ZyntaRoute()
+    // ... additional routes
+}
+```
+
+**Deep link scheme:** `zyntapos://`
+- Product: `zyntapos://product/{barcode}`
+- Order: `zyntapos://order/{orderId}`
+
+**RBAC gating:** `RbacNavFilter.forRole(userRole)` filters `NavItem`s based on the current user's role before rendering the nav rail/bottom bar.
+
+---
+
+## Network Layer
+
+**Ktor HttpClient configuration** (`ApiClient.kt` in `:shared:data`):
+
+```kotlin
+install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true; isLenient = true }) }
+install(Auth) {
+    bearer {
+        loadTokens { BearerTokens(accessToken, refreshToken) }
+        refreshTokens { /* calls refresh endpoint on 401 */ }
+    }
+}
+install(HttpTimeout) {
+    connectTimeoutMillis = 10_000L
+    requestTimeoutMillis = 30_000L
+}
+install(HttpRequestRetry) {
+    retryOnServerErrors(maxRetries = 3)
+    exponentialDelay(base = 2.0, maxDelayMs = 4_000L)  // delays: 1s, 2s, 4s
+}
+```
+
+**API Service interface** (`ApiService.kt`):
+- `login()`, `refreshToken()`, `getProducts()`, `pushOperations()`, `pullOperations()`
+- HTTP errors are mapped to typed domain exceptions: `AuthException`, `NetworkException`, `SyncException`
+
+---
+
+## Reactive Patterns
+
+**POS product search (canonical reactive pipeline):**
+
+```kotlin
+combine(_searchQuery.debounce(300L), _selectedCategoryId)
+    .distinctUntilChanged()
+    .flatMapLatest { (query, categoryId) ->
+        if (query.isBlank() && categoryId == null) {
+            productRepository.getAll()
+        } else {
+            productRepository.search(query, categoryId)
+        }
+    }
+    .onEach { products -> updateState { copy(products = products) } }
+    .launchIn(viewModelScope)
+```
+
+Use `debounce(300L)` on search queries to avoid excessive DB/network calls. Use `flatMapLatest` (not `flatMapMerge`) for queries so previous in-flight searches are cancelled.
+
+---
+
+## Hardware Abstraction Layer (HAL)
+
+All hardware I/O is behind `expect/actual` interfaces in `:shared:hal`. Business logic **never** imports USB or socket libraries directly.
+
+**Port interfaces:**
+```kotlin
+interface ReceiptPrinterPort {
+    suspend fun printReceipt(order: Order, cashierId: String): Result<Unit>
+    suspend fun printZReport(report: ZReportData): Result<Unit>
+    suspend fun testPrint(): Result<Unit>
+}
+
+interface BarcodeScanner {
+    val scanEvents: Flow<ScanResult>
+    suspend fun startListening(): Result<Unit>
+    suspend fun stopListening()
+}
+```
+
+**Android implementations:** USB Host API (hardware scanners), ML Kit Vision (camera barcode), ESC/POS over USB
+**JVM implementations:** HID keyboard emulation, TCP/IP socket (network printers), jSerialComm (serial port)
+
+---
+
+## Security Details
+
+| Component | Implementation | Notes |
+|-----------|---------------|-------|
+| JWT | `JwtManager` | Decodes claims only (no local sig verification); 30s clock-skew buffer |
+| PIN | `PinHasher` | SHA-256 + 16-byte random salt; format `<base64url-salt>:<hex-hash>`; constant-time compare |
+| DB Key | `DatabaseKeyProvider` (expect/actual) | Android Keystore / JCE KeyStore; passphrase never written to disk in plaintext |
+| Prefs | `SecurePreferences` (expect/actual) | Android: EncryptedSharedPreferences; JVM: AES-GCM encrypted properties file |
+| Roles | `RbacEngine` | Roles: ADMIN, MANAGER, CASHIER, CUSTOMER_SERVICE, REPORTER |
+
+---
+
 ## Common Pitfalls to Avoid
 
 1. **Do not extend `androidx.lifecycle.ViewModel` directly.** Always extend `BaseViewModel<S,I,E>` (ADR-001).
