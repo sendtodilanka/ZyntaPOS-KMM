@@ -199,6 +199,15 @@ sealed class ZyntaRoute {
     @Serializable
     data object SystemHealthSettings : ZyntaRoute()
 
+    /**
+     * In-app developer console (debug builds only).
+     * Access is gated at two levels:
+     *   1. [AppInfoProvider.isDebug] — composable only registered when true
+     *   2. [Role.ADMIN] — RBAC check inside the screen
+     */
+    @Serializable
+    data object Debug : ZyntaRoute()
+
     // ─────────────────────────────────────────────────────────────────
     // DEEP-LINK TARGETS (not primary nav destinations)
     // ─────────────────────────────────────────────────────────────────

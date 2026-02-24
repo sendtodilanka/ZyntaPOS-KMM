@@ -10,6 +10,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import com.zyntasolutions.zyntapos.core.platform.AppInfoProvider
+import com.zyntasolutions.zyntapos.debug.DebugScreen
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.feature.auth.screen.LoginScreen
@@ -73,6 +75,8 @@ fun App() {
         else -> ThemeMode.SYSTEM
     }
 
+    val appInfoProvider: AppInfoProvider = koinInject()
+
     ZyntaTheme(themeMode = themeMode) {
         Surface(
             modifier = Modifier.fillMaxSize(),
@@ -104,7 +108,7 @@ fun App() {
                 isFirstRun = isFirstRun,
                 isSessionActive = isSessionActive,
                 userRole = userRole,
-                screens = buildMainNavScreens(),
+                screens = buildMainNavScreens(isDebug = appInfoProvider.isDebug),
                 loginScreen = { onLoginSuccess, onNavigateToSignUp ->
                     LoginScreen(
                         onNavigateToDashboard = onLoginSuccess,
@@ -127,6 +131,9 @@ fun App() {
                         onDifferentUser = { },
                     )
                 },
+                debugScreen = if (appInfoProvider.isDebug) { onNavigateUp ->
+                    DebugScreen(onNavigateUp = onNavigateUp)
+                } else null,
             )
         }
     }
@@ -137,7 +144,7 @@ fun App() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun buildMainNavScreens() = MainNavScreens(
+private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
 
     // ── Dashboard ──────────────────────────────────────────────────────────
     // Provided by :composeApp:feature:dashboard (extracted from composeApp root)
@@ -235,6 +242,7 @@ private fun buildMainNavScreens() = MainNavScreens(
     // ── Settings: Home ──────────────────────────────────────────────────────
     settings = { onNavigateToRoute ->
         SettingsHomeScreen(
+            isDebug = isDebug,
             onNavigate = { route -> onNavigateToRoute(route.name) },
             onBack = { },
         )

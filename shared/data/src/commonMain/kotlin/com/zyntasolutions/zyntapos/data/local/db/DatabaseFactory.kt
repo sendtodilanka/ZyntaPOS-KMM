@@ -111,6 +111,22 @@ class DatabaseFactory(
         }
     }
 
+    /**
+     * Returns the [SqlDriver] for the currently open database.
+     *
+     * Calls [openDatabase] internally to ensure the database is initialized before
+     * returning the driver. This is the preferred entry-point for debug tooling
+     * (e.g. [com.zyntasolutions.zyntapos.debug.actions.DatabaseActionHandlerImpl])
+     * that must run raw SQL statements (VACUUM, SELECT COUNT(*), DELETE FROM) outside
+     * of the normal repository abstraction.
+     */
+    fun openDriver(): SqlDriver {
+        openDatabase() // ensures cachedDriver is populated
+        return checkNotNull(cachedDriver) {
+            "SqlDriver was not initialized after openDatabase(). This should never happen."
+        }
+    }
+
     /** Returns `true` if the database has been opened and is currently cached. */
     val isOpen: Boolean get() = cachedDatabase != null
 

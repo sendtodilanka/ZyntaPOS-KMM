@@ -148,6 +148,13 @@ dependencies {
     implementation(project(":composeApp:feature:multistore"))
     implementation(project(":composeApp:feature:admin"))
     implementation(project(":composeApp:feature:media"))
+
+    // ── Tier 8: Debug tools ────────────────────────────────────────────────
+    // Always compiled in (compile-time import in ZyntaApplication required).
+    // Koin bindings loaded only in debug builds via BuildConfig.DEBUG gate.
+    // ProGuard/R8 eliminates unreachable debug classes in release builds.
+    implementation(project(":shared:seed"))
+    implementation(project(":tools:debug"))
 }
 
 // ── Secrets Gradle Plugin ────────────────────────────────────

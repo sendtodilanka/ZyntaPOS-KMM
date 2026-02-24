@@ -195,3 +195,10 @@ include(":composeApp:feature:onboarding")
 // JSON files per table + SeedRunner that calls domain use cases.
 // Zero production footprint — included only in debug builds.
 include(":shared:seed")
+
+// ── Tools — Debug Console ─────────────────────────────────────
+// In-app developer console with 6-tab layout: Seeds, Database,
+// Auth, Network, Diagnostics, UI/UX.
+// Runtime-gated: Koin bindings only loaded when AppInfoProvider.isDebug == true.
+// Compiles into all builds; dormant in production (no functional impact).
+include(":tools:debug")

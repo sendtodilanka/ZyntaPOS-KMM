@@ -77,6 +77,8 @@ kotlin {
             implementation(project(":composeApp:feature:media"))
             implementation(project(":composeApp:feature:dashboard"))
             implementation(project(":composeApp:feature:onboarding"))
+            // Debug Console — always compiled in; Koin bindings loaded only when isDebug == true
+            implementation(project(":tools:debug"))
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -91,6 +93,9 @@ kotlin {
             implementation(project(":shared:security"))
             implementation(project(":shared:hal"))
             implementation(project(":shared:data"))
+            // main.kt loads seedModule + debugModule conditionally (isDebug gate)
+            implementation(project(":shared:core"))
+            implementation(project(":shared:seed"))
         }
     }
 }
