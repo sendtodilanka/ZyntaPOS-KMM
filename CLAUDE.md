@@ -26,7 +26,7 @@ ZyntaPOS-KMM/
 │   ├── core/                          # BaseViewModel<S,I,E> for all features
 │   ├── designsystem/                  # Material 3 theme + reusable Zynta* components
 │   ├── navigation/                    # Type-safe NavHost, RBAC route gating
-│   └── feature/                       # 15 feature modules (see Module Map below)
+│   └── feature/                       # 16 feature modules (see Module Map below)
 ├── shared/                            # 100% cross-platform business logic
 │   ├── core/                          # MVI base, Result<T>, utilities (pure Kotlin)
 │   ├── domain/                        # Domain models, use-case interfaces, repo contracts
@@ -63,9 +63,9 @@ ZyntaPOS-KMM/
 |--------|---------|
 | `:shared:core` | Pure Kotlin utilities, MVI base classes, `Result<T>`, `CurrencyUtils`, `DateTimeUtils`, `ValidationUtils`, Koin `coreModule` |
 | `:shared:domain` | Domain models (26), repository interfaces, use-case classes, business-rule validators — **no framework deps** |
-| `:shared:data` | SQLDelight schema + DAOs, Ktor HTTP client, repository implementations, offline sync engine, `ConflictResolver` |
-| `:shared:hal` | `PrinterManager`, `BarcodeScanner`, `CashDrawerController` — `expect/actual` platform drivers, `EscPosEncoder` |
-| `:shared:security` | `SecureKeyStorage` (Keystore/JCE), `CryptoManager` (AES-256-GCM), `PinHasher` (PBKDF2), `TokenManager`, `RbacEngine`, `SessionManager` |
+| `:shared:data` | SQLDelight schema + DAOs, Ktor HTTP client, repository implementations, offline sync engine. `ConflictResolver` — NOT YET IMPLEMENTED (CRDT merge logic is Phase 2 backlog) |
+| `:shared:hal` | `PrinterManager`, `BarcodeScanner` — `expect/actual` platform drivers, `EscPosEncoder`. `CashDrawerController` — NOT YET IMPLEMENTED (Phase 2 backlog) |
+| `:shared:security` | `DatabaseKeyManager`/`EncryptionManager` (AES-256-GCM, Keystore/JCE), `PinManager` (SHA-256 + salt), `JwtManager` + `TokenStorage` interface, `RbacEngine` |
 | `:shared:seed` | **Debug-only.** `SeedRunner` + JSON fixtures (8 categories, 5 suppliers, 25 products, 15 customers). Use as `debugImplementation` only. |
 
 ### UI Infrastructure (Compose Multiplatform)
@@ -77,7 +77,7 @@ ZyntaPOS-KMM/
 | `:composeApp:designsystem` | `ZyntaTheme`, Material 3 tokens, `ZyntaButton/Card/TextField`, `NumericKeypad`, `ReceiptPreview`, responsive breakpoints |
 | `:composeApp:navigation` | Type-safe `NavRoute` sealed hierarchy, `ZyntaNavHost`, adaptive nav shell (Rail vs Bottom Bar), RBAC route gating |
 
-### Feature Modules (15)
+### Feature Modules (16)
 
 | Module | Purpose |
 |--------|---------|
@@ -96,6 +96,7 @@ ZyntaPOS-KMM/
 | `:composeApp:feature:multistore` | Store selector, central KPI dashboard, inter-store transfers |
 | `:composeApp:feature:admin` | System health, audit-log viewer, DB maintenance, backup management |
 | `:composeApp:feature:media` | Product image picker, crop, compression pipeline |
+| `:composeApp:feature:accounting` | E-Invoice creation and IRD (Sri Lanka) submission pipeline |
 
 ### Platform Apps / Tools
 
@@ -289,7 +290,7 @@ class MyFeatureViewModel(...) : ViewModel() { ... }
 
 **SQLDelight 2.0.2 on SQLite, encrypted with SQLCipher 4.5 (AES-256)**
 
-**13 tables:** `products`, `orders`, `order_items`, `categories`, `customers`, `suppliers`, `registers`, `settings`, `stock`, `audit_log`, `sync_queue` + FTS5 virtual table `products_fts`
+**36 `.sq` schema files** as of Phase 1 (actual count via `find shared/data/src/commonMain/sqldelight -name "*.sq" | wc -l`). Core tables include: `products`, `orders`, `order_items`, `categories`, `customers`, `suppliers`, `registers`, `settings`, `stock`, `audit_log`, `sync_queue` (outbox), `sync_state`, `version_vectors`, `conflict_log`, `e_invoices`, `employees`, `expenses`, `coupons`, `accounting_entries`, and more.
 
 **Key patterns:**
 - Products table has `products_fts` (FTS5) with `AFTER INSERT/UPDATE/DELETE` triggers for full-text search
@@ -299,7 +300,7 @@ class MyFeatureViewModel(...) : ViewModel() { ... }
 
 **Code generation:** Run `./gradlew generateSqlDelightInterface` after modifying `.sq` files.
 
-**Schema files:** `shared/data/src/commonMain/sqldelight/` — 13 `.sq` files
+**Schema files:** `shared/data/src/commonMain/sqldelight/` — 36 `.sq` files (actual count; earlier documentation cited 13, which was Phase 0 baseline)
 
 ---
 
@@ -310,9 +311,9 @@ class MyFeatureViewModel(...) : ViewModel() { ... }
 | DB Encryption | SQLCipher 4.5, AES-256, passphrase from Keystore |
 | Key Storage (Android) | Android Keystore via `androidx.security.crypto` |
 | Key Storage (JVM) | JCE KeyStore |
-| PIN Hashing | PBKDF2 (via `PinHasher` in `:shared:security`) |
-| JWT Tokens | `TokenManager` + `TokenStorage` interface (testable in commonTest via `FakeSecurePreferences`) |
-| RBAC | `RbacEngine` + `SessionManager` in `:shared:security` |
+| PIN Hashing | SHA-256 + 16-byte random salt (via `PinManager` in `:shared:security`); constant-time compare |
+| JWT Tokens | `JwtManager` (decodes claims, 30s clock-skew buffer) + `TokenStorage` interface backed by `SecurePreferences` (testable via `FakeSecurePreferences`) |
+| RBAC | `RbacEngine` in `:shared:security`; `SessionManager` is in `:composeApp:feature:auth` (idle-timeout / PIN-lock, NOT in `:shared:security`) |
 | Secrets Injection | Gradle Secrets Plugin: `ZYNTA_*` keys from `local.properties` → `BuildConfig` fields |
 
 **ADR-003:** `SecurePreferences` is canonical in `:shared:security` only. The old `data.local.security.SecurePreferences` interface was deleted. Do not recreate it in `:shared:data`.
@@ -516,8 +517,8 @@ All structural decisions are documented in `docs/adr/`. Create a new ADR before 
 3. `halModule()` — Printer port, Barcode scanner port
 4. `androidDataModule` / `desktopDataModule` — Platform DB driver (SQLCipher/JVM SQLite), Keystore, Network monitor, SecurePreferences
 5. `dataModule` — Repositories, SyncEngine, ApiService
-6. `navigationModule` — RbacNavFilter
-7. Feature modules (14) + `debugModule` / `seedModule` (debug builds only)
+6. `navigationModule` — Navigation graph bindings (RBAC logic inlined via `RbacEngine`)
+7. Feature modules (16) + `debugModule` / `seedModule` (debug builds only)
 
 `SecurePreferencesKeyMigration.migrate()` is called before any auth operations during startup.
 
@@ -566,7 +567,7 @@ sealed class ZyntaRoute {
 - Product: `zyntapos://product/{barcode}`
 - Order: `zyntapos://order/{orderId}`
 
-**RBAC gating:** `RbacNavFilter.forRole(userRole)` filters `NavItem`s based on the current user's role before rendering the nav rail/bottom bar.
+**RBAC gating:** Navigation items are filtered by role within `ZyntaNavGraph.kt` / `NavigationItems.kt` in `:composeApp:navigation`. A standalone `RbacNavFilter` class does not exist in the codebase; RBAC gating logic is inlined in the nav graph composables using `RbacEngine` from `:shared:security`.
 
 ---
 
@@ -649,10 +650,11 @@ interface BarcodeScanner {
 | Component | Implementation | Notes |
 |-----------|---------------|-------|
 | JWT | `JwtManager` | Decodes claims only (no local sig verification); 30s clock-skew buffer |
-| PIN | `PinHasher` | SHA-256 + 16-byte random salt; format `<base64url-salt>:<hex-hash>`; constant-time compare |
-| DB Key | `DatabaseKeyProvider` (expect/actual) | Android Keystore / JCE KeyStore; passphrase never written to disk in plaintext |
-| Prefs | `SecurePreferences` (expect/actual) | Android: EncryptedSharedPreferences; JVM: AES-GCM encrypted properties file |
-| Roles | `RbacEngine` | Roles: ADMIN, MANAGER, CASHIER, CUSTOMER_SERVICE, REPORTER |
+| PIN | `PinManager` (object) | SHA-256 + 16-byte random salt; format `<base64url-salt>:<hex-hash>`; constant-time compare |
+| DB Key | `DatabaseKeyManager` (expect/actual) | Android: envelope encryption — DEK wrapped by non-extractable KEK in Android Keystore; Desktop: 256-bit AES key in PKCS12 KeyStore at `~/.zyntapos/.db_keystore.p12`; passphrase never written to disk in plaintext |
+| Prefs | `SecurePreferences` (expect/actual) | Android: EncryptedSharedPreferences (AES-256-SIV keys, AES-256-GCM values); JVM: AES-GCM encrypted properties file |
+| Roles | `RbacEngine` | Stateless; roles: ADMIN, MANAGER, CASHIER, CUSTOMER_SERVICE, REPORTER |
+| Session | `SessionManager` | In `:composeApp:feature:auth` (NOT `:shared:security`); idle-timeout countdown, emits `AuthEffect.ShowPinLock` |
 
 ---
 
@@ -695,6 +697,8 @@ See `docs/ai_workflows/execution_log.md` for the granular task checklist.
 | BaseViewModel | `composeApp/core/src/commonMain/.../ui/core/mvi/BaseViewModel.kt` |
 | Design system components | `composeApp/designsystem/src/commonMain/.../` |
 | Navigation routes | `composeApp/navigation/src/commonMain/.../` |
+| RBAC nav gating | `composeApp/navigation/src/commonMain/.../ZyntaNavGraph.kt` + `NavigationItems.kt` (no separate `RbacNavFilter` class exists) |
+| Session manager (auto-lock) | `composeApp/feature/auth/src/commonMain/.../session/SessionManager.kt` |
 | Koin DI modules | `<feature>/src/commonMain/.../di/<Feature>Module.kt` |
 | Security utilities | `shared/security/src/commonMain/.../` |
 | HAL interfaces | `shared/hal/src/commonMain/.../` |

@@ -8,8 +8,11 @@ import com.zyntasolutions.zyntapos.domain.usecase.staff.DeleteEmployeeUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.DeleteShiftScheduleUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.GeneratePayrollUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.GetAttendanceHistoryUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.staff.GetAttendanceSummaryUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.GetEmployeeByIdUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.GetEmployeesUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.staff.GetLeaveHistoryUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.staff.GetPayrollHistoryUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.GetPendingLeaveRequestsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.GetShiftScheduleUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.GetTodayAttendanceUseCase
@@ -44,6 +47,7 @@ import org.koin.dsl.module
  *
  * **Sprint 12 — Payroll**
  * - [GeneratePayrollUseCase], [ProcessPayrollPaymentUseCase]
+ * - [GetPayrollHistoryUseCase], [GetAttendanceSummaryUseCase], [GetLeaveHistoryUseCase]
  */
 val staffModule = module {
 
@@ -74,6 +78,11 @@ val staffModule = module {
     factoryOf(::GeneratePayrollUseCase)
     factoryOf(::ProcessPayrollPaymentUseCase)
 
+    // ── Payroll / Attendance / Leave history (orphan use cases — B2 wiring) ──
+    factoryOf(::GetPayrollHistoryUseCase)
+    factoryOf(::GetAttendanceSummaryUseCase)
+    factoryOf(::GetLeaveHistoryUseCase)
+
     // ── ViewModel ─────────────────────────────────────────────────────────
     // Resolves storeId + currentUserId from the AuthRepository session StateFlow at
     // ViewModel creation time. runBlocking is safe here — session StateFlow always
@@ -102,6 +111,9 @@ val staffModule = module {
             deleteShiftUseCase = get(),
             generatePayrollUseCase = get(),
             processPaymentUseCase = get(),
+            getPayrollHistoryUseCase = get(),
+            getAttendanceSummaryUseCase = get(),
+            getLeaveHistoryUseCase = get(),
         )
     }
 }

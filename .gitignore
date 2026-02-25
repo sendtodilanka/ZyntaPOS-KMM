@@ -94,3 +94,6 @@ crash_log*.txt
 
 # ── Kotlin Notebooks ──────────────────────────────────────────────────
 .kotlinnb_cache/
+
+# ── Claude Code agent worktrees (transient, auto-cleaned) ─────────────
+.claude/worktrees/
