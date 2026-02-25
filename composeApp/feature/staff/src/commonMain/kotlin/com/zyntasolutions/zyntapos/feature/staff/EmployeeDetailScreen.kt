@@ -1,0 +1,255 @@
+package com.zyntasolutions.zyntapos.feature.staff
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
+import com.zyntasolutions.zyntapos.domain.model.SalaryType
+
+/**
+ * Employee create / edit screen.
+ *
+ * Renders form fields bound to [StaffState.employeeForm] and delegates all
+ * mutations through [StaffIntent]. Navigation back to the list is triggered
+ * via [StaffIntent.BackToEmployeeList].
+ *
+ * @param state       Current [StaffState].
+ * @param onIntent    Dispatches intents to [StaffViewModel].
+ * @param onNavigateBack Navigation callback to pop back to the list.
+ * @param modifier    Optional root modifier.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EmployeeDetailScreen(
+    state: StaffState,
+    onIntent: (StaffIntent) -> Unit,
+    onNavigateBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val form = state.employeeForm
+    val isEditing = form.isEditing
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+
+    Scaffold(
+        modifier = modifier,
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(if (isEditing) "Edit Employee" else "New Employee")
+                },
+                navigationIcon = {
+                    IconButton(onClick = {
+                        onIntent(StaffIntent.BackToEmployeeList)
+                        onNavigateBack()
+                    }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    if (isEditing) {
+                        IconButton(onClick = { showDeleteConfirm = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete employee",
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    }
+                },
+            )
+        },
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = ZyntaSpacing.md)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
+        ) {
+            Spacer(Modifier.height(ZyntaSpacing.sm))
+
+            // ── Personal Info ──────────────────────────────────────────────
+            SectionHeader("Personal Information")
+
+            Row(horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
+                OutlinedTextField(
+                    value = form.firstName,
+                    onValueChange = { onIntent(StaffIntent.UpdateEmployeeField("firstName", it)) },
+                    label = { Text("First Name *") },
+                    isError = form.validationErrors.containsKey("firstName"),
+                    supportingText = form.validationErrors["firstName"]?.let { { Text(it) } },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = form.lastName,
+                    onValueChange = { onIntent(StaffIntent.UpdateEmployeeField("lastName", it)) },
+                    label = { Text("Last Name *") },
+                    isError = form.validationErrors.containsKey("lastName"),
+                    supportingText = form.validationErrors["lastName"]?.let { { Text(it) } },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                )
+            }
+
+            OutlinedTextField(
+                value = form.email,
+                onValueChange = { onIntent(StaffIntent.UpdateEmployeeField("email", it)) },
+                label = { Text("Email") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+            )
+            OutlinedTextField(
+                value = form.phone,
+                onValueChange = { onIntent(StaffIntent.UpdateEmployeeField("phone", it)) },
+                label = { Text("Phone") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+            )
+
+            // ── Employment Info ────────────────────────────────────────────
+            SectionHeader("Employment")
+
+            OutlinedTextField(
+                value = form.position,
+                onValueChange = { onIntent(StaffIntent.UpdateEmployeeField("position", it)) },
+                label = { Text("Position *") },
+                isError = form.validationErrors.containsKey("position"),
+                supportingText = form.validationErrors["position"]?.let { { Text(it) } },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+            )
+            OutlinedTextField(
+                value = form.department,
+                onValueChange = { onIntent(StaffIntent.UpdateEmployeeField("department", it)) },
+                label = { Text("Department") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+            )
+            OutlinedTextField(
+                value = form.hireDate,
+                onValueChange = { onIntent(StaffIntent.UpdateEmployeeField("hireDate", it)) },
+                label = { Text("Hire Date (YYYY-MM-DD)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+            )
+
+            // ── Compensation ───────────────────────────────────────────────
+            SectionHeader("Compensation")
+
+            Row(horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
+                OutlinedTextField(
+                    value = form.salary,
+                    onValueChange = { onIntent(StaffIntent.UpdateEmployeeField("salary", it)) },
+                    label = { Text("Salary") },
+                    isError = form.validationErrors.containsKey("salary"),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = form.commissionRate,
+                    onValueChange = { onIntent(StaffIntent.UpdateEmployeeField("commissionRate", it)) },
+                    label = { Text("Commission %") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                )
+            }
+
+            // Salary type selector
+            Text("Salary Type", style = MaterialTheme.typography.labelMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                SalaryType.entries.forEach { type ->
+                    FilterChip(
+                        selected = form.salaryType == type,
+                        onClick = { onIntent(StaffIntent.UpdateEmployeeSalaryType(type)) },
+                        label = { Text(type.name) },
+                    )
+                }
+            }
+
+            // ── Status ────────────────────────────────────────────────────
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = "Active",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                Switch(
+                    checked = form.isActive,
+                    onCheckedChange = { onIntent(StaffIntent.ToggleEmployeeActive) },
+                )
+            }
+
+            Spacer(Modifier.height(ZyntaSpacing.sm))
+
+            // ── Save Button ────────────────────────────────────────────────
+            Button(
+                onClick = { onIntent(StaffIntent.SaveEmployee) },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !state.isLoading,
+            ) {
+                if (state.isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                } else {
+                    Icon(Icons.Default.Save, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text(if (isEditing) "Update Employee" else "Create Employee")
+                }
+            }
+
+            Spacer(Modifier.height(ZyntaSpacing.lg))
+        }
+
+        // Delete confirmation dialog
+        if (showDeleteConfirm) {
+            AlertDialog(
+                onDismissRequest = { showDeleteConfirm = false },
+                icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                title = { Text("Deactivate Employee?") },
+                text = { Text("This will deactivate the employee. Historical records are preserved.") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showDeleteConfirm = false
+                            form.id?.let { onIntent(StaffIntent.DeleteEmployee(it)) }
+                            onNavigateBack()
+                        },
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                    ) {
+                        Text("Deactivate")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun SectionHeader(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(top = ZyntaSpacing.sm),
+    )
+    HorizontalDivider()
+}
