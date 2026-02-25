@@ -350,6 +350,6 @@ val dataModule = module {
     // Backup: in-memory registry (Phase 3 stub; file I/O added in Sprint 13)
     single<BackupRepository> { BackupRepositoryImpl(db = get()) }
 
-    // E-Invoice: in-memory registry (Phase 3 stub; IRD API added in Sprint 18)
-    single<EInvoiceRepository> { EInvoiceRepositoryImpl() }
+    // E-Invoice: SQLDelight-backed (Sprint 18 — replaces in-memory stub)
+    single<EInvoiceRepository> { EInvoiceRepositoryImpl(db = get(), syncEnqueuer = get()) }
 }

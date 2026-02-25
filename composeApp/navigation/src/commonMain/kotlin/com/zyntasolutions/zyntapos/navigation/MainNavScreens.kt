@@ -204,6 +204,17 @@ data class MainNavScreens(
     ) -> Unit,
 
     // ── Accounting / E-Invoice sub-graph  (Sprint 18-24) ─────────────────────
+    val accountingLedger: @Composable (
+        onNavigateToDetail: (accountCode: String, fiscalPeriod: String) -> Unit,
+        onNavigateUp: () -> Unit,
+    ) -> Unit,
+
+    val accountDetail: @Composable (
+        accountCode: String,
+        fiscalPeriod: String,
+        onNavigateUp: () -> Unit,
+    ) -> Unit,
+
     val eInvoiceList: @Composable (
         onNavigateToDetail: (invoiceId: String) -> Unit,
     ) -> Unit,

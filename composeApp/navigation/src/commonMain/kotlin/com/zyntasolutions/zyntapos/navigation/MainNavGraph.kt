@@ -440,7 +440,23 @@ fun NavGraphBuilder.mainNavGraph(
         }
 
         // ── Accounting / E-Invoice sub-graph  (Sprint 18-24) ─────────────────
-        navigation<ZyntaRoute.AccountingGraph>(startDestination = ZyntaRoute.EInvoiceList) {
+        navigation<ZyntaRoute.AccountingGraph>(startDestination = ZyntaRoute.AccountingLedger) {
+            composable<ZyntaRoute.AccountingLedger> {
+                screens.accountingLedger(
+                    { accountCode, fiscalPeriod ->
+                        navigationController.navigate(ZyntaRoute.AccountDetail(accountCode, fiscalPeriod))
+                    },
+                    { navigationController.navigateUp(ZyntaRoute.Dashboard) },
+                )
+            }
+            composable<ZyntaRoute.AccountDetail> { entry ->
+                val route = entry.toRoute<ZyntaRoute.AccountDetail>()
+                screens.accountDetail(
+                    route.accountCode,
+                    route.fiscalPeriod,
+                    { navigationController.navigateUp(ZyntaRoute.AccountingLedger) },
+                )
+            }
             composable<ZyntaRoute.EInvoiceList> {
                 screens.eInvoiceList(
                     { invoiceId -> navigationController.navigate(ZyntaRoute.EInvoiceDetail(invoiceId)) },
@@ -607,8 +623,10 @@ private fun MainScaffoldShell(
             is ZyntaRoute.WarehouseRackDetail -> item.route is ZyntaRoute.WarehouseList
 
             // Accounting / E-Invoice sub-graph
+            is ZyntaRoute.AccountingLedger,
+            is ZyntaRoute.AccountDetail,
             is ZyntaRoute.EInvoiceList,
-            is ZyntaRoute.EInvoiceDetail -> item.route is ZyntaRoute.EInvoiceList
+            is ZyntaRoute.EInvoiceDetail -> item.route is ZyntaRoute.AccountingLedger
 
             // Admin sub-graph
             is ZyntaRoute.SystemHealthDashboard,

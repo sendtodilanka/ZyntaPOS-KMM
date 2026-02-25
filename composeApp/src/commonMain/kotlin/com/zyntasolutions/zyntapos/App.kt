@@ -54,6 +54,9 @@ import com.zyntasolutions.zyntapos.feature.multistore.WarehouseViewModel
 import com.zyntasolutions.zyntapos.feature.accounting.EInvoiceListScreen
 import com.zyntasolutions.zyntapos.feature.accounting.EInvoiceDetailScreen
 import com.zyntasolutions.zyntapos.feature.accounting.EInvoiceViewModel
+import com.zyntasolutions.zyntapos.feature.accounting.AccountingLedgerScreen
+import com.zyntasolutions.zyntapos.feature.accounting.AccountDetailScreen
+import com.zyntasolutions.zyntapos.feature.accounting.AccountingViewModel
 import com.zyntasolutions.zyntapos.feature.register.CloseRegisterScreen
 import com.zyntasolutions.zyntapos.feature.register.OpenRegisterScreen
 import com.zyntasolutions.zyntapos.feature.register.RegisterDashboardScreen
@@ -523,6 +526,25 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
     },
 
     // ── Accounting / E-Invoice  (Sprint 18-24) ────────────────────────────────
+    accountingLedger = { onNavigateToDetail, onNavigateUp ->
+        val vm: AccountingViewModel = koinViewModel()
+        val state by vm.state.collectAsState()
+        AccountingLedgerScreen(
+            state = state,
+            onIntent = vm::dispatch,
+            onNavigateToDetail = onNavigateToDetail,
+            onNavigateUp = onNavigateUp,
+        )
+    },
+
+    accountDetail = { accountCode, fiscalPeriod, onNavigateUp ->
+        AccountDetailScreen(
+            accountCode = accountCode,
+            fiscalPeriod = fiscalPeriod,
+            onNavigateUp = onNavigateUp,
+        )
+    },
+
     eInvoiceList = { onNavigateToDetail ->
         val vm: EInvoiceViewModel = koinViewModel()
         val state by vm.state.collectAsState()

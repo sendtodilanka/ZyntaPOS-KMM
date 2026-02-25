@@ -1,0 +1,78 @@
+-- ============================================================
+-- e_invoices.sq — IRD e-invoice records (Sprint 18)
+-- Phase 3 Sprint 5-7 stub → Sprint 18 SQLDelight migration
+-- ============================================================
+-- lineItems and taxBreakdown stored as JSON TEXT (no child tables
+-- needed — invoices are immutable after acceptance).
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS e_invoices (
+    id                   TEXT    NOT NULL PRIMARY KEY,
+    order_id             TEXT    NOT NULL,
+    store_id             TEXT    NOT NULL,
+    invoice_number       TEXT    NOT NULL,
+    invoice_date         TEXT    NOT NULL,          -- YYYY-MM-DD
+    customer_name        TEXT    NOT NULL,
+    customer_tax_id      TEXT,                      -- VAT/TIN; nullable for retail customers
+    line_items_json      TEXT    NOT NULL,          -- JSON: List<EInvoiceLineItem>
+    subtotal             REAL    NOT NULL,
+    tax_breakdown_json   TEXT    NOT NULL,          -- JSON: List<TaxBreakdownItem>
+    total_tax            REAL    NOT NULL,
+    total                REAL    NOT NULL,
+    currency             TEXT    NOT NULL DEFAULT 'LKR',
+    status               TEXT    NOT NULL DEFAULT 'DRAFT',
+    ird_reference_number TEXT,                      -- IRD-assigned on ACCEPTED
+    submitted_at         INTEGER,
+    accepted_at          INTEGER,
+    rejection_reason     TEXT,
+    created_at           INTEGER NOT NULL,
+    updated_at           INTEGER NOT NULL,
+    sync_status          TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE INDEX idx_einvoice_store         ON e_invoices(store_id);
+CREATE INDEX idx_einvoice_order         ON e_invoices(order_id);
+CREATE INDEX idx_einvoice_store_status  ON e_invoices(store_id, status);
+CREATE UNIQUE INDEX idx_einvoice_number ON e_invoices(store_id, invoice_number);
+
+-- ── Read queries ───────────────────────────────────────────────────────────────
+
+selectAll:
+SELECT * FROM e_invoices
+WHERE store_id = ?
+ORDER BY created_at DESC;
+
+selectByStatus:
+SELECT * FROM e_invoices
+WHERE store_id = ? AND status = ?
+ORDER BY created_at DESC;
+
+selectById:
+SELECT * FROM e_invoices WHERE id = ?;
+
+selectByOrderId:
+SELECT * FROM e_invoices WHERE order_id = ?;
+
+-- ── Write queries ──────────────────────────────────────────────────────────────
+
+insertInvoice:
+INSERT INTO e_invoices(
+    id, order_id, store_id, invoice_number, invoice_date, customer_name,
+    customer_tax_id, line_items_json, subtotal, tax_breakdown_json, total_tax, total,
+    currency, status, ird_reference_number, submitted_at, accepted_at, rejection_reason,
+    created_at, updated_at, sync_status
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateStatus:
+UPDATE e_invoices
+SET status = ?, ird_reference_number = ?, submitted_at = ?, accepted_at = ?,
+    rejection_reason = ?, updated_at = ?, sync_status = 'PENDING'
+WHERE id = ?;
+
+cancelInvoice:
+UPDATE e_invoices
+SET status = 'CANCELLED', updated_at = ?, sync_status = 'PENDING'
+WHERE id = ?;
+
+markSynced:
+UPDATE e_invoices SET sync_status = 'SYNCED' WHERE id = ?;
