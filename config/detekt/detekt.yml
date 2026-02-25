@@ -3,6 +3,12 @@
 # Builds upon the default ruleset and customises for a
 # Compose Multiplatform / KMM project.
 # ============================================================
+#
+# Phase 1: Lenient thresholds to unblock CI during rapid feature development
+# Phase 2 gate: Before Phase 2 merge, promote warningsAsErrors to true and tighten thresholds
+# Phase 2 targets: LongMethod ≤ 80, LongParameterList ≤ 6, CyclomaticComplexity ≤ 15
+#
+# ============================================================
 
 config:
   validation: true
@@ -43,11 +49,46 @@ style:
     active: false                  # auto-formatting handles this; not worth failing CI
   MatchingDeclarationName:
     active: false                  # Compose files often have a public enum/sealed + @Composable
-  # Phase 1: suppress to unblock CI. Phase 2: enable and clean up dead code.
+  # Enabled in Phase 1 hardening (2026-02-25). Suppress per-file with @Suppress if needed.
   UnusedPrivateProperty:
-    active: false                  # design tokens, ESC/POS constants, and planned-use DI injections
+    active: true
+    allowedNames: '_|ignored|expected|serialVersionUID'
+    excludes:
+      - '**/printer/**'            # ESC/POS byte constants defined but referenced by name at runtime
+      - '**/designsystem/**'       # design tokens may be defined ahead of use
   UnusedParameter:
-    active: false                  # Compose callback params kept for API completeness
+    active: true
+    allowedNames: '_|ignored|expected'
+    excludes:
+      - '**/feature/**'            # Compose callback params kept for API completeness
+      - '**/designsystem/**'       # Slot-based composables carry unused lambda params by design
+  # Architecture boundary enforcement (ADR-001, ADR-002, ADR-003)
+  # These forbidden imports flag violations of Clean Architecture layering.
+  # The rules are scoped to the domain source set by excluding all non-domain paths.
+  # False positives in data/security/feature modules are suppressed by the excludes below.
+  ForbiddenImport:
+    active: true
+    imports:
+      - value: 'com.zyntasolutions.zyntapos.data.*'
+        reason: 'Domain layer must not import from the data layer (Clean Architecture — see CLAUDE.md)'
+      - value: 'com.zyntasolutions.zyntapos.hal.*'
+        reason: 'Domain layer must not import hardware abstractions (Clean Architecture — see CLAUDE.md)'
+      - value: 'com.zyntasolutions.zyntapos.security.*'
+        reason: 'Domain layer must not import security primitives directly; use SecureStoragePort (ADR-003)'
+    excludes:
+      # Exclude non-domain modules where these imports are legitimate.
+      # Only :shared:domain (i.e., shared/domain/**) is the enforced boundary.
+      - '**/data/**'
+      - '**/feature/**'
+      - '**/navigation/**'
+      - '**/designsystem/**'
+      - '**/composeApp/**'
+      - '**/androidApp/**'
+      - '**/tools/**'
+      - '**/seed/**'
+      - '**/hal/**'
+      - '**/security/**'
+      - '**/core/**'
 
 # ── Complexity ──────────────────────────────────────────────────
 complexity:
