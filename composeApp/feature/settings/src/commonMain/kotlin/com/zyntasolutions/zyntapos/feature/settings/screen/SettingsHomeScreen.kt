@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material.icons.filled.PersonOutline
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Receipt
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material3.Card
@@ -129,6 +130,7 @@ private val settingsGroups: List<SettingsGroup> = listOf(
         title = "Administration",
         entries = listOf(
             SettingsEntry("Users", "Create and manage staff accounts", Icons.Filled.PersonOutline, SettingsRoute.USERS),
+            SettingsEntry("Security", "PIN policy, session timeout & RBAC", Icons.Filled.Security, SettingsRoute.SECURITY),
             SettingsEntry("Backup", "Manual backup & restore", Icons.Filled.Backup, SettingsRoute.BACKUP),
         ),
     ),

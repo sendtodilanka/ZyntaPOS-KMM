@@ -50,6 +50,7 @@ fun CartPanel(
     isSheetVisible: Boolean,
     onDismissSheet: () -> Unit,
     modifier: Modifier = Modifier,
+    loyaltyPointsBalance: Int? = null,
 ) {
     val windowSizeClass = currentWindowSize()
 
@@ -66,6 +67,7 @@ fun CartPanel(
                 orderTotals = orderTotals,
                 selectedCustomer = selectedCustomer,
                 onIntent = onIntent,
+                loyaltyPointsBalance = loyaltyPointsBalance,
                 modifier = Modifier.fillMaxSize(),
             )
         }
@@ -83,6 +85,7 @@ fun CartPanel(
                     orderTotals = orderTotals,
                     selectedCustomer = selectedCustomer,
                     onIntent = onIntent,
+                    loyaltyPointsBalance = loyaltyPointsBalance,
                     modifier = Modifier
                         .fillMaxWidth()
                         .navigationBarsPadding(),

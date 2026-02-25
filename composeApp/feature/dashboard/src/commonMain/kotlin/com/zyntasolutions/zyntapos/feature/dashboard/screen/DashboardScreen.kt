@@ -21,11 +21,14 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PointOfSale
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -93,6 +96,7 @@ fun DashboardScreen(
     onNavigateToRegister: () -> Unit,
     onNavigateToReports: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToNotifications: () -> Unit = {},
     viewModel: DashboardViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -114,17 +118,17 @@ fun DashboardScreen(
         WindowSize.EXPANDED -> ExpandedDashboard(
             state, currencyFormatter,
             onNavigateToPos, onNavigateToRegister, onNavigateToReports, onNavigateToSettings,
-            onLogout,
+            onNavigateToNotifications, onLogout,
         )
         WindowSize.MEDIUM -> MediumDashboard(
             state, currencyFormatter,
             onNavigateToPos, onNavigateToRegister, onNavigateToReports, onNavigateToSettings,
-            onLogout,
+            onNavigateToNotifications, onLogout,
         )
         WindowSize.COMPACT -> CompactDashboard(
             state, currencyFormatter,
             onNavigateToPos, onNavigateToRegister, onNavigateToReports, onNavigateToSettings,
-            onLogout,
+            onNavigateToNotifications, onLogout,
         )
     }
 }
@@ -136,7 +140,7 @@ private fun ExpandedDashboard(
     state: DashboardState, currencyFormatter: CurrencyFormatter,
     onNavigateToPos: () -> Unit, onNavigateToRegister: () -> Unit,
     onNavigateToReports: () -> Unit, onNavigateToSettings: () -> Unit,
-    onLogout: () -> Unit,
+    onNavigateToNotifications: () -> Unit, onLogout: () -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxSize().padding(ZyntaSpacing.lg),
@@ -147,7 +151,7 @@ private fun ExpandedDashboard(
             modifier = Modifier.weight(0.65f),
             verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
         ) {
-            item { ProfileHeader(state.currentUser, onNavigateToSettings, onLogout) }
+            item { ProfileHeader(state.currentUser, onNavigateToSettings, onNavigateToNotifications, onLogout) }
 
             // 4 KPI cards in 2×2 grid using Row (avoids nested-scrollable crashes)
             item {
@@ -243,14 +247,14 @@ private fun MediumDashboard(
     state: DashboardState, currencyFormatter: CurrencyFormatter,
     onNavigateToPos: () -> Unit, onNavigateToRegister: () -> Unit,
     onNavigateToReports: () -> Unit, onNavigateToSettings: () -> Unit,
-    onLogout: () -> Unit,
+    onNavigateToNotifications: () -> Unit, onLogout: () -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(ZyntaSpacing.md),
         verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
     ) {
-        item { ProfileHeader(state.currentUser, onNavigateToSettings, onLogout) }
+        item { ProfileHeader(state.currentUser, onNavigateToSettings, onNavigateToNotifications, onLogout) }
 
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
@@ -310,14 +314,14 @@ private fun CompactDashboard(
     state: DashboardState, currencyFormatter: CurrencyFormatter,
     onNavigateToPos: () -> Unit, onNavigateToRegister: () -> Unit,
     onNavigateToReports: () -> Unit, onNavigateToSettings: () -> Unit,
-    onLogout: () -> Unit,
+    onNavigateToNotifications: () -> Unit, onLogout: () -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(ZyntaSpacing.md),
         verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
     ) {
-        item { ProfileHeader(state.currentUser, onNavigateToSettings, onLogout) }
+        item { ProfileHeader(state.currentUser, onNavigateToSettings, onNavigateToNotifications, onLogout) }
 
         item {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm), modifier = Modifier.fillMaxWidth()) {
@@ -373,6 +377,7 @@ private fun CompactDashboard(
 private fun ProfileHeader(
     currentUser: User?,
     onNavigateToSettings: () -> Unit,
+    onNavigateToNotifications: () -> Unit,
     onLogout: () -> Unit,
 ) {
     Row(
@@ -420,6 +425,12 @@ private fun ProfileHeader(
         }
 
         Row {
+            BadgedBox(badge = { Badge() }) {
+                IconButton(onClick = onNavigateToNotifications) {
+                    Icon(Icons.Default.Notifications, "Notifications",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
             IconButton(onClick = onNavigateToSettings) {
                 Icon(Icons.Default.Settings, "Settings", tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }

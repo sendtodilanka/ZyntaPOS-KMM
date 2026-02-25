@@ -64,6 +64,9 @@ fun ProductListScreen(
         onIntent(InventoryIntent.LoadProducts)
     }
 
+    // Wire Bulk Import dialog — visibility is controlled by BulkImportState.isVisible
+    BulkImportDialog(state = state.bulkImportState, onIntent = onIntent)
+
     Scaffold(
         modifier = modifier,
         floatingActionButton = {
@@ -103,6 +106,7 @@ fun ProductListScreen(
                 onSelectCategory = { onIntent(InventoryIntent.SelectCategory(it)) },
                 onSetStockFilter = { onIntent(InventoryIntent.SetStockFilter(it)) },
                 onToggleViewMode = { onIntent(InventoryIntent.ToggleViewMode) },
+                onBulkImport = { onIntent(InventoryIntent.OpenBulkImport) },
             )
 
             Spacer(Modifier.height(ZyntaSpacing.sm))
@@ -159,6 +163,7 @@ private fun ProductFilterRow(
     onSelectCategory: (String?) -> Unit,
     onSetStockFilter: (StockFilter) -> Unit,
     onToggleViewMode: () -> Unit,
+    onBulkImport: () -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -194,7 +199,13 @@ private fun ProductFilterRow(
             }
         }
 
-        // ── View toggle ─────────────────────────────────────────────
+        // ── Bulk Import + View toggle ────────────────────────────────
+        IconButton(onClick = onBulkImport) {
+            Icon(
+                imageVector = Icons.Default.Upload,
+                contentDescription = "Bulk Import",
+            )
+        }
         IconButton(onClick = onToggleViewMode) {
             Icon(
                 imageVector = if (viewMode == ViewMode.LIST) Icons.Default.GridView else Icons.AutoMirrored.Filled.ViewList,
