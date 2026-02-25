@@ -87,5 +87,15 @@ data class SyncOperation(
         const val RECURRING_EXPENSE = "recurring_expense"
         const val WAREHOUSE = "warehouse"
         const val STOCK_TRANSFER = "stock_transfer"
+        // Phase 3 entity types
+        const val EMPLOYEE = "employee"
+        const val ATTENDANCE_RECORD = "attendance_record"
+        const val LEAVE_RECORD = "leave_record"
+        const val PAYROLL_RECORD = "payroll_record"
+        const val SHIFT_SCHEDULE = "shift_schedule"
+        const val MEDIA_FILE = "media_file"
+        const val WAREHOUSE_RACK = "warehouse_rack"
+        const val ACCOUNTING_ENTRY = "accounting_entry"
+        const val E_INVOICE = "e_invoice"
     }
 }

@@ -25,6 +25,7 @@ import com.zyntasolutions.zyntapos.feature.reports.reportsModule
 import com.zyntasolutions.zyntapos.feature.settings.androidSettingsModule
 import com.zyntasolutions.zyntapos.feature.settings.settingsModule
 import com.zyntasolutions.zyntapos.feature.staff.staffModule
+import com.zyntasolutions.zyntapos.feature.accounting.di.accountingModule
 import com.zyntasolutions.zyntapos.hal.di.halModule
 import com.zyntasolutions.zyntapos.navigation.navigationModule
 import com.zyntasolutions.zyntapos.security.di.securityModule
@@ -97,7 +98,8 @@ class ZyntaApplication : Application() {
                 androidReportsModule(this@ZyntaApplication), // AndroidReportExporter
                 settingsModule,      // SettingsViewModel
                 androidSettingsModule(this@ZyntaApplication), // AndroidBackupService
-                staffModule,         // (placeholder — bindings added per sprint)
+                staffModule,         // Employee HR, attendance, payroll
+                accountingModule,    // E-Invoice / IRD submission (Sprint 18-24)
             )
         }
 

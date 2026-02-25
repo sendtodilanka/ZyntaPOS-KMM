@@ -8,6 +8,11 @@ sealed interface WarehouseEffect {
     data object NavigateToList : WarehouseEffect
     data object NavigateToTransfers : WarehouseEffect
     data object TransferComplete : WarehouseEffect
+
+    // Rack navigation
+    data class NavigateToRackDetail(val rackId: String?, val warehouseId: String) : WarehouseEffect
+    data object NavigateToRackList : WarehouseEffect
+
     data class ShowError(val message: String) : WarehouseEffect
     data class ShowSuccess(val message: String) : WarehouseEffect
 }

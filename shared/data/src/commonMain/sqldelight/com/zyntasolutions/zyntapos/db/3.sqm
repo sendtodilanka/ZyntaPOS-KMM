@@ -1,0 +1,86 @@
+-- ============================================================
+-- Migration 3 → 4: Phase 3 Sprint 2 — Media + Racks + Accounting + VersionVectors
+-- ============================================================
+-- Adds Media files, Warehouse Racks, Accounting Entries, and Version Vectors tables.
+-- These tables underpin the Media Manager (M20), Warehouse Rack Manager,
+-- double-entry accounting ledger, and multi-device CRDT version tracking.
+-- ============================================================
+
+-- ── Media Files ───────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS media_files (
+    id              TEXT    NOT NULL PRIMARY KEY,
+    file_name       TEXT    NOT NULL,
+    file_path       TEXT    NOT NULL,
+    remote_url      TEXT,
+    file_type       TEXT    NOT NULL,
+    mime_type       TEXT    NOT NULL,
+    file_size       INTEGER NOT NULL,
+    thumbnail_path  TEXT,
+    entity_type     TEXT,
+    entity_id       TEXT,
+    is_primary      INTEGER NOT NULL DEFAULT 0,
+    uploaded_by     TEXT    NOT NULL,
+    upload_status   TEXT    NOT NULL DEFAULT 'LOCAL',
+    created_at      INTEGER NOT NULL,
+    updated_at      INTEGER NOT NULL,
+    deleted_at      INTEGER,
+    sync_status     TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE INDEX IF NOT EXISTS idx_media_entity        ON media_files(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_media_uploader      ON media_files(uploaded_by);
+CREATE INDEX IF NOT EXISTS idx_media_type          ON media_files(file_type);
+CREATE INDEX IF NOT EXISTS idx_media_upload_status ON media_files(upload_status);
+
+-- ── Warehouse Racks ───────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS warehouse_racks (
+    id           TEXT    NOT NULL PRIMARY KEY,
+    warehouse_id TEXT    NOT NULL,
+    name         TEXT    NOT NULL,
+    description  TEXT,
+    capacity     INTEGER,
+    created_at   INTEGER NOT NULL,
+    updated_at   INTEGER NOT NULL,
+    deleted_at   INTEGER,
+    sync_status  TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE INDEX        IF NOT EXISTS idx_racks_warehouse      ON warehouse_racks(warehouse_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_racks_warehouse_name ON warehouse_racks(warehouse_id, name);
+
+-- ── Accounting Entries ────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS accounting_entries (
+    id              TEXT    NOT NULL PRIMARY KEY,
+    store_id        TEXT    NOT NULL,
+    account_code    TEXT    NOT NULL,
+    account_name    TEXT    NOT NULL,
+    entry_type      TEXT    NOT NULL,
+    amount          REAL    NOT NULL,
+    reference_type  TEXT    NOT NULL,
+    reference_id    TEXT    NOT NULL,
+    description     TEXT,
+    entry_date      TEXT    NOT NULL,
+    fiscal_period   TEXT    NOT NULL,
+    created_by      TEXT    NOT NULL,
+    created_at      INTEGER NOT NULL,
+    sync_status     TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE INDEX IF NOT EXISTS idx_accounting_date         ON accounting_entries(entry_date);
+CREATE INDEX IF NOT EXISTS idx_accounting_account      ON accounting_entries(account_code);
+CREATE INDEX IF NOT EXISTS idx_accounting_store_period ON accounting_entries(store_id, fiscal_period);
+CREATE INDEX IF NOT EXISTS idx_accounting_reference    ON accounting_entries(reference_type, reference_id);
+
+-- ── Version Vectors ───────────────────────────────────────────────────────────
+-- Tracks per-device version vectors for CRDT conflict detection.
+-- No standard sync columns — this IS the sync metadata.
+CREATE TABLE IF NOT EXISTS version_vectors (
+    entity_type TEXT    NOT NULL,
+    entity_id   TEXT    NOT NULL,
+    device_id   TEXT    NOT NULL,
+    version     INTEGER NOT NULL DEFAULT 0,
+    updated_at  INTEGER NOT NULL,
+    PRIMARY KEY (entity_type, entity_id, device_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_vv_entity ON version_vectors(entity_type, entity_id);

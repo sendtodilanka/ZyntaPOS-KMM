@@ -1,0 +1,82 @@
+-- ============================================================
+-- employees.sq — Staff / HR employee profiles
+-- Phase 3 Sprint 1
+-- ============================================================
+
+CREATE TABLE employees (
+    id                TEXT    NOT NULL PRIMARY KEY,
+    user_id           TEXT,                             -- Optional: linked system user account
+    store_id          TEXT    NOT NULL,                 -- Store this employee belongs to
+    first_name        TEXT    NOT NULL,
+    last_name         TEXT    NOT NULL,
+    email             TEXT,
+    phone             TEXT,
+    address           TEXT,
+    date_of_birth     TEXT,                             -- ISO date: YYYY-MM-DD
+    hire_date         TEXT    NOT NULL,                 -- ISO date: YYYY-MM-DD
+    department        TEXT,
+    position          TEXT    NOT NULL,
+    salary            REAL,
+    salary_type       TEXT    NOT NULL DEFAULT 'MONTHLY', -- 'HOURLY', 'DAILY', 'WEEKLY', 'MONTHLY'
+    commission_rate   REAL    NOT NULL DEFAULT 0.0,     -- Percentage on sales (0.0–100.0)
+    emergency_contact TEXT,                             -- JSON: {name, phone, relationship}
+    documents         TEXT,                             -- JSON: [{name, url, type}]
+    is_active         INTEGER NOT NULL DEFAULT 1,
+    created_at        INTEGER NOT NULL,
+    updated_at        INTEGER NOT NULL,
+    deleted_at        INTEGER,
+    sync_status       TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE INDEX idx_employees_store  ON employees(store_id);
+CREATE INDEX idx_employees_user   ON employees(user_id);
+CREATE INDEX idx_employees_active ON employees(is_active);
+
+-- ── Read queries ──────────────────────────────────────────────────────────────
+
+getEmployeesByStore:
+SELECT * FROM employees
+WHERE store_id = ? AND deleted_at IS NULL
+ORDER BY first_name ASC;
+
+getActiveEmployeesByStore:
+SELECT * FROM employees
+WHERE store_id = ? AND is_active = 1 AND deleted_at IS NULL
+ORDER BY first_name ASC;
+
+getEmployeeById:
+SELECT * FROM employees WHERE id = ? AND deleted_at IS NULL;
+
+getEmployeeByUserId:
+SELECT * FROM employees WHERE user_id = ? AND deleted_at IS NULL LIMIT 1;
+
+searchEmployees:
+SELECT * FROM employees
+WHERE store_id = ? AND deleted_at IS NULL
+  AND (first_name LIKE ? OR last_name LIKE ? OR email LIKE ? OR position LIKE ?)
+ORDER BY first_name ASC;
+
+-- ── Write queries ──────────────────────────────────────────────────────────────
+
+insertEmployee:
+INSERT INTO employees(id, user_id, store_id, first_name, last_name, email, phone, address,
+    date_of_birth, hire_date, department, position, salary, salary_type, commission_rate,
+    emergency_contact, documents, is_active, created_at, updated_at, deleted_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateEmployee:
+UPDATE employees SET
+    user_id = ?, first_name = ?, last_name = ?, email = ?, phone = ?, address = ?,
+    date_of_birth = ?, hire_date = ?, department = ?, position = ?, salary = ?,
+    salary_type = ?, commission_rate = ?, emergency_contact = ?, documents = ?,
+    is_active = ?, updated_at = ?, sync_status = ?
+WHERE id = ?;
+
+setEmployeeActive:
+UPDATE employees SET is_active = ?, updated_at = ?, sync_status = 'PENDING' WHERE id = ?;
+
+softDeleteEmployee:
+UPDATE employees SET deleted_at = ?, updated_at = ?, sync_status = 'PENDING' WHERE id = ?;
+
+markSynced:
+UPDATE employees SET sync_status = 'SYNCED' WHERE id = ?;

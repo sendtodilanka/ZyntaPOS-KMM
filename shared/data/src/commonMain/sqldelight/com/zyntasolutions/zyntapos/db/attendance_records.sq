@@ -1,0 +1,65 @@
+-- ============================================================
+-- attendance_records.sq — Daily clock-in/out attendance log
+-- Phase 3 Sprint 1
+-- ============================================================
+
+CREATE TABLE attendance_records (
+    id             TEXT    NOT NULL PRIMARY KEY,
+    employee_id    TEXT    NOT NULL REFERENCES employees(id),
+    clock_in       TEXT    NOT NULL,                    -- ISO datetime: YYYY-MM-DDTHH:mm:ss (TEXT for LIKE prefix queries)
+    clock_out      TEXT,                                -- NULL until clocked out
+    total_hours    REAL,                                -- Computed on clock-out
+    overtime_hours REAL    NOT NULL DEFAULT 0.0,
+    notes          TEXT,
+    status         TEXT    NOT NULL DEFAULT 'PRESENT',  -- 'PRESENT', 'ABSENT', 'LATE', 'LEAVE'
+    created_at     INTEGER NOT NULL,
+    updated_at     INTEGER NOT NULL,
+    sync_status    TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE INDEX idx_attendance_employee ON attendance_records(employee_id);
+CREATE INDEX idx_attendance_date     ON attendance_records(clock_in);
+CREATE INDEX idx_attendance_emp_date ON attendance_records(employee_id, clock_in);
+
+-- ── Read queries ──────────────────────────────────────────────────────────────
+
+getAttendanceByEmployee:
+SELECT * FROM attendance_records WHERE employee_id = ? ORDER BY clock_in DESC;
+
+getAttendanceByEmployeeForPeriod:
+SELECT * FROM attendance_records
+WHERE employee_id = ? AND clock_in >= ? AND clock_in <= ?
+ORDER BY clock_in ASC;
+
+getOpenAttendanceRecord:
+SELECT * FROM attendance_records
+WHERE employee_id = ? AND clock_out IS NULL LIMIT 1;
+
+getTodayAttendanceForAllEmployees:
+SELECT * FROM attendance_records
+WHERE clock_in LIKE ?                                   -- Pass 'YYYY-MM-DD%' as prefix
+ORDER BY employee_id ASC;
+
+getAttendanceByStore:
+SELECT ar.* FROM attendance_records ar
+JOIN employees e ON ar.employee_id = e.id
+WHERE e.store_id = ? AND ar.clock_in >= ? AND ar.clock_in <= ?
+ORDER BY ar.clock_in DESC;
+
+-- ── Write queries ──────────────────────────────────────────────────────────────
+
+insertAttendance:
+INSERT INTO attendance_records(id, employee_id, clock_in, clock_out, total_hours, overtime_hours,
+    notes, status, created_at, updated_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+clockOut:
+UPDATE attendance_records
+SET clock_out = ?, total_hours = ?, overtime_hours = ?, updated_at = ?, sync_status = 'PENDING'
+WHERE id = ?;
+
+updateAttendanceNotes:
+UPDATE attendance_records SET notes = ?, updated_at = ?, sync_status = 'PENDING' WHERE id = ?;
+
+markAttendanceSynced:
+UPDATE attendance_records SET sync_status = 'SYNCED' WHERE id = ?;

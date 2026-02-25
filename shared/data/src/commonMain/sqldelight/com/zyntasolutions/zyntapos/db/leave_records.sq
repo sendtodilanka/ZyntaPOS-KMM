@@ -1,0 +1,62 @@
+-- ============================================================
+-- leave_records.sq — Employee leave requests and approvals
+-- Phase 3 Sprint 1
+-- ============================================================
+
+CREATE TABLE leave_records (
+    id               TEXT    NOT NULL PRIMARY KEY,
+    employee_id      TEXT    NOT NULL REFERENCES employees(id),
+    leave_type       TEXT    NOT NULL,                  -- 'SICK', 'ANNUAL', 'PERSONAL', 'UNPAID'
+    start_date       TEXT    NOT NULL,                  -- ISO date: YYYY-MM-DD
+    end_date         TEXT    NOT NULL,                  -- ISO date: YYYY-MM-DD
+    reason           TEXT,
+    status           TEXT    NOT NULL DEFAULT 'PENDING',-- 'PENDING', 'APPROVED', 'REJECTED'
+    approved_by      TEXT,                              -- User ID of approver (no FK; users may be server-only)
+    approved_at      INTEGER,
+    rejection_reason TEXT,
+    created_at       INTEGER NOT NULL,
+    updated_at       INTEGER NOT NULL,
+    sync_status      TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE INDEX idx_leave_employee    ON leave_records(employee_id);
+CREATE INDEX idx_leave_status      ON leave_records(status);
+CREATE INDEX idx_leave_emp_status  ON leave_records(employee_id, status);
+
+-- ── Read queries ──────────────────────────────────────────────────────────────
+
+getLeaveByEmployee:
+SELECT * FROM leave_records WHERE employee_id = ? ORDER BY start_date DESC;
+
+getPendingLeaveRequests:
+SELECT * FROM leave_records WHERE status = 'PENDING' ORDER BY created_at ASC;
+
+getPendingLeaveForStore:
+SELECT lr.* FROM leave_records lr
+JOIN employees e ON lr.employee_id = e.id
+WHERE lr.status = 'PENDING' AND e.store_id = ?
+ORDER BY lr.created_at ASC;
+
+getLeaveByEmployeeAndPeriod:
+SELECT * FROM leave_records
+WHERE employee_id = ? AND start_date <= ? AND end_date >= ?
+ORDER BY start_date ASC;
+
+getLeaveById:
+SELECT * FROM leave_records WHERE id = ?;
+
+-- ── Write queries ──────────────────────────────────────────────────────────────
+
+insertLeaveRecord:
+INSERT INTO leave_records(id, employee_id, leave_type, start_date, end_date, reason,
+    status, approved_by, approved_at, rejection_reason, created_at, updated_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateLeaveStatus:
+UPDATE leave_records
+SET status = ?, approved_by = ?, approved_at = ?, rejection_reason = ?,
+    updated_at = ?, sync_status = 'PENDING'
+WHERE id = ?;
+
+markLeaveSynced:
+UPDATE leave_records SET sync_status = 'SYNCED' WHERE id = ?;

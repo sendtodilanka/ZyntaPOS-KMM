@@ -1,0 +1,49 @@
+-- ============================================================
+-- warehouse_racks.sq — Warehouse rack/shelf locations
+-- Phase 3 Sprint 2
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS warehouse_racks (
+    id           TEXT    NOT NULL PRIMARY KEY,
+    warehouse_id TEXT    NOT NULL REFERENCES warehouses(id),
+    name         TEXT    NOT NULL,  -- 'A1', 'B3', 'Shelf-2', 'Cold-Storage-01'
+    description  TEXT,
+    capacity     INTEGER,           -- Max units storable; NULL = unlimited
+    created_at   INTEGER NOT NULL,
+    updated_at   INTEGER NOT NULL,
+    deleted_at   INTEGER,
+    sync_status  TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE INDEX        idx_racks_warehouse      ON warehouse_racks(warehouse_id);
+CREATE UNIQUE INDEX idx_racks_warehouse_name ON warehouse_racks(warehouse_id, name);
+
+-- ── Read queries ───────────────────────────────────────────────────────────────
+
+selectByWarehouse:
+SELECT * FROM warehouse_racks
+WHERE warehouse_id = ? AND deleted_at IS NULL
+ORDER BY name ASC;
+
+selectById:
+SELECT * FROM warehouse_racks WHERE id = ? AND deleted_at IS NULL;
+
+-- ── Write queries ──────────────────────────────────────────────────────────────
+
+insertRack:
+INSERT INTO warehouse_racks(id, warehouse_id, name, description, capacity,
+    created_at, updated_at, deleted_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateRack:
+UPDATE warehouse_racks
+SET name = ?, description = ?, capacity = ?, updated_at = ?, sync_status = 'PENDING'
+WHERE id = ?;
+
+softDelete:
+UPDATE warehouse_racks
+SET deleted_at = ?, updated_at = ?, sync_status = 'PENDING'
+WHERE id = ?;
+
+markSynced:
+UPDATE warehouse_racks SET sync_status = 'SYNCED' WHERE id = ?;

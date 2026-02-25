@@ -420,6 +420,120 @@ fun NavGraphBuilder.mainNavGraph(
             }
         }
 
+        // ── Warehouse Rack screens  (Sprint 18) ─────────────────────────────────
+        composable<ZyntaRoute.WarehouseRackList> { entry ->
+            val route = entry.toRoute<ZyntaRoute.WarehouseRackList>()
+            screens.warehouseRackList(
+                route.warehouseId,
+                { rackId, whId -> navigationController.navigate(ZyntaRoute.WarehouseRackDetail(rackId, whId)) },
+                { navigationController.popBackStack() },
+            )
+        }
+
+        composable<ZyntaRoute.WarehouseRackDetail> { entry ->
+            val route = entry.toRoute<ZyntaRoute.WarehouseRackDetail>()
+            screens.warehouseRackDetail(
+                route.rackId,
+                route.warehouseId,
+                { navigationController.navigateUp(ZyntaRoute.WarehouseRackList(route.warehouseId)) },
+            )
+        }
+
+        // ── Accounting / E-Invoice sub-graph  (Sprint 18-24) ─────────────────
+        navigation<ZyntaRoute.AccountingGraph>(startDestination = ZyntaRoute.AccountingLedger) {
+            composable<ZyntaRoute.AccountingLedger> {
+                screens.accountingLedger(
+                    { accountCode, fiscalPeriod ->
+                        navigationController.navigate(ZyntaRoute.AccountDetail(accountCode, fiscalPeriod))
+                    },
+                    { navigationController.navigateUp(ZyntaRoute.Dashboard) },
+                )
+            }
+            composable<ZyntaRoute.AccountDetail> { entry ->
+                val route = entry.toRoute<ZyntaRoute.AccountDetail>()
+                screens.accountDetail(
+                    route.accountCode,
+                    route.fiscalPeriod,
+                    { navigationController.navigateUp(ZyntaRoute.AccountingLedger) },
+                )
+            }
+            composable<ZyntaRoute.EInvoiceList> {
+                screens.eInvoiceList(
+                    { invoiceId -> navigationController.navigate(ZyntaRoute.EInvoiceDetail(invoiceId)) },
+                )
+            }
+            composable<ZyntaRoute.EInvoiceDetail> { entry ->
+                val route = entry.toRoute<ZyntaRoute.EInvoiceDetail>()
+                screens.eInvoiceDetail(
+                    route.invoiceId,
+                    { navigationController.navigateUp(ZyntaRoute.EInvoiceList) },
+                )
+            }
+        }
+
+        // ── Admin sub-graph  (Sprint 13-15) ─────────────────────────────────────
+        navigation<ZyntaRoute.AdminGraph>(startDestination = ZyntaRoute.SystemHealthDashboard) {
+            composable<ZyntaRoute.SystemHealthDashboard> {
+                MainScaffoldShell(
+                    navigationController = navigationController,
+                    navItems = navItems,
+                    currentRoute = ZyntaRoute.SystemHealthDashboard,
+                ) {
+                    screens.adminScreen { navigationController.popBackStack() }
+                }
+            }
+            // These routes all land on the same tabbed AdminScreen; the caller is
+            // responsible for dispatching SwitchTab to the correct initial tab.
+            composable<ZyntaRoute.DatabaseMaintenance> {
+                screens.adminScreen { navigationController.popBackStack() }
+            }
+            composable<ZyntaRoute.BackupManagement> {
+                screens.adminScreen { navigationController.popBackStack() }
+            }
+            composable<ZyntaRoute.AuditLogViewer> {
+                screens.adminScreen { navigationController.popBackStack() }
+            }
+        }
+
+        // ── Staff sub-graph  (Sprint 8-12) ───────────────────────────────────────
+        navigation<ZyntaRoute.StaffGraph>(startDestination = ZyntaRoute.EmployeeList) {
+            composable<ZyntaRoute.EmployeeList> {
+                MainScaffoldShell(
+                    navigationController = navigationController,
+                    navItems = navItems,
+                    currentRoute = ZyntaRoute.EmployeeList,
+                ) {
+                    screens.staffScreen { navigationController.popBackStack() }
+                }
+            }
+            // All staff sub-routes land on the unified StaffScreen; internal
+            // tab/detail state is managed entirely by StaffViewModel.
+            composable<ZyntaRoute.EmployeeDetail> {
+                screens.staffScreen { navigationController.popBackStack() }
+            }
+            composable<ZyntaRoute.AttendanceDashboard> {
+                screens.staffScreen { navigationController.popBackStack() }
+            }
+            composable<ZyntaRoute.AttendanceHistory> {
+                screens.staffScreen { navigationController.popBackStack() }
+            }
+            composable<ZyntaRoute.LeaveManagement> {
+                screens.staffScreen { navigationController.popBackStack() }
+            }
+            composable<ZyntaRoute.SubmitLeave> {
+                screens.staffScreen { navigationController.popBackStack() }
+            }
+            composable<ZyntaRoute.ShiftScheduler> {
+                screens.staffScreen { navigationController.popBackStack() }
+            }
+            composable<ZyntaRoute.PayrollDashboard> {
+                screens.staffScreen { navigationController.popBackStack() }
+            }
+            composable<ZyntaRoute.PayrollDetail> {
+                screens.staffScreen { navigationController.popBackStack() }
+            }
+        }
+
         // ── Notification inbox ───────────────────────────────────────────────
         composable<ZyntaRoute.NotificationInbox> {
             screens.notificationInbox(
@@ -504,7 +618,32 @@ private fun MainScaffoldShell(
             is ZyntaRoute.WarehouseList,
             is ZyntaRoute.WarehouseDetail,
             is ZyntaRoute.StockTransferList,
-            is ZyntaRoute.NewStockTransfer -> item.route is ZyntaRoute.WarehouseList
+            is ZyntaRoute.NewStockTransfer,
+            is ZyntaRoute.WarehouseRackList,
+            is ZyntaRoute.WarehouseRackDetail -> item.route is ZyntaRoute.WarehouseList
+
+            // Accounting / E-Invoice sub-graph
+            is ZyntaRoute.AccountingLedger,
+            is ZyntaRoute.AccountDetail,
+            is ZyntaRoute.EInvoiceList,
+            is ZyntaRoute.EInvoiceDetail -> item.route is ZyntaRoute.AccountingLedger
+
+            // Admin sub-graph
+            is ZyntaRoute.SystemHealthDashboard,
+            is ZyntaRoute.DatabaseMaintenance,
+            is ZyntaRoute.BackupManagement,
+            is ZyntaRoute.AuditLogViewer -> item.route is ZyntaRoute.SystemHealthDashboard
+
+            // Staff sub-graph
+            is ZyntaRoute.EmployeeList,
+            is ZyntaRoute.EmployeeDetail,
+            is ZyntaRoute.AttendanceDashboard,
+            is ZyntaRoute.AttendanceHistory,
+            is ZyntaRoute.LeaveManagement,
+            is ZyntaRoute.SubmitLeave,
+            is ZyntaRoute.ShiftScheduler,
+            is ZyntaRoute.PayrollDashboard,
+            is ZyntaRoute.PayrollDetail -> item.route is ZyntaRoute.EmployeeList
 
             else -> item.route::class == currentRoute::class
         }

@@ -1,0 +1,60 @@
+-- ============================================================
+-- accounting_entries.sq — Double-entry accounting ledger
+-- Phase 3 Sprint 2
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS accounting_entries (
+    id              TEXT    NOT NULL PRIMARY KEY,
+    store_id        TEXT    NOT NULL,
+    account_code    TEXT    NOT NULL,  -- Chart of accounts: '4000', '5100', etc.
+    account_name    TEXT    NOT NULL,  -- Human-readable: 'Sales Revenue', 'Wages Expense'
+    entry_type      TEXT    NOT NULL,  -- 'DEBIT', 'CREDIT'
+    amount          REAL    NOT NULL,
+    reference_type  TEXT    NOT NULL,  -- 'ORDER', 'EXPENSE', 'PAYMENT', 'CASH_MOVEMENT', 'ADJUSTMENT'
+    reference_id    TEXT    NOT NULL,  -- FK to the source record
+    description     TEXT,
+    entry_date      TEXT    NOT NULL,  -- ISO date: YYYY-MM-DD
+    fiscal_period   TEXT    NOT NULL,  -- 'YYYY-MM' for monthly aggregation
+    created_by      TEXT    NOT NULL,  -- User ID who created the entry
+    created_at      INTEGER NOT NULL,
+    sync_status     TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE INDEX idx_accounting_date         ON accounting_entries(entry_date);
+CREATE INDEX idx_accounting_account      ON accounting_entries(account_code);
+CREATE INDEX idx_accounting_store_period ON accounting_entries(store_id, fiscal_period);
+CREATE INDEX idx_accounting_reference    ON accounting_entries(reference_type, reference_id);
+
+-- ── Read queries ───────────────────────────────────────────────────────────────
+
+selectByStoreAndPeriod:
+SELECT * FROM accounting_entries
+WHERE store_id = ? AND fiscal_period = ?
+ORDER BY entry_date ASC, account_code ASC;
+
+selectByAccountAndPeriod:
+SELECT * FROM accounting_entries
+WHERE store_id = ? AND account_code = ? AND fiscal_period = ?
+ORDER BY entry_date ASC;
+
+selectByReference:
+SELECT * FROM accounting_entries
+WHERE reference_type = ? AND reference_id = ?;
+
+sumByAccountForPeriod:
+SELECT account_code, account_name, entry_type, SUM(amount) AS total
+FROM accounting_entries
+WHERE store_id = ? AND fiscal_period BETWEEN ? AND ?
+GROUP BY account_code, account_name, entry_type
+ORDER BY account_code ASC;
+
+-- ── Write queries ──────────────────────────────────────────────────────────────
+
+insertEntry:
+INSERT INTO accounting_entries(id, store_id, account_code, account_name, entry_type, amount,
+    reference_type, reference_id, description, entry_date, fiscal_period,
+    created_by, created_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+markSynced:
+UPDATE accounting_entries SET sync_status = 'SYNCED' WHERE id = ?;

@@ -5,31 +5,37 @@ import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import com.zyntasolutions.zyntapos.core.utils.IdGenerator
 import com.zyntasolutions.zyntapos.domain.model.StockTransfer
 import com.zyntasolutions.zyntapos.domain.model.Warehouse
+import com.zyntasolutions.zyntapos.domain.model.WarehouseRack
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseRepository
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.CommitStockTransferUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.rack.DeleteWarehouseRackUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.rack.GetWarehouseRacksUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.rack.SaveWarehouseRackUseCase
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.datetime.Clock
 
 /**
- * ViewModel for the Multi-store / Warehouse feature — Sprints 14–16.
+ * ViewModel for the Multi-store / Warehouse feature — Sprints 14–16 + 18.
  *
- * Manages:
- * - Warehouse list for the current store
- * - Warehouse create/edit form
- * - Stock transfer list per warehouse
- * - New stock transfer creation
- * - Transfer commit / cancel lifecycle
+ * Manages warehouse list, warehouse CRUD, stock transfers, and warehouse
+ * rack management (Sprint 18).
  *
- * @param warehouseRepository  Warehouse and stock transfer CRUD.
- * @param commitTransferUseCase Validates and commits a pending transfer.
- * @param currentStoreId        Resolved from the active auth session at DI time.
- * @param currentUserId         Resolved from the active auth session at DI time.
+ * @param warehouseRepository      Warehouse and stock transfer CRUD.
+ * @param commitTransferUseCase    Validates and commits a pending transfer.
+ * @param getWarehouseRacksUseCase Reactive rack list for a warehouse.
+ * @param saveWarehouseRackUseCase Insert or update a rack record.
+ * @param deleteWarehouseRackUseCase Soft-delete a rack record.
+ * @param currentStoreId           Resolved from the active auth session at DI time.
+ * @param currentUserId            Resolved from the active auth session at DI time.
  */
 class WarehouseViewModel(
     private val warehouseRepository: WarehouseRepository,
     private val commitTransferUseCase: CommitStockTransferUseCase,
+    private val getWarehouseRacksUseCase: GetWarehouseRacksUseCase,
+    private val saveWarehouseRackUseCase: SaveWarehouseRackUseCase,
+    private val deleteWarehouseRackUseCase: DeleteWarehouseRackUseCase,
     private val currentStoreId: String,
     private val currentUserId: String,
 ) : BaseViewModel<WarehouseState, WarehouseIntent, WarehouseEffect>(WarehouseState()) {
@@ -64,6 +70,14 @@ class WarehouseViewModel(
             is WarehouseIntent.CommitTransfer -> onCommitTransfer(intent.transferId)
             is WarehouseIntent.CancelTransfer -> onCancelTransfer(intent.transferId)
 
+            is WarehouseIntent.LoadRacks -> onLoadRacks(intent.warehouseId)
+            is WarehouseIntent.SelectRack -> onSelectRack(intent.rackId, intent.warehouseId)
+            is WarehouseIntent.UpdateRackField -> onUpdateRackField(intent.field, intent.value)
+            is WarehouseIntent.SaveRack -> onSaveRack()
+            is WarehouseIntent.RequestDeleteRack -> updateState { copy(showDeleteRackConfirm = intent.rack) }
+            is WarehouseIntent.ConfirmDeleteRack -> onConfirmDeleteRack()
+            is WarehouseIntent.CancelDeleteRack -> updateState { copy(showDeleteRackConfirm = null) }
+
             is WarehouseIntent.DismissMessage -> updateState { copy(error = null, successMessage = null) }
         }
     }
@@ -72,12 +86,7 @@ class WarehouseViewModel(
 
     private suspend fun onSelectWarehouse(warehouseId: String?) {
         if (warehouseId == null) {
-            updateState {
-                copy(
-                    selectedWarehouse = null,
-                    warehouseForm = WarehouseFormState(isEditing = false),
-                )
-            }
+            updateState { copy(selectedWarehouse = null, warehouseForm = WarehouseFormState()) }
             sendEffect(WarehouseEffect.NavigateToDetail(null))
             return
         }
@@ -136,17 +145,12 @@ class WarehouseViewModel(
             address = form.address.trim().takeIf { it.isNotBlank() },
             isDefault = form.isDefault,
         )
-        val result = if (form.isEditing) {
-            warehouseRepository.update(warehouse)
-        } else {
-            warehouseRepository.insert(warehouse)
-        }
+        val result = if (form.isEditing) warehouseRepository.update(warehouse)
+                     else warehouseRepository.insert(warehouse)
         when (result) {
             is Result.Success -> {
                 val msg = if (form.isEditing) "Warehouse updated" else "Warehouse created"
-                updateState {
-                    copy(isLoading = false, successMessage = msg, warehouseForm = WarehouseFormState())
-                }
+                updateState { copy(isLoading = false, successMessage = msg, warehouseForm = WarehouseFormState()) }
                 sendEffect(WarehouseEffect.ShowSuccess(msg))
                 sendEffect(WarehouseEffect.NavigateToList)
             }
@@ -167,13 +171,7 @@ class WarehouseViewModel(
     }
 
     private fun onInitTransferForm(sourceWarehouseId: String?) {
-        updateState {
-            copy(
-                transferForm = TransferFormState(
-                    sourceWarehouseId = sourceWarehouseId ?: "",
-                ),
-            )
-        }
+        updateState { copy(transferForm = TransferFormState(sourceWarehouseId = sourceWarehouseId ?: "")) }
     }
 
     private fun onUpdateTransferField(field: String, value: String) {
@@ -220,9 +218,7 @@ class WarehouseViewModel(
         )
         when (val result = warehouseRepository.createTransfer(transfer)) {
             is Result.Success -> {
-                updateState {
-                    copy(isLoading = false, transferForm = TransferFormState(), successMessage = "Transfer created")
-                }
+                updateState { copy(isLoading = false, transferForm = TransferFormState(), successMessage = "Transfer created") }
                 sendEffect(WarehouseEffect.ShowSuccess("Transfer created"))
                 sendEffect(WarehouseEffect.TransferComplete)
             }
@@ -259,6 +255,118 @@ class WarehouseViewModel(
             is Result.Error -> {
                 updateState { copy(isLoading = false) }
                 sendEffect(WarehouseEffect.ShowError(result.exception.message ?: "Cancel failed"))
+            }
+            is Result.Loading -> {}
+        }
+    }
+
+    // ── Rack CRUD ──────────────────────────────────────────────────────────
+
+    private fun onLoadRacks(warehouseId: String) {
+        getWarehouseRacksUseCase(warehouseId)
+            .onEach { racks -> updateState { copy(racks = racks) } }
+            .launchIn(viewModelScope)
+    }
+
+    private fun onSelectRack(rackId: String?, warehouseId: String) {
+        if (rackId == null) {
+            updateState {
+                copy(
+                    selectedRack = null,
+                    rackForm = RackFormState(warehouseId = warehouseId, isEditing = false),
+                )
+            }
+            sendEffect(WarehouseEffect.NavigateToRackDetail(null, warehouseId))
+            return
+        }
+        // Look up from already-loaded racks list to avoid extra DB call
+        val rack = currentState.racks.find { it.id == rackId }
+        if (rack != null) {
+            updateState {
+                copy(
+                    selectedRack = rack,
+                    rackForm = RackFormState(
+                        id = rack.id,
+                        warehouseId = rack.warehouseId,
+                        name = rack.name,
+                        description = rack.description ?: "",
+                        capacity = rack.capacity?.toString() ?: "",
+                        isEditing = true,
+                    ),
+                )
+            }
+            sendEffect(WarehouseEffect.NavigateToRackDetail(rackId, warehouseId))
+        } else {
+            sendEffect(WarehouseEffect.ShowError("Rack not found"))
+        }
+    }
+
+    private fun onUpdateRackField(field: String, value: String) {
+        updateState {
+            copy(
+                rackForm = when (field) {
+                    "name" -> rackForm.copy(name = value, validationErrors = rackForm.validationErrors - "name")
+                    "description" -> rackForm.copy(description = value)
+                    "capacity" -> rackForm.copy(capacity = value, validationErrors = rackForm.validationErrors - "capacity")
+                    else -> rackForm
+                },
+            )
+        }
+    }
+
+    private suspend fun onSaveRack() {
+        val form = currentState.rackForm
+        val errors = mutableMapOf<String, String>()
+        if (form.name.isBlank()) errors["name"] = "Rack name is required"
+        val parsedCapacity: Int? = if (form.capacity.isNotBlank()) {
+            val v = form.capacity.toIntOrNull()
+            if (v == null || v <= 0) {
+                errors["capacity"] = "Capacity must be a positive number"
+                null
+            } else v
+        } else null
+        if (errors.isNotEmpty()) {
+            updateState { copy(rackForm = rackForm.copy(validationErrors = errors)) }
+            return
+        }
+        updateState { copy(isLoading = true) }
+        val now = Clock.System.now().toEpochMilliseconds()
+        val rack = WarehouseRack(
+            id = form.id ?: IdGenerator.newId(),
+            warehouseId = form.warehouseId,
+            name = form.name.trim(),
+            description = form.description.trim().takeIf { it.isNotBlank() },
+            capacity = parsedCapacity,
+            createdAt = now,
+            updatedAt = now,
+        )
+        when (val result = saveWarehouseRackUseCase(rack, isUpdate = form.isEditing)) {
+            is Result.Success -> {
+                val msg = if (form.isEditing) "Rack updated" else "Rack created"
+                updateState { copy(isLoading = false, successMessage = msg, rackForm = RackFormState()) }
+                sendEffect(WarehouseEffect.ShowSuccess(msg))
+                sendEffect(WarehouseEffect.NavigateToRackList)
+            }
+            is Result.Error -> {
+                updateState { copy(isLoading = false) }
+                sendEffect(WarehouseEffect.ShowError(result.exception.message ?: "Save failed"))
+            }
+            is Result.Loading -> {}
+        }
+    }
+
+    private suspend fun onConfirmDeleteRack() {
+        val rack = currentState.showDeleteRackConfirm ?: return
+        updateState { copy(showDeleteRackConfirm = null, isLoading = true) }
+        val now = Clock.System.now().toEpochMilliseconds()
+        when (val result = deleteWarehouseRackUseCase(rack.id, now, now)) {
+            is Result.Success -> {
+                updateState { copy(isLoading = false) }
+                sendEffect(WarehouseEffect.ShowSuccess("Rack \"${rack.name}\" deleted"))
+            }
+            is Result.Error -> {
+                updateState { copy(isLoading = false) }
+                sendEffect(WarehouseEffect.ShowError(result.exception.message ?: "Delete failed"))
             }
             is Result.Loading -> {}
         }

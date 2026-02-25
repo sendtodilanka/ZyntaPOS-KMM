@@ -1,0 +1,71 @@
+-- ============================================================
+-- shift_schedules.sq — Weekly shift scheduling for employees
+-- Phase 3 Sprint 1
+-- ============================================================
+
+CREATE TABLE shift_schedules (
+    id          TEXT NOT NULL PRIMARY KEY,
+    employee_id TEXT NOT NULL REFERENCES employees(id),
+    store_id    TEXT NOT NULL,                          -- Denormalised for fast per-store queries
+    shift_date  TEXT NOT NULL,                          -- ISO date: YYYY-MM-DD
+    start_time  TEXT NOT NULL,                          -- HH:MM (24-hour)
+    end_time    TEXT NOT NULL,                          -- HH:MM (24-hour)
+    notes       TEXT,
+    created_at  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL,
+    sync_status TEXT NOT NULL DEFAULT 'PENDING'
+);
+
+-- One shift per employee per day
+CREATE UNIQUE INDEX idx_shifts_emp_date   ON shift_schedules(employee_id, shift_date);
+CREATE INDEX idx_shifts_store_date        ON shift_schedules(store_id, shift_date);
+CREATE INDEX idx_shifts_employee          ON shift_schedules(employee_id);
+
+-- ── Read queries ──────────────────────────────────────────────────────────────
+
+getShiftsByStoreAndWeek:
+SELECT ss.*, e.first_name, e.last_name, e.position
+FROM shift_schedules ss JOIN employees e ON ss.employee_id = e.id
+WHERE ss.store_id = ? AND ss.shift_date >= ? AND ss.shift_date <= ?
+ORDER BY ss.shift_date ASC, e.last_name ASC;
+
+getShiftsByEmployee:
+SELECT * FROM shift_schedules
+WHERE employee_id = ? AND shift_date >= ? AND shift_date <= ?
+ORDER BY shift_date ASC;
+
+getShiftByEmployeeAndDate:
+SELECT * FROM shift_schedules
+WHERE employee_id = ? AND shift_date = ? LIMIT 1;
+
+getShiftsByStoreAndDate:
+SELECT ss.*, e.first_name, e.last_name
+FROM shift_schedules ss JOIN employees e ON ss.employee_id = e.id
+WHERE ss.store_id = ? AND ss.shift_date = ?
+ORDER BY ss.start_time ASC;
+
+-- ── Write queries ──────────────────────────────────────────────────────────────
+
+insertShift:
+INSERT INTO shift_schedules(id, employee_id, store_id, shift_date, start_time, end_time,
+    notes, created_at, updated_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateShift:
+UPDATE shift_schedules
+SET start_time = ?, end_time = ?, notes = ?, updated_at = ?, sync_status = 'PENDING'
+WHERE id = ?;
+
+upsertShift:
+INSERT OR REPLACE INTO shift_schedules(id, employee_id, store_id, shift_date, start_time,
+    end_time, notes, created_at, updated_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+deleteShiftById:
+DELETE FROM shift_schedules WHERE id = ?;
+
+deleteShiftByEmployeeAndDate:
+DELETE FROM shift_schedules WHERE employee_id = ? AND shift_date = ?;
+
+markShiftSynced:
+UPDATE shift_schedules SET sync_status = 'SYNCED' WHERE id = ?;

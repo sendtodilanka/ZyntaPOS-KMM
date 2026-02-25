@@ -20,13 +20,6 @@ pluginManagement {
         }
     }
     repositories {
-        // Local fallback for plugins not resolvable via gradlePluginPortal() in this environment.
-        // Contains: org.gradle.toolchains.foojay-resolver-convention:1.0.0
-        maven("file:///tmp/local-gradle-plugins") {
-            content {
-                includeGroupAndSubgroups("org.gradle.toolchains")
-            }
-        }
         google {
             mavenContent {
                 includeGroupAndSubgroups("androidx")
@@ -66,9 +59,8 @@ dependencyResolutionManagement {
 }
 
 // ── Gradle Toolchains ─────────────────────────────────────────
-plugins {
-    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
-}
+// Note: foojay-resolver-convention plugin removed — JVM toolchains are not used
+// in this project. The local JDK (Java 21/Temurin) is used directly.
 
 // ════════════════════════════════════════════════════════════
 // MODULE REGISTRY — 26 modules
@@ -184,6 +176,10 @@ include(":composeApp:feature:media")
 // quick actions, low-stock alerts, active-register status.
 // Extracted from :composeApp root for module graph consistency.
 include(":composeApp:feature:dashboard")
+
+// ── ComposeApp — Feature: Accounting / E-Invoice ─────────────
+// E-Invoice creation, IRD submission pipeline (Sprint 18-24).
+include(":composeApp:feature:accounting")
 
 // ── ComposeApp — Feature: Onboarding ─────────────────────────
 // First-run setup wizard — collects business name + admin credentials.

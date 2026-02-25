@@ -1,5 +1,7 @@
 package com.zyntasolutions.zyntapos.hal.di
 
+import com.zyntasolutions.zyntapos.hal.image.ImageProcessor
+import com.zyntasolutions.zyntapos.hal.image.ImageProcessorImpl
 import com.zyntasolutions.zyntapos.hal.printer.DesktopTcpPrinterPort
 import com.zyntasolutions.zyntapos.hal.printer.EscPosReceiptBuilder
 import com.zyntasolutions.zyntapos.hal.printer.PrinterConfig
@@ -44,6 +46,9 @@ actual fun halModule(): Module = module {
 
     // ── Receipt builder (concrete + interface binding for DI resolution) ───
     single { EscPosReceiptBuilder(config = PrinterConfig.DEFAULT) } bind ReceiptBuilder::class
+
+    // ── Image processor — AWT ImageIO compress / crop / thumbnail ──────────
+    single<ImageProcessor> { ImageProcessorImpl() }
 
     // ── Common bindings (PrinterManager) ──────────────────────────────────
     includes(halCommonModule)

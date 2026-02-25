@@ -1,0 +1,36 @@
+-- ============================================================
+-- Migration 4 → 5: Sprint 18 — E-Invoices table
+-- ============================================================
+-- Adds the e_invoices table for persisted IRD e-invoice records.
+-- The previous in-memory EInvoiceRepositoryImpl stub is replaced
+-- by a full SQLDelight-backed implementation.
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS e_invoices (
+    id                   TEXT    NOT NULL PRIMARY KEY,
+    order_id             TEXT    NOT NULL,
+    store_id             TEXT    NOT NULL,
+    invoice_number       TEXT    NOT NULL,
+    invoice_date         TEXT    NOT NULL,
+    customer_name        TEXT    NOT NULL,
+    customer_tax_id      TEXT,
+    line_items_json      TEXT    NOT NULL,
+    subtotal             REAL    NOT NULL,
+    tax_breakdown_json   TEXT    NOT NULL,
+    total_tax            REAL    NOT NULL,
+    total                REAL    NOT NULL,
+    currency             TEXT    NOT NULL DEFAULT 'LKR',
+    status               TEXT    NOT NULL DEFAULT 'DRAFT',
+    ird_reference_number TEXT,
+    submitted_at         INTEGER,
+    accepted_at          INTEGER,
+    rejection_reason     TEXT,
+    created_at           INTEGER NOT NULL,
+    updated_at           INTEGER NOT NULL,
+    sync_status          TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE INDEX IF NOT EXISTS idx_einvoice_store         ON e_invoices(store_id);
+CREATE INDEX IF NOT EXISTS idx_einvoice_order         ON e_invoices(order_id);
+CREATE INDEX IF NOT EXISTS idx_einvoice_store_status  ON e_invoices(store_id, status);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_einvoice_number ON e_invoices(store_id, invoice_number);
