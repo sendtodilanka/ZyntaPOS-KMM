@@ -1,0 +1,50 @@
+## ZyntaPOS — Dev Environment Properties
+## ═══════════════════════════════════════════════════════════════════
+## Use this file for local development and UI/UX testing.
+## No real backend, FCM, Maps, Sentry, or IRD needed.
+##
+## HOW TO USE:
+##   cp local.properties.dev local.properties
+##   Then update sdk.dir to your local Android SDK path.
+##
+## All values here are safe, non-secret dev placeholders.
+## `local.properties` is git-ignored — this file is tracked.
+## ═══════════════════════════════════════════════════════════════════
+
+# Android SDK path — update this to your local path before building.
+# Examples:
+#   Linux/macOS: /home/yourname/Android/Sdk  or  /Users/yourname/Library/Android/sdk
+#   Windows:     C\:\\Users\\yourname\\AppData\\Local\\Android\\Sdk
+sdk.dir=/home/user/Android/Sdk
+
+# ── Backend API ──────────────────────────────────────────────────────
+# In dev builds, ApiService calls are intercepted by DevApiService
+# (a no-op stub in src/debug/). These values satisfy the build system
+# but are never used at runtime.
+ZYNTA_API_BASE_URL=http://localhost:8080
+ZYNTA_API_CLIENT_ID=dev-client-id
+ZYNTA_API_CLIENT_SECRET=dev-client-secret
+
+# ── BuildConfig fields (must be non-empty for compilation) ───────────
+API_BASE_URL=http://localhost:8080
+DB_ENCRYPTION_PASSWORD=dev-only-not-for-production
+
+# ── Database Encryption ──────────────────────────────────────────────
+# Fixed dev passphrase — safe for local development only.
+# All zeros is intentional: easily identifiable as a dev key.
+# Production: generate with  openssl rand -hex 32
+ZYNTA_DB_PASSPHRASE=0000000000000000000000000000000000000000000000000000000000000000
+
+# ── Push Notifications (FCM) — not used in dev ──────────────────────
+ZYNTA_FCM_SERVER_KEY=dev-placeholder-fcm-key
+
+# ── Maps / Geolocation — not used in dev ────────────────────────────
+ZYNTA_MAPS_API_KEY=dev-placeholder-maps-key
+
+# ── Crash Reporting — not used in dev ───────────────────────────────
+ZYNTA_SENTRY_DSN=dev-placeholder-sentry-dsn
+
+# ── E-Invoicing / IRD — not used in dev ─────────────────────────────
+ZYNTA_IRD_API_ENDPOINT=http://localhost:8080/ird
+ZYNTA_IRD_CLIENT_CERTIFICATE_PATH=/dev/null
+ZYNTA_IRD_CERTIFICATE_PASSWORD=dev-placeholder

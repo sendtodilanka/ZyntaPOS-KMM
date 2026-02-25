@@ -121,11 +121,15 @@ class ZyntaApplication : Application() {
         )
 
         // ── Tier 7: Debug tools — loaded only in debug builds ─────────────────
-        // seedModule registers SeedRunner; debugModule registers action handlers
-        // and DebugViewModel. Both are loaded AFTER dataModule so all repository
-        // bindings are already in the Koin graph.
+        // seedModule    — registers SeedRunner (25 products, 15 customers, etc.)
+        // debugModule   — registers DebugViewModel + 6-tab console action handlers
+        // devModules    — overrides ApiService with DevApiService (no-op sync stub)
+        //                 so the app runs without a real backend during dev testing.
+        //                 src/debug/DevModules.kt provides the override list;
+        //                 src/release/DevModules.kt returns emptyList() for release.
+        // allowOverride — required so devDataModule can replace KtorApiService.
         if (BuildConfig.DEBUG) {
-            koin.koin.loadModules(listOf(seedModule, debugModule))
+            koin.koin.loadModules(listOf(seedModule, debugModule) + devModules, allowOverride = true)
         }
     }
 }
