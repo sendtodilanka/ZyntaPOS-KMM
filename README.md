@@ -223,12 +223,14 @@ openssl rand -hex 32
 
 ## Roadmap
 
-| Phase | Timeline | Scope |
-|-------|----------|-------|
-| Phase 0 | Foundation | Build system, module scaffold, secrets, CI skeleton |
-| Phase 1 (MVP) | Months 1–6 | Single-store POS, offline sync, core features |
-| Phase 2 (Growth) | Months 7–12 | Multi-store, CRM, promotions, CRDT sync |
-| Phase 3 (Enterprise) | Months 13–18 | Staff/HR, admin, e-invoicing (IRD), analytics |
+| Phase | Timeline | Status | Scope |
+|-------|----------|--------|-------|
+| Phase 0 | Foundation | ✅ Complete | Build system, module scaffold, secrets, CI skeleton |
+| Phase 1 (MVP) | Months 1–6 | ✅ Complete | Single-store POS, offline sync, core features |
+| Phase 2 (Growth) | Months 7–12 | ✅ ~95% implemented | Multi-store, CRM, promotions, CRDT sync (CRDT ConflictResolver gap) |
+| Phase 3 (Enterprise) | Months 13–18 | 🟡 ~80% implemented | Staff/HR, admin, e-invoicing (IRD), analytics (IRD mTLS API, advanced charts, i18n pending) |
+
+> **Last status update:** 2026-02-25. See `docs/ai_workflows/execution_log.md` Phase 2 and Phase 3 sections for the full implementation summary and known gaps.
 
 See `docs/ai_workflows/execution_log.md` for the granular task checklist.
 
