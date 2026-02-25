@@ -121,6 +121,16 @@ fun ZyntaNavGraph(
         emptyList()
     }
 
+    // Compact items (max 5) for the COMPACT bottom NavigationBar
+    val compactNavItems: List<NavItem> = if (userRole != null) {
+        RbacNavFilter.compactForRole(userRole)
+    } else {
+        emptyList()
+    }
+
+    // Section-header groups for the EXPANDED permanent drawer
+    val navGroups = RbacNavFilter.groupsForItems(navItems)
+
     NavHost(
         navController = navigationController.navController,
         startDestination = ZyntaRoute.AuthGraph,
@@ -139,6 +149,8 @@ fun ZyntaNavGraph(
         mainNavGraph(
             navigationController = navigationController,
             navItems = navItems,
+            compactNavItems = compactNavItems,
+            navGroups = navGroups,
             screens = screens,
             debugScreen = debugScreen,
         )
