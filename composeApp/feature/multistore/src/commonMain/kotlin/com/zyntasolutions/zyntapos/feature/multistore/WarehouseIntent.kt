@@ -27,6 +27,17 @@ sealed interface WarehouseIntent {
     data class CommitTransfer(val transferId: String) : WarehouseIntent
     data class CancelTransfer(val transferId: String) : WarehouseIntent
 
+    // ── Rack Management ────────────────────────────────────────────────────
+    /** Start observing racks for [warehouseId]. */
+    data class LoadRacks(val warehouseId: String) : WarehouseIntent
+    /** Navigate to rack create/edit. [rackId] null → create new. */
+    data class SelectRack(val rackId: String?, val warehouseId: String) : WarehouseIntent
+    data class UpdateRackField(val field: String, val value: String) : WarehouseIntent
+    data object SaveRack : WarehouseIntent
+    data class RequestDeleteRack(val rack: com.zyntasolutions.zyntapos.domain.model.WarehouseRack) : WarehouseIntent
+    data object ConfirmDeleteRack : WarehouseIntent
+    data object CancelDeleteRack : WarehouseIntent
+
     // ── Global ─────────────────────────────────────────────────────────────
     data object DismissMessage : WarehouseIntent
 }

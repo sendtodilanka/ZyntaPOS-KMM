@@ -420,6 +420,41 @@ fun NavGraphBuilder.mainNavGraph(
             }
         }
 
+        // ── Warehouse Rack screens  (Sprint 18) ─────────────────────────────────
+        composable<ZyntaRoute.WarehouseRackList> { entry ->
+            val route = entry.toRoute<ZyntaRoute.WarehouseRackList>()
+            screens.warehouseRackList(
+                route.warehouseId,
+                { rackId, whId -> navigationController.navigate(ZyntaRoute.WarehouseRackDetail(rackId, whId)) },
+                { navigationController.popBackStack() },
+            )
+        }
+
+        composable<ZyntaRoute.WarehouseRackDetail> { entry ->
+            val route = entry.toRoute<ZyntaRoute.WarehouseRackDetail>()
+            screens.warehouseRackDetail(
+                route.rackId,
+                route.warehouseId,
+                { navigationController.navigateUp(ZyntaRoute.WarehouseRackList(route.warehouseId)) },
+            )
+        }
+
+        // ── Accounting / E-Invoice sub-graph  (Sprint 18-24) ─────────────────
+        navigation<ZyntaRoute.AccountingGraph>(startDestination = ZyntaRoute.EInvoiceList) {
+            composable<ZyntaRoute.EInvoiceList> {
+                screens.eInvoiceList(
+                    { invoiceId -> navigationController.navigate(ZyntaRoute.EInvoiceDetail(invoiceId)) },
+                )
+            }
+            composable<ZyntaRoute.EInvoiceDetail> { entry ->
+                val route = entry.toRoute<ZyntaRoute.EInvoiceDetail>()
+                screens.eInvoiceDetail(
+                    route.invoiceId,
+                    { navigationController.navigateUp(ZyntaRoute.EInvoiceList) },
+                )
+            }
+        }
+
         // ── Notification inbox ───────────────────────────────────────────────
         composable<ZyntaRoute.NotificationInbox> {
             screens.notificationInbox(
@@ -504,7 +539,13 @@ private fun MainScaffoldShell(
             is ZyntaRoute.WarehouseList,
             is ZyntaRoute.WarehouseDetail,
             is ZyntaRoute.StockTransferList,
-            is ZyntaRoute.NewStockTransfer -> item.route is ZyntaRoute.WarehouseList
+            is ZyntaRoute.NewStockTransfer,
+            is ZyntaRoute.WarehouseRackList,
+            is ZyntaRoute.WarehouseRackDetail -> item.route is ZyntaRoute.WarehouseList
+
+            // Accounting / E-Invoice sub-graph
+            is ZyntaRoute.EInvoiceList,
+            is ZyntaRoute.EInvoiceDetail -> item.route is ZyntaRoute.EInvoiceList
 
             else -> item.route::class == currentRoute::class
         }

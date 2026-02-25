@@ -190,6 +190,29 @@ data class MainNavScreens(
         onCancel: () -> Unit,
     ) -> Unit,
 
+    // ── Warehouse Racks sub-graph  (Sprint 18) ────────────────────────────────
+    val warehouseRackList: @Composable (
+        warehouseId: String,
+        onNavigateToDetail: (rackId: String?, warehouseId: String) -> Unit,
+        onNavigateUp: () -> Unit,
+    ) -> Unit,
+
+    val warehouseRackDetail: @Composable (
+        rackId: String?,
+        warehouseId: String,
+        onNavigateUp: () -> Unit,
+    ) -> Unit,
+
+    // ── Accounting / E-Invoice sub-graph  (Sprint 18-24) ─────────────────────
+    val eInvoiceList: @Composable (
+        onNavigateToDetail: (invoiceId: String) -> Unit,
+    ) -> Unit,
+
+    val eInvoiceDetail: @Composable (
+        invoiceId: String?,
+        onNavigateUp: () -> Unit,
+    ) -> Unit,
+
     // ── Notifications ─────────────────────────────────────────────────────────
     val notificationInbox: @Composable (
         onNavigateUp: () -> Unit,

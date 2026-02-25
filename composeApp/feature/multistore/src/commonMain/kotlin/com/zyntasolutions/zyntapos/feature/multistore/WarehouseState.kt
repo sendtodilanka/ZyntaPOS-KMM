@@ -2,35 +2,33 @@ package com.zyntasolutions.zyntapos.feature.multistore
 
 import com.zyntasolutions.zyntapos.domain.model.StockTransfer
 import com.zyntasolutions.zyntapos.domain.model.Warehouse
+import com.zyntasolutions.zyntapos.domain.model.WarehouseRack
 
 /**
  * Immutable UI state for the Multi-store / Warehouse screens.
  *
  * Consumed by [WarehouseListScreen], [WarehouseDetailScreen],
- * [StockTransferListScreen], and [NewStockTransferScreen].
- *
- * @property warehouses Warehouses belonging to the current store.
- * @property transfers Stock transfers for the selected warehouse.
- * @property pendingTransfers All PENDING transfers across all warehouses.
- * @property selectedWarehouse Warehouse loaded for detail/edit.
- * @property warehouseForm Draft for create/edit warehouse.
- * @property transferForm Draft for new stock transfer.
- * @property isLoading True while an async operation is in flight.
- * @property error Transient error message; null = no error.
- * @property successMessage Transient success message; null = no message.
+ * [StockTransferListScreen], [NewStockTransferScreen],
+ * [WarehouseRackListScreen], and [WarehouseRackDetailScreen].
  */
 data class WarehouseState(
-    // ── List ──────────────────────────────────────────────────────────────
+    // ── Warehouse List ────────────────────────────────────────────────────
     val warehouses: List<Warehouse> = emptyList(),
     val transfers: List<StockTransfer> = emptyList(),
     val pendingTransfers: List<StockTransfer> = emptyList(),
 
-    // ── Detail / Edit ─────────────────────────────────────────────────────
+    // ── Warehouse Detail / Edit ───────────────────────────────────────────
     val selectedWarehouse: Warehouse? = null,
     val warehouseForm: WarehouseFormState = WarehouseFormState(),
 
     // ── New Transfer ──────────────────────────────────────────────────────
     val transferForm: TransferFormState = TransferFormState(),
+
+    // ── Rack Management ───────────────────────────────────────────────────
+    val racks: List<WarehouseRack> = emptyList(),
+    val selectedRack: WarehouseRack? = null,
+    val rackForm: RackFormState = RackFormState(),
+    val showDeleteRackConfirm: WarehouseRack? = null,
 
     // ── Global ────────────────────────────────────────────────────────────
     val isLoading: Boolean = false,
@@ -56,5 +54,16 @@ data class TransferFormState(
     val productName: String = "",
     val quantity: String = "",
     val notes: String = "",
+    val validationErrors: Map<String, String> = emptyMap(),
+)
+
+/** Mutable form fields for creating/editing a warehouse rack. */
+data class RackFormState(
+    val id: String? = null,
+    val warehouseId: String = "",
+    val name: String = "",
+    val description: String = "",
+    val capacity: String = "",
+    val isEditing: Boolean = false,
     val validationErrors: Map<String, String> = emptyMap(),
 )

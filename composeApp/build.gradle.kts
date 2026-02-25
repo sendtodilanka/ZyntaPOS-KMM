@@ -77,6 +77,7 @@ kotlin {
             implementation(project(":composeApp:feature:media"))
             implementation(project(":composeApp:feature:dashboard"))
             implementation(project(":composeApp:feature:onboarding"))
+            implementation(project(":composeApp:feature:accounting"))
             // Debug Console — always compiled in; Koin bindings loaded only when isDebug == true
             implementation(project(":tools:debug"))
         }

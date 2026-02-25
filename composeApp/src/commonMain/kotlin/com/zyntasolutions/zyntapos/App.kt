@@ -44,6 +44,12 @@ import com.zyntasolutions.zyntapos.feature.multistore.NewStockTransferScreen
 import com.zyntasolutions.zyntapos.feature.multistore.StockTransferListScreen
 import com.zyntasolutions.zyntapos.feature.multistore.WarehouseDetailScreen
 import com.zyntasolutions.zyntapos.feature.multistore.WarehouseListScreen
+import com.zyntasolutions.zyntapos.feature.multistore.WarehouseRackListScreen
+import com.zyntasolutions.zyntapos.feature.multistore.WarehouseRackDetailScreen
+import com.zyntasolutions.zyntapos.feature.multistore.WarehouseViewModel
+import com.zyntasolutions.zyntapos.feature.accounting.EInvoiceListScreen
+import com.zyntasolutions.zyntapos.feature.accounting.EInvoiceDetailScreen
+import com.zyntasolutions.zyntapos.feature.accounting.EInvoiceViewModel
 import com.zyntasolutions.zyntapos.feature.register.CloseRegisterScreen
 import com.zyntasolutions.zyntapos.feature.register.OpenRegisterScreen
 import com.zyntasolutions.zyntapos.feature.register.RegisterDashboardScreen
@@ -467,5 +473,48 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
     // ── Notifications ────────────────────────────────────────────────────────
     notificationInbox = { onNavigateUp ->
         NotificationInboxScreen(onNavigateUp = onNavigateUp)
+    },
+
+    // ── Warehouse Racks  (Sprint 18) ─────────────────────────────────────────
+    warehouseRackList = { warehouseId, onNavigateToDetail, _ ->
+        val vm: WarehouseViewModel = koinViewModel()
+        val state by vm.state.collectAsState()
+        WarehouseRackListScreen(
+            state = state,
+            onIntent = vm::dispatch,
+            warehouseId = warehouseId,
+        )
+    },
+
+    warehouseRackDetail = { _, warehouseId, _ ->
+        val vm: WarehouseViewModel = koinViewModel()
+        val state by vm.state.collectAsState()
+        WarehouseRackDetailScreen(
+            state = state,
+            onIntent = vm::dispatch,
+        )
+    },
+
+    // ── Accounting / E-Invoice  (Sprint 18-24) ────────────────────────────────
+    eInvoiceList = { onNavigateToDetail ->
+        val vm: EInvoiceViewModel = koinViewModel()
+        val state by vm.state.collectAsState()
+        EInvoiceListScreen(
+            state = state,
+            onIntent = vm::dispatch,
+            onNavigateToDetail = onNavigateToDetail,
+        )
+    },
+
+    eInvoiceDetail = { invoiceId, _ ->
+        val vm: EInvoiceViewModel = koinViewModel()
+        val state by vm.state.collectAsState()
+        if (invoiceId != null) {
+            vm.dispatch(com.zyntasolutions.zyntapos.feature.accounting.EInvoiceIntent.LoadInvoice(invoiceId))
+        }
+        EInvoiceDetailScreen(
+            state = state,
+            onIntent = vm::dispatch,
+        )
     },
 )

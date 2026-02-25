@@ -177,6 +177,10 @@ include(":composeApp:feature:media")
 // Extracted from :composeApp root for module graph consistency.
 include(":composeApp:feature:dashboard")
 
+// ── ComposeApp — Feature: Accounting / E-Invoice ─────────────
+// E-Invoice creation, IRD submission pipeline (Sprint 18-24).
+include(":composeApp:feature:accounting")
+
 // ── ComposeApp — Feature: Onboarding ─────────────────────────
 // First-run setup wizard — collects business name + admin credentials.
 // Shown on first launch only; replaces hardcoded admin seed.
