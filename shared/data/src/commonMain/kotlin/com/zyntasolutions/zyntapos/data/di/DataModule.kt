@@ -4,7 +4,6 @@ import com.zyntasolutions.zyntapos.data.local.SyncEnqueuer
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseFactory
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseMigrations
 import com.zyntasolutions.zyntapos.data.local.db.SecurePreferencesKeyMigration
-import com.zyntasolutions.zyntapos.domain.port.SecureStoragePort
 import com.zyntasolutions.zyntapos.data.remote.api.ApiService
 import com.zyntasolutions.zyntapos.data.remote.api.KtorApiService
 import com.zyntasolutions.zyntapos.data.remote.api.buildApiClient
@@ -41,9 +40,12 @@ import com.zyntasolutions.zyntapos.data.repository.ShiftRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.SystemRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.WarehouseRackRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.WarehouseRepositoryImpl
+import com.zyntasolutions.zyntapos.data.sync.ConflictResolver
 import com.zyntasolutions.zyntapos.data.sync.NetworkMonitor
 import com.zyntasolutions.zyntapos.data.sync.SyncEngine
+import com.zyntasolutions.zyntapos.domain.port.SecureStoragePort
 import com.zyntasolutions.zyntapos.domain.repository.AuditRepository
+import org.koin.core.qualifier.named
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.CategoryRepository
 import com.zyntasolutions.zyntapos.domain.repository.CouponRepository
@@ -213,13 +215,24 @@ val dataModule = module {
         )
     }
 
-    // Sync queue: batch read + status transitions (PENDING→SYNCED/FAILED)
-    single<SyncRepository> { SyncRepositoryImpl(db = get()) }
+    // Sync queue: batch read + status transitions (PENDING→SYNCED/FAILED).
+    // apiService is injected so pushToServer/pullFromServer make real Ktor HTTP calls.
+    single<SyncRepository> { SyncRepositoryImpl(db = get(), apiService = get()) }
 
     // SyncRepositoryImpl is also bound directly (not just via interface) so that
     // the SyncEngine can call maintenance methods (pruneSynced, deduplicatePending,
     // markFailed) that are not part of the domain contract.
     single { get<SyncRepository>() as SyncRepositoryImpl }
+
+    // CRDT ConflictResolver — LWW with deviceId tiebreaker + PRODUCT field-level merge.
+    // localDeviceId resolves from the named "deviceId" String binding registered by the
+    // platform data modules (androidDataModule / desktopDataModule) at startup — the
+    // same value used by SecurityAuditLogger.
+    single {
+        ConflictResolver(
+            localDeviceId = get(named("deviceId")),
+        )
+    }
 
     // ─────────────────────────────────────────────────────────────────────────
     // ── Phase 2 CRM Repositories ─────────────────────────────────────────────
