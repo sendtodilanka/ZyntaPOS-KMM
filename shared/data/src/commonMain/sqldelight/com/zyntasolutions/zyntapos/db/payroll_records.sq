@@ -1,0 +1,74 @@
+-- ============================================================
+-- payroll_records.sq — Monthly / periodic payroll calculations
+-- Phase 3 Sprint 1
+-- ============================================================
+
+CREATE TABLE payroll_records (
+    id           TEXT NOT NULL PRIMARY KEY,
+    employee_id  TEXT NOT NULL REFERENCES employees(id),
+    period_start TEXT NOT NULL,                         -- ISO date: YYYY-MM-DD (first day of period)
+    period_end   TEXT NOT NULL,                         -- ISO date: YYYY-MM-DD (last day of period)
+    base_salary  REAL NOT NULL,
+    overtime_pay REAL NOT NULL DEFAULT 0.0,
+    commission   REAL NOT NULL DEFAULT 0.0,
+    deductions   REAL NOT NULL DEFAULT 0.0,
+    net_pay      REAL NOT NULL,
+    status       TEXT NOT NULL DEFAULT 'PENDING',       -- 'PENDING', 'PAID'
+    paid_at      INTEGER,
+    payment_ref  TEXT,
+    notes        TEXT,
+    created_at   INTEGER NOT NULL,
+    updated_at   INTEGER NOT NULL,
+    sync_status  TEXT NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE UNIQUE INDEX idx_payroll_emp_period ON payroll_records(employee_id, period_start);
+CREATE INDEX idx_payroll_employee          ON payroll_records(employee_id);
+CREATE INDEX idx_payroll_period            ON payroll_records(period_start);
+CREATE INDEX idx_payroll_status            ON payroll_records(status);
+
+-- ── Read queries ──────────────────────────────────────────────────────────────
+
+getPayrollByEmployee:
+SELECT * FROM payroll_records WHERE employee_id = ? ORDER BY period_start DESC;
+
+getPayrollByPeriodForStore:
+SELECT pr.*, e.first_name, e.last_name, e.position
+FROM payroll_records pr JOIN employees e ON pr.employee_id = e.id
+WHERE pr.period_start = ? AND e.store_id = ?
+ORDER BY e.last_name ASC;
+
+getPayrollByEmployeeAndPeriod:
+SELECT * FROM payroll_records
+WHERE employee_id = ? AND period_start = ? LIMIT 1;
+
+getPendingPayroll:
+SELECT pr.*, e.first_name, e.last_name
+FROM payroll_records pr JOIN employees e ON pr.employee_id = e.id
+WHERE pr.status = 'PENDING' AND e.store_id = ?
+ORDER BY e.last_name ASC;
+
+getPayrollById:
+SELECT * FROM payroll_records WHERE id = ?;
+
+-- ── Write queries ──────────────────────────────────────────────────────────────
+
+insertPayroll:
+INSERT INTO payroll_records(id, employee_id, period_start, period_end, base_salary,
+    overtime_pay, commission, deductions, net_pay, status, paid_at, payment_ref, notes,
+    created_at, updated_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updatePayrollStatus:
+UPDATE payroll_records
+SET status = ?, paid_at = ?, payment_ref = ?, updated_at = ?, sync_status = 'PENDING'
+WHERE id = ?;
+
+updatePayrollCalculation:
+UPDATE payroll_records
+SET base_salary = ?, overtime_pay = ?, commission = ?, deductions = ?, net_pay = ?,
+    updated_at = ?, sync_status = 'PENDING'
+WHERE id = ?;
+
+markPayrollSynced:
+UPDATE payroll_records SET sync_status = 'SYNCED' WHERE id = ?;
