@@ -1,9 +1,12 @@
 package com.zyntasolutions.zyntapos.data.repository
 
+import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.NetworkException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.data.local.mapper.SyncOperationMapper
+import com.zyntasolutions.zyntapos.data.remote.api.ApiService
+import com.zyntasolutions.zyntapos.data.remote.dto.SyncOperationDto
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
 import com.zyntasolutions.zyntapos.domain.model.SyncOperation
 import com.zyntasolutions.zyntapos.domain.repository.SyncRepository
@@ -39,21 +42,23 @@ import kotlinx.datetime.Clock
  * memory usage and network payload size per sync cycle.
  *
  * ## Network layer
- * [pushToServer] and [pullFromServer] are **Phase 1 stubs** — the Ktor API client
- * (Sprint 6 Step 3.4) has not been wired yet. Both return [Result.Success] with
- * empty results so the sync queue compiles and the queue management logic can be
- * unit-tested independently of the network layer.
+ * [pushToServer] calls [ApiService.pushOperations] with the serialised batch and
+ * processes the [SyncResponseDto] — marking accepted IDs as SYNCED and incrementing
+ * the retry counter for rejected IDs.
  *
- * Once the Ktor [ApiService] is available, inject it into this class and replace
- * the stub bodies with real HTTP calls.
+ * [pullFromServer] calls [ApiService.pullOperations] and maps the returned
+ * [SyncPullResponseDto.operations] back to domain [SyncOperation] objects.
  *
- * @param db Encrypted [ZyntaDatabase] singleton.
+ * @param db         Encrypted [ZyntaDatabase] singleton.
+ * @param apiService Ktor-backed [ApiService] for push/pull HTTP calls.
  */
 class SyncRepositoryImpl(
     private val db: ZyntaDatabase,
+    private val apiService: ApiService,
 ) : SyncRepository {
 
     private val q get() = db.sync_queueQueries
+    private val log = ZyntaLogger.forModule("SyncRepositoryImpl")
 
     companion object {
         /** Maximum rows fetched per sync cycle. Keeps payload under ~500 KB. */
@@ -140,35 +145,122 @@ class SyncRepositoryImpl(
         )
     }
 
-    // ── Network stubs (Phase 1 — replaced in Sprint 6 Step 3.4) ─────
+    // ── Network layer ────────────────────────────────────────────────
 
     /**
-     * **Phase 1 stub** — no-op push that marks all supplied ops as SYNCED locally.
+     * Pushes [ops] to the server via [ApiService.pushOperations].
      *
-     * Sprint 6 Step 3.4 (Ktor ApiService) will replace this body with:
-     * ```
-     * val response = apiService.pushBatch(ops.map { it.toDto() })
-     * if (response.isSuccessful) markSynced(ops.map { it.id })
-     * else markFailed(ops.filter { it.id !in response.acknowledged }.map { it.id })
-     * ```
+     * On a successful server response:
+     * - Operations listed in [SyncResponseDto.accepted] are marked SYNCED.
+     * - Operations listed in [SyncResponseDto.rejected] have their retry counter
+     *   incremented; those that reach [MAX_RETRIES] are permanently marked FAILED.
+     *
+     * On a total connectivity failure (exception thrown by Ktor) the method
+     * returns [Result.Error] with a [NetworkException] and leaves all supplied
+     * operations in their current state (the caller's retry logic handles them
+     * on the next sync cycle).
+     *
+     * @param ops Batch of PENDING [SyncOperation]s to transmit. May be empty —
+     *   returns [Result.Success] immediately in that case.
      */
     override suspend fun pushToServer(ops: List<SyncOperation>): Result<Unit> {
-        // TODO(Sprint6-Step3.4): wire Ktor ApiService here
-        return if (ops.isEmpty()) Result.Success(Unit)
-        else markSynced(ops.map { it.id })
+        if (ops.isEmpty()) return Result.Success(Unit)
+
+        val dtos = ops.map { op ->
+            SyncOperationDto(
+                id         = op.id,
+                entityType = op.entityType,
+                entityId   = op.entityId,
+                operation  = SyncOperationMapper.operationToSql(op.operation),
+                payload    = op.payload,
+                createdAt  = op.createdAt.toEpochMilliseconds(),
+                retryCount = op.retryCount,
+            )
+        }
+
+        return runCatching {
+            withContext(Dispatchers.IO) {
+                val response = apiService.pushOperations(dtos)
+
+                log.d(
+                    "pushToServer: accepted=${response.accepted.size} " +
+                        "rejected=${response.rejected.size} " +
+                        "conflicts=${response.conflicts.size}"
+                )
+
+                // Mark accepted operations as SYNCED
+                if (response.accepted.isNotEmpty()) {
+                    markSynced(response.accepted)
+                }
+
+                // Increment retry count for rejected operations; permanently fail
+                // those that have exhausted their retry budget.
+                if (response.rejected.isNotEmpty()) {
+                    markFailed(response.rejected)
+                }
+            }
+        }.fold(
+            onSuccess = { Result.Success(Unit) },
+            onFailure = { t ->
+                log.e("pushToServer failed: ${t.message}", throwable = t)
+                Result.Error(
+                    NetworkException(
+                        message = "Push to server failed: ${t.message}",
+                        cause   = t,
+                    )
+                )
+            },
+        )
     }
 
     /**
-     * **Phase 1 stub** — returns an empty list (offline-only MVP).
+     * Pulls server-side delta changes created after [lastSyncTimestamp] via
+     * [ApiService.pullOperations].
      *
-     * Sprint 6 Step 3.4 will replace this with:
-     * ```
-     * val response = apiService.pullDelta(since = lastSyncTimestamp)
-     * return Result.Success(response.operations.map { it.toDomain() })
-     * ```
+     * The returned [SyncOperation] list contains server-authoritative records
+     * that the [SyncEngine] will apply locally (with CRDT conflict resolution
+     * via [ConflictResolver]).
+     *
+     * @param lastSyncTimestamp Epoch-millis of the last successful pull.
+     *   Pass `0L` for a full resync from the beginning of time.
+     * @return [Result.Success] with the list of remote deltas (may be empty
+     *   when the client is already up-to-date), or [Result.Error] with a
+     *   [NetworkException] on connectivity failure.
      */
     override suspend fun pullFromServer(lastSyncTimestamp: Long): Result<List<SyncOperation>> =
-        Result.Success(emptyList())
+        runCatching {
+            withContext(Dispatchers.IO) {
+                val response = apiService.pullOperations(lastSyncTimestamp)
+                log.d("pullFromServer: received ${response.operations.size} delta op(s)")
+                response.operations.map { dto ->
+                    SyncOperation(
+                        id         = dto.id,
+                        entityType = dto.entityType,
+                        entityId   = dto.entityId,
+                        operation  = when (dto.operation.uppercase()) {
+                            "CREATE", "INSERT" -> SyncOperation.Operation.INSERT
+                            "DELETE"           -> SyncOperation.Operation.DELETE
+                            else               -> SyncOperation.Operation.UPDATE
+                        },
+                        payload    = dto.payload,
+                        createdAt  = kotlinx.datetime.Instant.fromEpochMilliseconds(dto.createdAt),
+                        retryCount = dto.retryCount,
+                        status     = SyncOperation.Status.PENDING,
+                    )
+                }
+            }
+        }.fold(
+            onSuccess = { Result.Success(it) },
+            onFailure = { t ->
+                log.e("pullFromServer failed: ${t.message}", throwable = t)
+                Result.Error(
+                    NetworkException(
+                        message = "Pull from server failed: ${t.message}",
+                        cause   = t,
+                    )
+                )
+            },
+        )
 
     // ── Maintenance ──────────────────────────────────────────────────
 
