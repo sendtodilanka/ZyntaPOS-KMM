@@ -19,6 +19,7 @@ import com.zyntasolutions.zyntapos.domain.model.SalaryType
  * - **Shifts:** [LoadWeeklyShifts], [ShowShiftForm], [HideShiftForm], [UpdateShiftField],
  *   [SaveShift], [DeleteShift]
  * - **Payroll:** [LoadPayroll], [SelectPayroll], [GeneratePayroll], [ProcessPayment]
+ * - **History:** [LoadPayrollHistory], [LoadAttendanceSummary], [LoadLeaveHistory]
  * - **UI:** [DismissError], [DismissSuccess]
  */
 sealed interface StaffIntent {
@@ -102,6 +103,24 @@ sealed interface StaffIntent {
         val paidAt: Long,
         val paymentRef: String?,
     ) : StaffIntent
+
+    // ── History / Summary ──────────────────────────────────────────────────
+    /** Load the full payroll history for a specific employee (reactive stream). */
+    data class LoadPayrollHistory(val employeeId: String) : StaffIntent
+
+    /**
+     * Load an attendance summary for an employee over a date range.
+     * @param from ISO date: YYYY-MM-DD (inclusive).
+     * @param to ISO date: YYYY-MM-DD (inclusive).
+     */
+    data class LoadAttendanceSummary(
+        val employeeId: String,
+        val from: String,
+        val to: String,
+    ) : StaffIntent
+
+    /** Load the full leave history for a specific employee (reactive stream). */
+    data class LoadLeaveHistory(val employeeId: String) : StaffIntent
 
     // ── UI Feedback ────────────────────────────────────────────────────────
     data object DismissError : StaffIntent

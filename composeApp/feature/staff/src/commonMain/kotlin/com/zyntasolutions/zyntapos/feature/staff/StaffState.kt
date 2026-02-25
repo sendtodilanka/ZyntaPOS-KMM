@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.staff
 
 import com.zyntasolutions.zyntapos.domain.model.AttendanceRecord
+import com.zyntasolutions.zyntapos.domain.model.AttendanceSummary
 import com.zyntasolutions.zyntapos.domain.model.Employee
 import com.zyntasolutions.zyntapos.domain.model.LeaveRecord
 import com.zyntasolutions.zyntapos.domain.model.LeaveType
@@ -60,6 +61,15 @@ data class StaffState(
     val payrollRecords: List<PayrollRecord> = emptyList(),
     val payrollSummary: PayrollSummary? = null,
     val selectedPayroll: PayrollRecord? = null,
+
+    // ── Payroll History (employee-scoped reactive stream) ─────────────────
+    val payrollHistory: List<PayrollRecord> = emptyList(),
+
+    // ── Attendance Summary ────────────────────────────────────────────────
+    val attendanceSummary: AttendanceSummary? = null,
+
+    // ── Leave History (employee-scoped reactive stream) ───────────────────
+    val leaveHistory: List<LeaveRecord> = emptyList(),
 
     // ── Global ────────────────────────────────────────────────────────────
     val isLoading: Boolean = false,
