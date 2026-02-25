@@ -29,6 +29,17 @@ import com.zyntasolutions.zyntapos.data.repository.SyncRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.TaxGroupRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.UnitGroupRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.UserRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.AccountingRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.AttendanceRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.BackupRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.EInvoiceRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.EmployeeRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.LeaveRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.MediaRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.PayrollRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.ShiftRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.SystemRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.WarehouseRackRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.WarehouseRepositoryImpl
 import com.zyntasolutions.zyntapos.data.sync.NetworkMonitor
 import com.zyntasolutions.zyntapos.data.sync.SyncEngine
@@ -53,6 +64,17 @@ import com.zyntasolutions.zyntapos.domain.repository.SyncRepository
 import com.zyntasolutions.zyntapos.domain.repository.TaxGroupRepository
 import com.zyntasolutions.zyntapos.domain.repository.UnitGroupRepository
 import com.zyntasolutions.zyntapos.domain.repository.UserRepository
+import com.zyntasolutions.zyntapos.domain.repository.AccountingRepository
+import com.zyntasolutions.zyntapos.domain.repository.AttendanceRepository
+import com.zyntasolutions.zyntapos.domain.repository.BackupRepository
+import com.zyntasolutions.zyntapos.domain.repository.EInvoiceRepository
+import com.zyntasolutions.zyntapos.domain.repository.EmployeeRepository
+import com.zyntasolutions.zyntapos.domain.repository.LeaveRepository
+import com.zyntasolutions.zyntapos.domain.repository.MediaRepository
+import com.zyntasolutions.zyntapos.domain.repository.PayrollRepository
+import com.zyntasolutions.zyntapos.domain.repository.ShiftRepository
+import com.zyntasolutions.zyntapos.domain.repository.SystemRepository
+import com.zyntasolutions.zyntapos.domain.repository.WarehouseRackRepository
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseRepository
 import org.koin.dsl.module
 
@@ -285,4 +307,49 @@ val dataModule = module {
             networkMonitor = get(),
         )
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ── Phase 3 Staff / HR Repositories ──────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Employee profiles: CRUD, active toggle, soft-delete, name/email search
+    single<EmployeeRepository> { EmployeeRepositoryImpl(db = get(), syncEnqueuer = get()) }
+
+    // Clock-in/out attendance records; summary aggregation computed in-memory
+    single<AttendanceRepository> { AttendanceRepositoryImpl(db = get(), syncEnqueuer = get()) }
+
+    // Leave requests: submit, approve, reject; pending flow by store
+    single<LeaveRepository> { LeaveRepositoryImpl(db = get(), syncEnqueuer = get()) }
+
+    // Payroll records: generate, calculate, mark-paid; store/period summary
+    single<PayrollRepository> { PayrollRepositoryImpl(db = get(), syncEnqueuer = get()) }
+
+    // Shift scheduling: weekly view, upsert, delete by employee+date
+    single<ShiftRepository> { ShiftRepositoryImpl(db = get(), syncEnqueuer = get()) }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ── Phase 3 Media Repositories ───────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Media files: polymorphic entity attachments, primary flag, pending upload queue
+    single<MediaRepository> { MediaRepositoryImpl(db = get(), syncEnqueuer = get()) }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ── Phase 3 Infrastructure Repositories ──────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Warehouse racks: physical shelf locations per warehouse
+    single<WarehouseRackRepository> { WarehouseRackRepositoryImpl(db = get(), syncEnqueuer = get()) }
+
+    // Accounting ledger: double-entry insert with DEBIT==CREDIT validation
+    single<AccountingRepository> { AccountingRepositoryImpl(db = get(), syncEnqueuer = get()) }
+
+    // System health: DB stats, memory metrics, VACUUM, soft-delete purge
+    single<SystemRepository> { SystemRepositoryImpl(db = get()) }
+
+    // Backup: in-memory registry (Phase 3 stub; file I/O added in Sprint 13)
+    single<BackupRepository> { BackupRepositoryImpl(db = get()) }
+
+    // E-Invoice: in-memory registry (Phase 3 stub; IRD API added in Sprint 18)
+    single<EInvoiceRepository> { EInvoiceRepositoryImpl() }
 }

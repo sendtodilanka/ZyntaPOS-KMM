@@ -317,6 +317,147 @@ sealed class ZyntaRoute {
     data object NotificationInbox : ZyntaRoute()
 
     // ─────────────────────────────────────────────────────────────────
+    // STAFF / HR GROUP  (Phase 3 — Sprint 8-12)
+    // ─────────────────────────────────────────────────────────────────
+
+    /** Graph route for the Staff/HR sub-graph. */
+    @Serializable data object StaffGraph : ZyntaRoute()
+
+    /** Employee directory list with search and status filter. */
+    @Serializable
+    data object EmployeeList : ZyntaRoute()
+
+    /**
+     * Employee profile detail / edit.
+     *
+     * @param employeeId Existing ID for edit; `null` for create.
+     */
+    @Serializable
+    data class EmployeeDetail(val employeeId: String? = null) : ZyntaRoute()
+
+    /** Attendance management — daily clock-in/out for a store. */
+    @Serializable
+    data object AttendanceDashboard : ZyntaRoute()
+
+    /** Attendance history for a single employee. */
+    @Serializable
+    data class AttendanceHistory(val employeeId: String) : ZyntaRoute()
+
+    /** Leave request management — approve / reject pending requests. */
+    @Serializable
+    data object LeaveManagement : ZyntaRoute()
+
+    /** Submit a new leave request. */
+    @Serializable
+    data class SubmitLeave(val employeeId: String) : ZyntaRoute()
+
+    /** Weekly shift scheduler — drag-and-drop shift grid. */
+    @Serializable
+    data object ShiftScheduler : ZyntaRoute()
+
+    /** Payroll overview — current period, pending payments. */
+    @Serializable
+    data object PayrollDashboard : ZyntaRoute()
+
+    /** Payroll detail for a specific employee + period. */
+    @Serializable
+    data class PayrollDetail(val employeeId: String, val periodStart: String) : ZyntaRoute()
+
+    // ─────────────────────────────────────────────────────────────────
+    // ADMIN GROUP  (Phase 3 — Sprint 13-15)
+    // ─────────────────────────────────────────────────────────────────
+
+    /** Graph route for the Admin sub-graph. */
+    @Serializable data object AdminGraph : ZyntaRoute()
+
+    /** System health dashboard — memory, DB size, sync status, connectivity. */
+    @Serializable
+    data object SystemHealthDashboard : ZyntaRoute()
+
+    /** Database statistics and maintenance — row counts, VACUUM, purge. */
+    @Serializable
+    data object DatabaseMaintenance : ZyntaRoute()
+
+    /** Backup management list — create, restore, delete, export. */
+    @Serializable
+    data object BackupManagement : ZyntaRoute()
+
+    /** Audit log viewer — security events and data changes. */
+    @Serializable
+    data object AuditLogViewer : ZyntaRoute()
+
+    // ─────────────────────────────────────────────────────────────────
+    // MEDIA GROUP  (Phase 3 — Sprint 16-17)
+    // ─────────────────────────────────────────────────────────────────
+
+    /** Graph route for the Media sub-graph. */
+    @Serializable data object MediaGraph : ZyntaRoute()
+
+    /** Media library — grid view of all uploaded assets. */
+    @Serializable
+    data object MediaLibrary : ZyntaRoute()
+
+    /**
+     * Media picker — select or capture an image to attach to an entity.
+     *
+     * @param entityType Polymorphic entity type ('Product', 'Employee', etc.).
+     * @param entityId   ID of the entity the image will be attached to.
+     */
+    @Serializable
+    data class MediaPicker(val entityType: String, val entityId: String) : ZyntaRoute()
+
+    // ─────────────────────────────────────────────────────────────────
+    // ACCOUNTING / E-INVOICE GROUP  (Phase 3 — Sprint 18-24)
+    // ─────────────────────────────────────────────────────────────────
+
+    /** Graph route for the Accounting/E-Invoice sub-graph. */
+    @Serializable data object AccountingGraph : ZyntaRoute()
+
+    /** Double-entry accounting ledger — period view, account balances. */
+    @Serializable
+    data object AccountingLedger : ZyntaRoute()
+
+    /** Account detail — all entries for a single account in a fiscal period. */
+    @Serializable
+    data class AccountDetail(val accountCode: String, val fiscalPeriod: String) : ZyntaRoute()
+
+    /** E-Invoice list — status filter (DRAFT, SUBMITTED, ACCEPTED, REJECTED). */
+    @Serializable
+    data object EInvoiceList : ZyntaRoute()
+
+    /**
+     * E-Invoice detail / creation screen.
+     *
+     * @param invoiceId Existing invoice ID for detail view; `null` to create from an order.
+     * @param orderId   Source order ID when creating a new invoice.
+     */
+    @Serializable
+    data class EInvoiceDetail(
+        val invoiceId: String? = null,
+        val orderId: String? = null,
+    ) : ZyntaRoute()
+
+    // ─────────────────────────────────────────────────────────────────
+    // WAREHOUSE RACKS GROUP  (Phase 3)
+    // ─────────────────────────────────────────────────────────────────
+
+    /** Warehouse rack list for a specific warehouse. */
+    @Serializable
+    data class WarehouseRackList(val warehouseId: String) : ZyntaRoute()
+
+    /**
+     * Warehouse rack detail / edit.
+     *
+     * @param rackId     Existing rack ID for edit; `null` for create.
+     * @param warehouseId Parent warehouse ID (required for create mode).
+     */
+    @Serializable
+    data class WarehouseRackDetail(
+        val rackId: String? = null,
+        val warehouseId: String,
+    ) : ZyntaRoute()
+
+    // ─────────────────────────────────────────────────────────────────
     // DEEP-LINK TARGETS (not primary nav destinations)
     // ─────────────────────────────────────────────────────────────────
 
