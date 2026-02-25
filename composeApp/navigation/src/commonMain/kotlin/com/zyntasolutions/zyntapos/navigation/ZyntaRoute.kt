@@ -167,6 +167,14 @@ sealed class ZyntaRoute {
     @Serializable
     data object StockReport : ZyntaRoute()
 
+    /** Customer report — acquisition, loyalty, order frequency analytics. */
+    @Serializable
+    data object CustomerReport : ZyntaRoute()
+
+    /** Expense report — breakdown by category and period with P&L view. */
+    @Serializable
+    data object ExpenseReport : ZyntaRoute()
+
     // ─────────────────────────────────────────────────────────────────
     // SETTINGS GROUP
     // ─────────────────────────────────────────────────────────────────
