@@ -74,6 +74,8 @@ data class MainNavScreens(
     // ── Reports sub-graph ─────────────────────────────────────────────────────
     val salesReport: @Composable () -> Unit,
     val stockReport: @Composable () -> Unit,
+    val customerReport: @Composable () -> Unit,
+    val expenseReport: @Composable () -> Unit,
 
     // ── Settings sub-graph ────────────────────────────────────────────────────
     val settings: @Composable (

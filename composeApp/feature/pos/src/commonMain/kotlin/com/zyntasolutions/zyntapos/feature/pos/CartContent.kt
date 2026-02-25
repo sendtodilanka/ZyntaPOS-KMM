@@ -5,7 +5,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
@@ -40,7 +40,42 @@ internal fun CartContent(
     onIntent: (PosIntent) -> Unit,
     modifier: Modifier = Modifier,
     formatter: CurrencyFormatter = CurrencyFormatter(),
+    loyaltyPointsBalance: Int? = null,
 ) {
+    var showNotesDialog by remember { mutableStateOf(false) }
+    var showVoidDialog by remember { mutableStateOf(false) }
+
+    // ── Order notes dialog ────────────────────────────────────────────────────
+    if (showNotesDialog) {
+        OrderNotesDialog(
+            onConfirm = { notes ->
+                onIntent(PosIntent.SetNotes(notes))
+                showNotesDialog = false
+            },
+            onDismiss = { showNotesDialog = false },
+        )
+    }
+
+    // ── Void order confirmation dialog ────────────────────────────────────────
+    if (showVoidDialog) {
+        AlertDialog(
+            onDismissRequest = { showVoidDialog = false },
+            title = { Text("Void Order?") },
+            text = { Text("This will remove all items from the cart. This action cannot be undone.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    onIntent(PosIntent.ClearCart)
+                    showVoidDialog = false
+                }) {
+                    Text("Void", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showVoidDialog = false }) { Text("Cancel") }
+            },
+        )
+    }
+
     Column(modifier = modifier) {
 
         // ── Customer row ───────────────────────────────────────────────────
@@ -52,10 +87,11 @@ internal fun CartContent(
                 .padding(horizontal = ZyntaSpacing.md, vertical = ZyntaSpacing.sm),
         )
 
-        // ── Cart action row (Order Notes | Order Discount | Clear) ─────────
+        // ── Cart action row (Order Notes | Order Discount | Void | Clear) ──
         CartActionRow(
-            onNotesClicked = { /* surfaced via PosScreen dialog management */ },
+            onNotesClicked = { showNotesDialog = true },
             onDiscountClicked = { /* surfaced via PosScreen dialog management */ },
+            onVoidClicked = { showVoidDialog = true },
             onClearClicked = { onIntent(PosIntent.ClearCart) },
             modifier = Modifier
                 .fillMaxWidth()
@@ -84,6 +120,16 @@ internal fun CartContent(
             formatter = formatter,
             modifier = Modifier.weight(1f),
         )
+
+        // ── Loyalty points chip (shown when customer has balance) ─────────
+        if (loyaltyPointsBalance != null && loyaltyPointsBalance > 0) {
+            AssistChip(
+                onClick = { /* loyalty redeem — Phase 2 */ },
+                label = { Text("Points: $loyaltyPointsBalance available") },
+                leadingIcon = { Icon(Icons.Default.Stars, contentDescription = null) },
+                modifier = Modifier.padding(horizontal = ZyntaSpacing.md, vertical = ZyntaSpacing.xs),
+            )
+        }
 
         // ── Summary footer ────────────────────────────────────────────────
         CartSummaryFooter(
@@ -128,6 +174,7 @@ private fun CustomerRow(
 private fun CartActionRow(
     onNotesClicked: () -> Unit,
     onDiscountClicked: () -> Unit,
+    onVoidClicked: () -> Unit,
     onClearClicked: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -142,6 +189,13 @@ private fun CartActionRow(
             Icon(Icons.Default.LocalOffer, contentDescription = "Order discount")
         }
         Spacer(Modifier.weight(1f))
+        IconButton(onClick = onVoidClicked) {
+            Icon(
+                Icons.Default.Block,
+                contentDescription = "Void order",
+                tint = MaterialTheme.colorScheme.error,
+            )
+        }
         IconButton(onClick = onClearClicked) {
             Icon(
                 Icons.Default.DeleteSweep,

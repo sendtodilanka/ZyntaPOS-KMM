@@ -106,6 +106,18 @@ enum class Permission {
 
     /** Initiate and commit inter-warehouse stock transfers. */
     MANAGE_STOCK_TRANSFERS,
+
+    // ── Phase 3: HR / Staff ───────────────────────────────────────────────────
+    /** Manage employees, attendance, shifts, leave requests, and payroll. */
+    MANAGE_STAFF,
+
+    // ── Phase 3: Admin Console ────────────────────────────────────────────────
+    /** Access the system admin panel (health, database, backups, audit log). */
+    ADMIN_ACCESS,
+
+    // ── Phase 3: Accounting & E-Invoicing ────────────────────────────────────
+    /** Access the double-entry accounting ledger and e-invoice pipeline. */
+    MANAGE_ACCOUNTING,
     ;
 
     companion object {
@@ -134,6 +146,8 @@ enum class Permission {
                 MANAGE_COUPONS,
                 MANAGE_EXPENSES, APPROVE_EXPENSES,
                 MANAGE_WAREHOUSES, MANAGE_STOCK_TRANSFERS,
+                // Phase 3 — managers run HR and view accounting
+                MANAGE_STAFF, MANAGE_ACCOUNTING,
             ),
 
             Role.CASHIER to setOf(
@@ -149,6 +163,8 @@ enum class Permission {
                 VIEW_AUDIT_LOG,
                 // Phase 2 — accountants approve and view expenses
                 MANAGE_EXPENSES, APPROVE_EXPENSES,
+                // Phase 3 — accountants manage the GL ledger and e-invoices
+                MANAGE_ACCOUNTING,
             ),
 
             Role.STOCK_MANAGER to setOf(

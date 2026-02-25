@@ -9,6 +9,19 @@ import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.designsystem.util.WindowSize
 import com.zyntasolutions.zyntapos.designsystem.util.currentWindowSize
 
+/**
+ * A labelled section within [ZyntaScaffold]'s expanded navigation drawer.
+ *
+ * @param title  Section header shown above the first item in this group.
+ * @param startIndex  Index (within the full `items` list) of the first item in this group.
+ * @param itemCount   Number of consecutive items belonging to this group.
+ */
+data class ZyntaNavGroup(
+    val title: String,
+    val startIndex: Int,
+    val itemCount: Int,
+)
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ZyntaScaffold — Adaptive navigation container
 //
@@ -50,12 +63,28 @@ data class ZyntaNavItem(
  * The scaffold ensures content is never drawn behind the navigation chrome by
  * automatically applying the correct [PaddingValues] inside [content].
  *
- * @param items Navigation destinations to display.
- * @param selectedIndex Index of the currently selected destination.
- * @param onItemSelected Callback invoked with the tapped item index.
+ * ### Tiered navigation
+ * To avoid bottom-bar overflow on small screens, supply a shorter list via
+ * [compactItems] (recommended max 5 items).  When non-empty it is used
+ * **exclusively** for the COMPACT `NavigationBar`; the full [items] list is
+ * still used for the MEDIUM rail and EXPANDED drawer.
+ *
+ * [compactSelectedIndex] must be the pre-computed selection position within
+ * [compactItems].  When [compactItems] is empty it falls back to [selectedIndex].
+ *
+ * The EXPANDED drawer can optionally render labelled section headers by
+ * providing [groups].  Each [ZyntaNavGroup] spans a contiguous range of [items].
+ *
+ * @param items Full navigation destinations — used for MEDIUM rail & EXPANDED drawer.
+ * @param selectedIndex Selected index within [items].
+ * @param onItemSelected Callback with the tapped index within [items].
  * @param modifier Optional root [Modifier].
+ * @param compactItems Subset shown in the COMPACT bottom bar (max 5). Empty = use [items].
+ * @param compactSelectedIndex Selected index within [compactItems].
+ * @param onCompactItemSelected Tap callback for [compactItems]. Null = use [onItemSelected].
+ * @param groups Optional section groups rendered as headers in the EXPANDED drawer.
  * @param topBar Optional top app bar slot (only rendered on COMPACT/MEDIUM).
- * @param snackbarHost Snackbar host; defaults to [SnackbarHost] with a [SnackbarHostState].
+ * @param snackbarHost Snackbar host.
  * @param windowSize Override the detected [WindowSize]; useful in previews/tests.
  * @param content Screen content lambda receiving [PaddingValues] for safe insets.
  */
@@ -65,16 +94,24 @@ fun ZyntaScaffold(
     selectedIndex: Int,
     onItemSelected: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    compactItems: List<ZyntaNavItem> = emptyList(),
+    compactSelectedIndex: Int = selectedIndex,
+    onCompactItemSelected: ((Int) -> Unit)? = null,
+    groups: List<ZyntaNavGroup> = emptyList(),
     topBar: @Composable () -> Unit = {},
     snackbarHost: @Composable () -> Unit = {},
     windowSize: WindowSize = currentWindowSize(),
     content: @Composable (PaddingValues) -> Unit,
 ) {
+    val effectiveCompactItems = compactItems.ifEmpty { items }
+    val effectiveCompactSelected = if (compactItems.isEmpty()) selectedIndex else compactSelectedIndex
+    val effectiveCompactCallback = onCompactItemSelected ?: onItemSelected
+
     when (windowSize) {
         WindowSize.COMPACT -> CompactScaffold(
-            items = items,
-            selectedIndex = selectedIndex,
-            onItemSelected = onItemSelected,
+            items = effectiveCompactItems,
+            selectedIndex = effectiveCompactSelected,
+            onItemSelected = effectiveCompactCallback,
             modifier = modifier,
             topBar = topBar,
             snackbarHost = snackbarHost,
@@ -94,6 +131,7 @@ fun ZyntaScaffold(
             selectedIndex = selectedIndex,
             onItemSelected = onItemSelected,
             modifier = modifier,
+            groups = groups,
             content = content,
         )
     }
@@ -197,14 +235,38 @@ private fun ExpandedScaffold(
     selectedIndex: Int,
     onItemSelected: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    groups: List<ZyntaNavGroup> = emptyList(),
     content: @Composable (PaddingValues) -> Unit,
 ) {
+    // Build a map of index → group title for rendering section headers
+    val groupHeaderAt: Map<Int, String> = if (groups.isNotEmpty()) {
+        buildMap { groups.forEach { g -> put(g.startIndex, g.title) } }
+    } else {
+        emptyMap()
+    }
+
     PermanentNavigationDrawer(
         modifier = modifier,
         drawerContent = {
             PermanentDrawerSheet(drawerContainerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
                 Spacer(Modifier.height(16.dp))
                 items.forEachIndexed { index, item ->
+                    // Render group header if this is the first item in a new group
+                    groupHeaderAt[index]?.let { title ->
+                        if (index > 0) {
+                            HorizontalDivider(
+                                modifier = Modifier.padding(
+                                    start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp
+                                ),
+                            )
+                        }
+                        Text(
+                            text = title.uppercase(),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 28.dp, bottom = 4.dp),
+                        )
+                    }
                     NavigationDrawerItem(
                         selected = index == selectedIndex,
                         onClick = { onItemSelected(index) },
@@ -218,6 +280,7 @@ private fun ExpandedScaffold(
                         modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
                     )
                 }
+                Spacer(Modifier.height(16.dp))
             }
         },
         content = {

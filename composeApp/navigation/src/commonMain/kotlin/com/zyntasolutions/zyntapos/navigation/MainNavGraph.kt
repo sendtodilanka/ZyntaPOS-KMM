@@ -40,6 +40,8 @@ import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaScaffold
 fun NavGraphBuilder.mainNavGraph(
     navigationController: NavigationController,
     navItems: List<NavItem>,
+    compactNavItems: List<NavItem> = navItems.take(COMPACT_NAV_MAX_ITEMS),
+    navGroups: List<com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaNavGroup> = emptyList(),
     screens: MainNavScreens,
     debugScreen: (@Composable (onNavigateUp: () -> Unit) -> Unit)? = null,
 ) {
@@ -190,6 +192,26 @@ fun NavGraphBuilder.mainNavGraph(
                     currentRoute = ZyntaRoute.StockReport,
                 ) {
                     screens.stockReport()
+                }
+            }
+
+            composable<ZyntaRoute.CustomerReport> {
+                MainScaffoldShell(
+                    navigationController = navigationController,
+                    navItems = navItems,
+                    currentRoute = ZyntaRoute.CustomerReport,
+                ) {
+                    screens.customerReport()
+                }
+            }
+
+            composable<ZyntaRoute.ExpenseReport> {
+                MainScaffoldShell(
+                    navigationController = navigationController,
+                    navItems = navItems,
+                    currentRoute = ZyntaRoute.ExpenseReport,
+                ) {
+                    screens.expenseReport()
                 }
             }
         }
@@ -568,102 +590,110 @@ private fun MainScaffoldShell(
     navItems: List<NavItem>,
     currentRoute: ZyntaRoute,
     content: @Composable () -> Unit,
+    compactNavItems: List<NavItem> = navItems.take(COMPACT_NAV_MAX_ITEMS),
+    navGroups: List<com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaNavGroup> = RbacNavFilter.groupsForItems(navItems),
 ) {
-    // Find the selected index based on the current route
-    val selectedIndex = navItems.indexOfFirst { item ->
-        when (currentRoute) {
-            // Inventory sub-graph: highlight Inventory item for all sub-routes
-            is ZyntaRoute.ProductList,
-            is ZyntaRoute.ProductDetail,
-            is ZyntaRoute.CategoryList,
-            is ZyntaRoute.SupplierList -> item.route is ZyntaRoute.ProductList
+    // Returns true when item.route is the nav section root for the currentRoute.
+    fun routeMatchesItem(item: NavItem): Boolean = when (currentRoute) {
+        // Inventory sub-graph
+        is ZyntaRoute.ProductList,
+        is ZyntaRoute.ProductDetail,
+        is ZyntaRoute.CategoryList,
+        is ZyntaRoute.SupplierList -> item.route is ZyntaRoute.ProductList
 
-            // Register sub-graph
-            is ZyntaRoute.RegisterDashboard,
-            is ZyntaRoute.OpenRegister,
-            is ZyntaRoute.CloseRegister -> item.route is ZyntaRoute.RegisterDashboard
+        // Register sub-graph
+        is ZyntaRoute.RegisterDashboard,
+        is ZyntaRoute.OpenRegister,
+        is ZyntaRoute.CloseRegister -> item.route is ZyntaRoute.RegisterDashboard
 
-            // Reports sub-graph
-            is ZyntaRoute.SalesReport,
-            is ZyntaRoute.StockReport -> item.route is ZyntaRoute.SalesReport
+        // Reports sub-graph (all 4 report screens highlight the Reports nav item)
+        is ZyntaRoute.SalesReport,
+        is ZyntaRoute.StockReport,
+        is ZyntaRoute.CustomerReport,
+        is ZyntaRoute.ExpenseReport -> item.route is ZyntaRoute.SalesReport
 
-            // Settings sub-graph
-            is ZyntaRoute.Settings,
-            is ZyntaRoute.PrinterSettings,
-            is ZyntaRoute.TaxSettings,
-            is ZyntaRoute.UserManagement,
-            is ZyntaRoute.GeneralSettings,
-            is ZyntaRoute.AppearanceSettings,
-            is ZyntaRoute.AboutSettings,
-            is ZyntaRoute.BackupSettings,
-            is ZyntaRoute.PosSettings,
-            is ZyntaRoute.SystemHealthSettings -> item.route is ZyntaRoute.Settings
+        // Settings sub-graph
+        is ZyntaRoute.Settings,
+        is ZyntaRoute.PrinterSettings,
+        is ZyntaRoute.TaxSettings,
+        is ZyntaRoute.UserManagement,
+        is ZyntaRoute.GeneralSettings,
+        is ZyntaRoute.AppearanceSettings,
+        is ZyntaRoute.AboutSettings,
+        is ZyntaRoute.BackupSettings,
+        is ZyntaRoute.PosSettings,
+        is ZyntaRoute.SystemHealthSettings -> item.route is ZyntaRoute.Settings
 
-            // CRM sub-graph
-            is ZyntaRoute.CustomerList,
-            is ZyntaRoute.CustomerDetail,
-            is ZyntaRoute.CustomerGroupList,
-            is ZyntaRoute.CustomerWallet -> item.route is ZyntaRoute.CustomerList
+        // CRM sub-graph
+        is ZyntaRoute.CustomerList,
+        is ZyntaRoute.CustomerDetail,
+        is ZyntaRoute.CustomerGroupList,
+        is ZyntaRoute.CustomerWallet -> item.route is ZyntaRoute.CustomerList
 
-            // Coupons sub-graph
-            is ZyntaRoute.CouponList,
-            is ZyntaRoute.CouponDetail -> item.route is ZyntaRoute.CouponList
+        // Coupons sub-graph
+        is ZyntaRoute.CouponList,
+        is ZyntaRoute.CouponDetail -> item.route is ZyntaRoute.CouponList
 
-            // Expenses sub-graph
-            is ZyntaRoute.ExpenseList,
-            is ZyntaRoute.ExpenseDetail,
-            is ZyntaRoute.ExpenseCategoryList -> item.route is ZyntaRoute.ExpenseList
+        // Expenses sub-graph
+        is ZyntaRoute.ExpenseList,
+        is ZyntaRoute.ExpenseDetail,
+        is ZyntaRoute.ExpenseCategoryList -> item.route is ZyntaRoute.ExpenseList
 
-            // Multi-store sub-graph
-            is ZyntaRoute.WarehouseList,
-            is ZyntaRoute.WarehouseDetail,
-            is ZyntaRoute.StockTransferList,
-            is ZyntaRoute.NewStockTransfer,
-            is ZyntaRoute.WarehouseRackList,
-            is ZyntaRoute.WarehouseRackDetail -> item.route is ZyntaRoute.WarehouseList
+        // Multi-store sub-graph
+        is ZyntaRoute.WarehouseList,
+        is ZyntaRoute.WarehouseDetail,
+        is ZyntaRoute.StockTransferList,
+        is ZyntaRoute.NewStockTransfer,
+        is ZyntaRoute.WarehouseRackList,
+        is ZyntaRoute.WarehouseRackDetail -> item.route is ZyntaRoute.WarehouseList
 
-            // Accounting / E-Invoice sub-graph
-            is ZyntaRoute.AccountingLedger,
-            is ZyntaRoute.AccountDetail,
-            is ZyntaRoute.EInvoiceList,
-            is ZyntaRoute.EInvoiceDetail -> item.route is ZyntaRoute.AccountingLedger
+        // Accounting / E-Invoice sub-graph
+        is ZyntaRoute.AccountingLedger,
+        is ZyntaRoute.AccountDetail,
+        is ZyntaRoute.EInvoiceList,
+        is ZyntaRoute.EInvoiceDetail -> item.route is ZyntaRoute.AccountingLedger
 
-            // Admin sub-graph
-            is ZyntaRoute.SystemHealthDashboard,
-            is ZyntaRoute.DatabaseMaintenance,
-            is ZyntaRoute.BackupManagement,
-            is ZyntaRoute.AuditLogViewer -> item.route is ZyntaRoute.SystemHealthDashboard
+        // Admin sub-graph
+        is ZyntaRoute.SystemHealthDashboard,
+        is ZyntaRoute.DatabaseMaintenance,
+        is ZyntaRoute.BackupManagement,
+        is ZyntaRoute.AuditLogViewer -> item.route is ZyntaRoute.SystemHealthDashboard
 
-            // Staff sub-graph
-            is ZyntaRoute.EmployeeList,
-            is ZyntaRoute.EmployeeDetail,
-            is ZyntaRoute.AttendanceDashboard,
-            is ZyntaRoute.AttendanceHistory,
-            is ZyntaRoute.LeaveManagement,
-            is ZyntaRoute.SubmitLeave,
-            is ZyntaRoute.ShiftScheduler,
-            is ZyntaRoute.PayrollDashboard,
-            is ZyntaRoute.PayrollDetail -> item.route is ZyntaRoute.EmployeeList
+        // Staff sub-graph
+        is ZyntaRoute.EmployeeList,
+        is ZyntaRoute.EmployeeDetail,
+        is ZyntaRoute.AttendanceDashboard,
+        is ZyntaRoute.AttendanceHistory,
+        is ZyntaRoute.LeaveManagement,
+        is ZyntaRoute.SubmitLeave,
+        is ZyntaRoute.ShiftScheduler,
+        is ZyntaRoute.PayrollDashboard,
+        is ZyntaRoute.PayrollDetail -> item.route is ZyntaRoute.EmployeeList
 
-            else -> item.route::class == currentRoute::class
+        else -> item.route::class == currentRoute::class
+    }
+
+    val selectedIndex = navItems.indexOfFirst { routeMatchesItem(it) }.coerceAtLeast(0)
+    val compactSelected = compactNavItems.indexOfFirst { routeMatchesItem(it) }.coerceAtLeast(0)
+
+    fun navigate(item: NavItem) {
+        navigationController.navigate(item.route) {
+            popUpTo(navigationController.navController.graph.startDestinationId) {
+                saveState = true
+            }
+            launchSingleTop = true
+            restoreState = true
         }
-    }.coerceAtLeast(0)
+    }
 
     ZyntaScaffold(
         items = navItems.map { it.toZyntaNavItem() },
         selectedIndex = selectedIndex,
-        onItemSelected = { index ->
-            navItems.getOrNull(index)?.let { item ->
-                navigationController.navigate(item.route) {
-                    // Save state so each tab restores its own back-stack
-                    popUpTo(navigationController.navController.graph.startDestinationId) {
-                        saveState = true
-                    }
-                    launchSingleTop = true
-                    restoreState = true
-                }
-            }
-        },
+        onItemSelected = { index -> navItems.getOrNull(index)?.let { navigate(it) } },
+        compactItems = compactNavItems.map { it.toZyntaNavItem() },
+        compactSelectedIndex = compactSelected,
+        onCompactItemSelected = { index -> compactNavItems.getOrNull(index)?.let { navigate(it) } },
+        groups = navGroups,
         content = { _ -> content() },
     )
 }

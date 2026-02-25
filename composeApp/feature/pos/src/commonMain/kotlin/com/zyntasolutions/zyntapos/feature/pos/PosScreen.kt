@@ -117,6 +117,7 @@ fun PosScreen(
                     onIntent = viewModel::dispatch,
                     isSheetVisible = true,
                     onDismissSheet = { },
+                    loyaltyPointsBalance = state.loyaltyPointsBalance,
                 )
             }
         } else {
@@ -151,6 +152,7 @@ fun PosScreen(
                     onIntent = viewModel::dispatch,
                     isSheetVisible = isCartSheetVisible,
                     onDismissSheet = { isCartSheetVisible = false },
+                    loyaltyPointsBalance = state.loyaltyPointsBalance,
                 )
             }
         }
