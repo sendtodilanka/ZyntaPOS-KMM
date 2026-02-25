@@ -29,7 +29,11 @@ import com.zyntasolutions.zyntapos.feature.pos.OrderHistoryScreen
 import com.zyntasolutions.zyntapos.feature.pos.PaymentScreen
 import com.zyntasolutions.zyntapos.feature.pos.PosScreen
 import com.zyntasolutions.zyntapos.feature.pos.PosViewModel
+import com.zyntasolutions.zyntapos.feature.admin.AdminScreen
+import com.zyntasolutions.zyntapos.feature.admin.AdminViewModel
 import com.zyntasolutions.zyntapos.feature.admin.notification.NotificationInboxScreen
+import com.zyntasolutions.zyntapos.feature.staff.StaffScreen
+import com.zyntasolutions.zyntapos.feature.staff.StaffViewModel
 import com.zyntasolutions.zyntapos.feature.coupons.CouponDetailScreen
 import com.zyntasolutions.zyntapos.feature.coupons.CouponListScreen
 import com.zyntasolutions.zyntapos.feature.customers.CustomerDetailScreen
@@ -467,6 +471,29 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
             sourceWarehouseId = sourceWarehouseId,
             onComplete = onComplete,
             onCancel = onCancel,
+        )
+    },
+
+    // ── Admin  (Sprint 13-15) ────────────────────────────────────────────────
+    adminScreen = { _ ->
+        val vm: AdminViewModel = koinViewModel()
+        val state by vm.state.collectAsState()
+        AdminScreen(
+            state = state,
+            onIntent = vm::dispatch,
+        )
+    },
+
+    // ── Staff  (Sprint 8-12) ─────────────────────────────────────────────────
+    staffScreen = { _ ->
+        val authRepository: AuthRepository = koinInject()
+        val session by authRepository.getSession().collectAsState(initial = null)
+        val vm: StaffViewModel = koinViewModel()
+        val state by vm.state.collectAsState()
+        StaffScreen(
+            state = state,
+            onIntent = vm::dispatch,
+            storeId = session?.storeId ?: "",
         )
     },
 

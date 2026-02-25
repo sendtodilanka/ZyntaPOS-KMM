@@ -213,6 +213,16 @@ data class MainNavScreens(
         onNavigateUp: () -> Unit,
     ) -> Unit,
 
+    // ── Admin sub-graph  (Sprint 13-15) ──────────────────────────────────────
+    val adminScreen: @Composable (
+        onNavigateUp: () -> Unit,
+    ) -> Unit,
+
+    // ── Staff sub-graph  (Sprint 8-12) ────────────────────────────────────────
+    val staffScreen: @Composable (
+        onNavigateUp: () -> Unit,
+    ) -> Unit,
+
     // ── Notifications ─────────────────────────────────────────────────────────
     val notificationInbox: @Composable (
         onNavigateUp: () -> Unit,
