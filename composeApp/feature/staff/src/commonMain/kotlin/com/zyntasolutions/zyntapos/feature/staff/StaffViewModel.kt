@@ -17,8 +17,11 @@ import com.zyntasolutions.zyntapos.domain.usecase.staff.DeleteEmployeeUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.DeleteShiftScheduleUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.GeneratePayrollUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.GetAttendanceHistoryUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.staff.GetAttendanceSummaryUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.GetEmployeeByIdUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.GetEmployeesUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.staff.GetLeaveHistoryUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.staff.GetPayrollHistoryUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.GetPendingLeaveRequestsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.GetShiftScheduleUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.GetTodayAttendanceUseCase
@@ -72,6 +75,9 @@ class StaffViewModel(
     private val deleteShiftUseCase: DeleteShiftScheduleUseCase,
     private val generatePayrollUseCase: GeneratePayrollUseCase,
     private val processPaymentUseCase: ProcessPayrollPaymentUseCase,
+    private val getPayrollHistoryUseCase: GetPayrollHistoryUseCase,
+    private val getAttendanceSummaryUseCase: GetAttendanceSummaryUseCase,
+    private val getLeaveHistoryUseCase: GetLeaveHistoryUseCase,
 ) : BaseViewModel<StaffState, StaffIntent, StaffEffect>(StaffState()) {
 
     // ── Reactive filter states ─────────────────────────────────────────────
@@ -195,6 +201,13 @@ class StaffViewModel(
             is StaffIntent.ProcessPayment -> processPayment(
                 intent.payrollId, intent.paidAt, intent.paymentRef
             )
+
+            // History / Summary
+            is StaffIntent.LoadPayrollHistory -> loadPayrollHistory(intent.employeeId)
+            is StaffIntent.LoadAttendanceSummary -> loadAttendanceSummary(
+                intent.employeeId, intent.from, intent.to
+            )
+            is StaffIntent.LoadLeaveHistory -> loadLeaveHistory(intent.employeeId)
 
             // UI
             is StaffIntent.DismissError -> updateState { copy(error = null) }
@@ -539,6 +552,41 @@ class StaffViewModel(
             is Result.Error -> updateState { copy(isLoading = false, error = result.exception.message) }
             is Result.Loading -> Unit
         }
+    }
+
+    // ── History / Summary handlers ────────────────────────────────────────
+
+    /**
+     * Subscribes reactively to all payroll records for [employeeId].
+     * Emits new list whenever the underlying payroll record changes.
+     */
+    private fun loadPayrollHistory(employeeId: String) {
+        getPayrollHistoryUseCase(employeeId)
+            .onEach { records -> updateState { copy(payrollHistory = records) } }
+            .launchIn(viewModelScope)
+    }
+
+    /**
+     * Fetches an [AttendanceSummary] for [employeeId] over the given date range
+     * and stores the result in [StaffState.attendanceSummary].
+     */
+    private suspend fun loadAttendanceSummary(employeeId: String, from: String, to: String) {
+        updateState { copy(isLoading = true) }
+        when (val result = getAttendanceSummaryUseCase(employeeId, from, to)) {
+            is Result.Success -> updateState { copy(isLoading = false, attendanceSummary = result.data) }
+            is Result.Error -> updateState { copy(isLoading = false, error = result.exception.message) }
+            is Result.Loading -> Unit
+        }
+    }
+
+    /**
+     * Subscribes reactively to all leave records for [employeeId].
+     * Emits a new list whenever a leave record changes.
+     */
+    private fun loadLeaveHistory(employeeId: String) {
+        getLeaveHistoryUseCase(employeeId)
+            .onEach { records -> updateState { copy(leaveHistory = records) } }
+            .launchIn(viewModelScope)
     }
 }
 

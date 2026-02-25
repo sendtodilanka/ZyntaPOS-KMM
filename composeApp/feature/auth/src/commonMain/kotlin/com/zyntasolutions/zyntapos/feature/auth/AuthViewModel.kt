@@ -3,6 +3,7 @@ package com.zyntasolutions.zyntapos.feature.auth
 import androidx.lifecycle.viewModelScope
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
+import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
 import com.zyntasolutions.zyntapos.domain.usecase.auth.LoginUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.auth.LogoutUseCase
 import com.zyntasolutions.zyntapos.feature.auth.mvi.AuthEffect
@@ -10,6 +11,7 @@ import com.zyntasolutions.zyntapos.feature.auth.mvi.AuthIntent
 import com.zyntasolutions.zyntapos.feature.auth.mvi.AuthState
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
@@ -24,14 +26,19 @@ import kotlinx.coroutines.launch
  * - Emits [AuthEffect.NavigateToDashboard] or [AuthEffect.NavigateToRegisterGuard] on success.
  * - Never exposes raw exceptions to the UI — all errors are mapped to [AuthState.error].
  *
- * @param loginUseCase    Authenticates email + password credentials.
- * @param logoutUseCase   Destroys the current session (used for logout from other screens).
- * @param authRepository  Provides live [AuthRepository.getSession] flow.
+ * @param loginUseCase       Authenticates email + password credentials.
+ * @param logoutUseCase      Destroys the current session (used for logout from other screens).
+ * @param authRepository     Provides live [AuthRepository.getSession] flow.
+ * @param registerRepository Provides [RegisterRepository.getActive] to check for an open
+ *                           cash register session after login (Sprint 20 guard).
+ *                           When null (e.g., legacy tests), the guard is skipped and
+ *                           [AuthEffect.NavigateToDashboard] is emitted unconditionally.
  */
 class AuthViewModel(
     private val loginUseCase: LoginUseCase,
     private val logoutUseCase: LogoutUseCase,
     private val authRepository: AuthRepository,
+    private val registerRepository: RegisterRepository? = null,
 ) : BaseViewModel<AuthState, AuthIntent, AuthEffect>(AuthState()) {
 
     init {
@@ -104,8 +111,20 @@ class AuthViewModel(
         when (val result = loginUseCase(email = s.email, password = s.password)) {
             is Result.Success -> {
                 updateState { copy(isLoading = false) }
-                // TODO (Sprint 20): check open register session; emit NavigateToRegisterGuard if none
-                sendEffect(AuthEffect.NavigateToDashboard)
+                // Sprint 20: Check whether a cash register session is currently open.
+                // If no session is open, redirect to the RegisterGuard screen so the
+                // cashier must open their till before accessing the POS.
+                // registerRepository is nullable for backward compatibility with legacy tests.
+                if (registerRepository != null) {
+                    val activeSession = registerRepository.getActive().first()
+                    if (activeSession == null) {
+                        sendEffect(AuthEffect.NavigateToRegisterGuard)
+                    } else {
+                        sendEffect(AuthEffect.NavigateToDashboard)
+                    }
+                } else {
+                    sendEffect(AuthEffect.NavigateToDashboard)
+                }
             }
             is Result.Error -> {
                 updateState {

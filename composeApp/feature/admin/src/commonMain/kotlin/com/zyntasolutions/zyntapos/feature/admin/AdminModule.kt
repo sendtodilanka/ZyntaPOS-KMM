@@ -6,7 +6,9 @@ import com.zyntasolutions.zyntapos.domain.usecase.admin.DeleteBackupUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.GetBackupsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.GetDatabaseStatsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.GetSystemHealthUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.admin.PurgeExpiredDataUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.RestoreBackupUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.admin.VacuumDatabaseUseCase
 import com.zyntasolutions.zyntapos.feature.admin.notification.NotificationViewModel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -20,7 +22,7 @@ import org.koin.dsl.module
  * ### Use-Case Registrations (factory — new instance per injection)
  *
  * **Sprint 13 — System Health**
- * - [GetSystemHealthUseCase], [GetDatabaseStatsUseCase]
+ * - [GetSystemHealthUseCase], [GetDatabaseStatsUseCase], [VacuumDatabaseUseCase], [PurgeExpiredDataUseCase]
  *
  * **Sprint 14 — Backup / Restore**
  * - [GetBackupsUseCase], [CreateBackupUseCase], [RestoreBackupUseCase], [DeleteBackupUseCase]
@@ -34,6 +36,8 @@ val adminModule = module {
     // ── Sprint 13: System health ───────────────────────────────────────────
     factoryOf(::GetSystemHealthUseCase)
     factoryOf(::GetDatabaseStatsUseCase)
+    factoryOf(::VacuumDatabaseUseCase)
+    factoryOf(::PurgeExpiredDataUseCase)
 
     // ── Sprint 14: Backup / restore ───────────────────────────────────────
     factoryOf(::GetBackupsUseCase)
