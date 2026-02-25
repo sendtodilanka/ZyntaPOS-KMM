@@ -1,401 +1,441 @@
-# ZyntaPOS Comprehensive Audit, QA & KPI Plan
+# ZyntaPOS KMM — Comprehensive Audit, QA & KPI Plan
+
+> **Doc ID:** AUDIT-QA-KPI-v2.0
+> **Prepared by:** Senior KMP Architect & Lead Engineer
+> **Date:** 2026-02-25
+> **Audit method:** Automated full-codebase scan (all 26 modules, git log, execution_log.md cross-validation)
+> **Branch audited:** `claude/kmp-zynta-pos-setup-QVcJ9`
+
+---
 
 ## Context
 
-ZyntaPOS is a KMP+Compose Multiplatform enterprise POS system currently in Phase 3, Sprint 18 of 24. The project has a strong architectural foundation (Clean Architecture, MVI, SQLDelight, SQLCipher, Koin, RBAC) with Phase 1 complete and Phase 3 actively delivering. This plan equips the QA, Compliance, and Product teams with a structured audit and measurement framework.
+This plan was prepared after a full automated codebase audit of the ZyntaPOS-KMM repository (26 modules, ~3 phases implemented). The goal is to equip the QA/SDET, Product Analyst, and IT Auditor/Compliance teams with a structured, priority-ordered programme of work covering testing, documentation, architecture governance, performance, security, and compliance.
 
-**Codebase snapshot:**
-- 26 modules (18 implemented, 8 scaffolded for Phase 2+)
-- 80+ use cases, 36 domain repositories, 36 SQLDelight tables
-- 49 test files total (strong in domain/security; thin in UI layer)
-- 4 accepted ADRs, 30+ docs, full CI/CD pipelines
+**CRITICAL FINDING — Documentation vs Reality Gap:**
+Multiple Claude sessions implemented Phase 1, 2, and 3 between 2026-02-20 and 2026-02-25 without keeping `docs/ai_workflows/execution_log.md` in sync. The result is a large discrepancy:
 
----
+| Source | Phase Status |
+|--------|-------------|
+| `execution_log.md` header | "Phase 1 PENDING EXECUTION" |
+| `execution_log.md` Phase 2/3 | "NOT STARTED (Blocked on Phase 1 completion)" |
+| **Actual git commits** | Phase 1 ✅, Phase 2 ✅, Phase 3 ~80% ✅ |
 
-## PART A — QA & Testing Audit
+This gap is the primary driver for the audit programme below.
 
-### A1. Test Coverage Gap Analysis
-
-**Current State:** Domain layer well-tested; UI/presentation layer nearly untested.
-
-| Module | Test Count | Target Coverage | Gap |
-|--------|-----------|-----------------|-----|
-| `:shared:core` | 4 | 95% | Medium — missing extension fn tests |
-| `:shared:domain` | 21 | 95% | Medium — 80+ use cases, only 21 tests |
-| `:shared:data` | 5 | 80% | High — 36 repo impls, only 5 tests |
-| `:shared:security` | 5 | 95% | High — JWT expiry, key rotation untested |
-| `:composeApp:core` | 0 | 80% | **Critical — BaseViewModel itself untested** |
-| `:composeApp:designsystem` | 0 | N/A | Low — visual regression acceptable |
-| `:composeApp:navigation` | 0 | 80% | High — RBAC route gating untested |
-| `:feature:auth` | 3 | 80% | High — PIN lock, session guard logic untested |
-| `:feature:pos` | 1 | 80% | **Critical — revenue-critical payment flow** |
-| `:feature:inventory` | 0 | 80% | High |
-| `:feature:register` | 0 | 80% | High — cash session/Z-report is financially sensitive |
-| `:feature:reports` | 0 | 80% | Medium |
-| `:feature:settings` | 1 | 80% | Medium |
-| `:feature:dashboard` | 1 | 80% | Medium |
-| `:tools:debug` | 6 | 60% | Low |
-
-**Action for QA Team:**
-
-**Priority 1 — Revenue-Critical Tests**
-- [ ] `shared:domain` — Expand to cover all 80+ use cases: `CalculateOrderTotalsUseCaseTest`, `ProcessPaymentUseCaseTest`, `ApplyItemDiscountUseCaseTest`, `ApplyOrderDiscountUseCaseTest`, `ValidateCouponUseCaseTest`, `HoldOrderUseCaseTest`, `VoidOrderUseCaseTest`
-- [ ] `feature:pos` — `PosViewModelTest` with Turbine: cart operations, payment flows, hold order, discount application, barcode scan, receipt generation
-- [ ] `feature:register` — `RegisterViewModelTest`: session open/close, cash-in/out, Z-report generation
-- [ ] `shared:security` — JWT expiry edge case, key rotation, RBAC permission matrix exhaustive coverage, PBKDF2 collision resistance
-
-**Priority 2 — Architectural Contract Tests**
-- [ ] `composeApp:core` — `BaseViewModelTest`: state updates atomicity, effect delivery exactly-once guarantee via Channel, intent dispatch ordering
-- [ ] `composeApp:navigation` — `RbacNavFilterTest`: each role (ADMIN, MANAGER, CASHIER, CUSTOMER_SERVICE, REPORTER) sees correct route set; unauthorized routes blocked
-- [ ] `shared:security` — `PinManagerTest`: hash uniqueness (different salts), constant-time compare, invalid PIN rejection
-
-**Priority 3 — Data Layer Integration Tests**
-- [ ] `shared:data` (jvmTest) — SQLDelight in-memory database tests for all 36 repos: CRUD, pagination, FTS search, stock adjustment, sync queue enqueue/dequeue
-- [ ] `shared:data` — `SyncEngineTest`: offline operation queuing, conflict resolution, retry on failure, CRDT merge
-
-**Priority 4 — E2E / Instrumented Tests**
-- [ ] POS checkout flow (end-to-end): product scan → add to cart → apply discount → cash payment → receipt print trigger
-- [ ] Auth flow: login → PIN lock → session timeout → re-authentication
-- [ ] Register session: open → multiple transactions → close → Z-report
-
-### A2. Test Infrastructure Verification
-
-**Verify these are functional in all modules:**
-- [ ] `Turbine` (`1.2.0`) — Flow/StateFlow assertions work in `commonTest`
-- [ ] `Mockative 3.0.1` — KSP runs correctly with Kotlin 2.3.0 + KSP 2.3.4; generated mocks don't have stale codegen
-- [ ] `kotlinx-coroutines-test` — `runTest` + `UnconfinedTestDispatcher` available in all commonTest source sets
-- [ ] `koin-test` — Koin module validation tests (`checkModules {}`) exist for at least core DI graph
-
-**Missing test infrastructure to add:**
-- [ ] `TestDispatcherRule` — Equivalent to Tranzlate project; ensures `Dispatchers.Main` reset between tests (critical for ViewModel tests)
-- [ ] `FakeRepository` implementations — In-memory fakes for each of the 4 Phase 1 domain repositories (Product, Order, Register, User) for ViewModel unit tests without DB
-
-### A3. Edge Case Inventory
-
-QA team must document and test these known edge cases:
-
-**POS / Payment:**
-- Split payment amounts don't sum to order total
-- Payment with 0-quantity items in cart
-- Hold order then modify cart before retrieving
-- Apply coupon that exceeds order total
-- Void an order that has already been synced to cloud
-- Concurrent barcode scans (rapid successive scans)
-
-**Register / Cash:**
-- Close session with pending held orders
-- Z-report when no transactions in session
-- Negative cash-in amount entered
-- Register already open when trying to open again
-
-**Security / Auth:**
-- PIN lock on app background after configurable timeout
-- JWT token expiry mid-transaction
-- RBAC: CASHIER attempting manager-only routes
-- Session invalidation on concurrent login from another device
-- Invalid/expired IRD certificate during e-invoice submission
-
-**Database / Sync:**
-- Conflict resolution when same product updated offline on 2 devices
-- Sync queue fills during extended offline period (>1000 operations)
-- SQLCipher decrypt failure (wrong passphrase scenario)
-- Database migration from v(N) to v(N+1) with existing data
-
-**Network:**
-- IRD API timeout / 5xx during e-invoice submission
-- Partial sync upload (connection drops mid-batch)
-- Ktor retry backoff — 3 retries with exponential delay
+**Audit Findings Summary (current baseline):**
+- Architecture compliance: EXCELLENT — all 4 ADRs enforced, MVI correct on all ViewModels
+- KDoc coverage: ~95% on domain models, use cases, repositories
+- Test cases: 808 across 46 files — but 11/15 feature ViewModels have ZERO tests
+- Active test compilation issues: 6 "Doing" tasks in execution log (FakeRepositories, OrderTotals, PosViewModelTest)
+- Data layer: Only 3 of 34 repository implementations have integration tests
+- Missing architecture docs: sync-strategy.md, security-model.md, module-dependency-graph.md
+- CLAUDE.md references 6 files that do NOT exist in the codebase
+- 4 code-level stubs (TODO) in critical paths: AuditRepositoryImpl, SyncEngine, SyncRepositoryImpl, AuthViewModel
+- Sprint 24 Phase 1 QA (20 validation tasks): ALL unchecked — never done
+- CRDT implementation: infrastructure scaffolded but core merge logic missing
 
 ---
 
-## PART B — Documentation Audit
+## SECTION A: Documentation vs Implementation Truth Map
 
-### B1. ADR Review
+### A1 — Execution Log Drift (Most Critical)
 
-**Current ADRs (4 total, all ACCEPTED):**
+The `execution_log.md` (3,479 lines, last meaningful update 2026-02-22) does NOT track:
+- Phase 2: All 4 feature modules (customers, coupons, multistore, expenses) — 135 files, 13,165 lines added in commit `5672a9a`
+- Phase 2: 8 new repository implementations, 16 new SQLDelight schemas, 20+ new domain models
+- Phase 2: POS extensions (wallet/loyalty/coupon integration into PosViewModel)
+- Phase 3: Staff, Admin, Media, Accounting, E-Invoice feature modules — 8 commits on 2026-02-25
+- Phase 3: Domain/data layer for all Phase 3 features
 
-| ADR | Compliant? | Action |
-|-----|-----------|--------|
-| ADR-001: BaseViewModel mandatory | ✅ All 15 feature VMs extend BaseViewModel | No action |
-| ADR-002: No `*Entity` in domain | ✅ 51+ domain models verified clean | No action |
-| ADR-003: SecurePreferences canonical in :shared:security | ✅ Old data-layer interface deleted | Verify in PR #26 (KMP testing) |
-| ADR-004: Keystore token scaffold removed | ✅ Scaffold directories deleted | No action |
+**Action:** The execution_log.md needs a Phase 2 and Phase 3 summary section appended, OR a new canonical tracking document created.
 
-**New ADRs to create:**
-- [ ] **ADR-005: E-Invoice Architecture** — Document mTLS, certificate management, IRD submission lifecycle, retry policy
-- [ ] **ADR-006: CRDT Conflict Resolution** — Formalize `version_vectors.sq` strategy, when to auto-merge vs flag for review
-- [ ] **ADR-007: Koin Module Load Order** — Formalize the 7-tier order as an ADR (currently only in CLAUDE.md); prevents future boot failures
+### A2 — CLAUDE.md Stale File References
 
-### B2. Code-Level Documentation Audit
+CLAUDE.md references these files that do NOT exist:
 
-**Check each module for:**
-- [ ] Public APIs have KDoc (`/** */`) — required by CONTRIBUTING.md
-- [ ] Non-obvious business logic has inline comments
-- [ ] Complex SQL queries in `.sq` files have comments explaining intent
-- [ ] `expect/actual` pairs in HAL and security have doc on both sides
+| CLAUDE.md Claims | Reality |
+|-----------------|---------|
+| `SessionManager` in `:shared:security` | File is at `composeApp/feature/auth/session/SessionManager.kt` (wrong module) |
+| `ConflictResolver` | Does not exist anywhere — CRDT merge logic is unimplemented |
+| `CashDrawerController` | Does not exist — HAL cash drawer support is missing |
+| `PinHasher` | Does not exist — it's named `PinManager.kt` |
+| `TokenManager` | Does not exist — split into `JwtManager.kt` + `TokenStorage.kt` |
+| `RbacNavFilter` | Does not exist anywhere in navigation module |
 
-**Known gaps to fill:**
-- [ ] `BaseViewModel.kt` — Document thread-safety guarantees and effect delivery contract
-- [ ] `EscPosEncoder.kt` — ESC/POS command constants need doc comments (currently suppressed by Detekt)
-- [ ] `ConflictResolver.kt` — CRDT merge algorithm needs design rationale comment
-- [ ] `RbacEngine.kt` — Permission matrix table needs inline doc
-- [ ] `IrdApiClient.kt` (Sprint 18) — mTLS setup, certificate lifecycle, error codes from IRD spec
+**Action:** CLAUDE.md Module Map and Security Details sections must be corrected to match actual file names and locations.
 
-### B3. Planning Documentation Alignment
+### A3 — Code Stubs Marked as Complete
 
-**Verify each Sprint plan against actual implementation:**
+These implementations have `TODO` bodies but their parent tasks are marked `[x]` done:
 
-| Sprint | Plan Doc | Git Evidence | Status |
-|--------|---------|-------------|--------|
-| Sprint 1–4 | `Phase3_Sprint1-4.md` | Domain models (51+) committed | ✅ |
-| Sprint 5–7 | `Phase3_Sprint5-7.md` | Repo impls + HAL | ✅ |
-| Sprint 8–12 | `Phase3_Sprint8-12.md` | Staff feature | ✅ |
-| Sprint 13–15 | `Phase3_Sprint13-15.md` | Admin feature | ✅ |
-| Sprint 16–17 | `Phase3_Sprint16-17.md` | Media feature | ✅ (commit `cca233b`) |
-| Sprint 18 | `Phase3_Sprint18.md` | AccountingLedger MVI + e_invoices | 🔄 In Progress |
-| Sprint 19–24 | Future sprint plans | N/A | ⬜ Not started |
+| File | Line | Stub Description | Risk |
+|------|------|-----------------|------|
+| `shared/data/.../repository/AuditRepositoryImpl.kt` | 42, 53, 62 | `TODO("Requires audit_logs SQLDelight schema — tracked in MERGED-D2")` | Security audit trail is NOT persisted to DB |
+| `shared/data/.../sync/SyncEngine.kt` | 272 | `TODO Sprint 7: route by entityType → RepositoryImpl.upsertFromSync(op.payload)` | Delta sync is non-functional |
+| `shared/data/.../repository/SyncRepositoryImpl.kt` | 156 | `TODO(Sprint6-Step3.4): wire Ktor ApiService here` | Cloud push/pull is non-functional |
+| `composeApp/feature/auth/.../AuthViewModel.kt` | 107 | `TODO (Sprint 20): check open register session; emit NavigateToRegisterGuard if none` | Register session guard bypassed |
 
-**Action:**
-- [ ] Read `Phase3_Sprint18.md` — Verify `IrdApiClient`, `EInvoiceRepositoryImpl`, `e_invoices.sq`, `AccountingLedger` MVI are all complete per plan specification
-- [ ] Update `sprint_progress.md` after each completed sprint
-- [ ] Update `execution_log.md` with Sprint 18 completion notes
+### A4 — Active Test Compilation Issues (Unfinished "Doing" Tasks)
 
-### B4. README & CONTRIBUTING Freshness Check
+These items are marked as "Doing" (not done) at the bottom of execution_log.md:
 
-- [ ] `README.md` — Does "Development Phases" section reflect Phase 3 in progress?
-- [ ] `CONTRIBUTING.md` — Is the Mockative 3 + KSP 2.3.4 constraint documented?
-- [ ] `CLAUDE.md` — Does module map reflect the `accounting` feature addition from Sprint 18?
-- [ ] `gradle_commands.md` — Verify all test task examples are current for Sprint 18 modules
+| Task | File | Issue |
+|------|------|-------|
+| Fake fix | `FakeAuthRepositories.kt` | `logout()` return type: `Unit` not `Result<Unit>` |
+| Fake fix | `FakeInventoryRepositories.kt` | 3 issues: syncStatus param, nullable barcode/sku, getAlerts signature |
+| Fake fix | `FakePosRepositories.kt` | `getAll(Map<String,String>?)` → non-nullable with default |
+| Fake fix | `FakeSharedRepositories.kt` | Add `suspend` to `get()` and `getAll()` |
+| Domain fix | `OrderTotals.kt` | `itemCount: Double` → `Int`; fix EMPTY companion |
+| Test fix | `PosViewModelTest.kt` | Missing `printReceiptUseCase` & `receiptFormatter` constructor params |
+
+**These may cause `./gradlew test` to fail. Must be resolved before any testing work begins.**
+
+### A5 — Sprint 24 QA Never Executed
+
+All 20 Phase 1 final validation tasks are unchecked in execution_log.md:
+
+- E2E flow tests (manual + automated) — never done
+- Offline E2E sync test — never done
+- Performance benchmarks (cold start, FTS5 search, payment timing) — never done
+- Security validation (SQLCipher, Keystore, RBAC smoke test) — never done
+- UI quality audit (dark mode, responsive, keyboard shortcuts) — never done
+- Release build preparation (APK signing config, ProGuard rules, jpackage) — never done
+- CI/CD final validation — never done
+
+### A6 — CRDT Gap (Phase 2 Claimed Complete, Actually ~30%)
+
+Phase 2 audit reports claim CRDT is complete, but code reveals:
+- Infrastructure scaffolded: `conflict_log.sq`, `version_vectors.sq`, `sync_state.sq` ✅
+- Domain model exists: `SyncConflict.kt`, `ConflictLogRepository` ✅
+- **Missing:** `ConflictResolver.kt` — the actual PN-Counter/LWW merge logic
+- **Missing:** Delta operation dispatcher in `SyncEngine.kt` (line 272 TODO)
+- **Missing:** `SyncRepositoryImpl` Ktor wiring (line 156 TODO)
+- Result: Multi-store sync cannot resolve conflicts; cloud push/pull non-functional
 
 ---
 
-## PART C — Architecture & Code Quality Audit
+## SECTION B: Orphan Implementations — Defined but Not Wired to UI
 
-### C1. Clean Architecture Compliance
+These are backend implementations (domain models, use cases, repository interfaces, SQLDelight schemas) that exist in the codebase but have **zero references in any feature module UI, ViewModel, or Koin module**. The full vertical stack was built but never connected to the application surface.
 
-**Run these checks:**
-- [ ] Grep for `import com.zyntasolutions.zyntapos.data` inside `shared/domain/` — must be zero results
-- [ ] Grep for `import com.zyntasolutions.zyntapos.data` inside `composeApp/feature/*/` — must be zero results
-- [ ] Grep for `@Entity` inside `shared/domain/model/` — must be zero results (ADR-002)
-- [ ] Grep for `ViewModel()` (direct extension) inside `composeApp/feature/*/` — must be zero results (ADR-001)
-- [ ] Grep for `GlobalContext.get()` outside of DI bootstrap code — must be zero results
-- [ ] Grep for `loadKoinModules(global=true)` — must be zero (PR #21 migration complete)
-- [ ] Verify `kotlinx-datetime` pinned to `0.6.1` in root `build.gradle.kts` resolutionStrategy
+### B1 — Completely Dark Features (Zero UI Consumers)
 
-**Known minor issues (pre-existing, track for remediation):**
-- Flow/Rx debounce pattern repeated in 2+ ViewModels — extract `DEBOUNCE_DELAY_MS = 300L` constant
-- `18.dp`, `28.dp`, `16.dp` magic numbers in Compose — Phase 4 design tokens planned
+| Backend Asset | Layer | UI Consumer | Missing Feature |
+|---|---|---|---|
+| `ConflictLogRepository` + `conflict_log.sq` | Domain + Data | **None** | Sync conflict viewer in Admin console |
+| `SyncRepository` / `SyncOperation` | Domain + Data | **None** | Sync status / queue inspector screen |
+| `VersionVector` + `version_vectors.sq` | Data | **None** | Multi-store sync health indicator |
+| `InstallmentPlan` + `installment_plans.sq` | Domain + Data | **None** | Instalment plan CRUD / POS payment option |
 
-### C2. MVI Pattern Consistency Audit
+### B2 — Partial Wiring (Use Case Exists but NOT Injected into Koin or ViewModel)
 
-For each of the 15 feature modules, verify:
-- [ ] `*State` is a `data class` with all fields having default values
-- [ ] `*Intent` is a `sealed class` (exhaustive `when` in `handleIntent`)
-- [ ] `*Effect` is a `sealed class` (one-shot, delivered via Channel)
-- [ ] ViewModel does NOT call `viewModelScope.launch {}` directly from UI callbacks — all state changes via `dispatch(intent)`
-- [ ] No business logic in ViewModel — only delegates to use cases
-- [ ] `updateState { }` used exclusively for state mutations (no direct `_state.value = ...`)
+These use cases compile fine but are unreachable at runtime because they are not bound in any Koin module and not called by any ViewModel:
 
-### C3. Unused Code Audit
+| Use Case | Missing In | Missing From ViewModel |
+|---|---|---|
+| `VacuumDatabaseUseCase` | `AdminModule.kt` | `AdminViewModel.handleIntent()` |
+| `PurgeExpiredDataUseCase` | `AdminModule.kt` | `AdminViewModel.handleIntent()` |
+| `GetPayrollHistoryUseCase` | `StaffModule.kt` | `StaffViewModel.handleIntent()` |
+| `GetAttendanceSummaryUseCase` | `StaffModule.kt` | `StaffViewModel.handleIntent()` |
+| `GetLeaveHistoryUseCase` | `StaffModule.kt` | `StaffViewModel.handleIntent()` |
 
-**Detekt suppressions reviewed:** `UnusedPrivateProperty` and `UnusedParameter` are globally suppressed (intentional for design tokens and Compose callbacks). Audit manually:
+### B3 — Full Vertical Slice but Missing Navigation Route
 
-- [ ] Search `shared/domain/usecase/` for use cases with zero callers in any feature ViewModel (possible: Phase 2 use cases for scaffolded modules)
-- [ ] Search `composeApp/navigation/` for routes with no `composable {}` registration in NavGraph
-- [ ] Search HAL interfaces for `expect` declarations without complete `actual` implementations on all targets (Android + JVM)
-- [ ] Check `shared/seed/` — are all fixtures still in sync with the current 36-table schema? Tables added in Sprint 8+ may not have seed data
-- [ ] Check `tools/debug/` — are all 6 debug tabs functional with current Sprint 18 schema?
+These feature modules may have working screens but are not reachable from the main navigation:
+- Verify `InstallmentPlan` payment flow is absent from `PosScreen.kt` payment method list
+- Verify `ConflictLogScreen` is absent from `AdminScreen.kt`
+- Verify `SyncQueueScreen` is absent from admin/debug navigation
 
-### C4. Duplicate Code Audit
+### B4 — How to Audit for More Orphans
 
-**Known patterns to standardize:**
-
-| Pattern | Locations | Recommendation |
-|---------|-----------|----------------|
-| `combine(debounce(300L)).flatMapLatest` | PosViewModel, InventoryViewModel | Extract `SEARCH_DEBOUNCE_MS` constant to `:shared:core` Constants |
-| `repository.getAll().onEach { updateState {...} }.launchIn(viewModelScope)` | All 8 Phase 1 ViewModels | Acceptable; consider `collectAndUpdateState()` extension if > 5 instances |
-| `openRegisterSession()` + null guard pattern | RegisterViewModel (expected single instance) | OK |
-| Koin feature module template (single `factory { }`) | 8 scaffold modules | Templates OK, will fill in implementation |
-
-### C5. Detekt & Lint Execution
-
-**Run and analyze output:**
+Use this search pattern during QA:
 ```bash
-./gradlew detekt lint --parallel --continue > audit_detekt_output.txt 2>&1
+# For each domain model, check if any ViewModel imports it
+grep -r "ModelName" composeApp/feature --include="*.kt"
+# For each use case, check Koin module binding
+grep -r "UseCaseName" composeApp/feature --include="*Module.kt"
 ```
 
-- [ ] Zero severity `error` findings (blocks CI)
-- [ ] Document all `warning` findings and assign owners
-- [ ] Verify Detekt baseline (`config/detekt/detekt-baseline.xml`) is current — regenerate if stale
-- [ ] Lint: check for deprecated API usage, accessibility issues in Compose
+---
+
+## Audit Programme: 12 Areas
+
+### Area 1 — Test Coverage (Enhanced from Original Suggestion)
+
+**Current state:** 808 tests, 46 files. Critical gaps:
+- 11 feature modules with zero ViewModel tests (accounting, admin, coupons, customers, expenses, inventory, media, multistore, register, reports, staff)
+- Only 3/34 repository implementations have integration tests
+- BaseViewModel infrastructure: 0 tests
+- HAL module: 0 tests
+- Compose UI: 0 tests (Phase 2)
+
+**Recommended actions:**
+1. Add ViewModel tests (using Turbine + fake repos) for all 11 missing feature modules — target 80% coverage per CLAUDE.md
+2. Add jvmTest integration tests (in-memory SQLite via TestDatabase.kt) for all 34 repository implementations
+3. Add commonTest unit tests for BaseViewModel (state mutation, effect channel delivery, viewModelScope lifecycle)
+4. Add HAL mock tests using NullPrinterPort and fake scanner event streams
+5. Add Compose UI tests in Phase 2 (ZyntaButton, ZyntaCard, NavHost, responsive breakpoints)
+6. Add E2E integration tests for the 3 critical flows: Login → POS → Payment → Receipt; Register Session Open/Close; Stock Adjustment → Sync
+7. Create a shared `BaseViewModelTest` base class to standardise Turbine setup/teardown
+
+**Coverage targets (per CLAUDE.md):**
+
+| Layer | Target | Current | Gap |
+|-------|--------|---------|-----|
+| Use cases | 95% | ~95% | ✅ Met |
+| Repository implementations | 80% | ~9% | **Critical** |
+| ViewModels | 80% | ~40% | **High** |
+| Compose UI | Phase 2 | 0% | Planned |
 
 ---
 
-## PART D — Security & Compliance Audit (IT Auditor / Compliance Officer)
+### Area 2 — Documentation Completeness (Enhanced from Original Suggestion)
 
-### D1. Security Implementation Verification
+**Missing files (referenced in README but absent):**
+- `docs/architecture/sync-strategy.md` — offline-first queue, CRDT conflict resolution
+- `docs/architecture/security-model.md` — key flow, Keystore/JCE handoff, AES-256-GCM lifecycle
+- `docs/architecture/module-dependency-graph.md` — visual DAG of 26 modules + import rules
 
-| Control | Implementation | Test Status | Action |
-|---------|---------------|-------------|--------|
-| DB at rest encryption | SQLCipher AES-256 | Not tested | Add `DatabaseEncryptionTest` |
-| Key storage (Android) | Android Keystore | Not tested | Add instrumented test |
-| Key storage (JVM) | JCE KeyStore PKCS12 | Not tested | Add jvmTest |
-| PIN hashing | PBKDF2 + salt | ✅ 1 test | Add brute-force resistance test |
-| JWT validation | Decode + expiry check | ✅ 1 test | Add expired token, tampered token tests |
-| RBAC enforcement | RbacEngine | ✅ 1 test | Add exhaustive role × permission matrix test |
-| Audit log | `audit_log` table | Not tested | Verify every sensitive operation logs entry |
-| IRD mTLS | `IrdCertificateManager` | Not tested | Add cert load / expired cert / wrong password tests |
-| Secrets in build | `local.properties` git-ignored | ✅ | Verify `.gitignore` entry present |
-| Secure preferences | `SecurePreferences` expect/actual | ✅ 1 test | Add concurrent read/write test |
+**Stale/placeholder files:**
+- `docs/api/README.md` — empty placeholder; needs endpoint list, auth flow, models
+- `docs/compliance/README.md` — empty placeholder; needs PCI-DSS, GDPR, IRD e-invoice notes
+- 50+ versioned audit/plan docs in `docs/plans/` and `docs/audit/` — need consolidation
 
-### D2. GDPR & Data Privacy Compliance
-
-- [ ] Verify customer data export (`GenerateCustomerReportUseCase`) includes all PII fields
-- [ ] Verify customer data deletion cascade (if implemented in domain) — checks `CollectionTranslateMap` pattern
-- [ ] Confirm audit log is immutable (append-only, no DELETE queries in `audit_log.sq`)
-- [ ] Verify no PII in `sync_queue` plain-text payloads (must be encrypted or tokenized)
-- [ ] Confirm `ZYNTA_*` secrets never appear in build outputs (check `BuildConfig.java` generated file)
-
-### D3. IRD E-Invoice Compliance (Sri Lanka)
-
-- [ ] Verify invoice schema matches IRD API spec v1 (check `EInvoiceDto.kt` field names and types)
-- [ ] Verify SHA-256 digital signature implementation matches IRD signing requirements
-- [ ] Verify TIN (Tax Identification Number) validation logic in `ProductValidator` or domain layer
-- [ ] Verify IRD response error codes are all handled (ACCEPTED, REJECTED, PENDING, CONNECTION_ERROR)
-- [ ] Verify cancelled invoices are immutable (status update only, no deletion)
-- [ ] Confirm IRD certificate password is stored in `SecurePreferences`, NOT `local.properties` at runtime
-
-### D4. CI/CD Security Posture
-
-- [ ] Verify GitHub Actions secrets (`RELEASE_KEYSTORE_BASE64`, `DB_ENCRYPTION_PASSWORD`) are not exposed in CI logs
-- [ ] Verify `local.properties` is in `.gitignore` and not committed (check `git log --all -- local.properties`)
-- [ ] Verify release APK is signed before upload to GitHub Release
-- [ ] Verify release workflow cannot run on forks (check `workflow_dispatch` or branch protection)
+**Recommended additions:**
+- SessionManager design note (clarify its definition/location, extend ADR-003)
+- Document the intentional DB schema expansion (36 tables vs. 13 documented)
+- Update master roadmap to reflect 16 features (accounting and onboarding added)
+- Add kotlinx-datetime version comment in `gradle/libs.versions.toml` explaining the 0.7.1 vs 0.6.1 discrepancy
 
 ---
 
-## PART E — KPI Dashboard (Product Analyst / Data Analyst)
+### Area 3 — Clean Architecture & MVI Governance (Confirmed Green)
 
-### E1. Code Quality KPIs
+**Current state:** FULLY COMPLIANT. All checks passed:
+- ADR-001: All ViewModels extend BaseViewModel ✅
+- ADR-002: 0 `*Entity` suffixes in domain layer ✅
+- ADR-003/004: No SecurePreferences in `:shared:data`, no GlobalContext.get() misuse ✅
+- Architecture boundaries: No domain → data/hal/security imports ✅
+- Reactive patterns: Canonical `debounce(300)/flatMapLatest` usage everywhere ✅
 
-| KPI | Current | Target | Measurement Method |
-|-----|---------|--------|--------------------|
-| Test file count | 49 | 150+ | `find . -name "*Test*.kt" | wc -l` |
-| Domain use case coverage | ~21/80 (26%) | 95% | `./gradlew :shared:domain:test` + Kover report |
-| Data layer repo coverage | ~5/36 (14%) | 80% | `./gradlew :shared:data:jvmTest` + Kover |
-| ViewModel coverage | ~7/15 (47%) | 80% | `./gradlew :composeApp:feature:*:test` |
-| Security module coverage | ~5/11 components | 95% | `./gradlew :shared:security:test` |
-| Detekt violations (error) | Unknown | 0 | `./gradlew detekt` |
-| Detekt violations (warning) | Unknown | < 20 | `./gradlew detekt` |
-| Lint issues | Unknown | 0 errors | `./gradlew lint` |
-| Build time (clean) | Unknown | < 5 min | CI `ci.yml` artifact timing |
-| Build time (incremental) | Unknown | < 90 sec | Local benchmark |
-
-### E2. Architecture Compliance KPIs
-
-| KPI | Pass Condition | Check Command |
-|-----|---------------|---------------|
-| ADR-001: No direct ViewModel extension | 0 occurrences | `grep -r "extends ViewModel()" composeApp/feature/` |
-| ADR-002: No *Entity in domain | 0 occurrences | `grep -r "Entity" shared/domain/model/` |
-| ADR-003: SecurePreferences in correct module | 0 in :shared:data | `grep -r "SecurePreferences" shared/data/` |
-| No cross-layer imports | 0 in feature modules | `grep -r "import.*zyntapos.data" composeApp/feature/` |
-| Koin 7-tier load order intact | Manual verification | Read `ZyntaApplication.kt` |
-| No hardcoded secrets | 0 in source | `grep -r "ZYNTA_DB_PASSPHRASE\|password" --include="*.kt"` |
-
-### E3. Feature Completeness KPIs
-
-| Phase | Modules | Implemented | Scaffolded | % Complete |
-|-------|---------|-------------|-----------|-----------|
-| Phase 1 (MVP) | 8 feature | 8 | 0 | 100% |
-| Phase 2 (Growth) | 4 feature | 0 | 4 | 0% |
-| Phase 3 (Enterprise) | 3+accounting | 3 + partial | 0 | ~80% |
-| Infrastructure | 10 | 10 | 0 | 100% |
-
-### E4. Documentation KPIs
-
-| KPI | Current | Target |
-|-----|---------|--------|
-| ADRs with ACCEPTED status | 4 | 7 (add ADR-005, 006, 007) |
-| Public APIs with KDoc | Unknown | 100% of public APIs |
-| Sprint plans written ahead of sprint | 17/24 | 24/24 |
-| Audit reports current | v3 (Feb 2026) | Updated each sprint |
-| CLAUDE.md last updated | Feb 2026 | Within 1 sprint of changes |
+**Recommended governance actions:**
+1. Automate ADR checks with custom Detekt rules (e.g., forbid direct ViewModel subclassing)
+2. Harden Detekt for Phase 2: `warningsAsErrors: true`, reduce complexity thresholds, enable `UnusedPrivateProperty`
+3. Add a CI step that enforces module boundary rules (e.g., Dependency Guard plugin)
+4. Move the 13 legitimate TODO/FIXME comments into sprint backlog tracker rather than inline code
 
 ---
 
-## PART F — Execution Checklist (Ordered by Priority)
+### Area 4 — Planning vs Implementation Gap (Enhanced from Original Suggestion)
 
-### Sprint 18 Immediate Actions (Before Sprint 19)
+**Gaps found:**
+- Database: 36 `.sq` files implemented vs. 13 documented in CLAUDE.md — Phase 2/3 tables built ahead of schedule
+- Features: 16 feature modules vs. 15 planned (accounting, onboarding not in master roadmap)
+- `SessionManager` referenced in CLAUDE.md Security Details as being in `:shared:security` — actual location is `feature/auth/session/`
+- `CashDrawerController` listed in CLAUDE.md HAL section — does not exist in codebase
 
-- [ ] **QA:** Write `AccountingLedgerViewModelTest` and `EInvoiceRepositoryImplTest` for Sprint 18 deliverables
-- [ ] **QA:** Verify `e_invoices.sq` schema matches IRD spec — 9 columns, 4 indexes, 8 queries
-- [ ] **Compliance:** Review `IrdApiClient.kt` for mTLS correctness and error code coverage
-- [ ] **Arch:** Ensure Sprint 18 accounting feature follows ADR-001/002; check module Koin registration in correct tier
-- [ ] **Docs:** Update `sprint_progress.md` with Sprint 18 status
-- [ ] **Docs:** Add ADR-005 for E-Invoice Architecture
-
-### Ongoing Each Sprint
-
-- [ ] Run `./gradlew detekt lint --parallel --continue` — zero errors
-- [ ] Run `./gradlew test --parallel` — all tests pass
-- [ ] Update `execution_log.md` with completed tasks
-- [ ] Peer review: verify new ViewModel extends `BaseViewModel`, new domain model has no `*Entity` suffix
-
-### Phase 2 Pre-Kickoff Gate
-
-Before implementing customers/coupons/multistore/expenses UI:
-- [ ] All Phase 1 ViewModel tests written (80% coverage target)
-- [ ] All Phase 1 use case tests written (95% coverage target)
-- [ ] `FakeProductRepository`, `FakeOrderRepository`, `FakeRegisterRepository` created in test sourceSet
-- [ ] `checkModules {}` Koin validation test passes for current DI graph
+**Recommended actions:**
+1. Update CLAUDE.md Module Map and README to reflect actual state (36 tables, 16 features)
+2. Append Phase 2 and Phase 3 summary sections to execution_log.md
+3. Run a formal vertical-slice mapping: every domain model → DB table → repository interface → use case → ViewModel intent → screen
 
 ---
 
-## Critical Files for Reference During Audit
+### Area 5 — Dead Code & Unused Symbols (Confirmed Low Risk)
 
-| File | Purpose |
-|------|---------|
-| `shared/domain/src/commonMain/.../usecase/` | 80+ use cases — primary test target |
-| `shared/data/src/commonMain/sqldelight/` | 36 `.sq` schema files |
-| `composeApp/core/src/commonMain/.../mvi/BaseViewModel.kt` | MVI contract — test atomicity |
-| `composeApp/navigation/src/commonMain/.../ZyntaRoute.kt` | RBAC route gating |
-| `shared/security/src/commonMain/` | Security primitives |
-| `config/detekt/detekt.yml` | Static analysis rules |
-| `.github/workflows/ci.yml` | CI pipeline |
-| `docs/adr/` | 4 ADRs |
-| `docs/plans/phase/p3/Phase3_Sprint18.md` | Current sprint spec |
-| `docs/sprint_progress.md` | Implementation status |
-| `gradle/libs.versions.toml` | All dependency versions |
+**Current state:** Minimal. Only 13 TODO/FIXME markers found, all legitimate sprint placeholders.
+
+**Recommended actions:**
+1. Enable Detekt `UnusedPrivateProperty` and `UnusedParameter` in Phase 2 config
+2. Audit Phase 1 stub handlers in `InventoryViewModel` (Sprint 19 placeholders — lines 126-149)
+3. Verify `NullPrinterPort` is only used in test/debug builds (not production DI bindings)
+4. Add `@Suppress` annotations with written justification rather than silent suppressions
 
 ---
 
-## Verification — How to Validate This Plan Is Working
+### Area 6 — Code Duplication & Reinvention (Confirmed Low Risk)
 
-```bash
-# 1. Run full test suite
-./gradlew test allTests --parallel --continue
+**Current state:** No problematic duplication. Pattern consistency is intentional.
 
-# 2. Generate test coverage (requires Kover plugin)
-./gradlew koverXmlReport
+**Minor opportunities:**
+1. Extract form-field update boilerplate (`copy()` pattern repeated in Inventory/Expenses/Customer VMs)
+2. Consolidate `Result` pattern `fold()` handling in `:shared:core`
+3. Standardise fake repository base class with shared error-injection flags (`shouldFailCreate`, `shouldFailOpen`)
 
-# 3. Run static analysis
-./gradlew detekt lint --parallel --continue
+---
 
-# 4. Validate Koin DI graph
-./gradlew :composeApp:testDebugUnitTest --tests "*.KoinGraphTest"
+### Area 7 — Security & Penetration Testing (New)
 
-# 5. Build all targets
-./gradlew assemble :composeApp:run
+Beyond code review — actual security validation:
 
-# 6. Full CI simulation
-./gradlew clean test lint assembleDebug :composeApp:packageUberJarForCurrentOS \
-          --parallel --continue --stacktrace
-```
+1. **Crypto correctness:** Verify AES-256-GCM tag validation, IV uniqueness per encryption call, no key material in logs
+2. **PIN brute-force resistance:** Validate lockout policy in `SessionManager` after N failed attempts
+3. **JWT clock-skew handling:** Test tokens at exactly the 30s buffer boundary (`JwtManager`)
+4. **RBAC bypass testing:** Attempt to access routes above user's role (CASHIER → ADMIN routes, REPORTER → POS mutations)
+5. **SQLCipher passphrase exposure:** Verify passphrase is never written to SharedPreferences in plaintext or included in Sentry payloads
+6. **Token refresh race condition:** Simultaneous 401 responses — verify `TokenManager` prevents double refresh
+7. **Keystore migration path:** Verify `SecurePreferencesKeyMigration.migrate()` handles cold-start and upgrade paths
+8. **Secrets in BuildConfig:** Verify `ZYNTA_*` keys from `local.properties` are not extractable from release APK
+9. **IRD certificate lifecycle:** Verify `.p12` path is not hardcoded; test certificate expiry handling
 
-**Success criteria for audit completion:**
-- Test count ≥ 150 files across all modules
-- Zero Detekt `error` severity findings
-- Zero clean-architecture violations (grep checks pass)
-- All 7 ADRs documented and ACCEPTED
-- Sprint 18 deliverables verified against `Phase3_Sprint18.md`
-- CI pipeline green on `main` branch
+---
+
+### Area 8 — Performance & KPI Metrics (New)
+
+For the Product Analyst & Data Analyst team:
+
+**Application KPIs to instrument:**
+
+| KPI | Target | How to Measure |
+|-----|--------|----------------|
+| POS transaction time (add-to-cart → payment-processed) | < 2s | Trace via AndroidProfiler / custom timer |
+| Product search latency (after 300ms debounce) | < 500ms | SQLDelight benchmark test |
+| App cold-start to login screen | Android < 3s / Desktop < 2s | Android Profiler startup trace |
+| Receipt print time | < 5s | HAL callback timer in `PrinterManager` |
+| FTS5 search with 10K products | < 200ms | jvmTest benchmark |
+| Sync engine push latency | < 1s avg | SyncEngine timing hook |
+
+**Technical KPIs:**
+
+| KPI | Target | Frequency |
+|-----|--------|-----------|
+| CI pipeline duration | < 15 min | Per PR |
+| Release APK size | < 20MB | Per sprint |
+| Android method count | < 64K | Per sprint |
+| Test suite execution time | < 5 min | Per PR |
+| Detekt violation count | 0 critical | Per PR |
+
+---
+
+### Area 9 — Offline-First Resilience Testing (New)
+
+Critical for an enterprise POS system:
+
+1. **Network partition:** `SyncEngine` behaviour when offline for 24h+ (queue depth, conflict accumulation)
+2. **Conflict resolution:** Concurrent edits to same product on two store terminals — verify `ConflictResolver` logic
+3. **DB corruption recovery:** Wrong SQLCipher passphrase on cold start — graceful error vs. crash
+4. **Partial sync failure:** Push succeeds, pull fails — verify `SyncEnqueuer` `INSERT OR IGNORE` idempotency
+5. **Queue overflow:** 10,000+ operations in `sync_queue` — does the engine degrade gracefully?
+6. **Round-trip data integrity:** `CalculateOrderTotalsUseCase` output must survive serialisation → DB write → DB read → deserialisation without floating-point drift
+7. **Version vector conflicts:** CRDT vector logic in `SyncEngine` for multi-store concurrent operations
+
+---
+
+### Area 10 — Platform Compatibility & HAL Testing (New)
+
+1. **Android API range:** minSdk 24 (Android 7.0) through targetSdk 36 — Keystore API and SecurityManager differences
+2. **Desktop OS matrix:** macOS (Intel + Apple Silicon), Windows 10/11, Ubuntu 22.04 LTS
+3. **Printer models:** Test ESC/POS against at least 3 thermal printers: Epson TM-T88, Star TSP100, Xprinter XP-58
+4. **Barcode scanner types:** USB HID keyboard-wedge, serial RS-232, camera (ML Kit on Android)
+5. **Cash drawer:** 12V vs. 24V pulse width compatibility (once `CashDrawerController` is implemented)
+6. **Responsive layout breakpoints:** Compact (360dp), Medium (720dp), Expanded (1280dp) — no overflow or clipped text
+7. **jSerialComm:** Verify `DesktopSerialPrinterPort` handles port-not-found and disconnection gracefully
+
+---
+
+### Area 11 — Regulatory Compliance Audit (New)
+
+For the IT Auditor & Compliance Officer:
+
+1. **PCI-DSS:** Verify no card PANs stored in SQLite — `orders`, `audit_log`, `sync_queue` tables must not contain raw card numbers
+2. **GDPR:** Validate `CustomerRepository.gdprExport()` and right-to-erasure; verify all PII fields deleted on request; check audit trail retention policy
+3. **IRD e-invoice (Sri Lanka):** Validate `EInvoice` domain model and `e_invoices` DB table against IRD API specification; test certificate renewal path
+4. **Audit trail integrity:** Verify `AuditEntry` is persisted for all write operations (currently `AuditRepositoryImpl` has 3 TODO stubs — security audit trail not functional)
+5. **Data retention policy:** Confirm `audit_log`, `sync_queue`, and `orders` have appropriate retention/archival policies
+6. **Session timeout:** Verify auto-lock triggers after configured inactivity period
+7. **Backup/restore:** Validate encrypted backup format; test restore to new device without passphrase exposure in transit
+
+---
+
+### Area 12 — Build Reproducibility & Dependency Security (New)
+
+1. **Dependency vulnerability scan:** Add OWASP Dependency Check Gradle plugin to CI; scan all 250+ dependencies in `libs.versions.toml` for known CVEs
+2. **Build determinism:** Same source → same binary across clean builds (critical for release signing audit)
+3. **License audit:** SQLCipher is BSL-licensed; jSerialComm is LGPL — verify enterprise usage is permitted
+4. **Dependency freshness:** Track outdated libraries; consider Renovate bot for automated PRs
+5. **Supply chain:** `settings.gradle.kts` uses `FAIL_ON_PROJECT_REPOS` — verify no rogue repositories via transitive dependencies
+
+---
+
+## Improvements to Original Suggestions
+
+| Original Suggestion | Assessment | Enhancement |
+|---------------------|-----------|-------------|
+| Comprehensive testing (unit, mock, E2E, edge cases) | ✅ Correct — needs specificity | Prioritise 11 missing feature VM tests and 31 missing repository integration tests; the domain layer is already at 95% |
+| Up-to-date documentation | ✅ Correct | Three architecture docs explicitly referenced but absent; two docs are empty placeholders; execution_log.md is severely out of sync with reality |
+| Clean architecture, MVI, best practices | ✅ Correct — already EXCELLENT | Redirect effort to Detekt hardening and automated ADR enforcement rather than manual review |
+| Implementation vs. planning docs | ✅ Correct | Specific, code-verified gaps: 36 DB tables vs. 13 documented; 16 features vs. 15; 6 CLAUDE.md file references are wrong |
+| Unused class/function check | ✅ Correct — very minimal | More important: 5 use cases that compile but are unreachable at runtime due to missing Koin bindings (Section B2) |
+| Code duplication | ✅ Correct — minimal | Minor form-field copy() pattern is the only extractable opportunity |
+
+**Six new areas not in the original suggestions (all high priority):**
+- Area 7: Security penetration testing
+- Area 8: Performance & KPI instrumentation
+- Area 9: Offline-first resilience testing
+- Area 10: Platform & HAL compatibility
+- Area 11: Regulatory compliance
+- Area 12: Dependency security & build hygiene
+
+---
+
+## Team Assignment Matrix
+
+| Area | QA / SDET | Product Analyst | IT Auditor |
+|------|-----------|----------------|-----------|
+| 1. Test Coverage | **Primary** | — | Secondary |
+| 2. Documentation | Support | Support | **Primary** |
+| 3. Architecture Governance | Support | — | **Primary** |
+| 4. Planning vs Implementation | Support | **Primary** | Support |
+| 5. Dead Code | **Primary** | — | — |
+| 6. Code Duplication | **Primary** | — | — |
+| 7. Security Testing | **Primary** | — | **Primary** |
+| 8. Performance & KPI | Support | **Primary** | — |
+| 9. Offline Resilience | **Primary** | Support | — |
+| 10. Platform Compatibility | **Primary** | — | — |
+| 11. Regulatory Compliance | Support | — | **Primary** |
+| 12. Dependency Security | Support | — | **Primary** |
+
+---
+
+## Priority Order
+
+### Immediate — Fix Blockers First
+
+These must be done before any other testing work begins:
+
+1. Fix 6 active test compilation issues (Section A4) — `./gradlew test` may currently fail
+2. Resolve 4 critical `TODO` stubs in `AuditRepositoryImpl`, `SyncEngine`, `SyncRepositoryImpl`, `AuthViewModel` (Section A3)
+3. Correct 6 stale CLAUDE.md file references (Section A2)
+4. Wire 5 orphan use cases into Koin modules and ViewModels (Section B2)
+
+### Short Term — Phase 1 Completion Gate
+
+5. ViewModel tests for 11 missing feature modules (Area 1)
+6. Repository integration tests: 3 → 34 (Area 1)
+7. Execute Sprint 24 validation: 20 unchecked tasks (Section A5)
+8. Create 3 missing architecture docs (Area 2)
+9. Security pen-test on crypto, RBAC, token handling (Area 7)
+10. Detekt Phase 2 hardening config (Area 3)
+
+### Phase 2 Entry Gate (Must All Pass)
+
+- All feature modules ≥ 80% ViewModel test coverage
+- All 34 repositories have integration tests
+- 0 critical Detekt violations in strict mode
+- Security pen-test sign-off
+- Sprint 24 validation complete
+
+### Ongoing Through Phase 2
+
+- Area 8: KPI instrumentation and dashboard
+- Area 9: Offline resilience test suite
+- Area 10: Platform compatibility matrix
+- Area 11: Compliance audit trail
+
+### Phase 2 Exit Gate (Must All Pass)
+
+- Area 12: Dependency CVE scan clean
+- Area 11: PCI-DSS and GDPR sign-off
+- Area 2: All documentation complete and reviewed
+- `execution_log.md` fully updated to reflect Phases 1, 2, and 3
