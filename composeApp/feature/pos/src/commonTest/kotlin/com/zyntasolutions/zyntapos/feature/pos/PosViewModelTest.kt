@@ -66,8 +66,14 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
+import com.zyntasolutions.zyntapos.domain.model.CashMovement
+import com.zyntasolutions.zyntapos.domain.model.CashRegister
+import com.zyntasolutions.zyntapos.domain.model.RegisterSession
 import com.zyntasolutions.zyntapos.domain.model.Role
+import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
+import com.zyntasolutions.zyntapos.domain.repository.CustomerRepository
+import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
+import kotlinx.coroutines.flow.flowOf
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PosViewModelTest — Sprint 17 + Sprint 22 extension
@@ -332,6 +338,39 @@ class PosViewModelTest {
         override suspend fun deletePromotion(id: String) = Result.Success(Unit)
     }
 
+    // ── Fake CustomerRepository ───────────────────────────────────────────────
+
+    private val fakeCustomerRepository = object : CustomerRepository {
+        override fun getAll(): Flow<List<Customer>> = flowOf(emptyList())
+        override suspend fun getById(id: String): Result<Customer> =
+            Result.Error(DatabaseException("not used"))
+        override fun search(query: String): Flow<List<Customer>> = flowOf(emptyList())
+        override suspend fun insert(customer: Customer): Result<Unit> = Result.Success(Unit)
+        override suspend fun update(customer: Customer): Result<Unit> = Result.Success(Unit)
+        override suspend fun delete(id: String): Result<Unit> = Result.Success(Unit)
+    }
+
+    // ── Fake RegisterRepository ───────────────────────────────────────────────
+
+    private val fakeRegisterRepository = object : RegisterRepository {
+        override fun getRegisters(): Flow<List<CashRegister>> = flowOf(emptyList())
+        override fun getActive(): Flow<RegisterSession?> = flowOf(null)
+        override suspend fun openSession(
+            registerId: String,
+            openingBalance: Double,
+            userId: String,
+        ): Result<RegisterSession> = Result.Error(DatabaseException("not used"))
+        override suspend fun closeSession(
+            sessionId: String,
+            actualBalance: Double,
+            userId: String,
+        ): Result<RegisterSession> = Result.Error(DatabaseException("not used"))
+        override suspend fun addCashMovement(movement: CashMovement): Result<Unit> =
+            Result.Success(Unit)
+        override fun getMovements(sessionId: String): Flow<List<CashMovement>> =
+            flowOf(emptyList())
+    }
+
     // ── Real use cases wired to fake repositories ──────────────────────────────
 
     private val calculateTotalsUseCase = CalculateOrderTotalsUseCase()
@@ -385,7 +424,8 @@ class PosViewModelTest {
             calculateCouponDiscountUseCase = CalculateCouponDiscountUseCase(),
             earnRewardPointsUseCase = EarnRewardPointsUseCase(fakeLoyaltyRepository),
             authRepository = fakeAuthRepository,
-            registerSessionId = "session-01",
+            customerRepository = fakeCustomerRepository,
+            registerRepository = fakeRegisterRepository,
         )
     }
 

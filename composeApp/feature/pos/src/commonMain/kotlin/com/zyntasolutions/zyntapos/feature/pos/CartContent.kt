@@ -12,6 +12,7 @@ import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.CartItem
 import com.zyntasolutions.zyntapos.domain.model.Customer
+import com.zyntasolutions.zyntapos.domain.model.DiscountType
 import com.zyntasolutions.zyntapos.domain.model.OrderTotals
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -44,6 +45,7 @@ internal fun CartContent(
 ) {
     var showNotesDialog by remember { mutableStateOf(false) }
     var showVoidDialog by remember { mutableStateOf(false) }
+    var showOrderDiscountDialog by remember { mutableStateOf(false) }
 
     // ── Order notes dialog ────────────────────────────────────────────────────
     if (showNotesDialog) {
@@ -53,6 +55,17 @@ internal fun CartContent(
                 showNotesDialog = false
             },
             onDismiss = { showNotesDialog = false },
+        )
+    }
+
+    // ── Order discount dialog ─────────────────────────────────────────────────
+    if (showOrderDiscountDialog) {
+        OrderDiscountDialog(
+            onConfirm = { value, type ->
+                onIntent(PosIntent.ApplyOrderDiscount(value, type))
+                showOrderDiscountDialog = false
+            },
+            onDismiss = { showOrderDiscountDialog = false },
         )
     }
 
@@ -81,7 +94,8 @@ internal fun CartContent(
         // ── Customer row ───────────────────────────────────────────────────
         CustomerRow(
             selectedCustomer = selectedCustomer,
-            onSelectCustomer = { onIntent(PosIntent.ClearCustomer) }, // re-open dialog from parent
+            onSelectCustomer = { onIntent(PosIntent.RequestCustomerSelect) },
+            onClearCustomer = { onIntent(PosIntent.ClearCustomer) },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = ZyntaSpacing.md, vertical = ZyntaSpacing.sm),
@@ -90,7 +104,7 @@ internal fun CartContent(
         // ── Cart action row (Order Notes | Order Discount | Void | Clear) ──
         CartActionRow(
             onNotesClicked = { showNotesDialog = true },
-            onDiscountClicked = { /* surfaced via PosScreen dialog management */ },
+            onDiscountClicked = { showOrderDiscountDialog = true },
             onVoidClicked = { showVoidDialog = true },
             onClearClicked = { onIntent(PosIntent.ClearCart) },
             modifier = Modifier
@@ -147,9 +161,13 @@ internal fun CartContent(
 private fun CustomerRow(
     selectedCustomer: Customer?,
     onSelectCustomer: () -> Unit,
+    onClearCustomer: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(modifier = modifier) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+    ) {
         Icon(
             imageVector = Icons.Default.Person,
             contentDescription = null,
@@ -159,11 +177,21 @@ private fun CustomerRow(
         TextButton(
             onClick = onSelectCustomer,
             contentPadding = PaddingValues(horizontal = ZyntaSpacing.xs, vertical = 0.dp),
+            modifier = Modifier.weight(1f),
         ) {
             Text(
                 text = selectedCustomer?.name ?: "Walk-in Customer ▼",
                 style = MaterialTheme.typography.bodyMedium,
             )
+        }
+        if (selectedCustomer != null) {
+            IconButton(onClick = onClearCustomer) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = "Remove customer",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
@@ -202,4 +230,56 @@ private fun CartActionRow(
             )
         }
     }
+}
+
+@Composable
+private fun OrderDiscountDialog(
+    onConfirm: (value: Double, type: DiscountType) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var discountInput by remember { mutableStateOf("") }
+    var discountType by remember { mutableStateOf(DiscountType.PERCENT) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Apply Order Discount") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
+                OutlinedTextField(
+                    value = discountInput,
+                    onValueChange = { discountInput = it.filter { c -> c.isDigit() || c == '.' } },
+                    label = { Text("Amount") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
+                    FilterChip(
+                        selected = discountType == DiscountType.PERCENT,
+                        onClick = { discountType = DiscountType.PERCENT },
+                        label = { Text("Percentage (%)") },
+                        modifier = Modifier.weight(1f),
+                    )
+                    FilterChip(
+                        selected = discountType == DiscountType.FIXED,
+                        onClick = { discountType = DiscountType.FIXED },
+                        label = { Text("Fixed Amount") },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val value = discountInput.toDoubleOrNull() ?: 0.0
+                    onConfirm(value, discountType)
+                },
+            ) {
+                Text("Apply")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
 }

@@ -36,6 +36,14 @@ sealed interface PosEffect {
     data object OpenPaymentSheet : PosEffect
 
     /**
+     * Instructs the UI to open the customer search/picker dialog.
+     *
+     * Emitted by the ViewModel after pre-loading [PosState.customerPickerResults]
+     * in response to [PosIntent.RequestCustomerSelect].
+     */
+    data object OpenCustomerPicker : PosEffect
+
+    /**
      * Navigate to the payment confirmation screen after an order has been
      * successfully created but not yet tendered.
      *
