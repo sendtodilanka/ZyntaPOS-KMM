@@ -3,6 +3,7 @@ package com.zyntasolutions.zyntapos.feature.accounting
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetPeriodSummaryUseCase
+import androidx.lifecycle.viewModelScope
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch

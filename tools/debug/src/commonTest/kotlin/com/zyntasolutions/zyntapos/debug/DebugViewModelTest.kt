@@ -21,6 +21,7 @@ import com.zyntasolutions.zyntapos.domain.model.Role
 import com.zyntasolutions.zyntapos.domain.model.SyncOperation
 import com.zyntasolutions.zyntapos.domain.model.User
 import com.zyntasolutions.zyntapos.domain.repository.AuditRepository
+import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.seed.SeedRunner
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -146,6 +147,7 @@ class DebugViewModelTest {
         override suspend fun getPendingOperations(): Result<List<SyncOperation>> = pendingOpsResult
         override suspend fun clearSyncQueue(): Result<Unit> = clearQueueResult
         override suspend fun forceSyncNow(): Result<Unit> = forceSyncResult
+        override fun setOfflineMode(forced: Boolean) { /* no-op in tests */ }
     }
 
     private inner class FakeDiagnosticsActionHandler(
@@ -165,6 +167,16 @@ class DebugViewModelTest {
         override fun observeByUserId(userId: String): Flow<List<AuditEntry>> = auditFlow
     }
 
+    private inner class FakeSettingsRepository : SettingsRepository {
+        private val store = mutableMapOf<String, String>()
+        override suspend fun get(key: String): String? = store[key]
+        override suspend fun set(key: String, value: String): Result<Unit> {
+            store[key] = value; return Result.Success(Unit)
+        }
+        override suspend fun getAll(): Map<String, String> = store.toMap()
+        override fun observe(key: String): Flow<String?> = MutableStateFlow(store[key])
+    }
+
     // ── Subject under test ─────────────────────────────────────────────────────
 
     private lateinit var fakeSeed: FakeSeedActionHandler
@@ -173,15 +185,17 @@ class DebugViewModelTest {
     private lateinit var fakeNetwork: FakeNetworkActionHandler
     private lateinit var fakeDiagnostics: FakeDiagnosticsActionHandler
     private lateinit var fakeAudit: FakeAuditRepository
+    private lateinit var fakeSettings: FakeSettingsRepository
     private lateinit var viewModel: DebugViewModel
 
     private fun buildViewModel(): DebugViewModel = DebugViewModel(
-        seedHandler        = fakeSeed,
-        databaseHandler    = fakeDatabase,
-        authHandler        = fakeAuth,
-        networkHandler     = fakeNetwork,
-        diagnosticsHandler = fakeDiagnostics,
-        auditRepository    = fakeAudit,
+        seedHandler         = fakeSeed,
+        databaseHandler     = fakeDatabase,
+        authHandler         = fakeAuth,
+        networkHandler      = fakeNetwork,
+        diagnosticsHandler  = fakeDiagnostics,
+        auditRepository     = fakeAudit,
+        settingsRepository  = fakeSettings,
     )
 
     @BeforeTest
@@ -193,6 +207,7 @@ class DebugViewModelTest {
         fakeNetwork     = FakeNetworkActionHandler()
         fakeDiagnostics = FakeDiagnosticsActionHandler()
         fakeAudit       = FakeAuditRepository()
+        fakeSettings    = FakeSettingsRepository()
     }
 
     @AfterTest
