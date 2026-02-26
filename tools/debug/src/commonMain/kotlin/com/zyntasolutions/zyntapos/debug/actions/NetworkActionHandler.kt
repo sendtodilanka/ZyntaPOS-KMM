@@ -18,19 +18,42 @@ interface NetworkActionHandler {
      */
     suspend fun clearSyncQueue(): Result<Unit>
 
-    /** Triggers an immediate sync cycle regardless of connectivity state. */
+    /**
+     * Triggers an immediate sync cycle unless offline mode is forced.
+     *
+     * When [setOfflineMode] has been called with `true`, this call returns a
+     * human-readable "blocked" result without touching the sync queue so that
+     * testers can verify the app's offline behaviour.
+     */
     suspend fun forceSyncNow(): Result<Unit>
+
+    /**
+     * Enables or disables the debug offline-mode flag.
+     *
+     * When `forced = true`:
+     * - [forceSyncNow] is blocked (returns a "offline mode enabled" message).
+     * - The Network Tab UI shows the device as offline.
+     *
+     * Note: this does not intercept OS-level network traffic. It is a
+     * debug-console-level gate that prevents the manual sync trigger from
+     * running. Full network interception (blocking Ktor calls) requires a
+     * platform-level mock and is planned for Phase 2.
+     */
+    fun setOfflineMode(forced: Boolean)
 }
 
 /**
  * Default implementation backed by [SyncRepository].
- *
- * Note: "force offline mode" is a UI-only toggle stored in [DebugState].
- * True network interception requires a platform-level mock — deferred to Phase 2.
  */
 class NetworkActionHandlerImpl(
     private val syncRepository: SyncRepository,
 ) : NetworkActionHandler {
+
+    @Volatile private var isOfflineModeForced: Boolean = false
+
+    override fun setOfflineMode(forced: Boolean) {
+        isOfflineModeForced = forced
+    }
 
     override suspend fun getPendingOperations(): Result<List<SyncOperation>> {
         return try {
@@ -52,6 +75,9 @@ class NetworkActionHandlerImpl(
     }
 
     override suspend fun forceSyncNow(): Result<Unit> {
+        if (isOfflineModeForced) {
+            return Result.Error(NetworkException("Offline mode is enabled — sync blocked by debug console"))
+        }
         return try {
             val ops = syncRepository.getPendingOperations()
             if (ops.isEmpty()) return Result.Success(Unit)

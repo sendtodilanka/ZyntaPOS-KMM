@@ -3,6 +3,10 @@ package com.zyntasolutions.zyntapos
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
+import com.zyntasolutions.zyntapos.debug.DebugViewModel
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoadingOverlay
 import com.zyntasolutions.zyntapos.designsystem.theme.ThemeMode
 import com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme
@@ -99,7 +103,7 @@ fun App() {
     val settingsRepository: SettingsRepository = koinInject()
     val themeModeRaw by settingsRepository.observe("appearance.theme_mode")
         .collectAsState(initial = null)
-    val themeMode = when (themeModeRaw) {
+    val userThemeMode = when (themeModeRaw) {
         "LIGHT" -> ThemeMode.LIGHT
         "DARK" -> ThemeMode.DARK
         else -> ThemeMode.SYSTEM
@@ -107,7 +111,31 @@ fun App() {
 
     val appInfoProvider: AppInfoProvider = koinInject()
 
-    ZyntaTheme(themeMode = themeMode) {
+    // ── Debug overrides (active only when debug console is loaded) ────────────
+    // These keys are only ever written by DebugViewModel; they emit null in
+    // production builds where debugModule is never loaded, so the effective
+    // theme and font scale fall through to the user-configured values.
+    val debugThemeRaw by settingsRepository.observe(DebugViewModel.KEY_DEBUG_THEME)
+        .collectAsState(initial = null)
+    val debugFontScaleRaw by settingsRepository.observe(DebugViewModel.KEY_DEBUG_FONT_SCALE)
+        .collectAsState(initial = null)
+
+    val effectiveThemeMode = when (debugThemeRaw) {
+        "LIGHT"  -> ThemeMode.LIGHT
+        "DARK"   -> ThemeMode.DARK
+        "SYSTEM" -> ThemeMode.SYSTEM
+        else     -> userThemeMode   // null (no override) → honour user preference
+    }
+    val debugFontScale = debugFontScaleRaw?.toFloatOrNull()?.coerceIn(0.75f, 1.50f) ?: 1.0f
+
+    ZyntaTheme(themeMode = effectiveThemeMode) {
+        val baseDensity = LocalDensity.current
+        CompositionLocalProvider(
+            LocalDensity provides Density(
+                density   = baseDensity.density,
+                fontScale = baseDensity.fontScale * debugFontScale,
+            )
+        ) {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background,
@@ -166,6 +194,7 @@ fun App() {
                 } else null,
             )
         }
+        } // end CompositionLocalProvider
     }
 }
 

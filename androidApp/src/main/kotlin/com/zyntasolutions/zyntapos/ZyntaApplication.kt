@@ -30,6 +30,12 @@ import com.zyntasolutions.zyntapos.hal.di.halModule
 import com.zyntasolutions.zyntapos.navigation.navigationModule
 import com.zyntasolutions.zyntapos.security.di.securityModule
 import com.zyntasolutions.zyntapos.data.local.db.SecurePreferencesKeyMigration
+import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
+import com.zyntasolutions.zyntapos.seed.DefaultSeedDataSet
+import com.zyntasolutions.zyntapos.seed.SeedRunner
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
 
@@ -121,7 +127,7 @@ class ZyntaApplication : Application() {
         )
 
         // ── Tier 7: Debug tools — loaded only in debug builds ─────────────────
-        // seedModule    — registers SeedRunner (25 products, 15 customers, etc.)
+        // seedModule    — registers SeedRunner (55+ products, 25 customers, etc.)
         // debugModule   — registers DebugViewModel + 6-tab console action handlers
         // devModules    — overrides ApiService with DevApiService (no-op sync stub)
         //                 so the app runs without a real backend during dev testing.
@@ -130,6 +136,41 @@ class ZyntaApplication : Application() {
         // allowOverride — required so devDataModule can replace KtorApiService.
         if (BuildConfig.DEBUG) {
             koin.koin.loadModules(listOf(seedModule, debugModule) + devModules, allowOverride = true)
+            triggerAutoSeedIfNeeded(
+                settingsRepository = koin.koin.get(),
+                seedRunner         = koin.koin.get(),
+            )
+        }
+    }
+
+    /**
+     * Auto-seeds the Demo grocery dataset the first time a developer runs the app
+     * after completing onboarding on a clean install.
+     *
+     * Conditions (both must be true):
+     * 1. `onboarding.completed == "true"` — the admin account and store name exist.
+     * 2. `debug.auto_seeded` is not `"true"` — prevents re-seeding on every launch.
+     *
+     * Runs on [Dispatchers.IO] — non-blocking relative to the main thread.
+     * Failures are swallowed; they are non-fatal in a debug context.
+     *
+     * Debug-build only — gated by [BuildConfig.DEBUG] in [onCreate].
+     */
+    private fun triggerAutoSeedIfNeeded(
+        settingsRepository: SettingsRepository,
+        seedRunner: SeedRunner,
+    ) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val isOnboarded   = settingsRepository.get("onboarding.completed") == "true"
+                val alreadySeeded = settingsRepository.get("debug.auto_seeded")    == "true"
+                if (isOnboarded && !alreadySeeded) {
+                    seedRunner.run(DefaultSeedDataSet.build())
+                    settingsRepository.set("debug.auto_seeded", "true")
+                }
+            } catch (_: Exception) {
+                // Auto-seed is best-effort in debug builds — log via debug console if needed
+            }
         }
     }
 }
