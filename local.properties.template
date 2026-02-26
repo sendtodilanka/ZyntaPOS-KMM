@@ -4,7 +4,7 @@
 ## ═══════════════════════════════════════════════════════════════════
 
 # Android SDK path (set automatically by Android Studio)
-sdk.dir=/Users/YOUR_USERNAME/Library/Android/sdk
+sdk.dir=/Users/dilanka/Library/Android/sdk
 
 # ── Backend API ─────────────────────────────────────────────────────
 ZYNTA_API_BASE_URL=https://api.your-backend.com

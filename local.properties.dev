@@ -15,7 +15,7 @@
 # Examples:
 #   Linux/macOS: /home/yourname/Android/Sdk  or  /Users/yourname/Library/Android/sdk
 #   Windows:     C\:\\Users\\yourname\\AppData\\Local\\Android\\Sdk
-sdk.dir=/home/user/Android/Sdk
+sdk.dir=/Users/dilanka/Library/Android/sdk
 
 # ── Backend API ──────────────────────────────────────────────────────
 # In dev builds, ApiService calls are intercepted by DevApiService
