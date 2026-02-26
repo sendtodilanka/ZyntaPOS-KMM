@@ -14,7 +14,7 @@ import org.koin.dsl.module
  * Source set: `src/debug/` — excluded from release builds by the Android build system.
  */
 private val devDataModule: Module = module {
-    single<ApiService>(override = true) { DevApiService() }
+    single<ApiService> { DevApiService() }
 }
 
 /**
