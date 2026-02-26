@@ -56,7 +56,10 @@ val staffModule = module {
 
     // ── Sprint 9: Attendance ──────────────────────────────────────────────
     factoryOf(::ClockInUseCase)
-    factoryOf(::ClockOutUseCase)
+    // factoryOf cannot be used here because ClockOutUseCase has a non-DI
+    // parameter (overtimeThresholdHours: Double = 8.0). Use an explicit factory
+    // so the default value is preserved and Koin does not attempt to inject Double.
+    factory { ClockOutUseCase(attendanceRepository = get()) }
     factoryOf(::GetTodayAttendanceUseCase)
     factoryOf(::GetAttendanceHistoryUseCase)
 
