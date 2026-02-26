@@ -27,6 +27,15 @@ package com.zyntasolutions.zyntapos.feature.pos
 sealed interface PosEffect {
 
     /**
+     * Instructs the UI to open the payment screen overlay so the cashier can
+     * select a payment method and enter the tendered amount.
+     *
+     * Emitted in response to [PosIntent.RequestPayment] after the ViewModel
+     * confirms the cart is non-empty.
+     */
+    data object OpenPaymentSheet : PosEffect
+
+    /**
      * Navigate to the payment confirmation screen after an order has been
      * successfully created but not yet tendered.
      *

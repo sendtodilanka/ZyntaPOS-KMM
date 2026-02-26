@@ -207,6 +207,7 @@ class PosViewModel(
             is PosIntent.SetScannerActive   -> updateState { copy(scannerActive = intent.active) }
             is PosIntent.HoldOrder          -> onHoldOrder()
             is PosIntent.RetrieveHeld       -> onRetrieveHeld(intent.holdId)
+            is PosIntent.RequestPayment     -> onRequestPayment()
             is PosIntent.ProcessPayment     -> onProcessPayment(intent)
             is PosIntent.PrintCurrentReceipt -> onPrintCurrentReceipt()
             is PosIntent.DismissPrintError  -> updateState { copy(printError = null) }
@@ -377,6 +378,14 @@ class PosViewModel(
             is Result.Error -> sendEffect(PosEffect.ShowError(result.exception.message ?: "Failed to retrieve order"))
             is Result.Loading -> Unit
         }
+    }
+
+    private suspend fun onRequestPayment() {
+        if (currentState.cartItems.isEmpty()) {
+            sendEffect(PosEffect.ShowError("Cannot open payment: the cart is empty."))
+            return
+        }
+        sendEffect(PosEffect.OpenPaymentSheet)
     }
 
     private suspend fun onProcessPayment(intent: PosIntent.ProcessPayment) {
