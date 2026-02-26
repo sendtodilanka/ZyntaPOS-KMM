@@ -297,3 +297,18 @@ internal fun MiniSparkline(
         )
     }
 }
+
+// ── Preview ───────────────────────────────────────────────────────────────────
+
+@org.jetbrains.compose.ui.tooling.preview.Preview
+@androidx.compose.runtime.Composable
+private fun ZyntaStatCardPreview() {
+    com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {
+        ZyntaStatCard(
+            icon = androidx.compose.material.icons.Icons.Default.ShoppingCart,
+            label = "Today's Sales",
+            value = "Rs 45,200",
+            accentColor = androidx.compose.ui.graphics.Color(0xFF4CAF50),
+        )
+    }
+}

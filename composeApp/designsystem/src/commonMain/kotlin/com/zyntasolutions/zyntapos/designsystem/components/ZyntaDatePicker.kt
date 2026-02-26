@@ -169,3 +169,17 @@ fun ZyntaDateRangePicker(
         }
     }
 }
+
+// ── Preview ───────────────────────────────────────────────────────────────────
+
+@org.jetbrains.compose.ui.tooling.preview.Preview
+@androidx.compose.runtime.Composable
+private fun ZyntaDatePickerPreview() {
+    com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {
+        ZyntaDateRangePicker(
+            selectedPreset = DateRangePreset.TODAY,
+            onPresetSelected = {},
+            onCustomRangeSelected = { _, _ -> },
+        )
+    }
+}

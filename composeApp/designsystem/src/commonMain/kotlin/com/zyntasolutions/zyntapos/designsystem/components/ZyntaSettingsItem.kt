@@ -191,3 +191,26 @@ fun ZyntaSettingsDivider() {
         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
     )
 }
+
+// ── Preview ───────────────────────────────────────────────────────────────────
+
+@org.jetbrains.compose.ui.tooling.preview.Preview
+@androidx.compose.runtime.Composable
+private fun ZyntaSettingsItemPreview() {
+    com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {
+        androidx.compose.foundation.layout.Column {
+            ZyntaSettingsItem(
+                icon = androidx.compose.material.icons.Icons.Default.Security,
+                title = "Security",
+                subtitle = "PIN, auto-lock, RBAC",
+                onClick = {},
+            )
+            ZyntaSettingsToggle(
+                icon = androidx.compose.material.icons.Icons.Default.Notifications,
+                title = "Notifications",
+                checked = true,
+                onCheckedChange = {},
+            )
+        }
+    }
+}

@@ -279,3 +279,17 @@ fun ZyntaActivityItem(
         )
     }
 }
+
+// ── Preview ───────────────────────────────────────────────────────────────────
+
+@org.jetbrains.compose.ui.tooling.preview.Preview
+@androidx.compose.runtime.Composable
+private fun ZyntaInfoCardPreview() {
+    com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {
+        ZyntaInfoCard(
+            icon = androidx.compose.material.icons.Icons.Default.Info,
+            title = "System Notice",
+            description = "Your database was last backed up 2 hours ago.",
+        )
+    }
+}

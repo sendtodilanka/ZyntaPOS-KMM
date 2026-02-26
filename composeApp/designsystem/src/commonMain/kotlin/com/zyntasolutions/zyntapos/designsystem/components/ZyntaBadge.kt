@@ -90,3 +90,20 @@ fun ZyntaStatusBadge(
         )
     }
 }
+
+// ── Preview ───────────────────────────────────────────────────────────────────
+
+@org.jetbrains.compose.ui.tooling.preview.Preview
+@androidx.compose.runtime.Composable
+private fun ZyntaBadgePreview() {
+    com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {
+        androidx.compose.foundation.layout.Column(
+            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(
+                com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing.sm
+            ),
+        ) {
+            ZyntaCountBadge(count = 5)
+            ZyntaStatusBadge(label = "Active", status = BadgeStatus.Success)
+        }
+    }
+}

@@ -47,3 +47,19 @@ fun ZyntaBottomSheet(
         content()
     }
 }
+
+// ── Preview ───────────────────────────────────────────────────────────────────
+
+@androidx.compose.material3.ExperimentalMaterial3Api
+@org.jetbrains.compose.ui.tooling.preview.Preview
+@androidx.compose.runtime.Composable
+private fun ZyntaBottomSheetPreview() {
+    com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {
+        ZyntaBottomSheet(
+            sheetState = androidx.compose.material3.rememberModalBottomSheetState(),
+            onDismiss = {},
+        ) {
+            androidx.compose.material3.Text("Sheet Content")
+        }
+    }
+}

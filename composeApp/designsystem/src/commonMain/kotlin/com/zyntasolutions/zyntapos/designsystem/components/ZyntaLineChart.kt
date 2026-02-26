@@ -343,3 +343,28 @@ private fun ChartLegendItem(color: Color, label: String) {
         )
     }
 }
+
+// ── Preview ───────────────────────────────────────────────────────────────────
+
+@org.jetbrains.compose.ui.tooling.preview.Preview
+@androidx.compose.runtime.Composable
+private fun ZyntaLineChartPreview() {
+    com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {
+        ZyntaLineChart(
+            title = "Daily Revenue",
+            series = listOf(
+                ChartSeries(
+                    name = "Sales",
+                    data = listOf(
+                        ChartDataPoint(label = "Mon", value = 100f),
+                        ChartDataPoint(label = "Tue", value = 200f),
+                        ChartDataPoint(label = "Wed", value = 150f),
+                        ChartDataPoint(label = "Thu", value = 300f),
+                        ChartDataPoint(label = "Fri", value = 250f),
+                    ),
+                    color = androidx.compose.ui.graphics.Color(0xFF4CAF50),
+                ),
+            ),
+        )
+    }
+}

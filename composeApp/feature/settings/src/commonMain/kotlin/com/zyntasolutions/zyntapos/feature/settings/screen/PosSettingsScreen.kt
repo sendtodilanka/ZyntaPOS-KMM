@@ -364,3 +364,18 @@ internal fun ToggleRow(
         Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
+
+// ── Preview ───────────────────────────────────────────────────────────────────
+
+@org.jetbrains.compose.ui.tooling.preview.Preview
+@androidx.compose.runtime.Composable
+private fun PosSettingsScreenPreview() {
+    com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {
+        PosSettingsScreen(
+            state = SettingsState.PosState(),
+            effects = kotlinx.coroutines.flow.emptyFlow(),
+            onIntent = {},
+            onBack = {},
+        )
+    }
+}

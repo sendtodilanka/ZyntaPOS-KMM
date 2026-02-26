@@ -175,3 +175,13 @@ private fun rememberShimmerBrush(): Brush {
         end = Offset(translateAnim, 0f),
     )
 }
+
+// ── Preview ───────────────────────────────────────────────────────────────────
+
+@org.jetbrains.compose.ui.tooling.preview.Preview
+@androidx.compose.runtime.Composable
+private fun ZyntaLoadingSkeletonPreview() {
+    com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {
+        ZyntaLoadingSkeleton()
+    }
+}

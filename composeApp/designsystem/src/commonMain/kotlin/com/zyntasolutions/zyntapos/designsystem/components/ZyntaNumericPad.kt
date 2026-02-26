@@ -122,6 +122,23 @@ fun ZyntaNumericPad(
     }
 }
 
+// ── Preview ───────────────────────────────────────────────────────────────────
+
+@org.jetbrains.compose.ui.tooling.preview.Preview
+@androidx.compose.runtime.Composable
+private fun ZyntaNumericPadPreview() {
+    com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {
+        ZyntaNumericPad(
+            displayValue = "0.00",
+            onDigit = {},
+            onDoubleZero = {},
+            onDecimal = {},
+            onBackspace = {},
+            onClear = {},
+        )
+    }
+}
+
 @Composable
 private fun DisplayArea(displayValue: String, mode: NumericPadMode) {
     val shown = if (mode == NumericPadMode.PIN) "●".repeat(displayValue.length) else displayValue

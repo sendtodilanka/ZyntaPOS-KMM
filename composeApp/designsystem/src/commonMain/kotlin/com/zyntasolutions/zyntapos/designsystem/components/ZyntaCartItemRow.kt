@@ -151,3 +151,21 @@ fun ZyntaCartItemRow(
         }
     }
 }
+
+// ── Preview ───────────────────────────────────────────────────────────────────
+
+@org.jetbrains.compose.ui.tooling.preview.Preview
+@androidx.compose.runtime.Composable
+private fun ZyntaCartItemRowPreview() {
+    com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {
+        ZyntaCartItemRow(
+            name = "Espresso",
+            unitPrice = "Rs 250.00",
+            quantity = 2,
+            lineTotal = "Rs 500.00",
+            onIncrement = {},
+            onDecrement = {},
+            onRemove = {},
+        )
+    }
+}
