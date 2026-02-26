@@ -26,9 +26,16 @@ import com.zyntasolutions.zyntapos.feature.reports.reportsModule
 import com.zyntasolutions.zyntapos.feature.settings.jvmSettingsModule
 import com.zyntasolutions.zyntapos.feature.settings.settingsModule
 import com.zyntasolutions.zyntapos.feature.staff.staffModule
+import com.zyntasolutions.zyntapos.feature.accounting.di.accountingModule
 import com.zyntasolutions.zyntapos.hal.di.halModule
 import com.zyntasolutions.zyntapos.navigation.navigationModule
 import com.zyntasolutions.zyntapos.security.di.securityModule
+import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
+import com.zyntasolutions.zyntapos.seed.DefaultSeedDataSet
+import com.zyntasolutions.zyntapos.seed.SeedRunner
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.koin.core.context.startKoin
 
 /**
@@ -88,6 +95,7 @@ fun main() {
             settingsModule,      // SettingsViewModel
             jvmSettingsModule,   // JvmBackupService (JVM-only)
             staffModule,         // (placeholder — bindings added per sprint)
+            accountingModule,    // E-Invoice / IRD submission (Sprint 18-24)
         )
     }
 
@@ -103,6 +111,22 @@ fun main() {
     val appInfoProvider = koin.koin.get<AppInfoProvider>()
     if (appInfoProvider.isDebug) {
         koin.koin.loadModules(listOf(seedModule, debugModule))
+        // Auto-seed the Demo dataset on first debug run after onboarding completes.
+        // Mirrors ZyntaApplication.triggerAutoSeedIfNeeded() on Android.
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val settingsRepository = koin.koin.get<SettingsRepository>()
+                val seedRunner         = koin.koin.get<SeedRunner>()
+                val isOnboarded   = settingsRepository.get("onboarding.completed") == "true"
+                val alreadySeeded = settingsRepository.get("debug.auto_seeded")    == "true"
+                if (isOnboarded && !alreadySeeded) {
+                    seedRunner.run(DefaultSeedDataSet.build())
+                    settingsRepository.set("debug.auto_seeded", "true")
+                }
+            } catch (_: Exception) {
+                // Auto-seed is best-effort in debug builds
+            }
+        }
     }
 
     application {

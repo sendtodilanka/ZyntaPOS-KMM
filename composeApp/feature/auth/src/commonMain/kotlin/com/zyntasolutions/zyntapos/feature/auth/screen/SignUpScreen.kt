@@ -264,7 +264,7 @@ private fun SignUpFormContent(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
-                    text = state.error!!,
+                    text = state.error ?: "",
                     color = MaterialTheme.colorScheme.onErrorContainer,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(ZyntaSpacing.md),

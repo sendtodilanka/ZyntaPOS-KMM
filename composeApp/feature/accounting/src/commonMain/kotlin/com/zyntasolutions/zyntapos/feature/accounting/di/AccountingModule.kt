@@ -10,8 +10,6 @@ import com.zyntasolutions.zyntapos.domain.usecase.einvoice.GetEInvoicesUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.einvoice.SubmitEInvoiceToIrdUseCase
 import com.zyntasolutions.zyntapos.feature.accounting.AccountingViewModel
 import com.zyntasolutions.zyntapos.feature.accounting.EInvoiceViewModel
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
@@ -41,21 +39,21 @@ val accountingModule = module {
     factoryOf(::CreateAccountingEntryUseCase)
 
     // ── ViewModels ────────────────────────────────────────────────────────────
+    // AuthRepository is injected directly; storeId is resolved lazily inside
+    // each ViewModel's init{} via viewModelScope.launch — never blocks the main thread.
     viewModel {
-        val session = runBlocking { get<AuthRepository>().getSession().first() }
         EInvoiceViewModel(
-            getEInvoicesUseCase = get(),
+            getEInvoicesUseCase        = get(),
             submitEInvoiceToIrdUseCase = get(),
-            cancelEInvoiceUseCase = get(),
-            currentStoreId = session?.storeId ?: "default",
+            cancelEInvoiceUseCase      = get(),
+            authRepository             = get(),
         )
     }
 
     viewModel {
-        val session = runBlocking { get<AuthRepository>().getSession().first() }
         AccountingViewModel(
             getPeriodSummaryUseCase = get(),
-            currentStoreId = session?.storeId ?: "default",
+            authRepository          = get(),
         )
     }
 }
