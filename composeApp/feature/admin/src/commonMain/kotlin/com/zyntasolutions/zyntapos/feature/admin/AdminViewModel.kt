@@ -14,7 +14,7 @@ import com.zyntasolutions.zyntapos.domain.repository.SystemRepository
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 /**
  * Root ViewModel for the Admin feature (Sprints 13–15).

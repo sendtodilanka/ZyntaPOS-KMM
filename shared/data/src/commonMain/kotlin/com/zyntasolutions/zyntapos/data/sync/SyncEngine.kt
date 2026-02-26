@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 /**
  * ZyntaPOS — Offline-first background sync coordinator (commonMain).

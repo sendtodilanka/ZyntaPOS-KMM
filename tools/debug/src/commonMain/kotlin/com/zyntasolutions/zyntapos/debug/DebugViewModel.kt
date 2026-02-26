@@ -15,7 +15,7 @@ import com.zyntasolutions.zyntapos.domain.model.AuditEventType
 import com.zyntasolutions.zyntapos.domain.repository.AuditRepository
 import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 /**
  * MVI ViewModel for the Debug Console.

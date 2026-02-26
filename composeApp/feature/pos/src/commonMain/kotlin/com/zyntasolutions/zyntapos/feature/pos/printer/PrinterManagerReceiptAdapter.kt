@@ -14,7 +14,7 @@ import com.zyntasolutions.zyntapos.hal.printer.EscPosReceiptBuilder
 import com.zyntasolutions.zyntapos.hal.printer.PaperWidth
 import com.zyntasolutions.zyntapos.hal.printer.PrinterConfig
 import com.zyntasolutions.zyntapos.hal.printer.PrinterManager
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 

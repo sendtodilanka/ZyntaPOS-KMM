@@ -14,7 +14,7 @@ import com.zyntasolutions.zyntapos.data.remote.dto.SyncPullResponseDto
 import com.zyntasolutions.zyntapos.data.remote.dto.SyncResponseDto
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
 import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals

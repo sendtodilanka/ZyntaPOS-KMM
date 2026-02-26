@@ -8,7 +8,7 @@ import com.zyntasolutions.zyntapos.domain.model.RecurringExpense
 import com.zyntasolutions.zyntapos.domain.repository.ExpenseRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Expense Fixtures

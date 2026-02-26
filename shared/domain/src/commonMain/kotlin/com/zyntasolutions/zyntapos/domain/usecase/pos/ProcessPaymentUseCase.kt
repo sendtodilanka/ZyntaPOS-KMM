@@ -16,7 +16,7 @@ import com.zyntasolutions.zyntapos.domain.model.SyncStatus
 import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
 import com.zyntasolutions.zyntapos.domain.repository.StockRepository
 import com.zyntasolutions.zyntapos.domain.validation.PaymentValidator
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 /**
  * Finalises a cart into a persisted [Order], consuming stock.

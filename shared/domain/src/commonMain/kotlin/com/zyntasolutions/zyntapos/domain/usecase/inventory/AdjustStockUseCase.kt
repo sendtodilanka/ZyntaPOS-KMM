@@ -8,7 +8,7 @@ import com.zyntasolutions.zyntapos.domain.model.StockAdjustment
 import com.zyntasolutions.zyntapos.domain.model.SyncStatus
 import com.zyntasolutions.zyntapos.domain.repository.StockRepository
 import com.zyntasolutions.zyntapos.domain.validation.StockValidator
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 /**
  * Records a manual stock adjustment and triggers a low-stock alert if the resulting

@@ -6,7 +6,7 @@ import com.zyntasolutions.zyntapos.domain.model.User
 import com.zyntasolutions.zyntapos.domain.repository.UserRepository
 import com.zyntasolutions.zyntapos.domain.validation.UserValidator
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 data class SignUpState(
     val name: String = "",

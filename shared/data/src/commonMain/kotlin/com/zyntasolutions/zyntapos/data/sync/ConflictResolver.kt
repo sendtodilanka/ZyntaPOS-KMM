@@ -2,7 +2,7 @@ package com.zyntasolutions.zyntapos.data.sync
 
 import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import com.zyntasolutions.zyntapos.domain.model.SyncOperation
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 /**
  * ZyntaPOS — CRDT-style conflict resolver for offline-first sync operations.

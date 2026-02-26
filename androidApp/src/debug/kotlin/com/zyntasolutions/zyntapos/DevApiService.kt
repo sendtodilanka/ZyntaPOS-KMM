@@ -9,7 +9,7 @@ import com.zyntasolutions.zyntapos.data.remote.dto.SyncOperationDto
 import com.zyntasolutions.zyntapos.data.remote.dto.SyncPullResponseDto
 import com.zyntasolutions.zyntapos.data.remote.dto.SyncResponseDto
 import com.zyntasolutions.zyntapos.data.remote.dto.UserDto
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 /**
  * No-op [ApiService] for local dev/testing builds — **debug source set only**.

@@ -5,7 +5,7 @@ import com.zyntasolutions.zyntapos.core.result.ValidationException
 import com.zyntasolutions.zyntapos.domain.usecase.fakes.FakeCouponRepository
 import com.zyntasolutions.zyntapos.domain.usecase.fakes.buildCoupon
 import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals

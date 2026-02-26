@@ -12,7 +12,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.fakes.buildProduct
 import com.zyntasolutions.zyntapos.domain.usecase.fakes.toOrderItem
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 import kotlinx.datetime.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals

@@ -9,7 +9,7 @@ import com.zyntasolutions.zyntapos.domain.model.Promotion
 import com.zyntasolutions.zyntapos.domain.repository.CouponRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Coupon Fixtures

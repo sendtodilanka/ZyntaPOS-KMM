@@ -6,7 +6,7 @@ import com.zyntasolutions.zyntapos.debug.actions.NetworkActionHandlerImpl
 import com.zyntasolutions.zyntapos.domain.model.SyncOperation
 import com.zyntasolutions.zyntapos.domain.repository.SyncRepository
 import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs

@@ -14,7 +14,7 @@ import com.zyntasolutions.zyntapos.domain.repository.CustomerWalletRepository
 import com.zyntasolutions.zyntapos.domain.repository.LoyaltyRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Fixtures
