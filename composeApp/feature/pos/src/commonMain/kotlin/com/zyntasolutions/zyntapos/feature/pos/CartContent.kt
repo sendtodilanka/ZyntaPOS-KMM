@@ -134,9 +134,7 @@ internal fun CartContent(
         // ── Summary footer ────────────────────────────────────────────────
         CartSummaryFooter(
             orderTotals = orderTotals,
-            onPayClicked = { onIntent(PosIntent.ProcessPayment(
-                method = com.zyntasolutions.zyntapos.domain.model.PaymentMethod.CASH,
-            )) },
+            onPayClicked = { onIntent(PosIntent.RequestPayment) },
             formatter = formatter,
             modifier = Modifier.fillMaxWidth(),
         )

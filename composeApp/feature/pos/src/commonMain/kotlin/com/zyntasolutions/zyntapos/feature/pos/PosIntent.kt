@@ -175,6 +175,15 @@ sealed interface PosIntent {
     // ─── Payment ───────────────────────────────────────────────────────────────
 
     /**
+     * Signals that the cashier wants to proceed to checkout.
+     *
+     * The ViewModel validates preconditions (non-empty cart) and responds with
+     * [PosEffect.OpenPaymentSheet] so the UI can display [PaymentScreen].
+     * This intent never processes payment directly — it only opens the payment UI.
+     */
+    data object RequestPayment : PosIntent
+
+    /**
      * Initiates payment processing via `ProcessPaymentUseCase`.
      *
      * On success the ViewModel emits [PosEffect.NavigateToPayment] or
