@@ -5,12 +5,15 @@ import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import com.zyntasolutions.zyntapos.core.utils.IdGenerator
 import com.zyntasolutions.zyntapos.domain.model.Expense
 import com.zyntasolutions.zyntapos.domain.model.ExpenseCategory
+import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.ExpenseRepository
 import com.zyntasolutions.zyntapos.domain.usecase.expenses.ApproveExpenseUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.expenses.SaveExpenseUseCase
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 
 /**
@@ -25,16 +28,21 @@ import kotlinx.datetime.Clock
  * @param expenseRepository   Expense CRUD, approval, and category operations.
  * @param saveExpenseUseCase  Validates and persists expenses.
  * @param approveExpenseUseCase  Approve/reject workflow.
- * @param currentUserId       Resolved from the active auth session at DI time.
+ * @param authRepository      Provides the active auth session for resolving currentUserId.
  */
 class ExpenseViewModel(
     private val expenseRepository: ExpenseRepository,
     private val saveExpenseUseCase: SaveExpenseUseCase,
     private val approveExpenseUseCase: ApproveExpenseUseCase,
-    private val currentUserId: String,
+    private val authRepository: AuthRepository,
 ) : BaseViewModel<ExpenseState, ExpenseIntent, ExpenseEffect>(ExpenseState()) {
 
+    private var currentUserId: String = "unknown"
+
     init {
+        viewModelScope.launch {
+            currentUserId = authRepository.getSession().first()?.id ?: "unknown"
+        }
         observeExpenses()
         observeCategories()
     }

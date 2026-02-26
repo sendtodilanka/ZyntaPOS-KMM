@@ -2,11 +2,14 @@ package com.zyntasolutions.zyntapos.feature.admin.notification
 
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
+import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.NotificationRepository
 import kotlinx.coroutines.flow.catch
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 
 /**
  * MVI ViewModel for the notification inbox feature.
@@ -16,15 +19,20 @@ import kotlinx.coroutines.flow.onEach
  * unread badge count consumed by the top-app-bar bell icon.
  *
  * @param notificationRepository Source of notification records.
- * @param currentUserId          Authenticated user ID resolved at DI construction time.
+ * @param authRepository         Provides the active auth session for resolving currentUserId.
  */
 class NotificationViewModel(
     private val notificationRepository: NotificationRepository,
-    private val currentUserId: String,
+    private val authRepository: AuthRepository,
 ) : BaseViewModel<NotificationState, NotificationIntent, NotificationEffect>(NotificationState()) {
 
+    private var currentUserId: String = "unknown"
+
     init {
-        observeNotifications()
+        viewModelScope.launch {
+            currentUserId = authRepository.getSession().first()?.id ?: "unknown"
+            observeNotifications()
+        }
     }
 
     private fun observeNotifications() {

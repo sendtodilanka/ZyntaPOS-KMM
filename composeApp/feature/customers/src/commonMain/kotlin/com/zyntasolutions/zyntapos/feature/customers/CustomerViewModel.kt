@@ -10,6 +10,7 @@ import com.zyntasolutions.zyntapos.domain.repository.CustomerGroupRepository
 import com.zyntasolutions.zyntapos.domain.repository.CustomerRepository
 import com.zyntasolutions.zyntapos.domain.repository.CustomerWalletRepository
 import com.zyntasolutions.zyntapos.domain.repository.LoyaltyRepository
+import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.usecase.crm.SaveCustomerGroupUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.WalletTopUpUseCase
 import com.zyntasolutions.zyntapos.domain.validation.UserValidator
@@ -24,6 +25,7 @@ import kotlinx.coroutines.flow.map
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 
 /**
  * ViewModel for the Customers CRM feature — Sprint 9–11.
@@ -44,7 +46,7 @@ import kotlinx.coroutines.flow.onEach
  * @param loyaltyRepository   Reward points ledger.
  * @param saveGroupUseCase    Validates and persists customer groups.
  * @param walletTopUpUseCase  Validates and applies wallet top-up.
- * @param currentUserId       Resolved from the active auth session at DI time.
+ * @param authRepository      Provides the active auth session for resolving currentUserId.
  */
 @OptIn(FlowPreview::class)
 class CustomerViewModel(
@@ -54,13 +56,18 @@ class CustomerViewModel(
     private val loyaltyRepository: LoyaltyRepository,
     private val saveGroupUseCase: SaveCustomerGroupUseCase,
     private val walletTopUpUseCase: WalletTopUpUseCase,
-    private val currentUserId: String,
+    private val authRepository: AuthRepository,
 ) : BaseViewModel<CustomerState, CustomerIntent, CustomerEffect>(CustomerState()) {
+
+    private var currentUserId: String = "unknown"
 
     private val _searchQuery = MutableStateFlow("")
     private val _selectedGroupId = MutableStateFlow<String?>(null)
 
     init {
+        viewModelScope.launch {
+            currentUserId = authRepository.getSession().first()?.id ?: "unknown"
+        }
         observeGroups()
         observeCustomers()
     }

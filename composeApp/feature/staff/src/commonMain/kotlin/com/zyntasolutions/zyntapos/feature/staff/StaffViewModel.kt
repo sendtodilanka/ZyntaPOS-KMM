@@ -9,6 +9,7 @@ import com.zyntasolutions.zyntapos.domain.model.AttendanceStatus
 import com.zyntasolutions.zyntapos.domain.model.Employee
 import com.zyntasolutions.zyntapos.domain.model.LeaveRecord
 import com.zyntasolutions.zyntapos.domain.model.ShiftSchedule
+import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.PayrollRepository
 import com.zyntasolutions.zyntapos.domain.repository.ShiftRepository
 import com.zyntasolutions.zyntapos.domain.usecase.staff.ApproveLeaveUseCase
@@ -36,9 +37,11 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 
 /**
@@ -50,13 +53,11 @@ import kotlinx.datetime.Clock
  * - Attendance history is observed reactively, scoped to [_historyEmployeeId].
  * - Weekly shifts are observed reactively, scoped to the current week window.
  *
- * @param storeId       Active store ID for all store-scoped queries.
- * @param currentUserId Authenticated manager/admin ID for approval and audit actions.
+ * @param authRepository Provides the active auth session for resolving storeId and currentUserId.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class StaffViewModel(
-    private val storeId: String,
-    private val currentUserId: String,
+    private val authRepository: AuthRepository,
     private val payrollRepository: PayrollRepository,
     private val shiftRepository: ShiftRepository,
     private val getEmployeesUseCase: GetEmployeesUseCase,
@@ -81,6 +82,9 @@ class StaffViewModel(
     private val getLeaveHistoryUseCase: GetLeaveHistoryUseCase,
 ) : BaseViewModel<StaffState, StaffIntent, StaffEffect>(StaffState()) {
 
+    private var storeId: String = ""
+    private var currentUserId: String = "unknown"
+
     // ── Reactive filter states ─────────────────────────────────────────────
 
     private val _weekStart = MutableStateFlow("")
@@ -88,10 +92,15 @@ class StaffViewModel(
     private val _historyEmployeeId = MutableStateFlow<String?>(null)
 
     init {
-        observeEmployees()
-        observePendingLeave()
-        observeAttendanceHistory()
-        observeShifts()
+        viewModelScope.launch {
+            val session = authRepository.getSession().first()
+            storeId = session?.storeId ?: ""
+            currentUserId = session?.id ?: "unknown"
+            observeEmployees()
+            observePendingLeave()
+            observeAttendanceHistory()
+            observeShifts()
+        }
     }
 
     private fun observeEmployees() {

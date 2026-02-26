@@ -6,6 +6,7 @@ import com.zyntasolutions.zyntapos.domain.model.DiscountType
 import com.zyntasolutions.zyntapos.domain.model.OrderStatus
 import com.zyntasolutions.zyntapos.domain.model.OrderTotals
 import com.zyntasolutions.zyntapos.domain.model.PaymentMethod
+import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.CategoryRepository
 import com.zyntasolutions.zyntapos.domain.repository.CustomerWalletRepository
 import com.zyntasolutions.zyntapos.domain.repository.LoyaltyRepository
@@ -32,9 +33,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 
 /**
  * Root ViewModel for the POS checkout screen (Sprint 14, extended Sprint 22).
@@ -113,10 +116,14 @@ class PosViewModel(
     private val validateCouponUseCase: ValidateCouponUseCase,
     private val calculateCouponDiscountUseCase: CalculateCouponDiscountUseCase,
     private val earnRewardPointsUseCase: EarnRewardPointsUseCase,
-    val cashierId: String,
-    val storeId: String,
+    private val authRepository: AuthRepository,
     val registerSessionId: String,
 ) : BaseViewModel<PosState, PosIntent, PosEffect>(PosState()) {
+
+    var cashierId: String = "unknown"
+        private set
+    var storeId: String = "default-store"
+        private set
 
     // ── Internal search / category filter state flows ─────────────────────────
 
@@ -129,6 +136,11 @@ class PosViewModel(
     // ── Reactive product pipeline ─────────────────────────────────────────────
 
     init {
+        viewModelScope.launch {
+            val session = authRepository.getSession().first()
+            cashierId = session?.id ?: "unknown"
+            storeId = session?.storeId ?: "default-store"
+        }
         observeCategories()
         observeProducts()
         observeHeldOrders()

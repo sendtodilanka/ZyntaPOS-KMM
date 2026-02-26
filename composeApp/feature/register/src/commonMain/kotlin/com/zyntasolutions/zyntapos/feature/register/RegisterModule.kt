@@ -1,14 +1,11 @@
 package com.zyntasolutions.zyntapos.feature.register
 
 import com.zyntasolutions.zyntapos.domain.printer.ZReportPrinterPort
-import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.usecase.register.CloseRegisterSessionUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.OpenRegisterSessionUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.PrintZReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.RecordCashMovementUseCase
 import com.zyntasolutions.zyntapos.feature.register.printer.ZReportPrinterAdapter
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
@@ -54,18 +51,14 @@ val registerModule = module {
     factory { PrintZReportUseCase(get()) }
 
     // ── ViewModel ────────────────────────────────────────────────────────────
-    // Resolves currentUserId from the AuthRepository session StateFlow.
     viewModel {
-        val userId = runBlocking {
-            get<AuthRepository>().getSession().first()?.id ?: "unknown"
-        }
         RegisterViewModel(
             registerRepository          = get(),
             openRegisterSessionUseCase  = get(),
             closeRegisterSessionUseCase = get(),
             recordCashMovementUseCase   = get(),
             printZReportUseCase         = get(),
-            currentUserId               = userId,
+            authRepository              = get(),
         )
     }
 }
