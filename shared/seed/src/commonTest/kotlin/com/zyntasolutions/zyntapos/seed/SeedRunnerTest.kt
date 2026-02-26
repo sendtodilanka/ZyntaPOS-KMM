@@ -561,10 +561,10 @@ class SeedRunnerTest {
     @Test
     fun `DefaultSeedDataSet build returns expected entity counts`() {
         val dataSet = DefaultSeedDataSet.build()
-        assertEquals(8,  dataSet.categories.size, "Expected 8 categories")
-        assertEquals(5,  dataSet.suppliers.size,  "Expected 5 suppliers")
-        assertEquals(25, dataSet.products.size,   "Expected 25 products")
-        assertEquals(15, dataSet.customers.size,  "Expected 15 customers")
+        assertEquals(12, dataSet.categories.size, "Expected 12 categories")
+        assertEquals(8,  dataSet.suppliers.size,  "Expected 8 suppliers")
+        assertEquals(65, dataSet.products.size,   "Expected 65 products")
+        assertEquals(25, dataSet.customers.size,  "Expected 25 customers")
     }
 
     @Test
@@ -642,7 +642,7 @@ class SeedRunnerTest {
         val summary = runner().run(DefaultSeedDataSet.build())
         assertEquals(0, summary.totalFailed)
         assertTrue(summary.isSuccess)
-        assertEquals(53, summary.totalInserted) // 8 + 5 + 25 + 15
+        assertEquals(110, summary.totalInserted) // 12 + 8 + 65 + 25
     }
 
     // ── Stub helpers ─────────────────────────────────────────────────────────────
