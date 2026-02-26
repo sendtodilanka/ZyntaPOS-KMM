@@ -118,6 +118,10 @@ data class MainNavScreens(
         onNavigateUp: () -> Unit,
     ) -> Unit,
 
+    val securitySettings: @Composable (
+        onNavigateUp: () -> Unit,
+    ) -> Unit,
+
     // ── Deep-link target ──────────────────────────────────────────────────────
     val orderHistory: @Composable (
         orderId: String,

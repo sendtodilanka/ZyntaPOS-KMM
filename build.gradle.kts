@@ -88,10 +88,9 @@ allprojects {
 }
 
 // ─── Dependency Resolution ─────────────────────────────────────────────────
-// Force kotlinx-datetime to 0.6.1 across all modules.
-// Compose Material3 1.9.0 pulls in 0.7.1 which has binary-incompatible JVM
-// class removals (Clock.class, Instant.class absent). Pinning to 0.6.1
-// ensures domain bytecode matches the runtime JAR.
+// Pin kotlinx-datetime to 0.6.1 across all modules.
+// Transitive deps (Compose Multiplatform) may pull higher versions;
+// forcing 0.6.1 keeps compile and runtime in sync to avoid NoSuchMethodError.
 // ────────────────────────────────────────────────────────────────────────────
 subprojects {
     configurations.configureEach {
