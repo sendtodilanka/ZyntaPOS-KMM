@@ -8,10 +8,12 @@ import com.zyntasolutions.zyntapos.domain.model.OrderTotals
 import com.zyntasolutions.zyntapos.domain.model.PaymentMethod
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.CategoryRepository
+import com.zyntasolutions.zyntapos.domain.repository.CustomerRepository
 import com.zyntasolutions.zyntapos.domain.repository.CustomerWalletRepository
 import com.zyntasolutions.zyntapos.domain.repository.LoyaltyRepository
 import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
 import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
+import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
 import com.zyntasolutions.zyntapos.domain.usecase.coupons.CalculateCouponDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.coupons.ValidateCouponUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.EarnRewardPointsUseCase
@@ -89,9 +91,8 @@ import kotlinx.coroutines.launch
  * @param validateCouponUseCase          Validates coupon codes against the catalogue.
  * @param calculateCouponDiscountUseCase Computes monetary coupon discount (pure).
  * @param earnRewardPointsUseCase        Awards loyalty points after a successful sale.
- * @param cashierId                      Authenticated cashier's user ID.
- * @param storeId                        Active store ID.
- * @param registerSessionId              Active register session ID.
+ * @param customerRepository             Customer directory — used for the customer picker dialog.
+ * @param registerRepository             Register session source — active session ID is resolved in [init].
  */
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 class PosViewModel(
@@ -116,14 +117,14 @@ class PosViewModel(
     private val validateCouponUseCase: ValidateCouponUseCase,
     private val calculateCouponDiscountUseCase: CalculateCouponDiscountUseCase,
     private val earnRewardPointsUseCase: EarnRewardPointsUseCase,
+    private val customerRepository: CustomerRepository,
+    private val registerRepository: RegisterRepository,
     private val authRepository: AuthRepository,
-    val registerSessionId: String,
 ) : BaseViewModel<PosState, PosIntent, PosEffect>(PosState()) {
 
-    var cashierId: String = "unknown"
-        private set
-    var storeId: String = "default-store"
-        private set
+    private var cashierId: String = "unknown"
+    private var storeId: String = "default-store"
+    private var registerSessionId: String = ""
 
     // ── Internal search / category filter state flows ─────────────────────────
 
@@ -140,6 +141,7 @@ class PosViewModel(
             val session = authRepository.getSession().first()
             cashierId = session?.id ?: "unknown"
             storeId = session?.storeId ?: "default-store"
+            registerSessionId = registerRepository.getActive().first()?.id ?: ""
         }
         observeCategories()
         observeProducts()
@@ -199,10 +201,12 @@ class PosViewModel(
             is PosIntent.UpdateQty          -> onUpdateQty(intent.productId, intent.qty)
             is PosIntent.ApplyItemDiscount  -> onApplyItemDiscount(intent.productId, intent.discount, intent.type)
             is PosIntent.ApplyOrderDiscount -> onApplyOrderDiscount(intent.discount, intent.type)
-            is PosIntent.ClearCart          -> onClearCart()
-            is PosIntent.SetNotes           -> updateState { copy(/* notes stored at payment time */ error = null) }
-            is PosIntent.SelectCustomer     -> onSelectCustomer(intent)
-            is PosIntent.ClearCustomer      -> onClearCustomer()
+            is PosIntent.ClearCart              -> onClearCart()
+            is PosIntent.SetNotes               -> updateState { copy(orderNotes = intent.notes) }
+            is PosIntent.SelectCustomer         -> onSelectCustomer(intent)
+            is PosIntent.ClearCustomer          -> onClearCustomer()
+            is PosIntent.RequestCustomerSelect  -> onRequestCustomerSelect()
+            is PosIntent.SearchCustomers        -> onSearchCustomers(intent.query)
             is PosIntent.ScanBarcode        -> onScanBarcode(intent.barcode)
             is PosIntent.SetScannerActive   -> updateState { copy(scannerActive = intent.active) }
             is PosIntent.HoldOrder          -> onHoldOrder()
@@ -323,6 +327,7 @@ class PosViewModel(
                 cartItems = emptyList(),
                 orderDiscount = 0.0,
                 orderDiscountType = DiscountType.FIXED,
+                orderNotes = "",
                 selectedCustomer = null,
                 orderTotals = OrderTotals.EMPTY,
                 error = null,
@@ -406,6 +411,7 @@ class PosViewModel(
             registerSessionId = registerSessionId,
             orderDiscount = combinedDiscount,
             orderDiscountType = DiscountType.FIXED,
+            notes = currentState.orderNotes.ifBlank { null },
         )
         updateState { copy(isLoading = false) }
         when (result) {
@@ -487,6 +493,31 @@ class PosViewModel(
                 walletPaymentAmount = 0.0,
             )
         }
+    }
+
+    /**
+     * Pre-loads all customers into [PosState.customerPickerResults] and emits
+     * [PosEffect.OpenCustomerPicker] so the UI can show the picker dialog.
+     */
+    private suspend fun onRequestCustomerSelect() {
+        val customers = customerRepository.getAll().first()
+        updateState { copy(customerPickerResults = customers, customerSearchQuery = "") }
+        sendEffect(PosEffect.OpenCustomerPicker)
+    }
+
+    /**
+     * Filters the customer picker list by [query] via a live [CustomerRepository.search] call.
+     * Results replace [PosState.customerPickerResults] on each emission.
+     */
+    private fun onSearchCustomers(query: String) {
+        updateState { copy(customerSearchQuery = query) }
+        if (query.isBlank()) {
+            customerRepository.getAll()
+        } else {
+            customerRepository.search(query)
+        }
+            .onEach { results -> updateState { copy(customerPickerResults = results) } }
+            .launchIn(viewModelScope)
     }
 
     /**

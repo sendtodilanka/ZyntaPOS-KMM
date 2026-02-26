@@ -5,6 +5,7 @@ import com.zyntasolutions.zyntapos.core.result.ValidationException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.CartItem
 import com.zyntasolutions.zyntapos.domain.model.CashMovement
+import com.zyntasolutions.zyntapos.domain.model.CashRegister
 import com.zyntasolutions.zyntapos.domain.model.DiscountType
 import com.zyntasolutions.zyntapos.domain.model.Order
 import com.zyntasolutions.zyntapos.domain.model.OrderItem
@@ -17,6 +18,7 @@ import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
 import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlin.time.Clock
 import kotlinx.datetime.Instant
@@ -179,6 +181,7 @@ class FakeRegisterRepository : RegisterRepository {
 
     private val _active = MutableStateFlow<RegisterSession?>(null)
 
+    override fun getRegisters(): Flow<List<CashRegister>> = flowOf(emptyList())
     override fun getActive(): Flow<RegisterSession?> = _active
 
     override suspend fun openSession(

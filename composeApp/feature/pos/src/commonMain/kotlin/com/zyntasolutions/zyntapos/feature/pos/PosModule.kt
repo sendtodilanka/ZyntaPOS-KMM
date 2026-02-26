@@ -153,8 +153,9 @@ val posModule = module {
             validateCouponUseCase = get(),
             calculateCouponDiscountUseCase = get(),
             earnRewardPointsUseCase = get(),
+            customerRepository = get(),
+            registerRepository = get(),
             authRepository = get(),
-            registerSessionId = "ses-01",
         )
     }
 }

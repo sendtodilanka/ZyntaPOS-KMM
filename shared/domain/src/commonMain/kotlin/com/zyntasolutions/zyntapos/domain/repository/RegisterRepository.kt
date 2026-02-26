@@ -2,6 +2,7 @@ package com.zyntasolutions.zyntapos.domain.repository
 
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.CashMovement
+import com.zyntasolutions.zyntapos.domain.model.CashRegister
 import com.zyntasolutions.zyntapos.domain.model.RegisterSession
 import kotlinx.coroutines.flow.Flow
 
@@ -12,6 +13,14 @@ import kotlinx.coroutines.flow.Flow
  * All monetary amounts are expressed in the store's primary currency (no conversion).
  */
 interface RegisterRepository {
+
+    /**
+     * Emits all active (non-decommissioned) [CashRegister] terminals, ordered by name.
+     * Re-emits whenever register records change.
+     *
+     * Consumed by [OpenRegisterScreen] to populate the register selector dropdown.
+     */
+    fun getRegisters(): Flow<List<CashRegister>>
 
     /**
      * Emits the currently OPEN [RegisterSession], or `null` when no session is active.

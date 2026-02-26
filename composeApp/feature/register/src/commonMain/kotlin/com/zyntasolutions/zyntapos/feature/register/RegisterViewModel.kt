@@ -4,16 +4,21 @@ import androidx.lifecycle.viewModelScope
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.CashMovement
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
+import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
 import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
 import com.zyntasolutions.zyntapos.domain.usecase.register.CloseRegisterSessionUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.OpenRegisterSessionUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.PrintZReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.RecordCashMovementUseCase
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
+import kotlin.time.Clock
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.toLocalDateTime
 
 /**
  * ViewModel for the Cash Register lifecycle screens (Sprint 20, task 11.1).
@@ -28,6 +33,7 @@ import kotlinx.coroutines.launch
  * - Observes [RegisterRepository.getMovements] for the active session.
  *
  * @param registerRepository     Register session and movement gateway.
+ * @param orderRepository        Order history source; used to compute today's dashboard stats.
  * @param openRegisterSessionUseCase Opens a new session with validation.
  * @param closeRegisterSessionUseCase Closes an active session with balance reconciliation.
  * @param recordCashMovementUseCase  Records a cash-in or cash-out movement.
@@ -36,6 +42,7 @@ import kotlinx.coroutines.launch
  */
 class RegisterViewModel(
     private val registerRepository: RegisterRepository,
+    private val orderRepository: OrderRepository,
     private val openRegisterSessionUseCase: OpenRegisterSessionUseCase,
     private val closeRegisterSessionUseCase: CloseRegisterSessionUseCase,
     private val recordCashMovementUseCase: RecordCashMovementUseCase,
@@ -176,10 +183,10 @@ class RegisterViewModel(
 
     // ── Open Register ─────────────────────────────────────────────────────
 
-    private suspend fun loadAvailableRegisters() {
-        // Placeholder: In Phase 2 this will call RegisterRepository.getAvailableRegisters()
-        // For now emit an empty list; the screen handles this with an empty state.
-        updateState { copy(availableRegisters = emptyList()) }
+    private fun loadAvailableRegisters() {
+        registerRepository.getRegisters()
+            .onEach { registers -> updateState { copy(availableRegisters = registers) } }
+            .launchIn(viewModelScope)
     }
 
     private suspend fun confirmOpenRegister() {
@@ -223,9 +230,20 @@ class RegisterViewModel(
 
     // ── Dashboard ─────────────────────────────────────────────────────────
 
-    private fun loadDashboardStats() {
-        // Placeholder: Phase 2 will wire OrderRepository for today's stats
-        updateState { copy(todayOrderCount = 0, todayRevenue = 0.0) }
+    private suspend fun loadDashboardStats() {
+        val now = Clock.System.now()
+        val tz = TimeZone.currentSystemDefault()
+        val todayStart = now.toLocalDateTime(tz).date.atStartOfDayIn(tz)
+        orderRepository.getByDateRange(todayStart, now)
+            .first()
+            .let { orders ->
+                updateState {
+                    copy(
+                        todayOrderCount = orders.size,
+                        todayRevenue    = orders.sumOf { it.total },
+                    )
+                }
+            }
     }
 
     // ── Cash In/Out ───────────────────────────────────────────────────────

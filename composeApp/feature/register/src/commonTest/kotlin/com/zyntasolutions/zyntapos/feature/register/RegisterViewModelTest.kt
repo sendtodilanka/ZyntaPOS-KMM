@@ -4,8 +4,14 @@ import app.cash.turbine.test
 import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.CashMovement
+import com.zyntasolutions.zyntapos.domain.model.CashRegister
+import com.zyntasolutions.zyntapos.domain.model.Order
 import com.zyntasolutions.zyntapos.domain.model.RegisterSession
+import com.zyntasolutions.zyntapos.domain.model.Role
+import com.zyntasolutions.zyntapos.domain.model.User
 import com.zyntasolutions.zyntapos.domain.printer.ZReportPrinterPort
+import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
+import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
 import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
 import com.zyntasolutions.zyntapos.domain.usecase.register.CloseRegisterSessionUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.OpenRegisterSessionUseCase
@@ -15,11 +21,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import kotlin.time.Clock
+import kotlinx.datetime.Instant
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -28,9 +35,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
-import com.zyntasolutions.zyntapos.domain.model.User
-import com.zyntasolutions.zyntapos.domain.model.Role
+import kotlin.time.Clock
 
 // ─────────────────────────────────────────────────────────────────────────────
 // RegisterViewModelTest
@@ -80,7 +85,19 @@ class RegisterViewModelTest {
         status = RegisterSession.Status.OPEN,
     )
 
+    private val fakeOrderRepository = object : OrderRepository {
+        override fun getByDateRange(from: Instant, to: Instant): Flow<List<Order>> = flowOf(emptyList())
+        override suspend fun create(order: Order): Result<Order> = Result.Error(DatabaseException("not used"))
+        override suspend fun getById(id: String): Result<Order> = Result.Error(DatabaseException("not used"))
+        override fun getAll(filters: Map<String, String>): Flow<List<Order>> = flowOf(emptyList())
+        override suspend fun update(order: Order): Result<Unit> = Result.Error(DatabaseException("not used"))
+        override suspend fun void(id: String, reason: String): Result<Unit> = Result.Error(DatabaseException("not used"))
+        override suspend fun holdOrder(cart: List<com.zyntasolutions.zyntapos.domain.model.CartItem>): Result<String> = Result.Error(DatabaseException("not used"))
+        override suspend fun retrieveHeld(holdId: String): Result<Order> = Result.Error(DatabaseException("not used"))
+    }
+
     private val fakeRegisterRepository = object : RegisterRepository {
+        override fun getRegisters(): Flow<List<CashRegister>> = flowOf(emptyList())
         override fun getActive(): Flow<RegisterSession?> = activeSessionFlow
 
         override suspend fun openSession(
@@ -156,6 +173,7 @@ class RegisterViewModelTest {
         shouldFailPrint = false
         viewModel = RegisterViewModel(
             registerRepository = fakeRegisterRepository,
+            orderRepository = fakeOrderRepository,
             openRegisterSessionUseCase = openRegisterSessionUseCase,
             closeRegisterSessionUseCase = closeRegisterSessionUseCase,
             recordCashMovementUseCase = recordCashMovementUseCase,
@@ -364,10 +382,11 @@ class RegisterViewModelTest {
     // ── Dashboard ─────────────────────────────────────────────────────────────
 
     @Test
-    fun `LoadDashboardStats sets todayOrderCount and todayRevenue placeholders`() = runTest {
+    fun `LoadDashboardStats populates todayOrderCount and todayRevenue from OrderRepository`() = runTest {
         viewModel.dispatch(RegisterIntent.LoadDashboardStats)
         testDispatcher.scheduler.advanceUntilIdle()
 
+        // Fake repository returns empty list, so both counts are zero
         val state = viewModel.state.value
         assertEquals(0, state.todayOrderCount)
         assertEquals(0.0, state.todayRevenue)

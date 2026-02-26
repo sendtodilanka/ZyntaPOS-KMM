@@ -46,6 +46,9 @@ CREATE INDEX idx_movements_session ON cash_movements(session_id);
 
 -- ── Register queries ────────────────────────────────────────────────────────
 
+getAll:
+SELECT * FROM registers WHERE is_active = 1 ORDER BY name ASC;
+
 insertRegister:
 INSERT INTO registers(id, name, current_session_id, is_active, created_at, updated_at)
 VALUES (?, ?, ?, ?, ?, ?);

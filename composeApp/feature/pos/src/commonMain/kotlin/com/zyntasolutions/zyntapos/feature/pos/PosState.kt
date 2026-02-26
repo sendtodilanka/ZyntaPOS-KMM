@@ -81,8 +81,15 @@ data class PosState(
     val isSearchFocused: Boolean = false,
     val cartItems: List<CartItem> = emptyList(),
     val selectedCustomer: Customer? = null,
+    // ── Customer picker ───────────────────────────────────────────────────────
+    /** Candidate list shown in the customer picker dialog. Populated by [PosIntent.RequestCustomerSelect] / [PosIntent.SearchCustomers]. */
+    val customerPickerResults: List<Customer> = emptyList(),
+    /** Live search query entered inside the customer picker dialog. */
+    val customerSearchQuery: String = "",
     val orderDiscount: Double = 0.0,
     val orderDiscountType: DiscountType = DiscountType.FIXED,
+    /** Free-text note attached to the current order. Forwarded to [com.zyntasolutions.zyntapos.domain.usecase.pos.ProcessPaymentUseCase] at checkout. */
+    val orderNotes: String = "",
     val heldOrders: List<Order> = emptyList(),
     val orderTotals: OrderTotals = OrderTotals.EMPTY,
     val isLoading: Boolean = false,

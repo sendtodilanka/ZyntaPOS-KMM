@@ -54,6 +54,7 @@ val registerModule = module {
     viewModel {
         RegisterViewModel(
             registerRepository          = get(),
+            orderRepository             = get(),
             openRegisterSessionUseCase  = get(),
             closeRegisterSessionUseCase = get(),
             recordCashMovementUseCase   = get(),

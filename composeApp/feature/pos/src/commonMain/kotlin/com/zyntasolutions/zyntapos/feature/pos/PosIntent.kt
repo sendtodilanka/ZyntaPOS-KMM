@@ -134,6 +134,22 @@ sealed interface PosIntent {
     /** Removes the customer association from the current order. */
     data object ClearCustomer : PosIntent
 
+    /**
+     * Opens the customer search/picker dialog.
+     *
+     * The ViewModel pre-loads all customers into [PosState.customerPickerResults]
+     * and emits [PosEffect.OpenCustomerPicker] so the UI can display the dialog.
+     */
+    data object RequestCustomerSelect : PosIntent
+
+    /**
+     * Filters the customer picker list by the cashier's live search text.
+     * Results are pushed into [PosState.customerPickerResults].
+     *
+     * @param query Search text (name or phone fragment). Empty string resets to full list.
+     */
+    data class SearchCustomers(val query: String) : PosIntent
+
     // ─── Hardware / Scanner ────────────────────────────────────────────────────
 
     /**
