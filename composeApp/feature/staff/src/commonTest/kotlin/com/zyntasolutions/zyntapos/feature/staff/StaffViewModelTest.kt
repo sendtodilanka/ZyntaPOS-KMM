@@ -57,6 +57,10 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
+import com.zyntasolutions.zyntapos.domain.model.User
+import com.zyntasolutions.zyntapos.domain.model.Role
+import kotlinx.datetime.Instant
 
 // ─────────────────────────────────────────────────────────────────────────────
 // StaffViewModelTest
@@ -71,6 +75,24 @@ class StaffViewModelTest {
 
     private val storeId = "store-001"
     private val currentUserId = "user-001"
+
+    private val fakeAuthRepository = object : AuthRepository {
+        private val _session = MutableStateFlow<User?>(
+            User(
+                id = "user-001", name = "Test User", email = "test@zynta.com",
+                role = Role.CASHIER, storeId = "store-001", isActive = true,
+                pinHash = null, createdAt = Instant.fromEpochMilliseconds(0),
+                updatedAt = Instant.fromEpochMilliseconds(0),
+            )
+        )
+        override fun getSession(): Flow<User?> = _session
+        override suspend fun login(email: String, password: String): Result<User> =
+            Result.Success(_session.value!!)
+        override suspend fun logout() { _session.value = null }
+        override suspend fun refreshToken(): Result<Unit> = Result.Success(Unit)
+        override suspend fun updatePin(userId: String, pin: String): Result<Unit> =
+            Result.Success(Unit)
+    }
     private val now = System.currentTimeMillis()
     private val today = "2026-02-25"
 
@@ -433,8 +455,7 @@ class StaffViewModelTest {
         openRecord = null
 
         viewModel = StaffViewModel(
-            storeId = storeId,
-            currentUserId = currentUserId,
+            authRepository = fakeAuthRepository,
             payrollRepository = fakePayrollRepository,
             shiftRepository = fakeShiftRepository,
             getEmployeesUseCase = getEmployeesUseCase,
