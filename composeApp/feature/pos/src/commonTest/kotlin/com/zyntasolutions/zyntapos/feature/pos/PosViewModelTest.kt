@@ -66,6 +66,8 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
+import com.zyntasolutions.zyntapos.domain.model.Role
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PosViewModelTest — Sprint 17 + Sprint 22 extension
@@ -78,6 +80,23 @@ class PosViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private val now: Instant = Clock.System.now()
+
+    private val fakeAuthRepository = object : AuthRepository {
+        private val _session = MutableStateFlow<User?>(
+            User(
+                id = "cashier-01", name = "Test Cashier", email = "cashier@zynta.com",
+                role = Role.CASHIER, storeId = "store-01", isActive = true,
+                pinHash = null, createdAt = Clock.System.now(), updatedAt = Clock.System.now(),
+            )
+        )
+        override fun getSession(): Flow<User?> = _session
+        override suspend fun login(email: String, password: String): Result<User> =
+            Result.Success(_session.value!!)
+        override suspend fun logout() { _session.value = null }
+        override suspend fun refreshToken(): Result<Unit> = Result.Success(Unit)
+        override suspend fun updatePin(userId: String, pin: String): Result<Unit> =
+            Result.Success(Unit)
+    }
 
     // ── Fake Repositories ──────────────────────────────────────────────────────
 
@@ -365,8 +384,7 @@ class PosViewModelTest {
             validateCouponUseCase = ValidateCouponUseCase(fakeCouponRepository),
             calculateCouponDiscountUseCase = CalculateCouponDiscountUseCase(),
             earnRewardPointsUseCase = EarnRewardPointsUseCase(fakeLoyaltyRepository),
-            cashierId = "cashier-01",
-            storeId = "store-01",
+            authRepository = fakeAuthRepository,
             registerSessionId = "session-01",
         )
     }
