@@ -1,11 +1,11 @@
 package com.zyntasolutions.zyntapos.feature.settings.screen
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -19,6 +19,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -104,48 +105,49 @@ fun UserManagementScreen(
             }
         },
     ) { innerPadding ->
-        LazyColumn(
-            contentPadding = PaddingValues(
-                start = ZyntaSpacing.md,
-                end = ZyntaSpacing.md,
-                top = innerPadding.calculateTopPadding() + ZyntaSpacing.md,
-                bottom = innerPadding.calculateBottomPadding() + ZyntaSpacing.md,
-            ),
-            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(
+                    start = ZyntaSpacing.md,
+                    end = ZyntaSpacing.md,
+                    top = innerPadding.calculateTopPadding() + ZyntaSpacing.md,
+                    bottom = innerPadding.calculateBottomPadding() + ZyntaSpacing.md,
+                ),
         ) {
-            item {
-                when {
-                    state.isLoading -> Text(
-                        "Loading users…",
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    state.users.isEmpty() -> Text(
-                        "No users found. Tap + to create one.",
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    else -> ZyntaTable(
-                        columns = USER_COLUMNS,
-                        items = state.users,
-                        rowKey = { it.id },
-                        modifier = Modifier.fillMaxWidth(),
-                        rowContent = { u ->
-                            Text(u.name,  modifier = Modifier.weight(2f),
-                                style = MaterialTheme.typography.bodyMedium)
-                            Text(u.email, modifier = Modifier.weight(2f),
-                                style = MaterialTheme.typography.bodyMedium)
-                            Text(u.role.name, modifier = Modifier.weight(1f),
-                                style = MaterialTheme.typography.bodyMedium)
-                            Text(if (u.isActive) "Active" else "Inactive",
-                                modifier = Modifier.weight(1f),
-                                style = MaterialTheme.typography.bodyMedium)
-                            ZyntaButton(
-                                text = "Edit",
-                                onClick = { onIntent(SettingsIntent.OpenEditUser(u)) },
-                                modifier = Modifier.weight(1f),
-                            )
-                        },
-                    )
-                }
+            when {
+                state.isLoading -> Text(
+                    "Loading users…",
+                    modifier = Modifier.align(Alignment.Center),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                state.users.isEmpty() -> Text(
+                    "No users found. Tap + to create one.",
+                    modifier = Modifier.align(Alignment.Center),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                else -> ZyntaTable(
+                    columns = USER_COLUMNS,
+                    items = state.users,
+                    rowKey = { it.id },
+                    modifier = Modifier.fillMaxSize(),
+                    rowContent = { u ->
+                        Text(u.name,  modifier = Modifier.weight(2f),
+                            style = MaterialTheme.typography.bodyMedium)
+                        Text(u.email, modifier = Modifier.weight(2f),
+                            style = MaterialTheme.typography.bodyMedium)
+                        Text(u.role.name, modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodyMedium)
+                        Text(if (u.isActive) "Active" else "Inactive",
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodyMedium)
+                        ZyntaButton(
+                            text = "Edit",
+                            onClick = { onIntent(SettingsIntent.OpenEditUser(u)) },
+                            modifier = Modifier.weight(1f),
+                        )
+                    },
+                )
             }
         }
     }
@@ -224,5 +226,50 @@ private fun UserFormSheet(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
+    }
+}
+
+// ── Preview ───────────────────────────────────────────────────────────────────
+
+@org.jetbrains.compose.ui.tooling.preview.Preview
+@androidx.compose.runtime.Composable
+private fun UserManagementScreenEmptyPreview() {
+    com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {
+        UserManagementScreen(
+            state = SettingsState.UserState(),
+            effects = kotlinx.coroutines.flow.emptyFlow(),
+            onIntent = {},
+            onBack = {},
+        )
+    }
+}
+
+@org.jetbrains.compose.ui.tooling.preview.Preview
+@androidx.compose.runtime.Composable
+private fun UserManagementScreenLoadedPreview() {
+    com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {
+        UserManagementScreen(
+            state = SettingsState.UserState(
+                users = listOf(
+                    com.zyntasolutions.zyntapos.domain.model.User(
+                        id = "u1", name = "Alice Admin", email = "alice@zyntapos.com",
+                        role = com.zyntasolutions.zyntapos.domain.model.Role.ADMIN,
+                        storeId = "s1", isActive = true,
+                        createdAt = kotlinx.datetime.Clock.System.now(),
+                        updatedAt = kotlinx.datetime.Clock.System.now(),
+                    ),
+                    com.zyntasolutions.zyntapos.domain.model.User(
+                        id = "u2", name = "Bob Cashier", email = "bob@zyntapos.com",
+                        role = com.zyntasolutions.zyntapos.domain.model.Role.CASHIER,
+                        storeId = "s1", isActive = true,
+                        createdAt = kotlinx.datetime.Clock.System.now(),
+                        updatedAt = kotlinx.datetime.Clock.System.now(),
+                    ),
+                ),
+            ),
+            effects = kotlinx.coroutines.flow.emptyFlow(),
+            onIntent = {},
+            onBack = {},
+        )
     }
 }
