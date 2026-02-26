@@ -205,6 +205,7 @@ openssl rand -hex 32
 
 | Document | Path |
 |----------|------|
+| **Dev Testing Guide** | [`docs/dev-testing-guide.md`](docs/dev-testing-guide.md) — offline dev setup, seed data, Debug Console, feature checklists |
 | AI Execution Log | `docs/ai_workflows/execution_log.md` |
 | Architecture Decisions | `docs/architecture/` |
 | API Specifications | `docs/api/` |
