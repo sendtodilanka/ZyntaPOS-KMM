@@ -9,6 +9,8 @@ import com.zyntasolutions.zyntapos.domain.model.StockAdjustment
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.CategoryRepository
 import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
+import com.zyntasolutions.zyntapos.domain.repository.TaxGroupRepository
+import com.zyntasolutions.zyntapos.domain.repository.UnitGroupRepository
 import com.zyntasolutions.zyntapos.domain.validation.ProductValidationParams
 import com.zyntasolutions.zyntapos.domain.validation.ProductValidator
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.AdjustStockUseCase
@@ -43,6 +45,8 @@ import kotlin.time.Clock
  *
  * @param productRepository      Product catalogue source.
  * @param categoryRepository     Category list source.
+ * @param taxGroupRepository     Tax group list source; populates [InventoryState.allTaxGroups].
+ * @param unitGroupRepository    Unit-of-measure list source; populates [InventoryState.allUnits].
  * @param searchProductsUseCase  FTS5 product search (debounced).
  * @param createProductUseCase   Product creation with validation.
  * @param updateProductUseCase   Product update with validation.
@@ -53,6 +57,8 @@ import kotlin.time.Clock
 class InventoryViewModel(
     private val productRepository: ProductRepository,
     private val categoryRepository: CategoryRepository,
+    private val taxGroupRepository: TaxGroupRepository,
+    private val unitGroupRepository: UnitGroupRepository,
     private val searchProductsUseCase: SearchProductsUseCase,
     private val createProductUseCase: CreateProductUseCase,
     private val updateProductUseCase: UpdateProductUseCase,
@@ -73,11 +79,25 @@ class InventoryViewModel(
         }
         observeCategories()
         observeProducts()
+        observeTaxGroups()
+        observeUnits()
     }
 
     private fun observeCategories() {
         categoryRepository.getAll()
             .onEach { cats -> updateState { copy(categories = cats) } }
+            .launchIn(viewModelScope)
+    }
+
+    private fun observeTaxGroups() {
+        taxGroupRepository.getAll()
+            .onEach { groups -> updateState { copy(allTaxGroups = groups) } }
+            .launchIn(viewModelScope)
+    }
+
+    private fun observeUnits() {
+        unitGroupRepository.getAll()
+            .onEach { units -> updateState { copy(allUnits = units) } }
             .launchIn(viewModelScope)
     }
 

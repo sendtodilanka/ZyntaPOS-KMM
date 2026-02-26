@@ -32,9 +32,14 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
-import com.zyntasolutions.zyntapos.domain.model.User
 import com.zyntasolutions.zyntapos.domain.model.Role
+import com.zyntasolutions.zyntapos.domain.model.TaxGroup
+import com.zyntasolutions.zyntapos.domain.model.UnitOfMeasure
+import com.zyntasolutions.zyntapos.domain.model.User
+import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
+import com.zyntasolutions.zyntapos.domain.repository.TaxGroupRepository
+import com.zyntasolutions.zyntapos.domain.repository.UnitGroupRepository
+import kotlinx.coroutines.flow.flowOf
 
 // ─────────────────────────────────────────────────────────────────────────────
 // InventoryViewModelTest
@@ -62,6 +67,28 @@ class InventoryViewModelTest {
         override suspend fun refreshToken(): Result<Unit> = Result.Success(Unit)
         override suspend fun updatePin(userId: String, pin: String): Result<Unit> =
             Result.Success(Unit)
+    }
+
+    // ── Fake TaxGroupRepository ───────────────────────────────────────────────
+
+    private val fakeTaxGroupRepository = object : TaxGroupRepository {
+        override fun getAll(): Flow<List<TaxGroup>> = flowOf(emptyList())
+        override suspend fun getById(id: String): Result<TaxGroup> =
+            Result.Error(DatabaseException("not used"))
+        override suspend fun insert(taxGroup: TaxGroup): Result<Unit> = Result.Success(Unit)
+        override suspend fun update(taxGroup: TaxGroup): Result<Unit> = Result.Success(Unit)
+        override suspend fun delete(id: String): Result<Unit> = Result.Success(Unit)
+    }
+
+    // ── Fake UnitGroupRepository ──────────────────────────────────────────────
+
+    private val fakeUnitGroupRepository = object : UnitGroupRepository {
+        override fun getAll(): Flow<List<UnitOfMeasure>> = flowOf(emptyList())
+        override suspend fun getById(id: String): Result<UnitOfMeasure> =
+            Result.Error(DatabaseException("not used"))
+        override suspend fun insert(unit: UnitOfMeasure): Result<Unit> = Result.Success(Unit)
+        override suspend fun update(unit: UnitOfMeasure): Result<Unit> = Result.Success(Unit)
+        override suspend fun delete(id: String): Result<Unit> = Result.Success(Unit)
     }
 
     // ── Fake backing state ────────────────────────────────────────────────────
@@ -222,6 +249,8 @@ class InventoryViewModelTest {
             updateProductUseCase = updateProductUseCase,
             adjustStockUseCase = adjustStockUseCase,
             authRepository = fakeAuthRepository,
+            taxGroupRepository = fakeTaxGroupRepository,
+            unitGroupRepository = fakeUnitGroupRepository,
         )
     }
 
