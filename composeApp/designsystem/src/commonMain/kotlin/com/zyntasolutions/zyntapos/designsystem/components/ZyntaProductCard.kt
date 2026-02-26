@@ -205,3 +205,19 @@ private fun StockBadge(stock: StockIndicator, modifier: Modifier = Modifier) {
         )
     }
 }
+
+// ── Preview ───────────────────────────────────────────────────────────────────
+
+@androidx.compose.ui.tooling.preview.Preview
+@androidx.compose.runtime.Composable
+private fun ZyntaProductCardPreview() {
+    com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {
+        ZyntaProductCard(
+            name = "Espresso",
+            price = "Rs 250.00",
+            imageUrl = null,
+            stockIndicator = StockIndicator.InStock,
+            onClick = {},
+        )
+    }
+}

@@ -167,3 +167,18 @@ fun BackupSettingsScreen(
         }
     }
 }
+
+// ── Preview ───────────────────────────────────────────────────────────────────
+
+@androidx.compose.ui.tooling.preview.Preview
+@androidx.compose.runtime.Composable
+private fun BackupSettingsScreenPreview() {
+    com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {
+        BackupSettingsScreen(
+            state = SettingsState.BackupState(),
+            effects = kotlinx.coroutines.flow.emptyFlow(),
+            onIntent = {},
+            onBack = {},
+        )
+    }
+}

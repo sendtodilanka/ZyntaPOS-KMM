@@ -77,4 +77,10 @@ sealed interface SettingsIntent {
     // ── Appearance ────────────────────────────────────────────────────────────
     data object LoadAppearance : SettingsIntent
     data class UpdateThemeMode(val mode: ThemeMode) : SettingsIntent
+
+    // ── Security Settings ─────────────────────────────────────────────────────
+    data object LoadSecuritySettings : SettingsIntent
+    data object OpenAutoLockDialog : SettingsIntent
+    data object DismissAutoLockDialog : SettingsIntent
+    data class SetAutoLockTimeout(val minutes: Int) : SettingsIntent
 }

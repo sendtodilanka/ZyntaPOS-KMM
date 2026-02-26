@@ -102,3 +102,14 @@ fun ZyntaLargeTopAppBar(
         actions = { actions() },
     )
 }
+
+// ── Preview ───────────────────────────────────────────────────────────────────
+
+@androidx.compose.material3.ExperimentalMaterial3Api
+@androidx.compose.ui.tooling.preview.Preview
+@androidx.compose.runtime.Composable
+private fun ZyntaTopAppBarPreview() {
+    com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {
+        ZyntaTopAppBar(title = "Dashboard", onNavigateBack = {})
+    }
+}

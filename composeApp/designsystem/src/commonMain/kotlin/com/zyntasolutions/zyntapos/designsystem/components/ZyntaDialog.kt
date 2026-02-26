@@ -143,3 +143,20 @@ fun ZyntaDialogContent(variant: ZyntaDialogVariant) {
         }
     }
 }
+
+// ── Preview ───────────────────────────────────────────────────────────────────
+
+@androidx.compose.ui.tooling.preview.Preview
+@androidx.compose.runtime.Composable
+private fun ZyntaDialogPreview() {
+    com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {
+        ZyntaDialogContent(
+            variant = ZyntaDialogVariant.Confirm(
+                title = "Confirm Action",
+                message = "Are you sure you want to continue?",
+                onConfirm = {},
+                onCancel = {},
+            ),
+        )
+    }
+}

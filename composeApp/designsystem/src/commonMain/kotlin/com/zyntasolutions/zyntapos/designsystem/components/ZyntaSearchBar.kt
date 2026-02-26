@@ -89,3 +89,18 @@ fun ZyntaSearchBar(
         ),
     )
 }
+
+// ── Preview ───────────────────────────────────────────────────────────────────
+
+@androidx.compose.ui.tooling.preview.Preview
+@androidx.compose.runtime.Composable
+private fun ZyntaSearchBarPreview() {
+    com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {
+        ZyntaSearchBar(
+            query = "",
+            onQueryChange = {},
+            onClear = {},
+            onScanToggle = {},
+        )
+    }
+}

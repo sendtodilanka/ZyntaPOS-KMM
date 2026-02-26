@@ -76,3 +76,18 @@ fun ZyntaEmptyState(
         }
     }
 }
+
+// ── Preview ───────────────────────────────────────────────────────────────────
+
+@androidx.compose.ui.tooling.preview.Preview
+@androidx.compose.runtime.Composable
+private fun ZyntaEmptyStatePreview() {
+    com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {
+        ZyntaEmptyState(
+            title = "No products found",
+            subtitle = "Add your first product to get started.",
+            ctaLabel = "Add Product",
+            onCtaClick = {},
+        )
+    }
+}

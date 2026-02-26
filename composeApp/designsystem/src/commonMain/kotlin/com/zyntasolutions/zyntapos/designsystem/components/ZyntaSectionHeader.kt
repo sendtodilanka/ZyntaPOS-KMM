@@ -57,3 +57,13 @@ fun ZyntaSectionHeader(
         }
     }
 }
+
+// ── Preview ───────────────────────────────────────────────────────────────────
+
+@androidx.compose.ui.tooling.preview.Preview
+@androidx.compose.runtime.Composable
+private fun ZyntaSectionHeaderPreview() {
+    com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {
+        ZyntaSectionHeader(title = "Products", actionLabel = "See All", onAction = {})
+    }
+}

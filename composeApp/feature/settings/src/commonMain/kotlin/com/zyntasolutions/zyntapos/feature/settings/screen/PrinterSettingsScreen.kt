@@ -402,3 +402,18 @@ fun PrinterSettingsScreen(
         }
     }
 }
+
+// ── Preview ───────────────────────────────────────────────────────────────────
+
+@androidx.compose.ui.tooling.preview.Preview
+@androidx.compose.runtime.Composable
+private fun PrinterSettingsScreenPreview() {
+    com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {
+        PrinterSettingsScreen(
+            state = SettingsState.PrinterState(),
+            effects = kotlinx.coroutines.flow.emptyFlow(),
+            onIntent = {},
+            onBack = {},
+        )
+    }
+}

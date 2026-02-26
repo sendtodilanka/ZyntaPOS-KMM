@@ -176,3 +176,13 @@ private fun LicenceRow(licence: Licence) {
         )
     }
 }
+
+// ── Preview ───────────────────────────────────────────────────────────────────
+
+@androidx.compose.ui.tooling.preview.Preview
+@androidx.compose.runtime.Composable
+private fun AboutScreenPreview() {
+    com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {
+        AboutScreen(onBack = {})
+    }
+}

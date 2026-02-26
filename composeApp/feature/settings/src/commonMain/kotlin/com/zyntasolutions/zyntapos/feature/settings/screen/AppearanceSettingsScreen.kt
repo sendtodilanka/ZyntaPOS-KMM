@@ -152,3 +152,18 @@ private fun ThemeModeRow(
         }
     }
 }
+
+// ── Preview ───────────────────────────────────────────────────────────────────
+
+@androidx.compose.ui.tooling.preview.Preview
+@androidx.compose.runtime.Composable
+private fun AppearanceSettingsScreenPreview() {
+    com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {
+        AppearanceSettingsScreen(
+            state = SettingsState.AppearanceState(),
+            effects = kotlinx.coroutines.flow.emptyFlow(),
+            onIntent = {},
+            onBack = {},
+        )
+    }
+}

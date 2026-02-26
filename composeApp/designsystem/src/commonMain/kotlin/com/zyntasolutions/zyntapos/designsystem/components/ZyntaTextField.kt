@@ -67,3 +67,13 @@ fun ZyntaTextField(
         maxLines = maxLines,
     )
 }
+
+// ── Preview ───────────────────────────────────────────────────────────────────
+
+@androidx.compose.ui.tooling.preview.Preview
+@androidx.compose.runtime.Composable
+private fun ZyntaTextFieldPreview() {
+    com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {
+        ZyntaTextField(value = "Sample text", onValueChange = {}, label = "Product Name")
+    }
+}

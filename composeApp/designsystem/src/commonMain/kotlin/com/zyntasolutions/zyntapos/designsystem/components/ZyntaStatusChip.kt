@@ -87,3 +87,21 @@ fun ZyntaStatusChip(
         }
     }
 }
+
+// ── Preview ───────────────────────────────────────────────────────────────────
+
+@androidx.compose.ui.tooling.preview.Preview
+@androidx.compose.runtime.Composable
+private fun ZyntaStatusChipPreview() {
+    com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {
+        androidx.compose.foundation.layout.Row(
+            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(
+                com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing.sm
+            ),
+        ) {
+            ZyntaStatusChip(label = "Active", variant = StatusChipVariant.Success)
+            ZyntaStatusChip(label = "Pending", variant = StatusChipVariant.Warning)
+            ZyntaStatusChip(label = "Closed", variant = StatusChipVariant.Error)
+        }
+    }
+}

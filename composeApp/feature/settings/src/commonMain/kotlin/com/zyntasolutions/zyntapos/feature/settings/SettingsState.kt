@@ -19,6 +19,7 @@ data class SettingsState(
     val users: UserState            = UserState(),
     val backup: BackupState         = BackupState(),
     val appearance: AppearanceState = AppearanceState(),
+    val security: SecurityState     = SecurityState(),
 
     /** True while any cross-screen async operation is pending. */
     val isLoading: Boolean = false,
@@ -117,6 +118,13 @@ data class SettingsState(
 
     data class AppearanceState(
         val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    )
+
+    // ── Security settings ─────────────────────────────────────────────────────
+
+    data class SecurityState(
+        val autoLockMinutes: Int          = 5,
+        val isAutoLockDialogVisible: Boolean = false,
     )
 }
 

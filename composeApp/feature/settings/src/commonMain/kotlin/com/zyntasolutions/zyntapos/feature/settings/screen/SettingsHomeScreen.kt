@@ -211,3 +211,17 @@ private fun SettingsCategoryCard(
         }
     }
 }
+
+// ── Preview ───────────────────────────────────────────────────────────────────
+
+@androidx.compose.ui.tooling.preview.Preview
+@androidx.compose.runtime.Composable
+private fun SettingsHomeScreenPreview() {
+    com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {
+        SettingsHomeScreen(
+            isDebug = false,
+            onNavigate = {},
+            onBack = {},
+        )
+    }
+}

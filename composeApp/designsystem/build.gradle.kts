@@ -37,6 +37,8 @@ kotlin {
             api(libs.compose.adaptive)
             implementation(libs.kotlinx.collections.immutable)
             implementation(libs.coil.compose)
+            // Preview annotations (annotation-only, safe for production — uiTooling added per-platform)
+            api(libs.compose.uiToolingPreview)
         }
         androidMain.dependencies {
             implementation(libs.compose.uiTooling)

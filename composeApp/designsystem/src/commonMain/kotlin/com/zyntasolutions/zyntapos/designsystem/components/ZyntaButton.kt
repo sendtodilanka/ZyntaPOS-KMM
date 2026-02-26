@@ -150,3 +150,13 @@ private fun RowScope.ButtonContent(
         Text(text = text)
     }
 }
+
+// ── Preview ───────────────────────────────────────────────────────────────────
+
+@androidx.compose.ui.tooling.preview.Preview
+@androidx.compose.runtime.Composable
+private fun ZyntaButtonPreview() {
+    com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {
+        ZyntaButton(text = "Confirm", onClick = {})
+    }
+}

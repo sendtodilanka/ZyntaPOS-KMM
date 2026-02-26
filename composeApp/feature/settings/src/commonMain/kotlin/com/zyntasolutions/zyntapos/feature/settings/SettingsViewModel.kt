@@ -120,6 +120,11 @@ class SettingsViewModel(
         // Appearance
         SettingsIntent.LoadAppearance                -> loadAppearance()
         is SettingsIntent.UpdateThemeMode            -> updateThemeMode(intent.mode)
+        // Security
+        SettingsIntent.LoadSecuritySettings          -> loadSecuritySettings()
+        SettingsIntent.OpenAutoLockDialog            -> updateState { copy(security = security.copy(isAutoLockDialogVisible = true)) }
+        SettingsIntent.DismissAutoLockDialog         -> updateState { copy(security = security.copy(isAutoLockDialogVisible = false)) }
+        is SettingsIntent.SetAutoLockTimeout         -> setAutoLockTimeout(intent.minutes)
     }
 
     // ── General ──────────────────────────────────────────────────────────────
@@ -444,6 +449,23 @@ class SettingsViewModel(
         viewModelScope.launch {
             settingsRepository.set(SettingsKeys.THEME_MODE, mode.name)
             sendEffect(SettingsEffect.ThemeModeChanged(mode))
+        }
+    }
+
+    // ── Security ──────────────────────────────────────────────────────────────
+
+    private fun loadSecuritySettings() {
+        viewModelScope.launch {
+            val minutes = settingsRepository.get(SettingsKeys.SECURITY_AUTOLOCK_MINUTES)?.toIntOrNull() ?: 5
+            updateState { copy(security = security.copy(autoLockMinutes = minutes)) }
+        }
+    }
+
+    private fun setAutoLockTimeout(minutes: Int) {
+        viewModelScope.launch {
+            settingsRepository.set(SettingsKeys.SECURITY_AUTOLOCK_MINUTES, minutes.toString())
+            updateState { copy(security = security.copy(autoLockMinutes = minutes, isAutoLockDialogVisible = false)) }
+            sendEffect(SettingsEffect.ShowSnackbar("Auto-lock timeout updated."))
         }
     }
 

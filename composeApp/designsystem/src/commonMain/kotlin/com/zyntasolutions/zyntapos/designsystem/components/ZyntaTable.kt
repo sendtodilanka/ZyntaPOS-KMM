@@ -153,3 +153,34 @@ fun <T> ZyntaTable(
         }
     }
 }
+
+// ── Preview ───────────────────────────────────────────────────────────────────
+
+@androidx.compose.ui.tooling.preview.Preview
+@androidx.compose.runtime.Composable
+private fun ZyntaTablePreview() {
+    com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {
+        ZyntaTable(
+            columns = listOf(
+                ZyntaTableColumn(key = "name",  header = "Name",  weight = 2f),
+                ZyntaTableColumn(key = "price", header = "Price", weight = 1f),
+                ZyntaTableColumn(key = "stock", header = "Stock", weight = 1f),
+            ),
+            items = listOf(
+                listOf("Espresso", "Rs 250", "12"),
+                listOf("Cappuccino", "Rs 350", "8"),
+                listOf("Latte", "Rs 400", "5"),
+            ),
+            rowKey = { it.hashCode() },
+            rowContent = { row ->
+                row.forEachIndexed { i, cell ->
+                    val weight = if (i == 0) 2f else 1f
+                    androidx.compose.material3.Text(
+                        cell,
+                        modifier = androidx.compose.ui.Modifier.weight(weight),
+                    )
+                }
+            },
+        )
+    }
+}

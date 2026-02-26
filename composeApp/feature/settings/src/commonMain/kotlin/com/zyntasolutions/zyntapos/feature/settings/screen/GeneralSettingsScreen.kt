@@ -48,7 +48,6 @@ import com.zyntasolutions.zyntapos.feature.settings.Currency
 import com.zyntasolutions.zyntapos.feature.settings.SettingsEffect
 import com.zyntasolutions.zyntapos.feature.settings.SettingsIntent
 import com.zyntasolutions.zyntapos.feature.settings.SettingsState
-import com.zyntasolutions.zyntapos.feature.settings.SettingsViewModel
 import kotlinx.coroutines.flow.collectLatest
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -68,13 +67,14 @@ private val DATE_FORMATS = listOf("dd/MM/yyyy", "MM/dd/yyyy", "yyyy-MM-dd", "d M
 /**
  * General settings screen — store identity, regional preferences, logo.
  *
- * @param viewModel  Shared [SettingsViewModel].
- * @param onBack     Back navigation callback.
+ * @param state    Current [SettingsState.GeneralState] slice.
+ * @param effects  Shared [SettingsEffect] flow.
+ * @param onIntent Intent dispatcher to [SettingsViewModel].
+ * @param onBack   Back navigation callback.
  */
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun GeneralSettingsScreen(
-    viewModel: SettingsViewModel,
     state: SettingsState.GeneralState,
     effects: kotlinx.coroutines.flow.Flow<SettingsEffect>,
     onIntent: (SettingsIntent) -> Unit,
@@ -460,6 +460,21 @@ private fun LogoUriRow(uri: String, onUriChange: (String) -> Unit) {
             text = "Browse Image",
             onClick = { showImagePicker = true },
             modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+// ── Preview ───────────────────────────────────────────────────────────────────
+
+@androidx.compose.ui.tooling.preview.Preview
+@androidx.compose.runtime.Composable
+private fun GeneralSettingsScreenPreview() {
+    com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {
+        GeneralSettingsScreen(
+            state = SettingsState.GeneralState(),
+            effects = kotlinx.coroutines.flow.emptyFlow(),
+            onIntent = {},
+            onBack = {},
         )
     }
 }

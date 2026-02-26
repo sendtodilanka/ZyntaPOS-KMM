@@ -65,3 +65,16 @@ fun ZyntaCurrencyText(
         textAlign = textAlign,
     )
 }
+
+// ── Preview ───────────────────────────────────────────────────────────────────
+
+@androidx.compose.ui.tooling.preview.Preview
+@androidx.compose.runtime.Composable
+private fun ZyntaCurrencyTextPreview() {
+    com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {
+        ZyntaCurrencyText(
+            amount = 1250.00,
+            formatter = com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter(),
+        )
+    }
+}
