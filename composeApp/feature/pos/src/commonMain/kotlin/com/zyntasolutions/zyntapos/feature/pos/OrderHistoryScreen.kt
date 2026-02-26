@@ -148,7 +148,7 @@ fun OrderHistoryScreen(
                         icon = Icons.Default.History,
                         title = "No Orders",
                         subtitle = if (selectedStatus != null)
-                            "No ${selectedStatus!!.label()} orders today."
+                            "No ${selectedStatus?.label() ?: "matching"} orders today."
                         else
                             "No orders have been processed today.",
                         modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.xl),

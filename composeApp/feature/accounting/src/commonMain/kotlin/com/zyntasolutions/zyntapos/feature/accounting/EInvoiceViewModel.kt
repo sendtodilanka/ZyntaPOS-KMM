@@ -2,12 +2,15 @@ package com.zyntasolutions.zyntapos.feature.accounting
 
 import androidx.lifecycle.viewModelScope
 import com.zyntasolutions.zyntapos.core.result.Result
+import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.usecase.einvoice.CancelEInvoiceUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.einvoice.GetEInvoicesUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.einvoice.SubmitEInvoiceToIrdUseCase
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 
 /**
@@ -26,11 +29,18 @@ class EInvoiceViewModel(
     private val getEInvoicesUseCase: GetEInvoicesUseCase,
     private val submitEInvoiceToIrdUseCase: SubmitEInvoiceToIrdUseCase,
     private val cancelEInvoiceUseCase: CancelEInvoiceUseCase,
-    private val currentStoreId: String,
+    private val authRepository: AuthRepository,
 ) : BaseViewModel<EInvoiceState, EInvoiceIntent, EInvoiceEffect>(EInvoiceState()) {
 
+    private var currentStoreId: String = "default"
+
     init {
-        observeInvoices()
+        // Resolve the store ID from the active session without blocking the main thread,
+        // then begin observing invoices once the scope is known.
+        viewModelScope.launch {
+            currentStoreId = authRepository.getSession().first()?.storeId ?: "default"
+            observeInvoices()
+        }
     }
 
     private fun observeInvoices() {
