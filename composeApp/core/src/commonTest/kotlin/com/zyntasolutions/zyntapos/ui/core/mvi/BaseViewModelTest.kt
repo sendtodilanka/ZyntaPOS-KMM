@@ -19,6 +19,21 @@ import kotlin.test.assertTrue
 // BaseViewModelTest
 // Verifies that BaseViewModel<S,I,E> correctly manages state, effects, and
 // intent dispatch using a minimal concrete test double.
+//
+// ── Standard boilerplate for ALL feature ViewModel tests ──────────────────
+// Each feature test class must replicate these 4 elements:
+//
+//   @OptIn(ExperimentalCoroutinesApi::class)
+//   class MyFeatureViewModelTest {
+//       private val testDispatcher = StandardTestDispatcher()
+//
+//       @BeforeTest fun setUp() { Dispatchers.setMain(testDispatcher) }
+//       @AfterTest  fun tearDown() { Dispatchers.resetMain() }
+//   }
+//
+// A shared abstract base cannot live here because :composeApp:feature:*
+// commonTest source sets do not depend on :composeApp:core's test classpath.
+// This class acts as the canonical reference implementation of that pattern.
 // ─────────────────────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalCoroutinesApi::class)
