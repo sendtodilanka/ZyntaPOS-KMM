@@ -41,7 +41,7 @@ class AuditRepositoryImpl(
     private val db: ZyntaDatabase,
 ) : AuditRepository {
 
-    private val q get() = db.auditEntriesQueries
+    private val q get() = db.audit_logQueries
 
     // ── Write ─────────────────────────────────────────────────────────────────
 
