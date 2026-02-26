@@ -11,15 +11,16 @@ import kotlinx.datetime.Instant
 object UserMapper {
 
     fun toDomain(row: Users): User = User(
-        id        = row.id,
-        name      = row.name,
-        email     = row.email,
-        role      = Role.valueOf(row.role),
-        storeId   = row.store_id,
-        isActive  = row.is_active == 1L,
-        pinHash   = row.pin_hash,
-        createdAt = Instant.fromEpochMilliseconds(row.created_at),
-        updatedAt = Instant.fromEpochMilliseconds(row.updated_at),
+        id           = row.id,
+        name         = row.name,
+        email        = row.email,
+        role         = Role.valueOf(row.role),
+        storeId      = row.store_id,
+        isActive     = row.is_active == 1L,
+        pinHash      = row.pin_hash,
+        customRoleId = row.custom_role_id,
+        createdAt    = Instant.fromEpochMilliseconds(row.created_at),
+        updatedAt    = Instant.fromEpochMilliseconds(row.updated_at),
     )
 
     fun toInsertParams(u: User, passwordHash: String, syncStatus: String = "PENDING") = InsertParams(
@@ -31,6 +32,7 @@ object UserMapper {
         pinHash      = u.pinHash,
         storeId      = u.storeId,
         isActive     = if (u.isActive) 1L else 0L,
+        customRoleId = u.customRoleId,
         createdAt    = u.createdAt.toEpochMilliseconds(),
         updatedAt    = u.updatedAt.toEpochMilliseconds(),
         syncStatus   = syncStatus,
@@ -45,6 +47,7 @@ object UserMapper {
         val pinHash: String?,
         val storeId: String,
         val isActive: Long,
+        val customRoleId: String?,
         val createdAt: Long,
         val updatedAt: Long,
         val syncStatus: String,

@@ -1,6 +1,8 @@
 package com.zyntasolutions.zyntapos.feature.settings
 
+import com.zyntasolutions.zyntapos.domain.model.CustomRole
 import com.zyntasolutions.zyntapos.domain.model.OrderType
+import com.zyntasolutions.zyntapos.domain.model.Permission
 import com.zyntasolutions.zyntapos.domain.model.Role
 import com.zyntasolutions.zyntapos.domain.model.TaxGroup
 
@@ -64,8 +66,28 @@ sealed interface SettingsIntent {
     data class UpdateUserFormEmail(val value: String) : SettingsIntent
     data class UpdateUserFormPassword(val value: String) : SettingsIntent
     data class UpdateUserFormRole(val role: Role) : SettingsIntent
+    /** Sets [SettingsState.UserState.UserForm.roleKey] to an arbitrary key (used for custom roles). */
+    data class UpdateUserFormRoleKey(val key: String) : SettingsIntent
     data class UpdateUserFormActive(val isActive: Boolean) : SettingsIntent
     data object SaveUser : SettingsIntent
+
+    // ── PIN management ────────────────────────────────────────────────────────
+    data class UpdateUserFormPin(val pin: String) : SettingsIntent
+    data class UpdateUserFormConfirmPin(val pin: String) : SettingsIntent
+    data object ClearUserFormPin : SettingsIntent
+
+    // ── RBAC management ───────────────────────────────────────────────────────
+    data object LoadRbac : SettingsIntent
+    data object OpenCreateCustomRole : SettingsIntent
+    data class OpenEditCustomRole(val role: CustomRole) : SettingsIntent
+    data object DismissCustomRoleForm : SettingsIntent
+    data class UpdateCustomRoleFormName(val name: String) : SettingsIntent
+    data class UpdateCustomRoleFormDescription(val desc: String) : SettingsIntent
+    data class ToggleCustomRolePermission(val permission: Permission) : SettingsIntent
+    data object SaveCustomRole : SettingsIntent
+    data class DeleteCustomRole(val id: String) : SettingsIntent
+    data class ToggleBuiltInRolePermission(val role: Role, val permission: Permission) : SettingsIntent
+    data class ResetBuiltInRolePermissions(val role: Role) : SettingsIntent
 
     // ── Backup ────────────────────────────────────────────────────────────────
     data object LoadBackupInfo : SettingsIntent

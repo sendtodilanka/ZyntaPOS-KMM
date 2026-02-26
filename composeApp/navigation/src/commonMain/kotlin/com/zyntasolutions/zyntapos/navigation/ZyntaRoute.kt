@@ -223,6 +223,10 @@ sealed class ZyntaRoute {
     @Serializable
     data object SecuritySettings : ZyntaRoute()
 
+    /** Role and permission matrix management (RBAC). */
+    @Serializable
+    data object RbacManagement : ZyntaRoute()
+
     /**
      * In-app developer console (debug builds only).
      * Access is gated at two levels:

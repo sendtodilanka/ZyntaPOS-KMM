@@ -9,7 +9,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -18,7 +22,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
@@ -30,6 +37,7 @@ import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTableColumn
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTextField
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
+import com.zyntasolutions.zyntapos.domain.model.CustomRole
 import com.zyntasolutions.zyntapos.domain.model.Role
 import com.zyntasolutions.zyntapos.feature.settings.SettingsEffect
 import com.zyntasolutions.zyntapos.feature.settings.SettingsIntent
@@ -90,6 +98,7 @@ fun UserManagementScreen(
             isCreating = state.isCreating,
             form = state.form,
             saveError = state.saveError,
+            availableCustomRoles = state.availableCustomRoles,
             onIntent = onIntent,
             onDismiss = { onIntent(SettingsIntent.DismissUserForm) },
         )
@@ -161,6 +170,7 @@ private fun UserFormSheet(
     isCreating: Boolean,
     form: SettingsState.UserState.UserForm,
     saveError: String?,
+    availableCustomRoles: List<CustomRole>,
     onIntent: (SettingsIntent) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -205,17 +215,90 @@ private fun UserFormSheet(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 )
             }
-            DropdownField(
-                label = "Role",
-                options = Role.entries.map { it.name },
-                selectedIndex = Role.entries.indexOfFirst { it.name == form.roleKey }.coerceAtLeast(0),
-                onSelect = { onIntent(SettingsIntent.UpdateUserFormRole(Role.entries[it])) },
-            )
+            // ── Role dropdown — built-in roles followed by custom roles ──────
+            var roleDropdownExpanded by remember { mutableStateOf(false) }
+            val selectedRoleLabel = availableCustomRoles
+                .firstOrNull { it.id == form.roleKey }?.name
+                ?: Role.entries.firstOrNull { it.name == form.roleKey }?.name
+                ?: form.roleKey
+            ExposedDropdownMenuBox(
+                expanded = roleDropdownExpanded,
+                onExpandedChange = { roleDropdownExpanded = !roleDropdownExpanded },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                ZyntaTextField(
+                    value = selectedRoleLabel,
+                    onValueChange = {},
+                    label = "Role",
+                    readOnly = true,
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = roleDropdownExpanded) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+                )
+                ExposedDropdownMenu(
+                    expanded = roleDropdownExpanded,
+                    onDismissRequest = { roleDropdownExpanded = false },
+                ) {
+                    Role.entries.forEach { role ->
+                        DropdownMenuItem(
+                            text = { Text(role.name) },
+                            onClick = {
+                                onIntent(SettingsIntent.UpdateUserFormRole(role))
+                                roleDropdownExpanded = false
+                            },
+                        )
+                    }
+                    availableCustomRoles.forEach { customRole ->
+                        DropdownMenuItem(
+                            text = { Text(customRole.name) },
+                            onClick = {
+                                onIntent(SettingsIntent.UpdateUserFormRoleKey(customRole.id))
+                                roleDropdownExpanded = false
+                            },
+                        )
+                    }
+                }
+            }
             ToggleRow(
                 label = "Account Active",
                 checked = form.isActive,
                 onCheckedChange = { onIntent(SettingsIntent.UpdateUserFormActive(it)) },
             )
+            // ── Quick-Switch PIN section ──────────────────────────────────────
+            Text(
+                text = "Quick-Switch PIN",
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.padding(top = ZyntaSpacing.md),
+            )
+            Text(
+                text = "Leave blank to keep existing PIN",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            ZyntaTextField(
+                value = form.newPin,
+                onValueChange = { onIntent(SettingsIntent.UpdateUserFormPin(it)) },
+                label = "New PIN (4–6 digits)",
+                modifier = Modifier.fillMaxWidth(),
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+            )
+            ZyntaTextField(
+                value = form.confirmPin,
+                onValueChange = { onIntent(SettingsIntent.UpdateUserFormConfirmPin(it)) },
+                label = "Confirm PIN",
+                modifier = Modifier.fillMaxWidth(),
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+            )
+            form.pinError?.let {
+                Text(
+                    text = it,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
             saveError?.let {
                 Text(it, color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall)

@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.security
 
+import com.zyntasolutions.zyntapos.domain.model.CustomRole
 import com.zyntasolutions.zyntapos.domain.model.Permission
 import com.zyntasolutions.zyntapos.domain.model.Role
 import com.zyntasolutions.zyntapos.domain.model.User
@@ -122,6 +123,50 @@ class RbacEngineTest {
         }
     }
 
+    // ── Dynamic RBAC overloads ─────────────────────────────────────────────────
+
+    @Test
+    fun `hasPermission with builtIn override uses override set`() {
+        val engine = RbacEngine()
+        val user = buildUser(Role.CASHIER)
+        val override = mapOf(Role.CASHIER to setOf(Permission.VIEW_REPORTS))
+        // Override grants only VIEW_REPORTS → must be true
+        assertTrue(engine.hasPermission(user, Permission.VIEW_REPORTS, override, emptyList()))
+        // CASHIER normally has PROCESS_SALE, but the override removes it → must be false
+        assertFalse(engine.hasPermission(user, Permission.PROCESS_SALE, override, emptyList()))
+    }
+
+    @Test
+    fun `hasPermission with customRole uses customRole permissions`() {
+        val engine = RbacEngine()
+        val customRole = CustomRole(
+            id = "cr1",
+            name = "Kitchen",
+            permissions = setOf(Permission.MANAGE_PRODUCTS),
+            createdAt = Instant.fromEpochSeconds(0),
+            updatedAt = Instant.fromEpochSeconds(0),
+        )
+        val user = buildUserWithCustomRole(Role.CASHIER, customRoleId = "cr1")
+        // Custom role grants MANAGE_PRODUCTS → must be true
+        assertTrue(engine.hasPermission(user, Permission.MANAGE_PRODUCTS, emptyMap(), listOf(customRole)))
+        // Custom role does NOT grant PROCESS_SALE → must be false (even though CASHIER normally would)
+        assertFalse(engine.hasPermission(user, Permission.PROCESS_SALE, emptyMap(), listOf(customRole)))
+    }
+
+    @Test
+    fun `hasPermission with no override falls back to static defaults`() {
+        val engine = RbacEngine()
+        val user = buildUser(Role.CASHIER)
+        val cashierDefaults = Permission.rolePermissions[Role.CASHIER] ?: emptySet()
+        // Every default CASHIER permission must be granted when no overrides are provided
+        cashierDefaults.forEach { perm ->
+            assertTrue(
+                engine.hasPermission(user, perm, emptyMap(), emptyList()),
+                "CASHIER should have $perm with no overrides",
+            )
+        }
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun buildUser(role: Role) = User(
@@ -132,6 +177,19 @@ class RbacEngineTest {
         role = role,
         isActive = true,
         pinHash = null,
+        createdAt = Instant.fromEpochSeconds(0),
+        updatedAt = Instant.fromEpochSeconds(0),
+    )
+
+    private fun buildUserWithCustomRole(role: Role, customRoleId: String) = User(
+        id = "test-user-id",
+        storeId = "store-1",
+        name = "Test User",
+        email = "test@example.com",
+        role = role,
+        isActive = true,
+        pinHash = null,
+        customRoleId = customRoleId,
         createdAt = Instant.fromEpochSeconds(0),
         updatedAt = Instant.fromEpochSeconds(0),
     )

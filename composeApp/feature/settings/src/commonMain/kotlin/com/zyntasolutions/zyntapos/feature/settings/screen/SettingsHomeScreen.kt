@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.ColorLens
@@ -106,7 +107,7 @@ data class SettingsGroup(
 
 /** All routes the settings home screen can navigate to. */
 enum class SettingsRoute {
-    GENERAL, POS, TAX, PRINTER, USERS, SECURITY, BACKUP, APPEARANCE, SYSTEM_HEALTH, ABOUT,
+    GENERAL, POS, TAX, PRINTER, USERS, SECURITY, RBAC_MANAGEMENT, BACKUP, APPEARANCE, SYSTEM_HEALTH, ABOUT,
     /** Debug Console — only presented when [SettingsHomeScreen] receives `isDebug = true`. */
     DEBUG_CONSOLE,
 }
@@ -131,6 +132,7 @@ private val settingsGroups: List<SettingsGroup> = listOf(
         entries = listOf(
             SettingsEntry("Users", "Create and manage staff accounts", Icons.Filled.PersonOutline, SettingsRoute.USERS),
             SettingsEntry("Security", "PIN policy, session timeout & RBAC", Icons.Filled.Security, SettingsRoute.SECURITY),
+            SettingsEntry("Roles & Permissions", "Manage role definitions and RBAC permission matrix", Icons.Filled.AdminPanelSettings, SettingsRoute.RBAC_MANAGEMENT),
             SettingsEntry("Backup", "Manual backup & restore", Icons.Filled.Backup, SettingsRoute.BACKUP),
         ),
     ),

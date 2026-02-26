@@ -10,9 +10,8 @@ import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
  * ### Business Rules
  * 1. PINs must be 4–6 digits (numeric only). Input outside this range is rejected
  *    immediately without a repository call.
- * 2. The [AuthRepository.updatePin] flow hashes the raw PIN (PBKDF2) before storage;
- *    this use case compares the supplied raw PIN against the stored hash using the
- *    same algorithm via a constant-time comparison.
+ * 2. Delegates hash comparison to [AuthRepository.validatePin] — the raw PIN is never
+ *    persisted or transmitted; only compared against the stored hash.
  * 3. This use case does NOT start a full session — it is used to identify which
  *    cashier is currently at the terminal. Full session management is handled by
  *    [LoginUseCase].
@@ -38,15 +37,6 @@ class ValidatePinUseCase(
             )
         }
 
-        // Delegate actual PIN hash comparison to AuthRepository
-        val result = authRepository.updatePin(userId, pin) // updatePin validates then saves
-        // For pure validation (no update), the repository implementation should expose
-        // a validatePin method. This delegates to updatePin to keep the interface minimal
-        // in Phase 1. A dedicated validatePin() will be added in Phase 2 (Sprint 7).
-        return when (result) {
-            is Result.Error -> Result.Success(false)
-            is Result.Success -> Result.Success(true)
-            is Result.Loading -> Result.Loading
-        }
+        return authRepository.validatePin(userId, pin)
     }
 }

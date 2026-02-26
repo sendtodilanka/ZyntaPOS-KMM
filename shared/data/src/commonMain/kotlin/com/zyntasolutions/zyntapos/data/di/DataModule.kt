@@ -7,6 +7,7 @@ import com.zyntasolutions.zyntapos.data.local.db.SecurePreferencesKeyMigration
 import com.zyntasolutions.zyntapos.data.remote.api.ApiService
 import com.zyntasolutions.zyntapos.data.remote.api.KtorApiService
 import com.zyntasolutions.zyntapos.data.remote.api.buildApiClient
+import com.zyntasolutions.zyntapos.data.repository.RoleRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.AuditRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.AuthRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.CategoryRepositoryImpl
@@ -77,6 +78,7 @@ import com.zyntasolutions.zyntapos.domain.repository.PayrollRepository
 import com.zyntasolutions.zyntapos.domain.repository.ShiftRepository
 import com.zyntasolutions.zyntapos.domain.repository.SystemRepository
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseRackRepository
+import com.zyntasolutions.zyntapos.domain.repository.RoleRepository
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseRepository
 import org.koin.dsl.module
 
@@ -195,6 +197,9 @@ val dataModule = module {
 
     // Settings: typed key-value wrappers over the `settings` SQLite table
     single<SettingsRepository> { SettingsRepositoryImpl(db = get()) }
+
+    // Role management: custom role CRUD + built-in role permission overrides
+    single<RoleRepository> { RoleRepositoryImpl(db = get(), settingsRepository = get()) }
 
     // Tax groups: CRUD + soft-delete (SQLDelight queries tracked in MERGED-D2)
     single<TaxGroupRepository> { TaxGroupRepositoryImpl(db = get(), syncEnqueuer = get()) }

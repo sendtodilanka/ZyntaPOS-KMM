@@ -76,6 +76,7 @@ import com.zyntasolutions.zyntapos.feature.settings.screen.GeneralSettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.PosSettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.PrinterSettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.SettingsHomeScreen
+import com.zyntasolutions.zyntapos.feature.settings.screen.RbacManagementScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.SecuritySettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.SystemHealthScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.TaxSettingsScreen
@@ -405,11 +406,24 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
     },
 
     // ── Settings: Security ───────────────────────────────────────────────────
-    securitySettings = { onNavigateUp ->
+    securitySettings = { onNavigateUp, onNavigateToRbacManagement ->
         val vm: SettingsViewModel = koinViewModel()
         val state by vm.state.collectAsState()
         SecuritySettingsScreen(
             state = state.security,
+            onIntent = vm::dispatch,
+            onBack = onNavigateUp,
+            onNavigateToRbacManagement = onNavigateToRbacManagement,
+        )
+    },
+
+    // ── Settings: RBAC Management ────────────────────────────────────────────
+    rbacManagement = { onNavigateUp ->
+        val vm: SettingsViewModel = koinViewModel()
+        val state by vm.state.collectAsState()
+        RbacManagementScreen(
+            state = state.rbac,
+            effects = vm.effects,
             onIntent = vm::dispatch,
             onBack = onNavigateUp,
         )

@@ -1,6 +1,9 @@
 package com.zyntasolutions.zyntapos.feature.settings
 
+import com.zyntasolutions.zyntapos.domain.model.CustomRole
 import com.zyntasolutions.zyntapos.domain.model.OrderType
+import com.zyntasolutions.zyntapos.domain.model.Permission
+import com.zyntasolutions.zyntapos.domain.model.Role
 import com.zyntasolutions.zyntapos.domain.model.TaxGroup
 import com.zyntasolutions.zyntapos.domain.model.User
 import kotlinx.datetime.Instant
@@ -20,6 +23,7 @@ data class SettingsState(
     val backup: BackupState         = BackupState(),
     val appearance: AppearanceState = AppearanceState(),
     val security: SecurityState     = SecurityState(),
+    val rbac: RbacState             = RbacState(),
 
     /** True while any cross-screen async operation is pending. */
     val isLoading: Boolean = false,
@@ -86,20 +90,46 @@ data class SettingsState(
     // ── User management ───────────────────────────────────────────────────────
 
     data class UserState(
-        val users: List<User>          = emptyList(),
-        val isLoading: Boolean         = false,
-        val editingUser: User?         = null,   // non-null = slide-over open
-        val isCreating: Boolean        = false,
+        val users: List<User>               = emptyList(),
+        val isLoading: Boolean              = false,
+        val editingUser: User?              = null,   // non-null = slide-over open
+        val isCreating: Boolean             = false,
         /** Form field values for the create/edit slide-over. */
-        val form: UserForm             = UserForm(),
-        val saveError: String?         = null,
+        val form: UserForm                  = UserForm(),
+        val saveError: String?              = null,
+        /** Custom roles available for role-assignment dropdown. Populated alongside users. */
+        val availableCustomRoles: List<CustomRole> = emptyList(),
     ) {
         data class UserForm(
-            val name: String       = "",
-            val email: String      = "",
-            val password: String   = "",
-            val roleKey: String    = "CASHIER",
-            val isActive: Boolean  = true,
+            val name: String        = "",
+            val email: String       = "",
+            val password: String    = "",
+            val roleKey: String     = "CASHIER",
+            val isActive: Boolean   = true,
+            // ── PIN setup (optional; blank = do not change) ──
+            val newPin: String      = "",
+            val confirmPin: String  = "",
+            val pinError: String?   = null,
+        )
+    }
+
+    // ── RBAC management ───────────────────────────────────────────────────────
+
+    data class RbacState(
+        /** Effective permission sets per non-ADMIN built-in role (override or default). */
+        val builtInRoles: List<Pair<Role, Set<Permission>>> = emptyList(),
+        val customRoles: List<CustomRole>                   = emptyList(),
+        val isLoading: Boolean                              = false,
+        /** Non-null while the edit bottom sheet is open for a custom role. */
+        val editingCustomRole: CustomRole?                  = null,
+        val isCreatingCustomRole: Boolean                   = false,
+        val roleForm: CustomRoleForm                        = CustomRoleForm(),
+        val saveError: String?                              = null,
+    ) {
+        data class CustomRoleForm(
+            val name: String                    = "",
+            val description: String             = "",
+            val selectedPermissions: Set<Permission> = emptySet(),
         )
     }
 

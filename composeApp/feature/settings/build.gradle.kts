@@ -43,6 +43,7 @@ kotlin {
         }
         androidMain.dependencies {
             implementation(libs.koin.android)
+            implementation(libs.compose.uiTooling)
         }
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)

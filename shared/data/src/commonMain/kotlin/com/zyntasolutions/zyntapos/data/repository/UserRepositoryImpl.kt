@@ -91,17 +91,18 @@ class UserRepositoryImpl(
                 val now = Clock.System.now().toEpochMilliseconds()
                 db.transaction {
                     q.insertUser(
-                        id            = p.id,
-                        name          = p.name,
-                        email         = p.email,
-                        password_hash = p.passwordHash,
-                        role          = p.role,
-                        pin_hash      = p.pinHash,
-                        store_id      = p.storeId,
-                        is_active     = p.isActive,
-                        created_at    = now,
-                        updated_at    = now,
-                        sync_status   = p.syncStatus,
+                        id             = p.id,
+                        name           = p.name,
+                        email          = p.email,
+                        password_hash  = p.passwordHash,
+                        role           = p.role,
+                        pin_hash       = p.pinHash,
+                        store_id       = p.storeId,
+                        is_active      = p.isActive,
+                        created_at     = now,
+                        updated_at     = now,
+                        sync_status    = p.syncStatus,
+                        custom_role_id = p.customRoleId,
                     )
                     syncEnqueuer.enqueue(SyncOperation.EntityType.USER, p.id, SyncOperation.Operation.INSERT)
                 }
@@ -118,12 +119,13 @@ class UserRepositoryImpl(
                 // updateUserProfile targets only non-sensitive profile fields (name, role, active status).
                 // Email and password_hash are never changed through this path — use dedicated use-cases.
                 q.updateUserProfile(
-                    name        = user.name,
-                    role        = user.role.name,
-                    is_active   = if (user.isActive) 1L else 0L,
-                    updated_at  = now,
-                    sync_status = "PENDING",
-                    id          = user.id,
+                    name           = user.name,
+                    role           = user.role.name,
+                    custom_role_id = user.customRoleId,
+                    is_active      = if (user.isActive) 1L else 0L,
+                    updated_at     = now,
+                    sync_status    = "PENDING",
+                    id             = user.id,
                 )
                 syncEnqueuer.enqueue(SyncOperation.EntityType.USER, user.id, SyncOperation.Operation.UPDATE)
             }

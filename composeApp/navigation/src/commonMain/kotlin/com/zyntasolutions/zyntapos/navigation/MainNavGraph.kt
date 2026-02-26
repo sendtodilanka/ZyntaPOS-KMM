@@ -236,6 +236,7 @@ fun NavGraphBuilder.mainNavGraph(
                             "POS" -> navigationController.navigate(ZyntaRoute.PosSettings)
                             "SYSTEM_HEALTH" -> navigationController.navigate(ZyntaRoute.SystemHealthSettings)
                             "SECURITY" -> navigationController.navigate(ZyntaRoute.SecuritySettings)
+                            "RBAC_MANAGEMENT" -> navigationController.navigate(ZyntaRoute.RbacManagement)
                             "DEBUG_CONSOLE" -> if (debugScreen != null) {
                                 navigationController.navigate(ZyntaRoute.Debug)
                             }
@@ -301,6 +302,13 @@ fun NavGraphBuilder.mainNavGraph(
             composable<ZyntaRoute.SecuritySettings> {
                 screens.securitySettings(
                     { navigationController.navigateUp(ZyntaRoute.Settings) },
+                    { navigationController.navigate(ZyntaRoute.RbacManagement) },
+                )
+            }
+
+            composable<ZyntaRoute.RbacManagement> {
+                screens.rbacManagement(
+                    { navigationController.navigateUp(ZyntaRoute.SecuritySettings) },
                 )
             }
 
@@ -630,7 +638,8 @@ private fun MainScaffoldShell(
         is ZyntaRoute.BackupSettings,
         is ZyntaRoute.PosSettings,
         is ZyntaRoute.SystemHealthSettings,
-        is ZyntaRoute.SecuritySettings -> item.route is ZyntaRoute.Settings
+        is ZyntaRoute.SecuritySettings,
+        is ZyntaRoute.RbacManagement -> item.route is ZyntaRoute.Settings
 
         // CRM sub-graph
         is ZyntaRoute.CustomerList,

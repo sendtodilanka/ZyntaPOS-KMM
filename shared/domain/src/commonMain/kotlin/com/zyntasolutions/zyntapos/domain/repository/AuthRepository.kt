@@ -72,4 +72,16 @@ interface AuthRepository {
      * @return [Result.Success] with [Unit], or [Result.Error] on validation/storage failure.
      */
     suspend fun updatePin(userId: String, pin: String): Result<Unit>
+
+    /**
+     * Validates whether [pin] matches the stored PIN hash for [userId].
+     *
+     * Does **not** modify any stored data. Returns `false` when the user has no PIN set.
+     *
+     * @param userId  UUID of the user whose PIN is being validated.
+     * @param pin     Raw 4–6-digit PIN string entered by the operator.
+     * @return [Result.Success] with `true` if the PIN matches; `false` if the user has no PIN
+     *         or the PIN is incorrect. [Result.Error] on a storage-layer failure.
+     */
+    suspend fun validatePin(userId: String, pin: String): Result<Boolean>
 }

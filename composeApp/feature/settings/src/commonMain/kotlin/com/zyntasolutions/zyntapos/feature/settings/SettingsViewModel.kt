@@ -5,15 +5,21 @@ import com.zyntasolutions.zyntapos.core.utils.IdGenerator
 import com.zyntasolutions.zyntapos.core.result.onError
 import com.zyntasolutions.zyntapos.core.result.onSuccess
 import com.zyntasolutions.zyntapos.feature.settings.backup.BackupService
+import com.zyntasolutions.zyntapos.domain.model.CustomRole
 import com.zyntasolutions.zyntapos.domain.model.OrderType
+import com.zyntasolutions.zyntapos.domain.model.Permission
 import com.zyntasolutions.zyntapos.domain.model.Role
 import com.zyntasolutions.zyntapos.domain.model.TaxGroup
 import com.zyntasolutions.zyntapos.domain.model.User
+import com.zyntasolutions.zyntapos.domain.repository.RoleRepository
 import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.domain.repository.TaxGroupRepository
 import com.zyntasolutions.zyntapos.domain.repository.UserRepository
+import com.zyntasolutions.zyntapos.domain.usecase.auth.SetPinUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.SaveTaxGroupUseCase
 import com.zyntasolutions.zyntapos.domain.model.PrinterPaperWidth
+import com.zyntasolutions.zyntapos.domain.usecase.rbac.DeleteCustomRoleUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.rbac.SaveCustomRoleUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.PrintTestPageUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.SaveUserUseCase
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
@@ -34,26 +40,35 @@ import kotlin.time.Clock
  *  - [sendEffect] for one-shot side-effects via a buffered [Channel]
  *  - [dispatch] as the UI entry-point (launches [handleIntent] in viewModelScope)
  *
- * @param settingsRepository   Typed key-value persistent settings store.
- * @param taxGroupRepository   Tax group CRUD persistence.
- * @param userRepository       User account CRUD persistence.
- * @param saveTaxGroupUseCase  Validated tax group insert/update.
- * @param saveUserUseCase      Validated user account insert/update.
- * @param printTestPageUseCase Sends ESC/POS test page via HAL printer.
- * @param backupService        Platform-specific database backup & restore.
+ * @param settingsRepository      Typed key-value persistent settings store.
+ * @param taxGroupRepository      Tax group CRUD persistence.
+ * @param userRepository          User account CRUD persistence.
+ * @param roleRepository          Custom role + built-in role override persistence.
+ * @param saveTaxGroupUseCase     Validated tax group insert/update.
+ * @param saveUserUseCase         Validated user account insert/update.
+ * @param setPinUseCase           Validated PIN set/change for a user.
+ * @param saveCustomRoleUseCase   Validated custom role create/update.
+ * @param deleteCustomRoleUseCase Custom role deletion.
+ * @param printTestPageUseCase    Sends ESC/POS test page via HAL printer.
+ * @param backupService           Platform-specific database backup & restore.
  */
 class SettingsViewModel(
     private val settingsRepository: SettingsRepository,
     private val taxGroupRepository: TaxGroupRepository,
     private val userRepository: UserRepository,
+    private val roleRepository: RoleRepository,
     private val saveTaxGroupUseCase: SaveTaxGroupUseCase,
     private val saveUserUseCase: SaveUserUseCase,
+    private val setPinUseCase: SetPinUseCase,
+    private val saveCustomRoleUseCase: SaveCustomRoleUseCase,
+    private val deleteCustomRoleUseCase: DeleteCustomRoleUseCase,
     private val printTestPageUseCase: PrintTestPageUseCase,
     private val backupService: BackupService,
 ) : BaseViewModel<SettingsState, SettingsIntent, SettingsEffect>(SettingsState()) {
 
     private var taxGroupJob: Job? = null
     private var userJob: Job? = null
+    private var rbacJob: Job? = null
 
     // ── Intent dispatch ──────────────────────────────────────────────────────
 
@@ -109,8 +124,25 @@ class SettingsViewModel(
         is SettingsIntent.UpdateUserFormEmail        -> updateState { copy(users = users.copy(form = users.form.copy(email = intent.value))) }
         is SettingsIntent.UpdateUserFormPassword     -> updateState { copy(users = users.copy(form = users.form.copy(password = intent.value))) }
         is SettingsIntent.UpdateUserFormRole         -> updateState { copy(users = users.copy(form = users.form.copy(roleKey = intent.role.name))) }
+        is SettingsIntent.UpdateUserFormRoleKey      -> updateState { copy(users = users.copy(form = users.form.copy(roleKey = intent.key))) }
         is SettingsIntent.UpdateUserFormActive       -> updateState { copy(users = users.copy(form = users.form.copy(isActive = intent.isActive))) }
         SettingsIntent.SaveUser                      -> saveUser()
+        // PIN management
+        is SettingsIntent.UpdateUserFormPin          -> updateState { copy(users = users.copy(form = users.form.copy(newPin = intent.pin, pinError = null))) }
+        is SettingsIntent.UpdateUserFormConfirmPin   -> updateState { copy(users = users.copy(form = users.form.copy(confirmPin = intent.pin, pinError = null))) }
+        SettingsIntent.ClearUserFormPin              -> updateState { copy(users = users.copy(form = users.form.copy(newPin = "", confirmPin = "", pinError = null))) }
+        // RBAC management
+        SettingsIntent.LoadRbac                      -> loadRbac()
+        SettingsIntent.OpenCreateCustomRole          -> updateState { copy(rbac = rbac.copy(isCreatingCustomRole = true, editingCustomRole = null, roleForm = SettingsState.RbacState.CustomRoleForm())) }
+        is SettingsIntent.OpenEditCustomRole         -> openEditCustomRole(intent.role)
+        SettingsIntent.DismissCustomRoleForm         -> updateState { copy(rbac = rbac.copy(isCreatingCustomRole = false, editingCustomRole = null, saveError = null)) }
+        is SettingsIntent.UpdateCustomRoleFormName   -> updateState { copy(rbac = rbac.copy(roleForm = rbac.roleForm.copy(name = intent.name))) }
+        is SettingsIntent.UpdateCustomRoleFormDescription -> updateState { copy(rbac = rbac.copy(roleForm = rbac.roleForm.copy(description = intent.desc))) }
+        is SettingsIntent.ToggleCustomRolePermission -> toggleCustomRolePermission(intent.permission)
+        SettingsIntent.SaveCustomRole                -> saveCustomRole()
+        is SettingsIntent.DeleteCustomRole           -> deleteCustomRole(intent.id)
+        is SettingsIntent.ToggleBuiltInRolePermission -> toggleBuiltInRolePermission(intent.role, intent.permission)
+        is SettingsIntent.ResetBuiltInRolePermissions -> resetBuiltInRolePermissions(intent.role)
         // Backup
         SettingsIntent.LoadBackupInfo                -> loadBackupInfo()
         SettingsIntent.TriggerBackup                 -> triggerBackup()
@@ -335,6 +367,12 @@ class SettingsViewModel(
         userJob?.cancel()
         updateState { copy(users = users.copy(isLoading = true)) }
         userJob = viewModelScope.launch {
+            // Co-collect users and custom roles in parallel
+            launch {
+                roleRepository.getAllCustomRoles()
+                    .catch { /* silently skip; custom roles are optional */ }
+                    .collect { roles -> updateState { copy(users = users.copy(availableCustomRoles = roles)) } }
+            }
             userRepository.getAll()
                 .catch { e -> updateState { copy(users = users.copy(isLoading = false, saveError = e.message)) } }
                 .collect { list -> updateState { copy(users = users.copy(users = list, isLoading = false)) } }
@@ -347,11 +385,14 @@ class SettingsViewModel(
                 isCreating  = false,
                 editingUser = user,
                 form = SettingsState.UserState.UserForm(
-                    name     = user.name,
-                    email    = user.email,
-                    password = "",
-                    roleKey  = user.role.name,
-                    isActive = user.isActive,
+                    name       = user.name,
+                    email      = user.email,
+                    password   = "",
+                    roleKey    = user.customRoleId ?: user.role.name,
+                    isActive   = user.isActive,
+                    newPin     = "",
+                    confirmPin = "",
+                    pinError   = null,
                 ),
             )
         )
@@ -363,27 +404,163 @@ class SettingsViewModel(
         val isUpdate    = editingUser != null
         viewModelScope.launch {
             val now  = Clock.System.now()
-            val role = runCatching { Role.valueOf(form.roleKey) }.getOrDefault(Role.CASHIER)
+            // Determine if roleKey refers to a built-in role or a custom role ID
+            val builtInRole = runCatching { Role.valueOf(form.roleKey) }.getOrNull()
+            val customRoleId = if (builtInRole == null) form.roleKey.ifBlank { null } else null
+            val role = builtInRole ?: editingUser?.role ?: Role.CASHIER
             val user = if (isUpdate) {
-                editingUser!!.copy(name = form.name, role = role, isActive = form.isActive, updatedAt = now)
+                editingUser!!.copy(
+                    name         = form.name,
+                    role         = role,
+                    customRoleId = customRoleId,
+                    isActive     = form.isActive,
+                    updatedAt    = now,
+                )
             } else {
                 User(
-                    id        = generateUuid(),
-                    name      = form.name,
-                    email     = form.email,
-                    role      = role,
-                    storeId   = "default",
-                    isActive  = form.isActive,
-                    createdAt = now,
-                    updatedAt = now,
+                    id           = generateUuid(),
+                    name         = form.name,
+                    email        = form.email,
+                    role         = role,
+                    customRoleId = customRoleId,
+                    storeId      = "default",
+                    isActive     = form.isActive,
+                    createdAt    = now,
+                    updatedAt    = now,
                 )
             }
             saveUserUseCase(user, isUpdate, form.password)
                 .onSuccess {
+                    // If a PIN was entered, update it after profile save
+                    if (form.newPin.isNotBlank()) {
+                        setPinUseCase(user.id, form.newPin, form.confirmPin)
+                            .onError { e -> updateState { copy(users = users.copy(form = users.form.copy(pinError = e.message))) } }
+                            .onSuccess { sendEffect(SettingsEffect.PinUpdated) }
+                    }
                     updateState { copy(users = users.copy(isCreating = false, editingUser = null, saveError = null)) }
                     sendEffect(SettingsEffect.UserSaved)
                 }
                 .onError { e -> updateState { copy(users = users.copy(saveError = e.message)) } }
+        }
+    }
+
+    // ── RBAC ──────────────────────────────────────────────────────────────────
+
+    private fun loadRbac() {
+        rbacJob?.cancel()
+        updateState { copy(rbac = rbac.copy(isLoading = true)) }
+        rbacJob = viewModelScope.launch {
+            // Collect custom roles reactively
+            launch {
+                roleRepository.getAllCustomRoles()
+                    .catch { e -> updateState { copy(rbac = rbac.copy(isLoading = false, saveError = e.message)) } }
+                    .collect { roles -> updateState { copy(rbac = rbac.copy(customRoles = roles)) } }
+            }
+            // Load built-in role overrides (one-shot per load)
+            val builtInRoles = Role.entries
+                .filter { it != Role.ADMIN }
+                .map { role ->
+                    val effective = roleRepository.getBuiltInRolePermissions(role)
+                        ?: Permission.rolePermissions[role]
+                        ?: emptySet()
+                    role to effective
+                }
+            updateState { copy(rbac = rbac.copy(builtInRoles = builtInRoles, isLoading = false)) }
+        }
+    }
+
+    private fun openEditCustomRole(role: CustomRole) = updateState {
+        copy(
+            rbac = rbac.copy(
+                isCreatingCustomRole = false,
+                editingCustomRole    = role,
+                roleForm = SettingsState.RbacState.CustomRoleForm(
+                    name                = role.name,
+                    description         = role.description,
+                    selectedPermissions = role.permissions,
+                ),
+            )
+        )
+    }
+
+    private fun toggleCustomRolePermission(permission: Permission) = updateState {
+        val current = rbac.roleForm.selectedPermissions
+        val updated = if (permission in current) current - permission else current + permission
+        copy(rbac = rbac.copy(roleForm = rbac.roleForm.copy(selectedPermissions = updated)))
+    }
+
+    private fun saveCustomRole() {
+        val form    = currentState.rbac.roleForm
+        val editing = currentState.rbac.editingCustomRole
+        val isUpdate = editing != null
+        viewModelScope.launch {
+            val now = Clock.System.now()
+            val role = if (isUpdate) {
+                editing!!.copy(
+                    name        = form.name,
+                    description = form.description,
+                    permissions = form.selectedPermissions,
+                    updatedAt   = now,
+                )
+            } else {
+                CustomRole(
+                    id          = generateUuid(),
+                    name        = form.name,
+                    description = form.description,
+                    permissions = form.selectedPermissions,
+                    createdAt   = now,
+                    updatedAt   = now,
+                )
+            }
+            saveCustomRoleUseCase(role, isUpdate)
+                .onSuccess {
+                    updateState { copy(rbac = rbac.copy(isCreatingCustomRole = false, editingCustomRole = null, saveError = null)) }
+                    sendEffect(SettingsEffect.RoleSaved)
+                }
+                .onError { e -> updateState { copy(rbac = rbac.copy(saveError = e.message)) } }
+        }
+    }
+
+    private fun deleteCustomRole(id: String) {
+        viewModelScope.launch {
+            deleteCustomRoleUseCase(id)
+                .onSuccess { sendEffect(SettingsEffect.RoleDeleted) }
+                .onError { e -> updateState { copy(rbac = rbac.copy(saveError = e.message)) } }
+        }
+    }
+
+    private fun toggleBuiltInRolePermission(role: Role, permission: Permission) {
+        viewModelScope.launch {
+            val currentPerms = roleRepository.getBuiltInRolePermissions(role)
+                ?: Permission.rolePermissions[role]
+                ?: emptySet()
+            val newPerms = if (permission in currentPerms) currentPerms - permission else currentPerms + permission
+            roleRepository.setBuiltInRolePermissions(role, newPerms)
+                .onSuccess {
+                    updateState {
+                        val updatedBuiltIn = rbac.builtInRoles.map { (r, p) ->
+                            if (r == role) r to newPerms else r to p
+                        }
+                        copy(rbac = rbac.copy(builtInRoles = updatedBuiltIn))
+                    }
+                }
+                .onError { e -> updateState { copy(rbac = rbac.copy(saveError = e.message)) } }
+        }
+    }
+
+    private fun resetBuiltInRolePermissions(role: Role) {
+        viewModelScope.launch {
+            roleRepository.resetBuiltInRolePermissions(role)
+                .onSuccess {
+                    val defaults = Permission.rolePermissions[role] ?: emptySet()
+                    updateState {
+                        val updatedBuiltIn = rbac.builtInRoles.map { (r, p) ->
+                            if (r == role) r to defaults else r to p
+                        }
+                        copy(rbac = rbac.copy(builtInRoles = updatedBuiltIn))
+                    }
+                }
+                .onError { e -> updateState { copy(rbac = rbac.copy(saveError = e.message)) } }
         }
     }
 

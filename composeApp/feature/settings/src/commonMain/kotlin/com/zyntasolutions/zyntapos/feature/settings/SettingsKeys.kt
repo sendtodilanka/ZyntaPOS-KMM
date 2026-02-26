@@ -55,4 +55,12 @@ object SettingsKeys {
 
     // ── Backup ────────────────────────────────────────────────────────────────
     const val LAST_BACKUP_TIMESTAMP   = "backup.last_backup_ts"
+
+    // ── RBAC Overrides ────────────────────────────────────────────────────────
+    // JSON arrays of Permission names for admin-configured built-in role overrides.
+    // Absent key = use Permission.rolePermissions defaults. ADMIN role is never stored here.
+    const val RBAC_OVERRIDE_STORE_MANAGER = "rbac.override.STORE_MANAGER"
+    const val RBAC_OVERRIDE_CASHIER       = "rbac.override.CASHIER"
+    const val RBAC_OVERRIDE_ACCOUNTANT    = "rbac.override.ACCOUNTANT"
+    const val RBAC_OVERRIDE_STOCK_MANAGER = "rbac.override.STOCK_MANAGER"
 }

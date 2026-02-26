@@ -1,5 +1,8 @@
 package com.zyntasolutions.zyntapos.feature.settings
 
+import com.zyntasolutions.zyntapos.domain.usecase.auth.SetPinUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.rbac.DeleteCustomRoleUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.rbac.SaveCustomRoleUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.PrintTestPageUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.SaveUserUseCase
 import com.zyntasolutions.zyntapos.hal.printer.PrinterManager
@@ -29,6 +32,9 @@ val settingsModule = module {
     // merged Koin graph at runtime.
     factory<PrintTestPageUseCase> { PrintTestPageUseCaseImpl(get()) }
     factoryOf(::SaveUserUseCase)
+    factoryOf(::SetPinUseCase)
+    factoryOf(::SaveCustomRoleUseCase)
+    factoryOf(::DeleteCustomRoleUseCase)
 
     // ── ViewModel ────────────────────────────────────────────────────────────
     viewModelOf(::SettingsViewModel)
