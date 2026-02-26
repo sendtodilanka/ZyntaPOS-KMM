@@ -76,6 +76,7 @@ import com.zyntasolutions.zyntapos.feature.settings.screen.GeneralSettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.PosSettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.PrinterSettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.SettingsHomeScreen
+import com.zyntasolutions.zyntapos.feature.settings.screen.SecuritySettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.SystemHealthScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.TaxSettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.UserManagementScreen
@@ -402,6 +403,11 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
     // ── Settings: System Health ──────────────────────────────────────────────
     systemHealthSettings = { onNavigateUp ->
         SystemHealthScreen(onBack = onNavigateUp)
+    },
+
+    // ── Settings: Security ───────────────────────────────────────────────────
+    securitySettings = { onNavigateUp ->
+        SecuritySettingsScreen(onBack = onNavigateUp)
     },
 
     // ── Order History ───────────────────────────────────────────────────────

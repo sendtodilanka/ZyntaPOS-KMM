@@ -149,3 +149,13 @@ compose.desktop {
         }
     }
 }
+
+// ── Desktop run task — enable debug mode for development ─────────────────────
+// JvmAppInfoProvider reads app.debug from System properties. Setting it here
+// ensures the debug console and seed tools are available in `./gradlew run`.
+// This only affects the run / runDistributable tasks, NOT packaged installers.
+afterEvaluate {
+    tasks.withType<JavaExec>().configureEach {
+        jvmArgs("-Dapp.debug=true")
+    }
+}

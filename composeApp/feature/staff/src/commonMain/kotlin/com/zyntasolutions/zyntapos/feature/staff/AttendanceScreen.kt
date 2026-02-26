@@ -76,14 +76,14 @@ fun AttendanceScreen(
         }
 
         if (state.isLoading) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
             return@Column
         }
 
         if (state.employees.isEmpty()) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Text(
                     text = "No employees found.\nAdd employees in the Employees tab.",
                     style = MaterialTheme.typography.bodyMedium,
@@ -94,6 +94,7 @@ fun AttendanceScreen(
         }
 
         LazyColumn(
+            modifier = Modifier.weight(1f),
             contentPadding = PaddingValues(ZyntaSpacing.md),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {

@@ -219,6 +219,10 @@ sealed class ZyntaRoute {
     @Serializable
     data object SystemHealthSettings : ZyntaRoute()
 
+    /** Security policy settings (PIN, session timeout, RBAC). */
+    @Serializable
+    data object SecuritySettings : ZyntaRoute()
+
     /**
      * In-app developer console (debug builds only).
      * Access is gated at two levels:
