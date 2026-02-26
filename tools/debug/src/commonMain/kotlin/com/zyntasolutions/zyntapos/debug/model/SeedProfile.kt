@@ -9,15 +9,15 @@ package com.zyntasolutions.zyntapos.debug.model
  */
 enum class SeedProfile(val displayName: String, val description: String) {
     Demo(
-        displayName = "Demo Store",
-        description = "Generic 8 categories, 25 products, 15 customers",
+        displayName = "Grocery Store (Demo)",
+        description = "Sri Lankan neighborhood grocery: rice, dhal, spices, essentials — 25 products, 15 customers",
     ),
     Retail(
-        displayName = "Retail",
-        description = "Retail-oriented product mix with apparel and electronics",
+        displayName = "General Store (Retail)",
+        description = "Sri Lankan semi-urban general store: clothing, hardware, agri, stationery — 25 products, 15 customers",
     ),
     Restaurant(
-        displayName = "Restaurant",
-        description = "Food & beverage items with combo products",
+        displayName = "Restaurant / Kade",
+        description = "Sri Lankan local restaurant: rice & curry, short eats, kottu, hoppers — 25 menu items, 15 customers",
     ),
 }

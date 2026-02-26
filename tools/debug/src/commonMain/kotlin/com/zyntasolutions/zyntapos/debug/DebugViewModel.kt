@@ -13,6 +13,7 @@ import com.zyntasolutions.zyntapos.debug.mvi.DebugTab
 import com.zyntasolutions.zyntapos.domain.model.AuditEntry
 import com.zyntasolutions.zyntapos.domain.model.AuditEventType
 import com.zyntasolutions.zyntapos.domain.repository.AuditRepository
+import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlinx.datetime.Clock
 
@@ -36,6 +37,7 @@ class DebugViewModel(
     private val networkHandler: NetworkActionHandler,
     private val diagnosticsHandler: DiagnosticsActionHandler,
     private val auditRepository: AuditRepository,
+    private val settingsRepository: SettingsRepository,
 ) : BaseViewModel<DebugState, DebugIntent, DebugEffect>(DebugState()) {
 
     init {
@@ -102,7 +104,7 @@ class DebugViewModel(
             is DebugIntent.ConfirmClearSession -> confirmClearSession()
 
             // ── Network ───────────────────────────────────────────────────────
-            is DebugIntent.SetOfflineModeForced -> updateState { copy(isOfflineModeForced = intent.forced) }
+            is DebugIntent.SetOfflineModeForced -> setOfflineModeForced(intent.forced)
             is DebugIntent.ForceSyncNow         -> forceSyncNow()
             is DebugIntent.LoadSyncQueueDepth   -> loadSyncQueueDepth()
 
@@ -117,8 +119,8 @@ class DebugViewModel(
             is DebugIntent.ExportLogs       -> exportLogs()
 
             // ── UI/UX ─────────────────────────────────────────────────────────
-            is DebugIntent.SetThemeOverride -> updateState { copy(themeOverride = intent.theme) }
-            is DebugIntent.SetFontScale     -> updateState { copy(fontScaleOverride = intent.scale) }
+            is DebugIntent.SetThemeOverride -> setThemeOverride(intent.theme)
+            is DebugIntent.SetFontScale     -> setFontScale(intent.scale)
         }
     }
 
@@ -126,12 +128,20 @@ class DebugViewModel(
 
     private suspend fun loadInitialData() {
         val user = authHandler.getCurrentUser()
+        // Restore persisted UI/UX debug overrides so they survive screen re-composition.
+        val savedTheme      = settingsRepository.get(KEY_DEBUG_THEME)
+        val savedFontScale  = settingsRepository.get(KEY_DEBUG_FONT_SCALE)?.toFloatOrNull() ?: 1.0f
+        val savedOffline    = settingsRepository.get(KEY_DEBUG_OFFLINE) == "true"
+        if (savedOffline) networkHandler.setOfflineMode(true)
         updateState {
             copy(
-                currentUserEmail = user?.email,
-                currentUserRole = user?.role?.name,
-                currentUserId = user?.id,
-                hasPinConfigured = user?.pinHash != null,
+                currentUserEmail    = user?.email,
+                currentUserRole     = user?.role?.name,
+                currentUserId       = user?.id,
+                hasPinConfigured    = user?.pinHash != null,
+                themeOverride       = savedTheme?.takeIf { it != "SYSTEM" },
+                fontScaleOverride   = savedFontScale,
+                isOfflineModeForced = savedOffline,
             )
         }
     }
@@ -342,6 +352,28 @@ class DebugViewModel(
         showActionResult("Log export: use logcat (Android) or terminal output (Desktop) to capture logs", isError = false)
     }
 
+    // ── Network ───────────────────────────────────────────────────────────────
+
+    private suspend fun setOfflineModeForced(forced: Boolean) {
+        networkHandler.setOfflineMode(forced)
+        updateState { copy(isOfflineModeForced = forced) }
+        settingsRepository.set(KEY_DEBUG_OFFLINE, forced.toString())
+        val msg = if (forced) "Offline mode enabled — Force Sync is blocked" else "Offline mode disabled"
+        showActionResult(msg, isError = false)
+    }
+
+    // ── UI/UX ─────────────────────────────────────────────────────────────────
+
+    private suspend fun setThemeOverride(theme: String?) {
+        updateState { copy(themeOverride = theme) }
+        settingsRepository.set(KEY_DEBUG_THEME, theme ?: "SYSTEM")
+    }
+
+    private suspend fun setFontScale(scale: Float) {
+        updateState { copy(fontScaleOverride = scale) }
+        settingsRepository.set(KEY_DEBUG_FONT_SCALE, scale.toString())
+    }
+
     // ── Helpers ────────────────────────────────────────────────────────────────
 
     private fun showActionResult(message: String, isError: Boolean) {
@@ -365,5 +397,14 @@ class DebugViewModel(
         } catch (_: Exception) {
             // Audit failures must never break debug tool functionality
         }
+    }
+
+    companion object {
+        /** SettingsRepository key for the debug theme override ("LIGHT", "DARK", or "SYSTEM"). */
+        const val KEY_DEBUG_THEME      = "debug.theme_override"
+        /** SettingsRepository key for the debug font-scale multiplier (float string, e.g. "1.15"). */
+        const val KEY_DEBUG_FONT_SCALE = "debug.font_scale"
+        /** SettingsRepository key for the debug offline-mode flag ("true" / "false"). */
+        const val KEY_DEBUG_OFFLINE    = "debug.offline_mode"
     }
 }

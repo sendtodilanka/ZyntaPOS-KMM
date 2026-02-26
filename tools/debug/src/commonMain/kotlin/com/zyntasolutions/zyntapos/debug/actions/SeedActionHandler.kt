@@ -4,6 +4,8 @@ import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.debug.model.SeedProfile
 import com.zyntasolutions.zyntapos.seed.DefaultSeedDataSet
+import com.zyntasolutions.zyntapos.seed.RestaurantSeedDataSet
+import com.zyntasolutions.zyntapos.seed.RetailSeedDataSet
 import com.zyntasolutions.zyntapos.seed.SeedRunner
 
 /**
@@ -23,8 +25,13 @@ interface SeedActionHandler {
 /**
  * Default implementation backed by the existing [SeedRunner] from `:shared:seed`.
  *
- * All three [SeedProfile] variants map to [DefaultSeedDataSet] in Phase 1.
- * Per-profile datasets can be introduced in later sprints without changing the interface.
+ * Each [SeedProfile] maps to a distinct Sri Lanka–localised dataset:
+ * - [SeedProfile.Demo]       → [DefaultSeedDataSet]   (neighborhood grocery store)
+ * - [SeedProfile.Retail]     → [RetailSeedDataSet]    (semi-urban general store)
+ * - [SeedProfile.Restaurant] → [RestaurantSeedDataSet] (local restaurant / kade)
+ *
+ * [SeedRunner.run] is idempotent — records with existing IDs are skipped, so
+ * calling the same profile multiple times is safe.
  */
 class SeedActionHandlerImpl(
     private val seedRunner: SeedRunner,
@@ -32,11 +39,15 @@ class SeedActionHandlerImpl(
 
     override suspend fun runProfile(profile: SeedProfile): Result<SeedRunner.SeedSummary> {
         return try {
-            val dataSet = DefaultSeedDataSet.build()
+            val dataSet = when (profile) {
+                SeedProfile.Demo       -> DefaultSeedDataSet.build()
+                SeedProfile.Retail     -> RetailSeedDataSet.build()
+                SeedProfile.Restaurant -> RestaurantSeedDataSet.build()
+            }
             val summary = seedRunner.run(dataSet)
             Result.Success(summary)
         } catch (e: Exception) {
-            Result.Error(DatabaseException("Seed run failed: ${e.message}"))
+            Result.Error(DatabaseException("Seed run failed for profile ${profile.name}: ${e.message}"))
         }
     }
 }
