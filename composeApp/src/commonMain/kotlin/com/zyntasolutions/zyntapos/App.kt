@@ -60,6 +60,8 @@ import com.zyntasolutions.zyntapos.feature.accounting.AccountingViewModel
 import com.zyntasolutions.zyntapos.feature.register.CloseRegisterScreen
 import com.zyntasolutions.zyntapos.feature.register.OpenRegisterScreen
 import com.zyntasolutions.zyntapos.feature.register.RegisterDashboardScreen
+import com.zyntasolutions.zyntapos.feature.reports.CustomerReportScreen
+import com.zyntasolutions.zyntapos.feature.reports.ExpenseReportScreen
 import com.zyntasolutions.zyntapos.feature.reports.SalesReportScreen
 import com.zyntasolutions.zyntapos.feature.reports.StockReportScreen
 import com.zyntasolutions.zyntapos.feature.settings.SettingsViewModel
@@ -266,6 +268,8 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
     // ── Reports ─────────────────────────────────────────────────────────────
     salesReport = { SalesReportScreen(onNavigateUp = { }) },
     stockReport = { StockReportScreen(onNavigateUp = { }) },
+    customerReport = { CustomerReportScreen(onNavigateUp = { }) },
+    expenseReport = { ExpenseReportScreen(onNavigateUp = { }) },
 
     // ── Settings: Home ──────────────────────────────────────────────────────
     settings = { onNavigateToRoute ->

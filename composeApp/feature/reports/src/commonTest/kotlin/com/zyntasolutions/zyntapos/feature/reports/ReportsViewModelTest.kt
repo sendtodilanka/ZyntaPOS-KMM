@@ -10,6 +10,7 @@ import com.zyntasolutions.zyntapos.domain.model.OrderItem
 import com.zyntasolutions.zyntapos.domain.model.OrderStatus
 import com.zyntasolutions.zyntapos.domain.model.OrderType
 import com.zyntasolutions.zyntapos.domain.model.PaymentMethod
+import com.zyntasolutions.zyntapos.domain.model.SyncStatus
 import com.zyntasolutions.zyntapos.domain.model.Product
 import com.zyntasolutions.zyntapos.domain.model.RecurringExpense
 import com.zyntasolutions.zyntapos.domain.model.StockAdjustment
@@ -86,6 +87,7 @@ class ReportsViewModelTest {
         registerSessionId = "sess-001",
         createdAt         = now,
         updatedAt         = now,
+        syncStatus        = SyncStatus.synced(),
     )
 
     private val testProduct = Product(
@@ -169,22 +171,20 @@ class ReportsViewModelTest {
     private val fakeProductRepository = object : ProductRepository {
         override fun getAll(): Flow<List<Product>> = productsFlow
         override suspend fun getById(id: String): Result<Product> = error("not used in test")
-        override suspend fun search(query: String, categoryId: String?): Result<List<Product>> = error("not used in test")
-        override suspend fun create(product: Product): Result<Product> = error("not used in test")
+        override fun search(query: String, categoryId: String?): Flow<List<Product>> = productsFlow
+        override suspend fun insert(product: Product): Result<Unit> = error("not used in test")
         override suspend fun update(product: Product): Result<Unit> = error("not used in test")
         override suspend fun delete(id: String): Result<Unit> = error("not used in test")
-        override fun getByCategory(categoryId: String): Flow<List<Product>> = flowOf(emptyList())
-        override suspend fun getBySku(sku: String): Result<Product?> = error("not used in test")
-        override suspend fun getByBarcode(barcode: String): Result<Product?> = error("not used in test")
+        override suspend fun getByBarcode(barcode: String): Result<Product> = error("not used in test")
+        override suspend fun getCount(): Int = 0
     }
 
     // ── Fake StockRepository ──────────────────────────────────────────────────
 
     private val fakeStockRepository = object : StockRepository {
-        override fun getAll(): Flow<List<StockAdjustment>> = flowOf(emptyList())
-        override fun getByProduct(productId: String): Flow<List<StockAdjustment>> = flowOf(emptyList())
-        override suspend fun adjust(adjustment: StockAdjustment): Result<Unit> = error("not used in test")
-        override fun getAlerts(): Flow<List<Product>> = productsFlow
+        override suspend fun adjustStock(adjustment: StockAdjustment): Result<Unit> = error("not used in test")
+        override fun getMovements(productId: String): Flow<List<StockAdjustment>> = flowOf(emptyList())
+        override fun getAlerts(threshold: Double?): Flow<List<Product>> = productsFlow
     }
 
     // ── Fake CustomerRepository ───────────────────────────────────────────────
@@ -192,11 +192,10 @@ class ReportsViewModelTest {
     private val fakeCustomerRepository = object : CustomerRepository {
         override fun getAll(): Flow<List<Customer>> = customersFlow
         override suspend fun getById(id: String): Result<Customer> = error("not used in test")
-        override suspend fun create(customer: Customer): Result<Customer> = error("not used in test")
+        override suspend fun insert(customer: Customer): Result<Unit> = error("not used in test")
         override suspend fun update(customer: Customer): Result<Unit> = error("not used in test")
         override suspend fun delete(id: String): Result<Unit> = error("not used in test")
-        override suspend fun search(query: String): Result<List<Customer>> = error("not used in test")
-        override fun getByGroup(groupId: String): Flow<List<Customer>> = flowOf(emptyList())
+        override fun search(query: String): Flow<List<Customer>> = flowOf(emptyList())
     }
 
     // ── Fake ExpenseRepository ────────────────────────────────────────────────
@@ -228,9 +227,9 @@ class ReportsViewModelTest {
     private val fakePrinterPort = object : ReportPrinterPort {
         override suspend fun printSalesSummary(
             report: GenerateSalesReportUseCase.SalesReport,
-        ): Result<Unit> =
-            if (shouldFailPrint) Result.failure(Exception("Printer offline"))
-            else Result.success(Unit)
+        ): kotlin.Result<Unit> =
+            if (shouldFailPrint) kotlin.Result.failure(Exception("Printer offline"))
+            else kotlin.Result.success(Unit)
     }
 
     // ── Fake ReportExporter ───────────────────────────────────────────────────
