@@ -12,6 +12,7 @@ import com.zyntasolutions.zyntapos.domain.repository.CustomerWalletRepository
 import com.zyntasolutions.zyntapos.domain.repository.LoyaltyRepository
 import com.zyntasolutions.zyntapos.domain.usecase.crm.SaveCustomerGroupUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.WalletTopUpUseCase
+import com.zyntasolutions.zyntapos.domain.validation.UserValidator
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
@@ -433,8 +434,8 @@ class CustomerViewModel(
 
     private fun validateCustomerForm(form: CustomerFormState): Map<String, String> {
         val errors = mutableMapOf<String, String>()
-        if (form.name.isBlank()) errors["name"] = "Name is required"
-        if (form.phone.isBlank()) errors["phone"] = "Phone is required"
+        UserValidator.validateName(form.name)?.let  { errors["name"]  = it }
+        UserValidator.validatePhone(form.phone)?.let { errors["phone"] = it }
         val creditLimit = form.creditLimit.toDoubleOrNull()
         if (creditLimit == null || creditLimit < 0) errors["creditLimit"] = "Must be 0 or positive"
         return errors

@@ -4,6 +4,7 @@ import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.Role
 import com.zyntasolutions.zyntapos.domain.model.User
 import com.zyntasolutions.zyntapos.domain.repository.UserRepository
+import com.zyntasolutions.zyntapos.domain.validation.UserValidator
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlinx.datetime.Clock
 
@@ -47,21 +48,21 @@ class SignUpViewModel(
             is SignUpIntent.EmailChanged -> updateState {
                 copy(
                     email = intent.email,
-                    emailError = if (intent.email.isNotBlank() && !intent.email.isValidEmail()) "Enter a valid email" else null,
+                    emailError = if (intent.email.isNotBlank()) UserValidator.validateEmail(intent.email) else null,
                     error = null,
                 )
             }
             is SignUpIntent.PasswordChanged -> updateState {
                 copy(
                     password = intent.password,
-                    passwordError = if (intent.password.isNotBlank() && intent.password.length < 6) "Password must be at least 6 characters" else null,
+                    passwordError = if (intent.password.isNotBlank()) UserValidator.validatePassword(intent.password) else null,
                     error = null,
                 )
             }
             is SignUpIntent.ConfirmPasswordChanged -> updateState {
                 copy(
                     confirmPassword = intent.confirmPassword,
-                    confirmPasswordError = if (intent.confirmPassword.isNotBlank() && intent.confirmPassword != password) "Passwords do not match" else null,
+                    confirmPasswordError = if (intent.confirmPassword.isNotBlank()) UserValidator.validateConfirmPassword(intent.confirmPassword, password) else null,
                     error = null,
                 )
             }
@@ -75,22 +76,10 @@ class SignUpViewModel(
     private suspend fun onSignUpClicked() {
         val s = currentState
 
-        val nameError = if (s.name.isBlank()) "Name is required" else null
-        val emailError = when {
-            s.email.isBlank() -> "Email is required"
-            !s.email.isValidEmail() -> "Enter a valid email address"
-            else -> null
-        }
-        val passwordError = when {
-            s.password.isBlank() -> "Password is required"
-            s.password.length < 6 -> "Password must be at least 6 characters"
-            else -> null
-        }
-        val confirmPasswordError = when {
-            s.confirmPassword.isBlank() -> "Please confirm your password"
-            s.confirmPassword != s.password -> "Passwords do not match"
-            else -> null
-        }
+        val nameError            = UserValidator.validateName(s.name)
+        val emailError           = UserValidator.validateEmail(s.email)
+        val passwordError        = UserValidator.validatePassword(s.password)
+        val confirmPasswordError = UserValidator.validateConfirmPassword(s.confirmPassword, s.password)
 
         if (nameError != null || emailError != null || passwordError != null || confirmPasswordError != null) {
             updateState {
@@ -135,9 +124,6 @@ class SignUpViewModel(
             is Result.Loading -> Unit
         }
     }
-
-    private fun String.isValidEmail(): Boolean =
-        contains("@") && contains(".") && length >= 5
 
     private fun generateUserId(): String {
         // Simple UUID-like ID generation using random chars

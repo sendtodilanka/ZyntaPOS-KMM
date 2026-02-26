@@ -399,4 +399,120 @@ class ValidatorsTest {
         val result = TaxValidator.validateUniqueness(groups)
         assertIs<Result.Error>(result)
     }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // UserValidator
+    // ═══════════════════════════════════════════════════════════════════════
+
+    // ─── validateName ─────────────────────────────────────────────────────
+
+    @Test
+    fun `validateName - valid name - returns null`() {
+        val result = UserValidator.validateName("John Smith")
+        assertEquals(null, result)
+    }
+
+    @Test
+    fun `validateName - blank name - returns error message`() {
+        val result = UserValidator.validateName("")
+        assertEquals("Name is required", result)
+    }
+
+    @Test
+    fun `validateName - whitespace-only name - returns error message`() {
+        val result = UserValidator.validateName("   ")
+        assertEquals("Name is required", result)
+    }
+
+    // ─── validateEmail ────────────────────────────────────────────────────
+
+    @Test
+    fun `validateEmail - valid email - returns null`() {
+        val result = UserValidator.validateEmail("cashier@zyntapos.com")
+        assertEquals(null, result)
+    }
+
+    @Test
+    fun `validateEmail - blank email - returns required error`() {
+        val result = UserValidator.validateEmail("")
+        assertEquals("Email is required", result)
+    }
+
+    @Test
+    fun `validateEmail - missing at sign - returns format error`() {
+        val result = UserValidator.validateEmail("notanemail.com")
+        assertTrue(result != null)
+    }
+
+    @Test
+    fun `validateEmail - missing dot - returns format error`() {
+        val result = UserValidator.validateEmail("user@nodot")
+        assertTrue(result != null)
+    }
+
+    @Test
+    fun `validateEmail - too short - returns format error`() {
+        val result = UserValidator.validateEmail("a@b.")
+        assertTrue(result != null)
+    }
+
+    // ─── validatePassword ─────────────────────────────────────────────────
+
+    @Test
+    fun `validatePassword - valid 6-char password - returns null`() {
+        val result = UserValidator.validatePassword("abc123")
+        assertEquals(null, result)
+    }
+
+    @Test
+    fun `validatePassword - blank password - returns required error`() {
+        val result = UserValidator.validatePassword("")
+        assertEquals("Password is required", result)
+    }
+
+    @Test
+    fun `validatePassword - 5 chars too short - returns length error`() {
+        val result = UserValidator.validatePassword("abcde")
+        assertTrue(result != null)
+    }
+
+    @Test
+    fun `validatePassword - long strong password - returns null`() {
+        val result = UserValidator.validatePassword("SuperStr0ngP@ssword!")
+        assertEquals(null, result)
+    }
+
+    // ─── validateConfirmPassword ──────────────────────────────────────────
+
+    @Test
+    fun `validateConfirmPassword - matching passwords - returns null`() {
+        val result = UserValidator.validateConfirmPassword("abc123", "abc123")
+        assertEquals(null, result)
+    }
+
+    @Test
+    fun `validateConfirmPassword - blank confirmation - returns required error`() {
+        val result = UserValidator.validateConfirmPassword("", "abc123")
+        assertEquals("Please confirm your password", result)
+    }
+
+    @Test
+    fun `validateConfirmPassword - mismatch - returns mismatch error`() {
+        val result = UserValidator.validateConfirmPassword("different", "abc123")
+        assertEquals("Passwords do not match", result)
+    }
+
+    // ─── validatePhone ────────────────────────────────────────────────────
+
+    @Test
+    fun `validatePhone - valid phone number - returns null`() {
+        val result = UserValidator.validatePhone("+94771234567")
+        assertEquals(null, result)
+    }
+
+    @Test
+    fun `validatePhone - blank phone - returns required error`() {
+        val result = UserValidator.validatePhone("")
+        assertEquals("Phone is required", result)
+    }
 }
