@@ -5,7 +5,7 @@ import com.zyntasolutions.zyntapos.security.prefs.SecurePreferencesKeys
 import com.zyntasolutions.zyntapos.security.prefs.TokenStorage
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json

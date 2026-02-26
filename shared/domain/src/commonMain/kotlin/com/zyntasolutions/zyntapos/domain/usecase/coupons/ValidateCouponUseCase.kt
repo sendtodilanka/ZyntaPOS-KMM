@@ -4,7 +4,7 @@ import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.core.result.ValidationException
 import com.zyntasolutions.zyntapos.domain.model.Coupon
 import com.zyntasolutions.zyntapos.domain.repository.CouponRepository
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 /**
  * Validates that a coupon [code] can be applied to an order.

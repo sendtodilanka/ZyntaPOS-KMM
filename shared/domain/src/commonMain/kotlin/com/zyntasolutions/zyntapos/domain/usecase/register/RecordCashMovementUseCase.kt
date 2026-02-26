@@ -5,7 +5,7 @@ import com.zyntasolutions.zyntapos.core.result.ValidationException
 import com.zyntasolutions.zyntapos.core.utils.IdGenerator
 import com.zyntasolutions.zyntapos.domain.model.CashMovement
 import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 /**
  * Records a petty-cash movement (IN or OUT) within the active register session.

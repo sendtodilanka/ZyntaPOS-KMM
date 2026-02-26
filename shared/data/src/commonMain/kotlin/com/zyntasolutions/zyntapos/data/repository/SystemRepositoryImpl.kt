@@ -10,7 +10,7 @@ import com.zyntasolutions.zyntapos.domain.model.TableStats
 import com.zyntasolutions.zyntapos.domain.repository.SystemRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 /**
  * [SystemRepository] implementation — database statistics and maintenance.

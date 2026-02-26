@@ -5,7 +5,7 @@ import com.zyntasolutions.zyntapos.core.result.ValidationException
 import com.zyntasolutions.zyntapos.core.utils.IdGenerator
 import com.zyntasolutions.zyntapos.domain.model.RewardPoints
 import com.zyntasolutions.zyntapos.domain.repository.LoyaltyRepository
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 /**
  * Redeems [pointsToRedeem] from a customer's loyalty balance.

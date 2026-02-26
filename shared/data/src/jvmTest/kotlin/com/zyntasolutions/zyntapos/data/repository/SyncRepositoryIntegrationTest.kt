@@ -3,7 +3,7 @@ package com.zyntasolutions.zyntapos.data.repository
 import com.zyntasolutions.zyntapos.data.createTestDatabase
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
 import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test

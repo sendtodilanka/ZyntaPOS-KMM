@@ -14,7 +14,7 @@ import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.LeaveRecord
 import com.zyntasolutions.zyntapos.domain.model.LeaveStatus
 import com.zyntasolutions.zyntapos.domain.model.LeaveType
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 /**
  * Leave management screen — shows pending leave requests for manager review.

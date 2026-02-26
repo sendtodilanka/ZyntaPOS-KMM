@@ -3,7 +3,7 @@ package com.zyntasolutions.zyntapos.data.local
 import com.zyntasolutions.zyntapos.core.utils.IdGenerator
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
 import com.zyntasolutions.zyntapos.domain.model.SyncOperation
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 /**
  * Lightweight helper that enqueues a [SyncOperation] into the local `pending_operations`

@@ -6,7 +6,7 @@ import com.zyntasolutions.zyntapos.core.utils.IdGenerator
 import com.zyntasolutions.zyntapos.domain.model.LoyaltyTier
 import com.zyntasolutions.zyntapos.domain.model.RewardPoints
 import com.zyntasolutions.zyntapos.domain.repository.LoyaltyRepository
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 /**
  * Awards loyalty points to a customer after a successful sale.

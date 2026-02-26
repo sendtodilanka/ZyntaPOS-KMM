@@ -12,7 +12,7 @@ import com.zyntasolutions.zyntapos.feature.dashboard.mvi.DashboardState
 import com.zyntasolutions.zyntapos.feature.dashboard.mvi.RecentOrderItem
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlinx.coroutines.flow.first
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn

@@ -11,7 +11,7 @@ import com.zyntasolutions.zyntapos.domain.model.OrderStatus
 import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
 import com.zyntasolutions.zyntapos.domain.repository.StockRepository
 import com.zyntasolutions.zyntapos.domain.usecase.auth.CheckPermissionUseCase
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 /**
  * Voids a completed order, reversing stock decrements and marking the order VOIDED.

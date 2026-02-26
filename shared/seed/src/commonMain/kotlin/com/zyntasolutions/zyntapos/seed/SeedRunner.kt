@@ -9,7 +9,7 @@ import com.zyntasolutions.zyntapos.domain.repository.CategoryRepository
 import com.zyntasolutions.zyntapos.domain.repository.CustomerRepository
 import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
 import com.zyntasolutions.zyntapos.domain.repository.SupplierRepository
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 /**
  * Debug-only seed data runner.

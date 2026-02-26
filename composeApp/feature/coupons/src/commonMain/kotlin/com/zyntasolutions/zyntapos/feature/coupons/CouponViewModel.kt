@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.first
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 /**
  * ViewModel for the Coupons feature — Sprints 12–13.

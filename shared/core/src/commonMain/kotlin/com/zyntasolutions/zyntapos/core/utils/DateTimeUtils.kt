@@ -1,6 +1,6 @@
 package com.zyntasolutions.zyntapos.core.utils
 
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate

@@ -18,7 +18,7 @@ import com.zyntasolutions.zyntapos.domain.repository.UnitGroupRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Fixtures

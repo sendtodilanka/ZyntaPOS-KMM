@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.PayrollRecord
 import com.zyntasolutions.zyntapos.domain.model.PayrollStatus
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 

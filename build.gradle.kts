@@ -88,15 +88,18 @@ allprojects {
 }
 
 // ─── Dependency Resolution ─────────────────────────────────────────────────
-// Pin kotlinx-datetime to 0.6.1 across all modules.
-// Transitive deps (Compose Multiplatform) may pull higher versions;
-// forcing 0.6.1 keeps compile and runtime in sync to avoid NoSuchMethodError.
+// Pin kotlinx-datetime to 0.7.1 — this is the version CMP 1.10.0 was compiled
+// against. In 0.7.1, kotlinx.datetime.Instant became a typealias for
+// kotlin.time.Instant (added in Kotlin 2.1). Forcing 0.6.1 at runtime breaks
+// CMP's pre-compiled JARs that call toLocalDateTime(kotlin.time.Instant, ...)
+// causing NoSuchMethodError on screens that use datetime (Reports, Attendance, etc.).
+// DO NOT downgrade to 0.6.x — it is incompatible with CMP 1.10.0 + Kotlin 2.3.0.
 // ────────────────────────────────────────────────────────────────────────────
 subprojects {
     configurations.configureEach {
         resolutionStrategy {
-            force("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
-            force("org.jetbrains.kotlinx:kotlinx-datetime-jvm:0.6.1")
+            force("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
+            force("org.jetbrains.kotlinx:kotlinx-datetime-jvm:0.7.1")
         }
     }
 }

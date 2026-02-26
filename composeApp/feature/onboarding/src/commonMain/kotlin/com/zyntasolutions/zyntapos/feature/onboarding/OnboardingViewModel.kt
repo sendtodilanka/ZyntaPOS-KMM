@@ -9,7 +9,7 @@ import com.zyntasolutions.zyntapos.feature.onboarding.mvi.OnboardingEffect
 import com.zyntasolutions.zyntapos.feature.onboarding.mvi.OnboardingIntent
 import com.zyntasolutions.zyntapos.feature.onboarding.mvi.OnboardingState
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 /**
  * MVI ViewModel for the first-run onboarding wizard.
