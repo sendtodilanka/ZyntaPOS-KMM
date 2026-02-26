@@ -146,7 +146,7 @@ fun ZyntaDialogContent(variant: ZyntaDialogVariant) {
 
 // ── Preview ───────────────────────────────────────────────────────────────────
 
-@org.jetbrains.compose.ui.tooling.preview.Preview
+@androidx.compose.ui.tooling.preview.Preview
 @androidx.compose.runtime.Composable
 private fun ZyntaDialogPreview() {
     com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {

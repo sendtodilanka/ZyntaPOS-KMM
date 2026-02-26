@@ -153,7 +153,7 @@ private fun RowScope.ButtonContent(
 
 // ── Preview ───────────────────────────────────────────────────────────────────
 
-@org.jetbrains.compose.ui.tooling.preview.Preview
+@androidx.compose.ui.tooling.preview.Preview
 @androidx.compose.runtime.Composable
 private fun ZyntaButtonPreview() {
     com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {

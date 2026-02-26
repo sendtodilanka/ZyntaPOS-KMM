@@ -51,7 +51,7 @@ fun ZyntaBottomSheet(
 // ── Preview ───────────────────────────────────────────────────────────────────
 
 @androidx.compose.material3.ExperimentalMaterial3Api
-@org.jetbrains.compose.ui.tooling.preview.Preview
+@androidx.compose.ui.tooling.preview.Preview
 @androidx.compose.runtime.Composable
 private fun ZyntaBottomSheetPreview() {
     com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {

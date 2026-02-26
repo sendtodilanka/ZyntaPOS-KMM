@@ -106,7 +106,7 @@ fun ZyntaLargeTopAppBar(
 // ── Preview ───────────────────────────────────────────────────────────────────
 
 @androidx.compose.material3.ExperimentalMaterial3Api
-@org.jetbrains.compose.ui.tooling.preview.Preview
+@androidx.compose.ui.tooling.preview.Preview
 @androidx.compose.runtime.Composable
 private fun ZyntaTopAppBarPreview() {
     com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {

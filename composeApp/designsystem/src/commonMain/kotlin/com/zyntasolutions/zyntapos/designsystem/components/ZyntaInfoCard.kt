@@ -23,6 +23,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -282,12 +284,12 @@ fun ZyntaActivityItem(
 
 // ── Preview ───────────────────────────────────────────────────────────────────
 
-@org.jetbrains.compose.ui.tooling.preview.Preview
+@androidx.compose.ui.tooling.preview.Preview
 @androidx.compose.runtime.Composable
 private fun ZyntaInfoCardPreview() {
     com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {
         ZyntaInfoCard(
-            icon = androidx.compose.material.icons.Icons.Default.Info,
+            icon = Icons.Default.Info,
             title = "System Notice",
             description = "Your database was last backed up 2 hours ago.",
         )

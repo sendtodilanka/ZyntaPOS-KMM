@@ -231,7 +231,7 @@ private fun UserFormSheet(
 
 // ── Preview ───────────────────────────────────────────────────────────────────
 
-@org.jetbrains.compose.ui.tooling.preview.Preview
+@androidx.compose.ui.tooling.preview.Preview
 @androidx.compose.runtime.Composable
 private fun UserManagementScreenEmptyPreview() {
     com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {
@@ -244,7 +244,7 @@ private fun UserManagementScreenEmptyPreview() {
     }
 }
 
-@org.jetbrains.compose.ui.tooling.preview.Preview
+@androidx.compose.ui.tooling.preview.Preview
 @androidx.compose.runtime.Composable
 private fun UserManagementScreenLoadedPreview() {
     com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {
@@ -255,15 +255,15 @@ private fun UserManagementScreenLoadedPreview() {
                         id = "u1", name = "Alice Admin", email = "alice@zyntapos.com",
                         role = com.zyntasolutions.zyntapos.domain.model.Role.ADMIN,
                         storeId = "s1", isActive = true,
-                        createdAt = kotlinx.datetime.Clock.System.now(),
-                        updatedAt = kotlinx.datetime.Clock.System.now(),
+                        createdAt = kotlinx.datetime.Instant.fromEpochMilliseconds(0L),
+                        updatedAt = kotlinx.datetime.Instant.fromEpochMilliseconds(0L),
                     ),
                     com.zyntasolutions.zyntapos.domain.model.User(
                         id = "u2", name = "Bob Cashier", email = "bob@zyntapos.com",
                         role = com.zyntasolutions.zyntapos.domain.model.Role.CASHIER,
                         storeId = "s1", isActive = true,
-                        createdAt = kotlinx.datetime.Clock.System.now(),
-                        updatedAt = kotlinx.datetime.Clock.System.now(),
+                        createdAt = kotlinx.datetime.Instant.fromEpochMilliseconds(0L),
+                        updatedAt = kotlinx.datetime.Instant.fromEpochMilliseconds(0L),
                     ),
                 ),
             ),

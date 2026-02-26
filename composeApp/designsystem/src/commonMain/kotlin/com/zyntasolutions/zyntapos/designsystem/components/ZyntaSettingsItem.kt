@@ -194,19 +194,19 @@ fun ZyntaSettingsDivider() {
 
 // ── Preview ───────────────────────────────────────────────────────────────────
 
-@org.jetbrains.compose.ui.tooling.preview.Preview
+@androidx.compose.ui.tooling.preview.Preview
 @androidx.compose.runtime.Composable
 private fun ZyntaSettingsItemPreview() {
     com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme {
         androidx.compose.foundation.layout.Column {
             ZyntaSettingsItem(
-                icon = androidx.compose.material.icons.Icons.Default.Security,
+                icon = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 title = "Security",
                 subtitle = "PIN, auto-lock, RBAC",
                 onClick = {},
             )
             ZyntaSettingsToggle(
-                icon = androidx.compose.material.icons.Icons.Default.Notifications,
+                icon = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 title = "Notifications",
                 checked = true,
                 onCheckedChange = {},
