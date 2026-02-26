@@ -589,9 +589,9 @@ private fun MainScaffoldShell(
     navigationController: NavigationController,
     navItems: List<NavItem>,
     currentRoute: ZyntaRoute,
-    content: @Composable () -> Unit,
     compactNavItems: List<NavItem> = navItems.take(COMPACT_NAV_MAX_ITEMS),
     navGroups: List<com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaNavGroup> = RbacNavFilter.groupsForItems(navItems),
+    content: @Composable () -> Unit,
 ) {
     // Returns true when item.route is the nav section root for the currentRoute.
     fun routeMatchesItem(item: NavItem): Boolean = when (currentRoute) {

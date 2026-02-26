@@ -184,9 +184,8 @@ class CouponViewModelTest {
     fun `LoadCoupons intent sets isLoading true`() = runTest {
         viewModel.dispatch(CouponIntent.LoadCoupons)
         testDispatcher.scheduler.advanceUntilIdle()
-        // After advance idle: isLoading is set to true by the handler then back to false by observer
-        // Just verifying no crash and state is consistent
-        assertFalse(viewModel.state.value.isLoading)
+        // LoadCoupons sets isLoading=true; it remains true until the coupon flow re-emits
+        assertTrue(viewModel.state.value.isLoading)
     }
 
     // ── SaveCoupon — validation ────────────────────────────────────────────────

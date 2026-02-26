@@ -2,6 +2,7 @@ package com.zyntasolutions.zyntapos.feature.staff
 
 import androidx.lifecycle.viewModelScope
 import com.zyntasolutions.zyntapos.core.result.Result
+import com.zyntasolutions.zyntapos.core.result.ValidationException
 import com.zyntasolutions.zyntapos.core.utils.IdGenerator
 import com.zyntasolutions.zyntapos.domain.model.AttendanceRecord
 import com.zyntasolutions.zyntapos.domain.model.AttendanceStatus
@@ -299,7 +300,19 @@ class StaffViewModel(
                 sendEffect(StaffEffect.NavigateToEmployeeList)
             }
             is Result.Error -> {
-                updateState { copy(isLoading = false, error = result.exception.message) }
+                val ex = result.exception
+                if (ex is ValidationException && ex.field.isNotBlank()) {
+                    updateState {
+                        copy(
+                            isLoading = false,
+                            employeeForm = employeeForm.copy(
+                                validationErrors = mapOf(ex.field to (ex.message ?: "Invalid value")),
+                            ),
+                        )
+                    }
+                } else {
+                    updateState { copy(isLoading = false, error = ex.message) }
+                }
             }
             is Result.Loading -> Unit
         }

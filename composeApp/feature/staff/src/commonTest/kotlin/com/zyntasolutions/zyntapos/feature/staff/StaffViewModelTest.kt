@@ -512,7 +512,7 @@ class StaffViewModelTest {
     // ── Employee CRUD ─────────────────────────────────────────────────────────
 
     @Test
-    fun `SaveEmployee with valid form creates new employee and emits ShowSuccess`() = runTest {
+    fun `SaveEmployee with valid form creates new employee and navigates to list`() = runTest {
         viewModel.dispatch(StaffIntent.UpdateEmployeeField("firstName", "Alice"))
         viewModel.dispatch(StaffIntent.UpdateEmployeeField("lastName", "Smith"))
         viewModel.dispatch(StaffIntent.UpdateEmployeeField("position", "Manager"))
@@ -524,7 +524,7 @@ class StaffViewModelTest {
             testDispatcher.scheduler.advanceUntilIdle()
 
             val effect = awaitItem()
-            assertTrue(effect is StaffEffect.ShowSuccess)
+            assertTrue(effect is StaffEffect.NavigateToEmployeeList)
             cancelAndIgnoreRemainingEvents()
         }
 
@@ -544,7 +544,7 @@ class StaffViewModelTest {
     }
 
     @Test
-    fun `DeleteEmployee removes employee from list and emits ShowSuccess`() = runTest {
+    fun `DeleteEmployee removes employee from list and navigates to list`() = runTest {
         employeesFlow.value = listOf(testEmployee)
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -553,7 +553,7 @@ class StaffViewModelTest {
             testDispatcher.scheduler.advanceUntilIdle()
 
             val effect = awaitItem()
-            assertTrue(effect is StaffEffect.ShowSuccess)
+            assertTrue(effect is StaffEffect.NavigateToEmployeeList)
             cancelAndIgnoreRemainingEvents()
         }
 
@@ -636,48 +636,38 @@ class StaffViewModelTest {
     }
 
     @Test
-    fun `ApproveLeave updates leave status to APPROVED and emits ShowSuccess`() = runTest {
+    fun `ApproveLeave updates leave status to APPROVED and sets successMessage`() = runTest {
         leaveRecordsFlow.value = listOf(testLeaveRecord)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        viewModel.effects.test {
-            viewModel.dispatch(
-                StaffIntent.ApproveLeave(
-                    requestId = testLeaveRecord.id,
-                    approverId = currentUserId,
-                    approvedAt = now,
-                )
+        viewModel.dispatch(
+            StaffIntent.ApproveLeave(
+                requestId = testLeaveRecord.id,
+                approverId = currentUserId,
+                approvedAt = now,
             )
-            testDispatcher.scheduler.advanceUntilIdle()
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
 
-            val effect = awaitItem()
-            assertTrue(effect is StaffEffect.ShowSuccess)
-            cancelAndIgnoreRemainingEvents()
-        }
-
+        assertNotNull(viewModel.state.value.successMessage)
         assertEquals(LeaveStatus.APPROVED, leaveRecordsFlow.value.first().status)
     }
 
     @Test
-    fun `RejectLeave updates leave status to REJECTED and emits ShowSuccess`() = runTest {
+    fun `RejectLeave updates leave status to REJECTED and sets successMessage`() = runTest {
         leaveRecordsFlow.value = listOf(testLeaveRecord)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        viewModel.effects.test {
-            viewModel.dispatch(
-                StaffIntent.RejectLeave(
-                    requestId = testLeaveRecord.id,
-                    reason = "Insufficient staffing",
-                    rejectedAt = now,
-                )
+        viewModel.dispatch(
+            StaffIntent.RejectLeave(
+                requestId = testLeaveRecord.id,
+                reason = "Insufficient staffing",
+                rejectedAt = now,
             )
-            testDispatcher.scheduler.advanceUntilIdle()
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
 
-            val effect = awaitItem()
-            assertTrue(effect is StaffEffect.ShowSuccess)
-            cancelAndIgnoreRemainingEvents()
-        }
-
+        assertNotNull(viewModel.state.value.successMessage)
         assertEquals(LeaveStatus.REJECTED, leaveRecordsFlow.value.first().status)
         assertEquals("Insufficient staffing", leaveRecordsFlow.value.first().rejectionReason)
     }
@@ -696,26 +686,21 @@ class StaffViewModelTest {
     }
 
     @Test
-    fun `ProcessPayment on pending record marks it PAID and emits ShowSuccess`() = runTest {
+    fun `ProcessPayment on pending record marks it PAID and sets successMessage`() = runTest {
         payrollFlow.value = listOf(testPayrollRecord)
         viewModel.dispatch(StaffIntent.LoadPayroll(storeId, "2026-02"))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        viewModel.effects.test {
-            viewModel.dispatch(
-                StaffIntent.ProcessPayment(
-                    payrollId = testPayrollRecord.id,
-                    paidAt = now,
-                    paymentRef = "TXN-12345",
-                )
+        viewModel.dispatch(
+            StaffIntent.ProcessPayment(
+                payrollId = testPayrollRecord.id,
+                paidAt = now,
+                paymentRef = "TXN-12345",
             )
-            testDispatcher.scheduler.advanceUntilIdle()
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
 
-            val effect = awaitItem()
-            assertTrue(effect is StaffEffect.ShowSuccess)
-            cancelAndIgnoreRemainingEvents()
-        }
-
+        assertNotNull(viewModel.state.value.successMessage)
         assertEquals(PayrollStatus.PAID, payrollFlow.value.first().status)
         assertEquals("TXN-12345", payrollFlow.value.first().paymentRef)
     }

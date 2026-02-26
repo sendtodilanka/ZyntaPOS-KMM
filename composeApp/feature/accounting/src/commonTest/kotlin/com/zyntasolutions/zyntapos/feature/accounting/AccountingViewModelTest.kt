@@ -6,6 +6,7 @@ import com.zyntasolutions.zyntapos.domain.model.AccountSummary
 import com.zyntasolutions.zyntapos.domain.model.AccountingEntry
 import com.zyntasolutions.zyntapos.domain.model.AccountingEntryType
 import com.zyntasolutions.zyntapos.domain.model.AccountingReferenceType
+import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.domain.repository.AccountingRepository
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetPeriodSummaryUseCase
 import kotlinx.coroutines.Dispatchers
@@ -129,6 +130,7 @@ class AccountingViewModelTest {
     fun `LoadPeriod sets isLoading to true while fetching`() = runTest {
         // The loading state is set synchronously before the suspend call
         var capturedLoadingState = false
+        var vmRef: AccountingViewModel? = null
 
         val slowRepository = object : AccountingRepository {
             override suspend fun getByStoreAndPeriod(
@@ -152,7 +154,7 @@ class AccountingViewModelTest {
                 fromPeriod: String,
                 toPeriod: String,
             ): Result<List<AccountSummary>> {
-                capturedLoadingState = viewModel.state.value.isLoading
+                capturedLoadingState = vmRef!!.state.value.isLoading
                 return Result.Success(emptyList())
             }
 
@@ -164,6 +166,7 @@ class AccountingViewModelTest {
             getPeriodSummaryUseCase = GetPeriodSummaryUseCase(slowRepository),
             currentStoreId = storeId,
         )
+        vmRef = vmWithSlowRepo
 
         vmWithSlowRepo.dispatch(AccountingIntent.LoadPeriod("2026-02"))
         testDispatcher.scheduler.advanceUntilIdle()
@@ -184,7 +187,7 @@ class AccountingViewModelTest {
 
     @Test
     fun `LoadPeriod on repository error emits ShowError effect`() = runTest {
-        summariesToReturn = Result.Error(RuntimeException("Network failure"))
+        summariesToReturn = Result.Error(DatabaseException("Network failure"))
 
         viewModel.effects.test {
             viewModel.dispatch(AccountingIntent.LoadPeriod("2026-01"))
@@ -199,7 +202,7 @@ class AccountingViewModelTest {
 
     @Test
     fun `LoadPeriod on error clears isLoading`() = runTest {
-        summariesToReturn = Result.Error(RuntimeException("DB error"))
+        summariesToReturn = Result.Error(DatabaseException("DB error"))
 
         viewModel.dispatch(AccountingIntent.LoadPeriod("2026-01"))
         testDispatcher.scheduler.advanceUntilIdle()
@@ -212,7 +215,7 @@ class AccountingViewModelTest {
     @Test
     fun `DismissError clears the error field in state`() = runTest {
         // First cause an error
-        summariesToReturn = Result.Error(RuntimeException("Test error"))
+        summariesToReturn = Result.Error(DatabaseException("Test error"))
         viewModel.dispatch(AccountingIntent.LoadPeriod("2026-01"))
         testDispatcher.scheduler.advanceUntilIdle()
 
