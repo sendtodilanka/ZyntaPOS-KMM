@@ -50,6 +50,9 @@ object SettingsKeys {
     // ── Appearance ────────────────────────────────────────────────────────────
     const val THEME_MODE              = "appearance.theme_mode"
 
+    // ── Security ──────────────────────────────────────────────────────────────
+    const val SECURITY_AUTOLOCK_MINUTES = "security.autolock_minutes"
+
     // ── Backup ────────────────────────────────────────────────────────────────
     const val LAST_BACKUP_TIMESTAMP   = "backup.last_backup_ts"
 }

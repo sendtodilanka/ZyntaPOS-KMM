@@ -351,7 +351,6 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
         val vm: SettingsViewModel = koinViewModel()
         val state by vm.state.collectAsState()
         GeneralSettingsScreen(
-            viewModel = vm,
             state = state.general,
             effects = vm.effects,
             onIntent = vm::dispatch,
@@ -407,7 +406,13 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
 
     // ── Settings: Security ───────────────────────────────────────────────────
     securitySettings = { onNavigateUp ->
-        SecuritySettingsScreen(onBack = onNavigateUp)
+        val vm: SettingsViewModel = koinViewModel()
+        val state by vm.state.collectAsState()
+        SecuritySettingsScreen(
+            state = state.security,
+            onIntent = vm::dispatch,
+            onBack = onNavigateUp,
+        )
     },
 
     // ── Order History ───────────────────────────────────────────────────────
