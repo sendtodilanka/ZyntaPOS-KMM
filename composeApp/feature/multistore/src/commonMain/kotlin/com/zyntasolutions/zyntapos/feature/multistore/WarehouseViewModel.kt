@@ -50,6 +50,7 @@ class WarehouseViewModel(
             currentStoreId = session?.storeId ?: "default"
             currentUserId = session?.id ?: "unknown"
             observeWarehouses()
+            loadPendingTransfers()
         }
     }
 
@@ -57,6 +58,14 @@ class WarehouseViewModel(
         warehouseRepository.getByStore(currentStoreId)
             .onEach { warehouses -> updateState { copy(warehouses = warehouses, isLoading = false) } }
             .launchIn(viewModelScope)
+    }
+
+    private suspend fun loadPendingTransfers() {
+        when (val result = warehouseRepository.getPendingTransfers()) {
+            is Result.Success -> updateState { copy(pendingTransfers = result.data) }
+            is Result.Error   -> sendEffect(WarehouseEffect.ShowError(result.exception.message ?: "Failed to load pending transfers"))
+            is Result.Loading -> Unit
+        }
     }
 
     override suspend fun handleIntent(intent: WarehouseIntent) {

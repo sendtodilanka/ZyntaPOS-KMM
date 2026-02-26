@@ -11,6 +11,7 @@ import com.zyntasolutions.zyntapos.data.local.SyncEnqueuer
 import com.zyntasolutions.zyntapos.data.local.mapper.RegisterMapper
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
 import com.zyntasolutions.zyntapos.domain.model.CashMovement
+import com.zyntasolutions.zyntapos.domain.model.CashRegister
 import com.zyntasolutions.zyntapos.domain.model.RegisterSession
 import com.zyntasolutions.zyntapos.domain.model.SyncOperation
 import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
@@ -35,6 +36,22 @@ class RegisterRepositoryImpl(
 
     private val sq get() = db.registersQueries
     private val mq get() = db.registersQueries
+
+    override fun getRegisters(): Flow<List<CashRegister>> =
+        sq.getAll()
+            .asFlow()
+            .mapToList(Dispatchers.IO)
+            .map { rows ->
+                rows.map { row ->
+                    CashRegister(
+                        id               = row.id,
+                        name             = row.name,
+                        storeId          = "", // store_id column not yet in schema — resolved in Phase 2
+                        currentSessionId = row.current_session_id,
+                        isActive         = row.is_active != 0L,
+                    )
+                }
+            }
 
     override fun getActive(): Flow<RegisterSession?> =
         sq.getActiveSession()
