@@ -6,14 +6,17 @@ import com.zyntasolutions.zyntapos.core.utils.IdGenerator
 import com.zyntasolutions.zyntapos.domain.model.StockTransfer
 import com.zyntasolutions.zyntapos.domain.model.Warehouse
 import com.zyntasolutions.zyntapos.domain.model.WarehouseRack
+import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseRepository
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.CommitStockTransferUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rack.DeleteWarehouseRackUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rack.GetWarehouseRacksUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rack.SaveWarehouseRackUseCase
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 
 /**
@@ -27,8 +30,7 @@ import kotlinx.datetime.Clock
  * @param getWarehouseRacksUseCase Reactive rack list for a warehouse.
  * @param saveWarehouseRackUseCase Insert or update a rack record.
  * @param deleteWarehouseRackUseCase Soft-delete a rack record.
- * @param currentStoreId           Resolved from the active auth session at DI time.
- * @param currentUserId            Resolved from the active auth session at DI time.
+ * @param authRepository           Provides the active auth session for resolving storeId and userId.
  */
 class WarehouseViewModel(
     private val warehouseRepository: WarehouseRepository,
@@ -36,12 +38,19 @@ class WarehouseViewModel(
     private val getWarehouseRacksUseCase: GetWarehouseRacksUseCase,
     private val saveWarehouseRackUseCase: SaveWarehouseRackUseCase,
     private val deleteWarehouseRackUseCase: DeleteWarehouseRackUseCase,
-    private val currentStoreId: String,
-    private val currentUserId: String,
+    private val authRepository: AuthRepository,
 ) : BaseViewModel<WarehouseState, WarehouseIntent, WarehouseEffect>(WarehouseState()) {
 
+    private var currentStoreId: String = "default"
+    private var currentUserId: String = "unknown"
+
     init {
-        observeWarehouses()
+        viewModelScope.launch {
+            val session = authRepository.getSession().first()
+            currentStoreId = session?.storeId ?: "default"
+            currentUserId = session?.id ?: "unknown"
+            observeWarehouses()
+        }
     }
 
     private fun observeWarehouses() {

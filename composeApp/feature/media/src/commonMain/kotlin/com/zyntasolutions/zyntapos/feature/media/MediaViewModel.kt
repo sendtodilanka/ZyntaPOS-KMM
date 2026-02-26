@@ -6,6 +6,7 @@ import com.zyntasolutions.zyntapos.core.utils.IdGenerator
 import com.zyntasolutions.zyntapos.domain.model.MediaFile
 import com.zyntasolutions.zyntapos.domain.model.MediaFileType
 import com.zyntasolutions.zyntapos.domain.model.MediaUploadStatus
+import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.MediaRepository
 import com.zyntasolutions.zyntapos.domain.usecase.media.DeleteMediaFileUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.media.GetMediaForEntityUseCase
@@ -14,10 +15,12 @@ import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 
 /**
@@ -30,21 +33,26 @@ import kotlinx.datetime.Clock
  * ### Suspend operations (handleIntent)
  * - Add file, set as primary, delete
  *
- * @param currentUserId Authenticated user ID, used as [MediaFile.uploadedBy].
+ * @param authRepository Provides the active auth session for resolving currentUserId.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class MediaViewModel(
-    private val currentUserId: String,
+    private val authRepository: AuthRepository,
     private val getMediaForEntityUseCase: GetMediaForEntityUseCase,
     private val saveMediaFileUseCase: SaveMediaFileUseCase,
     private val deleteMediaFileUseCase: DeleteMediaFileUseCase,
     private val mediaRepository: MediaRepository,
 ) : BaseViewModel<MediaState, MediaIntent, MediaEffect>(MediaState()) {
 
+    private var currentUserId: String = "unknown"
+
     /** Entity scope for the reactive media Flow. Updated by [MediaIntent.LoadMediaForEntity]. */
     private val _entityScope = MutableStateFlow("" to "")
 
     init {
+        viewModelScope.launch {
+            currentUserId = authRepository.getSession().first()?.id ?: "unknown"
+        }
         observeMedia()
     }
 

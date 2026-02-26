@@ -1,6 +1,5 @@
 package com.zyntasolutions.zyntapos.feature.staff
 
-import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.usecase.staff.ApproveLeaveUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.ClockInUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.ClockOutUseCase
@@ -21,8 +20,6 @@ import com.zyntasolutions.zyntapos.domain.usecase.staff.RejectLeaveUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.SaveEmployeeUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.SaveShiftScheduleUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.SubmitLeaveRequestUseCase
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
@@ -84,14 +81,9 @@ val staffModule = module {
     factoryOf(::GetLeaveHistoryUseCase)
 
     // ── ViewModel ─────────────────────────────────────────────────────────
-    // Resolves storeId + currentUserId from the AuthRepository session StateFlow at
-    // ViewModel creation time. runBlocking is safe here — session StateFlow always
-    // has a value and returns immediately.
     viewModel {
-        val session = runBlocking { get<AuthRepository>().getSession().first() }
         StaffViewModel(
-            storeId = session?.storeId ?: "",
-            currentUserId = session?.id ?: "unknown",
+            authRepository = get(),
             payrollRepository = get(),
             shiftRepository = get(),
             getEmployeesUseCase = get(),

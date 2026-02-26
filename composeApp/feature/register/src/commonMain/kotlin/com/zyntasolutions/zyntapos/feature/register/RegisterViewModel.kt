@@ -3,14 +3,17 @@ package com.zyntasolutions.zyntapos.feature.register
 import androidx.lifecycle.viewModelScope
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.CashMovement
+import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
 import com.zyntasolutions.zyntapos.domain.usecase.register.CloseRegisterSessionUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.OpenRegisterSessionUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.PrintZReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.RecordCashMovementUseCase
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 
 /**
  * ViewModel for the Cash Register lifecycle screens (Sprint 20, task 11.1).
@@ -29,7 +32,7 @@ import kotlinx.coroutines.flow.onEach
  * @param closeRegisterSessionUseCase Closes an active session with balance reconciliation.
  * @param recordCashMovementUseCase  Records a cash-in or cash-out movement.
  * @param printZReportUseCase    Prints the Z-report to the connected thermal printer.
- * @param currentUserId          Authenticated operator UUID (injected by Koin).
+ * @param authRepository         Provides the active auth session for resolving currentUserId.
  */
 class RegisterViewModel(
     private val registerRepository: RegisterRepository,
@@ -37,8 +40,16 @@ class RegisterViewModel(
     private val closeRegisterSessionUseCase: CloseRegisterSessionUseCase,
     private val recordCashMovementUseCase: RecordCashMovementUseCase,
     private val printZReportUseCase: PrintZReportUseCase,
-    private val currentUserId: String,
+    private val authRepository: AuthRepository,
 ) : BaseViewModel<RegisterState, RegisterIntent, RegisterEffect>(RegisterState()) {
+
+    private var currentUserId: String = "unknown"
+
+    init {
+        viewModelScope.launch {
+            currentUserId = authRepository.getSession().first()?.id ?: "unknown"
+        }
+    }
 
     // ── Intent handler ────────────────────────────────────────────────────
 

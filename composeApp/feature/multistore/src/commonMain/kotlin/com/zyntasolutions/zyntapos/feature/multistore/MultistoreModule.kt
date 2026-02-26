@@ -1,12 +1,9 @@
 package com.zyntasolutions.zyntapos.feature.multistore
 
-import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.CommitStockTransferUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rack.DeleteWarehouseRackUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rack.GetWarehouseRacksUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rack.SaveWarehouseRackUseCase
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
@@ -36,17 +33,14 @@ val multistoreModule = module {
     factoryOf(::DeleteWarehouseRackUseCase)
 
     // ── ViewModel ─────────────────────────────────────────────────────────────
-    // storeId and userId resolved from the active session at creation time.
     viewModel {
-        val session = runBlocking { get<AuthRepository>().getSession().first() }
         WarehouseViewModel(
             warehouseRepository = get(),
             commitTransferUseCase = get(),
             getWarehouseRacksUseCase = get(),
             saveWarehouseRackUseCase = get(),
             deleteWarehouseRackUseCase = get(),
-            currentStoreId = session?.storeId ?: "default",
-            currentUserId = session?.id ?: "unknown",
+            authRepository = get(),
         )
     }
 }

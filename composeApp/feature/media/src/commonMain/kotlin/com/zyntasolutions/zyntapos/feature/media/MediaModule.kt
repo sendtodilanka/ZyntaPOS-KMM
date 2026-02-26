@@ -1,11 +1,8 @@
 package com.zyntasolutions.zyntapos.feature.media
 
-import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.usecase.media.DeleteMediaFileUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.media.GetMediaForEntityUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.media.SaveMediaFileUseCase
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
@@ -29,13 +26,9 @@ val mediaModule = module {
     factoryOf(::DeleteMediaFileUseCase)
 
     // ── MediaViewModel ────────────────────────────────────────────────────
-    // Resolves currentUserId from AuthRepository session at DI construction time.
     viewModel {
-        val userId = runBlocking {
-            get<AuthRepository>().getSession().first()?.id ?: "unknown"
-        }
         MediaViewModel(
-            currentUserId = userId,
+            authRepository = get(),
             getMediaForEntityUseCase = get(),
             saveMediaFileUseCase = get(),
             deleteMediaFileUseCase = get(),

@@ -6,6 +6,7 @@ import com.zyntasolutions.zyntapos.core.utils.IdGenerator
 import com.zyntasolutions.zyntapos.domain.model.Product
 import com.zyntasolutions.zyntapos.domain.model.ProductVariant
 import com.zyntasolutions.zyntapos.domain.model.StockAdjustment
+import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.CategoryRepository
 import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
 import com.zyntasolutions.zyntapos.domain.validation.ProductValidationParams
@@ -21,9 +22,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 
 /**
@@ -44,7 +47,7 @@ import kotlinx.datetime.Clock
  * @param createProductUseCase   Product creation with validation.
  * @param updateProductUseCase   Product update with validation.
  * @param adjustStockUseCase     Stock adjustment with audit trail.
- * @param currentUserId          Authenticated user ID for audit entries.
+ * @param authRepository         Provides the active auth session for resolving currentUserId.
  */
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 class InventoryViewModel(
@@ -54,8 +57,10 @@ class InventoryViewModel(
     private val createProductUseCase: CreateProductUseCase,
     private val updateProductUseCase: UpdateProductUseCase,
     private val adjustStockUseCase: AdjustStockUseCase,
-    private val currentUserId: String,
+    private val authRepository: AuthRepository,
 ) : BaseViewModel<InventoryState, InventoryIntent, InventoryEffect>(InventoryState()) {
+
+    private var currentUserId: String = "unknown"
 
     // ── Reactive filter state flows ───────────────────────────────────────
 
@@ -63,6 +68,9 @@ class InventoryViewModel(
     private val _selectedCategoryId = MutableStateFlow<String?>(null)
 
     init {
+        viewModelScope.launch {
+            currentUserId = authRepository.getSession().first()?.id ?: "unknown"
+        }
         observeCategories()
         observeProducts()
     }

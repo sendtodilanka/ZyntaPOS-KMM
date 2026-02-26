@@ -1,12 +1,9 @@
 package com.zyntasolutions.zyntapos.feature.customers
 
-import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.usecase.crm.EarnRewardPointsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.RedeemRewardPointsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.SaveCustomerGroupUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.WalletTopUpUseCase
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
@@ -38,12 +35,7 @@ val customersModule = module {
     factoryOf(::RedeemRewardPointsUseCase)
 
     // ── ViewModel ─────────────────────────────────────────────────────────────
-    // currentUserId is resolved from the active session StateFlow at creation
-    // time via runBlocking — safe because StateFlow always has an initial value.
     viewModel {
-        val userId = runBlocking {
-            get<AuthRepository>().getSession().first()?.id ?: "unknown"
-        }
         CustomerViewModel(
             customerRepository = get(),
             groupRepository    = get(),
@@ -51,7 +43,7 @@ val customersModule = module {
             loyaltyRepository  = get(),
             saveGroupUseCase   = get(),
             walletTopUpUseCase = get(),
-            currentUserId      = userId,
+            authRepository     = get(),
         )
     }
 }

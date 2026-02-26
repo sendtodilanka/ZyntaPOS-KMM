@@ -1,10 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.expenses
 
-import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.usecase.expenses.ApproveExpenseUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.expenses.SaveExpenseUseCase
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
@@ -27,12 +24,11 @@ val expensesModule = module {
 
     // ── ViewModel ─────────────────────────────────────────────────────────────
     viewModel {
-        val userId = runBlocking { get<AuthRepository>().getSession().first()?.id ?: "unknown" }
         ExpenseViewModel(
             expenseRepository = get(),
             saveExpenseUseCase = get(),
             approveExpenseUseCase = get(),
-            currentUserId = userId,
+            authRepository = get(),
         )
     }
 }
