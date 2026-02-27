@@ -27,8 +27,11 @@ import com.zyntasolutions.zyntapos.domain.usecase.pos.ProcessPaymentUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.RemoveItemFromCartUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.RetrieveHeldOrderUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.UpdateCartItemQuantityUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.accounting.PostSaleJournalEntryUseCase
 import com.zyntasolutions.zyntapos.domain.formatter.ReceiptFormatter
+import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
+import kotlin.time.Clock
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,6 +43,8 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 /**
  * Root ViewModel for the POS checkout screen (Sprint 14, extended Sprint 22).
@@ -120,6 +125,7 @@ class PosViewModel(
     private val customerRepository: CustomerRepository,
     private val registerRepository: RegisterRepository,
     private val authRepository: AuthRepository,
+    private val postSaleJournalEntryUseCase: PostSaleJournalEntryUseCase,
 ) : BaseViewModel<PosState, PosIntent, PosEffect>(PosState()) {
 
     private var cashierId: String = "unknown"
@@ -441,6 +447,27 @@ class PosViewModel(
                     }
                 }
                 onClearCart()
+                // ── Post-payment: auto-post accounting journal entry (best-effort) ──
+                val now = Clock.System.now()
+                val entryDate = now.toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
+                @Suppress("TooGenericExceptionCaught")
+                try {
+                    val journalResult = postSaleJournalEntryUseCase.execute(
+                        storeId = storeId,
+                        orderId = order.id,
+                        totalAmount = order.total,
+                        subtotal = order.subtotal,
+                        taxAmount = order.taxAmount,
+                        cashierId = cashierId,
+                        entryDate = entryDate,
+                        now = now.toEpochMilliseconds(),
+                    )
+                    if (journalResult is Result.Error) {
+                        ZyntaLogger.w("POS", "Journal entry failed: ${journalResult.exception.message}")
+                    }
+                } catch (e: Exception) {
+                    ZyntaLogger.w("POS", "Journal entry threw unexpectedly: ${e.message}")
+                }
             }
             is Result.Error -> sendEffect(PosEffect.ShowError(result.exception.message ?: "Payment failed"))
             is Result.Loading -> Unit

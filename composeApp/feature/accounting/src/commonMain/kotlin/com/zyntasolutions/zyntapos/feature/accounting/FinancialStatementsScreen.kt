@@ -14,6 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
+import com.zyntasolutions.zyntapos.domain.model.CashFlowLine
 import com.zyntasolutions.zyntapos.domain.model.FinancialStatement
 import com.zyntasolutions.zyntapos.domain.model.FinancialStatementLine
 import com.zyntasolutions.zyntapos.domain.model.TrialBalanceLine
@@ -99,6 +100,12 @@ fun FinancialStatementsScreen(
                     modifier = Modifier.weight(1f),
                 )
                 FinancialStatementTab.TRIAL_BALANCE -> TrialBalanceTabContent(
+                    state = state,
+                    storeId = storeId,
+                    onIntent = viewModel::dispatch,
+                    modifier = Modifier.weight(1f),
+                )
+                FinancialStatementTab.CASH_FLOW -> CashFlowTabContent(
                     state = state,
                     storeId = storeId,
                     onIntent = viewModel::dispatch,
@@ -533,8 +540,163 @@ private fun TrialBalanceRow(line: TrialBalanceLine) {
     }
 }
 
+@Composable
+private fun CashFlowTabContent(
+    state: FinancialStatementsState,
+    storeId: String,
+    onIntent: (FinancialStatementsIntent) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.fillMaxSize()) {
+        // Date range inputs
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(ZyntaSpacing.md),
+            horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            OutlinedTextField(
+                value = state.fromDate,
+                onValueChange = { onIntent(FinancialStatementsIntent.SetDateRange(it, state.toDate)) },
+                label = { Text("From") },
+                placeholder = { Text("YYYY-MM-DD") },
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+            )
+            OutlinedTextField(
+                value = state.toDate,
+                onValueChange = { onIntent(FinancialStatementsIntent.SetDateRange(state.fromDate, it)) },
+                label = { Text("To") },
+                placeholder = { Text("YYYY-MM-DD") },
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+            )
+            Button(
+                onClick = {
+                    onIntent(FinancialStatementsIntent.LoadCashFlow(storeId, state.fromDate, state.toDate))
+                },
+                enabled = state.fromDate.isNotBlank() && state.toDate.isNotBlank() && !state.isLoading,
+            ) { Text("Generate") }
+        }
+
+        if (state.isLoading) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+            return@Column
+        }
+
+        val cf = state.cashFlow
+        if (cf == null) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Set a date range and tap Generate.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            return@Column
+        }
+
+        LazyColumn(
+            contentPadding = PaddingValues(ZyntaSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
+        ) {
+            // Opening cash
+            item {
+                CashFlowSummaryRow("Opening Cash Balance", cf.openingCash, highlight = false)
+            }
+
+            // Operating activities
+            item { StatementSectionHeader("Operating Activities", color = MaterialTheme.colorScheme.tertiary) }
+            items(cf.operatingLines, key = { "op-${it.label}" }) { line ->
+                CashFlowLineRow(line)
+            }
+            item {
+                StatementSubtotal("Net Cash from Operations", cf.netOperating,
+                    color = if (cf.netOperating >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error)
+                Spacer(Modifier.height(ZyntaSpacing.sm))
+            }
+
+            // Investing activities
+            item { StatementSectionHeader("Investing Activities", color = MaterialTheme.colorScheme.primary) }
+            items(cf.investingLines, key = { "inv-${it.label}" }) { line ->
+                CashFlowLineRow(line)
+            }
+            item {
+                StatementSubtotal("Net Cash from Investing", cf.netInvesting,
+                    color = if (cf.netInvesting >= 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
+                Spacer(Modifier.height(ZyntaSpacing.sm))
+            }
+
+            // Financing activities
+            item { StatementSectionHeader("Financing Activities", color = Color(0xFF7B1FA2)) }
+            items(cf.financingLines, key = { "fin-${it.label}" }) { line ->
+                CashFlowLineRow(line)
+            }
+            item {
+                StatementSubtotal("Net Cash from Financing", cf.netFinancing,
+                    color = if (cf.netFinancing >= 0) Color(0xFF7B1FA2) else MaterialTheme.colorScheme.error)
+                Spacer(Modifier.height(ZyntaSpacing.sm))
+            }
+
+            // Net change + closing
+            item {
+                HorizontalDivider()
+                Spacer(Modifier.height(ZyntaSpacing.sm))
+                CashFlowSummaryRow("Net Change in Cash", cf.netChange, highlight = true)
+                Spacer(Modifier.height(ZyntaSpacing.xs))
+                CashFlowSummaryRow("Closing Cash Balance", cf.closingCash, highlight = true)
+            }
+            item { Spacer(Modifier.height(ZyntaSpacing.xl)) }
+        }
+    }
+}
+
+@Composable
+private fun CashFlowLineRow(line: CashFlowLine) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            line.label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            "%.2f".format(line.net),
+            style = MaterialTheme.typography.bodySmall,
+            color = if (line.net >= 0) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error,
+        )
+    }
+}
+
+@Composable
+private fun CashFlowSummaryRow(label: String, amount: Double, highlight: Boolean) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = ZyntaSpacing.xs),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(
+            label,
+            style = if (highlight) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodySmall,
+            fontWeight = if (highlight) FontWeight.Bold else FontWeight.Normal,
+        )
+        Text(
+            "%.2f".format(amount),
+            style = if (highlight) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodySmall,
+            fontWeight = if (highlight) FontWeight.Bold else FontWeight.Normal,
+            color = if (amount >= 0 || !highlight) MaterialTheme.colorScheme.onSurface
+            else MaterialTheme.colorScheme.error,
+        )
+    }
+}
+
 private fun FinancialStatementTab.label(): String = when (this) {
     FinancialStatementTab.PROFIT_LOSS -> "P&L"
     FinancialStatementTab.BALANCE_SHEET -> "Balance Sheet"
     FinancialStatementTab.TRIAL_BALANCE -> "Trial Balance"
+    FinancialStatementTab.CASH_FLOW -> "Cash Flow"
 }

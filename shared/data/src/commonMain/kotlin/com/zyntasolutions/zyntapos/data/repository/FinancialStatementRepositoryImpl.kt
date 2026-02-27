@@ -5,6 +5,7 @@ import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
 import com.zyntasolutions.zyntapos.domain.model.AccountBalance
 import com.zyntasolutions.zyntapos.domain.model.AccountType
+import com.zyntasolutions.zyntapos.domain.model.CashFlowLine
 import com.zyntasolutions.zyntapos.domain.model.FinancialStatement
 import com.zyntasolutions.zyntapos.domain.model.FinancialStatementLine
 import com.zyntasolutions.zyntapos.domain.model.GeneralLedgerEntry
@@ -242,6 +243,90 @@ class FinancialStatementRepositoryImpl(
         }.fold(
             onSuccess = { Result.Success(it) },
             onFailure = { t -> Result.Error(DatabaseException(t.message ?: "General ledger failed", cause = t)) },
+        )
+    }
+
+    // ── Cash Flow Statement ───────────────────────────────────────────────────
+
+    override suspend fun getCashFlowStatement(
+        storeId: String,
+        fromDate: String,
+        toDate: String,
+    ): Result<FinancialStatement.CashFlow> = withContext(Dispatchers.IO) {
+        runCatching {
+            // IAS 7 section classification by journal reference_type
+            val operatingTypes = setOf("SALE", "EXPENSE", "CASH_IN", "CASH_OUT", "DISCOUNT", "TAX_PAYMENT", "REFUND")
+            val investingTypes = setOf("PURCHASE", "RETURN", "STOCK_ADJUST", "DEPRECIATION")
+            // Everything else (PAYROLL, PERIOD_CLOSE, MANUAL, etc.) → Financing
+
+            fun labelFor(refType: String): String = when (refType) {
+                "SALE"         -> "Sales receipts"
+                "EXPENSE"      -> "Expense payments"
+                "CASH_IN"      -> "Cash register float in"
+                "CASH_OUT"     -> "Cash register float out"
+                "DISCOUNT"     -> "Discount adjustments"
+                "TAX_PAYMENT"  -> "Tax payments"
+                "REFUND"       -> "Customer refunds"
+                "PURCHASE"     -> "Inventory purchases"
+                "RETURN"       -> "Supplier returns"
+                "STOCK_ADJUST" -> "Stock adjustments"
+                "DEPRECIATION" -> "Depreciation charges"
+                "PAYROLL"      -> "Payroll disbursements"
+                "PERIOD_CLOSE" -> "Period closing adjustments"
+                "MANUAL"       -> "Manual entries"
+                else           -> refType.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() }
+            }
+
+            val rows = lq.getCashFlowByReferenceType(
+                date_from = fromDate,
+                date_to = toDate,
+            ).executeAsList()
+
+            val operatingLines = mutableListOf<CashFlowLine>()
+            val investingLines = mutableListOf<CashFlowLine>()
+            val financingLines = mutableListOf<CashFlowLine>()
+
+            rows.forEach { row ->
+                val refType = row.reference_type
+                val line = CashFlowLine(
+                    label = labelFor(refType),
+                    inflow = row.cash_inflow,
+                    outflow = row.cash_outflow,
+                    net = row.cash_inflow - row.cash_outflow,
+                )
+                when {
+                    operatingTypes.contains(refType) -> operatingLines.add(line)
+                    investingTypes.contains(refType) -> investingLines.add(line)
+                    else                             -> financingLines.add(line)
+                }
+            }
+
+            val netOperating = operatingLines.sumOf { it.net }
+            val netInvesting = investingLines.sumOf { it.net }
+            val netFinancing = financingLines.sumOf { it.net }
+            val netChange = netOperating + netInvesting + netFinancing
+
+            // closingCash = cumulative net cash in all cash accounts up to toDate (all-time)
+            // openingCash = closingCash - period net change (mathematically equivalent to pre-period balance)
+            val closingCash = lq.getCashBalanceAsOf(as_of_date = toDate).executeAsOne()
+            val openingCash = closingCash - netChange
+
+            FinancialStatement.CashFlow(
+                dateFrom = fromDate,
+                dateTo = toDate,
+                operatingLines = operatingLines,
+                investingLines = investingLines,
+                financingLines = financingLines,
+                netOperating = netOperating,
+                netInvesting = netInvesting,
+                netFinancing = netFinancing,
+                netChange = netChange,
+                openingCash = openingCash,
+                closingCash = closingCash,
+            )
+        }.fold(
+            onSuccess = { Result.Success(it) },
+            onFailure = { t -> Result.Error(DatabaseException(t.message ?: "Cash flow statement failed", cause = t)) },
         )
     }
 

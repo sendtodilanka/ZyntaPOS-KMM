@@ -2,6 +2,7 @@ package com.zyntasolutions.zyntapos.feature.pos
 
 import com.zyntasolutions.zyntapos.domain.formatter.ReceiptFormatter
 import com.zyntasolutions.zyntapos.domain.printer.ReceiptPrinterPort
+import com.zyntasolutions.zyntapos.domain.usecase.accounting.PostSaleJournalEntryUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.coupons.CalculateCouponDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.coupons.ValidateCouponUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.EarnRewardPointsUseCase
@@ -130,6 +131,15 @@ val posModule = module {
     /** Awards loyalty points to a customer after a successful sale. */
     factory { EarnRewardPointsUseCase(loyaltyRepo = get()) }
 
+    /** Auto-posts a balanced double-entry journal entry for each completed sale (Wave 1A). */
+    factory {
+        PostSaleJournalEntryUseCase(
+            journalRepository = get(),
+            accountRepository = get(),
+            periodRepository = get(),
+        )
+    }
+
     // ── ViewModel ─────────────────────────────────────────────────────────────
 
     viewModel {
@@ -156,6 +166,7 @@ val posModule = module {
             customerRepository = get(),
             registerRepository = get(),
             authRepository = get(),
+            postSaleJournalEntryUseCase = get(),
         )
     }
 }

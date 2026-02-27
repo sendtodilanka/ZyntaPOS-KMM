@@ -5,6 +5,7 @@ import com.zyntasolutions.zyntapos.domain.model.Role
 import com.zyntasolutions.zyntapos.domain.model.User
 import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.domain.repository.UserRepository
+import com.zyntasolutions.zyntapos.domain.usecase.accounting.SeedDefaultChartOfAccountsUseCase
 import com.zyntasolutions.zyntapos.feature.onboarding.mvi.OnboardingEffect
 import com.zyntasolutions.zyntapos.feature.onboarding.mvi.OnboardingIntent
 import com.zyntasolutions.zyntapos.feature.onboarding.mvi.OnboardingState
@@ -28,12 +29,14 @@ import kotlin.time.Clock
  * Passwords are passed directly to [UserRepository.create] which hashes them
  * before storage — the plain-text password is never persisted by this ViewModel.
  *
- * @param userRepository     Creates the admin user account.
- * @param settingsRepository Persists business name and completion flag.
+ * @param userRepository          Creates the admin user account.
+ * @param settingsRepository      Persists business name and completion flag.
+ * @param seedChartOfAccountsUseCase Seeds the default Chart of Accounts for the new store (best-effort).
  */
 class OnboardingViewModel(
     private val userRepository: UserRepository,
     private val settingsRepository: SettingsRepository,
+    private val seedChartOfAccountsUseCase: SeedDefaultChartOfAccountsUseCase,
 ) : BaseViewModel<OnboardingState, OnboardingIntent, OnboardingEffect>(OnboardingState()) {
 
     override suspend fun handleIntent(intent: OnboardingIntent) {
@@ -193,6 +196,10 @@ class OnboardingViewModel(
             }
             else -> Unit
         }
+
+        // ── Seed Chart of Accounts (best-effort, non-blocking) ────────────
+        seedChartOfAccountsUseCase.execute(storeId = DEFAULT_STORE_ID, now = now.toEpochMilliseconds())
+        // Ignore errors — COA can be manually seeded from Settings later
 
         // ── Mark onboarding complete ──────────────────────────────────────
         settingsRepository.set(ONBOARDING_COMPLETED_KEY, "true")

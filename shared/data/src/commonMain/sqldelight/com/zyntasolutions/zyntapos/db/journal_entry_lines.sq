@@ -151,6 +151,35 @@ WHERE coa.account_type IN ('ASSET', 'LIABILITY', 'EQUITY')
 GROUP BY coa.id
 ORDER BY coa.account_type, coa.account_code;
 
+-- Cash Flow Statement query: aggregates cash inflows / outflows for cash accounts
+-- (1010 Cash, 1020 Bank Account, 1030 Petty Cash) grouped by reference_type.
+-- The caller maps each reference_type to Operating / Investing / Financing section.
+getCashFlowByReferenceType:
+SELECT
+    je.reference_type,
+    COALESCE(SUM(jel.debit_amount), 0.0)  AS cash_inflow,
+    COALESCE(SUM(jel.credit_amount), 0.0) AS cash_outflow
+FROM journal_entry_lines jel
+JOIN journal_entries je ON je.id = jel.journal_entry_id
+JOIN chart_of_accounts coa ON coa.id = jel.account_id
+WHERE je.entry_date >= :date_from
+  AND je.entry_date <= :date_to
+  AND je.is_posted = 1
+  AND coa.account_code IN ('1010', '1020', '1030')
+GROUP BY je.reference_type
+ORDER BY je.reference_type;
+
+-- Cumulative net cash balance for cash accounts (1010, 1020, 1030) as of a date.
+-- Used to compute opening / closing cash balances for the Cash Flow Statement.
+getCashBalanceAsOf:
+SELECT COALESCE(SUM(jel.debit_amount - jel.credit_amount), 0.0) AS net_cash
+FROM journal_entry_lines jel
+JOIN journal_entries je ON je.id = jel.journal_entry_id
+JOIN chart_of_accounts coa ON coa.id = jel.account_id
+WHERE je.entry_date <= :as_of_date
+  AND je.is_posted = 1
+  AND coa.account_code IN ('1010', '1020', '1030');
+
 insertLine:
 INSERT INTO journal_entry_lines(
     id, journal_entry_id, account_id, debit_amount, credit_amount,

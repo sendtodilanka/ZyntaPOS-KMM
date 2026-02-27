@@ -3,8 +3,12 @@ package com.zyntasolutions.zyntapos.domain.model
 /**
  * A single line in the double-entry accounting ledger.
  *
- * Each financial event produces a balanced pair of entries:
- * sum(DEBIT amounts) == sum(CREDIT amounts).
+ * **DEPRECATED** — Use [JournalEntry] and [JournalEntryLine] instead.
+ * The full double-entry accounting engine (Chart of Accounts, General Ledger, P&L,
+ * Balance Sheet, Trial Balance, Cash Flow) is implemented in [JournalEntry],
+ * [JournalEntryLine], and the 23 accounting use cases introduced in Wave 4.
+ *
+ * This model is retained for backward compatibility while legacy data is migrated.
  *
  * @property id Unique identifier (UUID v4).
  * @property storeId Store the entry belongs to.
@@ -20,6 +24,12 @@ package com.zyntasolutions.zyntapos.domain.model
  * @property createdBy User ID who created this entry.
  * @property createdAt Epoch millis of record creation.
  */
+@Deprecated(
+    message = "Use JournalEntry and JournalEntryLine instead. " +
+        "CreateAccountingEntryUseCase → PostJournalEntryUseCase. " +
+        "GetPeriodSummaryUseCase → GetAccountBalancesUseCase.",
+    level = DeprecationLevel.WARNING,
+)
 data class AccountingEntry(
     val id: String,
     val storeId: String,

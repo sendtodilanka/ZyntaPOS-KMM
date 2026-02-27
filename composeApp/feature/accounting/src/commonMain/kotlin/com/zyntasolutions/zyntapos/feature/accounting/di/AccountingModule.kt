@@ -10,6 +10,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetAccountBalancesU
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetAccountingPeriodsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetAccountsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetBalanceSheetUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetCashFlowStatementUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetGeneralLedgerUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetJournalEntriesUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetPeriodSummaryUseCase
@@ -113,6 +114,7 @@ val accountingModule = module {
     factoryOf(::GetBalanceSheetUseCase)
     factoryOf(::GetTrialBalanceUseCase)
     factoryOf(::GetGeneralLedgerUseCase)
+    factoryOf(::GetCashFlowStatementUseCase)
 
     // ── ViewModels ────────────────────────────────────────────────────────────
     // AuthRepository is injected directly into legacy VMs; storeId is resolved
@@ -170,9 +172,10 @@ val accountingModule = module {
 
     viewModel {
         FinancialStatementsViewModel(
-            getProfitAndLossUseCase = get(),
-            getBalanceSheetUseCase  = get(),
-            getTrialBalanceUseCase  = get(),
+            getProfitAndLossUseCase      = get(),
+            getBalanceSheetUseCase       = get(),
+            getTrialBalanceUseCase       = get(),
+            getCashFlowStatementUseCase  = get(),
         )
     }
 

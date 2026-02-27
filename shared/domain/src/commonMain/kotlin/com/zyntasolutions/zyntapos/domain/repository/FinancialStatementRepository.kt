@@ -97,6 +97,25 @@ interface FinancialStatementRepository {
     suspend fun upsertBalance(balance: AccountBalance): Result<Unit>
 
     /**
+     * Computes the Cash Flow Statement (Direct Method) for [storeId] over a date range.
+     *
+     * Cash movements are sourced from posted [com.zyntasolutions.zyntapos.domain.model.JournalEntry]
+     * lines that affect cash accounts (codes 1010, 1020, 1030) and classified into
+     * Operating, Investing, and Financing sections based on
+     * [com.zyntasolutions.zyntapos.domain.model.JournalReferenceType].
+     *
+     * @param storeId Scopes the computation to a specific store.
+     * @param fromDate Inclusive start of the reporting period (ISO: YYYY-MM-DD).
+     * @param toDate Inclusive end of the reporting period (ISO: YYYY-MM-DD).
+     * @return [Result] wrapping the computed [FinancialStatement.CashFlow].
+     */
+    suspend fun getCashFlowStatement(
+        storeId: String,
+        fromDate: String,
+        toDate: String,
+    ): Result<FinancialStatement.CashFlow>
+
+    /**
      * Rebuilds all [AccountBalance] cache records for every account within [periodId].
      *
      * This is a full recalculation — existing balance rows for the period are deleted and

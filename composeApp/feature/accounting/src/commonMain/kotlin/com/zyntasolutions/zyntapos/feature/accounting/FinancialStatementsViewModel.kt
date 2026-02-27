@@ -3,6 +3,7 @@ package com.zyntasolutions.zyntapos.feature.accounting
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.FinancialStatement
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetBalanceSheetUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetCashFlowStatementUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetProfitAndLossUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetTrialBalanceUseCase
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
@@ -12,7 +13,7 @@ import kotlinx.datetime.toLocalDateTime
 
 // ── Tab enum ──────────────────────────────────────────────────────────────────
 
-/** The three primary financial statement tabs shown on the Financial Statements screen. */
+/** The four primary financial statement tabs shown on the Financial Statements screen. */
 enum class FinancialStatementTab {
     /** Profit and Loss (Income) Statement — for a date range. */
     PROFIT_LOSS,
@@ -22,6 +23,9 @@ enum class FinancialStatementTab {
 
     /** Trial Balance — as of a specific date. */
     TRIAL_BALANCE,
+
+    /** Cash Flow Statement (Direct Method) — for a date range. */
+    CASH_FLOW,
 }
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -49,6 +53,7 @@ data class FinancialStatementsState(
     val pAndL: FinancialStatement.PAndL? = null,
     val balanceSheet: FinancialStatement.BalanceSheet? = null,
     val trialBalance: FinancialStatement.TrialBalance? = null,
+    val cashFlow: FinancialStatement.CashFlow? = null,
     val storeId: String = "default-store",
     val fromDate: String = "",
     val toDate: String = "",
@@ -94,6 +99,16 @@ sealed class FinancialStatementsIntent {
 
     /** Update the as-of date and re-fetch if the Balance Sheet or Trial Balance tab is active. */
     data class SetAsOfDate(val asOfDate: String) : FinancialStatementsIntent()
+
+    /**
+     * Compute and load the Cash Flow Statement for [storeId]
+     * from [fromDate] to [toDate] (ISO: YYYY-MM-DD).
+     */
+    data class LoadCashFlow(
+        val storeId: String,
+        val fromDate: String,
+        val toDate: String,
+    ) : FinancialStatementsIntent()
 }
 
 // ── Effect ────────────────────────────────────────────────────────────────────
@@ -118,11 +133,13 @@ sealed class FinancialStatementsEffect {
  * @param getProfitAndLossUseCase Computes the P&L statement.
  * @param getBalanceSheetUseCase Computes the Balance Sheet.
  * @param getTrialBalanceUseCase Computes the Trial Balance.
+ * @param getCashFlowStatementUseCase Computes the Cash Flow Statement (Direct Method).
  */
 class FinancialStatementsViewModel(
     private val getProfitAndLossUseCase: GetProfitAndLossUseCase,
     private val getBalanceSheetUseCase: GetBalanceSheetUseCase,
     private val getTrialBalanceUseCase: GetTrialBalanceUseCase,
+    private val getCashFlowStatementUseCase: GetCashFlowStatementUseCase,
 ) : BaseViewModel<FinancialStatementsState, FinancialStatementsIntent, FinancialStatementsEffect>(
     initialState = FinancialStatementsState().let { initial ->
         // Default the date fields to the current calendar month on first load.
@@ -158,10 +175,12 @@ class FinancialStatementsViewModel(
             }
 
             is FinancialStatementsIntent.SetDateRange -> {
-                updateState { copy(fromDate = intent.fromDate, toDate = intent.toDate, pAndL = null) }
+                updateState { copy(fromDate = intent.fromDate, toDate = intent.toDate, pAndL = null, cashFlow = null) }
                 val state = currentState
-                if (state.activeTab == FinancialStatementTab.PROFIT_LOSS) {
-                    fetchPandL(state.storeId, intent.fromDate, intent.toDate)
+                when (state.activeTab) {
+                    FinancialStatementTab.PROFIT_LOSS -> fetchPandL(state.storeId, intent.fromDate, intent.toDate)
+                    FinancialStatementTab.CASH_FLOW   -> fetchCashFlow(state.storeId, intent.fromDate, intent.toDate)
+                    else -> Unit
                 }
             }
 
@@ -173,6 +192,11 @@ class FinancialStatementsViewModel(
                     FinancialStatementTab.TRIAL_BALANCE -> fetchTrialBalance(state.storeId, intent.asOfDate)
                     else -> Unit
                 }
+            }
+
+            is FinancialStatementsIntent.LoadCashFlow -> {
+                updateState { copy(storeId = intent.storeId, fromDate = intent.fromDate, toDate = intent.toDate) }
+                fetchCashFlow(intent.storeId, intent.fromDate, intent.toDate)
             }
         }
     }
@@ -199,6 +223,11 @@ class FinancialStatementsViewModel(
             FinancialStatementTab.TRIAL_BALANCE -> {
                 if (state.trialBalance == null && state.asOfDate.isNotBlank()) {
                     fetchTrialBalance(state.storeId, state.asOfDate)
+                }
+            }
+            FinancialStatementTab.CASH_FLOW -> {
+                if (state.cashFlow == null && state.fromDate.isNotBlank() && state.toDate.isNotBlank()) {
+                    fetchCashFlow(state.storeId, state.fromDate, state.toDate)
                 }
             }
         }
@@ -235,6 +264,18 @@ class FinancialStatementsViewModel(
             is Result.Error -> {
                 updateState { copy(isLoading = false, error = result.exception.message) }
                 sendEffect(FinancialStatementsEffect.ShowError(result.exception.message ?: "Failed to load trial balance"))
+            }
+            is Result.Loading -> Unit
+        }
+    }
+
+    private suspend fun fetchCashFlow(storeId: String, fromDate: String, toDate: String) {
+        updateState { copy(isLoading = true, error = null) }
+        when (val result = getCashFlowStatementUseCase.execute(storeId, fromDate, toDate)) {
+            is Result.Success -> updateState { copy(isLoading = false, cashFlow = result.data) }
+            is Result.Error -> {
+                updateState { copy(isLoading = false, error = result.exception.message) }
+                sendEffect(FinancialStatementsEffect.ShowError(result.exception.message ?: "Failed to load cash flow statement"))
             }
             is Result.Loading -> Unit
         }

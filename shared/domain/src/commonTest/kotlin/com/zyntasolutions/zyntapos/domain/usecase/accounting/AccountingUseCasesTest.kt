@@ -393,6 +393,26 @@ private class FakeFinancialStatementRepository : FinancialStatementRepository {
         if (shouldFailRebuild) return Result.Error(DatabaseException("Rebuild failed"))
         return Result.Success(Unit)
     }
+
+    override suspend fun getCashFlowStatement(
+        storeId: String,
+        fromDate: String,
+        toDate: String,
+    ): Result<FinancialStatement.CashFlow> = Result.Success(
+        FinancialStatement.CashFlow(
+            dateFrom = fromDate,
+            dateTo = toDate,
+            operatingLines = emptyList(),
+            investingLines = emptyList(),
+            financingLines = emptyList(),
+            netOperating = 0.0,
+            netInvesting = 0.0,
+            netFinancing = 0.0,
+            netChange = 0.0,
+            openingCash = 0.0,
+            closingCash = 0.0,
+        ),
+    )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

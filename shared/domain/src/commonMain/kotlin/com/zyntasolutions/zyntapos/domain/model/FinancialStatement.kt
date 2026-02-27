@@ -79,7 +79,59 @@ sealed class FinancialStatement {
         val totalCredits: Double,
         val isBalanced: Boolean,
     ) : FinancialStatement()
+
+    /**
+     * Cash Flow Statement (Direct Method) for a date range.
+     *
+     * Cash movements are classified into three standard IAS 7 sections based on the
+     * [com.zyntasolutions.zyntapos.domain.model.JournalReferenceType] of each posted entry:
+     * - **Operating**: SALE, EXPENSE, CASH_IN, CASH_OUT, DISCOUNT, TAX_PAYMENT, REFUND
+     * - **Investing**: PURCHASE, RETURN, STOCK_ADJUST, DEPRECIATION
+     * - **Financing**: PAYROLL, PERIOD_CLOSE, MANUAL
+     *
+     * Only cash account lines (codes 1010, 1020, 1030) are included in the aggregation.
+     *
+     * @property dateFrom Start of the reporting period (ISO: YYYY-MM-DD).
+     * @property dateTo End of the reporting period (ISO: YYYY-MM-DD).
+     * @property operatingLines Line items for operating cash activities.
+     * @property investingLines Line items for investing cash activities.
+     * @property financingLines Line items for financing cash activities.
+     * @property netOperating Net cash from operating activities.
+     * @property netInvesting Net cash from investing activities.
+     * @property netFinancing Net cash from financing activities.
+     * @property netChange Total net change in cash ([netOperating] + [netInvesting] + [netFinancing]).
+     * @property openingCash Cumulative cash balance at the start of the period.
+     * @property closingCash [openingCash] + [netChange].
+     */
+    data class CashFlow(
+        val dateFrom: String,
+        val dateTo: String,
+        val operatingLines: List<CashFlowLine>,
+        val investingLines: List<CashFlowLine>,
+        val financingLines: List<CashFlowLine>,
+        val netOperating: Double,
+        val netInvesting: Double,
+        val netFinancing: Double,
+        val netChange: Double,
+        val openingCash: Double,
+        val closingCash: Double,
+    ) : FinancialStatement()
 }
+
+/**
+ * A single activity line within a [FinancialStatement.CashFlow] section.
+ *
+ * @property label Human-readable description of the activity (derived from [JournalReferenceType]).
+ * @property inflow Total cash received (debit to cash accounts) for this activity type.
+ * @property outflow Total cash paid out (credit to cash accounts) for this activity type.
+ * @property net Net cash flow: [inflow] minus [outflow]. Positive = net inflow.
+ */
+data class CashFlowLine(
+    val label: String,
+    val inflow: Double,
+    val outflow: Double,
+    val net: Double,
+)
 
 /**
  * A single account line within a [FinancialStatement.PAndL] or [FinancialStatement.BalanceSheet].
