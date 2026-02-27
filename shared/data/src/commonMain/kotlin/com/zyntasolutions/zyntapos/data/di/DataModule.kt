@@ -30,6 +30,10 @@ import com.zyntasolutions.zyntapos.data.repository.TaxGroupRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.UnitGroupRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.UserRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.AccountingRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.AccountRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.JournalRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.FinancialStatementRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.AccountingPeriodRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.AttendanceRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.BackupRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.EInvoiceRepositoryImpl
@@ -70,6 +74,10 @@ import com.zyntasolutions.zyntapos.domain.repository.TaxGroupRepository
 import com.zyntasolutions.zyntapos.domain.repository.UnitGroupRepository
 import com.zyntasolutions.zyntapos.domain.repository.UserRepository
 import com.zyntasolutions.zyntapos.domain.repository.AccountingRepository
+import com.zyntasolutions.zyntapos.domain.repository.AccountRepository
+import com.zyntasolutions.zyntapos.domain.repository.JournalRepository
+import com.zyntasolutions.zyntapos.domain.repository.FinancialStatementRepository
+import com.zyntasolutions.zyntapos.domain.repository.AccountingPeriodRepository
 import com.zyntasolutions.zyntapos.domain.repository.AttendanceRepository
 import com.zyntasolutions.zyntapos.domain.repository.BackupRepository
 import com.zyntasolutions.zyntapos.domain.repository.EInvoiceRepository
@@ -363,8 +371,24 @@ val dataModule = module {
     // Warehouse racks: physical shelf locations per warehouse
     single<WarehouseRackRepository> { WarehouseRackRepositoryImpl(db = get(), syncEnqueuer = get()) }
 
-    // Accounting ledger: double-entry insert with DEBIT==CREDIT validation
+    // Accounting ledger: double-entry insert with DEBIT==CREDIT validation (legacy entries)
     single<AccountingRepository> { AccountingRepositoryImpl(db = get(), syncEnqueuer = get()) }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ── Wave 3A: Double-Entry Accounting Repositories ─────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Chart of Accounts: CRUD + seeding + balance cache observation
+    single<AccountRepository> { AccountRepositoryImpl(db = get(), syncEnqueuer = get()) }
+
+    // Journal entries: draft/post/unpost/reverse lifecycle + balanced-entry validation
+    single<JournalRepository> { JournalRepositoryImpl(db = get(), syncEnqueuer = get()) }
+
+    // Financial statements: trial balance, P&L, balance sheet, general ledger (read-only)
+    single<FinancialStatementRepository> { FinancialStatementRepositoryImpl(db = get()) }
+
+    // Accounting periods: OPEN → CLOSED → LOCKED lifecycle management
+    single<AccountingPeriodRepository> { AccountingPeriodRepositoryImpl(db = get(), syncEnqueuer = get()) }
 
     // System health: DB stats, memory metrics, VACUUM, soft-delete purge
     single<SystemRepository> { SystemRepositoryImpl(db = get()) }
