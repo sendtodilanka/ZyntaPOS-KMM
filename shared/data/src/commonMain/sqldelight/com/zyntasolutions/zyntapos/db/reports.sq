@@ -536,8 +536,8 @@ ORDER BY month ASC;
 
 -- ── Enterprise: Clock-in / clock-out log ─────────────────────────────────────
 -- Joins attendance_records (clock_in / clock_out are TEXT ISO timestamps) to employees.
--- Optional employeeId filter: pass NULL to include all employees.
-clockInOutLog:
+-- Use clockInOutLogAll for all employees or clockInOutLogByEmployee for a specific employee.
+clockInOutLogAll:
 SELECT
     ar.employee_id,
     (e.first_name || ' ' || e.last_name)  AS employee_name,
@@ -547,7 +547,19 @@ SELECT
 FROM attendance_records ar
 JOIN employees e ON e.id = ar.employee_id
 WHERE ar.clock_in >= ? AND ar.clock_in <= ?
-  AND (? IS NULL OR ar.employee_id = ?)
+ORDER BY ar.clock_in ASC;
+
+clockInOutLogByEmployee:
+SELECT
+    ar.employee_id,
+    (e.first_name || ' ' || e.last_name)  AS employee_name,
+    ar.clock_in,
+    ar.clock_out,
+    ar.total_hours
+FROM attendance_records ar
+JOIN employees e ON e.id = ar.employee_id
+WHERE ar.clock_in >= ? AND ar.clock_in <= ?
+  AND ar.employee_id = ?
 ORDER BY ar.clock_in ASC;
 
 -- ── Enterprise: Inventory valuation ──────────────────────────────────────────

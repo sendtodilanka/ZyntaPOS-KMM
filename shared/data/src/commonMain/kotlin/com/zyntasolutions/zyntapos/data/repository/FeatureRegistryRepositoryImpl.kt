@@ -33,7 +33,7 @@ class FeatureRegistryRepositoryImpl(
     private val syncEnqueuer: SyncEnqueuer,
 ) : FeatureRegistryRepository {
 
-    private val q get() = db.featureConfigQueries
+    private val q get() = db.feature_configQueries
 
     // ── Read ──────────────────────────────────────────────────────────────────
 

@@ -4,7 +4,7 @@ import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.core.result.ValidationException
 import com.zyntasolutions.zyntapos.domain.model.ZyntaEdition
 import com.zyntasolutions.zyntapos.domain.model.ZyntaFeature
-import com.zyntasolutions.zyntapos.domain.usecase.fakes.FakeFeatureRegistryRepository
+import com.zyntasolutions.zyntapos.domain.fakes.FakeFeatureRegistryRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -197,7 +197,7 @@ class FeatureRegistryUseCasesTest {
     }
 
     @Test
-    fun `GetAllFeatureConfigsUseCase default: standard and premium enabled, enterprise disabled`() = runTest {
+    fun `GetAllFeatureConfigsUseCase default - standard and premium enabled, enterprise disabled`() = runTest {
         val repo = makeRepo()
         val useCase = GetAllFeatureConfigsUseCase(repo)
 

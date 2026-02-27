@@ -106,7 +106,7 @@ class ReportRepositoryImpl(
             val fromMs  = from.toEpochMilliseconds()
             val toMs    = to.toEpochMilliseconds()
             val rows    = q.salesByCategory(fromMs, toMs).executeAsList()
-            val total   = q.totalRevenueForRange(fromMs, toMs).executeAsOne().total_revenue ?: 0.0
+            val total   = q.totalRevenueForRange(fromMs, toMs).executeAsOne()
 
             rows.map { row ->
                 val revenue = row.revenue ?: 0.0
@@ -166,9 +166,9 @@ class ReportRepositoryImpl(
             val fromMs = from.toEpochMilliseconds()
             val toMs   = to.toEpochMilliseconds()
 
-            val revenue  = q.profitLossRevenue(fromMs, toMs).executeAsOne().total_revenue ?: 0.0
-            val cogs     = q.profitLossCOGS(fromMs, toMs).executeAsOne().total_cogs ?: 0.0
-            val expenses = q.profitLossExpenses(fromMs, toMs).executeAsOne().total_expenses ?: 0.0
+            val revenue  = q.profitLossRevenue(fromMs, toMs).executeAsOne()
+            val cogs     = q.profitLossCOGS(fromMs, toMs).executeAsOne()
+            val expenses = q.profitLossExpenses(fromMs, toMs).executeAsOne()
 
             val grossProfit    = revenue - cogs
             val netProfit      = grossProfit - expenses
@@ -728,17 +728,26 @@ class ReportRepositoryImpl(
             val toStr = to.toLocalDateTime(tz).let { ldt ->
                 "${ldt.date}T${ldt.time}"
             }
-            q.clockInOutLog(fromStr, toStr, employeeId, employeeId).executeAsList().map { row ->
-                // clock_in / clock_out are ISO datetime TEXT in attendance_records
-                val clockIn  = parseIsoDateTime(row.clock_in)
-                val clockOut = row.clock_out?.let { parseIsoDateTime(it) }
-                ClockRecord(
-                    employeeId   = row.employee_id,
-                    employeeName = row.employee_name,
-                    clockIn      = clockIn,
-                    clockOut     = clockOut,
-                    totalHours   = row.total_hours ?: 0.0,
-                )
+            if (employeeId != null) {
+                q.clockInOutLogByEmployee(fromStr, toStr, employeeId).executeAsList().map { row ->
+                    ClockRecord(
+                        employeeId   = row.employee_id,
+                        employeeName = row.employee_name,
+                        clockIn      = parseIsoDateTime(row.clock_in),
+                        clockOut     = row.clock_out?.let { parseIsoDateTime(it) },
+                        totalHours   = row.total_hours ?: 0.0,
+                    )
+                }
+            } else {
+                q.clockInOutLogAll(fromStr, toStr).executeAsList().map { row ->
+                    ClockRecord(
+                        employeeId   = row.employee_id,
+                        employeeName = row.employee_name,
+                        clockIn      = parseIsoDateTime(row.clock_in),
+                        clockOut     = row.clock_out?.let { parseIsoDateTime(it) },
+                        totalHours   = row.total_hours ?: 0.0,
+                    )
+                }
             }
         }
 
@@ -762,9 +771,9 @@ class ReportRepositoryImpl(
         withContext(Dispatchers.IO) {
             val fromMs = from.toEpochMilliseconds()
             val toMs   = to.toEpochMilliseconds()
-            val total      = (q.customerRetentionTotal(fromMs, toMs).executeAsOne().total_customers ?: 0L).toInt()
-            val newCust    = (q.customerRetentionNew(fromMs, toMs, fromMs).executeAsOne().new_customers ?: 0L).toInt()
-            val returning  = (q.customerRetentionReturning(fromMs, toMs, fromMs).executeAsOne().returning_customers ?: 0L).toInt()
+            val total      = q.customerRetentionTotal(fromMs, toMs).executeAsOne().toInt()
+            val newCust    = q.customerRetentionNew(fromMs, toMs, fromMs).executeAsOne().toInt()
+            val returning  = q.customerRetentionReturning(fromMs, toMs, fromMs).executeAsOne().toInt()
             val retention  = if (total > 0) (returning.toDouble() / total) * 100.0 else 0.0
             val churn      = 100.0 - retention
             CustomerRetentionData(

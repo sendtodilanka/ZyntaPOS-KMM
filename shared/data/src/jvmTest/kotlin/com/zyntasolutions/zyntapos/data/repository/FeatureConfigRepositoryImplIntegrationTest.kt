@@ -54,7 +54,7 @@ class FeatureConfigRepositoryImplIntegrationTest {
         val result = repo.initDefaults(1000L)
         assertIs<Result.Success<Unit>>(result)
 
-        val configs = db.featureConfigQueries.getAll().executeAsList()
+        val configs = db.feature_configQueries.getAll().executeAsList()
         assertEquals(
             ZyntaFeature.entries.size,
             configs.size,
@@ -158,7 +158,7 @@ class FeatureConfigRepositoryImplIntegrationTest {
         repo.initDefaults(1000L)
         repo.initDefaults(2000L)
 
-        val count = db.featureConfigQueries.getAll().executeAsList().size
+        val count = db.feature_configQueries.getAll().executeAsList().size
         assertEquals(
             ZyntaFeature.entries.size,
             count,
@@ -211,7 +211,7 @@ class FeatureConfigRepositoryImplIntegrationTest {
         assertIs<Result.Success<Unit>>(result)
 
         // Verify expiresAt was persisted
-        val row = db.featureConfigQueries.getById(ZyntaFeature.MULTISTORE.name).executeAsOneOrNull()
+        val row = db.feature_configQueries.getById(ZyntaFeature.MULTISTORE.name).executeAsOneOrNull()
         assertEquals(99999L, row?.expires_at, "expiresAt should be persisted as 99999L")
     }
 }
