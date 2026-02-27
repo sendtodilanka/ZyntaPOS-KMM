@@ -1,0 +1,36 @@
+-- ============================================================
+-- feature_config.sq — Feature flag / edition registry
+-- One row per ZyntaFeature enum entry (23 total).
+-- STANDARD and PREMIUM features are enabled by initDefault;
+-- ENTERPRISE features start disabled until explicitly activated.
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS feature_config (
+    feature_id   TEXT    NOT NULL PRIMARY KEY,
+    is_enabled   INTEGER NOT NULL DEFAULT 0,
+    edition      TEXT    NOT NULL,
+    activated_at INTEGER,
+    expires_at   INTEGER,
+    updated_at   INTEGER NOT NULL
+);
+
+-- ── Read queries ──────────────────────────────────────────────────────────────
+
+getAll:
+SELECT * FROM feature_config ORDER BY
+    CASE edition WHEN 'STANDARD' THEN 0 WHEN 'PREMIUM' THEN 1 ELSE 2 END, feature_id;
+
+getById:
+SELECT * FROM feature_config WHERE feature_id = ?;
+
+-- ── Write queries ─────────────────────────────────────────────────────────────
+
+-- INSERT OR IGNORE so calling initDefault multiple times is safe (idempotent).
+initDefault:
+INSERT OR IGNORE INTO feature_config (feature_id, is_enabled, edition, activated_at, updated_at)
+VALUES (?, ?, ?, ?, ?);
+
+-- Full upsert used by setEnabled — overwrites all mutable columns.
+upsert:
+INSERT OR REPLACE INTO feature_config (feature_id, is_enabled, edition, activated_at, expires_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?);

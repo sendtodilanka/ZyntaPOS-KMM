@@ -9,6 +9,7 @@ import com.zyntasolutions.zyntapos.debug.debugModule
 import com.zyntasolutions.zyntapos.seed.seedModule
 import com.zyntasolutions.zyntapos.data.di.desktopDataModule
 import com.zyntasolutions.zyntapos.data.local.db.SecurePreferencesKeyMigration
+import com.zyntasolutions.zyntapos.domain.repository.FeatureRegistryRepository
 import com.zyntasolutions.zyntapos.feature.dashboard.dashboardModule
 import com.zyntasolutions.zyntapos.feature.onboarding.onboardingModule
 import com.zyntasolutions.zyntapos.feature.admin.adminModule
@@ -36,6 +37,7 @@ import com.zyntasolutions.zyntapos.seed.SeedRunner
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlin.time.Clock
 import org.koin.core.context.startKoin
 
 /**
@@ -104,6 +106,15 @@ fun main() {
     // returned by startKoin — avoids GlobalContext (Service Locator antipattern).
     // migrate() is idempotent — safe to call on every launch.
     koin.koin.get<SecurePreferencesKeyMigration>().migrate()
+
+    // ── Feature registry default seeding ─────────────────────────────────────
+    // Ensures all 23 ZyntaFeature rows exist in the local DB on every launch.
+    // initDefaults() uses INSERT OR IGNORE so existing rows are never overwritten.
+    // Runs on IO to avoid blocking the desktop window open.
+    CoroutineScope(Dispatchers.IO).launch {
+        koin.koin.get<FeatureRegistryRepository>()
+            .initDefaults(Clock.System.now().toEpochMilliseconds())
+    }
 
     // ── Tier 7: Debug tools — loaded only when isDebug == true ───────────────
     // seedModule registers SeedRunner; debugModule registers action handlers

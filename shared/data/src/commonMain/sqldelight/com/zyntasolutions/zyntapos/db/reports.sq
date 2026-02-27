@@ -1,0 +1,611 @@
+-- ============================================================
+-- reports.sq — Aggregate report queries for all 30+ enterprise
+-- report use cases in ReportRepository.
+--
+-- Column names verified against: orders.sq, order_items (in orders.sq),
+-- products.sq, categories.sq, registers.sq (cash_movements),
+-- employees.sq, attendance_records.sq, payroll_records.sq,
+-- shift_schedules.sq, leave_records.sq, coupons.sq,
+-- expenses.sq, accounting_entries.sq, e_invoices.sq,
+-- stock_transfers.sq, warehouses.sq, warehouse_racks.sq,
+-- reward_points.sq, customer_wallets.sq, customers.sq,
+-- suppliers.sq, tax_groups.sq, users.sq.
+--
+-- NOTE on cash_movements: columns are id, session_id, type, amount,
+-- reason, recorded_by (user id TEXT), timestamp (INTEGER epoch ms).
+-- There is no recorded_by_user_id FK — recorded_by is the raw user id.
+-- NOTE on orders: total column (not total_amount), cashier_id (not cashier_user_id).
+-- NOTE on order_items: line_total (not subtotal).
+-- ============================================================
+
+-- ── Standard: Daily sales summary ────────────────────────────────────────────
+-- Aggregates all COMPLETED orders for a given calendar date.
+-- The date string must be formatted 'YYYY-MM-DD'.
+dailySalesSummary:
+SELECT
+    COALESCE(SUM(o.total), 0.0)                                     AS total_revenue,
+    COUNT(*)                                                          AS total_orders,
+    COALESCE(AVG(o.total), 0.0)                                     AS average_order_value,
+    COALESCE(SUM(
+        (SELECT COALESCE(SUM(oi.quantity), 0.0)
+         FROM order_items oi WHERE oi.order_id = o.id)
+    ), 0.0)                                                           AS total_items_sold,
+    COALESCE(SUM(CASE WHEN o.payment_method = 'CASH' THEN o.total ELSE 0.0 END), 0.0)  AS cash_revenue,
+    COALESCE(SUM(CASE WHEN o.payment_method != 'CASH' THEN o.total ELSE 0.0 END), 0.0) AS card_revenue
+FROM orders o
+WHERE date(o.created_at / 1000, 'unixepoch') = ?
+  AND o.status = 'COMPLETED';
+
+-- ── Standard: Sales by category ───────────────────────────────────────────────
+-- Revenue per category for a time range. Uses line_total from order_items.
+salesByCategory:
+SELECT
+    c.id                             AS category_id,
+    c.name                           AS category_name,
+    COALESCE(SUM(oi.line_total), 0.0) AS revenue,
+    COUNT(DISTINCT o.id)             AS order_count,
+    COALESCE(SUM(oi.quantity), 0.0)  AS item_count
+FROM order_items oi
+JOIN orders o   ON o.id  = oi.order_id
+JOIN products p ON p.id  = oi.product_id
+JOIN categories c ON c.id = p.category_id
+WHERE o.created_at >= ? AND o.created_at < ?
+  AND o.status = 'COMPLETED'
+GROUP BY c.id, c.name
+ORDER BY revenue DESC;
+
+-- Total completed revenue for the same range (used to compute revenueSharePct in-memory)
+totalRevenueForRange:
+SELECT COALESCE(SUM(total), 0.0) AS total_revenue
+FROM orders
+WHERE created_at >= ? AND created_at < ?
+  AND status = 'COMPLETED';
+
+-- ── Standard: Cash movements ──────────────────────────────────────────────────
+-- Cash-in / cash-out entries within a timestamp range (epoch ms).
+-- recorded_by is the plain user id; caller resolves names in-memory or via join.
+cashMovements:
+SELECT
+    cm.id,
+    cm.type,
+    cm.amount,
+    cm.reason,
+    cm.recorded_by,
+    cm.timestamp AS recorded_at
+FROM cash_movements cm
+WHERE cm.timestamp >= ? AND cm.timestamp < ?
+ORDER BY cm.timestamp ASC;
+
+-- ── Standard: Top products by volume ─────────────────────────────────────────
+topProductsByVolume:
+SELECT
+    p.id                            AS product_id,
+    p.name                          AS product_name,
+    COALESCE(SUM(oi.quantity), 0.0) AS units_sold,
+    COALESCE(SUM(oi.line_total), 0.0) AS revenue
+FROM order_items oi
+JOIN orders o   ON o.id = oi.order_id
+JOIN products p ON p.id = oi.product_id
+WHERE o.created_at >= ? AND o.created_at < ?
+  AND o.status = 'COMPLETED'
+GROUP BY p.id, p.name
+ORDER BY units_sold DESC
+LIMIT ?;
+
+-- ── Premium: Profit & Loss ────────────────────────────────────────────────────
+-- Returns the three core aggregates; grossProfit / margin computed in-memory.
+profitLossRevenue:
+SELECT COALESCE(SUM(total), 0.0) AS total_revenue
+FROM orders
+WHERE created_at >= ? AND created_at < ?
+  AND status = 'COMPLETED';
+
+profitLossCOGS:
+SELECT COALESCE(SUM(oi.quantity * p.cost_price), 0.0) AS total_cogs
+FROM order_items oi
+JOIN orders o   ON o.id = oi.order_id
+JOIN products p ON p.id = oi.product_id
+WHERE o.created_at >= ? AND o.created_at < ?
+  AND o.status = 'COMPLETED';
+
+profitLossExpenses:
+SELECT COALESCE(SUM(amount), 0.0) AS total_expenses
+FROM expenses
+WHERE status = 'APPROVED'
+  AND expense_date >= ? AND expense_date < ?;
+
+-- ── Premium: Product performance ──────────────────────────────────────────────
+productPerformance:
+SELECT
+    p.id                              AS product_id,
+    p.name                            AS product_name,
+    COALESCE(SUM(oi.quantity), 0.0)   AS units_sold,
+    COALESCE(SUM(oi.line_total), 0.0) AS revenue,
+    COALESCE(SUM(oi.quantity * p.cost_price), 0.0) AS cogs,
+    COALESCE(
+        (SELECT COUNT(*) FROM orders ro
+         JOIN order_items roi ON roi.order_id = ro.id
+         WHERE roi.product_id = p.id
+           AND ro.created_at >= ? AND ro.created_at < ?
+           AND ro.type = 'RETURN')
+    , 0)                              AS return_count
+FROM order_items oi
+JOIN orders o   ON o.id = oi.order_id
+JOIN products p ON p.id = oi.product_id
+WHERE o.created_at >= ? AND o.created_at < ?
+  AND o.status = 'COMPLETED'
+GROUP BY p.id, p.name
+ORDER BY revenue DESC;
+
+-- ── Premium: Coupon usage ─────────────────────────────────────────────────────
+couponUsageSummary:
+SELECT
+    c.code,
+    COUNT(cu.id)                        AS redemptions,
+    COALESCE(SUM(cu.discount_amount), 0.0) AS total_discount
+FROM coupon_usage cu
+JOIN coupons c ON c.id = cu.coupon_id
+WHERE cu.used_at >= ? AND cu.used_at < ?
+GROUP BY c.id, c.code
+ORDER BY redemptions DESC;
+
+-- ── Premium: Payment method breakdown ────────────────────────────────────────
+paymentMethodBreakdown:
+SELECT
+    payment_method,
+    COALESCE(SUM(total), 0.0) AS revenue
+FROM orders
+WHERE created_at >= ? AND created_at < ?
+  AND status = 'COMPLETED'
+GROUP BY payment_method;
+
+-- ── Premium: Tax collection ───────────────────────────────────────────────────
+-- Joins order tax_amount totals to tax_groups via products.tax_group_id.
+taxCollection:
+SELECT
+    tg.id                                           AS tax_group_id,
+    tg.name                                         AS tax_group_name,
+    tg.rate                                         AS tax_rate,
+    COALESCE(SUM(oi.line_total), 0.0)               AS taxable_amount,
+    COALESCE(SUM(oi.tax_amount), 0.0)               AS tax_collected
+FROM order_items oi
+JOIN orders o   ON o.id = oi.order_id
+JOIN products p ON p.id = oi.product_id
+JOIN tax_groups tg ON tg.id = p.tax_group_id
+WHERE o.created_at >= ? AND o.created_at < ?
+  AND o.status = 'COMPLETED'
+GROUP BY tg.id, tg.name, tg.rate
+ORDER BY tax_collected DESC;
+
+-- ── Premium: Discount & void analysis ────────────────────────────────────────
+discountAnalysisByCashier:
+SELECT
+    o.cashier_id,
+    COALESCE(SUM(o.discount_amount), 0.0)                              AS discount_amount,
+    COUNT(CASE WHEN o.status = 'VOIDED' THEN 1 END)                    AS void_count,
+    COALESCE(SUM(CASE WHEN o.status = 'VOIDED' THEN o.total ELSE 0.0 END), 0.0) AS void_amount
+FROM orders o
+WHERE o.created_at >= ? AND o.created_at < ?
+GROUP BY o.cashier_id;
+
+discountAnalysisTotals:
+SELECT
+    COALESCE(SUM(discount_amount), 0.0)                                    AS total_discount_amount,
+    COUNT(CASE WHEN status = 'VOIDED' THEN 1 END)                          AS total_void_count,
+    COALESCE(SUM(CASE WHEN status = 'VOIDED' THEN total ELSE 0.0 END), 0.0) AS total_void_amount
+FROM orders
+WHERE created_at >= ? AND created_at < ?;
+
+-- ── Premium: Top customers by spend ──────────────────────────────────────────
+topCustomersBySpend:
+SELECT
+    c.id                             AS customer_id,
+    c.name                           AS customer_name,
+    COALESCE(SUM(o.total), 0.0)      AS total_spend,
+    COUNT(o.id)                      AS order_count,
+    COALESCE(AVG(o.total), 0.0)      AS average_order_value
+FROM orders o
+JOIN customers c ON c.id = o.customer_id
+WHERE o.created_at >= ? AND o.created_at < ?
+  AND o.status = 'COMPLETED'
+GROUP BY c.id, c.name
+ORDER BY total_spend DESC
+LIMIT ?;
+
+-- ── Enterprise: Staff attendance summary ─────────────────────────────────────
+staffAttendanceSummary:
+SELECT
+    e.id                                                     AS employee_id,
+    (e.first_name || ' ' || e.last_name)                    AS employee_name,
+    COUNT(CASE WHEN ar.status = 'PRESENT' THEN 1 END)        AS days_present,
+    COUNT(CASE WHEN ar.status = 'ABSENT'  THEN 1 END)        AS days_absent,
+    COUNT(CASE WHEN ar.status = 'LATE'    THEN 1 END)        AS days_late,
+    COALESCE(SUM(ar.total_hours), 0.0)                       AS total_hours
+FROM employees e
+LEFT JOIN attendance_records ar ON ar.employee_id = e.id
+    AND ar.clock_in >= ? AND ar.clock_in <= ?
+WHERE e.deleted_at IS NULL
+GROUP BY e.id, employee_name
+ORDER BY employee_name ASC;
+
+-- ── Enterprise: Staff sales summary ──────────────────────────────────────────
+-- Joins orders to users by cashier_id; void_count from VOIDED orders.
+staffSalesSummary:
+SELECT
+    u.id                                                              AS employee_id,
+    u.name                                                            AS employee_name,
+    COALESCE(SUM(CASE WHEN o.status = 'COMPLETED' THEN o.total ELSE 0.0 END), 0.0) AS total_sales,
+    COUNT(CASE WHEN o.status = 'COMPLETED' THEN 1 END)               AS order_count,
+    COALESCE(AVG(CASE WHEN o.status = 'COMPLETED' THEN o.total END), 0.0) AS average_basket,
+    COUNT(CASE WHEN o.status = 'VOIDED' THEN 1 END)                  AS void_count
+FROM users u
+LEFT JOIN orders o ON o.cashier_id = u.id
+    AND o.created_at >= ? AND o.created_at < ?
+GROUP BY u.id, u.name
+ORDER BY total_sales DESC;
+
+-- ── Enterprise: Payroll summary by period ────────────────────────────────────
+payrollSummary:
+SELECT
+    pr.id           AS payroll_id,
+    pr.employee_id,
+    (e.first_name || ' ' || e.last_name) AS employee_name,
+    pr.period_start AS pay_period_id,
+    pr.base_salary,
+    pr.overtime_pay,
+    pr.deductions,
+    pr.net_pay
+FROM payroll_records pr
+JOIN employees e ON e.id = pr.employee_id
+WHERE pr.period_start = ?
+ORDER BY e.last_name ASC;
+
+-- ── Enterprise: Leave balances ────────────────────────────────────────────────
+-- Counts approved leave records per employee per type up to asOf date.
+-- allotted_days is approximated as a fixed constant per type; actual allotment
+-- tracking requires a dedicated allotment table (Phase 3+ backlog).
+leaveBalances:
+SELECT
+    e.id                                       AS employee_id,
+    (e.first_name || ' ' || e.last_name)       AS employee_name,
+    lr.leave_type,
+    COUNT(*)                                   AS taken_days
+FROM employees e
+JOIN leave_records lr ON lr.employee_id = e.id
+WHERE lr.status = 'APPROVED'
+  AND lr.end_date <= ?
+  AND e.deleted_at IS NULL
+GROUP BY e.id, employee_name, lr.leave_type
+ORDER BY employee_name ASC, lr.leave_type ASC;
+
+-- ── Enterprise: Shift coverage ────────────────────────────────────────────────
+-- Compares scheduled hours (end_time - start_time) to actual clocked hours.
+shiftCoverage:
+SELECT
+    ss.id                                                   AS shift_id,
+    (e.first_name || ' ' || e.last_name || ' ' || ss.shift_date) AS shift_name,
+    (CAST(SUBSTR(ss.end_time, 1, 2) AS REAL) * 60 +
+     CAST(SUBSTR(ss.end_time, 4, 2) AS REAL) -
+     CAST(SUBSTR(ss.start_time, 1, 2) AS REAL) * 60 -
+     CAST(SUBSTR(ss.start_time, 4, 2) AS REAL)) / 60.0    AS scheduled_hours,
+    COALESCE(
+        (SELECT ar.total_hours FROM attendance_records ar
+         WHERE ar.employee_id = ss.employee_id
+           AND ar.clock_in LIKE ss.shift_date || '%'
+         LIMIT 1), 0.0
+    )                                                       AS actual_hours
+FROM shift_schedules ss
+JOIN employees e ON e.id = ss.employee_id
+WHERE ss.shift_date >= ? AND ss.shift_date <= ?
+ORDER BY ss.shift_date ASC, e.last_name ASC;
+
+-- ── Enterprise: Multi-store sales comparison ──────────────────────────────────
+multiStoreSales:
+SELECT
+    o.store_id,
+    COALESCE(SUM(o.total), 0.0)  AS total_revenue,
+    COUNT(o.id)                  AS order_count,
+    COALESCE(AVG(o.total), 0.0)  AS average_order_value
+FROM orders o
+WHERE o.created_at >= ? AND o.created_at < ?
+  AND o.status = 'COMPLETED'
+GROUP BY o.store_id
+ORDER BY total_revenue DESC;
+
+-- ── Enterprise: Inter-store stock transfers ───────────────────────────────────
+interStoreTransfers:
+SELECT
+    st.id                       AS transfer_id,
+    st.source_warehouse_id,
+    st.dest_warehouse_id,
+    st.product_id,
+    p.name                      AS product_name,
+    st.quantity,
+    st.transferred_at
+FROM stock_transfers st
+JOIN products p ON p.id = st.product_id
+WHERE st.transferred_at >= ? AND st.transferred_at < ?
+  AND st.status = 'COMMITTED'
+ORDER BY st.transferred_at ASC;
+
+-- ── Enterprise: Warehouse inventory snapshot ──────────────────────────────────
+-- warehouse_racks tracks physical rack locations; product-level quantities are
+-- in the products table (stock_qty). This query returns the rack-level structure;
+-- the caller maps product quantities from products.stock_qty in-memory.
+warehouseInventory:
+SELECT
+    w.id        AS warehouse_id,
+    w.name      AS warehouse_name,
+    wr.id       AS rack_id,
+    wr.name     AS rack_code
+FROM warehouses w
+JOIN warehouse_racks wr ON wr.warehouse_id = w.id AND wr.deleted_at IS NULL
+WHERE w.is_active = 1
+ORDER BY w.name ASC, wr.name ASC;
+
+-- ── Enterprise: Stock aging ───────────────────────────────────────────────────
+-- Products that have not had a completed sale in the past noSalesDays days.
+-- :noSalesDays is the epoch-ms threshold: (current epoch - days * 86400 * 1000).
+stockAging:
+SELECT
+    p.id                AS product_id,
+    p.name              AS product_name,
+    p.stock_qty,
+    p.cost_price,
+    COALESCE(
+        (SELECT MAX(o.created_at) FROM order_items oi
+         JOIN orders o ON o.id = oi.order_id
+         WHERE oi.product_id = p.id AND o.status = 'COMPLETED')
+    , 0)                AS last_sale_at
+FROM products p
+WHERE p.is_active = 1
+  AND (
+    SELECT MAX(o.created_at) FROM order_items oi
+    JOIN orders o ON o.id = oi.order_id
+    WHERE oi.product_id = p.id AND o.status = 'COMPLETED'
+  ) < ?
+ORDER BY last_sale_at ASC;
+
+-- ── Enterprise: Stock reorder alerts ─────────────────────────────────────────
+stockReorderAlerts:
+SELECT
+    p.id                          AS product_id,
+    p.name                        AS product_name,
+    CAST(p.stock_qty AS INTEGER)   AS current_stock,
+    CAST(p.min_stock_qty AS INTEGER) AS reorder_point
+FROM products p
+WHERE p.is_active = 1
+  AND p.stock_qty <= p.min_stock_qty
+  AND p.min_stock_qty > 0
+ORDER BY (p.min_stock_qty - p.stock_qty) DESC;
+
+-- ── Enterprise: Supplier purchases ───────────────────────────────────────────
+-- Currently the schema tracks suppliers but not purchase orders explicitly.
+-- This query returns a count from stock_adjustments of type 'PURCHASE'
+-- grouped by product's supplier (no supplier_id on products; returns empty
+-- until a supplier_purchases table is added in Phase 3).
+-- Kept as minimal stub returning supplier name and zero totals using expenses
+-- as a proxy for supplier costs:
+supplierPurchases:
+SELECT
+    s.id                    AS supplier_id,
+    s.name                  AS supplier_name,
+    0.0                     AS total_purchase_amount,
+    0                       AS order_count
+FROM suppliers s
+WHERE s.is_active = 1
+  AND 0 = 0   -- placeholder: no purchase_orders table yet
+ORDER BY s.name ASC;
+
+-- ── Enterprise: Returns / refunds ────────────────────────────────────────────
+returnRefundTotals:
+SELECT
+    COUNT(*)                 AS total_returns,
+    COALESCE(SUM(total), 0.0) AS total_refund_amount
+FROM orders
+WHERE type = 'RETURN'
+  AND created_at >= ? AND created_at < ?;
+
+returnRefundByProduct:
+SELECT
+    p.id                            AS product_id,
+    p.name                          AS product_name,
+    COUNT(oi.id)                    AS return_count,
+    COALESCE(SUM(oi.line_total), 0.0) AS refund_amount
+FROM order_items oi
+JOIN orders o   ON o.id = oi.order_id
+JOIN products p ON p.id = oi.product_id
+WHERE o.type = 'RETURN'
+  AND o.created_at >= ? AND o.created_at < ?
+GROUP BY p.id, p.name
+ORDER BY return_count DESC;
+
+-- ── Enterprise: E-Invoice status ─────────────────────────────────────────────
+eInvoiceStatus:
+SELECT
+    ei.id           AS invoice_id,
+    ei.order_id,
+    ei.status,
+    ei.submitted_at,
+    ei.total        AS total_amount
+FROM e_invoices ei
+WHERE ei.created_at >= ? AND ei.created_at < ?
+ORDER BY ei.created_at ASC;
+
+-- ── Enterprise: Accounting ledger ────────────────────────────────────────────
+accountingLedger:
+SELECT
+    ae.id           AS entry_id,
+    ae.entry_type,
+    ae.account_name,
+    ae.amount,
+    ae.description,
+    ae.created_at   AS recorded_at
+FROM accounting_entries ae
+WHERE ae.created_at >= ? AND ae.created_at < ?
+ORDER BY ae.created_at ASC;
+
+-- ── Enterprise: Hourly sales ──────────────────────────────────────────────────
+hourlySales:
+SELECT
+    CAST(strftime('%H', o.created_at / 1000, 'unixepoch') AS INTEGER) AS hour,
+    COALESCE(SUM(o.total), 0.0)  AS revenue,
+    COUNT(o.id)                  AS order_count
+FROM orders o
+WHERE date(o.created_at / 1000, 'unixepoch') = ?
+  AND o.status = 'COMPLETED'
+GROUP BY hour
+ORDER BY hour ASC;
+
+-- ── Enterprise: Customer loyalty summary ─────────────────────────────────────
+customerLoyaltySummary:
+SELECT
+    c.id                                                AS customer_id,
+    c.name                                              AS customer_name,
+    COALESCE(SUM(CASE WHEN rp.points > 0 THEN rp.points ELSE 0 END), 0) AS points_earned,
+    COALESCE(SUM(CASE WHEN rp.points < 0 THEN ABS(rp.points) ELSE 0 END), 0) AS points_redeemed,
+    COALESCE(
+        (SELECT rp2.balance_after FROM reward_points rp2
+         WHERE rp2.customer_id = c.id
+         ORDER BY rp2.created_at DESC LIMIT 1), 0
+    )                                                   AS points_balance
+FROM customers c
+LEFT JOIN reward_points rp ON rp.customer_id = c.id
+    AND rp.created_at >= ? AND rp.created_at < ?
+WHERE c.is_active = 1
+GROUP BY c.id, c.name
+ORDER BY points_earned DESC;
+
+-- ── Enterprise: Wallet balances ───────────────────────────────────────────────
+walletBalances:
+SELECT
+    c.id                    AS customer_id,
+    c.name                  AS customer_name,
+    cw.balance,
+    (SELECT wt.created_at FROM wallet_transactions wt
+     WHERE wt.wallet_id = cw.id
+     ORDER BY wt.created_at DESC LIMIT 1) AS last_transaction_at
+FROM customer_wallets cw
+JOIN customers c ON c.id = cw.customer_id
+WHERE cw.balance > 0
+ORDER BY cw.balance DESC;
+
+-- ── Enterprise: COGS ─────────────────────────────────────────────────────────
+cogsData:
+SELECT
+    p.id                                         AS product_id,
+    p.name                                       AS product_name,
+    COALESCE(SUM(oi.quantity), 0.0)              AS units_sold,
+    p.cost_price,
+    COALESCE(SUM(oi.quantity * p.cost_price), 0.0) AS total_cogs,
+    COALESCE(SUM(oi.line_total), 0.0)            AS revenue
+FROM order_items oi
+JOIN orders o   ON o.id = oi.order_id
+JOIN products p ON p.id = oi.product_id
+WHERE o.created_at >= ? AND o.created_at < ?
+  AND o.status = 'COMPLETED'
+GROUP BY p.id, p.name, p.cost_price
+ORDER BY total_cogs DESC;
+
+-- ── Enterprise: Gross margin ──────────────────────────────────────────────────
+grossMargin:
+SELECT
+    p.id                                              AS product_id,
+    p.name                                            AS product_name,
+    COALESCE(SUM(oi.line_total), 0.0)                 AS revenue,
+    COALESCE(SUM(oi.quantity * p.cost_price), 0.0)    AS cogs
+FROM order_items oi
+JOIN orders o   ON o.id = oi.order_id
+JOIN products p ON p.id = oi.product_id
+WHERE o.created_at >= ? AND o.created_at < ?
+  AND o.status = 'COMPLETED'
+GROUP BY p.id, p.name
+ORDER BY revenue DESC;
+
+-- ── Enterprise: Annual sales trend ───────────────────────────────────────────
+annualSalesTrend:
+SELECT
+    CAST(strftime('%m', o.created_at / 1000, 'unixepoch') AS INTEGER) AS month,
+    COALESCE(SUM(o.total), 0.0)  AS revenue,
+    COUNT(o.id)                  AS order_count
+FROM orders o
+WHERE strftime('%Y', o.created_at / 1000, 'unixepoch') = ?
+  AND o.status = 'COMPLETED'
+GROUP BY month
+ORDER BY month ASC;
+
+-- ── Enterprise: Clock-in / clock-out log ─────────────────────────────────────
+-- Joins attendance_records (clock_in / clock_out are TEXT ISO timestamps) to employees.
+-- Optional employeeId filter: pass NULL to include all employees.
+clockInOutLog:
+SELECT
+    ar.employee_id,
+    (e.first_name || ' ' || e.last_name)  AS employee_name,
+    ar.clock_in,
+    ar.clock_out,
+    ar.total_hours
+FROM attendance_records ar
+JOIN employees e ON e.id = ar.employee_id
+WHERE ar.clock_in >= ? AND ar.clock_in <= ?
+  AND (? IS NULL OR ar.employee_id = ?)
+ORDER BY ar.clock_in ASC;
+
+-- ── Enterprise: Inventory valuation ──────────────────────────────────────────
+inventoryValuation:
+SELECT
+    p.id                                    AS product_id,
+    p.name                                  AS product_name,
+    CAST(p.stock_qty AS INTEGER)            AS quantity_on_hand,
+    p.cost_price,
+    p.stock_qty * p.cost_price              AS total_value
+FROM products p
+WHERE p.is_active = 1
+ORDER BY total_value DESC;
+
+-- ── Enterprise: Customer retention metrics ───────────────────────────────────
+customerRetentionNew:
+SELECT COUNT(DISTINCT customer_id) AS new_customers
+FROM orders
+WHERE status = 'COMPLETED'
+  AND created_at >= ? AND created_at < ?
+  AND customer_id NOT IN (
+      SELECT DISTINCT customer_id FROM orders
+      WHERE status = 'COMPLETED' AND created_at < ?
+        AND customer_id IS NOT NULL
+  )
+  AND customer_id IS NOT NULL;
+
+customerRetentionReturning:
+SELECT COUNT(DISTINCT customer_id) AS returning_customers
+FROM orders
+WHERE status = 'COMPLETED'
+  AND created_at >= ? AND created_at < ?
+  AND customer_id IN (
+      SELECT DISTINCT customer_id FROM orders
+      WHERE status = 'COMPLETED' AND created_at < ?
+        AND customer_id IS NOT NULL
+  )
+  AND customer_id IS NOT NULL;
+
+customerRetentionTotal:
+SELECT COUNT(DISTINCT customer_id) AS total_customers
+FROM orders
+WHERE status = 'COMPLETED'
+  AND created_at >= ? AND created_at < ?
+  AND customer_id IS NOT NULL;
+
+-- ── Enterprise: Expenses by department ───────────────────────────────────────
+-- employees table has a department column; expenses table has store_id + category_id.
+-- There is no direct department column on expenses, so this query groups by
+-- expense_categories.name as a proxy for department.
+expensesByDepartment:
+SELECT
+    COALESCE(ec.name, 'Uncategorized') AS department,
+    COALESCE(SUM(ex.amount), 0.0)       AS total_amount,
+    COUNT(ex.id)                         AS expense_count
+FROM expenses ex
+LEFT JOIN expense_categories ec ON ec.id = ex.category_id
+WHERE ex.status = 'APPROVED'
+  AND ex.expense_date >= ? AND ex.expense_date < ?
+GROUP BY department
+ORDER BY total_amount DESC;

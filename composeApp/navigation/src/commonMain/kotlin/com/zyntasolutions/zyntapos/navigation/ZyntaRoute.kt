@@ -228,6 +228,14 @@ sealed class ZyntaRoute {
     data object RbacManagement : ZyntaRoute()
 
     /**
+     * Edition and feature management — displays the current store edition and
+     * allows administrators to enable or disable optional [ZyntaFeature]s.
+     * Placeholder until Agent 7 wires the real screen.
+     */
+    @Serializable
+    data object EditionManagement : ZyntaRoute()
+
+    /**
      * In-app developer console (debug builds only).
      * Access is gated at two levels:
      *   1. [AppInfoProvider.isDebug] — composable only registered when true

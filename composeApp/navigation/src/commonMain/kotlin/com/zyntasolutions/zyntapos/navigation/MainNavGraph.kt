@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.navigation
 
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
@@ -310,6 +311,12 @@ fun NavGraphBuilder.mainNavGraph(
                 screens.rbacManagement(
                     { navigationController.navigateUp(ZyntaRoute.SecuritySettings) },
                 )
+            }
+
+            composable<ZyntaRoute.EditionManagement> {
+                // Placeholder: EditionManagementScreen will be wired by Agent 7
+                // For now just navigate to a placeholder
+                Text("Edition Management — Coming soon") // temporary
             }
 
             // ── Debug Console — only registered in debug builds ──────────────
@@ -639,7 +646,8 @@ private fun MainScaffoldShell(
         is ZyntaRoute.PosSettings,
         is ZyntaRoute.SystemHealthSettings,
         is ZyntaRoute.SecuritySettings,
-        is ZyntaRoute.RbacManagement -> item.route is ZyntaRoute.Settings
+        is ZyntaRoute.RbacManagement,
+        is ZyntaRoute.EditionManagement -> item.route is ZyntaRoute.Settings
 
         // CRM sub-graph
         is ZyntaRoute.CustomerList,

@@ -34,9 +34,11 @@ import com.zyntasolutions.zyntapos.data.repository.AttendanceRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.BackupRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.EInvoiceRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.EmployeeRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.FeatureRegistryRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.LeaveRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.MediaRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.PayrollRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.ReportRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.ShiftRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.SystemRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.WarehouseRackRepositoryImpl
@@ -72,9 +74,11 @@ import com.zyntasolutions.zyntapos.domain.repository.AttendanceRepository
 import com.zyntasolutions.zyntapos.domain.repository.BackupRepository
 import com.zyntasolutions.zyntapos.domain.repository.EInvoiceRepository
 import com.zyntasolutions.zyntapos.domain.repository.EmployeeRepository
+import com.zyntasolutions.zyntapos.domain.repository.FeatureRegistryRepository
 import com.zyntasolutions.zyntapos.domain.repository.LeaveRepository
 import com.zyntasolutions.zyntapos.domain.repository.MediaRepository
 import com.zyntasolutions.zyntapos.domain.repository.PayrollRepository
+import com.zyntasolutions.zyntapos.domain.repository.ReportRepository
 import com.zyntasolutions.zyntapos.domain.repository.ShiftRepository
 import com.zyntasolutions.zyntapos.domain.repository.SystemRepository
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseRackRepository
@@ -370,4 +374,21 @@ val dataModule = module {
 
     // E-Invoice: SQLDelight-backed (Sprint 18 — replaces in-memory stub)
     single<EInvoiceRepository> { EInvoiceRepositoryImpl(db = get(), syncEnqueuer = get()) }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ── Feature Registry (Edition Management) ────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Feature flag registry: 23 rows (one per ZyntaFeature), supports toggle + initDefaults.
+    // Implementation created in parallel by Agent 1; bound here so all Koin consumers
+    // (LicenseManager in securityModule, feature use cases in settingsModule) can resolve it.
+    single<FeatureRegistryRepository> { FeatureRegistryRepositoryImpl(db = get(), syncEnqueuer = get()) }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ── Report Repository (Enterprise Reports) ───────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Aggregated report queries used by all 30 enterprise report use cases.
+    // Implementation created in parallel by Agents 2/3.
+    single<ReportRepository> { ReportRepositoryImpl(db = get()) }
 }

@@ -7,6 +7,7 @@ import com.zyntasolutions.zyntapos.security.auth.PinManager
 import com.zyntasolutions.zyntapos.security.crypto.DatabaseKeyManager
 import com.zyntasolutions.zyntapos.security.crypto.EncryptionManager
 import com.zyntasolutions.zyntapos.security.prefs.SecurePreferences
+import com.zyntasolutions.zyntapos.security.license.LicenseManager
 import com.zyntasolutions.zyntapos.security.rbac.RbacEngine
 import com.zyntasolutions.zyntapos.domain.port.PasswordHashPort
 import com.zyntasolutions.zyntapos.domain.port.SecureStoragePort
@@ -139,4 +140,12 @@ val securityModule = module {
      * Evaluates [com.zyntasolutions.zyntapos.domain.model.Permission.rolePermissions].
      */
     single { RbacEngine() }
+
+    /**
+     * License manager — bridges feature-registry state (provided by dataModule)
+     * with RBAC to determine per-user feature access.
+     * Requires [com.zyntasolutions.zyntapos.domain.repository.FeatureRegistryRepository]
+     * from dataModule and [RbacEngine] above.
+     */
+    single { LicenseManager(get(), get()) }
 }

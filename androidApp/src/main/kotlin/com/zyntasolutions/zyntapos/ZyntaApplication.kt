@@ -30,12 +30,14 @@ import com.zyntasolutions.zyntapos.hal.di.halModule
 import com.zyntasolutions.zyntapos.navigation.navigationModule
 import com.zyntasolutions.zyntapos.security.di.securityModule
 import com.zyntasolutions.zyntapos.data.local.db.SecurePreferencesKeyMigration
+import com.zyntasolutions.zyntapos.domain.repository.FeatureRegistryRepository
 import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.seed.DefaultSeedDataSet
 import com.zyntasolutions.zyntapos.seed.SeedRunner
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlin.time.Clock
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
 
@@ -116,6 +118,15 @@ class ZyntaApplication : Application() {
         // upgrade.  Must run BEFORE any auth operation.
         // migrate() is idempotent — safe to call on every launch.
         koin.koin.get<SecurePreferencesKeyMigration>().migrate()
+
+        // ── Feature registry default seeding ─────────────────────────────────────
+        // Ensures all 23 ZyntaFeature rows exist in the local DB on every launch.
+        // initDefaults() uses INSERT OR IGNORE so existing rows are never overwritten.
+        // Runs on IO to avoid blocking the main thread during startup.
+        CoroutineScope(Dispatchers.IO).launch {
+            koin.koin.get<FeatureRegistryRepository>()
+                .initDefaults(Clock.System.now().toEpochMilliseconds())
+        }
 
         // ── Initialise AppInfoProvider with Android BuildConfig values ────────
         val appInfo = koin.koin.get<AppInfoProvider>()

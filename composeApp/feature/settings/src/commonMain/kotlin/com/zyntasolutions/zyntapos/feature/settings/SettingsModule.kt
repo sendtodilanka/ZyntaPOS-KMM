@@ -1,10 +1,14 @@
 package com.zyntasolutions.zyntapos.feature.settings
 
 import com.zyntasolutions.zyntapos.domain.usecase.auth.SetPinUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.feature.GetAllFeatureConfigsUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.feature.IsFeatureEnabledUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.feature.SetFeatureEnabledUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rbac.DeleteCustomRoleUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rbac.SaveCustomRoleUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.PrintTestPageUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.SaveUserUseCase
+import com.zyntasolutions.zyntapos.feature.settings.edition.EditionManagementViewModel
 import com.zyntasolutions.zyntapos.hal.printer.PrinterManager
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.viewModelOf
@@ -36,6 +40,13 @@ val settingsModule = module {
     factoryOf(::SaveCustomRoleUseCase)
     factoryOf(::DeleteCustomRoleUseCase)
 
-    // ── ViewModel ────────────────────────────────────────────────────────────
+    // ── Feature registry use cases (Edition Management) ───────────────────────
+    // FeatureRegistryRepository is bound in :shared:data dataModule.
+    factoryOf(::GetAllFeatureConfigsUseCase)
+    factoryOf(::IsFeatureEnabledUseCase)
+    factoryOf(::SetFeatureEnabledUseCase)
+
+    // ── ViewModels ────────────────────────────────────────────────────────────
     viewModelOf(::SettingsViewModel)
+    viewModelOf(::EditionManagementViewModel)
 }
