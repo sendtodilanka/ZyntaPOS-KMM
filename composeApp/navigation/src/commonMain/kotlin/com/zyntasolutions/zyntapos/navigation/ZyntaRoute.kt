@@ -223,6 +223,18 @@ sealed class ZyntaRoute {
     @Serializable
     data object SecuritySettings : ZyntaRoute()
 
+    /** Role and permission matrix management (RBAC). */
+    @Serializable
+    data object RbacManagement : ZyntaRoute()
+
+    /**
+     * Edition and feature management — displays the current store edition and
+     * allows administrators to enable or disable optional [ZyntaFeature]s.
+     * Placeholder until Agent 7 wires the real screen.
+     */
+    @Serializable
+    data object EditionManagement : ZyntaRoute()
+
     /**
      * In-app developer console (debug builds only).
      * Access is gated at two levels:
@@ -447,6 +459,62 @@ sealed class ZyntaRoute {
     data class EInvoiceDetail(
         val invoiceId: String? = null,
         val orderId: String? = null,
+    ) : ZyntaRoute()
+
+    // ── Wave 4B — Chart of Accounts, Journal Entries, Financial Statements ─────
+
+    /** Chart of Accounts — master list of all accounts for the store. */
+    @Serializable
+    data object ChartOfAccounts : ZyntaRoute()
+
+    /**
+     * Account management detail / edit screen (Wave 4B).
+     *
+     * @param accountId Existing account UUID for edit mode; `null` for create mode.
+     * @param storeId   Store scope for the account.
+     */
+    @Serializable
+    data class AccountManagementDetail(
+        val accountId: String? = null,
+        val storeId: String = "default-store",
+    ) : ZyntaRoute()
+
+    /** Journal Entry List — history and draft entries for a store. */
+    @Serializable
+    data object JournalEntryList : ZyntaRoute()
+
+    /**
+     * Journal Entry detail / create / edit screen.
+     *
+     * @param entryId    Existing entry UUID; `null` to create a new entry.
+     * @param storeId    Store scope for the entry.
+     * @param createdBy  User ID attributed to the entry (used in create mode).
+     */
+    @Serializable
+    data class JournalEntryDetail(
+        val entryId: String? = null,
+        val storeId: String = "default-store",
+        val createdBy: String = "admin",
+    ) : ZyntaRoute()
+
+    /**
+     * Financial Statements — Profit & Loss, Balance Sheet, Trial Balance tabs.
+     *
+     * @param initialTab The tab to show first: "PROFIT_LOSS" | "BALANCE_SHEET" | "TRIAL_BALANCE".
+     */
+    @Serializable
+    data class FinancialStatements(val initialTab: String = "PROFIT_LOSS") : ZyntaRoute()
+
+    /**
+     * General Ledger — account selector with date-range entry drill-down.
+     *
+     * @param initialAccountId Pre-selected account UUID; `null` to show the account picker first.
+     * @param storeId          Store scope for the ledger queries.
+     */
+    @Serializable
+    data class GeneralLedger(
+        val initialAccountId: String? = null,
+        val storeId: String = "default-store",
     ) : ZyntaRoute()
 
     // ─────────────────────────────────────────────────────────────────

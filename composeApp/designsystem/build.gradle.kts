@@ -51,5 +51,9 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.bundles.testing.common)
         }
+        jvmTest.dependencies {
+            implementation(libs.compose.desktop.uiTestJunit4)
+            implementation(libs.junit)
+        }
     }
 }

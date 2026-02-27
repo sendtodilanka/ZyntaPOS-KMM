@@ -1,0 +1,20 @@
+-- ============================================================
+-- Migration 5 → 6: RBAC Admin — Custom Roles + User Custom Role Assignment
+-- ============================================================
+-- 1. Adds the custom_roles table for admin-defined roles.
+-- 2. Adds custom_role_id column to users to support custom role assignment.
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS custom_roles (
+    id          TEXT    NOT NULL PRIMARY KEY,
+    name        TEXT    NOT NULL,
+    description TEXT    NOT NULL DEFAULT '',
+    permissions TEXT    NOT NULL,
+    created_at  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL,
+    sync_status TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_custom_roles_name ON custom_roles(name);
+
+ALTER TABLE users ADD COLUMN custom_role_id TEXT;

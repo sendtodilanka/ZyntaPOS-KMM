@@ -120,6 +120,11 @@ data class MainNavScreens(
 
     val securitySettings: @Composable (
         onNavigateUp: () -> Unit,
+        onNavigateToRbacManagement: () -> Unit,
+    ) -> Unit,
+
+    val rbacManagement: @Composable (
+        onNavigateUp: () -> Unit,
     ) -> Unit,
 
     // ── Deep-link target ──────────────────────────────────────────────────────
@@ -228,6 +233,43 @@ data class MainNavScreens(
     val eInvoiceDetail: @Composable (
         invoiceId: String?,
         onNavigateUp: () -> Unit,
+    ) -> Unit,
+
+    // ── Wave 4B: Chart of Accounts, Journal Entries, Financial Statements ──────
+    val chartOfAccounts: @Composable (
+        onNavigateToAccountDetail: (accountId: String?) -> Unit,
+        onNavigateBack: () -> Unit,
+    ) -> Unit,
+
+    val accountManagementDetail: @Composable (
+        accountId: String?,
+        storeId: String,
+        onNavigateBack: () -> Unit,
+    ) -> Unit,
+
+    val journalEntryList: @Composable (
+        storeId: String,
+        onNavigateToEntry: (entryId: String?) -> Unit,
+        onNavigateBack: () -> Unit,
+    ) -> Unit,
+
+    val journalEntryDetail: @Composable (
+        entryId: String?,
+        storeId: String,
+        createdBy: String,
+        onNavigateBack: () -> Unit,
+        onNavigateToEntry: (entryId: String) -> Unit,
+    ) -> Unit,
+
+    val financialStatements: @Composable (
+        storeId: String,
+        onNavigateBack: () -> Unit,
+    ) -> Unit,
+
+    val generalLedger: @Composable (
+        storeId: String,
+        initialAccountId: String?,
+        onNavigateBack: () -> Unit,
     ) -> Unit,
 
     // ── Admin sub-graph  (Sprint 13-15) ──────────────────────────────────────

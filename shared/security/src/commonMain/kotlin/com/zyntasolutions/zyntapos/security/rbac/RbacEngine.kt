@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.security.rbac
 
+import com.zyntasolutions.zyntapos.domain.model.CustomRole
 import com.zyntasolutions.zyntapos.domain.model.Permission
 import com.zyntasolutions.zyntapos.domain.model.Role
 import com.zyntasolutions.zyntapos.domain.model.User
@@ -70,4 +71,43 @@ class RbacEngine {
      */
     fun getDeniedPermissions(role: Role): Set<Permission> =
         Permission.entries.toSet() - getPermissions(role)
+
+    // ── Dynamic RBAC overloads ────────────────────────────────────────────────
+
+    /**
+     * Returns `true` if [user] is granted [permission] after honouring admin-configured
+     * built-in role overrides and any custom role assignment.
+     *
+     * Priority:
+     * 1. If [user.customRoleId] is set → look up in [customRoles] and use that permission set.
+     * 2. Else if [user.role] has an entry in [builtInOverrides] → use the override set.
+     * 3. Else fall back to the static [Permission.rolePermissions] defaults.
+     *
+     * @param user             The authenticated user.
+     * @param permission       The permission to check.
+     * @param builtInOverrides Map of admin-configured overrides for built-in roles (non-ADMIN only).
+     * @param customRoles      All custom role definitions (from DB).
+     */
+    fun hasPermission(
+        user: User,
+        permission: Permission,
+        builtInOverrides: Map<Role, Set<Permission>>,
+        customRoles: List<CustomRole>,
+    ): Boolean = permission in resolvePermissions(user, builtInOverrides, customRoles)
+
+    /**
+     * Resolves the effective [Set] of [Permission]s for [user], honouring dynamic overrides.
+     *
+     * @see hasPermission for priority rules.
+     */
+    fun resolvePermissions(
+        user: User,
+        builtInOverrides: Map<Role, Set<Permission>>,
+        customRoles: List<CustomRole>,
+    ): Set<Permission> = when {
+        // ADMIN always retains all permissions — defense-in-depth; no override can restrict ADMIN.
+        user.role == Role.ADMIN        -> getPermissions(Role.ADMIN)
+        user.customRoleId != null      -> customRoles.find { it.id == user.customRoleId }?.permissions ?: emptySet()
+        else                           -> builtInOverrides[user.role] ?: getPermissions(user.role)
+    }
 }

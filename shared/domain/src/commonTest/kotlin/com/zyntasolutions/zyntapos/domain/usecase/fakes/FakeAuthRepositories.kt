@@ -37,6 +37,7 @@ class FakeAuthRepository : AuthRepository {
     var logoutCalled: Boolean = false
     var pinToAccept: String = "1234"
     var shouldFailUpdatePin: Boolean = false
+    var updatePinCalledWith: Pair<String, String>? = null
 
     private val _session = MutableStateFlow<User?>(null)
 
@@ -62,12 +63,16 @@ class FakeAuthRepository : AuthRepository {
     override suspend fun refreshToken(): Result<Unit> = Result.Success(Unit)
 
     override suspend fun updatePin(userId: String, pin: String): Result<Unit> {
-        if (shouldFailUpdatePin || (pinToAccept.isNotEmpty() && pin != pinToAccept)) {
+        updatePinCalledWith = Pair(userId, pin)
+        if (shouldFailUpdatePin) {
             return Result.Error(AuthException("Invalid PIN", reason = AuthFailureReason.INVALID_CREDENTIALS))
         }
         pinToAccept = pin
         return Result.Success(Unit)
     }
+
+    override suspend fun validatePin(userId: String, pin: String): Result<Boolean> =
+        Result.Success(pin == pinToAccept)
 
     fun setActiveUser(user: User?) { _session.value = user }
 }

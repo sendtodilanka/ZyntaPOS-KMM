@@ -1,0 +1,193 @@
+CREATE TABLE IF NOT EXISTS journal_entry_lines (
+    id               TEXT    NOT NULL PRIMARY KEY,
+    journal_entry_id TEXT    NOT NULL REFERENCES journal_entries(id),
+    account_id       TEXT    NOT NULL REFERENCES chart_of_accounts(id),
+    debit_amount     REAL    NOT NULL DEFAULT 0,
+    credit_amount    REAL    NOT NULL DEFAULT 0,
+    line_description TEXT,
+    line_order       INTEGER NOT NULL DEFAULT 0,
+    created_at       INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_jel_entry_id ON journal_entry_lines(journal_entry_id);
+CREATE INDEX IF NOT EXISTS idx_jel_account_id ON journal_entry_lines(account_id);
+CREATE INDEX IF NOT EXISTS idx_jel_order ON journal_entry_lines(journal_entry_id, line_order);
+
+getLinesByEntry:
+SELECT * FROM journal_entry_lines
+WHERE journal_entry_id = :journal_entry_id
+ORDER BY line_order ASC;
+
+getLinesByAccount:
+SELECT jel.*, je.entry_date, je.description AS entry_description, je.is_posted
+FROM journal_entry_lines jel
+JOIN journal_entries je ON je.id = jel.journal_entry_id
+WHERE jel.account_id = :account_id
+ORDER BY je.entry_date DESC, je.entry_time DESC;
+
+getLinesByAccountAndDateRange:
+SELECT jel.*, je.entry_date, je.description AS entry_description, je.reference_type, je.reference_id, je.is_posted
+FROM journal_entry_lines jel
+JOIN journal_entries je ON je.id = jel.journal_entry_id
+WHERE jel.account_id = :account_id
+  AND je.entry_date >= :date_from
+  AND je.entry_date <= :date_to
+  AND je.is_posted = 1
+ORDER BY je.entry_date ASC, je.entry_time ASC;
+
+sumDebitsForEntry:
+SELECT COALESCE(SUM(debit_amount), 0.0) AS total_debits FROM journal_entry_lines WHERE journal_entry_id = :journal_entry_id;
+
+sumCreditsForEntry:
+SELECT COALESCE(SUM(credit_amount), 0.0) AS total_credits FROM journal_entry_lines WHERE journal_entry_id = :journal_entry_id;
+
+getBalanceCheckForEntry:
+SELECT
+    COALESCE(SUM(debit_amount), 0.0) AS total_debits,
+    COALESCE(SUM(credit_amount), 0.0) AS total_credits
+FROM journal_entry_lines
+WHERE journal_entry_id = :journal_entry_id;
+
+getAccountDebitTotalForPeriod:
+SELECT COALESCE(SUM(jel.debit_amount), 0.0) AS total_debits
+FROM journal_entry_lines jel
+JOIN journal_entries je ON je.id = jel.journal_entry_id
+WHERE jel.account_id = :account_id
+  AND je.entry_date >= :date_from
+  AND je.entry_date <= :date_to
+  AND je.is_posted = 1;
+
+getAccountCreditTotalForPeriod:
+SELECT COALESCE(SUM(jel.credit_amount), 0.0) AS total_credits
+FROM journal_entry_lines jel
+JOIN journal_entries je ON je.id = jel.journal_entry_id
+WHERE jel.account_id = :account_id
+  AND je.entry_date >= :date_from
+  AND je.entry_date <= :date_to
+  AND je.is_posted = 1;
+
+getTrialBalance:
+SELECT
+    coa.id AS account_id,
+    coa.account_code,
+    coa.account_name,
+    coa.account_type,
+    coa.normal_balance,
+    coa.sub_category,
+    COALESCE(SUM(jel.debit_amount), 0.0) AS total_debits,
+    COALESCE(SUM(jel.credit_amount), 0.0) AS total_credits
+FROM chart_of_accounts coa
+LEFT JOIN journal_entry_lines jel ON jel.account_id = coa.id
+LEFT JOIN journal_entries je ON je.id = jel.journal_entry_id
+    AND je.entry_date <= :as_of_date
+    AND je.is_posted = 1
+WHERE coa.is_active = 1 AND coa.allow_transactions = 1
+GROUP BY coa.id
+ORDER BY coa.account_code ASC;
+
+getProfitAndLossRevenue:
+SELECT COALESCE(SUM(jel.credit_amount), 0.0) - COALESCE(SUM(jel.debit_amount), 0.0) AS net_amount
+FROM journal_entry_lines jel
+JOIN journal_entries je ON je.id = jel.journal_entry_id
+JOIN chart_of_accounts coa ON coa.id = jel.account_id
+WHERE coa.account_type = 'INCOME'
+  AND je.entry_date >= :date_from
+  AND je.entry_date <= :date_to
+  AND je.is_posted = 1;
+
+getProfitAndLossCOGS:
+SELECT COALESCE(SUM(jel.debit_amount), 0.0) - COALESCE(SUM(jel.credit_amount), 0.0) AS net_amount
+FROM journal_entry_lines jel
+JOIN journal_entries je ON je.id = jel.journal_entry_id
+JOIN chart_of_accounts coa ON coa.id = jel.account_id
+WHERE coa.account_type = 'COGS'
+  AND je.entry_date >= :date_from
+  AND je.entry_date <= :date_to
+  AND je.is_posted = 1;
+
+getProfitAndLossExpenses:
+SELECT COALESCE(SUM(jel.debit_amount), 0.0) - COALESCE(SUM(jel.credit_amount), 0.0) AS net_amount
+FROM journal_entry_lines jel
+JOIN journal_entries je ON je.id = jel.journal_entry_id
+JOIN chart_of_accounts coa ON coa.id = jel.account_id
+WHERE coa.account_type = 'EXPENSE'
+  AND je.entry_date >= :date_from
+  AND je.entry_date <= :date_to
+  AND je.is_posted = 1;
+
+getPnLByAccountType:
+SELECT
+    coa.account_type,
+    coa.sub_category,
+    coa.account_code,
+    coa.account_name,
+    COALESCE(SUM(jel.debit_amount), 0.0) AS total_debits,
+    COALESCE(SUM(jel.credit_amount), 0.0) AS total_credits
+FROM journal_entry_lines jel
+JOIN journal_entries je ON je.id = jel.journal_entry_id
+JOIN chart_of_accounts coa ON coa.id = jel.account_id
+WHERE coa.account_type IN ('INCOME', 'COGS', 'EXPENSE')
+  AND je.entry_date >= :date_from
+  AND je.entry_date <= :date_to
+  AND je.is_posted = 1
+GROUP BY coa.id
+ORDER BY coa.account_type, coa.account_code;
+
+getBalanceSheetByAccountType:
+SELECT
+    coa.account_type,
+    coa.sub_category,
+    coa.account_code,
+    coa.account_name,
+    coa.normal_balance,
+    COALESCE(SUM(jel.debit_amount), 0.0) AS total_debits,
+    COALESCE(SUM(jel.credit_amount), 0.0) AS total_credits
+FROM journal_entry_lines jel
+JOIN journal_entries je ON je.id = jel.journal_entry_id
+JOIN chart_of_accounts coa ON coa.id = jel.account_id
+WHERE coa.account_type IN ('ASSET', 'LIABILITY', 'EQUITY')
+  AND je.entry_date <= :as_of_date
+  AND je.is_posted = 1
+GROUP BY coa.id
+ORDER BY coa.account_type, coa.account_code;
+
+-- Cash Flow Statement query: aggregates cash inflows / outflows for cash accounts
+-- (1010 Cash, 1020 Bank Account, 1030 Petty Cash) grouped by reference_type.
+-- The caller maps each reference_type to Operating / Investing / Financing section.
+getCashFlowByReferenceType:
+SELECT
+    je.reference_type,
+    COALESCE(SUM(jel.debit_amount), 0.0)  AS cash_inflow,
+    COALESCE(SUM(jel.credit_amount), 0.0) AS cash_outflow
+FROM journal_entry_lines jel
+JOIN journal_entries je ON je.id = jel.journal_entry_id
+JOIN chart_of_accounts coa ON coa.id = jel.account_id
+WHERE je.entry_date >= :date_from
+  AND je.entry_date <= :date_to
+  AND je.is_posted = 1
+  AND coa.account_code IN ('1010', '1020', '1030')
+GROUP BY je.reference_type
+ORDER BY je.reference_type;
+
+-- Cumulative net cash balance for cash accounts (1010, 1020, 1030) as of a date.
+-- Used to compute opening / closing cash balances for the Cash Flow Statement.
+getCashBalanceAsOf:
+SELECT COALESCE(SUM(jel.debit_amount - jel.credit_amount), 0.0) AS net_cash
+FROM journal_entry_lines jel
+JOIN journal_entries je ON je.id = jel.journal_entry_id
+JOIN chart_of_accounts coa ON coa.id = jel.account_id
+WHERE je.entry_date <= :as_of_date
+  AND je.is_posted = 1
+  AND coa.account_code IN ('1010', '1020', '1030');
+
+insertLine:
+INSERT INTO journal_entry_lines(
+    id, journal_entry_id, account_id, debit_amount, credit_amount,
+    line_description, line_order, created_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+deleteLine:
+DELETE FROM journal_entry_lines WHERE id = :id;
+
+deleteLinesByEntry:
+DELETE FROM journal_entry_lines WHERE journal_entry_id = :journal_entry_id;

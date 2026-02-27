@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.feature.staff
 
+import com.zyntasolutions.zyntapos.domain.usecase.accounting.PostPayrollJournalEntryUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.ApproveLeaveUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.ClockInUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.ClockOutUseCase
@@ -77,6 +78,13 @@ val staffModule = module {
     // ── Sprint 12: Payroll ────────────────────────────────────────────────
     factoryOf(::GeneratePayrollUseCase)
     factoryOf(::ProcessPayrollPaymentUseCase)
+    factory {
+        PostPayrollJournalEntryUseCase(
+            journalRepository = get(),
+            accountRepository = get(),
+            periodRepository = get(),
+        )
+    }
 
     // ── Payroll / Attendance / Leave history (orphan use cases — B2 wiring) ──
     factoryOf(::GetPayrollHistoryUseCase)
@@ -106,6 +114,7 @@ val staffModule = module {
             deleteShiftUseCase = get(),
             generatePayrollUseCase = get(),
             processPaymentUseCase = get(),
+            postPayrollJournalEntryUseCase = get(),
             getPayrollHistoryUseCase = get(),
             getAttendanceSummaryUseCase = get(),
             getLeaveHistoryUseCase = get(),

@@ -7,6 +7,7 @@ import com.zyntasolutions.zyntapos.data.local.db.SecurePreferencesKeyMigration
 import com.zyntasolutions.zyntapos.data.remote.api.ApiService
 import com.zyntasolutions.zyntapos.data.remote.api.KtorApiService
 import com.zyntasolutions.zyntapos.data.remote.api.buildApiClient
+import com.zyntasolutions.zyntapos.data.repository.RoleRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.AuditRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.AuthRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.CategoryRepositoryImpl
@@ -29,13 +30,19 @@ import com.zyntasolutions.zyntapos.data.repository.TaxGroupRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.UnitGroupRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.UserRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.AccountingRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.AccountRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.JournalRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.FinancialStatementRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.AccountingPeriodRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.AttendanceRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.BackupRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.EInvoiceRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.EmployeeRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.FeatureRegistryRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.LeaveRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.MediaRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.PayrollRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.ReportRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.ShiftRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.SystemRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.WarehouseRackRepositoryImpl
@@ -67,16 +74,23 @@ import com.zyntasolutions.zyntapos.domain.repository.TaxGroupRepository
 import com.zyntasolutions.zyntapos.domain.repository.UnitGroupRepository
 import com.zyntasolutions.zyntapos.domain.repository.UserRepository
 import com.zyntasolutions.zyntapos.domain.repository.AccountingRepository
+import com.zyntasolutions.zyntapos.domain.repository.AccountRepository
+import com.zyntasolutions.zyntapos.domain.repository.JournalRepository
+import com.zyntasolutions.zyntapos.domain.repository.FinancialStatementRepository
+import com.zyntasolutions.zyntapos.domain.repository.AccountingPeriodRepository
 import com.zyntasolutions.zyntapos.domain.repository.AttendanceRepository
 import com.zyntasolutions.zyntapos.domain.repository.BackupRepository
 import com.zyntasolutions.zyntapos.domain.repository.EInvoiceRepository
 import com.zyntasolutions.zyntapos.domain.repository.EmployeeRepository
+import com.zyntasolutions.zyntapos.domain.repository.FeatureRegistryRepository
 import com.zyntasolutions.zyntapos.domain.repository.LeaveRepository
 import com.zyntasolutions.zyntapos.domain.repository.MediaRepository
 import com.zyntasolutions.zyntapos.domain.repository.PayrollRepository
+import com.zyntasolutions.zyntapos.domain.repository.ReportRepository
 import com.zyntasolutions.zyntapos.domain.repository.ShiftRepository
 import com.zyntasolutions.zyntapos.domain.repository.SystemRepository
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseRackRepository
+import com.zyntasolutions.zyntapos.domain.repository.RoleRepository
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseRepository
 import org.koin.dsl.module
 
@@ -195,6 +209,9 @@ val dataModule = module {
 
     // Settings: typed key-value wrappers over the `settings` SQLite table
     single<SettingsRepository> { SettingsRepositoryImpl(db = get()) }
+
+    // Role management: custom role CRUD + built-in role permission overrides
+    single<RoleRepository> { RoleRepositoryImpl(db = get(), settingsRepository = get()) }
 
     // Tax groups: CRUD + soft-delete (SQLDelight queries tracked in MERGED-D2)
     single<TaxGroupRepository> { TaxGroupRepositoryImpl(db = get(), syncEnqueuer = get()) }
@@ -354,8 +371,24 @@ val dataModule = module {
     // Warehouse racks: physical shelf locations per warehouse
     single<WarehouseRackRepository> { WarehouseRackRepositoryImpl(db = get(), syncEnqueuer = get()) }
 
-    // Accounting ledger: double-entry insert with DEBIT==CREDIT validation
+    // Accounting ledger: double-entry insert with DEBIT==CREDIT validation (legacy entries)
     single<AccountingRepository> { AccountingRepositoryImpl(db = get(), syncEnqueuer = get()) }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ── Wave 3A: Double-Entry Accounting Repositories ─────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Chart of Accounts: CRUD + seeding + balance cache observation
+    single<AccountRepository> { AccountRepositoryImpl(db = get(), syncEnqueuer = get()) }
+
+    // Journal entries: draft/post/unpost/reverse lifecycle + balanced-entry validation
+    single<JournalRepository> { JournalRepositoryImpl(db = get(), syncEnqueuer = get()) }
+
+    // Financial statements: trial balance, P&L, balance sheet, general ledger (read-only)
+    single<FinancialStatementRepository> { FinancialStatementRepositoryImpl(db = get()) }
+
+    // Accounting periods: OPEN → CLOSED → LOCKED lifecycle management
+    single<AccountingPeriodRepository> { AccountingPeriodRepositoryImpl(db = get(), syncEnqueuer = get()) }
 
     // System health: DB stats, memory metrics, VACUUM, soft-delete purge
     single<SystemRepository> { SystemRepositoryImpl(db = get()) }
@@ -365,4 +398,21 @@ val dataModule = module {
 
     // E-Invoice: SQLDelight-backed (Sprint 18 — replaces in-memory stub)
     single<EInvoiceRepository> { EInvoiceRepositoryImpl(db = get(), syncEnqueuer = get()) }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ── Feature Registry (Edition Management) ────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Feature flag registry: 23 rows (one per ZyntaFeature), supports toggle + initDefaults.
+    // Implementation created in parallel by Agent 1; bound here so all Koin consumers
+    // (LicenseManager in securityModule, feature use cases in settingsModule) can resolve it.
+    single<FeatureRegistryRepository> { FeatureRegistryRepositoryImpl(db = get(), syncEnqueuer = get()) }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ── Report Repository (Enterprise Reports) ───────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Aggregated report queries used by all 30 enterprise report use cases.
+    // Implementation created in parallel by Agents 2/3.
+    single<ReportRepository> { ReportRepositoryImpl(db = get()) }
 }

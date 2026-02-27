@@ -34,6 +34,7 @@ import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaNavGroup
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaNavItem
 import com.zyntasolutions.zyntapos.domain.model.Permission
 import com.zyntasolutions.zyntapos.domain.model.Role
+import com.zyntasolutions.zyntapos.domain.model.ZyntaFeature
 
 /**
  * Logical section a [NavItem] belongs to within the EXPANDED permanent drawer.
@@ -73,6 +74,9 @@ val navGroupLabels: Map<NavGroupKey, String> = mapOf(
  * @param requiredPermission The [Permission] a user must have to see this item.
  *   `null` means visible to all authenticated users.
  * @param group The [NavGroupKey] used to render section headers in the EXPANDED drawer.
+ * @param featureGate The [ZyntaFeature] that must be enabled for this item to appear.
+ *   `null` means no feature gate — the item is shown regardless of enabled features
+ *   (subject only to [requiredPermission]).
  */
 data class NavItem(
     val route: ZyntaRoute,
@@ -81,6 +85,7 @@ data class NavItem(
     val selectedIcon: ImageVector = icon,
     val requiredPermission: Permission? = null,
     val group: NavGroupKey = NavGroupKey.OPERATIONS,
+    val featureGate: ZyntaFeature? = null,
 ) {
     /** Convert to the design-system [ZyntaNavItem] for rendering in [ZyntaScaffold]. */
     fun toZyntaNavItem(): ZyntaNavItem = ZyntaNavItem(
@@ -116,6 +121,7 @@ val AllNavItems: List<NavItem> = listOf(
         selectedIcon = Icons.Filled.Dashboard,
         requiredPermission = null, // visible to all roles
         group = NavGroupKey.OPERATIONS,
+        featureGate = ZyntaFeature.DASHBOARD,
     ),
     NavItem(
         route = ZyntaRoute.Pos,
@@ -124,6 +130,7 @@ val AllNavItems: List<NavItem> = listOf(
         selectedIcon = Icons.Filled.PointOfSale,
         requiredPermission = Permission.PROCESS_SALE,
         group = NavGroupKey.OPERATIONS,
+        featureGate = ZyntaFeature.POS_CORE,
     ),
     NavItem(
         route = ZyntaRoute.ProductList,
@@ -132,6 +139,7 @@ val AllNavItems: List<NavItem> = listOf(
         selectedIcon = Icons.Filled.Inventory2,
         requiredPermission = Permission.MANAGE_PRODUCTS,
         group = NavGroupKey.OPERATIONS,
+        featureGate = ZyntaFeature.INVENTORY_CORE,
     ),
     NavItem(
         route = ZyntaRoute.RegisterDashboard,
@@ -140,6 +148,7 @@ val AllNavItems: List<NavItem> = listOf(
         selectedIcon = Icons.Filled.GridView,
         requiredPermission = Permission.OPEN_REGISTER,
         group = NavGroupKey.OPERATIONS,
+        featureGate = ZyntaFeature.REGISTER,
     ),
     NavItem(
         route = ZyntaRoute.SalesReport,
@@ -148,6 +157,7 @@ val AllNavItems: List<NavItem> = listOf(
         selectedIcon = Icons.Filled.BarChart,
         requiredPermission = Permission.VIEW_REPORTS,
         group = NavGroupKey.OPERATIONS,
+        featureGate = ZyntaFeature.REPORTS_STANDARD,
     ),
 
     // ── MANAGEMENT group (Phase 2) ────────────────────────────────────────────
@@ -159,6 +169,7 @@ val AllNavItems: List<NavItem> = listOf(
         selectedIcon = Icons.Filled.People,
         requiredPermission = Permission.MANAGE_CUSTOMERS,
         group = NavGroupKey.MANAGEMENT,
+        featureGate = ZyntaFeature.CRM_LOYALTY,
     ),
     NavItem(
         route = ZyntaRoute.CouponList,
@@ -167,6 +178,7 @@ val AllNavItems: List<NavItem> = listOf(
         selectedIcon = Icons.Filled.LocalOffer,
         requiredPermission = Permission.MANAGE_COUPONS,
         group = NavGroupKey.MANAGEMENT,
+        featureGate = ZyntaFeature.COUPONS,
     ),
     NavItem(
         route = ZyntaRoute.ExpenseList,
@@ -175,6 +187,7 @@ val AllNavItems: List<NavItem> = listOf(
         selectedIcon = Icons.Filled.Receipt,
         requiredPermission = Permission.MANAGE_EXPENSES,
         group = NavGroupKey.MANAGEMENT,
+        featureGate = ZyntaFeature.EXPENSES,
     ),
     NavItem(
         route = ZyntaRoute.WarehouseList,
@@ -183,6 +196,7 @@ val AllNavItems: List<NavItem> = listOf(
         selectedIcon = Icons.Filled.Store,
         requiredPermission = Permission.MANAGE_WAREHOUSES,
         group = NavGroupKey.MANAGEMENT,
+        featureGate = ZyntaFeature.MULTISTORE,
     ),
 
     // ── HR & FINANCE group (Phase 3) ──────────────────────────────────────────
@@ -194,6 +208,7 @@ val AllNavItems: List<NavItem> = listOf(
         selectedIcon = Icons.Filled.ManageAccounts,
         requiredPermission = Permission.MANAGE_STAFF,
         group = NavGroupKey.HR_FINANCE,
+        featureGate = ZyntaFeature.STAFF_HR,
     ),
     NavItem(
         route = ZyntaRoute.AccountingLedger,
@@ -202,6 +217,7 @@ val AllNavItems: List<NavItem> = listOf(
         selectedIcon = Icons.Filled.AccountBalance,
         requiredPermission = Permission.MANAGE_ACCOUNTING,
         group = NavGroupKey.HR_FINANCE,
+        featureGate = ZyntaFeature.ACCOUNTING,
     ),
 
     // ── SYSTEM group (Phase 3) ────────────────────────────────────────────────
@@ -213,6 +229,7 @@ val AllNavItems: List<NavItem> = listOf(
         selectedIcon = Icons.Filled.AdminPanelSettings,
         requiredPermission = Permission.ADMIN_ACCESS,
         group = NavGroupKey.SYSTEM,
+        featureGate = ZyntaFeature.ADMIN,
     ),
     NavItem(
         route = ZyntaRoute.NotificationInbox,
@@ -221,6 +238,7 @@ val AllNavItems: List<NavItem> = listOf(
         selectedIcon = Icons.Filled.Notifications,
         requiredPermission = null, // visible to all roles
         group = NavGroupKey.SYSTEM,
+        featureGate = null,
     ),
     NavItem(
         route = ZyntaRoute.Settings,
@@ -229,6 +247,7 @@ val AllNavItems: List<NavItem> = listOf(
         selectedIcon = Icons.Filled.Settings,
         requiredPermission = Permission.MANAGE_SETTINGS,
         group = NavGroupKey.SYSTEM,
+        featureGate = ZyntaFeature.SETTINGS,
     ),
 )
 
@@ -299,6 +318,23 @@ object RbacNavFilter {
      */
     fun compactForPermissions(permissions: Set<Permission>): List<NavItem> =
         forPermissions(permissions).take(COMPACT_NAV_MAX_ITEMS)
+
+    /**
+     * Returns the full ordered subset of [AllNavItems] visible to a user with the given [role]
+     * AND where the item's [NavItem.featureGate] is contained in [enabledFeatures].
+     *
+     * Items whose [NavItem.featureGate] is `null` are always included (no edition gate).
+     *
+     * @param role The authenticated user's [Role].
+     * @param enabledFeatures The set of [ZyntaFeature]s active for the current store/edition.
+     * @return Ordered list of [NavItem] the user is permitted to see and the store has enabled.
+     */
+    fun forRoleAndFeatures(
+        role: Role,
+        enabledFeatures: Set<ZyntaFeature>,
+    ): List<NavItem> = forRole(role).filter { item ->
+        item.featureGate == null || item.featureGate in enabledFeatures
+    }
 
     /**
      * Builds [ZyntaNavGroup] section-header descriptors for the EXPANDED permanent drawer

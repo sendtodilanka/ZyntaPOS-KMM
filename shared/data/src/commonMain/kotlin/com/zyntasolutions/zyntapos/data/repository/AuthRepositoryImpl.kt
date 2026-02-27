@@ -132,4 +132,17 @@ class AuthRepositoryImpl(
             onFailure = { t -> Result.Error(DatabaseException(t.message ?: "Update PIN failed", cause = t)) },
         )
     }
+
+    override suspend fun validatePin(userId: String, pin: String): Result<Boolean> = withContext(Dispatchers.IO) {
+        runCatching {
+            val userRow = db.usersQueries.getUserById(userId).executeAsOneOrNull()
+                ?: return@withContext Result.Success(false)
+            val storedHash = userRow.pin_hash
+                ?: return@withContext Result.Success(false)
+            Result.Success(passwordHasher.verify(pin, storedHash))
+        }.fold(
+            onSuccess = { it },
+            onFailure = { t -> Result.Error(DatabaseException(t.message ?: "Validate PIN failed", cause = t)) },
+        )
+    }
 }

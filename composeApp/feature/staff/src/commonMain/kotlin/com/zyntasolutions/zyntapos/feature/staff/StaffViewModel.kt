@@ -27,11 +27,13 @@ import com.zyntasolutions.zyntapos.domain.usecase.staff.GetPayrollHistoryUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.GetPendingLeaveRequestsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.GetShiftScheduleUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.GetTodayAttendanceUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.accounting.PostPayrollJournalEntryUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.ProcessPayrollPaymentUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.RejectLeaveUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.SaveEmployeeUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.SaveShiftScheduleUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.SubmitLeaveRequestUseCase
+import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,6 +45,9 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 /**
  * Root ViewModel for the Staff & HR feature (Sprints 8–12).
@@ -77,6 +82,7 @@ class StaffViewModel(
     private val deleteShiftUseCase: DeleteShiftScheduleUseCase,
     private val generatePayrollUseCase: GeneratePayrollUseCase,
     private val processPaymentUseCase: ProcessPayrollPaymentUseCase,
+    private val postPayrollJournalEntryUseCase: PostPayrollJournalEntryUseCase,
     private val getPayrollHistoryUseCase: GetPayrollHistoryUseCase,
     private val getAttendanceSummaryUseCase: GetAttendanceSummaryUseCase,
     private val getLeaveHistoryUseCase: GetLeaveHistoryUseCase,
@@ -570,6 +576,41 @@ class StaffViewModel(
             is Result.Success -> {
                 updateState { copy(isLoading = false, successMessage = "Payment recorded.") }
                 loadPayroll(storeId, currentState.payrollPeriod)
+
+                // ── Post payroll journal entry (best-effort — accounting failure must not block HR) ──
+                @Suppress("TooGenericExceptionCaught")
+                try {
+                    val payrollResult = payrollRepository.getById(payrollId)
+                    if (payrollResult is Result.Success) {
+                        val record = payrollResult.data
+                        val entryDate = Instant.fromEpochMilliseconds(paidAt)
+                            .toLocalDateTime(TimeZone.currentSystemDefault())
+                            .date.toString()
+                        val journalResult = postPayrollJournalEntryUseCase.execute(
+                            storeId = storeId,
+                            payrollId = payrollId,
+                            grossPay = record.grossPay,
+                            netPay = record.netPay,
+                            deductions = record.deductions,
+                            createdBy = currentUserId,
+                            entryDate = entryDate,
+                            now = now,
+                        )
+                        if (journalResult is Result.Error) {
+                            ZyntaLogger.w(
+                                "StaffViewModel",
+                                "Payroll journal entry failed: ${journalResult.exception.message}",
+                            )
+                        }
+                    } else if (payrollResult is Result.Error) {
+                        ZyntaLogger.w(
+                            "StaffViewModel",
+                            "Could not fetch payroll record for journal entry: ${payrollResult.exception.message}",
+                        )
+                    }
+                } catch (e: Exception) {
+                    ZyntaLogger.w("StaffViewModel", "Payroll journal entry threw unexpectedly: ${e.message}")
+                }
             }
             is Result.Error -> updateState { copy(isLoading = false, error = result.exception.message) }
             is Result.Loading -> Unit

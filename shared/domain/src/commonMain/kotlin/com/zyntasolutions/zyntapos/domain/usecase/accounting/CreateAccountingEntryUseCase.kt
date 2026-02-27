@@ -10,12 +10,22 @@ import kotlin.math.abs
 /**
  * Inserts a balanced set of double-entry accounting records.
  *
+ * **DEPRECATED** — Use [PostJournalEntryUseCase] with [SaveDraftJournalEntryUseCase] instead.
+ * The new journal engine enforces balanced entries per the `journal_entries` /
+ * `journal_entry_lines` schema and supports reversal, posting workflows, and full
+ * General Ledger + financial statement computation.
+ *
  * ### Business Rules
  * 1. [entries] must not be empty.
  * 2. Must contain at least one DEBIT and one CREDIT entry.
  * 3. Sum of DEBIT amounts must equal sum of CREDIT amounts (balanced books).
  * 4. All entry amounts must be positive.
  */
+@Deprecated(
+    message = "Use SaveDraftJournalEntryUseCase + PostJournalEntryUseCase instead. " +
+        "Legacy accounting_entries table is superseded by journal_entries + journal_entry_lines.",
+    level = DeprecationLevel.WARNING,
+)
 class CreateAccountingEntryUseCase(
     private val accountingRepository: AccountingRepository,
 ) {

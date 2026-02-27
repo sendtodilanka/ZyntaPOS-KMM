@@ -1,0 +1,39 @@
+-- custom_roles: admin-defined roles with explicit permission sets
+-- Permissions are serialised as a JSON array of Permission enum names.
+-- e.g. '["PROCESS_SALE","VIEW_REPORTS","MANAGE_CUSTOMERS"]'
+CREATE TABLE IF NOT EXISTS custom_roles (
+    id          TEXT    NOT NULL PRIMARY KEY,
+    name        TEXT    NOT NULL,
+    description TEXT    NOT NULL DEFAULT '',
+    permissions TEXT    NOT NULL,   -- JSON array of Permission names
+    created_at  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL,
+    sync_status TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_custom_roles_name ON custom_roles(name);
+
+-- ── Read queries ─────────────────────────────────────────────────────────────
+
+getAllCustomRoles:
+SELECT * FROM custom_roles ORDER BY name ASC;
+
+getCustomRoleById:
+SELECT * FROM custom_roles WHERE id = ?;
+
+getCustomRoleByName:
+SELECT * FROM custom_roles WHERE name = ? LIMIT 1;
+
+-- ── Write queries ─────────────────────────────────────────────────────────────
+
+insertCustomRole:
+INSERT INTO custom_roles(id, name, description, permissions, created_at, updated_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, 'PENDING');
+
+updateCustomRole:
+UPDATE custom_roles
+SET name = ?, description = ?, permissions = ?, updated_at = ?, sync_status = 'PENDING'
+WHERE id = ?;
+
+deleteCustomRole:
+DELETE FROM custom_roles WHERE id = ?;

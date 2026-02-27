@@ -1,0 +1,45 @@
+CREATE TABLE IF NOT EXISTS account_balances (
+    id              TEXT    NOT NULL PRIMARY KEY,
+    account_id      TEXT    NOT NULL REFERENCES chart_of_accounts(id),
+    period_id       TEXT    NOT NULL REFERENCES accounting_periods(id),
+    store_id        TEXT    NOT NULL,
+    opening_balance REAL    NOT NULL DEFAULT 0,
+    debit_total     REAL    NOT NULL DEFAULT 0,
+    credit_total    REAL    NOT NULL DEFAULT 0,
+    current_balance REAL    NOT NULL DEFAULT 0,
+    last_updated    INTEGER NOT NULL,
+    UNIQUE (account_id, period_id, store_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_ab_account_period ON account_balances(account_id, period_id);
+CREATE INDEX IF NOT EXISTS idx_ab_store_period ON account_balances(store_id, period_id);
+
+getBalanceForAccount:
+SELECT * FROM account_balances
+WHERE account_id = :account_id AND period_id = :period_id AND store_id = :store_id;
+
+getBalancesForPeriod:
+SELECT ab.*, coa.account_code, coa.account_name, coa.account_type, coa.normal_balance
+FROM account_balances ab
+JOIN chart_of_accounts coa ON coa.id = ab.account_id
+WHERE ab.period_id = :period_id AND ab.store_id = :store_id
+ORDER BY coa.account_code ASC;
+
+upsertBalance:
+INSERT INTO account_balances(
+    id, account_id, period_id, store_id, opening_balance,
+    debit_total, credit_total, current_balance, last_updated
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT(account_id, period_id, store_id) DO UPDATE SET
+    debit_total = excluded.debit_total,
+    credit_total = excluded.credit_total,
+    current_balance = excluded.current_balance,
+    last_updated = excluded.last_updated;
+
+updateBalance:
+UPDATE account_balances SET
+    debit_total = :debit_total,
+    credit_total = :credit_total,
+    current_balance = :current_balance,
+    last_updated = :last_updated
+WHERE account_id = :account_id AND period_id = :period_id AND store_id = :store_id;

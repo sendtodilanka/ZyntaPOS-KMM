@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Timer
@@ -51,6 +52,7 @@ fun SecuritySettingsScreen(
     state: SettingsState.SecurityState,
     onIntent: (SettingsIntent) -> Unit,
     onBack: () -> Unit,
+    onNavigateToRbacManagement: () -> Unit = {},
 ) {
     LaunchedEffect(Unit) { onIntent(SettingsIntent.LoadSecuritySettings) }
 
@@ -157,39 +159,37 @@ fun SecuritySettingsScreen(
                     ),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    listOf(
-                        "Admin" to "Full system access — all settings, users, and data",
-                        "Manager" to "POS, inventory, reports, staff management",
-                        "Cashier" to "POS checkout and basic order operations",
-                        "Reporter" to "Read-only access to reports and analytics",
-                    ).forEachIndexed { index, (role, description) ->
-                        ListItem(
-                            headlineContent = {
-                                Text(role, style = MaterialTheme.typography.bodyLarge)
-                            },
-                            supportingContent = {
-                                Text(description, style = MaterialTheme.typography.bodySmall)
-                            },
-                            leadingContent = {
-                                Icon(
-                                    Icons.Default.Security,
-                                    contentDescription = null,
-                                    tint = if (index == 0) MaterialTheme.colorScheme.error
-                                    else MaterialTheme.colorScheme.primary,
-                                )
-                            },
-                            trailingContent = {
-                                Text(
-                                    "View only",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            },
-                            colors = ListItemDefaults.colors(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                            ),
-                        )
-                    }
+                    ListItem(
+                        headlineContent = {
+                            Text("Roles & Permissions", style = MaterialTheme.typography.bodyLarge)
+                        },
+                        supportingContent = {
+                            Text(
+                                "Manage role definitions and permission assignments",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        },
+                        leadingContent = {
+                            Icon(
+                                Icons.Default.Security,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        },
+                        trailingContent = {
+                            Icon(
+                                Icons.Default.KeyboardArrowRight,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        },
+                        colors = ListItemDefaults.colors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onNavigateToRbacManagement() },
+                    )
                 }
             }
         }
@@ -288,6 +288,7 @@ private fun SecuritySettingsScreenPreview() {
             state = SettingsState.SecurityState(autoLockMinutes = 5),
             onIntent = {},
             onBack = {},
+            onNavigateToRbacManagement = {},
         )
     }
 }

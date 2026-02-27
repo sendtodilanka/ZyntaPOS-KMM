@@ -5,6 +5,7 @@ import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.CartItem
 import com.zyntasolutions.zyntapos.domain.model.CashMovement
+import com.zyntasolutions.zyntapos.domain.model.CashRegister
 import com.zyntasolutions.zyntapos.domain.model.Order
 import com.zyntasolutions.zyntapos.domain.model.OrderStatus
 import com.zyntasolutions.zyntapos.domain.model.OrderType
@@ -99,6 +100,7 @@ class DashboardViewModelTest {
 
     private val fakeRegisterRepository = object : RegisterRepository {
         override fun getActive(): Flow<RegisterSession?> = flowOf(activeSession)
+        override fun getRegisters(): Flow<List<CashRegister>> = flowOf(emptyList())
         override suspend fun openSession(registerId: String, openingBalance: Double, userId: String): Result<RegisterSession> = Result.Error(DatabaseException("Error"))
         override suspend fun closeSession(sessionId: String, actualBalance: Double, userId: String): Result<RegisterSession> = Result.Error(DatabaseException("Error"))
         override suspend fun addCashMovement(movement: CashMovement): Result<Unit> = Result.Success(Unit)
@@ -111,6 +113,7 @@ class DashboardViewModelTest {
         override fun getSession(): Flow<User?> = sessionFlow
         override suspend fun refreshToken(): Result<Unit> = Result.Success(Unit)
         override suspend fun updatePin(userId: String, pin: String): Result<Unit> = Result.Success(Unit)
+        override suspend fun validatePin(userId: String, pin: String): Result<Boolean> = Result.Success(true)
     }
 
     private lateinit var viewModel: DashboardViewModel

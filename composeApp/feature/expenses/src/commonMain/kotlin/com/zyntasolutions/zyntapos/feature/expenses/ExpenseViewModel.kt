@@ -7,6 +7,7 @@ import com.zyntasolutions.zyntapos.domain.model.Expense
 import com.zyntasolutions.zyntapos.domain.model.ExpenseCategory
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.ExpenseRepository
+import com.zyntasolutions.zyntapos.domain.usecase.accounting.PostExpenseJournalEntryUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.expenses.ApproveExpenseUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.expenses.SaveExpenseUseCase
 import androidx.lifecycle.viewModelScope
@@ -15,6 +16,9 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 /**
  * ViewModel for the Expenses feature — Sprints 17–18.
@@ -25,23 +29,28 @@ import kotlin.time.Clock
  * - Approve/reject workflow (STORE_MANAGER / ACCOUNTANT roles)
  * - Expense category management (CRUD in a modal sheet)
  *
- * @param expenseRepository   Expense CRUD, approval, and category operations.
- * @param saveExpenseUseCase  Validates and persists expenses.
- * @param approveExpenseUseCase  Approve/reject workflow.
- * @param authRepository      Provides the active auth session for resolving currentUserId.
+ * @param expenseRepository              Expense CRUD, approval, and category operations.
+ * @param saveExpenseUseCase             Validates and persists expenses.
+ * @param approveExpenseUseCase          Approve/reject workflow.
+ * @param authRepository                 Provides the active auth session for resolving currentUserId and storeId.
+ * @param postExpenseJournalEntryUseCase Auto-posts a double-entry journal for each new expense (best-effort).
  */
 class ExpenseViewModel(
     private val expenseRepository: ExpenseRepository,
     private val saveExpenseUseCase: SaveExpenseUseCase,
     private val approveExpenseUseCase: ApproveExpenseUseCase,
     private val authRepository: AuthRepository,
+    private val postExpenseJournalEntryUseCase: PostExpenseJournalEntryUseCase,
 ) : BaseViewModel<ExpenseState, ExpenseIntent, ExpenseEffect>(ExpenseState()) {
 
     private var currentUserId: String = "unknown"
+    private var storeId: String = ""
 
     init {
         viewModelScope.launch {
-            currentUserId = authRepository.getSession().first()?.id ?: "unknown"
+            val session = authRepository.getSession().first()
+            currentUserId = session?.id ?: "unknown"
+            storeId = session?.storeId ?: ""
         }
         observeExpenses()
         observeCategories()
@@ -172,6 +181,24 @@ class ExpenseViewModel(
                 updateState { copy(isLoading = false, successMessage = msg, expenseForm = ExpenseFormState()) }
                 sendEffect(ExpenseEffect.ShowSuccess(msg))
                 sendEffect(ExpenseEffect.NavigateToList)
+                // ── Best-effort journal entry posting (new expenses only) ───────
+                if (!form.isEditing) {
+                    val entryDate = Instant.fromEpochMilliseconds(expense.expenseDate)
+                        .toLocalDateTime(TimeZone.currentSystemDefault())
+                        .date.toString()
+                    postExpenseJournalEntryUseCase.execute(
+                        storeId = storeId,
+                        expenseId = expense.id,
+                        amount = expense.amount,
+                        expenseAccountCode = "6900",  // Miscellaneous Expense — default until category mapping is built
+                        paymentAccountCode = "1010",  // Cash
+                        createdBy = currentUserId,
+                        description = expense.description,
+                        entryDate = entryDate,
+                        now = expense.expenseDate,
+                    )
+                    // Ignore result — do not fail the save if journal posting fails
+                }
             }
             is Result.Error -> {
                 updateState { copy(isLoading = false) }

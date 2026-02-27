@@ -10,6 +10,9 @@ sealed interface SettingsEffect {
     data object PrinterSaved : SettingsEffect
     data object PrintTestPageSent : SettingsEffect
     data object UserSaved : SettingsEffect
+    data object PinUpdated : SettingsEffect
+    data object RoleSaved : SettingsEffect
+    data object RoleDeleted : SettingsEffect
     data class BackupComplete(val filePath: String) : SettingsEffect
     data object RestoreComplete : SettingsEffect
     data class ThemeModeChanged(val mode: ThemeMode) : SettingsEffect

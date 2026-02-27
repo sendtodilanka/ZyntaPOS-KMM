@@ -2,14 +2,21 @@ package com.zyntasolutions.zyntapos.feature.settings
 
 import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
+import com.zyntasolutions.zyntapos.domain.model.CustomRole
 import com.zyntasolutions.zyntapos.domain.model.OrderType
+import com.zyntasolutions.zyntapos.domain.model.Permission
 import com.zyntasolutions.zyntapos.domain.model.Role
 import com.zyntasolutions.zyntapos.domain.model.TaxGroup
 import com.zyntasolutions.zyntapos.domain.model.User
+import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
+import com.zyntasolutions.zyntapos.domain.repository.RoleRepository
 import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.domain.repository.TaxGroupRepository
 import com.zyntasolutions.zyntapos.domain.repository.UserRepository
+import com.zyntasolutions.zyntapos.domain.usecase.auth.SetPinUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.SaveTaxGroupUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.rbac.DeleteCustomRoleUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.rbac.SaveCustomRoleUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.PrintTestPageUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.SaveUserUseCase
 import com.zyntasolutions.zyntapos.domain.model.PrinterPaperWidth
@@ -25,6 +32,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.datetime.Instant
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -32,6 +40,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Clock
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SettingsViewModelTest — unit tests for SettingsViewModel MVI logic.
@@ -123,6 +132,66 @@ class SettingsViewModelTest {
         override fun getDefaultBackupDirectory(): String = "/tmp/backups"
     }
 
+    // ── Auth repository stub (for SetPinUseCase) ──────────────────────────────
+
+    private val fakeAuthRepository = object : AuthRepository {
+        override suspend fun login(email: String, password: String): Result<User> = Result.Success(
+            User(
+                id = "u1", name = "Test", email = "test@test.com", role = Role.CASHIER,
+                storeId = "store-01", isActive = true, pinHash = null,
+                createdAt = Instant.fromEpochSeconds(0), updatedAt = Instant.fromEpochSeconds(0),
+            )
+        )
+        override suspend fun logout() {}
+        override fun getSession(): Flow<User?> = MutableStateFlow(null)
+        override suspend fun refreshToken(): Result<Unit> = Result.Success(Unit)
+        override suspend fun updatePin(userId: String, pin: String): Result<Unit> = Result.Success(Unit)
+        override suspend fun validatePin(userId: String, pin: String): Result<Boolean> = Result.Success(true)
+    }
+
+    // ── Role repository fake ──────────────────────────────────────────────────
+
+    private val fakeCustomRolesFlow = MutableStateFlow<List<CustomRole>>(emptyList())
+    private val createdRoles        = mutableListOf<CustomRole>()
+    private val deletedRoleIds      = mutableListOf<String>()
+    private val builtInOverrides    = mutableMapOf<Role, Set<Permission>>()
+
+    private val fakeRoleRepository = object : RoleRepository {
+        override fun getAllCustomRoles(): Flow<List<CustomRole>> = fakeCustomRolesFlow
+        override suspend fun getCustomRoleById(id: String): Result<CustomRole> =
+            fakeCustomRolesFlow.value.firstOrNull { it.id == id }?.let { Result.Success(it) }
+                ?: Result.Error(DatabaseException("Not found"))
+        override suspend fun createCustomRole(role: CustomRole): Result<Unit> {
+            createdRoles.add(role)
+            fakeCustomRolesFlow.value = fakeCustomRolesFlow.value + role
+            return Result.Success(Unit)
+        }
+        override suspend fun updateCustomRole(role: CustomRole): Result<Unit> {
+            fakeCustomRolesFlow.value = fakeCustomRolesFlow.value.map {
+                if (it.id == role.id) role else it
+            }
+            return Result.Success(Unit)
+        }
+        override suspend fun deleteCustomRole(id: String): Result<Unit> {
+            deletedRoleIds.add(id)
+            fakeCustomRolesFlow.value = fakeCustomRolesFlow.value.filter { it.id != id }
+            return Result.Success(Unit)
+        }
+        override suspend fun getBuiltInRolePermissions(role: Role): Set<Permission>? =
+            builtInOverrides[role]
+        override suspend fun setBuiltInRolePermissions(
+            role: Role,
+            permissions: Set<Permission>,
+        ): Result<Unit> {
+            builtInOverrides[role] = permissions
+            return Result.Success(Unit)
+        }
+        override suspend fun resetBuiltInRolePermissions(role: Role): Result<Unit> {
+            builtInOverrides.remove(role)
+            return Result.Success(Unit)
+        }
+    }
+
     private lateinit var viewModel: SettingsViewModel
 
     @BeforeTest
@@ -132,18 +201,26 @@ class SettingsViewModelTest {
         savedTaxGroups.clear()
         deletedTaxGroupIds.clear()
         savedUsers.clear()
+        createdRoles.clear()
+        deletedRoleIds.clear()
+        builtInOverrides.clear()
         taxGroupsFlow.value = emptyList()
         usersFlow.value = emptyList()
+        fakeCustomRolesFlow.value = emptyList()
         testPrintCalled = false
 
         viewModel = SettingsViewModel(
-            settingsRepository   = fakeSettingsRepository,
-            taxGroupRepository   = fakeTaxGroupRepository,
-            userRepository       = fakeUserRepository,
-            saveTaxGroupUseCase  = fakeSaveTaxGroupUseCase,
-            saveUserUseCase      = fakeSaveUserUseCase,
-            printTestPageUseCase = fakePrintTestPageUseCase,
-            backupService        = fakeBackupService,
+            settingsRepository      = fakeSettingsRepository,
+            taxGroupRepository      = fakeTaxGroupRepository,
+            userRepository          = fakeUserRepository,
+            roleRepository          = fakeRoleRepository,
+            saveTaxGroupUseCase     = fakeSaveTaxGroupUseCase,
+            saveUserUseCase         = fakeSaveUserUseCase,
+            setPinUseCase           = SetPinUseCase(fakeAuthRepository),
+            saveCustomRoleUseCase   = SaveCustomRoleUseCase(fakeRoleRepository),
+            deleteCustomRoleUseCase = DeleteCustomRoleUseCase(fakeRoleRepository),
+            printTestPageUseCase    = fakePrintTestPageUseCase,
+            backupService           = fakeBackupService,
         )
     }
 
@@ -287,5 +364,71 @@ class SettingsViewModelTest {
         assertTrue(viewModel.state.value.backup.confirmRestore)
         viewModel.dispatch(SettingsIntent.CancelRestore)
         assertFalse(viewModel.state.value.backup.confirmRestore)
+    }
+
+    // ── PIN management tests ──────────────────────────────────────────────────
+
+    @Test
+    fun `UpdateUserFormPin updates newPin field and clears pinError`() = runTest(UnconfinedTestDispatcher()) {
+        viewModel.dispatch(SettingsIntent.UpdateUserFormPin("1234"))
+
+        assertEquals("1234", viewModel.state.value.users.form.newPin)
+        assertNull(viewModel.state.value.users.form.pinError)
+    }
+
+    @Test
+    fun `UpdateUserFormConfirmPin updates confirmPin field and clears pinError`() = runTest(UnconfinedTestDispatcher()) {
+        viewModel.dispatch(SettingsIntent.UpdateUserFormConfirmPin("1234"))
+
+        assertEquals("1234", viewModel.state.value.users.form.confirmPin)
+        assertNull(viewModel.state.value.users.form.pinError)
+    }
+
+    @Test
+    fun `ClearUserFormPin resets both pin fields to empty`() = runTest(UnconfinedTestDispatcher()) {
+        viewModel.dispatch(SettingsIntent.UpdateUserFormPin("1234"))
+        viewModel.dispatch(SettingsIntent.UpdateUserFormConfirmPin("1234"))
+        viewModel.dispatch(SettingsIntent.ClearUserFormPin)
+
+        assertEquals("", viewModel.state.value.users.form.newPin)
+        assertEquals("", viewModel.state.value.users.form.confirmPin)
+        assertNull(viewModel.state.value.users.form.pinError)
+    }
+
+    // ── RBAC management tests ─────────────────────────────────────────────────
+
+    @Test
+    fun `LoadRbac populates customRoles and builtInRoles from repository`() = runTest(UnconfinedTestDispatcher()) {
+        val kitchenRole = CustomRole(
+            id          = "role-01",
+            name        = "Kitchen",
+            permissions = setOf(Permission.MANAGE_PRODUCTS),
+            createdAt   = Instant.fromEpochSeconds(0),
+            updatedAt   = Instant.fromEpochSeconds(0),
+        )
+        fakeCustomRolesFlow.value = listOf(kitchenRole)
+
+        viewModel.dispatch(SettingsIntent.LoadRbac)
+
+        assertEquals(listOf(kitchenRole), viewModel.state.value.rbac.customRoles)
+        // Built-in roles loaded for all non-ADMIN roles (4 entries: STORE_MANAGER, CASHIER, ACCOUNTANT, STOCK_MANAGER)
+        assertTrue(viewModel.state.value.rbac.builtInRoles.isNotEmpty())
+    }
+
+    @Test
+    fun `SaveCustomRole creates a new role in the repository`() = runTest(UnconfinedTestDispatcher()) {
+        viewModel.dispatch(SettingsIntent.OpenCreateCustomRole)
+        viewModel.dispatch(SettingsIntent.UpdateCustomRoleFormName("Kitchen Staff"))
+        viewModel.dispatch(SettingsIntent.SaveCustomRole)
+
+        assertEquals(1, createdRoles.size)
+        assertEquals("Kitchen Staff", createdRoles.first().name)
+    }
+
+    @Test
+    fun `DeleteCustomRole removes the role from the repository`() = runTest(UnconfinedTestDispatcher()) {
+        viewModel.dispatch(SettingsIntent.DeleteCustomRole("role-to-delete"))
+
+        assertTrue(deletedRoleIds.contains("role-to-delete"))
     }
 }

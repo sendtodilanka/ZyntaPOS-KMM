@@ -1,16 +1,17 @@
 -- Users table: staff accounts with password and PIN hashes
 CREATE TABLE users (
-    id            TEXT    NOT NULL PRIMARY KEY,
-    name          TEXT    NOT NULL,
-    email         TEXT    NOT NULL UNIQUE,
-    password_hash TEXT    NOT NULL,
-    role          TEXT    NOT NULL,
-    pin_hash      TEXT,
-    store_id      TEXT    NOT NULL,
-    is_active     INTEGER NOT NULL DEFAULT 1,
-    created_at    INTEGER NOT NULL,
-    updated_at    INTEGER NOT NULL,
-    sync_status   TEXT    NOT NULL DEFAULT 'PENDING'
+    id             TEXT    NOT NULL PRIMARY KEY,
+    name           TEXT    NOT NULL,
+    email          TEXT    NOT NULL UNIQUE,
+    password_hash  TEXT    NOT NULL,
+    role           TEXT    NOT NULL,
+    pin_hash       TEXT,
+    store_id       TEXT    NOT NULL,
+    is_active      INTEGER NOT NULL DEFAULT 1,
+    created_at     INTEGER NOT NULL,
+    updated_at     INTEGER NOT NULL,
+    sync_status    TEXT    NOT NULL DEFAULT 'PENDING',
+    custom_role_id TEXT                              -- nullable; FK to custom_roles.id
 );
 
 CREATE UNIQUE INDEX idx_users_email ON users(email);
@@ -30,13 +31,17 @@ SELECT * FROM users WHERE email = ?;
 -- ── Write queries ───────────────────────────────────────────────────────────
 
 insertUser:
-INSERT INTO users(id, name, email, password_hash, role, pin_hash, store_id, is_active, created_at, updated_at, sync_status)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO users(id, name, email, password_hash, role, pin_hash, store_id, is_active, created_at, updated_at, sync_status, custom_role_id)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
--- Profile-only update: name, role, active status
+-- Custom role assignment update
+updateUserCustomRole:
+UPDATE users SET custom_role_id = ?, updated_at = ?, sync_status = 'PENDING' WHERE id = ?;
+
+-- Profile update: name, role, custom_role_id, active status
 updateUserProfile:
 UPDATE users SET
-    name = ?, role = ?, is_active = ?, updated_at = ?, sync_status = ?
+    name = ?, role = ?, custom_role_id = ?, is_active = ?, updated_at = ?, sync_status = ?
 WHERE id = ?;
 
 -- Password-only update

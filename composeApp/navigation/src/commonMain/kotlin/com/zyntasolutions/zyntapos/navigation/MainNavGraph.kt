@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.navigation
 
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
@@ -236,6 +237,7 @@ fun NavGraphBuilder.mainNavGraph(
                             "POS" -> navigationController.navigate(ZyntaRoute.PosSettings)
                             "SYSTEM_HEALTH" -> navigationController.navigate(ZyntaRoute.SystemHealthSettings)
                             "SECURITY" -> navigationController.navigate(ZyntaRoute.SecuritySettings)
+                            "RBAC_MANAGEMENT" -> navigationController.navigate(ZyntaRoute.RbacManagement)
                             "DEBUG_CONSOLE" -> if (debugScreen != null) {
                                 navigationController.navigate(ZyntaRoute.Debug)
                             }
@@ -301,7 +303,20 @@ fun NavGraphBuilder.mainNavGraph(
             composable<ZyntaRoute.SecuritySettings> {
                 screens.securitySettings(
                     { navigationController.navigateUp(ZyntaRoute.Settings) },
+                    { navigationController.navigate(ZyntaRoute.RbacManagement) },
                 )
+            }
+
+            composable<ZyntaRoute.RbacManagement> {
+                screens.rbacManagement(
+                    { navigationController.navigateUp(ZyntaRoute.SecuritySettings) },
+                )
+            }
+
+            composable<ZyntaRoute.EditionManagement> {
+                // Placeholder: EditionManagementScreen will be wired by Agent 7
+                // For now just navigate to a placeholder
+                Text("Edition Management — Coming soon") // temporary
             }
 
             // ── Debug Console — only registered in debug builds ──────────────
@@ -498,6 +513,60 @@ fun NavGraphBuilder.mainNavGraph(
                     { navigationController.navigateUp(ZyntaRoute.EInvoiceList) },
                 )
             }
+
+            // ── Wave 4B routes ───────────────────────────────────────────────
+            composable<ZyntaRoute.ChartOfAccounts> {
+                screens.chartOfAccounts(
+                    { accountId ->
+                        navigationController.navigate(ZyntaRoute.AccountManagementDetail(accountId = accountId))
+                    },
+                    { navigationController.popBackStack() },
+                )
+            }
+            composable<ZyntaRoute.AccountManagementDetail> { entry ->
+                val route = entry.toRoute<ZyntaRoute.AccountManagementDetail>()
+                screens.accountManagementDetail(
+                    route.accountId,
+                    route.storeId,
+                    { navigationController.popBackStack() },
+                )
+            }
+            composable<ZyntaRoute.JournalEntryList> {
+                screens.journalEntryList(
+                    "default-store",
+                    { entryId ->
+                        navigationController.navigate(ZyntaRoute.JournalEntryDetail(entryId = entryId))
+                    },
+                    { navigationController.popBackStack() },
+                )
+            }
+            composable<ZyntaRoute.JournalEntryDetail> { entry ->
+                val route = entry.toRoute<ZyntaRoute.JournalEntryDetail>()
+                screens.journalEntryDetail(
+                    route.entryId,
+                    route.storeId,
+                    route.createdBy,
+                    { navigationController.popBackStack() },
+                    { newEntryId ->
+                        navigationController.navigate(ZyntaRoute.JournalEntryDetail(entryId = newEntryId))
+                    },
+                )
+            }
+            composable<ZyntaRoute.FinancialStatements> { entry ->
+                val route = entry.toRoute<ZyntaRoute.FinancialStatements>()
+                screens.financialStatements(
+                    "default-store",
+                    { navigationController.popBackStack() },
+                )
+            }
+            composable<ZyntaRoute.GeneralLedger> { entry ->
+                val route = entry.toRoute<ZyntaRoute.GeneralLedger>()
+                screens.generalLedger(
+                    route.storeId,
+                    route.initialAccountId,
+                    { navigationController.popBackStack() },
+                )
+            }
         }
 
         // ── Admin sub-graph  (Sprint 13-15) ─────────────────────────────────────
@@ -630,7 +699,9 @@ private fun MainScaffoldShell(
         is ZyntaRoute.BackupSettings,
         is ZyntaRoute.PosSettings,
         is ZyntaRoute.SystemHealthSettings,
-        is ZyntaRoute.SecuritySettings -> item.route is ZyntaRoute.Settings
+        is ZyntaRoute.SecuritySettings,
+        is ZyntaRoute.RbacManagement,
+        is ZyntaRoute.EditionManagement -> item.route is ZyntaRoute.Settings
 
         // CRM sub-graph
         is ZyntaRoute.CustomerList,
@@ -655,11 +726,17 @@ private fun MainScaffoldShell(
         is ZyntaRoute.WarehouseRackList,
         is ZyntaRoute.WarehouseRackDetail -> item.route is ZyntaRoute.WarehouseList
 
-        // Accounting / E-Invoice sub-graph
+        // Accounting / E-Invoice sub-graph (including Wave 4B routes)
         is ZyntaRoute.AccountingLedger,
         is ZyntaRoute.AccountDetail,
         is ZyntaRoute.EInvoiceList,
-        is ZyntaRoute.EInvoiceDetail -> item.route is ZyntaRoute.AccountingLedger
+        is ZyntaRoute.EInvoiceDetail,
+        is ZyntaRoute.ChartOfAccounts,
+        is ZyntaRoute.AccountManagementDetail,
+        is ZyntaRoute.JournalEntryList,
+        is ZyntaRoute.JournalEntryDetail,
+        is ZyntaRoute.FinancialStatements,
+        is ZyntaRoute.GeneralLedger -> item.route is ZyntaRoute.AccountingLedger
 
         // Admin sub-graph
         is ZyntaRoute.SystemHealthDashboard,
