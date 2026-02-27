@@ -104,9 +104,10 @@ class RbacEngine {
         user: User,
         builtInOverrides: Map<Role, Set<Permission>>,
         customRoles: List<CustomRole>,
-    ): Set<Permission> = if (user.customRoleId != null) {
-        customRoles.find { it.id == user.customRoleId }?.permissions ?: emptySet()
-    } else {
-        builtInOverrides[user.role] ?: getPermissions(user.role)
+    ): Set<Permission> = when {
+        // ADMIN always retains all permissions — defense-in-depth; no override can restrict ADMIN.
+        user.role == Role.ADMIN        -> getPermissions(Role.ADMIN)
+        user.customRoleId != null      -> customRoles.find { it.id == user.customRoleId }?.permissions ?: emptySet()
+        else                           -> builtInOverrides[user.role] ?: getPermissions(user.role)
     }
 }

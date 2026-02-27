@@ -134,6 +134,9 @@ class AuthActionHandlerTest {
 
         override suspend fun updatePin(userId: String, pin: String): Result<Unit> =
             Result.Success(Unit)
+
+        override suspend fun validatePin(userId: String, pin: String): Result<Boolean> =
+            Result.Success(true)
     }
 
     // ── SUT builder ───────────────────────────────────────────────────────────

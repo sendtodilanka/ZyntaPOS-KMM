@@ -92,6 +92,8 @@ class StaffViewModelTest {
         override suspend fun refreshToken(): Result<Unit> = Result.Success(Unit)
         override suspend fun updatePin(userId: String, pin: String): Result<Unit> =
             Result.Success(Unit)
+        override suspend fun validatePin(userId: String, pin: String): Result<Boolean> =
+            Result.Success(true)
     }
     private val now = System.currentTimeMillis()
     private val today = "2026-02-25"

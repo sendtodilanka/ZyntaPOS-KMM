@@ -167,6 +167,20 @@ class RbacEngineTest {
         }
     }
 
+    @Test
+    fun `ADMIN always retains all permissions even when a built-in override map is supplied`() {
+        val engine = RbacEngine()
+        val admin  = buildUser(Role.ADMIN)
+        // Simulate an accidental restrictive override for ADMIN → must be ignored
+        val restrictiveOverride = mapOf(Role.ADMIN to setOf(Permission.PROCESS_SALE))
+        Permission.entries.forEach { perm ->
+            assertTrue(
+                engine.hasPermission(admin, perm, restrictiveOverride, emptyList()),
+                "ADMIN should have $perm even with a restrictive override",
+            )
+        }
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun buildUser(role: Role) = User(
