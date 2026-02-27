@@ -1,0 +1,123 @@
+CREATE TABLE IF NOT EXISTS journal_entry_lines (
+    id                  TEXT    NOT NULL PRIMARY KEY,
+    journal_entry_id    TEXT    NOT NULL REFERENCES journal_entries(id) ON DELETE CASCADE,
+    account_id          TEXT    NOT NULL REFERENCES chart_of_accounts(id),
+    debit_amount        REAL    NOT NULL DEFAULT 0.0,
+    credit_amount       REAL    NOT NULL DEFAULT 0.0,
+    line_description    TEXT,
+    line_order          INTEGER NOT NULL DEFAULT 0,
+    created_at          INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_jel_journal_entry_id ON journal_entry_lines(journal_entry_id);
+CREATE INDEX IF NOT EXISTS idx_jel_account_id       ON journal_entry_lines(account_id);
+
+getByJournalEntry:
+SELECT * FROM journal_entry_lines
+WHERE journal_entry_id = :journal_entry_id
+ORDER BY line_order ASC;
+
+getByAccountId:
+SELECT * FROM journal_entry_lines
+WHERE account_id = :account_id;
+
+sumDebitsForEntry:
+SELECT COALESCE(SUM(debit_amount), 0.0) FROM journal_entry_lines WHERE journal_entry_id = :journal_entry_id;
+
+sumCreditsForEntry:
+SELECT COALESCE(SUM(credit_amount), 0.0) FROM journal_entry_lines WHERE journal_entry_id = :journal_entry_id;
+
+getById:
+SELECT * FROM journal_entry_lines WHERE id = :id;
+
+insertLine:
+INSERT INTO journal_entry_lines(
+    id, journal_entry_id, account_id, debit_amount, credit_amount, line_description, line_order, created_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+deleteByEntry:
+DELETE FROM journal_entry_lines WHERE journal_entry_id = :journal_entry_id;
+
+deleteLine:
+DELETE FROM journal_entry_lines WHERE id = :id;
+
+getBalanceForAccount:
+SELECT
+    COALESCE(SUM(jel.debit_amount), 0.0) AS total_debits,
+    COALESCE(SUM(jel.credit_amount), 0.0) AS total_credits
+FROM journal_entry_lines jel
+INNER JOIN journal_entries je ON je.id = jel.journal_entry_id
+WHERE jel.account_id = :account_id
+    AND je.store_id = :store_id
+    AND je.is_posted = 1
+    AND je.entry_date <= :as_of_date;
+
+getGeneralLedger:
+SELECT
+    je.id AS entry_id,
+    je.entry_number,
+    je.entry_date,
+    je.description AS entry_description,
+    je.reference_type,
+    je.reference_id,
+    jel.id AS line_id,
+    jel.debit_amount,
+    jel.credit_amount,
+    jel.line_description,
+    coa.account_code,
+    coa.account_name
+FROM journal_entry_lines jel
+INNER JOIN journal_entries je ON je.id = jel.journal_entry_id
+INNER JOIN chart_of_accounts coa ON coa.id = jel.account_id
+WHERE jel.account_id = :account_id
+    AND je.store_id = :store_id
+    AND je.is_posted = 1
+    AND je.entry_date BETWEEN :from_date AND :to_date
+ORDER BY je.entry_date ASC, je.entry_time ASC;
+
+getTrialBalance:
+SELECT
+    coa.id AS account_id,
+    coa.account_code,
+    coa.account_name,
+    coa.account_type,
+    coa.normal_balance,
+    COALESCE(SUM(jel.debit_amount), 0.0) AS total_debits,
+    COALESCE(SUM(jel.credit_amount), 0.0) AS total_credits
+FROM chart_of_accounts coa
+LEFT JOIN journal_entry_lines jel ON jel.account_id = coa.id
+LEFT JOIN journal_entries je ON je.id = jel.journal_entry_id
+    AND je.store_id = :store_id
+    AND je.is_posted = 1
+    AND je.entry_date <= :as_of_date
+WHERE coa.is_active = 1
+GROUP BY coa.id
+ORDER BY coa.account_code ASC;
+
+getProfitAndLossData:
+SELECT
+    coa.account_type,
+    COALESCE(SUM(jel.debit_amount), 0.0) AS total_debits,
+    COALESCE(SUM(jel.credit_amount), 0.0) AS total_credits
+FROM chart_of_accounts coa
+LEFT JOIN journal_entry_lines jel ON jel.account_id = coa.id
+LEFT JOIN journal_entries je ON je.id = jel.journal_entry_id
+    AND je.store_id = :store_id
+    AND je.is_posted = 1
+    AND je.entry_date BETWEEN :from_date AND :to_date
+WHERE coa.account_type IN ('INCOME', 'COGS', 'EXPENSE')
+GROUP BY coa.account_type;
+
+getBalanceSheetData:
+SELECT
+    coa.account_type,
+    COALESCE(SUM(jel.debit_amount), 0.0) AS total_debits,
+    COALESCE(SUM(jel.credit_amount), 0.0) AS total_credits
+FROM chart_of_accounts coa
+LEFT JOIN journal_entry_lines jel ON jel.account_id = coa.id
+LEFT JOIN journal_entries je ON je.id = jel.journal_entry_id
+    AND je.store_id = :store_id
+    AND je.is_posted = 1
+    AND je.entry_date <= :as_of_date
+WHERE coa.account_type IN ('ASSET', 'LIABILITY', 'EQUITY')
+GROUP BY coa.account_type;
