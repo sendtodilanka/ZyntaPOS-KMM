@@ -42,6 +42,7 @@ data class MainNavScreens(
         onNavigateToDetail: (productId: String?) -> Unit,
         onNavigateToCategories: () -> Unit,
         onNavigateToSuppliers: () -> Unit,
+        onNavigateToPrintLabels: () -> Unit,
     ) -> Unit,
 
     val productDetail: @Composable (
@@ -55,6 +56,11 @@ data class MainNavScreens(
 
     val supplierList: @Composable (
         onNavigateUp: () -> Unit,
+    ) -> Unit,
+
+    val barcodeLabelPrint: @Composable (
+        initialProductId: String?,
+        onNavigateBack: () -> Unit,
     ) -> Unit,
 
     // ── Register sub-graph ────────────────────────────────────────────────────

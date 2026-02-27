@@ -139,6 +139,14 @@ sealed class ZyntaRoute {
     @Serializable
     data object SupplierList : ZyntaRoute()
 
+    /**
+     * Barcode label batch-print screen — accessible from the product list.
+     *
+     * @param initialProductId Optional product ID to pre-load into the queue on open.
+     */
+    @Serializable
+    data class BarcodeLabelPrint(val initialProductId: String? = null) : ZyntaRoute()
+
     // ─────────────────────────────────────────────────────────────────
     // REGISTER GROUP
     // ─────────────────────────────────────────────────────────────────

@@ -42,6 +42,7 @@ import com.zyntasolutions.zyntapos.data.repository.FeatureRegistryRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.LeaveRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.MediaRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.PayrollRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.LabelTemplateRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.ReportRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.ShiftRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.SystemRepositoryImpl
@@ -86,6 +87,7 @@ import com.zyntasolutions.zyntapos.domain.repository.FeatureRegistryRepository
 import com.zyntasolutions.zyntapos.domain.repository.LeaveRepository
 import com.zyntasolutions.zyntapos.domain.repository.MediaRepository
 import com.zyntasolutions.zyntapos.domain.repository.PayrollRepository
+import com.zyntasolutions.zyntapos.domain.repository.LabelTemplateRepository
 import com.zyntasolutions.zyntapos.domain.repository.ReportRepository
 import com.zyntasolutions.zyntapos.domain.repository.ShiftRepository
 import com.zyntasolutions.zyntapos.domain.repository.SystemRepository
@@ -415,4 +417,11 @@ val dataModule = module {
     // Aggregated report queries used by all 30 enterprise report use cases.
     // Implementation created in parallel by Agents 2/3.
     single<ReportRepository> { ReportRepositoryImpl(db = get()) }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ── Barcode Label Printing Engine (Wave A) ────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Label templates: CRUD + seeding of 4 factory defaults (58mm/80mm roll, A4 24-up/48-up)
+    single<LabelTemplateRepository> { LabelTemplateRepositoryImpl(db = get()) }
 }
