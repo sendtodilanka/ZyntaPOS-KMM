@@ -103,6 +103,7 @@ class DashboardViewModelTest {
         override fun getRegisters(): Flow<List<CashRegister>> = flowOf(emptyList())
         override suspend fun openSession(registerId: String, openingBalance: Double, userId: String): Result<RegisterSession> = Result.Error(DatabaseException("Error"))
         override suspend fun closeSession(sessionId: String, actualBalance: Double, userId: String): Result<RegisterSession> = Result.Error(DatabaseException("Error"))
+        override suspend fun getSession(sessionId: String): Result<RegisterSession> = Result.Error(DatabaseException("Not found"))
         override suspend fun addCashMovement(movement: CashMovement): Result<Unit> = Result.Success(Unit)
         override fun getMovements(sessionId: String): Flow<List<CashMovement>> = flowOf(emptyList())
     }

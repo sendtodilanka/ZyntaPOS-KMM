@@ -56,7 +56,7 @@ actual fun halModule(): Module = module {
     // ── Label printer port — safe stub until Settings configures hardware ────
     // Override with AndroidUsbLabelPrinterPort or AndroidBluetoothLabelPrinterPort
     // once the operator selects hardware in Label Printer Settings.
-    single<LabelPrinterPort>(override = true) { NullLabelPrinterPort() }
+    single<LabelPrinterPort> { NullLabelPrinterPort() }
 
     // ── Barcode scanner — USB HID keyboard wedge (no LifecycleOwner needed) ─
     single<BarcodeScanner> {

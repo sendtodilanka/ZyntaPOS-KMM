@@ -159,9 +159,14 @@ fun ZyntaNavGraph(
     // ── Session redirect ─────────────────────────────────────────────────────
     // After composition settles, skip the login screen if a valid session exists.
     // LaunchedEffect key on isSessionActive so re-authentication re-evaluates.
+    // The else branch handles logout and session expiry — navigates back to the
+    // auth graph (safe to call even when already on AuthGraph; navigateAndClear
+    // is idempotent for same-graph navigation).
     LaunchedEffect(isSessionActive) {
         if (isSessionActive) {
             navigationController.navigateAndClear(ZyntaRoute.Dashboard)
+        } else {
+            navigationController.navigateAndClear(ZyntaRoute.AuthGraph)
         }
     }
 }

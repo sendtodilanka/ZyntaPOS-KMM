@@ -35,12 +35,16 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -62,9 +66,11 @@ import com.zyntasolutions.zyntapos.designsystem.util.WindowSize
 import com.zyntasolutions.zyntapos.designsystem.util.currentWindowSize
 import com.zyntasolutions.zyntapos.domain.model.User
 import com.zyntasolutions.zyntapos.feature.dashboard.DashboardViewModel
+import com.zyntasolutions.zyntapos.feature.dashboard.mvi.DashboardEffect
 import com.zyntasolutions.zyntapos.feature.dashboard.mvi.DashboardIntent
 import com.zyntasolutions.zyntapos.feature.dashboard.mvi.DashboardState
 import com.zyntasolutions.zyntapos.feature.dashboard.mvi.RecentOrderItem
+import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -102,33 +108,83 @@ fun DashboardScreen(
     val state by viewModel.state.collectAsState()
     val currencyFormatter: CurrencyFormatter = koinInject()
     val windowSize = currentWindowSize()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         viewModel.dispatch(DashboardIntent.LoadDashboard)
     }
 
-    if (state.isLoading) {
-        ZyntaLoadingOverlay(isLoading = true)
-        return
+    // Collect one-shot effects (Bug 1 fix — effects were previously never collected)
+    LaunchedEffect(viewModel.effects) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                is DashboardEffect.ShowError -> scope.launch {
+                    snackbarHostState.showSnackbar(effect.message)
+                }
+            }
+        }
     }
 
-    val onLogout: () -> Unit = { viewModel.dispatch(DashboardIntent.Logout) }
+    DashboardScreenContent(
+        state = state,
+        currencyFormatter = currencyFormatter,
+        windowSize = windowSize,
+        snackbarHostState = snackbarHostState,
+        onNavigateToPos = onNavigateToPos,
+        onNavigateToRegister = onNavigateToRegister,
+        onNavigateToReports = onNavigateToReports,
+        onNavigateToSettings = onNavigateToSettings,
+        onNavigateToNotifications = onNavigateToNotifications,
+        onLogout = { viewModel.dispatch(DashboardIntent.Logout) },
+    )
+}
 
-    when (windowSize) {
-        WindowSize.EXPANDED -> ExpandedDashboard(
-            state, currencyFormatter,
-            onNavigateToPos, onNavigateToRegister, onNavigateToReports, onNavigateToSettings,
-            onNavigateToNotifications, onLogout,
-        )
-        WindowSize.MEDIUM -> MediumDashboard(
-            state, currencyFormatter,
-            onNavigateToPos, onNavigateToRegister, onNavigateToReports, onNavigateToSettings,
-            onNavigateToNotifications, onLogout,
-        )
-        WindowSize.COMPACT -> CompactDashboard(
-            state, currencyFormatter,
-            onNavigateToPos, onNavigateToRegister, onNavigateToReports, onNavigateToSettings,
-            onNavigateToNotifications, onLogout,
+/**
+ * Stateless content composable — extracted for Compose Desktop UI testability.
+ *
+ * Accepts all data and callbacks directly; no Koin dependencies.
+ * The [snackbarHostState] defaults to a fresh instance when not provided (e.g., in tests).
+ */
+@Composable
+internal fun DashboardScreenContent(
+    state: DashboardState,
+    currencyFormatter: CurrencyFormatter,
+    windowSize: WindowSize,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+    onNavigateToPos: () -> Unit,
+    onNavigateToRegister: () -> Unit,
+    onNavigateToReports: () -> Unit,
+    onNavigateToSettings: () -> Unit,
+    onNavigateToNotifications: () -> Unit,
+    onLogout: () -> Unit,
+) {
+    // Bug 3 fix — use Box instead of early return; Compose requires consistent call order
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (state.isLoading) {
+            ZyntaLoadingOverlay(isLoading = true)
+        } else {
+            when (windowSize) {
+                WindowSize.EXPANDED -> ExpandedDashboard(
+                    state, currencyFormatter,
+                    onNavigateToPos, onNavigateToRegister, onNavigateToReports, onNavigateToSettings,
+                    onNavigateToNotifications, onLogout,
+                )
+                WindowSize.MEDIUM -> MediumDashboard(
+                    state, currencyFormatter,
+                    onNavigateToPos, onNavigateToRegister, onNavigateToReports, onNavigateToSettings,
+                    onNavigateToNotifications, onLogout,
+                )
+                WindowSize.COMPACT -> CompactDashboard(
+                    state, currencyFormatter,
+                    onNavigateToPos, onNavigateToRegister, onNavigateToReports, onNavigateToSettings,
+                    onNavigateToNotifications, onLogout,
+                )
+            }
+        }
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter),
         )
     }
 }
