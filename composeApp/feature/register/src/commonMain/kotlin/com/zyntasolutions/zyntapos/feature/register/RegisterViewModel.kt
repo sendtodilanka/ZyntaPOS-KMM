@@ -8,6 +8,7 @@ import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
 import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
 import com.zyntasolutions.zyntapos.domain.usecase.register.CloseRegisterSessionUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.OpenRegisterSessionUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.register.PrintA4ZReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.PrintZReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.RecordCashMovementUseCase
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
@@ -38,6 +39,7 @@ import kotlinx.datetime.toLocalDateTime
  * @param closeRegisterSessionUseCase Closes an active session with balance reconciliation.
  * @param recordCashMovementUseCase  Records a cash-in or cash-out movement.
  * @param printZReportUseCase    Prints the Z-report to the connected thermal printer.
+ * @param printA4ZReportUseCase  Prints the A4 PDF Z-report via system print dialog.
  * @param authRepository         Provides the active auth session for resolving currentUserId.
  */
 class RegisterViewModel(
@@ -47,6 +49,7 @@ class RegisterViewModel(
     private val closeRegisterSessionUseCase: CloseRegisterSessionUseCase,
     private val recordCashMovementUseCase: RecordCashMovementUseCase,
     private val printZReportUseCase: PrintZReportUseCase,
+    private val printA4ZReportUseCase: PrintA4ZReportUseCase,
     private val authRepository: AuthRepository,
 ) : BaseViewModel<RegisterState, RegisterIntent, RegisterEffect>(RegisterState()) {
 
@@ -155,6 +158,7 @@ class RegisterViewModel(
             // Z-Report (Sprint 21)
             is RegisterIntent.LoadZReport -> loadZReport(intent.sessionId)
             is RegisterIntent.PrintZReport -> printZReport(intent.sessionId)
+            is RegisterIntent.PrintA4ZReport -> onPrintA4ZReport(intent.sessionId)
 
             // UI feedback
             is RegisterIntent.DismissError -> updateState { copy(error = null) }
@@ -382,6 +386,24 @@ class RegisterViewModel(
             is Result.Error -> sendEffect(
                 RegisterEffect.ShowError("Print failed: ${result.exception.message}"),
             )
+            is Result.Loading -> Unit
+        }
+    }
+
+    private suspend fun onPrintA4ZReport(sessionId: String) {
+        val session = currentState.zReportSession ?: return
+        if (session.id != sessionId) return
+
+        updateState { copy(isPrintingA4ZReport = true) }
+        when (val result = printA4ZReportUseCase.execute(sessionId, currentUserId)) {
+            is Result.Success -> {
+                updateState { copy(isPrintingA4ZReport = false) }
+                sendEffect(RegisterEffect.A4ZReportPrinted)
+            }
+            is Result.Error -> {
+                updateState { copy(isPrintingA4ZReport = false) }
+                sendEffect(RegisterEffect.ShowError(result.exception.message ?: "Failed to print A4 Z-report"))
+            }
             is Result.Loading -> Unit
         }
     }

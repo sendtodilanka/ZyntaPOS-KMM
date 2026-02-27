@@ -15,9 +15,14 @@ CREATE TABLE label_templates (
     margin_bottom_mm REAL    NOT NULL DEFAULT 0.0,
     margin_left_mm   REAL    NOT NULL DEFAULT 2.0,
     margin_right_mm  REAL    NOT NULL DEFAULT 2.0,
-    is_default       INTEGER NOT NULL DEFAULT 0,
-    created_at       INTEGER NOT NULL,
-    updated_at       INTEGER NOT NULL
+    is_default             INTEGER NOT NULL DEFAULT 0,
+    created_at             INTEGER NOT NULL,
+    updated_at             INTEGER NOT NULL,
+    show_sale_price        INTEGER NOT NULL DEFAULT 0,
+    sale_price_label       TEXT    NOT NULL DEFAULT 'Sale',
+    show_expiry_date       INTEGER NOT NULL DEFAULT 0,
+    show_batch_number      INTEGER NOT NULL DEFAULT 0,
+    show_sequential_serial INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE INDEX idx_label_templates_default ON label_templates(is_default);
@@ -33,8 +38,10 @@ INSERT OR REPLACE INTO label_templates(
     id, name, paper_type, paper_width_mm, label_height_mm,
     columns_, rows_, gap_h_mm, gap_v_mm,
     margin_top_mm, margin_bottom_mm, margin_left_mm, margin_right_mm,
-    is_default, created_at, updated_at
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+    is_default, created_at, updated_at,
+    show_sale_price, sale_price_label,
+    show_expiry_date, show_batch_number, show_sequential_serial
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 deleteTemplate:
 DELETE FROM label_templates WHERE id = ?;

@@ -3,6 +3,8 @@ package com.zyntasolutions.zyntapos.feature.settings
 import com.zyntasolutions.zyntapos.domain.model.CustomRole
 import com.zyntasolutions.zyntapos.domain.model.OrderType
 import com.zyntasolutions.zyntapos.domain.model.Permission
+import com.zyntasolutions.zyntapos.domain.model.PrinterJobType
+import com.zyntasolutions.zyntapos.domain.model.PrinterProfile
 import com.zyntasolutions.zyntapos.domain.model.Role
 import com.zyntasolutions.zyntapos.domain.model.TaxGroup
 
@@ -105,4 +107,43 @@ sealed interface SettingsIntent {
     data object OpenAutoLockDialog : SettingsIntent
     data object DismissAutoLockDialog : SettingsIntent
     data class SetAutoLockTimeout(val minutes: Int) : SettingsIntent
+
+    // ── Label Printer Settings ────────────────────────────────────────────────
+    data object LoadLabelPrinter : SettingsIntent
+    data class UpdateLabelPrinterType(val type: LabelPrinterTypeOption) : SettingsIntent
+    data class UpdateLabelPrinterTcpHost(val host: String) : SettingsIntent
+    data class UpdateLabelPrinterTcpPort(val port: String) : SettingsIntent
+    data class UpdateLabelPrinterSerialPort(val port: String) : SettingsIntent
+    data class UpdateLabelPrinterBaudRate(val rate: String) : SettingsIntent
+    data class UpdateLabelPrinterBtAddress(val address: String) : SettingsIntent
+    data class UpdateLabelPrinterDarkness(val level: Int) : SettingsIntent
+    data class UpdateLabelPrinterSpeed(val level: Int) : SettingsIntent
+    data object SaveLabelPrinter : SettingsIntent
+
+    // ── Scanner Settings ──────────────────────────────────────────────────────
+    data object LoadScannerSettings : SettingsIntent
+    data class UpdateScannerMinLength(val length: Int) : SettingsIntent
+    data class UpdateScannerPrefix(val prefix: String) : SettingsIntent
+    data class UpdateScannerSuffix(val suffix: String) : SettingsIntent
+    data class UpdateScannerSoundFeedback(val enabled: Boolean) : SettingsIntent
+    data class SimulateScan(val barcode: String) : SettingsIntent
+    data object SaveScannerSettings : SettingsIntent
+
+    // ── Printer Profiles ──────────────────────────────────────────────────────
+    data object LoadPrinterProfiles : SettingsIntent
+    data object OpenCreatePrinterProfile : SettingsIntent
+    data class OpenEditPrinterProfile(val profile: PrinterProfile) : SettingsIntent
+    data object DismissPrinterProfileForm : SettingsIntent
+    data class UpdateProfileName(val name: String) : SettingsIntent
+    data class UpdateProfileJobType(val jobType: PrinterJobType) : SettingsIntent
+    data class UpdateProfilePrinterType(val type: String) : SettingsIntent
+    data class UpdateProfileTcpHost(val host: String) : SettingsIntent
+    data class UpdateProfileTcpPort(val port: String) : SettingsIntent
+    data class UpdateProfileSerialPort(val port: String) : SettingsIntent
+    data class UpdateProfileBaudRate(val rate: String) : SettingsIntent
+    data class UpdateProfileBtAddress(val address: String) : SettingsIntent
+    data class UpdateProfilePaperWidth(val mm: Int) : SettingsIntent
+    data class UpdateProfileIsDefault(val isDefault: Boolean) : SettingsIntent
+    data object SavePrinterProfile : SettingsIntent
+    data class DeletePrinterProfile(val id: String) : SettingsIntent
 }

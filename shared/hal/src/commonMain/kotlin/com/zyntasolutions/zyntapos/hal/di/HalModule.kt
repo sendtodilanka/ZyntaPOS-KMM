@@ -1,6 +1,9 @@
 package com.zyntasolutions.zyntapos.hal.di
 
+import com.zyntasolutions.zyntapos.hal.printer.LabelPrinterManager
+import com.zyntasolutions.zyntapos.hal.printer.NullLabelPrinterPort
 import com.zyntasolutions.zyntapos.hal.printer.PrinterManager
+import com.zyntasolutions.zyntapos.hal.printer.PrinterStatusMonitor
 import org.koin.core.module.Module
 import org.koin.dsl.module
 
@@ -41,4 +44,22 @@ val halCommonModule: Module = module {
      * Platform actuals register the concrete port; this binding picks it up via `get()`.
      */
     single { PrinterManager(port = get()) }
+
+    /**
+     * [PrinterStatusMonitor] — aggregates real-time [PrinterStatusEvent]s from the active
+     * [PrinterPort] into a [PrinterStatus] StateFlow consumable by the UI layer.
+     */
+    single { PrinterStatusMonitor(port = get()) }
+
+    /**
+     * [NullLabelPrinterPort] — safe default stub returned until the operator configures
+     * a real label printer via Settings → Label Printer.
+     */
+    single<com.zyntasolutions.zyntapos.hal.printer.LabelPrinterPort> { NullLabelPrinterPort() }
+
+    /**
+     * [LabelPrinterManager] — single gateway for ZPL/TSPL label printer communication.
+     * Uses the [LabelPrinterPort] binding above (overrideable from Settings at runtime).
+     */
+    single { LabelPrinterManager(port = get()) }
 }

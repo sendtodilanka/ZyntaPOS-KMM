@@ -1,5 +1,8 @@
 package com.zyntasolutions.zyntapos.hal.printer
 
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
+
 /**
  * ZyntaPOS — Hardware Abstraction Layer
  *
@@ -14,6 +17,17 @@ package com.zyntasolutions.zyntapos.hal.printer
  * failures without try/catch propagation through the call stack.
  */
 interface PrinterPort {
+
+    /**
+     * Real-time stream of [PrinterStatusEvent]s from the printer's status register.
+     *
+     * Implementations may poll the DLE EOT / GS a register at a regular interval and
+     * map result bytes to the appropriate events. Ports that do not support real-time
+     * status (e.g., [NullPrinterPort]) should return [emptyFlow].
+     *
+     * Consumed by [PrinterStatusMonitor] to maintain the aggregated [PrinterStatus] snapshot.
+     */
+    val statusEvents: Flow<PrinterStatusEvent> get() = emptyFlow()
 
     /**
      * Opens a connection to the printer.

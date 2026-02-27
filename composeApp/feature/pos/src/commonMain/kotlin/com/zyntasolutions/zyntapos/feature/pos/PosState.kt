@@ -118,4 +118,15 @@ data class PosState(
     val currentReceiptOrder: Order? = null,
     val isPrinting: Boolean = false,
     val printError: String? = null,
+    // ── Reprint / A4 Invoice / Email ──────────────────────────────────────────
+    /** `true` while a reprint job for a past order is in-flight. */
+    val isReprintingReceipt: Boolean = false,
+    /** `true` while an A4 tax invoice print job is in-flight. */
+    val isPrintingA4: Boolean = false,
+    /** `true` while a receipt email is being sent. */
+    val isEmailingReceipt: Boolean = false,
+    /** When `true`, the email receipt dialog is visible. */
+    val emailDialogOpen: Boolean = false,
+    /** The order ID for which the email dialog was opened. */
+    val emailDialogOrderId: String? = null,
 )

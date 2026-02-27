@@ -171,6 +171,16 @@ class RegisterRepositoryImpl(
         )
     }
 
+    override suspend fun getSession(sessionId: String): Result<RegisterSession> = withContext(Dispatchers.IO) {
+        runCatching {
+            sq.getSessionById(sessionId).executeAsOneOrNull()
+                ?: return@withContext Result.Error(DatabaseException("Register session not found: $sessionId"))
+        }.fold(
+            onSuccess = { row -> Result.Success(RegisterMapper.sessionToDomain(row)) },
+            onFailure = { t -> Result.Error(DatabaseException(t.message ?: "Failed to load session", cause = t)) },
+        )
+    }
+
     override fun getMovements(sessionId: String): Flow<List<CashMovement>> =
         mq.getMovementsBySession(sessionId)
             .asFlow()

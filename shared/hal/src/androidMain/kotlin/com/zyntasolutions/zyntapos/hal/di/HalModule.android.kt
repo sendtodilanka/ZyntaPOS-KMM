@@ -3,6 +3,8 @@ package com.zyntasolutions.zyntapos.hal.di
 import com.zyntasolutions.zyntapos.hal.image.ImageProcessor
 import com.zyntasolutions.zyntapos.hal.image.ImageProcessorImpl
 import com.zyntasolutions.zyntapos.hal.printer.EscPosReceiptBuilder
+import com.zyntasolutions.zyntapos.hal.printer.LabelPrinterPort
+import com.zyntasolutions.zyntapos.hal.printer.NullLabelPrinterPort
 import com.zyntasolutions.zyntapos.hal.printer.NullPrinterPort
 import com.zyntasolutions.zyntapos.hal.printer.PrinterConfig
 import com.zyntasolutions.zyntapos.hal.printer.PrinterPort
@@ -26,10 +28,11 @@ import org.koin.dsl.module
  * binding is therefore [NullPrinterPort] — a safe stub returning descriptive
  * errors until configuration completes.
  *
- * **Phase 2 override** (`:feature:settings`, Sprint 23):
+ * **Runtime override** (`:feature:settings`):
  * ```kotlin
  * koin.loadModules(listOf(module {
  *     single<PrinterPort>(override = true) { AndroidUsbPrinterPort(ctx, usbDevice) }
+ *     single<LabelPrinterPort>(override = true) { AndroidUsbLabelPrinterPort(ctx, usbDevice) }
  * }))
  * ```
  *
@@ -40,26 +43,32 @@ import org.koin.dsl.module
  *
  * ### Provides
  * - [PrinterPort] → [NullPrinterPort] (Phase 1 safe default)
+ * - [LabelPrinterPort] → [NullLabelPrinterPort] (Phase 1 safe default)
  * - [BarcodeScanner] → [AndroidUsbScanner] (USB HID keyboard wedge)
  * - [ReceiptBuilder] → [EscPosReceiptBuilder]
- * - [PrinterManager] via [halCommonModule]
+ * - [PrinterManager], [PrinterStatusMonitor], [LabelPrinterManager] via [halCommonModule]
  */
 actual fun halModule(): Module = module {
 
-    // ── Printer port — safe stub until Settings configures hardware ─────────
+    // ── Receipt printer port — safe stub until Settings configures hardware ──
     single<PrinterPort> { NullPrinterPort() }
+
+    // ── Label printer port — safe stub until Settings configures hardware ────
+    // Override with AndroidUsbLabelPrinterPort or AndroidBluetoothLabelPrinterPort
+    // once the operator selects hardware in Label Printer Settings.
+    single<LabelPrinterPort>(override = true) { NullLabelPrinterPort() }
 
     // ── Barcode scanner — USB HID keyboard wedge (no LifecycleOwner needed) ─
     single<BarcodeScanner> {
         AndroidUsbScanner(context = androidContext())
     }
 
-    // ── Receipt builder (concrete + interface binding for DI resolution) ───
+    // ── Receipt builder ───────────────────────────────────────────────────────
     single { EscPosReceiptBuilder(config = PrinterConfig.DEFAULT) } bind ReceiptBuilder::class
 
-    // ── Image processor — Android Bitmap compress / crop / thumbnail ───────
+    // ── Image processor — Android Bitmap compress / crop / thumbnail ──────────
     single<ImageProcessor> { ImageProcessorImpl() }
 
-    // ── Common bindings (PrinterManager) ──────────────────────────────────
+    // ── Common bindings (PrinterManager, PrinterStatusMonitor, LabelPrinterManager) ─
     includes(halCommonModule)
 }

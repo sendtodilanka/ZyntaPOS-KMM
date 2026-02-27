@@ -3,6 +3,7 @@ package com.zyntasolutions.zyntapos.feature.register
 import com.zyntasolutions.zyntapos.domain.printer.ZReportPrinterPort
 import com.zyntasolutions.zyntapos.domain.usecase.register.CloseRegisterSessionUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.OpenRegisterSessionUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.register.PrintA4ZReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.PrintZReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.RecordCashMovementUseCase
 import com.zyntasolutions.zyntapos.feature.register.printer.ZReportPrinterAdapter
@@ -49,6 +50,8 @@ val registerModule = module {
     factory { CloseRegisterSessionUseCase(get()) }
     factory { RecordCashMovementUseCase(get()) }
     factory { PrintZReportUseCase(get()) }
+    // A4InvoicePrinterPort is bound in posModule; CheckPermissionUseCase in authModule
+    factory { PrintA4ZReportUseCase(get(), get(), get()) }
 
     // ── ViewModel ────────────────────────────────────────────────────────────
     viewModel {
@@ -59,6 +62,7 @@ val registerModule = module {
             closeRegisterSessionUseCase = get(),
             recordCashMovementUseCase   = get(),
             printZReportUseCase         = get(),
+            printA4ZReportUseCase       = get(),
             authRepository              = get(),
         )
     }

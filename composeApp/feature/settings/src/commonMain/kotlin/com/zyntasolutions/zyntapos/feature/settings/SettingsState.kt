@@ -3,6 +3,8 @@ package com.zyntasolutions.zyntapos.feature.settings
 import com.zyntasolutions.zyntapos.domain.model.CustomRole
 import com.zyntasolutions.zyntapos.domain.model.OrderType
 import com.zyntasolutions.zyntapos.domain.model.Permission
+import com.zyntasolutions.zyntapos.domain.model.PrinterJobType
+import com.zyntasolutions.zyntapos.domain.model.PrinterProfile
 import com.zyntasolutions.zyntapos.domain.model.Role
 import com.zyntasolutions.zyntapos.domain.model.TaxGroup
 import com.zyntasolutions.zyntapos.domain.model.User
@@ -15,15 +17,18 @@ import kotlinx.datetime.Instant
  * All state is observable via [SettingsViewModel.state].
  */
 data class SettingsState(
-    val general: GeneralState       = GeneralState(),
-    val pos: PosState               = PosState(),
-    val tax: TaxState               = TaxState(),
-    val printer: PrinterState       = PrinterState(),
-    val users: UserState            = UserState(),
-    val backup: BackupState         = BackupState(),
-    val appearance: AppearanceState = AppearanceState(),
-    val security: SecurityState     = SecurityState(),
-    val rbac: RbacState             = RbacState(),
+    val general: GeneralState               = GeneralState(),
+    val pos: PosState                       = PosState(),
+    val tax: TaxState                       = TaxState(),
+    val printer: PrinterState               = PrinterState(),
+    val users: UserState                    = UserState(),
+    val backup: BackupState                 = BackupState(),
+    val appearance: AppearanceState         = AppearanceState(),
+    val security: SecurityState             = SecurityState(),
+    val rbac: RbacState                     = RbacState(),
+    val labelPrinter: LabelPrinterState     = LabelPrinterState(),
+    val scannerSettings: ScannerSettingsState = ScannerSettingsState(),
+    val printerProfiles: PrinterProfilesState = PrinterProfilesState(),
 
     /** True while any cross-screen async operation is pending. */
     val isLoading: Boolean = false,
@@ -156,6 +161,59 @@ data class SettingsState(
         val autoLockMinutes: Int          = 5,
         val isAutoLockDialogVisible: Boolean = false,
     )
+
+    // ── Label printer settings ────────────────────────────────────────────────
+
+    data class LabelPrinterState(
+        val printerType: LabelPrinterTypeOption = LabelPrinterTypeOption.NONE,
+        val tcpHost: String       = "",
+        val tcpPort: String       = "9100",
+        val serialPort: String    = "",
+        val baudRate: String      = "9600",
+        val btAddress: String     = "",
+        val darknessLevel: Int    = 8,
+        val speedLevel: Int       = 4,
+        val isConnected: Boolean  = false,
+        val isSaving: Boolean     = false,
+        val saveError: String?    = null,
+    )
+
+    // ── Scanner settings ──────────────────────────────────────────────────────
+
+    data class ScannerSettingsState(
+        val minBarcodeLength: Int    = 4,
+        val prefixToStrip: String    = "",
+        val suffixToStrip: String    = "",
+        val soundFeedbackEnabled: Boolean = true,
+        val lastScannedBarcode: String?   = null,
+        val lastScannedFormat: String?    = null,
+        val lastScannedAt: Long?          = null,
+        val isSaving: Boolean             = false,
+    )
+
+    // ── Printer profiles ──────────────────────────────────────────────────────
+
+    data class PrinterProfilesState(
+        val profiles: List<PrinterProfile>  = emptyList(),
+        val isLoading: Boolean              = false,
+        val editingProfile: PrinterProfile? = null,
+        val isCreating: Boolean             = false,
+        val form: PrinterProfileForm        = PrinterProfileForm(),
+        val saveError: String?              = null,
+    ) {
+        data class PrinterProfileForm(
+            val name: String            = "",
+            val jobType: PrinterJobType = PrinterJobType.RECEIPT,
+            val printerType: String     = "TCP",
+            val tcpHost: String         = "",
+            val tcpPort: String         = "9100",
+            val serialPort: String      = "",
+            val baudRate: String        = "115200",
+            val btAddress: String       = "",
+            val paperWidthMm: Int       = 80,
+            val isDefault: Boolean      = false,
+        )
+    }
 }
 
 // ─── Supporting enums ─────────────────────────────────────────────────────────
@@ -184,3 +242,15 @@ enum class PaperWidthOption(val mm: Int, val halValue: String) {
 
 /** Application theme mode. */
 enum class ThemeMode { LIGHT, DARK, SYSTEM }
+
+/** Label printer hardware type / language. */
+enum class LabelPrinterTypeOption(val displayName: String, val domainKey: String) {
+    NONE("None (PDF only)",      "NONE"),
+    ZPL_TCP("Zebra — TCP/IP",    "ZPL_TCP"),
+    ZPL_USB("Zebra — USB",       "ZPL_USB"),
+    ZPL_BT("Zebra — Bluetooth",  "ZPL_BT"),
+    TSPL_TCP("TSC — TCP/IP",     "TSPL_TCP"),
+    TSPL_USB("TSC — USB",        "TSPL_USB"),
+    TSPL_BT("TSC — Bluetooth",   "TSPL_BT"),
+    PDF_SYSTEM("PDF (OS dialog)", "PDF_SYSTEM"),
+}

@@ -18,6 +18,8 @@ import com.zyntasolutions.zyntapos.domain.usecase.coupons.CalculateCouponDiscoun
 import com.zyntasolutions.zyntapos.domain.usecase.coupons.ValidateCouponUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.EarnRewardPointsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.AddItemToCartUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.pos.PrintA4TaxInvoiceUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.pos.ReprintLastReceiptUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.ApplyItemDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.ApplyOrderDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.CalculateOrderTotalsUseCase
@@ -126,6 +128,8 @@ class PosViewModel(
     private val registerRepository: RegisterRepository,
     private val authRepository: AuthRepository,
     private val postSaleJournalEntryUseCase: PostSaleJournalEntryUseCase,
+    private val reprintLastReceiptUseCase: ReprintLastReceiptUseCase,
+    private val printA4TaxInvoiceUseCase: PrintA4TaxInvoiceUseCase,
 ) : BaseViewModel<PosState, PosIntent, PosEffect>(PosState()) {
 
     private var cashierId: String = "unknown"
@@ -229,6 +233,26 @@ class PosViewModel(
             is PosIntent.ClearCoupon             -> updateState {
                 copy(appliedCoupon = null, couponDiscount = 0.0, couponCode = "", couponError = null)
             }
+            // ── Reprint / A4 invoice / email ────────────────────────────────
+            is PosIntent.ReprintReceipt   -> onReprintReceipt(intent.orderId)
+            is PosIntent.OpenEmailDialog  -> updateState {
+                copy(emailDialogOpen = true, emailDialogOrderId = intent.orderId)
+            }
+            is PosIntent.DismissEmailDialog -> updateState {
+                copy(emailDialogOpen = false, emailDialogOrderId = null)
+            }
+            is PosIntent.EmailReceipt     -> onEmailReceipt(intent.orderId, intent.emailAddress)
+            is PosIntent.PrintA4Invoice   -> onPrintA4Invoice(intent.orderId)
+            // ── Context-aware barcode scans ─────────────────────────────────
+            is PosIntent.ScanReceiptBarcode -> onScanReceiptBarcode(intent.barcode)
+            is PosIntent.ScanLoyaltyCard    -> onScanLoyaltyCard(intent.barcode)
+            is PosIntent.ScanCoupon         -> {
+                updateState { copy(couponCode = intent.barcode, couponError = null) }
+                onValidateCoupon()
+            }
+            is PosIntent.ScanGiftCard       -> sendEffect(
+                PosEffect.ShowError("Gift card: ${intent.barcode} — gift card lookup coming in Phase 2")
+            )
         }
     }
 
@@ -638,6 +662,67 @@ class PosViewModel(
                 referenceId = orderId,
                 note = "POS wallet payment",
             )
+        }
+    }
+
+    // ── Wave 3B: reprint, A4 invoice, scan context ────────────────────────────
+
+    private suspend fun onReprintReceipt(orderId: String) {
+        updateState { copy(isReprintingReceipt = true) }
+        when (val result = reprintLastReceiptUseCase.execute(orderId, cashierId)) {
+            is Result.Success -> updateState { copy(isReprintingReceipt = false) }
+            is Result.Error   -> {
+                updateState { copy(isReprintingReceipt = false) }
+                sendEffect(PosEffect.ShowError(result.exception.message ?: "Reprint failed"))
+            }
+            is Result.Loading -> Unit
+        }
+    }
+
+    private suspend fun onEmailReceipt(orderId: String, emailAddress: String) {
+        if (emailAddress.isBlank()) {
+            sendEffect(PosEffect.ShowError("Please enter an email address"))
+            return
+        }
+        updateState { copy(isEmailingReceipt = true, emailDialogOpen = false, emailDialogOrderId = null) }
+        // Phase 1: show confirmation without actual email sending (Phase 2: SendReceiptByEmailUseCase)
+        updateState { copy(isEmailingReceipt = false) }
+        sendEffect(PosEffect.ReceiptEmailSent)
+    }
+
+    private suspend fun onPrintA4Invoice(orderId: String) {
+        updateState { copy(isPrintingA4 = true) }
+        when (val result = printA4TaxInvoiceUseCase.execute(orderId, cashierId)) {
+            is Result.Success -> {
+                updateState { copy(isPrintingA4 = false) }
+                sendEffect(PosEffect.A4InvoicePrinted)
+            }
+            is Result.Error   -> {
+                updateState { copy(isPrintingA4 = false) }
+                sendEffect(PosEffect.ShowError(result.exception.message ?: "A4 invoice print failed"))
+            }
+            is Result.Loading -> Unit
+        }
+    }
+
+    private suspend fun onScanReceiptBarcode(barcode: String) {
+        // Look up the order by receipt barcode and navigate to the refund flow.
+        // Receipt barcodes embed the order ID after the RCP- prefix.
+        val orderId = barcode.removePrefix("RCP-")
+        when (orderRepository.getById(orderId)) {
+            is Result.Success -> sendEffect(PosEffect.NavigateToRefund(orderId))
+            is Result.Error   -> sendEffect(PosEffect.BarcodeNotFound(barcode))
+            is Result.Loading -> Unit
+        }
+    }
+
+    private suspend fun onScanLoyaltyCard(barcode: String) {
+        // Look up the customer by loyalty card barcode (search by customer ID embedded after LC- prefix).
+        val customerId = barcode.removePrefix("LC-")
+        when (val result = customerRepository.getById(customerId)) {
+            is Result.Success -> onSelectCustomer(PosIntent.SelectCustomer(result.data))
+            is Result.Error   -> sendEffect(PosEffect.ShowError("Loyalty card not found: $barcode"))
+            is Result.Loading -> Unit
         }
     }
 }

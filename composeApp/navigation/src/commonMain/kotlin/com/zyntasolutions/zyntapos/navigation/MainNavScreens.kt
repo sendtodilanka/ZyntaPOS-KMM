@@ -43,6 +43,11 @@ data class MainNavScreens(
         onNavigateToCategories: () -> Unit,
         onNavigateToSuppliers: () -> Unit,
         onNavigateToPrintLabels: () -> Unit,
+        onNavigateToStocktake: () -> Unit,
+    ) -> Unit,
+
+    val stocktake: @Composable (
+        onNavigateBack: () -> Unit,
     ) -> Unit,
 
     val productDetail: @Composable (

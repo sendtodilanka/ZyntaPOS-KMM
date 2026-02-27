@@ -56,6 +56,7 @@ fun ProductListScreen(
     onIntent: (InventoryIntent) -> Unit,
     onNavigateToDetail: (String?) -> Unit,
     onNavigateToPrintLabels: () -> Unit = {},
+    onNavigateToStocktake: () -> Unit = {},
     modifier: Modifier = Modifier,
     currencyFormatter: CurrencyFormatter = koinInject(),
 ) {
@@ -109,6 +110,7 @@ fun ProductListScreen(
                 onToggleViewMode = { onIntent(InventoryIntent.ToggleViewMode) },
                 onBulkImport = { onIntent(InventoryIntent.OpenBulkImport) },
                 onPrintLabels = onNavigateToPrintLabels,
+                onStocktake = onNavigateToStocktake,
             )
 
             Spacer(Modifier.height(ZyntaSpacing.sm))
@@ -167,6 +169,7 @@ private fun ProductFilterRow(
     onToggleViewMode: () -> Unit,
     onBulkImport: () -> Unit,
     onPrintLabels: () -> Unit = {},
+    onStocktake: () -> Unit = {},
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -202,7 +205,13 @@ private fun ProductFilterRow(
             }
         }
 
-        // ── Print Labels + Bulk Import + View toggle ─────────────────
+        // ── Stocktake + Print Labels + Bulk Import + View toggle ─────
+        IconButton(onClick = onStocktake) {
+            Icon(
+                imageVector = Icons.Default.Inventory,
+                contentDescription = "Stocktake",
+            )
+        }
         IconButton(onClick = onPrintLabels) {
             Icon(
                 imageVector = Icons.Default.Print,

@@ -247,7 +247,7 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
     },
 
     // ── Inventory: Product List ─────────────────────────────────────────────
-    productList = { onNavigateToDetail, _, _, onNavigateToPrintLabels ->
+    productList = { onNavigateToDetail, _, _, onNavigateToPrintLabels, onNavigateToStocktake ->
         val vm: InventoryViewModel = koinViewModel()
         val state by vm.state.collectAsState()
         ProductListScreen(
@@ -255,6 +255,7 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
             onIntent = vm::dispatch,
             onNavigateToDetail = onNavigateToDetail,
             onNavigateToPrintLabels = onNavigateToPrintLabels,
+            onNavigateToStocktake = onNavigateToStocktake,
         )
     },
 
@@ -302,6 +303,13 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
         BarcodeLabelPrintScreen(
             state = state,
             onIntent = vm::dispatch,
+            onNavigateBack = onNavigateBack,
+        )
+    },
+
+    // ── Inventory: Stocktake ────────────────────────────────────────────────
+    stocktake = { onNavigateBack ->
+        com.zyntasolutions.zyntapos.feature.inventory.stocktake.StocktakeScreen(
             onNavigateBack = onNavigateBack,
         )
     },

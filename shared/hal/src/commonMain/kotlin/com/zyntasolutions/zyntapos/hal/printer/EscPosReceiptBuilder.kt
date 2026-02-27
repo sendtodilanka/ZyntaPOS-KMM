@@ -11,16 +11,18 @@ import com.zyntasolutions.zyntapos.domain.model.RegisterSession
  * 58 mm (32 chars/line) and 80 mm (48 chars/line) thermal paper rolls.
  *
  * ### ESC/POS Commands Used
- * | Command       | Hex / Bytes          | Purpose                       |
- * |---------------|----------------------|-------------------------------|
- * | `ESC @`       | 1B 40                | Initialize / reset printer    |
- * | `ESC t n`     | 1B 74 nn             | Select character code page    |
- * | `ESC E n`     | 1B 45 01/00          | Bold on / off                 |
- * | `ESC a n`     | 1B 61 00/01/02       | Align left / centre / right   |
- * | `GS ! n`      | 1D 21 nn             | Character size (width × height)|
- * | `ESC p m t1 t2` | 1B 70 00 19 FA     | Cash-drawer kick pulse        |
- * | `GS ( k`      | 1D 28 6B ...         | Print QR code                 |
- * | `GS V n`      | 1D 56 42 00          | Paper cut (partial)           |
+ * | Command           | Hex / Bytes          | Purpose                        |
+ * |-------------------|----------------------|--------------------------------|
+ * | `ESC @`           | 1B 40                | Initialize / reset printer     |
+ * | `ESC t n`         | 1B 74 nn             | Select character code page     |
+ * | `ESC E n`         | 1B 45 01/00          | Bold on / off                  |
+ * | `ESC a n`         | 1B 61 00/01/02       | Align left / centre / right    |
+ * | `GS ! n`          | 1D 21 nn             | Character size (width × height)|
+ * | `ESC p m t1 t2`   | 1B 70 00 19 FA       | Cash-drawer kick pulse         |
+ * | `GS ( k`          | 1D 28 6B ...         | Print QR code                  |
+ * | `GS V n`          | 1D 56 42 00          | Paper cut (partial)            |
+ * | `FS p kc1 kc2`    | 1C 70 20 01          | Print NV logo from slot 1      |
+ * | `GS k m [data] NUL`| 1D 6B 02 ...        | Code 128 barcode               |
  *
  * All methods are **pure** — no I/O, no side effects.
  *
@@ -53,7 +55,9 @@ class EscPosReceiptBuilder(private val config: PrinterConfig) : ReceiptBuilder {
     // Character sizes (GS ! n — bits 0-2 height multiplier, bits 4-6 width multiplier)
     private val CMD_SIZE_NORMAL    = byteArrayOf(GS,  0x21, 0x00)   // 1x1
     private val CMD_SIZE_DOUBLE_H  = byteArrayOf(GS,  0x21, 0x01)   // 1w × 2h
+    @Suppress("unused")
     private val CMD_SIZE_DOUBLE_W  = byteArrayOf(GS,  0x21, 0x10)   // 2w × 1h
+    @Suppress("unused")
     private val CMD_SIZE_DOUBLE    = byteArrayOf(GS,  0x21, 0x11)   // 2x2
 
     /** Partial paper cut (`GS V 66 0`). */
@@ -69,31 +73,58 @@ class EscPosReceiptBuilder(private val config: PrinterConfig) : ReceiptBuilder {
     // ─── Public API ──────────────────────────────────────────────────────────
 
     /**
+     * Implements [ReceiptBuilder.buildReceipt] — delegates to the extended overload
+     * with default cashier name and receipt counter.
+     */
+    override fun buildReceipt(order: Order, config: PrinterConfig): ByteArray =
+        buildReceipt(order, config, cashierName = "", receiptCount = 0)
+
+    /**
      * Builds a customer receipt for the given [order].
      *
      * Layout (top → bottom):
      * 1. Init + code page
-     * 2. Store header (centered, bold) — from [PrinterConfig.headerLines]
-     * 3. Separator rule
-     * 4. Order number + date/time
-     * 5. Separator rule
-     * 6. Item table: name (left) | qty | unit price | line total (right)
-     * 7. Separator rule
-     * 8. Subtotal / Tax / Discount / **Total** (right-aligned values)
-     * 9. Payment method + amount tendered + change
-     * 10. Separator rule
-     * 11. Footer lines (centered) — from [PrinterConfig.footerLines]
-     * 12. QR code block (`GS ( k`) — if [PrinterConfig.showQrCode] is `true`
-     * 13. Feed + paper cut
+     * 2. NV logo (`FS p`) — if [PrinterConfig.showLogo] and [PrinterConfig.logoNvSlot] set
+     * 3. Store header (centered, bold) — from [PrinterConfig.headerLines]
+     * 4. Separator rule
+     * 5. Order number + date/time + cashier name (if [PrinterConfig.showCashierName])
+     * 6. Separator rule
+     * 7. Item table: name (left) | qty | unit price | line total (right)
+     * 8. Separator rule
+     * 9. Subtotal / Tax detail / Discount / **Total** (right-aligned values)
+     * 10. Payment method + amount tendered + change
+     * 11. Separator rule
+     * 12. Footer (rotating promotional text or static [PrinterConfig.footerLines])
+     * 13. Receipt barcode (Code 128 of order number) — if [PrinterConfig.showReceiptBarcode]
+     * 14. QR code block (`GS ( k`) — if [PrinterConfig.showQrCode]
+     * 15. Feed + paper cut
+     *
+     * @param order        Fully-resolved [Order] with items, totals, and payment details.
+     * @param config       Printer layout configuration.
+     * @param cashierName  Display name of the logged-in cashier. Printed when
+     *                     [PrinterConfig.showCashierName] is `true`.
+     * @param receiptCount Running counter (1-based) used to select the rotating footer text.
      */
-    override fun buildReceipt(order: Order, config: PrinterConfig): ByteArray {
+    fun buildReceipt(
+        order: Order,
+        config: PrinterConfig,
+        cashierName: String,
+        receiptCount: Int,
+    ): ByteArray {
         val buf = ByteArrayBuffer()
         val cfg = config
 
         buf += CMD_INIT
         buf += cmdCodePage(cfg.characterSet)
 
-        // ── 1. Header ────────────────────────────────────────────────────────
+        // ── 1. NV logo ────────────────────────────────────────────────────────
+        if (cfg.showLogo && cfg.logoNvSlot != null) {
+            buf += CMD_ALIGN_CENTER
+            buf += LogoNvInjector.buildPrintNvLogoCommand()
+            buf += LF
+        }
+
+        // ── 2. Header ────────────────────────────────────────────────────────
         if (cfg.headerLines.isNotEmpty()) {
             buf += CMD_ALIGN_CENTER
             buf += CMD_BOLD_ON
@@ -108,16 +139,20 @@ class EscPosReceiptBuilder(private val config: PrinterConfig) : ReceiptBuilder {
 
         buf += separatorLine('=')
 
-        // ── 2. Order reference + timestamp ───────────────────────────────────
+        // ── 3. Order reference + timestamp + cashier ─────────────────────────
         buf += CMD_ALIGN_LEFT
         buf += "Order : ${order.orderNumber}".toByteArray()
         buf += LF
         buf += "Date  : ${order.createdAt}".toByteArray()
         buf += LF
+        if (cfg.showCashierName && cashierName.isNotBlank()) {
+            buf += "Cashier: ${cashierName.truncate(cols - 9)}".toByteArray()
+            buf += LF
+        }
 
         buf += separatorLine('-')
 
-        // ── 3. Item table ─────────────────────────────────────────────────────
+        // ── 4. Item table ─────────────────────────────────────────────────────
         //   58mm (32): name (16) | qty (4) | price (6) | total (6)
         //   80mm (48): name (24) | qty (5) | price (9) | total (10)
         val qtyW   = if (cols <= 32) 4  else 5
@@ -136,9 +171,9 @@ class EscPosReceiptBuilder(private val config: PrinterConfig) : ReceiptBuilder {
         buf += CMD_BOLD_OFF
 
         order.items.forEach { item ->
-            val name     = item.productName.truncate(nameW).padEnd(nameW)
-            val qty      = formatQty(item.quantity).padStart(qtyW)
-            val price    = formatMoney(item.unitPrice).padStart(priceW)
+            val name      = item.productName.truncate(nameW).padEnd(nameW)
+            val qty       = formatQty(item.quantity).padStart(qtyW)
+            val price     = formatMoney(item.unitPrice).padStart(priceW)
             val lineTotal = formatMoney(item.lineTotal).padStart(totW)
             buf += (name + qty + price + lineTotal).toByteArray()
             buf += LF
@@ -153,11 +188,19 @@ class EscPosReceiptBuilder(private val config: PrinterConfig) : ReceiptBuilder {
 
         buf += separatorLine('-')
 
-        // ── 4. Totals block ───────────────────────────────────────────────────
+        // ── 5. Totals block ───────────────────────────────────────────────────
         val labelW = cols - 12
         buf += totalsLine("Subtotal",   formatMoney(order.subtotal),      labelW)
-        if (order.taxAmount > 0.0)
-            buf += totalsLine("Tax",    "+${formatMoney(order.taxAmount)}", labelW)
+
+        if (cfg.showTaxDetail && order.taxBreakdown.isNotEmpty()) {
+            // Per-tax-group detail rows (e.g. "VAT 8%" : 120.00)
+            order.taxBreakdown.forEach { (label, amount) ->
+                buf += totalsLine("  $label", "+${formatMoney(amount)}", labelW)
+            }
+        } else if (order.taxAmount > 0.0) {
+            buf += totalsLine("Tax", "+${formatMoney(order.taxAmount)}", labelW)
+        }
+
         if (order.discountAmount > 0.0)
             buf += totalsLine("Discount", "-${formatMoney(order.discountAmount)}", labelW)
 
@@ -170,7 +213,7 @@ class EscPosReceiptBuilder(private val config: PrinterConfig) : ReceiptBuilder {
 
         buf += separatorLine('-')
 
-        // ── 5. Payment ────────────────────────────────────────────────────────
+        // ── 6. Payment ────────────────────────────────────────────────────────
         buf += totalsLine("Payment", labelForPayment(order.paymentMethod), labelW)
         if (order.paymentMethod == PaymentMethod.SPLIT) {
             order.paymentSplits.forEach { split ->
@@ -183,17 +226,34 @@ class EscPosReceiptBuilder(private val config: PrinterConfig) : ReceiptBuilder {
             buf += totalsLine("Change",   formatMoney(order.changeAmount),   labelW)
         }
 
-        // ── 6. Footer ─────────────────────────────────────────────────────────
-        if (cfg.footerLines.isNotEmpty()) {
+        // ── 7. Footer (rotating or static) ───────────────────────────────────
+        val footerToShow: List<String> = when {
+            cfg.rotatingFooterTexts.isNotEmpty() -> {
+                val idx = ((receiptCount - 1) / cfg.footerRotationInterval) %
+                          cfg.rotatingFooterTexts.size
+                listOf(cfg.rotatingFooterTexts[idx.coerceAtLeast(0)])
+            }
+            cfg.footerLines.isNotEmpty() -> cfg.footerLines
+            else -> emptyList()
+        }
+        if (footerToShow.isNotEmpty()) {
             buf += separatorLine('-')
             buf += CMD_ALIGN_CENTER
-            cfg.footerLines.forEach { line ->
+            footerToShow.forEach { line ->
                 buf += line.truncate(cols).toByteArray()
                 buf += LF
             }
         }
 
-        // ── 7. QR code ────────────────────────────────────────────────────────
+        // ── 8. Receipt barcode (Code 128) ─────────────────────────────────────
+        if (cfg.showReceiptBarcode && order.orderNumber.isNotBlank()) {
+            buf += CMD_ALIGN_CENTER
+            buf += LF
+            buf += buildCode128Command(order.orderNumber)
+            buf += LF
+        }
+
+        // ── 9. QR code ────────────────────────────────────────────────────────
         if (cfg.showQrCode && order.orderNumber.isNotBlank()) {
             buf += CMD_ALIGN_CENTER
             buf += LF
@@ -201,7 +261,7 @@ class EscPosReceiptBuilder(private val config: PrinterConfig) : ReceiptBuilder {
             buf += LF
         }
 
-        // ── 8. Feed + cut ─────────────────────────────────────────────────────
+        // ── 10. Feed + cut ────────────────────────────────────────────────────
         buf += CMD_ALIGN_LEFT
         buf += CMD_FEED_LINES
         buf += CMD_PAPER_CUT
@@ -246,7 +306,7 @@ class EscPosReceiptBuilder(private val config: PrinterConfig) : ReceiptBuilder {
 
         buf += separatorLine('-')
 
-        buf += totalsLine("Opening Float",  formatMoney(session.openingBalance),  labelW)
+        buf += totalsLine("Opening Float",    formatMoney(session.openingBalance),  labelW)
         buf += totalsLine("Expected Balance", formatMoney(session.expectedBalance), labelW)
         session.closingBalance?.let { buf += totalsLine("Closing Balance", formatMoney(it), labelW) }
         session.actualBalance?.let  {
@@ -405,6 +465,28 @@ class EscPosReceiptBuilder(private val config: PrinterConfig) : ReceiptBuilder {
         store += byteArrayOf(GS, 0x28, 0x6B, 0x03, 0x00, 0x31, 0x51, 0x30)
 
         return store.toByteArray()
+    }
+
+    /**
+     * Builds a Code 128 barcode ESC/POS command for [data].
+     *
+     * Uses the `GS k` two-part format: `GS k m d1...dk NUL` where m = 2 (Code 128).
+     * Height is fixed at 50 dots; HRI characters printed below.
+     */
+    private fun buildCode128Command(data: String): ByteArray {
+        val dataBytes = data.toByteArray(Charsets.US_ASCII)
+        val buf = ByteArrayBuffer()
+
+        // Set barcode height: GS h n (50 dots)
+        buf += byteArrayOf(GS, 0x68, 50)
+        // HRI position: below barcode — GS H n (2 = below)
+        buf += byteArrayOf(GS, 0x48, 0x02)
+        // GS k 2 [data] NUL — Code 128 auto-subset
+        buf += byteArrayOf(GS, 0x6B, 0x02)
+        buf += dataBytes
+        buf += byteArrayOf(0x00)  // NUL terminator
+
+        return buf.toByteArray()
     }
 }
 

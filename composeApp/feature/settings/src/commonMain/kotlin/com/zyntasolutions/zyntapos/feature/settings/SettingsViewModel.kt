@@ -15,12 +15,19 @@ import com.zyntasolutions.zyntapos.domain.repository.RoleRepository
 import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.domain.repository.TaxGroupRepository
 import com.zyntasolutions.zyntapos.domain.repository.UserRepository
+import com.zyntasolutions.zyntapos.domain.model.LabelPrinterConfig
+import com.zyntasolutions.zyntapos.domain.model.PrinterPaperWidth
+import com.zyntasolutions.zyntapos.domain.model.PrinterProfile
 import com.zyntasolutions.zyntapos.domain.usecase.auth.SetPinUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.SaveTaxGroupUseCase
-import com.zyntasolutions.zyntapos.domain.model.PrinterPaperWidth
 import com.zyntasolutions.zyntapos.domain.usecase.rbac.DeleteCustomRoleUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rbac.SaveCustomRoleUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.settings.DeletePrinterProfileUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.settings.GetLabelPrinterConfigUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.settings.GetPrinterProfilesUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.PrintTestPageUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.settings.SaveLabelPrinterConfigUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.settings.SavePrinterProfileUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.SaveUserUseCase
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlinx.coroutines.Job
@@ -64,11 +71,17 @@ class SettingsViewModel(
     private val deleteCustomRoleUseCase: DeleteCustomRoleUseCase,
     private val printTestPageUseCase: PrintTestPageUseCase,
     private val backupService: BackupService,
+    private val getLabelPrinterConfigUseCase: GetLabelPrinterConfigUseCase,
+    private val saveLabelPrinterConfigUseCase: SaveLabelPrinterConfigUseCase,
+    private val getPrinterProfilesUseCase: GetPrinterProfilesUseCase,
+    private val savePrinterProfileUseCase: SavePrinterProfileUseCase,
+    private val deletePrinterProfileUseCase: DeletePrinterProfileUseCase,
 ) : BaseViewModel<SettingsState, SettingsIntent, SettingsEffect>(SettingsState()) {
 
     private var taxGroupJob: Job? = null
     private var userJob: Job? = null
     private var rbacJob: Job? = null
+    private var profilesJob: Job? = null
 
     // ── Intent dispatch ──────────────────────────────────────────────────────
 
@@ -157,6 +170,48 @@ class SettingsViewModel(
         SettingsIntent.OpenAutoLockDialog            -> updateState { copy(security = security.copy(isAutoLockDialogVisible = true)) }
         SettingsIntent.DismissAutoLockDialog         -> updateState { copy(security = security.copy(isAutoLockDialogVisible = false)) }
         is SettingsIntent.SetAutoLockTimeout         -> setAutoLockTimeout(intent.minutes)
+        // Label Printer
+        SettingsIntent.LoadLabelPrinter              -> loadLabelPrinter()
+        is SettingsIntent.UpdateLabelPrinterType     -> updateState { copy(labelPrinter = labelPrinter.copy(printerType = intent.type)) }
+        is SettingsIntent.UpdateLabelPrinterTcpHost  -> updateState { copy(labelPrinter = labelPrinter.copy(tcpHost = intent.host)) }
+        is SettingsIntent.UpdateLabelPrinterTcpPort  -> updateState { copy(labelPrinter = labelPrinter.copy(tcpPort = intent.port)) }
+        is SettingsIntent.UpdateLabelPrinterSerialPort -> updateState { copy(labelPrinter = labelPrinter.copy(serialPort = intent.port)) }
+        is SettingsIntent.UpdateLabelPrinterBaudRate -> updateState { copy(labelPrinter = labelPrinter.copy(baudRate = intent.rate)) }
+        is SettingsIntent.UpdateLabelPrinterBtAddress -> updateState { copy(labelPrinter = labelPrinter.copy(btAddress = intent.address)) }
+        is SettingsIntent.UpdateLabelPrinterDarkness -> updateState { copy(labelPrinter = labelPrinter.copy(darknessLevel = intent.level)) }
+        is SettingsIntent.UpdateLabelPrinterSpeed    -> updateState { copy(labelPrinter = labelPrinter.copy(speedLevel = intent.level)) }
+        SettingsIntent.SaveLabelPrinter              -> saveLabelPrinter()
+        // Scanner Settings
+        SettingsIntent.LoadScannerSettings           -> { /* scanner settings loaded from persisted prefs in future sprint */ }
+        is SettingsIntent.UpdateScannerMinLength     -> updateState { copy(scannerSettings = scannerSettings.copy(minBarcodeLength = intent.length)) }
+        is SettingsIntent.UpdateScannerPrefix        -> updateState { copy(scannerSettings = scannerSettings.copy(prefixToStrip = intent.prefix)) }
+        is SettingsIntent.UpdateScannerSuffix        -> updateState { copy(scannerSettings = scannerSettings.copy(suffixToStrip = intent.suffix)) }
+        is SettingsIntent.UpdateScannerSoundFeedback -> updateState { copy(scannerSettings = scannerSettings.copy(soundFeedbackEnabled = intent.enabled)) }
+        is SettingsIntent.SimulateScan               -> updateState {
+            copy(scannerSettings = scannerSettings.copy(
+                lastScannedBarcode = intent.barcode,
+                lastScannedFormat  = "SIMULATED",
+                lastScannedAt      = Clock.System.now().toEpochMilliseconds(),
+            ))
+        }
+        SettingsIntent.SaveScannerSettings           -> sendEffect(SettingsEffect.ScannerSettingsSaved)
+        // Printer Profiles
+        SettingsIntent.LoadPrinterProfiles           -> loadPrinterProfiles()
+        SettingsIntent.OpenCreatePrinterProfile      -> updateState { copy(printerProfiles = printerProfiles.copy(isCreating = true, editingProfile = null, form = SettingsState.PrinterProfilesState.PrinterProfileForm())) }
+        is SettingsIntent.OpenEditPrinterProfile     -> openEditPrinterProfile(intent.profile)
+        SettingsIntent.DismissPrinterProfileForm     -> updateState { copy(printerProfiles = printerProfiles.copy(isCreating = false, editingProfile = null, saveError = null)) }
+        is SettingsIntent.UpdateProfileName          -> updateState { copy(printerProfiles = printerProfiles.copy(form = printerProfiles.form.copy(name = intent.name))) }
+        is SettingsIntent.UpdateProfileJobType       -> updateState { copy(printerProfiles = printerProfiles.copy(form = printerProfiles.form.copy(jobType = intent.jobType))) }
+        is SettingsIntent.UpdateProfilePrinterType   -> updateState { copy(printerProfiles = printerProfiles.copy(form = printerProfiles.form.copy(printerType = intent.type))) }
+        is SettingsIntent.UpdateProfileTcpHost       -> updateState { copy(printerProfiles = printerProfiles.copy(form = printerProfiles.form.copy(tcpHost = intent.host))) }
+        is SettingsIntent.UpdateProfileTcpPort       -> updateState { copy(printerProfiles = printerProfiles.copy(form = printerProfiles.form.copy(tcpPort = intent.port))) }
+        is SettingsIntent.UpdateProfileSerialPort    -> updateState { copy(printerProfiles = printerProfiles.copy(form = printerProfiles.form.copy(serialPort = intent.port))) }
+        is SettingsIntent.UpdateProfileBaudRate      -> updateState { copy(printerProfiles = printerProfiles.copy(form = printerProfiles.form.copy(baudRate = intent.rate))) }
+        is SettingsIntent.UpdateProfileBtAddress     -> updateState { copy(printerProfiles = printerProfiles.copy(form = printerProfiles.form.copy(btAddress = intent.address))) }
+        is SettingsIntent.UpdateProfilePaperWidth    -> updateState { copy(printerProfiles = printerProfiles.copy(form = printerProfiles.form.copy(paperWidthMm = intent.mm))) }
+        is SettingsIntent.UpdateProfileIsDefault     -> updateState { copy(printerProfiles = printerProfiles.copy(form = printerProfiles.form.copy(isDefault = intent.isDefault))) }
+        SettingsIntent.SavePrinterProfile            -> savePrinterProfile()
+        is SettingsIntent.DeletePrinterProfile       -> deletePrinterProfile(intent.id)
     }
 
     // ── General ──────────────────────────────────────────────────────────────
@@ -643,6 +698,144 @@ class SettingsViewModel(
             settingsRepository.set(SettingsKeys.SECURITY_AUTOLOCK_MINUTES, minutes.toString())
             updateState { copy(security = security.copy(autoLockMinutes = minutes, isAutoLockDialogVisible = false)) }
             sendEffect(SettingsEffect.ShowSnackbar("Auto-lock timeout updated."))
+        }
+    }
+
+    // ── Label Printer ─────────────────────────────────────────────────────────
+
+    private fun loadLabelPrinter() {
+        viewModelScope.launch {
+            getLabelPrinterConfigUseCase()
+                .onSuccess { configOrNull ->
+                    val config = configOrNull ?: LabelPrinterConfig.DEFAULT
+                    val typeOption = LabelPrinterTypeOption.entries
+                        .find { it.domainKey == config.printerType }
+                        ?: LabelPrinterTypeOption.NONE
+                    updateState {
+                        copy(
+                            labelPrinter = labelPrinter.copy(
+                                printerType    = typeOption,
+                                tcpHost        = config.tcpHost,
+                                tcpPort        = config.tcpPort.toString(),
+                                serialPort     = config.serialPort,
+                                baudRate       = config.baudRate.toString(),
+                                btAddress      = config.btAddress,
+                                darknessLevel  = config.darknessLevel,
+                                speedLevel     = config.speedLevel,
+                            )
+                        )
+                    }
+                }
+                .onError { /* use defaults if not yet configured */ }
+        }
+    }
+
+    private fun saveLabelPrinter() {
+        val s = currentState.labelPrinter
+        updateState { copy(labelPrinter = labelPrinter.copy(isSaving = true, saveError = null)) }
+        viewModelScope.launch {
+            val config = LabelPrinterConfig(
+                printerType    = s.printerType.domainKey,
+                tcpHost        = s.tcpHost,
+                tcpPort        = s.tcpPort.toIntOrNull() ?: 9100,
+                serialPort     = s.serialPort,
+                baudRate       = s.baudRate.toIntOrNull() ?: 9600,
+                btAddress      = s.btAddress,
+                darknessLevel  = s.darknessLevel,
+                speedLevel     = s.speedLevel,
+            )
+            saveLabelPrinterConfigUseCase(config)
+                .onSuccess { sendEffect(SettingsEffect.LabelPrinterSaved) }
+                .onError { e -> updateState { copy(labelPrinter = labelPrinter.copy(saveError = e.message)) } }
+            updateState { copy(labelPrinter = labelPrinter.copy(isSaving = false)) }
+        }
+    }
+
+    // ── Printer Profiles ──────────────────────────────────────────────────────
+
+    private fun loadPrinterProfiles() {
+        profilesJob?.cancel()
+        updateState { copy(printerProfiles = printerProfiles.copy(isLoading = true)) }
+        profilesJob = viewModelScope.launch {
+            getPrinterProfilesUseCase()
+                .catch { e -> updateState { copy(printerProfiles = printerProfiles.copy(isLoading = false)) } }
+                .collect { profiles ->
+                    updateState { copy(printerProfiles = printerProfiles.copy(profiles = profiles, isLoading = false)) }
+                }
+        }
+    }
+
+    private fun openEditPrinterProfile(profile: PrinterProfile) = updateState {
+        copy(
+            printerProfiles = printerProfiles.copy(
+                isCreating = false,
+                editingProfile = profile,
+                form = SettingsState.PrinterProfilesState.PrinterProfileForm(
+                    name          = profile.name,
+                    jobType       = profile.jobType,
+                    printerType   = profile.printerType,
+                    tcpHost       = profile.tcpHost,
+                    tcpPort       = profile.tcpPort.toString(),
+                    serialPort    = profile.serialPort,
+                    baudRate      = profile.baudRate.toString(),
+                    btAddress     = profile.btAddress,
+                    paperWidthMm  = profile.paperWidthMm,
+                    isDefault     = profile.isDefault,
+                ),
+            )
+        )
+    }
+
+    private fun savePrinterProfile() {
+        val form = currentState.printerProfiles.form
+        val editing = currentState.printerProfiles.editingProfile
+        val now = Clock.System.now().toEpochMilliseconds()
+        val profile = if (editing != null) {
+            editing.copy(
+                name         = form.name,
+                jobType      = form.jobType,
+                printerType  = form.printerType,
+                tcpHost      = form.tcpHost,
+                tcpPort      = form.tcpPort.toIntOrNull() ?: 9100,
+                serialPort   = form.serialPort,
+                baudRate     = form.baudRate.toIntOrNull() ?: 115200,
+                btAddress    = form.btAddress,
+                paperWidthMm = form.paperWidthMm,
+                isDefault    = form.isDefault,
+                updatedAt    = now,
+            )
+        } else {
+            PrinterProfile(
+                id           = generateUuid(),
+                name         = form.name,
+                jobType      = form.jobType,
+                printerType  = form.printerType,
+                tcpHost      = form.tcpHost,
+                tcpPort      = form.tcpPort.toIntOrNull() ?: 9100,
+                serialPort   = form.serialPort,
+                baudRate     = form.baudRate.toIntOrNull() ?: 115200,
+                btAddress    = form.btAddress,
+                paperWidthMm = form.paperWidthMm,
+                isDefault    = form.isDefault,
+                createdAt    = now,
+                updatedAt    = now,
+            )
+        }
+        viewModelScope.launch {
+            savePrinterProfileUseCase(profile)
+                .onSuccess {
+                    updateState { copy(printerProfiles = printerProfiles.copy(isCreating = false, editingProfile = null, saveError = null)) }
+                    sendEffect(SettingsEffect.PrinterProfileSaved)
+                }
+                .onError { e -> updateState { copy(printerProfiles = printerProfiles.copy(saveError = e.message)) } }
+        }
+    }
+
+    private fun deletePrinterProfile(id: String) {
+        viewModelScope.launch {
+            deletePrinterProfileUseCase(id)
+                .onSuccess { sendEffect(SettingsEffect.PrinterProfileDeleted) }
+                .onError { e -> sendEffect(SettingsEffect.ShowSnackbar("Delete failed: ${e.message}")) }
         }
     }
 

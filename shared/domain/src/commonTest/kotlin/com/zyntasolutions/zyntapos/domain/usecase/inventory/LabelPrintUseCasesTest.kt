@@ -175,4 +175,32 @@ class LabelPrintUseCasesTest {
 
         assertTrue(repo.templates.any { it.isDefault })
     }
+
+    // ── 7. salePriceLabel max-length validation ────────────────────────────────
+
+    @Test
+    fun `save template with salePriceLabel over 20 chars returns SALE_PRICE_LABEL_TOO_LONG error`() = runTest {
+        val repo    = FakeLabelTemplateRepository()
+        val useCase = SaveLabelTemplateUseCase(repo)
+        val invalid = buildTemplate().copy(salePriceLabel = "A".repeat(21))
+
+        val result = useCase.execute(invalid)
+
+        assertIs<Result.Error>(result)
+        val ex = (result as Result.Error).exception as ValidationException
+        assertEquals("SALE_PRICE_LABEL_TOO_LONG", ex.rule)
+        assertTrue(repo.templates.isEmpty())
+    }
+
+    @Test
+    fun `save template with salePriceLabel of exactly 20 chars is valid`() = runTest {
+        val repo    = FakeLabelTemplateRepository()
+        val useCase = SaveLabelTemplateUseCase(repo)
+        val valid   = buildTemplate().copy(salePriceLabel = "A".repeat(20))
+
+        val result = useCase.execute(valid)
+
+        assertIs<Result.Success<Unit>>(result)
+        assertEquals(1, repo.templates.size)
+    }
 }

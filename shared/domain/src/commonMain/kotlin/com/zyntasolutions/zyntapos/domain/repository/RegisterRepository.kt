@@ -69,6 +69,15 @@ interface RegisterRepository {
     ): Result<RegisterSession>
 
     /**
+     * Retrieves a specific [RegisterSession] by its UUID.
+     *
+     * Used by the Z-report printer to fetch historical (closed) sessions.
+     *
+     * @return [Result.Success] with the session, or [Result.Error] if not found.
+     */
+    suspend fun getSession(sessionId: String): Result<RegisterSession>
+
+    /**
      * Records a cash-in or cash-out [movement] against the current session.
      *
      * [CashMovement.amount] must be > 0; direction is encoded in [CashMovement.type].

@@ -45,6 +45,7 @@ import com.zyntasolutions.zyntapos.feature.settings.PrinterType
 import com.zyntasolutions.zyntapos.feature.settings.SettingsEffect
 import com.zyntasolutions.zyntapos.feature.settings.SettingsIntent
 import com.zyntasolutions.zyntapos.feature.settings.SettingsState
+import com.zyntasolutions.zyntapos.feature.settings.components.PrinterStatusAlertBanner
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
 
@@ -125,6 +126,8 @@ fun PrinterSettingsScreen(
                 when (selectedTab) {
                     0 -> {
                         // ── Connection Tab ──────────────────────────────
+                        // Printer hardware alert banner (paper-out / cover-open)
+                        item { PrinterStatusAlertBanner(modifier = Modifier.fillMaxWidth()) }
                         item {
                             Card(
                                 modifier = Modifier.fillMaxWidth(),

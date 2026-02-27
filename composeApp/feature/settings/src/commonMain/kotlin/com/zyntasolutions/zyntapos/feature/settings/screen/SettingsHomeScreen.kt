@@ -20,11 +20,14 @@ import androidx.compose.material.icons.filled.HealthAndSafety
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material.icons.filled.PersonOutline
+import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.Print
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Store
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -108,6 +111,7 @@ data class SettingsGroup(
 /** All routes the settings home screen can navigate to. */
 enum class SettingsRoute {
     GENERAL, POS, TAX, PRINTER, USERS, SECURITY, RBAC_MANAGEMENT, BACKUP, APPEARANCE, SYSTEM_HEALTH, ABOUT,
+    LABEL_PRINTER, SCANNER_SETTINGS, PRINTER_PROFILES,
     /** Debug Console — only presented when [SettingsHomeScreen] receives `isDebug = true`. */
     DEBUG_CONSOLE,
 }
@@ -125,6 +129,9 @@ private val settingsGroups: List<SettingsGroup> = listOf(
             SettingsEntry("POS", "Order type, receipts & discounts", Icons.Filled.Receipt, SettingsRoute.POS),
             SettingsEntry("Tax", "Tax groups & rates", Icons.Filled.Payment, SettingsRoute.TAX),
             SettingsEntry("Printer", "Printer type, connection & receipt format", Icons.Filled.Print, SettingsRoute.PRINTER),
+            SettingsEntry("Label Printer", "ZPL/TSPL label printer connection & calibration", Icons.Filled.Label, SettingsRoute.LABEL_PRINTER),
+            SettingsEntry("Printer Profiles", "Named RECEIPT/KITCHEN/LABEL/REPORT profiles", Icons.Filled.Tune, SettingsRoute.PRINTER_PROFILES),
+            SettingsEntry("Scanner", "Barcode scanner test & configuration", Icons.Filled.QrCodeScanner, SettingsRoute.SCANNER_SETTINGS),
         ),
     ),
     SettingsGroup(

@@ -135,6 +135,9 @@ sealed interface RegisterIntent {
     /** Triggers thermal printing of the Z-report via [PrintZReportUseCase]. */
     data class PrintZReport(val sessionId: String) : RegisterIntent
 
+    /** Generates and delivers an A4 PDF Z-report for the given session. */
+    data class PrintA4ZReport(val sessionId: String) : RegisterIntent
+
     // ─── UI Feedback ──────────────────────────────────────────────────────
 
     /** Dismisses the current error message. */

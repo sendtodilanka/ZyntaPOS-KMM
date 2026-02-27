@@ -147,6 +147,14 @@ sealed class ZyntaRoute {
     @Serializable
     data class BarcodeLabelPrint(val initialProductId: String? = null) : ZyntaRoute()
 
+    /** Stocktake session — scan products to count and apply variances. */
+    @Serializable
+    data object Stocktake : ZyntaRoute()
+
+    /** Stocktake session detail view for reviewing counts and completing/cancelling. */
+    @Serializable
+    data class StocktakeDetail(val sessionId: String) : ZyntaRoute()
+
     // ─────────────────────────────────────────────────────────────────
     // REGISTER GROUP
     // ─────────────────────────────────────────────────────────────────
@@ -242,6 +250,22 @@ sealed class ZyntaRoute {
      */
     @Serializable
     data object EditionManagement : ZyntaRoute()
+
+    /** Label printer configuration (ZPL/TSPL/TCP/USB/BT). */
+    @Serializable
+    data object LabelPrinterSettings : ZyntaRoute()
+
+    /** Scanner test screen and configuration. */
+    @Serializable
+    data object ScannerSettings : ZyntaRoute()
+
+    /** Named printer profiles (RECEIPT/KITCHEN/LABEL/REPORT). */
+    @Serializable
+    data object PrinterProfiles : ZyntaRoute()
+
+    /** Edit a single printer profile; [profileId] is null when creating a new one. */
+    @Serializable
+    data class PrinterProfileDetail(val profileId: String? = null) : ZyntaRoute()
 
     /**
      * In-app developer console (debug builds only).
