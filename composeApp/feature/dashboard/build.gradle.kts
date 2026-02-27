@@ -50,6 +50,8 @@ kotlin {
         }
         jvmTest.dependencies {
             implementation(libs.kotlinx.datetime)
+            implementation(libs.compose.desktop.uiTestJunit4)
+            implementation(libs.junit)
         }
     }
 }
