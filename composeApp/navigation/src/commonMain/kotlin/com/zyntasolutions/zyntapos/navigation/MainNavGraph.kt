@@ -111,6 +111,7 @@ fun NavGraphBuilder.mainNavGraph(
                         { productId -> navigationController.openProductDetail(productId) },
                         { navigationController.navigate(ZyntaRoute.CategoryList) },
                         { navigationController.navigate(ZyntaRoute.SupplierList) },
+                        { navigationController.navigate(ZyntaRoute.BarcodeLabelPrint()) },
                     )
                 }
             }
@@ -131,6 +132,14 @@ fun NavGraphBuilder.mainNavGraph(
 
             composable<ZyntaRoute.SupplierList> {
                 screens.supplierList(
+                    { navigationController.navigateUp(ZyntaRoute.ProductList) },
+                )
+            }
+
+            composable<ZyntaRoute.BarcodeLabelPrint> { entry ->
+                val route = entry.toRoute<ZyntaRoute.BarcodeLabelPrint>()
+                screens.barcodeLabelPrint(
+                    route.initialProductId,
                     { navigationController.navigateUp(ZyntaRoute.ProductList) },
                 )
             }

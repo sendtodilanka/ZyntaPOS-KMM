@@ -29,6 +29,9 @@ import com.zyntasolutions.zyntapos.feature.inventory.InventoryViewModel
 import com.zyntasolutions.zyntapos.feature.inventory.ProductDetailScreen
 import com.zyntasolutions.zyntapos.feature.inventory.ProductListScreen
 import com.zyntasolutions.zyntapos.feature.inventory.SupplierListScreen
+import com.zyntasolutions.zyntapos.feature.inventory.label.BarcodeLabelPrintScreen
+import com.zyntasolutions.zyntapos.feature.inventory.label.BarcodeLabelPrintViewModel
+import com.zyntasolutions.zyntapos.feature.inventory.label.BarcodeLabelPrintIntent
 import com.zyntasolutions.zyntapos.feature.pos.OrderHistoryScreen
 import com.zyntasolutions.zyntapos.feature.pos.PaymentScreen
 import com.zyntasolutions.zyntapos.feature.pos.PosScreen
@@ -244,13 +247,14 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
     },
 
     // ── Inventory: Product List ─────────────────────────────────────────────
-    productList = { onNavigateToDetail, _, _ ->
+    productList = { onNavigateToDetail, _, _, onNavigateToPrintLabels ->
         val vm: InventoryViewModel = koinViewModel()
         val state by vm.state.collectAsState()
         ProductListScreen(
             state = state,
             onIntent = vm::dispatch,
             onNavigateToDetail = onNavigateToDetail,
+            onNavigateToPrintLabels = onNavigateToPrintLabels,
         )
     },
 
@@ -285,6 +289,20 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
             suppliers = state.suppliers,
             isLoading = state.isLoading,
             onNavigateToDetail = { },
+        )
+    },
+
+    // ── Inventory: Barcode Label Print ──────────────────────────────────────
+    barcodeLabelPrint = { initialProductId, onNavigateBack ->
+        val vm: BarcodeLabelPrintViewModel = koinViewModel()
+        val state by vm.state.collectAsState()
+        androidx.compose.runtime.LaunchedEffect(initialProductId) {
+            vm.dispatch(BarcodeLabelPrintIntent.Initialize(initialProductId))
+        }
+        BarcodeLabelPrintScreen(
+            state = state,
+            onIntent = vm::dispatch,
+            onNavigateBack = onNavigateBack,
         )
     },
 

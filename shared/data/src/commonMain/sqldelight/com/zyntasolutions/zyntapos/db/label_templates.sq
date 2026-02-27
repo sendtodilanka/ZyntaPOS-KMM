@@ -1,0 +1,43 @@
+-- Label layout templates for barcode label printing.
+-- paper_type: 'CONTINUOUS_ROLL' or 'A4_SHEET'
+-- All measurements in millimetres (REAL). Booleans as INTEGER (0/1). Timestamps as epoch ms.
+CREATE TABLE label_templates (
+    id               TEXT    NOT NULL PRIMARY KEY,
+    name             TEXT    NOT NULL,
+    paper_type       TEXT    NOT NULL DEFAULT 'CONTINUOUS_ROLL',
+    paper_width_mm   REAL    NOT NULL DEFAULT 58.0,
+    label_height_mm  REAL    NOT NULL DEFAULT 30.0,
+    columns_         INTEGER NOT NULL DEFAULT 1,
+    rows_            INTEGER NOT NULL DEFAULT 0,
+    gap_h_mm         REAL    NOT NULL DEFAULT 0.0,
+    gap_v_mm         REAL    NOT NULL DEFAULT 3.0,
+    margin_top_mm    REAL    NOT NULL DEFAULT 2.0,
+    margin_bottom_mm REAL    NOT NULL DEFAULT 0.0,
+    margin_left_mm   REAL    NOT NULL DEFAULT 2.0,
+    margin_right_mm  REAL    NOT NULL DEFAULT 2.0,
+    is_default       INTEGER NOT NULL DEFAULT 0,
+    created_at       INTEGER NOT NULL,
+    updated_at       INTEGER NOT NULL
+);
+
+CREATE INDEX idx_label_templates_default ON label_templates(is_default);
+
+getAllTemplates:
+SELECT * FROM label_templates ORDER BY is_default DESC, name ASC;
+
+getTemplateById:
+SELECT * FROM label_templates WHERE id = ?;
+
+upsertTemplate:
+INSERT OR REPLACE INTO label_templates(
+    id, name, paper_type, paper_width_mm, label_height_mm,
+    columns_, rows_, gap_h_mm, gap_v_mm,
+    margin_top_mm, margin_bottom_mm, margin_left_mm, margin_right_mm,
+    is_default, created_at, updated_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+deleteTemplate:
+DELETE FROM label_templates WHERE id = ?;
+
+countTemplates:
+SELECT COUNT(*) FROM label_templates;

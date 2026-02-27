@@ -40,6 +40,7 @@ kotlin {
         }
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
+            implementation(libs.pdfbox)
         }
         commonTest.dependencies {
             implementation(libs.bundles.testing.common)

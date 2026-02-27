@@ -18,6 +18,7 @@ import com.zyntasolutions.zyntapos.feature.coupons.couponsModule
 import com.zyntasolutions.zyntapos.feature.customers.customersModule
 import com.zyntasolutions.zyntapos.feature.expenses.expensesModule
 import com.zyntasolutions.zyntapos.feature.inventory.inventoryModule
+import com.zyntasolutions.zyntapos.feature.inventory.di.jvmInventoryLabelModule
 import com.zyntasolutions.zyntapos.feature.media.mediaModule
 import com.zyntasolutions.zyntapos.feature.multistore.multistoreModule
 import com.zyntasolutions.zyntapos.feature.pos.posModule
@@ -84,7 +85,8 @@ fun main() {
             onboardingModule,    // OnboardingViewModel (:composeApp:feature:onboarding)
             authModule,          // LoginUseCase, SessionManager, AuthViewModel
             posModule,           // Cart use cases, PosViewModel
-            inventoryModule,     // Product/Category/Stock use cases, InventoryViewModel
+            inventoryModule,          // Product/Category/Stock use cases, InventoryViewModel
+            jvmInventoryLabelModule,  // JvmLabelPdfRenderer (JVM-only)
             adminModule,         // (placeholder — bindings added per sprint)
             customersModule,     // (placeholder — bindings added per sprint)
             couponsModule,       // (placeholder — bindings added per sprint)
