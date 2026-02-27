@@ -513,6 +513,60 @@ fun NavGraphBuilder.mainNavGraph(
                     { navigationController.navigateUp(ZyntaRoute.EInvoiceList) },
                 )
             }
+
+            // ── Wave 4B routes ───────────────────────────────────────────────
+            composable<ZyntaRoute.ChartOfAccounts> {
+                screens.chartOfAccounts(
+                    { accountId ->
+                        navigationController.navigate(ZyntaRoute.AccountManagementDetail(accountId = accountId))
+                    },
+                    { navigationController.popBackStack() },
+                )
+            }
+            composable<ZyntaRoute.AccountManagementDetail> { entry ->
+                val route = entry.toRoute<ZyntaRoute.AccountManagementDetail>()
+                screens.accountManagementDetail(
+                    route.accountId,
+                    route.storeId,
+                    { navigationController.popBackStack() },
+                )
+            }
+            composable<ZyntaRoute.JournalEntryList> {
+                screens.journalEntryList(
+                    "default-store",
+                    { entryId ->
+                        navigationController.navigate(ZyntaRoute.JournalEntryDetail(entryId = entryId))
+                    },
+                    { navigationController.popBackStack() },
+                )
+            }
+            composable<ZyntaRoute.JournalEntryDetail> { entry ->
+                val route = entry.toRoute<ZyntaRoute.JournalEntryDetail>()
+                screens.journalEntryDetail(
+                    route.entryId,
+                    route.storeId,
+                    route.createdBy,
+                    { navigationController.popBackStack() },
+                    { newEntryId ->
+                        navigationController.navigate(ZyntaRoute.JournalEntryDetail(entryId = newEntryId))
+                    },
+                )
+            }
+            composable<ZyntaRoute.FinancialStatements> { entry ->
+                val route = entry.toRoute<ZyntaRoute.FinancialStatements>()
+                screens.financialStatements(
+                    "default-store",
+                    { navigationController.popBackStack() },
+                )
+            }
+            composable<ZyntaRoute.GeneralLedger> { entry ->
+                val route = entry.toRoute<ZyntaRoute.GeneralLedger>()
+                screens.generalLedger(
+                    route.storeId,
+                    route.initialAccountId,
+                    { navigationController.popBackStack() },
+                )
+            }
         }
 
         // ── Admin sub-graph  (Sprint 13-15) ─────────────────────────────────────
@@ -672,11 +726,17 @@ private fun MainScaffoldShell(
         is ZyntaRoute.WarehouseRackList,
         is ZyntaRoute.WarehouseRackDetail -> item.route is ZyntaRoute.WarehouseList
 
-        // Accounting / E-Invoice sub-graph
+        // Accounting / E-Invoice sub-graph (including Wave 4B routes)
         is ZyntaRoute.AccountingLedger,
         is ZyntaRoute.AccountDetail,
         is ZyntaRoute.EInvoiceList,
-        is ZyntaRoute.EInvoiceDetail -> item.route is ZyntaRoute.AccountingLedger
+        is ZyntaRoute.EInvoiceDetail,
+        is ZyntaRoute.ChartOfAccounts,
+        is ZyntaRoute.AccountManagementDetail,
+        is ZyntaRoute.JournalEntryList,
+        is ZyntaRoute.JournalEntryDetail,
+        is ZyntaRoute.FinancialStatements,
+        is ZyntaRoute.GeneralLedger -> item.route is ZyntaRoute.AccountingLedger
 
         // Admin sub-graph
         is ZyntaRoute.SystemHealthDashboard,
