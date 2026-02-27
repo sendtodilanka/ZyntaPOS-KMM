@@ -112,6 +112,7 @@ fun NavGraphBuilder.mainNavGraph(
                         { navigationController.navigate(ZyntaRoute.CategoryList) },
                         { navigationController.navigate(ZyntaRoute.SupplierList) },
                         { navigationController.navigate(ZyntaRoute.BarcodeLabelPrint()) },
+                        { navigationController.navigate(ZyntaRoute.Stocktake) },
                     )
                 }
             }
@@ -140,6 +141,12 @@ fun NavGraphBuilder.mainNavGraph(
                 val route = entry.toRoute<ZyntaRoute.BarcodeLabelPrint>()
                 screens.barcodeLabelPrint(
                     route.initialProductId,
+                    { navigationController.navigateUp(ZyntaRoute.ProductList) },
+                )
+            }
+
+            composable<ZyntaRoute.Stocktake> {
+                screens.stocktake(
                     { navigationController.navigateUp(ZyntaRoute.ProductList) },
                 )
             }
@@ -684,7 +691,8 @@ private fun MainScaffoldShell(
         is ZyntaRoute.ProductList,
         is ZyntaRoute.ProductDetail,
         is ZyntaRoute.CategoryList,
-        is ZyntaRoute.SupplierList -> item.route is ZyntaRoute.ProductList
+        is ZyntaRoute.SupplierList,
+        is ZyntaRoute.Stocktake -> item.route is ZyntaRoute.ProductList
 
         // Register sub-graph
         is ZyntaRoute.RegisterDashboard,

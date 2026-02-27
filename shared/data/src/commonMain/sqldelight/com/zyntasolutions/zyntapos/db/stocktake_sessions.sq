@@ -1,0 +1,60 @@
+-- Stocktake (physical inventory count) sessions and per-product counts.
+-- status:      'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
+-- Booleans as INTEGER (0/1). Timestamps as epoch ms.
+CREATE TABLE stocktake_sessions (
+    id           TEXT    NOT NULL PRIMARY KEY,
+    started_by   TEXT    NOT NULL,
+    started_at   INTEGER NOT NULL,
+    status       TEXT    NOT NULL DEFAULT 'IN_PROGRESS',
+    completed_at INTEGER
+);
+
+-- Per-product count entries within a session.
+-- system_qty is captured at first scan (book qty at that moment).
+-- counted_qty is the physically observed quantity; NULL if not yet counted.
+-- UNIQUE(session_id, barcode) enforces one count row per product per session.
+CREATE TABLE stocktake_counts (
+    id           TEXT    NOT NULL PRIMARY KEY,
+    session_id   TEXT    NOT NULL REFERENCES stocktake_sessions(id) ON DELETE CASCADE,
+    product_id   TEXT    NOT NULL,
+    barcode      TEXT    NOT NULL,
+    product_name TEXT    NOT NULL DEFAULT '',
+    system_qty   INTEGER NOT NULL DEFAULT 0,
+    counted_qty  INTEGER,
+    scanned_at   INTEGER NOT NULL
+);
+
+CREATE INDEX idx_stocktake_counts_session ON stocktake_counts(session_id);
+CREATE UNIQUE INDEX idx_stocktake_counts_session_barcode ON stocktake_counts(session_id, barcode);
+
+-- ── Session queries ───────────────────────────────────────────────────────────
+
+insertSession:
+INSERT INTO stocktake_sessions(id, started_by, started_at, status, completed_at)
+VALUES (?, ?, ?, 'IN_PROGRESS', NULL);
+
+getSessionById:
+SELECT * FROM stocktake_sessions WHERE id = ?;
+
+updateSessionStatus:
+UPDATE stocktake_sessions SET status = ?, completed_at = ? WHERE id = ?;
+
+-- ── Count queries ─────────────────────────────────────────────────────────────
+
+-- INSERT OR IGNORE: captures productId, productName, systemQty only on first scan.
+-- Subsequent scans use updateCount to update counted_qty only.
+insertCountIfAbsent:
+INSERT OR IGNORE INTO stocktake_counts(
+    id, session_id, product_id, barcode, product_name, system_qty, counted_qty, scanned_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+updateCount:
+UPDATE stocktake_counts
+SET counted_qty = ?, scanned_at = ?
+WHERE session_id = ? AND barcode = ?;
+
+getCountsForSession:
+SELECT * FROM stocktake_counts WHERE session_id = ? ORDER BY scanned_at ASC;
+
+getCountByBarcode:
+SELECT * FROM stocktake_counts WHERE session_id = ? AND barcode = ? LIMIT 1;

@@ -2,9 +2,12 @@ package com.zyntasolutions.zyntapos.hal.di
 
 import com.zyntasolutions.zyntapos.hal.image.ImageProcessor
 import com.zyntasolutions.zyntapos.hal.image.ImageProcessorImpl
+import com.zyntasolutions.zyntapos.hal.printer.DesktopTcpLabelPrinterPort
 import com.zyntasolutions.zyntapos.hal.printer.DesktopTcpPrinterPort
 import com.zyntasolutions.zyntapos.hal.printer.EscPosReceiptBuilder
+import com.zyntasolutions.zyntapos.hal.printer.LabelPrinterPort
 import com.zyntasolutions.zyntapos.hal.printer.PrinterConfig
+import com.zyntasolutions.zyntapos.hal.printer.PrinterDiscoveryService
 import com.zyntasolutions.zyntapos.hal.printer.PrinterPort
 import com.zyntasolutions.zyntapos.hal.printer.ReceiptBuilder
 import com.zyntasolutions.zyntapos.hal.scanner.BarcodeScanner
@@ -50,6 +53,15 @@ actual fun halModule(): Module = module {
     // ── Image processor — AWT ImageIO compress / crop / thumbnail ──────────
     single<ImageProcessor> { ImageProcessorImpl() }
 
-    // ── Common bindings (PrinterManager) ──────────────────────────────────
+    // ── Label printer port — TCP default; Settings module will override ─────
+    // Override with DesktopTcpLabelPrinterPort(host, port) once configured.
+    single<LabelPrinterPort> {
+        DesktopTcpLabelPrinterPort(host = "192.168.1.201", port = 9100)
+    }
+
+    // ── Printer discovery — LAN scan for port 9100 ──────────────────────────
+    single { PrinterDiscoveryService() }
+
+    // ── Common bindings (PrinterManager, PrinterStatusMonitor, LabelPrinterManager) ─
     includes(halCommonModule)
 }

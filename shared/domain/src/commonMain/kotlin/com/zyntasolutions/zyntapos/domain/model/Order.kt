@@ -29,6 +29,9 @@ import kotlinx.datetime.Instant
  * @property reference External reference number (e.g., invoice or PO number).
  * @property createdAt UTC timestamp when the order was first created.
  * @property updatedAt UTC timestamp of the last modification (void, edit, etc.).
+ * @property taxBreakdown Per-tax-group breakdown map (`taxGroupName → amount`) for
+ *                        the detailed tax section on printed receipts. Empty if not
+ *                        populated (single-rate stores or legacy records).
  * @property syncStatus Indicates whether this order has been pushed to the server.
  */
 data class Order(
@@ -54,4 +57,5 @@ data class Order(
     val createdAt: Instant,
     val updatedAt: Instant,
     val syncStatus: SyncStatus,
+    val taxBreakdown: Map<String, Double> = emptyMap(),
 )

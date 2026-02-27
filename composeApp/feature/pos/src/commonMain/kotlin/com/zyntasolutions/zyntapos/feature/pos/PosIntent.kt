@@ -274,4 +274,35 @@ sealed interface PosIntent {
      * in [ReceiptScreen] without retrying.
      */
     data object DismissPrintError : PosIntent
+
+    // ─── Reprint / A4 Invoice ──────────────────────────────────────────────────
+
+    /** Reprints a thermal receipt for a past order (e.g. from Order History). */
+    data class ReprintReceipt(val orderId: String) : PosIntent
+
+    /** Opens the email dialog pre-filled for [orderId]. */
+    data class OpenEmailDialog(val orderId: String) : PosIntent
+
+    /** Dismisses the email dialog without sending. */
+    data object DismissEmailDialog : PosIntent
+
+    /** Sends the receipt for [orderId] to [emailAddress] as a PDF attachment. */
+    data class EmailReceipt(val orderId: String, val emailAddress: String) : PosIntent
+
+    /** Prints an A4 tax invoice PDF for [orderId] via the system print dialog. */
+    data class PrintA4Invoice(val orderId: String) : PosIntent
+
+    // ─── Context-aware barcode scans ───────────────────────────────────────────
+
+    /** Barcode detected as a receipt barcode — navigate to the refund/return flow. */
+    data class ScanReceiptBarcode(val barcode: String) : PosIntent
+
+    /** Barcode detected as a loyalty card — auto-attach the matching customer. */
+    data class ScanLoyaltyCard(val barcode: String) : PosIntent
+
+    /** Barcode detected as a coupon code — auto-apply the coupon. */
+    data class ScanCoupon(val barcode: String) : PosIntent
+
+    /** Barcode detected as a gift card — look up the balance and apply to payment. */
+    data class ScanGiftCard(val barcode: String) : PosIntent
 }

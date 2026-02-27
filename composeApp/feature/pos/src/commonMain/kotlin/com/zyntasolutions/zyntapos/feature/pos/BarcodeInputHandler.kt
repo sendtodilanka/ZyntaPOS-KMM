@@ -12,8 +12,12 @@ import com.zyntasolutions.zyntapos.hal.scanner.ScanResult
  * When [scannerActive] is `true`:
  * 1. Calls [BarcodeScanner.startScanning] on the HAL layer to activate the hardware/listener.
  * 2. Collects [BarcodeScanner.scanEvents] — each emission is a raw barcode string from the scanner.
- * 3. Dispatches [PosIntent.ScanBarcode] to the ViewModel, which resolves the product and either
- *    auto-adds it to the cart (unique match) or emits [PosEffect.BarcodeNotFound].
+ * 3. Classifies the barcode by prefix and dispatches the appropriate intent:
+ *    - `RCP-` → [PosIntent.ScanReceiptBarcode] (receipt lookup → refund flow)
+ *    - `LC-`  → [PosIntent.ScanLoyaltyCard]   (customer auto-attach)
+ *    - `CPN-` → [PosIntent.ScanCoupon]         (coupon auto-apply)
+ *    - `GC-`  → [PosIntent.ScanGiftCard]        (gift card balance lookup)
+ *    - else   → [PosIntent.ScanBarcode]          (product lookup → add to cart)
  *
  * When [scannerActive] is `false`:
  * 1. Calls [BarcodeScanner.stopScanning] to deactivate the hardware/listener.
@@ -27,21 +31,21 @@ import com.zyntasolutions.zyntapos.hal.scanner.ScanResult
  * Place this composable at the root of `PosScreen`, alongside other side-effect composables:
  * ```kotlin
  * BarcodeInputHandler(
- *     barcodeScanner = barcodeScanner,        // injected via Koin
+ *     barcodeScanner = barcodeScanner,
  *     scannerActive  = state.scannerActive,
- *     onBarcodeScan  = { barcode -> viewModel.dispatch(PosIntent.ScanBarcode(barcode)) },
+ *     onIntent       = { intent -> viewModel.dispatch(intent) },
  * )
  * ```
  *
  * @param barcodeScanner  HAL interface providing [BarcodeScanner.scanEvents].
  * @param scannerActive   Whether scanner mode is currently enabled ([PosState.scannerActive]).
- * @param onBarcodeScan   Called with each raw barcode string; dispatch to [PosViewModel] here.
+ * @param onIntent        Dispatches the resolved [PosIntent] to [PosViewModel].
  */
 @Composable
 fun BarcodeInputHandler(
     barcodeScanner: BarcodeScanner,
     scannerActive: Boolean,
-    onBarcodeScan: (String) -> Unit,
+    onIntent: (PosIntent) -> Unit,
 ) {
     LaunchedEffect(scannerActive) {
         if (scannerActive) {
@@ -51,7 +55,7 @@ fun BarcodeInputHandler(
                     // Only forward successful barcode decodes; errors are transient and
                     // do not terminate the flow (per BarcodeScanner HAL contract).
                     if (result is ScanResult.Barcode) {
-                        onBarcodeScan(result.value)
+                        onIntent(classifyBarcode(result.value))
                     }
                 }
             } finally {
@@ -63,4 +67,23 @@ fun BarcodeInputHandler(
             barcodeScanner.stopListening()
         }
     }
+}
+
+/**
+ * Classifies a raw barcode string by its prefix and returns the appropriate [PosIntent].
+ *
+ * | Prefix | Intent |
+ * |--------|--------|
+ * | `RCP-` | [PosIntent.ScanReceiptBarcode] |
+ * | `LC-`  | [PosIntent.ScanLoyaltyCard] |
+ * | `CPN-` | [PosIntent.ScanCoupon] |
+ * | `GC-`  | [PosIntent.ScanGiftCard] |
+ * | other  | [PosIntent.ScanBarcode] (product lookup) |
+ */
+fun classifyBarcode(barcode: String): PosIntent = when {
+    barcode.startsWith("RCP-") -> PosIntent.ScanReceiptBarcode(barcode)
+    barcode.startsWith("LC-")  -> PosIntent.ScanLoyaltyCard(barcode)
+    barcode.startsWith("CPN-") -> PosIntent.ScanCoupon(barcode.removePrefix("CPN-"))
+    barcode.startsWith("GC-")  -> PosIntent.ScanGiftCard(barcode)
+    else                       -> PosIntent.ScanBarcode(barcode)
 }

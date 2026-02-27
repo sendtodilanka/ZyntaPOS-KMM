@@ -56,18 +56,32 @@ enum class CharacterSet(
  * A [PrinterConfig] instance is typically loaded from the settings data-source
  * and injected into [ReceiptBuilder] calls by [PrinterManager].
  *
- * @property paperWidth      Physical roll width; governs characters-per-line calculation.
- * @property printDensity    ESC/POS print density in the range **0–8** (0 = lightest,
- *                           8 = darkest). Sent via the `ESC ( E` command where supported.
- * @property characterSet    Code page used for non-ASCII characters (ESC t command).
- * @property headerLines     Up to 5 centred lines printed at the top of every receipt
- *                           (e.g., store name, address, phone number).
- * @property footerLines     Lines printed below the totals section
- *                           (e.g., "Thank you!", "No refunds after 7 days").
- * @property showLogo        When `true` implementations that support NV logo storage
- *                           will emit the `FS p` logo print command.
- * @property showQrCode      When `true` a QR code containing the order reference is
- *                           appended to every receipt via the `GS ( k` command.
+ * @property paperWidth            Physical roll width; governs characters-per-line calculation.
+ * @property printDensity          ESC/POS print density in the range **0–8** (0 = lightest,
+ *                                 8 = darkest). Sent via the `ESC ( E` command where supported.
+ * @property characterSet          Code page used for non-ASCII characters (ESC t command).
+ * @property headerLines           Up to 5 centred lines printed at the top of every receipt
+ *                                 (e.g., store name, address, phone number).
+ * @property footerLines           Lines printed below the totals section
+ *                                 (e.g., "Thank you!", "No refunds after 7 days").
+ * @property showLogo              When `true` implementations that support NV logo storage
+ *                                 will emit the `FS p` logo print command.
+ * @property showQrCode            When `true` a QR code containing the order reference is
+ *                                 appended to every receipt via the `GS ( k` command.
+ * @property cashDrawerTrigger     Controls when the cash drawer kick pulse is emitted.
+ *                                 Default: [CashDrawerTrigger.ALL_PAYMENTS].
+ * @property showCashierName       When `true` the cashier's display name is printed on
+ *                                 the receipt below the order timestamp.
+ * @property showTaxDetail         When `true` a per-tax-group breakdown is printed in the
+ *                                 totals block (e.g., "VAT 8%  : 120.00").
+ * @property showReceiptBarcode    When `true` a Code 128 barcode of the order number is
+ *                                 printed at the bottom of the receipt for scan-to-return.
+ * @property rotatingFooterTexts   List of up to 5 promotional footer messages that cycle
+ *                                 across receipts. When empty, [footerLines] is used.
+ * @property footerRotationInterval How many receipts before advancing to the next rotating
+ *                                 footer text (default 1 = change every receipt).
+ * @property logoNvSlot            NV RAM slot index for the uploaded logo (null = not set).
+ *                                 When non-null and [showLogo] is `true`, `FS p` is emitted.
  */
 data class PrinterConfig(
     val paperWidth: PaperWidth = PaperWidth.MM_80,
@@ -77,10 +91,20 @@ data class PrinterConfig(
     val footerLines: List<String> = emptyList(),
     val showLogo: Boolean = false,
     val showQrCode: Boolean = true,
+    val cashDrawerTrigger: CashDrawerTrigger = CashDrawerTrigger.ALL_PAYMENTS,
+    val showCashierName: Boolean = false,
+    val showTaxDetail: Boolean = false,
+    val showReceiptBarcode: Boolean = false,
+    val rotatingFooterTexts: List<String> = emptyList(),
+    val footerRotationInterval: Int = 1,
+    val logoNvSlot: Int? = null,
 ) {
     init {
         require(printDensity in 0..8) {
             "printDensity must be in range 0–8, got $printDensity"
+        }
+        require(footerRotationInterval >= 1) {
+            "footerRotationInterval must be >= 1, got $footerRotationInterval"
         }
     }
 

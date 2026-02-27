@@ -18,4 +18,8 @@ sealed interface SettingsEffect {
     data class ThemeModeChanged(val mode: ThemeMode) : SettingsEffect
     /** Instruct the nav layer to open a file picker for DB restore. */
     data object OpenFilePicker : SettingsEffect
+    data object LabelPrinterSaved : SettingsEffect
+    data object ScannerSettingsSaved : SettingsEffect
+    data object PrinterProfileSaved : SettingsEffect
+    data object PrinterProfileDeleted : SettingsEffect
 }

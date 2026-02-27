@@ -25,4 +25,7 @@ sealed interface RegisterEffect {
 
     /** Show a transient error snackbar. */
     data class ShowError(val message: String) : RegisterEffect
+
+    /** A4 Z-report PDF was sent to the printer/system dialog successfully. */
+    data object A4ZReportPrinted : RegisterEffect
 }

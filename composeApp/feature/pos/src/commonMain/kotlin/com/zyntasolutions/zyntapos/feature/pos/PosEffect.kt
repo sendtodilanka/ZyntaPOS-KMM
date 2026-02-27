@@ -96,4 +96,19 @@ sealed interface PosEffect {
      *   to route the open pulse to the correct drawer interface.
      */
     data class OpenCashDrawer(val registerId: String) : PosEffect
+
+    /** Show the email dialog so the cashier can enter the recipient address. */
+    data object ShowEmailDialog : PosEffect
+
+    /** The receipt email was sent successfully — show a confirmation snackbar. */
+    data object ReceiptEmailSent : PosEffect
+
+    /** The A4 tax invoice was sent to the system print dialog. */
+    data object A4InvoicePrinted : PosEffect
+
+    /**
+     * Navigate to the refund/return flow for [orderId].
+     * Emitted when a receipt barcode is scanned in POS mode.
+     */
+    data class NavigateToRefund(val orderId: String) : PosEffect
 }

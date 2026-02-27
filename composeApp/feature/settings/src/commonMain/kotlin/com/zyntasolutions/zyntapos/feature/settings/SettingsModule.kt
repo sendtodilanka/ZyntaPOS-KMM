@@ -6,7 +6,12 @@ import com.zyntasolutions.zyntapos.domain.usecase.feature.IsFeatureEnabledUseCas
 import com.zyntasolutions.zyntapos.domain.usecase.feature.SetFeatureEnabledUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rbac.DeleteCustomRoleUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rbac.SaveCustomRoleUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.settings.DeletePrinterProfileUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.settings.GetLabelPrinterConfigUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.settings.GetPrinterProfilesUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.PrintTestPageUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.settings.SaveLabelPrinterConfigUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.settings.SavePrinterProfileUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.SaveUserUseCase
 import com.zyntasolutions.zyntapos.feature.settings.edition.EditionManagementViewModel
 import com.zyntasolutions.zyntapos.hal.printer.PrinterManager
@@ -45,6 +50,13 @@ val settingsModule = module {
     factoryOf(::GetAllFeatureConfigsUseCase)
     factoryOf(::IsFeatureEnabledUseCase)
     factoryOf(::SetFeatureEnabledUseCase)
+
+    // ── Hardware settings use cases ────────────────────────────────────────────
+    factoryOf(::GetLabelPrinterConfigUseCase)
+    factoryOf(::SaveLabelPrinterConfigUseCase)
+    factoryOf(::GetPrinterProfilesUseCase)
+    factoryOf(::SavePrinterProfileUseCase)
+    factoryOf(::DeletePrinterProfileUseCase)
 
     // ── ViewModels ────────────────────────────────────────────────────────────
     viewModelOf(::SettingsViewModel)

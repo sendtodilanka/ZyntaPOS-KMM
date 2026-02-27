@@ -55,6 +55,7 @@ data class RegisterState(
     val zReportSession: RegisterSession? = null,
     val zReportMovements: List<CashMovement> = emptyList(),
     val isPrintingZReport: Boolean = false,
+    val isPrintingA4ZReport: Boolean = false,
 
     // ── Global ────────────────────────────────────────────────────────────
     val isLoading: Boolean = false,

@@ -1,0 +1,69 @@
+-- ============================================================
+-- Migration 6 → 7: Hardware Features
+-- 1. Adds printer_profiles table for multi-printer profile routing.
+-- 2. Adds label_printer_config singleton table for ZPL/TSPL label printers.
+-- 3. Adds stocktake_sessions + stocktake_counts tables for physical inventory counts.
+-- 4. Extends label_templates with five Phase 2 print-content fields.
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS printer_profiles (
+    id                TEXT    NOT NULL PRIMARY KEY,
+    name              TEXT    NOT NULL,
+    job_type          TEXT    NOT NULL,
+    printer_type      TEXT    NOT NULL,
+    tcp_host          TEXT    NOT NULL DEFAULT '',
+    tcp_port          INTEGER NOT NULL DEFAULT 9100,
+    serial_port       TEXT    NOT NULL DEFAULT '',
+    baud_rate         INTEGER NOT NULL DEFAULT 115200,
+    bt_address        TEXT    NOT NULL DEFAULT '',
+    paper_width_mm    INTEGER NOT NULL DEFAULT 80,
+    is_default        INTEGER NOT NULL DEFAULT 0,
+    backup_profile_id TEXT,
+    created_at        INTEGER NOT NULL,
+    updated_at        INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_printer_profiles_job_type ON printer_profiles(job_type);
+CREATE INDEX IF NOT EXISTS idx_printer_profiles_default  ON printer_profiles(job_type, is_default);
+
+CREATE TABLE IF NOT EXISTS label_printer_config (
+    id             TEXT    NOT NULL PRIMARY KEY,
+    printer_type   TEXT    NOT NULL DEFAULT 'NONE',
+    tcp_host       TEXT    NOT NULL DEFAULT '',
+    tcp_port       INTEGER NOT NULL DEFAULT 9100,
+    serial_port    TEXT    NOT NULL DEFAULT '',
+    baud_rate      INTEGER NOT NULL DEFAULT 9600,
+    bt_address     TEXT    NOT NULL DEFAULT '',
+    darkness_level INTEGER NOT NULL DEFAULT 8,
+    speed_level    INTEGER NOT NULL DEFAULT 4,
+    updated_at     INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS stocktake_sessions (
+    id           TEXT    NOT NULL PRIMARY KEY,
+    started_by   TEXT    NOT NULL,
+    started_at   INTEGER NOT NULL,
+    status       TEXT    NOT NULL DEFAULT 'IN_PROGRESS',
+    completed_at INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS stocktake_counts (
+    id           TEXT    NOT NULL PRIMARY KEY,
+    session_id   TEXT    NOT NULL REFERENCES stocktake_sessions(id) ON DELETE CASCADE,
+    product_id   TEXT    NOT NULL,
+    barcode      TEXT    NOT NULL,
+    product_name TEXT    NOT NULL DEFAULT '',
+    system_qty   INTEGER NOT NULL DEFAULT 0,
+    counted_qty  INTEGER,
+    scanned_at   INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_stocktake_counts_session ON stocktake_counts(session_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_stocktake_counts_session_barcode ON stocktake_counts(session_id, barcode);
+
+-- Extend label_templates with Phase 2 print-content fields (all default-safe).
+ALTER TABLE label_templates ADD COLUMN show_sale_price        INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE label_templates ADD COLUMN sale_price_label       TEXT    NOT NULL DEFAULT 'Sale';
+ALTER TABLE label_templates ADD COLUMN show_expiry_date       INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE label_templates ADD COLUMN show_batch_number      INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE label_templates ADD COLUMN show_sequential_serial INTEGER NOT NULL DEFAULT 0;

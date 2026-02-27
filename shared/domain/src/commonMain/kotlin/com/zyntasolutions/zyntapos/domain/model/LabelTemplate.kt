@@ -26,6 +26,17 @@ data class LabelTemplate(
     val isDefault: Boolean = false,
     val createdAt: Long,
     val updatedAt: Long,
+    // ── Label content extensions (Phase 2 hardware features) ─────────────────
+    /** Whether to show the promotional sale price alongside the regular price. */
+    val showSalePrice: Boolean = false,
+    /** Custom label for the sale price field (e.g. "Sale", "Promo Price"). Max 20 chars. */
+    val salePriceLabel: String = "Sale",
+    /** Whether to print the product's expiry date on the label. */
+    val showExpiryDate: Boolean = false,
+    /** Whether to print the batch number on the label. */
+    val showBatchNumber: Boolean = false,
+    /** Whether to print an auto-incrementing sequential serial number on each label copy. */
+    val showSequentialSerial: Boolean = false,
 ) {
     enum class PaperType { CONTINUOUS_ROLL, A4_SHEET }
 

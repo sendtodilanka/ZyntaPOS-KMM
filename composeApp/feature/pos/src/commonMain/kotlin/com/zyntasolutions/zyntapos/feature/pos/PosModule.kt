@@ -1,8 +1,12 @@
 package com.zyntasolutions.zyntapos.feature.pos
 
 import com.zyntasolutions.zyntapos.domain.formatter.ReceiptFormatter
+import com.zyntasolutions.zyntapos.domain.printer.A4InvoicePrinterPort
 import com.zyntasolutions.zyntapos.domain.printer.ReceiptPrinterPort
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.PostSaleJournalEntryUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.pos.PrintA4TaxInvoiceUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.pos.ReprintLastReceiptUseCase
+import com.zyntasolutions.zyntapos.feature.pos.printer.A4InvoicePrinterAdapter
 import com.zyntasolutions.zyntapos.domain.usecase.coupons.CalculateCouponDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.coupons.ValidateCouponUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.EarnRewardPointsUseCase
@@ -140,6 +144,33 @@ val posModule = module {
         )
     }
 
+    // ── A4 invoice adapter + use cases ────────────────────────────────────────
+
+    /**
+     * A4 PDF printer adapter — delegates to the platform [A4PrintDelegate]
+     * provided via [a4PrintDelegateModule] in the platform DI setup.
+     */
+    single<A4InvoicePrinterPort> {
+        A4InvoicePrinterAdapter(delegate = get())
+    }
+
+    /** Reprints a past order's thermal receipt. */
+    factory {
+        ReprintLastReceiptUseCase(
+            orderRepository = get(),
+            printerPort = get<ReceiptPrinterPort>(),
+        )
+    }
+
+    /** Generates and delivers an A4 tax invoice PDF (RBAC gated). */
+    factory {
+        PrintA4TaxInvoiceUseCase(
+            orderRepository = get(),
+            printerPort = get<A4InvoicePrinterPort>(),
+            checkPermission = get(),
+        )
+    }
+
     // ── ViewModel ─────────────────────────────────────────────────────────────
 
     viewModel {
@@ -167,6 +198,8 @@ val posModule = module {
             registerRepository = get(),
             authRepository = get(),
             postSaleJournalEntryUseCase = get(),
+            reprintLastReceiptUseCase = get(),
+            printA4TaxInvoiceUseCase = get(),
         )
     }
 }

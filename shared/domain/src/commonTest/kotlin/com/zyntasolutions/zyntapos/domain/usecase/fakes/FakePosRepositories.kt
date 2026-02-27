@@ -243,6 +243,12 @@ class FakeRegisterRepository : RegisterRepository {
         return Result.Success(closed)
     }
 
+    override suspend fun getSession(sessionId: String): Result<RegisterSession> {
+        val session = sessions.firstOrNull { it.id == sessionId }
+            ?: return Result.Error(DatabaseException("Session '$sessionId' not found"))
+        return Result.Success(session)
+    }
+
     override suspend fun addCashMovement(movement: CashMovement): Result<Unit> {
         movements.add(movement)
         return Result.Success(Unit)

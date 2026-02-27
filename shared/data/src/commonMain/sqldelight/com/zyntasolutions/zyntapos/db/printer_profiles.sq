@@ -1,0 +1,52 @@
+-- Saved hardware printer profiles for multi-printer routing.
+-- job_type:      'RECEIPT' | 'KITCHEN' | 'LABEL' | 'REPORT'
+-- printer_type:  'TCP' | 'SERIAL' | 'BLUETOOTH' | 'USB'
+-- Booleans as INTEGER (0/1). Timestamps as epoch ms.
+CREATE TABLE printer_profiles (
+    id                TEXT    NOT NULL PRIMARY KEY,
+    name              TEXT    NOT NULL,
+    job_type          TEXT    NOT NULL,
+    printer_type      TEXT    NOT NULL,
+    tcp_host          TEXT    NOT NULL DEFAULT '',
+    tcp_port          INTEGER NOT NULL DEFAULT 9100,
+    serial_port       TEXT    NOT NULL DEFAULT '',
+    baud_rate         INTEGER NOT NULL DEFAULT 115200,
+    bt_address        TEXT    NOT NULL DEFAULT '',
+    paper_width_mm    INTEGER NOT NULL DEFAULT 80,
+    is_default        INTEGER NOT NULL DEFAULT 0,
+    backup_profile_id TEXT,
+    created_at        INTEGER NOT NULL,
+    updated_at        INTEGER NOT NULL
+);
+
+CREATE INDEX idx_printer_profiles_job_type ON printer_profiles(job_type);
+CREATE INDEX idx_printer_profiles_default  ON printer_profiles(job_type, is_default);
+
+-- ── Read queries ─────────────────────────────────────────────────────────────
+
+getAllProfiles:
+SELECT * FROM printer_profiles ORDER BY created_at ASC;
+
+getProfileById:
+SELECT * FROM printer_profiles WHERE id = ?;
+
+getDefaultProfile:
+SELECT * FROM printer_profiles WHERE job_type = ? AND is_default = 1 LIMIT 1;
+
+-- ── Write queries ─────────────────────────────────────────────────────────────
+
+upsertProfile:
+INSERT OR REPLACE INTO printer_profiles(
+    id, name, job_type, printer_type,
+    tcp_host, tcp_port, serial_port, baud_rate, bt_address,
+    paper_width_mm, is_default, backup_profile_id,
+    created_at, updated_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- Clears the is_default flag on all profiles of a given job_type except the one
+-- being set as default. Called inside a transaction before upsertProfile.
+clearDefaultsForJobType:
+UPDATE printer_profiles SET is_default = 0 WHERE job_type = ? AND id != ?;
+
+deleteProfile:
+DELETE FROM printer_profiles WHERE id = ?;

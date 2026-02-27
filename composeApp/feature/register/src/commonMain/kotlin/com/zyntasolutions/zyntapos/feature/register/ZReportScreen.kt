@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -68,6 +69,7 @@ fun ZReportScreen(
             when (effect) {
                 is RegisterEffect.ShowSuccess -> snackbarHost.showSnackbar(effect.message)
                 is RegisterEffect.ShowError -> snackbarHost.showSnackbar(effect.message)
+                is RegisterEffect.A4ZReportPrinted -> snackbarHost.showSnackbar("A4 Z-report sent to printer.")
                 else -> Unit
             }
         }
@@ -164,26 +166,54 @@ fun ZReportScreen(
 
                 Spacer(Modifier.height(ZyntaSpacing.xl))
 
-                // ── Print button (bottom of report) ──────────────────────
-                Button(
-                    onClick = { viewModel.dispatch(RegisterIntent.PrintZReport(sessionId)) },
-                    enabled = !state.isPrintingZReport,
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                // ── Print buttons (bottom of report) ─────────────────────
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
                 ) {
-                    if (state.isPrintingZReport) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            strokeWidth = 2.dp,
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.Print,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp),
-                        )
-                        Spacer(Modifier.width(ZyntaSpacing.sm))
-                        Text("Print Z-Report", fontWeight = FontWeight.Bold)
+                    // Thermal receipt printer
+                    Button(
+                        onClick = { viewModel.dispatch(RegisterIntent.PrintZReport(sessionId)) },
+                        enabled = !state.isPrintingZReport && !state.isPrintingA4ZReport,
+                        modifier = Modifier.weight(1f).height(56.dp),
+                    ) {
+                        if (state.isPrintingZReport) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                strokeWidth = 2.dp,
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Print,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                            )
+                            Spacer(Modifier.width(ZyntaSpacing.sm))
+                            Text("Thermal", fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    // A4 PDF via system print dialog
+                    OutlinedButton(
+                        onClick = { viewModel.dispatch(RegisterIntent.PrintA4ZReport(sessionId)) },
+                        enabled = !state.isPrintingZReport && !state.isPrintingA4ZReport,
+                        modifier = Modifier.weight(1f).height(56.dp),
+                    ) {
+                        if (state.isPrintingA4ZReport) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp,
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.PictureAsPdf,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                            )
+                            Spacer(Modifier.width(ZyntaSpacing.sm))
+                            Text("Print A4 PDF", fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
 

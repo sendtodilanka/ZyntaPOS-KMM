@@ -14,6 +14,7 @@ import com.zyntasolutions.zyntapos.domain.repository.LabelTemplateRepository
  * - [LabelTemplate.columns] must be in 1..4.
  * - [LabelTemplate.rows] must be in 1..20 for A4_SHEET; 0 for CONTINUOUS_ROLL.
  * - Margins and gaps must be >= 0.
+ * - [LabelTemplate.salePriceLabel] must not exceed 20 characters.
  */
 class SaveLabelTemplateUseCase(
     private val repository: LabelTemplateRepository,
@@ -40,6 +41,15 @@ class SaveLabelTemplateUseCase(
         }
         if (template.gapHorizontalMm < 0 || template.gapVerticalMm < 0) {
             return Result.Error(ValidationException("Gaps must be non-negative", rule = "GAP_INVALID"))
+        }
+        if (template.salePriceLabel.length > 20) {
+            return Result.Error(
+                ValidationException(
+                    "Sale price label must not exceed 20 characters",
+                    field = "salePriceLabel",
+                    rule = "SALE_PRICE_LABEL_TOO_LONG",
+                )
+            )
         }
         return repository.save(template)
     }

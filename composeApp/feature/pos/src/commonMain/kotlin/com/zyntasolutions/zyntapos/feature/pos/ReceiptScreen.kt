@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Print
+import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -42,42 +44,35 @@ import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
  *
  * ### Layout
  * ```
- * ┌──────────────────────────────────────┐
- * │  TopAppBar — "Receipt #<orderNumber>"│
- * ├──────────────────────────────────────┤
- * │  Receipt preview (scrollable)        │
- * │  ┌────────────────────────────────┐  │
- * │  │  Monospace receipt text        │  │
- * │  └────────────────────────────────┘  │
- * ├──────────────────────────────────────┤
- * │  [ 🖨 Print ]  [ ✉ Email ]  [ Skip ] │
- * └──────────────────────────────────────┘
+ * ┌──────────────────────────────────────────────────────────┐
+ * │  TopAppBar — "Receipt #<orderNumber>"                    │
+ * ├──────────────────────────────────────────────────────────┤
+ * │  Receipt preview (scrollable)                            │
+ * ├──────────────────────────────────────────────────────────┤
+ * │  [ 🖨 Print ]  [ ↩ Reprint ]  [ 📄 A4 ]  [ ✉ ]  [ Skip ]│
+ * └──────────────────────────────────────────────────────────┘
  * ```
  *
  * ### Action Row
- * - **Print** → invokes [onPrint]; ViewModel dispatches [PosIntent.PrintCurrentReceipt].
- * - **Email** → invokes [onEmail].
- * - **Skip** → invokes [onSkip]; returns to POS screen without printing.
- *
- * @param receiptPreviewText Pre-formatted receipt string from [PosState.receiptPreviewText].
- *   Typically produced by [com.zyntasolutions.zyntapos.domain.formatter.ReceiptFormatter].
- * @param orderNumber        The order number shown in the top app bar title.
- * @param isPrinting         When `true`, the Print button shows a loading indicator.
- * @param printError         Non-null error message triggers a retry [ZyntaDialog].
- * @param onPrint            Invoked when the cashier taps "Print".
- * @param onEmail            Invoked when the cashier taps "Email".
- * @param onSkip             Invoked when the cashier taps "Skip" to return to POS.
- * @param onDismissError     Invoked to clear [printError] after the retry dialog is handled.
- * @param modifier           Optional [Modifier].
+ * - **Print**   → invokes [onPrint]; ViewModel dispatches [PosIntent.PrintCurrentReceipt].
+ * - **Reprint** → invokes [onReprint]; ViewModel dispatches [PosIntent.ReprintReceipt].
+ * - **A4**      → invokes [onPrintA4Invoice]; ViewModel dispatches [PosIntent.PrintA4Invoice].
+ * - **Email**   → invokes [onEmail]; opens email dialog.
+ * - **Skip**    → invokes [onSkip]; returns to POS screen without printing.
  */
 @Composable
 fun ReceiptScreen(
     receiptPreviewText: String,
     orderNumber: String,
+    orderId: String,
     isPrinting: Boolean = false,
+    isReprintingReceipt: Boolean = false,
+    isPrintingA4: Boolean = false,
     printError: String? = null,
     onPrint: () -> Unit,
-    onEmail: () -> Unit,
+    onReprint: (orderId: String) -> Unit,
+    onPrintA4Invoice: (orderId: String) -> Unit,
+    onEmail: (orderId: String) -> Unit,
     onSkip: () -> Unit,
     onDismissError: () -> Unit,
     modifier: Modifier = Modifier,
@@ -160,26 +155,48 @@ fun ReceiptScreen(
                         Spacer(Modifier.width(ZyntaSpacing.xs))
                         Text("Printing…")
                     } else {
-                        Icon(
-                            imageVector = Icons.Default.Print,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                        )
+                        Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(ZyntaSpacing.xs))
                         Text("Print")
                     }
                 }
 
-                // Email button
+                // Reprint button (for past reprints)
                 OutlinedButton(
-                    onClick = onEmail,
+                    onClick = { onReprint(orderId) },
+                    enabled = !isReprintingReceipt,
                     modifier = Modifier.weight(1f),
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Email,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
+                    if (isReprintingReceipt) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                    } else {
+                        Icon(Icons.Default.Replay, contentDescription = null, modifier = Modifier.size(18.dp))
+                    }
+                    Spacer(Modifier.width(ZyntaSpacing.xs))
+                    Text("Reprint")
+                }
+
+                // A4 Invoice button
+                OutlinedButton(
+                    onClick = { onPrintA4Invoice(orderId) },
+                    enabled = !isPrintingA4,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    if (isPrintingA4) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                    } else {
+                        Icon(Icons.Default.Description, contentDescription = null, modifier = Modifier.size(18.dp))
+                    }
+                    Spacer(Modifier.width(ZyntaSpacing.xs))
+                    Text("A4")
+                }
+
+                // Email button
+                OutlinedButton(
+                    onClick = { onEmail(orderId) },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Icon(Icons.Default.Email, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(ZyntaSpacing.xs))
                     Text("Email")
                 }
@@ -189,11 +206,7 @@ fun ReceiptScreen(
                     onClick = onSkip,
                     modifier = Modifier.weight(1f),
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.SkipNext,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
+                    Icon(Icons.Default.SkipNext, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(ZyntaSpacing.xs))
                     Text("Skip")
                 }

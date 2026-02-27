@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.inventory
 
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.AdjustStockUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.inventory.CompleteStocktakeUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.CreateProductUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.DeleteCategoryUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.DeleteLabelTemplateUseCase
@@ -10,12 +11,16 @@ import com.zyntasolutions.zyntapos.domain.usecase.inventory.SaveCategoryUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.SaveLabelTemplateUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.SaveSupplierUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.SaveTaxGroupUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.inventory.ScanStocktakeItemUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.SearchProductsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.SeedDefaultLabelTemplatesUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.inventory.StartStocktakeUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.UpdateProductUseCase
 import com.zyntasolutions.zyntapos.feature.inventory.label.BarcodeLabelPrintViewModel
+import com.zyntasolutions.zyntapos.feature.inventory.stocktake.StocktakeViewModel
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.viewModel
+import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
 /**
@@ -80,6 +85,11 @@ val inventoryModule = module {
     // ── Sprint 19: Unit Group use cases ───────────────────────────────────────
     factoryOf(::ManageUnitGroupUseCase)
 
+    // ── Stocktake use cases ───────────────────────────────────────────────────
+    factoryOf(::StartStocktakeUseCase)
+    factoryOf(::ScanStocktakeItemUseCase)
+    factoryOf(::CompleteStocktakeUseCase)
+
     // ── Barcode Label Printing use cases ──────────────────────────────────────
     factoryOf(::GetLabelTemplatesUseCase)
     factoryOf(::SaveLabelTemplateUseCase)
@@ -87,6 +97,8 @@ val inventoryModule = module {
     factoryOf(::SeedDefaultLabelTemplatesUseCase)
 
     // ── ViewModels ────────────────────────────────────────────────────────────
+    viewModelOf(::StocktakeViewModel)
+
     viewModel {
         BarcodeLabelPrintViewModel(
             productRepository              = get(),

@@ -1,0 +1,31 @@
+-- Singleton label printer configuration for the terminal.
+-- printer_type: 'NONE' | 'ZPL_TCP' | 'ZPL_USB' | 'ZPL_BT'
+--             | 'TSPL_TCP' | 'TSPL_USB' | 'TSPL_BT' | 'PDF_SYSTEM'
+-- id is always 'singleton' — only one row exists per installation.
+-- Timestamps as epoch ms.
+CREATE TABLE label_printer_config (
+    id             TEXT    NOT NULL PRIMARY KEY,
+    printer_type   TEXT    NOT NULL DEFAULT 'NONE',
+    tcp_host       TEXT    NOT NULL DEFAULT '',
+    tcp_port       INTEGER NOT NULL DEFAULT 9100,
+    serial_port    TEXT    NOT NULL DEFAULT '',
+    baud_rate      INTEGER NOT NULL DEFAULT 9600,
+    bt_address     TEXT    NOT NULL DEFAULT '',
+    darkness_level INTEGER NOT NULL DEFAULT 8,
+    speed_level    INTEGER NOT NULL DEFAULT 4,
+    updated_at     INTEGER NOT NULL
+);
+
+-- ── Read queries ─────────────────────────────────────────────────────────────
+
+getConfig:
+SELECT * FROM label_printer_config WHERE id = 'singleton';
+
+-- ── Write queries ─────────────────────────────────────────────────────────────
+
+upsertConfig:
+INSERT OR REPLACE INTO label_printer_config(
+    id, printer_type, tcp_host, tcp_port,
+    serial_port, baud_rate, bt_address,
+    darkness_level, speed_level, updated_at
+) VALUES ('singleton', ?, ?, ?, ?, ?, ?, ?, ?, ?);

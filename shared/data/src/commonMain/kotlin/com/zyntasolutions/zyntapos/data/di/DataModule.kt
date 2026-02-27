@@ -42,8 +42,11 @@ import com.zyntasolutions.zyntapos.data.repository.FeatureRegistryRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.LeaveRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.MediaRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.PayrollRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.LabelPrinterConfigRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.LabelTemplateRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.PrinterProfileRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.ReportRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.StocktakeRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.ShiftRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.SystemRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.WarehouseRackRepositoryImpl
@@ -87,8 +90,11 @@ import com.zyntasolutions.zyntapos.domain.repository.FeatureRegistryRepository
 import com.zyntasolutions.zyntapos.domain.repository.LeaveRepository
 import com.zyntasolutions.zyntapos.domain.repository.MediaRepository
 import com.zyntasolutions.zyntapos.domain.repository.PayrollRepository
+import com.zyntasolutions.zyntapos.domain.repository.LabelPrinterConfigRepository
 import com.zyntasolutions.zyntapos.domain.repository.LabelTemplateRepository
+import com.zyntasolutions.zyntapos.domain.repository.PrinterProfileRepository
 import com.zyntasolutions.zyntapos.domain.repository.ReportRepository
+import com.zyntasolutions.zyntapos.domain.repository.StocktakeRepository
 import com.zyntasolutions.zyntapos.domain.repository.ShiftRepository
 import com.zyntasolutions.zyntapos.domain.repository.SystemRepository
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseRackRepository
@@ -424,4 +430,17 @@ val dataModule = module {
 
     // Label templates: CRUD + seeding of 4 factory defaults (58mm/80mm roll, A4 24-up/48-up)
     single<LabelTemplateRepository> { LabelTemplateRepositoryImpl(db = get()) }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ── Hardware Features (Wave 2) ────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Named printer profiles for multi-printer routing (RECEIPT/KITCHEN/LABEL/REPORT)
+    single<PrinterProfileRepository> { PrinterProfileRepositoryImpl(db = get()) }
+
+    // Singleton label printer configuration (ZPL/TSPL/PDF connection settings)
+    single<LabelPrinterConfigRepository> { LabelPrinterConfigRepositoryImpl(db = get()) }
+
+    // Stocktake sessions + per-product count entries for physical inventory counts
+    single<StocktakeRepository> { StocktakeRepositoryImpl(db = get()) }
 }

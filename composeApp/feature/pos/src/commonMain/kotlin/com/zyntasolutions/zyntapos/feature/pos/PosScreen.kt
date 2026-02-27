@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.Button
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -49,6 +50,7 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun PosScreen(
     onNavigateToPayment: (orderId: String) -> Unit,
+    onNavigateToRefund: (orderId: String) -> Unit = {},
     viewModel: PosViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -75,6 +77,10 @@ fun PosScreen(
                 is PosEffect.BarcodeNotFound    -> snackbarHostState.showSnackbar("Barcode not found: ${effect.barcode}")
                 is PosEffect.PrintReceipt       -> { /* handled by print service */ }
                 is PosEffect.OpenCashDrawer     -> { /* handled by HAL */ }
+                is PosEffect.ShowEmailDialog    -> { /* email dialog handled by state.emailDialogOpen */ }
+                is PosEffect.ReceiptEmailSent   -> snackbarHostState.showSnackbar("Receipt emailed successfully")
+                is PosEffect.A4InvoicePrinted   -> snackbarHostState.showSnackbar("A4 invoice sent to printer")
+                is PosEffect.NavigateToRefund   -> onNavigateToRefund(effect.orderId)
             }
         }
     }
@@ -105,6 +111,8 @@ fun PosScreen(
                 Row(modifier = Modifier.fillMaxSize().padding(padding)) {
                     // Left: product catalogue
                     Column(modifier = Modifier.weight(1f)) {
+                        // Printer hardware alert banner (paper-out / paper-low / cover-open)
+                        PrinterStatusAlertBanner()
                         PosSearchBar(
                             query = state.searchQuery,
                             scannerActive = state.scannerActive,
@@ -138,6 +146,8 @@ fun PosScreen(
                 // ── Phone/Tablet portrait: full grid + cart bottom sheet ──────
                 Box(modifier = Modifier.fillMaxSize().padding(padding)) {
                     Column(modifier = Modifier.fillMaxSize()) {
+                        // Printer hardware alert banner (paper-out / paper-low / cover-open)
+                        PrinterStatusAlertBanner()
                         PosSearchBar(
                             query = state.searchQuery,
                             scannerActive = state.scannerActive,
@@ -203,7 +213,52 @@ fun PosScreen(
                 onDismiss = { isCustomerPickerVisible = false },
             )
         }
+
+        // ── Email receipt dialog ──────────────────────────────────────────────
+        if (state.emailDialogOpen) {
+            EmailReceiptDialog(
+                orderId = state.emailDialogOrderId ?: "",
+                isSending = state.isEmailingReceipt,
+                onSend = { orderId, email ->
+                    viewModel.dispatch(PosIntent.EmailReceipt(orderId, email))
+                },
+                onDismiss = { viewModel.dispatch(PosIntent.DismissEmailDialog) },
+            )
+        }
     }
+}
+
+@Composable
+private fun EmailReceiptDialog(
+    orderId: String,
+    isSending: Boolean,
+    onSend: (orderId: String, email: String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var emailAddress by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = { if (!isSending) onDismiss() },
+        title = { Text("Email Receipt") },
+        text = {
+            OutlinedTextField(
+                value = emailAddress,
+                onValueChange = { emailAddress = it },
+                label = { Text("Email address") },
+                singleLine = true,
+                enabled = !isSending,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSend(orderId, emailAddress) },
+                enabled = !isSending && emailAddress.contains("@"),
+            ) { Text(if (isSending) "Sending…" else "Send") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !isSending) { Text("Cancel") }
+        },
+    )
 }
 
 @Composable

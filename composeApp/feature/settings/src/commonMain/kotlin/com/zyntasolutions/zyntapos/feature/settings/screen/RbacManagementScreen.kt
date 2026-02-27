@@ -459,6 +459,8 @@ private fun permissionLabel(permission: Permission): String = when (permission) 
     Permission.MANAGE_STAFF         -> "Manage Staff"
     Permission.ADMIN_ACCESS         -> "Admin Access"
     Permission.MANAGE_ACCOUNTING    -> "Manage Accounting"
+    Permission.PRINT_INVOICE        -> "Print Invoice"
+    Permission.MANAGE_STOCKTAKE     -> "Manage Stocktake"
 }
 
 @Composable
