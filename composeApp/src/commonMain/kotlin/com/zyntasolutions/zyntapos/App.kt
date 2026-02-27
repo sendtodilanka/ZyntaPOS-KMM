@@ -61,6 +61,13 @@ import com.zyntasolutions.zyntapos.feature.accounting.EInvoiceViewModel
 import com.zyntasolutions.zyntapos.feature.accounting.AccountingLedgerScreen
 import com.zyntasolutions.zyntapos.feature.accounting.AccountDetailScreen
 import com.zyntasolutions.zyntapos.feature.accounting.AccountingViewModel
+import com.zyntasolutions.zyntapos.feature.accounting.ChartOfAccountsScreen
+import com.zyntasolutions.zyntapos.feature.accounting.JournalEntryListScreen
+import com.zyntasolutions.zyntapos.feature.accounting.JournalEntryDetailScreen
+import com.zyntasolutions.zyntapos.feature.accounting.JournalEntryDetailViewModel
+import com.zyntasolutions.zyntapos.feature.accounting.FinancialStatementsScreen
+import com.zyntasolutions.zyntapos.feature.accounting.FinancialStatementTab
+import com.zyntasolutions.zyntapos.feature.accounting.GeneralLedgerScreen
 import com.zyntasolutions.zyntapos.feature.register.CloseRegisterScreen
 import com.zyntasolutions.zyntapos.feature.register.OpenRegisterScreen
 import com.zyntasolutions.zyntapos.feature.register.RegisterDashboardScreen
@@ -595,11 +602,13 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
         )
     },
 
-    accountDetail = { accountCode, fiscalPeriod, onNavigateUp ->
+    // Legacy ledger detail (Sprint 18): passes accountCode as accountId for backwards compat.
+    // Wave 4B introduces AccountManagementDetail which uses the updated AccountDetailScreen API.
+    accountDetail = { accountCode, _, onNavigateUp ->
         AccountDetailScreen(
-            accountCode = accountCode,
-            fiscalPeriod = fiscalPeriod,
-            onNavigateUp = onNavigateUp,
+            accountId = accountCode,
+            storeId = "default-store",
+            onNavigateBack = onNavigateUp,
         )
     },
 
@@ -622,6 +631,57 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
         EInvoiceDetailScreen(
             state = state,
             onIntent = vm::dispatch,
+        )
+    },
+
+    // ── Wave 4B: Chart of Accounts, Journal Entries, Financial Statements ──
+    chartOfAccounts = { onNavigateToAccountDetail, onNavigateBack ->
+        ChartOfAccountsScreen(
+            onNavigateToAccountDetail = onNavigateToAccountDetail,
+            onNavigateBack = onNavigateBack,
+        )
+    },
+
+    accountManagementDetail = { accountId, storeId, onNavigateBack ->
+        AccountDetailScreen(
+            accountId = accountId,
+            storeId = storeId,
+            onNavigateBack = onNavigateBack,
+        )
+    },
+
+    journalEntryList = { storeId, onNavigateToEntry, onNavigateBack ->
+        JournalEntryListScreen(
+            storeId = storeId,
+            onNavigateToEntry = onNavigateToEntry,
+            onNavigateBack = onNavigateBack,
+        )
+    },
+
+    journalEntryDetail = { entryId, storeId, createdBy, onNavigateBack, onNavigateToEntry ->
+        val vm: JournalEntryDetailViewModel = koinViewModel()
+        JournalEntryDetailScreen(
+            entryId = entryId,
+            storeId = storeId,
+            createdBy = createdBy,
+            viewModel = vm,
+            onNavigateBack = onNavigateBack,
+            onNavigateToEntry = onNavigateToEntry,
+        )
+    },
+
+    financialStatements = { storeId, onNavigateBack ->
+        FinancialStatementsScreen(
+            storeId = storeId,
+            onNavigateBack = onNavigateBack,
+        )
+    },
+
+    generalLedger = { storeId, initialAccountId, onNavigateBack ->
+        GeneralLedgerScreen(
+            storeId = storeId,
+            initialAccountId = initialAccountId,
+            onNavigateBack = onNavigateBack,
         )
     },
 )
