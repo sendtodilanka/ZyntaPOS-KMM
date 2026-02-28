@@ -3,7 +3,6 @@ package com.zyntasolutions.zyntapos.feature.dashboard
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.runDesktopComposeUiTest
@@ -259,11 +258,13 @@ class DashboardScreenUiTest {
     }
 
     @Test
-    fun `tapping Logout icon calls onLogout`() = runDesktopComposeUiTest {
+    fun `tapping Logout in profile menu calls onLogout`() = runDesktopComposeUiTest {
         var called = false
         setContent(content(onLogout = { called = true }))
-        onNodeWithContentDescription("Logout").performClick()
-        assertTrue(called, "onLogout should be invoked when Logout icon is tapped")
+        // Open profile avatar menu then tap Logout
+        onNodeWithText("JD").performClick()
+        onNodeWithText("Logout").performClick()
+        assertTrue(called, "onLogout should be invoked when Logout menu item is tapped")
     }
 
     @Test
@@ -275,19 +276,23 @@ class DashboardScreenUiTest {
     }
 
     @Test
-    fun `tapping Settings icon calls onNavigateToSettings`() = runDesktopComposeUiTest {
+    fun `tapping Settings in profile menu calls onNavigateToSettings`() = runDesktopComposeUiTest {
         var called = false
         setContent(content(onNavigateToSettings = { called = true }))
-        onNodeWithContentDescription("Settings").performClick()
-        assertTrue(called, "onNavigateToSettings should be invoked when Settings icon is tapped")
+        // Open profile avatar menu then tap Settings
+        onNodeWithText("JD").performClick()
+        onNodeWithText("Settings").performClick()
+        assertTrue(called, "onNavigateToSettings should be invoked when Settings menu item is tapped")
     }
 
     @Test
-    fun `tapping Notifications icon calls onNavigateToNotifications`() = runDesktopComposeUiTest {
+    fun `tapping Notifications in profile menu calls onNavigateToNotifications`() = runDesktopComposeUiTest {
         var called = false
         setContent(content(onNavigateToNotifications = { called = true }))
-        onNodeWithContentDescription("Notifications").performClick()
-        assertTrue(called, "onNavigateToNotifications should be invoked")
+        // Open profile avatar menu then tap Notifications
+        onNodeWithText("JD").performClick()
+        onNodeWithText("Notifications").performClick()
+        assertTrue(called, "onNavigateToNotifications should be invoked via profile menu")
     }
 
     // ════════════════════════════════════════════════════════════════════════════
@@ -331,8 +336,10 @@ class DashboardScreenUiTest {
     }
 
     @Test
-    fun `profile header displays user name and welcome text`() = runDesktopComposeUiTest {
+    fun `profile menu displays user name and welcome text`() = runDesktopComposeUiTest {
         setContent(content(state = makeState(currentUser = testUser("Jane Smith"))))
+        // Open profile avatar menu (initials "JS")
+        onNodeWithText("JS").performClick()
         onNodeWithText("Welcome back,").assertIsDisplayed()
         onNodeWithText("Jane Smith").assertIsDisplayed()
     }
@@ -344,8 +351,10 @@ class DashboardScreenUiTest {
     }
 
     @Test
-    fun `profile header shows Manager fallback name when user is null`() = runDesktopComposeUiTest {
+    fun `profile menu shows Manager fallback name when user is null`() = runDesktopComposeUiTest {
         setContent(content(state = makeState(currentUser = null)))
+        // Open profile avatar menu (fallback "M")
+        onNodeWithText("M").performClick()
         onNodeWithText("Manager").assertIsDisplayed()
     }
 
@@ -489,9 +498,12 @@ class DashboardScreenUiTest {
     fun `expanded layout shows up to 8 recent orders`() = runDesktopComposeUiTest {
         val orders = makeOrders(10)
         setContent(content(state = makeState(recentOrders = orders), windowSize = WindowSize.EXPANDED))
-        // First 8 should be rendered
+        // First 8 should be rendered (may be off-screen, so check node existence)
         onNodeWithText("ORD-001").assertIsDisplayed()
-        onNodeWithText("ORD-008").assertIsDisplayed()
+        assertTrue(
+            onAllNodesWithText("ORD-008").fetchSemanticsNodes().isNotEmpty(),
+            "Expanded layout should render 8th order",
+        )
         // 9th and 10th should not be rendered
         assertTrue(
             onAllNodesWithText("ORD-009").fetchSemanticsNodes().isEmpty(),
@@ -731,15 +743,19 @@ class DashboardScreenUiTest {
     }
 
     @Test
-    fun `expanded layout shows welcome text`() = runDesktopComposeUiTest {
+    fun `expanded layout shows welcome text in profile menu`() = runDesktopComposeUiTest {
         setContent(content(windowSize = WindowSize.EXPANDED))
+        // Open profile avatar menu then verify welcome text
+        onNodeWithText("JD").performClick()
         onNodeWithText("Welcome back,").assertIsDisplayed()
         onNodeWithText("John Doe").assertIsDisplayed()
     }
 
     @Test
-    fun `medium layout shows welcome text`() = runDesktopComposeUiTest {
+    fun `medium layout shows welcome text in profile menu`() = runDesktopComposeUiTest {
         setContent(content(windowSize = WindowSize.MEDIUM))
+        // Open profile avatar menu then verify welcome text
+        onNodeWithText("JD").performClick()
         onNodeWithText("Welcome back,").assertIsDisplayed()
         onNodeWithText("John Doe").assertIsDisplayed()
     }

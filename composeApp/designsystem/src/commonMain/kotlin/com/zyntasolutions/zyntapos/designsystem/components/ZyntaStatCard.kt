@@ -174,7 +174,7 @@ fun ZyntaCompactStatCard(
     modifier: Modifier = Modifier,
 ) {
     Card(
-        modifier = modifier.width(160.dp),
+        modifier = modifier,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
         ),

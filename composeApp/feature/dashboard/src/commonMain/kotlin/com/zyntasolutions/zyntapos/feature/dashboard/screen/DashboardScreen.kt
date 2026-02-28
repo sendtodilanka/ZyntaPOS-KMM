@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -13,8 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
@@ -33,9 +32,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -43,8 +40,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -55,11 +54,14 @@ import com.zyntasolutions.zyntapos.designsystem.components.ChartSeries
 import com.zyntasolutions.zyntapos.designsystem.components.InfoCardVariant
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaActivityItem
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaCompactStatCard
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaDropdownMenu
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaDropdownMenuItem
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaInfoCard
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLineChart
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoadingOverlay
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSectionHeader
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaStatCard
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaElevation
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.designsystem.util.WindowSize
@@ -78,23 +80,18 @@ import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
- * Home dashboard screen — Professional KPI cards, weekly sales chart,
- * recent activity log, quick actions, alerts, profile avatar, and logout.
+ * Home dashboard screen — KPI cards, weekly sales chart, recent activity,
+ * quick actions, alerts, and profile avatar menu.
  *
- * **Navigation chrome** is provided by [ZyntaScaffold] (via [MainScaffoldShell]) —
- * this screen does not render its own nav shell.
+ * **Navigation chrome** is provided by [ZyntaScaffold] (via MainScaffoldShell) —
+ * this screen uses [ZyntaPageScaffold] for its own top app bar and snackbar host.
  *
  * **Content layout** adapts to the available content area:
- * - **EXPANDED** (Desktop ≥840 dp): Two-column (KPIs + Chart | Activity + Alerts)
- * - **MEDIUM** (Tablet 600–840 dp): Single-column with chart below KPIs
- * - **COMPACT** (Mobile <600 dp): Single-column scrollable with horizontal stat cards
+ * - **EXPANDED** (Desktop ≥840 dp): KPI strip + Quick Actions on top, Chart + Activity below
+ * - **MEDIUM** (Tablet 600–840 dp): Two-column supporting pane (KPIs+Chart | Activity+Alerts)
+ * - **COMPACT** (Mobile <600 dp): Single-column with 2×2 KPI grid (no nested scroll)
  *
  * All business logic is delegated to [DashboardViewModel] via MVI intents.
- *
- * @param onNavigateToPos       Called when the user taps "New Sale".
- * @param onNavigateToRegister  Called when the user taps "Register".
- * @param onNavigateToReports   Called when the user taps "Reports" or "See All".
- * @param onNavigateToSettings  Called when the user taps the settings icon.
  */
 @Composable
 fun DashboardScreen(
@@ -115,7 +112,6 @@ fun DashboardScreen(
         viewModel.dispatch(DashboardIntent.LoadDashboard)
     }
 
-    // Collect one-shot effects (Bug 1 fix — effects were previously never collected)
     LaunchedEffect(viewModel.effects) {
         viewModel.effects.collect { effect ->
             when (effect) {
@@ -143,8 +139,9 @@ fun DashboardScreen(
 /**
  * Stateless content composable — extracted for Compose Desktop UI testability.
  *
- * Accepts all data and callbacks directly; no Koin dependencies.
- * The [snackbarHostState] defaults to a fresh instance when not provided (e.g., in tests).
+ * Uses [ZyntaPageScaffold] for consistent design-system compliance:
+ * - [ZyntaTopAppBar] with title "Dashboard" and profile avatar menu
+ * - [ZyntaSnackbarHost] for error messages
  */
 @Composable
 internal fun DashboardScreenContent(
@@ -159,33 +156,142 @@ internal fun DashboardScreenContent(
     onNavigateToNotifications: () -> Unit,
     onLogout: () -> Unit,
 ) {
-    // Bug 3 fix — use Box instead of early return; Compose requires consistent call order
-    Box(modifier = Modifier.fillMaxSize()) {
-        if (state.isLoading) {
-            ZyntaLoadingOverlay(isLoading = true)
-        } else {
-            when (windowSize) {
-                WindowSize.EXPANDED -> ExpandedDashboard(
-                    state, currencyFormatter,
-                    onNavigateToPos, onNavigateToRegister, onNavigateToReports, onNavigateToSettings,
-                    onNavigateToNotifications, onLogout,
-                )
-                WindowSize.MEDIUM -> MediumDashboard(
-                    state, currencyFormatter,
-                    onNavigateToPos, onNavigateToRegister, onNavigateToReports, onNavigateToSettings,
-                    onNavigateToNotifications, onLogout,
-                )
-                WindowSize.COMPACT -> CompactDashboard(
-                    state, currencyFormatter,
-                    onNavigateToPos, onNavigateToRegister, onNavigateToReports, onNavigateToSettings,
-                    onNavigateToNotifications, onLogout,
-                )
+    ZyntaPageScaffold(
+        title = "Dashboard",
+        snackbarHostState = snackbarHostState,
+        actions = {
+            ProfileAvatarMenu(
+                currentUser = state.currentUser,
+                onNavigateToNotifications = onNavigateToNotifications,
+                onNavigateToSettings = onNavigateToSettings,
+                onLogout = onLogout,
+            )
+        },
+    ) { padding ->
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            if (state.isLoading) {
+                ZyntaLoadingOverlay(isLoading = true)
+            } else {
+                when (windowSize) {
+                    WindowSize.EXPANDED -> ExpandedDashboard(
+                        state, currencyFormatter,
+                        onNavigateToPos, onNavigateToRegister, onNavigateToReports,
+                    )
+                    WindowSize.MEDIUM -> MediumDashboard(
+                        state, currencyFormatter,
+                        onNavigateToPos, onNavigateToRegister, onNavigateToReports,
+                    )
+                    WindowSize.COMPACT -> CompactDashboard(
+                        state, currencyFormatter,
+                        onNavigateToPos, onNavigateToRegister, onNavigateToReports,
+                    )
+                }
             }
         }
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter),
-        )
+    }
+}
+
+// ── PROFILE AVATAR MENU ──────────────────────────────────────────────────
+
+/**
+ * Avatar circle in the top app bar actions slot.
+ * Opens a [ZyntaDropdownMenu] with profile actions on tap.
+ */
+@Composable
+private fun ProfileAvatarMenu(
+    currentUser: User?,
+    onNavigateToNotifications: () -> Unit,
+    onNavigateToSettings: () -> Unit,
+    onLogout: () -> Unit,
+) {
+    var showMenu by remember { mutableStateOf(false) }
+
+    Box {
+        Surface(
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.primaryContainer,
+            modifier = Modifier.size(36.dp),
+            onClick = { showMenu = true },
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                val initials = currentUser?.name
+                    ?.split(" ")
+                    ?.take(2)
+                    ?.mapNotNull { it.firstOrNull()?.uppercase() }
+                    ?.joinToString("")
+                    ?: "M"
+                if (initials.isNotEmpty()) {
+                    Text(
+                        text = initials,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                } else {
+                    Icon(
+                        Icons.Default.AccountCircle, "Profile",
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+            }
+        }
+
+        ZyntaDropdownMenu(
+            expanded = showMenu,
+            onDismissRequest = { showMenu = false },
+        ) {
+            // Welcome header (non-interactive)
+            Column(
+                modifier = Modifier.padding(
+                    horizontal = ZyntaSpacing.md,
+                    vertical = ZyntaSpacing.sm,
+                ),
+            ) {
+                Text(
+                    "Welcome back,",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    currentUser?.name ?: "Manager",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+            HorizontalDivider()
+
+            ZyntaDropdownMenuItem(
+                text = { Text("Notifications") },
+                onClick = { showMenu = false; onNavigateToNotifications() },
+                leadingIcon = {
+                    BadgedBox(badge = { Badge() }) {
+                        Icon(Icons.Default.Notifications, null, modifier = Modifier.size(20.dp))
+                    }
+                },
+            )
+            ZyntaDropdownMenuItem(
+                text = { Text("Settings") },
+                onClick = { showMenu = false; onNavigateToSettings() },
+                leadingIcon = {
+                    Icon(Icons.Default.Settings, null, modifier = Modifier.size(20.dp))
+                },
+            )
+            HorizontalDivider()
+            ZyntaDropdownMenuItem(
+                text = {
+                    Text("Logout", color = MaterialTheme.colorScheme.error)
+                },
+                onClick = { showMenu = false; onLogout() },
+                leadingIcon = {
+                    Icon(
+                        Icons.AutoMirrored.Filled.Logout, null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(20.dp),
+                    )
+                },
+            )
+        }
     }
 }
 
@@ -193,103 +299,111 @@ internal fun DashboardScreenContent(
 
 @Composable
 private fun ExpandedDashboard(
-    state: DashboardState, currencyFormatter: CurrencyFormatter,
-    onNavigateToPos: () -> Unit, onNavigateToRegister: () -> Unit,
-    onNavigateToReports: () -> Unit, onNavigateToSettings: () -> Unit,
-    onNavigateToNotifications: () -> Unit, onLogout: () -> Unit,
+    state: DashboardState,
+    currencyFormatter: CurrencyFormatter,
+    onNavigateToPos: () -> Unit,
+    onNavigateToRegister: () -> Unit,
+    onNavigateToReports: () -> Unit,
 ) {
-    Row(
+    Column(
         modifier = Modifier.fillMaxSize().padding(ZyntaSpacing.lg),
-        horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.lg),
+        verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
     ) {
-        // Left column (65%): Header + KPIs + Chart + Quick Actions
-        LazyColumn(
-            modifier = Modifier.weight(0.65f),
-            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
+        // Row 1: 4 KPI cards + Quick Actions column
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
         ) {
-            item { ProfileHeader(state.currentUser, onNavigateToSettings, onNavigateToNotifications, onLogout) }
+            ZyntaStatCard(
+                icon = Icons.Default.AttachMoney, label = "Today's Sales",
+                value = currencyFormatter.format(state.todaysSales),
+                accentColor = MaterialTheme.colorScheme.primary,
+                sparklineData = state.todaySparkline, modifier = Modifier.weight(1f),
+            )
+            ZyntaStatCard(
+                icon = Icons.Default.Receipt, label = "Total Orders",
+                value = state.totalOrders.toString(),
+                accentColor = MaterialTheme.colorScheme.tertiary,
+                subtitle = "Completed today", modifier = Modifier.weight(1f),
+            )
+            ZyntaStatCard(
+                icon = Icons.Default.Warning, label = "Low Stock",
+                value = "${state.lowStockCount} items",
+                accentColor = if (state.lowStockCount > 0) MaterialTheme.colorScheme.error
+                else MaterialTheme.colorScheme.tertiary,
+                subtitle = if (state.lowStockCount > 0) "Requires attention" else "All stocked",
+                modifier = Modifier.weight(1f),
+            )
+            ZyntaStatCard(
+                icon = Icons.Default.PointOfSale, label = "Active Registers",
+                value = state.activeRegisters.toString(),
+                accentColor = if (state.activeRegisters > 0) MaterialTheme.colorScheme.tertiary
+                else MaterialTheme.colorScheme.secondary,
+                subtitle = if (state.activeRegisters > 0) "Ready for sales" else "No register open",
+                modifier = Modifier.weight(1f),
+            )
 
-            // 4 KPI cards in 2×2 grid using Row (avoids nested-scrollable crashes)
-            item {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.md)) {
-                    ZyntaStatCard(
-                        icon = Icons.Default.AttachMoney, label = "Today's Sales",
-                        value = currencyFormatter.format(state.todaysSales),
-                        accentColor = MaterialTheme.colorScheme.primary,
-                        sparklineData = state.todaySparkline, modifier = Modifier.weight(1f),
-                    )
-                    ZyntaStatCard(
-                        icon = Icons.Default.Receipt, label = "Total Orders",
-                        value = state.totalOrders.toString(),
-                        accentColor = MaterialTheme.colorScheme.tertiary,
-                        subtitle = "Completed today", modifier = Modifier.weight(1f),
-                    )
-                }
-            }
-            item {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.md)) {
-                    ZyntaStatCard(
-                        icon = Icons.Default.Warning, label = "Low Stock",
-                        value = "${state.lowStockCount} items",
-                        accentColor = if (state.lowStockCount > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary,
-                        subtitle = if (state.lowStockCount > 0) "Requires attention" else "All stocked",
-                        modifier = Modifier.weight(1f),
-                    )
-                    ZyntaStatCard(
-                        icon = Icons.Default.PointOfSale, label = "Active Registers",
-                        value = state.activeRegisters.toString(),
-                        accentColor = if (state.activeRegisters > 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.secondary,
-                        subtitle = if (state.activeRegisters > 0) "Ready for sales" else "No register open",
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-            }
-
-            item {
-                ZyntaLineChart(
-                    title = "Weekly Sales Trend",
-                    series = listOf(ChartSeries("Sales", state.weeklySalesData, MaterialTheme.colorScheme.primary)),
-                    chartHeight = 220, showLegend = false,
-                )
-            }
-
-            item { ZyntaSectionHeader(title = "Quick Actions") }
-            item {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
-                    QuickActionCard("New Sale", Icons.Default.ShoppingCart, onNavigateToPos, Modifier.weight(1f))
-                    QuickActionCard("Register", Icons.Default.PointOfSale, onNavigateToRegister, Modifier.weight(1f))
-                    QuickActionCard("Reports", Icons.Default.Assessment, onNavigateToReports, Modifier.weight(1f))
-                }
+            // Quick Actions stacked vertically
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.xs),
+            ) {
+                ZyntaSectionHeader(title = "Quick Actions")
+                QuickActionCard("New Sale", Icons.Default.ShoppingCart, onNavigateToPos, Modifier.fillMaxWidth())
+                QuickActionCard("Register", Icons.Default.PointOfSale, onNavigateToRegister, Modifier.fillMaxWidth())
+                QuickActionCard("Reports", Icons.Default.Assessment, onNavigateToReports, Modifier.fillMaxWidth())
             }
         }
 
-        // Right column (35%): Activity + Alerts
-        LazyColumn(
-            modifier = Modifier.weight(0.35f),
-            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
+        // Row 2: Chart + Alerts (left 60%) | Activity (right 40%)
+        Row(
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.lg),
         ) {
-            item { ZyntaSectionHeader("Recent Activity", actionLabel = "See All", onAction = onNavigateToReports) }
-            if (state.recentOrders.isEmpty()) {
-                item { EmptyActivityCard() }
-            } else {
-                item { RecentOrdersCard(state.recentOrders.take(8), currencyFormatter) }
-            }
-            if (state.lowStockCount > 0) {
-                item {
+            // Left zone: Chart + Alert cards
+            Column(
+                modifier = Modifier.weight(0.6f).fillMaxHeight(),
+                verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
+            ) {
+                ZyntaLineChart(
+                    title = "Weekly Sales Trend",
+                    series = listOf(
+                        ChartSeries("Sales", state.weeklySalesData, MaterialTheme.colorScheme.primary),
+                    ),
+                    chartHeight = 280, showLegend = false,
+                )
+
+                if (state.lowStockCount > 0) {
                     ZyntaInfoCard(
                         Icons.Default.Warning, "${state.lowStockCount} items running low",
-                        description = state.lowStockNames.joinToString(", ") + if (state.lowStockCount > 5) ", ..." else "",
+                        description = state.lowStockNames.joinToString(", ") +
+                            if (state.lowStockCount > 5) ", ..." else "",
                         variant = InfoCardVariant.Warning,
                     )
                 }
-            }
-            if (state.activeRegisters == 0L) {
-                item {
+                if (state.activeRegisters == 0L) {
                     ZyntaInfoCard(
                         Icons.Default.PointOfSale, "No register is open",
                         description = "Open a register to start processing sales",
                         variant = InfoCardVariant.Info, onClick = onNavigateToRegister,
                     )
+                }
+            }
+
+            // Right zone: Recent Activity
+            Column(
+                modifier = Modifier.weight(0.4f).fillMaxHeight(),
+                verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
+            ) {
+                ZyntaSectionHeader(
+                    "Recent Activity",
+                    actionLabel = "See All",
+                    onAction = onNavigateToReports,
+                )
+                if (state.recentOrders.isEmpty()) {
+                    EmptyActivityCard()
+                } else {
+                    RecentOrdersCard(state.recentOrders.take(8), currencyFormatter)
                 }
             }
         }
@@ -300,65 +414,106 @@ private fun ExpandedDashboard(
 
 @Composable
 private fun MediumDashboard(
-    state: DashboardState, currencyFormatter: CurrencyFormatter,
-    onNavigateToPos: () -> Unit, onNavigateToRegister: () -> Unit,
-    onNavigateToReports: () -> Unit, onNavigateToSettings: () -> Unit,
-    onNavigateToNotifications: () -> Unit, onLogout: () -> Unit,
+    state: DashboardState,
+    currencyFormatter: CurrencyFormatter,
+    onNavigateToPos: () -> Unit,
+    onNavigateToRegister: () -> Unit,
+    onNavigateToReports: () -> Unit,
 ) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(ZyntaSpacing.md),
-        verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
+    Row(
+        modifier = Modifier.fillMaxSize().padding(ZyntaSpacing.md),
+        horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
     ) {
-        item { ProfileHeader(state.currentUser, onNavigateToSettings, onNavigateToNotifications, onLogout) }
-
-        item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
-                ZyntaStatCard(Icons.Default.AttachMoney, "Today's Sales", currencyFormatter.format(state.todaysSales),
-                    MaterialTheme.colorScheme.primary, sparklineData = state.todaySparkline, modifier = Modifier.weight(1f))
-                ZyntaStatCard(Icons.Default.Receipt, "Total Orders", state.totalOrders.toString(),
-                    MaterialTheme.colorScheme.tertiary, modifier = Modifier.weight(1f))
+        // Left pane (55%): KPIs + Chart
+        Column(
+            modifier = Modifier.weight(0.55f).fillMaxHeight(),
+            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
+        ) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
+            ) {
+                ZyntaStatCard(
+                    Icons.Default.AttachMoney, "Today's Sales",
+                    currencyFormatter.format(state.todaysSales),
+                    MaterialTheme.colorScheme.primary,
+                    sparklineData = state.todaySparkline,
+                    modifier = Modifier.weight(1f),
+                )
+                ZyntaStatCard(
+                    Icons.Default.Receipt, "Total Orders",
+                    state.totalOrders.toString(),
+                    MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.weight(1f),
+                )
             }
-        }
-        item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
-                ZyntaStatCard(Icons.Default.Warning, "Low Stock", "${state.lowStockCount} items",
-                    if (state.lowStockCount > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary,
-                    modifier = Modifier.weight(1f))
-                ZyntaStatCard(Icons.Default.PointOfSale, "Registers", state.activeRegisters.toString(),
-                    if (state.activeRegisters > 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.weight(1f))
+
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
+            ) {
+                ZyntaStatCard(
+                    Icons.Default.Warning, "Low Stock",
+                    "${state.lowStockCount} items",
+                    if (state.lowStockCount > 0) MaterialTheme.colorScheme.error
+                    else MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.weight(1f),
+                )
+                ZyntaStatCard(
+                    Icons.Default.PointOfSale, "Registers",
+                    state.activeRegisters.toString(),
+                    if (state.activeRegisters > 0) MaterialTheme.colorScheme.tertiary
+                    else MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.weight(1f),
+                )
             }
+
+            ZyntaLineChart(
+                "Weekly Sales Trend",
+                listOf(ChartSeries("Sales", state.weeklySalesData, MaterialTheme.colorScheme.primary)),
+                chartHeight = 180, showLegend = false,
+            )
         }
 
-        item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
+        // Right pane (45%): Quick Actions + Activity + Alerts
+        Column(
+            modifier = Modifier.weight(0.45f).fillMaxHeight(),
+            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
+        ) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
+            ) {
                 QuickActionCard("New Sale", Icons.Default.ShoppingCart, onNavigateToPos, Modifier.weight(1f))
                 QuickActionCard("Register", Icons.Default.PointOfSale, onNavigateToRegister, Modifier.weight(1f))
                 QuickActionCard("Reports", Icons.Default.Assessment, onNavigateToReports, Modifier.weight(1f))
             }
-        }
 
-        item {
-            ZyntaLineChart("Weekly Sales Trend",
-                listOf(ChartSeries("Sales", state.weeklySalesData, MaterialTheme.colorScheme.primary)),
-                chartHeight = 180, showLegend = false)
-        }
+            ZyntaSectionHeader(
+                "Recent Activity",
+                actionLabel = "See All",
+                onAction = onNavigateToReports,
+            )
+            if (state.recentOrders.isEmpty()) {
+                EmptyActivityCard()
+            } else {
+                RecentOrdersCard(state.recentOrders.take(5), currencyFormatter)
+            }
 
-        if (state.lowStockCount > 0) {
-            item { ZyntaInfoCard(Icons.Default.Warning, "${state.lowStockCount} items running low",
-                description = state.lowStockNames.joinToString(", "), variant = InfoCardVariant.Warning) }
-        }
-        if (state.activeRegisters == 0L) {
-            item { ZyntaInfoCard(Icons.Default.PointOfSale, "No register is open",
-                description = "Open a register to start", variant = InfoCardVariant.Info, onClick = onNavigateToRegister) }
-        }
-
-        item { ZyntaSectionHeader("Recent Activity", actionLabel = "See All", onAction = onNavigateToReports) }
-        if (state.recentOrders.isEmpty()) {
-            item { EmptyActivityCard() }
-        } else {
-            item { RecentOrdersCard(state.recentOrders.take(5), currencyFormatter) }
+            if (state.lowStockCount > 0) {
+                ZyntaInfoCard(
+                    Icons.Default.Warning, "${state.lowStockCount} items running low",
+                    description = state.lowStockNames.joinToString(", "),
+                    variant = InfoCardVariant.Warning,
+                )
+            }
+            if (state.activeRegisters == 0L) {
+                ZyntaInfoCard(
+                    Icons.Default.PointOfSale, "No register is open",
+                    description = "Open a register to start",
+                    variant = InfoCardVariant.Info, onClick = onNavigateToRegister,
+                )
+            }
         }
     }
 }
@@ -367,135 +522,113 @@ private fun MediumDashboard(
 
 @Composable
 private fun CompactDashboard(
-    state: DashboardState, currencyFormatter: CurrencyFormatter,
-    onNavigateToPos: () -> Unit, onNavigateToRegister: () -> Unit,
-    onNavigateToReports: () -> Unit, onNavigateToSettings: () -> Unit,
-    onNavigateToNotifications: () -> Unit, onLogout: () -> Unit,
+    state: DashboardState,
+    currencyFormatter: CurrencyFormatter,
+    onNavigateToPos: () -> Unit,
+    onNavigateToRegister: () -> Unit,
+    onNavigateToReports: () -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(ZyntaSpacing.md),
         verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
     ) {
-        item { ProfileHeader(state.currentUser, onNavigateToSettings, onNavigateToNotifications, onLogout) }
-
+        // KPI Row 1: Sales + Orders (2×2 grid — NO nested LazyRow)
         item {
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm), modifier = Modifier.fillMaxWidth()) {
-                item { ZyntaCompactStatCard(Icons.Default.AttachMoney, "Today's Sales", currencyFormatter.format(state.todaysSales), MaterialTheme.colorScheme.primary) }
-                item { ZyntaCompactStatCard(Icons.Default.Receipt, "Orders", state.totalOrders.toString(), MaterialTheme.colorScheme.tertiary) }
-                item { ZyntaCompactStatCard(Icons.Default.Warning, "Low Stock", "${state.lowStockCount}", if (state.lowStockCount > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary) }
-                item { ZyntaCompactStatCard(Icons.Default.PointOfSale, "Registers", state.activeRegisters.toString(), if (state.activeRegisters > 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.secondary) }
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
+            ) {
+                ZyntaCompactStatCard(
+                    Icons.Default.AttachMoney, "Today's Sales",
+                    currencyFormatter.format(state.todaysSales),
+                    MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1f),
+                )
+                ZyntaCompactStatCard(
+                    Icons.Default.Receipt, "Orders",
+                    state.totalOrders.toString(),
+                    MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.weight(1f),
+                )
             }
         }
 
+        // KPI Row 2: Low Stock + Registers
         item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
+            ) {
+                ZyntaCompactStatCard(
+                    Icons.Default.Warning, "Low Stock",
+                    "${state.lowStockCount}",
+                    if (state.lowStockCount > 0) MaterialTheme.colorScheme.error
+                    else MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.weight(1f),
+                )
+                ZyntaCompactStatCard(
+                    Icons.Default.PointOfSale, "Registers",
+                    state.activeRegisters.toString(),
+                    if (state.activeRegisters > 0) MaterialTheme.colorScheme.tertiary
+                    else MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+
+        // Quick Actions
+        item {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
+            ) {
                 QuickActionCard("New Sale", Icons.Default.ShoppingCart, onNavigateToPos, Modifier.weight(1f))
                 QuickActionCard("Register", Icons.Default.PointOfSale, onNavigateToRegister, Modifier.weight(1f))
                 QuickActionCard("Reports", Icons.Default.Assessment, onNavigateToReports, Modifier.weight(1f))
             }
         }
 
+        // Alerts
         if (state.lowStockCount > 0) {
-            item { ZyntaInfoCard(Icons.Default.Warning, "${state.lowStockCount} items running low",
-                description = state.lowStockNames.joinToString(", "), variant = InfoCardVariant.Warning) }
+            item {
+                ZyntaInfoCard(
+                    Icons.Default.Warning, "${state.lowStockCount} items running low",
+                    description = state.lowStockNames.joinToString(", "),
+                    variant = InfoCardVariant.Warning,
+                )
+            }
         }
         if (state.activeRegisters == 0L) {
-            item { ZyntaInfoCard(Icons.Default.PointOfSale, "No register is open",
-                description = "Open a register to start", variant = InfoCardVariant.Info, onClick = onNavigateToRegister) }
+            item {
+                ZyntaInfoCard(
+                    Icons.Default.PointOfSale, "No register is open",
+                    description = "Open a register to start",
+                    variant = InfoCardVariant.Info, onClick = onNavigateToRegister,
+                )
+            }
         }
 
+        // Chart
         item {
-            ZyntaLineChart("Weekly Sales Trend",
+            ZyntaLineChart(
+                "Weekly Sales Trend",
                 listOf(ChartSeries("Sales", state.weeklySalesData, MaterialTheme.colorScheme.primary)),
-                chartHeight = 160, showLegend = false)
+                chartHeight = 160, showLegend = false,
+            )
         }
 
+        // Recent Activity
         item { ZyntaSectionHeader("Recent Activity") }
         if (state.recentOrders.isEmpty()) {
             item { EmptyActivityCard() }
         } else {
-            items(state.recentOrders.take(5), key = { it.orderNumber }) { order ->
-                val tz = TimeZone.currentSystemDefault()
-                val orderTime = Instant.fromEpochMilliseconds(order.timestamp).toLocalDateTime(tz)
-                val timeStr = "${orderTime.hour.toString().padStart(2, '0')}:${orderTime.minute.toString().padStart(2, '0')}"
-                ZyntaActivityItem(order.orderNumber, "$timeStr  •  ${order.method}",
-                    currencyFormatter.format(order.total), icon = Icons.Default.Receipt)
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-            }
+            item { RecentOrdersCard(state.recentOrders.take(3), currencyFormatter) }
         }
     }
 }
 
 // ── Shared sub-composables ────────────────────────────────────────────────
-
-@Composable
-private fun ProfileHeader(
-    currentUser: User?,
-    onNavigateToSettings: () -> Unit,
-    onNavigateToNotifications: () -> Unit,
-    onLogout: () -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = ZyntaSpacing.xs),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier.size(48.dp),
-                onClick = onNavigateToSettings,
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    val initials = currentUser?.name
-                        ?.split(" ")
-                        ?.take(2)
-                        ?.mapNotNull { it.firstOrNull()?.uppercase() }
-                        ?.joinToString("")
-                        ?: "M"
-                    if (initials.isNotEmpty()) {
-                        Text(
-                            text = initials,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        )
-                    } else {
-                        Icon(
-                            Icons.Default.AccountCircle, "Profile",
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.size(28.dp),
-                        )
-                    }
-                }
-            }
-            Spacer(Modifier.width(ZyntaSpacing.sm))
-            Column {
-                Text("Welcome back,", style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(currentUser?.name ?: "Manager", style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold)
-            }
-        }
-
-        Row {
-            BadgedBox(badge = { Badge() }) {
-                IconButton(onClick = onNavigateToNotifications) {
-                    Icon(Icons.Default.Notifications, "Notifications",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-            IconButton(onClick = onNavigateToSettings) {
-                Icon(Icons.Default.Settings, "Settings", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            IconButton(onClick = onLogout) {
-                Icon(Icons.AutoMirrored.Filled.Logout, "Logout", tint = MaterialTheme.colorScheme.error)
-            }
-        }
-    }
-}
 
 @Composable
 private fun RecentOrdersCard(orders: List<RecentOrderItem>, currencyFormatter: CurrencyFormatter) {
@@ -531,26 +664,41 @@ private fun RecentOrdersCard(orders: List<RecentOrderItem>, currencyFormatter: C
 private fun EmptyActivityCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        ),
         shape = MaterialTheme.shapes.medium,
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.lg),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Icon(Icons.Default.Receipt, null, Modifier.size(40.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
+            Icon(
+                Icons.Default.Receipt, null, Modifier.size(40.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+            )
             Spacer(Modifier.height(ZyntaSpacing.sm))
-            Text("No orders yet today", style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("Complete your first sale to see activity here", style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+            Text(
+                "No orders yet today",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                "Complete your first sale to see activity here",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+            )
         }
     }
 }
 
 @Composable
-private fun QuickActionCard(label: String, icon: ImageVector, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun QuickActionCard(
+    label: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Card(
         onClick = onClick, modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
@@ -560,10 +708,18 @@ private fun QuickActionCard(label: String, icon: ImageVector, onClick: () -> Uni
             modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.md),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Icon(icon, label, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(24.dp))
+            Icon(
+                icon, label,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.size(24.dp),
+            )
             Spacer(Modifier.height(ZyntaSpacing.xs))
-            Text(label, style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Medium)
+            Text(
+                label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                fontWeight = FontWeight.Medium,
+            )
         }
     }
 }
