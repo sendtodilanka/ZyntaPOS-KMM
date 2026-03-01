@@ -90,13 +90,25 @@ TODO-005  →  TODO-003  →  TODO-004 (Part 1)
 | # | Title | Status | Priority | Notes |
 |---|-------|--------|----------|-------|
 | [007](007-infrastructure-and-deployment.md) | Infrastructure & Deployment | ⬜ Pending | **P0** | Foundation for all other Phase 2 items |
+| [009](009-ktor-security-hardening.md) | Ktor Backend Security Hardening | 🔒 Blocked on 007 Step 6 | **P0** | Must complete before backend goes live (concurrent with 007 Steps 7–10) |
 | [008](008-seo-and-aso.md) | SEO & ASO — Website + Play Store | 🔒 Blocked on 007 | **P1** | Needs Astro site infrastructure from TODO-007 |
 | [006](006-remote-diagnostic-access.md) | Remote Diagnostic Access | 🔒 Blocked on 007 + 004 | **P2** | Needs JWT auth (007) and audit log (004) |
 
 ### Execution Order (Phase 2)
 
 ```
-TODO-007  →  TODO-008  →  TODO-006
+TODO-007  ──────────────────────────────────────────────────┐
+  │ (Step 7: Ktor server projects created)                   │
+  ↓                                                          │
+TODO-009 (Ktor Security Hardening) ──────────────────────► both must complete
+  │ (Must finish before TODO-007 Step 10 sign-off)           │ before Phase 2 exit
+  └──────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+               TODO-008 (SEO & ASO)
+                              │
+                              ▼
+               TODO-006 (Remote Diagnostics) ← 007 + 004
 ```
 
 **Step 1 — TODO-007: Infrastructure & Deployment**
@@ -107,6 +119,12 @@ TODO-007  →  TODO-008  →  TODO-006
 - Build sync engine (online pull/push; foundation for Phase 3 CRDT)
 - Deploy Astro static site at `www.zyntapos.com` (basic version — content from Phase 1)
 - 14-step rollout plan in the TODO; do not skip steps — order matters for security
+
+**Step 1b — TODO-009: Ktor Backend Security Hardening** *(concurrent with TODO-007 Steps 7–10)*
+- Starts when TODO-007 Step 6 is done (Docker Compose running with Caddy + PostgreSQL + Redis)
+- Must complete before TODO-007 Step 10 sign-off (sync engine cannot go live unhardenened)
+- 8 hardening actions applied in priority order (see TODO-009 Implementation Order)
+- ~1.5 days total effort; items 1–3 done in under 2 hours for immediate risk reduction
 
 **Step 2 — TODO-008: SEO & ASO (www.zyntapos.com + Google Play Store)**
 - Depends on: Astro site deployed (TODO-007 Step 12)
@@ -126,6 +144,9 @@ TODO-007  →  TODO-008  →  TODO-006
 ### Phase 2 Exit Criteria
 - [ ] `api.zyntapos.com` serving authenticated requests
 - [ ] License server issuing and validating RS256 terminal tokens
+- [ ] All 25 TODO-009 validation checklist items passing
+- [ ] OWASP Dependency Check passing with zero HIGH/CRITICAL CVEs
+- [ ] Dependabot enabled and first batch of PRs reviewed
 - [ ] `www.zyntapos.com` live with Lighthouse score ≥90 on all 4 axes
 - [ ] Google Search Console verified, sitemap indexed
 - [ ] Play Store listing published (or ready for submission)
@@ -154,12 +175,15 @@ These do not have TODO files yet. Create them when Phase 2 is complete:
 
 | # | Suggested Title | CLAUDE.md Reference |
 |---|-----------------|---------------------|
-| 009 | Multi-Store KPI Dashboard & Inter-Store Transfers | `:composeApp:feature:multistore` |
-| 010 | Staff, Shifts & Payroll | `:composeApp:feature:staff` |
-| 011 | E-Invoice & IRD Submission Pipeline | `:composeApp:feature:accounting` |
-| 012 | CRDT Conflict Resolution & Offline Sync V2 | `:shared:data` `ConflictResolver` |
-| 013 | Coupon & Promotion Rule Engine | `:composeApp:feature:coupons` |
-| 014 | Customer Loyalty & GDPR Export | `:composeApp:feature:customers` |
+| 010 | Multi-Store KPI Dashboard & Inter-Store Transfers | `:composeApp:feature:multistore` |
+| 011 | Staff, Shifts & Payroll | `:composeApp:feature:staff` |
+| 012 | E-Invoice & IRD Submission Pipeline | `:composeApp:feature:accounting` |
+| 013 | CRDT Conflict Resolution & Offline Sync V2 | `:shared:data` `ConflictResolver` |
+| 014 | Coupon & Promotion Rule Engine | `:composeApp:feature:coupons` |
+| 015 | Customer Loyalty & GDPR Export | `:composeApp:feature:customers` |
+
+> **Note:** TODO-009 is now the Ktor Backend Security Hardening (Phase 2). Phase 3 identifiers
+> start at 010.
 
 ### Phase 3 Exit Criteria
 - [ ] All 16 feature modules fully implemented (no placeholders)
@@ -181,15 +205,16 @@ Phase 1 ──── TODO-005 (Dashboard + Nav) ─────────┐
          └── TODO-004 Part 1 (Audit Logging core) ┘
                               │
                               ▼
-Phase 2 ──── TODO-007 (Infrastructure & Backend) ─────────────┐
-         └── TODO-008 (SEO & ASO) ← depends on 007 infra ─────┤
-         └── TODO-006 (Remote Diagnostics) ← 007 + 004 ────────┘
+Phase 2 ──── TODO-007 (Infrastructure & Backend) ─────────────────┐
+         └── TODO-009 (Ktor Security Hardening) ← blocked on 007 S6 ┤ concurrent pair
+         └── TODO-008 (SEO & ASO) ← depends on 007 infra ───────────┤
+         └── TODO-006 (Remote Diagnostics) ← 007 + 004 ─────────────┘
                               │
                               ▼
 Phase 3 ──── TODO-003 Phase 3 (Admin Console)
          └── TODO-004 Phase 2 (Hash chain)
          └── TODO-007 follow-up (CRDT resolver)
-         └── TODO-009 through TODO-014 (new TODOs)
+         └── TODO-010 through TODO-015 (new TODOs)
 ```
 
 ---
@@ -212,3 +237,4 @@ After TODO-005 is complete, move to TODO-003, then TODO-004 Part 1, then declare
 | SEO & ASO full specification | `008-seo-and-aso.md` |
 | Remote diagnostic security design | `006-remote-diagnostic-access.md` |
 | Audit log two-tier architecture | `004-enterprise-audit-logging.md` |
+| Ktor backend security hardening spec | `009-ktor-security-hardening.md` |
