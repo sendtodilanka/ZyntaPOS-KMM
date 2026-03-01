@@ -184,6 +184,7 @@ class OnboardingViewModel(
             storeId = DEFAULT_STORE_ID,
             isActive = true,
             pinHash = null,
+            isSystemAdmin = true,
             createdAt = now,
             updatedAt = now,
         )

@@ -86,6 +86,9 @@ class OnboardingViewModelTest {
         override suspend fun update(user: User): Result<Unit> = Result.Success(Unit)
         override suspend fun updatePassword(userId: String, newPlainPassword: String): Result<Unit> = Result.Success(Unit)
         override suspend fun deactivate(userId: String): Result<Unit> = Result.Success(Unit)
+        override suspend fun getSystemAdmin(): Result<User?> = Result.Success(null)
+        override suspend fun adminExists(): Result<Boolean> = Result.Success(false)
+        override suspend fun transferSystemAdmin(fromUserId: String, toUserId: String): Result<Unit> = Result.Success(Unit)
     }
 
     // ── Fake accounting repository ─────────────────────────────────────────────
@@ -499,6 +502,18 @@ class OnboardingViewModelTest {
         viewModel.dispatch(OnboardingIntent.NextStep)
         advanceUntilIdle()
         assertTrue(viewModel.state.value.isLastStep)
+    }
+
+    // ── System admin flag ─────────────────────────────────────────────────────
+
+    @Test
+    fun `CompleteOnboarding creates admin user with isSystemAdmin true`() = runTest {
+        setupForCompletion()
+        viewModel.dispatch(OnboardingIntent.CompleteOnboarding)
+        advanceUntilIdle()
+
+        assertEquals(1, createdUsers.size, "Exactly one admin user should be created")
+        assertTrue(createdUsers.first().first.isSystemAdmin, "The onboarding admin must have isSystemAdmin = true")
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

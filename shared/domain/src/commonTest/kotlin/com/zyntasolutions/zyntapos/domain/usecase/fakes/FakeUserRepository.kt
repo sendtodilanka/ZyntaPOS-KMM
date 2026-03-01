@@ -23,6 +23,9 @@ class FakeUserRepository : UserRepository {
     var lastCreatedUser: User? = null
     var lastCreatedPassword: String? = null
     var lastUpdatedUser: User? = null
+    var transferSystemAdminCalled = false
+    var lastTransferFromId: String? = null
+    var lastTransferToId: String? = null
 
     private val _usersFlow = MutableStateFlow<List<User>>(emptyList())
 
@@ -73,6 +76,38 @@ class FakeUserRepository : UserRepository {
         val idx = users.indexOfFirst { it.id == userId }
         if (idx < 0) return Result.Error(DatabaseException("User not found: $userId"))
         users[idx] = users[idx].copy(isActive = false)
+        _usersFlow.value = users.toList()
+        return Result.Success(Unit)
+    }
+
+    // ── System Admin ──────────────────────────────────────────────────────────
+
+    override suspend fun getSystemAdmin(): Result<User?> {
+        if (shouldFail) return Result.Error(DatabaseException("DB error"))
+        return Result.Success(users.find { it.isSystemAdmin })
+    }
+
+    override suspend fun adminExists(): Result<Boolean> {
+        if (shouldFail) return Result.Error(DatabaseException("DB error"))
+        return Result.Success(users.any { it.isSystemAdmin })
+    }
+
+    override suspend fun transferSystemAdmin(fromUserId: String, toUserId: String): Result<Unit> {
+        if (shouldFail) return Result.Error(DatabaseException("DB error"))
+        transferSystemAdminCalled = true
+        lastTransferFromId = fromUserId
+        lastTransferToId = toUserId
+        val fromIdx = users.indexOfFirst { it.id == fromUserId }
+        if (fromIdx < 0) return Result.Error(DatabaseException("User not found: $fromUserId"))
+        val toIdx = users.indexOfFirst { it.id == toUserId }
+        if (toIdx < 0) return Result.Error(DatabaseException("User not found: $toUserId"))
+        users.replaceAll { user ->
+            when (user.id) {
+                fromUserId -> user.copy(isSystemAdmin = false)
+                toUserId -> user.copy(isSystemAdmin = true)
+                else -> user
+            }
+        }
         _usersFlow.value = users.toList()
         return Result.Success(Unit)
     }
