@@ -1,4 +1,4 @@
-# TODO-005: Edition Management — Nav Graph Wiring & Production Readiness
+# TODO-003: Edition Management — Nav Graph Wiring & Production Readiness
 
 **Status:** In Progress
 **Priority:** HIGH — Last placeholder in the entire nav graph; blocking production readiness
@@ -132,9 +132,9 @@ Verify that the Settings screen routes to `EditionManagement` when the edition m
 
 ---
 
-## Connection to License System (TODO-004)
+## Connection to License System (TODO-007)
 
-The Edition Management screen is the **client-side counterpart** to the server-side license system described in TODO-004. The flow is:
+The Edition Management screen is the **client-side counterpart** to the server-side license system described in TODO-007. The flow is:
 
 1. Customer purchases a license (STARTER / PROFESSIONAL / ENTERPRISE edition)
 2. License server validates and returns the allowed feature set
@@ -148,7 +148,7 @@ In production, the toggle capability on this screen should be **controlled by th
 - If license is PROFESSIONAL, Enterprise toggles should be disabled
 - If license is ENTERPRISE, all toggles are available
 
-This license-gating logic will be implemented when TODO-004 (License System) is built.
+This license-gating logic will be implemented when TODO-007 (Infrastructure & Deployment / License System) is built.
 
 ---
 

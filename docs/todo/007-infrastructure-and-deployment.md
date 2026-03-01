@@ -1,4 +1,4 @@
-# TODO-004: Infrastructure, Deployment & Backend Architecture
+# TODO-007: Infrastructure, Deployment & Backend Architecture
 
 **Status:** Pending
 **Priority:** HIGH — Foundation for licensing, sync, and remote diagnostics

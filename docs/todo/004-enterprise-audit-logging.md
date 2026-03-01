@@ -1,4 +1,4 @@
-# TODO-003: Enterprise Audit Logging (Two-Tier Architecture)
+# TODO-004: Enterprise Audit Logging (Two-Tier Architecture)
 
 **Status:** Pending
 **Priority:** HIGH — Legal SLA requirement (99.99% uptime)

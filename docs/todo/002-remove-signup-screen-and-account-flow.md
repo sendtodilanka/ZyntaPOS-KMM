@@ -1,4 +1,4 @@
-# TODO-006: Remove SignUp Screen & Clarify Account Creation Flow
+# TODO-002: Remove SignUp Screen & Clarify Account Creation Flow
 
 **Status:** Pending
 **Priority:** HIGH — Security gap; must be resolved before production

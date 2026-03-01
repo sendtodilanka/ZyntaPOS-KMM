@@ -1,4 +1,4 @@
-# TODO-002: Remote Diagnostic Access (License-Gated Lockbox Pattern)
+# TODO-006: Remote Diagnostic Access (License-Gated Lockbox Pattern)
 
 **Status:** Pending
 **Priority:** HIGH — Design now, implement Phase 2
