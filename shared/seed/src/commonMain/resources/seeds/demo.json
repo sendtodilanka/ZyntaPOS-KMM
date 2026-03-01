@@ -1457,5 +1457,163 @@
       "validFrom": 1704067200000,
       "validTo": 1767225600000
     }
+  ],
+
+  "warehouses": [
+    {
+      "id": "seed-wh-001",
+      "storeId": "seed-store-001",
+      "name": "Main Store Floor",
+      "isActive": true,
+      "isDefault": true,
+      "address": "No. 42, Galle Road, Colombo 03"
+    },
+    {
+      "id": "seed-wh-002",
+      "storeId": "seed-store-001",
+      "name": "Back Storage Room",
+      "isActive": true,
+      "isDefault": false
+    },
+    {
+      "id": "seed-wh-003",
+      "storeId": "seed-store-001",
+      "name": "Cold Room",
+      "isActive": true,
+      "isDefault": false,
+      "address": "Basement Level, No. 42, Galle Road"
+    }
+  ],
+
+  "accounts": [
+    { "id": "seed-acc-1010", "accountCode": "1010", "accountName": "Cash on Hand", "accountType": "ASSET", "subCategory": "Current Assets", "normalBalance": "DEBIT", "isSystemAccount": true },
+    { "id": "seed-acc-1020", "accountCode": "1020", "accountName": "Bank Account", "accountType": "ASSET", "subCategory": "Current Assets", "normalBalance": "DEBIT" },
+    { "id": "seed-acc-1030", "accountCode": "1030", "accountName": "Accounts Receivable", "accountType": "ASSET", "subCategory": "Current Assets", "normalBalance": "DEBIT" },
+    { "id": "seed-acc-1040", "accountCode": "1040", "accountName": "Inventory", "accountType": "ASSET", "subCategory": "Current Assets", "normalBalance": "DEBIT", "isSystemAccount": true },
+    { "id": "seed-acc-1050", "accountCode": "1050", "accountName": "Prepaid Expenses", "accountType": "ASSET", "subCategory": "Current Assets", "normalBalance": "DEBIT" },
+    { "id": "seed-acc-2010", "accountCode": "2010", "accountName": "Accounts Payable", "accountType": "LIABILITY", "subCategory": "Current Liabilities", "normalBalance": "CREDIT" },
+    { "id": "seed-acc-2020", "accountCode": "2020", "accountName": "Tax Payable", "accountType": "LIABILITY", "subCategory": "Current Liabilities", "normalBalance": "CREDIT" },
+    { "id": "seed-acc-2030", "accountCode": "2030", "accountName": "Wages Payable", "accountType": "LIABILITY", "subCategory": "Current Liabilities", "normalBalance": "CREDIT" },
+    { "id": "seed-acc-3010", "accountCode": "3010", "accountName": "Owner's Equity", "accountType": "EQUITY", "subCategory": "Capital", "normalBalance": "CREDIT" },
+    { "id": "seed-acc-3020", "accountCode": "3020", "accountName": "Retained Earnings", "accountType": "EQUITY", "subCategory": "Retained Earnings", "normalBalance": "CREDIT" },
+    { "id": "seed-acc-4010", "accountCode": "4010", "accountName": "Sales Revenue", "accountType": "INCOME", "subCategory": "Revenue", "normalBalance": "CREDIT", "isSystemAccount": true },
+    { "id": "seed-acc-4020", "accountCode": "4020", "accountName": "Service Revenue", "accountType": "INCOME", "subCategory": "Revenue", "normalBalance": "CREDIT" },
+    { "id": "seed-acc-5010", "accountCode": "5010", "accountName": "Cost of Goods Sold", "accountType": "COGS", "subCategory": "Direct Costs", "normalBalance": "DEBIT", "isSystemAccount": true },
+    { "id": "seed-acc-6010", "accountCode": "6010", "accountName": "Rent Expense", "accountType": "EXPENSE", "subCategory": "Operating Expenses", "normalBalance": "DEBIT" },
+    { "id": "seed-acc-6020", "accountCode": "6020", "accountName": "Utilities Expense", "accountType": "EXPENSE", "subCategory": "Operating Expenses", "normalBalance": "DEBIT" },
+    { "id": "seed-acc-6030", "accountCode": "6030", "accountName": "Salaries & Wages", "accountType": "EXPENSE", "subCategory": "Operating Expenses", "normalBalance": "DEBIT" },
+    { "id": "seed-acc-6040", "accountCode": "6040", "accountName": "Office Supplies", "accountType": "EXPENSE", "subCategory": "Operating Expenses", "normalBalance": "DEBIT" },
+    { "id": "seed-acc-6050", "accountCode": "6050", "accountName": "Marketing & Advertising", "accountType": "EXPENSE", "subCategory": "Operating Expenses", "normalBalance": "DEBIT" },
+    { "id": "seed-acc-6060", "accountCode": "6060", "accountName": "Insurance Expense", "accountType": "EXPENSE", "subCategory": "Operating Expenses", "normalBalance": "DEBIT" },
+    { "id": "seed-acc-6080", "accountCode": "6080", "accountName": "Miscellaneous Expense", "accountType": "EXPENSE", "subCategory": "Operating Expenses", "normalBalance": "DEBIT" }
+  ],
+
+  "accountingPeriods": [
+    { "id": "seed-ap-2026-01", "periodName": "January 2026", "startDate": "2026-01-01", "endDate": "2026-01-31", "fiscalYearStart": "2026-01-01" },
+    { "id": "seed-ap-2026-02", "periodName": "February 2026", "startDate": "2026-02-01", "endDate": "2026-02-28", "fiscalYearStart": "2026-01-01" },
+    { "id": "seed-ap-2026-03", "periodName": "March 2026", "startDate": "2026-03-01", "endDate": "2026-03-31", "fiscalYearStart": "2026-01-01" },
+    { "id": "seed-ap-2026-04", "periodName": "April 2026", "startDate": "2026-04-01", "endDate": "2026-04-30", "fiscalYearStart": "2026-01-01" },
+    { "id": "seed-ap-2026-05", "periodName": "May 2026", "startDate": "2026-05-01", "endDate": "2026-05-31", "fiscalYearStart": "2026-01-01" },
+    { "id": "seed-ap-2026-06", "periodName": "June 2026", "startDate": "2026-06-01", "endDate": "2026-06-30", "fiscalYearStart": "2026-01-01" }
+  ],
+
+  "customerGroups": [
+    { "id": "seed-cg-001", "name": "Regular", "description": "Standard pricing, no automatic discount", "priceType": "RETAIL" },
+    { "id": "seed-cg-002", "name": "VIP", "description": "Loyal customers with 5% discount", "discountType": "PERCENT", "discountValue": 5.0, "priceType": "RETAIL" },
+    { "id": "seed-cg-003", "name": "Wholesale", "description": "Bulk buyers with wholesale pricing", "discountType": "PERCENT", "discountValue": 10.0, "priceType": "WHOLESALE" },
+    { "id": "seed-cg-004", "name": "Staff", "description": "Employee discount tier", "discountType": "PERCENT", "discountValue": 15.0, "priceType": "RETAIL" }
+  ],
+
+  "settings": [
+    { "key": "store.name", "value": "Zynta Demo Store" },
+    { "key": "store.address", "value": "No. 42, Galle Road, Colombo 03, Sri Lanka" },
+    { "key": "store.phone", "value": "+94112345678" },
+    { "key": "store.email", "value": "demo@zyntapos.lk" },
+    { "key": "store.currency_symbol", "value": "Rs." },
+    { "key": "store.currency_code", "value": "LKR" },
+    { "key": "store.tax_rate", "value": "15.0" },
+    { "key": "store.tax_number", "value": "TIN-2026-DEMO-001" },
+    { "key": "pos.auto_print_receipt", "value": "true" },
+    { "key": "pos.require_customer", "value": "false" },
+    { "key": "pos.max_discount_percent", "value": "25.0" },
+    { "key": "pos.allow_negative_stock", "value": "false" },
+    { "key": "pos.receipt_header", "value": "Welcome to Zynta Demo Store" },
+    { "key": "pos.receipt_footer", "value": "Thank you for your purchase!" },
+    { "key": "printer.paper_width_mm", "value": "80" },
+    { "key": "security.pin_timeout_ms", "value": "300000" },
+    { "key": "security.idle_lock_ms", "value": "600000" }
+  ],
+
+  "customRoles": [
+    {
+      "id": "seed-role-001",
+      "name": "Kitchen Staff",
+      "description": "Back-of-house staff with limited POS access",
+      "permissions": ["PROCESS_SALE", "MANAGE_PRODUCTS"]
+    },
+    {
+      "id": "seed-role-002",
+      "name": "Supervisor",
+      "description": "Floor supervisor with reporting and customer management access",
+      "permissions": ["VIEW_REPORTS", "MANAGE_CUSTOMERS", "PROCESS_SALE", "VOID_ORDER", "APPLY_DISCOUNT", "MANAGE_EXPENSES", "OPEN_REGISTER", "CLOSE_REGISTER"]
+    }
+  ],
+
+  "labelTemplates": [
+    {
+      "id": "seed-lt-001",
+      "name": "58mm Single Column",
+      "paperType": "CONTINUOUS_ROLL",
+      "paperWidthMm": 58.0,
+      "labelHeightMm": 30.0,
+      "columns": 1,
+      "rows": 0,
+      "gapHorizontalMm": 0.0,
+      "gapVerticalMm": 3.0,
+      "marginTopMm": 2.0,
+      "marginBottomMm": 2.0,
+      "marginLeftMm": 3.0,
+      "marginRightMm": 3.0,
+      "isDefault": true
+    },
+    {
+      "id": "seed-lt-002",
+      "name": "80mm Two Column",
+      "paperType": "CONTINUOUS_ROLL",
+      "paperWidthMm": 80.0,
+      "labelHeightMm": 25.0,
+      "columns": 2,
+      "rows": 0,
+      "gapHorizontalMm": 2.0,
+      "gapVerticalMm": 3.0,
+      "marginTopMm": 2.0,
+      "marginBottomMm": 2.0,
+      "marginLeftMm": 3.0,
+      "marginRightMm": 3.0,
+      "isDefault": false
+    }
+  ],
+
+  "printerProfiles": [
+    {
+      "id": "seed-pp-001",
+      "name": "Main Receipt Printer",
+      "jobType": "RECEIPT",
+      "printerType": "TCP",
+      "tcpHost": "192.168.1.100",
+      "tcpPort": 9100,
+      "paperWidthMm": 80,
+      "isDefault": true
+    },
+    {
+      "id": "seed-pp-002",
+      "name": "Kitchen Order Printer",
+      "jobType": "KITCHEN",
+      "printerType": "TCP",
+      "tcpHost": "192.168.1.101",
+      "tcpPort": 9100,
+      "paperWidthMm": 80,
+      "isDefault": true
+    }
   ]
 }

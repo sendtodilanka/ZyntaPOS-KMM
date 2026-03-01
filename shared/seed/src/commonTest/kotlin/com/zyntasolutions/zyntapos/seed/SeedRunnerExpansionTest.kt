@@ -2,42 +2,69 @@ package com.zyntasolutions.zyntapos.seed
 
 import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
+import com.zyntasolutions.zyntapos.domain.model.Account
+import com.zyntasolutions.zyntapos.domain.model.AccountBalance
+import com.zyntasolutions.zyntapos.domain.model.AccountType
+import com.zyntasolutions.zyntapos.domain.model.AccountingPeriod
 import com.zyntasolutions.zyntapos.domain.model.CashMovement
 import com.zyntasolutions.zyntapos.domain.model.CashRegister
 import com.zyntasolutions.zyntapos.domain.model.Category
 import com.zyntasolutions.zyntapos.domain.model.Coupon
+import com.zyntasolutions.zyntapos.domain.model.CouponUsage
+import com.zyntasolutions.zyntapos.domain.model.CustomRole
 import com.zyntasolutions.zyntapos.domain.model.Customer
+import com.zyntasolutions.zyntapos.domain.model.CustomerGroup
+import com.zyntasolutions.zyntapos.domain.model.DiscountType
 import com.zyntasolutions.zyntapos.domain.model.Employee
 import com.zyntasolutions.zyntapos.domain.model.Expense
 import com.zyntasolutions.zyntapos.domain.model.ExpenseCategory
+import com.zyntasolutions.zyntapos.domain.model.FeatureConfig
+import com.zyntasolutions.zyntapos.domain.model.LabelTemplate
+import com.zyntasolutions.zyntapos.domain.model.NormalBalance
+import com.zyntasolutions.zyntapos.domain.model.PeriodStatus
+import com.zyntasolutions.zyntapos.domain.model.Permission
+import com.zyntasolutions.zyntapos.domain.model.PrinterJobType
+import com.zyntasolutions.zyntapos.domain.model.PrinterProfile
 import com.zyntasolutions.zyntapos.domain.model.Product
+import com.zyntasolutions.zyntapos.domain.model.Promotion
 import com.zyntasolutions.zyntapos.domain.model.RecurringExpense
 import com.zyntasolutions.zyntapos.domain.model.RegisterSession
+import com.zyntasolutions.zyntapos.domain.model.Role
+import com.zyntasolutions.zyntapos.domain.model.StockTransfer
 import com.zyntasolutions.zyntapos.domain.model.Supplier
 import com.zyntasolutions.zyntapos.domain.model.TaxGroup
 import com.zyntasolutions.zyntapos.domain.model.UnitOfMeasure
 import com.zyntasolutions.zyntapos.domain.model.User
+import com.zyntasolutions.zyntapos.domain.model.Warehouse
+import com.zyntasolutions.zyntapos.domain.model.ZyntaFeature
+import com.zyntasolutions.zyntapos.domain.repository.AccountRepository
+import com.zyntasolutions.zyntapos.domain.repository.AccountingPeriodRepository
 import com.zyntasolutions.zyntapos.domain.repository.CategoryRepository
 import com.zyntasolutions.zyntapos.domain.repository.CouponRepository
+import com.zyntasolutions.zyntapos.domain.repository.CustomerGroupRepository
 import com.zyntasolutions.zyntapos.domain.repository.CustomerRepository
 import com.zyntasolutions.zyntapos.domain.repository.EmployeeRepository
 import com.zyntasolutions.zyntapos.domain.repository.ExpenseRepository
+import com.zyntasolutions.zyntapos.domain.repository.FeatureRegistryRepository
+import com.zyntasolutions.zyntapos.domain.repository.LabelTemplateRepository
+import com.zyntasolutions.zyntapos.domain.repository.PrinterProfileRepository
 import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
 import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
+import com.zyntasolutions.zyntapos.domain.repository.RoleRepository
+import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.domain.repository.SupplierRepository
 import com.zyntasolutions.zyntapos.domain.repository.TaxGroupRepository
 import com.zyntasolutions.zyntapos.domain.repository.UnitGroupRepository
 import com.zyntasolutions.zyntapos.domain.repository.UserRepository
-import com.zyntasolutions.zyntapos.domain.model.Promotion
-import com.zyntasolutions.zyntapos.domain.model.CouponUsage
+import com.zyntasolutions.zyntapos.domain.repository.WarehouseRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
-import kotlin.time.Clock
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.time.Clock
 
 /**
  * Tests for expanded [SeedRunner] covering all new entity types added for
@@ -284,6 +311,193 @@ class SeedRunnerExpansionTest {
         override suspend fun deletePromotion(id: String) = Result.Success(Unit)
     }
 
+    // ── New entity fakes (Phase 2: warehouses, accounts, periods, etc.) ─────
+
+    private val existingWarehouseIds = mutableSetOf<String>()
+    private var warehouseInsertFails = false
+
+    private val fakeWarehouseRepo = object : WarehouseRepository {
+        override fun getByStore(storeId: String) = flowOf(emptyList<Warehouse>())
+        override suspend fun getDefault(storeId: String) = Result.Success(null as Warehouse?)
+        override suspend fun getById(id: String): Result<Warehouse> =
+            if (id in existingWarehouseIds) {
+                seedOrder += "Warehouse"
+                Result.Success(Warehouse(id, storeId = "s", name = "Warehouse"))
+            } else Result.Error(DatabaseException("Not found"))
+        override suspend fun insert(warehouse: Warehouse): Result<Unit> {
+            seedOrder += "Warehouse"
+            return if (warehouseInsertFails) Result.Error(DatabaseException("fail"))
+            else { existingWarehouseIds += warehouse.id; Result.Success(Unit) }
+        }
+        override suspend fun update(warehouse: Warehouse) = Result.Success(Unit)
+        override fun getTransfersByWarehouse(warehouseId: String) = flowOf(emptyList<StockTransfer>())
+        override suspend fun getTransferById(id: String) = Result.Error(DatabaseException("nf")) as Result<StockTransfer>
+        override suspend fun getPendingTransfers() = Result.Success(emptyList<StockTransfer>())
+        override suspend fun createTransfer(transfer: StockTransfer) = Result.Success(Unit)
+        override suspend fun commitTransfer(transferId: String, confirmedBy: String) = Result.Success(Unit)
+        override suspend fun cancelTransfer(transferId: String) = Result.Success(Unit)
+    }
+
+    private val existingAccountIds = mutableSetOf<String>()
+    private var accountInsertFails = false
+
+    private val fakeAccountRepo = object : AccountRepository {
+        override fun getAll(storeId: String) = flowOf(emptyList<Account>())
+        override fun getByType(storeId: String, accountType: AccountType) = flowOf(emptyList<Account>())
+        override suspend fun getById(id: String): Result<Account?> =
+            if (id in existingAccountIds) {
+                seedOrder += "Account"
+                Result.Success(Account(id, "1010", "Cash", AccountType.ASSET, "Current Assets",
+                    normalBalance = NormalBalance.DEBIT, createdAt = 0, updatedAt = 0))
+            } else Result.Success(null)
+        override suspend fun getByCode(storeId: String, accountCode: String) = Result.Success(null as Account?)
+        override suspend fun getBalance(accountId: String, periodId: String) = Result.Success(null as AccountBalance?)
+        override fun getAllBalances(storeId: String, periodId: String) = flowOf(emptyList<AccountBalance>())
+        override suspend fun create(account: Account): Result<Unit> {
+            seedOrder += "Account"
+            return if (accountInsertFails) Result.Error(DatabaseException("fail"))
+            else { existingAccountIds += account.id; Result.Success(Unit) }
+        }
+        override suspend fun update(account: Account) = Result.Success(Unit)
+        override suspend fun deactivate(id: String, updatedAt: Long) = Result.Success(Unit)
+        override suspend fun isAccountCodeTaken(storeId: String, code: String, excludeId: String?) = Result.Success(false)
+        override suspend fun seedDefaultAccounts(accounts: List<Account>) = Result.Success(Unit)
+    }
+
+    private val existingPeriodIds = mutableSetOf<String>()
+    private var periodInsertFails = false
+
+    private val fakeAccountingPeriodRepo = object : AccountingPeriodRepository {
+        override fun getAll(storeId: String) = flowOf(emptyList<AccountingPeriod>())
+        override suspend fun getById(id: String): Result<AccountingPeriod?> =
+            if (id in existingPeriodIds) {
+                seedOrder += "AccountingPeriod"
+                Result.Success(AccountingPeriod(id, "Jan 2026", "2026-01-01", "2026-01-31",
+                    PeriodStatus.OPEN, "2026-01-01", createdAt = 0, updatedAt = 0))
+            } else Result.Success(null)
+        override suspend fun getPeriodForDate(storeId: String, date: String) = Result.Success(null as AccountingPeriod?)
+        override suspend fun getOpenPeriods(storeId: String) = Result.Success(emptyList<AccountingPeriod>())
+        override suspend fun create(period: AccountingPeriod): Result<Unit> {
+            seedOrder += "AccountingPeriod"
+            return if (periodInsertFails) Result.Error(DatabaseException("fail"))
+            else { existingPeriodIds += period.id; Result.Success(Unit) }
+        }
+        override suspend fun closePeriod(id: String, updatedAt: Long) = Result.Success(Unit)
+        override suspend fun lockPeriod(id: String, lockedBy: String, lockedAt: Long) = Result.Success(Unit)
+        override suspend fun reopenPeriod(id: String, updatedAt: Long) = Result.Success(Unit)
+    }
+
+    private val existingCustomerGroupIds = mutableSetOf<String>()
+    private var customerGroupInsertFails = false
+
+    private val fakeCustomerGroupRepo = object : CustomerGroupRepository {
+        override fun getAll() = flowOf(emptyList<CustomerGroup>())
+        override suspend fun getById(id: String): Result<CustomerGroup> =
+            if (id in existingCustomerGroupIds) {
+                seedOrder += "CustomerGroup"
+                Result.Success(CustomerGroup(id, "Group"))
+            } else Result.Error(DatabaseException("Not found"))
+        override suspend fun insert(group: CustomerGroup): Result<Unit> {
+            seedOrder += "CustomerGroup"
+            return if (customerGroupInsertFails) Result.Error(DatabaseException("fail"))
+            else { existingCustomerGroupIds += group.id; Result.Success(Unit) }
+        }
+        override suspend fun update(group: CustomerGroup) = Result.Success(Unit)
+        override suspend fun delete(id: String) = Result.Success(Unit)
+    }
+
+    private val existingSettings = mutableMapOf<String, String>()
+    private var settingsSetFails = false
+
+    private val fakeSettingsRepo = object : SettingsRepository {
+        override suspend fun get(key: String): String? = existingSettings[key]
+        override suspend fun set(key: String, value: String): Result<Unit> {
+            seedOrder += "Setting"
+            return if (settingsSetFails) Result.Error(DatabaseException("fail"))
+            else { existingSettings[key] = value; Result.Success(Unit) }
+        }
+        override suspend fun getAll() = existingSettings.toMap()
+        override fun observe(key: String) = flowOf(existingSettings[key])
+    }
+
+    private val existingCustomRoleIds = mutableSetOf<String>()
+    private var customRoleInsertFails = false
+
+    private val fakeRoleRepo = object : RoleRepository {
+        override fun getAllCustomRoles() = flowOf(emptyList<CustomRole>())
+        override suspend fun getCustomRoleById(id: String): Result<CustomRole> =
+            if (id in existingCustomRoleIds) {
+                seedOrder += "CustomRole"
+                Result.Success(CustomRole(id, "Role", permissions = emptySet(),
+                    createdAt = Clock.System.now(), updatedAt = Clock.System.now()))
+            } else Result.Error(DatabaseException("Not found"))
+        override suspend fun createCustomRole(role: CustomRole): Result<Unit> {
+            seedOrder += "CustomRole"
+            return if (customRoleInsertFails) Result.Error(DatabaseException("fail"))
+            else { existingCustomRoleIds += role.id; Result.Success(Unit) }
+        }
+        override suspend fun updateCustomRole(role: CustomRole) = Result.Success(Unit)
+        override suspend fun deleteCustomRole(id: String) = Result.Success(Unit)
+        override suspend fun getBuiltInRolePermissions(role: Role): Set<Permission>? = null
+        override suspend fun setBuiltInRolePermissions(role: Role, permissions: Set<Permission>) = Result.Success(Unit)
+        override suspend fun resetBuiltInRolePermissions(role: Role) = Result.Success(Unit)
+    }
+
+    private val existingLabelTemplateIds = mutableSetOf<String>()
+    private var labelTemplateInsertFails = false
+
+    private val fakeLabelTemplateRepo = object : LabelTemplateRepository {
+        override fun getAll() = flowOf(emptyList<LabelTemplate>())
+        override suspend fun getById(id: String): Result<LabelTemplate> =
+            if (id in existingLabelTemplateIds) {
+                seedOrder += "LabelTemplate"
+                Result.Success(LabelTemplate(id, "Template", LabelTemplate.PaperType.CONTINUOUS_ROLL,
+                    58.0, 30.0, 1, 0, 0.0, 3.0, 2.0, 2.0, 2.0, 2.0, createdAt = 0, updatedAt = 0))
+            } else Result.Error(DatabaseException("Not found"))
+        override suspend fun save(template: LabelTemplate): Result<Unit> {
+            seedOrder += "LabelTemplate"
+            return if (labelTemplateInsertFails) Result.Error(DatabaseException("fail"))
+            else { existingLabelTemplateIds += template.id; Result.Success(Unit) }
+        }
+        override suspend fun delete(id: String) = Result.Success(Unit)
+        override suspend fun count() = existingLabelTemplateIds.size
+    }
+
+    private val existingPrinterProfileIds = mutableSetOf<String>()
+    private var printerProfileInsertFails = false
+
+    private val fakePrinterProfileRepo = object : PrinterProfileRepository {
+        override fun getAll() = flowOf(emptyList<PrinterProfile>())
+        override suspend fun getById(id: String): Result<PrinterProfile> =
+            if (id in existingPrinterProfileIds) {
+                seedOrder += "PrinterProfile"
+                Result.Success(PrinterProfile(id, "Profile", PrinterJobType.RECEIPT, "TCP", createdAt = 0, updatedAt = 0))
+            } else Result.Error(DatabaseException("Not found"))
+        override suspend fun getDefault(jobType: PrinterJobType) = Result.Success(null as PrinterProfile?)
+        override suspend fun save(profile: PrinterProfile): Result<Unit> {
+            seedOrder += "PrinterProfile"
+            return if (printerProfileInsertFails) Result.Error(DatabaseException("fail"))
+            else { existingPrinterProfileIds += profile.id; Result.Success(Unit) }
+        }
+        override suspend fun delete(id: String) = Result.Success(Unit)
+    }
+
+    private var featureInitDefaultsCalled = false
+    private var featureInitFails = false
+
+    private val fakeFeatureRegistryRepo = object : FeatureRegistryRepository {
+        override fun observeAll() = flowOf(emptyList<FeatureConfig>())
+        override fun observe(feature: ZyntaFeature) = flowOf(FeatureConfig(feature, true, null, null, 0))
+        override suspend fun isEnabled(feature: ZyntaFeature) = true
+        override suspend fun setEnabled(feature: ZyntaFeature, enabled: Boolean, activatedAt: Long, expiresAt: Long?) = Result.Success(Unit)
+        override suspend fun initDefaults(now: Long): Result<Unit> {
+            featureInitDefaultsCalled = true
+            seedOrder += "FeatureConfig"
+            return if (featureInitFails) Result.Error(DatabaseException("fail"))
+            else Result.Success(Unit)
+        }
+    }
+
     // ── SeedRunner factory ──────────────────────────────────────────────────
 
     private fun runner() = SeedRunner(
@@ -294,10 +508,19 @@ class SeedRunnerExpansionTest {
         unitGroupRepository = fakeUnitGroupRepo,
         taxGroupRepository = fakeTaxGroupRepo,
         userRepository = fakeUserRepo,
-        registerRepository = null, // CashRegister seeding is a passthrough for now
+        registerRepository = null,
         expenseRepository = fakeExpenseRepo,
         employeeRepository = fakeEmployeeRepo,
         couponRepository = fakeCouponRepo,
+        warehouseRepository = fakeWarehouseRepo,
+        accountRepository = fakeAccountRepo,
+        accountingPeriodRepository = fakeAccountingPeriodRepo,
+        customerGroupRepository = fakeCustomerGroupRepo,
+        settingsRepository = fakeSettingsRepo,
+        roleRepository = fakeRoleRepo,
+        labelTemplateRepository = fakeLabelTemplateRepo,
+        printerProfileRepository = fakePrinterProfileRepo,
+        featureRegistryRepository = fakeFeatureRegistryRepo,
     )
 
     // ════════════════════════════════════════════════════════════════════════
@@ -684,7 +907,8 @@ class SeedRunnerExpansionTest {
         )
         val summary = runner().run(dataSet)
         assertTrue(summary.isSuccess)
-        assertEquals(11, summary.totalInserted)
+        // 11 entity inserts + 23 FeatureConfig defaults = 34 total
+        assertEquals(34, summary.totalInserted)
         assertEquals(0, summary.totalFailed)
     }
 
@@ -703,10 +927,12 @@ class SeedRunnerExpansionTest {
         val first = r.run(dataSet)
         val second = r.run(dataSet)
 
-        assertEquals(7, first.totalInserted)
+        // 7 entity inserts + 23 FeatureConfig defaults = 30 total
+        assertEquals(30, first.totalInserted)
         assertEquals(0, first.totalSkipped)
 
-        assertEquals(0, second.totalInserted)
+        // Entities skipped on second run; FeatureConfig still reports 23 (idempotent at DB level)
+        assertEquals(23, second.totalInserted)
         assertEquals(7, second.totalSkipped)
     }
 
@@ -867,5 +1093,576 @@ class SeedRunnerExpansionTest {
     fun `DefaultSeedDataSet contains at least one rejected expense for status testing`() {
         val rejected = DefaultSeedDataSet.build().expenses.count { it.status == "REJECTED" }
         assertTrue(rejected >= 1, "Expected at least one REJECTED expense for status testing")
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Warehouse seeding
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `seedWarehouses inserts all new warehouses`() = runTest {
+        val dataSet = SeedDataSet(
+            warehouses = listOf(
+                SeedWarehouse("wh1", "s1", "Main Floor", isDefault = true),
+                SeedWarehouse("wh2", "s1", "Back Storage"),
+            ),
+        )
+        val summary = runner().run(dataSet)
+        val result = summary.results.single { it.entityType == "Warehouse" }
+        assertEquals(2, result.inserted)
+        assertEquals(0, result.skipped)
+        assertEquals(0, result.failed)
+    }
+
+    @Test
+    fun `seedWarehouses skips existing`() = runTest {
+        existingWarehouseIds += "wh1"
+        val dataSet = SeedDataSet(
+            warehouses = listOf(
+                SeedWarehouse("wh1", "s1", "Main"),
+                SeedWarehouse("wh2", "s1", "Back"),
+            ),
+        )
+        val summary = runner().run(dataSet)
+        val result = summary.results.single { it.entityType == "Warehouse" }
+        assertEquals(1, result.inserted)
+        assertEquals(1, result.skipped)
+    }
+
+    @Test
+    fun `seedWarehouses counts failures`() = runTest {
+        warehouseInsertFails = true
+        val dataSet = SeedDataSet(
+            warehouses = listOf(SeedWarehouse("wh1", "s1", "Main")),
+        )
+        val summary = runner().run(dataSet)
+        val result = summary.results.single { it.entityType == "Warehouse" }
+        assertEquals(0, result.inserted)
+        assertEquals(1, result.failed)
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Account (Chart of Accounts) seeding
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `seedAccounts inserts all new accounts`() = runTest {
+        val dataSet = SeedDataSet(
+            accounts = listOf(
+                SeedAccount("a1", "1010", "Cash", "ASSET", "Current Assets", normalBalance = "DEBIT"),
+                SeedAccount("a2", "4010", "Sales Revenue", "INCOME", "Revenue", normalBalance = "CREDIT"),
+            ),
+        )
+        val summary = runner().run(dataSet)
+        val result = summary.results.single { it.entityType == "Account" }
+        assertEquals(2, result.inserted)
+        assertEquals(0, result.skipped)
+    }
+
+    @Test
+    fun `seedAccounts skips existing`() = runTest {
+        existingAccountIds += "a1"
+        val dataSet = SeedDataSet(
+            accounts = listOf(
+                SeedAccount("a1", "1010", "Cash", "ASSET", "Current Assets", normalBalance = "DEBIT"),
+                SeedAccount("a2", "4010", "Revenue", "INCOME", "Revenue", normalBalance = "CREDIT"),
+            ),
+        )
+        val summary = runner().run(dataSet)
+        val result = summary.results.single { it.entityType == "Account" }
+        assertEquals(1, result.inserted)
+        assertEquals(1, result.skipped)
+    }
+
+    @Test
+    fun `seedAccounts counts failures`() = runTest {
+        accountInsertFails = true
+        val dataSet = SeedDataSet(
+            accounts = listOf(SeedAccount("a1", "1010", "Cash", "ASSET", "Current Assets", normalBalance = "DEBIT")),
+        )
+        val summary = runner().run(dataSet)
+        val result = summary.results.single { it.entityType == "Account" }
+        assertEquals(1, result.failed)
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // AccountingPeriod seeding
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `seedAccountingPeriods inserts all new periods`() = runTest {
+        val dataSet = SeedDataSet(
+            accountingPeriods = listOf(
+                SeedAccountingPeriod("p1", "January 2026", "2026-01-01", "2026-01-31", "2026-01-01"),
+                SeedAccountingPeriod("p2", "February 2026", "2026-02-01", "2026-02-28", "2026-01-01"),
+            ),
+        )
+        val summary = runner().run(dataSet)
+        val result = summary.results.single { it.entityType == "AccountingPeriod" }
+        assertEquals(2, result.inserted)
+        assertEquals(0, result.skipped)
+    }
+
+    @Test
+    fun `seedAccountingPeriods skips existing`() = runTest {
+        existingPeriodIds += "p1"
+        val dataSet = SeedDataSet(
+            accountingPeriods = listOf(
+                SeedAccountingPeriod("p1", "Jan 2026", "2026-01-01", "2026-01-31", "2026-01-01"),
+            ),
+        )
+        val summary = runner().run(dataSet)
+        val result = summary.results.single { it.entityType == "AccountingPeriod" }
+        assertEquals(0, result.inserted)
+        assertEquals(1, result.skipped)
+    }
+
+    @Test
+    fun `seedAccountingPeriods counts failures`() = runTest {
+        periodInsertFails = true
+        val dataSet = SeedDataSet(
+            accountingPeriods = listOf(
+                SeedAccountingPeriod("p1", "Jan 2026", "2026-01-01", "2026-01-31", "2026-01-01"),
+            ),
+        )
+        val summary = runner().run(dataSet)
+        val result = summary.results.single { it.entityType == "AccountingPeriod" }
+        assertEquals(1, result.failed)
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // CustomerGroup seeding
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `seedCustomerGroups inserts all new groups`() = runTest {
+        val dataSet = SeedDataSet(
+            customerGroups = listOf(
+                SeedCustomerGroup("cg1", "VIP", discountType = "PERCENT", discountValue = 5.0),
+                SeedCustomerGroup("cg2", "Wholesale", priceType = "WHOLESALE"),
+            ),
+        )
+        val summary = runner().run(dataSet)
+        val result = summary.results.single { it.entityType == "CustomerGroup" }
+        assertEquals(2, result.inserted)
+        assertEquals(0, result.skipped)
+    }
+
+    @Test
+    fun `seedCustomerGroups skips existing`() = runTest {
+        existingCustomerGroupIds += "cg1"
+        val dataSet = SeedDataSet(
+            customerGroups = listOf(SeedCustomerGroup("cg1", "VIP")),
+        )
+        val summary = runner().run(dataSet)
+        val result = summary.results.single { it.entityType == "CustomerGroup" }
+        assertEquals(0, result.inserted)
+        assertEquals(1, result.skipped)
+    }
+
+    @Test
+    fun `seedCustomerGroups counts failures`() = runTest {
+        customerGroupInsertFails = true
+        val dataSet = SeedDataSet(
+            customerGroups = listOf(SeedCustomerGroup("cg1", "VIP")),
+        )
+        val summary = runner().run(dataSet)
+        val result = summary.results.single { it.entityType == "CustomerGroup" }
+        assertEquals(1, result.failed)
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Settings seeding
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `seedSettings inserts all new settings`() = runTest {
+        val dataSet = SeedDataSet(
+            settings = listOf(
+                SeedSetting("store.name", "Demo Store"),
+                SeedSetting("store.currency", "LKR"),
+            ),
+        )
+        val summary = runner().run(dataSet)
+        val result = summary.results.single { it.entityType == "Setting" }
+        assertEquals(2, result.inserted)
+        assertEquals(0, result.skipped)
+    }
+
+    @Test
+    fun `seedSettings skips existing keys`() = runTest {
+        existingSettings["store.name"] = "Already Set"
+        val dataSet = SeedDataSet(
+            settings = listOf(
+                SeedSetting("store.name", "Demo Store"),
+                SeedSetting("store.currency", "LKR"),
+            ),
+        )
+        val summary = runner().run(dataSet)
+        val result = summary.results.single { it.entityType == "Setting" }
+        assertEquals(1, result.inserted)
+        assertEquals(1, result.skipped)
+        assertEquals("Already Set", existingSettings["store.name"], "Existing value must not be overwritten")
+    }
+
+    @Test
+    fun `seedSettings counts failures`() = runTest {
+        settingsSetFails = true
+        val dataSet = SeedDataSet(
+            settings = listOf(SeedSetting("key", "val")),
+        )
+        val summary = runner().run(dataSet)
+        val result = summary.results.single { it.entityType == "Setting" }
+        assertEquals(1, result.failed)
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // CustomRole seeding
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `seedCustomRoles inserts all new roles`() = runTest {
+        val dataSet = SeedDataSet(
+            customRoles = listOf(
+                SeedCustomRole("r1", "Kitchen Staff", permissions = listOf("PROCESS_SALE", "MANAGE_PRODUCTS")),
+                SeedCustomRole("r2", "Supervisor", permissions = listOf("VIEW_REPORTS", "MANAGE_CUSTOMERS")),
+            ),
+        )
+        val summary = runner().run(dataSet)
+        val result = summary.results.single { it.entityType == "CustomRole" }
+        assertEquals(2, result.inserted)
+        assertEquals(0, result.skipped)
+    }
+
+    @Test
+    fun `seedCustomRoles skips existing`() = runTest {
+        existingCustomRoleIds += "r1"
+        val dataSet = SeedDataSet(
+            customRoles = listOf(SeedCustomRole("r1", "Kitchen", permissions = listOf("PROCESS_SALE"))),
+        )
+        val summary = runner().run(dataSet)
+        val result = summary.results.single { it.entityType == "CustomRole" }
+        assertEquals(0, result.inserted)
+        assertEquals(1, result.skipped)
+    }
+
+    @Test
+    fun `seedCustomRoles counts failures`() = runTest {
+        customRoleInsertFails = true
+        val dataSet = SeedDataSet(
+            customRoles = listOf(SeedCustomRole("r1", "Kitchen", permissions = listOf("PROCESS_SALE"))),
+        )
+        val summary = runner().run(dataSet)
+        val result = summary.results.single { it.entityType == "CustomRole" }
+        assertEquals(1, result.failed)
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // LabelTemplate seeding
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `seedLabelTemplates inserts all new templates`() = runTest {
+        val dataSet = SeedDataSet(
+            labelTemplates = listOf(
+                SeedLabelTemplate("lt1", "58mm Single", paperWidthMm = 58.0, isDefault = true),
+                SeedLabelTemplate("lt2", "80mm Two Column", paperWidthMm = 80.0, columns = 2),
+            ),
+        )
+        val summary = runner().run(dataSet)
+        val result = summary.results.single { it.entityType == "LabelTemplate" }
+        assertEquals(2, result.inserted)
+        assertEquals(0, result.skipped)
+    }
+
+    @Test
+    fun `seedLabelTemplates skips existing`() = runTest {
+        existingLabelTemplateIds += "lt1"
+        val dataSet = SeedDataSet(
+            labelTemplates = listOf(SeedLabelTemplate("lt1", "58mm")),
+        )
+        val summary = runner().run(dataSet)
+        val result = summary.results.single { it.entityType == "LabelTemplate" }
+        assertEquals(0, result.inserted)
+        assertEquals(1, result.skipped)
+    }
+
+    @Test
+    fun `seedLabelTemplates counts failures`() = runTest {
+        labelTemplateInsertFails = true
+        val dataSet = SeedDataSet(
+            labelTemplates = listOf(SeedLabelTemplate("lt1", "58mm")),
+        )
+        val summary = runner().run(dataSet)
+        val result = summary.results.single { it.entityType == "LabelTemplate" }
+        assertEquals(1, result.failed)
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // PrinterProfile seeding
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `seedPrinterProfiles inserts all new profiles`() = runTest {
+        val dataSet = SeedDataSet(
+            printerProfiles = listOf(
+                SeedPrinterProfile("pp1", "Main Receipt", "RECEIPT", "TCP", tcpHost = "192.168.1.100"),
+                SeedPrinterProfile("pp2", "Kitchen", "KITCHEN", "TCP", tcpHost = "192.168.1.101"),
+            ),
+        )
+        val summary = runner().run(dataSet)
+        val result = summary.results.single { it.entityType == "PrinterProfile" }
+        assertEquals(2, result.inserted)
+        assertEquals(0, result.skipped)
+    }
+
+    @Test
+    fun `seedPrinterProfiles skips existing`() = runTest {
+        existingPrinterProfileIds += "pp1"
+        val dataSet = SeedDataSet(
+            printerProfiles = listOf(SeedPrinterProfile("pp1", "Receipt", "RECEIPT", "TCP")),
+        )
+        val summary = runner().run(dataSet)
+        val result = summary.results.single { it.entityType == "PrinterProfile" }
+        assertEquals(0, result.inserted)
+        assertEquals(1, result.skipped)
+    }
+
+    @Test
+    fun `seedPrinterProfiles counts failures`() = runTest {
+        printerProfileInsertFails = true
+        val dataSet = SeedDataSet(
+            printerProfiles = listOf(SeedPrinterProfile("pp1", "Receipt", "RECEIPT", "TCP")),
+        )
+        val summary = runner().run(dataSet)
+        val result = summary.results.single { it.entityType == "PrinterProfile" }
+        assertEquals(1, result.failed)
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // FeatureConfig seeding (initDefaults)
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `seedFeatureDefaults calls initDefaults`() = runTest {
+        featureInitDefaultsCalled = false
+        val dataSet = SeedDataSet() // empty, but featureRegistry is non-null
+        runner().run(dataSet)
+        assertTrue(featureInitDefaultsCalled, "initDefaults must be called when repo is available")
+    }
+
+    @Test
+    fun `seedFeatureDefaults reports 23 inserted on success`() = runTest {
+        val dataSet = SeedDataSet()
+        val summary = runner().run(dataSet)
+        val result = summary.results.single { it.entityType == "FeatureConfig" }
+        assertEquals(23, result.inserted)
+        assertEquals(0, result.failed)
+    }
+
+    @Test
+    fun `seedFeatureDefaults reports failure correctly`() = runTest {
+        featureInitFails = true
+        val dataSet = SeedDataSet()
+        val summary = runner().run(dataSet)
+        val result = summary.results.single { it.entityType == "FeatureConfig" }
+        assertEquals(0, result.inserted)
+        assertEquals(23, result.failed)
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // FK-safe ordering (extended for new entities)
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `run seeds warehouses before products`() = runTest {
+        seedOrder.clear()
+        val dataSet = SeedDataSet(
+            warehouses = listOf(SeedWarehouse("wh1", "s1", "Main")),
+            products = listOf(SeedProduct("p1", "Item", categoryId = "c1", price = 1.0)),
+        )
+        runner().run(dataSet)
+        val firstWh = seedOrder.indexOfFirst { it == "Warehouse" }
+        val firstProd = seedOrder.indexOfFirst { it == "Product" }
+        assertTrue(firstWh < firstProd, "Warehouses must be seeded before products")
+    }
+
+    @Test
+    fun `run seeds customer groups before products`() = runTest {
+        seedOrder.clear()
+        val dataSet = SeedDataSet(
+            customerGroups = listOf(SeedCustomerGroup("cg1", "VIP")),
+            products = listOf(SeedProduct("p1", "Item", categoryId = "c1", price = 1.0)),
+        )
+        runner().run(dataSet)
+        val firstCg = seedOrder.indexOfFirst { it == "CustomerGroup" }
+        val firstProd = seedOrder.indexOfFirst { it == "Product" }
+        assertTrue(firstCg < firstProd, "CustomerGroups must be seeded before products")
+    }
+
+    @Test
+    fun `run seeds settings after coupons`() = runTest {
+        seedOrder.clear()
+        val dataSet = SeedDataSet(
+            coupons = listOf(SeedCoupon("c1", "X", "X", "FIXED", 10.0, validFrom = 0, validTo = 1)),
+            settings = listOf(SeedSetting("key", "val")),
+        )
+        runner().run(dataSet)
+        val firstCoup = seedOrder.indexOfFirst { it == "Coupon" }
+        val firstSetting = seedOrder.indexOfFirst { it == "Setting" }
+        assertTrue(firstCoup < firstSetting, "Settings must be seeded after coupons")
+    }
+
+    @Test
+    fun `run seeds feature config last`() = runTest {
+        seedOrder.clear()
+        val dataSet = SeedDataSet(
+            settings = listOf(SeedSetting("key", "val")),
+        )
+        runner().run(dataSet)
+        val lastSetting = seedOrder.indexOfLast { it == "Setting" }
+        val firstFeature = seedOrder.indexOfFirst { it == "FeatureConfig" }
+        assertTrue(lastSetting < firstFeature, "FeatureConfig must be seeded after settings")
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Null repo graceful degradation (extended)
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `null new repositories degrade gracefully`() = runTest {
+        val minimalRunner = SeedRunner(
+            categoryRepository = fakeCategoryRepo,
+            supplierRepository = fakeSupplierRepo,
+            productRepository = fakeProductRepo,
+            customerRepository = fakeCustomerRepo,
+        )
+        val dataSet = SeedDataSet(
+            categories = listOf(SeedCategory("c1", "Cat")),
+            warehouses = listOf(SeedWarehouse("wh1", "s1", "Main")),
+            accounts = listOf(SeedAccount("a1", "1010", "Cash", "ASSET", "Current Assets", normalBalance = "DEBIT")),
+            accountingPeriods = listOf(SeedAccountingPeriod("p1", "Jan", "2026-01-01", "2026-01-31", "2026-01-01")),
+            customerGroups = listOf(SeedCustomerGroup("cg1", "VIP")),
+            settings = listOf(SeedSetting("k", "v")),
+            customRoles = listOf(SeedCustomRole("r1", "Staff", permissions = listOf("PROCESS_SALE"))),
+            labelTemplates = listOf(SeedLabelTemplate("lt1", "58mm")),
+            printerProfiles = listOf(SeedPrinterProfile("pp1", "Receipt", "RECEIPT", "TCP")),
+        )
+        val summary = minimalRunner.run(dataSet)
+        assertEquals(1, summary.results.size, "Only categories should be seeded; all new repos are null")
+        assertEquals("Category", summary.results[0].entityType)
+        assertTrue(summary.isSuccess)
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // DefaultSeedDataSet validation (extended for new entities)
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `DefaultSeedDataSet has expected new entity counts`() {
+        val dataSet = DefaultSeedDataSet.build()
+        assertEquals(3, dataSet.warehouses.size, "Expected 3 warehouses")
+        assertEquals(20, dataSet.accounts.size, "Expected 20 chart of accounts entries")
+        assertEquals(6, dataSet.accountingPeriods.size, "Expected 6 accounting periods")
+        assertEquals(4, dataSet.customerGroups.size, "Expected 4 customer groups")
+        assertEquals(17, dataSet.settings.size, "Expected 17 settings")
+        assertEquals(2, dataSet.customRoles.size, "Expected 2 custom roles")
+        assertEquals(2, dataSet.labelTemplates.size, "Expected 2 label templates")
+        assertEquals(2, dataSet.printerProfiles.size, "Expected 2 printer profiles")
+    }
+
+    @Test
+    fun `DefaultSeedDataSet all warehouse IDs are unique`() {
+        val ids = DefaultSeedDataSet.build().warehouses.map { it.id }
+        assertEquals(ids.size, ids.toSet().size, "Warehouse IDs must be unique")
+    }
+
+    @Test
+    fun `DefaultSeedDataSet all account codes are unique`() {
+        val codes = DefaultSeedDataSet.build().accounts.map { it.accountCode }
+        assertEquals(codes.size, codes.toSet().size, "Account codes must be unique")
+    }
+
+    @Test
+    fun `DefaultSeedDataSet all account IDs are unique`() {
+        val ids = DefaultSeedDataSet.build().accounts.map { it.id }
+        assertEquals(ids.size, ids.toSet().size, "Account IDs must be unique")
+    }
+
+    @Test
+    fun `DefaultSeedDataSet all accounting period IDs are unique`() {
+        val ids = DefaultSeedDataSet.build().accountingPeriods.map { it.id }
+        assertEquals(ids.size, ids.toSet().size, "AccountingPeriod IDs must be unique")
+    }
+
+    @Test
+    fun `DefaultSeedDataSet accounting periods have valid date ranges`() {
+        DefaultSeedDataSet.build().accountingPeriods.forEach { ap ->
+            assertTrue(ap.startDate < ap.endDate, "Period '${ap.periodName}' startDate must be before endDate")
+        }
+    }
+
+    @Test
+    fun `DefaultSeedDataSet all customer group IDs are unique`() {
+        val ids = DefaultSeedDataSet.build().customerGroups.map { it.id }
+        assertEquals(ids.size, ids.toSet().size, "CustomerGroup IDs must be unique")
+    }
+
+    @Test
+    fun `DefaultSeedDataSet customer groups have non-negative discount values`() {
+        DefaultSeedDataSet.build().customerGroups.forEach { cg ->
+            assertTrue(cg.discountValue >= 0.0, "CustomerGroup '${cg.name}' has negative discount")
+        }
+    }
+
+    @Test
+    fun `DefaultSeedDataSet all setting keys are unique`() {
+        val keys = DefaultSeedDataSet.build().settings.map { it.key }
+        assertEquals(keys.size, keys.toSet().size, "Setting keys must be unique")
+    }
+
+    @Test
+    fun `DefaultSeedDataSet all custom role IDs are unique`() {
+        val ids = DefaultSeedDataSet.build().customRoles.map { it.id }
+        assertEquals(ids.size, ids.toSet().size, "CustomRole IDs must be unique")
+    }
+
+    @Test
+    fun `DefaultSeedDataSet custom roles have valid permission names`() {
+        val validPermissions = Permission.entries.map { it.name }.toSet()
+        DefaultSeedDataSet.build().customRoles.forEach { role ->
+            role.permissions.forEach { perm ->
+                assertTrue(perm in validPermissions, "CustomRole '${role.name}' has unknown permission '$perm'")
+            }
+        }
+    }
+
+    @Test
+    fun `DefaultSeedDataSet all label template IDs are unique`() {
+        val ids = DefaultSeedDataSet.build().labelTemplates.map { it.id }
+        assertEquals(ids.size, ids.toSet().size, "LabelTemplate IDs must be unique")
+    }
+
+    @Test
+    fun `DefaultSeedDataSet all printer profile IDs are unique`() {
+        val ids = DefaultSeedDataSet.build().printerProfiles.map { it.id }
+        assertEquals(ids.size, ids.toSet().size, "PrinterProfile IDs must be unique")
+    }
+
+    @Test
+    fun `DefaultSeedDataSet contains all six account types`() {
+        val types = DefaultSeedDataSet.build().accounts.map { it.accountType }.toSet()
+        assertTrue("ASSET" in types, "Expected ASSET accounts")
+        assertTrue("LIABILITY" in types, "Expected LIABILITY accounts")
+        assertTrue("EQUITY" in types, "Expected EQUITY accounts")
+        assertTrue("INCOME" in types, "Expected INCOME accounts")
+        assertTrue("COGS" in types, "Expected COGS accounts")
+        assertTrue("EXPENSE" in types, "Expected EXPENSE accounts")
+    }
+
+    @Test
+    fun `DefaultSeedDataSet has at least one default warehouse`() {
+        val defaults = DefaultSeedDataSet.build().warehouses.count { it.isDefault }
+        assertTrue(defaults >= 1, "Expected at least one default warehouse")
     }
 }

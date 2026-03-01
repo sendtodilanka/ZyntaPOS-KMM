@@ -174,6 +174,138 @@ data class SeedCoupon(
 )
 
 /**
+ * Seed data model for a [com.zyntasolutions.zyntapos.domain.model.Warehouse].
+ */
+@Serializable
+data class SeedWarehouse(
+    val id: String,
+    val storeId: String,
+    val name: String,
+    val managerId: String? = null,
+    val isActive: Boolean = true,
+    val isDefault: Boolean = false,
+    val address: String? = null,
+)
+
+/**
+ * Seed data model for a [com.zyntasolutions.zyntapos.domain.model.Account].
+ *
+ * [accountType] and [normalBalance] are stored as strings matching the
+ * enum names ([AccountType], [NormalBalance]) and parsed in [SeedRunner].
+ */
+@Serializable
+data class SeedAccount(
+    val id: String,
+    val accountCode: String,
+    val accountName: String,
+    val accountType: String,
+    val subCategory: String,
+    val description: String? = null,
+    val normalBalance: String,
+    val parentAccountId: String? = null,
+    val isSystemAccount: Boolean = false,
+    val isHeaderAccount: Boolean = false,
+    val allowTransactions: Boolean = true,
+)
+
+/**
+ * Seed data model for a [com.zyntasolutions.zyntapos.domain.model.AccountingPeriod].
+ *
+ * All seeded periods start in [PeriodStatus.OPEN].
+ */
+@Serializable
+data class SeedAccountingPeriod(
+    val id: String,
+    val periodName: String,
+    val startDate: String,
+    val endDate: String,
+    val fiscalYearStart: String,
+    val isAdjustment: Boolean = false,
+)
+
+/**
+ * Seed data model for a [com.zyntasolutions.zyntapos.domain.model.CustomerGroup].
+ *
+ * [discountType] matches [DiscountType] enum names; [priceType] matches
+ * [CustomerGroup.PriceType] names.
+ */
+@Serializable
+data class SeedCustomerGroup(
+    val id: String,
+    val name: String,
+    val description: String? = null,
+    val discountType: String? = null,
+    val discountValue: Double = 0.0,
+    val priceType: String = "RETAIL",
+)
+
+/**
+ * Seed data model for a key-value setting pair.
+ *
+ * Settings are upserted via [SettingsRepository.set]. Existing values
+ * are skipped to preserve any user-modified configuration.
+ */
+@Serializable
+data class SeedSetting(
+    val key: String,
+    val value: String,
+)
+
+/**
+ * Seed data model for a [com.zyntasolutions.zyntapos.domain.model.CustomRole].
+ *
+ * [permissions] is a list of [Permission] enum names resolved in [SeedRunner].
+ */
+@Serializable
+data class SeedCustomRole(
+    val id: String,
+    val name: String,
+    val description: String = "",
+    val permissions: List<String>,
+)
+
+/**
+ * Seed data model for a [com.zyntasolutions.zyntapos.domain.model.LabelTemplate].
+ *
+ * [paperType] matches [LabelTemplate.PaperType] enum names.
+ */
+@Serializable
+data class SeedLabelTemplate(
+    val id: String,
+    val name: String,
+    val paperType: String = "CONTINUOUS_ROLL",
+    val paperWidthMm: Double = 58.0,
+    val labelHeightMm: Double = 30.0,
+    val columns: Int = 1,
+    val rows: Int = 0,
+    val gapHorizontalMm: Double = 0.0,
+    val gapVerticalMm: Double = 3.0,
+    val marginTopMm: Double = 2.0,
+    val marginBottomMm: Double = 2.0,
+    val marginLeftMm: Double = 2.0,
+    val marginRightMm: Double = 2.0,
+    val isDefault: Boolean = false,
+)
+
+/**
+ * Seed data model for a [com.zyntasolutions.zyntapos.domain.model.PrinterProfile].
+ *
+ * [jobType] matches [PrinterJobType] enum names; [printerType] is a raw
+ * string ("TCP", "SERIAL", "BLUETOOTH", "USB").
+ */
+@Serializable
+data class SeedPrinterProfile(
+    val id: String,
+    val name: String,
+    val jobType: String,
+    val printerType: String,
+    val tcpHost: String = "",
+    val tcpPort: Int = 9100,
+    val paperWidthMm: Int = 80,
+    val isDefault: Boolean = false,
+)
+
+/**
  * Complete seed dataset loaded from JSON files.
  *
  * Extended beyond Phase-1 (categories, suppliers, products, customers) to
@@ -193,4 +325,12 @@ data class SeedDataSet(
     val employees: List<SeedEmployee> = emptyList(),
     val expenses: List<SeedExpense> = emptyList(),
     val coupons: List<SeedCoupon> = emptyList(),
+    val warehouses: List<SeedWarehouse> = emptyList(),
+    val accounts: List<SeedAccount> = emptyList(),
+    val accountingPeriods: List<SeedAccountingPeriod> = emptyList(),
+    val customerGroups: List<SeedCustomerGroup> = emptyList(),
+    val settings: List<SeedSetting> = emptyList(),
+    val customRoles: List<SeedCustomRole> = emptyList(),
+    val labelTemplates: List<SeedLabelTemplate> = emptyList(),
+    val printerProfiles: List<SeedPrinterProfile> = emptyList(),
 )
