@@ -9,14 +9,18 @@ import com.zyntasolutions.zyntapos.domain.model.Order
 import com.zyntasolutions.zyntapos.domain.model.RegisterSession
 import com.zyntasolutions.zyntapos.domain.model.Role
 import com.zyntasolutions.zyntapos.domain.model.User
+import com.zyntasolutions.zyntapos.domain.printer.A4InvoicePrinterPort
 import com.zyntasolutions.zyntapos.domain.printer.ZReportPrinterPort
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
 import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
+import com.zyntasolutions.zyntapos.domain.usecase.auth.CheckPermissionUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.CloseRegisterSessionUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.OpenRegisterSessionUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.register.PrintA4ZReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.PrintZReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.RecordCashMovementUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateSalesReportUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -146,6 +150,8 @@ class RegisterViewModelTest {
         }
 
         override fun getMovements(sessionId: String): Flow<List<CashMovement>> = movementsFlow
+        override suspend fun getSession(sessionId: String): Result<RegisterSession> =
+            Result.Error(DatabaseException("Not used"))
     }
 
     // ── Fake ZReportPrinterPort ───────────────────────────────────────────────
@@ -162,6 +168,12 @@ class RegisterViewModelTest {
     private val recordCashMovementUseCase = RecordCashMovementUseCase(fakeRegisterRepository)
     private val printZReportUseCase = PrintZReportUseCase(fakePrinterPort)
 
+    private val fakeA4PrinterPort = object : A4InvoicePrinterPort {
+        override suspend fun printA4Invoice(order: Order): Result<Unit> = Result.Success(Unit)
+        override suspend fun printA4ZReport(session: RegisterSession): Result<Unit> = Result.Success(Unit)
+        override suspend fun printA4SalesReport(report: GenerateSalesReportUseCase.SalesReport): Result<Unit> = Result.Success(Unit)
+    }
+
     private lateinit var viewModel: RegisterViewModel
 
     @BeforeTest
@@ -173,6 +185,11 @@ class RegisterViewModelTest {
         shouldFailClose = false
         shouldFailCashMovement = false
         shouldFailPrint = false
+
+        val sessionFlow = MutableStateFlow<User?>(null)
+        val checkPermissionUseCase = CheckPermissionUseCase(sessionFlow)
+        val printA4ZReportUseCase = PrintA4ZReportUseCase(fakeRegisterRepository, fakeA4PrinterPort, checkPermissionUseCase)
+
         viewModel = RegisterViewModel(
             registerRepository = fakeRegisterRepository,
             orderRepository = fakeOrderRepository,
@@ -180,6 +197,7 @@ class RegisterViewModelTest {
             closeRegisterSessionUseCase = closeRegisterSessionUseCase,
             recordCashMovementUseCase = recordCashMovementUseCase,
             printZReportUseCase = printZReportUseCase,
+            printA4ZReportUseCase = printA4ZReportUseCase,
             authRepository = fakeAuthRepository,
         )
     }

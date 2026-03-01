@@ -6,6 +6,11 @@ import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.User
 import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.domain.repository.UserRepository
+import com.zyntasolutions.zyntapos.domain.model.Account
+import com.zyntasolutions.zyntapos.domain.model.AccountBalance
+import com.zyntasolutions.zyntapos.domain.model.AccountType
+import com.zyntasolutions.zyntapos.domain.repository.AccountRepository
+import com.zyntasolutions.zyntapos.domain.usecase.accounting.SeedDefaultChartOfAccountsUseCase
 import com.zyntasolutions.zyntapos.feature.onboarding.mvi.OnboardingEffect
 import com.zyntasolutions.zyntapos.feature.onboarding.mvi.OnboardingIntent
 import com.zyntasolutions.zyntapos.feature.onboarding.mvi.OnboardingState
@@ -83,6 +88,24 @@ class OnboardingViewModelTest {
         override suspend fun deactivate(userId: String): Result<Unit> = Result.Success(Unit)
     }
 
+    // ── Fake accounting repository ─────────────────────────────────────────────
+
+    private val fakeAccountRepository = object : AccountRepository {
+        override fun getAll(storeId: String): Flow<List<Account>> = MutableStateFlow(emptyList())
+        override fun getByType(storeId: String, accountType: AccountType): Flow<List<Account>> = MutableStateFlow(emptyList())
+        override suspend fun getById(id: String): Result<Account?> = Result.Success(null)
+        override suspend fun getByCode(storeId: String, accountCode: String): Result<Account?> = Result.Success(null)
+        override suspend fun getBalance(accountId: String, periodId: String): Result<AccountBalance?> = Result.Success(null)
+        override fun getAllBalances(storeId: String, periodId: String): Flow<List<AccountBalance>> = MutableStateFlow(emptyList())
+        override suspend fun create(account: Account): Result<Unit> = Result.Success(Unit)
+        override suspend fun update(account: Account): Result<Unit> = Result.Success(Unit)
+        override suspend fun deactivate(id: String, updatedAt: Long): Result<Unit> = Result.Success(Unit)
+        override suspend fun isAccountCodeTaken(storeId: String, code: String, excludeId: String?): Result<Boolean> = Result.Success(false)
+        override suspend fun seedDefaultAccounts(accounts: List<Account>): Result<Unit> = Result.Success(Unit)
+    }
+
+    private val seedChartOfAccountsUseCase = SeedDefaultChartOfAccountsUseCase(fakeAccountRepository)
+
     private lateinit var viewModel: OnboardingViewModel
 
     @BeforeTest
@@ -95,6 +118,7 @@ class OnboardingViewModelTest {
         viewModel = OnboardingViewModel(
             userRepository = fakeUserRepository,
             settingsRepository = fakeSettingsRepository,
+            seedChartOfAccountsUseCase = seedChartOfAccountsUseCase,
         )
     }
 

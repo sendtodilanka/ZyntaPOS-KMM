@@ -39,7 +39,7 @@ class PrinterStatusMonitorTest {
     @Test
     fun `initial status is all-false`() = runTest(UnconfinedTestDispatcher()) {
         val port = FakePrinterPort()
-        val monitor = PrinterStatusMonitor(port, this)
+        val monitor = PrinterStatusMonitor(port, backgroundScope)
 
         val status = monitor.statusState.value
         assertFalse(status.isOnline)
@@ -54,7 +54,7 @@ class PrinterStatusMonitorTest {
     @Test
     fun `Online event sets isOnline to true`() = runTest(UnconfinedTestDispatcher()) {
         val port = FakePrinterPort()
-        val monitor = PrinterStatusMonitor(port, this)
+        val monitor = PrinterStatusMonitor(port, backgroundScope)
 
         port.eventBus.emit(PrinterStatusEvent.Online)
 
@@ -64,7 +64,7 @@ class PrinterStatusMonitorTest {
     @Test
     fun `Offline event sets isOnline to false`() = runTest(UnconfinedTestDispatcher()) {
         val port = FakePrinterPort()
-        val monitor = PrinterStatusMonitor(port, this)
+        val monitor = PrinterStatusMonitor(port, backgroundScope)
 
         port.eventBus.emit(PrinterStatusEvent.Online)
         port.eventBus.emit(PrinterStatusEvent.Offline)
@@ -77,7 +77,7 @@ class PrinterStatusMonitorTest {
     @Test
     fun `PaperOut event sets isPaperOut to true`() = runTest(UnconfinedTestDispatcher()) {
         val port = FakePrinterPort()
-        val monitor = PrinterStatusMonitor(port, this)
+        val monitor = PrinterStatusMonitor(port, backgroundScope)
 
         port.eventBus.emit(PrinterStatusEvent.PaperOut)
 
@@ -87,7 +87,7 @@ class PrinterStatusMonitorTest {
     @Test
     fun `PaperLow event sets isPaperLow to true`() = runTest(UnconfinedTestDispatcher()) {
         val port = FakePrinterPort()
-        val monitor = PrinterStatusMonitor(port, this)
+        val monitor = PrinterStatusMonitor(port, backgroundScope)
 
         port.eventBus.emit(PrinterStatusEvent.PaperLow)
 
@@ -97,7 +97,7 @@ class PrinterStatusMonitorTest {
     @Test
     fun `Online event clears paper-out state`() = runTest(UnconfinedTestDispatcher()) {
         val port = FakePrinterPort()
-        val monitor = PrinterStatusMonitor(port, this)
+        val monitor = PrinterStatusMonitor(port, backgroundScope)
 
         port.eventBus.emit(PrinterStatusEvent.PaperOut)
         port.eventBus.emit(PrinterStatusEvent.Online)
@@ -114,7 +114,7 @@ class PrinterStatusMonitorTest {
     @Test
     fun `CoverOpen event sets isCoverOpen to true`() = runTest(UnconfinedTestDispatcher()) {
         val port = FakePrinterPort()
-        val monitor = PrinterStatusMonitor(port, this)
+        val monitor = PrinterStatusMonitor(port, backgroundScope)
 
         port.eventBus.emit(PrinterStatusEvent.CoverOpen)
 
@@ -124,7 +124,7 @@ class PrinterStatusMonitorTest {
     @Test
     fun `CoverClosed event clears isCoverOpen`() = runTest(UnconfinedTestDispatcher()) {
         val port = FakePrinterPort()
-        val monitor = PrinterStatusMonitor(port, this)
+        val monitor = PrinterStatusMonitor(port, backgroundScope)
 
         port.eventBus.emit(PrinterStatusEvent.CoverOpen)
         port.eventBus.emit(PrinterStatusEvent.CoverClosed)
@@ -137,7 +137,7 @@ class PrinterStatusMonitorTest {
     @Test
     fun `DrawerOpen event sets isDrawerOpen to true`() = runTest(UnconfinedTestDispatcher()) {
         val port = FakePrinterPort()
-        val monitor = PrinterStatusMonitor(port, this)
+        val monitor = PrinterStatusMonitor(port, backgroundScope)
 
         port.eventBus.emit(PrinterStatusEvent.DrawerOpen)
 
@@ -147,7 +147,7 @@ class PrinterStatusMonitorTest {
     @Test
     fun `DrawerClosed event clears isDrawerOpen`() = runTest(UnconfinedTestDispatcher()) {
         val port = FakePrinterPort()
-        val monitor = PrinterStatusMonitor(port, this)
+        val monitor = PrinterStatusMonitor(port, backgroundScope)
 
         port.eventBus.emit(PrinterStatusEvent.DrawerOpen)
         port.eventBus.emit(PrinterStatusEvent.DrawerClosed)
@@ -160,7 +160,7 @@ class PrinterStatusMonitorTest {
     @Test
     fun `multiple events accumulate correctly`() = runTest(UnconfinedTestDispatcher()) {
         val port = FakePrinterPort()
-        val monitor = PrinterStatusMonitor(port, this)
+        val monitor = PrinterStatusMonitor(port, backgroundScope)
 
         port.eventBus.emit(PrinterStatusEvent.Online)
         port.eventBus.emit(PrinterStatusEvent.PaperLow)
@@ -179,7 +179,7 @@ class PrinterStatusMonitorTest {
     @Test
     fun `statusState emits updated value after event`() = runTest(UnconfinedTestDispatcher()) {
         val port = FakePrinterPort()
-        val monitor = PrinterStatusMonitor(port, this)
+        val monitor = PrinterStatusMonitor(port, backgroundScope)
 
         port.eventBus.emit(PrinterStatusEvent.PaperOut)
 
