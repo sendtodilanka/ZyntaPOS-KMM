@@ -1102,5 +1102,360 @@
       "email": "",
       "loyaltyPoints": 560
     }
+  ],
+
+  "units": [
+    { "id": "unit-pcs", "name": "Pieces", "abbreviation": "pcs", "isBaseUnit": true, "conversionRate": 1.0 },
+    { "id": "unit-kg", "name": "Kilogram", "abbreviation": "kg", "isBaseUnit": true, "conversionRate": 1.0 },
+    { "id": "unit-g", "name": "Gram", "abbreviation": "g", "isBaseUnit": false, "conversionRate": 0.001 },
+    { "id": "unit-l", "name": "Litre", "abbreviation": "L", "isBaseUnit": true, "conversionRate": 1.0 },
+    { "id": "unit-ml", "name": "Millilitre", "abbreviation": "ml", "isBaseUnit": false, "conversionRate": 0.001 },
+    { "id": "unit-pack", "name": "Pack", "abbreviation": "pk", "isBaseUnit": false, "conversionRate": 1.0 },
+    { "id": "unit-box", "name": "Box", "abbreviation": "box", "isBaseUnit": false, "conversionRate": 12.0 },
+    { "id": "unit-dozen", "name": "Dozen", "abbreviation": "dz", "isBaseUnit": false, "conversionRate": 12.0 },
+    { "id": "unit-bottle", "name": "Bottle", "abbreviation": "btl", "isBaseUnit": false, "conversionRate": 1.0 },
+    { "id": "unit-bag", "name": "Bag", "abbreviation": "bag", "isBaseUnit": false, "conversionRate": 1.0 }
+  ],
+
+  "taxGroups": [
+    { "id": "seed-tax-001", "name": "VAT 15%", "rate": 15.0, "isInclusive": false },
+    { "id": "seed-tax-002", "name": "VAT 8%", "rate": 8.0, "isInclusive": false },
+    { "id": "seed-tax-003", "name": "Zero Rated", "rate": 0.0, "isInclusive": false },
+    { "id": "seed-tax-004", "name": "Service Charge 10%", "rate": 10.0, "isInclusive": true },
+    { "id": "seed-tax-005", "name": "SSCL 2.5%", "rate": 2.5, "isInclusive": false }
+  ],
+
+  "users": [
+    {
+      "id": "seed-user-001",
+      "name": "Kamal Perera",
+      "email": "admin@zyntapos.demo",
+      "role": "ADMIN",
+      "storeId": "seed-store-001",
+      "plainPassword": "Admin@1234"
+    },
+    {
+      "id": "seed-user-002",
+      "name": "Nimal Fernando",
+      "email": "manager@zyntapos.demo",
+      "role": "STORE_MANAGER",
+      "storeId": "seed-store-001",
+      "plainPassword": "Manager@1234"
+    },
+    {
+      "id": "seed-user-003",
+      "name": "Sunil Rajapaksha",
+      "email": "cashier1@zyntapos.demo",
+      "role": "CASHIER",
+      "storeId": "seed-store-001",
+      "plainPassword": "Cashier@1234"
+    },
+    {
+      "id": "seed-user-004",
+      "name": "Kumari Siriwardena",
+      "email": "cashier2@zyntapos.demo",
+      "role": "CASHIER",
+      "storeId": "seed-store-001",
+      "plainPassword": "Cashier@1234"
+    },
+    {
+      "id": "seed-user-005",
+      "name": "Ruwan Jayasekara",
+      "email": "accountant@zyntapos.demo",
+      "role": "ACCOUNTANT",
+      "storeId": "seed-store-001",
+      "plainPassword": "Account@1234"
+    },
+    {
+      "id": "seed-user-006",
+      "name": "Mahinda Wijesinghe",
+      "email": "stock@zyntapos.demo",
+      "role": "STOCK_MANAGER",
+      "storeId": "seed-store-001",
+      "plainPassword": "Stock@1234"
+    }
+  ],
+
+  "cashRegisters": [
+    { "id": "seed-reg-001", "name": "Counter 1", "storeId": "seed-store-001" },
+    { "id": "seed-reg-002", "name": "Counter 2", "storeId": "seed-store-001" },
+    { "id": "seed-reg-003", "name": "Drive-Through", "storeId": "seed-store-001" }
+  ],
+
+  "expenseCategories": [
+    { "id": "seed-excat-001", "name": "Rent", "description": "Monthly rent for store premises" },
+    { "id": "seed-excat-002", "name": "Utilities", "description": "Electricity, water, internet bills" },
+    { "id": "seed-excat-003", "name": "Salaries", "description": "Staff salary payments" },
+    { "id": "seed-excat-004", "name": "Transport", "description": "Delivery and logistics costs" },
+    { "id": "seed-excat-005", "name": "Maintenance", "description": "Equipment repair and building maintenance" },
+    { "id": "seed-excat-006", "name": "Office Supplies", "description": "Stationery, printer ink, paper" },
+    { "id": "seed-excat-007", "name": "Marketing", "description": "Advertising and promotional costs" },
+    { "id": "seed-excat-008", "name": "Insurance", "description": "Business and property insurance premiums" }
+  ],
+
+  "employees": [
+    {
+      "id": "seed-emp-001",
+      "storeId": "seed-store-001",
+      "firstName": "Sunil",
+      "lastName": "Rajapaksha",
+      "email": "cashier1@zyntapos.demo",
+      "phone": "+94711234501",
+      "hireDate": "2024-03-15",
+      "department": "Sales",
+      "position": "Senior Cashier",
+      "salary": 45000.0,
+      "salaryType": "MONTHLY"
+    },
+    {
+      "id": "seed-emp-002",
+      "storeId": "seed-store-001",
+      "firstName": "Kumari",
+      "lastName": "Siriwardena",
+      "email": "cashier2@zyntapos.demo",
+      "phone": "+94711234502",
+      "hireDate": "2024-06-01",
+      "department": "Sales",
+      "position": "Cashier",
+      "salary": 38000.0,
+      "salaryType": "MONTHLY"
+    },
+    {
+      "id": "seed-emp-003",
+      "storeId": "seed-store-001",
+      "firstName": "Nimal",
+      "lastName": "Fernando",
+      "email": "manager@zyntapos.demo",
+      "phone": "+94711234503",
+      "hireDate": "2023-01-10",
+      "department": "Management",
+      "position": "Store Manager",
+      "salary": 75000.0,
+      "salaryType": "MONTHLY"
+    },
+    {
+      "id": "seed-emp-004",
+      "storeId": "seed-store-001",
+      "firstName": "Ruwan",
+      "lastName": "Jayasekara",
+      "email": "accountant@zyntapos.demo",
+      "phone": "+94711234504",
+      "hireDate": "2023-06-20",
+      "department": "Finance",
+      "position": "Accountant",
+      "salary": 55000.0,
+      "salaryType": "MONTHLY"
+    },
+    {
+      "id": "seed-emp-005",
+      "storeId": "seed-store-001",
+      "firstName": "Mahinda",
+      "lastName": "Wijesinghe",
+      "email": "stock@zyntapos.demo",
+      "phone": "+94711234505",
+      "hireDate": "2024-01-05",
+      "department": "Warehouse",
+      "position": "Stock Manager",
+      "salary": 42000.0,
+      "salaryType": "MONTHLY"
+    },
+    {
+      "id": "seed-emp-006",
+      "storeId": "seed-store-001",
+      "firstName": "Pradeep",
+      "lastName": "Kannangara",
+      "phone": "+94711234506",
+      "hireDate": "2024-09-01",
+      "department": "Sales",
+      "position": "Part-time Helper",
+      "salary": 250.0,
+      "salaryType": "DAILY"
+    },
+    {
+      "id": "seed-emp-007",
+      "storeId": "seed-store-001",
+      "firstName": "Anoma",
+      "lastName": "Gunawardena",
+      "phone": "+94711234507",
+      "hireDate": "2024-04-15",
+      "department": "Sales",
+      "position": "Cashier",
+      "salary": 35000.0,
+      "salaryType": "MONTHLY"
+    },
+    {
+      "id": "seed-emp-008",
+      "storeId": "seed-store-001",
+      "firstName": "Chaminda",
+      "lastName": "Ranasinghe",
+      "phone": "+94711234508",
+      "hireDate": "2023-08-01",
+      "department": "Logistics",
+      "position": "Delivery Driver",
+      "salary": 40000.0,
+      "salaryType": "MONTHLY"
+    }
+  ],
+
+  "expenses": [
+    {
+      "id": "seed-exp-001",
+      "storeId": "seed-store-001",
+      "categoryId": "seed-excat-001",
+      "amount": 85000.0,
+      "description": "Monthly rent - February 2026",
+      "expenseDate": 1738368000000,
+      "status": "APPROVED",
+      "createdBy": "seed-user-002"
+    },
+    {
+      "id": "seed-exp-002",
+      "storeId": "seed-store-001",
+      "categoryId": "seed-excat-002",
+      "amount": 12500.0,
+      "description": "Electricity bill - January 2026",
+      "expenseDate": 1737763200000,
+      "status": "APPROVED",
+      "createdBy": "seed-user-002"
+    },
+    {
+      "id": "seed-exp-003",
+      "storeId": "seed-store-001",
+      "categoryId": "seed-excat-002",
+      "amount": 4800.0,
+      "description": "Water bill - January 2026",
+      "expenseDate": 1737763200000,
+      "status": "APPROVED",
+      "createdBy": "seed-user-002"
+    },
+    {
+      "id": "seed-exp-004",
+      "storeId": "seed-store-001",
+      "categoryId": "seed-excat-004",
+      "amount": 8500.0,
+      "description": "Delivery van fuel - January 2026",
+      "expenseDate": 1738108800000,
+      "status": "APPROVED",
+      "createdBy": "seed-user-003"
+    },
+    {
+      "id": "seed-exp-005",
+      "storeId": "seed-store-001",
+      "categoryId": "seed-excat-005",
+      "amount": 15000.0,
+      "description": "Refrigerator repair",
+      "expenseDate": 1738195200000,
+      "status": "PENDING",
+      "createdBy": "seed-user-003"
+    },
+    {
+      "id": "seed-exp-006",
+      "storeId": "seed-store-001",
+      "categoryId": "seed-excat-006",
+      "amount": 3200.0,
+      "description": "Receipt paper rolls and ink cartridge",
+      "expenseDate": 1738281600000,
+      "status": "APPROVED",
+      "createdBy": "seed-user-002"
+    },
+    {
+      "id": "seed-exp-007",
+      "storeId": "seed-store-001",
+      "categoryId": "seed-excat-007",
+      "amount": 25000.0,
+      "description": "Avurudu season promotional flyers",
+      "expenseDate": 1738368000000,
+      "status": "PENDING",
+      "createdBy": "seed-user-002"
+    },
+    {
+      "id": "seed-exp-008",
+      "storeId": "seed-store-001",
+      "categoryId": "seed-excat-002",
+      "amount": 6500.0,
+      "description": "Internet service - February 2026",
+      "expenseDate": 1738368000000,
+      "status": "APPROVED",
+      "createdBy": "seed-user-005"
+    },
+    {
+      "id": "seed-exp-009",
+      "storeId": "seed-store-001",
+      "categoryId": "seed-excat-008",
+      "amount": 45000.0,
+      "description": "Annual business insurance premium",
+      "expenseDate": 1738368000000,
+      "status": "APPROVED",
+      "createdBy": "seed-user-001"
+    },
+    {
+      "id": "seed-exp-010",
+      "storeId": "seed-store-001",
+      "categoryId": "seed-excat-005",
+      "amount": 7500.0,
+      "description": "CCTV camera replacement",
+      "expenseDate": 1738454400000,
+      "status": "REJECTED",
+      "createdBy": "seed-user-003"
+    }
+  ],
+
+  "coupons": [
+    {
+      "id": "seed-coup-001",
+      "code": "WELCOME10",
+      "name": "New Customer Welcome 10%",
+      "discountType": "PERCENT",
+      "discountValue": 10.0,
+      "minimumPurchase": 500.0,
+      "maximumDiscount": 200.0,
+      "usageLimit": 100,
+      "validFrom": 1704067200000,
+      "validTo": 1767225600000
+    },
+    {
+      "id": "seed-coup-002",
+      "code": "AVURUDU25",
+      "name": "Avurudu Season 25% Off",
+      "discountType": "PERCENT",
+      "discountValue": 25.0,
+      "minimumPurchase": 2000.0,
+      "maximumDiscount": 1000.0,
+      "usageLimit": 50,
+      "validFrom": 1744502400000,
+      "validTo": 1745107200000
+    },
+    {
+      "id": "seed-coup-003",
+      "code": "FLAT100",
+      "name": "Flat Rs.100 Off",
+      "discountType": "FIXED",
+      "discountValue": 100.0,
+      "minimumPurchase": 1000.0,
+      "validFrom": 1704067200000,
+      "validTo": 1767225600000
+    },
+    {
+      "id": "seed-coup-004",
+      "code": "LOYAL500",
+      "name": "Loyalty Members Rs.500 Off",
+      "discountType": "FIXED",
+      "discountValue": 500.0,
+      "minimumPurchase": 5000.0,
+      "usageLimit": 200,
+      "validFrom": 1704067200000,
+      "validTo": 1767225600000
+    },
+    {
+      "id": "seed-coup-005",
+      "code": "WEEKEND15",
+      "name": "Weekend Special 15%",
+      "discountType": "PERCENT",
+      "discountValue": 15.0,
+      "minimumPurchase": 1500.0,
+      "maximumDiscount": 500.0,
+      "validFrom": 1704067200000,
+      "validTo": 1767225600000
+    }
   ]
 }

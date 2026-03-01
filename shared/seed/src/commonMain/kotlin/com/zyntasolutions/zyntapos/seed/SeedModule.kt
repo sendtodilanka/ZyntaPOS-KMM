@@ -28,6 +28,10 @@ val seedModule = module {
     /**
      * [SeedRunner] singleton — wired to production repository interfaces
      * so it exercises the full data stack (SQLDelight DAOs, sync enqueue, etc.).
+     *
+     * New repositories (unitGroup, taxGroup, user, register, expense, employee, coupon)
+     * are injected with `getOrNull()` so the runner gracefully degrades when
+     * any of these repositories are not yet registered in the DI graph.
      */
     single {
         SeedRunner(
@@ -35,6 +39,13 @@ val seedModule = module {
             supplierRepository = get(),
             productRepository = get(),
             customerRepository = get(),
+            unitGroupRepository = getOrNull(),
+            taxGroupRepository = getOrNull(),
+            userRepository = getOrNull(),
+            registerRepository = getOrNull(),
+            expenseRepository = getOrNull(),
+            employeeRepository = getOrNull(),
+            couponRepository = getOrNull(),
         )
     }
 }
