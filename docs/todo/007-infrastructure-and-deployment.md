@@ -111,6 +111,8 @@ CNAME   @         zyntapos-site.pages.dev        300
 
 **Recommendation:** Astro for the marketing site. It's static (cacheable on CDN), fast, and a marketing site doesn't need SSR complexity. Deploy to Cloudflare Pages for free (separate from VPS entirely).
 
+> **SEO/ASO:** Once the Astro site is deployed (Step 11 of Implementation Order), follow **[TODO-008](008-seo-and-aso.md)** for the full SEO specification — Schema.org JSON-LD, Core Web Vitals, Open Graph, Google Search Console setup, and Google Play Store ASO. TODO-008 depends on this step.
+
 ### Admin Panel (panel.zyntapos.com)
 
 | Option | Pros | Cons |
