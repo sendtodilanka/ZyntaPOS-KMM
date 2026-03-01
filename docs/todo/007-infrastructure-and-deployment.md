@@ -629,17 +629,34 @@ The deploy workflow is defined in `.github/workflows/deploy.yml` (already added 
 
 ## Validation Checklist
 
-- [ ] VPN and POS services on separate VPS instances
-- [ ] All subdomains configured with auto-HTTPS
-- [ ] Docker Compose running: Caddy, API, Sync, Panel, PostgreSQL, Redis
-- [ ] License system: generate, activate, heartbeat, expire
-- [ ] Offline grace period (7-day warning, 14-day read-only)
-- [ ] JWT RS256 authentication working
-- [ ] Rate limiting active on all API endpoints
+### Infrastructure
+- [ ] VPN (Lightsail) and POS services (Contabo) on separate VPS instances
+- [ ] Namecheap nameservers pointing to Cloudflare (verify: `dig NS zyntapos.com`)
+- [ ] All A records in Cloudflare pointing to Contabo VPS IP
+- [ ] Cloudflare SSL/TLS mode set to Full (Strict)
+- [ ] Cloudflare Origin Certificate installed on VPS at `/etc/caddy/certs/`
+- [ ] ufw firewall active: only ports 80, 443, and SSH port open
+- [ ] SSH hardened: key-only auth, Fail2ban active, non-default port
+- [ ] Docker Compose running: Caddy, API, License, Sync, Panel, PostgreSQL, Redis
+
+### Deploy Access
+- [ ] `deploy` user created with docker-only sudo
+- [ ] SSH public key installed for `deploy` user
+- [ ] `ssh zyntapos-vps "echo ok"` works from local machine
+- [ ] GitHub Actions secrets configured: VPS_HOST, VPS_USER, VPS_PORT, DEPLOY_SSH_PRIVATE_KEY
+- [ ] GitHub Actions deploy workflow green on push to `main`
+
+### Services
+- [ ] License system: generate, activate, heartbeat, expire all working
+- [ ] Offline grace period enforced (7-day warning, 14-day read-only)
+- [ ] JWT RS256 authentication working (private key in Docker secret, public key in KMM app)
+- [ ] Rate limiting active on all API endpoints (Redis-backed)
 - [ ] Sync engine: push/pull operations between POS app and server
-- [ ] Panel: license management, deployment health, helpdesk
+- [ ] Panel: license management, deployment health, helpdesk views working
 - [ ] Remote diagnostic WebSocket relay functional
-- [ ] Monitoring: uptime checks, error tracking, status page
-- [ ] Automated backups: Lightsail snapshots + pg_dump
-- [ ] SSH hardened: key-only, Fail2ban, non-default port
-- [ ] Marketing website live on Cloudflare Pages
+
+### Reliability
+- [ ] Monitoring: Uptime Kuma alerts configured, Sentry DSN active
+- [ ] Automated backup: `pg_dump` cron job running, test restore verified
+- [ ] Backblaze B2 bucket receiving daily backups
+- [ ] Marketing website live on Cloudflare Pages (zyntapos.com)
