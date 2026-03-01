@@ -3593,3 +3593,39 @@ Two compile errors blocked `:shared:domain:assemble`. Both were identified via `
 | G5.1 | 17 raw CircularProgressIndicator | 🟡 LOW | 🔁 DEFERRED (UX sprint) |
 
 **Result: 17/18 items resolved. 1 cosmetic item deferred. Health score: 7/10 → 9/10.**
+
+---
+
+## ✅ TODO-001 & TODO-002 — Single Admin Account Management + SignUp Removal (2026-03-01)
+
+**Commit:** `feat(auth): implement single admin account management (TODO-001)`
+**Branch:** `claude/setup-android-build-env-bu2pQ`
+**ADR:** ADR-005
+
+### Changes Implemented
+
+- [x] TODO-001-1 — Add `isSystemAdmin: Boolean = false` to `User` domain model
+- [x] TODO-001-2 — Add `getSystemAdmin()`, `adminExists()`, `transferSystemAdmin()` to `UserRepository` interface + `UserRepositoryImpl`
+- [x] TODO-001-3 — Add `is_system_admin` column to SQLDelight `users.sq`; add `getSystemAdmin` / `clearAllSystemAdmin` / `setSystemAdmin` queries
+- [x] TODO-001-4 — Create DB migration `7.sqm` with `ALTER TABLE` + backfill `UPDATE`
+- [x] TODO-001-5 — Update `UserMapper` — `toDomain()` and `toInsertParams()` handle `isSystemAdmin`
+- [x] TODO-001-6 — Set `isSystemAdmin = true` in `OnboardingViewModel` for first admin
+- [x] TODO-001-7 — Guard `SettingsViewModel.saveUser()` against ADMIN creation
+- [x] TODO-001-8 — Filter `Role.ADMIN` from role dropdown in `UserManagementScreen`
+- [x] TODO-002-1 — Delete `SignUpScreen.kt`, `SignUpViewModel.kt`, `SignUpViewModelTest.kt`
+- [x] TODO-002-2 — Remove `ZyntaRoute.SignUp` from `ZyntaRoute.kt`
+- [x] TODO-002-3 — Remove SignUp composable from `AuthNavGraph.kt`
+- [x] TODO-002-4 — Remove `signUpScreen` param from `ZyntaNavGraph.kt` and `App.kt`
+- [x] TODO-002-5 — Remove Sign Up button from `LoginScreen.kt`
+- [x] TODO-002-6 — Remove `SignUpViewModel` from `AuthModule.kt`
+- [x] NEW — Add `GetSystemAdminUseCase`, `TransferSystemAdminUseCase`, `EnsureSystemAdminGuardUseCase`
+- [x] NEW — Add matching tests for all three use cases
+- [x] NEW — Fix `SettingsViewModelTest`, `SeedRunnerExpansionTest`, `AuthRepositoryImplIntegrationTest` to compile with new interface methods
+
+### Quality Gates
+
+- ✅ Coding style gate — matched existing conventions in all touched files
+- ✅ Reuse gate — used `FakeUserRepository`, `BaseViewModel`, `Result<T>` patterns; no reinvention
+- ✅ Architecture gate — domain → data → presentation; MVI; ADR-001/002/003 compliant
+- ✅ Green tests gate — zero failures
+- ✅ Build gate — Android APK + Desktop JAR both succeeded

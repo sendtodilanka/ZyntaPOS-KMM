@@ -1,6 +1,8 @@
 # TODO-001: Single Admin Account Management
 
-**Status:** Pending
+**Status:** Completed
+**Completed:** 2026-03-01
+**ADR:** ADR-005
 **Priority:** HIGH — Immediate security gap
 **Phase:** Phase 1 (MVP)
 **Created:** 2026-03-01
@@ -105,11 +107,11 @@ override suspend fun createUser(user: User): Result<User> {
 
 ## Validation Checklist
 
-- [ ] Onboarding creates admin with `isSystemAdmin = true`
-- [ ] User management form excludes ADMIN from role dropdown
-- [ ] Repository layer rejects ADMIN creation if one already exists
-- [ ] SignUp screen and route removed
-- [ ] Login screen no longer shows "Sign Up" link
-- [ ] SQLDelight schema includes `is_system_admin` column
-- [ ] Existing tests updated
-- [ ] New test: verify ADMIN creation blocked after onboarding
+- [x] Onboarding creates admin with `isSystemAdmin = true`
+- [x] User management form excludes ADMIN from role dropdown
+- [x] Repository layer rejects ADMIN creation if one already exists
+- [x] SignUp screen and route removed
+- [x] Login screen no longer shows "Sign Up" link
+- [x] SQLDelight schema includes `is_system_admin` column
+- [x] Existing tests updated
+- [x] New test: verify ADMIN creation blocked after onboarding

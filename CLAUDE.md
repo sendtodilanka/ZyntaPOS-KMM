@@ -37,7 +37,7 @@ ZyntaPOS-KMM/
 ├── tools/
 │   └── debug/                         # In-app 6-tab developer console
 ├── docs/
-│   ├── adr/                           # Architecture Decision Records (ADR-001 … ADR-004)
+│   ├── adr/                           # Architecture Decision Records (ADR-001 … ADR-005)
 │   ├── architecture/                  # Diagrams and module dependency graphs
 │   ├── audit/                         # Phase 1–4 audit reports
 │   └── ai_workflows/                  # AI execution logs
@@ -505,6 +505,7 @@ All structural decisions are documented in `docs/adr/`. Create a new ADR before 
 | ADR-002 | Domain Model Naming — no `*Entity` suffix in `:shared:domain` | ACCEPTED |
 | ADR-003 | `SecurePreferences` Interface Consolidation — canonical in `:shared:security` only | ACCEPTED |
 | ADR-004 | Keystore Token Scaffold Removal — use `TokenStorage` interface | ACCEPTED |
+| ADR-005 | Single Admin Account Management — one ADMIN via `isSystemAdmin` flag; SignUp removed | ACCEPTED |
 
 ---
 
@@ -547,7 +548,6 @@ sealed class ZyntaRoute {
 
     // Auth
     data object Login : ZyntaRoute()
-    data object SignUp : ZyntaRoute()
     data object PinLock : ZyntaRoute()
 
     // Main
