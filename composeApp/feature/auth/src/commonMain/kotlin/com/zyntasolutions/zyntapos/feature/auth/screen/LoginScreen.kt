@@ -56,7 +56,6 @@ fun LoginScreen(
     viewModel: AuthViewModel = koinViewModel(),
     onNavigateToDashboard: () -> Unit = {},
     onNavigateToRegisterGuard: () -> Unit = {},
-    onNavigateToSignUp: () -> Unit = {},
     windowSize: WindowSize = currentWindowSize(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -82,13 +81,11 @@ fun LoginScreen(
             WindowSize.EXPANDED -> ExpandedLoginLayout(
                 state = state,
                 onIntent = viewModel::dispatch,
-                onNavigateToSignUp = onNavigateToSignUp,
                 modifier = Modifier.padding(padding),
             )
             else -> CompactLoginLayout(
                 state = state,
                 onIntent = viewModel::dispatch,
-                onNavigateToSignUp = onNavigateToSignUp,
                 modifier = Modifier.padding(padding),
             )
         }
@@ -103,7 +100,6 @@ fun LoginScreen(
 private fun ExpandedLoginLayout(
     state: AuthState,
     onIntent: (AuthIntent) -> Unit,
-    onNavigateToSignUp: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     ZyntaSplitPane(
@@ -123,7 +119,6 @@ private fun ExpandedLoginLayout(
                     LoginFormContent(
                         state = state,
                         onIntent = onIntent,
-                        onNavigateToSignUp = onNavigateToSignUp,
                         modifier = Modifier.padding(ZyntaSpacing.xl),
                     )
                 }
@@ -140,7 +135,6 @@ private fun ExpandedLoginLayout(
 private fun CompactLoginLayout(
     state: AuthState,
     onIntent: (AuthIntent) -> Unit,
-    onNavigateToSignUp: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(
@@ -164,7 +158,6 @@ private fun CompactLoginLayout(
                 LoginFormContent(
                     state = state,
                     onIntent = onIntent,
-                    onNavigateToSignUp = onNavigateToSignUp,
                     modifier = Modifier.padding(ZyntaSpacing.lg),
                 )
             }
@@ -180,7 +173,6 @@ private fun CompactLoginLayout(
 private fun LoginFormContent(
     state: AuthState,
     onIntent: (AuthIntent) -> Unit,
-    onNavigateToSignUp: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
@@ -279,21 +271,6 @@ private fun LoginFormContent(
             modifier = Modifier.fillMaxWidth(),
         )
 
-        Spacer(Modifier.height(ZyntaSpacing.md))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "Don't have an account?",
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            TextButton(onClick = onNavigateToSignUp) {
-                Text("Sign Up")
-            }
-        }
     }
 }
 

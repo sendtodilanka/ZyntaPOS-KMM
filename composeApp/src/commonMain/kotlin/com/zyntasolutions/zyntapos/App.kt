@@ -20,7 +20,6 @@ import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.feature.auth.screen.LoginScreen
 import com.zyntasolutions.zyntapos.feature.auth.screen.PinLockScreen
-import com.zyntasolutions.zyntapos.feature.auth.screen.SignUpScreen
 import com.zyntasolutions.zyntapos.feature.dashboard.screen.DashboardScreen
 import com.zyntasolutions.zyntapos.feature.onboarding.OnboardingViewModel
 import com.zyntasolutions.zyntapos.feature.onboarding.screen.OnboardingScreen
@@ -179,16 +178,9 @@ fun App() {
                 isSessionActive = isSessionActive,
                 userRole = userRole,
                 screens = buildMainNavScreens(isDebug = appInfoProvider.isDebug),
-                loginScreen = { onLoginSuccess, onNavigateToSignUp ->
+                loginScreen = { onLoginSuccess ->
                     LoginScreen(
                         onNavigateToDashboard = onLoginSuccess,
-                        onNavigateToSignUp = onNavigateToSignUp,
-                    )
-                },
-                signUpScreen = { onSignUpSuccess, onNavigateToLogin ->
-                    SignUpScreen(
-                        onSignUpSuccess = onSignUpSuccess,
-                        onNavigateToLogin = onNavigateToLogin,
                     )
                 },
                 onboardingScreen = { onOnboardingComplete ->

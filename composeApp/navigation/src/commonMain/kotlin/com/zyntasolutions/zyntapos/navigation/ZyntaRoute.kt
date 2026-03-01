@@ -81,13 +81,6 @@ sealed class ZyntaRoute {
     data object Login : ZyntaRoute()
 
     /**
-     * Account registration screen — creates a new local user.
-     * Navigated to from the Login screen via "Sign Up" link.
-     */
-    @Serializable
-    data object SignUp : ZyntaRoute()
-
-    /**
      * PIN lock screen displayed after an idle timeout while authenticated.
      * Navigated to automatically by [NavigationController.lockScreen].
      */

@@ -206,6 +206,9 @@ class SeedRunnerExpansionTest {
         override suspend fun update(user: User) = Result.Success(Unit)
         override suspend fun updatePassword(userId: String, newPlainPassword: String) = Result.Success(Unit)
         override suspend fun deactivate(userId: String) = Result.Success(Unit)
+        override suspend fun getSystemAdmin(): Result<User?> = Result.Success(null)
+        override suspend fun adminExists(): Result<Boolean> = Result.Success(false)
+        override suspend fun transferSystemAdmin(fromUserId: String, toUserId: String): Result<Unit> = Result.Success(Unit)
     }
 
     private val existingExpenseCategoryIds = mutableSetOf<String>()

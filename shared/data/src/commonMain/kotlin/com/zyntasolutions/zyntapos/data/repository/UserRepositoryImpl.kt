@@ -80,6 +80,15 @@ class UserRepositoryImpl(
     override suspend fun create(user: User, plainPassword: String): Result<Unit> =
         withContext(Dispatchers.IO) {
             runCatching {
+                // Guard: only one ADMIN account is permitted per installation (TODO-001).
+                if (user.role == com.zyntasolutions.zyntapos.domain.model.Role.ADMIN) {
+                    val existingAdmin = q.getSystemAdmin().executeAsOneOrNull()
+                    if (existingAdmin != null) {
+                        return@withContext Result.Error(
+                            ValidationException("Only one admin account is allowed", field = "role")
+                        )
+                    }
+                }
                 val existingEmail = q.getUserByEmail(user.email).executeAsOneOrNull()
                 if (existingEmail != null) {
                     return@withContext Result.Error(

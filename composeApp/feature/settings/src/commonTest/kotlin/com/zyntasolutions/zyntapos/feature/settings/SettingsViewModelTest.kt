@@ -117,6 +117,10 @@ class SettingsViewModelTest {
             Result.Success(Unit)
         override suspend fun deactivate(userId: String): Result<Unit> =
             Result.Success(Unit)
+        override suspend fun getSystemAdmin(): Result<User?> = Result.Success(null)
+        override suspend fun adminExists(): Result<Boolean> = Result.Success(false)
+        override suspend fun transferSystemAdmin(fromUserId: String, toUserId: String): Result<Unit> =
+            Result.Success(Unit)
     }
 
     private val fakeSaveTaxGroupUseCase = SaveTaxGroupUseCase(fakeTaxGroupRepository)
@@ -467,4 +471,26 @@ class SettingsViewModelTest {
 
         assertTrue(deletedRoleIds.contains("role-to-delete"))
     }
+
+    // ── User management — admin guard (TODO-001) ──────────────────────────────
+
+    @Test
+    fun `SaveUser with ADMIN role sets saveError and does not call repository`() =
+        runTest(UnconfinedTestDispatcher()) {
+            // Open the create-user form and select the ADMIN role
+            viewModel.dispatch(SettingsIntent.OpenCreateUser)
+            viewModel.dispatch(SettingsIntent.UpdateUserFormName("Alice"))
+            viewModel.dispatch(SettingsIntent.UpdateUserFormEmail("alice@example.com"))
+            viewModel.dispatch(SettingsIntent.UpdateUserFormPassword("Secure123!"))
+            viewModel.dispatch(SettingsIntent.UpdateUserFormRole(Role.ADMIN))
+
+            viewModel.dispatch(SettingsIntent.SaveUser)
+
+            val state = viewModel.state.value
+            assertEquals(
+                "Cannot create additional admin accounts",
+                state.users.saveError,
+                "ViewModel must block ADMIN role with a saveError message",
+            )
+        }
 }

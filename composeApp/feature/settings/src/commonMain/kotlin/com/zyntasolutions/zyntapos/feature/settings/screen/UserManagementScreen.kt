@@ -240,7 +240,7 @@ private fun UserFormSheet(
                     expanded = roleDropdownExpanded,
                     onDismissRequest = { roleDropdownExpanded = false },
                 ) {
-                    Role.entries.forEach { role ->
+                    Role.entries.filter { it != Role.ADMIN }.forEach { role ->
                         DropdownMenuItem(
                             text = { Text(role.name) },
                             onClick = {
