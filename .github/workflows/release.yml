@@ -28,7 +28,7 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
 
       - name: Override gradle.properties for CI
-        run: sed -i 's|^org.gradle.java.home=.*|org.gradle.java.home='"$JAVA_HOME"'|' gradle.properties
+        run: echo "org.gradle.java.home=$JAVA_HOME" >> gradle.properties
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v3
@@ -84,7 +84,7 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
 
       - name: Override gradle.properties for CI
-        run: sed -i '' "s|^org.gradle.java.home=.*|org.gradle.java.home=$JAVA_HOME|" gradle.properties
+        run: echo "org.gradle.java.home=$JAVA_HOME" >> gradle.properties
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v3
@@ -128,7 +128,7 @@ jobs:
 
       - name: Override gradle.properties for CI
         shell: bash
-        run: sed -i 's|^org.gradle.java.home=.*|org.gradle.java.home='"$JAVA_HOME"'|' gradle.properties
+        run: echo "org.gradle.java.home=$JAVA_HOME" >> gradle.properties
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v3
@@ -172,7 +172,7 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
 
       - name: Override gradle.properties for CI
-        run: sed -i 's|^org.gradle.java.home=.*|org.gradle.java.home='"$JAVA_HOME"'|' gradle.properties
+        run: echo "org.gradle.java.home=$JAVA_HOME" >> gradle.properties
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v3

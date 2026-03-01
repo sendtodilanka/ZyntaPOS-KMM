@@ -28,9 +28,9 @@ jobs:
           distribution: ${{ env.JAVA_DISTRIBUTION }}
           java-version: ${{ env.JAVA_VERSION }}
 
-      # ── Override macOS-specific JDK path from gradle.properties ──────────
+      # ── Override daemon JVM to use the CI JDK (avoids foojay.io download) ─
       - name: Point org.gradle.java.home to CI JDK
-        run: sed -i 's|^org.gradle.java.home=.*|org.gradle.java.home='"$JAVA_HOME"'|' gradle.properties
+        run: echo "org.gradle.java.home=$JAVA_HOME" >> gradle.properties
 
       # ── Gradle ────────────────────────────────────────────────────────────
       - name: Set up Gradle
