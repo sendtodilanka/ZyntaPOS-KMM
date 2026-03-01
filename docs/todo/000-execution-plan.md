@@ -91,17 +91,23 @@ TODO-005  →  TODO-003  →  TODO-004 (Part 1)
 |---|-------|--------|----------|-------|
 | [007](007-infrastructure-and-deployment.md) | Infrastructure & Deployment | ⬜ Pending | **P0** | Foundation for all other Phase 2 items |
 | [009](009-ktor-security-hardening.md) | Ktor Backend Security Hardening | 🔒 Blocked on 007 Step 6 | **P0** | Must complete before backend goes live (concurrent with 007 Steps 7–10) |
+| [010](010-security-monitoring-automated-response.md) | Security Monitoring & Automated Response | 🟡 Partially unblocked (CF/Snyk/Canary: start now; Falco: blocked on 007 Step 5) | **HIGH** | Active detection layer for accepted JVM risks from TODO-009 |
 | [008](008-seo-and-aso.md) | SEO & ASO — Website + Play Store | 🔒 Blocked on 007 | **P1** | Needs Astro site infrastructure from TODO-007 |
 | [006](006-remote-diagnostic-access.md) | Remote Diagnostic Access | 🔒 Blocked on 007 + 004 | **P2** | Needs JWT auth (007) and audit log (004) |
 
 ### Execution Order (Phase 2)
 
 ```
+TODO-010 (CF Zero Trust + Snyk + Canary Tokens) ← start Day 1, no blockers
+  │
 TODO-007  ──────────────────────────────────────────────────┐
-  │ (Step 7: Ktor server projects created)                   │
-  ↓                                                          │
-TODO-009 (Ktor Security Hardening) ──────────────────────► both must complete
-  │ (Must finish before TODO-007 Step 10 sign-off)           │ before Phase 2 exit
+  │ (Step 5: VPS provisioned)                                │
+  │──→ TODO-010 (Falco + Falcosidekick)                      │
+  │ (Step 6: Caddy running)                                  │
+  │──→ TODO-010 (Cloudflare Tunnel for panel)                │ all 3 must complete
+  │ (Step 7: Ktor server projects created)                   │ before Phase 2 exit
+  │──→ TODO-009 (Ktor Security Hardening) ─────────────────►─┤
+  │ (Step 10: sync engine sign-off)                          │
   └──────────────────────────────────────────────────────────┘
                               │
                               ▼
@@ -122,9 +128,16 @@ TODO-009 (Ktor Security Hardening) ───────────────
 
 **Step 1b — TODO-009: Ktor Backend Security Hardening** *(concurrent with TODO-007 Steps 7–10)*
 - Starts when TODO-007 Step 6 is done (Docker Compose running with Caddy + PostgreSQL + Redis)
-- Must complete before TODO-007 Step 10 sign-off (sync engine cannot go live unhardenened)
+- Must complete before TODO-007 Step 10 sign-off (sync engine cannot go live unhardened)
 - 8 hardening actions applied in priority order (see TODO-009 Implementation Order)
 - ~1.5 days total effort; items 1–3 done in under 2 hours for immediate risk reduction
+
+**Step 1c — TODO-010: Security Monitoring & Automated Response** *(partially unblocked from Day 1)*
+- **CF Zero Trust, Snyk Monitor, Canary Tokens:** start on Day 1 of Phase 2 — no infrastructure dependencies
+- **Falco + Falcosidekick:** starts after TODO-007 Step 5 (VPS provisioned with Docker + ufw)
+- **Cloudflare Tunnel for panel subdomain:** starts after TODO-007 Step 6 (Caddy running)
+- ~7 hrs total effort spread across Phase 2; items 1–3 take under 2 hours with zero blockers
+- Adds active detection for the 4 accepted JVM risks documented in TODO-009
 
 **Step 2 — TODO-008: SEO & ASO (www.zyntapos.com + Google Play Store)**
 - Depends on: Astro site deployed (TODO-007 Step 12)
@@ -147,6 +160,11 @@ TODO-009 (Ktor Security Hardening) ───────────────
 - [ ] All 25 TODO-009 validation checklist items passing
 - [ ] OWASP Dependency Check passing with zero HIGH/CRITICAL CVEs
 - [ ] Dependabot enabled and first batch of PRs reviewed
+- [ ] All 14 TODO-010 validation checklist items passing
+- [ ] `panel.zyntapos.com` protected by CF Zero Trust (verified via `curl -I` returning 403 without auth)
+- [ ] Falco running on VPS with all 4 custom ZyntaPOS rules active
+- [ ] Snyk Monitor connected to ZyntaPOS-KMM repo with alerts configured
+- [ ] Canary tokens embedded in source and verified to fire on access (test each manually)
 - [ ] `www.zyntapos.com` live with Lighthouse score ≥90 on all 4 axes
 - [ ] Google Search Console verified, sitemap indexed
 - [ ] Play Store listing published (or ready for submission)
@@ -175,15 +193,15 @@ These do not have TODO files yet. Create them when Phase 2 is complete:
 
 | # | Suggested Title | CLAUDE.md Reference |
 |---|-----------------|---------------------|
-| 010 | Multi-Store KPI Dashboard & Inter-Store Transfers | `:composeApp:feature:multistore` |
-| 011 | Staff, Shifts & Payroll | `:composeApp:feature:staff` |
-| 012 | E-Invoice & IRD Submission Pipeline | `:composeApp:feature:accounting` |
-| 013 | CRDT Conflict Resolution & Offline Sync V2 | `:shared:data` `ConflictResolver` |
-| 014 | Coupon & Promotion Rule Engine | `:composeApp:feature:coupons` |
-| 015 | Customer Loyalty & GDPR Export | `:composeApp:feature:customers` |
+| 011 | Multi-Store KPI Dashboard & Inter-Store Transfers | `:composeApp:feature:multistore` |
+| 012 | Staff, Shifts & Payroll | `:composeApp:feature:staff` |
+| 013 | E-Invoice & IRD Submission Pipeline | `:composeApp:feature:accounting` |
+| 014 | CRDT Conflict Resolution & Offline Sync V2 | `:shared:data` `ConflictResolver` |
+| 015 | Coupon & Promotion Rule Engine | `:composeApp:feature:coupons` |
+| 016 | Customer Loyalty & GDPR Export | `:composeApp:feature:customers` |
 
-> **Note:** TODO-009 is now the Ktor Backend Security Hardening (Phase 2). Phase 3 identifiers
-> start at 010.
+> **Note:** TODO-009 is the Ktor Backend Security Hardening (Phase 2). TODO-010 is the Security
+> Monitoring & Automated Response layer (Phase 2). Phase 3 new TODO identifiers start at 011.
 
 ### Phase 3 Exit Criteria
 - [ ] All 16 feature modules fully implemented (no placeholders)
@@ -205,16 +223,17 @@ Phase 1 ──── TODO-005 (Dashboard + Nav) ─────────┐
          └── TODO-004 Part 1 (Audit Logging core) ┘
                               │
                               ▼
-Phase 2 ──── TODO-007 (Infrastructure & Backend) ─────────────────┐
-         └── TODO-009 (Ktor Security Hardening) ← blocked on 007 S6 ┤ concurrent pair
-         └── TODO-008 (SEO & ASO) ← depends on 007 infra ───────────┤
-         └── TODO-006 (Remote Diagnostics) ← 007 + 004 ─────────────┘
+Phase 2 ──── TODO-007 (Infrastructure & Backend) ─────────────────────┐
+         └── TODO-009 (Ktor Security Hardening) ← blocked on 007 S6 ──┤ all 3 concurrent
+         └── TODO-010 (Security Monitoring) ← partially unblocked ─────┤ must complete before
+         └── TODO-008 (SEO & ASO) ← depends on 007 infra ──────────────┤ Phase 2 exit
+         └── TODO-006 (Remote Diagnostics) ← 007 + 004 ────────────────┘
                               │
                               ▼
 Phase 3 ──── TODO-003 Phase 3 (Admin Console)
          └── TODO-004 Phase 2 (Hash chain)
          └── TODO-007 follow-up (CRDT resolver)
-         └── TODO-010 through TODO-015 (new TODOs)
+         └── TODO-011 through TODO-016 (new TODOs)
 ```
 
 ---
@@ -238,3 +257,4 @@ After TODO-005 is complete, move to TODO-003, then TODO-004 Part 1, then declare
 | Remote diagnostic security design | `006-remote-diagnostic-access.md` |
 | Audit log two-tier architecture | `004-enterprise-audit-logging.md` |
 | Ktor backend security hardening spec | `009-ktor-security-hardening.md` |
+| Security monitoring & automated response | `010-security-monitoring-automated-response.md` |
