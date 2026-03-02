@@ -23,8 +23,22 @@ import com.zyntasolutions.zyntapos.domain.model.StockAdjustment
 import com.zyntasolutions.zyntapos.domain.model.SyncStatus
 import com.zyntasolutions.zyntapos.domain.model.User
 import com.zyntasolutions.zyntapos.domain.model.WalletTransaction
+import com.zyntasolutions.zyntapos.domain.model.Account
+import com.zyntasolutions.zyntapos.domain.model.AccountBalance
+import com.zyntasolutions.zyntapos.domain.model.AccountType
+import com.zyntasolutions.zyntapos.domain.model.AccountingPeriod
+import com.zyntasolutions.zyntapos.domain.model.JournalEntry
+import com.zyntasolutions.zyntapos.domain.model.JournalReferenceType
+import com.zyntasolutions.zyntapos.domain.printer.A4InvoicePrinterPort
 import com.zyntasolutions.zyntapos.domain.printer.ReceiptPrinterPort
+import com.zyntasolutions.zyntapos.domain.repository.AccountRepository
+import com.zyntasolutions.zyntapos.domain.repository.AccountingPeriodRepository
 import com.zyntasolutions.zyntapos.domain.repository.CategoryRepository
+import com.zyntasolutions.zyntapos.domain.repository.JournalRepository
+import com.zyntasolutions.zyntapos.domain.usecase.accounting.PostSaleJournalEntryUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.pos.PrintA4TaxInvoiceUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.pos.ReprintLastReceiptUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateSalesReportUseCase
 import com.zyntasolutions.zyntapos.domain.repository.CouponRepository
 import com.zyntasolutions.zyntapos.domain.repository.CustomerWalletRepository
 import com.zyntasolutions.zyntapos.domain.repository.LoyaltyRepository
@@ -230,6 +244,53 @@ class PosViewModelTest {
             Result.Success(Unit)
     }
 
+    private val fakeA4PrinterPort = object : A4InvoicePrinterPort {
+        override suspend fun printA4Invoice(order: Order): Result<Unit> = Result.Success(Unit)
+        override suspend fun printA4ZReport(session: RegisterSession): Result<Unit> = Result.Success(Unit)
+        override suspend fun printA4SalesReport(report: GenerateSalesReportUseCase.SalesReport): Result<Unit> = Result.Success(Unit)
+    }
+
+    // ── Fake accounting repositories ──────────────────────────────────────────
+
+    private val fakeAccountRepository = object : AccountRepository {
+        override fun getAll(storeId: String): Flow<List<Account>> = MutableStateFlow(emptyList())
+        override fun getByType(storeId: String, accountType: AccountType): Flow<List<Account>> = MutableStateFlow(emptyList())
+        override suspend fun getById(id: String): Result<Account?> = Result.Success(null)
+        override suspend fun getByCode(storeId: String, accountCode: String): Result<Account?> = Result.Success(null)
+        override suspend fun getBalance(accountId: String, periodId: String): Result<AccountBalance?> = Result.Success(null)
+        override fun getAllBalances(storeId: String, periodId: String): Flow<List<AccountBalance>> = MutableStateFlow(emptyList())
+        override suspend fun create(account: Account): Result<Unit> = Result.Success(Unit)
+        override suspend fun update(account: Account): Result<Unit> = Result.Success(Unit)
+        override suspend fun deactivate(id: String, updatedAt: Long): Result<Unit> = Result.Success(Unit)
+        override suspend fun isAccountCodeTaken(storeId: String, code: String, excludeId: String?): Result<Boolean> = Result.Success(false)
+        override suspend fun seedDefaultAccounts(accounts: List<Account>): Result<Unit> = Result.Success(Unit)
+    }
+
+    private val fakeAccountingPeriodRepository = object : AccountingPeriodRepository {
+        override fun getAll(storeId: String): Flow<List<AccountingPeriod>> = MutableStateFlow(emptyList())
+        override suspend fun getById(id: String): Result<AccountingPeriod?> = Result.Success(null)
+        override suspend fun getPeriodForDate(storeId: String, date: String): Result<AccountingPeriod?> = Result.Success(null)
+        override suspend fun getOpenPeriods(storeId: String): Result<List<AccountingPeriod>> = Result.Success(emptyList())
+        override suspend fun create(period: AccountingPeriod): Result<Unit> = Result.Success(Unit)
+        override suspend fun closePeriod(id: String, updatedAt: Long): Result<Unit> = Result.Success(Unit)
+        override suspend fun lockPeriod(id: String, lockedBy: String, lockedAt: Long): Result<Unit> = Result.Success(Unit)
+        override suspend fun reopenPeriod(id: String, updatedAt: Long): Result<Unit> = Result.Success(Unit)
+    }
+
+    private val fakeJournalRepository = object : JournalRepository {
+        override fun getEntriesByDateRange(storeId: String, fromDate: String, toDate: String): Flow<List<JournalEntry>> = MutableStateFlow(emptyList())
+        override fun getUnpostedEntries(storeId: String): Flow<List<JournalEntry>> = MutableStateFlow(emptyList())
+        override suspend fun getById(id: String): Result<JournalEntry?> = Result.Success(null)
+        override suspend fun getByReference(referenceType: JournalReferenceType, referenceId: String): Result<List<JournalEntry>> = Result.Success(emptyList())
+        override suspend fun getNextEntryNumber(storeId: String): Result<Int> = Result.Success(1)
+        override suspend fun saveDraftEntry(entry: JournalEntry): Result<Unit> = Result.Success(Unit)
+        override suspend fun postEntry(entryId: String, postedAt: Long): Result<Unit> = Result.Success(Unit)
+        override suspend fun unpostEntry(entryId: String): Result<Unit> = Result.Success(Unit)
+        override suspend fun deleteEntry(entryId: String): Result<Unit> = Result.Success(Unit)
+        override suspend fun reverseEntry(originalEntryId: String, reversalDate: String, createdBy: String, now: Long): Result<JournalEntry> =
+            Result.Error(DatabaseException("Not supported"))
+    }
+
     // ── Sprint 22 fakes: wallet, loyalty, coupon ───────────────────────────────
 
     private val walletStore = mutableMapOf<String, CustomerWallet>()  // customerId -> wallet
@@ -371,6 +432,8 @@ class PosViewModelTest {
             Result.Success(Unit)
         override fun getMovements(sessionId: String): Flow<List<CashMovement>> =
             flowOf(emptyList())
+        override suspend fun getSession(sessionId: String): Result<RegisterSession> =
+            Result.Error(DatabaseException("not used"))
     }
 
     // ── Real use cases wired to fake repositories ──────────────────────────────
@@ -428,6 +491,13 @@ class PosViewModelTest {
             authRepository = fakeAuthRepository,
             customerRepository = fakeCustomerRepository,
             registerRepository = fakeRegisterRepository,
+            postSaleJournalEntryUseCase = PostSaleJournalEntryUseCase(
+                journalRepository = fakeJournalRepository,
+                accountRepository = fakeAccountRepository,
+                periodRepository = fakeAccountingPeriodRepository,
+            ),
+            reprintLastReceiptUseCase = ReprintLastReceiptUseCase(fakeOrderRepository, fakeReceiptPrinterPort),
+            printA4TaxInvoiceUseCase = PrintA4TaxInvoiceUseCase(fakeOrderRepository, fakeA4PrinterPort, checkPermissionUseCase),
         )
     }
 

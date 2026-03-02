@@ -463,6 +463,11 @@ class SettingsViewModel(
             val builtInRole = runCatching { Role.valueOf(form.roleKey) }.getOrNull()
             val customRoleId = if (builtInRole == null) form.roleKey.ifBlank { null } else null
             val role = builtInRole ?: editingUser?.role ?: Role.CASHIER
+            // Guard: ADMIN role is reserved for the onboarding-created system admin (TODO-001).
+            if (!isUpdate && role == Role.ADMIN) {
+                updateState { copy(users = users.copy(saveError = "Cannot create additional admin accounts")) }
+                return@launch
+            }
             val user = if (isUpdate) {
                 editingUser!!.copy(
                     name         = form.name,

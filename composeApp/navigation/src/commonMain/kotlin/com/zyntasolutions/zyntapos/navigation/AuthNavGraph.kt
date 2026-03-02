@@ -15,7 +15,6 @@ import androidx.navigation.compose.navigation
  * Destinations:
  * - [ZyntaRoute.Onboarding] — first-run setup wizard (shown only once on first launch).
  * - [ZyntaRoute.Login]      — credential entry; normal start destination.
- * - [ZyntaRoute.SignUp]     — new account registration.
  * - [ZyntaRoute.PinLock]   — quick PIN re-authentication after idle timeout.
  *
  * Flow:
@@ -33,15 +32,13 @@ import androidx.navigation.compose.navigation
  * @param navigationController  Controller used to trigger navigateAndClear on success.
  * @param isFirstRun            When `true`, [ZyntaRoute.Onboarding] is the start destination.
  * @param loginScreen           Composable for the Login screen.
- * @param signUpScreen          Composable for the Sign-Up screen.
  * @param onboardingScreen      Composable for the first-run Onboarding wizard.
  * @param pinLockScreen         Composable for the PinLock screen.
  */
 fun NavGraphBuilder.authNavGraph(
     navigationController: NavigationController,
     isFirstRun: Boolean,
-    loginScreen: @Composable (onLoginSuccess: () -> Unit, onNavigateToSignUp: () -> Unit) -> Unit,
-    signUpScreen: @Composable (onSignUpSuccess: () -> Unit, onNavigateToLogin: () -> Unit) -> Unit,
+    loginScreen: @Composable (onLoginSuccess: () -> Unit) -> Unit,
     onboardingScreen: @Composable (onOnboardingComplete: () -> Unit) -> Unit,
     pinLockScreen: @Composable (onUnlocked: () -> Unit) -> Unit,
 ) {
@@ -60,18 +57,7 @@ fun NavGraphBuilder.authNavGraph(
 
         // ── Login ─────────────────────────────────────────────────────────────
         composable<ZyntaRoute.Login> {
-            loginScreen(
-                { navigationController.navigateAndClear(ZyntaRoute.Dashboard) },
-                { navigationController.navigate(ZyntaRoute.SignUp) },
-            )
-        }
-
-        // ── Sign-up ───────────────────────────────────────────────────────────
-        composable<ZyntaRoute.SignUp> {
-            signUpScreen(
-                { navigationController.popBackStack() },
-                { navigationController.popBackStack() },
-            )
+            loginScreen { navigationController.navigateAndClear(ZyntaRoute.Dashboard) }
         }
 
         // ── PIN lock ──────────────────────────────────────────────────────────

@@ -66,4 +66,45 @@ interface UserRepository {
      * and audit events is preserved.
      */
     suspend fun deactivate(userId: String): Result<Unit>
+
+    // ── System Admin ──────────────────────────────────────────────────────────
+
+    /**
+     * Returns the single designated system admin, or `null` if none has been set.
+     *
+     * There is at most one system admin per installation. The system admin is created
+     * during the onboarding wizard and can be transferred via [transferSystemAdmin].
+     *
+     * @return [Result.Success] with the system admin [User], or `null` if no system
+     *         admin is designated. [Result.Error] on database failure.
+     */
+    suspend fun getSystemAdmin(): Result<User?>
+
+    /**
+     * Returns whether a system admin has been designated for this installation.
+     *
+     * Equivalent to `getSystemAdmin().map { it != null }` but avoids loading the
+     * full user record.
+     *
+     * @return [Result.Success]`(true)` if a system admin exists, `false` otherwise.
+     *         [Result.Error] on database failure.
+     */
+    suspend fun adminExists(): Result<Boolean>
+
+    /**
+     * Atomically transfers system admin designation from [fromUserId] to [toUserId].
+     *
+     * This is the only way to change which user holds the system admin flag. The
+     * operation is atomic: either both changes persist or neither does.
+     *
+     * The calling use case is responsible for validating business rules (both users
+     * exist, [toUserId] has [com.zyntasolutions.zyntapos.domain.model.Role.ADMIN],
+     * [toUserId] is active, etc.) before invoking this method.
+     *
+     * @param fromUserId UUID of the current system admin (loses flag).
+     * @param toUserId   UUID of the user who will become the new system admin (gains flag).
+     * @return [Result.Error] with [com.zyntasolutions.zyntapos.core.result.ZyntaException.DatabaseException]
+     *         if either user is not found or the DB transaction fails.
+     */
+    suspend fun transferSystemAdmin(fromUserId: String, toUserId: String): Result<Unit>
 }

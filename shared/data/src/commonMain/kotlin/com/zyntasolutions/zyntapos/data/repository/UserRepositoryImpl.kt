@@ -80,6 +80,15 @@ class UserRepositoryImpl(
     override suspend fun create(user: User, plainPassword: String): Result<Unit> =
         withContext(Dispatchers.IO) {
             runCatching {
+                // Guard: only one ADMIN account is permitted per installation (TODO-001).
+                if (user.role == com.zyntasolutions.zyntapos.domain.model.Role.ADMIN) {
+                    val existingAdmin = q.getSystemAdmin().executeAsOneOrNull()
+                    if (existingAdmin != null) {
+                        return@withContext Result.Error(
+                            ValidationException("Only one admin account is allowed", field = "role")
+                        )
+                    }
+                }
                 val existingEmail = q.getUserByEmail(user.email).executeAsOneOrNull()
                 if (existingEmail != null) {
                     return@withContext Result.Error(
@@ -91,18 +100,19 @@ class UserRepositoryImpl(
                 val now = Clock.System.now().toEpochMilliseconds()
                 db.transaction {
                     q.insertUser(
-                        id             = p.id,
-                        name           = p.name,
-                        email          = p.email,
-                        password_hash  = p.passwordHash,
-                        role           = p.role,
-                        pin_hash       = p.pinHash,
-                        store_id       = p.storeId,
-                        is_active      = p.isActive,
-                        created_at     = now,
-                        updated_at     = now,
-                        sync_status    = p.syncStatus,
-                        custom_role_id = p.customRoleId,
+                        id              = p.id,
+                        name            = p.name,
+                        email           = p.email,
+                        password_hash   = p.passwordHash,
+                        role            = p.role,
+                        pin_hash        = p.pinHash,
+                        store_id        = p.storeId,
+                        is_active       = p.isActive,
+                        created_at      = now,
+                        updated_at      = now,
+                        sync_status     = p.syncStatus,
+                        custom_role_id  = p.customRoleId,
+                        is_system_admin = p.isSystemAdmin,
                     )
                     syncEnqueuer.enqueue(SyncOperation.EntityType.USER, p.id, SyncOperation.Operation.INSERT)
                 }
@@ -178,4 +188,40 @@ class UserRepositoryImpl(
             onFailure = { t -> Result.Error(DatabaseException(t.message ?: "Deactivate failed", cause = t)) },
         )
     }
+
+    // ── System Admin ──────────────────────────────────────────────────────────
+
+    override suspend fun getSystemAdmin(): Result<User?> = withContext(Dispatchers.IO) {
+        runCatching {
+            q.getSystemAdmin().executeAsOneOrNull()?.let { UserMapper.toDomain(it) }
+        }.fold(
+            onSuccess = { Result.Success(it) },
+            onFailure = { t -> Result.Error(DatabaseException(t.message ?: "DB error", cause = t)) },
+        )
+    }
+
+    override suspend fun adminExists(): Result<Boolean> = withContext(Dispatchers.IO) {
+        runCatching {
+            q.getSystemAdmin().executeAsOneOrNull() != null
+        }.fold(
+            onSuccess = { Result.Success(it) },
+            onFailure = { t -> Result.Error(DatabaseException(t.message ?: "DB error", cause = t)) },
+        )
+    }
+
+    override suspend fun transferSystemAdmin(fromUserId: String, toUserId: String): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val now = Clock.System.now().toEpochMilliseconds()
+                db.transaction {
+                    q.clearAllSystemAdmin(now)
+                    q.setSystemAdmin(now, toUserId)
+                    syncEnqueuer.enqueue(SyncOperation.EntityType.USER, fromUserId, SyncOperation.Operation.UPDATE)
+                    syncEnqueuer.enqueue(SyncOperation.EntityType.USER, toUserId, SyncOperation.Operation.UPDATE)
+                }
+            }.fold(
+                onSuccess = { Result.Success(Unit) },
+                onFailure = { t -> Result.Error(DatabaseException(t.message ?: "Transfer failed", cause = t)) },
+            )
+        }
 }

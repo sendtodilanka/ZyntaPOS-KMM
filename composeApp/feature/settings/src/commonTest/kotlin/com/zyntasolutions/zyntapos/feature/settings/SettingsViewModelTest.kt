@@ -17,9 +17,19 @@ import com.zyntasolutions.zyntapos.domain.usecase.auth.SetPinUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.SaveTaxGroupUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rbac.DeleteCustomRoleUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rbac.SaveCustomRoleUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.settings.DeletePrinterProfileUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.settings.GetLabelPrinterConfigUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.settings.GetPrinterProfilesUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.PrintTestPageUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.settings.SaveLabelPrinterConfigUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.settings.SavePrinterProfileUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.SaveUserUseCase
+import com.zyntasolutions.zyntapos.domain.model.LabelPrinterConfig
+import com.zyntasolutions.zyntapos.domain.model.PrinterJobType
 import com.zyntasolutions.zyntapos.domain.model.PrinterPaperWidth
+import com.zyntasolutions.zyntapos.domain.model.PrinterProfile
+import com.zyntasolutions.zyntapos.domain.repository.LabelPrinterConfigRepository
+import com.zyntasolutions.zyntapos.domain.repository.PrinterProfileRepository
 import com.zyntasolutions.zyntapos.feature.settings.backup.BackupResult
 import com.zyntasolutions.zyntapos.feature.settings.backup.BackupService
 import kotlinx.coroutines.Dispatchers
@@ -107,6 +117,10 @@ class SettingsViewModelTest {
             Result.Success(Unit)
         override suspend fun deactivate(userId: String): Result<Unit> =
             Result.Success(Unit)
+        override suspend fun getSystemAdmin(): Result<User?> = Result.Success(null)
+        override suspend fun adminExists(): Result<Boolean> = Result.Success(false)
+        override suspend fun transferSystemAdmin(fromUserId: String, toUserId: String): Result<Unit> =
+            Result.Success(Unit)
     }
 
     private val fakeSaveTaxGroupUseCase = SaveTaxGroupUseCase(fakeTaxGroupRepository)
@@ -192,6 +206,26 @@ class SettingsViewModelTest {
         }
     }
 
+    // ── Fake label-printer config repository ─────────────────────────────────
+
+    private val fakeLabelPrinterConfigRepository = object : LabelPrinterConfigRepository {
+        override suspend fun get(): Result<LabelPrinterConfig?> = Result.Success(null)
+        override suspend fun save(config: LabelPrinterConfig): Result<Unit> = Result.Success(Unit)
+    }
+
+    // ── Fake printer profile repository ──────────────────────────────────────
+
+    private val printerProfilesFlow = MutableStateFlow<List<PrinterProfile>>(emptyList())
+
+    private val fakePrinterProfileRepository = object : PrinterProfileRepository {
+        override fun getAll(): Flow<List<PrinterProfile>> = printerProfilesFlow
+        override suspend fun getById(id: String): Result<PrinterProfile> =
+            Result.Error(DatabaseException("Not found"))
+        override suspend fun getDefault(jobType: PrinterJobType): Result<PrinterProfile?> = Result.Success(null)
+        override suspend fun save(profile: PrinterProfile): Result<Unit> = Result.Success(Unit)
+        override suspend fun delete(id: String): Result<Unit> = Result.Success(Unit)
+    }
+
     private lateinit var viewModel: SettingsViewModel
 
     @BeforeTest
@@ -207,20 +241,26 @@ class SettingsViewModelTest {
         taxGroupsFlow.value = emptyList()
         usersFlow.value = emptyList()
         fakeCustomRolesFlow.value = emptyList()
+        printerProfilesFlow.value = emptyList()
         testPrintCalled = false
 
         viewModel = SettingsViewModel(
-            settingsRepository      = fakeSettingsRepository,
-            taxGroupRepository      = fakeTaxGroupRepository,
-            userRepository          = fakeUserRepository,
-            roleRepository          = fakeRoleRepository,
-            saveTaxGroupUseCase     = fakeSaveTaxGroupUseCase,
-            saveUserUseCase         = fakeSaveUserUseCase,
-            setPinUseCase           = SetPinUseCase(fakeAuthRepository),
-            saveCustomRoleUseCase   = SaveCustomRoleUseCase(fakeRoleRepository),
-            deleteCustomRoleUseCase = DeleteCustomRoleUseCase(fakeRoleRepository),
-            printTestPageUseCase    = fakePrintTestPageUseCase,
-            backupService           = fakeBackupService,
+            settingsRepository           = fakeSettingsRepository,
+            taxGroupRepository           = fakeTaxGroupRepository,
+            userRepository               = fakeUserRepository,
+            roleRepository               = fakeRoleRepository,
+            saveTaxGroupUseCase          = fakeSaveTaxGroupUseCase,
+            saveUserUseCase              = fakeSaveUserUseCase,
+            setPinUseCase                = SetPinUseCase(fakeAuthRepository),
+            saveCustomRoleUseCase        = SaveCustomRoleUseCase(fakeRoleRepository),
+            deleteCustomRoleUseCase      = DeleteCustomRoleUseCase(fakeRoleRepository),
+            printTestPageUseCase         = fakePrintTestPageUseCase,
+            backupService                = fakeBackupService,
+            getLabelPrinterConfigUseCase = GetLabelPrinterConfigUseCase(fakeLabelPrinterConfigRepository),
+            saveLabelPrinterConfigUseCase = SaveLabelPrinterConfigUseCase(fakeLabelPrinterConfigRepository),
+            getPrinterProfilesUseCase    = GetPrinterProfilesUseCase(fakePrinterProfileRepository),
+            savePrinterProfileUseCase    = SavePrinterProfileUseCase(fakePrinterProfileRepository),
+            deletePrinterProfileUseCase  = DeletePrinterProfileUseCase(fakePrinterProfileRepository),
         )
     }
 
@@ -431,4 +471,26 @@ class SettingsViewModelTest {
 
         assertTrue(deletedRoleIds.contains("role-to-delete"))
     }
+
+    // ── User management — admin guard (TODO-001) ──────────────────────────────
+
+    @Test
+    fun `SaveUser with ADMIN role sets saveError and does not call repository`() =
+        runTest(UnconfinedTestDispatcher()) {
+            // Open the create-user form and select the ADMIN role
+            viewModel.dispatch(SettingsIntent.OpenCreateUser)
+            viewModel.dispatch(SettingsIntent.UpdateUserFormName("Alice"))
+            viewModel.dispatch(SettingsIntent.UpdateUserFormEmail("alice@example.com"))
+            viewModel.dispatch(SettingsIntent.UpdateUserFormPassword("Secure123!"))
+            viewModel.dispatch(SettingsIntent.UpdateUserFormRole(Role.ADMIN))
+
+            viewModel.dispatch(SettingsIntent.SaveUser)
+
+            val state = viewModel.state.value
+            assertEquals(
+                "Cannot create additional admin accounts",
+                state.users.saveError,
+                "ViewModel must block ADMIN role with a saveError message",
+            )
+        }
 }

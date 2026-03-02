@@ -93,8 +93,9 @@ class ZplLabelBuilderTest {
     fun `no FO command for product name when blank`() {
         val noNameItem = defaultItem.copy(productName = "")
         val zpl = buildString(noNameItem)
-        // ^A0N font command only emitted for product name
-        assertFalse(zpl.contains("^A0N,40") || zpl.contains("^A0N,28"), "Expected no oversized font for blank name")
+        // Product name is placed at ^FO16,16 (x=2mm, y=2mm at 8 dots/mm).
+        // When productName is blank the entire block is skipped.
+        assertFalse(zpl.contains("^FO16,16"), "Expected no field origin for blank product name")
     }
 
     // ── 4. Price formatting ───────────────────────────────────────────────────

@@ -84,8 +84,9 @@ class AuthRepositoryImplIntegrationTest {
             is_active      = isActive,
             created_at     = now,
             updated_at     = now,
-            sync_status    = "PENDING",
-            custom_role_id = null,
+            sync_status     = "PENDING",
+            custom_role_id  = null,
+            is_system_admin = 0L,
         )
     }
 

@@ -1,17 +1,18 @@
 -- Users table: staff accounts with password and PIN hashes
 CREATE TABLE users (
-    id             TEXT    NOT NULL PRIMARY KEY,
-    name           TEXT    NOT NULL,
-    email          TEXT    NOT NULL UNIQUE,
-    password_hash  TEXT    NOT NULL,
-    role           TEXT    NOT NULL,
-    pin_hash       TEXT,
-    store_id       TEXT    NOT NULL,
-    is_active      INTEGER NOT NULL DEFAULT 1,
-    created_at     INTEGER NOT NULL,
-    updated_at     INTEGER NOT NULL,
-    sync_status    TEXT    NOT NULL DEFAULT 'PENDING',
-    custom_role_id TEXT                              -- nullable; FK to custom_roles.id
+    id              TEXT    NOT NULL PRIMARY KEY,
+    name            TEXT    NOT NULL,
+    email           TEXT    NOT NULL UNIQUE,
+    password_hash   TEXT    NOT NULL,
+    role            TEXT    NOT NULL,
+    pin_hash        TEXT,
+    store_id        TEXT    NOT NULL,
+    is_active       INTEGER NOT NULL DEFAULT 1,
+    created_at      INTEGER NOT NULL,
+    updated_at      INTEGER NOT NULL,
+    sync_status     TEXT    NOT NULL DEFAULT 'PENDING',
+    custom_role_id  TEXT,
+    is_system_admin INTEGER NOT NULL DEFAULT 0   -- 1 = the unique system admin; enforced by app logic
 );
 
 CREATE UNIQUE INDEX idx_users_email ON users(email);
@@ -28,11 +29,14 @@ SELECT * FROM users WHERE id = ?;
 getUserByEmail:
 SELECT * FROM users WHERE email = ?;
 
+getSystemAdmin:
+SELECT * FROM users WHERE is_system_admin = 1 LIMIT 1;
+
 -- ── Write queries ───────────────────────────────────────────────────────────
 
 insertUser:
-INSERT INTO users(id, name, email, password_hash, role, pin_hash, store_id, is_active, created_at, updated_at, sync_status, custom_role_id)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO users(id, name, email, password_hash, role, pin_hash, store_id, is_active, created_at, updated_at, sync_status, custom_role_id, is_system_admin)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- Custom role assignment update
 updateUserCustomRole:
@@ -59,3 +63,11 @@ WHERE id = ?;
 -- PIN-only update
 updateUserPin:
 UPDATE users SET pin_hash = ?, updated_at = ? WHERE id = ?;
+
+-- Clears is_system_admin on ALL users (used before granting flag to new system admin)
+clearAllSystemAdmin:
+UPDATE users SET is_system_admin = 0, updated_at = ? WHERE is_system_admin = 1;
+
+-- Sets is_system_admin = 1 for the given user
+setSystemAdmin:
+UPDATE users SET is_system_admin = 1, updated_at = ?, sync_status = 'PENDING' WHERE id = ?;

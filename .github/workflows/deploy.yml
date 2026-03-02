@@ -1,0 +1,83 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for manual deploy'
+        required: false
+        default: 'Manual trigger'
+
+env:
+  DEPLOY_PATH: /opt/zyntapos
+
+jobs:
+  deploy:
+    name: Deploy to Contabo VPS
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false   # Never cancel an in-progress deploy
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          timeout: 120s
+          command_timeout: 10m
+          script: |
+            set -euo pipefail
+            echo "=== Deploy started: $(date) ==="
+            echo "=== Commit: ${{ github.sha }} ==="
+
+            cd ${{ env.DEPLOY_PATH }}
+
+            # Pull latest code
+            git fetch origin main
+            git reset --hard origin/main
+
+            # Rebuild and restart only changed services (zero downtime for unchanged)
+            docker compose pull --quiet
+            docker compose up -d --build --remove-orphans
+
+            # Clean up dangling images (free disk space)
+            docker image prune -f
+
+            echo "=== Deploy complete: $(date) ==="
+
+            # Print running containers for confirmation
+            docker compose ps
+
+      - name: Notify Sentry of deploy
+        if: success()
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        run: |
+          curl -sf "https://sentry.io/api/0/organizations/zynta-solutions/releases/" \
+            -H "Authorization: Bearer ${SENTRY_AUTH_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"version\": \"${{ github.sha }}\",
+              \"ref\": \"${{ github.ref_name }}\",
+              \"url\": \"${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}\",
+              \"projects\": [\"zyntapos-api\", \"zyntapos-license\", \"zyntapos-sync\"]
+            }" || echo "Sentry notification failed (non-fatal)"
+
+      - name: Post deploy summary
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✅ Deploy succeeded — ${{ github.sha }}"
+          else
+            echo "❌ Deploy failed — check logs above"
+          fi

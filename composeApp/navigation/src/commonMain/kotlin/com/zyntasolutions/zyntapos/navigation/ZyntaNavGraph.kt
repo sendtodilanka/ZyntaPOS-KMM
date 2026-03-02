@@ -55,7 +55,6 @@ val deepLinkOrder: NavDeepLink = navDeepLink<ZyntaRoute.OrderHistory>(
  * ├── authNavGraph
  * │   ├── Onboarding   ← only on first launch (isFirstRun = true)
  * │   ├── Login (default start)
- * │   ├── SignUp
  * │   └── PinLock
  * │
  * └── mainNavGraph
@@ -95,7 +94,6 @@ val deepLinkOrder: NavDeepLink = navDeepLink<ZyntaRoute.OrderHistory>(
  *   Pass `null` when unauthenticated (shows auth graph only).
  * @param screens Lambda factories for every screen composable (injected from app layer).
  * @param loginScreen Composable factory for the Login screen.
- * @param signUpScreen Composable factory for the Sign-Up screen.
  * @param onboardingScreen Composable factory for the Onboarding wizard screen.
  * @param pinLockScreen Composable factory for the PinLock screen.
  * @param debugScreen Optional composable factory for the Debug Console. Non-null only when
@@ -108,8 +106,7 @@ fun ZyntaNavGraph(
     isSessionActive: Boolean,
     userRole: Role?,
     screens: MainNavScreens,
-    loginScreen: @Composable (onLoginSuccess: () -> Unit, onNavigateToSignUp: () -> Unit) -> Unit,
-    signUpScreen: @Composable (onSignUpSuccess: () -> Unit, onNavigateToLogin: () -> Unit) -> Unit,
+    loginScreen: @Composable (onLoginSuccess: () -> Unit) -> Unit,
     onboardingScreen: @Composable (onOnboardingComplete: () -> Unit) -> Unit,
     pinLockScreen: @Composable (onUnlocked: () -> Unit) -> Unit,
     debugScreen: (@Composable (onNavigateUp: () -> Unit) -> Unit)? = null,
@@ -140,7 +137,6 @@ fun ZyntaNavGraph(
             navigationController = navigationController,
             isFirstRun = isFirstRun,
             loginScreen = loginScreen,
-            signUpScreen = signUpScreen,
             onboardingScreen = onboardingScreen,
             pinLockScreen = pinLockScreen,
         )

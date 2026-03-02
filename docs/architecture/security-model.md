@@ -207,6 +207,15 @@ ADMIN > MANAGER > CASHIER | CUSTOMER_SERVICE | REPORTER
 ```
 
 - `ADMIN`: Full system access
+
+**Single-ADMIN constraint (ADR-005):** Exactly one user per installation holds
+`isSystemAdmin = true` — the account created during the first-run onboarding wizard.
+`Role.ADMIN` cannot be assigned to new users via Settings > User Management; it is
+excluded from the role dropdown and blocked at both the ViewModel layer and the
+repository layer. Ownership can be transferred to another ADMIN via
+`TransferSystemAdminUseCase`. The `EnsureSystemAdminGuardUseCase` provides a reusable
+guard for any use case that requires system-admin privileges.
+
 - `MANAGER`: Store operations, reports, user management (no system config)
 - `CASHIER`: POS, register session, stock lookups
 - `CUSTOMER_SERVICE`: Customer directory, order lookup, refunds

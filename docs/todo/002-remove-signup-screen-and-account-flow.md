@@ -1,6 +1,8 @@
 # TODO-002: Remove SignUp Screen & Clarify Account Creation Flow
 
-**Status:** Pending
+**Status:** Completed
+**Completed:** 2026-03-01
+**ADR:** ADR-005
 **Priority:** HIGH — Security gap; must be resolved before production
 **Phase:** Phase 1 (MVP)
 **Created:** 2026-03-01
@@ -140,17 +142,17 @@ if (user.role == Role.ADMIN) {
 
 ## Validation Checklist
 
-- [ ] `ZyntaRoute.SignUp` removed from route definitions
-- [ ] SignUp composable removed from auth nav graph
-- [ ] "Sign Up" link removed from LoginScreen
-- [ ] `SignUpViewModel` removed from Koin
-- [ ] `SignUpScreen.kt` removed (or archived for form reuse)
-- [ ] `SignUpViewModelTest.kt` removed
-- [ ] App.kt no longer wires SignUp screen
-- [ ] LoginScreen no longer accepts `onNavigateToSignUp` callback
-- [ ] User Management role dropdown excludes ADMIN
-- [ ] Repository layer blocks ADMIN creation
-- [ ] App compiles and runs without errors
-- [ ] Login flow works correctly without signup option
-- [ ] Onboarding still creates ADMIN correctly
-- [ ] ADMIN can create staff accounts via User Management
+- [x] `ZyntaRoute.SignUp` removed from route definitions
+- [x] SignUp composable removed from auth nav graph
+- [x] "Sign Up" link removed from LoginScreen
+- [x] `SignUpViewModel` removed from Koin
+- [x] `SignUpScreen.kt` removed (or archived for form reuse)
+- [x] `SignUpViewModelTest.kt` removed
+- [x] App.kt no longer wires SignUp screen
+- [x] LoginScreen no longer accepts `onNavigateToSignUp` callback
+- [x] User Management role dropdown excludes ADMIN
+- [x] Repository layer blocks ADMIN creation
+- [x] App compiles and runs without errors
+- [x] Login flow works correctly without signup option
+- [x] Onboarding still creates ADMIN correctly
+- [x] ADMIN can create staff accounts via User Management
