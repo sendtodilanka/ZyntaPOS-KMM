@@ -95,9 +95,18 @@ class DebugViewModelTest {
         id = "a-1",
         eventType = AuditEventType.SETTINGS_CHANGED,
         userId = "u-admin",
+        userName = "",
+        userRole = null,
         deviceId = "debug-console",
+        entityType = null,
+        entityId = null,
         payload = "{}",
+        previousValue = null,
+        newValue = null,
         success = true,
+        ipAddress = null,
+        hash = "",
+        previousHash = "",
         createdAt = now,
     )
 
@@ -165,6 +174,10 @@ class DebugViewModelTest {
         override suspend fun insert(entry: AuditEntry) { insertedEntries += entry }
         override fun observeAll(): Flow<List<AuditEntry>> = auditFlow
         override fun observeByUserId(userId: String): Flow<List<AuditEntry>> = auditFlow
+        override suspend fun getAllChronological(): List<AuditEntry> = auditFlow.value
+        override suspend fun getLatestHash(): String? = null
+        override suspend fun countEntries(): Long = auditFlow.value.size.toLong()
+        override suspend fun getRecentLoginFailureCount(userId: String, sinceEpochMillis: Long): Long = 0L
     }
 
     private inner class FakeSettingsRepository : SettingsRepository {

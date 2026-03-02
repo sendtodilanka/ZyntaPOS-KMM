@@ -385,13 +385,22 @@ class DebugViewModel(
             val userId = currentState.currentUserId ?: "debug"
             auditRepository.insert(
                 AuditEntry(
-                    id         = "debug-audit-${Clock.System.now().epochSeconds}-$action",
-                    eventType  = AuditEventType.SETTINGS_CHANGED,
-                    userId     = userId,
-                    deviceId   = "debug-console",
-                    payload    = """{"debug_action":"$action","detail":"$payload"}""",
-                    success    = true,
-                    createdAt  = Clock.System.now(),
+                    id            = "debug-audit-${Clock.System.now().epochSeconds}-$action",
+                    eventType     = AuditEventType.DIAGNOSTIC_SESSION,
+                    userId        = userId,
+                    userName      = "",
+                    userRole      = null,
+                    deviceId      = "debug-console",
+                    entityType    = null,
+                    entityId      = null,
+                    payload       = """{"debug_action":"$action","detail":"$payload"}""",
+                    previousValue = null,
+                    newValue      = null,
+                    success       = true,
+                    ipAddress     = null,
+                    hash          = "",
+                    previousHash  = "",
+                    createdAt     = Clock.System.now(),
                 )
             )
         } catch (_: Exception) {

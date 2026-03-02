@@ -1,40 +1,51 @@
 -- ============================================================
 -- audit_log.sq — ZyntaPOS Tamper-Evident Append-Only Audit Trail
--- Phase 1 | Sprint 5 | Step 3.1.11
+-- Phase 1 | Sprint 5 | TODO-004
 -- Package: com.zyntasolutions.zyntapos.db
 -- SECURITY: No DELETE or UPDATE queries defined. Entries are immutable.
 --           Hash chain: each entry stores SHA-256(current data + previous_hash)
---           for tamper detection.
+--           for tamper detection (verification via AuditIntegrityVerifier).
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS audit_entries (
-    id            TEXT    PRIMARY KEY NOT NULL,
-    event_type    TEXT    NOT NULL,    -- LOGIN_SUCCESS|LOGIN_FAIL|ORDER_VOID|DISCOUNT_APPLIED|
-                                       -- STOCK_ADJUSTED|PERMISSION_DENIED|SETTING_CHANGED|
-                                       -- SESSION_OPENED|SESSION_CLOSED|USER_CREATED|RECEIPT_PRINTED
-    user_id       TEXT    NOT NULL,    -- FK → users.id (actor who triggered event)
-    entity_type   TEXT,               -- nullable: 'ORDER'|'PRODUCT'|'USER'|'SESSION' etc.
-    entity_id     TEXT,               -- nullable: PK of the affected entity
-    details       TEXT    NOT NULL,    -- JSON string with event-specific detail payload
-    hash          TEXT    NOT NULL,    -- SHA-256(id + event_type + user_id + entity_id + details + previous_hash)
-    previous_hash TEXT    NOT NULL,    -- hash of the immediately preceding audit_entry (genesis = '0')
-    timestamp     INTEGER NOT NULL,    -- Unix epoch milliseconds
-    device_id     TEXT                 -- nullable: identifier of device/terminal
+    id             TEXT    PRIMARY KEY NOT NULL,
+    event_type     TEXT    NOT NULL,    -- ~40 AuditEventType values
+    user_id        TEXT    NOT NULL,    -- Actor who triggered event ("SYSTEM" for automated)
+    user_name      TEXT    NOT NULL DEFAULT '',    -- Actor display name (denormalized)
+    user_role      TEXT    NOT NULL DEFAULT '',    -- Actor's Role at time of action
+    entity_type    TEXT,               -- Affected resource type: 'ORDER'|'PRODUCT'|'USER'|etc.
+    entity_id      TEXT,               -- Primary key of the affected entity
+    details        TEXT    NOT NULL DEFAULT '{}',  -- JSON payload (event-specific details)
+    previous_value TEXT,               -- Before-state JSON (for change-tracking events)
+    new_value      TEXT,               -- After-state JSON (for change-tracking events)
+    success        INTEGER NOT NULL DEFAULT 1,     -- 1 = success, 0 = failure/denial
+    ip_address     TEXT,               -- Source IP for remote sessions (null = local terminal)
+    hash           TEXT    NOT NULL DEFAULT '',    -- SHA-256(id+event_type+user_id+entity_id+details+previous_hash)
+    previous_hash  TEXT    NOT NULL DEFAULT '',    -- Hash of the preceding entry ("GENESIS" for first)
+    timestamp      INTEGER NOT NULL,   -- Unix epoch milliseconds
+    device_id      TEXT    NOT NULL DEFAULT ''     -- Hardware/installation identifier
 );
 
--- Read-only indices (no updates/deletes permitted on this table)
+-- Indexes for common query patterns (no UPDATE / DELETE defined — append-only design)
 CREATE INDEX IF NOT EXISTS idx_audit_event_type ON audit_entries(event_type);
 CREATE INDEX IF NOT EXISTS idx_audit_user_id    ON audit_entries(user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_user_role  ON audit_entries(user_role);
+CREATE INDEX IF NOT EXISTS idx_audit_entity     ON audit_entries(entity_type, entity_id);
 CREATE INDEX IF NOT EXISTS idx_audit_entity_id  ON audit_entries(entity_id);
+CREATE INDEX IF NOT EXISTS idx_audit_success    ON audit_entries(success);
 CREATE INDEX IF NOT EXISTS idx_audit_timestamp  ON audit_entries(timestamp);
 
 -- ─── Queries — APPEND ONLY (no UPDATE / DELETE defined) ────
 
 insertAuditEntry:
 INSERT INTO audit_entries (
-    id, event_type, user_id, entity_type, entity_id,
-    details, hash, previous_hash, timestamp, device_id
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+    id, event_type, user_id, user_name, user_role,
+    entity_type, entity_id, details,
+    previous_value, new_value, success, ip_address,
+    hash, previous_hash, timestamp, device_id
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- ─── Read queries ─────────────────────────────────────────────
 
 getLatestEntry:
 SELECT * FROM audit_entries ORDER BY timestamp DESC LIMIT 1;
@@ -54,16 +65,41 @@ SELECT * FROM audit_entries WHERE entity_type = ? AND entity_id = ? ORDER BY tim
 getEntriesByDateRange:
 SELECT * FROM audit_entries WHERE timestamp BETWEEN ? AND ? ORDER BY timestamp ASC;
 
--- Used by integrity verification: reads full chain for tamper check
+-- Used by integrity verification: reads full chain in chronological order
 getAllEntriesChronological:
-SELECT id, hash, previous_hash, timestamp FROM audit_entries ORDER BY timestamp ASC;
+SELECT id, event_type, user_id, entity_id, details, hash, previous_hash, timestamp
+FROM audit_entries
+ORDER BY timestamp ASC;
 
 countEntries:
 SELECT COUNT(*) FROM audit_entries;
 
--- Security alert query: failed logins per user in last N minutes
+-- Admin viewer: paginated filtered query
+getFilteredPage:
+SELECT * FROM audit_entries
+WHERE timestamp BETWEEN :from AND :to
+  AND (:eventType IS NULL OR event_type = :eventType)
+  AND (:userId IS NULL OR user_id = :userId)
+  AND (:userRole IS NULL OR user_role = :userRole)
+  AND (:entityType IS NULL OR entity_type = :entityType)
+  AND (:success IS NULL OR success = :success)
+ORDER BY timestamp DESC
+LIMIT :pageSize OFFSET :offset;
+
+-- Admin viewer: total count for pagination
+countFiltered:
+SELECT COUNT(*) FROM audit_entries
+WHERE timestamp BETWEEN :from AND :to
+  AND (:eventType IS NULL OR event_type = :eventType)
+  AND (:userId IS NULL OR user_id = :userId)
+  AND (:userRole IS NULL OR user_role = :userRole)
+  AND (:entityType IS NULL OR entity_type = :entityType)
+  AND (:success IS NULL OR success = :success);
+
+-- Security alert: failed logins per user since a given timestamp
 getRecentLoginFailures:
 SELECT COUNT(*) FROM audit_entries
-WHERE event_type = 'LOGIN_FAIL'
+WHERE event_type = 'LOGIN_ATTEMPT'
+  AND success = 0
   AND user_id = ?
   AND timestamp >= ?;

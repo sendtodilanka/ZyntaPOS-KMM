@@ -3,6 +3,7 @@ package com.zyntasolutions.zyntapos.security.audit
 import com.zyntasolutions.zyntapos.domain.model.AuditEntry
 import com.zyntasolutions.zyntapos.domain.model.AuditEventType
 import com.zyntasolutions.zyntapos.domain.model.Permission
+import com.zyntasolutions.zyntapos.domain.model.Role
 import com.zyntasolutions.zyntapos.domain.repository.AuditRepository
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
@@ -11,24 +12,25 @@ import kotlin.uuid.Uuid
 /**
  * ZyntaPOS — Security Audit Logger
  *
- * Append-only audit trail for security-sensitive POS events. All log functions
- * are **suspend fire-and-forget** — they catch all exceptions internally to prevent
- * audit logging from blocking a POS transaction.
+ * Append-only audit trail for security-sensitive and business-critical POS events.
+ * All log functions are **suspend fire-and-forget** — they catch all exceptions internally
+ * to prevent audit logging from ever blocking or crashing a POS transaction.
  *
- * Entries are written via [AuditRepository] to the `audit_log` SQLDelight table and
- * synced to the server. Entries are retained locally for 90 days before automated purge.
+ * Entries are written via [AuditRepository] to the `audit_entries` SQLDelight table.
+ * Entries are retained locally (legal minimum 7 years for Tier 1 business events);
+ * automated purge is handled by [LogRetentionJob] (Phase 2).
  *
  * ### Events Covered
- * - Authentication attempts (login / PIN)
- * - Permission denials (RBAC guard)
- * - Order voiding
- * - Stock adjustments
- * - Register open / close
- * - Discount authorisations
- * - Receipt print / email
+ * - Authentication: login, logout, PIN attempts, session timeout, PIN/password change
+ * - RBAC: permission denials, role changes
+ * - POS: order create/void/refund, discount, payment, hold/resume, price override
+ * - Inventory: stock adjustments, product CRUD, stocktake
+ * - Register: open/close, cash in/out
+ * - User management: create, deactivate, reactivate
+ * - System: settings change, backup, data export, diagnostic session
  *
- * @param auditRepository The [AuditRepository] that persists [AuditEntry] records.
- * @param deviceId        Hardware/installation ID injected at startup.
+ * @param auditRepository  The [AuditRepository] that persists [AuditEntry] records.
+ * @param deviceId         Hardware/installation ID injected at startup.
  */
 @OptIn(ExperimentalUuidApi::class)
 class SecurityAuditLogger(
@@ -43,13 +45,20 @@ class SecurityAuditLogger(
      *
      * @param success  `true` = authenticated; `false` = rejected.
      * @param userId   The user ID that attempted login (or attempted email).
-     * @param deviceId Override device ID (for cases where caller has a better value).
+     * @param userName Display name of the user (empty string if unknown at attempt time).
+     * @param userRole The user's role (null if login failed and role is unknown).
      */
-    suspend fun logLoginAttempt(success: Boolean, userId: String, deviceId: String = this.deviceId) {
+    suspend fun logLoginAttempt(
+        success: Boolean,
+        userId: String,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
         emit(
             eventType = AuditEventType.LOGIN_ATTEMPT,
             userId = userId,
-            deviceId = deviceId,
+            userName = userName,
+            userRole = userRole,
             success = success,
             payload = """{"source":"password"}""",
         )
@@ -58,16 +67,52 @@ class SecurityAuditLogger(
     /**
      * Records a PIN entry attempt.
      *
-     * @param success `true` = correct PIN; `false` = rejected.
-     * @param userId  The user whose PIN was challenged.
+     * @param success  `true` = correct PIN; `false` = rejected.
+     * @param userId   The user whose PIN was challenged.
+     * @param userName Display name of the user.
+     * @param userRole The user's role.
      */
-    suspend fun logPinAttempt(success: Boolean, userId: String) {
+    suspend fun logPinAttempt(
+        success: Boolean,
+        userId: String,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
         emit(
             eventType = AuditEventType.LOGIN_ATTEMPT,
             userId = userId,
-            deviceId = deviceId,
+            userName = userName,
+            userRole = userRole,
             success = success,
             payload = """{"source":"pin"}""",
+        )
+    }
+
+    /**
+     * Records an explicit logout event.
+     */
+    suspend fun logLogout(userId: String, userName: String = "", userRole: Role? = null) {
+        emit(
+            eventType = AuditEventType.LOGOUT,
+            userId = userId,
+            userName = userName,
+            userRole = userRole,
+            success = true,
+            payload = "{}",
+        )
+    }
+
+    /**
+     * Records an idle-timeout PIN lock event.
+     */
+    suspend fun logSessionTimeout(userId: String, userName: String = "", userRole: Role? = null) {
+        emit(
+            eventType = AuditEventType.SESSION_TIMEOUT,
+            userId = userId,
+            userName = userName,
+            userRole = userRole,
+            success = true,
+            payload = "{}",
         )
     }
 
@@ -77,14 +122,23 @@ class SecurityAuditLogger(
      * Records a permission denial — used to detect privilege escalation attempts.
      *
      * @param userId     The authenticated user who was denied.
+     * @param userName   Display name of the denied user.
+     * @param userRole   Role of the denied user.
      * @param permission The [Permission] that was required.
      * @param screen     Human-readable screen / feature context (e.g., "CartPanel").
      */
-    suspend fun logPermissionDenied(userId: String, permission: Permission, screen: String) {
+    suspend fun logPermissionDenied(
+        userId: String,
+        permission: Permission,
+        screen: String,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
         emit(
             eventType = AuditEventType.PERMISSION_DENIED,
             userId = userId,
-            deviceId = deviceId,
+            userName = userName,
+            userRole = userRole,
             success = false,
             payload = """{"permission":"${permission.name}","screen":"$screen"}""",
         )
@@ -93,21 +147,102 @@ class SecurityAuditLogger(
     // ─── POS Operations ───────────────────────────────────────────────────────
 
     /**
+     * Records an order creation event.
+     */
+    suspend fun logOrderCreated(
+        userId: String,
+        orderId: String,
+        totalAmount: Double,
+        itemCount: Int,
+        paymentMethod: String,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
+        emit(
+            eventType = AuditEventType.ORDER_CREATED,
+            userId = userId,
+            userName = userName,
+            userRole = userRole,
+            entityType = "ORDER",
+            entityId = orderId,
+            success = true,
+            payload = """{"orderId":"$orderId","totalAmount":$totalAmount,"itemCount":$itemCount,"paymentMethod":"$paymentMethod"}""",
+        )
+    }
+
+    /**
      * Records an order void event — mandatory for cash register reconciliation.
      *
-     * @param userId  Cashier / manager who authorised the void.
-     * @param orderId The voided order reference.
-     * @param reason  Free-text reason provided by the operator.
+     * @param userId   Cashier / manager who authorised the void.
+     * @param orderId  The voided order reference.
+     * @param reason   Free-text reason provided by the operator.
      */
-    suspend fun logOrderVoid(userId: String, orderId: String, reason: String) {
+    suspend fun logOrderVoided(
+        userId: String,
+        orderId: String,
+        reason: String,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
         emit(
-            eventType = AuditEventType.ORDER_VOID,
+            eventType = AuditEventType.ORDER_VOIDED,
             userId = userId,
-            deviceId = deviceId,
+            userName = userName,
+            userRole = userRole,
+            entityType = "ORDER",
+            entityId = orderId,
             success = true,
             payload = """{"orderId":"$orderId","reason":"${reason.escapeJson()}"}""",
         )
     }
+
+    /**
+     * Records a payment processed event.
+     */
+    suspend fun logPaymentProcessed(
+        userId: String,
+        orderId: String,
+        amount: Double,
+        method: String,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
+        emit(
+            eventType = AuditEventType.PAYMENT_PROCESSED,
+            userId = userId,
+            userName = userName,
+            userRole = userRole,
+            entityType = "ORDER",
+            entityId = orderId,
+            success = true,
+            payload = """{"orderId":"$orderId","amount":$amount,"method":"$method"}""",
+        )
+    }
+
+    /**
+     * Records an order-level or item-level discount authorisation.
+     */
+    suspend fun logDiscountApplied(
+        userId: String,
+        orderId: String,
+        amount: Double,
+        isPercent: Boolean,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
+        emit(
+            eventType = AuditEventType.DISCOUNT_APPLIED,
+            userId = userId,
+            userName = userName,
+            userRole = userRole,
+            entityType = "ORDER",
+            entityId = orderId,
+            success = true,
+            payload = """{"orderId":"$orderId","amount":$amount,"type":"${if (isPercent) "PERCENT" else "FIXED"}"}""",
+        )
+    }
+
+    // ─── Inventory ────────────────────────────────────────────────────────────
 
     /**
      * Records a stock adjustment for inventory audit purposes.
@@ -116,40 +251,80 @@ class SecurityAuditLogger(
      * @param productId  Adjusted product.
      * @param qty        Quantity changed (positive = increase, negative = decrease).
      * @param reason     Adjustment reason code or free text.
+     * @param previousQty  Stock level before the adjustment (for previousValue field).
+     * @param newQty       Stock level after the adjustment (for newValue field).
      */
-    suspend fun logStockAdjustment(userId: String, productId: String, qty: Double, reason: String) {
+    suspend fun logStockAdjusted(
+        userId: String,
+        productId: String,
+        qty: Double,
+        reason: String,
+        previousQty: Double? = null,
+        newQty: Double? = null,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
         emit(
-            eventType = AuditEventType.STOCK_ADJUSTMENT,
+            eventType = AuditEventType.STOCK_ADJUSTED,
             userId = userId,
-            deviceId = deviceId,
+            userName = userName,
+            userRole = userRole,
+            entityType = "PRODUCT",
+            entityId = productId,
+            previousValue = previousQty?.let { """{"qty":$it}""" },
+            newValue = newQty?.let { """{"qty":$it}""" },
             success = true,
             payload = """{"productId":"$productId","qty":$qty,"reason":"${reason.escapeJson()}"}""",
         )
     }
 
     /**
-     * Records a receipt print event for regulatory / refund audit compliance.
+     * Records a product created event.
      */
-    suspend fun logReceiptPrint(orderId: String, userId: String) {
+    suspend fun logProductCreated(
+        userId: String,
+        productId: String,
+        productName: String,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
         emit(
-            eventType = AuditEventType.DATA_EXPORT,
+            eventType = AuditEventType.PRODUCT_CREATED,
             userId = userId,
-            deviceId = deviceId,
+            userName = userName,
+            userRole = userRole,
+            entityType = "PRODUCT",
+            entityId = productId,
             success = true,
-            payload = """{"action":"RECEIPT_PRINT","orderId":"$orderId"}""",
+            payload = """{"productId":"$productId","name":"${productName.escapeJson()}"}""",
         )
     }
 
     /**
-     * Records an order-level or item-level discount authorisation.
+     * Records a product modification event.
+     *
+     * @param previousValue JSON snapshot of the product state before the change.
+     * @param newValue      JSON snapshot of the product state after the change.
      */
-    suspend fun logDiscountApplied(userId: String, orderId: String, amount: Double, isPercent: Boolean) {
+    suspend fun logProductModified(
+        userId: String,
+        productId: String,
+        previousValue: String? = null,
+        newValue: String? = null,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
         emit(
-            eventType = AuditEventType.SETTINGS_CHANGED,
+            eventType = AuditEventType.PRODUCT_MODIFIED,
             userId = userId,
-            deviceId = deviceId,
+            userName = userName,
+            userRole = userRole,
+            entityType = "PRODUCT",
+            entityId = productId,
+            previousValue = previousValue,
+            newValue = newValue,
             success = true,
-            payload = """{"action":"DISCOUNT","orderId":"$orderId","amount":$amount,"type":"${if (isPercent) "PERCENT" else "FIXED"}"}""",
+            payload = """{"productId":"$productId"}""",
         )
     }
 
@@ -158,11 +333,20 @@ class SecurityAuditLogger(
     /**
      * Records a register session open event.
      */
-    suspend fun logRegisterOpen(userId: String, registerId: String, openingBalance: Double) {
+    suspend fun logRegisterOpen(
+        userId: String,
+        registerId: String,
+        openingBalance: Double,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
         emit(
             eventType = AuditEventType.REGISTER_OPENED,
             userId = userId,
-            deviceId = deviceId,
+            userName = userName,
+            userRole = userRole,
+            entityType = "REGISTER",
+            entityId = registerId,
             success = true,
             payload = """{"registerId":"$registerId","openingBalance":$openingBalance}""",
         )
@@ -171,13 +355,119 @@ class SecurityAuditLogger(
     /**
      * Records a register session close event.
      */
-    suspend fun logRegisterClose(userId: String, registerId: String, variance: Double) {
+    suspend fun logRegisterClose(
+        userId: String,
+        registerId: String,
+        variance: Double,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
         emit(
             eventType = AuditEventType.REGISTER_CLOSED,
             userId = userId,
-            deviceId = deviceId,
+            userName = userName,
+            userRole = userRole,
+            entityType = "REGISTER",
+            entityId = registerId,
             success = true,
             payload = """{"registerId":"$registerId","variance":$variance}""",
+        )
+    }
+
+    /**
+     * Records a cash-in event (cash added mid-session).
+     */
+    suspend fun logCashIn(
+        userId: String,
+        registerId: String,
+        amount: Double,
+        reason: String,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
+        emit(
+            eventType = AuditEventType.CASH_IN,
+            userId = userId,
+            userName = userName,
+            userRole = userRole,
+            entityType = "REGISTER",
+            entityId = registerId,
+            success = true,
+            payload = """{"registerId":"$registerId","amount":$amount,"reason":"${reason.escapeJson()}"}""",
+        )
+    }
+
+    /**
+     * Records a cash-out event (cash removed mid-session).
+     */
+    suspend fun logCashOut(
+        userId: String,
+        registerId: String,
+        amount: Double,
+        reason: String,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
+        emit(
+            eventType = AuditEventType.CASH_OUT,
+            userId = userId,
+            userName = userName,
+            userRole = userRole,
+            entityType = "REGISTER",
+            entityId = registerId,
+            success = true,
+            payload = """{"registerId":"$registerId","amount":$amount,"reason":"${reason.escapeJson()}"}""",
+        )
+    }
+
+    // ─── Data / System ─────────────────────────────────────────────────────────
+
+    /**
+     * Records a receipt print or data export event for regulatory / refund audit compliance.
+     */
+    suspend fun logDataExported(
+        userId: String,
+        action: String,
+        entityId: String? = null,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
+        emit(
+            eventType = AuditEventType.DATA_EXPORTED,
+            userId = userId,
+            userName = userName,
+            userRole = userRole,
+            entityType = if (entityId != null) "ORDER" else null,
+            entityId = entityId,
+            success = true,
+            payload = """{"action":"$action","entityId":"${entityId ?: ""}"}""",
+        )
+    }
+
+    /**
+     * Records a settings change.
+     *
+     * @param key           The settings key that changed.
+     * @param previousValue Serialised previous value.
+     * @param newValue      Serialised new value.
+     */
+    suspend fun logSettingsChanged(
+        userId: String,
+        key: String,
+        previousValue: String? = null,
+        newValue: String? = null,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
+        emit(
+            eventType = AuditEventType.SETTINGS_CHANGED,
+            userId = userId,
+            userName = userName,
+            userRole = userRole,
+            previousValue = previousValue,
+            newValue = newValue,
+            success = true,
+            payload = """{"key":"${key.escapeJson()}"}""",
         )
     }
 
@@ -186,13 +476,23 @@ class SecurityAuditLogger(
     /**
      * Builds and persists an [AuditEntry]. Exceptions are swallowed — audit logging
      * must never block or crash a POS transaction.
+     *
+     * NOTE (Phase 1): `hash` and `previousHash` are stored as empty strings.
+     * Proper SHA-256 chain computation will be added in Phase 2 when
+     * [AuditIntegrityVerifier] is wired to the scheduled verification job.
      */
     private suspend fun emit(
         eventType: AuditEventType,
         userId: String,
-        deviceId: String,
+        userName: String = "",
+        userRole: Role? = null,
+        entityType: String? = null,
+        entityId: String? = null,
+        previousValue: String? = null,
+        newValue: String? = null,
         success: Boolean,
         payload: String,
+        ipAddress: String? = null,
     ) {
         runCatching {
             auditRepository.insert(
@@ -200,9 +500,18 @@ class SecurityAuditLogger(
                     id = Uuid.random().toString(),
                     eventType = eventType,
                     userId = userId,
+                    userName = userName,
+                    userRole = userRole,
                     deviceId = deviceId,
+                    entityType = entityType,
+                    entityId = entityId,
                     payload = payload,
+                    previousValue = previousValue,
+                    newValue = newValue,
                     success = success,
+                    ipAddress = ipAddress,
+                    hash = "",         // Phase 2: compute SHA-256 chain
+                    previousHash = "", // Phase 2: link to previous entry hash
                     createdAt = Clock.System.now(),
                 ),
             )

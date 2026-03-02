@@ -203,15 +203,52 @@ private fun formatInstant(entry: AuditEntry): String {
 }
 
 private fun iconForEventType(type: AuditEventType) = when (type) {
-    AuditEventType.LOGIN_ATTEMPT -> Icons.Default.Login
-    AuditEventType.LOGOUT -> Icons.Default.Logout
-    AuditEventType.PERMISSION_DENIED -> Icons.Default.Block
-    AuditEventType.ORDER_VOID -> Icons.Default.Cancel
-    AuditEventType.STOCK_ADJUSTMENT -> Icons.Default.Inventory
-    AuditEventType.USER_CREATED -> Icons.Default.PersonAdd
-    AuditEventType.USER_DEACTIVATED -> Icons.Default.PersonOff
-    AuditEventType.SETTINGS_CHANGED -> Icons.Default.Settings
-    AuditEventType.REGISTER_OPENED -> Icons.Default.LockOpen
-    AuditEventType.REGISTER_CLOSED -> Icons.Default.Lock
-    AuditEventType.DATA_EXPORT -> Icons.Default.FileDownload
+    // Authentication
+    AuditEventType.LOGIN_ATTEMPT      -> Icons.Default.Login
+    AuditEventType.LOGOUT             -> Icons.Default.Logout
+    AuditEventType.SESSION_TIMEOUT    -> Icons.Default.Timer
+    AuditEventType.PIN_CHANGE         -> Icons.Default.Pin
+    AuditEventType.PASSWORD_CHANGE    -> Icons.Default.Password
+    // Authorization
+    AuditEventType.PERMISSION_DENIED  -> Icons.Default.Block
+    AuditEventType.ROLE_CHANGED       -> Icons.Default.ManageAccounts
+    // POS Operations
+    AuditEventType.ORDER_CREATED      -> Icons.Default.ShoppingCart
+    AuditEventType.ORDER_VOIDED       -> Icons.Default.Cancel
+    AuditEventType.ORDER_REFUNDED     -> Icons.Default.MoneyOff
+    AuditEventType.DISCOUNT_APPLIED   -> Icons.Default.LocalOffer
+    AuditEventType.PAYMENT_PROCESSED  -> Icons.Default.Payment
+    AuditEventType.ORDER_HELD         -> Icons.Default.Pause
+    AuditEventType.ORDER_RESUMED      -> Icons.Default.PlayArrow
+    AuditEventType.PRICE_OVERRIDE     -> Icons.Default.Edit
+    // Inventory
+    AuditEventType.STOCK_ADJUSTED     -> Icons.Default.Inventory
+    AuditEventType.PRODUCT_CREATED    -> Icons.Default.AddBox
+    AuditEventType.PRODUCT_MODIFIED   -> Icons.Default.Edit
+    AuditEventType.PRODUCT_DELETED    -> Icons.Default.Delete
+    AuditEventType.STOCKTAKE_COMPLETED -> Icons.Default.FactCheck
+    // Register
+    AuditEventType.REGISTER_OPENED    -> Icons.Default.LockOpen
+    AuditEventType.REGISTER_CLOSED    -> Icons.Default.Lock
+    AuditEventType.CASH_IN            -> Icons.Default.Add
+    AuditEventType.CASH_OUT           -> Icons.Default.Remove
+    // User Management
+    AuditEventType.USER_CREATED       -> Icons.Default.PersonAdd
+    AuditEventType.USER_DEACTIVATED   -> Icons.Default.PersonOff
+    AuditEventType.USER_REACTIVATED   -> Icons.Default.PersonAdd
+    AuditEventType.CUSTOM_ROLE_MODIFIED -> Icons.Default.AdminPanelSettings
+    // Financial
+    AuditEventType.EXPENSE_APPROVED   -> Icons.Default.Receipt
+    AuditEventType.JOURNAL_POSTED     -> Icons.Default.AccountBalance
+    AuditEventType.TAX_CONFIG_CHANGED -> Icons.Default.Percent
+    // System
+    AuditEventType.SETTINGS_CHANGED   -> Icons.Default.Settings
+    AuditEventType.BACKUP_CREATED     -> Icons.Default.Save
+    AuditEventType.BACKUP_RESTORED    -> Icons.Default.Restore
+    AuditEventType.DATA_EXPORTED      -> Icons.Default.FileDownload
+    AuditEventType.DIAGNOSTIC_SESSION -> Icons.Default.BugReport
+    // Data
+    AuditEventType.SYNC_COMPLETED     -> Icons.Default.Sync
+    AuditEventType.SYNC_FAILED        -> Icons.Default.SyncProblem
+    AuditEventType.DATA_PURGED        -> Icons.Default.DeleteSweep
 }
