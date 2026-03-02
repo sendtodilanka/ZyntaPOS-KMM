@@ -254,6 +254,7 @@ fun NavGraphBuilder.mainNavGraph(
                             "SYSTEM_HEALTH" -> navigationController.navigate(ZyntaRoute.SystemHealthSettings)
                             "SECURITY" -> navigationController.navigate(ZyntaRoute.SecuritySettings)
                             "RBAC_MANAGEMENT" -> navigationController.navigate(ZyntaRoute.RbacManagement)
+                            "EDITION_MANAGEMENT" -> navigationController.navigate(ZyntaRoute.EditionManagement)
                             "DEBUG_CONSOLE" -> if (debugScreen != null) {
                                 navigationController.navigate(ZyntaRoute.Debug)
                             }
@@ -330,9 +331,9 @@ fun NavGraphBuilder.mainNavGraph(
             }
 
             composable<ZyntaRoute.EditionManagement> {
-                // Placeholder: EditionManagementScreen will be wired by Agent 7
-                // For now just navigate to a placeholder
-                Text("Edition Management — Coming soon") // temporary
+                screens.editionManagement(
+                    { navigationController.navigateUp(ZyntaRoute.Settings) },
+                )
             }
 
             // ── Debug Console — only registered in debug builds ──────────────

@@ -64,6 +64,7 @@ class NavGraphCompletenessTest {
         "systemHealthSettings",
         "securitySettings",
         "rbacManagement",
+        "editionManagement",
 
         // Deep-link target
         "orderHistory",
@@ -120,9 +121,8 @@ class NavGraphCompletenessTest {
      * IMPORTANT: This list should shrink over time. Each entry MUST
      * reference the issue/sprint where wiring is planned.
      */
-    private val deferredProperties = setOf(
-        // EditionManagement — placeholder in MainNavGraph.kt, tracked for Agent 7 wiring
-        "editionManagement",
+    private val deferredProperties = setOf<String>(
+        // All routes are now wired. This set is kept to satisfy the tracking contract.
     )
 
     @Test

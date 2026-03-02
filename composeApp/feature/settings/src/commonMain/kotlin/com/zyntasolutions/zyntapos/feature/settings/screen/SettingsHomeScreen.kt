@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -111,7 +112,7 @@ data class SettingsGroup(
 /** All routes the settings home screen can navigate to. */
 enum class SettingsRoute {
     GENERAL, POS, TAX, PRINTER, USERS, SECURITY, RBAC_MANAGEMENT, BACKUP, APPEARANCE, SYSTEM_HEALTH, ABOUT,
-    LABEL_PRINTER, SCANNER_SETTINGS, PRINTER_PROFILES,
+    LABEL_PRINTER, SCANNER_SETTINGS, PRINTER_PROFILES, EDITION_MANAGEMENT,
     /** Debug Console — only presented when [SettingsHomeScreen] receives `isDebug = true`. */
     DEBUG_CONSOLE,
 }
@@ -140,6 +141,7 @@ private val settingsGroups: List<SettingsGroup> = listOf(
             SettingsEntry("Users", "Create and manage staff accounts", Icons.Filled.PersonOutline, SettingsRoute.USERS),
             SettingsEntry("Security", "PIN policy, session timeout & RBAC", Icons.Filled.Security, SettingsRoute.SECURITY),
             SettingsEntry("Roles & Permissions", "Manage role definitions and RBAC permission matrix", Icons.Filled.AdminPanelSettings, SettingsRoute.RBAC_MANAGEMENT),
+            SettingsEntry("Edition Management", "Features enabled for your store edition", Icons.Filled.WorkspacePremium, SettingsRoute.EDITION_MANAGEMENT),
             SettingsEntry("Backup", "Manual backup & restore", Icons.Filled.Backup, SettingsRoute.BACKUP),
         ),
     ),
