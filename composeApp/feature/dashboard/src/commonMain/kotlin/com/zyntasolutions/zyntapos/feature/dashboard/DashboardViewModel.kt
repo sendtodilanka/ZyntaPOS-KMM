@@ -91,27 +91,40 @@ class DashboardViewModel(
             // Active registers
             val activeSession = registerRepository.getActive().first()
 
-            // Recent completed orders (last 10)
+            // Recent completed orders (last 10) — formattedTime pre-computed here, not in composable
             val allOrders = orderRepository.getAll().first()
             val recent = allOrders
                 .filter { it.status == OrderStatus.COMPLETED }
                 .sortedByDescending { it.createdAt }
                 .take(10)
                 .map { order ->
+                    val orderTime = order.createdAt.toLocalDateTime(tz)
                     RecentOrderItem(
                         orderNumber = order.orderNumber,
                         total = order.total,
                         method = order.paymentMethod.name,
                         timestamp = order.createdAt.toEpochMilliseconds(),
+                        formattedTime = "${orderTime.hour.toString().padStart(2, '0')}:${orderTime.minute.toString().padStart(2, '0')}",
                     )
                 }
 
-            val currentHourForGreeting = now.toLocalDateTime(tz).hour
+            val nowLocal = now.toLocalDateTime(tz)
             val greeting = when {
-                currentHourForGreeting < 12 -> "Good morning,"
-                currentHourForGreeting < 17 -> "Good afternoon,"
+                nowLocal.hour < 12 -> "Good morning,"
+                nowLocal.hour < 17 -> "Good afternoon,"
                 else -> "Good evening,"
             }
+
+            // Derived display values computed in VM so composables stay pure (MVI)
+            val target = currentState.dailySalesTarget
+            val computedSalesProgress = if (target > 0) (sales / target).toFloat().coerceIn(0f, 1f) else 0f
+            val computedInitials = user?.name
+                ?.split(" ")
+                ?.take(2)
+                ?.mapNotNull { it.firstOrNull()?.uppercaseChar()?.toString() }
+                ?.joinToString("")
+                ?.takeIf { it.isNotEmpty() }
+                ?: "M"
 
             updateState {
                 copy(
@@ -126,6 +139,8 @@ class DashboardViewModel(
                     todaySparkline = sparkline,
                     isLoading = false,
                     greetingText = greeting,
+                    salesProgress = computedSalesProgress,
+                    userInitials = computedInitials,
                 )
             }
         } catch (e: Exception) {

@@ -8,6 +8,8 @@ import com.zyntasolutions.zyntapos.domain.repository.AuditRepository
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 /**
  * ZyntaPOS — Security Audit Logger
@@ -37,6 +39,7 @@ class SecurityAuditLogger(
     private val auditRepository: AuditRepository,
     private val deviceId: String,
 ) {
+    private val json = Json { encodeDefaults = false }
 
     // ─── Authentication ───────────────────────────────────────────────────────
 
@@ -60,7 +63,7 @@ class SecurityAuditLogger(
             userName = userName,
             userRole = userRole,
             success = success,
-            payload = """{"source":"password"}""",
+            payload = json.encodeToString(LoginPayload(source = "password")),
         )
     }
 
@@ -84,7 +87,7 @@ class SecurityAuditLogger(
             userName = userName,
             userRole = userRole,
             success = success,
-            payload = """{"source":"pin"}""",
+            payload = json.encodeToString(LoginPayload(source = "pin")),
         )
     }
 
@@ -98,7 +101,7 @@ class SecurityAuditLogger(
             userName = userName,
             userRole = userRole,
             success = true,
-            payload = "{}",
+            payload = json.encodeToString(LogoutPayload()),
         )
     }
 
@@ -112,7 +115,7 @@ class SecurityAuditLogger(
             userName = userName,
             userRole = userRole,
             success = true,
-            payload = "{}",
+            payload = json.encodeToString(LogoutPayload(reason = "idle_timeout")),
         )
     }
 
@@ -140,7 +143,7 @@ class SecurityAuditLogger(
             userName = userName,
             userRole = userRole,
             success = false,
-            payload = """{"permission":"${permission.name}","screen":"$screen"}""",
+            payload = json.encodeToString(PermissionDeniedPayload(permission = permission.name, screen = screen)),
         )
     }
 
@@ -166,7 +169,7 @@ class SecurityAuditLogger(
             entityType = "ORDER",
             entityId = orderId,
             success = true,
-            payload = """{"orderId":"$orderId","totalAmount":$totalAmount,"itemCount":$itemCount,"paymentMethod":"$paymentMethod"}""",
+            payload = json.encodeToString(OrderCreatedPayload(orderId, totalAmount, itemCount, paymentMethod)),
         )
     }
 
@@ -192,7 +195,7 @@ class SecurityAuditLogger(
             entityType = "ORDER",
             entityId = orderId,
             success = true,
-            payload = """{"orderId":"$orderId","reason":"${reason.escapeJson()}"}""",
+            payload = json.encodeToString(OrderVoidedPayload(orderId, reason)),
         )
     }
 
@@ -215,7 +218,7 @@ class SecurityAuditLogger(
             entityType = "ORDER",
             entityId = orderId,
             success = true,
-            payload = """{"orderId":"$orderId","amount":$amount,"method":"$method"}""",
+            payload = json.encodeToString(PaymentProcessedPayload(orderId, amount, method)),
         )
     }
 
@@ -238,7 +241,7 @@ class SecurityAuditLogger(
             entityType = "ORDER",
             entityId = orderId,
             success = true,
-            payload = """{"orderId":"$orderId","amount":$amount,"type":"${if (isPercent) "PERCENT" else "FIXED"}"}""",
+            payload = json.encodeToString(DiscountAppliedPayload(orderId, amount, if (isPercent) "PERCENT" else "FIXED")),
         )
     }
 
@@ -271,10 +274,10 @@ class SecurityAuditLogger(
             userRole = userRole,
             entityType = "PRODUCT",
             entityId = productId,
-            previousValue = previousQty?.let { """{"qty":$it}""" },
-            newValue = newQty?.let { """{"qty":$it}""" },
+            previousValue = previousQty?.let { json.encodeToString(StockQtySnapshot(it)) },
+            newValue = newQty?.let { json.encodeToString(StockQtySnapshot(it)) },
             success = true,
-            payload = """{"productId":"$productId","qty":$qty,"reason":"${reason.escapeJson()}"}""",
+            payload = json.encodeToString(StockAdjustedPayload(productId, qty, reason)),
         )
     }
 
@@ -296,7 +299,7 @@ class SecurityAuditLogger(
             entityType = "PRODUCT",
             entityId = productId,
             success = true,
-            payload = """{"productId":"$productId","name":"${productName.escapeJson()}"}""",
+            payload = json.encodeToString(ProductCreatedPayload(productId, productName)),
         )
     }
 
@@ -324,7 +327,7 @@ class SecurityAuditLogger(
             previousValue = previousValue,
             newValue = newValue,
             success = true,
-            payload = """{"productId":"$productId"}""",
+            payload = json.encodeToString(ProductModifiedPayload(productId)),
         )
     }
 
@@ -348,7 +351,7 @@ class SecurityAuditLogger(
             entityType = "REGISTER",
             entityId = registerId,
             success = true,
-            payload = """{"registerId":"$registerId","openingBalance":$openingBalance}""",
+            payload = json.encodeToString(RegisterOpenPayload(registerId, openingBalance)),
         )
     }
 
@@ -370,7 +373,7 @@ class SecurityAuditLogger(
             entityType = "REGISTER",
             entityId = registerId,
             success = true,
-            payload = """{"registerId":"$registerId","variance":$variance}""",
+            payload = json.encodeToString(RegisterClosePayload(registerId, variance)),
         )
     }
 
@@ -393,7 +396,7 @@ class SecurityAuditLogger(
             entityType = "REGISTER",
             entityId = registerId,
             success = true,
-            payload = """{"registerId":"$registerId","amount":$amount,"reason":"${reason.escapeJson()}"}""",
+            payload = json.encodeToString(CashMovementPayload(registerId, amount, reason)),
         )
     }
 
@@ -416,7 +419,7 @@ class SecurityAuditLogger(
             entityType = "REGISTER",
             entityId = registerId,
             success = true,
-            payload = """{"registerId":"$registerId","amount":$amount,"reason":"${reason.escapeJson()}"}""",
+            payload = json.encodeToString(CashMovementPayload(registerId, amount, reason)),
         )
     }
 
@@ -440,7 +443,7 @@ class SecurityAuditLogger(
             entityType = if (entityId != null) "ORDER" else null,
             entityId = entityId,
             success = true,
-            payload = """{"action":"$action","entityId":"${entityId ?: ""}"}""",
+            payload = json.encodeToString(DataExportedPayload(action, entityId ?: "")),
         )
     }
 
@@ -467,7 +470,7 @@ class SecurityAuditLogger(
             previousValue = previousValue,
             newValue = newValue,
             success = true,
-            payload = """{"key":"${key.escapeJson()}"}""",
+            payload = json.encodeToString(SettingsChangedPayload(key)),
         )
     }
 
@@ -518,7 +521,4 @@ class SecurityAuditLogger(
         }
     }
 
-    /** Minimal JSON escaping for freeform text fields. */
-    private fun String.escapeJson(): String =
-        replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n")
 }

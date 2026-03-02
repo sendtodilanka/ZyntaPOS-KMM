@@ -78,9 +78,6 @@ import com.zyntasolutions.zyntapos.feature.dashboard.mvi.DashboardIntent
 import com.zyntasolutions.zyntapos.feature.dashboard.mvi.DashboardState
 import com.zyntasolutions.zyntapos.feature.dashboard.mvi.RecentOrderItem
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Instant
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -167,6 +164,7 @@ internal fun DashboardScreenContent(
         actions = {
             ProfileAvatarMenu(
                 currentUser = state.currentUser,
+                userInitials = state.userInitials,
                 greetingText = state.greetingText,
                 onNavigateToNotifications = onNavigateToNotifications,
                 onNavigateToSettings = onNavigateToSettings,
@@ -206,6 +204,7 @@ internal fun DashboardScreenContent(
 @Composable
 private fun ProfileAvatarMenu(
     currentUser: User?,
+    userInitials: String,
     greetingText: String,
     onNavigateToNotifications: () -> Unit,
     onNavigateToSettings: () -> Unit,
@@ -221,26 +220,12 @@ private fun ProfileAvatarMenu(
             onClick = { showMenu = true },
         ) {
             Box(contentAlignment = Alignment.Center) {
-                val initials = currentUser?.name
-                    ?.split(" ")
-                    ?.take(2)
-                    ?.mapNotNull { it.firstOrNull()?.uppercase() }
-                    ?.joinToString("")
-                    ?: "M"
-                if (initials.isNotEmpty()) {
-                    Text(
-                        text = initials,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    )
-                } else {
-                    Icon(
-                        Icons.Default.AccountCircle, "Profile",
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(22.dp),
-                    )
-                }
+                Text(
+                    text = userInitials,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
             }
         }
 
@@ -321,9 +306,6 @@ private fun ExpandedDashboard(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
         ) {
-            val salesProgress = if (state.dailySalesTarget > 0) {
-                (state.todaysSales / state.dailySalesTarget).toFloat().coerceIn(0f, 1f)
-            } else 0f
             ZyntaHeroStatCard(
                 icon = Icons.Default.AttachMoney,
                 label = "Today's Sales",
@@ -332,14 +314,14 @@ private fun ExpandedDashboard(
                 modifier = Modifier.weight(1.4f),
                 rightSlot = {
                     ZyntaProgressRing(
-                        progress = salesProgress,
+                        progress = state.salesProgress,
                         size = 72.dp,
                         strokeWidth = 6.dp,
                         trackColor = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.3f),
                         progressColor = androidx.compose.ui.graphics.Color.White,
                         centerContent = {
                             Text(
-                                text = "${(salesProgress * 100).toInt()}%",
+                                text = "${(state.salesProgress * 100).toInt()}%",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = androidx.compose.ui.graphics.Color.White,
@@ -667,9 +649,6 @@ private fun RecentOrdersCard(orders: List<RecentOrderItem>, currencyFormatter: C
     ) {
         Column {
             orders.forEachIndexed { index, order ->
-                val tz = TimeZone.currentSystemDefault()
-                val orderTime = Instant.fromEpochMilliseconds(order.timestamp).toLocalDateTime(tz)
-                val timeStr = "${orderTime.hour.toString().padStart(2, '0')}:${orderTime.minute.toString().padStart(2, '0')}"
                 val chipVariant = when (order.method.uppercase()) {
                     "CASH" -> StatusChipVariant.Success
                     "CARD" -> StatusChipVariant.Info
@@ -677,7 +656,7 @@ private fun RecentOrdersCard(orders: List<RecentOrderItem>, currencyFormatter: C
                 }
                 ZyntaActivityItem(
                     title = order.orderNumber,
-                    subtitle = timeStr,
+                    subtitle = order.formattedTime,
                     trailingText = currencyFormatter.format(order.total),
                     icon = Icons.Default.Receipt,
                     iconTint = MaterialTheme.colorScheme.primary,

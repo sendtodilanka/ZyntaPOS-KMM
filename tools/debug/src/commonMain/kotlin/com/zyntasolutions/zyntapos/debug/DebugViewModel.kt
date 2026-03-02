@@ -16,6 +16,8 @@ import com.zyntasolutions.zyntapos.domain.repository.AuditRepository
 import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlin.time.Clock
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 /**
  * MVI ViewModel for the Debug Console.
@@ -380,12 +382,13 @@ class DebugViewModel(
         updateState { copy(actionResult = DebugState.ActionResult(message, isError)) }
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     private suspend fun auditDebugAction(action: String, payload: String) {
         try {
             val userId = currentState.currentUserId ?: "debug"
             auditRepository.insert(
                 AuditEntry(
-                    id            = "debug-audit-${Clock.System.now().epochSeconds}-$action",
+                    id            = Uuid.random().toString(),
                     eventType     = AuditEventType.DIAGNOSTIC_SESSION,
                     userId        = userId,
                     userName      = "",
@@ -393,7 +396,10 @@ class DebugViewModel(
                     deviceId      = "debug-console",
                     entityType    = null,
                     entityId      = null,
-                    payload       = """{"debug_action":"$action","detail":"$payload"}""",
+                    payload       = kotlinx.serialization.json.buildJsonObject {
+                        put("debug_action", action)
+                        put("detail", payload)
+                    }.toString(),
                     previousValue = null,
                     newValue      = null,
                     success       = true,

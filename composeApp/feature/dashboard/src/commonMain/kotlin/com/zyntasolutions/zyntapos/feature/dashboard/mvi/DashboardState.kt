@@ -22,16 +22,24 @@ data class DashboardState(
     val isLoading: Boolean = true,
     /** Daily sales target in currency units. Shown in the hero KPI card progress ring. */
     val dailySalesTarget: Double = 75_000.0,
+    /** Pre-computed progress ratio (0f–1f) for the sales target ring. Computed in ViewModel. */
+    val salesProgress: Float = 0f,
+    /** Pre-computed user initials (e.g. "JS") for the avatar chip. Computed in ViewModel. */
+    val userInitials: String = "M",
     /** Time-aware greeting string e.g. "Good morning," / "Good afternoon,". */
     val greetingText: String = "Good morning,",
 )
 
 /**
  * Lightweight projection of a completed order for the recent activity list.
+ *
+ * @property formattedTime Pre-formatted "HH:mm" string computed in [DashboardViewModel].
+ * @property chipVariantName Payment method display label for the status chip (e.g. "CASH", "CARD").
  */
 data class RecentOrderItem(
     val orderNumber: String,
     val total: Double,
     val method: String,
     val timestamp: Long,
+    val formattedTime: String = "",
 )
