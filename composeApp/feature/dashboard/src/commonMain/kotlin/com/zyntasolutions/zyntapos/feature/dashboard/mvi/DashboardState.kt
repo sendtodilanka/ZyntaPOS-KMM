@@ -20,6 +20,10 @@ data class DashboardState(
     val weeklySalesData: List<ChartDataPoint> = emptyList(),
     val todaySparkline: List<Float> = emptyList(),
     val isLoading: Boolean = true,
+    /** Daily sales target in currency units. Shown in the hero KPI card progress ring. */
+    val dailySalesTarget: Double = 75_000.0,
+    /** Time-aware greeting string e.g. "Good morning," / "Good afternoon,". */
+    val greetingText: String = "Good morning,",
 )
 
 /**

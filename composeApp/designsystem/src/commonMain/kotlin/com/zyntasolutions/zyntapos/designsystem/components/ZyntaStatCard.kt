@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.designsystem.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -295,6 +296,95 @@ internal fun MiniSparkline(
             color = color,
             style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round),
         )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ZyntaHeroStatCard — Gradient background hero card for the primary KPI
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Full-width hero KPI card with a horizontal gradient background.
+ *
+ * Designed for the primary "Today's Sales" metric on the dashboard. Renders
+ * white text over the gradient so all content stays legible in both themes.
+ *
+ * Compose any content in [rightSlot] — typically a [ZyntaProgressRing] showing
+ * the daily target percentage.
+ *
+ * @param icon Leading icon.
+ * @param label Metric label.
+ * @param value Formatted value string (e.g. "Rs 45,200").
+ * @param subtitle Optional sub-label (e.g. "of Rs 75,000 target").
+ * @param gradientStart Left-edge gradient color (default brand primary #1565C0).
+ * @param gradientEnd Right-edge gradient color (default lighter blue #1976D2).
+ * @param modifier Optional [Modifier].
+ * @param rightSlot Optional composable rendered on the right side of the card
+ *   (e.g. [ZyntaProgressRing]).
+ */
+@Composable
+fun ZyntaHeroStatCard(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    gradientStart: Color = Color(0xFF1565C0),
+    gradientEnd: Color = Color(0xFF1976D2),
+    rightSlot: @Composable () -> Unit = {},
+) {
+    Card(
+        modifier = modifier,
+        elevation = CardDefaults.cardElevation(defaultElevation = ZyntaElevation.Level2),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Brush.horizontalGradient(listOf(gradientStart, gradientEnd))),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(ZyntaSpacing.lg),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.xs)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.xs),
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = Color.White.copy(alpha = 0.8f),
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color.White.copy(alpha = 0.8f),
+                        )
+                    }
+                    Text(
+                        text = value,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                    )
+                    if (subtitle != null) {
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.7f),
+                        )
+                    }
+                }
+                rightSlot()
+            }
+        }
     }
 }
 

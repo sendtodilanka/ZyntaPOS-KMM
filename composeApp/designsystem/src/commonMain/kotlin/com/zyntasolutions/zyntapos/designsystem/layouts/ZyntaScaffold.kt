@@ -38,9 +38,6 @@ data class ZyntaNavGroup(
 //   ) { innerPadding -> ScreenContent(Modifier.padding(innerPadding)) }
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Width of the persistent navigation drawer in EXPANDED layout. */
-private val DrawerWidth = 240.dp
-
 /**
  * Descriptor for a single navigation destination in [ZyntaScaffold].
  *
@@ -48,11 +45,26 @@ private val DrawerWidth = 240.dp
  * @param icon Icon displayed in all navigation variants.
  * @param selectedIcon Icon used when this destination is selected (defaults to [icon]).
  * @param contentDescription Accessibility description for the icon.
+ * @param children Optional child destinations shown as an expandable sub-list in the
+ *   EXPANDED drawer.  Ignored in COMPACT (bottom bar) and MEDIUM (rail) variants.
  */
 data class ZyntaNavItem(
     val label: String,
     val icon: ImageVector,
     val selectedIcon: ImageVector = icon,
+    val contentDescription: String = label,
+    val children: List<ZyntaNavChildItem> = emptyList(),
+)
+
+/**
+ * Descriptor for a child navigation item nested under a [ZyntaNavItem] in the
+ * EXPANDED hierarchical drawer.
+ *
+ * @param label Human-readable label for the child destination.
+ * @param contentDescription Accessibility description (defaults to [label]).
+ */
+data class ZyntaNavChildItem(
+    val label: String,
     val contentDescription: String = label,
 )
 
@@ -83,6 +95,10 @@ data class ZyntaNavItem(
  * @param compactSelectedIndex Selected index within [compactItems].
  * @param onCompactItemSelected Tap callback for [compactItems]. Null = use [onItemSelected].
  * @param groups Optional section groups rendered as headers in the EXPANDED drawer.
+ * @param selectedChildIndex Selected child index within the active parent item (-1 = no child
+ *   active). Only consumed by the EXPANDED drawer; ignored in COMPACT and MEDIUM variants.
+ * @param onChildSelected Callback with the parent index and the tapped child index within that
+ *   parent's [ZyntaNavItem.children] list.  Only fired from the EXPANDED drawer.
  * @param topBar Optional top app bar slot (only rendered on COMPACT/MEDIUM).
  * @param snackbarHost Snackbar host.
  * @param windowSize Override the detected [WindowSize]; useful in previews/tests.
@@ -98,6 +114,8 @@ fun ZyntaScaffold(
     compactSelectedIndex: Int = selectedIndex,
     onCompactItemSelected: ((Int) -> Unit)? = null,
     groups: List<ZyntaNavGroup> = emptyList(),
+    selectedChildIndex: Int = -1,
+    onChildSelected: (parentIndex: Int, childIndex: Int) -> Unit = { _, _ -> },
     topBar: @Composable () -> Unit = {},
     snackbarHost: @Composable () -> Unit = {},
     windowSize: WindowSize = currentWindowSize(),
@@ -132,6 +150,8 @@ fun ZyntaScaffold(
             onItemSelected = onItemSelected,
             modifier = modifier,
             groups = groups,
+            selectedChildIndex = selectedChildIndex,
+            onChildSelected = onChildSelected,
             content = content,
         )
     }
@@ -226,7 +246,7 @@ private fun MediumScaffold(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// EXPANDED — PermanentNavigationDrawer (240dp)
+// EXPANDED — Hierarchical collapsible navigation drawer (260dp / 72dp mini)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -236,57 +256,18 @@ private fun ExpandedScaffold(
     onItemSelected: (Int) -> Unit,
     modifier: Modifier = Modifier,
     groups: List<ZyntaNavGroup> = emptyList(),
+    selectedChildIndex: Int = -1,
+    onChildSelected: (parentIndex: Int, childIndex: Int) -> Unit = { _, _ -> },
     content: @Composable (PaddingValues) -> Unit,
 ) {
-    // Build a map of index → group title for rendering section headers
-    val groupHeaderAt: Map<Int, String> = if (groups.isNotEmpty()) {
-        buildMap { groups.forEach { g -> put(g.startIndex, g.title) } }
-    } else {
-        emptyMap()
-    }
-
-    PermanentNavigationDrawer(
+    ZyntaNavigationDrawer(
+        items = items,
+        selectedIndex = selectedIndex,
+        onItemSelected = onItemSelected,
         modifier = modifier,
-        drawerContent = {
-            PermanentDrawerSheet(drawerContainerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
-                Spacer(Modifier.height(16.dp))
-                items.forEachIndexed { index, item ->
-                    // Render group header if this is the first item in a new group
-                    groupHeaderAt[index]?.let { title ->
-                        if (index > 0) {
-                            HorizontalDivider(
-                                modifier = Modifier.padding(
-                                    start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp
-                                ),
-                            )
-                        }
-                        Text(
-                            text = title.uppercase(),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(start = 28.dp, bottom = 4.dp),
-                        )
-                    }
-                    NavigationDrawerItem(
-                        selected = index == selectedIndex,
-                        onClick = { onItemSelected(index) },
-                        icon = {
-                            Icon(
-                                imageVector = if (index == selectedIndex) item.selectedIcon else item.icon,
-                                contentDescription = item.contentDescription,
-                            )
-                        },
-                        label = { Text(item.label) },
-                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
-                    )
-                }
-                Spacer(Modifier.height(16.dp))
-            }
-        },
-        content = {
-            Scaffold { innerPadding ->
-                content(innerPadding)
-            }
-        },
+        selectedChildIndex = selectedChildIndex,
+        onChildSelected = onChildSelected,
+        groups = groups,
+        content = content,
     )
 }

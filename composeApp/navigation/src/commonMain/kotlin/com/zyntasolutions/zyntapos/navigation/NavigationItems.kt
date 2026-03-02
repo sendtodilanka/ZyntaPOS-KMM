@@ -30,6 +30,7 @@ import androidx.compose.material.icons.outlined.Receipt
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Store
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaNavChildItem
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaNavGroup
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaNavItem
 import com.zyntasolutions.zyntapos.domain.model.Permission
@@ -65,6 +66,18 @@ val navGroupLabels: Map<NavGroupKey, String> = mapOf(
 )
 
 /**
+ * Descriptor for a child navigation destination nested beneath a primary [NavItem]
+ * in the EXPANDED hierarchical drawer.
+ *
+ * @param route The [ZyntaRoute] this child item navigates to.
+ * @param label Human-readable display label.
+ */
+data class NavChildItem(
+    val route: ZyntaRoute,
+    val label: String,
+)
+
+/**
  * Descriptor for a primary navigation destination within the authenticated area.
  *
  * @param route The [ZyntaRoute] this item navigates to.
@@ -77,6 +90,8 @@ val navGroupLabels: Map<NavGroupKey, String> = mapOf(
  * @param featureGate The [ZyntaFeature] that must be enabled for this item to appear.
  *   `null` means no feature gate — the item is shown regardless of enabled features
  *   (subject only to [requiredPermission]).
+ * @param children Optional child destinations displayed as an expandable sub-list in the
+ *   EXPANDED hierarchical drawer.  Empty for flat items (no sub-navigation).
  */
 data class NavItem(
     val route: ZyntaRoute,
@@ -86,6 +101,7 @@ data class NavItem(
     val requiredPermission: Permission? = null,
     val group: NavGroupKey = NavGroupKey.OPERATIONS,
     val featureGate: ZyntaFeature? = null,
+    val children: List<NavChildItem> = emptyList(),
 ) {
     /** Convert to the design-system [ZyntaNavItem] for rendering in [ZyntaScaffold]. */
     fun toZyntaNavItem(): ZyntaNavItem = ZyntaNavItem(
@@ -93,6 +109,7 @@ data class NavItem(
         icon = icon,
         selectedIcon = selectedIcon,
         contentDescription = label,
+        children = children.map { child -> ZyntaNavChildItem(label = child.label) },
     )
 }
 
@@ -140,6 +157,11 @@ val AllNavItems: List<NavItem> = listOf(
         requiredPermission = Permission.MANAGE_PRODUCTS,
         group = NavGroupKey.OPERATIONS,
         featureGate = ZyntaFeature.INVENTORY_CORE,
+        children = listOf(
+            NavChildItem(route = ZyntaRoute.ProductList, label = "Products"),
+            NavChildItem(route = ZyntaRoute.CategoryList, label = "Categories"),
+            NavChildItem(route = ZyntaRoute.SupplierList, label = "Suppliers"),
+        ),
     ),
     NavItem(
         route = ZyntaRoute.RegisterDashboard,
@@ -158,6 +180,12 @@ val AllNavItems: List<NavItem> = listOf(
         requiredPermission = Permission.VIEW_REPORTS,
         group = NavGroupKey.OPERATIONS,
         featureGate = ZyntaFeature.REPORTS_STANDARD,
+        children = listOf(
+            NavChildItem(route = ZyntaRoute.SalesReport, label = "Sales"),
+            NavChildItem(route = ZyntaRoute.StockReport, label = "Stock"),
+            NavChildItem(route = ZyntaRoute.CustomerReport, label = "Customers"),
+            NavChildItem(route = ZyntaRoute.ExpenseReport, label = "Expenses"),
+        ),
     ),
 
     // ── MANAGEMENT group (Phase 2) ────────────────────────────────────────────
@@ -170,6 +198,10 @@ val AllNavItems: List<NavItem> = listOf(
         requiredPermission = Permission.MANAGE_CUSTOMERS,
         group = NavGroupKey.MANAGEMENT,
         featureGate = ZyntaFeature.CRM_LOYALTY,
+        children = listOf(
+            NavChildItem(route = ZyntaRoute.CustomerList, label = "Directory"),
+            NavChildItem(route = ZyntaRoute.CustomerGroupList, label = "Groups"),
+        ),
     ),
     NavItem(
         route = ZyntaRoute.CouponList,
@@ -188,6 +220,10 @@ val AllNavItems: List<NavItem> = listOf(
         requiredPermission = Permission.MANAGE_EXPENSES,
         group = NavGroupKey.MANAGEMENT,
         featureGate = ZyntaFeature.EXPENSES,
+        children = listOf(
+            NavChildItem(route = ZyntaRoute.ExpenseList, label = "Expenses"),
+            NavChildItem(route = ZyntaRoute.ExpenseCategoryList, label = "Categories"),
+        ),
     ),
     NavItem(
         route = ZyntaRoute.WarehouseList,
@@ -197,6 +233,10 @@ val AllNavItems: List<NavItem> = listOf(
         requiredPermission = Permission.MANAGE_WAREHOUSES,
         group = NavGroupKey.MANAGEMENT,
         featureGate = ZyntaFeature.MULTISTORE,
+        children = listOf(
+            NavChildItem(route = ZyntaRoute.WarehouseList, label = "Warehouses"),
+            NavChildItem(route = ZyntaRoute.StockTransferList, label = "Transfers"),
+        ),
     ),
 
     // ── HR & FINANCE group (Phase 3) ──────────────────────────────────────────
@@ -218,6 +258,12 @@ val AllNavItems: List<NavItem> = listOf(
         requiredPermission = Permission.MANAGE_ACCOUNTING,
         group = NavGroupKey.HR_FINANCE,
         featureGate = ZyntaFeature.ACCOUNTING,
+        children = listOf(
+            NavChildItem(route = ZyntaRoute.AccountingLedger, label = "Ledger"),
+            NavChildItem(route = ZyntaRoute.EInvoiceList, label = "E-Invoices"),
+            NavChildItem(route = ZyntaRoute.ChartOfAccounts, label = "Chart of Accounts"),
+            NavChildItem(route = ZyntaRoute.JournalEntryList, label = "Journal Entries"),
+        ),
     ),
 
     // ── SYSTEM group (Phase 3) ────────────────────────────────────────────────
@@ -230,6 +276,12 @@ val AllNavItems: List<NavItem> = listOf(
         requiredPermission = Permission.ADMIN_ACCESS,
         group = NavGroupKey.SYSTEM,
         featureGate = ZyntaFeature.ADMIN,
+        children = listOf(
+            NavChildItem(route = ZyntaRoute.SystemHealthDashboard, label = "System Health"),
+            NavChildItem(route = ZyntaRoute.DatabaseMaintenance, label = "Database"),
+            NavChildItem(route = ZyntaRoute.BackupManagement, label = "Backups"),
+            NavChildItem(route = ZyntaRoute.AuditLogViewer, label = "Audit Log"),
+        ),
     ),
     NavItem(
         route = ZyntaRoute.NotificationInbox,

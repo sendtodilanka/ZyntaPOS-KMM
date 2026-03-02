@@ -106,6 +106,13 @@ class DashboardViewModel(
                     )
                 }
 
+            val currentHourForGreeting = now.toLocalDateTime(tz).hour
+            val greeting = when {
+                currentHourForGreeting < 12 -> "Good morning,"
+                currentHourForGreeting < 17 -> "Good afternoon,"
+                else -> "Good evening,"
+            }
+
             updateState {
                 copy(
                     currentUser = user,
@@ -118,6 +125,7 @@ class DashboardViewModel(
                     weeklySalesData = weeklyPoints,
                     todaySparkline = sparkline,
                     isLoading = false,
+                    greetingText = greeting,
                 )
             }
         } catch (e: Exception) {
