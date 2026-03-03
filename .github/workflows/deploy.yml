@@ -79,16 +79,18 @@ jobs:
         if: success()
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: zyntapos
         run: |
-          curl -sf "https://sentry.io/api/0/organizations/zyntapos/releases/" \
-            -H "Authorization: Bearer ${SENTRY_AUTH_TOKEN}" \
-            -H "Content-Type: application/json" \
-            -d "{
-              \"version\": \"${{ github.sha }}\",
-              \"ref\": \"${{ github.ref_name }}\",
-              \"url\": \"${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}\",
-              \"projects\": [\"zyntapos-api\", \"zyntapos-license\", \"zyntapos-sync\"]
-            }" || echo "Sentry notification failed (non-fatal)"
+          curl -sSfL https://sentry.io/get-cli/ | sh -s -- --install-dir /usr/local/bin
+          VERSION="${{ github.sha }}"
+          sentry-cli releases new "$VERSION" \
+            --project zyntapos-api \
+            --project zyntapos-license \
+            --project zyntapos-sync \
+            --project zyntapos-android
+          sentry-cli releases set-commits "$VERSION" --auto
+          sentry-cli releases finalize "$VERSION"
+          sentry-cli releases deploys "$VERSION" new -e production
 
       - name: Post deploy summary
         if: always()
