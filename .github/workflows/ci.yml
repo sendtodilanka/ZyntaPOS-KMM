@@ -78,7 +78,7 @@ jobs:
 
       # ── Tests ─────────────────────────────────────────────────────────────
       - name: Run all tests (JVM targets)
-        run: ./gradlew allTests --stacktrace
+        run: ./gradlew allTests --stacktrace --continue
 
       # ── Artifacts ─────────────────────────────────────────────────────────
       - name: Upload APK artifact

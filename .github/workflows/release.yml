@@ -134,6 +134,7 @@ jobs:
           DB_ENCRYPTION_PASSWORD: ${{ secrets.DB_ENCRYPTION_PASSWORD }}
 
       - name: Package MSI
+        shell: bash
         run: ./gradlew :composeApp:packageMsi --stacktrace
 
       - name: Upload MSI
@@ -218,6 +219,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ steps.tag.outputs.tag }}
           name: ZyntaPOS ${{ steps.tag.outputs.tag }}
           generate_release_notes: true

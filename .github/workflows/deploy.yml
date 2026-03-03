@@ -25,6 +25,8 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history required for sentry-cli set-commits --auto
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
