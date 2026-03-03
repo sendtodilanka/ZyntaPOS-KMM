@@ -71,6 +71,12 @@ class DashboardScreenUiTest {
         weeklySalesData = weeklySalesData,
         todaySparkline = todaySparkline,
         currentUser = currentUser,
+        // Compute initials from the user name (mirrors DashboardViewModel logic)
+        userInitials = currentUser?.name
+            ?.split(" ")
+            ?.mapNotNull { it.firstOrNull()?.uppercaseChar() }
+            ?.joinToString("") ?: "M",
+        greetingText = "Welcome back,",
     )
 
     private fun makeOrders(count: Int) = (1..count).map { i ->

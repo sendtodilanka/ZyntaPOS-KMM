@@ -110,6 +110,11 @@ class AuthActionHandlerTest {
             deactivatedIds += userId
             return deactivateResult
         }
+
+        override suspend fun getSystemAdmin(): Result<User?> = Result.Success(null)
+        override suspend fun adminExists(): Result<Boolean> = Result.Success(false)
+        override suspend fun transferSystemAdmin(fromUserId: String, toUserId: String): Result<Unit> =
+            Result.Success(Unit)
     }
 
     private inner class StubAuthRepository(
