@@ -6,6 +6,13 @@ on:
   pull_request:
     branches: [ main ]
 
+# Cancel in-progress CI when a newer push arrives on the same ref.
+# For PRs: group by PR number so only the latest commit is tested.
+# For branch pushes (main/develop): group by ref; never cancel pushes to main.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop' }}
+
 env:
   JAVA_VERSION: '21'
   JAVA_DISTRIBUTION: 'temurin'
