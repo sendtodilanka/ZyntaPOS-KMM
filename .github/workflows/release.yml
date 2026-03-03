@@ -82,6 +82,8 @@ jobs:
       - name: Create local.properties
         run: |
           cp local.properties.template local.properties
+          # macOS uses BSD sed (requires empty-string backup extension)
+          sed -i "" "s|^sdk.dir=.*|sdk.dir=${ANDROID_HOME}|" local.properties
           echo "API_BASE_URL=${API_BASE_URL:-https://localhost/api}" >> local.properties
           echo "DB_ENCRYPTION_PASSWORD=${DB_ENCRYPTION_PASSWORD:-ci-placeholder-not-for-production}" >> local.properties
         env:
@@ -127,6 +129,14 @@ jobs:
         shell: bash
         run: |
           cp local.properties.template local.properties
+          # Windows ANDROID_HOME may use backslashes; normalise to forward slashes
+          python3 -c "
+import re, os
+sdk = os.environ.get('ANDROID_HOME','').replace('\\\\', '/')
+content = open('local.properties').read()
+content = re.sub(r'^sdk\.dir=.*', 'sdk.dir=' + sdk, content, flags=re.MULTILINE)
+open('local.properties', 'w').write(content)
+"
           echo "API_BASE_URL=${API_BASE_URL:-https://localhost/api}" >> local.properties
           echo "DB_ENCRYPTION_PASSWORD=${DB_ENCRYPTION_PASSWORD:-ci-placeholder-not-for-production}" >> local.properties
         env:
@@ -171,6 +181,7 @@ jobs:
       - name: Create local.properties
         run: |
           cp local.properties.template local.properties
+          sed -i "s|^sdk.dir=.*|sdk.dir=$ANDROID_HOME|" local.properties
           echo "API_BASE_URL=${API_BASE_URL:-https://localhost/api}" >> local.properties
           echo "DB_ENCRYPTION_PASSWORD=${DB_ENCRYPTION_PASSWORD:-ci-placeholder-not-for-production}" >> local.properties
         env:
