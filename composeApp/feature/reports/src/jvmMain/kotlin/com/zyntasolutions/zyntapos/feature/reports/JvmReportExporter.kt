@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.feature.reports
 
+import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateCustomerReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateExpenseReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateSalesReportUseCase
@@ -197,6 +198,7 @@ private object PdfBoxRenderer {
             doc.save(outputFile)
             doc.close()
         } catch (e: Exception) {
+            ZyntaLogger.w("JvmReportExporter", "PDFBox not available, falling back to HTML output: ${e.message}")
             // If PDFBox not available, write HTML as .pdf extension (fallback)
             outputFile.writeText(html)
         }
