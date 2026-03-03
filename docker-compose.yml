@@ -1,0 +1,58 @@
+# ═══════════════════════════════════════════════════════════════════
+# ZyntaPOS — Docker Compose (Phase 2 canary + real services)
+#
+# Current state (Phase 2 canary):
+#   • caddy  — reverse proxy for all 6 subdomains (Cloudflare TLS)
+#   • canary — nginx serving static healthcheck pages for each subdomain
+#
+# When real backend services are built (TODO-007 Steps 7–10), replace
+# the canary reverse_proxy targets in Caddyfile with the real services
+# and add those service blocks below.
+#
+# Secrets never go in this file. Use .env (git-ignored) or
+# Docker secrets for runtime credentials.
+# ═══════════════════════════════════════════════════════════════════
+
+services:
+
+  # ── Reverse proxy ─────────────────────────────────────────────────
+  caddy:
+    image: caddy:2-alpine
+    container_name: zyntapos_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Cloudflare Origin Certificate — stored on VPS host, never in repo
+      - /etc/caddy/certs:/etc/caddy/certs:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - canary
+    networks:
+      - zyntapos_net
+
+  # ── Canary static pages (Phase 2 placeholder) ─────────────────────
+  # Serves a branded "coming soon" page for each subdomain.
+  # Remove this service and update Caddyfile when real services are live.
+  canary:
+    image: nginx:1-alpine
+    container_name: zyntapos_canary
+    restart: unless-stopped
+    volumes:
+      - ./healthcheck:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    expose:
+      - "80"
+    networks:
+      - zyntapos_net
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+networks:
+  zyntapos_net:
+    driver: bridge

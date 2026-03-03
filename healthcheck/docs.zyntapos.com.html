@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="canary" content="docs.zyntapos.com">
+  <title>ZyntaPOS — Documentation</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a; color: #e2e8f0;
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; padding: 2rem;
+    }
+    .card {
+      background: #1e293b; border: 1px solid #334155; border-radius: 16px;
+      padding: 3rem 3.5rem; text-align: center; max-width: 480px; width: 100%;
+    }
+    .logo { font-size: 1.1rem; font-weight: 800; color: #94a3b8; letter-spacing: -0.02em; margin-bottom: 2rem; }
+    .logo span { color: #0ea5e9; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      background: #042f2e; border: 1px solid #0f766e; border-radius: 20px;
+      padding: 4px 14px; font-size: 0.7rem; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase; color: #2dd4bf;
+      margin-bottom: 1.25rem;
+    }
+    h1 { font-size: 1.75rem; font-weight: 700; color: #f8fafc; margin-bottom: 0.4rem; }
+    .host { font-family: monospace; font-size: 0.875rem; color: #64748b; margin-bottom: 2rem; }
+    .status {
+      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+      background: #022c22; border: 1px solid #16a34a; border-radius: 8px;
+      padding: 0.625rem 1.25rem; margin-bottom: 1.75rem;
+    }
+    .dot {
+      width: 8px; height: 8px; background: #22c55e; border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+    .status-text { font-size: 0.8rem; font-weight: 600; color: #22c55e; }
+    .desc { font-size: 0.875rem; color: #64748b; line-height: 1.65; margin-bottom: 2rem; }
+    .footer { font-size: 0.72rem; color: #475569; }
+    a { color: #0ea5e9; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">Zynta<span>POS</span></div>
+    <div class="badge">Documentation</div>
+    <h1>Documentation</h1>
+    <div class="host">docs.zyntapos.com</div>
+    <div class="status">
+      <span class="dot"></span>
+      <span class="status-text">Infrastructure Online</span>
+    </div>
+    <p class="desc">
+      The ZyntaPOS documentation site is being deployed.<br>
+      This endpoint will host developer integration guides, API reference,
+      onboarding walkthroughs, and partner technical documentation.
+    </p>
+    <div class="footer">
+      Zynta Solutions Pvt Ltd &nbsp;&middot;&nbsp;
+      <a href="https://zyntapos.com">zyntapos.com</a>
+    </div>
+  </div>
+</body>
+</html>

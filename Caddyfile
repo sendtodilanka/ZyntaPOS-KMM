@@ -1,0 +1,55 @@
+# ═══════════════════════════════════════════════════════════════════
+# ZyntaPOS — Caddyfile
+#
+# All orange-cloud subdomains (api, license, panel, docs, status) use
+# the Cloudflare Origin Certificate for TLS. Cloudflare terminates
+# public TLS; Caddy handles the origin leg with the CF cert.
+#
+# sync.zyntapos.com is grey-cloud (DNS-only). Caddy gets a Let's
+# Encrypt certificate automatically via ACME HTTP-01 challenge.
+#
+# Phase 2 canary: all subdomains proxy to the `canary` nginx container.
+# When real services are deployed, replace `canary:80` with the
+# service container name and port for each subdomain.
+# ═══════════════════════════════════════════════════════════════════
+
+# Shared TLS block — Cloudflare Origin Certificate (wildcard *.zyntapos.com)
+(cf_tls) {
+	tls /etc/caddy/certs/zyntapos_origin.pem /etc/caddy/certs/zyntapos_origin.key
+}
+
+# ── api.zyntapos.com — REST API (Ktor, Phase 2) ───────────────────
+api.zyntapos.com {
+	import cf_tls
+	reverse_proxy canary:80
+}
+
+# ── license.zyntapos.com — License server (Ktor, Phase 2) ──────────
+license.zyntapos.com {
+	import cf_tls
+	reverse_proxy canary:80
+}
+
+# ── panel.zyntapos.com — Internal admin dashboard (Phase 3) ────────
+panel.zyntapos.com {
+	import cf_tls
+	reverse_proxy canary:80
+}
+
+# ── docs.zyntapos.com — Documentation site (Phase 2) ───────────────
+docs.zyntapos.com {
+	import cf_tls
+	reverse_proxy canary:80
+}
+
+# ── status.zyntapos.com — Uptime / status page (Phase 2) ───────────
+status.zyntapos.com {
+	import cf_tls
+	reverse_proxy canary:80
+}
+
+# ── sync.zyntapos.com — WebSocket sync engine (grey-cloud) ─────────
+# No cf_tls here — Let's Encrypt ACME handles TLS automatically.
+sync.zyntapos.com {
+	reverse_proxy canary:80
+}

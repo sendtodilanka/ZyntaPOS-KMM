@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="canary" content="zyntapos.com">
+  <title>ZyntaPOS — Infrastructure Status</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a; color: #e2e8f0;
+      min-height: 100vh; padding: 3rem 1.5rem;
+    }
+    header { text-align: center; margin-bottom: 3rem; }
+    .logo { font-size: 1.5rem; font-weight: 800; color: #f8fafc; letter-spacing: -0.03em; }
+    .logo span { color: #0ea5e9; }
+    header p { color: #64748b; font-size: 0.9rem; margin-top: 0.5rem; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem; max-width: 960px; margin: 0 auto;
+    }
+    .card {
+      background: #1e293b; border: 1px solid #334155; border-radius: 12px;
+      padding: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem;
+    }
+    .card-header { display: flex; align-items: center; justify-content: space-between; }
+    .service { font-weight: 700; font-size: 1rem; color: #f1f5f9; }
+    .chip {
+      font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; padding: 2px 8px; border-radius: 20px;
+      background: #022c22; color: #22c55e; border: 1px solid #16a34a;
+    }
+    .host { font-family: monospace; font-size: 0.8rem; color: #94a3b8; }
+    .desc { font-size: 0.82rem; color: #64748b; line-height: 1.5; }
+    footer { text-align: center; margin-top: 3rem; font-size: 0.75rem; color: #475569; }
+    a { color: #0ea5e9; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">Zynta<span>POS</span></div>
+    <p>Infrastructure Status — All Services</p>
+  </header>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-header">
+        <span class="service">REST API</span>
+        <span class="chip">Online</span>
+      </div>
+      <div class="host">api.zyntapos.com</div>
+      <div class="desc">Core business API — authentication, product sync, order management, and reporting.</div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="service">License Server</span>
+        <span class="chip">Online</span>
+      </div>
+      <div class="host">license.zyntapos.com</div>
+      <div class="desc">Terminal activation, edition management, and RS256 JWT license issuance.</div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="service">Admin Panel</span>
+        <span class="chip">Online</span>
+      </div>
+      <div class="host">panel.zyntapos.com</div>
+      <div class="desc">Internal operations dashboard for Zynta Solutions staff. Access restricted.</div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="service">Documentation</span>
+        <span class="chip">Online</span>
+      </div>
+      <div class="host">docs.zyntapos.com</div>
+      <div class="desc">Developer and partner integration docs, API reference, and onboarding guides.</div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="service">Status Page</span>
+        <span class="chip">Online</span>
+      </div>
+      <div class="host">status.zyntapos.com</div>
+      <div class="desc">Real-time uptime monitoring, incident history, and service health dashboard.</div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="service">Sync Engine</span>
+        <span class="chip">Online</span>
+      </div>
+      <div class="host">sync.zyntapos.com</div>
+      <div class="desc">Offline-first WebSocket sync for multi-store inventory, orders, and CRDT resolution.</div>
+    </div>
+  </div>
+
+  <footer>
+    Zynta Solutions Pvt Ltd &nbsp;&middot;&nbsp;
+    <a href="https://zyntapos.com">zyntapos.com</a>
+  </footer>
+</body>
+</html>

@@ -58,6 +58,23 @@ jobs:
             # Print running containers for confirmation
             docker compose ps
 
+      - name: Smoke test all endpoints
+        if: success()
+        run: |
+          echo "=== Smoke Testing Endpoints ==="
+          PASS=true
+          for sub in api license panel docs status sync; do
+            STATUS=$(curl -sf --max-time 20 -o /dev/null -w "%{http_code}" \
+              "https://${sub}.zyntapos.com/ping" 2>/dev/null || echo "000")
+            if [ "$STATUS" = "200" ]; then
+              echo "  ✅  ${sub}.zyntapos.com — $STATUS"
+            else
+              echo "  ❌  ${sub}.zyntapos.com — $STATUS (expected 200)"
+              PASS=false
+            fi
+          done
+          $PASS || { echo "Smoke test failed — check VPS docker compose ps"; exit 1; }
+
       - name: Notify Sentry of deploy
         if: success()
         env:
