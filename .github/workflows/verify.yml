@@ -1,0 +1,54 @@
+name: Verify Endpoints
+
+# Manual trigger from GitHub Actions UI (Actions → Verify Endpoints → Run workflow)
+# Run this anytime to confirm all 6 ZyntaPOS subdomains are reachable and healthy.
+on:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    name: Smoke Test All Endpoints
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Test all subdomains
+        run: |
+          PASS=true
+
+          # Subdomains to test (sync is grey-cloud, no CF proxy — still uses HTTPS via Let's Encrypt)
+          SUBS="api license panel docs status sync"
+
+          echo "=================================================="
+          echo " ZyntaPOS Endpoint Verification"
+          echo "=================================================="
+          echo ""
+
+          for sub in $SUBS; do
+            URL="https://${sub}.zyntapos.com/ping"
+            HTTP=$(curl -sf --max-time 20 -o /dev/null -w "%{http_code}" "$URL" 2>/dev/null || echo "000")
+            BODY=$(curl -sf --max-time 20 "$URL" 2>/dev/null || echo "")
+
+            if [ "$HTTP" = "200" ] && [ "$BODY" = "ok" ]; then
+              echo "  ✅  ${sub}.zyntapos.com  →  HTTP $HTTP  body=\"$BODY\""
+            elif [ "$HTTP" = "200" ]; then
+              echo "  ⚠️   ${sub}.zyntapos.com  →  HTTP $HTTP  (body mismatch: \"$BODY\")"
+              PASS=false
+            else
+              echo "  ❌  ${sub}.zyntapos.com  →  HTTP $HTTP  (expected 200)"
+              PASS=false
+            fi
+          done
+
+          echo ""
+          echo "=================================================="
+
+          if $PASS; then
+            echo " Result: ALL ENDPOINTS VERIFIED ✅"
+          else
+            echo " Result: VERIFICATION FAILED ❌"
+            echo " Check the deploy logs and VPS docker compose ps"
+          fi
+
+          echo "=================================================="
+          $PASS || exit 1

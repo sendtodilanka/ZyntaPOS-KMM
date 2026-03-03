@@ -9,6 +9,9 @@ local.properties
 *.p12
 *.pfx
 
+# ── TLS Certificates (stored on VPS host, never in repo) ─────────────
+certs/
+
 # ── Gradle Internals ────────────────────────────────────────────────
 .gradle/
 **/build/
