@@ -158,6 +158,18 @@ fun App() {
             val isSessionActive = currentUser != null
             val userRole = currentUser?.role
 
+            // ── Drawer footer user info ───────────────────────────────────────
+            val drawerUserName = currentUser?.name
+            val drawerUserInitials = currentUser?.name?.split(" ")
+                ?.filter { it.isNotEmpty() }
+                ?.take(2)
+                ?.joinToString("") { it.first().uppercaseChar().toString() }
+                ?.ifEmpty { currentUser?.name?.take(1)?.uppercase() }
+            val drawerUserRole = currentUser?.role?.name
+                ?.lowercase()
+                ?.split("_")
+                ?.joinToString(" ") { word -> word.replaceFirstChar { it.uppercase() } }
+
             // ── First-run detection via SettingsRepository ────────────────────
             // "loading" sentinel = settings DB has not yet emitted the first value.
             // Once resolved: "true" means onboarding done, anything else = first run.
@@ -178,6 +190,9 @@ fun App() {
                 isFirstRun = isFirstRun,
                 isSessionActive = isSessionActive,
                 userRole = userRole,
+                currentUserName = drawerUserName,
+                currentUserInitials = drawerUserInitials,
+                currentUserRole = drawerUserRole,
                 screens = buildMainNavScreens(isDebug = appInfoProvider.isDebug),
                 loginScreen = { onLoginSuccess ->
                     LoginScreen(

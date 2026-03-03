@@ -63,6 +63,9 @@ enum class TrendDirection {
  * @param trendLabel Optional trend text (e.g. "+12.5%").
  * @param sparklineData Optional list of data points for a mini sparkline.
  * @param subtitle Optional subtitle below the value.
+ * @param rawValue When non-null, renders an [AnimatedCounter] instead of a static [Text].
+ * @param rawValueFormatter Maps the raw float to its display string (e.g. currency format).
+ * @param rawValueDelayMs Stagger delay in ms before the counter animation starts.
  */
 @Composable
 fun ZyntaStatCard(
@@ -75,6 +78,9 @@ fun ZyntaStatCard(
     trendLabel: String? = null,
     sparklineData: List<Float> = emptyList(),
     subtitle: String? = null,
+    rawValue: Float? = null,
+    rawValueFormatter: (Float) -> String = { it.toLong().toString() },
+    rawValueDelayMs: Int = 0,
 ) {
     Card(
         modifier = modifier,
@@ -137,12 +143,23 @@ fun ZyntaStatCard(
             Spacer(Modifier.height(2.dp))
 
             // Value
-            Text(
-                text = value,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
+            if (rawValue != null) {
+                AnimatedCounter(
+                    targetValue = rawValue,
+                    delayMillis = rawValueDelayMs,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    formatter = rawValueFormatter,
+                )
+            } else {
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
 
             // Subtitle
             if (subtitle != null) {
@@ -173,6 +190,9 @@ fun ZyntaCompactStatCard(
     value: String,
     accentColor: Color,
     modifier: Modifier = Modifier,
+    rawValue: Float? = null,
+    rawValueFormatter: (Float) -> String = { it.toLong().toString() },
+    rawValueDelayMs: Int = 0,
 ) {
     Card(
         modifier = modifier,
@@ -203,12 +223,23 @@ fun ZyntaCompactStatCard(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
+            if (rawValue != null) {
+                AnimatedCounter(
+                    targetValue = rawValue,
+                    delayMillis = rawValueDelayMs,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    formatter = rawValueFormatter,
+                )
+            } else {
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
         }
     }
 }
@@ -321,6 +352,9 @@ internal fun MiniSparkline(
  * @param modifier Optional [Modifier].
  * @param rightSlot Optional composable rendered on the right side of the card
  *   (e.g. [ZyntaProgressRing]).
+ * @param rawValue When non-null, renders an [AnimatedCounter] instead of a static [Text].
+ * @param rawValueFormatter Maps the raw float to its display string (e.g. currency format).
+ * @param rawValueDelayMs Stagger delay in ms before the counter animation starts.
  */
 @Composable
 fun ZyntaHeroStatCard(
@@ -332,6 +366,9 @@ fun ZyntaHeroStatCard(
     gradientStart: Color = Color(0xFF1565C0),
     gradientEnd: Color = Color(0xFF1976D2),
     rightSlot: @Composable () -> Unit = {},
+    rawValue: Float? = null,
+    rawValueFormatter: (Float) -> String = { it.toLong().toString() },
+    rawValueDelayMs: Int = 0,
 ) {
     Card(
         modifier = modifier,
@@ -368,12 +405,23 @@ fun ZyntaHeroStatCard(
                             color = Color.White.copy(alpha = 0.8f),
                         )
                     }
-                    Text(
-                        text = value,
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                    )
+                    if (rawValue != null) {
+                        AnimatedCounter(
+                            targetValue = rawValue,
+                            delayMillis = rawValueDelayMs,
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            formatter = rawValueFormatter,
+                        )
+                    } else {
+                        Text(
+                            text = value,
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                        )
+                    }
                     if (subtitle != null) {
                         Text(
                             text = subtitle,
