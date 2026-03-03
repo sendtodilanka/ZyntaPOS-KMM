@@ -1,0 +1,48 @@
+-- Migration 8: Expanded Audit Logging + Tier 2 Operational Logs (TODO-004)
+-- Phase 1 | Sprint 5
+--
+-- Changes:
+--   audit_entries  — adds actor metadata (user_name, user_role) and change-tracking
+--                    columns (previous_value, new_value, success, ip_address).
+--                    All new columns have safe defaults so existing rows remain valid.
+--   operational_logs — new Tier 2 table for diagnostic / system-health logging.
+--
+-- NOTE: SQLite only supports ADD COLUMN via ALTER TABLE; columns cannot be renamed
+-- or their nullability changed. The `details` column (payload) and `timestamp` column
+-- (epoch ms) retain their original names for backward compatibility.
+
+-- ── Expand audit_entries ─────────────────────────────────────────────────────
+
+ALTER TABLE audit_entries ADD COLUMN user_name      TEXT    NOT NULL DEFAULT '';
+ALTER TABLE audit_entries ADD COLUMN user_role      TEXT    NOT NULL DEFAULT '';
+ALTER TABLE audit_entries ADD COLUMN previous_value TEXT;
+ALTER TABLE audit_entries ADD COLUMN new_value      TEXT;
+ALTER TABLE audit_entries ADD COLUMN success        INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE audit_entries ADD COLUMN ip_address     TEXT;
+
+-- New indexes for admin viewer filtering and compliance queries
+CREATE INDEX IF NOT EXISTS idx_audit_user_role ON audit_entries(user_role);
+CREATE INDEX IF NOT EXISTS idx_audit_success   ON audit_entries(success);
+-- Composite entity index supersedes single-column idx_audit_entity_id
+CREATE INDEX IF NOT EXISTS idx_audit_entity    ON audit_entries(entity_type, entity_id);
+
+-- ── Create operational_logs ───────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS operational_logs (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    level        TEXT    NOT NULL,    -- VERBOSE|DEBUG|INFO|WARN|ERROR|FATAL
+    tag          TEXT    NOT NULL,    -- Module/class name (e.g., "SyncEngine")
+    message      TEXT    NOT NULL,   -- Human-readable log message
+    stack_trace  TEXT,               -- Exception stack trace (null for non-error)
+    thread_name  TEXT,               -- Coroutine/thread context
+    session_id   TEXT,               -- Authenticated session identifier (nullable)
+    metadata     TEXT,               -- JSON blob: memory, CPU, battery, etc. (nullable)
+    created_at   INTEGER NOT NULL    -- Unix epoch milliseconds (for fast date-range queries)
+);
+
+-- Indexes for filtered queries in the admin diagnostic viewer
+CREATE INDEX IF NOT EXISTS idx_oplog_level          ON operational_logs(level);
+CREATE INDEX IF NOT EXISTS idx_oplog_tag            ON operational_logs(tag);
+CREATE INDEX IF NOT EXISTS idx_oplog_created_at     ON operational_logs(created_at);
+-- Composite index for the most common query: filter by level within a date range
+CREATE INDEX IF NOT EXISTS idx_oplog_level_created  ON operational_logs(level, created_at);

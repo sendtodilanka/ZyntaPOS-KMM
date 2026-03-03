@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.designsystem.components
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -224,6 +225,9 @@ fun ZyntaSummaryMetric(
 
 /**
  * Activity list item for recent activity logs.
+ *
+ * @param subtitleTrailing Optional composable rendered inline after [subtitle]
+ *   (e.g. a [ZyntaStatusChip] showing a payment method badge).
  */
 @Composable
 fun ZyntaActivityItem(
@@ -234,6 +238,7 @@ fun ZyntaActivityItem(
     icon: ImageVector? = null,
     iconTint: Color = MaterialTheme.colorScheme.primary,
     trailingColor: Color = MaterialTheme.colorScheme.primary,
+    subtitleTrailing: (@Composable () -> Unit)? = null,
 ) {
     Row(
         modifier = modifier
@@ -266,11 +271,25 @@ fun ZyntaActivityItem(
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            if (subtitleTrailing != null) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.xs),
+                ) {
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    subtitleTrailing()
+                }
+            } else {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
 
         Text(

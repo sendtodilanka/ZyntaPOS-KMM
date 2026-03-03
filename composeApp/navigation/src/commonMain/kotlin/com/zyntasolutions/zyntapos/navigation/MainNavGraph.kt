@@ -254,6 +254,7 @@ fun NavGraphBuilder.mainNavGraph(
                             "SYSTEM_HEALTH" -> navigationController.navigate(ZyntaRoute.SystemHealthSettings)
                             "SECURITY" -> navigationController.navigate(ZyntaRoute.SecuritySettings)
                             "RBAC_MANAGEMENT" -> navigationController.navigate(ZyntaRoute.RbacManagement)
+                            "EDITION_MANAGEMENT" -> navigationController.navigate(ZyntaRoute.EditionManagement)
                             "DEBUG_CONSOLE" -> if (debugScreen != null) {
                                 navigationController.navigate(ZyntaRoute.Debug)
                             }
@@ -330,9 +331,9 @@ fun NavGraphBuilder.mainNavGraph(
             }
 
             composable<ZyntaRoute.EditionManagement> {
-                // Placeholder: EditionManagementScreen will be wired by Agent 7
-                // For now just navigate to a placeholder
-                Text("Edition Management — Coming soon") // temporary
+                screens.editionManagement(
+                    { navigationController.navigateUp(ZyntaRoute.Settings) },
+                )
             }
 
             // ── Debug Console — only registered in debug builds ──────────────
@@ -778,6 +779,12 @@ private fun MainScaffoldShell(
     val selectedIndex = navItems.indexOfFirst { routeMatchesItem(it) }.coerceAtLeast(0)
     val compactSelected = compactNavItems.indexOfFirst { routeMatchesItem(it) }.coerceAtLeast(0)
 
+    // Resolve the active child index within the selected parent's children list.
+    // -1 means no child is active (the parent itself is the current destination).
+    val selectedChildIndex = navItems.getOrNull(selectedIndex)
+        ?.children?.indexOfFirst { child -> child.route::class == currentRoute::class }
+        ?: -1
+
     fun navigate(item: NavItem) {
         navigationController.navigate(item.route) {
             popUpTo(navigationController.navController.graph.startDestinationId) {
@@ -796,6 +803,18 @@ private fun MainScaffoldShell(
         compactSelectedIndex = compactSelected,
         onCompactItemSelected = { index -> compactNavItems.getOrNull(index)?.let { navigate(it) } },
         groups = navGroups,
+        selectedChildIndex = selectedChildIndex,
+        onChildSelected = { parentIdx, childIdx ->
+            navItems.getOrNull(parentIdx)?.children?.getOrNull(childIdx)?.let { child ->
+                navigationController.navigate(child.route) {
+                    popUpTo(navigationController.navController.graph.startDestinationId) {
+                        saveState = true
+                    }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+            }
+        },
         content = { _ -> content() },
     )
 }

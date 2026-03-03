@@ -41,7 +41,7 @@ No TODO files. This phase is done. All 26 Kotlin modules are scaffolded, Gradle 
 | [001](001-single-admin-account-management.md) | Single Admin Account Management | ✅ Done | — | ADR-005 enforced |
 | [002](002-remove-signup-screen-and-account-flow.md) | Remove SignUp Screen | ✅ Done | — | ADR-005 enforced |
 | [005](005-modern-dashboard-and-hierarchical-nav-drawer.md) | Modern Dashboard + Nav Drawer | ⬜ Pending | **P0** | Visual quality gate for MVP launch |
-| [003](003-edition-management-wiring.md) | Edition Management Nav Wiring | 🟡 In Progress | **P1** | Last "Coming soon" placeholder in the app |
+| [003](003-edition-management-wiring.md) | Edition Management Nav Wiring | ✅ Done | — | No more placeholder screens in the app |
 | [004](004-enterprise-audit-logging.md) | Enterprise Audit Logging (Part 1) | ⬜ Pending | **P1** | Core event types only; hash chain is Phase 3 |
 
 ### Execution Order (Phase 1)

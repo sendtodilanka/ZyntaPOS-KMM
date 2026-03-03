@@ -85,6 +85,7 @@ import com.zyntasolutions.zyntapos.feature.settings.screen.GeneralSettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.PosSettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.PrinterSettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.SettingsHomeScreen
+import com.zyntasolutions.zyntapos.feature.settings.edition.EditionManagementScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.RbacManagementScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.SecuritySettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.SystemHealthScreen
@@ -451,6 +452,13 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
             effects = vm.effects,
             onIntent = vm::dispatch,
             onBack = onNavigateUp,
+        )
+    },
+
+    // ── Settings: Edition Management ─────────────────────────────────────────
+    editionManagement = { onNavigateUp ->
+        EditionManagementScreen(
+            onNavigateBack = onNavigateUp,
         )
     },
 

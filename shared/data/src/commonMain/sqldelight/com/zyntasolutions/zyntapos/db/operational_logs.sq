@@ -1,0 +1,73 @@
+-- ============================================================
+-- operational_logs.sq — ZyntaPOS Tier 2 Diagnostic / System-Health Log
+-- Phase 1 | Sprint 5 | TODO-004
+-- Package: com.zyntasolutions.zyntapos.db
+--
+-- Purpose: Persistent operational logging replacing text-based Kermit log files.
+-- Entries ARE subject to deletion by the automated retention policy (unlike
+-- audit_entries which is immutable). No hash chain — not a compliance trail.
+--
+-- Retention policy (enforced by LogRetentionJob):
+--   VERBOSE / DEBUG  → 3 days   (debug builds only; never stored in release)
+--   INFO             → 14 days
+--   WARN             → 30 days
+--   ERROR / FATAL    → 90 days
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS operational_logs (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    level        TEXT    NOT NULL,    -- VERBOSE|DEBUG|INFO|WARN|ERROR|FATAL
+    tag          TEXT    NOT NULL,    -- Module/class name (e.g., "SyncEngine", "PosViewModel")
+    message      TEXT    NOT NULL,    -- Human-readable log message
+    stack_trace  TEXT,               -- Exception stack trace (null for non-error levels)
+    thread_name  TEXT,               -- Coroutine/thread context at log time
+    session_id   TEXT,               -- Current user session identifier (null = unauthenticated)
+    metadata     TEXT,               -- JSON blob: memory, CPU, battery, etc. (null = no context)
+    created_at   INTEGER NOT NULL    -- Unix epoch milliseconds (fast indexed date-range queries)
+);
+
+-- Indexes for the admin diagnostic viewer and retention queries
+CREATE INDEX IF NOT EXISTS idx_oplog_level         ON operational_logs(level);
+CREATE INDEX IF NOT EXISTS idx_oplog_tag           ON operational_logs(tag);
+CREATE INDEX IF NOT EXISTS idx_oplog_created_at    ON operational_logs(created_at);
+-- Composite index for the most common query: filter level within a date range
+CREATE INDEX IF NOT EXISTS idx_oplog_level_created ON operational_logs(level, created_at);
+
+-- ─── Queries ─────────────────────────────────────────────────
+
+insertLog:
+INSERT INTO operational_logs (
+    level, tag, message, stack_trace, thread_name, session_id, metadata, created_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+getLogsByLevel:
+SELECT * FROM operational_logs WHERE level = ? ORDER BY created_at DESC;
+
+getLogsByTag:
+SELECT * FROM operational_logs WHERE tag = ? ORDER BY created_at DESC;
+
+getLogsInDateRange:
+SELECT * FROM operational_logs WHERE created_at BETWEEN ? AND ? ORDER BY created_at DESC;
+
+getLogsPage:
+SELECT * FROM operational_logs
+WHERE (:level IS NULL OR level = :level)
+  AND (:tag IS NULL OR tag = :tag)
+  AND created_at BETWEEN :from AND :to
+ORDER BY created_at DESC
+LIMIT :pageSize OFFSET :offset;
+
+countLogs:
+SELECT COUNT(*) FROM operational_logs;
+
+-- Retention queries — called by LogRetentionJob; operational logs ARE deletable
+deleteLogsOlderThan:
+DELETE FROM operational_logs WHERE created_at < ?;
+
+deleteLevelOlderThan:
+DELETE FROM operational_logs WHERE level = ? AND created_at < ?;
+
+-- Retention by multiple levels in one statement (DEBUG + VERBOSE)
+deleteVerboseDebugOlderThan:
+DELETE FROM operational_logs
+WHERE level IN ('DEBUG', 'VERBOSE') AND created_at < ?;

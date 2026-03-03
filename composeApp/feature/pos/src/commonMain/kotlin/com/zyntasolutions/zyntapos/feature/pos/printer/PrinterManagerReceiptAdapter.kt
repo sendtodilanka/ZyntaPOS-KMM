@@ -87,11 +87,20 @@ class PrinterManagerReceiptAdapter(
             auditRepository.insert(
                 AuditEntry(
                     id = Uuid.random().toString(),
-                    eventType = AuditEventType.DATA_EXPORT,
+                    eventType = AuditEventType.DATA_EXPORTED,
                     userId = cashierId,
+                    userName = "",
+                    userRole = null,
                     deviceId = deviceId,
+                    entityType = "ORDER",
+                    entityId = order.id,
                     payload = """{"action":"RECEIPT_PRINT","orderId":"${order.id}"}""",
+                    previousValue = null,
+                    newValue = null,
                     success = true,
+                    ipAddress = null,
+                    hash = "",
+                    previousHash = "",
                     createdAt = Clock.System.now(),
                 ),
             )

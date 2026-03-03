@@ -53,14 +53,19 @@ import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
 import com.zyntasolutions.zyntapos.designsystem.components.ChartSeries
 import com.zyntasolutions.zyntapos.designsystem.components.InfoCardVariant
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaActivityItem
+import com.zyntasolutions.zyntapos.designsystem.components.AnimatedCounter
+import com.zyntasolutions.zyntapos.designsystem.components.StatusChipVariant
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaCompactStatCard
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaDropdownMenu
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaDropdownMenuItem
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaHeroStatCard
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaInfoCard
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLineChart
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoadingOverlay
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaProgressRing
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSectionHeader
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaStatCard
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaStatusChip
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaElevation
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
@@ -73,9 +78,6 @@ import com.zyntasolutions.zyntapos.feature.dashboard.mvi.DashboardIntent
 import com.zyntasolutions.zyntapos.feature.dashboard.mvi.DashboardState
 import com.zyntasolutions.zyntapos.feature.dashboard.mvi.RecentOrderItem
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Instant
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -162,6 +164,8 @@ internal fun DashboardScreenContent(
         actions = {
             ProfileAvatarMenu(
                 currentUser = state.currentUser,
+                userInitials = state.userInitials,
+                greetingText = state.greetingText,
                 onNavigateToNotifications = onNavigateToNotifications,
                 onNavigateToSettings = onNavigateToSettings,
                 onLogout = onLogout,
@@ -200,6 +204,8 @@ internal fun DashboardScreenContent(
 @Composable
 private fun ProfileAvatarMenu(
     currentUser: User?,
+    userInitials: String,
+    greetingText: String,
     onNavigateToNotifications: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onLogout: () -> Unit,
@@ -214,26 +220,12 @@ private fun ProfileAvatarMenu(
             onClick = { showMenu = true },
         ) {
             Box(contentAlignment = Alignment.Center) {
-                val initials = currentUser?.name
-                    ?.split(" ")
-                    ?.take(2)
-                    ?.mapNotNull { it.firstOrNull()?.uppercase() }
-                    ?.joinToString("")
-                    ?: "M"
-                if (initials.isNotEmpty()) {
-                    Text(
-                        text = initials,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    )
-                } else {
-                    Icon(
-                        Icons.Default.AccountCircle, "Profile",
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(22.dp),
-                    )
-                }
+                Text(
+                    text = userInitials,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
             }
         }
 
@@ -249,7 +241,7 @@ private fun ProfileAvatarMenu(
                 ),
             ) {
                 Text(
-                    "Welcome back,",
+                    greetingText,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -309,16 +301,34 @@ private fun ExpandedDashboard(
         modifier = Modifier.fillMaxSize().padding(ZyntaSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
     ) {
-        // Row 1: 4 KPI cards + Quick Actions column
+        // Row 1: Hero KPI + 3 KPI cards + Quick Actions column
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
         ) {
-            ZyntaStatCard(
-                icon = Icons.Default.AttachMoney, label = "Today's Sales",
+            ZyntaHeroStatCard(
+                icon = Icons.Default.AttachMoney,
+                label = "Today's Sales",
                 value = currencyFormatter.format(state.todaysSales),
-                accentColor = MaterialTheme.colorScheme.primary,
-                sparklineData = state.todaySparkline, modifier = Modifier.weight(1f),
+                subtitle = "of ${currencyFormatter.format(state.dailySalesTarget)} target",
+                modifier = Modifier.weight(1.4f),
+                rightSlot = {
+                    ZyntaProgressRing(
+                        progress = state.salesProgress,
+                        size = 72.dp,
+                        strokeWidth = 6.dp,
+                        trackColor = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.3f),
+                        progressColor = androidx.compose.ui.graphics.Color.White,
+                        centerContent = {
+                            Text(
+                                text = "${(state.salesProgress * 100).toInt()}%",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = androidx.compose.ui.graphics.Color.White,
+                            )
+                        },
+                    )
+                },
             )
             ZyntaStatCard(
                 icon = Icons.Default.Receipt, label = "Total Orders",
@@ -639,15 +649,20 @@ private fun RecentOrdersCard(orders: List<RecentOrderItem>, currencyFormatter: C
     ) {
         Column {
             orders.forEachIndexed { index, order ->
-                val tz = TimeZone.currentSystemDefault()
-                val orderTime = Instant.fromEpochMilliseconds(order.timestamp).toLocalDateTime(tz)
-                val timeStr = "${orderTime.hour.toString().padStart(2, '0')}:${orderTime.minute.toString().padStart(2, '0')}"
+                val chipVariant = when (order.method.uppercase()) {
+                    "CASH" -> StatusChipVariant.Success
+                    "CARD" -> StatusChipVariant.Info
+                    else -> StatusChipVariant.Neutral
+                }
                 ZyntaActivityItem(
                     title = order.orderNumber,
-                    subtitle = "$timeStr  •  ${order.method}",
+                    subtitle = order.formattedTime,
                     trailingText = currencyFormatter.format(order.total),
                     icon = Icons.Default.Receipt,
                     iconTint = MaterialTheme.colorScheme.primary,
+                    subtitleTrailing = {
+                        ZyntaStatusChip(label = order.method, variant = chipVariant)
+                    },
                 )
                 if (index < orders.size - 1) {
                     HorizontalDivider(

@@ -1,6 +1,7 @@
 # TODO-003: Edition Management — Nav Graph Wiring & Production Readiness
 
-**Status:** In Progress
+**Status:** Completed
+**Completed:** 2026-03-02
 **Priority:** HIGH — Last placeholder in the entire nav graph; blocking production readiness
 **Phase:** Phase 1 (MVP) — Must be completed before final testing
 **Created:** 2026-03-01
@@ -349,14 +350,14 @@ This is aligned with Lightspeed (~$119/location/month) and Revel (~$99/terminal/
 
 ## Validation Checklist
 
-- [ ] `editionManagement` added to `MainNavScreens` data class
-- [ ] `MainNavGraph.kt` placeholder replaced with real `screens.editionManagement()` call
-- [ ] `App.kt` wires `EditionManagementScreen` to the `editionManagement` lambda
-- [ ] `NavGraphCompletenessTest` updated — no longer excluded as placeholder
-- [ ] Settings screen includes "Edition Management" in its menu items
+- [x] `editionManagement` added to `MainNavScreens` data class
+- [x] `MainNavGraph.kt` placeholder replaced with real `screens.editionManagement()` call
+- [x] `App.kt` wires `EditionManagementScreen` to the `editionManagement` lambda
+- [x] `NavGraphCompletenessTest` updated — no longer excluded as placeholder
+- [x] Settings screen includes "Edition Management" in its menu items
 - [ ] App compiles and runs without errors
 - [ ] Edition Management screen navigates correctly from Settings
 - [ ] Feature toggles work for Premium/Enterprise features
 - [ ] Standard features show as always-enabled (disabled switch)
 - [ ] Back navigation returns to Settings screen
-- [ ] No "Coming soon" text anywhere in the app
+- [x] No "Coming soon" text anywhere in the app

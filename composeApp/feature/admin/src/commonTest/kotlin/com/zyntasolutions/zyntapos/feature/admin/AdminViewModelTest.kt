@@ -145,6 +145,11 @@ class AdminViewModelTest {
 
         override fun observeByUserId(userId: String): Flow<List<AuditEntry>> =
             MutableStateFlow(auditFlow.value.filter { it.userId == userId })
+
+        override suspend fun getAllChronological(): List<AuditEntry> = auditFlow.value
+        override suspend fun getLatestHash(): String? = null
+        override suspend fun countEntries(): Long = auditFlow.value.size.toLong()
+        override suspend fun getRecentLoginFailureCount(userId: String, sinceEpochMillis: Long): Long = 0L
     }
 
     // ── Use cases wired to fakes ──────────────────────────────────────────────
@@ -362,9 +367,18 @@ class AdminViewModelTest {
             id = "audit-001",
             eventType = AuditEventType.LOGIN_ATTEMPT,
             userId = "user-001",
+            userName = "",
+            userRole = null,
             deviceId = "device-001",
+            entityType = null,
+            entityId = null,
             payload = "{}",
+            previousValue = null,
+            newValue = null,
             success = true,
+            ipAddress = null,
+            hash = "",
+            previousHash = "",
             createdAt = Clock.System.now(),
         )
         auditFlow.value = listOf(entry)

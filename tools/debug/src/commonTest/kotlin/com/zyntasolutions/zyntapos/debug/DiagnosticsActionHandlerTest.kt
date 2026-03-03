@@ -32,13 +32,22 @@ class DiagnosticsActionHandlerTest {
     // ── Test data ─────────────────────────────────────────────────────────────
 
     private fun makeAuditEntry(id: String) = AuditEntry(
-        id        = id,
-        eventType = AuditEventType.SETTINGS_CHANGED,
-        userId    = "u-admin",
-        deviceId  = "debug-console",
-        payload   = """{"action":"test"}""",
-        success   = true,
-        createdAt = now,
+        id            = id,
+        eventType     = AuditEventType.SETTINGS_CHANGED,
+        userId        = "u-admin",
+        userName      = "",
+        userRole      = null,
+        deviceId      = "debug-console",
+        entityType    = null,
+        entityId      = null,
+        payload       = """{"action":"test"}""",
+        previousValue = null,
+        newValue      = null,
+        success       = true,
+        ipAddress     = null,
+        hash          = "",
+        previousHash  = "",
+        createdAt     = now,
     )
 
     // ── Stub AuditRepository ───────────────────────────────────────────────────
@@ -60,6 +69,10 @@ class DiagnosticsActionHandlerTest {
         }
 
         override fun observeByUserId(userId: String): Flow<List<AuditEntry>> = flow
+        override suspend fun getAllChronological(): List<AuditEntry> = entries
+        override suspend fun getLatestHash(): String? = null
+        override suspend fun countEntries(): Long = entries.size.toLong()
+        override suspend fun getRecentLoginFailureCount(userId: String, sinceEpochMillis: Long): Long = 0L
     }
 
     // ── SUT builder ───────────────────────────────────────────────────────────
