@@ -18,6 +18,7 @@ import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
+import kotlinx.serialization.json.JsonPrimitive
 
 /**
  * MVI ViewModel for the Debug Console.
@@ -397,8 +398,8 @@ class DebugViewModel(
                     entityType    = null,
                     entityId      = null,
                     payload       = kotlinx.serialization.json.buildJsonObject {
-                        put("debug_action", action)
-                        put("detail", payload)
+                        put("debug_action", JsonPrimitive(action))
+                        put("detail", JsonPrimitive(payload))
                     }.toString(),
                     previousValue = null,
                     newValue      = null,
