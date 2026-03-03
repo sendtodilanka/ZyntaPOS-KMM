@@ -80,7 +80,7 @@ jobs:
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
-          curl -sf "https://sentry.io/api/0/organizations/zynta-solutions/releases/" \
+          curl -sf "https://sentry.io/api/0/organizations/zyntapos/releases/" \
             -H "Authorization: Bearer ${SENTRY_AUTH_TOKEN}" \
             -H "Content-Type: application/json" \
             -d "{
