@@ -43,8 +43,21 @@ jobs:
           API_BASE_URL: ${{ secrets.API_BASE_URL }}
           DB_ENCRYPTION_PASSWORD: ${{ secrets.DB_ENCRYPTION_PASSWORD }}
 
+      - name: Generate debug keystore for CI signing
+        # The release signingConfig falls back to ~/.android/debug.keystore when no
+        # RELEASE_KEYSTORE_PATH env var is set.  GitHub Actions runners don't ship with
+        # a pre-generated debug keystore, so we create one here to pass validateSigningRelease.
+        run: |
+          mkdir -p "$HOME/.android"
+          keytool -genkeypair -v \
+            -keystore "$HOME/.android/debug.keystore" \
+            -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass android -keypass android \
+            -dname "CN=Android Debug,O=Android,C=US"
+
       - name: Build release APK
-        # No keystore env vars — Gradle falls back to debug keystore automatically.
+        # No keystore env vars — Gradle falls back to debug keystore (generated above).
         # Replace with signed config once release.jks is created.
         run: ./gradlew :androidApp:assembleRelease --stacktrace
 
@@ -120,7 +133,10 @@ jobs:
 
       - name: Override gradle.properties for CI
         shell: bash
-        run: echo "org.gradle.java.home=$JAVA_HOME" >> gradle.properties
+        # On Windows, JAVA_HOME contains backslashes which Java's Properties parser drops.
+        # cygpath -m converts to forward-slash Windows paths (e.g. C:/foo/bar) that are
+        # safe for both Windows FS and Java properties files.
+        run: echo "org.gradle.java.home=$(cygpath -m "$JAVA_HOME")" >> gradle.properties
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v3
@@ -129,7 +145,7 @@ jobs:
         shell: bash
         run: |
           cp local.properties.template local.properties
-          SDK_DIR=$(cygpath "$ANDROID_HOME")
+          SDK_DIR=$(cygpath -m "$ANDROID_HOME")
           sed -i "s|^sdk.dir=.*|sdk.dir=${SDK_DIR}|" local.properties
           echo "API_BASE_URL=${API_BASE_URL:-https://localhost/api}" >> local.properties
           echo "DB_ENCRYPTION_PASSWORD=${DB_ENCRYPTION_PASSWORD:-ci-placeholder-not-for-production}" >> local.properties
