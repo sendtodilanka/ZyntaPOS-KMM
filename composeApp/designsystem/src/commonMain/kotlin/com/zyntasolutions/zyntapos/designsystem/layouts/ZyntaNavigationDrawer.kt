@@ -361,11 +361,7 @@ private fun ParentDrawerItem(
                     contentDescription = item.contentDescription,
                 )
             },
-            label = if (!isMini) {
-                { Text(item.label) }
-            } else {
-                null
-            },
+            label = { if (!isMini) Text(item.label) },
             badge = if (hasChildren && !isMini) {
                 {
                     Icon(
