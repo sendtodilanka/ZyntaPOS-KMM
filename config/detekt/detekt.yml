@@ -106,7 +106,7 @@ complexity:
       - 'Composable'
   ComplexCondition:
     active: true
-    allowedConditions: 5
+    threshold: 5
 
 # ── Naming ──────────────────────────────────────────────────────
 naming:
