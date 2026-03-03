@@ -60,22 +60,105 @@ jobs:
             # Print running containers for confirmation
             docker compose ps
 
-      - name: Smoke test all endpoints
+      - name: Smoke test all endpoints (with homepage scan + retry)
         if: success()
+        id: smoke
         run: |
+          echo "=== Waiting 30s for containers to initialise ==="
+          sleep 30
           echo "=== Smoke Testing Endpoints ==="
+
+          # ── Step Summary header ──────────────────────────────────────────
+          {
+            echo "## 🚀 Deploy Smoke Test — \`${{ github.sha }}\`"
+            echo ""
+            echo "**Deployed at:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+            echo ""
+            echo "| Endpoint | /ping | Homepage | Status |"
+            echo "|----------|-------|----------|--------|"
+          } >> "$GITHUB_STEP_SUMMARY"
+
           PASS=true
+
           for sub in api license panel docs status sync; do
-            STATUS=$(curl -sf --max-time 20 -o /dev/null -w "%{http_code}" \
-              "https://${sub}.zyntapos.com/ping" 2>/dev/null || echo "000")
-            if [ "$STATUS" = "200" ]; then
-              echo "  ✅  ${sub}.zyntapos.com — $STATUS"
+            PING_HTTP="000"
+            PING_BODY=""
+
+            # /ping — up to 3 attempts (30s apart) while containers are still starting
+            for attempt in 1 2 3; do
+              PING_HTTP=$(curl -sf --max-time 20 -o /dev/null -w "%{http_code}" \
+                "https://${sub}.zyntapos.com/ping" 2>/dev/null || echo "000")
+              PING_BODY=$(curl -sf --max-time 20 \
+                "https://${sub}.zyntapos.com/ping" 2>/dev/null || echo "")
+              [ "$PING_HTTP" = "200" ] && break
+              echo "  ⏳ ${sub} /ping attempt $attempt — HTTP $PING_HTTP, retrying in 30s..."
+              [ "$attempt" -lt 3 ] && sleep 30
+            done
+
+            # Homepage check (2xx or 3xx = healthy)
+            HOME_HTTP=$(curl -sf --max-time 20 -o /dev/null -w "%{http_code}" \
+              "https://${sub}.zyntapos.com/" 2>/dev/null || echo "000")
+
+            # Evaluate /ping
+            if [ "$PING_HTTP" = "200" ] && [ "$PING_BODY" = "ok" ]; then
+              PING_ICON="✅ $PING_HTTP"
+              PING_OK=true
             else
-              echo "  ❌  ${sub}.zyntapos.com — $STATUS (expected 200)"
+              PING_ICON="❌ $PING_HTTP"
+              PING_OK=false
+            fi
+
+            # Evaluate homepage (2xx or 3xx = healthy)
+            HOME_FIRST="${HOME_HTTP:0:1}"
+            if [ "$HOME_FIRST" = "2" ] || [ "$HOME_FIRST" = "3" ]; then
+              HOME_ICON="✅ $HOME_HTTP"
+              HOME_OK=true
+            else
+              HOME_ICON="❌ $HOME_HTTP"
+              HOME_OK=false
+            fi
+
+            if $PING_OK && $HOME_OK; then
+              ROW="✅ HEALTHY"
+            else
+              ROW="❌ DEGRADED"
               PASS=false
             fi
+
+            echo "  ${sub}.zyntapos.com  /ping → $PING_HTTP  / → $HOME_HTTP"
+            echo "| \`${sub}.zyntapos.com\` | $PING_ICON | $HOME_ICON | $ROW |" >> "$GITHUB_STEP_SUMMARY"
           done
-          $PASS || { echo "Smoke test failed — check VPS docker compose ps"; exit 1; }
+
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if $PASS; then
+            echo "### ✅ All 6 endpoints healthy — deploy verified" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### ❌ Smoke test FAILED — automatic rollback initiated" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          $PASS || { echo "Smoke test failed — initiating rollback"; exit 1; }
+
+      - name: Rollback to previous commit on smoke test failure
+        if: steps.smoke.outcome == 'failure'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          timeout: 60s
+          command_timeout: 5m
+          script: |
+            set -euo pipefail
+            cd ${{ env.DEPLOY_PATH }}
+            echo "=== ROLLBACK: smoke test failed for ${{ github.sha }} ==="
+            git reset --hard HEAD~1
+            PREV_SHA=$(git rev-parse HEAD)
+            echo "=== Rolled back to $PREV_SHA ==="
+            docker compose up -d --build --remove-orphans
+            docker image prune -f
+            echo "=== Rollback complete: $(date) ==="
+            docker compose ps
 
       - name: Notify Sentry of deploy
         if: success()
@@ -102,3 +185,8 @@ jobs:
           else
             echo "❌ Deploy failed — check logs above"
           fi
+          {
+            echo ""
+            echo "---"
+            echo "_Pipeline finished at $(date -u '+%Y-%m-%d %H:%M:%S UTC') — status: **${{ job.status }}**_"
+          } >> "$GITHUB_STEP_SUMMARY"

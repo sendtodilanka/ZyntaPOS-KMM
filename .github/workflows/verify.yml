@@ -1,53 +1,103 @@
 name: Verify Endpoints
 
-# Manual trigger from GitHub Actions UI (Actions → Verify Endpoints → Run workflow)
-# Run this anytime to confirm all 6 ZyntaPOS subdomains are reachable and healthy.
+# Runs automatically every 15 min AND after every deploy — no human trigger needed.
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '*/15 * * * *'   # Every 15 minutes — autonomous health monitoring
+  workflow_run:
+    workflows: ["Deploy to VPS"]
+    types: [completed]        # Auto-verify immediately after every deploy
 
 jobs:
   verify:
     name: Smoke Test All Endpoints
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
 
     steps:
       - name: Test all subdomains
         run: |
           PASS=true
-
-          # Subdomains to test (sync is grey-cloud, no CF proxy — still uses HTTPS via Let's Encrypt)
           SUBS="api license panel docs status sync"
 
+          # ── Step Summary header ────────────────────────────────────────────
+          {
+            echo "## 🌐 ZyntaPOS Endpoint Verification"
+            echo ""
+            if [ "${{ github.event_name }}" = "workflow_run" ]; then
+              echo "**Trigger:** post-deploy (deploy: \`${{ github.event.workflow_run.conclusion }}\`)  "
+            elif [ "${{ github.event_name }}" = "schedule" ]; then
+              echo "**Trigger:** scheduled every 15 min  "
+            else
+              echo "**Trigger:** manual  "
+            fi
+            echo "**Time:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+            echo ""
+            echo "| Endpoint | /ping | Homepage | Status |"
+            echo "|----------|-------|----------|--------|"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # ── Console header ─────────────────────────────────────────────────
           echo "=================================================="
           echo " ZyntaPOS Endpoint Verification"
+          echo " Trigger: ${{ github.event_name }}"
           echo "=================================================="
           echo ""
 
           for sub in $SUBS; do
-            URL="https://${sub}.zyntapos.com/ping"
-            HTTP=$(curl -sf --max-time 20 -o /dev/null -w "%{http_code}" "$URL" 2>/dev/null || echo "000")
-            BODY=$(curl -sf --max-time 20 "$URL" 2>/dev/null || echo "")
+            URL_PING="https://${sub}.zyntapos.com/ping"
+            URL_HOME="https://${sub}.zyntapos.com/"
 
-            if [ "$HTTP" = "200" ] && [ "$BODY" = "ok" ]; then
-              echo "  ✅  ${sub}.zyntapos.com  →  HTTP $HTTP  body=\"$BODY\""
-            elif [ "$HTTP" = "200" ]; then
-              echo "  ⚠️   ${sub}.zyntapos.com  →  HTTP $HTTP  (body mismatch: \"$BODY\")"
-              PASS=false
+            # /ping check
+            PING_HTTP=$(curl -sf --max-time 20 -o /dev/null -w "%{http_code}" "$URL_PING" 2>/dev/null || echo "000")
+            PING_BODY=$(curl -sf --max-time 20 "$URL_PING" 2>/dev/null || echo "")
+
+            # Homepage check
+            HOME_HTTP=$(curl -sf --max-time 20 -o /dev/null -w "%{http_code}" "$URL_HOME" 2>/dev/null || echo "000")
+
+            # Evaluate /ping
+            if [ "$PING_HTTP" = "200" ] && [ "$PING_BODY" = "ok" ]; then
+              PING_ICON="✅ $PING_HTTP"
+              PING_OK=true
             else
-              echo "  ❌  ${sub}.zyntapos.com  →  HTTP $HTTP  (expected 200)"
+              PING_ICON="❌ $PING_HTTP"
+              PING_OK=false
+            fi
+
+            # Evaluate homepage (2xx or 3xx = healthy)
+            HOME_FIRST="${HOME_HTTP:0:1}"
+            if [ "$HOME_FIRST" = "2" ] || [ "$HOME_FIRST" = "3" ]; then
+              HOME_ICON="✅ $HOME_HTTP"
+              HOME_OK=true
+            else
+              HOME_ICON="❌ $HOME_HTTP"
+              HOME_OK=false
+            fi
+
+            if $PING_OK && $HOME_OK; then
+              ROW="✅ HEALTHY"
+              echo "  ✅  ${sub}.zyntapos.com  /ping → $PING_HTTP (ok)  / → $HOME_HTTP"
+            else
+              ROW="❌ DEGRADED"
+              echo "  ❌  ${sub}.zyntapos.com  /ping → $PING_HTTP  / → $HOME_HTTP"
               PASS=false
             fi
+
+            echo "| \`${sub}.zyntapos.com\` | $PING_ICON | $HOME_ICON | $ROW |" >> "$GITHUB_STEP_SUMMARY"
           done
 
           echo ""
           echo "=================================================="
 
+          echo "" >> "$GITHUB_STEP_SUMMARY"
           if $PASS; then
             echo " Result: ALL ENDPOINTS VERIFIED ✅"
+            echo "### ✅ All 6 endpoints verified healthy" >> "$GITHUB_STEP_SUMMARY"
           else
             echo " Result: VERIFICATION FAILED ❌"
             echo " Check the deploy logs and VPS docker compose ps"
+            echo "### ❌ One or more endpoints degraded — check VPS \`docker compose ps\`" >> "$GITHUB_STEP_SUMMARY"
           fi
 
           echo "=================================================="
