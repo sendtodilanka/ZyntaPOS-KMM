@@ -56,6 +56,9 @@ configure<io.gitlab.arturbosch.detekt.extensions.DetektExtension> {
         }
     )
     parallel = true
+    // Phase 1: violations are reported as warnings but don't fail CI.
+    // Phase 2 gate: remove this to enforce zero-issue policy before merging.
+    ignoreFailures = true
 }
 
 // ─── Version Properties ───────────────────────────────────────────────────
