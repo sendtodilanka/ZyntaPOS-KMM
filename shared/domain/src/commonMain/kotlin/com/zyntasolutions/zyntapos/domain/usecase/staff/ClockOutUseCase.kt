@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.domain.usecase.staff
 
+import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.core.result.ValidationException
 import com.zyntasolutions.zyntapos.domain.repository.AttendanceRepository
@@ -59,6 +60,7 @@ class ClockOutUseCase(
             val diff = outMinutes - inMinutes
             if (diff < 0) (diff + 24 * 60) / 60.0 else diff / 60.0
         } catch (e: Exception) {
+            ZyntaLogger.w("ClockOutUseCase", "Failed to calculate hours worked: ${e.message}")
             0.0
         }
     }
