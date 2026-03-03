@@ -47,8 +47,7 @@ style:
     active: false                  # TODO/FIXME are acceptable during active development
   NewLineAtEndOfFile:
     active: false                  # auto-formatting handles this; not worth failing CI
-  MatchingDeclarationName:
-    active: false                  # Compose files often have a public enum/sealed + @Composable
+  # MatchingDeclarationName moved to naming ruleset (where it belongs in Detekt 1.23.x)
   # Enabled in Phase 1 hardening (2026-02-25). Suppress per-file with @Suppress if needed.
   UnusedPrivateProperty:
     active: true
@@ -98,8 +97,7 @@ complexity:
   CyclomaticComplexMethod:
     active: true
     threshold: 60                  # ViewModel when-blocks with many intents; revisit in Phase 2
-  ComplexMethod:
-    active: false                  # deprecated in favour of CyclomaticComplexMethod
+  # ComplexMethod removed — deprecated alias for CyclomaticComplexMethod (already configured above)
   LargeClass:
     active: true
     threshold: 600
@@ -118,6 +116,8 @@ complexity:
 
 # ── Naming ──────────────────────────────────────────────────────
 naming:
+  MatchingDeclarationName:
+    active: false                  # Compose files often have a public enum/sealed + @Composable in one file
   FunctionNaming:
     active: true
     excludes:
@@ -143,8 +143,7 @@ potential-bugs:
     active: true
   UselessPostfixExpression:
     active: true
-  UseCheckOrError:
-    active: false                  # Result.kt and DatabaseKeyProvider use throw for cross-platform compat
+  # UseCheckOrError removed — rule was dropped from Detekt 1.23.x
 
 # ── Performance ─────────────────────────────────────────────────
 performance:
@@ -169,8 +168,7 @@ exceptions:
       - 'NumberFormatException'
       - 'ParseException'
     allowedExceptionNameRegex: '_|(ignore|expected).*'
-  ThrowsCount:
-    active: false                  # API service error mapping legitimately throws per status code
+  # ThrowsCount removed — rule was dropped from Detekt 1.23.x
 
 # ── Empty Blocks ────────────────────────────────────────────────
 empty-blocks:
