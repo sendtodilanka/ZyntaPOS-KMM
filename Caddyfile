@@ -1,12 +1,18 @@
 # ═══════════════════════════════════════════════════════════════════
 # ZyntaPOS — Caddyfile
 #
-# All orange-cloud subdomains (api, license, panel, docs, status) use
-# the Cloudflare Origin Certificate for TLS. Cloudflare terminates
-# public TLS; Caddy handles the origin leg with the CF cert.
+# All 6 subdomains use the Cloudflare Origin Certificate for TLS.
+# Cloudflare terminates public TLS (orange-cloud); Caddy handles
+# the origin leg with the wildcard CF cert.
 #
-# sync.zyntapos.com is grey-cloud (DNS-only). Caddy gets a Let's
-# Encrypt certificate automatically via ACME HTTP-01 challenge.
+# Why not Let's Encrypt for sync? The VPS firewall restricts ports
+# 80/443 to Cloudflare IP ranges — ACME HTTP-01 challenge cannot
+# reach the VPS from Let's Encrypt servers. CF Origin cert is used
+# for all subdomains including sync.
+#
+# NOTE (Phase 3): When the real WebSocket sync engine is deployed,
+# sync.zyntapos.com should remain orange-cloud. Cloudflare proxies
+# WebSocket connections on the free plan.
 #
 # Phase 2 canary: all subdomains proxy to the `canary` nginx container.
 # When real services are deployed, replace `canary:80` with the
@@ -48,8 +54,8 @@ status.zyntapos.com {
 	reverse_proxy canary:80
 }
 
-# ── sync.zyntapos.com — WebSocket sync engine (grey-cloud) ─────────
-# No cf_tls here — Let's Encrypt ACME handles TLS automatically.
+# ── sync.zyntapos.com — WebSocket sync engine (orange-cloud) ───────
 sync.zyntapos.com {
+	import cf_tls
 	reverse_proxy canary:80
 }
