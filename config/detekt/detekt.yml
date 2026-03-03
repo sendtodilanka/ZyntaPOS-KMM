@@ -52,15 +52,9 @@ style:
   UnusedPrivateProperty:
     active: true
     allowedNames: '_|ignored|expected|serialVersionUID'
-    excludes:
-      - '**/printer/**'            # ESC/POS byte constants defined but referenced by name at runtime
-      - '**/designsystem/**'       # design tokens may be defined ahead of use
   UnusedParameter:
     active: true
     allowedNames: '_|ignored|expected'
-    excludes:
-      - '**/feature/**'            # Compose callback params kept for API completeness
-      - '**/designsystem/**'       # Slot-based composables carry unused lambda params by design
   # Architecture boundary enforcement (ADR-001, ADR-002, ADR-003)
   # These forbidden imports flag violations of Clean Architecture layering.
   # The rules are scoped to the domain source set by excluding all non-domain paths.
@@ -97,7 +91,7 @@ complexity:
   CyclomaticComplexMethod:
     active: true
     threshold: 60                  # ViewModel when-blocks with many intents; revisit in Phase 2
-  # ComplexMethod removed — deprecated alias for CyclomaticComplexMethod (already configured above)
+
   LargeClass:
     active: true
     threshold: 600
@@ -112,7 +106,7 @@ complexity:
       - 'Composable'
   ComplexCondition:
     active: true
-    threshold: 5
+    allowedConditions: 5
 
 # ── Naming ──────────────────────────────────────────────────────
 naming:
