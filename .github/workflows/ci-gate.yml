@@ -1,0 +1,97 @@
+name: "Step[3+4]: CI Gate"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PIPELINE POSITION: Steps 3 & 4 of 7
+#
+# THE MERGE GATE — Full build + lint + detekt + tests.
+# Runs on:
+#   - pull_request to main  → blocks merge until green (branch protection)
+#   - push to main          → gates deploy.yml via workflow_run
+#   - workflow_dispatch      → manual re-run from Actions tab
+#
+# This is the single required status check on main branch protection.
+# Step[1] does build-only validation; this workflow adds lint + tests.
+#
+# EDGE CASES HANDLED:
+#   - PR + push double-trigger: concurrency group deduplicates per PR number
+#   - Stale PRs: newer push cancels in-progress CI on same PR
+#   - Merge queue: push-to-main run ensures merged code is verified before deploy
+#   - Test flakiness: --continue flag runs all tests, reports all failures
+#   - Test reporting: JUnit XML published as PR check annotations via dorny/test-reporter
+#   - Permissions: minimal (read + checks:write for test annotations)
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]   # Also run after merge so workflow_run can gate deploy.yml
+  workflow_dispatch:       # Allow manual triggering from the Actions tab
+
+# Minimal permissions — CI only reads repo content, writes check annotations, uploads artifacts.
+permissions:
+  contents: read
+  checks: write          # Required for test-reporter annotations on PRs
+  actions: read
+
+# Cancel in-progress CI when a newer push arrives on the same PR.
+# For push-to-main events, group by ref to avoid cancelling deploy-gating runs.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Full build + lint + test via reusable workflow ──────────────────────────
+  build-and-test:
+    name: "Step[3+4]: Build & Test"
+    uses: ./.github/workflows/_reusable-build-test.yml
+    with:
+      run-tests: true
+      run-lint: true
+      upload-apk: true
+      artifact-retention-days: 7
+      timeout-minutes: 45
+      artifact-suffix: '-ci-${{ github.run_id }}'
+
+  # ── Test Result Reporting ──────────────────────────────────────────────────
+  # Publishes JUnit XML results as check annotations on the PR.
+  # Developers see test failures directly in the PR "Checks" tab without
+  # downloading artifact ZIPs.
+  #
+  # EDGE CASES:
+  #   - No test results: if-no-files-found in upload-artifact + fail-on-empty: false
+  #   - Push-to-main: annotations still created (visible in commit checks)
+  #   - Permissions: needs checks:write (inherited from workflow-level)
+  test-report:
+    name: "Publish Test Results"
+    needs: build-and-test
+    if: always() && needs.build-and-test.result != 'cancelled'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      # Checkout is required — dorny/test-reporter runs `git ls-files` to resolve paths.
+      # Without this, it fails with "fatal: not a git repository".
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Download JUnit XML
+        uses: actions/download-artifact@v4
+        with:
+          name: junit-xml-ci-${{ github.run_id }}
+          path: test-results
+        continue-on-error: true  # No test results = nothing to report (not a failure)
+
+      - name: Publish test results
+        if: hashFiles('test-results/**/TEST-*.xml') != ''
+        uses: dorny/test-reporter@v1
+        with:
+          name: 'JUnit Test Results'
+          path: 'test-results/**/TEST-*.xml'
+          reporter: java-junit
+          # Don't fail this job if test-reporter encounters issues
+          # The actual test pass/fail is handled by the build-and-test job
+          fail-on-error: false
+          # Only create check run, don't fail based on test results
+          # (the reusable workflow already fails on test failures)
+          fail-on-empty: false
