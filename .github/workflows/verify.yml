@@ -12,8 +12,8 @@ on:
   schedule:
     - cron: '*/30 * * * *'   # Every 30 minutes — autonomous health monitoring
   workflow_run:
-    workflows: ["Step[5]: Deploy to VPS"]
-    types: [completed]        # Auto-verify immediately after every deploy
+    workflows: ["Step[6]: Smoke Test & Rollback"]
+    types: [completed]        # Auto-verify after smoke test confirms deployment is stable
 
 # Read-only: this workflow only makes outbound HTTP requests and writes
 # to the step summary. No repo write access is needed.

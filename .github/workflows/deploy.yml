@@ -1,5 +1,16 @@
 name: Step[5]: Deploy to VPS
 
+# ─────────────────────────────────────────────────────────────────────────────
+# PIPELINE POSITION: Step 5 of 7
+#
+# Fires only when Step[3+4]: CI Gate completes successfully on main.
+# Connects to the Contabo VPS via SSH and deploys the exact SHA that CI
+# verified — not simply "latest main" (avoids a race where a concurrent push
+# lands a newer unverified commit between CI completing and deploy starting).
+#
+# After a successful deploy, Step[6]: Smoke Test & Rollback fires automatically.
+# ─────────────────────────────────────────────────────────────────────────────
+
 on:
   # Only deploy after CI passes on main — never on a raw push.
   # ci.yml now runs on both pull_request and push:main, so this fires
@@ -15,9 +26,6 @@ on:
         required: false
         default: 'Manual trigger'
 
-# Minimal permissions for deploy: read source + write deployment status.
-# SSH credentials, VPS access, and Sentry auth are handled via secrets —
-# no GitHub token write scope is needed for the deploy steps themselves.
 permissions:
   contents: read
   deployments: write
@@ -41,19 +49,12 @@ jobs:
       cancel-in-progress: false   # Never cancel an in-progress deploy
 
     steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0   # full history required for sentry-cli set-commits --auto
-          # When triggered by workflow_run, deploy the exact SHA that CI verified.
-          # github.sha in workflow_run context is the HEAD of the default branch at
-          # trigger time — a concurrent push could have landed a newer unverified commit.
-          # Pinning to head_sha guarantees we deploy what CI actually tested.
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
-
       - name: Resolve deploy SHA
         id: sha
         run: |
+          # When triggered by workflow_run, prefer the SHA that CI actually tested.
+          # github.sha in workflow_run context is the repo HEAD at trigger time —
+          # a concurrent push could have landed a newer unverified commit.
           DEPLOY_SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
           echo "deploy_sha=$DEPLOY_SHA" >> "$GITHUB_OUTPUT"
           echo "Deploying SHA: $DEPLOY_SHA"
@@ -86,146 +87,27 @@ jobs:
             docker image prune -f
 
             echo "=== Deploy complete: $(date) ==="
-
-            # Print running containers for confirmation
             docker compose ps
-
-      - name: Step[6]: Smoke Test Endpoints
-        if: success()
-        id: smoke
-        run: |
-          echo "=== Waiting 30s for containers to initialise ==="
-          sleep 30
-          echo "=== Smoke Testing Endpoints ==="
-
-          # ── Step Summary header ──────────────────────────────────────────
-          {
-            echo "## 🚀 Deploy Smoke Test — \`${{ steps.sha.outputs.deploy_sha }}\`"
-            echo ""
-            echo "**Deployed at:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
-            echo ""
-            echo "| Endpoint | /ping | Homepage | Status |"
-            echo "|----------|-------|----------|--------|"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-          PASS=true
-
-          for sub in api license panel docs status sync; do
-            PING_HTTP="000"
-            PING_BODY=""
-
-            # /ping — up to 3 attempts (30s apart) while containers are still starting
-            for attempt in 1 2 3; do
-              PING_HTTP=$(curl -sf --max-time 20 -o /dev/null -w "%{http_code}" \
-                "https://${sub}.zyntapos.com/ping" 2>/dev/null || echo "000")
-              PING_BODY=$(curl -sf --max-time 20 \
-                "https://${sub}.zyntapos.com/ping" 2>/dev/null || echo "")
-              [ "$PING_HTTP" = "200" ] && break
-              echo "  ⏳ ${sub} /ping attempt $attempt — HTTP $PING_HTTP, retrying in 30s..."
-              [ "$attempt" -lt 3 ] && sleep 30
-            done
-
-            # Homepage check (2xx or 3xx = healthy)
-            HOME_HTTP=$(curl -sf --max-time 20 -o /dev/null -w "%{http_code}" \
-              "https://${sub}.zyntapos.com/" 2>/dev/null || echo "000")
-
-            # Evaluate /ping
-            if [ "$PING_HTTP" = "200" ] && [ "$PING_BODY" = "ok" ]; then
-              PING_ICON="✅ $PING_HTTP"
-              PING_OK=true
-            else
-              PING_ICON="❌ $PING_HTTP"
-              PING_OK=false
-            fi
-
-            # Evaluate homepage (2xx or 3xx = healthy)
-            HOME_FIRST="${HOME_HTTP:0:1}"
-            if [ "$HOME_FIRST" = "2" ] || [ "$HOME_FIRST" = "3" ]; then
-              HOME_ICON="✅ $HOME_HTTP"
-              HOME_OK=true
-            else
-              HOME_ICON="❌ $HOME_HTTP"
-              HOME_OK=false
-            fi
-
-            if $PING_OK && $HOME_OK; then
-              ROW="✅ HEALTHY"
-            else
-              ROW="❌ DEGRADED"
-              PASS=false
-            fi
-
-            echo "  ${sub}.zyntapos.com  /ping → $PING_HTTP  / → $HOME_HTTP"
-            echo "| \`${sub}.zyntapos.com\` | $PING_ICON | $HOME_ICON | $ROW |" >> "$GITHUB_STEP_SUMMARY"
-          done
-
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          if $PASS; then
-            echo "### ✅ All 6 endpoints healthy — deploy verified" >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "### ❌ Smoke test FAILED — automatic rollback initiated" >> "$GITHUB_STEP_SUMMARY"
-          fi
-
-          $PASS || { echo "Smoke test failed — initiating rollback"; exit 1; }
-
-      - name: Step[6]: Rollback on Smoke Failure
-        if: steps.smoke.outcome == 'failure'
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
-          port: ${{ secrets.VPS_PORT }}
-          timeout: 60s
-          command_timeout: 5m
-          script: |
-            set -euo pipefail
-            cd ${{ env.DEPLOY_PATH }}
-            echo "=== ROLLBACK: smoke test failed for ${{ steps.sha.outputs.deploy_sha }} ==="
-            git reset --hard HEAD~1
-            PREV_SHA=$(git rev-parse HEAD)
-            echo "=== Rolled back to $PREV_SHA ==="
-            docker compose up -d --build --remove-orphans
-            docker image prune -f
-            echo "=== Rollback complete: $(date) ==="
-            docker compose ps
-
-      - name: Notify Sentry of deploy
-        if: success()
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: zyntapos
-        run: |
-          # Install a pinned Sentry CLI version from the official GitHub release.
-          # SECURITY: Do NOT use `curl https://sentry.io/get-cli/ | sh` — that
-          # fetches an unpinned script from the internet and executes it as root,
-          # which is a supply chain attack vector. Always pin to a specific release.
-          SENTRY_CLI_VERSION="2.42.2"
-          curl -sSfL \
-            "https://github.com/getsentry/sentry-cli/releases/download/${SENTRY_CLI_VERSION}/sentry-cli-Linux-x86_64" \
-            -o /usr/local/bin/sentry-cli
-          chmod +x /usr/local/bin/sentry-cli
-
-          VERSION="${{ steps.sha.outputs.deploy_sha }}"
-          sentry-cli releases new "$VERSION" \
-            --project zyntapos-api \
-            --project zyntapos-license \
-            --project zyntapos-sync \
-            --project zyntapos-android
-          sentry-cli releases set-commits "$VERSION" --auto
-          sentry-cli releases finalize "$VERSION"
-          sentry-cli releases deploys "$VERSION" new -e production
 
       - name: Post deploy summary
         if: always()
         run: |
           if [ "${{ job.status }}" = "success" ]; then
-            echo "✅ Deploy succeeded — ${{ steps.sha.outputs.deploy_sha }}"
+            echo "✅ SSH deploy succeeded — ${{ steps.sha.outputs.deploy_sha }}"
+            echo "Step[6]: Smoke Test & Rollback will now verify the deployment."
           else
-            echo "❌ Deploy failed — check logs above"
+            echo "❌ SSH deploy failed — check logs above"
           fi
           {
+            echo "## Step[5]: Deploy to VPS"
             echo ""
-            echo "---"
-            echo "_Pipeline finished at $(date -u '+%Y-%m-%d %H:%M:%S UTC') — status: **${{ job.status }}**_"
+            echo "| | |"
+            echo "|---|---|"
+            echo "| **SHA** | \`${{ steps.sha.outputs.deploy_sha }}\` |"
+            echo "| **Status** | **${{ job.status }}** |"
+            echo "| **Finished** | $(date -u '+%Y-%m-%d %H:%M:%S UTC') |"
+            echo ""
+            if [ "${{ job.status }}" = "success" ]; then
+              echo "> Step[6]: Smoke Test & Rollback is running next."
+            fi
           } >> "$GITHUB_STEP_SUMMARY"

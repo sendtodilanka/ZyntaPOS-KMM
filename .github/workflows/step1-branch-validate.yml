@@ -1,0 +1,127 @@
+name: Step[1]: Branch Validate
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PIPELINE POSITION: Step 1 of 7
+#
+# Runs build + lint + detekt + tests on every push to a development branch.
+# If all checks pass, Step[2] (Auto PR) fires automatically via workflow_run.
+# If anything fails the pipeline stops here — main is never touched.
+#
+# Mirrors Step[3+4]: CI Gate exactly so the same failures that would block a
+# PR also block PR creation. Keep both in sync: if ci.yml changes, update
+# this file to match.
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  push:
+    branches:
+      - 'feature/**'
+      - 'fix/**'
+      - 'hotfix/**'
+      - 'chore/**'
+      - 'refactor/**'
+      - 'docs/**'
+      - 'claude/**'
+      - 'test/**'
+      - 'build/**'
+      - 'ci/**'
+      - 'perf/**'
+      - 'style/**'
+
+permissions:
+  contents: read
+
+# Cancel in-progress validate run when a newer push arrives on the same branch.
+concurrency:
+  group: step1-validate-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  JAVA_VERSION: '21'
+  JAVA_DISTRIBUTION: 'temurin'
+
+jobs:
+  validate:
+    name: Step[1]: Branch Validate
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+
+    steps:
+      # ── Checkout ────────────────────────────────────────────────────────────
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      # ── Java ────────────────────────────────────────────────────────────────
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          java-version: ${{ env.JAVA_VERSION }}
+
+      # ── Override daemon JVM to use the CI JDK (avoids foojay.io download) ──
+      - name: Point org.gradle.java.home to CI JDK
+        run: echo "org.gradle.java.home=$JAVA_HOME" >> gradle.properties
+
+      # ── Gradle ──────────────────────────────────────────────────────────────
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          cache-read-only: false   # always write cache on feature branches
+
+      # ── Secrets / local.properties ──────────────────────────────────────────
+      - name: Create local.properties from dev template
+        run: ./scripts/setup-local-properties.sh
+
+      # ── Shared Modules ──────────────────────────────────────────────────────
+      - name: Build :shared:core (JVM)
+        run: ./gradlew :shared:core:jvmJar --stacktrace
+
+      - name: Build :shared:domain (JVM)
+        run: ./gradlew :shared:domain:jvmJar --stacktrace
+
+      - name: Build :shared:data (JVM)
+        run: ./gradlew :shared:data:jvmJar --stacktrace
+
+      - name: Build :shared:hal (JVM)
+        run: ./gradlew :shared:hal:jvmJar --stacktrace
+
+      - name: Build :shared:security (JVM)
+        run: ./gradlew :shared:security:jvmJar --stacktrace
+
+      # ── Android ─────────────────────────────────────────────────────────────
+      - name: Build Android debug APK
+        run: ./gradlew :androidApp:assembleDebug --stacktrace
+
+      # ── Desktop ─────────────────────────────────────────────────────────────
+      - name: Build Desktop JVM JAR
+        run: ./gradlew :composeApp:jvmJar --stacktrace
+
+      # ── Lint ────────────────────────────────────────────────────────────────
+      - name: Run Android Lint (debug)
+        run: ./gradlew :androidApp:lintDebug --stacktrace
+
+      - name: Run Detekt (static analysis)
+        run: ./gradlew detekt --stacktrace
+
+      # ── Tests ───────────────────────────────────────────────────────────────
+      - name: Run all tests (JVM targets)
+        run: ./gradlew allTests --stacktrace --continue
+
+      # ── Artifacts ───────────────────────────────────────────────────────────
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pre-merge-test-reports-${{ github.run_id }}
+          path: '**/build/reports/tests/'
+          retention-days: 3
+
+      - name: Upload lint & Detekt reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pre-merge-lint-reports-${{ github.run_id }}
+          path: |
+            **/build/reports/lint-results*.html
+            **/build/reports/detekt/
+          retention-days: 3
