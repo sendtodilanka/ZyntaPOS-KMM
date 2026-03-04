@@ -45,6 +45,18 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0   # full history required for sentry-cli set-commits --auto
+          # When triggered by workflow_run, deploy the exact SHA that CI verified.
+          # github.sha in workflow_run context is the HEAD of the default branch at
+          # trigger time — a concurrent push could have landed a newer unverified commit.
+          # Pinning to head_sha guarantees we deploy what CI actually tested.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Resolve deploy SHA
+        id: sha
+        run: |
+          DEPLOY_SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
+          echo "deploy_sha=$DEPLOY_SHA" >> "$GITHUB_OUTPUT"
+          echo "Deploying SHA: $DEPLOY_SHA"
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -58,13 +70,13 @@ jobs:
           script: |
             set -euo pipefail
             echo "=== Deploy started: $(date) ==="
-            echo "=== Commit: ${{ github.sha }} ==="
+            echo "=== Commit: ${{ steps.sha.outputs.deploy_sha }} ==="
 
             cd ${{ env.DEPLOY_PATH }}
 
-            # Pull latest code
-            git fetch origin main
-            git reset --hard origin/main
+            # Pin to the exact SHA that CI verified — not just latest main.
+            git fetch origin
+            git reset --hard ${{ steps.sha.outputs.deploy_sha }}
 
             # Rebuild and restart only changed services (zero downtime for unchanged)
             docker compose pull --quiet
@@ -88,7 +100,7 @@ jobs:
 
           # ── Step Summary header ──────────────────────────────────────────
           {
-            echo "## 🚀 Deploy Smoke Test — \`${{ github.sha }}\`"
+            echo "## 🚀 Deploy Smoke Test — \`${{ steps.sha.outputs.deploy_sha }}\`"
             echo ""
             echo "**Deployed at:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
             echo ""
@@ -169,7 +181,7 @@ jobs:
           script: |
             set -euo pipefail
             cd ${{ env.DEPLOY_PATH }}
-            echo "=== ROLLBACK: smoke test failed for ${{ github.sha }} ==="
+            echo "=== ROLLBACK: smoke test failed for ${{ steps.sha.outputs.deploy_sha }} ==="
             git reset --hard HEAD~1
             PREV_SHA=$(git rev-parse HEAD)
             echo "=== Rolled back to $PREV_SHA ==="
@@ -194,7 +206,7 @@ jobs:
             -o /usr/local/bin/sentry-cli
           chmod +x /usr/local/bin/sentry-cli
 
-          VERSION="${{ github.sha }}"
+          VERSION="${{ steps.sha.outputs.deploy_sha }}"
           sentry-cli releases new "$VERSION" \
             --project zyntapos-api \
             --project zyntapos-license \
@@ -208,7 +220,7 @@ jobs:
         if: always()
         run: |
           if [ "${{ job.status }}" = "success" ]; then
-            echo "✅ Deploy succeeded — ${{ github.sha }}"
+            echo "✅ Deploy succeeded — ${{ steps.sha.outputs.deploy_sha }}"
           else
             echo "❌ Deploy failed — check logs above"
           fi

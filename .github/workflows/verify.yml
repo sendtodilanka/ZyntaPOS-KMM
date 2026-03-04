@@ -25,10 +25,15 @@ jobs:
     name: Smoke Test All Endpoints
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # Skip post-deploy verification when the deploy itself failed or was rolled back.
+    # Running health checks mid-rollback produces misleading noise.
+    # Scheduled and manual triggers always run unconditionally.
+    if: >
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
     # Production endpoints (api/license/panel/docs/status/sync.zyntapos.com) do not
-    # exist yet (Phase 1 MVP — backend VPS not provisioned). Setting continue-on-error
-    # prevents this scheduled workflow from showing as a failing required check while
-    # the infrastructure is not yet deployed. Remove this line once VPS is live.
+    # exist yet (Phase 1 MVP — backend VPS not provisioned). Remove continue-on-error
+    # once VPS is live so real outages fail this job and are visible.
     continue-on-error: true
 
     steps:
