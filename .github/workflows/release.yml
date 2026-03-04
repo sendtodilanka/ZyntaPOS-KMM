@@ -1,170 +1,43 @@
 name: Release
 
-on:
-  # Push trigger removed — release.yml ran macOS (10×) + Windows (2×) runners on
-  # every merge, exhausting the 2,000 private-repo minute budget within hours.
-  # Re-enable only after upgrading to GitHub Team/Enterprise or moving to public.
-  #   push:
-  #     branches: [ main ]
-  workflow_dispatch:   # Manual release builds only — trigger from the Actions tab
+# All platform build jobs (Android APK, Linux DEB, macOS DMG, Windows MSI) have
+# been removed to stay within the 2,000 private-repo Actions-minute budget.
+#
+# macOS runners bill at 10× and Windows at 2× — a single 4-platform release run
+# consumed ~200–300 billed minutes. Running on every push drained the monthly
+# quota within hours.
+#
+# To restore cross-platform releases:
+#   Option A — Upgrade to GitHub Team plan (3,000 min/month + better multipliers)
+#   Option B — Make the repository public (unlimited free minutes)
+#   Option C — Set up self-hosted runners (no billed minutes)
+#
+# VPS deployments continue automatically via deploy.yml on every push to main.
 
-# Default: restrict all jobs to read-only; individual jobs below
-# elevate only the scopes they actually need.
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for manual trigger'
+        required: false
+        default: 'Manual release'
+
 permissions:
   contents: read
 
-# Prevent two release runs from racing on the same push.
-# Never cancel in-progress releases — completing a deploy is safer than
-# leaving it half-done.
 concurrency:
   group: release
   cancel-in-progress: false
 
-env:
-  JAVA_VERSION: '21'
-  # Use JetBrains JDK — matches ci.yml and auto-merge.yml to ensure the
-  # same toolchain is used for all build types and avoids foojay.io downloads.
-  JAVA_DISTRIBUTION: 'jetbrains'
-
 jobs:
-  # ═════════════════════════════════════════════════════════════════════
-  # Android APK (unsigned — JKS keystore not yet created)
-  # ═════════════════════════════════════════════════════════════════════
-  build-android:
-    name: Android APK
+  notice:
+    name: Release Builds Disabled
     runs-on: ubuntu-latest
-    timeout-minutes: 60
-    permissions:
-      contents: read
-
     steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v4
-        with:
-          distribution: ${{ env.JAVA_DISTRIBUTION }}
-          java-version: ${{ env.JAVA_VERSION }}
-
-      - name: Override gradle.properties for CI
-        run: echo "org.gradle.java.home=$JAVA_HOME" >> gradle.properties
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v3
-
-      - name: Create local.properties
+      - name: Print notice
         run: |
-          cp local.properties.template local.properties
-          sed -i "s|^sdk.dir=.*|sdk.dir=$ANDROID_HOME|" local.properties
-          echo "API_BASE_URL=${API_BASE_URL:-https://localhost/api}" >> local.properties
-          echo "DB_ENCRYPTION_PASSWORD=${DB_ENCRYPTION_PASSWORD:-ci-placeholder-not-for-production}" >> local.properties
-        env:
-          API_BASE_URL: ${{ secrets.API_BASE_URL }}
-          DB_ENCRYPTION_PASSWORD: ${{ secrets.DB_ENCRYPTION_PASSWORD }}
-
-      - name: Generate debug keystore for CI signing
-        run: |
-          mkdir -p "$HOME/.android"
-          keytool -genkeypair -v \
-            -keystore "$HOME/.android/debug.keystore" \
-            -alias androiddebugkey \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass android -keypass android \
-            -dname "CN=Android Debug,O=Android,C=US"
-
-      - name: Build release APK
-        run: ./gradlew :androidApp:assembleRelease --stacktrace
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-apk
-          path: androidApp/build/outputs/apk/release/*.apk
-          retention-days: 1
-
-  # ═════════════════════════════════════════════════════════════════════
-  # Linux DEB
-  # ═════════════════════════════════════════════════════════════════════
-  build-linux:
-    name: Linux DEB
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    permissions:
-      contents: read
-
-    steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v4
-        with:
-          distribution: ${{ env.JAVA_DISTRIBUTION }}
-          java-version: ${{ env.JAVA_VERSION }}
-
-      - name: Override gradle.properties for CI
-        run: echo "org.gradle.java.home=$JAVA_HOME" >> gradle.properties
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v3
-
-      - name: Create local.properties
-        run: |
-          cp local.properties.template local.properties
-          sed -i "s|^sdk.dir=.*|sdk.dir=$ANDROID_HOME|" local.properties
-          echo "API_BASE_URL=${API_BASE_URL:-https://localhost/api}" >> local.properties
-          echo "DB_ENCRYPTION_PASSWORD=${DB_ENCRYPTION_PASSWORD:-ci-placeholder-not-for-production}" >> local.properties
-        env:
-          API_BASE_URL: ${{ secrets.API_BASE_URL }}
-          DB_ENCRYPTION_PASSWORD: ${{ secrets.DB_ENCRYPTION_PASSWORD }}
-
-      - name: Install packaging dependencies
-        run: sudo apt-get update && sudo apt-get install -y fakeroot
-
-      - name: Package DEB
-        run: ./gradlew :composeApp:packageDeb --stacktrace
-
-      - name: Upload DEB
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-deb
-          path: composeApp/build/compose/binaries/main/deb/*.deb
-          retention-days: 1
-
-  # ═════════════════════════════════════════════════════════════════════
-  # Create GitHub Release
-  # ═════════════════════════════════════════════════════════════════════
-  release:
-    name: Publish Release
-    needs: [ build-android, build-linux ]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: release-assets
-
-      - name: Generate release tag
-        id: tag
-        run: |
-          TAG="v1.0.0-build.${{ github.run_number }}"
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "Generated tag: $TAG"
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          tag_name: ${{ steps.tag.outputs.tag }}
-          name: ZyntaPOS ${{ steps.tag.outputs.tag }}
-          generate_release_notes: true
-          files: |
-            release-assets/android-apk/*.apk
-            release-assets/linux-deb/*.deb
+          echo "Release platform builds are currently disabled."
+          echo "Reason: ${{ github.event.inputs.reason }}"
+          echo ""
+          echo "VPS deployment (deploy.yml) runs automatically on every push to main."
+          echo "Re-enable build jobs in this file when ready (see comments above)."
