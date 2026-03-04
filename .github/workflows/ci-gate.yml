@@ -6,11 +6,12 @@ name: "Step[3+4]: CI Gate"
 # THE MERGE GATE — Full build + lint + detekt + tests.
 # Runs on:
 #   - pull_request to main  → blocks merge until green (branch protection)
-#   - push to main          → gates deploy.yml via workflow_run
+#   - push to main          → triggers deploy via repository_dispatch
 #   - workflow_dispatch      → manual re-run from Actions tab
 #
-# This is the single required status check on main branch protection.
-# Step[1] does build-only validation; this workflow adds lint + tests.
+# CHAINING: On push-to-main success, dispatches "deploy-trigger" event to
+# start Step[5]. Uses repository_dispatch instead of workflow_run to avoid
+# ghost workflow interference (GitHub platform bug with deleted workflows).
 #
 # EDGE CASES HANDLED:
 #   - PR + push double-trigger: concurrency group deduplicates per PR number
@@ -18,24 +19,21 @@ name: "Step[3+4]: CI Gate"
 #   - Merge queue: push-to-main run ensures merged code is verified before deploy
 #   - Test flakiness: --continue flag runs all tests, reports all failures
 #   - Test reporting: JUnit XML published as PR check annotations via dorny/test-reporter
-#   - Permissions: minimal (read + checks:write for test annotations)
+#   - Deploy dispatch only on push (not PR): explicit event_name guard
 # ─────────────────────────────────────────────────────────────────────────────
 
 on:
   pull_request:
     branches: [ main ]
   push:
-    branches: [ main ]   # Also run after merge so workflow_run can gate deploy.yml
-  workflow_dispatch:       # Allow manual triggering from the Actions tab
+    branches: [ main ]
+  workflow_dispatch:
 
-# Minimal permissions — CI only reads repo content, writes check annotations, uploads artifacts.
 permissions:
   contents: read
-  checks: write          # Required for test-reporter annotations on PRs
+  checks: write
   actions: read
 
-# Cancel in-progress CI when a newer push arrives on the same PR.
-# For push-to-main events, group by ref to avoid cancelling deploy-gating runs.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -54,14 +52,6 @@ jobs:
       artifact-suffix: '-ci-${{ github.run_id }}'
 
   # ── Test Result Reporting ──────────────────────────────────────────────────
-  # Publishes JUnit XML results as check annotations on the PR.
-  # Developers see test failures directly in the PR "Checks" tab without
-  # downloading artifact ZIPs.
-  #
-  # EDGE CASES:
-  #   - No test results: if-no-files-found in upload-artifact + fail-on-empty: false
-  #   - Push-to-main: annotations still created (visible in commit checks)
-  #   - Permissions: needs checks:write (inherited from workflow-level)
   test-report:
     name: "Publish Test Results"
     needs: build-and-test
@@ -70,8 +60,6 @@ jobs:
     timeout-minutes: 5
 
     steps:
-      # Checkout is required — dorny/test-reporter runs `git ls-files` to resolve paths.
-      # Without this, it fails with "fatal: not a git repository".
       - name: Checkout source
         uses: actions/checkout@v4
 
@@ -80,7 +68,7 @@ jobs:
         with:
           name: junit-xml-ci-${{ github.run_id }}
           path: test-results
-        continue-on-error: true  # No test results = nothing to report (not a failure)
+        continue-on-error: true
 
       - name: Publish test results
         if: hashFiles('test-results/**/TEST-*.xml') != ''
@@ -89,9 +77,24 @@ jobs:
           name: 'JUnit Test Results'
           path: 'test-results/**/TEST-*.xml'
           reporter: java-junit
-          # Don't fail this job if test-reporter encounters issues
-          # The actual test pass/fail is handled by the build-and-test job
           fail-on-error: false
-          # Only create check run, don't fail based on test results
-          # (the reusable workflow already fails on test failures)
           fail-on-empty: false
+
+  # ── Trigger Deploy (push-to-main only) ───────────────────────────────────
+  # Uses repository_dispatch to chain to cd-deploy.yml.
+  # Only fires on push events (not PRs) and only when build succeeds.
+  trigger-deploy:
+    name: "Trigger Deploy"
+    needs: build-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: write
+    steps:
+      - name: Dispatch deploy event
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
+          event-type: deploy-trigger
+          client-payload: '{"sha": "${{ github.sha }}", "run_id": "${{ github.run_id }}"}'

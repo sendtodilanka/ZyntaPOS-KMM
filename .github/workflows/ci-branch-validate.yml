@@ -4,7 +4,7 @@ name: "Step[1]: Branch Validate"
 # PIPELINE POSITION: Step 1 of 7
 #
 # Runs a FAST BUILD-ONLY validation on every push to a development branch.
-# If the build succeeds, Step[2] (Auto PR) fires automatically via workflow_run.
+# If the build succeeds, dispatches "auto-pr-trigger" to start Step[2].
 # If anything fails the pipeline stops here — main is never touched.
 #
 # WHY BUILD-ONLY (no tests):
@@ -13,7 +13,8 @@ name: "Step[1]: Branch Validate"
 # compilation errors, missing imports, and resource issues — the most common
 # failure mode on feature branches — in ~10 min instead of ~30 min.
 #
-# Tests and lint run in CI Gate (ci.yml) as the merge-blocking check.
+# CHAINING: Uses repository_dispatch to trigger Step[2] instead of
+# workflow_run to avoid ghost workflow interference.
 #
 # EDGE CASES HANDLED:
 #   - Rapid-fire pushes: concurrency group cancels older runs on same branch
@@ -41,7 +42,6 @@ on:
 permissions:
   contents: read
 
-# Cancel in-progress validate run when a newer push arrives on the same branch.
 concurrency:
   group: step1-validate-${{ github.ref }}
   cancel-in-progress: true
@@ -51,11 +51,23 @@ jobs:
     name: "Step[1]: Branch Validate"
     uses: ./.github/workflows/_reusable-build-test.yml
     with:
-      # Build-only: skip tests and lint to save Actions minutes.
-      # Full suite runs on the PR in ci.yml (Step[3+4]).
       run-tests: false
       run-lint: false
       upload-apk: false
       artifact-retention-days: 3
       timeout-minutes: 30
       artifact-suffix: '-step1-${{ github.run_id }}'
+
+  # ── Chain to Step[2]: Auto PR ────────────────────────────────────────────
+  trigger-auto-pr:
+    name: "Trigger Auto PR"
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Dispatch auto-pr event
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
+          event-type: auto-pr-trigger
+          client-payload: '{"branch": "${{ github.ref_name }}", "sha": "${{ github.sha }}", "actor": "${{ github.actor }}"}'

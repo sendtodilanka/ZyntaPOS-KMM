@@ -4,16 +4,12 @@ name: "Step[7]: Verify Endpoints"
 # PIPELINE POSITION: Step 7 of 7
 #
 # Autonomous health monitoring — runs automatically every 30 min AND after
-# every deploy (via workflow_run from Step[6]).
+# every deploy (via repository_dispatch from Step[6]).
 #
-# SCHEDULE RATIONALE: 15-minute intervals (*/15) generate 96 runs/day.
-# For a private repo on a standard GitHub plan this can exhaust the included
-# Actions-minutes budget rapidly (96 × 10 min timeout = up to 960 min/day).
-# 30-minute intervals halve that cost while still detecting outages quickly.
-# Adjust back to */15 only if SLA requirements demand sub-30-min detection.
+# SCHEDULE RATIONALE: 30-minute intervals balance detection speed vs.
+# Actions-minutes budget (48 runs/day × 10 min = max 480 min/day).
 #
 # EDGE CASES HANDLED:
-#   - Post-deploy failure: skip verification if deploy/smoke failed (misleading noise)
 #   - Scheduled/manual: always run unconditionally
 #   - Production not live: continue-on-error: true (Phase 1 — canary placeholders)
 #   - Rate limiting: 20s curl timeout prevents accumulation
@@ -22,13 +18,10 @@ name: "Step[7]: Verify Endpoints"
 on:
   workflow_dispatch:
   schedule:
-    - cron: '*/30 * * * *'   # Every 30 minutes — autonomous health monitoring
-  workflow_run:
-    workflows: ["Step[6]: Smoke Test & Rollback"]
-    types: [completed]        # Auto-verify after smoke test confirms deployment is stable
+    - cron: '*/30 * * * *'
+  repository_dispatch:
+    types: [ verify-trigger ]
 
-# Read-only: this workflow only makes outbound HTTP requests and writes
-# to the step summary. No repo write access is needed.
 permissions:
   contents: read
 
@@ -37,22 +30,12 @@ jobs:
     name: "Step[7]: Verify All Endpoints"
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # Skip post-deploy verification when the deploy itself failed or was rolled back.
-    # Running health checks mid-rollback produces misleading noise.
-    # Scheduled and manual triggers always run unconditionally.
-    if: >
-      github.event_name != 'workflow_run' ||
-      github.event.workflow_run.conclusion == 'success'
-    # Production endpoints (*.zyntapos.com) do not exist yet (Phase 1 MVP —
-    # canary placeholder). Remove continue-on-error once real backend services
-    # are deployed so outages fail this job and are visible.
     continue-on-error: true
 
     steps:
       - name: Checkout (for composite action)
         uses: actions/checkout@v4
 
-      # ── Health Check ──────────────────────────────────────────────────────
       - name: "Step[7]: Test All Subdomains"
         id: health
         uses: ./.github/actions/health-check
@@ -63,15 +46,14 @@ jobs:
           retry-delay: '0'
           curl-timeout: '20'
 
-      # ── Write results to step summary ─────────────────────────────────────
       - name: Write verification summary
         if: always()
         run: |
           {
             echo "## Step[7]: Endpoint Verification"
             echo ""
-            if [ "${{ github.event_name }}" = "workflow_run" ]; then
-              echo "**Trigger:** post-deploy (Step[6]: \`${{ github.event.workflow_run.conclusion }}\`)  "
+            if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+              echo "**Trigger:** post-deploy (Step[6] completed)  "
             elif [ "${{ github.event_name }}" = "schedule" ]; then
               echo "**Trigger:** scheduled every 30 min  "
             else
@@ -82,9 +64,8 @@ jobs:
             echo "${{ steps.health.outputs.summary }}"
             echo ""
             if [ "${{ steps.health.outputs.healthy }}" = "true" ]; then
-              echo "### ✅ All 6 endpoints verified healthy"
+              echo "### All 6 endpoints verified healthy"
             else
-              echo "### ❌ One or more endpoints degraded — check VPS \`docker compose ps\`"
+              echo "### One or more endpoints degraded — check VPS \`docker compose ps\`"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
-
