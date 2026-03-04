@@ -46,7 +46,7 @@ koin                           = "4.0.4"
 ktor                           = "3.0.3"
 
 # ── Persistence ──────────────────────────────────────────────
-sqldelight                     = "2.0.2"
+sqldelight                     = "2.2.1"
 sqlcipher-android              = "4.5.0"
 
 # ── Image Loading ────────────────────────────────────────────
