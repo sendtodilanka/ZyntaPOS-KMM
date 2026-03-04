@@ -233,7 +233,7 @@ class ExpenseViewModel(
             is Result.Success -> {
                 sendEffect(ExpenseEffect.ShowSuccess("Expense approved"))
                 val amount = currentState.expenses.find { it.id == expenseId }?.amount ?: 0.0
-                auditLogger.logExpenseApproved(expenseId, amount)
+                auditLogger.logExpenseApproved(currentUserId, expenseId, amount)
             }
             is Result.Error -> sendEffect(ExpenseEffect.ShowError(result.exception.message ?: "Approval failed"))
             is Result.Loading -> {}

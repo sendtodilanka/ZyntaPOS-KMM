@@ -392,7 +392,7 @@ class PosViewModel(
         }
         when (val result = holdOrderUseCase(currentState.cartItems)) {
             is Result.Success -> {
-                auditLogger.logOrderHeld(result.data)
+                auditLogger.logOrderHeld(cashierId, result.data)
                 onClearCart()
             }
             is Result.Error -> sendEffect(PosEffect.ShowError(result.exception.message ?: "Failed to hold order"))
@@ -403,7 +403,7 @@ class PosViewModel(
     private suspend fun onRetrieveHeld(holdId: String) {
         when (val result = retrieveHeldUseCase(holdId)) {
             is Result.Success -> {
-                auditLogger.logOrderResumed(holdId)
+                auditLogger.logOrderResumed(cashierId, holdId)
                 val totalsResult = calculateTotalsUseCase(result.data, 0.0, DiscountType.FIXED)
                 val totals = (totalsResult as? Result.Success)?.data ?: OrderTotals.EMPTY
                 updateState {
@@ -467,8 +467,8 @@ class PosViewModel(
                         currentReceiptOrder = order,
                     )
                 }
-                auditLogger.logOrderCreated(order.id, order.total, order.items.size, intent.method.name)
-                auditLogger.logPaymentProcessed(order.id, order.total, intent.method.name)
+                auditLogger.logOrderCreated(cashierId, order.id, order.total, order.items.size, intent.method.name)
+                auditLogger.logPaymentProcessed(cashierId, order.id, order.total, intent.method.name)
                 // ── Post-payment: earn loyalty points + debit wallet ──────────
                 val customer = currentState.selectedCustomer
                 if (customer != null) {

@@ -336,9 +336,9 @@ class InventoryViewModel(
         when (result) {
             is Result.Success -> {
                 if (form.id != null) {
-                    auditLogger.logProductModified(product.id)
+                    auditLogger.logProductModified(currentUserId, product.id)
                 } else {
-                    auditLogger.logProductCreated(product.id, product.name)
+                    auditLogger.logProductCreated(currentUserId, product.id, product.name)
                 }
                 val action = if (form.id != null) "updated" else "created"
                 sendEffect(InventoryEffect.ShowSuccess("Product '${ product.name }' $action."))
@@ -356,7 +356,7 @@ class InventoryViewModel(
         when (val result = productRepository.delete(productId)) {
             is Result.Success -> {
                 val deletedName = currentState.products.find { it.id == productId }?.name ?: ""
-                auditLogger.logProductDeleted(productId, deletedName)
+                auditLogger.logProductDeleted(currentUserId, productId, deletedName)
                 updateState { copy(isLoading = false) }
                 sendEffect(InventoryEffect.ShowSuccess("Product deactivated."))
                 if (currentState.selectedProduct?.id == productId) onBackToList()
@@ -424,7 +424,7 @@ class InventoryViewModel(
         updateState { copy(isLoading = false, stockAdjustmentTarget = null) }
         when (result) {
             is Result.Success -> {
-                auditLogger.logStockAdjusted(target.id, quantity, reason)
+                auditLogger.logStockAdjusted(currentUserId, target.id, quantity, reason)
                 sendEffect(InventoryEffect.ShowSuccess("Stock adjusted for '${target.name}'."))
             }
             is Result.Error -> sendEffect(InventoryEffect.ShowError(result.exception.message ?: "Adjustment failed"))

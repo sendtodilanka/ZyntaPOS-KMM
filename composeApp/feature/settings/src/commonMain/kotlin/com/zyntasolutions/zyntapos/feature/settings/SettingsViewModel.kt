@@ -11,6 +11,7 @@ import com.zyntasolutions.zyntapos.domain.model.Permission
 import com.zyntasolutions.zyntapos.domain.model.Role
 import com.zyntasolutions.zyntapos.domain.model.TaxGroup
 import com.zyntasolutions.zyntapos.domain.model.User
+import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.RoleRepository
 import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.domain.repository.TaxGroupRepository
@@ -33,6 +34,7 @@ import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
 
@@ -78,9 +80,17 @@ class SettingsViewModel(
     private val savePrinterProfileUseCase: SavePrinterProfileUseCase,
     private val deletePrinterProfileUseCase: DeletePrinterProfileUseCase,
     private val auditLogger: SecurityAuditLogger,
+    private val authRepository: AuthRepository,
 ) : BaseViewModel<SettingsState, SettingsIntent, SettingsEffect>(SettingsState()) {
 
+    private var currentUserId: String = "unknown"
     private var taxGroupJob: Job? = null
+
+    init {
+        viewModelScope.launch {
+            currentUserId = authRepository.getSession().first()?.id ?: "unknown"
+        }
+    }
     private var userJob: Job? = null
     private var rbacJob: Job? = null
     private var profilesJob: Job? = null
@@ -252,7 +262,7 @@ class SettingsViewModel(
                 settingsRepository.set(SettingsKeys.DATE_FORMAT,    s.dateFormat)
                 settingsRepository.set(SettingsKeys.LANGUAGE,       s.language)
                 sendEffect(SettingsEffect.GeneralSaved)
-                auditLogger.logSettingsChanged("general")
+                auditLogger.logSettingsChanged(currentUserId, "general")
             } catch (e: Exception) {
                 updateState { copy(general = general.copy(saveError = e.message)) }
             } finally {
@@ -291,7 +301,7 @@ class SettingsViewModel(
                 settingsRepository.set(SettingsKeys.RECEIPT_TEMPLATE,     s.receiptTemplate.name)
                 settingsRepository.set(SettingsKeys.MAX_DISCOUNT_PERCENT, s.maxDiscountPercent.toString())
                 sendEffect(SettingsEffect.PosSaved)
-                auditLogger.logSettingsChanged("pos")
+                auditLogger.logSettingsChanged(currentUserId, "pos")
             } catch (e: Exception) {
                 updateState { copy(pos = pos.copy(saveError = e.message)) }
             } finally {
@@ -322,7 +332,7 @@ class SettingsViewModel(
                 .onSuccess {
                     updateState { copy(tax = tax.copy(isCreating = false, isEditing = null, saveError = null)) }
                     sendEffect(SettingsEffect.ShowSnackbar("Tax group saved successfully."))
-                    auditLogger.logTaxConfigChanged(taxGroup.name)
+                    auditLogger.logTaxConfigChanged(currentUserId, taxGroup.name)
                 }
                 .onError { e ->
                     updateState { copy(tax = tax.copy(saveError = e.message)) }
@@ -503,10 +513,10 @@ class SettingsViewModel(
                             .onSuccess { sendEffect(SettingsEffect.PinUpdated) }
                     }
                     if (!isUpdate) {
-                        auditLogger.logUserCreated(user.id, user.name)
+                        auditLogger.logUserCreated(currentUserId, user.id, user.name)
                     } else if (user.isActive != editingUser?.isActive) {
-                        if (!user.isActive) auditLogger.logUserDeactivated(user.id, user.name)
-                        else auditLogger.logUserReactivated(user.id, user.name)
+                        if (!user.isActive) auditLogger.logUserDeactivated(currentUserId, user.id, user.name)
+                        else auditLogger.logUserReactivated(currentUserId, user.id, user.name)
                     }
                     updateState { copy(users = users.copy(isCreating = false, editingUser = null, saveError = null)) }
                     sendEffect(SettingsEffect.UserSaved)
@@ -587,7 +597,7 @@ class SettingsViewModel(
                 .onSuccess {
                     updateState { copy(rbac = rbac.copy(isCreatingCustomRole = false, editingCustomRole = null, saveError = null)) }
                     sendEffect(SettingsEffect.RoleSaved)
-                    auditLogger.logCustomRoleModified(role.name)
+                    auditLogger.logCustomRoleModified(currentUserId, role.name)
                 }
                 .onError { e -> updateState { copy(rbac = rbac.copy(saveError = e.message)) } }
         }
