@@ -69,3 +69,54 @@ internal data class SettingsChangedPayload(val key: String)
 
 @Serializable
 internal data class DiagnosticSessionPayload(val debugAction: String, val detail: String)
+
+@Serializable
+internal data class OrderRefundedPayload(val orderId: String, val amount: Double, val reason: String)
+
+@Serializable
+internal data class OrderHeldPayload(val orderId: String)
+
+@Serializable
+internal data class OrderResumedPayload(val orderId: String)
+
+@Serializable
+internal data class PriceSnapshot(val price: Double)
+
+@Serializable
+internal data class PriceOverridePayload(val productId: String, val previousPrice: Double, val newPrice: Double, val orderId: String)
+
+@Serializable
+internal data class ProductDeletedPayload(val productId: String, val name: String)
+
+@Serializable
+internal data class StocktakeCompletedPayload(val productsChecked: Int)
+
+@Serializable
+internal data class UserMgmtPayload(val targetUserId: String, val targetUserName: String, val action: String)
+
+@Serializable
+internal data class RoleModifiedPayload(val roleName: String)
+
+@Serializable
+internal data class RoleChangedPayload(val targetUserId: String, val oldRole: String, val newRole: String)
+
+@Serializable
+internal data class TaxConfigChangedPayload(val taxGroupName: String)
+
+@Serializable
+internal data class ExpenseApprovedPayload(val expenseId: String, val amount: Double)
+
+@Serializable
+internal data class JournalPostedPayload(val journalId: String, val amount: Double)
+
+@Serializable
+internal data class BackupPayload(val backupId: String, val action: String)
+
+@Serializable
+internal data class DataPurgedPayload(val recordsAffected: Long)
+
+@Serializable
+internal data class PinChangePayload(val userId: String)
+
+@Serializable
+internal data class SyncPayload(val syncedRecords: Int = 0, val error: String = "")

@@ -46,7 +46,7 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
-          cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop' }}
+          cache-read-only: false   # always write cache — push trigger for main/develop was removed
 
       # ── Secrets / local.properties ────────────────────────────────────────
       # Uses local.properties.dev (tracked, no real secrets) via the helper

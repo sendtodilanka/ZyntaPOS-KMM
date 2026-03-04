@@ -22,6 +22,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.pos.RetrieveHeldOrderUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.UpdateCartItemQuantityUseCase
 import com.zyntasolutions.zyntapos.feature.pos.printer.PrinterManagerReceiptAdapter
 import com.zyntasolutions.zyntapos.hal.printer.PrinterManager
+import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
 
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.qualifier.named
@@ -200,6 +201,7 @@ val posModule = module {
             postSaleJournalEntryUseCase = get(),
             reprintLastReceiptUseCase = get(),
             printA4TaxInvoiceUseCase = get(),
+            auditLogger = get(),
         )
     }
 }

@@ -2,17 +2,20 @@ package com.zyntasolutions.zyntapos.feature.settings
 
 import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
+import com.zyntasolutions.zyntapos.domain.model.AuditEntry
 import com.zyntasolutions.zyntapos.domain.model.CustomRole
 import com.zyntasolutions.zyntapos.domain.model.OrderType
 import com.zyntasolutions.zyntapos.domain.model.Permission
 import com.zyntasolutions.zyntapos.domain.model.Role
 import com.zyntasolutions.zyntapos.domain.model.TaxGroup
 import com.zyntasolutions.zyntapos.domain.model.User
+import com.zyntasolutions.zyntapos.domain.repository.AuditRepository
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.RoleRepository
 import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.domain.repository.TaxGroupRepository
 import com.zyntasolutions.zyntapos.domain.repository.UserRepository
+import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
 import com.zyntasolutions.zyntapos.domain.usecase.auth.SetPinUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.SaveTaxGroupUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rbac.DeleteCustomRoleUseCase
@@ -146,6 +149,19 @@ class SettingsViewModelTest {
         override fun getDefaultBackupDirectory(): String = "/tmp/backups"
     }
 
+    // ── No-op AuditRepository + SecurityAuditLogger ───────────────────────────
+
+    private val noOpAuditRepository = object : AuditRepository {
+        override suspend fun insert(entry: AuditEntry) = Unit
+        override fun observeAll(): Flow<List<AuditEntry>> = MutableStateFlow(emptyList())
+        override fun observeByUserId(userId: String): Flow<List<AuditEntry>> = MutableStateFlow(emptyList())
+        override suspend fun getAllChronological(): List<AuditEntry> = emptyList()
+        override suspend fun getLatestHash(): String? = null
+        override suspend fun countEntries(): Long = 0L
+        override suspend fun getRecentLoginFailureCount(userId: String, sinceEpochMillis: Long): Long = 0L
+    }
+    private val testAuditLogger = SecurityAuditLogger(noOpAuditRepository, "test-device")
+
     // ── Auth repository stub (for SetPinUseCase) ──────────────────────────────
 
     private val fakeAuthRepository = object : AuthRepository {
@@ -261,6 +277,8 @@ class SettingsViewModelTest {
             getPrinterProfilesUseCase    = GetPrinterProfilesUseCase(fakePrinterProfileRepository),
             savePrinterProfileUseCase    = SavePrinterProfileUseCase(fakePrinterProfileRepository),
             deletePrinterProfileUseCase  = DeletePrinterProfileUseCase(fakePrinterProfileRepository),
+            auditLogger                  = testAuditLogger,
+            authRepository               = fakeAuthRepository,
         )
     }
 

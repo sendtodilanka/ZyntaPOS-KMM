@@ -8,6 +8,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.admin.GetSystemHealthUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.PurgeExpiredDataUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.RestoreBackupUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.VacuumDatabaseUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.admin.VerifyAuditIntegrityUseCase
 import com.zyntasolutions.zyntapos.feature.admin.notification.NotificationViewModel
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.viewModel
@@ -42,6 +43,9 @@ val adminModule = module {
     factoryOf(::RestoreBackupUseCase)
     factoryOf(::DeleteBackupUseCase)
 
+    // ── Sprint 15: Audit integrity ────────────────────────────────────────
+    factoryOf(::VerifyAuditIntegrityUseCase)
+
     // ── AdminViewModel ────────────────────────────────────────────────────
     viewModel {
         AdminViewModel(
@@ -53,6 +57,9 @@ val adminModule = module {
             restoreBackupUseCase = get(),
             deleteBackupUseCase = get(),
             auditRepository = get(),
+            verifyAuditIntegrityUseCase = get(),
+            auditLogger = get(),
+            authRepository = get(),
         )
     }
 

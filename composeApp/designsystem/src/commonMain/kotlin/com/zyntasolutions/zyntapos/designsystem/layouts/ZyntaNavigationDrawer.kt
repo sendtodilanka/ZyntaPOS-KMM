@@ -40,6 +40,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -47,9 +48,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LocalZyntaDrawerController — CompositionLocal for opening the modal drawer
@@ -212,6 +221,11 @@ internal fun DrawerColumnContent(
     drawerUserInitials: String? = null,
     drawerUserRole: String? = null,
 ) {
+    // ── Mini-mode hover popout state ─────────────────────────────────────────
+    var hoveredMiniIndex by remember { mutableStateOf(-1) }
+    var dismissJob: Job? by remember { mutableStateOf(null) }
+    val popoutScope = rememberCoroutineScope()
+
     // ── Parent expand-state map (index → expanded) ────────────────────────────
     val expandedState = remember {
         mutableStateMapOf<Int, Boolean>().also { map ->
@@ -246,6 +260,31 @@ internal fun DrawerColumnContent(
                 val isParentSelected = index == selectedIndex
                 val isExpanded = expandedState[index] ?: false
                 val hasChildren = item.children.isNotEmpty()
+
+                Box(
+                    modifier = if (isMini) {
+                        Modifier.pointerInput(index) {
+                            awaitPointerEventScope {
+                                while (true) {
+                                    val event = awaitPointerEvent()
+                                    when (event.type) {
+                                        PointerEventType.Enter -> {
+                                            dismissJob?.cancel()
+                                            hoveredMiniIndex = index
+                                        }
+                                        PointerEventType.Exit -> {
+                                            dismissJob = popoutScope.launch {
+                                                delay(150)
+                                                if (hoveredMiniIndex == index) hoveredMiniIndex = -1
+                                            }
+                                        }
+                                        else -> {}
+                                    }
+                                }
+                            }
+                        }
+                    } else Modifier,
+                ) {
 
                 // Section group header
                 groupHeaderAt[index]?.let { title ->
@@ -296,6 +335,32 @@ internal fun DrawerColumnContent(
                         )
                     }
                 }
+
+                // Mini-mode hover popout
+                if (isMini && hoveredMiniIndex == index) {
+                    MiniItemPopout(
+                        item = item,
+                        selectedChildIndex = if (isParentSelected) selectedChildIndex else -1,
+                        onItemSelected = {
+                            dismissJob?.cancel()
+                            hoveredMiniIndex = -1
+                            onItemSelected(index)
+                        },
+                        onChildSelected = { childIdx ->
+                            dismissJob?.cancel()
+                            hoveredMiniIndex = -1
+                            onChildSelected(index, childIdx)
+                        },
+                        onHoverEnter = { dismissJob?.cancel() },
+                        onHoverExit = {
+                            dismissJob = popoutScope.launch {
+                                delay(100)
+                                hoveredMiniIndex = -1
+                            }
+                        },
+                    )
+                }
+                } // end Box
             }
         }
 
@@ -555,5 +620,96 @@ private fun ChildDrawerItem(
                 .weight(1f)
                 .padding(vertical = 10.dp),
         )
+    }
+}
+
+/**
+ * Floating popout menu shown to the right of the mini drawer when the user
+ * hovers over an item in mini mode (desktop only).
+ *
+ * Shows the item label as a header. If the item has children they are listed
+ * as [NavigationDrawerItem] rows below a divider. Leaf items show a single
+ * selectable row with icon + label.
+ *
+ * The popout dismisses when the mouse leaves via [onHoverExit].
+ */
+@Composable
+private fun MiniItemPopout(
+    item: ZyntaNavItem,
+    selectedChildIndex: Int,
+    onItemSelected: () -> Unit,
+    onChildSelected: (childIndex: Int) -> Unit,
+    onHoverEnter: () -> Unit,
+    onHoverExit: () -> Unit,
+) {
+    Popup(
+        alignment = Alignment.CenterEnd,
+        offset = IntOffset(8, 0),
+        properties = PopupProperties(focusable = false),
+        onDismissRequest = {},
+    ) {
+        Surface(
+            modifier = Modifier
+                .width(200.dp)
+                .pointerInput(Unit) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            when (event.type) {
+                                PointerEventType.Enter -> onHoverEnter()
+                                PointerEventType.Exit -> onHoverExit()
+                                else -> {}
+                            }
+                        }
+                    }
+                },
+            shape = MaterialTheme.shapes.medium,
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = 8.dp,
+            tonalElevation = 2.dp,
+        ) {
+            Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                // Item label header
+                Text(
+                    text = item.label,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                )
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
+
+                if (item.children.isNotEmpty()) {
+                    // List all children
+                    item.children.forEachIndexed { childIdx, child ->
+                        NavigationDrawerItem(
+                            selected = selectedChildIndex == childIdx,
+                            onClick = { onChildSelected(childIdx) },
+                            label = {
+                                Text(
+                                    child.label,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                            },
+                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
+                        )
+                    }
+                } else {
+                    // Leaf item — single selectable row
+                    NavigationDrawerItem(
+                        selected = selectedChildIndex < 0,
+                        onClick = onItemSelected,
+                        icon = { Icon(item.selectedIcon, contentDescription = null) },
+                        label = {
+                            Text(
+                                item.label,
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        },
+                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
+                    )
+                }
+            }
+        }
     }
 }

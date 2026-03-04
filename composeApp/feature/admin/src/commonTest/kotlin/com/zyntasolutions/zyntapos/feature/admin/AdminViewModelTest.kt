@@ -11,6 +11,7 @@ import com.zyntasolutions.zyntapos.domain.model.DatabaseStats
 import com.zyntasolutions.zyntapos.domain.model.PurgeResult
 import com.zyntasolutions.zyntapos.domain.model.SystemHealth
 import com.zyntasolutions.zyntapos.domain.repository.AuditRepository
+import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.BackupRepository
 import com.zyntasolutions.zyntapos.domain.repository.SystemRepository
 import com.zyntasolutions.zyntapos.domain.usecase.admin.CreateBackupUseCase
@@ -19,6 +20,10 @@ import com.zyntasolutions.zyntapos.domain.usecase.admin.GetBackupsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.GetDatabaseStatsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.GetSystemHealthUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.RestoreBackupUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.admin.VerifyAuditIntegrityUseCase
+import com.zyntasolutions.zyntapos.domain.model.Role
+import com.zyntasolutions.zyntapos.domain.model.User
+import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -152,7 +157,22 @@ class AdminViewModelTest {
         override suspend fun getRecentLoginFailureCount(userId: String, sinceEpochMillis: Long): Long = 0L
     }
 
+    // ── Fake AuthRepository ───────────────────────────────────────────────────
+
+    private val fakeAuthRepository = object : AuthRepository {
+        override fun getSession(): Flow<User?> = MutableStateFlow(null)
+        override suspend fun login(email: String, password: String): Result<User> =
+            Result.Error(DatabaseException("not used"))
+        override suspend fun logout() {}
+        override suspend fun refreshToken(): Result<Unit> = Result.Success(Unit)
+        override suspend fun updatePin(userId: String, pin: String): Result<Unit> = Result.Success(Unit)
+        override suspend fun validatePin(userId: String, pin: String): Result<Boolean> = Result.Success(true)
+    }
+
     // ── Use cases wired to fakes ──────────────────────────────────────────────
+
+    private val verifyAuditIntegrityUseCase = VerifyAuditIntegrityUseCase(fakeAuditRepository)
+    private val testAuditLogger = SecurityAuditLogger(fakeAuditRepository, "test-device")
 
     private val getSystemHealthUseCase = GetSystemHealthUseCase(fakeSystemRepository)
     private val getDatabaseStatsUseCase = GetDatabaseStatsUseCase(fakeSystemRepository)
@@ -182,6 +202,9 @@ class AdminViewModelTest {
             restoreBackupUseCase = restoreBackupUseCase,
             deleteBackupUseCase = deleteBackupUseCase,
             auditRepository = fakeAuditRepository,
+            verifyAuditIntegrityUseCase = verifyAuditIntegrityUseCase,
+            auditLogger = testAuditLogger,
+            authRepository = fakeAuthRepository,
         )
     }
 

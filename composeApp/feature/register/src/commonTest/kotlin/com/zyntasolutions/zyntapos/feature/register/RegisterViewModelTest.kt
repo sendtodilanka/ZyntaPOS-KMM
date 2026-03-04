@@ -3,6 +3,7 @@ package com.zyntasolutions.zyntapos.feature.register
 import app.cash.turbine.test
 import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
+import com.zyntasolutions.zyntapos.domain.model.AuditEntry
 import com.zyntasolutions.zyntapos.domain.model.CashMovement
 import com.zyntasolutions.zyntapos.domain.model.CashRegister
 import com.zyntasolutions.zyntapos.domain.model.Order
@@ -11,6 +12,7 @@ import com.zyntasolutions.zyntapos.domain.model.Role
 import com.zyntasolutions.zyntapos.domain.model.User
 import com.zyntasolutions.zyntapos.domain.printer.A4InvoicePrinterPort
 import com.zyntasolutions.zyntapos.domain.printer.ZReportPrinterPort
+import com.zyntasolutions.zyntapos.domain.repository.AuditRepository
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
 import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
@@ -21,6 +23,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.register.PrintA4ZReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.PrintZReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.RecordCashMovementUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateSalesReportUseCase
+import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -52,6 +55,19 @@ class RegisterViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private val currentUserId = "user-001"
     private val registerId = "reg-001"
+
+    // ── No-op AuditRepository + SecurityAuditLogger ───────────────────────────
+
+    private val noOpAuditRepository = object : AuditRepository {
+        override suspend fun insert(entry: AuditEntry) = Unit
+        override fun observeAll(): Flow<List<AuditEntry>> = MutableStateFlow(emptyList())
+        override fun observeByUserId(userId: String): Flow<List<AuditEntry>> = MutableStateFlow(emptyList())
+        override suspend fun getAllChronological(): List<AuditEntry> = emptyList()
+        override suspend fun getLatestHash(): String? = null
+        override suspend fun countEntries(): Long = 0L
+        override suspend fun getRecentLoginFailureCount(userId: String, sinceEpochMillis: Long): Long = 0L
+    }
+    private val testAuditLogger = SecurityAuditLogger(noOpAuditRepository, "test-device")
 
     private val fakeAuthRepository = object : AuthRepository {
         private val _session = MutableStateFlow<User?>(
@@ -199,6 +215,7 @@ class RegisterViewModelTest {
             printZReportUseCase = printZReportUseCase,
             printA4ZReportUseCase = printA4ZReportUseCase,
             authRepository = fakeAuthRepository,
+            auditLogger = testAuditLogger,
         )
     }
 

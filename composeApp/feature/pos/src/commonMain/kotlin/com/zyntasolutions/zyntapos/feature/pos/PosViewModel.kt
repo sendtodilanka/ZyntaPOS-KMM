@@ -32,6 +32,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.pos.UpdateCartItemQuantityUseC
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.PostSaleJournalEntryUseCase
 import com.zyntasolutions.zyntapos.domain.formatter.ReceiptFormatter
 import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
+import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlin.time.Clock
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -130,6 +131,7 @@ class PosViewModel(
     private val postSaleJournalEntryUseCase: PostSaleJournalEntryUseCase,
     private val reprintLastReceiptUseCase: ReprintLastReceiptUseCase,
     private val printA4TaxInvoiceUseCase: PrintA4TaxInvoiceUseCase,
+    private val auditLogger: SecurityAuditLogger,
 ) : BaseViewModel<PosState, PosIntent, PosEffect>(PosState()) {
 
     private var cashierId: String = "unknown"
@@ -389,7 +391,10 @@ class PosViewModel(
             return
         }
         when (val result = holdOrderUseCase(currentState.cartItems)) {
-            is Result.Success -> onClearCart()
+            is Result.Success -> {
+                auditLogger.logOrderHeld(cashierId, result.data)
+                onClearCart()
+            }
             is Result.Error -> sendEffect(PosEffect.ShowError(result.exception.message ?: "Failed to hold order"))
             is Result.Loading -> Unit
         }
@@ -398,6 +403,7 @@ class PosViewModel(
     private suspend fun onRetrieveHeld(holdId: String) {
         when (val result = retrieveHeldUseCase(holdId)) {
             is Result.Success -> {
+                auditLogger.logOrderResumed(cashierId, holdId)
                 val totalsResult = calculateTotalsUseCase(result.data, 0.0, DiscountType.FIXED)
                 val totals = (totalsResult as? Result.Success)?.data ?: OrderTotals.EMPTY
                 updateState {
@@ -461,6 +467,8 @@ class PosViewModel(
                         currentReceiptOrder = order,
                     )
                 }
+                auditLogger.logOrderCreated(cashierId, order.id, order.total, order.items.size, intent.method.name)
+                auditLogger.logPaymentProcessed(cashierId, order.id, order.total, intent.method.name)
                 // ── Post-payment: earn loyalty points + debit wallet ──────────
                 val customer = currentState.selectedCustomer
                 if (customer != null) {

@@ -11,9 +11,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.GppBad
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.VerifiedUser
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.AuditEntry
 import com.zyntasolutions.zyntapos.domain.model.AuditEventType
+import com.zyntasolutions.zyntapos.domain.model.IntegrityReport
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
@@ -46,12 +57,29 @@ fun AuditLogScreen(
         }
     }
 
+    // Client-side pagination
+    val pageSize = 50
+    val totalFilteredPages = remember(filtered.size) {
+        ((filtered.size + pageSize - 1) / pageSize).coerceAtLeast(1)
+    }
+    val currentPage = state.auditPage.coerceIn(0, (totalFilteredPages - 1).coerceAtLeast(0))
+    val pagedEntries = remember(filtered, currentPage) {
+        filtered.drop(currentPage * pageSize).take(pageSize)
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = ZyntaSpacing.md),
     ) {
-        // Filter bar
+        // ── Integrity badge ───────────────────────────────────────────────
+        IntegrityBadge(
+            report = state.integrityReport,
+            isVerifying = state.isVerifyingIntegrity,
+            onRefresh = { onIntent(AdminIntent.VerifyIntegrity) },
+        )
+
+        // ── Filter bar ────────────────────────────────────────────────────
         OutlinedTextField(
             value = state.auditUserFilter,
             onValueChange = { onIntent(AdminIntent.FilterAuditByUser(it)) },
@@ -71,14 +99,15 @@ fun AuditLogScreen(
         )
 
         Text(
-            "${filtered.size} event(s)",
+            "${filtered.size} event(s)${if (totalFilteredPages > 1) " · Page ${currentPage + 1} of $totalFilteredPages" else ""}",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = ZyntaSpacing.sm),
         )
 
+        // ── Entry list ────────────────────────────────────────────────────
         if (filtered.isEmpty()) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
                         Icons.Default.EventNote,
@@ -96,17 +125,127 @@ fun AuditLogScreen(
                 }
             }
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
-                items(filtered, key = { it.id }) { entry ->
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
+            ) {
+                items(pagedEntries, key = { it.id }) { entry ->
                     AuditEntryCard(entry)
                 }
-                item { Spacer(Modifier.height(24.dp)) }
+                item { Spacer(Modifier.height(8.dp)) }
+            }
+        }
+
+        // ── Pagination controls ───────────────────────────────────────────
+        if (totalFilteredPages > 1) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = ZyntaSpacing.sm),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                FilledTonalButton(
+                    onClick = { onIntent(AdminIntent.PrevAuditPage) },
+                    enabled = currentPage > 0,
+                ) {
+                    Icon(Icons.Default.ChevronLeft, contentDescription = "Previous page", modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Prev", style = MaterialTheme.typography.labelMedium)
+                }
+                Text(
+                    "${currentPage + 1} / $totalFilteredPages",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                FilledTonalButton(
+                    onClick = { onIntent(AdminIntent.NextAuditPage) },
+                    enabled = currentPage < totalFilteredPages - 1,
+                ) {
+                    Text("Next", style = MaterialTheme.typography.labelMedium)
+                    Spacer(Modifier.width(4.dp))
+                    Icon(Icons.Default.ChevronRight, contentDescription = "Next page", modifier = Modifier.size(16.dp))
+                }
             }
         }
     }
 }
 
 // ─── Private composables ──────────────────────────────────────────────────────
+
+@Composable
+private fun IntegrityBadge(
+    report: IntegrityReport?,
+    isVerifying: Boolean,
+    onRefresh: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(vertical = ZyntaSpacing.xs),
+        colors = CardDefaults.cardColors(
+            containerColor = when {
+                isVerifying || report == null -> MaterialTheme.colorScheme.surfaceVariant
+                report.isIntact -> MaterialTheme.colorScheme.tertiaryContainer
+                else -> MaterialTheme.colorScheme.errorContainer
+            },
+        ),
+        shape = MaterialTheme.shapes.small,
+    ) {
+        if (isVerifying) {
+            Column(modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.sm)) {
+                Text(
+                    "Verifying audit chain…",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(4.dp))
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            }
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = ZyntaSpacing.md, vertical = ZyntaSpacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
+                ) {
+                    Icon(
+                        imageVector = if (report?.isIntact != false) Icons.Default.VerifiedUser else Icons.Default.GppBad,
+                        contentDescription = null,
+                        tint = when {
+                            report == null -> MaterialTheme.colorScheme.onSurfaceVariant
+                            report.isIntact -> MaterialTheme.colorScheme.onTertiaryContainer
+                            else -> MaterialTheme.colorScheme.onErrorContainer
+                        },
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Text(
+                        text = when {
+                            report == null -> "Integrity not verified"
+                            report.isIntact -> "Chain intact · ${report.totalEntries} entries"
+                            else -> "⚠ ${report.violations} violation(s) · ${report.totalEntries} entries"
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                        color = when {
+                            report == null -> MaterialTheme.colorScheme.onSurfaceVariant
+                            report.isIntact -> MaterialTheme.colorScheme.onTertiaryContainer
+                            else -> MaterialTheme.colorScheme.onErrorContainer
+                        },
+                    )
+                }
+                IconButton(onClick = onRefresh, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        Icons.Default.Refresh,
+                        contentDescription = "Re-verify",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+}
 
 @Composable
 private fun AuditEntryCard(entry: AuditEntry) {

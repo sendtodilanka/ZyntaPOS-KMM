@@ -42,6 +42,9 @@ sealed interface AdminIntent {
     // ── Audit Log ──────────────────────────────────────────────────────────
     data object RefreshAuditLog : AdminIntent
     data class FilterAuditByUser(val userId: String) : AdminIntent
+    data object VerifyIntegrity : AdminIntent
+    data object NextAuditPage : AdminIntent
+    data object PrevAuditPage : AdminIntent
 
     // ── UI Feedback ────────────────────────────────────────────────────────
     data object DismissError : AdminIntent

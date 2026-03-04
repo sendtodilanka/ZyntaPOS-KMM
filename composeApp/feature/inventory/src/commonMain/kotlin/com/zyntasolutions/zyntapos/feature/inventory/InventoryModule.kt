@@ -16,6 +16,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.inventory.SearchProductsUseCas
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.SeedDefaultLabelTemplatesUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.StartStocktakeUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.UpdateProductUseCase
+import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
 import com.zyntasolutions.zyntapos.feature.inventory.label.BarcodeLabelPrintViewModel
 import com.zyntasolutions.zyntapos.feature.inventory.stocktake.StocktakeViewModel
 import org.koin.core.module.dsl.factoryOf
@@ -121,6 +122,7 @@ val inventoryModule = module {
             updateProductUseCase    = get(),
             adjustStockUseCase      = get(),
             authRepository          = get(),
+            auditLogger             = get(),
         )
     }
 }

@@ -33,3 +33,10 @@ ZYNTA_SENTRY_DSN=YOUR_SENTRY_DSN_HERE
 ZYNTA_IRD_API_ENDPOINT=https://ird-staging.gov.lk/api/v1
 ZYNTA_IRD_CLIENT_CERTIFICATE_PATH=/path/to/ird_cert.p12
 ZYNTA_IRD_CERTIFICATE_PASSWORD=YOUR_IRD_CERT_PASSWORD_HERE
+
+# ── Security Monitoring ────────────────────────────────────────────────────────
+# Canary tokens (create at canarytokens.org)
+# Token A: embed as plausible internal URL in backend Application.kt
+CANARY_TOKEN_A_URL=https://canarytokens.org/generate#replace-with-real-token-a
+# Token B: embed as fake AWS key comment in config files
+CANARY_TOKEN_B_KEY=AKIAIOSFODNN7EXAMPLE-replace-with-real-token-b

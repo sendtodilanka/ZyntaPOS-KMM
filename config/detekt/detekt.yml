@@ -59,6 +59,21 @@ style:
   # These forbidden imports flag violations of Clean Architecture layering.
   # The rules are scoped to the domain source set by excluding all non-domain paths.
   # False positives in data/security/feature modules are suppressed by the excludes below.
+  ForbiddenMethodCall:
+    active: true
+    methods:
+      - reason: 'Use ProcessBuilder with explicit arguments instead'
+        value: 'java.lang.Runtime.exec'
+      - reason: 'Use ProcessBuilder with explicit arguments instead'
+        value: 'java.lang.Runtime.exec(String)'
+      - reason: 'Use ProcessBuilder with explicit arguments instead'
+        value: 'java.lang.Runtime.exec(Array<String>)'
+      - reason: 'Native library loading is forbidden in application code'
+        value: 'java.lang.System.loadLibrary'
+      - reason: 'Java deserialization is forbidden; use kotlinx-serialization'
+        value: 'java.io.ObjectInputStream.readObject'
+      - reason: 'Avoid Thread.sleep; use coroutine delay instead'
+        value: 'java.lang.Thread.sleep'
   ForbiddenImport:
     active: true
     imports:

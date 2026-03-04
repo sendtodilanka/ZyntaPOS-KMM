@@ -9,6 +9,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.auth.LogoutUseCase
 import com.zyntasolutions.zyntapos.feature.auth.mvi.AuthEffect
 import com.zyntasolutions.zyntapos.feature.auth.mvi.AuthIntent
 import com.zyntasolutions.zyntapos.feature.auth.mvi.AuthState
+import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
@@ -39,6 +40,7 @@ class AuthViewModel(
     private val logoutUseCase: LogoutUseCase,
     private val authRepository: AuthRepository,
     private val registerRepository: RegisterRepository? = null,
+    private val auditLogger: SecurityAuditLogger,
 ) : BaseViewModel<AuthState, AuthIntent, AuthEffect>(AuthState()) {
 
     init {
@@ -110,6 +112,7 @@ class AuthViewModel(
 
         when (val result = loginUseCase(email = s.email, password = s.password)) {
             is Result.Success -> {
+                auditLogger.logLoginAttempt(true, s.email, "", null)
                 updateState { copy(isLoading = false) }
                 // Sprint 20: Check whether a cash register session is currently open.
                 // If no session is open, redirect to the RegisterGuard screen so the
@@ -127,6 +130,7 @@ class AuthViewModel(
                 }
             }
             is Result.Error -> {
+                auditLogger.logLoginAttempt(false, s.email, "", null)
                 updateState {
                     copy(
                         isLoading = false,

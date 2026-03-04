@@ -80,13 +80,16 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import com.zyntasolutions.zyntapos.domain.model.AuditEntry
 import com.zyntasolutions.zyntapos.domain.model.CashMovement
 import com.zyntasolutions.zyntapos.domain.model.CashRegister
 import com.zyntasolutions.zyntapos.domain.model.RegisterSession
 import com.zyntasolutions.zyntapos.domain.model.Role
+import com.zyntasolutions.zyntapos.domain.repository.AuditRepository
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.CustomerRepository
 import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
+import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
 import kotlinx.coroutines.flow.flowOf
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -100,6 +103,19 @@ class PosViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private val now: Instant = Clock.System.now()
+
+    // ── No-op AuditRepository + SecurityAuditLogger ───────────────────────────
+
+    private val noOpAuditRepository = object : AuditRepository {
+        override suspend fun insert(entry: AuditEntry) = Unit
+        override fun observeAll(): Flow<List<AuditEntry>> = MutableStateFlow(emptyList())
+        override fun observeByUserId(userId: String): Flow<List<AuditEntry>> = MutableStateFlow(emptyList())
+        override suspend fun getAllChronological(): List<AuditEntry> = emptyList()
+        override suspend fun getLatestHash(): String? = null
+        override suspend fun countEntries(): Long = 0L
+        override suspend fun getRecentLoginFailureCount(userId: String, sinceEpochMillis: Long): Long = 0L
+    }
+    private val testAuditLogger = SecurityAuditLogger(noOpAuditRepository, "test-device")
 
     private val fakeAuthRepository = object : AuthRepository {
         private val _session = MutableStateFlow<User?>(
@@ -498,6 +514,7 @@ class PosViewModelTest {
             ),
             reprintLastReceiptUseCase = ReprintLastReceiptUseCase(fakeOrderRepository, fakeReceiptPrinterPort),
             printA4TaxInvoiceUseCase = PrintA4TaxInvoiceUseCase(fakeOrderRepository, fakeA4PrinterPort, checkPermissionUseCase),
+            auditLogger = testAuditLogger,
         )
     }
 
