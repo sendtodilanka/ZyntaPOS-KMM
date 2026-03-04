@@ -2,10 +2,12 @@ package com.zyntasolutions.zyntapos.designsystem.components
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.zyntasolutions.zyntapos.designsystem.layouts.LocalZyntaDrawerController
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ZyntaTopAppBar — Adaptive, collapses on scroll via TopAppBarScrollBehavior.
@@ -52,11 +54,20 @@ fun ZyntaTopAppBar(
         modifier = modifier,
         scrollBehavior = scrollBehavior,
         navigationIcon = {
-            if (onNavigateBack != null) {
-                IconButton(onClick = onNavigateBack) {
+            val drawerController = LocalZyntaDrawerController.current
+            when {
+                // Back navigation takes priority (sub-screens within a graph)
+                onNavigateBack != null -> IconButton(onClick = onNavigateBack) {
                     Icon(
                         imageVector = navigationIcon ?: Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Navigate back",
+                    )
+                }
+                // Hamburger trigger for COMPACT modal drawer (top-level screens only)
+                drawerController != null -> IconButton(onClick = drawerController) {
+                    Icon(
+                        imageVector = Icons.Filled.Menu,
+                        contentDescription = "Open navigation drawer",
                     )
                 }
             }

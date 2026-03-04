@@ -92,6 +92,9 @@ val deepLinkOrder: NavDeepLink = navDeepLink<ZyntaRoute.OrderHistory>(
  *   When `true`, skip Login and go directly to Dashboard.
  * @param userRole The authenticated user's [Role], used to filter navigation items.
  *   Pass `null` when unauthenticated (shows auth graph only).
+ * @param currentUserName Full display name of the authenticated user for the drawer footer.
+ * @param currentUserInitials Pre-computed initials (e.g. "JS") for the drawer footer avatar.
+ * @param currentUserRole Human-readable role label (e.g. "Admin") for the drawer footer.
  * @param screens Lambda factories for every screen composable (injected from app layer).
  * @param loginScreen Composable factory for the Login screen.
  * @param onboardingScreen Composable factory for the Onboarding wizard screen.
@@ -105,6 +108,9 @@ fun ZyntaNavGraph(
     isFirstRun: Boolean,
     isSessionActive: Boolean,
     userRole: Role?,
+    currentUserName: String? = null,
+    currentUserInitials: String? = null,
+    currentUserRole: String? = null,
     screens: MainNavScreens,
     loginScreen: @Composable (onLoginSuccess: () -> Unit) -> Unit,
     onboardingScreen: @Composable (onOnboardingComplete: () -> Unit) -> Unit,
@@ -147,6 +153,9 @@ fun ZyntaNavGraph(
             navItems = navItems,
             compactNavItems = compactNavItems,
             navGroups = navGroups,
+            currentUserName = currentUserName,
+            currentUserInitials = currentUserInitials,
+            currentUserRole = currentUserRole,
             screens = screens,
             debugScreen = debugScreen,
         )

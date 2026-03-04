@@ -53,7 +53,6 @@ import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
 import com.zyntasolutions.zyntapos.designsystem.components.ChartSeries
 import com.zyntasolutions.zyntapos.designsystem.components.InfoCardVariant
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaActivityItem
-import com.zyntasolutions.zyntapos.designsystem.components.AnimatedCounter
 import com.zyntasolutions.zyntapos.designsystem.components.StatusChipVariant
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaCompactStatCard
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaDropdownMenu
@@ -312,11 +311,13 @@ private fun ExpandedDashboard(
                 value = currencyFormatter.format(state.todaysSales),
                 subtitle = "of ${currencyFormatter.format(state.dailySalesTarget)} target",
                 modifier = Modifier.weight(1.4f),
+                rawValue = state.todaysSales.toFloat(),
+                rawValueFormatter = { currencyFormatter.format(it.toDouble()) },
                 rightSlot = {
                     ZyntaProgressRing(
                         progress = state.salesProgress,
-                        size = 72.dp,
-                        strokeWidth = 6.dp,
+                        size = 120.dp,
+                        strokeWidth = 8.dp,
                         trackColor = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.3f),
                         progressColor = androidx.compose.ui.graphics.Color.White,
                         centerContent = {
@@ -335,6 +336,8 @@ private fun ExpandedDashboard(
                 value = state.totalOrders.toString(),
                 accentColor = MaterialTheme.colorScheme.tertiary,
                 subtitle = "Completed today", modifier = Modifier.weight(1f),
+                rawValue = state.totalOrders.toFloat(),
+                rawValueDelayMs = 50,
             )
             ZyntaStatCard(
                 icon = Icons.Default.Warning, label = "Low Stock",
@@ -343,6 +346,9 @@ private fun ExpandedDashboard(
                 else MaterialTheme.colorScheme.tertiary,
                 subtitle = if (state.lowStockCount > 0) "Requires attention" else "All stocked",
                 modifier = Modifier.weight(1f),
+                rawValue = state.lowStockCount.toFloat(),
+                rawValueFormatter = { "${it.toLong()} items" },
+                rawValueDelayMs = 100,
             )
             ZyntaStatCard(
                 icon = Icons.Default.PointOfSale, label = "Active Registers",
@@ -351,6 +357,8 @@ private fun ExpandedDashboard(
                 else MaterialTheme.colorScheme.secondary,
                 subtitle = if (state.activeRegisters > 0) "Ready for sales" else "No register open",
                 modifier = Modifier.weight(1f),
+                rawValue = state.activeRegisters.toFloat(),
+                rawValueDelayMs = 150,
             )
 
             // Quick Actions stacked vertically
@@ -449,12 +457,16 @@ private fun MediumDashboard(
                     MaterialTheme.colorScheme.primary,
                     sparklineData = state.todaySparkline,
                     modifier = Modifier.weight(1f),
+                    rawValue = state.todaysSales.toFloat(),
+                    rawValueFormatter = { currencyFormatter.format(it.toDouble()) },
                 )
                 ZyntaStatCard(
                     Icons.Default.Receipt, "Total Orders",
                     state.totalOrders.toString(),
                     MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier.weight(1f),
+                    rawValue = state.totalOrders.toFloat(),
+                    rawValueDelayMs = 50,
                 )
             }
 
@@ -468,6 +480,9 @@ private fun MediumDashboard(
                     if (state.lowStockCount > 0) MaterialTheme.colorScheme.error
                     else MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier.weight(1f),
+                    rawValue = state.lowStockCount.toFloat(),
+                    rawValueFormatter = { "${it.toLong()} items" },
+                    rawValueDelayMs = 100,
                 )
                 ZyntaStatCard(
                     Icons.Default.PointOfSale, "Registers",
@@ -475,6 +490,8 @@ private fun MediumDashboard(
                     if (state.activeRegisters > 0) MaterialTheme.colorScheme.tertiary
                     else MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.weight(1f),
+                    rawValue = state.activeRegisters.toFloat(),
+                    rawValueDelayMs = 150,
                 )
             }
 
@@ -554,12 +571,16 @@ private fun CompactDashboard(
                     currencyFormatter.format(state.todaysSales),
                     MaterialTheme.colorScheme.primary,
                     modifier = Modifier.weight(1f),
+                    rawValue = state.todaysSales.toFloat(),
+                    rawValueFormatter = { currencyFormatter.format(it.toDouble()) },
                 )
                 ZyntaCompactStatCard(
                     Icons.Default.Receipt, "Orders",
                     state.totalOrders.toString(),
                     MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier.weight(1f),
+                    rawValue = state.totalOrders.toFloat(),
+                    rawValueDelayMs = 50,
                 )
             }
         }
@@ -576,6 +597,8 @@ private fun CompactDashboard(
                     if (state.lowStockCount > 0) MaterialTheme.colorScheme.error
                     else MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier.weight(1f),
+                    rawValue = state.lowStockCount.toFloat(),
+                    rawValueDelayMs = 100,
                 )
                 ZyntaCompactStatCard(
                     Icons.Default.PointOfSale, "Registers",
@@ -583,6 +606,8 @@ private fun CompactDashboard(
                     if (state.activeRegisters > 0) MaterialTheme.colorScheme.tertiary
                     else MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.weight(1f),
+                    rawValue = state.activeRegisters.toFloat(),
+                    rawValueDelayMs = 150,
                 )
             }
         }

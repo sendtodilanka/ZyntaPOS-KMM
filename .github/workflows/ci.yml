@@ -15,7 +15,7 @@ concurrency:
 
 env:
   JAVA_VERSION: '21'
-  JAVA_DISTRIBUTION: 'temurin'
+  JAVA_DISTRIBUTION: 'jetbrains'
 
 jobs:
   build:

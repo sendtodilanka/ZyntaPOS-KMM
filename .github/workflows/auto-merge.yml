@@ -66,7 +66,7 @@ concurrency:
 
 env:
   JAVA_VERSION: '21'
-  JAVA_DISTRIBUTION: 'temurin'
+  JAVA_DISTRIBUTION: 'jetbrains'
 
 jobs:
   # ════════════════════════════════════════════════════════════════════════════
@@ -234,29 +234,28 @@ jobs:
             echo "pr_number=$EXISTING" >> "$GITHUB_OUTPUT"
           else
             # Write PR body to a temp file to avoid shell-quoting issues
-            cat > /tmp/pr_body.md << 'BODY'
-## Automated PR
-
-Branch CI (Stage 1) passed before this PR was created.
-
-**Pre-merge checks (branch CI):**
-- Build — shared modules (core, domain, data, hal, security)
-- Build — Android debug APK
-- Build — Desktop JVM JAR
-- Android Lint
-- Detekt static analysis
-- All JVM tests
-
-**What happens next:**
-`ci.yml` runs on this PR (the final safety gate). When all required status
-checks pass and the branch is up to date with `main`, GitHub will
-automatically squash-merge and delete the source branch. No human action
-needed.
-BODY
-
-            echo "" >> /tmp/pr_body.md
-            printf "> Triggered by \`%s\` — @%s\n" \
-              "${{ github.sha }}" "${{ github.actor }}" >> /tmp/pr_body.md
+            {
+              echo "## Automated PR"
+              echo ""
+              echo "Branch CI (Stage 1) passed before this PR was created."
+              echo ""
+              echo "**Pre-merge checks (branch CI):**"
+              echo "- Build — shared modules (core, domain, data, hal, security)"
+              echo "- Build — Android debug APK"
+              echo "- Build — Desktop JVM JAR"
+              echo "- Android Lint"
+              echo "- Detekt static analysis"
+              echo "- All JVM tests"
+              echo ""
+              echo "**What happens next:**"
+              echo "\`ci.yml\` runs on this PR (the final safety gate). When all required status"
+              echo "checks pass and the branch is up to date with \`main\`, GitHub will"
+              echo "automatically squash-merge and delete the source branch. No human action"
+              echo "needed."
+              echo ""
+              printf "> Triggered by \`%s\` — @%s\n" \
+                "${{ github.sha }}" "${{ github.actor }}"
+            } > /tmp/pr_body.md
 
             PR_URL=$(gh pr create \
               --base main \

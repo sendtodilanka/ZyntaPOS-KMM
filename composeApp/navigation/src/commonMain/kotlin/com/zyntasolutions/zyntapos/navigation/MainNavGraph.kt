@@ -34,6 +34,9 @@ import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaScaffold
  *
  * @param navigationController Wraps the underlying [NavHostController].
  * @param navItems RBAC-filtered list of primary navigation destinations.
+ * @param currentUserName Full name of the logged-in user for the drawer footer.
+ * @param currentUserInitials Pre-computed initials (e.g. "JS") for the footer avatar.
+ * @param currentUserRole Human-readable role label (e.g. "Admin") for the footer.
  * @param screens Composable factories for every authenticated screen.
  * @param debugScreen Optional composable for the Debug Console. When non-null,
  *   [ZyntaRoute.Debug] is registered and "DEBUG_CONSOLE" settings key navigates to it.
@@ -43,6 +46,9 @@ fun NavGraphBuilder.mainNavGraph(
     navItems: List<NavItem>,
     compactNavItems: List<NavItem> = navItems.take(COMPACT_NAV_MAX_ITEMS),
     navGroups: List<com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaNavGroup> = emptyList(),
+    currentUserName: String? = null,
+    currentUserInitials: String? = null,
+    currentUserRole: String? = null,
     screens: MainNavScreens,
     debugScreen: (@Composable (onNavigateUp: () -> Unit) -> Unit)? = null,
 ) {
@@ -61,6 +67,9 @@ fun NavGraphBuilder.mainNavGraph(
             MainScaffoldShell(
                 navigationController = navigationController,
                 navItems = navItems,
+                drawerUserName = currentUserName,
+                drawerUserInitials = currentUserInitials,
+                drawerUserRole = currentUserRole,
                 currentRoute = ZyntaRoute.Dashboard,
             ) {
                 screens.dashboard(
@@ -76,6 +85,9 @@ fun NavGraphBuilder.mainNavGraph(
             MainScaffoldShell(
                 navigationController = navigationController,
                 navItems = navItems,
+                drawerUserName = currentUserName,
+                drawerUserInitials = currentUserInitials,
+                drawerUserRole = currentUserRole,
                 currentRoute = ZyntaRoute.Pos,
             ) {
                 screens.pos(
@@ -105,6 +117,9 @@ fun NavGraphBuilder.mainNavGraph(
                 MainScaffoldShell(
                     navigationController = navigationController,
                     navItems = navItems,
+                drawerUserName = currentUserName,
+                drawerUserInitials = currentUserInitials,
+                drawerUserRole = currentUserRole,
                     currentRoute = ZyntaRoute.ProductList,
                 ) {
                     screens.productList(
@@ -158,6 +173,9 @@ fun NavGraphBuilder.mainNavGraph(
                 MainScaffoldShell(
                     navigationController = navigationController,
                     navItems = navItems,
+                drawerUserName = currentUserName,
+                drawerUserInitials = currentUserInitials,
+                drawerUserRole = currentUserRole,
                     currentRoute = ZyntaRoute.RegisterDashboard,
                 ) {
                     screens.registerDashboard(
@@ -196,6 +214,9 @@ fun NavGraphBuilder.mainNavGraph(
                 MainScaffoldShell(
                     navigationController = navigationController,
                     navItems = navItems,
+                drawerUserName = currentUserName,
+                drawerUserInitials = currentUserInitials,
+                drawerUserRole = currentUserRole,
                     currentRoute = ZyntaRoute.SalesReport,
                 ) {
                     screens.salesReport()
@@ -206,6 +227,9 @@ fun NavGraphBuilder.mainNavGraph(
                 MainScaffoldShell(
                     navigationController = navigationController,
                     navItems = navItems,
+                drawerUserName = currentUserName,
+                drawerUserInitials = currentUserInitials,
+                drawerUserRole = currentUserRole,
                     currentRoute = ZyntaRoute.StockReport,
                 ) {
                     screens.stockReport()
@@ -216,6 +240,9 @@ fun NavGraphBuilder.mainNavGraph(
                 MainScaffoldShell(
                     navigationController = navigationController,
                     navItems = navItems,
+                drawerUserName = currentUserName,
+                drawerUserInitials = currentUserInitials,
+                drawerUserRole = currentUserRole,
                     currentRoute = ZyntaRoute.CustomerReport,
                 ) {
                     screens.customerReport()
@@ -226,6 +253,9 @@ fun NavGraphBuilder.mainNavGraph(
                 MainScaffoldShell(
                     navigationController = navigationController,
                     navItems = navItems,
+                drawerUserName = currentUserName,
+                drawerUserInitials = currentUserInitials,
+                drawerUserRole = currentUserRole,
                     currentRoute = ZyntaRoute.ExpenseReport,
                 ) {
                     screens.expenseReport()
@@ -239,6 +269,9 @@ fun NavGraphBuilder.mainNavGraph(
                 MainScaffoldShell(
                     navigationController = navigationController,
                     navItems = navItems,
+                drawerUserName = currentUserName,
+                drawerUserInitials = currentUserInitials,
+                drawerUserRole = currentUserRole,
                     currentRoute = ZyntaRoute.Settings,
                 ) {
                     screens.settings { routeKey ->
@@ -350,6 +383,9 @@ fun NavGraphBuilder.mainNavGraph(
                 MainScaffoldShell(
                     navigationController = navigationController,
                     navItems = navItems,
+                drawerUserName = currentUserName,
+                drawerUserInitials = currentUserInitials,
+                drawerUserRole = currentUserRole,
                     currentRoute = ZyntaRoute.CustomerList,
                 ) {
                     screens.customerList(
@@ -389,6 +425,9 @@ fun NavGraphBuilder.mainNavGraph(
                 MainScaffoldShell(
                     navigationController = navigationController,
                     navItems = navItems,
+                drawerUserName = currentUserName,
+                drawerUserInitials = currentUserInitials,
+                drawerUserRole = currentUserRole,
                     currentRoute = ZyntaRoute.CouponList,
                 ) {
                     screens.couponList(
@@ -412,6 +451,9 @@ fun NavGraphBuilder.mainNavGraph(
                 MainScaffoldShell(
                     navigationController = navigationController,
                     navItems = navItems,
+                drawerUserName = currentUserName,
+                drawerUserInitials = currentUserInitials,
+                drawerUserRole = currentUserRole,
                     currentRoute = ZyntaRoute.ExpenseList,
                 ) {
                     screens.expenseList(
@@ -442,6 +484,9 @@ fun NavGraphBuilder.mainNavGraph(
                 MainScaffoldShell(
                     navigationController = navigationController,
                     navItems = navItems,
+                drawerUserName = currentUserName,
+                drawerUserInitials = currentUserInitials,
+                drawerUserRole = currentUserRole,
                     currentRoute = ZyntaRoute.WarehouseList,
                 ) {
                     screens.warehouseList(
@@ -592,6 +637,9 @@ fun NavGraphBuilder.mainNavGraph(
                 MainScaffoldShell(
                     navigationController = navigationController,
                     navItems = navItems,
+                drawerUserName = currentUserName,
+                drawerUserInitials = currentUserInitials,
+                drawerUserRole = currentUserRole,
                     currentRoute = ZyntaRoute.SystemHealthDashboard,
                 ) {
                     screens.adminScreen { navigationController.popBackStack() }
@@ -616,6 +664,9 @@ fun NavGraphBuilder.mainNavGraph(
                 MainScaffoldShell(
                     navigationController = navigationController,
                     navItems = navItems,
+                drawerUserName = currentUserName,
+                drawerUserInitials = currentUserInitials,
+                drawerUserRole = currentUserRole,
                     currentRoute = ZyntaRoute.EmployeeList,
                 ) {
                     screens.staffScreen { navigationController.popBackStack() }
@@ -684,6 +735,9 @@ private fun MainScaffoldShell(
     currentRoute: ZyntaRoute,
     compactNavItems: List<NavItem> = navItems.take(COMPACT_NAV_MAX_ITEMS),
     navGroups: List<com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaNavGroup> = RbacNavFilter.groupsForItems(navItems),
+    drawerUserName: String? = null,
+    drawerUserInitials: String? = null,
+    drawerUserRole: String? = null,
     content: @Composable () -> Unit,
 ) {
     // Returns true when item.route is the nav section root for the currentRoute.
@@ -815,6 +869,9 @@ private fun MainScaffoldShell(
                 }
             }
         },
+        drawerUserName = drawerUserName,
+        drawerUserInitials = drawerUserInitials,
+        drawerUserRole = drawerUserRole,
         content = { _ -> content() },
     )
 }

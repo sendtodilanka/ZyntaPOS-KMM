@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Menu
@@ -46,6 +47,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -61,24 +64,21 @@ import androidx.compose.ui.unit.dp
 
 /**
  * CompositionLocal providing a lambda to open the modal drawer (COMPACT only).
- * `null` in all other layout variants (MEDIUM rail, EXPANDED permanent drawer).
+ * `null` in all other layout variants (MEDIUM mini drawer, EXPANDED permanent drawer).
  */
 val LocalZyntaDrawerController = staticCompositionLocalOf<(() -> Unit)?> { null }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ZyntaNavigationDrawer — Hierarchical collapsible permanent drawer
 //
-// Used exclusively by the EXPANDED layout variant (window width > 840 dp).
-// COMPACT and MEDIUM variants remain unchanged (NavigationBar / NavigationRail).
+// Used by the EXPANDED layout variant (window width > 840 dp) and by
+// the MEDIUM layout variant with [startMini] = true (72 dp icons-only mode
+// that can be expanded by the user).
 //
 // Layout:
 //   Row(fillMaxSize) {
 //     Surface(animatedWidth, fillMaxHeight, color = surfaceContainerLow) {
-//       Column {
-//         Header  — App icon + "ZyntaPOS" label (hidden in mini) + toggle button
-//         LazyColumn — scrollable item list: group headers, parent rows, child rows
-//         Footer  — reserved for Phase 2 user-info tile
-//       }
+//       DrawerColumnContent — Header + LazyColumn items + DrawerFooter
 //     }
 //     Box(weight 1f) — screen content wrapped in a Scaffold
 //   }
@@ -87,15 +87,6 @@ val LocalZyntaDrawerController = staticCompositionLocalOf<(() -> Unit)?> { null 
 //   Full width  = 260 dp
 //   Mini width  = 72 dp   (icons only, labels hidden)
 //   Expand/collapse animation = tween(200 ms)
-//
-// Selection model:
-//   [selectedIndex]      — index in [items] for the active top-level parent
-//   [selectedChildIndex] — index within the active parent's children (-1 = none)
-//
-// Expand state:
-//   Persisted per parent index via rememberSaveable + SnapshotStateMap so that
-//   the open/closed state survives recomposition but resets on process death.
-//   On first composition the active parent is auto-expanded.
 // ─────────────────────────────────────────────────────────────────────────────
 
 private val DrawerFullWidth = 260.dp
@@ -105,21 +96,26 @@ private val ChildStartBorderWidth = 4.dp
 private val ChildExtraStartPadding = 16.dp
 
 /**
- * Hierarchical collapsible permanent navigation drawer for the EXPANDED layout.
+ * Hierarchical collapsible permanent navigation drawer for EXPANDED and MEDIUM layouts.
  *
  * Parent items with [ZyntaNavItem.children] render an expand/collapse chevron.
  * Child items are indented and show a primary-colour left border when active.
  *
  * The drawer can be collapsed to a 72 dp icon-only mini variant via the toggle
- * button in the header.
+ * button in the header. Pass [startMini] = true to begin in the collapsed state
+ * (used by the MEDIUM layout).
  *
  * @param items Full list of navigation destinations including any child items.
  * @param selectedIndex Active parent index within [items].
  * @param onItemSelected Callback with the tapped parent index.
  * @param modifier Optional root [Modifier].
+ * @param startMini When true the drawer starts in 72 dp mini mode (MEDIUM layout default).
  * @param selectedChildIndex Active child index within the selected parent (-1 = none).
  * @param onChildSelected Callback with (parentIndex, childIndex) when a child is tapped.
  * @param groups Optional section-header descriptors for the scrollable item area.
+ * @param drawerUserName Full name of the logged-in user for the footer tile.
+ * @param drawerUserInitials Pre-computed initials (e.g. "JS") for the footer avatar.
+ * @param drawerUserRole Human-readable role label (e.g. "Admin") for the footer tile.
  * @param content Screen content composable receiving inner [PaddingValues].
  */
 @Composable
@@ -128,13 +124,17 @@ fun ZyntaNavigationDrawer(
     selectedIndex: Int,
     onItemSelected: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    startMini: Boolean = false,
     selectedChildIndex: Int = -1,
     onChildSelected: (parentIndex: Int, childIndex: Int) -> Unit = { _, _ -> },
     groups: List<ZyntaNavGroup> = emptyList(),
+    drawerUserName: String? = null,
+    drawerUserInitials: String? = null,
+    drawerUserRole: String? = null,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     // ── Collapse / expand toggle state ────────────────────────────────────────
-    var isMini by rememberSaveable { mutableStateOf(false) }
+    var isMini by rememberSaveable { mutableStateOf(startMini) }
 
     val drawerWidth by animateDpAsState(
         targetValue = if (isMini) DrawerMiniWidth else DrawerFullWidth,
@@ -142,10 +142,77 @@ fun ZyntaNavigationDrawer(
         label = "DrawerWidth",
     )
 
+    // Provide null for LocalZyntaDrawerController — permanent drawer is always visible
+    CompositionLocalProvider(LocalZyntaDrawerController provides null) {
+        Row(modifier = modifier.fillMaxSize()) {
+
+            // ── Drawer surface ─────────────────────────────────────────────────
+            Surface(
+                modifier = Modifier
+                    .width(drawerWidth)
+                    .fillMaxHeight(),
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                tonalElevation = 0.dp,
+            ) {
+                DrawerColumnContent(
+                    items = items,
+                    selectedIndex = selectedIndex,
+                    onItemSelected = onItemSelected,
+                    selectedChildIndex = selectedChildIndex,
+                    onChildSelected = onChildSelected,
+                    groups = groups,
+                    isMini = isMini,
+                    onToggleMini = { isMini = !isMini },
+                    drawerUserName = drawerUserName,
+                    drawerUserInitials = drawerUserInitials,
+                    drawerUserRole = drawerUserRole,
+                )
+            }
+
+            // ── Content area ───────────────────────────────────────────────────
+            Box(modifier = Modifier.weight(1f)) {
+                Scaffold { innerPadding ->
+                    content(innerPadding)
+                }
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DrawerColumnContent — shared drawer body (header + items + footer)
+//
+// Extracted as `internal` so that CompactScaffold in ZyntaScaffold.kt can
+// reuse the same rendering logic inside a ModalDrawerSheet without duplication.
+//
+// The permanent drawer (ZyntaNavigationDrawer) provides onToggleMini to show
+// the collapse/expand toggle button.  The modal drawer (CompactScaffold) passes
+// null so no toggle button is rendered.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Internal composable that renders the full drawer column: header, scrollable
+ * nav item list, and sticky footer.
+ *
+ * Used by both [ZyntaNavigationDrawer] (permanent, EXPANDED/MEDIUM) and the
+ * modal [ModalDrawerSheet] (COMPACT). Pass `onToggleMini = null` when there is
+ * no mini/full toggle (i.e., the modal drawer is always full-width when visible).
+ */
+@Composable
+internal fun DrawerColumnContent(
+    items: List<ZyntaNavItem>,
+    selectedIndex: Int,
+    onItemSelected: (Int) -> Unit,
+    selectedChildIndex: Int = -1,
+    onChildSelected: (parentIndex: Int, childIndex: Int) -> Unit = { _, _ -> },
+    groups: List<ZyntaNavGroup> = emptyList(),
+    isMini: Boolean = false,
+    onToggleMini: (() -> Unit)? = null,
+    drawerUserName: String? = null,
+    drawerUserInitials: String? = null,
+    drawerUserRole: String? = null,
+) {
     // ── Parent expand-state map (index → expanded) ────────────────────────────
-    // Persisted across recompositions via SnapshotStateMap.
-    // The active parent is auto-expanded on first composition and whenever
-    // selectedIndex changes (e.g., the user navigates to a new section).
     val expandedState = remember {
         mutableStateMapOf<Int, Boolean>().also { map ->
             if (selectedIndex >= 0) map[selectedIndex] = true
@@ -165,97 +232,80 @@ fun ZyntaNavigationDrawer(
         else emptyMap()
     }
 
-    // Provide null for LocalZyntaDrawerController — permanent drawer is always visible
-    CompositionLocalProvider(LocalZyntaDrawerController provides null) {
-        Row(modifier = modifier.fillMaxSize()) {
+    Column(modifier = Modifier.fillMaxHeight()) {
 
-            // ── Drawer surface ─────────────────────────────────────────────────
-            Surface(
-                modifier = Modifier
-                    .width(drawerWidth)
-                    .fillMaxHeight(),
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-                tonalElevation = 0.dp,
-            ) {
-                Column(modifier = Modifier.fillMaxHeight()) {
+        // ── Header ─────────────────────────────────────────────────────────────
+        DrawerHeader(
+            isMini = isMini,
+            onToggle = onToggleMini,
+        )
 
-                    // ── Header ─────────────────────────────────────────────────
-                    DrawerHeader(
-                        isMini = isMini,
-                        onToggle = { isMini = !isMini },
-                    )
+        // ── Scrollable item list ───────────────────────────────────────────────
+        LazyColumn(modifier = Modifier.weight(1f)) {
+            itemsIndexed(items) { index, item ->
+                val isParentSelected = index == selectedIndex
+                val isExpanded = expandedState[index] ?: false
+                val hasChildren = item.children.isNotEmpty()
 
-                    // ── Scrollable item list ───────────────────────────────────
-                    LazyColumn(modifier = Modifier.weight(1f)) {
-                        itemsIndexed(items) { index, item ->
-                            val isParentSelected = index == selectedIndex
-                            val isExpanded = expandedState[index] ?: false
-                            val hasChildren = item.children.isNotEmpty()
-
-                            // Section group header
-                            groupHeaderAt[index]?.let { title ->
-                                if (index > 0) {
-                                    HorizontalDivider(
-                                        modifier = Modifier.padding(
-                                            start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp,
-                                        ),
-                                    )
-                                }
-                                if (!isMini) {
-                                    Text(
-                                        text = title.uppercase(),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.padding(
-                                            start = 28.dp, bottom = 4.dp, top = 4.dp,
-                                        ),
-                                    )
-                                }
-                            }
-
-                            // Parent item row
-                            ParentDrawerItem(
-                                item = item,
-                                index = index,
-                                isSelected = isParentSelected && selectedChildIndex < 0,
-                                isExpanded = isExpanded,
-                                isMini = isMini,
-                                hasChildren = hasChildren,
-                                onItemSelected = { idx ->
-                                    onItemSelected(idx)
-                                    if (hasChildren) {
-                                        expandedState[idx] = !(expandedState[idx] ?: false)
-                                    }
-                                },
-                            )
-
-                            // Child item rows (visible only when expanded and not in mini mode)
-                            if (hasChildren && isExpanded && !isMini) {
-                                item.children.forEachIndexed { childIndex, child ->
-                                    val isChildSelected =
-                                        isParentSelected && selectedChildIndex == childIndex
-                                    ChildDrawerItem(
-                                        child = child,
-                                        isSelected = isChildSelected,
-                                        onClick = { onChildSelected(index, childIndex) },
-                                    )
-                                }
-                            }
-                        }
+                // Section group header
+                groupHeaderAt[index]?.let { title ->
+                    if (index > 0) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(
+                                start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp,
+                            ),
+                        )
                     }
-
-                    // ── Footer (Phase 2: user info tile) ──────────────────────
-                    Spacer(modifier = Modifier.height(16.dp))
+                    if (!isMini) {
+                        Text(
+                            text = title.uppercase(),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(
+                                start = 28.dp, bottom = 4.dp, top = 4.dp,
+                            ),
+                        )
+                    }
                 }
-            }
 
-            // ── Content area ───────────────────────────────────────────────────
-            Box(modifier = Modifier.weight(1f)) {
-                Scaffold { innerPadding ->
-                    content(innerPadding)
+                // Parent item row
+                ParentDrawerItem(
+                    item = item,
+                    index = index,
+                    isSelected = isParentSelected && selectedChildIndex < 0,
+                    isExpanded = isExpanded,
+                    isMini = isMini,
+                    hasChildren = hasChildren,
+                    onItemSelected = { idx ->
+                        onItemSelected(idx)
+                        if (hasChildren) {
+                            expandedState[idx] = !(expandedState[idx] ?: false)
+                        }
+                    },
+                )
+
+                // Child item rows (visible only when expanded and not in mini mode)
+                if (hasChildren && isExpanded && !isMini) {
+                    item.children.forEachIndexed { childIndex, child ->
+                        val isChildSelected =
+                            isParentSelected && selectedChildIndex == childIndex
+                        ChildDrawerItem(
+                            child = child,
+                            isSelected = isChildSelected,
+                            onClick = { onChildSelected(index, childIndex) },
+                        )
+                    }
                 }
             }
         }
+
+        // ── Sticky footer — user info tile ─────────────────────────────────────
+        DrawerFooter(
+            isMini = isMini,
+            userName = drawerUserName,
+            userInitials = drawerUserInitials,
+            userRole = drawerUserRole,
+        )
     }
 }
 
@@ -264,14 +314,15 @@ fun ZyntaNavigationDrawer(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Drawer header containing the app icon, app name label, and the toggle button.
+ * Drawer header containing the app icon, app name label, and the optional toggle button.
  *
  * In mini mode the app name text is hidden and the icon is centred.
+ * When [onToggle] is null (modal drawer) the toggle button is omitted entirely.
  */
 @Composable
 private fun DrawerHeader(
     isMini: Boolean,
-    onToggle: () -> Unit,
+    onToggle: (() -> Unit)?,
 ) {
     Row(
         modifier = Modifier
@@ -299,12 +350,85 @@ private fun DrawerHeader(
         } else {
             Spacer(modifier = Modifier.weight(1f))
         }
-        IconButton(onClick = onToggle) {
-            Icon(
-                imageVector = Icons.Filled.Menu,
-                contentDescription = if (isMini) "Expand navigation drawer" else "Collapse navigation drawer",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        if (onToggle != null) {
+            IconButton(onClick = onToggle) {
+                Icon(
+                    imageVector = Icons.Filled.Menu,
+                    contentDescription = if (isMini) "Expand navigation drawer" else "Collapse navigation drawer",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Sticky footer tile showing the authenticated user's avatar, name, and role.
+ *
+ * In mini mode only the avatar circle is shown (no name or role text).
+ * The footer is omitted entirely when both [userName] and [userInitials] are null.
+ */
+@Composable
+private fun DrawerFooter(
+    isMini: Boolean,
+    userName: String?,
+    userInitials: String?,
+    userRole: String?,
+) {
+    if (userName == null && userInitials == null) {
+        Spacer(modifier = Modifier.height(16.dp))
+        return
+    }
+
+    HorizontalDivider(
+        modifier = Modifier.padding(horizontal = 8.dp),
+        color = MaterialTheme.colorScheme.outlineVariant,
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(64.dp)
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // Avatar circle
+        Surface(
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.primaryContainer,
+            modifier = Modifier.size(36.dp),
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Text(
+                    text = userInitials ?: userName?.take(1)?.uppercase() ?: "?",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            }
+        }
+
+        // Name + role (hidden in mini mode)
+        if (!isMini) {
+            Spacer(modifier = Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = userName ?: "",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (!userRole.isNullOrBlank()) {
+                    Text(
+                        text = userRole,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                    )
+                }
+            }
         }
     }
 }

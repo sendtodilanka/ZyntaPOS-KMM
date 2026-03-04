@@ -3,11 +3,14 @@ package com.zyntasolutions.zyntapos.designsystem.layouts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.designsystem.util.WindowSize
 import com.zyntasolutions.zyntapos.designsystem.util.currentWindowSize
+import kotlinx.coroutines.launch
 
 /**
  * A labelled section within [ZyntaScaffold]'s expanded navigation drawer.
@@ -25,17 +28,10 @@ data class ZyntaNavGroup(
 // ─────────────────────────────────────────────────────────────────────────────
 // ZyntaScaffold — Adaptive navigation container
 //
-// Per UI/UX §2.1 & PLAN_PHASE1.md Sprint 9–10 Step 6.3.1:
-//   COMPACT   → NavigationBar  (bottom, Material 3 standard)
-//   MEDIUM    → NavigationRail (left, 72dp, icons + labels)
-//   EXPANDED  → PermanentNavigationDrawer (240dp, icons + full labels)
-//
-// Usage:
-//   ZyntaScaffold(
-//       items = navItems,
-//       selectedIndex = currentIndex,
-//       onItemSelected = { index -> /* navigate */ },
-//   ) { innerPadding -> ScreenContent(Modifier.padding(innerPadding)) }
+// Per UI/UX §2.1 & TODO-005:
+//   COMPACT   → ModalNavigationDrawer (hamburger in TopAppBar, no bottom bar)
+//   MEDIUM    → ZyntaNavigationDrawer (mini 72dp, expandable to 260dp)
+//   EXPANDED  → ZyntaNavigationDrawer (full 260dp, collapsible to 72dp)
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -46,7 +42,7 @@ data class ZyntaNavGroup(
  * @param selectedIcon Icon used when this destination is selected (defaults to [icon]).
  * @param contentDescription Accessibility description for the icon.
  * @param children Optional child destinations shown as an expandable sub-list in the
- *   EXPANDED drawer.  Ignored in COMPACT (bottom bar) and MEDIUM (rail) variants.
+ *   EXPANDED drawer.  Ignored in COMPACT (modal drawer) and MEDIUM (mini drawer).
  */
 data class ZyntaNavItem(
     val label: String,
@@ -70,37 +66,36 @@ data class ZyntaNavChildItem(
 
 /**
  * Adaptive scaffold that switches between three navigation modes based on
- * [WindowSize], wiring Material 3 navigation components to a single item list.
+ * [WindowSize], wiring the design-system navigation drawer to a single item list.
  *
- * The scaffold ensures content is never drawn behind the navigation chrome by
- * automatically applying the correct [PaddingValues] inside [content].
+ * ### Navigation modes
+ * - **COMPACT** (<600 dp): No bottom bar. A modal overlay drawer is opened by the
+ *   hamburger icon injected into the [ZyntaTopAppBar] via [LocalZyntaDrawerController].
+ * - **MEDIUM** (600–840 dp): Mini [ZyntaNavigationDrawer] (72 dp icons-only) that
+ *   expands to 260 dp when the user taps the toggle button.
+ * - **EXPANDED** (>840 dp): Full [ZyntaNavigationDrawer] (260 dp), collapsible to
+ *   72 dp mini mode.
  *
  * ### Tiered navigation
- * To avoid bottom-bar overflow on small screens, supply a shorter list via
- * [compactItems] (recommended max 5 items).  When non-empty it is used
- * **exclusively** for the COMPACT `NavigationBar`; the full [items] list is
- * still used for the MEDIUM rail and EXPANDED drawer.
+ * [compactItems] and related parameters are retained for backwards-compatibility
+ * but are no longer used in the COMPACT layout (modal drawer uses the full [items]
+ * list). They may be removed in a future refactor.
  *
- * [compactSelectedIndex] must be the pre-computed selection position within
- * [compactItems].  When [compactItems] is empty it falls back to [selectedIndex].
- *
- * The EXPANDED drawer can optionally render labelled section headers by
- * providing [groups].  Each [ZyntaNavGroup] spans a contiguous range of [items].
- *
- * @param items Full navigation destinations — used for MEDIUM rail & EXPANDED drawer.
+ * @param items Full navigation destinations — used for all three layout variants.
  * @param selectedIndex Selected index within [items].
  * @param onItemSelected Callback with the tapped index within [items].
  * @param modifier Optional root [Modifier].
- * @param compactItems Subset shown in the COMPACT bottom bar (max 5). Empty = use [items].
- * @param compactSelectedIndex Selected index within [compactItems].
- * @param onCompactItemSelected Tap callback for [compactItems]. Null = use [onItemSelected].
- * @param groups Optional section groups rendered as headers in the EXPANDED drawer.
- * @param selectedChildIndex Selected child index within the active parent item (-1 = no child
- *   active). Only consumed by the EXPANDED drawer; ignored in COMPACT and MEDIUM variants.
- * @param onChildSelected Callback with the parent index and the tapped child index within that
- *   parent's [ZyntaNavItem.children] list.  Only fired from the EXPANDED drawer.
- * @param topBar Optional top app bar slot (only rendered on COMPACT/MEDIUM).
- * @param snackbarHost Snackbar host.
+ * @param compactItems Retained for API compatibility; not used in COMPACT modal drawer.
+ * @param compactSelectedIndex Retained for API compatibility.
+ * @param onCompactItemSelected Retained for API compatibility.
+ * @param groups Optional section groups rendered as headers in the drawer.
+ * @param selectedChildIndex Selected child index within the active parent (-1 = no child active).
+ * @param onChildSelected Callback with (parentIndex, childIndex) when a child is tapped.
+ * @param topBar Retained for API compatibility; not rendered in the new nav model.
+ * @param snackbarHost Retained for API compatibility.
+ * @param drawerUserName Full name of the logged-in user for the drawer footer.
+ * @param drawerUserInitials Pre-computed initials (e.g. "JS") for the footer avatar.
+ * @param drawerUserRole Human-readable role label (e.g. "Admin") for the footer.
  * @param windowSize Override the detected [WindowSize]; useful in previews/tests.
  * @param content Screen content lambda receiving [PaddingValues] for safe insets.
  */
@@ -118,21 +113,24 @@ fun ZyntaScaffold(
     onChildSelected: (parentIndex: Int, childIndex: Int) -> Unit = { _, _ -> },
     topBar: @Composable () -> Unit = {},
     snackbarHost: @Composable () -> Unit = {},
+    drawerUserName: String? = null,
+    drawerUserInitials: String? = null,
+    drawerUserRole: String? = null,
     windowSize: WindowSize = currentWindowSize(),
     content: @Composable (PaddingValues) -> Unit,
 ) {
-    val effectiveCompactItems = compactItems.ifEmpty { items }
-    val effectiveCompactSelected = if (compactItems.isEmpty()) selectedIndex else compactSelectedIndex
-    val effectiveCompactCallback = onCompactItemSelected ?: onItemSelected
-
     when (windowSize) {
         WindowSize.COMPACT -> CompactScaffold(
-            items = effectiveCompactItems,
-            selectedIndex = effectiveCompactSelected,
-            onItemSelected = effectiveCompactCallback,
+            items = items,
+            selectedIndex = selectedIndex,
+            onItemSelected = onItemSelected,
             modifier = modifier,
-            topBar = topBar,
-            snackbarHost = snackbarHost,
+            groups = groups,
+            selectedChildIndex = selectedChildIndex,
+            onChildSelected = onChildSelected,
+            drawerUserName = drawerUserName,
+            drawerUserInitials = drawerUserInitials,
+            drawerUserRole = drawerUserRole,
             content = content,
         )
         WindowSize.MEDIUM -> MediumScaffold(
@@ -140,8 +138,12 @@ fun ZyntaScaffold(
             selectedIndex = selectedIndex,
             onItemSelected = onItemSelected,
             modifier = modifier,
-            topBar = topBar,
-            snackbarHost = snackbarHost,
+            groups = groups,
+            selectedChildIndex = selectedChildIndex,
+            onChildSelected = onChildSelected,
+            drawerUserName = drawerUserName,
+            drawerUserInitials = drawerUserInitials,
+            drawerUserRole = drawerUserRole,
             content = content,
         )
         WindowSize.EXPANDED -> ExpandedScaffold(
@@ -152,13 +154,16 @@ fun ZyntaScaffold(
             groups = groups,
             selectedChildIndex = selectedChildIndex,
             onChildSelected = onChildSelected,
+            drawerUserName = drawerUserName,
+            drawerUserInitials = drawerUserInitials,
+            drawerUserRole = drawerUserRole,
             content = content,
         )
     }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// COMPACT — NavigationBar (bottom)
+// COMPACT — ModalNavigationDrawer (hamburger trigger in TopAppBar)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -167,37 +172,57 @@ private fun CompactScaffold(
     selectedIndex: Int,
     onItemSelected: (Int) -> Unit,
     modifier: Modifier = Modifier,
-    topBar: @Composable () -> Unit = {},
-    snackbarHost: @Composable () -> Unit = {},
+    groups: List<ZyntaNavGroup> = emptyList(),
+    selectedChildIndex: Int = -1,
+    onChildSelected: (parentIndex: Int, childIndex: Int) -> Unit = { _, _ -> },
+    drawerUserName: String? = null,
+    drawerUserInitials: String? = null,
+    drawerUserRole: String? = null,
     content: @Composable (PaddingValues) -> Unit,
 ) {
-    Scaffold(
-        modifier = modifier,
-        topBar = topBar,
-        snackbarHost = snackbarHost,
-        bottomBar = {
-            NavigationBar {
-                items.forEachIndexed { index, item ->
-                    NavigationBarItem(
-                        selected = index == selectedIndex,
-                        onClick = { onItemSelected(index) },
-                        icon = {
-                            Icon(
-                                imageVector = if (index == selectedIndex) item.selectedIcon else item.icon,
-                                contentDescription = item.contentDescription,
-                            )
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+
+    // Provide the open-drawer lambda so ZyntaTopAppBar can render the hamburger icon
+    CompositionLocalProvider(
+        LocalZyntaDrawerController provides { scope.launch { drawerState.open() } },
+    ) {
+        ModalNavigationDrawer(
+            modifier = modifier,
+            drawerState = drawerState,
+            drawerContent = {
+                ModalDrawerSheet(
+                    drawerContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                ) {
+                    DrawerColumnContent(
+                        items = items,
+                        selectedIndex = selectedIndex,
+                        onItemSelected = { idx ->
+                            onItemSelected(idx)
+                            scope.launch { drawerState.close() }
                         },
-                        label = { Text(item.label) },
+                        selectedChildIndex = selectedChildIndex,
+                        onChildSelected = { parentIdx, childIdx ->
+                            onChildSelected(parentIdx, childIdx)
+                            scope.launch { drawerState.close() }
+                        },
+                        groups = groups,
+                        isMini = false,
+                        onToggleMini = null, // modal drawer is always full-width; no toggle needed
+                        drawerUserName = drawerUserName,
+                        drawerUserInitials = drawerUserInitials,
+                        drawerUserRole = drawerUserRole,
                     )
                 }
-            }
-        },
-        content = content,
-    )
+            },
+        ) {
+            Scaffold(content = content)
+        }
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MEDIUM — NavigationRail (left, 72dp)
+// MEDIUM — ZyntaNavigationDrawer (mini 72dp, expandable to 260dp)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -206,47 +231,32 @@ private fun MediumScaffold(
     selectedIndex: Int,
     onItemSelected: (Int) -> Unit,
     modifier: Modifier = Modifier,
-    topBar: @Composable () -> Unit = {},
-    snackbarHost: @Composable () -> Unit = {},
+    groups: List<ZyntaNavGroup> = emptyList(),
+    selectedChildIndex: Int = -1,
+    onChildSelected: (parentIndex: Int, childIndex: Int) -> Unit = { _, _ -> },
+    drawerUserName: String? = null,
+    drawerUserInitials: String? = null,
+    drawerUserRole: String? = null,
     content: @Composable (PaddingValues) -> Unit,
 ) {
-    Scaffold(
+    ZyntaNavigationDrawer(
+        items = items,
+        selectedIndex = selectedIndex,
+        onItemSelected = onItemSelected,
         modifier = modifier,
-        topBar = topBar,
-        snackbarHost = snackbarHost,
-        content = { innerPadding ->
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-            ) {
-                NavigationRail {
-                    Spacer(Modifier.height(8.dp))
-                    items.forEachIndexed { index, item ->
-                        NavigationRailItem(
-                            selected = index == selectedIndex,
-                            onClick = { onItemSelected(index) },
-                            icon = {
-                                Icon(
-                                    imageVector = if (index == selectedIndex) item.selectedIcon else item.icon,
-                                    contentDescription = item.contentDescription,
-                                )
-                            },
-                            label = { Text(item.label) },
-                        )
-                    }
-                }
-                // Content fills remaining width
-                Box(modifier = Modifier.weight(1f)) {
-                    content(PaddingValues())
-                }
-            }
-        },
+        startMini = true, // MEDIUM starts in 72dp mini mode; user can expand
+        selectedChildIndex = selectedChildIndex,
+        onChildSelected = onChildSelected,
+        groups = groups,
+        drawerUserName = drawerUserName,
+        drawerUserInitials = drawerUserInitials,
+        drawerUserRole = drawerUserRole,
+        content = content,
     )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// EXPANDED — Hierarchical collapsible navigation drawer (260dp / 72dp mini)
+// EXPANDED — ZyntaNavigationDrawer (full 260dp, collapsible to 72dp mini)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -258,6 +268,9 @@ private fun ExpandedScaffold(
     groups: List<ZyntaNavGroup> = emptyList(),
     selectedChildIndex: Int = -1,
     onChildSelected: (parentIndex: Int, childIndex: Int) -> Unit = { _, _ -> },
+    drawerUserName: String? = null,
+    drawerUserInitials: String? = null,
+    drawerUserRole: String? = null,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     ZyntaNavigationDrawer(
@@ -265,9 +278,13 @@ private fun ExpandedScaffold(
         selectedIndex = selectedIndex,
         onItemSelected = onItemSelected,
         modifier = modifier,
+        startMini = false, // EXPANDED starts full-width
         selectedChildIndex = selectedChildIndex,
         onChildSelected = onChildSelected,
         groups = groups,
+        drawerUserName = drawerUserName,
+        drawerUserInitials = drawerUserInitials,
+        drawerUserRole = drawerUserRole,
         content = content,
     )
 }
