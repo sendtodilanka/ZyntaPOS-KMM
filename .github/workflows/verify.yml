@@ -17,7 +17,6 @@ name: "Step[7]: Verify Endpoints"
 #   - Scheduled/manual: always run unconditionally
 #   - Production not live: continue-on-error: true (Phase 1 — canary placeholders)
 #   - Rate limiting: 20s curl timeout prevents accumulation
-#   - Slack alerts: optional notification on degraded status during scheduled checks
 # ─────────────────────────────────────────────────────────────────────────────
 
 on:
@@ -89,32 +88,3 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # ── Slack alert on degraded status (scheduled checks only) ────────────
-      # Only alert on scheduled runs to avoid duplicate noise from post-deploy
-      # checks (step6 already sends its own Slack notification on failure).
-      - name: Notify Slack of degraded endpoints
-        if: >
-          always() &&
-          steps.health.outputs.healthy != 'true' &&
-          github.event_name == 'schedule'
-        continue-on-error: true
-        env:
-          SLACK_DEPLOY_WEBHOOK: ${{ secrets.SLACK_DEPLOY_WEBHOOK }}
-        run: |
-          if [ -z "$SLACK_DEPLOY_WEBHOOK" ]; then
-            echo "SLACK_DEPLOY_WEBHOOK not configured — skipping notification"
-            exit 0
-          fi
-          curl -s -X POST "$SLACK_DEPLOY_WEBHOOK" \
-            -H 'Content-type: application/json' \
-            --data "{
-              \"text\": \":warning: *Scheduled Health Check: Endpoints Degraded*\",
-              \"attachments\": [{
-                \"color\": \"warning\",
-                \"fields\": [
-                  {\"title\": \"Check\", \"value\": \"Scheduled (every 30 min)\", \"short\": true},
-                  {\"title\": \"Time\", \"value\": \"$(date -u '+%H:%M UTC')\", \"short\": true},
-                  {\"title\": \"Action\", \"value\": \"Check VPS: \`docker compose ps\`\", \"short\": false}
-                ]
-              }]
-            }"

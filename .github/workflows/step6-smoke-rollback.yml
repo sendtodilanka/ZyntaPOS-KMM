@@ -17,7 +17,6 @@ name: "Step[6]: Smoke Test & Rollback"
 #   - Sentry notification: only fires after confirmed healthy deployment
 #   - Sentry CLI: pinned version with explicit download (no pipe-to-shell)
 #   - Sentry auth missing: step skipped gracefully if SENTRY_AUTH_TOKEN not set
-#   - Slack notification: optional (only if SLACK_DEPLOY_WEBHOOK secret exists)
 #   - Partial outage: all 6 subdomains tested; any failure triggers full rollback
 #   - checkout@v4 with fetch-depth:0 for sentry-cli set-commits --auto
 # ─────────────────────────────────────────────────────────────────────────────
@@ -126,31 +125,6 @@ jobs:
             echo "=== Rollback complete: $(date) ==="
             docker compose ps
 
-      # ── Slack notification on rollback ─────────────────────────────────────
-      - name: Notify Slack of rollback
-        if: failure() && steps.smoke_gate.outcome == 'failure'
-        continue-on-error: true  # Slack notification is best-effort
-        env:
-          SLACK_DEPLOY_WEBHOOK: ${{ secrets.SLACK_DEPLOY_WEBHOOK }}
-        run: |
-          if [ -z "$SLACK_DEPLOY_WEBHOOK" ]; then
-            echo "SLACK_DEPLOY_WEBHOOK not configured — skipping notification"
-            exit 0
-          fi
-          curl -s -X POST "$SLACK_DEPLOY_WEBHOOK" \
-            -H 'Content-type: application/json' \
-            --data "{
-              \"text\": \":rotating_light: *DEPLOY ROLLBACK* :rotating_light:\",
-              \"attachments\": [{
-                \"color\": \"danger\",
-                \"fields\": [
-                  {\"title\": \"SHA\", \"value\": \"\`${{ github.event.workflow_run.head_sha }}\`\", \"short\": true},
-                  {\"title\": \"Reason\", \"value\": \"Smoke test failed\", \"short\": true},
-                  {\"title\": \"Action\", \"value\": \"Automatic rollback to previous commit\", \"short\": false}
-                ]
-              }]
-            }"
-
       # ── Sentry Release Notification ───────────────────────────────────────
       # Only notify Sentry once the deployment is confirmed stable by smoke test.
       # SECURITY: Pin to a specific sentry-cli release — never pipe from sentry.io.
@@ -183,32 +157,6 @@ jobs:
           sentry-cli releases finalize "$VERSION"
           sentry-cli releases deploys "$VERSION" new -e production
           echo "✅ Sentry release $VERSION created and deployed"
-
-      # ── Slack notification on successful deploy ────────────────────────────
-      - name: Notify Slack of successful deploy
-        if: steps.smoke.outputs.healthy == 'true'
-        continue-on-error: true
-        env:
-          SLACK_DEPLOY_WEBHOOK: ${{ secrets.SLACK_DEPLOY_WEBHOOK }}
-        run: |
-          if [ -z "$SLACK_DEPLOY_WEBHOOK" ]; then
-            echo "SLACK_DEPLOY_WEBHOOK not configured — skipping notification"
-            exit 0
-          fi
-          SHA="${{ github.event.workflow_run.head_sha }}"
-          curl -s -X POST "$SLACK_DEPLOY_WEBHOOK" \
-            -H 'Content-type: application/json' \
-            --data "{
-              \"text\": \":white_check_mark: *Deploy Successful*\",
-              \"attachments\": [{
-                \"color\": \"good\",
-                \"fields\": [
-                  {\"title\": \"SHA\", \"value\": \"\`${SHA:0:8}\`\", \"short\": true},
-                  {\"title\": \"Environment\", \"value\": \"production\", \"short\": true},
-                  {\"title\": \"Endpoints\", \"value\": \"All 6 healthy\", \"short\": true}
-                ]
-              }]
-            }"
 
       # ── Final status ──────────────────────────────────────────────────────
       - name: Post smoke test final status
