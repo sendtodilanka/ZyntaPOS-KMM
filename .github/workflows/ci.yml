@@ -3,6 +3,8 @@ name: CI
 on:
   pull_request:
     branches: [ main ]
+  push:
+    branches: [ main ]   # Also run after merge so workflow_run can gate deploy.yml
   workflow_dispatch:   # Allow manual triggering from the Actions tab
 
 # Minimal permissions — CI only reads repo content and uploads artifacts.

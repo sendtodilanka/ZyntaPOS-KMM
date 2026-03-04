@@ -1,7 +1,12 @@
 name: Deploy to VPS
 
 on:
-  push:
+  # Only deploy after CI passes on main — never on a raw push.
+  # ci.yml now runs on both pull_request and push:main, so this fires
+  # only once CI has verified the merged code is green.
+  workflow_run:
+    workflows: [ "CI" ]
+    types: [ completed ]
     branches: [ main ]
   workflow_dispatch:
     inputs:
@@ -25,6 +30,12 @@ jobs:
     name: Deploy to Contabo VPS
     runs-on: ubuntu-latest
     environment: production
+    # For workflow_run: only proceed if CI succeeded.
+    # For workflow_dispatch: always allow (operator is taking explicit responsibility).
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success')
     concurrency:
       group: production-deploy
       cancel-in-progress: false   # Never cancel an in-progress deploy
