@@ -36,7 +36,7 @@ jobs:
           fetch-depth: 0   # full history required for sentry-cli set-commits --auto
 
       - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -147,7 +147,7 @@ jobs:
 
       - name: Rollback to previous commit on smoke test failure
         if: steps.smoke.outcome == 'failure'
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
