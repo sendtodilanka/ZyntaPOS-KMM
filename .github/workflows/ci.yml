@@ -94,7 +94,7 @@ jobs:
 
       # ── Artifacts ─────────────────────────────────────────────────────────
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: zyntapos-debug-apk
           path: androidApp/build/outputs/apk/debug/*.apk
@@ -102,7 +102,7 @@ jobs:
 
       - name: Upload test reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-reports
           path: '**/build/reports/tests/'
@@ -110,7 +110,7 @@ jobs:
 
       - name: Upload lint & Detekt reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: lint-reports
           path: |
