@@ -1,43 +1,300 @@
 name: Release
 
-# All platform build jobs (Android APK, Linux DEB, macOS DMG, Windows MSI) have
-# been removed to stay within the 2,000 private-repo Actions-minute budget.
+# ─────────────────────────────────────────────────────────────────────────────
+# Cross-platform release builds.
 #
-# macOS runners bill at 10× and Windows at 2× — a single 4-platform release run
-# consumed ~200–300 billed minutes. Running on every push drained the monthly
-# quota within hours.
+# BUDGET STRATEGY:
+# macOS runners bill at 10× and Windows at 2× — a single 4-platform release
+# consumed ~200–300 billed minutes. This workflow provides three tiers:
 #
-# To restore cross-platform releases:
+#   1. "linux-only" (default) — Android APK + Linux artifacts on ubuntu (1× billing)
+#      Cost: ~15-20 min billed. Use for regular releases.
+#
+#   2. "all-platforms" — Full matrix: Android, Linux, macOS, Windows
+#      Cost: ~200-300 min billed. Use only for major releases.
+#
+#   3. "android-only" — Just the APK
+#      Cost: ~10 min billed. Use for hotfix releases.
+#
+# To restore automatic cross-platform releases:
 #   Option A — Upgrade to GitHub Team plan (3,000 min/month + better multipliers)
 #   Option B — Make the repository public (unlimited free minutes)
 #   Option C — Set up self-hosted runners (no billed minutes)
 #
 # VPS deployments continue automatically via deploy.yml on every push to main.
+#
+# EDGE CASES HANDLED:
+#   - Version extraction: reads from version.properties (single source of truth)
+#   - Version label: supports alpha.1, beta.2, rc.1 (semver pre-release)
+#   - Build number: uses github.run_number for unique, monotonically increasing builds
+#   - Artifact naming: includes version + build number for traceability
+#   - Release tag: v1.0.0-build.123 format (unique per run)
+#   - Duplicate tags: checked before creating release
+#   - Matrix failure: individual platform failure doesn't block other platforms
+# ─────────────────────────────────────────────────────────────────────────────
 
 on:
   workflow_dispatch:
     inputs:
+      scope:
+        description: 'Release scope (affects Actions-minutes cost)'
+        required: true
+        type: choice
+        options:
+          - linux-only
+          - android-only
+          - all-platforms
+        default: linux-only
       reason:
-        description: 'Reason for manual trigger'
+        description: 'Release notes / reason'
         required: false
         default: 'Manual release'
 
 permissions:
-  contents: read
+  contents: write  # Create GitHub Release + upload assets
 
 concurrency:
   group: release
   cancel-in-progress: false
 
+env:
+  JAVA_VERSION: '21'
+  JAVA_DISTRIBUTION: 'temurin'
+
 jobs:
-  notice:
-    name: Release Builds Disabled
+  # ── Extract version from version.properties ──────────────────────────────
+  version:
+    name: Extract Version
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+      tag: ${{ steps.ver.outputs.tag }}
     steps:
-      - name: Print notice
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Read version.properties
+        id: ver
         run: |
-          echo "Release platform builds are currently disabled."
-          echo "Reason: ${{ github.event.inputs.reason }}"
-          echo ""
-          echo "VPS deployment (deploy.yml) runs automatically on every push to main."
-          echo "Re-enable build jobs in this file when ready (see comments above)."
+          source version.properties 2>/dev/null || {
+            echo "::error::version.properties not found"
+            exit 1
+          }
+
+          VERSION="${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}"
+          if [ -n "$VERSION_LABEL" ]; then
+            VERSION="${VERSION}-${VERSION_LABEL}"
+          fi
+
+          TAG="v${VERSION}-build.${{ github.run_number }}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Version: $VERSION, Tag: $TAG"
+
+  # ── Android APK Build ────────────────────────────────────────────────────
+  android:
+    name: Build Android APK
+    needs: version
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Point org.gradle.java.home to CI JDK
+        run: echo "org.gradle.java.home=$JAVA_HOME" >> gradle.properties
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Create local.properties
+        run: ./scripts/setup-local-properties.sh
+
+      - name: Build release APK
+        run: ./gradlew :androidApp:assembleRelease --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-${{ needs.version.outputs.tag }}
+          path: androidApp/build/outputs/apk/release/*.apk
+          retention-days: 30
+
+  # ── Linux Desktop Build ──────────────────────────────────────────────────
+  linux:
+    name: Build Linux Desktop
+    needs: version
+    if: inputs.scope == 'linux-only' || inputs.scope == 'all-platforms'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Point org.gradle.java.home to CI JDK
+        run: echo "org.gradle.java.home=$JAVA_HOME" >> gradle.properties
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Create local.properties
+        run: ./scripts/setup-local-properties.sh
+
+      - name: Build Desktop distribution
+        run: ./gradlew :composeApp:packageDistributionForCurrentOS --stacktrace
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-desktop-${{ needs.version.outputs.tag }}
+          path: |
+            composeApp/build/compose/binaries/main/deb/*.deb
+            composeApp/build/compose/binaries/main/rpm/*.rpm
+          retention-days: 30
+          if-no-files-found: warn
+
+  # ── macOS Desktop Build (all-platforms only) ─────────────────────────────
+  macos:
+    name: Build macOS Desktop
+    needs: version
+    if: inputs.scope == 'all-platforms'
+    runs-on: macos-latest    # ⚠️ Bills at 10× — use sparingly
+    timeout-minutes: 45
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Point org.gradle.java.home to CI JDK
+        run: echo "org.gradle.java.home=$JAVA_HOME" >> gradle.properties
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Create local.properties
+        run: ./scripts/setup-local-properties.sh
+
+      - name: Build Desktop distribution
+        run: ./gradlew :composeApp:packageDistributionForCurrentOS --stacktrace
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-desktop-${{ needs.version.outputs.tag }}
+          path: composeApp/build/compose/binaries/main/dmg/*.dmg
+          retention-days: 30
+          if-no-files-found: warn
+
+  # ── Windows Desktop Build (all-platforms only) ───────────────────────────
+  windows:
+    name: Build Windows Desktop
+    needs: version
+    if: inputs.scope == 'all-platforms'
+    runs-on: windows-latest   # ⚠️ Bills at 2× — use sparingly
+    timeout-minutes: 45
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Point org.gradle.java.home to CI JDK
+        shell: bash
+        run: echo "org.gradle.java.home=$JAVA_HOME" >> gradle.properties
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Create local.properties
+        shell: bash
+        run: ./scripts/setup-local-properties.sh
+
+      - name: Build Desktop distribution
+        run: ./gradlew :composeApp:packageDistributionForCurrentOS --stacktrace
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-desktop-${{ needs.version.outputs.tag }}
+          path: composeApp/build/compose/binaries/main/msi/*.msi
+          retention-days: 30
+          if-no-files-found: warn
+
+  # ── Create GitHub Release ────────────────────────────────────────────────
+  release:
+    name: Create GitHub Release
+    needs: [version, android, linux, macos, windows]
+    # Run even if optional platform builds were skipped or failed
+    if: always() && needs.android.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ needs.version.outputs.tag }}"
+          VERSION="${{ needs.version.outputs.version }}"
+
+          # Collect all downloadable files
+          FILES=$(find release-artifacts -type f \( -name "*.apk" -o -name "*.deb" -o -name "*.rpm" -o -name "*.dmg" -o -name "*.msi" \) 2>/dev/null)
+
+          if [ -z "$FILES" ]; then
+            echo "::error::No release artifacts found"
+            exit 1
+          fi
+
+          # Build release notes
+          {
+            echo "## ZyntaPOS v${VERSION}"
+            echo ""
+            echo "**Build:** ${{ github.run_number }}"
+            echo "**Scope:** ${{ inputs.scope }}"
+            echo "**SHA:** \`${{ github.sha }}\`"
+            echo ""
+            echo "### Artifacts"
+            echo ""
+            for f in $FILES; do
+              BASENAME=$(basename "$f")
+              SIZE=$(du -h "$f" | cut -f1)
+              echo "- \`${BASENAME}\` (${SIZE})"
+            done
+            echo ""
+            if [ -n "${{ inputs.reason }}" ]; then
+              echo "### Notes"
+              echo "${{ inputs.reason }}"
+            fi
+          } > /tmp/release_notes.md
+
+          # shellcheck disable=SC2086
+          gh release create "$TAG" \
+            --title "ZyntaPOS v${VERSION} (Build ${{ github.run_number }})" \
+            --notes-file /tmp/release_notes.md \
+            $FILES

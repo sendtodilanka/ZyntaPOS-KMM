@@ -1,12 +1,25 @@
 name: "Step[7]: Verify Endpoints"
 
-# Runs automatically every 30 min AND after every deploy — no human trigger needed.
+# ─────────────────────────────────────────────────────────────────────────────
+# PIPELINE POSITION: Step 7 of 7
+#
+# Autonomous health monitoring — runs automatically every 30 min AND after
+# every deploy (via workflow_run from Step[6]).
 #
 # SCHEDULE RATIONALE: 15-minute intervals (*/15) generate 96 runs/day.
 # For a private repo on a standard GitHub plan this can exhaust the included
 # Actions-minutes budget rapidly (96 × 10 min timeout = up to 960 min/day).
 # 30-minute intervals halve that cost while still detecting outages quickly.
 # Adjust back to */15 only if SLA requirements demand sub-30-min detection.
+#
+# EDGE CASES HANDLED:
+#   - Post-deploy failure: skip verification if deploy/smoke failed (misleading noise)
+#   - Scheduled/manual: always run unconditionally
+#   - Production not live: continue-on-error: true (Phase 1 — canary placeholders)
+#   - Rate limiting: 20s curl timeout prevents accumulation
+#   - Slack alerts: optional notification on degraded status during scheduled checks
+# ─────────────────────────────────────────────────────────────────────────────
+
 on:
   workflow_dispatch:
   schedule:
@@ -22,7 +35,7 @@ permissions:
 
 jobs:
   verify:
-    name: "Step[7]: Smoke Test All Endpoints"
+    name: "Step[7]: Verify All Endpoints"
     runs-on: ubuntu-latest
     timeout-minutes: 10
     # Skip post-deploy verification when the deploy itself failed or was rolled back.
@@ -31,23 +44,35 @@ jobs:
     if: >
       github.event_name != 'workflow_run' ||
       github.event.workflow_run.conclusion == 'success'
-    # Production endpoints (api/license/panel/docs/status/sync.zyntapos.com) do not
-    # exist yet (Phase 1 MVP — backend VPS not provisioned). Remove continue-on-error
-    # once VPS is live so real outages fail this job and are visible.
+    # Production endpoints (*.zyntapos.com) do not exist yet (Phase 1 MVP —
+    # canary placeholder). Remove continue-on-error once real backend services
+    # are deployed so outages fail this job and are visible.
     continue-on-error: true
 
     steps:
-      - name: "Step[7]: Test All Subdomains"
-        run: |
-          PASS=true
-          SUBS="api license panel docs status sync"
+      - name: Checkout (for composite action)
+        uses: actions/checkout@v4
 
-          # ── Step Summary header ────────────────────────────────────────────
+      # ── Health Check ──────────────────────────────────────────────────────
+      - name: "Step[7]: Test All Subdomains"
+        id: health
+        uses: ./.github/actions/health-check
+        with:
+          subdomains: 'api license panel docs status sync'
+          initial-wait: '0'
+          max-retries: '1'
+          retry-delay: '0'
+          curl-timeout: '20'
+
+      # ── Write results to step summary ─────────────────────────────────────
+      - name: Write verification summary
+        if: always()
+        run: |
           {
-            echo "## 🌐 ZyntaPOS Endpoint Verification"
+            echo "## Step[7]: Endpoint Verification"
             echo ""
             if [ "${{ github.event_name }}" = "workflow_run" ]; then
-              echo "**Trigger:** post-deploy (deploy: \`${{ github.event.workflow_run.conclusion }}\`)  "
+              echo "**Trigger:** post-deploy (Step[6]: \`${{ github.event.workflow_run.conclusion }}\`)  "
             elif [ "${{ github.event_name }}" = "schedule" ]; then
               echo "**Trigger:** scheduled every 30 min  "
             else
@@ -55,71 +80,41 @@ jobs:
             fi
             echo "**Time:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
             echo ""
-            echo "| Endpoint | /ping | Homepage | Status |"
-            echo "|----------|-------|----------|--------|"
+            echo "${{ steps.health.outputs.summary }}"
+            echo ""
+            if [ "${{ steps.health.outputs.healthy }}" = "true" ]; then
+              echo "### ✅ All 6 endpoints verified healthy"
+            else
+              echo "### ❌ One or more endpoints degraded — check VPS \`docker compose ps\`"
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-          # ── Console header ─────────────────────────────────────────────────
-          echo "=================================================="
-          echo " ZyntaPOS Endpoint Verification"
-          echo " Trigger: ${{ github.event_name }}"
-          echo "=================================================="
-          echo ""
-
-          for sub in $SUBS; do
-            URL_PING="https://${sub}.zyntapos.com/ping"
-            URL_HOME="https://${sub}.zyntapos.com/"
-
-            # /ping check
-            PING_HTTP=$(curl -sf --max-time 20 -o /dev/null -w "%{http_code}" "$URL_PING" 2>/dev/null || echo "000")
-            PING_BODY=$(curl -sf --max-time 20 "$URL_PING" 2>/dev/null || echo "")
-
-            # Homepage check
-            HOME_HTTP=$(curl -sf --max-time 20 -o /dev/null -w "%{http_code}" "$URL_HOME" 2>/dev/null || echo "000")
-
-            # Evaluate /ping
-            if [ "$PING_HTTP" = "200" ] && [ "$PING_BODY" = "ok" ]; then
-              PING_ICON="✅ $PING_HTTP"
-              PING_OK=true
-            else
-              PING_ICON="❌ $PING_HTTP"
-              PING_OK=false
-            fi
-
-            # Evaluate homepage (2xx or 3xx = healthy)
-            HOME_FIRST="${HOME_HTTP:0:1}"
-            if [ "$HOME_FIRST" = "2" ] || [ "$HOME_FIRST" = "3" ]; then
-              HOME_ICON="✅ $HOME_HTTP"
-              HOME_OK=true
-            else
-              HOME_ICON="❌ $HOME_HTTP"
-              HOME_OK=false
-            fi
-
-            if $PING_OK && $HOME_OK; then
-              ROW="✅ HEALTHY"
-              echo "  ✅  ${sub}.zyntapos.com  /ping → $PING_HTTP (ok)  / → $HOME_HTTP"
-            else
-              ROW="❌ DEGRADED"
-              echo "  ❌  ${sub}.zyntapos.com  /ping → $PING_HTTP  / → $HOME_HTTP"
-              PASS=false
-            fi
-
-            echo "| \`${sub}.zyntapos.com\` | $PING_ICON | $HOME_ICON | $ROW |" >> "$GITHUB_STEP_SUMMARY"
-          done
-
-          echo ""
-          echo "=================================================="
-
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          if $PASS; then
-            echo " Result: ALL ENDPOINTS VERIFIED ✅"
-            echo "### ✅ All 6 endpoints verified healthy" >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo " Result: VERIFICATION FAILED ❌"
-            echo " Check the deploy logs and VPS docker compose ps"
-            echo "### ❌ One or more endpoints degraded — check VPS \`docker compose ps\`" >> "$GITHUB_STEP_SUMMARY"
+      # ── Slack alert on degraded status (scheduled checks only) ────────────
+      # Only alert on scheduled runs to avoid duplicate noise from post-deploy
+      # checks (step6 already sends its own Slack notification on failure).
+      - name: Notify Slack of degraded endpoints
+        if: >
+          always() &&
+          steps.health.outputs.healthy != 'true' &&
+          github.event_name == 'schedule'
+        continue-on-error: true
+        env:
+          SLACK_DEPLOY_WEBHOOK: ${{ secrets.SLACK_DEPLOY_WEBHOOK }}
+        run: |
+          if [ -z "$SLACK_DEPLOY_WEBHOOK" ]; then
+            echo "SLACK_DEPLOY_WEBHOOK not configured — skipping notification"
+            exit 0
           fi
-
-          echo "=================================================="
-          $PASS || exit 1
+          curl -s -X POST "$SLACK_DEPLOY_WEBHOOK" \
+            -H 'Content-type: application/json' \
+            --data "{
+              \"text\": \":warning: *Scheduled Health Check: Endpoints Degraded*\",
+              \"attachments\": [{
+                \"color\": \"warning\",
+                \"fields\": [
+                  {\"title\": \"Check\", \"value\": \"Scheduled (every 30 min)\", \"short\": true},
+                  {\"title\": \"Time\", \"value\": \"$(date -u '+%H:%M UTC')\", \"short\": true},
+                  {\"title\": \"Action\", \"value\": \"Check VPS: \`docker compose ps\`\", \"short\": false}
+                ]
+              }]
+            }"
