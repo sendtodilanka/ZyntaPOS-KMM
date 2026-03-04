@@ -1,8 +1,10 @@
 package com.zyntasolutions.zyntapos.feature.admin
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -14,11 +16,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.GppBad
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
@@ -49,11 +53,12 @@ fun AuditLogScreen(
     onIntent: (AdminIntent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Apply user filter locally (reactive: observeAll() already pushed to state)
-    val filtered = remember(state.auditEntries, state.auditUserFilter) {
-        if (state.auditUserFilter.isBlank()) state.auditEntries
-        else state.auditEntries.filter {
-            it.userId.contains(state.auditUserFilter, ignoreCase = true)
+    // Apply all client-side filters (user, event type, success/fail)
+    val filtered = remember(state.auditEntries, state.auditUserFilter, state.auditEventTypeFilter, state.auditSuccessFilter) {
+        state.auditEntries.filter { e ->
+            (state.auditUserFilter.isBlank() || e.userId.contains(state.auditUserFilter, ignoreCase = true)) &&
+            (state.auditEventTypeFilter == null || e.eventType == state.auditEventTypeFilter) &&
+            (state.auditSuccessFilter == null || e.success == state.auditSuccessFilter)
         }
     }
 
@@ -79,7 +84,7 @@ fun AuditLogScreen(
             onRefresh = { onIntent(AdminIntent.VerifyIntegrity) },
         )
 
-        // ── Filter bar ────────────────────────────────────────────────────
+        // ── Filter bar: user ID ───────────────────────────────────────────
         OutlinedTextField(
             value = state.auditUserFilter,
             onValueChange = { onIntent(AdminIntent.FilterAuditByUser(it)) },
@@ -97,6 +102,48 @@ fun AuditLogScreen(
                 .fillMaxWidth()
                 .padding(vertical = ZyntaSpacing.sm),
         )
+
+        // ── Filter bar: event type dropdown ───────────────────────────────
+        EventTypeDropdown(
+            selected = state.auditEventTypeFilter,
+            onSelected = { onIntent(AdminIntent.FilterAuditByEventType(it)) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = ZyntaSpacing.sm),
+        )
+
+        // ── Filter bar: success/fail + CSV export ─────────────────────────
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            FilterChip(
+                selected = state.auditSuccessFilter == null,
+                onClick = { onIntent(AdminIntent.FilterAuditBySuccess(null)) },
+                label = { Text("All", style = MaterialTheme.typography.labelSmall) },
+            )
+            FilterChip(
+                selected = state.auditSuccessFilter == true,
+                onClick = { onIntent(AdminIntent.FilterAuditBySuccess(true)) },
+                label = { Text("OK", style = MaterialTheme.typography.labelSmall) },
+            )
+            FilterChip(
+                selected = state.auditSuccessFilter == false,
+                onClick = { onIntent(AdminIntent.FilterAuditBySuccess(false)) },
+                label = { Text("FAIL", style = MaterialTheme.typography.labelSmall) },
+            )
+            Spacer(Modifier.weight(1f))
+            IconButton(onClick = { onIntent(AdminIntent.ExportAuditLogCsv) }) {
+                Icon(
+                    Icons.Default.Download,
+                    contentDescription = "Export CSV",
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
 
         Text(
             "${filtered.size} event(s)${if (totalFilteredPages > 1) " · Page ${currentPage + 1} of $totalFilteredPages" else ""}",
@@ -117,8 +164,12 @@ fun AuditLogScreen(
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        if (state.auditUserFilter.isBlank()) "No audit events recorded."
-                        else "No events for \"${state.auditUserFilter}\".",
+                        when {
+                            state.auditUserFilter.isBlank() &&
+                            state.auditEventTypeFilter == null &&
+                            state.auditSuccessFilter == null -> "No audit events recorded."
+                            else -> "No events match the current filters."
+                        },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -172,6 +223,59 @@ fun AuditLogScreen(
 }
 
 // ─── Private composables ──────────────────────────────────────────────────────
+
+/**
+ * Material 3 exposed dropdown for filtering audit entries by [AuditEventType].
+ * Selecting "All types" sets [selected] to null (clears filter).
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EventTypeDropdown(
+    selected: AuditEventType?,
+    onSelected: (AuditEventType?) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        modifier = modifier,
+    ) {
+        OutlinedTextField(
+            value = selected?.name?.replace('_', ' ') ?: "All event types",
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("Event type") },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(),
+            singleLine = true,
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.heightIn(max = 300.dp),
+        ) {
+            DropdownMenuItem(
+                text = { Text("All event types", style = MaterialTheme.typography.bodyMedium) },
+                onClick = { onSelected(null); expanded = false },
+            )
+            AuditEventType.entries.forEach { type ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            type.name.replace('_', ' '),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    },
+                    onClick = { onSelected(type); expanded = false },
+                )
+            }
+        }
+    }
+}
 
 @Composable
 private fun IntegrityBadge(

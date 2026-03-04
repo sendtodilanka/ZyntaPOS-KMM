@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.feature.admin
 
+import com.zyntasolutions.zyntapos.domain.model.AuditEventType
 import com.zyntasolutions.zyntapos.domain.model.BackupInfo
 
 /**
@@ -42,6 +43,11 @@ sealed interface AdminIntent {
     // ── Audit Log ──────────────────────────────────────────────────────────
     data object RefreshAuditLog : AdminIntent
     data class FilterAuditByUser(val userId: String) : AdminIntent
+    /** Null clears the event type filter (show all). */
+    data class FilterAuditByEventType(val eventType: AuditEventType?) : AdminIntent
+    /** Null = show all; true = success only; false = failed only. */
+    data class FilterAuditBySuccess(val success: Boolean?) : AdminIntent
+    data object ExportAuditLogCsv : AdminIntent
     data object VerifyIntegrity : AdminIntent
     data object NextAuditPage : AdminIntent
     data object PrevAuditPage : AdminIntent

@@ -131,12 +131,12 @@ class AuthViewModel(
             }
             is Result.Error -> {
                 auditLogger.logLoginAttempt(false, s.email, "", null)
-                updateState {
-                    copy(
-                        isLoading = false,
-                        error = result.exception.message ?: "Login failed. Please try again.",
-                    )
+                val errorMessage = if (auditLogger.isLoginBruteForced(s.email)) {
+                    "Too many failed attempts. Please try again in 5 minutes."
+                } else {
+                    result.exception.message ?: "Login failed. Please try again."
                 }
+                updateState { copy(isLoading = false, error = errorMessage) }
             }
             is Result.Loading -> Unit // transitional — no UI action needed
         }

@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.admin
 
 import com.zyntasolutions.zyntapos.domain.model.AuditEntry
+import com.zyntasolutions.zyntapos.domain.model.AuditEventType
 import com.zyntasolutions.zyntapos.domain.model.BackupInfo
 import com.zyntasolutions.zyntapos.domain.model.IntegrityReport
 import com.zyntasolutions.zyntapos.domain.model.DatabaseStats
@@ -37,6 +38,10 @@ data class AdminState(
     // ── Audit Log ─────────────────────────────────────────────────────────
     val auditEntries: List<AuditEntry> = emptyList(),
     val auditUserFilter: String = "",
+    /** Null = show all event types; non-null = show only matching type. */
+    val auditEventTypeFilter: AuditEventType? = null,
+    /** Null = show all; true = success only; false = failed only. */
+    val auditSuccessFilter: Boolean? = null,
     val auditPage: Int = 0,
     val auditTotalPages: Int = 1,
     val integrityReport: IntegrityReport? = null,
