@@ -1,4 +1,4 @@
-name: Step[2]: Auto PR & Enable Merge
+name: "Step[2]: Auto PR & Enable Merge"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PIPELINE POSITION: Step 2 of 7
@@ -33,7 +33,7 @@ concurrency:
 
 jobs:
   auto-pr:
-    name: Step[2]: Auto PR & Enable Merge
+    name: "Step[2]: Auto PR & Enable Merge"
     runs-on: ubuntu-22.04
     timeout-minutes: 10
     # Only proceed if Step[1] was green.

@@ -1,4 +1,4 @@
-name: Step[5]: Deploy to VPS
+name: "Step[5]: Deploy to VPS"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PIPELINE POSITION: Step 5 of 7
@@ -35,7 +35,7 @@ env:
 
 jobs:
   deploy:
-    name: Step[5]: Deploy to Contabo VPS
+    name: "Step[5]: Deploy to Contabo VPS"
     runs-on: ubuntu-latest
     environment: production
     # For workflow_run: only proceed if CI succeeded.

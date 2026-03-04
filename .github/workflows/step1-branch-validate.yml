@@ -1,4 +1,4 @@
-name: Step[1]: Branch Validate
+name: "Step[1]: Branch Validate"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PIPELINE POSITION: Step 1 of 7
@@ -42,7 +42,7 @@ env:
 
 jobs:
   validate:
-    name: Step[1]: Branch Validate
+    name: "Step[1]: Branch Validate"
     runs-on: ubuntu-22.04
     timeout-minutes: 60
 

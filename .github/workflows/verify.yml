@@ -1,4 +1,4 @@
-name: Step[7]: Verify Endpoints
+name: "Step[7]: Verify Endpoints"
 
 # Runs automatically every 30 min AND after every deploy — no human trigger needed.
 #
@@ -22,7 +22,7 @@ permissions:
 
 jobs:
   verify:
-    name: Step[7]: Smoke Test All Endpoints
+    name: "Step[7]: Smoke Test All Endpoints"
     runs-on: ubuntu-latest
     timeout-minutes: 10
     # Skip post-deploy verification when the deploy itself failed or was rolled back.
@@ -37,7 +37,7 @@ jobs:
     continue-on-error: true
 
     steps:
-      - name: Step[7]: Test All Subdomains
+      - name: "Step[7]: Test All Subdomains"
         run: |
           PASS=true
           SUBS="api license panel docs status sync"
