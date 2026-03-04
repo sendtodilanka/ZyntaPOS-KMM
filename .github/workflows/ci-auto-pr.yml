@@ -46,6 +46,12 @@ jobs:
       pull-requests: write
 
     steps:
+      # gh CLI requires a git repo context to resolve owner/repo
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
       - name: Derive PR title and labels
         id: meta
         run: |
