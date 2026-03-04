@@ -77,7 +77,7 @@ ZyntaPOS-KMM/
 | Module | Purpose |
 |--------|---------|
 | `:shared:core` | Pure Kotlin utilities, MVI base classes, `Result<T>`, `CurrencyUtils`, `DateTimeUtils`, `ValidationUtils`, Koin `coreModule` |
-| `:shared:domain` | Domain models (26), repository interfaces, use-case classes, business-rule validators — **no framework deps** |
+| `:shared:domain` | Domain models (31), repository interfaces, use-case classes, business-rule validators — **no framework deps** |
 | `:shared:data` | SQLDelight schema + DAOs, Ktor HTTP client, repository implementations, offline sync engine. `ConflictResolver` — NOT YET IMPLEMENTED (CRDT merge logic is Phase 2 backlog) |
 | `:shared:hal` | `PrinterManager`, `BarcodeScanner` — `expect/actual` platform drivers, `EscPosEncoder`. `CashDrawerController` — NOT YET IMPLEMENTED (Phase 2 backlog) |
 | `:shared:security` | `DatabaseKeyManager`/`EncryptionManager` (AES-256-GCM, Keystore/JCE), `PinManager` (SHA-256 + salt), `JwtManager` + `TokenStorage` interface, `RbacEngine` |
@@ -144,13 +144,13 @@ Feature Modules → :composeApp:navigation / designsystem / core
 | Multiplatform | Kotlin Multiplatform + Compose Multiplatform | 1.10.0 |
 | UI | Material 3 | 1.10.0-alpha05 |
 | State Management | MVI (StateFlow / SharedFlow) | Custom BaseViewModel |
-| DI | Koin | 4.0.4 |
+| DI | Koin | 4.1.1 |
 | Local DB | SQLDelight 2.0.2 on SQLite + SQLCipher 4.5 (AES-256) | 2.0.2 |
-| Networking | Ktor Client | 3.0.3 |
+| Networking | Ktor Client | 3.4.1 |
 | Serialization | kotlinx-serialization | 1.8.0 |
 | Date/Time | kotlinx-datetime | **0.6.1 — pinned** (0.7.1 has binary incompatibility) |
 | Image Loading | Coil | 3.0.4 |
-| Logging | Kermit | 2.0.4 |
+| Logging | Kermit | 2.1.0 |
 | Testing | Kotlin Test, Mockative 3 (KSP), Turbine, Koin-test | Latest |
 | Static Analysis | Detekt | 1.23.8 |
 | Secrets | Secrets Gradle Plugin | 2.0.1 |
@@ -264,7 +264,7 @@ data class ProductEntity(...)
 
 **Code review rule:** If you see `*Entity` in `shared/domain/model/`, request a rename citing ADR-002.
 
-**Domain models (26 files):** `Product`, `Order`, `OrderItem`, `Customer`, `Category`, `User`, `Role`, `Permission`, `CashRegister`, `RegisterSession`, `CashMovement`, `PaymentMethod`, `PaymentSplit`, `Supplier`, `TaxGroup`, `UnitOfMeasure`, `StockAdjustment`, `SyncOperation`, `SyncStatus`, `OrderStatus`, `OrderType`, `DiscountType`, `CartItem`, `OrderTotals`, `ProductVariant`, `AuditEntry`
+**Domain models (31 files):** `Product`, `Order`, `OrderItem`, `Customer`, `Category`, `User`, `Role`, `Permission`, `CashRegister`, `RegisterSession`, `CashMovement`, `PaymentMethod`, `PaymentSplit`, `Supplier`, `TaxGroup`, `UnitOfMeasure`, `StockAdjustment`, `SyncOperation`, `SyncStatus`, `OrderStatus`, `OrderType`, `DiscountType`, `CartItem`, `OrderTotals`, `ProductVariant`, `AuditEntry`, `Edition`, `Heartbeat`, `IntegrityReport`, `License`, `LicenseStatus`
 
 ### ADR-001: ViewModel Base Class (ACCEPTED)
 
