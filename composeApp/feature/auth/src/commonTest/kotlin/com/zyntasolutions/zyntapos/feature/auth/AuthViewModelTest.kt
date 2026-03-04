@@ -4,13 +4,16 @@ import app.cash.turbine.test
 import com.zyntasolutions.zyntapos.core.result.AuthException
 import com.zyntasolutions.zyntapos.core.result.AuthFailureReason
 import com.zyntasolutions.zyntapos.core.result.Result
+import com.zyntasolutions.zyntapos.domain.model.AuditEntry
 import com.zyntasolutions.zyntapos.domain.model.Role
 import com.zyntasolutions.zyntapos.domain.model.User
+import com.zyntasolutions.zyntapos.domain.repository.AuditRepository
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.usecase.auth.LoginUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.auth.LogoutUseCase
 import com.zyntasolutions.zyntapos.feature.auth.mvi.AuthEffect
 import com.zyntasolutions.zyntapos.feature.auth.mvi.AuthIntent
+import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -39,6 +42,19 @@ import kotlin.test.assertTrue
 class AuthViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
+
+    // ── No-op AuditRepository + SecurityAuditLogger ───────────────────────────
+
+    private val noOpAuditRepository = object : AuditRepository {
+        override suspend fun insert(entry: AuditEntry) = Unit
+        override fun observeAll(): Flow<List<AuditEntry>> = MutableStateFlow(emptyList())
+        override fun observeByUserId(userId: String): Flow<List<AuditEntry>> = MutableStateFlow(emptyList())
+        override suspend fun getAllChronological(): List<AuditEntry> = emptyList()
+        override suspend fun getLatestHash(): String? = null
+        override suspend fun countEntries(): Long = 0L
+        override suspend fun getRecentLoginFailureCount(userId: String, sinceEpochMillis: Long): Long = 0L
+    }
+    private val testAuditLogger = SecurityAuditLogger(noOpAuditRepository, "test-device")
 
     // ── Fake AuthRepository ────────────────────────────────────────────────────
 
@@ -93,6 +109,7 @@ class AuthViewModelTest {
             loginUseCase = loginUseCase,
             logoutUseCase = logoutUseCase,
             authRepository = fakeAuthRepository,
+            auditLogger = testAuditLogger,
         )
     }
 

@@ -3,12 +3,15 @@ package com.zyntasolutions.zyntapos.feature.expenses
 import app.cash.turbine.test
 import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
+import com.zyntasolutions.zyntapos.domain.model.AuditEntry
 import com.zyntasolutions.zyntapos.domain.model.Expense
 import com.zyntasolutions.zyntapos.domain.model.ExpenseCategory
 import com.zyntasolutions.zyntapos.domain.model.RecurringExpense
+import com.zyntasolutions.zyntapos.domain.repository.AuditRepository
 import com.zyntasolutions.zyntapos.domain.repository.ExpenseRepository
 import com.zyntasolutions.zyntapos.domain.usecase.expenses.ApproveExpenseUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.expenses.SaveExpenseUseCase
+import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -51,6 +54,19 @@ class ExpenseViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private val currentUserId = "user-001"
+
+    // ── No-op AuditRepository + SecurityAuditLogger ───────────────────────────
+
+    private val noOpAuditRepository = object : AuditRepository {
+        override suspend fun insert(entry: AuditEntry) = Unit
+        override fun observeAll(): Flow<List<AuditEntry>> = MutableStateFlow(emptyList())
+        override fun observeByUserId(userId: String): Flow<List<AuditEntry>> = MutableStateFlow(emptyList())
+        override suspend fun getAllChronological(): List<AuditEntry> = emptyList()
+        override suspend fun getLatestHash(): String? = null
+        override suspend fun countEntries(): Long = 0L
+        override suspend fun getRecentLoginFailureCount(userId: String, sinceEpochMillis: Long): Long = 0L
+    }
+    private val testAuditLogger = SecurityAuditLogger(noOpAuditRepository, "test-device")
 
     private val fakeAuthRepository = object : AuthRepository {
         private val _session = MutableStateFlow<User?>(
@@ -265,6 +281,7 @@ class ExpenseViewModelTest {
             approveExpenseUseCase = approveExpenseUseCase,
             authRepository = fakeAuthRepository,
             postExpenseJournalEntryUseCase = postExpenseJournalEntryUseCase,
+            auditLogger = testAuditLogger,
         )
     }
 

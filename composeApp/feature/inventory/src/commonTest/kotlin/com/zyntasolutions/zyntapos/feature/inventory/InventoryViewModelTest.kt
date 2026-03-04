@@ -3,10 +3,12 @@ package com.zyntasolutions.zyntapos.feature.inventory
 import app.cash.turbine.test
 import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
+import com.zyntasolutions.zyntapos.domain.model.AuditEntry
 import com.zyntasolutions.zyntapos.domain.model.Category
 import com.zyntasolutions.zyntapos.domain.model.Product
 import com.zyntasolutions.zyntapos.domain.model.StockAdjustment
 import com.zyntasolutions.zyntapos.domain.model.SyncStatus
+import com.zyntasolutions.zyntapos.domain.repository.AuditRepository
 import com.zyntasolutions.zyntapos.domain.repository.CategoryRepository
 import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
 import com.zyntasolutions.zyntapos.domain.repository.StockRepository
@@ -14,6 +16,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.inventory.AdjustStockUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.CreateProductUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.SearchProductsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.UpdateProductUseCase
+import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -51,6 +54,19 @@ class InventoryViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private val currentUserId = "user-001"
+
+    // ── No-op AuditRepository + SecurityAuditLogger ───────────────────────────
+
+    private val noOpAuditRepository = object : AuditRepository {
+        override suspend fun insert(entry: AuditEntry) = Unit
+        override fun observeAll(): Flow<List<AuditEntry>> = MutableStateFlow(emptyList())
+        override fun observeByUserId(userId: String): Flow<List<AuditEntry>> = MutableStateFlow(emptyList())
+        override suspend fun getAllChronological(): List<AuditEntry> = emptyList()
+        override suspend fun getLatestHash(): String? = null
+        override suspend fun countEntries(): Long = 0L
+        override suspend fun getRecentLoginFailureCount(userId: String, sinceEpochMillis: Long): Long = 0L
+    }
+    private val testAuditLogger = SecurityAuditLogger(noOpAuditRepository, "test-device")
 
     private val fakeAuthRepository = object : AuthRepository {
         private val _session = MutableStateFlow<User?>(
@@ -253,6 +269,7 @@ class InventoryViewModelTest {
             authRepository = fakeAuthRepository,
             taxGroupRepository = fakeTaxGroupRepository,
             unitGroupRepository = fakeUnitGroupRepository,
+            auditLogger = testAuditLogger,
         )
     }
 
