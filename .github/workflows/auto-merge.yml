@@ -21,6 +21,13 @@ name: Branch CI → Auto PR → Auto Merge
 #                         executes once ALL required status checks pass and the
 #                         branch is up-to-date with main.
 #
+# ── Prerequisites ────────────────────────────────────────────────────────────
+#
+#   IMPORTANT: This repository MUST be PUBLIC for CI to work without
+#   exhausting the 2000 free-plan minutes (private repos use metered minutes;
+#   macOS release runners at 10× multiplier drain the quota in hours).
+#   Public repos get unlimited GitHub Actions minutes on the free plan.
+#
 # ── One-time GitHub repo setup (do this once in the web UI) ──────────────────
 #
 #   1. Settings → General → Pull Requests
@@ -75,7 +82,7 @@ concurrency:
 
 env:
   JAVA_VERSION: '21'
-  JAVA_DISTRIBUTION: 'jetbrains'
+  JAVA_DISTRIBUTION: 'temurin'
 
 jobs:
   # ════════════════════════════════════════════════════════════════════════════
@@ -87,7 +94,7 @@ jobs:
   # ════════════════════════════════════════════════════════════════════════════
   validate:
     name: Build & Test (pre-merge)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     timeout-minutes: 60
 
     steps:
@@ -182,7 +189,7 @@ jobs:
   auto-pr:
     name: Create PR & Enable Auto-Merge
     needs: validate
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     timeout-minutes: 10
 
     permissions:
