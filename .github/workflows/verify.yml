@@ -1,4 +1,4 @@
-name: Verify Endpoints
+name: "Step[7]: Verify Endpoints"
 
 # Runs automatically every 30 min AND after every deploy — no human trigger needed.
 #
@@ -12,8 +12,8 @@ on:
   schedule:
     - cron: '*/30 * * * *'   # Every 30 minutes — autonomous health monitoring
   workflow_run:
-    workflows: ["Deploy to VPS"]
-    types: [completed]        # Auto-verify immediately after every deploy
+    workflows: ["Step[6]: Smoke Test & Rollback"]
+    types: [completed]        # Auto-verify after smoke test confirms deployment is stable
 
 # Read-only: this workflow only makes outbound HTTP requests and writes
 # to the step summary. No repo write access is needed.
@@ -22,17 +22,22 @@ permissions:
 
 jobs:
   verify:
-    name: Smoke Test All Endpoints
+    name: "Step[7]: Smoke Test All Endpoints"
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # Skip post-deploy verification when the deploy itself failed or was rolled back.
+    # Running health checks mid-rollback produces misleading noise.
+    # Scheduled and manual triggers always run unconditionally.
+    if: >
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
     # Production endpoints (api/license/panel/docs/status/sync.zyntapos.com) do not
-    # exist yet (Phase 1 MVP — backend VPS not provisioned). Setting continue-on-error
-    # prevents this scheduled workflow from showing as a failing required check while
-    # the infrastructure is not yet deployed. Remove this line once VPS is live.
+    # exist yet (Phase 1 MVP — backend VPS not provisioned). Remove continue-on-error
+    # once VPS is live so real outages fail this job and are visible.
     continue-on-error: true
 
     steps:
-      - name: Test all subdomains
+      - name: "Step[7]: Test All Subdomains"
         run: |
           PASS=true
           SUBS="api license panel docs status sync"
