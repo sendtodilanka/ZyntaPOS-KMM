@@ -14,7 +14,9 @@ name: "Step[3+4]: CI Gate"
 # ghost workflow interference (GitHub platform bug with deleted workflows).
 #
 # EDGE CASES HANDLED:
-#   - PR + push double-trigger: concurrency group deduplicates per PR number
+#   - PR + push double-trigger: concurrency groups keyed by event_name so they
+#     never cancel each other. Only PR runs use cancel-in-progress (push-to-main
+#     runs must complete to trigger deploy).
 #   - Stale PRs: newer push cancels in-progress CI on same PR
 #   - Merge queue: push-to-main run ensures merged code is verified before deploy
 #   - Test flakiness: --continue flag runs all tests, reports all failures
@@ -35,8 +37,8 @@ permissions:
   actions: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: ci-gate-${{ github.event_name }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   # ── Full build + lint + test via reusable workflow ──────────────────────────
