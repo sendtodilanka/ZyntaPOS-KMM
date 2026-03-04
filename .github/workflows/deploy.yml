@@ -1,11 +1,11 @@
-name: Deploy to VPS
+name: Step[5]: Deploy to VPS
 
 on:
   # Only deploy after CI passes on main — never on a raw push.
   # ci.yml now runs on both pull_request and push:main, so this fires
   # only once CI has verified the merged code is green.
   workflow_run:
-    workflows: [ "CI" ]
+    workflows: [ "Step[3+4]: CI Gate" ]
     types: [ completed ]
     branches: [ main ]
   workflow_dispatch:
@@ -27,7 +27,7 @@ env:
 
 jobs:
   deploy:
-    name: Deploy to Contabo VPS
+    name: Step[5]: Deploy to Contabo VPS
     runs-on: ubuntu-latest
     environment: production
     # For workflow_run: only proceed if CI succeeded.
@@ -90,7 +90,7 @@ jobs:
             # Print running containers for confirmation
             docker compose ps
 
-      - name: Smoke test all endpoints (with homepage scan + retry)
+      - name: Step[6]: Smoke Test Endpoints
         if: success()
         id: smoke
         run: |
@@ -168,7 +168,7 @@ jobs:
 
           $PASS || { echo "Smoke test failed — initiating rollback"; exit 1; }
 
-      - name: Rollback to previous commit on smoke test failure
+      - name: Step[6]: Rollback on Smoke Failure
         if: steps.smoke.outcome == 'failure'
         uses: appleboy/ssh-action@v1.0.3
         with:

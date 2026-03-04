@@ -1,4 +1,4 @@
-name: Verify Endpoints
+name: Step[7]: Verify Endpoints
 
 # Runs automatically every 30 min AND after every deploy — no human trigger needed.
 #
@@ -12,7 +12,7 @@ on:
   schedule:
     - cron: '*/30 * * * *'   # Every 30 minutes — autonomous health monitoring
   workflow_run:
-    workflows: ["Deploy to VPS"]
+    workflows: ["Step[5]: Deploy to VPS"]
     types: [completed]        # Auto-verify immediately after every deploy
 
 # Read-only: this workflow only makes outbound HTTP requests and writes
@@ -22,7 +22,7 @@ permissions:
 
 jobs:
   verify:
-    name: Smoke Test All Endpoints
+    name: Step[7]: Smoke Test All Endpoints
     runs-on: ubuntu-latest
     timeout-minutes: 10
     # Skip post-deploy verification when the deploy itself failed or was rolled back.
@@ -37,7 +37,7 @@ jobs:
     continue-on-error: true
 
     steps:
-      - name: Test all subdomains
+      - name: Step[7]: Test All Subdomains
         run: |
           PASS=true
           SUBS="api license panel docs status sync"
