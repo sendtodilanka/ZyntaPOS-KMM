@@ -1,16 +1,22 @@
 # ═══════════════════════════════════════════════════════════════════
-# ZyntaPOS — Docker Compose (Phase 2 canary + real services)
+# ZyntaPOS — Docker Compose (Production)
 #
-# Current state (Phase 2 canary):
-#   • caddy  — reverse proxy for all 6 subdomains (Cloudflare TLS)
-#   • canary — nginx serving static healthcheck pages for each subdomain
+# Services:
+#   • caddy       — Cloudflare TLS reverse proxy (ports 80/443)
+#   • api         — Ktor REST API (port 8080, internal)
+#   • license     — Ktor license server (port 8083, internal)
+#   • sync        — Ktor WebSocket sync (port 8082, internal)
+#   • postgres    — PostgreSQL 16 database (internal only)
+#   • redis       — Redis 7 cache + pub/sub (internal only)
+#   • canary      — nginx canary pages (fallback during migration)
 #
-# When real backend services are built (TODO-007 Steps 7–10), replace
-# the canary reverse_proxy targets in Caddyfile with the real services
-# and add those service blocks below.
+# Secrets never go in this file. Use Docker secrets (files in ./secrets/).
+# Copy secrets.env.template → secrets.env and fill in values.
 #
-# Secrets never go in this file. Use .env (git-ignored) or
-# Docker secrets for runtime credentials.
+# TODO-007 Phase 2 canary → real services migration:
+#   When deploying a real service, update the matching Caddyfile
+#   reverse_proxy directive from `canary:80` to the service container
+#   name and port (e.g., `api:8080`, `license:8083`, `sync:8082`).
 # ═══════════════════════════════════════════════════════════════════
 
 services:
@@ -26,6 +32,7 @@ services:
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       # Cloudflare Origin Certificate — stored on VPS host, never in repo
+      # Generate at: Cloudflare → SSL/TLS → Origin Server → Create Certificate
       - /etc/caddy/certs:/etc/caddy/certs:ro
       - caddy_data:/data
       - caddy_config:/config
@@ -33,10 +40,170 @@ services:
       - canary
     networks:
       - zyntapos_net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
 
-  # ── Canary static pages (Phase 2 placeholder) ─────────────────────
-  # Serves a branded "coming soon" page for each subdomain.
-  # Remove this service and update Caddyfile when real services are live.
+  # ── Ktor REST API ──────────────────────────────────────────────────
+  api:
+    build:
+      context: ./backend/api
+      dockerfile: Dockerfile
+    container_name: zyntapos_api
+    restart: unless-stopped
+    expose:
+      - "8080"
+    environment:
+      - PORT=8080
+      - DB_URL=jdbc:postgresql://postgres:5432/zyntapos
+      - DB_USER=zyntapos
+      - DB_PASSWORD_FILE=/run/secrets/db_password
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
+      - JWT_ISSUER=https://api.zyntapos.com
+      - JWT_AUDIENCE=zyntapos-app
+      - RS256_PRIVATE_KEY_PATH=/run/secrets/rs256_private_key
+      - RS256_PUBLIC_KEY_PATH=/run/secrets/rs256_public_key
+      - ACCESS_TOKEN_TTL_MINUTES=60
+      - REFRESH_TOKEN_TTL_DAYS=30
+    secrets:
+      - db_password
+      - rs256_private_key
+      - rs256_public_key
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - zyntapos_net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ── Ktor License Server ────────────────────────────────────────────
+  license:
+    build:
+      context: ./backend/license
+      dockerfile: Dockerfile
+    container_name: zyntapos_license
+    restart: unless-stopped
+    expose:
+      - "8083"
+    environment:
+      - PORT=8083
+      - DB_URL=jdbc:postgresql://postgres:5432/zyntapos
+      - DB_USER=zyntapos
+      - DB_PASSWORD_FILE=/run/secrets/db_password
+      - JWT_ISSUER=https://api.zyntapos.com
+      - JWT_AUDIENCE=zyntapos-app
+      - RS256_PUBLIC_KEY_PATH=/run/secrets/rs256_public_key
+    secrets:
+      - db_password
+      - rs256_public_key
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - zyntapos_net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8083/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ── Ktor WebSocket Sync Server ─────────────────────────────────────
+  sync:
+    build:
+      context: ./backend/sync
+      dockerfile: Dockerfile
+    container_name: zyntapos_sync
+    restart: unless-stopped
+    expose:
+      - "8082"
+    environment:
+      - PORT=8082
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
+      - JWT_ISSUER=https://api.zyntapos.com
+      - RS256_PUBLIC_KEY_PATH=/run/secrets/rs256_public_key
+    secrets:
+      - rs256_public_key
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - zyntapos_net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8082/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ── PostgreSQL 16 ─────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: zyntapos_postgres
+    restart: unless-stopped
+    expose:
+      - "5432"
+    environment:
+      - POSTGRES_DB=zyntapos
+      - POSTGRES_USER=zyntapos
+      - POSTGRES_PASSWORD_FILE=/run/secrets/db_password
+    secrets:
+      - db_password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Tuning for 8 GB VPS (Contabo Cloud VPS 10)
+      - ./backend/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+    networks:
+      - zyntapos_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zyntapos -d zyntapos"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ── Redis 7 ───────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: zyntapos_redis
+    restart: unless-stopped
+    expose:
+      - "6379"
+    command: >
+      sh -c "redis-server
+        --requirepass $${REDIS_PASSWORD}
+        --maxmemory 256mb
+        --maxmemory-policy allkeys-lru
+        --appendonly yes
+        --save 900 1
+        --save 300 10"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    volumes:
+      - redisdata:/data
+    networks:
+      - zyntapos_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ── Canary static pages (fallback / panel placeholder) ─────────────
+  # Serves branded "coming soon" pages for panel.zyntapos.com.
+  # Remove when the React admin panel is deployed.
   canary:
     image: nginx:1-alpine
     container_name: zyntapos_canary
@@ -49,10 +216,25 @@ services:
     networks:
       - zyntapos_net
 
+# ── Docker Secrets ────────────────────────────────────────────────────
+# Store secret files at ./secrets/ on the VPS host (git-ignored).
+# See secrets.env.template for instructions.
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
+  rs256_private_key:
+    file: ./secrets/rs256_private_key.pem
+  rs256_public_key:
+    file: ./secrets/rs256_public_key.pem
+
+# ── Volumes ──────────────────────────────────────────────────────────
 volumes:
+  pgdata:
+  redisdata:
   caddy_data:
   caddy_config:
 
+# ── Networks ─────────────────────────────────────────────────────────
 networks:
   zyntapos_net:
     driver: bridge

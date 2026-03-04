@@ -1,22 +1,22 @@
 # ═══════════════════════════════════════════════════════════════════
-# ZyntaPOS — Caddyfile
+# ZyntaPOS — Caddyfile (Production)
 #
 # All 6 subdomains use the Cloudflare Origin Certificate for TLS.
-# Cloudflare terminates public TLS (orange-cloud); Caddy handles
+# Cloudflare (orange-cloud) terminates public TLS; Caddy handles
 # the origin leg with the wildcard CF cert.
 #
-# Why not Let's Encrypt for sync? The VPS firewall restricts ports
-# 80/443 to Cloudflare IP ranges — ACME HTTP-01 challenge cannot
-# reach the VPS from Let's Encrypt servers. CF Origin cert is used
-# for all subdomains including sync.
+# Generate the Cloudflare Origin Certificate at:
+#   Cloudflare → SSL/TLS → Origin Server → Create Certificate
+#   Hostnames: zyntapos.com, *.zyntapos.com
+#   Upload to VPS: /etc/caddy/certs/zyntapos_origin.{pem,key}
 #
-# NOTE (Phase 3): When the real WebSocket sync engine is deployed,
-# sync.zyntapos.com should remain orange-cloud. Cloudflare proxies
-# WebSocket connections on the free plan.
-#
-# Phase 2 canary: all subdomains proxy to the `canary` nginx container.
-# When real services are deployed, replace `canary:80` with the
-# service container name and port for each subdomain.
+# TODO-007 migration status:
+#   api.zyntapos.com      → api:8080     ✅ real service
+#   license.zyntapos.com  → license:8083 ✅ real service
+#   sync.zyntapos.com     → sync:8082    ✅ real service
+#   panel.zyntapos.com    → canary:80    🔲 Phase 3 (React panel)
+#   docs.zyntapos.com     → canary:80    🔲 Phase 3
+#   status.zyntapos.com   → canary:80    🔲 Phase 3
 # ═══════════════════════════════════════════════════════════════════
 
 # Shared TLS block — Cloudflare Origin Certificate (wildcard *.zyntapos.com)
@@ -24,38 +24,68 @@
 	tls /etc/caddy/certs/zyntapos_origin.pem /etc/caddy/certs/zyntapos_origin.key
 }
 
-# ── api.zyntapos.com — REST API (Ktor, Phase 2) ───────────────────
+# ── api.zyntapos.com — REST API (Ktor) ────────────────────────────
 api.zyntapos.com {
 	import cf_tls
-	reverse_proxy canary:80
+
+	# Pass real client IP through Cloudflare proxy
+	header_up X-Real-IP {remote_host}
+	header_up X-Forwarded-For {remote_host}
+
+	# Strip sensitive response headers from upstream
+	header -X-Powered-By
+
+	reverse_proxy api:8080 {
+		health_uri /health
+		health_interval 30s
+		health_timeout 10s
+	}
 }
 
-# ── license.zyntapos.com — License server (Ktor, Phase 2) ──────────
+# ── license.zyntapos.com — License server (Ktor) ──────────────────
 license.zyntapos.com {
 	import cf_tls
-	reverse_proxy canary:80
+
+	# Strict rate limiting: license heartbeat every 24h per device
+	# Additional rate limiting is enforced by the license service itself
+	header_up X-Real-IP {remote_host}
+
+	reverse_proxy license:8083 {
+		health_uri /health
+		health_interval 30s
+		health_timeout 10s
+	}
 }
 
-# ── panel.zyntapos.com — Internal admin dashboard (Phase 3) ────────
+# ── sync.zyntapos.com — WebSocket sync engine ─────────────────────
+sync.zyntapos.com {
+	import cf_tls
+
+	# WebSocket connections — pass Upgrade header
+	header_up Connection {>Connection}
+	header_up Upgrade {>Upgrade}
+
+	reverse_proxy sync:8082 {
+		health_uri /health
+		health_interval 30s
+		health_timeout 10s
+	}
+}
+
+# ── panel.zyntapos.com — Admin dashboard (Phase 3) ────────────────
 panel.zyntapos.com {
 	import cf_tls
 	reverse_proxy canary:80
 }
 
-# ── docs.zyntapos.com — Documentation site (Phase 2) ───────────────
+# ── docs.zyntapos.com — Documentation site (Phase 3) ──────────────
 docs.zyntapos.com {
 	import cf_tls
 	reverse_proxy canary:80
 }
 
-# ── status.zyntapos.com — Uptime / status page (Phase 2) ───────────
+# ── status.zyntapos.com — Uptime status page (Phase 3) ────────────
 status.zyntapos.com {
-	import cf_tls
-	reverse_proxy canary:80
-}
-
-# ── sync.zyntapos.com — WebSocket sync engine (orange-cloud) ───────
-sync.zyntapos.com {
 	import cf_tls
 	reverse_proxy canary:80
 }

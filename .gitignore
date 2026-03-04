@@ -101,3 +101,12 @@ crash_log*.txt
 # ── Claude Code agent worktrees (transient, auto-cleaned) ─────────────
 .claude/worktrees/
 platform-tools.zip
+
+# ZyntaPOS backend secrets (never commit)
+secrets/
+*.env
+!secrets.env.template
+backend/*/build/
+backend/*/gradle/
+backend/*/.gradle/
+backend/*/.kotlin/
