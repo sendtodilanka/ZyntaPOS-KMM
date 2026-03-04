@@ -73,7 +73,7 @@ jobs:
           esac
           echo "label=$LABEL" >> "$GITHUB_OUTPUT"
 
-      - name: Create PR (skip if already open)
+      - name: Create or find PR
         id: pr
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
@@ -85,6 +85,7 @@ jobs:
             echo "::warning::Step[3+4]: CI Gate will NOT be triggered automatically on the PR."
           fi
 
+          # Check for open PR first
           EXISTING=$(gh pr list \
             --head "$BRANCH" \
             --base main \
@@ -93,48 +94,66 @@ jobs:
             --jq '.[0].number // empty' 2>/dev/null || echo "")
 
           if [ -n "$EXISTING" ]; then
-            echo "PR #$EXISTING already open for branch $BRANCH — skipping create"
+            echo "PR #$EXISTING already open for branch $BRANCH — reusing"
             echo "pr_number=$EXISTING" >> "$GITHUB_OUTPUT"
             echo "created=false" >> "$GITHUB_OUTPUT"
-          else
-            {
-              echo "## Automated PR"
-              echo ""
-              echo "Step[1]: Branch Validate passed before this PR was created."
-              echo ""
-              echo "**Branch:** \`$BRANCH\`"
-              echo ""
-              echo "**Pre-merge checks (Step[1] — build-only):**"
-              echo "- Build — shared modules (core, domain, data, hal, security)"
-              echo "- Build — Android debug APK"
-              echo "- Build — Desktop JVM JAR"
-              echo ""
-              echo "**What happens next:**"
-              echo "Step[3+4]: CI Gate runs on this PR (full test + lint + detekt)."
-              echo "When all required status checks pass and the branch is up to date"
-              echo "with \`main\`, GitHub will automatically squash-merge and delete the"
-              echo "source branch."
-              echo ""
-              printf "> Triggered by \`%s\` — @%s\n" \
-                "${{ github.event.client_payload.sha }}" \
-                "${{ github.event.client_payload.actor }}"
-            } > /tmp/pr_body.md
-
-            PR_URL=$(gh pr create \
-              --base main \
-              --head "$BRANCH" \
-              --title "${{ steps.meta.outputs.title }}" \
-              --body-file /tmp/pr_body.md \
-              --label "${{ steps.meta.outputs.label }}")
-
-            PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
-            echo "Created PR #$PR_NUMBER → $PR_URL"
-            echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
-            echo "created=true" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
 
+          # Check if branch was already merged (closed PR exists)
+          MERGED=$(gh pr list \
+            --head "$BRANCH" \
+            --base main \
+            --state merged \
+            --json number \
+            --jq '.[0].number // empty' 2>/dev/null || echo "")
+
+          if [ -n "$MERGED" ]; then
+            echo "Branch $BRANCH was already merged via PR #$MERGED — nothing to do"
+            echo "pr_number=$MERGED" >> "$GITHUB_OUTPUT"
+            echo "created=false" >> "$GITHUB_OUTPUT"
+            echo "already_merged=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Create new PR
+          {
+            echo "## Automated PR"
+            echo ""
+            echo "Step[1]: Branch Validate passed before this PR was created."
+            echo ""
+            echo "**Branch:** \`$BRANCH\`"
+            echo ""
+            echo "**Pre-merge checks (Step[1] — build-only):**"
+            echo "- Build — shared modules (core, domain, data, hal, security)"
+            echo "- Build — Android debug APK"
+            echo "- Build — Desktop JVM JAR"
+            echo ""
+            echo "**What happens next:**"
+            echo "Step[3+4]: CI Gate runs on this PR (full test + lint + detekt)."
+            echo "When all required status checks pass and the branch is up to date"
+            echo "with \`main\`, GitHub will automatically squash-merge and delete the"
+            echo "source branch."
+            echo ""
+            printf "> Triggered by \`%s\` — @%s\n" \
+              "${{ github.event.client_payload.sha }}" \
+              "${{ github.event.client_payload.actor }}"
+          } > /tmp/pr_body.md
+
+          PR_URL=$(gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "${{ steps.meta.outputs.title }}" \
+            --body-file /tmp/pr_body.md \
+            --label "${{ steps.meta.outputs.label }}")
+
+          PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
+          echo "Created PR #$PR_NUMBER → $PR_URL"
+          echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "created=true" >> "$GITHUB_OUTPUT"
+
       - name: Ensure label on existing PR
-        if: steps.pr.outputs.created == 'false'
+        if: steps.pr.outputs.created == 'false' && steps.pr.outputs.already_merged != 'true'
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
@@ -143,6 +162,7 @@ jobs:
             --add-label "${{ steps.meta.outputs.label }}" 2>/dev/null || true
 
       - name: Enable auto-merge (squash + delete branch)
+        if: steps.pr.outputs.already_merged != 'true'
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
@@ -160,6 +180,7 @@ jobs:
           echo "Auto-merge enabled on PR #${{ steps.pr.outputs.pr_number }}"
 
       - name: Write pipeline summary
+        if: steps.pr.outputs.already_merged != 'true'
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
