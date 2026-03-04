@@ -21,6 +21,13 @@ name: Branch CI → Auto PR → Auto Merge
 #                         executes once ALL required status checks pass and the
 #                         branch is up-to-date with main.
 #
+# ── Prerequisites ────────────────────────────────────────────────────────────
+#
+#   IMPORTANT: This repository MUST be PUBLIC for CI to work without
+#   exhausting the 2000 free-plan minutes (private repos use metered minutes;
+#   macOS release runners at 10× multiplier drain the quota in hours).
+#   Public repos get unlimited GitHub Actions minutes on the free plan.
+#
 # ── One-time GitHub repo setup (do this once in the web UI) ──────────────────
 #
 #   1. Settings → General → Pull Requests
