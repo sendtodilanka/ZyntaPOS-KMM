@@ -3,43 +3,36 @@ name: "Step[2]: Auto PR & Enable Merge"
 # ─────────────────────────────────────────────────────────────────────────────
 # PIPELINE POSITION: Step 2 of 7
 #
-# Fires only when Step[1] (Branch Validate) completes successfully.
+# Fires when Step[1] dispatches "auto-pr-trigger" via repository_dispatch.
 # Creates a PR targeting main (or reuses an open one) and enables GitHub's
 # native auto-merge (squash + delete branch).
 #
 # PAT_TOKEN is required so GitHub fires Step[3+4]: CI Gate on the new PR.
 # GITHUB_TOKEN cannot trigger subsequent workflow runs — that is a GitHub
-# security restriction. If PAT_TOKEN is absent, a warning is emitted and
-# ci.yml will not auto-trigger on the PR.
+# security restriction.
 #
 # PREREQUISITES (one-time setup in GitHub repo settings):
-#   Settings → General → Pull Requests:  ✅ Allow auto-merge
-#   Settings → Branches → main:          ✅ Require status check "Step[3+4]: Build & Test"
+#   Settings → General → Pull Requests:  Allow auto-merge
+#   Settings → Branches → main:          Require status check "Step[3+4]: Build & Test"
 #   Settings → Secrets → PAT_TOKEN:      Personal Access Token with "repo" scope
 #
 # EDGE CASES HANDLED:
 #   - Existing PR: reuses open PR for the same branch (idempotent)
 #   - Auto-merge already enabled: idempotent check before enabling
 #   - PAT_TOKEN missing: falls back to GITHUB_TOKEN with warnings
-#   - Concurrent branch pushes: concurrency group per branch prevents races
-#   - Step1 failure: if-guard checks workflow_run.conclusion == 'success'
 #   - Branch name parsing: handles feature/*, fix/*, claude/* with slug cleanup
-#   - Auto-labeling: applies labels based on branch prefix for PR categorization
-#   - Empty branch name prefix: graceful fallback to 'enhancement' label
-#   - Protected branch deletion: --delete-branch only fires after merge
+#   - Auto-labeling: applies labels based on branch prefix
 # ─────────────────────────────────────────────────────────────────────────────
 
 on:
-  workflow_run:
-    workflows: ["Step[1]: Branch Validate"]
-    types: [completed]
+  repository_dispatch:
+    types: [ auto-pr-trigger ]
 
 permissions:
   contents: read
 
-# Cancel a queued step2 run if a newer step1 completed on the same branch.
 concurrency:
-  group: step2-auto-pr-${{ github.event.workflow_run.head_branch }}
+  group: step2-auto-pr-${{ github.event.client_payload.branch }}
   cancel-in-progress: true
 
 jobs:
@@ -47,34 +40,24 @@ jobs:
     name: "Step[2]: Auto PR & Enable Merge"
     runs-on: ubuntu-22.04
     timeout-minutes: 10
-    # Only proceed if Step[1] was green.
-    if: github.event.workflow_run.conclusion == 'success'
 
     permissions:
       contents: write
       pull-requests: write
 
     steps:
-      # ── Derive a human-readable PR title from the branch name ───────────────
-      # e.g.  feature/add-hold-order   →  "add hold order"
-      #        fix/M12-cart-rounding    →  "M12 cart rounding"
-      #        claude/fix-workflows-abc →  "fix workflows abc"
       - name: Derive PR title and labels
         id: meta
         run: |
-          BRANCH="${{ github.event.workflow_run.head_branch }}"
-
-          # Extract the prefix (feature, fix, claude, etc.)
+          BRANCH="${{ github.event.client_payload.branch }}"
           PREFIX="${BRANCH%%/*}"
 
-          # Extract human-readable title from after the prefix
           TITLE="${BRANCH#*/}"
           TITLE="${TITLE//-/ }"
           TITLE="${TITLE//_/ }"
           echo "title=$TITLE" >> "$GITHUB_OUTPUT"
           echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
 
-          # Map branch prefix → PR label for categorization
           case "$PREFIX" in
             feature)   LABEL="enhancement" ;;
             fix|hotfix) LABEL="bug" ;;
@@ -90,7 +73,6 @@ jobs:
           esac
           echo "label=$LABEL" >> "$GITHUB_OUTPUT"
 
-      # ── Create PR (or reuse an open one) ────────────────────────────────────
       - name: Create PR (skip if already open)
         id: pr
         env:
@@ -101,11 +83,8 @@ jobs:
           if [ "$HAS_PAT_TOKEN" != "true" ]; then
             echo "::warning::PAT_TOKEN secret is not set. Using GITHUB_TOKEN fallback."
             echo "::warning::Step[3+4]: CI Gate will NOT be triggered automatically on the PR."
-            echo "::warning::Set PAT_TOKEN (repo scope) to enable fully autonomous merging."
           fi
 
-          # Reuse existing open PR for this branch if one exists.
-          # Edge case: multiple open PRs for same branch (shouldn't happen, but be safe)
           EXISTING=$(gh pr list \
             --head "$BRANCH" \
             --base main \
@@ -137,8 +116,8 @@ jobs:
               echo "source branch."
               echo ""
               printf "> Triggered by \`%s\` — @%s\n" \
-                "${{ github.event.workflow_run.head_sha }}" \
-                "${{ github.event.workflow_run.actor.login }}"
+                "${{ github.event.client_payload.sha }}" \
+                "${{ github.event.client_payload.actor }}"
             } > /tmp/pr_body.md
 
             PR_URL=$(gh pr create \
@@ -154,25 +133,20 @@ jobs:
             echo "created=true" >> "$GITHUB_OUTPUT"
           fi
 
-      # ── Add label to existing PR if it was reused ────────────────────────────
       - name: Ensure label on existing PR
         if: steps.pr.outputs.created == 'false'
-        continue-on-error: true  # Label might already exist or not be created yet
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           gh pr edit "${{ steps.pr.outputs.pr_number }}" \
             --add-label "${{ steps.meta.outputs.label }}" 2>/dev/null || true
 
-      # ── Enable auto-merge ───────────────────────────────────────────────────
-      # continue-on-error: true prevents a deadlock where a failed enable-auto-merge
-      # marks the PR as unstable, causing the next run to fail again.
       - name: Enable auto-merge (squash + delete branch)
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
-          # Edge case: auto-merge might already be enabled (idempotent check)
           EXISTING=$(gh pr view "${{ steps.pr.outputs.pr_number }}" \
             --json autoMergeRequest --jq '.autoMergeRequest // empty' 2>/dev/null || echo "")
           if [ -n "$EXISTING" ]; then
@@ -185,7 +159,6 @@ jobs:
             --delete-branch
           echo "Auto-merge enabled on PR #${{ steps.pr.outputs.pr_number }}"
 
-      # ── Step Summary ────────────────────────────────────────────────────────
       - name: Write pipeline summary
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
@@ -200,16 +173,14 @@ jobs:
             echo "| | |"
             echo "|---|---|"
             echo "| **Branch** | \`${{ steps.meta.outputs.branch }}\` |"
-            echo "| **Commit** | \`${{ github.event.workflow_run.head_sha }}\` |"
-            echo "| **Actor** | @${{ github.event.workflow_run.actor.login }} |"
+            echo "| **Commit** | \`${{ github.event.client_payload.sha }}\` |"
+            echo "| **Actor** | @${{ github.event.client_payload.actor }} |"
             echo "| **PR** | [#${{ steps.pr.outputs.pr_number }}]($PR_URL) |"
             echo "| **Label** | \`${{ steps.meta.outputs.label }}\` |"
-            echo "| **Step[1] (build validate)** | ✅ Passed |"
-            echo "| **Step[2] (auto-merge)** | ✅ Enabled — squash into \`main\` |"
+            echo "| **Step[1] (build validate)** | Passed |"
+            echo "| **Step[2] (auto-merge)** | Enabled — squash into \`main\` |"
             echo "| **Branch after merge** | Deleted automatically |"
             echo ""
             echo "### Next"
             echo "Step[3+4]: CI Gate is running full build + lint + detekt + tests on the PR."
-            echo "The PR will be squash-merged into \`main\` automatically once"
-            echo "all required status checks pass."
           } >> "$GITHUB_STEP_SUMMARY"

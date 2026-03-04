@@ -3,28 +3,25 @@ name: "Step[6]: Smoke Test & Rollback"
 # ─────────────────────────────────────────────────────────────────────────────
 # PIPELINE POSITION: Step 6 of 7
 #
-# Fires only when Step[5]: Deploy to VPS completes successfully.
+# Fires when Step[5] dispatches "smoke-trigger" via repository_dispatch.
 # Tests all 6 production endpoints. If any endpoint is unhealthy, the VPS
 # is rolled back to the previous commit and the workflow fails visibly.
-# If all endpoints are healthy, Sentry is notified of the new release.
+# If all endpoints are healthy, Sentry is notified and Step[7] is dispatched.
 #
-# After a successful smoke test, Step[7]: Verify Endpoints fires automatically.
+# CHAINING: Uses repository_dispatch instead of workflow_run to avoid
+# ghost workflow interference.
 #
 # EDGE CASES HANDLED:
 #   - Container startup delay: 30s initial wait + 3 retries with 30s gaps
 #   - Rollback safety: uses HEAD~1 (the previously deployed commit)
 #   - Rollback failure: if rollback SSH also fails, workflow fails loudly
-#   - Sentry notification: only fires after confirmed healthy deployment
-#   - Sentry CLI: pinned version with explicit download (no pipe-to-shell)
 #   - Sentry auth missing: step skipped gracefully if SENTRY_AUTH_TOKEN not set
 #   - Partial outage: all 6 subdomains tested; any failure triggers full rollback
-#   - checkout@v4 with fetch-depth:0 for sentry-cli set-commits --auto
 # ─────────────────────────────────────────────────────────────────────────────
 
 on:
-  workflow_run:
-    workflows: ["Step[5]: Deploy to VPS"]
-    types: [completed]
+  repository_dispatch:
+    types: [ smoke-trigger ]
 
 permissions:
   contents: read
@@ -38,18 +35,14 @@ jobs:
     name: "Step[6]: Smoke Test & Rollback"
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # Only run when the SSH deploy actually succeeded.
-    if: github.event.workflow_run.conclusion == 'success'
 
     steps:
-      # Checkout with full history — required for sentry-cli set-commits --auto.
       - name: Checkout source
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ github.event.client_payload.sha }}
 
-      # ── Smoke Test ────────────────────────────────────────────────────────
       - name: "Step[6]: Smoke Test Endpoints"
         id: smoke
         uses: ./.github/actions/health-check
@@ -60,11 +53,10 @@ jobs:
           retry-delay: '30'
           curl-timeout: '20'
 
-      # ── Write smoke test results to step summary ──────────────────────────
       - name: Write smoke test summary
         if: always()
         run: |
-          DEPLOY_SHA="${{ github.event.workflow_run.head_sha }}"
+          DEPLOY_SHA="${{ github.event.client_payload.sha }}"
           {
             echo "## Step[6]: Smoke Test — \`${DEPLOY_SHA:0:8}\`"
             echo ""
@@ -73,13 +65,12 @@ jobs:
             echo "${{ steps.smoke.outputs.summary }}"
             echo ""
             if [ "${{ steps.smoke.outputs.healthy }}" = "true" ]; then
-              echo "### ✅ All 6 endpoints healthy — deploy verified"
+              echo "### All 6 endpoints healthy — deploy verified"
             else
-              echo "### ❌ Smoke test FAILED — automatic rollback initiated"
+              echo "### Smoke test FAILED — automatic rollback initiated"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # ── Fail the job if smoke test found degraded endpoints ───────────────
       - name: Check smoke test result
         id: smoke_gate
         if: steps.smoke.outputs.healthy != 'true'
@@ -88,10 +79,6 @@ jobs:
           echo "Initiating automatic rollback..."
           exit 1
 
-      # ── Rollback on Smoke Failure ─────────────────────────────────────────
-      # Uses HEAD~1 to revert to the previously deployed commit.
-      # Edge case: if this is the very first deploy, HEAD~1 won't exist.
-      # The script handles this by checking if the rollback target exists.
       - name: "Step[6]: Rollback on Smoke Failure"
         if: failure() && steps.smoke_gate.outcome == 'failure'
         uses: appleboy/ssh-action@v1.2.5
@@ -108,13 +95,11 @@ jobs:
             CURRENT_SHA=$(git rev-parse HEAD)
             echo "=== ROLLBACK: smoke test failed for ${CURRENT_SHA} ==="
 
-            # Edge case: check if HEAD~1 exists (first-ever deploy has no parent)
             if git rev-parse HEAD~1 >/dev/null 2>&1; then
               git reset --hard HEAD~1
               PREV_SHA=$(git rev-parse HEAD)
               echo "=== Rolled back to ${PREV_SHA} ==="
             else
-              echo "::warning::No previous commit to roll back to (first deploy?)"
               echo "=== Cannot rollback — this appears to be the first deploy ==="
               echo "=== Manual intervention required ==="
               exit 1
@@ -125,16 +110,12 @@ jobs:
             echo "=== Rollback complete: $(date) ==="
             docker compose ps
 
-      # ── Sentry Release Notification ───────────────────────────────────────
-      # Only notify Sentry once the deployment is confirmed stable by smoke test.
-      # SECURITY: Pin to a specific sentry-cli release — never pipe from sentry.io.
       - name: Notify Sentry of deploy
         if: steps.smoke.outputs.healthy == 'true'
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: zyntapos
         run: |
-          # Edge case: skip Sentry if auth token is not configured
           if [ -z "$SENTRY_AUTH_TOKEN" ]; then
             echo "::warning::SENTRY_AUTH_TOKEN not configured — skipping Sentry notification"
             exit 0
@@ -147,7 +128,7 @@ jobs:
             -o /usr/local/bin/sentry-cli
           chmod +x /usr/local/bin/sentry-cli
 
-          VERSION="${{ github.event.workflow_run.head_sha }}"
+          VERSION="${{ github.event.client_payload.sha }}"
           sentry-cli releases new "$VERSION" \
             --project zyntapos-api \
             --project zyntapos-license \
@@ -156,9 +137,17 @@ jobs:
           sentry-cli releases set-commits "$VERSION" --auto
           sentry-cli releases finalize "$VERSION"
           sentry-cli releases deploys "$VERSION" new -e production
-          echo "✅ Sentry release $VERSION created and deployed"
+          echo "Sentry release $VERSION created and deployed"
 
-      # ── Final status ──────────────────────────────────────────────────────
+      # ── Chain to Step[7]: Verify Endpoints ───────────────────────────────
+      - name: Dispatch endpoint verification
+        if: success()
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
+          event-type: verify-trigger
+          client-payload: '{"sha": "${{ github.event.client_payload.sha }}"}'
+
       - name: Post smoke test final status
         if: always()
         run: |
