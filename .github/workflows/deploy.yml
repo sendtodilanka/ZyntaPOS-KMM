@@ -10,6 +10,13 @@ on:
         required: false
         default: 'Manual trigger'
 
+# Minimal permissions for deploy: read source + write deployment status.
+# SSH credentials, VPS access, and Sentry auth are handled via secrets —
+# no GitHub token write scope is needed for the deploy steps themselves.
+permissions:
+  contents: read
+  deployments: write
+
 env:
   DEPLOY_PATH: /opt/zyntapos
 
@@ -166,7 +173,16 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: zyntapos
         run: |
-          curl -sSfL https://sentry.io/get-cli/ | sh -s -- --install-dir /usr/local/bin
+          # Install a pinned Sentry CLI version from the official GitHub release.
+          # SECURITY: Do NOT use `curl https://sentry.io/get-cli/ | sh` — that
+          # fetches an unpinned script from the internet and executes it as root,
+          # which is a supply chain attack vector. Always pin to a specific release.
+          SENTRY_CLI_VERSION="2.42.2"
+          curl -sSfL \
+            "https://github.com/getsentry/sentry-cli/releases/download/${SENTRY_CLI_VERSION}/sentry-cli-Linux-x86_64" \
+            -o /usr/local/bin/sentry-cli
+          chmod +x /usr/local/bin/sentry-cli
+
           VERSION="${{ github.sha }}"
           sentry-cli releases new "$VERSION" \
             --project zyntapos-api \

@@ -58,8 +58,17 @@ on:
       - 'perf/**'
       - 'style/**'
 
+# Default permissions for the validate job (read-only).
+# The auto-pr job overrides these with the scopes it needs.
+permissions:
+  contents: read
+
 # Cancel an in-progress run for the same branch when a newer push arrives.
 # This prevents stale runs from creating duplicate PRs or racing to merge.
+# IMPORTANT: Only the validate job is cancelled. The auto-pr job must NOT
+# be cancelled mid-flight or it may leave a PR without auto-merge enabled.
+# The `needs: validate` dependency ensures auto-pr only starts when validate
+# fully succeeds, so cancelling before auto-pr starts is always safe.
 concurrency:
   group: branch-ci-${{ github.ref }}
   cancel-in-progress: true
@@ -208,12 +217,18 @@ jobs:
       - name: Create PR (skip if already open)
         id: pr
         env:
-          # Prefer PAT_TOKEN; fall back to GITHUB_TOKEN with a warning
+          # Prefer PAT_TOKEN; fall back to GITHUB_TOKEN with a warning.
+          # SECURITY: Pass secrets via env vars — never interpolate them
+          # directly into bash with ${{ secrets.X }} inside run: blocks,
+          # as that embeds the value into the shell command string.
           GH_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
+          # Expose whether PAT_TOKEN was provided so bash can check without
+          # interpolating the secret value into the script source.
+          HAS_PAT_TOKEN: ${{ secrets.PAT_TOKEN != '' }}
         run: |
           BRANCH="${{ github.ref_name }}"
           TOKEN_TYPE="PAT_TOKEN"
-          if [ -z "${{ secrets.PAT_TOKEN }}" ]; then
+          if [ "$HAS_PAT_TOKEN" != "true" ]; then
             TOKEN_TYPE="GITHUB_TOKEN (fallback — ci.yml may not auto-trigger on PR)"
             echo "::warning::PAT_TOKEN secret is not set. Using GITHUB_TOKEN fallback."
             echo "::warning::ci.yml will NOT be triggered automatically on the PR."

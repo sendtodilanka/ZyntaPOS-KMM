@@ -3,10 +3,25 @@ name: Release
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:   # Allow manual release builds from the Actions tab
+
+# Default: restrict all jobs to read-only; individual jobs below
+# elevate only the scopes they actually need.
+permissions:
+  contents: read
+
+# Prevent two release runs from racing on the same push.
+# Never cancel in-progress releases — completing a deploy is safer than
+# leaving it half-done.
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 env:
   JAVA_VERSION: '21'
-  JAVA_DISTRIBUTION: 'temurin'
+  # Use JetBrains JDK — matches ci.yml and auto-merge.yml to ensure the
+  # same toolchain is used for all build types and avoids foojay.io downloads.
+  JAVA_DISTRIBUTION: 'jetbrains'
 
 jobs:
   # ═════════════════════════════════════════════════════════════════════
@@ -16,6 +31,8 @@ jobs:
     name: Android APK
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout source
@@ -75,6 +92,8 @@ jobs:
     name: macOS DMG
     runs-on: macos-latest
     timeout-minutes: 60
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout source
@@ -120,6 +139,8 @@ jobs:
     name: Windows MSI
     runs-on: windows-latest
     timeout-minutes: 60
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout source
@@ -171,6 +192,8 @@ jobs:
     name: Linux DEB
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout source
