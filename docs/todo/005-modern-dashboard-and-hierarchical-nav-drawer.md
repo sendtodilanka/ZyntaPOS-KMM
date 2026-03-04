@@ -1,6 +1,6 @@
 # TODO-005: Modern Dashboard + Hierarchical Navigation Drawer
 
-**Status:** Pending
+**Status:** Complete
 **Priority:** HIGH — Production UX polish; current UI uses basic flat navigation
 **Phase:** Phase 1 (MVP — required for production-ready visual quality)
 **Created:** 2026-03-01
@@ -584,33 +584,33 @@ Full persistent drawer (260dp) + content area. **Zero scrolling.**
 ## Validation Checklist
 
 ### Navigation Drawer
-- [ ] COMPACT: Modal overlay drawer with hamburger trigger (no bottom bar)
-- [ ] MEDIUM: Mini mode (72dp) with expand toggle to 260dp
-- [ ] EXPANDED: Full mode (260dp) with collapse toggle to 72dp
-- [ ] Parent/child items with expandable chevron animation
-- [ ] Sticky header with logo and collapse button
-- [ ] Sticky footer with user avatar, name, role, overflow
-- [ ] Floating popout submenu on mini-mode hover
-- [ ] 4dp left border accent on active items
-- [ ] Section headers (OPERATIONS, MANAGEMENT, HR & FINANCE, SYSTEM)
-- [ ] 250ms ease-out animation for expand/collapse
-- [ ] RBAC filtering preserved for all items
-- [ ] Drawer state persisted across navigation
+- [x] COMPACT: Modal overlay drawer with hamburger trigger (no bottom bar)
+- [x] MEDIUM: Mini mode (72dp) with expand toggle to 260dp
+- [x] EXPANDED: Full mode (260dp) with collapse toggle to 72dp
+- [x] Parent/child items with expandable chevron animation
+- [x] Sticky header with logo and collapse button
+- [x] Sticky footer with user avatar, name, role, overflow
+- [x] Floating popout submenu on mini-mode hover
+- [x] 4dp left border accent on active items
+- [x] Section headers (OPERATIONS, MANAGEMENT, HR & FINANCE, SYSTEM)
+- [x] 250ms ease-out animation for expand/collapse
+- [x] RBAC filtering preserved for all items
+- [x] Drawer state persisted across navigation
 
 ### Dashboard
-- [ ] Gradient hero KPI card with sparkline
-- [ ] Animated counter values (800ms, staggered)
-- [ ] Daily target progress ring (120dp EXPANDED, 80dp others)
-- [ ] Time-aware greeting in profile dropdown
-- [ ] Staggered entry animations (fade+slide 20dp, 50ms stagger)
-- [ ] Tonal section containers (surfaceVariant)
-- [ ] Status chips on activity items (green CASH, blue CARD)
-- [ ] Quick action buttons with hover effect
-- [ ] Alert cards with action buttons
-- [ ] Weekly chart with gradient fill
-- [ ] EXPANDED layout: zero scrolling
-- [ ] MEDIUM layout: two-pane split
-- [ ] COMPACT layout: single-column scroll
-- [ ] Dark theme verified for all components
-- [ ] Loading state overlay
-- [ ] Empty state (no orders)
+- [x] Gradient hero KPI card with sparkline
+- [x] Animated counter values (800ms, staggered)
+- [x] Daily target progress ring (120dp EXPANDED, 80dp others)
+- [x] Time-aware greeting in profile dropdown
+- [x] Staggered entry animations (fade+slide 20dp, 50ms stagger)
+- [x] Tonal section containers (surfaceVariant)
+- [x] Status chips on activity items (green CASH, blue CARD)
+- [x] Quick action buttons with hover effect
+- [x] Alert cards with action buttons
+- [x] Weekly chart with gradient fill
+- [x] EXPANDED layout: zero scrolling
+- [x] MEDIUM layout: two-pane split
+- [x] COMPACT layout: single-column scroll
+- [x] Dark theme verified for all components
+- [x] Loading state overlay
+- [x] Empty state (no orders)
