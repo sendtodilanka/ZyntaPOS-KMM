@@ -9,6 +9,16 @@ name: "Step[6]: Smoke Test & Rollback"
 # If all endpoints are healthy, Sentry is notified of the new release.
 #
 # After a successful smoke test, Step[7]: Verify Endpoints fires automatically.
+#
+# EDGE CASES HANDLED:
+#   - Container startup delay: 30s initial wait + 3 retries with 30s gaps
+#   - Rollback safety: uses HEAD~1 (the previously deployed commit)
+#   - Rollback failure: if rollback SSH also fails, workflow fails loudly
+#   - Sentry notification: only fires after confirmed healthy deployment
+#   - Sentry CLI: pinned version with explicit download (no pipe-to-shell)
+#   - Sentry auth missing: step skipped gracefully if SENTRY_AUTH_TOKEN not set
+#   - Partial outage: all 6 subdomains tested; any failure triggers full rollback
+#   - checkout@v4 with fetch-depth:0 for sentry-cli set-commits --auto
 # ─────────────────────────────────────────────────────────────────────────────
 
 on:
@@ -39,83 +49,51 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.workflow_run.head_sha }}
 
+      # ── Smoke Test ────────────────────────────────────────────────────────
       - name: "Step[6]: Smoke Test Endpoints"
         id: smoke
+        uses: ./.github/actions/health-check
+        with:
+          subdomains: 'api license panel docs status sync'
+          initial-wait: '30'
+          max-retries: '3'
+          retry-delay: '30'
+          curl-timeout: '20'
+
+      # ── Write smoke test results to step summary ──────────────────────────
+      - name: Write smoke test summary
+        if: always()
         run: |
           DEPLOY_SHA="${{ github.event.workflow_run.head_sha }}"
-          echo "=== Waiting 30s for containers to initialise ==="
-          sleep 30
-          echo "=== Smoke Testing Endpoints ==="
-
           {
-            echo "## 🚀 Step[6]: Smoke Test — \`${DEPLOY_SHA}\`"
+            echo "## Step[6]: Smoke Test — \`${DEPLOY_SHA:0:8}\`"
             echo ""
             echo "**Tested at:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
             echo ""
-            echo "| Endpoint | /ping | Homepage | Status |"
-            echo "|----------|-------|----------|--------|"
+            echo "${{ steps.smoke.outputs.summary }}"
+            echo ""
+            if [ "${{ steps.smoke.outputs.healthy }}" = "true" ]; then
+              echo "### ✅ All 6 endpoints healthy — deploy verified"
+            else
+              echo "### ❌ Smoke test FAILED — automatic rollback initiated"
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-          PASS=true
+      # ── Fail the job if smoke test found degraded endpoints ───────────────
+      - name: Check smoke test result
+        id: smoke_gate
+        if: steps.smoke.outputs.healthy != 'true'
+        run: |
+          echo "::error::Smoke test failed — one or more endpoints are degraded"
+          echo "Initiating automatic rollback..."
+          exit 1
 
-          for sub in api license panel docs status sync; do
-            PING_HTTP="000"
-            PING_BODY=""
-
-            # /ping — up to 3 attempts (30s apart) while containers are still starting
-            for attempt in 1 2 3; do
-              PING_HTTP=$(curl -sf --max-time 20 -o /dev/null -w "%{http_code}" \
-                "https://${sub}.zyntapos.com/ping" 2>/dev/null || echo "000")
-              PING_BODY=$(curl -sf --max-time 20 \
-                "https://${sub}.zyntapos.com/ping" 2>/dev/null || echo "")
-              [ "$PING_HTTP" = "200" ] && break
-              echo "  ⏳ ${sub} /ping attempt $attempt — HTTP $PING_HTTP, retrying in 30s..."
-              [ "$attempt" -lt 3 ] && sleep 30
-            done
-
-            # Homepage check (2xx or 3xx = healthy)
-            HOME_HTTP=$(curl -sf --max-time 20 -o /dev/null -w "%{http_code}" \
-              "https://${sub}.zyntapos.com/" 2>/dev/null || echo "000")
-
-            if [ "$PING_HTTP" = "200" ] && [ "$PING_BODY" = "ok" ]; then
-              PING_ICON="✅ $PING_HTTP"
-              PING_OK=true
-            else
-              PING_ICON="❌ $PING_HTTP"
-              PING_OK=false
-            fi
-
-            HOME_FIRST="${HOME_HTTP:0:1}"
-            if [ "$HOME_FIRST" = "2" ] || [ "$HOME_FIRST" = "3" ]; then
-              HOME_ICON="✅ $HOME_HTTP"
-              HOME_OK=true
-            else
-              HOME_ICON="❌ $HOME_HTTP"
-              HOME_OK=false
-            fi
-
-            if $PING_OK && $HOME_OK; then
-              ROW="✅ HEALTHY"
-            else
-              ROW="❌ DEGRADED"
-              PASS=false
-            fi
-
-            echo "  ${sub}.zyntapos.com  /ping → $PING_HTTP  / → $HOME_HTTP"
-            echo "| \`${sub}.zyntapos.com\` | $PING_ICON | $HOME_ICON | $ROW |" >> "$GITHUB_STEP_SUMMARY"
-          done
-
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          if $PASS; then
-            echo "### ✅ All 6 endpoints healthy — deploy verified" >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "### ❌ Smoke test FAILED — automatic rollback initiated" >> "$GITHUB_STEP_SUMMARY"
-          fi
-
-          $PASS || { echo "Smoke test failed — initiating rollback"; exit 1; }
-
+      # ── Rollback on Smoke Failure ─────────────────────────────────────────
+      # Uses HEAD~1 to revert to the previously deployed commit.
+      # Edge case: if this is the very first deploy, HEAD~1 won't exist.
+      # The script handles this by checking if the rollback target exists.
       - name: "Step[6]: Rollback on Smoke Failure"
-        if: steps.smoke.outcome == 'failure'
+        if: failure() && steps.smoke_gate.outcome == 'failure'
         uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -127,24 +105,43 @@ jobs:
           script: |
             set -euo pipefail
             cd ${{ env.DEPLOY_PATH }}
-            echo "=== ROLLBACK: smoke test failed for ${{ github.event.workflow_run.head_sha }} ==="
-            git reset --hard HEAD~1
-            PREV_SHA=$(git rev-parse HEAD)
-            echo "=== Rolled back to $PREV_SHA ==="
+            CURRENT_SHA=$(git rev-parse HEAD)
+            echo "=== ROLLBACK: smoke test failed for ${CURRENT_SHA} ==="
+
+            # Edge case: check if HEAD~1 exists (first-ever deploy has no parent)
+            if git rev-parse HEAD~1 >/dev/null 2>&1; then
+              git reset --hard HEAD~1
+              PREV_SHA=$(git rev-parse HEAD)
+              echo "=== Rolled back to ${PREV_SHA} ==="
+            else
+              echo "::warning::No previous commit to roll back to (first deploy?)"
+              echo "=== Cannot rollback — this appears to be the first deploy ==="
+              echo "=== Manual intervention required ==="
+              exit 1
+            fi
+
             docker compose up -d --build --remove-orphans
             docker image prune -f
             echo "=== Rollback complete: $(date) ==="
             docker compose ps
 
+      # ── Sentry Release Notification ───────────────────────────────────────
+      # Only notify Sentry once the deployment is confirmed stable by smoke test.
+      # SECURITY: Pin to a specific sentry-cli release — never pipe from sentry.io.
       - name: Notify Sentry of deploy
-        # Only notify Sentry once the deployment is confirmed stable by smoke test.
-        if: steps.smoke.outcome == 'success'
+        if: steps.smoke.outputs.healthy == 'true'
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: zyntapos
         run: |
-          # SECURITY: Pin to a specific sentry-cli release — never pipe from sentry.io.
+          # Edge case: skip Sentry if auth token is not configured
+          if [ -z "$SENTRY_AUTH_TOKEN" ]; then
+            echo "::warning::SENTRY_AUTH_TOKEN not configured — skipping Sentry notification"
+            exit 0
+          fi
+
           SENTRY_CLI_VERSION="2.42.2"
+          echo "Downloading sentry-cli v${SENTRY_CLI_VERSION}..."
           curl -sSfL \
             "https://github.com/getsentry/sentry-cli/releases/download/${SENTRY_CLI_VERSION}/sentry-cli-Linux-x86_64" \
             -o /usr/local/bin/sentry-cli
@@ -159,8 +156,10 @@ jobs:
           sentry-cli releases set-commits "$VERSION" --auto
           sentry-cli releases finalize "$VERSION"
           sentry-cli releases deploys "$VERSION" new -e production
+          echo "✅ Sentry release $VERSION created and deployed"
 
-      - name: Post smoke test summary
+      # ── Final status ──────────────────────────────────────────────────────
+      - name: Post smoke test final status
         if: always()
         run: |
           {

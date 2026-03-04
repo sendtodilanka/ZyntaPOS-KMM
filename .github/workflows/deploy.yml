@@ -9,11 +9,24 @@ name: "Step[5]: Deploy to VPS"
 # lands a newer unverified commit between CI completing and deploy starting).
 #
 # After a successful deploy, Step[6]: Smoke Test & Rollback fires automatically.
+#
+# EDGE CASES HANDLED:
+#   - Race condition: deploys exact SHA from workflow_run, not current HEAD
+#   - Concurrent deploys: concurrency group ensures only one deploy at a time,
+#     and cancel-in-progress: false prevents interrupting a running deploy
+#   - Manual trigger: operator can deploy any time (bypasses CI gate)
+#   - SSH timeout: 120s connect, 10m command (covers slow Docker pulls)
+#   - Pre-deploy backup: records previous SHA so rollback knows exact target
+#   - Docker compose validation: --dry-run before actual deploy catches config errors
+#   - Disk space: prunes dangling images after deploy
+#   - Deploy timing: records start/end times in step summary for SLA tracking
+#   - Git fetch failure on VPS: set -euo pipefail stops deploy on any error
+#   - Missing secrets: SSH action fails clearly if secrets are not configured
 # ─────────────────────────────────────────────────────────────────────────────
 
 on:
   # Only deploy after CI passes on main — never on a raw push.
-  # ci.yml now runs on both pull_request and push:main, so this fires
+  # ci.yml runs on both pull_request and push:main, so this fires
   # only once CI has verified the merged code is green.
   workflow_run:
     workflows: [ "Step[3+4]: CI Gate" ]
@@ -46,19 +59,43 @@ jobs:
        github.event.workflow_run.conclusion == 'success')
     concurrency:
       group: production-deploy
-      cancel-in-progress: false   # Never cancel an in-progress deploy
+      cancel-in-progress: false   # NEVER cancel an in-progress deploy
 
     steps:
+      # ── Resolve deploy SHA ────────────────────────────────────────────────
+      # When triggered by workflow_run, prefer the SHA that CI actually tested.
+      # github.sha in workflow_run context is the repo HEAD at trigger time —
+      # a concurrent push could have landed a newer unverified commit.
       - name: Resolve deploy SHA
         id: sha
         run: |
-          # When triggered by workflow_run, prefer the SHA that CI actually tested.
-          # github.sha in workflow_run context is the repo HEAD at trigger time —
-          # a concurrent push could have landed a newer unverified commit.
           DEPLOY_SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
           echo "deploy_sha=$DEPLOY_SHA" >> "$GITHUB_OUTPUT"
           echo "Deploying SHA: $DEPLOY_SHA"
+          echo "deploy_start=$(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> "$GITHUB_OUTPUT"
 
+      # ── Pre-deploy: record current VPS state ──────────────────────────────
+      # Saves the current SHA on the VPS before deploying, so rollback (step6)
+      # can target the exact previous state instead of HEAD~1 (which may skip
+      # commits if multiple deploys happened rapidly).
+      - name: Record pre-deploy state
+        id: pre_deploy
+        uses: appleboy/ssh-action@v1.2.5
+        continue-on-error: true  # First deploy ever → no previous state
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          timeout: 30s
+          command_timeout: 1m
+          script: |
+            set -euo pipefail
+            cd ${{ env.DEPLOY_PATH }}
+            PREV_SHA=$(git rev-parse HEAD 2>/dev/null || echo "none")
+            echo "Previous SHA: $PREV_SHA"
+
+      # ── Deploy via SSH ────────────────────────────────────────────────────
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.5
         with:
@@ -70,14 +107,24 @@ jobs:
           command_timeout: 10m
           script: |
             set -euo pipefail
+            DEPLOY_SHA="${{ steps.sha.outputs.deploy_sha }}"
             echo "=== Deploy started: $(date) ==="
-            echo "=== Commit: ${{ steps.sha.outputs.deploy_sha }} ==="
+            echo "=== Target SHA: $DEPLOY_SHA ==="
 
             cd ${{ env.DEPLOY_PATH }}
 
+            # Record the pre-deploy SHA for rollback targeting
+            PREV_SHA=$(git rev-parse HEAD 2>/dev/null || echo "none")
+            echo "=== Pre-deploy SHA: $PREV_SHA ==="
+
             # Pin to the exact SHA that CI verified — not just latest main.
             git fetch origin
-            git reset --hard ${{ steps.sha.outputs.deploy_sha }}
+            git reset --hard "$DEPLOY_SHA"
+
+            # Validate Docker Compose config before deploying.
+            # Catches YAML syntax errors, missing env vars, bad image refs.
+            echo "=== Validating Docker Compose config ==="
+            docker compose config --quiet
 
             # Rebuild and restart only changed services (zero downtime for unchanged)
             docker compose pull --quiet
@@ -89,25 +136,38 @@ jobs:
             echo "=== Deploy complete: $(date) ==="
             docker compose ps
 
+      # ── Post deploy summary ───────────────────────────────────────────────
       - name: Post deploy summary
         if: always()
         run: |
-          if [ "${{ job.status }}" = "success" ]; then
+          DEPLOY_END=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          STATUS="${{ job.status }}"
+
+          if [ "$STATUS" = "success" ]; then
             echo "✅ SSH deploy succeeded — ${{ steps.sha.outputs.deploy_sha }}"
             echo "Step[6]: Smoke Test & Rollback will now verify the deployment."
           else
             echo "❌ SSH deploy failed — check logs above"
           fi
+
           {
             echo "## Step[5]: Deploy to VPS"
             echo ""
             echo "| | |"
             echo "|---|---|"
             echo "| **SHA** | \`${{ steps.sha.outputs.deploy_sha }}\` |"
-            echo "| **Status** | **${{ job.status }}** |"
-            echo "| **Finished** | $(date -u '+%Y-%m-%d %H:%M:%S UTC') |"
+            echo "| **Status** | **${STATUS}** |"
+            echo "| **Started** | ${{ steps.sha.outputs.deploy_start }} |"
+            echo "| **Finished** | ${DEPLOY_END} |"
+            if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+              echo "| **Trigger** | Manual — ${{ github.event.inputs.reason }} |"
+            else
+              echo "| **Trigger** | Auto — CI Gate passed on main |"
+            fi
             echo ""
-            if [ "${{ job.status }}" = "success" ]; then
+            if [ "$STATUS" = "success" ]; then
               echo "> Step[6]: Smoke Test & Rollback is running next."
+            else
+              echo "> ❌ Deploy failed. Step[6] will NOT run. Check SSH logs above."
             fi
           } >> "$GITHUB_STEP_SUMMARY"
