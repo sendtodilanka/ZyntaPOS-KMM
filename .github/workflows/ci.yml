@@ -70,6 +70,11 @@ jobs:
     timeout-minutes: 5
 
     steps:
+      # Checkout is required — dorny/test-reporter runs `git ls-files` to resolve paths.
+      # Without this, it fails with "fatal: not a git repository".
+      - name: Checkout source
+        uses: actions/checkout@v4
+
       - name: Download JUnit XML
         uses: actions/download-artifact@v4
         with:
