@@ -46,16 +46,20 @@ import com.zyntasolutions.zyntapos.data.repository.LabelPrinterConfigRepositoryI
 import com.zyntasolutions.zyntapos.data.repository.LabelTemplateRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.PrinterProfileRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.ReportRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.OperationalLogRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.StocktakeRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.ShiftRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.SystemRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.WarehouseRackRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.WarehouseRepositoryImpl
+import com.zyntasolutions.zyntapos.data.job.LogRetentionJob
+import com.zyntasolutions.zyntapos.data.logging.KermitSqliteAdapter
 import com.zyntasolutions.zyntapos.data.sync.ConflictResolver
 import com.zyntasolutions.zyntapos.data.sync.NetworkMonitor
 import com.zyntasolutions.zyntapos.data.sync.SyncEngine
 import com.zyntasolutions.zyntapos.domain.port.SecureStoragePort
 import com.zyntasolutions.zyntapos.domain.repository.AuditRepository
+import com.zyntasolutions.zyntapos.domain.repository.OperationalLogRepository
 import org.koin.core.qualifier.named
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.CategoryRepository
@@ -229,6 +233,21 @@ val dataModule = module {
 
     // Security audit log: append-only; no remote sync in Phase 1
     single<AuditRepository> { AuditRepositoryImpl(db = get()) }
+
+    // Operational log: Tier 2 diagnostic logging with automated retention policy
+    single<OperationalLogRepository> { OperationalLogRepositoryImpl(db = get()) }
+
+    // Kermit → SQLite bridge: routes all Kermit log events to operational_logs table
+    single {
+        KermitSqliteAdapter(
+            repository        = get(),
+            scope             = get(named("IO")),
+            sessionIdProvider = { null },  // Updated at runtime by auth module if needed
+        )
+    }
+
+    // Daily log retention job: enforces 3/14/30/90-day purge policy for operational_logs
+    single { LogRetentionJob(repository = get(), scope = get(named("IO"))) }
 
     // User accounts: CRUD + password lifecycle.
     // PasswordHashPort injected via securityModule binding — MERGED-F3.

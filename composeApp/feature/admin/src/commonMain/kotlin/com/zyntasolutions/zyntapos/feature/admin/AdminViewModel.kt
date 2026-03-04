@@ -104,6 +104,9 @@ class AdminViewModel(
             // Audit Log
             AdminIntent.RefreshAuditLog -> Unit // reactive — driven by observeAuditLog()
             is AdminIntent.FilterAuditByUser -> updateState { copy(auditUserFilter = intent.userId, auditPage = 0) }
+            is AdminIntent.FilterAuditByEventType -> updateState { copy(auditEventTypeFilter = intent.eventType, auditPage = 0) }
+            is AdminIntent.FilterAuditBySuccess -> updateState { copy(auditSuccessFilter = intent.success, auditPage = 0) }
+            AdminIntent.ExportAuditLogCsv -> exportAuditLogCsv()
             AdminIntent.VerifyIntegrity -> verifyIntegrity()
             AdminIntent.NextAuditPage -> updateState { copy(auditPage = (auditPage + 1).coerceAtMost(auditTotalPages - 1)) }
             AdminIntent.PrevAuditPage -> updateState { copy(auditPage = (auditPage - 1).coerceAtLeast(0)) }
@@ -169,6 +172,53 @@ class AdminViewModel(
             is Result.Loading -> Unit
         }
     }
+
+    // ── Audit CSV Export ──────────────────────────────────────────────────────
+
+    private suspend fun exportAuditLogCsv() {
+        val s = currentState
+        // Apply the same filters as the UI to export only the visible filtered set
+        val filtered = s.auditEntries
+            .filter { e ->
+                (s.auditUserFilter.isBlank() || e.userId.contains(s.auditUserFilter, ignoreCase = true)) &&
+                (s.auditEventTypeFilter == null || e.eventType == s.auditEventTypeFilter) &&
+                (s.auditSuccessFilter == null || e.success == s.auditSuccessFilter)
+            }
+
+        if (filtered.isEmpty()) {
+            sendEffect(AdminEffect.ShowSnackbar("No entries to export."))
+            return
+        }
+
+        runCatching {
+            val sb = StringBuilder()
+            sb.appendLine("id,eventType,userId,userName,userRole,deviceId,entityType,entityId,success,ipAddress,createdAt")
+            for (e in filtered) {
+                sb.appendLine(
+                    listOf(
+                        e.id.csvCell(),
+                        e.eventType.name.csvCell(),
+                        e.userId.csvCell(),
+                        e.userName.csvCell(),
+                        e.userRole?.name.orEmpty().csvCell(),
+                        e.deviceId.csvCell(),
+                        e.entityType.orEmpty().csvCell(),
+                        e.entityId.orEmpty().csvCell(),
+                        e.success.toString().csvCell(),
+                        e.ipAddress.orEmpty().csvCell(),
+                        e.createdAt.toEpochMilliseconds().toString().csvCell(),
+                    ).joinToString(",")
+                )
+            }
+            val fileName = "audit_log_${Clock.System.now().toEpochMilliseconds()}.csv"
+            sendEffect(AdminEffect.ShareCsvExport(csvContent = sb.toString(), fileName = fileName))
+        }.onFailure {
+            sendEffect(AdminEffect.ShowSnackbar("Export failed: ${it.message}"))
+        }
+    }
+
+    /** Wraps a cell value in double-quotes and escapes internal quotes (RFC 4180). */
+    private fun String.csvCell(): String = "\"${replace("\"", "\"\"")}\""
 
     // ── Audit Integrity ───────────────────────────────────────────────────────
 

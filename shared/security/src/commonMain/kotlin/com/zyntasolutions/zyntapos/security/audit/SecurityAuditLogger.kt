@@ -6,6 +6,7 @@ import com.zyntasolutions.zyntapos.domain.model.Permission
 import com.zyntasolutions.zyntapos.domain.model.Role
 import com.zyntasolutions.zyntapos.domain.repository.AuditRepository
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.minutes
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import kotlinx.serialization.encodeToString
@@ -117,6 +118,38 @@ class SecurityAuditLogger(
             success = true,
             payload = json.encodeToString(LogoutPayload(reason = "idle_timeout")),
         )
+    }
+
+    // ─── Brute-force detection ────────────────────────────────────────────────
+
+    /**
+     * Returns `true` if [userId] has exceeded [threshold] failed login attempts
+     * within the last [windowMinutes] minutes.
+     *
+     * Designed for use immediately after a failed [logLoginAttempt] call:
+     * ```kotlin
+     * auditLogger.logLoginAttempt(false, userId)
+     * if (auditLogger.isLoginBruteForced(userId)) {
+     *     // show lockout message
+     * }
+     * ```
+     *
+     * Exceptions (e.g., DB unavailable) are swallowed — returns `false` on failure
+     * so that a logging error never inadvertently locks a legitimate user out.
+     *
+     * @param userId        User ID to check (usually the email / username).
+     * @param windowMinutes Time window to inspect (default: 5 minutes).
+     * @param threshold     Number of failures that triggers brute-force flag (default: 5).
+     */
+    suspend fun isLoginBruteForced(
+        userId: String,
+        windowMinutes: Int = 5,
+        threshold: Int = 5,
+    ): Boolean {
+        val sinceEpochMillis = (Clock.System.now() - windowMinutes.minutes).toEpochMilliseconds()
+        return runCatching {
+            auditRepository.getRecentLoginFailureCount(userId, sinceEpochMillis) >= threshold
+        }.getOrDefault(false)
     }
 
     // ─── RBAC ─────────────────────────────────────────────────────────────────
