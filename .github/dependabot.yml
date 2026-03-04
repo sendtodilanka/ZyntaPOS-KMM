@@ -1,0 +1,48 @@
+version: 2
+updates:
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Colombo"
+    labels:
+      - "dependencies"
+      - "gradle"
+    groups:
+      kotlin:
+        patterns:
+          - "org.jetbrains.kotlin*"
+          - "org.jetbrains.compose*"
+      androidx:
+        patterns:
+          - "androidx.*"
+      ktor:
+        patterns:
+          - "io.ktor*"
+      koin:
+        patterns:
+          - "io.insert-koin*"
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Colombo"
+    labels:
+      - "dependencies"
+      - "docker"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Colombo"
+    labels:
+      - "dependencies"
+      - "github-actions"

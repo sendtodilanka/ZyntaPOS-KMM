@@ -1,0 +1,80 @@
+name: Canary Token Alert Response
+
+on:
+  repository_dispatch:
+    types: [canary-token-triggered]
+  workflow_dispatch:
+    inputs:
+      token_id:
+        description: 'Canary token identifier (A or B)'
+        required: true
+        type: string
+      source_ip:
+        description: 'Source IP that triggered the canary'
+        required: false
+        type: string
+
+jobs:
+  respond:
+    name: Alert & Triage
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      issues: write
+      contents: read
+
+    steps:
+      - name: Create Security Incident Issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tokenId = context.payload.client_payload?.token_id
+              || context.payload.inputs?.token_id
+              || 'unknown';
+            const sourceIp = context.payload.client_payload?.source_ip
+              || context.payload.inputs?.source_ip
+              || 'unknown';
+            const timestamp = new Date().toISOString();
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `[SECURITY] Canary Token ${tokenId} triggered — ${timestamp}`,
+              body: [
+                '## Canary Token Alert',
+                '',
+                `**Token:** ${tokenId}`,
+                `**Source IP:** ${sourceIp}`,
+                `**Triggered at:** ${timestamp}`,
+                '',
+                '## Immediate Actions Required',
+                '- [ ] Identify which credential/file was accessed',
+                '- [ ] Rotate affected credentials immediately',
+                '- [ ] Review access logs for the source IP',
+                '- [ ] Assess blast radius (what data was potentially accessed)',
+                '- [ ] Notify security team via #security-alerts Slack channel',
+                '',
+                '## References',
+                '- [Canary Token Dashboard](https://canarytokens.org/manage)',
+                '- [Incident Response Runbook](docs/security/incident-response.md)',
+              ].join('\n'),
+              labels: ['security', 'incident', 'P0'],
+            });
+
+      - name: Send Slack Alert
+        if: env.SLACK_SECURITY_WEBHOOK != ''
+        env:
+          SLACK_SECURITY_WEBHOOK: ${{ secrets.SLACK_SECURITY_WEBHOOK }}
+        run: |
+          curl -s -X POST "$SLACK_SECURITY_WEBHOOK" \
+            -H 'Content-type: application/json' \
+            --data "{
+              \"text\": \":rotating_light: *CANARY TOKEN TRIGGERED* :rotating_light:\",
+              \"attachments\": [{
+                \"color\": \"danger\",
+                \"fields\": [
+                  {\"title\": \"Token ID\", \"value\": \"${{ github.event.client_payload.token_id || github.event.inputs.token_id || 'unknown' }}\", \"short\": true},
+                  {\"title\": \"Triggered At\", \"value\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\", \"short\": true}
+                ]
+              }]
+            }"
