@@ -34,7 +34,7 @@ jobs:
     steps:
       # Checkout with full history — required for sentry-cli set-commits --auto.
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           ref: ${{ github.event.workflow_run.head_sha }}
