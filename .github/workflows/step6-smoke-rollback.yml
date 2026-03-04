@@ -116,7 +116,7 @@ jobs:
 
       - name: "Step[6]: Rollback on Smoke Failure"
         if: steps.smoke.outcome == 'failure'
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
