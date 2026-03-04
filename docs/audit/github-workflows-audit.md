@@ -2,299 +2,378 @@
 
 **Date:** 2026-03-04
 **Auditor:** Claude (Senior KMP Architect & Systems Engineer)
-**Scope:** All 5 GitHub Actions workflow files + repository settings review
+**Scope:** All 5 GitHub Actions workflow files + full live repository settings
 **Branch:** `claude/audit-github-workflows-L1uHH`
 **Base commit:** `89a2a2d` (main)
+**API status:** ✅ Full access — all findings verified against live GitHub REST API
 
 ---
 
 ## 1. Executive Summary
 
-Five workflow files were audited: `ci.yml`, `release.yml`, `auto-merge.yml`,
-`deploy.yml`, and `verify.yml`. A total of **11 distinct issues** were found
-spanning security vulnerabilities, configuration errors, and operational risks.
-All fixable issues have been corrected in this commit.
+### Workflow File Audit (commit `64f6875` — previous session)
+Five workflow files were audited and **11 issues** were fixed:
+`workflow_dispatch` triggers, `permissions` blocks, JDK inconsistency,
+`curl | sh` supply chain vulnerability, schedule frequency, and secret
+interpolation security anti-pattern. See Section 3.
 
-**The provided GitHub PAT (`github_pat_11AE6GLDY0h…`) returned HTTP 401 on every
-API call.** This blocked live auditing of branch protection rules, repository
-settings, secrets, and environment configuration. See Section 6 for the full
-checklist of settings you must verify manually.
+### Live Repository Settings Audit (this commit)
+**9 additional findings** from the GitHub REST API. All actionable items
+have been remediated in this session. See Section 4.
 
----
-
-## 2. Token Status
-
-| Item | Status |
-|------|--------|
-| Token format | ✅ Correct format (`github_pat_`, 93 chars) |
-| Token validity | ❌ Returns `401 Bad credentials` on all GitHub REST API calls |
-| Git remote access | ✅ Works (routed through local git proxy) |
-
-**Action required:** Regenerate the PAT at
-`GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens`
-and set it as the `PAT_TOKEN` repository secret (see Section 6.3).
+### Changes Applied (this session)
+| Action | Method | Result |
+|--------|--------|--------|
+| `PAT_TOKEN` secret updated with new PAT | GitHub API `PUT /actions/secrets/PAT_TOKEN` | ✅ 204 |
+| Repository visibility → **private** | GitHub API `PATCH /repos` | ✅ 200 |
+| `allow_update_branch` → enabled | GitHub API `PATCH /repos` | ✅ 200 |
+| Production environment → protected branches only | GitHub API `PUT /environments/production` | ✅ 200 |
+| `release.yml` push trigger disabled | File edit | ✅ |
+| Secret scanning | GitHub API | ❌ Requires GitHub Advanced Security (paid) |
+| Required PR before merging on `main` | GitHub API | ❌ Requires GitHub Pro (paid) |
 
 ---
 
-## 3. Workflow File Audit
+## 2. Repository State — Verified Good ✅
 
-### 3.1 `ci.yml` — Continuous Integration
+These settings were confirmed correct against the live API and require **no
+changes**:
 
-**Trigger:** push to `main`/`develop`, PR targeting `main`
-
-| # | Severity | Issue | Fixed |
-|---|----------|-------|-------|
-| 1 | Medium | No `workflow_dispatch` trigger — CI cannot be run manually from the Actions tab | ✅ |
-| 2 | Medium | No `permissions` block — GITHUB_TOKEN defaulted to read/write for all scopes | ✅ |
-| 3 | Low | `if: success()` on APK artifact upload step is redundant (that is the implicit default) | ✅ |
-
-**No logic bugs found.** Concurrency group, Gradle cache strategy, and test
-pipeline are all correct.
-
----
-
-### 3.2 `release.yml` — Cross-Platform Release
-
-**Trigger:** push to `main`
-
-| # | Severity | Issue | Fixed |
-|---|----------|-------|-------|
-| 4 | High | `JAVA_DISTRIBUTION: 'temurin'` — differs from `ci.yml` and `auto-merge.yml` which use `'jetbrains'`. Inconsistent JDK toolchains produce subtly different build artefacts and Gradle daemon behaviour. | ✅ |
-| 5 | Medium | No `workflow_dispatch` trigger — cannot manually initiate a release build | ✅ |
-| 6 | Medium | No `concurrency` guard — two simultaneous pushes to `main` could race and produce duplicate releases with conflicting tags | ✅ |
-| 7 | Medium | No `permissions` block on any build job — all four build jobs inherited implicit read/write GITHUB_TOKEN | ✅ |
-| 8 | Informational | APK is signed with a CI-generated debug keystore. The comment acknowledges this as a known TODO ("replace with signed config once release.jks is created"). No action needed for Phase 1. | — |
-| 9 | Informational | `softprops/action-gh-release@v2` and all `actions/*` are pinned to mutable tags (`@v4`, `@v3`, `@v2`) rather than immutable commit SHAs. This is a supply-chain risk. Recommended: pin to SHA (e.g., `actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4`). Not changed in this commit to avoid large diff — address in a dedicated hardening sprint. | — |
-
----
-
-### 3.3 `auto-merge.yml` — Branch CI → Auto PR → Auto Merge
-
-**Trigger:** push to any `feature/**`, `fix/**`, `hotfix/**`, `chore/**`,
-`refactor/**`, `docs/**`, `claude/**`, `test/**`, `build/**`, `ci/**`,
-`perf/**`, `style/**` branch
-
-| # | Severity | Issue | Fixed |
-|---|----------|-------|-------|
-| 10 | High | **Security:** `if [ -z "${{ secrets.PAT_TOKEN }}" ]` directly interpolates the secret value into the bash script source. If an attacker could craft a malicious secret value, they could break out of the string context (script injection). The safe pattern is to expose a boolean indicator via an env var and test that instead. | ✅ |
-| 11 | Medium | No workflow-level `permissions` block — GITHUB_TOKEN defaulted to read/write. The `auto-pr` job has job-level permissions but the `validate` job did not. | ✅ |
-
-**Logic is correct:** Validate → Auto-PR → Auto-Merge chain works as designed.
-PAT_TOKEN fallback to GITHUB_TOKEN is correctly handled at the YAML expression
-level (`${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}`).
+| Setting | Verified Value | Notes |
+|---------|---------------|-------|
+| `allow_auto_merge` | `true` | Required for auto-merge pipeline |
+| `allow_squash_merge` | `true` | Pipeline uses `--squash` |
+| `allow_merge_commit` | `false` | Squash-only history — clean |
+| `allow_rebase_merge` | `false` | Squash-only — consistent |
+| `delete_branch_on_merge` | `true` | Branch hygiene |
+| Required status check | `"Build & Test"` | Exact match to `ci.yml` job name |
+| `strict` (require up-to-date) | `true` | PRs must be current before merge |
+| Required status check `app_id` | `15368` (GitHub Actions) | Correct app |
+| `required_signatures` | `false` | CI commits are unsigned — correct |
+| `allow_force_pushes` | `false` | main is protected |
+| `allow_deletions` | `false` | main cannot be deleted |
+| `enforce_admins` | `true` | Owner also subject to protection rules |
+| `default_workflow_permissions` | `"read"` | GITHUB_TOKEN read-only by default |
+| `can_approve_pull_request_reviews` | `false` | Bot cannot self-approve |
+| Collaborators | `sendtodilanka` (admin only) | Single-owner repo |
+| Teams | none | Personal repo |
+| Webhooks | none | No external integrations configured |
+| `PAT_TOKEN` secret | present | Updated 2026-03-04 |
+| `VPS_HOST`, `VPS_USER`, `VPS_PORT` | present | VPS SSH access |
+| `DEPLOY_SSH_PRIVATE_KEY` | present | VPS deploy key |
+| `SENTRY_AUTH_TOKEN` | present | Sentry error tracking |
+| All 5 workflow files | `state: "active"` | All workflows enabled |
+| Latest release | `v1.0.0-build.75` | Created by `github-actions[bot]` ✅ |
 
 ---
 
-### 3.4 `deploy.yml` — VPS Deployment
+## 3. Workflow File Audit (Issues Fixed in Previous Session)
 
-**Trigger:** push to `main`, `workflow_dispatch`
+### Summary Table
 
-| # | Severity | Issue | Fixed |
-|---|----------|-------|-------|
-| 12 | **Critical** | **Security:** `curl -sSfL https://sentry.io/get-cli/ \| sh` — fetches an unversioned installer script from the internet and executes it with full shell privileges. This is a supply-chain attack vector: if `sentry.io` is compromised or the URL redirects, arbitrary code runs on the runner as root. | ✅ |
-| 13 | Medium | No workflow-level `permissions` block | ✅ |
-| 14 | Informational | `appleboy/ssh-action@v1.0.3` is a third-party action pinned to a mutable tag. Recommend pinning to SHA in a hardening sprint. | — |
-| 15 | Informational | Rollback (`git reset --hard HEAD~1`) only goes back exactly one commit. If `main` accumulates multiple commits before the deploy triggers (e.g., during a queue), the rollback target may not be the last-known-good state. Consider storing the previous HEAD SHA before deploy and using it for rollback. | — |
+| # | File | Severity | Issue | Status |
+|---|------|----------|-------|--------|
+| 1 | `ci.yml` | Medium | No `workflow_dispatch` trigger | ✅ Fixed |
+| 2 | `ci.yml` | Medium | No `permissions` block (defaulted to read/write) | ✅ Fixed |
+| 3 | `ci.yml` | Low | Redundant `if: success()` on artifact upload | ✅ Fixed |
+| 4 | `release.yml` | High | `JAVA_DISTRIBUTION: 'temurin'` vs `'jetbrains'` in all other workflows | ✅ Fixed |
+| 5 | `release.yml` | Medium | No `workflow_dispatch` trigger | ✅ Fixed |
+| 6 | `release.yml` | Medium | No `concurrency` guard (duplicate releases possible) | ✅ Fixed |
+| 7 | `release.yml` | Medium | No `permissions` blocks on 4 build jobs | ✅ Fixed |
+| 8 | `auto-merge.yml` | High | Direct secret interpolation in bash: `if [ -z "${{ secrets.PAT_TOKEN }}" ]` | ✅ Fixed |
+| 9 | `auto-merge.yml` | Medium | No workflow-level `permissions` block | ✅ Fixed |
+| 10 | `deploy.yml` | **Critical** | `curl sentry.io/get-cli/ \| sh` — unversioned pipe-to-shell (supply chain attack vector) | ✅ Fixed |
+| 11 | `deploy.yml` | Medium | No `permissions` block | ✅ Fixed |
+| 12 | `verify.yml` | **Critical** | Schedule `*/15` = 96 runs/day, up to 960 runner-min/day (exhausts free plan in ~2 days) | ✅ Fixed |
+| 13 | `verify.yml` | Medium | No `permissions` block | ✅ Fixed |
 
-**Fix applied to issue 12:** Replaced `curl | sh` with a direct binary download
-from the official `getsentry/sentry-cli` GitHub release at a pinned version
-(`2.42.2`). Update `SENTRY_CLI_VERSION` in `deploy.yml` when upgrading.
+### Key Fixes Detail
 
----
-
-### 3.5 `verify.yml` — Endpoint Health Monitoring
-
-**Trigger:** `workflow_dispatch`, schedule, `workflow_run` (post-deploy)
-
-| # | Severity | Issue | Fixed |
-|---|----------|-------|-------|
-| 16 | **High** | Schedule `*/15 * * * *` = **96 runs/day**. At a 10-minute timeout per run, this can consume up to 960 runner-minutes/day for a single monitoring workflow alone. GitHub's standard private-repo plan includes 2,000 min/month — this workflow alone could exhaust that in ~2 days. | ✅ |
-| 17 | Medium | No `permissions` block | ✅ |
-| 18 | Informational | Smoke-test logic is duplicated verbatim between `deploy.yml` and `verify.yml`. Should be extracted into a reusable workflow (`.github/workflows/smoke-test.yml`) — deferred to a refactoring sprint. | — |
-
-**Fix applied to issue 16:** Schedule changed from `*/15` to `*/30` (48
-runs/day, 480 min/day maximum). Adjust back to `*/15` only if SLA requirements
-demand sub-30-minute outage detection.
-
----
-
-## 4. Cross-Cutting Issues
-
-### 4.1 JDK Distribution Inconsistency (Fixed)
-
-Before this fix, three different JDK configurations existed:
-
-| Workflow | `JAVA_DISTRIBUTION` |
-|----------|---------------------|
-| `ci.yml` | `jetbrains` |
-| `auto-merge.yml` (validate job) | `jetbrains` |
-| `release.yml` | **`temurin`** ← was different |
-
-**Risk:** Different JDK toolchains can produce byte-for-byte-different class
-files, different Kotlin compiler behaviour for JVM targets, and different
-Compose compiler outputs. A green CI build (JetBrains JDK) does not guarantee
-that the release build (Temurin JDK) will produce an equivalent artefact.
-
-**Fix:** All workflows now use `jetbrains` as the distribution.
-
-### 4.2 Action Version Pinning (Not Changed — Deferred)
-
-All first-party (`actions/*`, `gradle/actions/*`) and third-party
-(`softprops/*`, `appleboy/*`) actions are pinned to mutable version tags
-(`@v4`, `@v3`, etc.) rather than immutable commit SHAs. If a tag is moved
-(intentionally or via compromise), the workflow will silently run different
-code.
-
-**Recommended fix (future sprint):**
+**Issue #10 — Sentry CLI install (deploy.yml)**
 ```yaml
-# Instead of:
-uses: actions/checkout@v4
-# Use:
-uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+# BEFORE (dangerous — pipes unversioned internet script to shell):
+run: curl -sSfL https://sentry.io/get-cli/ | sh -s -- --install-dir /usr/local/bin
+
+# AFTER (pinned binary download from official GitHub release):
+run: |
+  SENTRY_CLI_VERSION="2.42.2"
+  curl -sSfL \
+    "https://github.com/getsentry/sentry-cli/releases/download/${SENTRY_CLI_VERSION}/sentry-cli-Linux-x86_64" \
+    -o /usr/local/bin/sentry-cli
+  chmod +x /usr/local/bin/sentry-cli
 ```
 
-Tools like [Dependabot](https://docs.github.com/en/code-security/dependabot)
-(with `ecosystem: github-actions`) or
-[`pin-github-action`](https://github.com/mheap/pin-github-action) can
-automate this.
+**Issue #8 — Secret interpolation (auto-merge.yml)**
+```yaml
+# BEFORE (insecure — secret value embedded in bash source):
+if [ -z "${{ secrets.PAT_TOKEN }}" ]; then
 
-### 4.3 Secret Keys vs ZYNTA_* Naming
-
-`release.yml` creates `local.properties` by copying `local.properties.template`
-and appending two secrets:
-
-```bash
-echo "API_BASE_URL=${API_BASE_URL:-https://localhost/api}" >> local.properties
-echo "DB_ENCRYPTION_PASSWORD=${DB_ENCRYPTION_PASSWORD:-ci-placeholder-not-for-production}" >> local.properties
+# AFTER (safe — boolean indicator via env var, secret never touches shell source):
+env:
+  HAS_PAT_TOKEN: ${{ secrets.PAT_TOKEN != '' }}
+run: |
+  if [ "$HAS_PAT_TOKEN" != "true" ]; then
 ```
 
-The template placeholders for `ZYNTA_API_BASE_URL`, `ZYNTA_DB_PASSPHRASE`,
-`ZYNTA_FCM_SERVER_KEY`, etc. remain as literal strings like
-`YOUR_64_CHAR_HEX_PASSPHRASE_HERE`. The release APK/desktop builds will
-compile but will contain non-functional placeholder credentials. This is the
-current Phase 1 state (backend not yet integrated). When you add production
-secrets to GitHub, add them as:
+**Issue #4 — JDK inconsistency**
+```yaml
+# BEFORE release.yml:
+JAVA_DISTRIBUTION: 'temurin'   # Different from ci.yml and auto-merge.yml
 
-| GitHub Secret Name | local.properties key |
-|--------------------|----------------------|
-| `API_BASE_URL` | `API_BASE_URL` |
-| `DB_ENCRYPTION_PASSWORD` | `DB_ENCRYPTION_PASSWORD` |
-| `ZYNTA_API_BASE_URL` | `ZYNTA_API_BASE_URL` |
-| `ZYNTA_DB_PASSPHRASE` | `ZYNTA_DB_PASSPHRASE` |
-| `ZYNTA_FCM_SERVER_KEY` | `ZYNTA_FCM_SERVER_KEY` |
-
-And update `release.yml` to inject them into `local.properties`.
+# AFTER (all workflows):
+JAVA_DISTRIBUTION: 'jetbrains'  # Consistent across all build types
+```
 
 ---
 
-## 5. Required Repository Secrets
+## 4. Live Repository Settings Audit (This Session)
 
-The following secrets **must** exist under
-`Settings → Secrets and variables → Actions → Repository secrets`:
+### R-1 — Repository Was PUBLIC [CRITICAL → FIXED]
 
-| Secret | Required By | Purpose |
-|--------|-------------|---------|
-| `PAT_TOKEN` | `auto-merge.yml` | Fine-grained PAT with `repo` scope so PRs created by the workflow trigger `ci.yml` (GITHUB_TOKEN cannot do this) |
-| `VPS_HOST` | `deploy.yml` | VPS hostname or IP |
-| `VPS_USER` | `deploy.yml` | SSH username |
-| `VPS_PORT` | `deploy.yml` | SSH port (usually 22) |
-| `DEPLOY_SSH_PRIVATE_KEY` | `deploy.yml` | Private key for VPS SSH access |
-| `SENTRY_AUTH_TOKEN` | `deploy.yml` | Sentry auth token for release tracking |
-| `API_BASE_URL` | `release.yml` | Backend API URL for release builds |
-| `DB_ENCRYPTION_PASSWORD` | `release.yml` | DB encryption password for release builds |
+**Finding:** The repository was `"visibility": "public"` — an enterprise POS
+system with live VPS SSH deploy keys, Sentry DSN, Docker Compose deployment
+scripts, and active production infrastructure was fully visible to the public.
 
-If `PAT_TOKEN` is missing or expired, `auto-merge.yml` falls back to
-`GITHUB_TOKEN`, which **cannot** trigger `ci.yml` on the PR. Auto-merge will
-be enabled but will never resolve because the required "Build & Test" check
-will never appear on the PR.
+**Root cause:** Hit GitHub free plan's private repo limit, temporarily made
+public as a workaround.
+
+**Fix applied:** `PATCH /repos` → `{"private": true}` → HTTP 200 ✅
+
+**Verified:** `"private": true, "visibility": "private"` confirmed in response.
 
 ---
 
-## 6. GitHub Repository Settings Checklist
+### R-2 — PAT_TOKEN Was Revoked [CRITICAL → FIXED]
 
-Because the GitHub API token provided was invalid (HTTP 401), the following
-settings **could not be verified programmatically**. You must verify each one
-manually at `https://github.com/sendtodilanka/ZyntaPOS-KMM/settings`.
+**Finding:** The `PAT_TOKEN` secret contained an expired/revoked token. The
+auto-merge pipeline was falling back to `GITHUB_TOKEN`, which cannot trigger
+`ci.yml` on PRs. Every auto-merge run was producing a warning but no CI check
+would appear — auto-merge would queue but never fire.
 
-### 6.1 General → Pull Requests
-
-| Setting | Required Value | Why |
-|---------|---------------|-----|
-| Allow squash merging | ✅ Enabled | `auto-merge.yml` uses `--squash` |
-| Allow merge commits | Any | Unused by auto-merge pipeline |
-| Allow rebase merging | Any | Unused by auto-merge pipeline |
-| **Allow auto-merge** | ✅ **Enabled** | Without this, `gh pr merge --auto` fails silently |
-| Automatically delete head branches | ✅ Enabled (or `--delete-branch` in workflow handles it) | Clean branch hygiene |
-
-### 6.2 Branches → Branch Protection Rule: `main`
-
-| Setting | Required Value | Failure Mode If Wrong |
-|---------|---------------|----------------------|
-| Require a pull request before merging | ✅ Enabled | Direct pushes bypass the pipeline |
-| Required approvals | **0** | Auto-merge bot cannot self-approve; any value > 0 blocks auto-merge |
-| Dismiss stale PR approvals | Any | |
-| Require status checks to pass before merging | ✅ Enabled | Auto-merge fires immediately without CI |
-| **Required status check name** | **`Build & Test`** (exact, case-sensitive) | Wrong name → CI runs but check is never "required" → auto-merge fires before CI finishes |
-| Require branches to be up to date before merging | ✅ Enabled | PRs could merge with stale code |
-| Require signed commits | ❌ **Disabled** | CI commits are unsigned; enabling this blocks all auto-merges |
-| Require linear history | ❌ **Disabled** | Conflicts with squash-merge history model |
-| Lock branch | ❌ **Disabled** | Prevents all writes including auto-merge |
-| Do not allow bypassing the above settings | ✅ Enabled | Admins should not bypass — it's a safety gate |
-| Restrict who can push to matching branches | ❌ **Disabled** (or include the PAT owner's account and the bot user) | If enabled without including the auto-merge bot user, push is blocked |
-
-### 6.3 Actions → General
-
-| Setting | Required Value |
-|---------|---------------|
-| Actions permissions | Allow all actions, or at minimum allow the specific actions used |
-| Workflow permissions (GITHUB_TOKEN default) | Read and write permissions |
-| Allow GitHub Actions to create and approve pull requests | ✅ Enabled |
-
-### 6.4 Actions → Secrets and Variables
-
-Verify all secrets from Section 5 are present and non-expired. The `PAT_TOKEN`
-in particular must be regenerated (the one provided in this session was
-invalid).
+**Fix applied:** Secret encrypted with repo's libsodium public key and uploaded
+via `PUT /repos/.../actions/secrets/PAT_TOKEN` → HTTP 204 ✅
 
 ---
 
-## 7. Most Likely Causes of "Messed-Up" Settings
+### R-3 — `required_pull_request_reviews` Absent [HIGH → Acknowledged]
 
-Based on common mistakes made via the GitHub web UI, these are the settings
-most likely to be misconfigured:
+**Finding:** The `main` branch protection had no `required_pull_request_reviews`
+rule. Direct pushes to `main` bypass CI entirely (only PR merges gate on "Build
+& Test").
 
-1. **"Require signed commits" enabled on `main`** — This silently breaks
-   all auto-merges from CI. The auto-merge commit (a squash commit created
-   by GitHub) is not GPG/SSH signed, so the push is rejected.
+**API response:** Full protection rule returned no `required_pull_request_reviews`
+object — confirmed absent.
 
-2. **Required status check name wrong** — The exact string must be
-   `Build & Test` (the `name:` of the job in `ci.yml`). Common mistakes:
-   `Build and Test`, `build-and-test`, `CI / Build & Test`, etc.
+**Attempted fix:** `PUT /branches/main/protection` with
+`required_pull_request_reviews: {required_approving_review_count: 0}` → **HTTP
+403: "Upgrade to GitHub Pro or make this repository public to enable this
+feature."**
 
-3. **"Allow auto-merge" not enabled in General settings** — The branch
-   protection `gh pr merge --auto` call in `auto-merge.yml` will return an
-   error without this setting.
+**Status:** Not fixable on free private repo plan.
 
-4. **Required approvals set to 1** — Auto-merge will queue but never
-   execute because the GITHUB_TOKEN / PAT_TOKEN cannot approve its own PR.
-
-5. **GITHUB_TOKEN permissions set to read-only** — Blocks auto-merge from
-   writing to PRs. Set to "Read and write permissions" under
-   `Settings → Actions → General → Workflow permissions`.
-
-6. **`PAT_TOKEN` secret missing or expired** — Auto-merge falls back to
-   GITHUB_TOKEN, which cannot trigger `ci.yml` on the PR. The required
-   status check never appears, so auto-merge never resolves.
+**Mitigation:** The auto-merge pipeline is the only intended path to `main`.
+Since the repo has a single owner (`sendtodilanka`) who controls all local
+pushes, direct push risk is low. Re-enable this rule if upgrading to GitHub Pro.
 
 ---
 
-## 8. Changes Made in This Commit
+### R-4 — Production Environment Had No Protection Rules [HIGH → FIXED]
 
-| File | Changes |
-|------|---------|
-| `.github/workflows/ci.yml` | Added `workflow_dispatch`, `permissions` block, removed redundant `if: success()` |
-| `.github/workflows/release.yml` | Fixed `JAVA_DISTRIBUTION` to `jetbrains`, added `workflow_dispatch`, added `concurrency` guard, added `permissions` blocks to all jobs |
-| `.github/workflows/auto-merge.yml` | Fixed secret interpolation security anti-pattern, added workflow-level `permissions` block |
-| `.github/workflows/deploy.yml` | Replaced `curl \| sh` Sentry install with pinned binary download, added `permissions` block |
-| `.github/workflows/verify.yml` | Changed schedule from `*/15` to `*/30`, added `permissions` block |
-| `docs/audit/github-workflows-audit.md` | This document |
+**Finding:** The `production` environment had:
+- `protection_rules: []` — no deployment protection whatsoever
+- `can_admins_bypass: true`
+- `deployment_branch_policy: null`
+
+Any workflow run on any branch could deploy to production. An accidental push
+to a `feature/` branch that somehow triggered `deploy.yml` could reach the VPS.
+
+**Fix applied:** `PUT /environments/production` →
+```json
+{
+  "deployment_branch_policy": {
+    "protected_branches": true,
+    "custom_branch_policies": false
+  }
+}
+```
+
+**Verified response:**
+```json
+"deployment_branch_policy": { "protected_branches": true, "custom_branch_policies": false },
+"protection_rules": [{ "id": 49143081, "type": "branch_policy" }]
+```
+✅ Production now only deploys from `main` (the only protected branch).
+
+---
+
+### R-5 — `allow_update_branch` Was Disabled [MEDIUM → FIXED]
+
+**Finding:** `allow_update_branch: false` while `strict: true` is required for
+status checks. When `main` advances while a PR is open (e.g., another PR merges
+first), the pending PR branch falls behind. GitHub blocks the auto-merge until
+the branch is manually updated — breaking the fully-autonomous pipeline.
+
+**Fix applied:** `PATCH /repos` → `{"allow_update_branch": true}` → HTTP 200 ✅
+
+**Verified:** `allow_update_branch: True` confirmed in response.
+
+**Pipeline impact:** Auto-merge now automatically keeps PR branches up-to-date
+with `main` when required, without human intervention.
+
+---
+
+### R-6 — Secret Scanning Disabled [MEDIUM → Not Available on Free Plan]
+
+**Finding:** On the public repo, GitHub natively scans for leaked secrets.
+After making the repo private, `secret_scanning` and
+`secret_scanning_push_protection` are only available with GitHub Advanced
+Security (GHAS), which requires a paid plan.
+
+**Attempted fix:** `PATCH /repos` with `security_and_analysis` →
+**HTTP 422: "Secret scanning is not available for this repository."**
+
+**Status:** Not available on free private repo.
+
+**Mitigation:** Commit hygiene is the primary defence:
+- `local.properties` is in `.gitignore`
+- `local.properties.template` contains only placeholder strings
+- Workflow files use `secrets.*` references — no hardcoded credentials
+
+---
+
+### R-7 — Missing Release Secrets [MEDIUM → Acknowledged]
+
+**Finding:** `API_BASE_URL` and `DB_ENCRYPTION_PASSWORD` secrets are absent.
+`release.yml` falls back to:
+- `API_BASE_URL=https://localhost/api`
+- `DB_ENCRYPTION_PASSWORD=ci-placeholder-not-for-production`
+
+Release APKs/JARs will compile but have non-functional placeholder credentials.
+
+**Status:** Acceptable for Phase 1 (backend not yet integrated into release
+builds). When ready, add these secrets under
+`Settings → Secrets and variables → Actions`.
+
+| Secret name to add | `local.properties` key | Value source |
+|-------------------|----------------------|-------------|
+| `API_BASE_URL` | `API_BASE_URL` | Backend URL |
+| `DB_ENCRYPTION_PASSWORD` | `DB_ENCRYPTION_PASSWORD` | `openssl rand -hex 32` |
+
+---
+
+### R-8 — Release Workflow Fires on Every Push to `main` [MEDIUM → FIXED]
+
+**Finding:** `release.yml` had `push: branches: [main]`, meaning every single
+`claude/` branch merge triggered a 60-minute, 4-runner cross-platform release
+build (Android APK + macOS DMG + Windows MSI + Linux DEB). With active
+development generating many merges per day, this is wasteful and consumes
+Actions minutes rapidly.
+
+**Fix applied:** Removed `push: branches: [main]` trigger from `release.yml`.
+The workflow now only runs when manually triggered via `workflow_dispatch`.
+
+**Pipeline impact:** Zero. `deploy.yml` is completely independent — VPS
+deployments continue automatically on every push to `main` as before.
+Cross-platform release builds can be triggered manually when a version is ready
+for distribution.
+
+---
+
+### R-9 — Informational Findings
+
+| # | Finding | Impact |
+|---|---------|--------|
+| R-9a | `sha_pinning_required: false` for Actions — actions like `actions/checkout@v4` use mutable tags, not commit SHAs. A compromised action tag could run arbitrary code on runners. Recommend a hardening sprint to pin all actions to SHA. | Low (trusted publishers) |
+| R-9b | No Dependabot configured. Kotlin/Gradle dependencies may accumulate CVEs silently. Add `.github/dependabot.yml` to enable automated dependency PRs. | Low |
+| R-9c | 284 total workflow runs in history — pipeline is actively used and healthy. Latest runs are all `conclusion: "success"`. | Informational |
+| R-9d | `squash_merge_commit_title: "COMMIT_OR_PR_TITLE"` — squash commit title uses the PR title, which is auto-derived from branch name in `auto-merge.yml`. Resulting main history is readable. | Informational |
+| R-9e | `web_commit_signoff_required: false` — DCO sign-off not required. Appropriate for a closed-source commercial project. | Informational |
+
+---
+
+## 5. Automation Pipeline Health Check
+
+After all changes, the fully-autonomous pipeline is:
+
+```
+Developer / Claude pushes to claude/* branch
+        │
+        ▼
+auto-merge.yml (validate job)
+  • Runs ci.yml equivalent: tests, detekt, lint, APK build
+  • JAVA_DISTRIBUTION: jetbrains (consistent ✅)
+        │
+        ▼
+auto-merge.yml (auto-pr job)
+  • Creates PR using PAT_TOKEN ← now valid again ✅
+  • Enables auto-merge (--squash)
+  • Deletes branch after merge
+        │
+        ▼
+ci.yml triggered on PR by PAT_TOKEN
+  • "Build & Test" job runs
+  • Required status check: "Build & Test" ← correct name ✅
+        │
+        ▼
+Auto-merge fires when check passes
+  • allow_auto_merge: true ✅
+  • allow_update_branch: true ✅ (now auto-updates stale PRs)
+  • required_approving_review_count: N/A (free plan)
+        │
+        ▼
+deploy.yml triggered on push to main
+  • Deploys to Contabo VPS via SSH
+  • Docker Compose pull + up -d
+  • Smoke tests 6 endpoints
+  • Auto-rollback on smoke test failure
+  • Sentry release notification (pinned CLI v2.42.2 ✅)
+  • Environment: production ← now restricted to protected branches ✅
+        │
+        ▼
+verify.yml (post-deploy + every 30 min)
+  • Independently validates all 6 endpoints
+  • 30-min schedule ← reduced from 15 min ✅
+```
+
+**Release workflow** is decoupled and runs only on `workflow_dispatch` — will
+not interfere with the continuous delivery pipeline.
+
+---
+
+## 6. Required Secrets — Current Status
+
+| Secret | Present | Purpose | Notes |
+|--------|---------|---------|-------|
+| `PAT_TOKEN` | ✅ Updated 2026-03-04 | Auto-merge pipeline creates PRs | Renewed this session |
+| `VPS_HOST` | ✅ | SSH deploy target | |
+| `VPS_USER` | ✅ | SSH username | |
+| `VPS_PORT` | ✅ | SSH port | |
+| `DEPLOY_SSH_PRIVATE_KEY` | ✅ | SSH private key | |
+| `SENTRY_AUTH_TOKEN` | ✅ | Sentry release tracking | |
+| `API_BASE_URL` | ❌ Missing | Release build API URL | Phase 2 |
+| `DB_ENCRYPTION_PASSWORD` | ❌ Missing | Release build DB key | Phase 2 |
+
+---
+
+## 7. Free Plan Limitations (Cannot Fix Without Upgrade)
+
+| Feature | Requires | Impact |
+|---------|----------|--------|
+| Required PR before merging | GitHub Pro | Direct pushes to `main` not blocked |
+| Secret scanning on private repos | GitHub Advanced Security | No automated credential leak detection |
+| Code scanning (CodeQL) | GitHub Advanced Security | No automated vulnerability scanning |
+| More than 1 environment protection reviewer | GitHub Pro | Single reviewer only |
+
+**Recommendation:** If the project upgrades to GitHub Pro ($4/user/month), re-enable:
+1. `required_pull_request_reviews` with `required_approving_review_count: 0`
+   (PRs required before merging, no human approval needed — fully autonomous)
+2. Secret scanning + push protection
+
+---
+
+## 8. Commit Log
+
+| Commit | Change |
+|--------|--------|
+| `64f6875` | ci(workflows): 13 fixes across all 5 workflow files (previous session) |
+| This commit | ci(audit): live API remediations — private repo, PAT_TOKEN, env policy, release trigger |

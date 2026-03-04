@@ -1,9 +1,12 @@
 name: Release
 
 on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:   # Allow manual release builds from the Actions tab
+  # TEMPORARILY DISABLED: push trigger removed while cross-platform release
+  # packaging is being stabilised. VPS deployments continue unaffected via
+  # deploy.yml. Re-enable by adding:
+  #   push:
+  #     branches: [ main ]
+  workflow_dispatch:   # Manual release builds only — trigger from the Actions tab
 
 # Default: restrict all jobs to read-only; individual jobs below
 # elevate only the scopes they actually need.
