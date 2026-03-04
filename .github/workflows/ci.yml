@@ -1,4 +1,4 @@
-name: CI
+name: "Step[3+4]: CI Gate"
 
 on:
   pull_request:
@@ -24,18 +24,18 @@ env:
 
 jobs:
   build:
-    name: Build & Test
+    name: "Step[3+4]: Build & Test"
     runs-on: ubuntu-22.04
     timeout-minutes: 60
 
     steps:
       # ── Checkout ──────────────────────────────────────────────────────────
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       # ── Java ──────────────────────────────────────────────────────────────
       - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: ${{ env.JAVA_DISTRIBUTION }}
           java-version: ${{ env.JAVA_VERSION }}
@@ -46,7 +46,7 @@ jobs:
 
       # ── Gradle ────────────────────────────────────────────────────────────
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v3
+        uses: gradle/actions/setup-gradle@v5
         with:
           cache-read-only: false   # always write cache — push trigger for main/develop was removed
 
@@ -94,7 +94,7 @@ jobs:
 
       # ── Artifacts ─────────────────────────────────────────────────────────
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: zyntapos-debug-apk
           path: androidApp/build/outputs/apk/debug/*.apk
@@ -102,7 +102,7 @@ jobs:
 
       - name: Upload test reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-reports
           path: '**/build/reports/tests/'
@@ -110,7 +110,7 @@ jobs:
 
       - name: Upload lint & Detekt reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: lint-reports
           path: |

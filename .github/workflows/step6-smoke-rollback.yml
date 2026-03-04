@@ -1,0 +1,170 @@
+name: "Step[6]: Smoke Test & Rollback"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PIPELINE POSITION: Step 6 of 7
+#
+# Fires only when Step[5]: Deploy to VPS completes successfully.
+# Tests all 6 production endpoints. If any endpoint is unhealthy, the VPS
+# is rolled back to the previous commit and the workflow fails visibly.
+# If all endpoints are healthy, Sentry is notified of the new release.
+#
+# After a successful smoke test, Step[7]: Verify Endpoints fires automatically.
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  workflow_run:
+    workflows: ["Step[5]: Deploy to VPS"]
+    types: [completed]
+
+permissions:
+  contents: read
+  deployments: write
+
+env:
+  DEPLOY_PATH: /opt/zyntapos
+
+jobs:
+  smoke-rollback:
+    name: "Step[6]: Smoke Test & Rollback"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Only run when the SSH deploy actually succeeded.
+    if: github.event.workflow_run.conclusion == 'success'
+
+    steps:
+      # Checkout with full history — required for sentry-cli set-commits --auto.
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: "Step[6]: Smoke Test Endpoints"
+        id: smoke
+        run: |
+          DEPLOY_SHA="${{ github.event.workflow_run.head_sha }}"
+          echo "=== Waiting 30s for containers to initialise ==="
+          sleep 30
+          echo "=== Smoke Testing Endpoints ==="
+
+          {
+            echo "## 🚀 Step[6]: Smoke Test — \`${DEPLOY_SHA}\`"
+            echo ""
+            echo "**Tested at:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+            echo ""
+            echo "| Endpoint | /ping | Homepage | Status |"
+            echo "|----------|-------|----------|--------|"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          PASS=true
+
+          for sub in api license panel docs status sync; do
+            PING_HTTP="000"
+            PING_BODY=""
+
+            # /ping — up to 3 attempts (30s apart) while containers are still starting
+            for attempt in 1 2 3; do
+              PING_HTTP=$(curl -sf --max-time 20 -o /dev/null -w "%{http_code}" \
+                "https://${sub}.zyntapos.com/ping" 2>/dev/null || echo "000")
+              PING_BODY=$(curl -sf --max-time 20 \
+                "https://${sub}.zyntapos.com/ping" 2>/dev/null || echo "")
+              [ "$PING_HTTP" = "200" ] && break
+              echo "  ⏳ ${sub} /ping attempt $attempt — HTTP $PING_HTTP, retrying in 30s..."
+              [ "$attempt" -lt 3 ] && sleep 30
+            done
+
+            # Homepage check (2xx or 3xx = healthy)
+            HOME_HTTP=$(curl -sf --max-time 20 -o /dev/null -w "%{http_code}" \
+              "https://${sub}.zyntapos.com/" 2>/dev/null || echo "000")
+
+            if [ "$PING_HTTP" = "200" ] && [ "$PING_BODY" = "ok" ]; then
+              PING_ICON="✅ $PING_HTTP"
+              PING_OK=true
+            else
+              PING_ICON="❌ $PING_HTTP"
+              PING_OK=false
+            fi
+
+            HOME_FIRST="${HOME_HTTP:0:1}"
+            if [ "$HOME_FIRST" = "2" ] || [ "$HOME_FIRST" = "3" ]; then
+              HOME_ICON="✅ $HOME_HTTP"
+              HOME_OK=true
+            else
+              HOME_ICON="❌ $HOME_HTTP"
+              HOME_OK=false
+            fi
+
+            if $PING_OK && $HOME_OK; then
+              ROW="✅ HEALTHY"
+            else
+              ROW="❌ DEGRADED"
+              PASS=false
+            fi
+
+            echo "  ${sub}.zyntapos.com  /ping → $PING_HTTP  / → $HOME_HTTP"
+            echo "| \`${sub}.zyntapos.com\` | $PING_ICON | $HOME_ICON | $ROW |" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if $PASS; then
+            echo "### ✅ All 6 endpoints healthy — deploy verified" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### ❌ Smoke test FAILED — automatic rollback initiated" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          $PASS || { echo "Smoke test failed — initiating rollback"; exit 1; }
+
+      - name: "Step[6]: Rollback on Smoke Failure"
+        if: steps.smoke.outcome == 'failure'
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          timeout: 60s
+          command_timeout: 5m
+          script: |
+            set -euo pipefail
+            cd ${{ env.DEPLOY_PATH }}
+            echo "=== ROLLBACK: smoke test failed for ${{ github.event.workflow_run.head_sha }} ==="
+            git reset --hard HEAD~1
+            PREV_SHA=$(git rev-parse HEAD)
+            echo "=== Rolled back to $PREV_SHA ==="
+            docker compose up -d --build --remove-orphans
+            docker image prune -f
+            echo "=== Rollback complete: $(date) ==="
+            docker compose ps
+
+      - name: Notify Sentry of deploy
+        # Only notify Sentry once the deployment is confirmed stable by smoke test.
+        if: steps.smoke.outcome == 'success'
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: zyntapos
+        run: |
+          # SECURITY: Pin to a specific sentry-cli release — never pipe from sentry.io.
+          SENTRY_CLI_VERSION="2.42.2"
+          curl -sSfL \
+            "https://github.com/getsentry/sentry-cli/releases/download/${SENTRY_CLI_VERSION}/sentry-cli-Linux-x86_64" \
+            -o /usr/local/bin/sentry-cli
+          chmod +x /usr/local/bin/sentry-cli
+
+          VERSION="${{ github.event.workflow_run.head_sha }}"
+          sentry-cli releases new "$VERSION" \
+            --project zyntapos-api \
+            --project zyntapos-license \
+            --project zyntapos-sync \
+            --project zyntapos-android
+          sentry-cli releases set-commits "$VERSION" --auto
+          sentry-cli releases finalize "$VERSION"
+          sentry-cli releases deploys "$VERSION" new -e production
+
+      - name: Post smoke test summary
+        if: always()
+        run: |
+          {
+            echo ""
+            echo "---"
+            echo "_Step[6] finished at $(date -u '+%Y-%m-%d %H:%M:%S UTC') — status: **${{ job.status }}**_"
+          } >> "$GITHUB_STEP_SUMMARY"
