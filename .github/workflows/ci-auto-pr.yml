@@ -106,17 +106,12 @@ jobs:
             exit 0
           fi
 
-          # Check if branch was already merged (closed PR exists)
-          MERGED=$(gh pr list \
-            --head "$BRANCH" \
-            --base main \
-            --state merged \
-            --json number \
-            --jq '.[0].number // empty' 2>/dev/null || echo "")
-
-          if [ -n "$MERGED" ]; then
-            echo "Branch $BRANCH was already merged via PR #$MERGED — nothing to do"
-            echo "pr_number=$MERGED" >> "$GITHUB_OUTPUT"
+          # Check if the branch HEAD is already in main (nothing new to merge)
+          BRANCH_SHA="${{ github.event.client_payload.sha }}"
+          if git fetch origin main --depth=50 2>/dev/null && \
+             git merge-base --is-ancestor "$BRANCH_SHA" origin/main 2>/dev/null; then
+            echo "Branch HEAD $BRANCH_SHA is already in main — nothing to merge"
+            echo "pr_number=" >> "$GITHUB_OUTPUT"
             echo "created=false" >> "$GITHUB_OUTPUT"
             echo "already_merged=true" >> "$GITHUB_OUTPUT"
             exit 0
