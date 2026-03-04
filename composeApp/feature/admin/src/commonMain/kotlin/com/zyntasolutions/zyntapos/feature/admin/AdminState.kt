@@ -2,6 +2,7 @@ package com.zyntasolutions.zyntapos.feature.admin
 
 import com.zyntasolutions.zyntapos.domain.model.AuditEntry
 import com.zyntasolutions.zyntapos.domain.model.BackupInfo
+import com.zyntasolutions.zyntapos.domain.model.IntegrityReport
 import com.zyntasolutions.zyntapos.domain.model.DatabaseStats
 import com.zyntasolutions.zyntapos.domain.model.PurgeResult
 import com.zyntasolutions.zyntapos.domain.model.SystemHealth
@@ -36,6 +37,10 @@ data class AdminState(
     // ── Audit Log ─────────────────────────────────────────────────────────
     val auditEntries: List<AuditEntry> = emptyList(),
     val auditUserFilter: String = "",
+    val auditPage: Int = 0,
+    val auditTotalPages: Int = 1,
+    val integrityReport: IntegrityReport? = null,
+    val isVerifyingIntegrity: Boolean = false,
 
     // ── Global ────────────────────────────────────────────────────────────
     val isLoading: Boolean = false,

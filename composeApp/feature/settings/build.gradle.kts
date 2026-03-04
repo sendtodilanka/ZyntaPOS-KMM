@@ -27,6 +27,7 @@ kotlin {
             implementation(project(":composeApp:core"))
             implementation(project(":shared:core"))
             implementation(project(":shared:domain"))
+            implementation(project(":shared:security"))
             // :shared:hal is required by PrintTestPageUseCaseImpl (HAL orchestrator).
             // ViewModels must NOT import HAL types directly — they call the
             // PrintTestPageUseCase interface (in :shared:domain) with domain types only.

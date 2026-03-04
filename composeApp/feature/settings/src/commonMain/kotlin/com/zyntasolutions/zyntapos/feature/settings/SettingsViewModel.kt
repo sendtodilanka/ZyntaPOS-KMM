@@ -29,6 +29,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.settings.PrintTestPageUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.SaveLabelPrinterConfigUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.SavePrinterProfileUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.SaveUserUseCase
+import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.catch
@@ -76,6 +77,7 @@ class SettingsViewModel(
     private val getPrinterProfilesUseCase: GetPrinterProfilesUseCase,
     private val savePrinterProfileUseCase: SavePrinterProfileUseCase,
     private val deletePrinterProfileUseCase: DeletePrinterProfileUseCase,
+    private val auditLogger: SecurityAuditLogger,
 ) : BaseViewModel<SettingsState, SettingsIntent, SettingsEffect>(SettingsState()) {
 
     private var taxGroupJob: Job? = null
@@ -250,6 +252,7 @@ class SettingsViewModel(
                 settingsRepository.set(SettingsKeys.DATE_FORMAT,    s.dateFormat)
                 settingsRepository.set(SettingsKeys.LANGUAGE,       s.language)
                 sendEffect(SettingsEffect.GeneralSaved)
+                auditLogger.logSettingsChanged("general")
             } catch (e: Exception) {
                 updateState { copy(general = general.copy(saveError = e.message)) }
             } finally {
@@ -288,6 +291,7 @@ class SettingsViewModel(
                 settingsRepository.set(SettingsKeys.RECEIPT_TEMPLATE,     s.receiptTemplate.name)
                 settingsRepository.set(SettingsKeys.MAX_DISCOUNT_PERCENT, s.maxDiscountPercent.toString())
                 sendEffect(SettingsEffect.PosSaved)
+                auditLogger.logSettingsChanged("pos")
             } catch (e: Exception) {
                 updateState { copy(pos = pos.copy(saveError = e.message)) }
             } finally {
@@ -318,6 +322,7 @@ class SettingsViewModel(
                 .onSuccess {
                     updateState { copy(tax = tax.copy(isCreating = false, isEditing = null, saveError = null)) }
                     sendEffect(SettingsEffect.ShowSnackbar("Tax group saved successfully."))
+                    auditLogger.logTaxConfigChanged(taxGroup.name)
                 }
                 .onError { e ->
                     updateState { copy(tax = tax.copy(saveError = e.message)) }
@@ -497,6 +502,12 @@ class SettingsViewModel(
                             .onError { e -> updateState { copy(users = users.copy(form = users.form.copy(pinError = e.message))) } }
                             .onSuccess { sendEffect(SettingsEffect.PinUpdated) }
                     }
+                    if (!isUpdate) {
+                        auditLogger.logUserCreated(user.id, user.name)
+                    } else if (user.isActive != editingUser?.isActive) {
+                        if (!user.isActive) auditLogger.logUserDeactivated(user.id, user.name)
+                        else auditLogger.logUserReactivated(user.id, user.name)
+                    }
                     updateState { copy(users = users.copy(isCreating = false, editingUser = null, saveError = null)) }
                     sendEffect(SettingsEffect.UserSaved)
                 }
@@ -576,6 +587,7 @@ class SettingsViewModel(
                 .onSuccess {
                     updateState { copy(rbac = rbac.copy(isCreatingCustomRole = false, editingCustomRole = null, saveError = null)) }
                     sendEffect(SettingsEffect.RoleSaved)
+                    auditLogger.logCustomRoleModified(role.name)
                 }
                 .onError { e -> updateState { copy(rbac = rbac.copy(saveError = e.message)) } }
         }

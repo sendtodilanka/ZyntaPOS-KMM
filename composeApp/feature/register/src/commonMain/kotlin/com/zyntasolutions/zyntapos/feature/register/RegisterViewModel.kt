@@ -11,6 +11,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.register.OpenRegisterSessionUs
 import com.zyntasolutions.zyntapos.domain.usecase.register.PrintA4ZReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.PrintZReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.RecordCashMovementUseCase
+import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlin.time.Clock
 import kotlinx.coroutines.flow.first
@@ -51,6 +52,7 @@ class RegisterViewModel(
     private val printZReportUseCase: PrintZReportUseCase,
     private val printA4ZReportUseCase: PrintA4ZReportUseCase,
     private val authRepository: AuthRepository,
+    private val auditLogger: SecurityAuditLogger,
 ) : BaseViewModel<RegisterState, RegisterIntent, RegisterEffect>(RegisterState()) {
 
     private var currentUserId: String = "unknown"
@@ -211,6 +213,7 @@ class RegisterViewModel(
 
         when (result) {
             is Result.Success -> {
+                auditLogger.logRegisterOpen(currentUserId, form.selectedRegisterId!!, form.openingBalanceDouble)
                 updateState {
                     copy(
                         activeSession = result.data,
@@ -274,6 +277,11 @@ class RegisterViewModel(
 
         when (result) {
             is Result.Success -> {
+                if (dialog.type == CashMovement.Type.IN) {
+                    auditLogger.logCashIn(currentUserId, sessionId, dialog.amountDouble, dialog.reason.trim())
+                } else {
+                    auditLogger.logCashOut(currentUserId, sessionId, dialog.amountDouble, dialog.reason.trim())
+                }
                 val label = if (dialog.type == CashMovement.Type.IN) "Cash In" else "Cash Out"
                 sendEffect(RegisterEffect.ShowSuccess("$label of ${dialog.amountDouble} recorded."))
             }
@@ -320,6 +328,7 @@ class RegisterViewModel(
         when (result) {
             is Result.Success -> {
                 val closeResult = result.data
+                auditLogger.logRegisterClose(currentUserId, closeResult.session.id, closeResult.discrepancy)
                 updateState {
                     copy(
                         activeSession = null,

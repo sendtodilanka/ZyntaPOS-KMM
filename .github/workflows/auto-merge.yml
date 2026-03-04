@@ -294,10 +294,24 @@ jobs:
       # --squash   keeps main history linear (one commit per PR)
       # --delete-branch  cleans up the source branch after merge
       # --auto     the actual merge only fires once ALL required checks pass
+      #
+      # continue-on-error: true prevents a circular deadlock where a failed
+      # enable-auto-merge step marks this job as failed, which marks the PR as
+      # "unstable", which causes the next run to fail again with the same error.
+      # If auto-merge cannot be enabled, the PR stays open and can be merged
+      # manually once CI passes.
       - name: Enable auto-merge (squash + delete branch on merge)
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
+          # Skip if already enabled (idempotent)
+          EXISTING=$(gh pr view "${{ steps.pr.outputs.pr_number }}" \
+            --json autoMergeRequest --jq '.autoMergeRequest // empty' 2>/dev/null || echo "")
+          if [ -n "$EXISTING" ]; then
+            echo "Auto-merge already enabled on PR #${{ steps.pr.outputs.pr_number }} — skipping"
+            exit 0
+          fi
           gh pr merge "${{ steps.pr.outputs.pr_number }}" \
             --auto \
             --squash \

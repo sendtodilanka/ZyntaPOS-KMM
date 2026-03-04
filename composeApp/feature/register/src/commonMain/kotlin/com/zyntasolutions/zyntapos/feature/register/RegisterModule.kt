@@ -7,6 +7,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.register.PrintA4ZReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.PrintZReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.RecordCashMovementUseCase
 import com.zyntasolutions.zyntapos.feature.register.printer.ZReportPrinterAdapter
+import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
@@ -64,6 +65,7 @@ val registerModule = module {
             printZReportUseCase         = get(),
             printA4ZReportUseCase       = get(),
             authRepository              = get(),
+            auditLogger                 = get(),
         )
     }
 }

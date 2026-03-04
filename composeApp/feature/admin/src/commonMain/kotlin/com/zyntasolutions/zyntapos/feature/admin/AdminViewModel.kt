@@ -10,7 +10,9 @@ import com.zyntasolutions.zyntapos.domain.usecase.admin.GetBackupsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.GetDatabaseStatsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.GetSystemHealthUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.RestoreBackupUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.admin.VerifyAuditIntegrityUseCase
 import com.zyntasolutions.zyntapos.domain.repository.SystemRepository
+import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -35,6 +37,8 @@ class AdminViewModel(
     private val restoreBackupUseCase: RestoreBackupUseCase,
     private val deleteBackupUseCase: DeleteBackupUseCase,
     private val auditRepository: AuditRepository,
+    private val verifyAuditIntegrityUseCase: VerifyAuditIntegrityUseCase,
+    private val auditLogger: SecurityAuditLogger,
 ) : BaseViewModel<AdminState, AdminIntent, AdminEffect>(AdminState()) {
 
     init {
@@ -44,6 +48,7 @@ class AdminViewModel(
         viewModelScope.let {
             dispatch(AdminIntent.RefreshSystemHealth)
             dispatch(AdminIntent.RefreshDatabaseStats)
+            dispatch(AdminIntent.VerifyIntegrity)
         }
     }
 
@@ -55,7 +60,16 @@ class AdminViewModel(
 
     private fun observeAuditLog() {
         auditRepository.observeAll()
-            .onEach { entries -> updateState { copy(auditEntries = entries) } }
+            .onEach { entries ->
+                val totalPages = ((entries.size + 49) / 50).coerceAtLeast(1)
+                updateState {
+                    copy(
+                        auditEntries = entries,
+                        auditTotalPages = totalPages,
+                        auditPage = auditPage.coerceIn(0, (totalPages - 1).coerceAtLeast(0)),
+                    )
+                }
+            }
             .launchIn(viewModelScope)
     }
 
@@ -80,7 +94,10 @@ class AdminViewModel(
 
             // Audit Log
             AdminIntent.RefreshAuditLog -> Unit // reactive — driven by observeAuditLog()
-            is AdminIntent.FilterAuditByUser -> updateState { copy(auditUserFilter = intent.userId) }
+            is AdminIntent.FilterAuditByUser -> updateState { copy(auditUserFilter = intent.userId, auditPage = 0) }
+            AdminIntent.VerifyIntegrity -> verifyIntegrity()
+            AdminIntent.NextAuditPage -> updateState { copy(auditPage = (auditPage + 1).coerceAtMost(auditTotalPages - 1)) }
+            AdminIntent.PrevAuditPage -> updateState { copy(auditPage = (auditPage - 1).coerceAtLeast(0)) }
 
             // UI
             AdminIntent.DismissError -> updateState { copy(error = null) }
@@ -137,9 +154,22 @@ class AdminViewModel(
                         successMessage = "Purge complete: ${result.data.bytesFreed} records removed.",
                     )
                 }
+                auditLogger.logDataPurged(result.data.bytesFreed)
             }
             is Result.Error -> updateState { copy(isLoading = false, error = result.exception.message) }
             is Result.Loading -> Unit
+        }
+    }
+
+    // ── Audit Integrity ───────────────────────────────────────────────────────
+
+    private suspend fun verifyIntegrity() {
+        updateState { copy(isVerifyingIntegrity = true) }
+        runCatching {
+            val report = verifyAuditIntegrityUseCase()
+            updateState { copy(isVerifyingIntegrity = false, integrityReport = report) }
+        }.onFailure {
+            updateState { copy(isVerifyingIntegrity = false) }
         }
     }
 
@@ -148,9 +178,11 @@ class AdminViewModel(
     private suspend fun createBackup() {
         updateState { copy(isCreatingBackup = true) }
         val now = Clock.System.now().toEpochMilliseconds()
-        when (val result = createBackupUseCase(IdGenerator.newId(), now)) {
+        val backupId = IdGenerator.newId()
+        when (val result = createBackupUseCase(backupId, now)) {
             is Result.Success -> {
                 updateState { copy(isCreatingBackup = false, successMessage = "Backup created successfully.") }
+                auditLogger.logBackupCreated(backupId, "create")
             }
             is Result.Error -> {
                 updateState { copy(isCreatingBackup = false, error = result.exception.message) }
@@ -165,6 +197,7 @@ class AdminViewModel(
         when (val result = restoreBackupUseCase(backup.id)) {
             is Result.Success -> {
                 updateState { copy(isLoading = false, successMessage = "Restore complete. Restart required.") }
+                auditLogger.logBackupRestored(backup.id, "restore")
                 sendEffect(AdminEffect.RestartRequired)
             }
             is Result.Error -> updateState { copy(isLoading = false, error = result.exception.message) }

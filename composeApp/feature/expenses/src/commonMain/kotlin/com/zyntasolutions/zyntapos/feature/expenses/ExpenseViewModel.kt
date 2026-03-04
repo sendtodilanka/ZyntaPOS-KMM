@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.expenses
 
 import com.zyntasolutions.zyntapos.core.result.Result
+import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import com.zyntasolutions.zyntapos.core.utils.IdGenerator
 import com.zyntasolutions.zyntapos.domain.model.Expense
@@ -41,6 +42,7 @@ class ExpenseViewModel(
     private val approveExpenseUseCase: ApproveExpenseUseCase,
     private val authRepository: AuthRepository,
     private val postExpenseJournalEntryUseCase: PostExpenseJournalEntryUseCase,
+    private val auditLogger: SecurityAuditLogger,
 ) : BaseViewModel<ExpenseState, ExpenseIntent, ExpenseEffect>(ExpenseState()) {
 
     private var currentUserId: String = "unknown"
@@ -228,7 +230,11 @@ class ExpenseViewModel(
 
     private suspend fun onApproveExpense(expenseId: String) {
         when (val result = approveExpenseUseCase.approve(expenseId, currentUserId)) {
-            is Result.Success -> sendEffect(ExpenseEffect.ShowSuccess("Expense approved"))
+            is Result.Success -> {
+                sendEffect(ExpenseEffect.ShowSuccess("Expense approved"))
+                val amount = currentState.expenses.find { it.id == expenseId }?.amount ?: 0.0
+                auditLogger.logExpenseApproved(expenseId, amount)
+            }
             is Result.Error -> sendEffect(ExpenseEffect.ShowError(result.exception.message ?: "Approval failed"))
             is Result.Loading -> {}
         }

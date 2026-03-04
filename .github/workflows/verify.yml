@@ -25,6 +25,11 @@ jobs:
     name: Smoke Test All Endpoints
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # Production endpoints (api/license/panel/docs/status/sync.zyntapos.com) do not
+    # exist yet (Phase 1 MVP — backend VPS not provisioned). Setting continue-on-error
+    # prevents this scheduled workflow from showing as a failing required check while
+    # the infrastructure is not yet deployed. Remove this line once VPS is live.
+    continue-on-error: true
 
     steps:
       - name: Test all subdomains
@@ -39,7 +44,7 @@ jobs:
             if [ "${{ github.event_name }}" = "workflow_run" ]; then
               echo "**Trigger:** post-deploy (deploy: \`${{ github.event.workflow_run.conclusion }}\`)  "
             elif [ "${{ github.event_name }}" = "schedule" ]; then
-              echo "**Trigger:** scheduled every 15 min  "
+              echo "**Trigger:** scheduled every 30 min  "
             else
               echo "**Trigger:** manual  "
             fi

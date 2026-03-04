@@ -17,6 +17,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.inventory.AdjustStockUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.CreateProductUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.SearchProductsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.UpdateProductUseCase
+import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -64,6 +65,7 @@ class InventoryViewModel(
     private val updateProductUseCase: UpdateProductUseCase,
     private val adjustStockUseCase: AdjustStockUseCase,
     private val authRepository: AuthRepository,
+    private val auditLogger: SecurityAuditLogger,
 ) : BaseViewModel<InventoryState, InventoryIntent, InventoryEffect>(InventoryState()) {
 
     private var currentUserId: String = "unknown"
@@ -333,6 +335,11 @@ class InventoryViewModel(
         updateState { copy(isLoading = false) }
         when (result) {
             is Result.Success -> {
+                if (form.id != null) {
+                    auditLogger.logProductModified(product.id)
+                } else {
+                    auditLogger.logProductCreated(product.id, product.name)
+                }
                 val action = if (form.id != null) "updated" else "created"
                 sendEffect(InventoryEffect.ShowSuccess("Product '${ product.name }' $action."))
                 onBackToList()
@@ -348,6 +355,8 @@ class InventoryViewModel(
         updateState { copy(isLoading = true) }
         when (val result = productRepository.delete(productId)) {
             is Result.Success -> {
+                val deletedName = currentState.products.find { it.id == productId }?.name ?: ""
+                auditLogger.logProductDeleted(productId, deletedName)
                 updateState { copy(isLoading = false) }
                 sendEffect(InventoryEffect.ShowSuccess("Product deactivated."))
                 if (currentState.selectedProduct?.id == productId) onBackToList()
@@ -414,7 +423,10 @@ class InventoryViewModel(
         )
         updateState { copy(isLoading = false, stockAdjustmentTarget = null) }
         when (result) {
-            is Result.Success -> sendEffect(InventoryEffect.ShowSuccess("Stock adjusted for '${target.name}'."))
+            is Result.Success -> {
+                auditLogger.logStockAdjusted(target.id, quantity, reason)
+                sendEffect(InventoryEffect.ShowSuccess("Stock adjusted for '${target.name}'."))
+            }
             is Result.Error -> sendEffect(InventoryEffect.ShowError(result.exception.message ?: "Adjustment failed"))
             is Result.Loading -> Unit
         }

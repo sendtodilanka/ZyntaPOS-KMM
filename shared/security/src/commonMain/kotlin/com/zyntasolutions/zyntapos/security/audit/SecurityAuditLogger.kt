@@ -474,6 +474,418 @@ class SecurityAuditLogger(
         )
     }
 
+    // ─── POS (continued) ─────────────────────────────────────────────────────
+
+    /** Records an order refund. */
+    suspend fun logOrderRefunded(
+        userId: String,
+        orderId: String,
+        amount: Double,
+        reason: String,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
+        emit(
+            eventType = AuditEventType.ORDER_REFUNDED,
+            userId = userId,
+            userName = userName,
+            userRole = userRole,
+            entityType = "ORDER",
+            entityId = orderId,
+            success = true,
+            payload = json.encodeToString(OrderRefundedPayload(orderId, amount, reason)),
+        )
+    }
+
+    /** Records an order being placed on hold. */
+    suspend fun logOrderHeld(
+        userId: String,
+        orderId: String,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
+        emit(
+            eventType = AuditEventType.ORDER_HELD,
+            userId = userId,
+            userName = userName,
+            userRole = userRole,
+            entityType = "ORDER",
+            entityId = orderId,
+            success = true,
+            payload = json.encodeToString(OrderHeldPayload(orderId)),
+        )
+    }
+
+    /** Records a held order being resumed. */
+    suspend fun logOrderResumed(
+        userId: String,
+        orderId: String,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
+        emit(
+            eventType = AuditEventType.ORDER_RESUMED,
+            userId = userId,
+            userName = userName,
+            userRole = userRole,
+            entityType = "ORDER",
+            entityId = orderId,
+            success = true,
+            payload = json.encodeToString(OrderResumedPayload(orderId)),
+        )
+    }
+
+    /** Records a price override on a cart item. */
+    suspend fun logPriceOverride(
+        userId: String,
+        productId: String,
+        previousPrice: Double,
+        newPrice: Double,
+        orderId: String,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
+        emit(
+            eventType = AuditEventType.PRICE_OVERRIDE,
+            userId = userId,
+            userName = userName,
+            userRole = userRole,
+            entityType = "PRODUCT",
+            entityId = productId,
+            previousValue = json.encodeToString(PriceSnapshot(previousPrice)),
+            newValue = json.encodeToString(PriceSnapshot(newPrice)),
+            success = true,
+            payload = json.encodeToString(PriceOverridePayload(productId, previousPrice, newPrice, orderId)),
+        )
+    }
+
+    // ─── Inventory (continued) ────────────────────────────────────────────────
+
+    /** Records a product deletion (deactivation). */
+    suspend fun logProductDeleted(
+        userId: String,
+        productId: String,
+        productName: String,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
+        emit(
+            eventType = AuditEventType.PRODUCT_DELETED,
+            userId = userId,
+            userName = userName,
+            userRole = userRole,
+            entityType = "PRODUCT",
+            entityId = productId,
+            success = true,
+            payload = json.encodeToString(ProductDeletedPayload(productId, productName)),
+        )
+    }
+
+    /** Records completion of a stocktake / physical inventory count. */
+    suspend fun logStocktakeCompleted(
+        userId: String,
+        productsChecked: Int,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
+        emit(
+            eventType = AuditEventType.STOCKTAKE_COMPLETED,
+            userId = userId,
+            userName = userName,
+            userRole = userRole,
+            success = true,
+            payload = json.encodeToString(StocktakeCompletedPayload(productsChecked)),
+        )
+    }
+
+    // ─── User Management ─────────────────────────────────────────────────────
+
+    /** Records a new user account created by an admin. */
+    suspend fun logUserCreated(
+        userId: String,
+        targetUserId: String,
+        targetUserName: String,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
+        emit(
+            eventType = AuditEventType.USER_CREATED,
+            userId = userId,
+            userName = userName,
+            userRole = userRole,
+            entityType = "USER",
+            entityId = targetUserId,
+            success = true,
+            payload = json.encodeToString(UserMgmtPayload(targetUserId, targetUserName, "created")),
+        )
+    }
+
+    /** Records a user account deactivation. */
+    suspend fun logUserDeactivated(
+        userId: String,
+        targetUserId: String,
+        targetUserName: String,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
+        emit(
+            eventType = AuditEventType.USER_DEACTIVATED,
+            userId = userId,
+            userName = userName,
+            userRole = userRole,
+            entityType = "USER",
+            entityId = targetUserId,
+            success = true,
+            payload = json.encodeToString(UserMgmtPayload(targetUserId, targetUserName, "deactivated")),
+        )
+    }
+
+    /** Records a user account reactivation. */
+    suspend fun logUserReactivated(
+        userId: String,
+        targetUserId: String,
+        targetUserName: String,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
+        emit(
+            eventType = AuditEventType.USER_REACTIVATED,
+            userId = userId,
+            userName = userName,
+            userRole = userRole,
+            entityType = "USER",
+            entityId = targetUserId,
+            success = true,
+            payload = json.encodeToString(UserMgmtPayload(targetUserId, targetUserName, "reactivated")),
+        )
+    }
+
+    /** Records modification to a custom RBAC role. */
+    suspend fun logCustomRoleModified(
+        userId: String,
+        roleName: String,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
+        emit(
+            eventType = AuditEventType.CUSTOM_ROLE_MODIFIED,
+            userId = userId,
+            userName = userName,
+            userRole = userRole,
+            success = true,
+            payload = json.encodeToString(RoleModifiedPayload(roleName)),
+        )
+    }
+
+    /** Records a role assignment change on a user account. */
+    suspend fun logRoleChanged(
+        userId: String,
+        targetUserId: String,
+        oldRole: String,
+        newRole: String,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
+        emit(
+            eventType = AuditEventType.ROLE_CHANGED,
+            userId = userId,
+            userName = userName,
+            userRole = userRole,
+            entityType = "USER",
+            entityId = targetUserId,
+            success = true,
+            payload = json.encodeToString(RoleChangedPayload(targetUserId, oldRole, newRole)),
+        )
+    }
+
+    // ─── Financial ────────────────────────────────────────────────────────────
+
+    /** Records a tax configuration change. */
+    suspend fun logTaxConfigChanged(
+        userId: String,
+        taxGroupName: String,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
+        emit(
+            eventType = AuditEventType.TAX_CONFIG_CHANGED,
+            userId = userId,
+            userName = userName,
+            userRole = userRole,
+            success = true,
+            payload = json.encodeToString(TaxConfigChangedPayload(taxGroupName)),
+        )
+    }
+
+    /** Records an expense approval. */
+    suspend fun logExpenseApproved(
+        userId: String,
+        expenseId: String,
+        amount: Double,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
+        emit(
+            eventType = AuditEventType.EXPENSE_APPROVED,
+            userId = userId,
+            userName = userName,
+            userRole = userRole,
+            entityType = "EXPENSE",
+            entityId = expenseId,
+            success = true,
+            payload = json.encodeToString(ExpenseApprovedPayload(expenseId, amount)),
+        )
+    }
+
+    /** Records a journal entry posting. */
+    suspend fun logJournalPosted(
+        userId: String,
+        journalId: String,
+        amount: Double,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
+        emit(
+            eventType = AuditEventType.JOURNAL_POSTED,
+            userId = userId,
+            userName = userName,
+            userRole = userRole,
+            entityType = "JOURNAL",
+            entityId = journalId,
+            success = true,
+            payload = json.encodeToString(JournalPostedPayload(journalId, amount)),
+        )
+    }
+
+    // ─── System ───────────────────────────────────────────────────────────────
+
+    /** Records a user PIN change. */
+    suspend fun logPinChange(
+        userId: String,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
+        emit(
+            eventType = AuditEventType.PIN_CHANGE,
+            userId = userId,
+            userName = userName,
+            userRole = userRole,
+            success = true,
+            payload = json.encodeToString(PinChangePayload(userId)),
+        )
+    }
+
+    /** Records a backup file created. */
+    suspend fun logBackupCreated(
+        userId: String,
+        backupId: String,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
+        emit(
+            eventType = AuditEventType.BACKUP_CREATED,
+            userId = userId,
+            userName = userName,
+            userRole = userRole,
+            entityType = "BACKUP",
+            entityId = backupId,
+            success = true,
+            payload = json.encodeToString(BackupPayload(backupId, "created")),
+        )
+    }
+
+    /** Records a database restore from backup. */
+    suspend fun logBackupRestored(
+        userId: String,
+        backupId: String,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
+        emit(
+            eventType = AuditEventType.BACKUP_RESTORED,
+            userId = userId,
+            userName = userName,
+            userRole = userRole,
+            entityType = "BACKUP",
+            entityId = backupId,
+            success = true,
+            payload = json.encodeToString(BackupPayload(backupId, "restored")),
+        )
+    }
+
+    /** Records a data purge operation. */
+    suspend fun logDataPurged(
+        userId: String,
+        recordsAffected: Long,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
+        emit(
+            eventType = AuditEventType.DATA_PURGED,
+            userId = userId,
+            userName = userName,
+            userRole = userRole,
+            success = true,
+            payload = json.encodeToString(DataPurgedPayload(recordsAffected)),
+        )
+    }
+
+    // ─── Data / Sync ──────────────────────────────────────────────────────────
+
+    /** Records a successful sync cycle. */
+    suspend fun logSyncCompleted(
+        userId: String,
+        syncedRecords: Int,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
+        emit(
+            eventType = AuditEventType.SYNC_COMPLETED,
+            userId = userId,
+            userName = userName,
+            userRole = userRole,
+            success = true,
+            payload = json.encodeToString(SyncPayload(syncedRecords = syncedRecords)),
+        )
+    }
+
+    /** Records a failed sync cycle. */
+    suspend fun logSyncFailed(
+        userId: String,
+        error: String,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
+        emit(
+            eventType = AuditEventType.SYNC_FAILED,
+            userId = userId,
+            userName = userName,
+            userRole = userRole,
+            success = false,
+            payload = json.encodeToString(SyncPayload(error = error)),
+        )
+    }
+
+    /** Records a remote diagnostic session event. */
+    suspend fun logDiagnosticSession(
+        userId: String,
+        sessionId: String,
+        action: String,
+        userName: String = "",
+        userRole: Role? = null,
+    ) {
+        emit(
+            eventType = AuditEventType.DIAGNOSTIC_SESSION,
+            userId = userId,
+            userName = userName,
+            userRole = userRole,
+            entityType = "SESSION",
+            entityId = sessionId,
+            success = true,
+            payload = json.encodeToString(DiagnosticSessionPayload(action, sessionId)),
+        )
+    }
+
     // ─── Internal ─────────────────────────────────────────────────────────────
 
     /**
