@@ -101,8 +101,8 @@ allprojects {
 subprojects {
     configurations.configureEach {
         resolutionStrategy {
-            force("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
-            force("org.jetbrains.kotlinx:kotlinx-datetime-jvm:0.7.1")
+            force("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1-0.6.x-compat")
+            force("org.jetbrains.kotlinx:kotlinx-datetime-jvm:0.7.1-0.6.x-compat")
         }
     }
 }

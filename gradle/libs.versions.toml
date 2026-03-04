@@ -6,7 +6,7 @@
 [versions]
 # ── Core Toolchain ───────────────────────────────────────────
 agp                            = "8.13.2"
-kotlin                         = "2.3.0"
+kotlin                         = "2.3.10"
 
 # ── Android SDK Targets ───────────────────────────────────────
 android-compileSdk             = "36"
@@ -15,16 +15,16 @@ android-targetSdk              = "36"
 
 # ── KotlinX ───────────────────────────────────────────────────
 kotlinx-coroutines             = "1.10.2"
-kotlinx-serialization          = "1.8.0"
-kotlinx-datetime               = "0.7.1"    # Must match CMP 1.10.0 requirement; 0.7.1 makes Instant a typealias for kotlin.time.Instant
-kotlinx-collections-immutable  = "0.3.8"
+kotlinx-serialization          = "1.10.0"
+kotlinx-datetime               = "0.7.1-0.6.x-compat"    # Must match CMP 1.10.0 requirement; 0.7.1 makes Instant a typealias for kotlin.time.Instant
+kotlinx-collections-immutable  = "0.4.0"
 
 # ── Compose & UI ─────────────────────────────────────────────
-composeMultiplatform           = "1.10.0"
+composeMultiplatform           = "1.10.1"
 composeHotReload               = "1.0.0"
-material3                      = "1.10.0-alpha05"
+material3                      = "1.11.0-alpha03"
 material-icons-extended        = "1.7.3"
-compose-adaptive               = "1.1.0-alpha04"
+compose-adaptive               = "1.3.0-alpha05"
 compose-navigation             = "2.9.2"
 
 # ── Jetpack / AndroidX ────────────────────────────────────────
