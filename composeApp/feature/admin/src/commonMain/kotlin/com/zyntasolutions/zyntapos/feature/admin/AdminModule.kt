@@ -59,6 +59,7 @@ val adminModule = module {
             auditRepository = get(),
             verifyAuditIntegrityUseCase = get(),
             auditLogger = get(),
+            authRepository = get(),
         )
     }
 

@@ -4,6 +4,7 @@ import androidx.lifecycle.viewModelScope
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.core.utils.IdGenerator
 import com.zyntasolutions.zyntapos.domain.repository.AuditRepository
+import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.usecase.admin.CreateBackupUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.DeleteBackupUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.GetBackupsUseCase
@@ -14,8 +15,10 @@ import com.zyntasolutions.zyntapos.domain.usecase.admin.VerifyAuditIntegrityUseC
 import com.zyntasolutions.zyntapos.domain.repository.SystemRepository
 import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import kotlin.time.Clock
 
 /**
@@ -39,9 +42,15 @@ class AdminViewModel(
     private val auditRepository: AuditRepository,
     private val verifyAuditIntegrityUseCase: VerifyAuditIntegrityUseCase,
     private val auditLogger: SecurityAuditLogger,
+    private val authRepository: AuthRepository,
 ) : BaseViewModel<AdminState, AdminIntent, AdminEffect>(AdminState()) {
 
+    private var currentUserId: String = "unknown"
+
     init {
+        viewModelScope.launch {
+            currentUserId = authRepository.getSession().first()?.id ?: "unknown"
+        }
         observeBackups()
         observeAuditLog()
         // Auto-load health on start
@@ -154,7 +163,7 @@ class AdminViewModel(
                         successMessage = "Purge complete: ${result.data.bytesFreed} records removed.",
                     )
                 }
-                auditLogger.logDataPurged(result.data.bytesFreed)
+                auditLogger.logDataPurged(currentUserId, result.data.bytesFreed)
             }
             is Result.Error -> updateState { copy(isLoading = false, error = result.exception.message) }
             is Result.Loading -> Unit
@@ -182,7 +191,7 @@ class AdminViewModel(
         when (val result = createBackupUseCase(backupId, now)) {
             is Result.Success -> {
                 updateState { copy(isCreatingBackup = false, successMessage = "Backup created successfully.") }
-                auditLogger.logBackupCreated(backupId, "create")
+                auditLogger.logBackupCreated(currentUserId, backupId)
             }
             is Result.Error -> {
                 updateState { copy(isCreatingBackup = false, error = result.exception.message) }
@@ -197,7 +206,7 @@ class AdminViewModel(
         when (val result = restoreBackupUseCase(backup.id)) {
             is Result.Success -> {
                 updateState { copy(isLoading = false, successMessage = "Restore complete. Restart required.") }
-                auditLogger.logBackupRestored(backup.id, "restore")
+                auditLogger.logBackupRestored(currentUserId, backup.id)
                 sendEffect(AdminEffect.RestartRequired)
             }
             is Result.Error -> updateState { copy(isLoading = false, error = result.exception.message) }
