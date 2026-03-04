@@ -1,13 +1,24 @@
 name: Verify Endpoints
 
-# Runs automatically every 15 min AND after every deploy — no human trigger needed.
+# Runs automatically every 30 min AND after every deploy — no human trigger needed.
+#
+# SCHEDULE RATIONALE: 15-minute intervals (*/15) generate 96 runs/day.
+# For a private repo on a standard GitHub plan this can exhaust the included
+# Actions-minutes budget rapidly (96 × 10 min timeout = up to 960 min/day).
+# 30-minute intervals halve that cost while still detecting outages quickly.
+# Adjust back to */15 only if SLA requirements demand sub-30-min detection.
 on:
   workflow_dispatch:
   schedule:
-    - cron: '*/15 * * * *'   # Every 15 minutes — autonomous health monitoring
+    - cron: '*/30 * * * *'   # Every 30 minutes — autonomous health monitoring
   workflow_run:
     workflows: ["Deploy to VPS"]
     types: [completed]        # Auto-verify immediately after every deploy
+
+# Read-only: this workflow only makes outbound HTTP requests and writes
+# to the step summary. No repo write access is needed.
+permissions:
+  contents: read
 
 jobs:
   verify:

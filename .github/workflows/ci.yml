@@ -5,6 +5,13 @@ on:
     branches: [ main, develop ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:   # Allow manual triggering from the Actions tab
+
+# Minimal permissions — CI only reads repo content and uploads artifacts.
+permissions:
+  contents: read
+  checks: write          # Required for status check reporting on PRs
+  actions: read
 
 # Cancel in-progress CI when a newer push arrives on the same ref.
 # For PRs: group by PR number so only the latest commit is tested.
@@ -89,7 +96,6 @@ jobs:
 
       # ── Artifacts ─────────────────────────────────────────────────────────
       - name: Upload APK artifact
-        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: zyntapos-debug-apk
