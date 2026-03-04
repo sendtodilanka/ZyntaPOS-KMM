@@ -82,7 +82,7 @@ concurrency:
 
 env:
   JAVA_VERSION: '21'
-  JAVA_DISTRIBUTION: 'jetbrains'
+  JAVA_DISTRIBUTION: 'temurin'
 
 jobs:
   # ════════════════════════════════════════════════════════════════════════════
