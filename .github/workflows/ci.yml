@@ -46,7 +46,7 @@ jobs:
 
       # ── Gradle ────────────────────────────────────────────────────────────
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v3
+        uses: gradle/actions/setup-gradle@v5
         with:
           cache-read-only: false   # always write cache — push trigger for main/develop was removed
 
