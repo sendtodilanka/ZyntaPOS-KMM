@@ -100,6 +100,7 @@ class KtorApiService(
      * Executes an HTTP request, maps non-2xx responses and transport exceptions
      * to the appropriate [ZyntaException] subclass, and deserializes the body.
      */
+    @Suppress("ThrowsCount") // multiple throw paths are required for correct HTTP error mapping
     private suspend inline fun <reified T> safeRequest(
         crossinline block: suspend () -> HttpResponse,
     ): T {
@@ -109,22 +110,7 @@ class KtorApiService(
                 response.body<T>()
             } else {
                 log.e("HTTP ${response.status.value} on ${response.call.request.url}")
-                when (response.status) {
-                    HttpStatusCode.Unauthorized ->
-                        throw AuthException(
-                            message = "Unauthorized — token invalid or expired (401)",
-                            reason  = AuthFailureReason.SESSION_EXPIRED,
-                        )
-                    HttpStatusCode.UnprocessableEntity ->
-                        throw SyncException(
-                            message = "Sync batch rejected by server (422)",
-                        )
-                    else ->
-                        throw NetworkException(
-                            message    = "HTTP ${response.status.value}: ${response.status.description}",
-                            statusCode = response.status.value,
-                        )
-                }
+                throw mapHttpError(response)
             }
         } catch (e: ZyntaException) {
             throw e          // re-throw domain exceptions untouched
@@ -136,4 +122,22 @@ class KtorApiService(
             )
         }
     }
+
+    private fun mapHttpError(response: HttpResponse): ZyntaException =
+        when (response.status) {
+            HttpStatusCode.Unauthorized ->
+                AuthException(
+                    message = "Unauthorized — token invalid or expired (401)",
+                    reason  = AuthFailureReason.SESSION_EXPIRED,
+                )
+            HttpStatusCode.UnprocessableEntity ->
+                SyncException(
+                    message = "Sync batch rejected by server (422)",
+                )
+            else ->
+                NetworkException(
+                    message    = "HTTP ${response.status.value}: ${response.status.description}",
+                    statusCode = response.status.value,
+                )
+        }
 }

@@ -60,7 +60,7 @@ class InventoryViewModel(
     private val categoryRepository: CategoryRepository,
     private val taxGroupRepository: TaxGroupRepository,
     private val unitGroupRepository: UnitGroupRepository,
-    private val searchProductsUseCase: SearchProductsUseCase,
+    private val _searchProductsUseCase: SearchProductsUseCase,
     private val createProductUseCase: CreateProductUseCase,
     private val updateProductUseCase: UpdateProductUseCase,
     private val adjustStockUseCase: AdjustStockUseCase,

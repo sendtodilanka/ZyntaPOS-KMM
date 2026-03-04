@@ -40,7 +40,7 @@ import java.util.UUID
 class AndroidBluetoothPrinterPort(
     private val bluetoothDevice: BluetoothDevice,
     private val bluetoothAdapter: BluetoothAdapter,
-    private val connectTimeoutMs: Int = DEFAULT_CONNECT_TIMEOUT_MS,
+    private val _connectTimeoutMs: Int = DEFAULT_CONNECT_TIMEOUT_MS,
 ) : PrinterPort {
 
     private val log = ZyntaLogger.forModule("AndroidBluetoothPrinterPort")

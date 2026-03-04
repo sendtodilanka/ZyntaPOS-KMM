@@ -28,8 +28,8 @@ import kotlinx.coroutines.withContext
  * @param productId  USB Product ID of the target label printer.
  */
 class DesktopUsbLabelPrinterPort(
-    private val vendorId: Int = ZEBRA_VENDOR_ID,
-    private val productId: Int = 0x0000,
+    private val _vendorId: Int = ZEBRA_VENDOR_ID,
+    private val _productId: Int = 0x0000,
 ) : LabelPrinterPort {
 
     @Volatile private var connected: Boolean = false

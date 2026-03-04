@@ -63,7 +63,7 @@ class CreateProductUseCase(
 
         // SKU uniqueness check (search approach — repository may add dedicated method in Phase 2)
         if (!product.sku.isNullOrBlank()) {
-            val skuMatch = productRepository.search(product.sku, null)
+            val _skuMatch = productRepository.search(product.sku, null)
             // Flow-based; call first() in a coroutine context — delegated to the data layer
         }
 

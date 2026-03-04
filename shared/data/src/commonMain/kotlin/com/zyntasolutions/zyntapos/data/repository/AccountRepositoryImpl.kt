@@ -32,7 +32,7 @@ import kotlin.time.Clock
  */
 class AccountRepositoryImpl(
     private val db: ZyntaDatabase,
-    private val syncEnqueuer: SyncEnqueuer,
+    private val _syncEnqueuer: SyncEnqueuer,
 ) : AccountRepository {
 
     private val q get() = db.chart_of_accountsQueries

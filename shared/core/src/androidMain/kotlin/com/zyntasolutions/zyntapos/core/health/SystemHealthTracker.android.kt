@@ -111,7 +111,7 @@ class AndroidSystemHealthTracker : SystemHealthTracker {
         }
     }
 
-    private fun computeOverallStatus(heapPercent: Float, diskPercent: Float, dbSize: Long): OverallStatus {
+    private fun computeOverallStatus(heapPercent: Float, diskPercent: Float, _dbSize: Long): OverallStatus {
         return when {
             heapPercent > 90f || diskPercent > 95f -> OverallStatus.CRITICAL
             heapPercent > 75f || diskPercent > 85f -> OverallStatus.WARNING

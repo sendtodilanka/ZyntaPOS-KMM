@@ -324,7 +324,10 @@ class CustomerViewModel(
                     "name" -> groupFormState.copy(name = value, validationErrors = groupFormState.validationErrors - "name")
                     "description" -> groupFormState.copy(description = value)
                     "discountType" -> groupFormState.copy(discountType = value)
-                    "discountValue" -> groupFormState.copy(discountValue = value, validationErrors = groupFormState.validationErrors - "discountValue")
+                    "discountValue" -> groupFormState.copy(
+                        discountValue = value,
+                        validationErrors = groupFormState.validationErrors - "discountValue",
+                    )
                     "priceType" -> groupFormState.copy(priceType = value)
                     else -> groupFormState
                 },

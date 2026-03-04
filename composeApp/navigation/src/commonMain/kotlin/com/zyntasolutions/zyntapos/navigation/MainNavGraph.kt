@@ -44,8 +44,8 @@ import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaScaffold
 fun NavGraphBuilder.mainNavGraph(
     navigationController: NavigationController,
     navItems: List<NavItem>,
-    compactNavItems: List<NavItem> = navItems.take(COMPACT_NAV_MAX_ITEMS),
-    navGroups: List<com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaNavGroup> = emptyList(),
+    _compactNavItems: List<NavItem> = navItems.take(COMPACT_NAV_MAX_ITEMS),
+    _navGroups: List<com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaNavGroup> = emptyList(),
     currentUserName: String? = null,
     currentUserInitials: String? = null,
     currentUserRole: String? = null,

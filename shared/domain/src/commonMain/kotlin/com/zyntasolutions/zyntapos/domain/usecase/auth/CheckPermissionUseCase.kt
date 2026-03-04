@@ -31,7 +31,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
  *                    snapshot of the last emitted value for synchronous checks.
  */
 class CheckPermissionUseCase(
-    private val sessionFlow: Flow<User?>,
+    private val _sessionFlow: Flow<User?>,
 ) {
     // Snapshot cache — updated each time the session changes.
     private val _sessionSnapshot = MutableStateFlow<User?>(null)

@@ -31,7 +31,7 @@ import java.util.UUID
 class AndroidBluetoothLabelPrinterPort(
     private val bluetoothDevice: BluetoothDevice,
     private val bluetoothAdapter: BluetoothAdapter,
-    private val connectTimeoutMs: Int = DEFAULT_CONNECT_TIMEOUT_MS,
+    private val _connectTimeoutMs: Int = DEFAULT_CONNECT_TIMEOUT_MS,
 ) : LabelPrinterPort {
 
     private val log = ZyntaLogger.forModule("AndroidBluetoothLabelPrinterPort")

@@ -406,7 +406,7 @@ val dataModule = module {
     // ─────────────────────────────────────────────────────────────────────────
 
     // Chart of Accounts: CRUD + seeding + balance cache observation
-    single<AccountRepository> { AccountRepositoryImpl(db = get(), syncEnqueuer = get()) }
+    single<AccountRepository> { AccountRepositoryImpl(db = get(), _syncEnqueuer = get()) }
 
     // Journal entries: draft/post/unpost/reverse lifecycle + balanced-entry validation
     single<JournalRepository> { JournalRepositoryImpl(db = get(), syncEnqueuer = get()) }
@@ -415,7 +415,7 @@ val dataModule = module {
     single<FinancialStatementRepository> { FinancialStatementRepositoryImpl(db = get()) }
 
     // Accounting periods: OPEN → CLOSED → LOCKED lifecycle management
-    single<AccountingPeriodRepository> { AccountingPeriodRepositoryImpl(db = get(), syncEnqueuer = get()) }
+    single<AccountingPeriodRepository> { AccountingPeriodRepositoryImpl(db = get(), _syncEnqueuer = get()) }
 
     // System health: DB stats, memory metrics, VACUUM, soft-delete purge
     single<SystemRepository> { SystemRepositoryImpl(db = get()) }

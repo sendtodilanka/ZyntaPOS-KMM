@@ -84,11 +84,13 @@ fun OrderHistoryScreen(
     val displayOrders = remember(orders, selectedStatus, sortColumn, sortDirection) {
         var list = if (selectedStatus == null) orders else orders.filter { it.status == selectedStatus }
         list = when (sortColumn) {
-            COL_ORDER  -> if (sortDirection == SortDirection.Ascending) list.sortedBy { it.orderNumber } else list.sortedByDescending { it.orderNumber }
+            COL_ORDER  -> if (sortDirection == SortDirection.Ascending) list.sortedBy { it.orderNumber }
+                          else list.sortedByDescending { it.orderNumber }
             COL_TIME   -> if (sortDirection == SortDirection.Ascending) list.sortedBy { it.createdAt } else list.sortedByDescending { it.createdAt }
             COL_ITEMS  -> if (sortDirection == SortDirection.Ascending) list.sortedBy { it.items.size } else list.sortedByDescending { it.items.size }
             COL_TOTAL  -> if (sortDirection == SortDirection.Ascending) list.sortedBy { it.total } else list.sortedByDescending { it.total }
-            COL_STATUS -> if (sortDirection == SortDirection.Ascending) list.sortedBy { it.status.name } else list.sortedByDescending { it.status.name }
+            COL_STATUS -> if (sortDirection == SortDirection.Ascending) list.sortedBy { it.status.name }
+                          else list.sortedByDescending { it.status.name }
             else       -> list
         }
         list

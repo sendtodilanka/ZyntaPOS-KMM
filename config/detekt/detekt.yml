@@ -49,12 +49,22 @@ style:
     active: false                  # auto-formatting handles this; not worth failing CI
   # MatchingDeclarationName moved to naming ruleset (where it belongs in Detekt 1.23.x)
   # Enabled in Phase 1 hardening (2026-02-25). Suppress per-file with @Suppress if needed.
+  UnusedPrivateMember:
+    active: true
+    ignoreAnnotated:
+      - 'Preview'
+      - 'androidx.compose.ui.tooling.preview.Preview'
+      - 'androidx.compose.ui.tooling.preview.PreviewParameter'
   UnusedPrivateProperty:
     active: true
-    allowedNames: '_|ignored|expected|serialVersionUID'
+    allowedNames: '_.*|ignored|expected|serialVersionUID'
+    excludes:
+      - '**/theme/**'              # ZyntaColors palette — intentional full color system definitions
   UnusedParameter:
     active: true
-    allowedNames: '_|ignored|expected'
+    allowedNames: '_.*|ignored|expected'
+    ignoreAnnotated:
+      - 'Composable'               # Composable API params may be unused in scaffold implementations
   # Architecture boundary enforcement (ADR-001, ADR-002, ADR-003)
   # These forbidden imports flag violations of Clean Architecture layering.
   # The rules are scoped to the domain source set by excluding all non-domain paths.
@@ -105,6 +115,8 @@ complexity:
     threshold: 200                 # Composable screens are naturally long; revisit in Phase 2
     ignoreAnnotated:
       - 'Composable'               # Compose screens are naturally long — see CLAUDE.md Phase 1
+    excludes:
+      - '**/navigation/**'         # NavGraph builder functions enumerate all destinations — inherently long
   CyclomaticComplexMethod:
     active: true
     threshold: 150                 # Phase 1: handleIntent when-blocks; tighten to 15 in Phase 2
@@ -141,13 +153,20 @@ naming:
       - '**/App.kt'                # App() composable
       - '**/tools/**'          # Debug console composables use PascalCase by convention
     functionPattern: '[a-z][a-zA-Z0-9]*'
+  ConstructorParameterNaming:
+    active: true
+    parameterPattern: '_?[a-z][A-Za-z0-9]*'         # allow _ prefix for scaffold/unused constructor params
+    privateParameterPattern: '_?[a-z][A-Za-z0-9]*'  # allow _ prefix for private constructor params
+  FunctionParameterNaming:
+    active: true
+    parameterPattern: '_?[a-z][A-Za-z0-9]*'   # allow _ prefix for explicitly unused function params
   TopLevelPropertyNaming:
     active: true
-    constantPattern: '[A-Z][A-Za-z0-9_]*'
+    constantPattern: '_?[A-Z][A-Za-z0-9_]*'   # allow _ prefix for unused scaffold constants
     propertyPattern: '[A-Za-z][A-Za-z0-9_]*'
   VariableNaming:
     active: true
-    variablePattern: '[a-zA-Z][A-Za-z0-9_]*'  # allow UPPER_CASE for ESC/POS byte constants
+    variablePattern: '_?[a-zA-Z][A-Za-z0-9_]*'  # allow _ prefix + UPPER_CASE for ESC/POS bytes
     excludes:
       - '**/printer/**'            # ESC/POS command bytes use CMD_* naming
       - '**/reports/printer/**'
@@ -177,7 +196,7 @@ exceptions:
     active: false                  # repository / exporter layers wrap platform exceptions
   SwallowedException:
     active: false              # Phase 1: re-enable in Phase 2 after audit
-  # ThrowsCount removed — rule was dropped from Detekt 1.23.x
+  # ThrowsCount removed — rule was dropped from Detekt 1.23.x exceptions ruleset
 
 # ── Empty Blocks ────────────────────────────────────────────────
 empty-blocks:

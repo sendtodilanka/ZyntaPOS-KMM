@@ -218,7 +218,11 @@ private fun TaxGroupCard(
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text("Delete Tax Group?") },
-            text = { Text("\"${group.name}\" will be removed. Products using this tax group will retain their current rates for historical orders.") },
+            text = {
+                Text(
+                    "\"${group.name}\" will be removed. Products using this tax group will retain their current rates for historical orders.",
+                )
+            },
             confirmButton = {
                 TextButton(
                     onClick = { showDeleteDialog = false; onDelete() },

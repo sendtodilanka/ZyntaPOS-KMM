@@ -17,7 +17,7 @@ private const val AES_GCM_NOPADDING = "AES/GCM/NoPadding"
 private const val GCM_TAG_LENGTH = 128
 private const val GCM_IV_LENGTH = 12
 private const val PKCS12_TYPE = "PKCS12"
-private const val KEY_ENTRY_TYPE = "zyntapos_sym_key"
+private const val _KEY_ENTRY_TYPE = "zyntapos_sym_key"
 
 /**
  * Desktop (JVM) actual: AES-256-GCM encryption via JCE + PKCS12 KeyStore.

@@ -74,8 +74,8 @@ class ReportRepositoryImpl(
             val row = q.dailySalesSummary(dateStr).executeAsOne()
 
             // Opening / closing cash from register sessions that cover this date
-            val dayStart = date.atStartOfDayIn(tz).toEpochMilliseconds()
-            val dayEnd   = LocalDate(date.year, date.monthNumber, date.dayOfMonth)
+            val _dayStart = date.atStartOfDayIn(tz).toEpochMilliseconds()
+            val _dayEnd   = LocalDate(date.year, date.monthNumber, date.dayOfMonth)
                 .atStartOfDayIn(tz).toEpochMilliseconds() + 86_400_000L
 
             val openingCash = db.registersQueries

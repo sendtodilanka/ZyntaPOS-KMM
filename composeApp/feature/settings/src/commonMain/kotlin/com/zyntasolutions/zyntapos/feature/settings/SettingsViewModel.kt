@@ -142,9 +142,13 @@ class SettingsViewModel(
         SettingsIntent.TestPrint                     -> testPrint()
         // Users
         SettingsIntent.LoadUsers                     -> loadUsers()
-        SettingsIntent.OpenCreateUser                -> updateState { copy(users = users.copy(isCreating = true, editingUser = null, form = SettingsState.UserState.UserForm())) }
+        SettingsIntent.OpenCreateUser                -> updateState {
+            copy(users = users.copy(isCreating = true, editingUser = null, form = SettingsState.UserState.UserForm()))
+        }
         is SettingsIntent.OpenEditUser               -> openEditUser(intent.user)
-        SettingsIntent.DismissUserForm               -> updateState { copy(users = users.copy(isCreating = false, editingUser = null, saveError = null)) }
+        SettingsIntent.DismissUserForm               -> updateState {
+            copy(users = users.copy(isCreating = false, editingUser = null, saveError = null))
+        }
         is SettingsIntent.UpdateUserFormName         -> updateState { copy(users = users.copy(form = users.form.copy(name = intent.value))) }
         is SettingsIntent.UpdateUserFormEmail        -> updateState { copy(users = users.copy(form = users.form.copy(email = intent.value))) }
         is SettingsIntent.UpdateUserFormPassword     -> updateState { copy(users = users.copy(form = users.form.copy(password = intent.value))) }
@@ -153,16 +157,28 @@ class SettingsViewModel(
         is SettingsIntent.UpdateUserFormActive       -> updateState { copy(users = users.copy(form = users.form.copy(isActive = intent.isActive))) }
         SettingsIntent.SaveUser                      -> saveUser()
         // PIN management
-        is SettingsIntent.UpdateUserFormPin          -> updateState { copy(users = users.copy(form = users.form.copy(newPin = intent.pin, pinError = null))) }
-        is SettingsIntent.UpdateUserFormConfirmPin   -> updateState { copy(users = users.copy(form = users.form.copy(confirmPin = intent.pin, pinError = null))) }
-        SettingsIntent.ClearUserFormPin              -> updateState { copy(users = users.copy(form = users.form.copy(newPin = "", confirmPin = "", pinError = null))) }
+        is SettingsIntent.UpdateUserFormPin          -> updateState {
+            copy(users = users.copy(form = users.form.copy(newPin = intent.pin, pinError = null)))
+        }
+        is SettingsIntent.UpdateUserFormConfirmPin   -> updateState {
+            copy(users = users.copy(form = users.form.copy(confirmPin = intent.pin, pinError = null)))
+        }
+        SettingsIntent.ClearUserFormPin              -> updateState {
+            copy(users = users.copy(form = users.form.copy(newPin = "", confirmPin = "", pinError = null)))
+        }
         // RBAC management
         SettingsIntent.LoadRbac                      -> loadRbac()
-        SettingsIntent.OpenCreateCustomRole          -> updateState { copy(rbac = rbac.copy(isCreatingCustomRole = true, editingCustomRole = null, roleForm = SettingsState.RbacState.CustomRoleForm())) }
+        SettingsIntent.OpenCreateCustomRole          -> updateState {
+            copy(rbac = rbac.copy(isCreatingCustomRole = true, editingCustomRole = null, roleForm = SettingsState.RbacState.CustomRoleForm()))
+        }
         is SettingsIntent.OpenEditCustomRole         -> openEditCustomRole(intent.role)
-        SettingsIntent.DismissCustomRoleForm         -> updateState { copy(rbac = rbac.copy(isCreatingCustomRole = false, editingCustomRole = null, saveError = null)) }
+        SettingsIntent.DismissCustomRoleForm         -> updateState {
+            copy(rbac = rbac.copy(isCreatingCustomRole = false, editingCustomRole = null, saveError = null))
+        }
         is SettingsIntent.UpdateCustomRoleFormName   -> updateState { copy(rbac = rbac.copy(roleForm = rbac.roleForm.copy(name = intent.name))) }
-        is SettingsIntent.UpdateCustomRoleFormDescription -> updateState { copy(rbac = rbac.copy(roleForm = rbac.roleForm.copy(description = intent.desc))) }
+        is SettingsIntent.UpdateCustomRoleFormDescription -> updateState {
+            copy(rbac = rbac.copy(roleForm = rbac.roleForm.copy(description = intent.desc)))
+        }
         is SettingsIntent.ToggleCustomRolePermission -> toggleCustomRolePermission(intent.permission)
         SettingsIntent.SaveCustomRole                -> saveCustomRole()
         is SettingsIntent.DeleteCustomRole           -> deleteCustomRole(intent.id)
@@ -171,7 +187,9 @@ class SettingsViewModel(
         // Backup
         SettingsIntent.LoadBackupInfo                -> loadBackupInfo()
         SettingsIntent.TriggerBackup                 -> triggerBackup()
-        is SettingsIntent.RestoreSelected            -> updateState { copy(backup = backup.copy(restoreFilePath = intent.filePath, confirmRestore = true)) }
+        is SettingsIntent.RestoreSelected            -> updateState {
+            copy(backup = backup.copy(restoreFilePath = intent.filePath, confirmRestore = true))
+        }
         SettingsIntent.ConfirmRestore                -> confirmRestore()
         SettingsIntent.CancelRestore                 -> updateState { copy(backup = backup.copy(confirmRestore = false, restoreFilePath = null)) }
         // Appearance
@@ -198,7 +216,9 @@ class SettingsViewModel(
         is SettingsIntent.UpdateScannerMinLength     -> updateState { copy(scannerSettings = scannerSettings.copy(minBarcodeLength = intent.length)) }
         is SettingsIntent.UpdateScannerPrefix        -> updateState { copy(scannerSettings = scannerSettings.copy(prefixToStrip = intent.prefix)) }
         is SettingsIntent.UpdateScannerSuffix        -> updateState { copy(scannerSettings = scannerSettings.copy(suffixToStrip = intent.suffix)) }
-        is SettingsIntent.UpdateScannerSoundFeedback -> updateState { copy(scannerSettings = scannerSettings.copy(soundFeedbackEnabled = intent.enabled)) }
+        is SettingsIntent.UpdateScannerSoundFeedback -> updateState {
+            copy(scannerSettings = scannerSettings.copy(soundFeedbackEnabled = intent.enabled))
+        }
         is SettingsIntent.SimulateScan               -> updateState {
             copy(scannerSettings = scannerSettings.copy(
                 lastScannedBarcode = intent.barcode,
@@ -209,19 +229,55 @@ class SettingsViewModel(
         SettingsIntent.SaveScannerSettings           -> sendEffect(SettingsEffect.ScannerSettingsSaved)
         // Printer Profiles
         SettingsIntent.LoadPrinterProfiles           -> loadPrinterProfiles()
-        SettingsIntent.OpenCreatePrinterProfile      -> updateState { copy(printerProfiles = printerProfiles.copy(isCreating = true, editingProfile = null, form = SettingsState.PrinterProfilesState.PrinterProfileForm())) }
+        SettingsIntent.OpenCreatePrinterProfile      -> updateState {
+            copy(
+                printerProfiles = printerProfiles.copy(
+                    isCreating = true,
+                    editingProfile = null,
+                    form = SettingsState.PrinterProfilesState.PrinterProfileForm(),
+                )
+            )
+        }
         is SettingsIntent.OpenEditPrinterProfile     -> openEditPrinterProfile(intent.profile)
-        SettingsIntent.DismissPrinterProfileForm     -> updateState { copy(printerProfiles = printerProfiles.copy(isCreating = false, editingProfile = null, saveError = null)) }
-        is SettingsIntent.UpdateProfileName          -> updateState { copy(printerProfiles = printerProfiles.copy(form = printerProfiles.form.copy(name = intent.name))) }
-        is SettingsIntent.UpdateProfileJobType       -> updateState { copy(printerProfiles = printerProfiles.copy(form = printerProfiles.form.copy(jobType = intent.jobType))) }
-        is SettingsIntent.UpdateProfilePrinterType   -> updateState { copy(printerProfiles = printerProfiles.copy(form = printerProfiles.form.copy(printerType = intent.type))) }
-        is SettingsIntent.UpdateProfileTcpHost       -> updateState { copy(printerProfiles = printerProfiles.copy(form = printerProfiles.form.copy(tcpHost = intent.host))) }
-        is SettingsIntent.UpdateProfileTcpPort       -> updateState { copy(printerProfiles = printerProfiles.copy(form = printerProfiles.form.copy(tcpPort = intent.port))) }
-        is SettingsIntent.UpdateProfileSerialPort    -> updateState { copy(printerProfiles = printerProfiles.copy(form = printerProfiles.form.copy(serialPort = intent.port))) }
-        is SettingsIntent.UpdateProfileBaudRate      -> updateState { copy(printerProfiles = printerProfiles.copy(form = printerProfiles.form.copy(baudRate = intent.rate))) }
-        is SettingsIntent.UpdateProfileBtAddress     -> updateState { copy(printerProfiles = printerProfiles.copy(form = printerProfiles.form.copy(btAddress = intent.address))) }
-        is SettingsIntent.UpdateProfilePaperWidth    -> updateState { copy(printerProfiles = printerProfiles.copy(form = printerProfiles.form.copy(paperWidthMm = intent.mm))) }
-        is SettingsIntent.UpdateProfileIsDefault     -> updateState { copy(printerProfiles = printerProfiles.copy(form = printerProfiles.form.copy(isDefault = intent.isDefault))) }
+        SettingsIntent.DismissPrinterProfileForm     -> updateState {
+            copy(
+                printerProfiles = printerProfiles.copy(
+                    isCreating = false,
+                    editingProfile = null,
+                    saveError = null,
+                )
+            )
+        }
+        is SettingsIntent.UpdateProfileName          -> updateState {
+            copy(printerProfiles = printerProfiles.copy(form = printerProfiles.form.copy(name = intent.name)))
+        }
+        is SettingsIntent.UpdateProfileJobType       -> updateState {
+            copy(printerProfiles = printerProfiles.copy(form = printerProfiles.form.copy(jobType = intent.jobType)))
+        }
+        is SettingsIntent.UpdateProfilePrinterType   -> updateState {
+            copy(printerProfiles = printerProfiles.copy(form = printerProfiles.form.copy(printerType = intent.type)))
+        }
+        is SettingsIntent.UpdateProfileTcpHost       -> updateState {
+            copy(printerProfiles = printerProfiles.copy(form = printerProfiles.form.copy(tcpHost = intent.host)))
+        }
+        is SettingsIntent.UpdateProfileTcpPort       -> updateState {
+            copy(printerProfiles = printerProfiles.copy(form = printerProfiles.form.copy(tcpPort = intent.port)))
+        }
+        is SettingsIntent.UpdateProfileSerialPort    -> updateState {
+            copy(printerProfiles = printerProfiles.copy(form = printerProfiles.form.copy(serialPort = intent.port)))
+        }
+        is SettingsIntent.UpdateProfileBaudRate      -> updateState {
+            copy(printerProfiles = printerProfiles.copy(form = printerProfiles.form.copy(baudRate = intent.rate)))
+        }
+        is SettingsIntent.UpdateProfileBtAddress     -> updateState {
+            copy(printerProfiles = printerProfiles.copy(form = printerProfiles.form.copy(btAddress = intent.address)))
+        }
+        is SettingsIntent.UpdateProfilePaperWidth    -> updateState {
+            copy(printerProfiles = printerProfiles.copy(form = printerProfiles.form.copy(paperWidthMm = intent.mm)))
+        }
+        is SettingsIntent.UpdateProfileIsDefault     -> updateState {
+            copy(printerProfiles = printerProfiles.copy(form = printerProfiles.form.copy(isDefault = intent.isDefault)))
+        }
         SettingsIntent.SavePrinterProfile            -> savePrinterProfile()
         is SettingsIntent.DeletePrinterProfile       -> deletePrinterProfile(intent.id)
     }
@@ -279,10 +335,16 @@ class SettingsViewModel(
             updateState {
                 copy(
                     pos = pos.copy(
-                        defaultOrderType   = runCatching { OrderType.valueOf(all[SettingsKeys.DEFAULT_ORDER_TYPE] ?: "SALE") }.getOrDefault(OrderType.SALE),
+                        defaultOrderType   = runCatching {
+                            OrderType.valueOf(all[SettingsKeys.DEFAULT_ORDER_TYPE] ?: "SALE")
+                        }.getOrDefault(OrderType.SALE),
                         autoPrintReceipt   = all[SettingsKeys.AUTO_PRINT_RECEIPT] != "false",
-                        taxDisplayMode     = runCatching { TaxDisplayMode.valueOf(all[SettingsKeys.TAX_DISPLAY_MODE] ?: "EXCLUSIVE") }.getOrDefault(TaxDisplayMode.EXCLUSIVE),
-                        receiptTemplate    = runCatching { ReceiptTemplate.valueOf(all[SettingsKeys.RECEIPT_TEMPLATE] ?: "STANDARD") }.getOrDefault(ReceiptTemplate.STANDARD),
+                        taxDisplayMode     = runCatching {
+                            TaxDisplayMode.valueOf(all[SettingsKeys.TAX_DISPLAY_MODE] ?: "EXCLUSIVE")
+                        }.getOrDefault(TaxDisplayMode.EXCLUSIVE),
+                        receiptTemplate    = runCatching {
+                            ReceiptTemplate.valueOf(all[SettingsKeys.RECEIPT_TEMPLATE] ?: "STANDARD")
+                        }.getOrDefault(ReceiptTemplate.STANDARD),
                         maxDiscountPercent = all[SettingsKeys.MAX_DISCOUNT_PERCENT]?.toDoubleOrNull() ?: 20.0,
                     )
                 )
@@ -358,13 +420,17 @@ class SettingsViewModel(
             updateState {
                 copy(
                     printer = printer.copy(
-                        printerType  = runCatching { PrinterType.valueOf(all[SettingsKeys.PRINTER_TYPE] ?: "USB") }.getOrDefault(PrinterType.USB),
+                        printerType  = runCatching {
+                            PrinterType.valueOf(all[SettingsKeys.PRINTER_TYPE] ?: "USB")
+                        }.getOrDefault(PrinterType.USB),
                         tcpHost      = all[SettingsKeys.PRINTER_TCP_HOST]    ?: "",
                         tcpPort      = all[SettingsKeys.PRINTER_TCP_PORT]    ?: "9100",
                         serialPort   = all[SettingsKeys.PRINTER_SERIAL_PORT] ?: "",
                         baudRate     = all[SettingsKeys.PRINTER_BAUD_RATE]   ?: "115200",
                         btAddress    = all[SettingsKeys.PRINTER_BT_ADDRESS]  ?: "",
-                        paperWidth   = runCatching { PaperWidthOption.valueOf(all[SettingsKeys.PRINTER_PAPER_WIDTH] ?: "MM_80") }.getOrDefault(PaperWidthOption.MM_80),
+                        paperWidth   = runCatching {
+                            PaperWidthOption.valueOf(all[SettingsKeys.PRINTER_PAPER_WIDTH] ?: "MM_80")
+                        }.getOrDefault(PaperWidthOption.MM_80),
                         headerLines  = (1..5).map { i -> all["printer.header_$i"] ?: "" },
                         footerLines  = (1..2).map { i -> all["printer.footer_$i"] ?: "" },
                         showQrCode   = all[SettingsKeys.PRINTER_SHOW_QR]   != "false",

@@ -338,7 +338,12 @@ private fun JournalLineRow(
             }
             if (onDelete != null) {
                 IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Close, contentDescription = "Remove line", modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.error)
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = "Remove line",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.error,
+                    )
                 }
             }
         }
@@ -359,13 +364,43 @@ private fun AddLineForm(
     Card(modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
         Column(modifier = Modifier.padding(ZyntaSpacing.md), verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
             Text("Add Line", style = MaterialTheme.typography.titleSmall)
-            OutlinedTextField(value = accountCode, onValueChange = { accountCode = it }, label = { Text("Account Code") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = accountName, onValueChange = { accountName = it }, label = { Text("Account Name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                value = accountCode,
+                onValueChange = { accountCode = it },
+                label = { Text("Account Code") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = accountName,
+                onValueChange = { accountName = it },
+                label = { Text("Account Name") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
-                OutlinedTextField(value = debitAmount, onValueChange = { debitAmount = it }, label = { Text("Debit") }, singleLine = true, modifier = Modifier.weight(1f))
-                OutlinedTextField(value = creditAmount, onValueChange = { creditAmount = it }, label = { Text("Credit") }, singleLine = true, modifier = Modifier.weight(1f))
+                OutlinedTextField(
+                    value = debitAmount,
+                    onValueChange = { debitAmount = it },
+                    label = { Text("Debit") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                )
+                OutlinedTextField(
+                    value = creditAmount,
+                    onValueChange = { creditAmount = it },
+                    label = { Text("Credit") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                )
             }
-            OutlinedTextField(value = lineDescription, onValueChange = { lineDescription = it }, label = { Text("Description (optional)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                value = lineDescription,
+                onValueChange = { lineDescription = it },
+                label = { Text("Description (optional)") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm), modifier = Modifier.fillMaxWidth()) {
                 OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text("Cancel") }
                 Button(

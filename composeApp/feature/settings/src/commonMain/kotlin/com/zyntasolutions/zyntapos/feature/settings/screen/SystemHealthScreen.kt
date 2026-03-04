@@ -113,7 +113,7 @@ fun SystemHealthScreen(
 
 @Composable
 private fun OverallStatusBanner(status: OverallStatus) {
-    val (icon, label, containerColor, contentColor) = when (status) {
+    val style = when (status) {
         OverallStatus.HEALTHY -> StatusStyle(
             Icons.Filled.CheckCircle, "All Systems Healthy",
             MaterialTheme.colorScheme.primaryContainer,
@@ -135,6 +135,8 @@ private fun OverallStatusBanner(status: OverallStatus) {
             MaterialTheme.colorScheme.onSurface,
         )
     }
+    val (icon, label, containerColor) = style
+    val contentColor = style.contentColor
 
     Card(
         colors = CardDefaults.cardColors(containerColor = containerColor),

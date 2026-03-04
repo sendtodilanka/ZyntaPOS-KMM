@@ -309,7 +309,12 @@ private fun CategoryLoadingSkeleton() {
             Row(Modifier.fillMaxWidth().padding(vertical = ZyntaSpacing.sm)) {
                 Box(Modifier.size(28.dp).background(MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.small))
                 Spacer(Modifier.width(ZyntaSpacing.sm))
-                Box(Modifier.height(20.dp).fillMaxWidth(0.6f).background(MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.small))
+                Box(
+                    Modifier
+                        .height(20.dp)
+                        .fillMaxWidth(0.6f)
+                        .background(MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.small),
+                )
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }

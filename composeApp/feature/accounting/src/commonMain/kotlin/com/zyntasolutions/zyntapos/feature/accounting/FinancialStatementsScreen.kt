@@ -344,7 +344,8 @@ private fun BalanceSheetTabContent(
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            "Assets (${"%.2f".format(bs.totalAssets)}) = Liabilities (${"%.2f".format(bs.totalLiabilities)}) + Equity (${"%.2f".format(bs.totalEquity)})",
+                            "Assets (${"%.2f".format(bs.totalAssets)}) = Liabilities (${"%.2f".format(bs.totalLiabilities)})" +
+                                " + Equity (${"%.2f".format(bs.totalEquity)})",
                             style = MaterialTheme.typography.bodyMedium,
                         )
                     }
@@ -444,9 +445,24 @@ private fun TrialBalanceTabContent(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text("", modifier = Modifier.width(60.dp))
-                    Text("TOTALS", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                    Text("%.2f".format(tb.totalDebits), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, modifier = Modifier.width(80.dp))
-                    Text("%.2f".format(tb.totalCredits), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, modifier = Modifier.width(80.dp))
+                    Text(
+                        "TOTALS",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        "%.2f".format(tb.totalDebits),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.width(80.dp),
+                    )
+                    Text(
+                        "%.2f".format(tb.totalCredits),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.width(80.dp),
+                    )
                 }
             }
             item { Spacer(Modifier.height(ZyntaSpacing.xl)) }

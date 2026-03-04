@@ -61,7 +61,12 @@ fun ChartOfAccountsScreen(
         AlertDialog(
             onDismissRequest = { showDeactivateDialog = null },
             title = { Text("Deactivate Account") },
-            text = { Text("Are you sure you want to deactivate this account? It will be hidden from transaction entry but preserved for historical reports.") },
+            text = {
+                Text(
+                    "Are you sure you want to deactivate this account? It will be hidden from" +
+                        " transaction entry but preserved for historical reports.",
+                )
+            },
             confirmButton = {
                 TextButton(
                     onClick = {

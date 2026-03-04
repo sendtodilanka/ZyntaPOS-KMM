@@ -169,7 +169,7 @@ actual class DatabaseKeyProvider(private val context: Context) {
 
     private fun getKekFromKeystore(): SecretKey {
         val entry = keyStore.getEntry(KEK_ALIAS, null)
-            ?: throw IllegalStateException("KEK alias '$KEK_ALIAS' not found in Android Keystore.")
+            ?: error("KEK alias '$KEK_ALIAS' not found in Android Keystore.")
         return (entry as KeyStore.SecretKeyEntry).secretKey
     }
 

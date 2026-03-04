@@ -261,7 +261,9 @@ private fun RegisterStatusBanner(session: RegisterSession) {
             val durationMs = Clock.System.now().toEpochMilliseconds() - session.openedAt.toEpochMilliseconds()
             val hours = durationMs / 3_600_000
             val minutes = (durationMs % 3_600_000) / 60_000
-            "Session active for ${hours}h ${minutes}m  \u2022  Opened ${openedLocal.hour.toString().padStart(2, '0')}:${openedLocal.minute.toString().padStart(2, '0')}"
+            val openedHH = openedLocal.hour.toString().padStart(2, '0')
+            val openedMM = openedLocal.minute.toString().padStart(2, '0')
+            "Session active for ${hours}h ${minutes}m  \u2022  Opened $openedHH:$openedMM"
         }
     } else {
         bannerContainerColor = MaterialTheme.colorScheme.tertiaryContainer
