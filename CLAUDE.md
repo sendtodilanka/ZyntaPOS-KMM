@@ -4,6 +4,21 @@ This file gives AI assistants the context needed to work effectively in this cod
 
 ---
 
+## CRITICAL: Session End Protocol (MANDATORY)
+
+**Every Claude session MUST end with a `git push` to the remote branch.**
+
+Commits that are not pushed are invisible to GitHub Actions. The entire auto-merge pipeline (`auto-merge.yml`) depends on a push event to trigger. Local-only commits break the automation.
+
+**Required before ending any session:**
+```bash
+git push -u origin <current-branch>
+```
+
+If nothing new was committed, a push is still safe (it will be a no-op). There is NO valid reason to skip this step. Leaving unpushed commits is a bug in the workflow.
+
+---
+
 ## Project Overview
 
 **ZyntaPOS** is an enterprise-grade, offline-first Point of Sale system built with **Kotlin Multiplatform (KMM)** and **Compose Multiplatform**. It targets Android tablets (minSdk 24) and JVM desktop (macOS, Windows, Linux) with 100% shared business logic.
