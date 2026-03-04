@@ -100,7 +100,7 @@ jobs:
     steps:
       # ── Checkout ────────────────────────────────────────────────────────────
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       # ── Java ────────────────────────────────────────────────────────────────
       - name: Set up JDK ${{ env.JAVA_VERSION }}
@@ -198,7 +198,7 @@ jobs:
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
