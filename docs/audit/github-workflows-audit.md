@@ -6,6 +6,7 @@
 **Branch:** `claude/audit-github-workflows-L1uHH`
 **Base commit:** `89a2a2d` (main)
 **API status:** ✅ Full access — all findings verified against live GitHub REST API
+**Pipeline test:** 2026-03-04 — end-to-end pipeline smoke test commit (auto-merge → CI → deploy)
 
 ---
 
