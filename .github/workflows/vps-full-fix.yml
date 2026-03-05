@@ -1,9 +1,9 @@
 name: "VPS Full Fix"
 
 # Fixes:
-# 1. Reset postgres password to match db_password.txt
-# 2. Generate self-signed TLS cert for Caddy
-# 3. Restart all services cleanly
+# 1. Strip trailing newline from db_password.txt → reset postgres password to match
+# 2. Copy TLS cert to correct host path /etc/caddy/certs/ (not backend/caddy/certs)
+# 3. Restart api, license, caddy cleanly
 
 on:
   workflow_dispatch:
@@ -23,7 +23,7 @@ jobs:
     if: github.event.inputs.confirm == 'fullfix'
 
     steps:
-      - name: Fix password + certs + restart
+      - name: Fix password newline + caddy cert path + restart
         uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -36,35 +36,51 @@ jobs:
             set -euo pipefail
             cd /opt/zyntapos
 
-            echo "=== Step 1: Read current db_password.txt ==="
-            DB_PASS=$(cat secrets/db_password.txt | tr -d '[:space:]')
-            echo "Password length: ${#DB_PASS} chars"
+            echo "=== Step 1: Strip trailing newline from db_password.txt ==="
+            # Postgres strips newlines, app may not — remove to make them consistent
+            perl -pi -e 'chomp if eof' secrets/db_password.txt
+            DB_PASS=$(cat secrets/db_password.txt)
+            echo "Password length after strip: ${#DB_PASS} chars (no newline)"
 
-            echo "=== Step 2: Reset postgres user password ==="
+            echo "=== Step 2: Reset postgres user password to match ==="
             docker exec zyntapos_postgres psql -U zyntapos -d zyntapos \
               -c "ALTER USER zyntapos WITH PASSWORD '${DB_PASS}';"
             echo "Password reset done"
 
-            echo "=== Step 3: Generate self-signed TLS cert for Caddy ==="
-            mkdir -p backend/caddy/certs
-            if [ ! -f backend/caddy/certs/zyntapos_origin.pem ]; then
-              openssl req -x509 -newkey rsa:4096 -keyout backend/caddy/certs/zyntapos_origin.key \
-                -out backend/caddy/certs/zyntapos_origin.pem \
-                -days 365 -nodes \
-                -subj "/CN=api.zyntapos.com/O=Zynta Solutions/C=LK" \
-                -addext "subjectAltName=DNS:api.zyntapos.com,DNS:localhost,IP:127.0.0.1"
-              echo "Self-signed cert generated"
+            echo "=== Step 3: Fix Caddy cert path ==="
+            # docker-compose.yml mounts HOST /etc/caddy/certs → /etc/caddy/certs (inside container)
+            # We previously put cert in /opt/zyntapos/backend/caddy/certs/ (wrong place)
+            sudo mkdir -p /etc/caddy/certs
+            if [ ! -f /etc/caddy/certs/zyntapos_origin.pem ]; then
+              # Copy from where we previously generated it, or generate fresh
+              if [ -f backend/caddy/certs/zyntapos_origin.pem ]; then
+                sudo cp backend/caddy/certs/zyntapos_origin.pem /etc/caddy/certs/
+                sudo cp backend/caddy/certs/zyntapos_origin.key /etc/caddy/certs/
+                echo "Copied cert from backend/caddy/certs/"
+              else
+                sudo openssl req -x509 -newkey rsa:4096 \
+                  -keyout /etc/caddy/certs/zyntapos_origin.key \
+                  -out /etc/caddy/certs/zyntapos_origin.pem \
+                  -days 365 -nodes \
+                  -subj "/CN=zyntapos.com/O=Zynta Solutions/C=LK" \
+                  -addext "subjectAltName=DNS:zyntapos.com,DNS:*.zyntapos.com,IP:127.0.0.1"
+                echo "Generated fresh cert at /etc/caddy/certs/"
+              fi
             else
-              echo "Cert already exists, skipping"
+              echo "Cert already at /etc/caddy/certs/, skipping"
             fi
-            ls -la backend/caddy/certs/
+            sudo chmod 644 /etc/caddy/certs/zyntapos_origin.pem
+            sudo chmod 600 /etc/caddy/certs/zyntapos_origin.key
+            ls -la /etc/caddy/certs/
 
-            echo "=== Step 4: Restart all services ==="
+            echo "=== Step 4: Restart api, license, caddy ==="
             docker compose restart api license caddy
-            sleep 40
+            sleep 45
 
             echo "=== Step 5: Final status ==="
             docker compose ps
             echo ""
             echo "=== API health ==="
-            curl -sf http://localhost:8080/health || echo "API not healthy yet"
+            curl -sf http://localhost:8080/health && echo "API OK" || echo "API not healthy yet"
+            echo "=== License health ==="
+            curl -sf http://localhost:8083/health && echo "License OK" || echo "License not healthy yet"
