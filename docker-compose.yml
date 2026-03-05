@@ -70,10 +70,9 @@ services:
       - RS256_PUBLIC_KEY_PATH=/run/secrets/rs256_public_key
       - ACCESS_TOKEN_TTL_MINUTES=60
       - REFRESH_TOKEN_TTL_DAYS=30
-    volumes:
-      # Use direct bind mounts for RS256 key files
-      - ./secrets/rs256_private_key.pem:/run/secrets/rs256_private_key:ro
-      - ./secrets/rs256_public_key.pem:/run/secrets/rs256_public_key:ro
+    secrets:
+      - rs256_private_key
+      - rs256_public_key
     depends_on:
       postgres:
         condition: service_healthy
@@ -91,7 +90,6 @@ services:
     read_only: true
     tmpfs:
       - /tmp:size=64m,mode=1777
-      - /run:size=2m,mode=0755
     security_opt:
       - no-new-privileges:true
     mem_limit: 512m
@@ -112,9 +110,8 @@ services:
       - JWT_ISSUER=https://api.zyntapos.com
       - JWT_AUDIENCE=zyntapos-app
       - RS256_PUBLIC_KEY_PATH=/run/secrets/rs256_public_key
-    volumes:
-      # Use direct bind mount for RS256 public key
-      - ./secrets/rs256_public_key.pem:/run/secrets/rs256_public_key:ro
+    secrets:
+      - rs256_public_key
     depends_on:
       postgres:
         condition: service_healthy
@@ -130,7 +127,6 @@ services:
     read_only: true
     tmpfs:
       - /tmp:size=32m,mode=1777
-      - /run:size=2m,mode=0755
     security_opt:
       - no-new-privileges:true
     mem_limit: 256m
