@@ -1,9 +1,9 @@
 name: "VPS Full Fix"
 
 # Fixes:
-# 1. Strip trailing newline from db_password.txt → reset postgres password to match
-# 2. Copy TLS cert to correct host path /etc/caddy/certs/ (not backend/caddy/certs)
-# 3. Restart api, license, caddy cleanly
+# 1. git pull to get updated docker-compose.yml (./backend/caddy/certs mount)
+# 2. Strip trailing newline from db_password.txt + reset postgres password
+# 3. Recreate caddy/api/license containers with updated compose config
 
 on:
   workflow_dispatch:
@@ -23,7 +23,7 @@ jobs:
     if: github.event.inputs.confirm == 'fullfix'
 
     steps:
-      - name: Fix password newline + caddy cert path + restart
+      - name: Fix password + certs + recreate containers
         uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -36,51 +36,43 @@ jobs:
             set -euo pipefail
             cd /opt/zyntapos
 
-            echo "=== Step 1: Strip trailing newline from db_password.txt ==="
-            # Postgres strips newlines, app may not — remove to make them consistent
+            echo "=== Step 1: git pull (get updated docker-compose.yml) ==="
+            git pull origin main
+            grep "caddy/certs" docker-compose.yml
+
+            echo "=== Step 2: Strip trailing newline from db_password.txt ==="
             perl -pi -e 'chomp if eof' secrets/db_password.txt
             DB_PASS=$(cat secrets/db_password.txt)
-            echo "Password length after strip: ${#DB_PASS} chars (no newline)"
+            echo "Password length: ${#DB_PASS} chars (no trailing newline)"
 
-            echo "=== Step 2: Reset postgres user password to match ==="
+            echo "=== Step 3: Reset postgres password to match ==="
             docker exec zyntapos_postgres psql -U zyntapos -d zyntapos \
               -c "ALTER USER zyntapos WITH PASSWORD '${DB_PASS}';"
             echo "Password reset done"
 
-            echo "=== Step 3: Fix Caddy cert path ==="
-            # docker-compose.yml mounts HOST /etc/caddy/certs → /etc/caddy/certs (inside container)
-            # We previously put cert in /opt/zyntapos/backend/caddy/certs/ (wrong place)
-            sudo mkdir -p /etc/caddy/certs
-            if [ ! -f /etc/caddy/certs/zyntapos_origin.pem ]; then
-              # Copy from where we previously generated it, or generate fresh
-              if [ -f backend/caddy/certs/zyntapos_origin.pem ]; then
-                sudo cp backend/caddy/certs/zyntapos_origin.pem /etc/caddy/certs/
-                sudo cp backend/caddy/certs/zyntapos_origin.key /etc/caddy/certs/
-                echo "Copied cert from backend/caddy/certs/"
-              else
-                sudo openssl req -x509 -newkey rsa:4096 \
-                  -keyout /etc/caddy/certs/zyntapos_origin.key \
-                  -out /etc/caddy/certs/zyntapos_origin.pem \
-                  -days 365 -nodes \
-                  -subj "/CN=zyntapos.com/O=Zynta Solutions/C=LK" \
-                  -addext "subjectAltName=DNS:zyntapos.com,DNS:*.zyntapos.com,IP:127.0.0.1"
-                echo "Generated fresh cert at /etc/caddy/certs/"
-              fi
+            echo "=== Step 4: Verify cert exists at correct path ==="
+            ls -la backend/caddy/certs/ || echo "WARN: certs dir missing"
+            if [ ! -f backend/caddy/certs/zyntapos_origin.pem ]; then
+              echo "Generating self-signed cert..."
+              mkdir -p backend/caddy/certs
+              openssl req -x509 -newkey rsa:4096 \
+                -keyout backend/caddy/certs/zyntapos_origin.key \
+                -out backend/caddy/certs/zyntapos_origin.pem \
+                -days 365 -nodes \
+                -subj "/CN=zyntapos.com/O=Zynta Solutions/C=LK" \
+                -addext "subjectAltName=DNS:zyntapos.com,DNS:*.zyntapos.com"
+              echo "Cert generated"
             else
-              echo "Cert already at /etc/caddy/certs/, skipping"
+              echo "Cert already present"
             fi
-            sudo chmod 644 /etc/caddy/certs/zyntapos_origin.pem
-            sudo chmod 600 /etc/caddy/certs/zyntapos_origin.key
-            ls -la /etc/caddy/certs/
 
-            echo "=== Step 4: Restart api, license, caddy ==="
-            docker compose restart api license caddy
-            sleep 45
+            echo "=== Step 5: Recreate caddy, api, license ==="
+            docker compose up -d --force-recreate caddy api license
+            sleep 50
 
-            echo "=== Step 5: Final status ==="
+            echo "=== Step 6: Final status ==="
             docker compose ps
             echo ""
-            echo "=== API health ==="
-            curl -sf http://localhost:8080/health && echo "API OK" || echo "API not healthy yet"
-            echo "=== License health ==="
-            curl -sf http://localhost:8083/health && echo "License OK" || echo "License not healthy yet"
+            echo "=== Health checks ==="
+            curl -sf http://localhost:8080/health && echo " <- API OK" || echo "API not healthy"
+            curl -sf http://localhost:8083/health && echo " <- License OK" || echo "License not healthy"
