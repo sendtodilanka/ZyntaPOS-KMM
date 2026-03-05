@@ -644,7 +644,10 @@ The deploy workflow is defined in `.github/workflows/deploy.yml` (already added 
 - [ ] SSH public key installed for `deploy` user
 - [ ] `ssh zyntapos-vps "echo ok"` works from local machine
 - [ ] GitHub Actions secrets configured: VPS_HOST, VPS_USER, VPS_PORT, DEPLOY_SSH_PRIVATE_KEY
-- [ ] GitHub Actions deploy workflow green on push to `main`
+- [ ] `PAT_TOKEN` has `read:packages` scope (required for VPS to pull GHCR images)
+- [ ] GHCR packages visible: `github.com/sendtodilanka → Packages` shows `zyntapos-api`, `zyntapos-license`, `zyntapos-sync`
+- [ ] `/opt/zyntapos/.env` contains `REDIS_PASSWORD` (run: `echo "REDIS_PASSWORD=$(openssl rand -hex 24)" >> /opt/zyntapos/.env`)
+- [ ] GitHub Actions 7-step pipeline green on push to `main`
 
 ### Services
 - [ ] License system: generate, activate, heartbeat, expire all working

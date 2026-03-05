@@ -48,10 +48,11 @@ services:
       start_period: 15s
 
   # ── Ktor REST API ──────────────────────────────────────────────────
+  # Image built by CI (ci-gate.yml build-backend-images job) and pushed to GHCR.
+  # VPS pulls the pre-built image — no Gradle or build tooling needed on server.
+  # See: docs/adr/ADR-006-backend-docker-build-in-ci.md
   api:
-    build:
-      context: ./backend/api
-      dockerfile: Dockerfile
+    image: ghcr.io/sendtodilanka/zyntapos-api:latest
     container_name: zyntapos_api
     restart: unless-stopped
     expose:
@@ -96,9 +97,7 @@ services:
 
   # ── Ktor License Server ────────────────────────────────────────────
   license:
-    build:
-      context: ./backend/license
-      dockerfile: Dockerfile
+    image: ghcr.io/sendtodilanka/zyntapos-license:latest
     container_name: zyntapos_license
     restart: unless-stopped
     expose:
@@ -136,9 +135,7 @@ services:
 
   # ── Ktor WebSocket Sync Server ─────────────────────────────────────
   sync:
-    build:
-      context: ./backend/sync
-      dockerfile: Dockerfile
+    image: ghcr.io/sendtodilanka/zyntapos-sync:latest
     container_name: zyntapos_sync
     restart: unless-stopped
     expose:

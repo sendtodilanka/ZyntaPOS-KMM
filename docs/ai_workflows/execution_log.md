@@ -3629,3 +3629,77 @@ Two compile errors blocked `:shared:domain:assemble`. Both were identified via `
 - ✅ Architecture gate — domain → data → presentation; MVI; ADR-001/002/003 compliant
 - ✅ Green tests gate — zero failures
 - ✅ Build gate — Android APK + Desktop JAR both succeeded
+
+---
+
+## Session 5 — 2026-03-05 (Sprint F: Backend Deploy Pipeline Fix + OWASP Build Fix)
+
+**Branch:** `claude/audit-kmp-roadmap-AjuNk`
+**Commits:** `05438ca`, `d44ae10`
+**Trigger:** GitHub Actions run `22704980409` — `Step[3+4]: CI Gate` failed on `build-backend-images` job for all 3 matrix services (api, license, sync)
+
+---
+
+### Root Cause Diagnosed via GitHub API
+
+Used PAT-authenticated `curl` against the GitHub REST API to fetch job logs:
+
+```
+GET /repos/sendtodilanka/ZyntaPOS-KMM/actions/jobs/65830176340/logs
+```
+
+**Error found:**
+```
+e: file:///build/build.gradle.kts:30:9: Unresolved reference: apiDelay
+FAILURE: Build failed with an exception.
+Script compilation error:
+  Line 30:         apiDelay = 3500
+                   ^ Unresolved reference: apiDelay
+BUILD FAILED in 51s
+```
+
+OWASP Dependency Check Gradle plugin **10.0.4** renamed `nvd.apiDelay` → `nvd.delay`. The Sprint E implementation used the v9.x property name, causing a Kotlin build script compilation error inside every Docker build.
+
+---
+
+### Commit `d44ae10` — fix(build): rename apiDelay → delay in OWASP nvd config (plugin v10.x)
+
+**Files changed (3):**
+- [x] `backend/api/build.gradle.kts` — `apiDelay = 3500` → `delay = 3500`
+- [x] `backend/license/build.gradle.kts` — same
+- [x] `backend/sync/build.gradle.kts` — same
+
+**Impact:** Fixes both the `build-backend-images` CI job and the `sec-backend-scan.yml` OWASP `dependencyCheckAnalyze` task (which was also failing silently due to `|| true`).
+
+---
+
+### Commit `05438ca` — fix(deploy): build backend images in CI and pull from GHCR on VPS
+
+**Root cause (deeper):** VPS was trying to build Docker images with `--build` on every deploy. The Dockerfiles each do `COPY gradlew ./` and `COPY gradle ./gradle`, but:
+- `backend/api/gradle/` — directory didn't exist
+- `backend/license/gradle/wrapper/` and `backend/sync/gradle/wrapper/` — existed but empty
+- All gitignored by `backend/*/gradle/` rule in `.gitignore`
+
+**Architecture change:** VPS should never build source code. CI builds → GHCR → VPS pulls.
+
+**Files changed (13):**
+- [x] `.gitignore` — Removed `backend/*/gradle/` line; added `!backend/*/gradle/wrapper/gradle-wrapper.jar` exception (alongside existing `!gradle/wrapper/gradle-wrapper.jar`)
+- [x] `backend/api/gradlew` — New (copy of root Gradle 8.14.3 wrapper, `chmod +x`)
+- [x] `backend/api/gradle/wrapper/gradle-wrapper.properties` — New (Gradle 8.14.3 distribution URL)
+- [x] `backend/api/gradle/wrapper/gradle-wrapper.jar` — New binary (43,764 bytes)
+- [x] `backend/license/gradlew` — New
+- [x] `backend/license/gradle/wrapper/gradle-wrapper.properties` — New
+- [x] `backend/license/gradle/wrapper/gradle-wrapper.jar` — New binary
+- [x] `backend/sync/gradlew` — New
+- [x] `backend/sync/gradle/wrapper/gradle-wrapper.properties` — New
+- [x] `backend/sync/gradle/wrapper/gradle-wrapper.jar` — New binary
+- [x] `.github/workflows/ci-gate.yml` — Added `build-backend-images` matrix job (api/license/sync); added `packages: write` to top-level permissions; changed `trigger-deploy.needs` from `[build-and-test]` to `[build-and-test, build-backend-images]`
+- [x] `docker-compose.yml` — Replaced `build: context: ./backend/{api,license,sync}` with `image: ghcr.io/sendtodilanka/zyntapos-{api,license,sync}:latest`
+- [x] `.github/workflows/cd-deploy.yml` — Added `docker login ghcr.io`; removed `--build` from `docker compose up`
+
+### Quality Gates
+
+- ✅ Architecture gate — VPS is now stateless (no build tooling required on server)
+- ✅ Security gate — GITHUB_TOKEN (not PAT) used for GHCR push; PAT used only for pull (needs read:packages scope)
+- ✅ Immutable image tags — both `:latest` and `:<sha>` pushed, enabling precise rollback
+- ✅ ADR created — ADR-006 documents the architectural decision
