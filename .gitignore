@@ -27,6 +27,7 @@ out/
 *.ipa
 *.jar
 !gradle/wrapper/gradle-wrapper.jar
+!backend/*/gradle/wrapper/gradle-wrapper.jar
 
 # ── IntelliJ / Android Studio ───────────────────────────────────────
 *.iml

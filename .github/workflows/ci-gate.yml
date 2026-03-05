@@ -35,6 +35,7 @@ permissions:
   contents: read
   checks: write
   actions: read
+  packages: write
 
 concurrency:
   group: ci-gate-${{ github.event_name }}-${{ github.event.pull_request.number || github.sha }}
@@ -82,12 +83,49 @@ jobs:
           fail-on-error: false
           fail-on-empty: false
 
+  # ── Build & Push Backend Docker Images to GHCR (push-to-main only) ─────────
+  # Runs in parallel with test-report after build-and-test succeeds.
+  # Pushes :latest and :<sha> tags so the VPS can pull without building.
+  build-backend-images:
+    name: "Build & Push Backend Docker Images"
+    needs: build-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [api, license, sync]
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image — ${{ matrix.service }}
+        uses: docker/build-push-action@v6
+        with:
+          context: backend/${{ matrix.service }}
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/zyntapos-${{ matrix.service }}:latest
+            ghcr.io/${{ github.repository_owner }}/zyntapos-${{ matrix.service }}:${{ github.sha }}
+
   # ── Trigger Deploy (push-to-main only) ───────────────────────────────────
   # Uses repository_dispatch to chain to cd-deploy.yml.
-  # Only fires on push events (not PRs) and only when build succeeds.
+  # Only fires on push events (not PRs) and only when BOTH build AND images succeed.
   trigger-deploy:
     name: "Trigger Deploy"
-    needs: build-and-test
+    needs: [build-and-test, build-backend-images]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 2
