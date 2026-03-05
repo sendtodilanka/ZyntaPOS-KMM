@@ -1,0 +1,178 @@
+════════════════════════════════════════════════════════════════════════════════
+  ZyntaPOS KMM — SESSION HANDOFF PROMPT
+  Branch: claude/audit-kmp-roadmap-AjuNk
+  Last commit: e28d05f  (2026-03-05)
+════════════════════════════════════════════════════════════════════════════════
+
+Read CLAUDE.md first, then read this file fully before doing anything.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CURRENT STATE — what is DONE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Phase 0 — Foundation          ✅ COMPLETE
+Phase 1 — MVP                 ✅ COMPLETE  (Detekt 0 violations, CI green)
+Phase 2 — Growth              🟡 IN PROGRESS
+
+Recent commits (newest first):
+  e28d05f  fix(test): AuthViewModelTest + InventoryViewModelTest named-arg fix
+  c721e15  feat(security): TODO-009 Levels 2-4 (rate-limit, container hardening, OWASP)
+  79846d7  feat(infra): TODO-007 backend infrastructure (Sprint D — 3 Ktor servers)
+  0fd0a32  fix(detekt): zero violations (Sprint C)
+  88423d7  feat(audit): Tier-2 operational logging (TODO-004 Phase 1)
+
+What was built in Phase 2 so far:
+  • backend/api/       — Ktor 3.4.1 REST API (CIO, JWT RS256, HikariCP, Flyway, Exposed)
+  • backend/license/   — Ktor license server (activate, heartbeat, status endpoints)
+  • backend/sync/      — Ktor WebSocket sync server (SyncSessionManager, Redis pub/sub)
+  • docker-compose.yml — 7-service production stack (Caddy, api, license, sync, postgres, redis, canary)
+  • Caddyfile          — Reverse proxy routing to real services
+  • scripts/backup.sh  — Daily pg_dump → Backblaze B2 via rclone
+  • scripts/setup-vps.sh — VPS provisioning script (7-step)
+  • TODO-009 Levels 1–4:
+      Level 1: Java deserialization block + CIO engine + security headers (HSTS, CSP, X-Frame)
+      Level 2: Per-IP rate limiting (auth 10/min, api 300/min, sync 60/min, ws 20/min)
+      Level 3: Docker container hardening (read_only, no-new-privileges, mem limits, tmpfs)
+      Level 4: OWASP Dependency Check plugin + Trivy CI scan + Dependabot config
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REMAINING WORK — what to do NEXT (in priority order)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The following can be done IN REPO without VPS access:
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ PRIORITY 1 — Backend DB Queries (stub → real implementation)               │
+└─────────────────────────────────────────────────────────────────────────────┘
+All three Ktor services have TODO stubs where real Exposed ORM queries belong.
+Implement them:
+
+  backend/api/service/UserService.kt
+    • authenticate(licenseKey, deviceId, username, password): User?
+      → Query `users` table by email/username, verify bcrypt password hash,
+        check `stores` table for licenseKey match, return User or null
+    • refreshTokens(refreshToken, config): LoginResponse?
+      → Verify JWT refresh token (RS256), load user from DB, issue new tokens
+
+  backend/api/service/SyncService.kt
+    • push(operations: List<SyncOperation>, storeId: String): SyncPushResponse
+      → Insert rows into `sync_queue` table, resolve conflicts via last-write-wins,
+        update `version_vectors` table
+    • pull(storeId: String, since: Instant): SyncPullResponse
+      → Query `sync_queue` WHERE store_id = storeId AND updated_at > since
+        ORDER BY updated_at ASC, return paginated list
+
+  backend/api/service/ProductService.kt
+    • getProducts(storeId, updatedSince, page, pageSize): ProductListResponse
+      → Query `products` table with optional updatedSince filter, paginate
+
+  backend/license/service/LicenseService.kt
+    • activate(request): ActivateResponse?
+      → Query `licenses` table by key, check seat count vs device_registrations,
+        insert new device_registration row, return activation result
+    • heartbeat(request): HeartbeatResponse?
+      → Update `device_registrations.last_seen_at`, return license status
+    • getStatus(key): LicenseStatusResponse?
+      → Query `licenses` JOIN `device_registrations`, return counts
+
+  All DB queries use Jetbrains Exposed DSL (already imported in DatabaseFactory).
+  Schema is already created by Flyway migrations in:
+    backend/api/src/main/resources/db/migration/V1__initial_schema.sql
+    backend/api/src/main/resources/db/migration/V2__licenses_table.sql
+    backend/license/src/main/resources/db/migration/V1__license_schema.sql
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ PRIORITY 2 — RS256 Public Key Injection into Android App                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+The Android app needs to verify JWT tokens issued by the backend.
+
+  1. In local.properties.template — add:
+       ZYNTA_RS256_PUBLIC_KEY=<base64-encoded-DER-of-public-key>
+
+  2. In shared/security/src/commonMain/.../JwtManager.kt — add:
+       fun verifyLocalRS256(token: String, publicKeyBase64: String): JwtClaims?
+       (decode RS256 JWT, verify signature, return claims or null)
+
+  3. In androidApp/ or composeApp/src/androidMain/ — wire BuildConfig field:
+       ZYNTA_RS256_PUBLIC_KEY → injected via Secrets Gradle plugin
+
+  4. Update Koin DI: pass public key string to JwtManager at startup
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ PRIORITY 3 — TODO-010: Security Monitoring (in-repo parts)                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+The GitHub Actions parts can be done without VPS:
+
+  .github/workflows/sec-canary-response.yml already exists.
+  Still needed:
+    • Add Snyk container scan step to sec-backend-scan.yml (after Trivy)
+      Uses: snyk/actions/docker@master with SNYK_TOKEN secret
+    • Add OWASP ZAP API scan workflow sec-zap-scan.yml
+      Runs against https://api.zyntapos.com (scheduled weekly, after VPS up)
+      For now, point at localhost mock or skip until VPS is live
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ BLOCKED — Needs external VPS (cannot do in this environment)               │
+└─────────────────────────────────────────────────────────────────────────────┘
+  TODO-007 Steps 1–5: Contabo VPS provisioning, DNS, Cloudflare cert, Docker install
+  TODO-008: Landing page deployment (www.zyntapos.com)
+  TODO-006: SSH relay lockbox pattern (remote diagnostic access)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+KEY RULES (from previous sessions — MUST FOLLOW)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔴 NEVER commit without a successful build first
+   Run:  ./gradlew allTests detekt --parallel --continue
+   For backend changes also confirm: backend/api, backend/license, backend/sync compile
+
+🔴 ALWAYS push after every commit
+   git push -u origin claude/audit-kmp-roadmap-AjuNk
+
+🔴 Update plan after each commit
+   Plan file: /root/.claude/plans/fluffy-yawning-teapot.md
+
+🔴 Commit message format: Conventional Commits
+   feat(scope): ..., fix(scope): ..., refactor(scope): ..., test(scope): ...
+   Scopes: pos, inventory, auth, domain, data, security, hal, core,
+           navigation, designsystem, settings, register, reports, customers,
+           staff, admin, debug, gradle, ci, backend, infra
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ARCHITECTURE QUICK REFERENCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Backend tech stack:
+  • Ktor 3.4.1 (CIO engine — NOT Netty)
+  • Exposed 0.61.0 (ORM DSL)
+  • Flyway 10.22.0 (migrations)
+  • HikariCP 6.3.0 (connection pooling)
+  • JWT: com.auth0:java-jwt:4.4.0 (RS256 asymmetric)
+  • Koin 4.1.1 (DI, koin-ktor plugin)
+  • PostgreSQL 16 via Docker secret (db_password.txt)
+
+Backend project root: backend/settings.gradle.kts (SEPARATE from KMP root)
+Each service has its own build.gradle.kts + Dockerfile.
+Build each independently:  cd backend/api && ./gradlew shadowJar
+
+KMP tech stack (CLAUDE.md has full details):
+  • Kotlin 2.3.0 + KMP + Compose Multiplatform 1.10.0
+  • SQLDelight 2.0.2 (36 .sq files)
+  • kotlinx-datetime PINNED at 0.6.1 (DO NOT upgrade)
+  • Koin 4.1.1 (7-tier load order — see CLAUDE.md)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFIED BUILD STATUS (as of last commit e28d05f)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ✅ ./gradlew allTests detekt --parallel   → BUILD SUCCESSFUL
+  ✅ ./gradlew :androidApp:assembleDebug    → BUILD SUCCESSFUL
+  ✅ ./gradlew :composeApp:packageUberJarForCurrentOS → BUILD SUCCESSFUL
+  ✅ AuthViewModelTest (jvmTest)            → PASSED
+  ✅ InventoryViewModelTest (jvmTest)       → PASSED
+
+════════════════════════════════════════════════════════════════════════════════
+Start with PRIORITY 1 — implement the real DB queries in UserService.kt,
+SyncService.kt, ProductService.kt, and LicenseService.kt.
+Read each file before editing. Build after each service. Commit per service.
+════════════════════════════════════════════════════════════════════════════════
