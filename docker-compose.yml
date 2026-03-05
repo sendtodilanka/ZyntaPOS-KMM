@@ -85,6 +85,14 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+    # ── TODO-009 Level 3: Container hardening ─────────────────────────
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    memswap_limit: 512m
 
   # ── Ktor License Server ────────────────────────────────────────────
   license:
@@ -117,6 +125,14 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+    # ── TODO-009 Level 3: Container hardening ─────────────────────────
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+    memswap_limit: 256m
 
   # ── Ktor WebSocket Sync Server ─────────────────────────────────────
   sync:
@@ -145,6 +161,14 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+    # ── TODO-009 Level 3: Container hardening ─────────────────────────
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+    memswap_limit: 256m
 
   # ── PostgreSQL 16 ─────────────────────────────────────────────────
   postgres:
@@ -172,6 +196,11 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
+    # ── TODO-009 Level 3: Container hardening ─────────────────────────
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1g
+    memswap_limit: 1g
 
   # ── Redis 7 ───────────────────────────────────────────────────────
   redis:
@@ -200,6 +229,11 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    # ── TODO-009 Level 3: Container hardening ─────────────────────────
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    memswap_limit: 512m
 
   # ── Canary static pages (fallback / panel placeholder) ─────────────
   # Serves branded "coming soon" pages for panel.zyntapos.com.

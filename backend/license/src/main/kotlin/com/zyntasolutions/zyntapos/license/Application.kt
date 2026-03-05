@@ -4,6 +4,7 @@ import com.zyntasolutions.zyntapos.license.db.LicenseDatabaseFactory
 import com.zyntasolutions.zyntapos.license.di.licenseModule
 import com.zyntasolutions.zyntapos.license.plugins.configureAuthentication
 import com.zyntasolutions.zyntapos.license.plugins.configureMonitoring
+import com.zyntasolutions.zyntapos.license.plugins.configureRateLimit
 import com.zyntasolutions.zyntapos.license.plugins.configureRouting
 import com.zyntasolutions.zyntapos.license.plugins.configureSecurity
 import com.zyntasolutions.zyntapos.license.plugins.configureSerialization
@@ -37,6 +38,7 @@ fun Application.module() {
     configureSerialization()
     configureAuthentication()
     configureSecurity()
+    configureRateLimit()
     configureMonitoring()
     configureStatusPages()
     configureRouting()

@@ -3,6 +3,7 @@ plugins {
     kotlin("plugin.serialization") version "2.3.0"
     id("com.github.johnrengelman.shadow") version "8.1.1"
     application
+    id("org.owasp.dependencycheck") version "10.0.4"
 }
 
 group = "com.zyntasolutions.zyntapos"
@@ -19,6 +20,16 @@ repositories {
 val ktorVersion = "3.4.1"
 val koinVersion = "4.1.1"
 
+// ── OWASP Dependency Check (TODO-009 Level 4) ─────────────────────────────
+dependencyCheck {
+    failBuildOnCVSS = 9.0f        // Fail only on CRITICAL (CVSS >= 9.0)
+    suppressionFile = "owasp-suppressions.xml"
+    formats = listOf("HTML", "JSON")
+    nvd {
+        apiDelay = 3500            // NVD API rate limit: 5 req/30s without key
+    }
+}
+
 dependencies {
     // ── Ktor Server (CIO) ──────────────────────────────────────────────
     implementation("io.ktor:ktor-server-core:$ktorVersion")
@@ -29,6 +40,7 @@ dependencies {
     implementation("io.ktor:ktor-server-auth-jwt:$ktorVersion")
     implementation("io.ktor:ktor-server-websockets:$ktorVersion")
     implementation("io.ktor:ktor-server-call-logging:$ktorVersion")
+    implementation("io.ktor:ktor-server-rate-limit:$ktorVersion")
     implementation("io.ktor:ktor-server-status-pages:$ktorVersion")
     implementation("io.ktor:ktor-server-default-headers:$ktorVersion")
 

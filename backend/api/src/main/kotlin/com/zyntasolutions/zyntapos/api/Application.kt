@@ -5,6 +5,7 @@ import com.zyntasolutions.zyntapos.api.di.appModule
 import com.zyntasolutions.zyntapos.api.plugins.configureAuthentication
 import com.zyntasolutions.zyntapos.api.plugins.configureCors
 import com.zyntasolutions.zyntapos.api.plugins.configureMonitoring
+import com.zyntasolutions.zyntapos.api.plugins.configureRateLimit
 import com.zyntasolutions.zyntapos.api.plugins.configureRouting
 import com.zyntasolutions.zyntapos.api.plugins.configureSecurity
 import com.zyntasolutions.zyntapos.api.plugins.configureSerialization
@@ -42,6 +43,7 @@ fun Application.module() {
     configureAuthentication()
     configureCors()
     configureSecurity()
+    configureRateLimit()
     configureMonitoring()
     configureStatusPages()
     configureRouting()

@@ -3,6 +3,7 @@ package com.zyntasolutions.zyntapos.sync
 import com.zyntasolutions.zyntapos.sync.di.syncModule
 import com.zyntasolutions.zyntapos.sync.plugins.configureAuthentication
 import com.zyntasolutions.zyntapos.sync.plugins.configureMonitoring
+import com.zyntasolutions.zyntapos.sync.plugins.configureRateLimit
 import com.zyntasolutions.zyntapos.sync.plugins.configureRouting
 import com.zyntasolutions.zyntapos.sync.plugins.configureSecurity
 import com.zyntasolutions.zyntapos.sync.plugins.configureSerialization
@@ -35,6 +36,7 @@ fun Application.module() {
     configureSerialization()
     configureAuthentication()
     configureSecurity()
+    configureRateLimit()
     configureMonitoring()
     configureWebSockets()
     configureStatusPages()

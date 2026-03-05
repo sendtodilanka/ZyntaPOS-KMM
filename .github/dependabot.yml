@@ -1,0 +1,87 @@
+# ═══════════════════════════════════════════════════════════════════
+# ZyntaPOS — Dependabot Automated Dependency Updates (TODO-009 Level 4)
+#
+# Keeps all dependency ecosystems patched automatically:
+#  • KMP root project (Gradle)
+#  • Backend api / license / sync (Gradle, separate project)
+#  • GitHub Actions workflows
+#
+# All PRs target the 'develop' branch for review before merging to main.
+# ═══════════════════════════════════════════════════════════════════
+
+version: 2
+
+updates:
+  # ── KMP root project ──────────────────────────────────────────────
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Colombo"
+    target-branch: "develop"
+    labels:
+      - "dependencies"
+      - "kmp"
+    open-pull-requests-limit: 5
+    ignore:
+      # kotlinx-datetime pinned at 0.6.1 — 0.7.1 has binary incompatibility
+      - dependency-name: "org.jetbrains.kotlinx:kotlinx-datetime"
+        versions: ["0.7.*", "1.*"]
+
+  # ── Backend API service ───────────────────────────────────────────
+  - package-ecosystem: "gradle"
+    directory: "/backend/api"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Colombo"
+    target-branch: "develop"
+    labels:
+      - "dependencies"
+      - "backend"
+    open-pull-requests-limit: 5
+
+  # ── Backend License service ───────────────────────────────────────
+  - package-ecosystem: "gradle"
+    directory: "/backend/license"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Colombo"
+    target-branch: "develop"
+    labels:
+      - "dependencies"
+      - "backend"
+    open-pull-requests-limit: 5
+
+  # ── Backend Sync service ──────────────────────────────────────────
+  - package-ecosystem: "gradle"
+    directory: "/backend/sync"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Colombo"
+    target-branch: "develop"
+    labels:
+      - "dependencies"
+      - "backend"
+    open-pull-requests-limit: 5
+
+  # ── GitHub Actions ────────────────────────────────────────────────
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Colombo"
+    target-branch: "develop"
+    labels:
+      - "dependencies"
+      - "ci"
+    open-pull-requests-limit: 3
