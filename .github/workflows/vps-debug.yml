@@ -25,9 +25,9 @@ jobs:
             set -euo pipefail
             cd /opt/zyntapos
 
-            echo "=== 1: db_password.txt content (length + hex dump) ==="
+            echo "=== 1: db_password.txt content (length) ==="
             wc -c secrets/db_password.txt
-            xxd secrets/db_password.txt | tail -3
+            od -c secrets/db_password.txt | tail -2
 
             echo "=== 2: Test TCP auth using password from file ==="
             DB_PASS=$(cat secrets/db_password.txt | tr -d '\n\r')
@@ -45,3 +45,9 @@ jobs:
 
             echo "=== 4: docker compose ps ==="
             docker compose ps
+
+            echo "=== 5: API logs (last 40) ==="
+            docker logs zyntapos_api --tail 40 2>&1 | tail -40
+
+            echo "=== 6: License logs (last 20) ==="
+            docker logs zyntapos_license --tail 20 2>&1 | tail -20
