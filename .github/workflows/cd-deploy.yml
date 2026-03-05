@@ -100,11 +100,14 @@ jobs:
             git fetch origin
             git reset --hard "$DEPLOY_SHA"
 
+            echo "=== Authenticating with GHCR ==="
+            echo "${{ secrets.PAT_TOKEN }}" | docker login ghcr.io -u sendtodilanka --password-stdin
+
             echo "=== Validating Docker Compose config ==="
             docker compose config --quiet
 
             docker compose pull --quiet
-            docker compose up -d --build --remove-orphans
+            docker compose up -d --remove-orphans
             docker image prune -f
 
             echo "=== Deploy complete: $(date) ==="

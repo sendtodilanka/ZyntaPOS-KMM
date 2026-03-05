@@ -27,6 +27,7 @@ out/
 *.ipa
 *.jar
 !gradle/wrapper/gradle-wrapper.jar
+!backend/*/gradle/wrapper/gradle-wrapper.jar
 
 # ── IntelliJ / Android Studio ───────────────────────────────────────
 *.iml
@@ -107,6 +108,5 @@ secrets/
 *.env
 !secrets.env.template
 backend/*/build/
-backend/*/gradle/
 backend/*/.gradle/
 backend/*/.kotlin/

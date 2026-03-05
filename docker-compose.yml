@@ -49,9 +49,7 @@ services:
 
   # ── Ktor REST API ──────────────────────────────────────────────────
   api:
-    build:
-      context: ./backend/api
-      dockerfile: Dockerfile
+    image: ghcr.io/sendtodilanka/zyntapos-api:latest
     container_name: zyntapos_api
     restart: unless-stopped
     expose:
@@ -96,9 +94,7 @@ services:
 
   # ── Ktor License Server ────────────────────────────────────────────
   license:
-    build:
-      context: ./backend/license
-      dockerfile: Dockerfile
+    image: ghcr.io/sendtodilanka/zyntapos-license:latest
     container_name: zyntapos_license
     restart: unless-stopped
     expose:
@@ -136,9 +132,7 @@ services:
 
   # ── Ktor WebSocket Sync Server ─────────────────────────────────────
   sync:
-    build:
-      context: ./backend/sync
-      dockerfile: Dockerfile
+    image: ghcr.io/sendtodilanka/zyntapos-sync:latest
     container_name: zyntapos_sync
     restart: unless-stopped
     expose:
