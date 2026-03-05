@@ -379,3 +379,121 @@ not interfere with the continuous delivery pipeline.
 | `64f6875` | ci(workflows): 13 fixes across all 5 workflow files (previous session) |
 | This commit | ci(audit): live API remediations — private repo, PAT_TOKEN, env policy, release trigger |
 
+
+---
+
+## 9. Sprint F — Backend Docker Image Pipeline (2026-03-05)
+
+**Commit:** `05438ca`, `d44ae10`
+**Branch:** `claude/audit-kmp-roadmap-AjuNk`
+**Trigger:** GitHub Actions run `22704980409` — `Step[3+4]: CI Gate` failed
+
+---
+
+### 9.1 Root Cause Analysis (via GitHub REST API)
+
+Fetched job logs using PAT-authenticated API call:
+```
+GET /repos/sendtodilanka/ZyntaPOS-KMM/actions/jobs/65830176340/logs
+```
+
+**Error in all 3 `build-backend-images` matrix jobs:**
+```
+e: file:///build/build.gradle.kts:30:9: Unresolved reference: apiDelay
+FAILURE: Build failed with an exception.
+Script compilation error:
+  Line 30:         apiDelay = 3500
+                   ^ Unresolved reference: apiDelay
+BUILD FAILED in 51s
+```
+
+**Cause:** OWASP Dependency Check Gradle plugin 10.0.4 renamed `nvd.apiDelay` → `nvd.delay`.
+The Sprint E implementation used the v9.x property name.
+
+---
+
+### 9.2 Fixes Applied
+
+#### Fix 1 — OWASP nvd.apiDelay renamed (commit `d44ae10`)
+
+| File | Change |
+|------|--------|
+| `backend/api/build.gradle.kts:30` | `apiDelay = 3500` → `delay = 3500` |
+| `backend/license/build.gradle.kts:30` | same |
+| `backend/sync/build.gradle.kts:29` | same |
+
+Also fixes `sec-backend-scan.yml` OWASP jobs — `./gradlew dependencyCheckAnalyze` was
+failing with the same error (suppressed by `|| true` in the Docker dependencies layer,
+but fatal in the `shadowJar` step).
+
+#### Fix 2 — Architecture change: CI builds Docker images, VPS pulls (commit `05438ca`)
+
+The deploy was using `docker compose up -d --build` on the VPS. This required `gradlew`
+and `gradle/wrapper/` inside the Docker build context — files that were either absent or
+gitignored. Root cause: VPS should never build from source.
+
+| # | File | Change | Why |
+|---|------|--------|-----|
+| 1 | `.gitignore` | Remove `backend/*/gradle/` line; add `!backend/*/gradle/wrapper/gradle-wrapper.jar` exception | Allow gradle wrapper to be committed |
+| 2–4 | `backend/api/gradlew` + `gradle/wrapper/*` | New files (copy from root Gradle 8.14.3) | Dockerfile COPY + `sec-backend-scan.yml` |
+| 5–7 | `backend/license/gradlew` + `gradle/wrapper/*` | Same | Same |
+| 8–10 | `backend/sync/gradlew` + `gradle/wrapper/*` | Same | Same |
+| 11 | `.github/workflows/ci-gate.yml` | Add `build-backend-images` matrix job; add `packages: write`; change `trigger-deploy.needs` to `[build-and-test, build-backend-images]` | Build + push images to GHCR before deploy |
+| 12 | `docker-compose.yml` | Replace `build: context: ./backend/{service}` with `image: ghcr.io/sendtodilanka/zyntapos-{service}:latest` | VPS pulls pre-built images |
+| 13 | `.github/workflows/cd-deploy.yml` | Add `docker login ghcr.io`; remove `--build` from `docker compose up` | VPS no longer builds from source |
+
+---
+
+### 9.3 Updated Pipeline Diagram
+
+```
+Developer / Claude pushes to claude/* branch
+        │
+        ▼  ci-branch-validate.yml — Step[1]
+        │
+        ▼  ci-auto-pr.yml — Step[2]
+        │
+        ▼  ci-gate.yml — Step[3+4] on push to main
+        │    ├── build-and-test (KMM: build + lint + tests)
+        │    └── build-backend-images (matrix: api / license / sync)
+        │          └── docker/build-push-action@v6
+        │                → ghcr.io/sendtodilanka/zyntapos-{service}:latest
+        │                → ghcr.io/sendtodilanka/zyntapos-{service}:<sha>
+        │
+        ▼  trigger-deploy (needs: [build-and-test, build-backend-images])
+        │
+        ▼  cd-deploy.yml — Step[5]
+        │    docker login ghcr.io (PAT_TOKEN — needs read:packages scope)
+        │    docker compose pull  ← pre-built images
+        │    docker compose up -d ← no --build
+        │
+        ▼  cd-smoke.yml — Step[6]
+        │
+        ▼  cd-verify-endpoints.yml — Step[7]
+```
+
+---
+
+### 9.4 Updated Required Secrets
+
+| Secret | Present | Purpose | Notes |
+|--------|---------|---------|-------|
+| `PAT_TOKEN` | ✅ | Auto-merge pipeline + GHCR pull on VPS | Must have **`read:packages`** scope in addition to `repo` |
+| `VPS_HOST` | ✅ | SSH deploy target | |
+| `VPS_USER` | ✅ | SSH username | |
+| `VPS_PORT` | ✅ | SSH port | |
+| `DEPLOY_SSH_PRIVATE_KEY` | ✅ | SSH private key | |
+| `SENTRY_AUTH_TOKEN` | ✅ | Sentry release tracking | |
+| `GITHUB_TOKEN` | Auto | GHCR image push | Auto-provided by Actions; `packages: write` granted in `ci-gate.yml` |
+| `NVD_API_KEY` | ❌ Optional | OWASP NVD higher rate limit | Not required; `nvd.delay=3500` limits requests without key |
+
+---
+
+### 9.5 ADR Created
+
+**ADR-006** (`docs/adr/ADR-006-backend-docker-build-in-ci.md`) — ACCEPTED
+
+Documents the decision to build Docker images in CI instead of on the VPS, including
+context, consequences, and rollback procedure.
+
+
