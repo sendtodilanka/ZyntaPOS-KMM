@@ -72,10 +72,12 @@ jobs:
 
             echo "=== Step 5: Full docker compose down + up ==="
             # 'down' removes containers + networks (volumes kept)
-            # Forces fresh Docker secret creation from current db_password.txt
             docker compose down --remove-orphans
+            # Force-remove any stale containers that 'down' may have missed
+            docker ps -aq --filter "name=zyntapos_" | xargs -r docker rm -f 2>/dev/null || true
+            sleep 3
             docker compose up -d
-            sleep 70
+            sleep 90
 
             echo "=== Step 6: Final status ==="
             docker compose ps
