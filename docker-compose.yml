@@ -31,9 +31,10 @@ services:
       - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      # Cloudflare Origin Certificate — stored on VPS host, never in repo
+      # Cloudflare Origin Certificate — stored in backend/caddy/certs/ on VPS host
       # Generate at: Cloudflare → SSL/TLS → Origin Server → Create Certificate
-      - /etc/caddy/certs:/etc/caddy/certs:ro
+      # Or use self-signed for testing: see docs/adr/ADR-006
+      - ./backend/caddy/certs:/etc/caddy/certs:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
