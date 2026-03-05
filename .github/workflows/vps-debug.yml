@@ -67,10 +67,10 @@ jobs:
             echo "Host pass first 8 chars: ${HOST_PASS:0:8}"
 
             echo "=== 5: API logs (first 30 lines) ==="
-            docker logs zyntapos_api 2>&1 | head -30
+            { docker logs zyntapos_api 2>&1 || true; } | head -30 || true
 
             echo "=== 5b: API logs (last 15 lines) ==="
-            docker logs zyntapos_api --tail 15 2>&1
+            docker logs zyntapos_api --tail 15 2>&1 || true
 
             echo "=== 6: License logs (first 20 lines) ==="
-            docker logs zyntapos_license 2>&1 | head -20
+            { docker logs zyntapos_license 2>&1 || true; } | head -20 || true
