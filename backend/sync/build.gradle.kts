@@ -26,7 +26,7 @@ dependencyCheck {
     suppressionFile = "owasp-suppressions.xml"
     formats = listOf("HTML", "JSON")
     nvd {
-        delay = 3500               // NVD API rate limit: 5 req/30s without key
+        apiDelay = 3500            // NVD API rate limit: 5 req/30s without key
     }
 }
 
