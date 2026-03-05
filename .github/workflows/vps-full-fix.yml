@@ -43,6 +43,13 @@ jobs:
             NEW_PASS=$(openssl rand -hex 32)
             printf '%s' "$NEW_PASS" > secrets/db_password.txt
             echo "File size: $(wc -c < secrets/db_password.txt) bytes (expect 64)"
+            # Write to .env so docker-compose passes DB_PASSWORD to api/license containers
+            # Keep existing REDIS_PASSWORD if present; only update ZYNTAPOS_DB_PASSWORD
+            if [ -f .env ]; then
+              sed -i '/^ZYNTAPOS_DB_PASSWORD=/d' .env
+            fi
+            echo "ZYNTAPOS_DB_PASSWORD=${NEW_PASS}" >> .env
+            echo ".env updated with new DB password"
 
             echo "=== Step 2: ALTER ROLE in running postgres ==="
             docker exec zyntapos_postgres psql -U zyntapos -d zyntapos \

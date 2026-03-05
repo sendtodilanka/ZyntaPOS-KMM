@@ -62,7 +62,7 @@ services:
       - PORT=8080
       - DB_URL=jdbc:postgresql://postgres:5432/zyntapos
       - DB_USER=zyntapos
-      - DB_PASSWORD_FILE=/run/secrets/db_password
+      - DB_PASSWORD=${ZYNTAPOS_DB_PASSWORD}
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
       - JWT_ISSUER=https://api.zyntapos.com
       - JWT_AUDIENCE=zyntapos-app
@@ -71,8 +71,7 @@ services:
       - ACCESS_TOKEN_TTL_MINUTES=60
       - REFRESH_TOKEN_TTL_DAYS=30
     volumes:
-      # Use direct bind mounts for secrets to avoid Docker secret caching issues
-      - ./secrets/db_password.txt:/run/secrets/db_password:ro
+      # Use direct bind mounts for RS256 key files
       - ./secrets/rs256_private_key.pem:/run/secrets/rs256_private_key:ro
       - ./secrets/rs256_public_key.pem:/run/secrets/rs256_public_key:ro
     depends_on:
@@ -109,13 +108,12 @@ services:
       - PORT=8083
       - DB_URL=jdbc:postgresql://postgres:5432/zyntapos
       - DB_USER=zyntapos
-      - DB_PASSWORD_FILE=/run/secrets/db_password
+      - DB_PASSWORD=${ZYNTAPOS_DB_PASSWORD}
       - JWT_ISSUER=https://api.zyntapos.com
       - JWT_AUDIENCE=zyntapos-app
       - RS256_PUBLIC_KEY_PATH=/run/secrets/rs256_public_key
     volumes:
-      # Use direct bind mounts for secrets to avoid Docker secret caching issues
-      - ./secrets/db_password.txt:/run/secrets/db_password:ro
+      # Use direct bind mount for RS256 public key
       - ./secrets/rs256_public_key.pem:/run/secrets/rs256_public_key:ro
     depends_on:
       postgres:
