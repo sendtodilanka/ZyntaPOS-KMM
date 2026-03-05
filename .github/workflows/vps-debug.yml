@@ -66,8 +66,11 @@ jobs:
             echo "Host db_password.txt length: ${#HOST_PASS}"
             echo "Host pass first 8 chars: ${HOST_PASS:0:8}"
 
-            echo "=== 5: API logs (last 40) ==="
-            docker logs zyntapos_api --tail 40 2>&1 | tail -40
+            echo "=== 5: API logs (first 30 lines) ==="
+            docker logs zyntapos_api 2>&1 | head -30
 
-            echo "=== 6: License logs (last 20) ==="
-            docker logs zyntapos_license --tail 20 2>&1 | tail -20
+            echo "=== 5b: API logs (last 15 lines) ==="
+            docker logs zyntapos_api --tail 15 2>&1
+
+            echo "=== 6: License logs (first 20 lines) ==="
+            docker logs zyntapos_license 2>&1 | head -20
