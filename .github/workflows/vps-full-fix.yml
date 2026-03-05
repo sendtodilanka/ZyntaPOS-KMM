@@ -36,6 +36,9 @@ jobs:
             set -euo pipefail
             cd /opt/zyntapos
 
+            echo "=== Step 0: git pull latest compose changes ==="
+            git pull origin main
+
             echo "=== Step 1: Generate fresh password ==="
             NEW_PASS=$(openssl rand -hex 32)
             printf '%s' "$NEW_PASS" > secrets/db_password.txt
