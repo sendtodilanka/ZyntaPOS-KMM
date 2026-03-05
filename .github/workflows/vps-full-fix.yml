@@ -70,6 +70,16 @@ jobs:
               echo "Cert exists"
             fi
 
+            echo "=== Step 4b: Test bind mount accessibility (simulate api container) ==="
+            BIND_TEST=$(docker run --rm \
+              --read-only \
+              --tmpfs /run:size=2m,mode=0755 \
+              --tmpfs /tmp:size=64m,mode=1777 \
+              -v "$(pwd)/secrets/db_password.txt:/run/secrets/db_password:ro" \
+              alpine \
+              sh -c "wc -c /run/secrets/db_password && head -c 8 /run/secrets/db_password && echo ''" 2>&1)
+            echo "Bind mount test result: $BIND_TEST"
+
             echo "=== Step 5: Full docker compose down + up ==="
             # 'down' removes containers + networks (volumes kept)
             docker compose down --remove-orphans
