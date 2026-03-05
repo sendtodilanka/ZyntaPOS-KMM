@@ -33,7 +33,6 @@ api.zyntapos.com {
 
 	reverse_proxy api:8080 {
 		# Pass real client IP through Cloudflare proxy
-		header_up X-Real-IP {remote_host}
 		header_up X-Forwarded-For {remote_host}
 		health_uri /health
 		health_interval 30s
@@ -48,7 +47,6 @@ license.zyntapos.com {
 	reverse_proxy license:8083 {
 		# Strict rate limiting: license heartbeat every 24h per device
 		# Additional rate limiting is enforced by the license service itself
-		header_up X-Real-IP {remote_host}
 		health_uri /health
 		health_interval 30s
 		health_timeout 10s
