@@ -1,10 +1,9 @@
 name: "VPS Full Fix"
 
 # Definitive fix:
-# 1. Generate a fresh known password, write to db_password.txt (no newline)
-# 2. ALTER ROLE to that exact password in postgres
-# 3. Verify cert at backend/caddy/certs/
-# 4. Force-recreate api and license containers
+# 1. Generate known password, write to file, ALTER ROLE in postgres
+# 2. Full docker compose down + up (forces secret recreation)
+# 3. Verify all services healthy
 
 on:
   workflow_dispatch:
@@ -24,7 +23,7 @@ jobs:
     if: github.event.inputs.confirm == 'fullfix'
 
     steps:
-      - name: Sync password + recreate containers
+      - name: Full reset — password sync + down/up
         uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -37,18 +36,25 @@ jobs:
             set -euo pipefail
             cd /opt/zyntapos
 
-            echo "=== Step 1: Generate fresh known password ==="
-            # printf (not echo) avoids trailing newline
+            echo "=== Step 1: Generate fresh password ==="
             NEW_PASS=$(openssl rand -hex 32)
             printf '%s' "$NEW_PASS" > secrets/db_password.txt
-            echo "New password length: ${#NEW_PASS} chars, file size: $(wc -c < secrets/db_password.txt) bytes"
+            echo "File size: $(wc -c < secrets/db_password.txt) bytes (expect 64)"
 
-            echo "=== Step 2: ALTER ROLE to match new password ==="
+            echo "=== Step 2: ALTER ROLE in running postgres ==="
             docker exec zyntapos_postgres psql -U zyntapos -d zyntapos \
               -c "ALTER USER zyntapos WITH PASSWORD '${NEW_PASS}';"
-            echo "Password synced in postgres"
 
-            echo "=== Step 3: Verify cert at correct path ==="
+            echo "=== Step 3: Test TCP auth with new password ==="
+            docker run --rm \
+              --network zyntapos_zyntapos_net \
+              -e PGPASSWORD="$NEW_PASS" \
+              postgres:16-alpine \
+              psql -h postgres -p 5432 -U zyntapos -d zyntapos \
+              -c "SELECT 'TCP_AUTH_OK' as result;" \
+              && echo "TCP AUTH SUCCESS" || echo "TCP AUTH FAILED - password still wrong!"
+
+            echo "=== Step 4: Ensure cert exists ==="
             if [ ! -f backend/caddy/certs/zyntapos_origin.pem ]; then
               mkdir -p backend/caddy/certs
               openssl req -x509 -newkey rsa:4096 \
@@ -57,17 +63,18 @@ jobs:
                 -days 365 -nodes \
                 -subj "/CN=zyntapos.com/O=Zynta Solutions/C=LK" \
                 -addext "subjectAltName=DNS:zyntapos.com,DNS:*.zyntapos.com"
-              echo "Cert generated"
             else
-              echo "Cert present: $(ls -la backend/caddy/certs/)"
+              echo "Cert exists"
             fi
 
-            echo "=== Step 4: Force-recreate api + license ==="
-            docker compose up -d --force-recreate api license
-            sleep 55
+            echo "=== Step 5: Full docker compose down + up ==="
+            # 'down' removes containers + networks (volumes kept)
+            # Forces fresh Docker secret creation from current db_password.txt
+            docker compose down --remove-orphans
+            docker compose up -d
+            sleep 70
 
-            echo "=== Step 5: Final status ==="
+            echo "=== Step 6: Final status ==="
             docker compose ps
-            echo ""
-            curl -sf http://localhost:8080/health && echo "API OK" || echo "API not healthy"
-            curl -sf http://localhost:8083/health && echo "License OK" || echo "License not healthy"
+            curl -sf http://localhost:8080/health && echo "API OK" || echo "API not healthy yet"
+            curl -sf http://localhost:8083/health && echo "License OK" || echo "License not healthy yet"
