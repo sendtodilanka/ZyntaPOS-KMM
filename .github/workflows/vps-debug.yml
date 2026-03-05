@@ -1,0 +1,47 @@
+name: "VPS Debug Logs"
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  debug:
+    name: "Check VPS container logs"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get container logs and postgres status
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          timeout: 60s
+          command_timeout: 3m
+          script: |
+            set -euo pipefail
+            cd /opt/zyntapos
+
+            echo "=== Postgres TCP listen check ==="
+            docker exec zyntapos_postgres ss -tlnp | grep 5432 || true
+
+            echo "=== Postgres full startup logs ==="
+            docker logs zyntapos_postgres --tail 20 2>&1
+
+            echo "=== API last 30 lines ==="
+            docker logs zyntapos_api --tail 30 2>&1
+
+            echo "=== License last 20 lines ==="
+            docker logs zyntapos_license --tail 20 2>&1
+
+            echo "=== Caddy last 20 lines ==="
+            docker logs zyntapos_caddy --tail 20 2>&1
+
+            echo "=== .env file (masked) ==="
+            cat .env | sed 's/=.*/=***/' 2>&1
+
+            echo "=== docker compose config (db section) ==="
+            docker compose config | grep -A5 -i "postgres\|database\|db_" || true
