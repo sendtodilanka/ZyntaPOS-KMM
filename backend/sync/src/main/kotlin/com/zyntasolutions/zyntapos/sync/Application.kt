@@ -10,6 +10,7 @@ import com.zyntasolutions.zyntapos.sync.plugins.configureSerialization
 import com.zyntasolutions.zyntapos.sync.plugins.configureStatusPages
 import com.zyntasolutions.zyntapos.sync.plugins.configureWebSockets
 import io.ktor.server.application.Application
+import io.ktor.server.application.install
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
 import org.koin.ktor.plugin.Koin
