@@ -1,0 +1,108 @@
+name: "VPS First-Time Setup"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ONE-TIME SETUP — run this once to initialise /opt/zyntapos on the Contabo VPS.
+# After this workflow succeeds, delete this file (or it will sit harmlessly).
+#
+# What it does:
+#   1. Installs Docker + Docker Compose plugin (if missing)
+#   2. Creates /opt/zyntapos and clones the repo
+#   3. Generates a random REDIS_PASSWORD and writes /opt/zyntapos/.env
+#   4. Pulls GHCR images and starts the stack
+#
+# Trigger: Actions → "VPS First-Time Setup" → Run workflow
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "setup" to confirm first-time setup'
+        required: true
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  setup:
+    name: "First-Time VPS Setup"
+    runs-on: ubuntu-latest
+    if: github.event.inputs.confirm == 'setup'
+
+    steps:
+      - name: Run first-time setup on VPS
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          timeout: 120s
+          command_timeout: 15m
+          script: |
+            set -euo pipefail
+            echo "=== ZyntaPOS VPS First-Time Setup ==="
+            echo "=== Started: $(date) ==="
+
+            # ── 1. Install Docker (skip if already present) ───────────────
+            if ! command -v docker &>/dev/null; then
+              echo "--- Installing Docker ---"
+              curl -fsSL https://get.docker.com | sh
+              sudo usermod -aG docker "$USER" || true
+              newgrp docker || true
+            else
+              echo "--- Docker already installed: $(docker --version) ---"
+            fi
+
+            # Ensure Docker Compose plugin is available
+            docker compose version || (echo "ERROR: docker compose not found" && exit 1)
+
+            # ── 2. Create /opt/zyntapos and clone repo ────────────────────
+            DEPLOY_PATH="/opt/zyntapos"
+
+            if [ -d "$DEPLOY_PATH/.git" ]; then
+              echo "--- Repo already cloned at $DEPLOY_PATH, fetching latest ---"
+              cd "$DEPLOY_PATH"
+              git fetch origin
+              git reset --hard origin/main
+            else
+              echo "--- Cloning repo to $DEPLOY_PATH ---"
+              sudo mkdir -p "$DEPLOY_PATH"
+              sudo chown "$USER:$USER" "$DEPLOY_PATH"
+              git clone https://github.com/sendtodilanka/ZyntaPOS-KMM.git "$DEPLOY_PATH"
+              cd "$DEPLOY_PATH"
+            fi
+
+            echo "--- Repo HEAD: $(git rev-parse HEAD) ---"
+
+            # ── 3. Create .env with REDIS_PASSWORD ────────────────────────
+            ENV_FILE="$DEPLOY_PATH/.env"
+            if [ -f "$ENV_FILE" ] && grep -q "REDIS_PASSWORD" "$ENV_FILE"; then
+              echo "--- .env already has REDIS_PASSWORD, skipping ---"
+            else
+              echo "--- Generating REDIS_PASSWORD ---"
+              REDIS_PASS=$(openssl rand -hex 24)
+              echo "REDIS_PASSWORD=$REDIS_PASS" >> "$ENV_FILE"
+              echo "--- Written to $ENV_FILE ---"
+            fi
+
+            # ── 4. Authenticate with GHCR and pull images ─────────────────
+            echo "--- Logging in to GHCR ---"
+            echo "${{ secrets.PAT_TOKEN }}" | docker login ghcr.io -u sendtodilanka --password-stdin
+
+            cd "$DEPLOY_PATH"
+            echo "--- Validating docker-compose.yml ---"
+            docker compose config --quiet
+
+            echo "--- Pulling images from GHCR ---"
+            docker compose pull
+
+            echo "--- Starting stack ---"
+            docker compose up -d --remove-orphans
+
+            echo "--- Stack status ---"
+            docker compose ps
+
+            echo "=== Setup complete: $(date) ==="
+            echo "=== VPS is ready. Future deploys will run via cd-deploy.yml ==="
