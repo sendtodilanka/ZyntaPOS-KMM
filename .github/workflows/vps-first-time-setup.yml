@@ -58,20 +58,23 @@ jobs:
             # Ensure Docker Compose plugin is available
             docker compose version || (echo "ERROR: docker compose not found" && exit 1)
 
-            # ── 2. Create /opt/zyntapos and clone repo ────────────────────
+            # ── 2. Initialise git repo at /opt/zyntapos ───────────────────
+            # The directory already exists on the VPS but has no .git folder.
+            # Using git init + remote + fetch instead of clone avoids sudo and
+            # works whether the directory is empty or has pre-existing files.
             DEPLOY_PATH="/opt/zyntapos"
+            cd "$DEPLOY_PATH"
 
-            if [ -d "$DEPLOY_PATH/.git" ]; then
-              echo "--- Repo already cloned at $DEPLOY_PATH, fetching latest ---"
-              cd "$DEPLOY_PATH"
+            if [ -d ".git" ]; then
+              echo "--- Repo already initialised, fetching latest ---"
               git fetch origin
               git reset --hard origin/main
             else
-              echo "--- Cloning repo to $DEPLOY_PATH ---"
-              sudo mkdir -p "$DEPLOY_PATH"
-              sudo chown "$USER:$USER" "$DEPLOY_PATH"
-              git clone https://github.com/sendtodilanka/ZyntaPOS-KMM.git "$DEPLOY_PATH"
-              cd "$DEPLOY_PATH"
+              echo "--- Initialising git repo at $DEPLOY_PATH ---"
+              git init
+              git remote add origin https://github.com/sendtodilanka/ZyntaPOS-KMM.git
+              git fetch origin main
+              git reset --hard origin/main
             fi
 
             echo "--- Repo HEAD: $(git rev-parse HEAD) ---"
