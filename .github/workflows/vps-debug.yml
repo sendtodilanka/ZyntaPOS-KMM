@@ -25,23 +25,23 @@ jobs:
             set -euo pipefail
             cd /opt/zyntapos
 
-            echo "=== Postgres TCP listen check ==="
-            docker exec zyntapos_postgres ss -tlnp | grep 5432 || true
+            echo "=== 1: db_password.txt content (length + hex dump) ==="
+            wc -c secrets/db_password.txt
+            xxd secrets/db_password.txt | tail -3
 
-            echo "=== Postgres full startup logs ==="
-            docker logs zyntapos_postgres --tail 20 2>&1
+            echo "=== 2: Test TCP auth using password from file ==="
+            DB_PASS=$(cat secrets/db_password.txt | tr -d '\n\r')
+            echo "Password length used for test: ${#DB_PASS}"
+            docker run --rm \
+              --network zyntapos_zyntapos_net \
+              -e PGPASSWORD="$DB_PASS" \
+              postgres:16-alpine \
+              psql -h postgres -p 5432 -U zyntapos -d zyntapos -c "SELECT 'TCP_AUTH_OK' as result;" \
+              && echo "TCP AUTH SUCCESS" || echo "TCP AUTH FAILED"
 
-            echo "=== API last 30 lines ==="
-            docker logs zyntapos_api --tail 30 2>&1
+            echo "=== 3: What password does postgres have stored? (hash prefix) ==="
+            docker exec zyntapos_postgres psql -U zyntapos -d zyntapos \
+              -c "SELECT rolname, LEFT(rolpassword, 20) || '...' as pass_hash FROM pg_authid WHERE rolname = 'zyntapos';"
 
-            echo "=== License last 20 lines ==="
-            docker logs zyntapos_license --tail 20 2>&1
-
-            echo "=== Caddy last 20 lines ==="
-            docker logs zyntapos_caddy --tail 20 2>&1
-
-            echo "=== .env file (masked) ==="
-            cat .env | sed 's/=.*/=***/' 2>&1
-
-            echo "=== docker compose config (db section) ==="
-            docker compose config | grep -A5 -i "postgres\|database\|db_" || true
+            echo "=== 4: docker compose ps ==="
+            docker compose ps
