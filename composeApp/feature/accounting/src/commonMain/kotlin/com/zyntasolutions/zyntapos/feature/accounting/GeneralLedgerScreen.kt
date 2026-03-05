@@ -126,8 +126,15 @@ fun GeneralLedgerScreen(
                             DropdownMenuItem(
                                 text = {
                                     Column {
-                                        Text("${account.accountCode} — ${account.accountName}", style = MaterialTheme.typography.bodyMedium)
-                                        Text(account.accountType.name, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(
+                                            "${account.accountCode} — ${account.accountName}",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                        )
+                                        Text(
+                                            account.accountType.name,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
                                     }
                                 },
                                 onClick = {
@@ -207,11 +214,36 @@ fun GeneralLedgerScreen(
                                     .fillMaxWidth()
                                     .padding(horizontal = ZyntaSpacing.md, vertical = ZyntaSpacing.xs),
                             ) {
-                                Text("Date", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.width(ZyntaSpacing.xxl + ZyntaSpacing.md))
-                                Text("Description", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                                Text("Debit", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.width(ZyntaSpacing.xxl + ZyntaSpacing.sm))
-                                Text("Credit", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.width(ZyntaSpacing.xxl + ZyntaSpacing.sm))
-                                Text("Balance", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.width(ZyntaSpacing.xxl + ZyntaSpacing.md))
+                                Text(
+                                    "Date",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.width(ZyntaSpacing.xxl + ZyntaSpacing.md),
+                                )
+                                Text(
+                                    "Description",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                Text(
+                                    "Debit",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.width(ZyntaSpacing.xxl + ZyntaSpacing.sm),
+                                )
+                                Text(
+                                    "Credit",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.width(ZyntaSpacing.xxl + ZyntaSpacing.sm),
+                                )
+                                Text(
+                                    "Balance",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.width(ZyntaSpacing.xxl + ZyntaSpacing.md),
+                                )
                             }
                             HorizontalDivider()
 

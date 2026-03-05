@@ -44,7 +44,7 @@ class JvmBackupService(private val appDataDir: String) : BackupService {
         runCatching {
             val dbFile = File(appDataDir, DB_FILE_NAME)
             if (!dbFile.exists()) {
-                throw IllegalStateException("Database file not found: ${dbFile.absolutePath}")
+                error("Database file not found: ${dbFile.absolutePath}")
             }
 
             val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
@@ -79,7 +79,7 @@ class JvmBackupService(private val appDataDir: String) : BackupService {
         runCatching {
             val sourceFile = File(sourcePath)
             if (!sourceFile.exists()) {
-                throw IllegalStateException("Backup file not found: $sourcePath")
+                error("Backup file not found: $sourcePath")
             }
 
             val dbFile = File(appDataDir, DB_FILE_NAME)

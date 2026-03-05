@@ -17,13 +17,13 @@ import com.zyntasolutions.zyntapos.domain.repository.AccountRepository
 class SeedDefaultChartOfAccountsUseCase(
     private val accountRepository: AccountRepository,
 ) {
-    suspend fun execute(storeId: String, now: Long): Result<Unit> {
-        val accounts = buildDefaultAccounts(storeId = storeId, now = now)
+    suspend fun execute(_storeId: String, now: Long): Result<Unit> {
+        val accounts = buildDefaultAccounts(_storeId, now)
         return accountRepository.seedDefaultAccounts(accounts)
     }
 
     @Suppress("LongMethod")
-    private fun buildDefaultAccounts(storeId: String, now: Long): List<Account> {
+    private fun buildDefaultAccounts(_storeId: String, now: Long): List<Account> {
         fun account(
             code: String,
             name: String,

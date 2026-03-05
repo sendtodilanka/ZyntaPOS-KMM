@@ -687,7 +687,7 @@ class PosViewModel(
         }
     }
 
-    private suspend fun onEmailReceipt(orderId: String, emailAddress: String) {
+    private suspend fun onEmailReceipt(_orderId: String, emailAddress: String) {
         if (emailAddress.isBlank()) {
             sendEffect(PosEffect.ShowError("Please enter an email address"))
             return

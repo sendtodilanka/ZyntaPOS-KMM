@@ -107,7 +107,7 @@ class AuthViewModelTest {
 
         viewModel = AuthViewModel(
             loginUseCase = loginUseCase,
-            logoutUseCase = logoutUseCase,
+            _logoutUseCase = logoutUseCase,
             authRepository = fakeAuthRepository,
             auditLogger = testAuditLogger,
         )

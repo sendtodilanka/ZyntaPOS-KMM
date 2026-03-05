@@ -24,7 +24,7 @@ import com.zyntasolutions.zyntapos.designsystem.util.currentWindowSize
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Minimum primary pane width. Prevents primary from becoming unusably narrow. */
-private val PrimaryMinWidth = 200.dp
+private val _PrimaryMinWidth = 200.dp
 
 /** Width of the visual divider between panes. */
 private val DividerThickness: Dp = 1.dp

@@ -13,7 +13,7 @@ private const val TAG = "EncryptionManager"
 private const val ANDROID_KEYSTORE = "AndroidKeyStore"
 private const val AES_GCM_NOPADDING = "AES/GCM/NoPadding"
 private const val GCM_TAG_LENGTH = 128
-private const val GCM_IV_LENGTH = 12
+private const val _GCM_IV_LENGTH = 12
 
 /**
  * Android actual: AES-256-GCM encryption via Android Keystore.

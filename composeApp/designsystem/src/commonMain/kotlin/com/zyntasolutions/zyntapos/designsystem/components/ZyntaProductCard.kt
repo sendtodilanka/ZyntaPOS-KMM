@@ -158,7 +158,12 @@ private fun ListCard(
                     .padding(horizontal = ZyntaSpacing.md),
             ) {
                 Text(text = name, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(text = price, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                Text(
+                    text = price,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
+                )
             }
             StockBadge(stock = stock, modifier = Modifier.padding(end = ZyntaSpacing.sm))
         }

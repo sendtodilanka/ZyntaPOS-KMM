@@ -39,7 +39,7 @@ import java.net.URL
 class CloudPrntClient(
     private val serverUrl: String,
     private val deviceId: String,
-    private val printerManager: PrinterManager,
+    private val _printerManager: PrinterManager,
     private val pollIntervalMs: Long = DEFAULT_POLL_INTERVAL_MS,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
 ) {

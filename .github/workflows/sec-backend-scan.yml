@@ -1,0 +1,224 @@
+name: Backend Security Scan
+
+# ── TODO-009 Level 4: OWASP Dependency Check + Trivy Container Scan ──────────
+#
+# Runs:
+#   • Weekly (Monday 01:00 UTC = 06:30 LKT) — scheduled sweep
+#   • On push to main/develop that touches backend/ files
+#   • On demand (workflow_dispatch)
+#
+# Results: uploaded as SARIF → GitHub Security → Code Scanning alerts
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  schedule:
+    - cron: "0 1 * * 1"   # Monday 01:00 UTC
+  push:
+    branches: [main, develop]
+    paths:
+      - "backend/**"
+      - "docker-compose.yml"
+      - ".github/workflows/sec-backend-scan.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write   # Required to upload SARIF results
+
+jobs:
+  # ── OWASP Dependency Check — backend/api ────────────────────────────────────
+  owasp-api:
+    name: OWASP — API
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: backend/api
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "temurin"
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-api-${{ hashFiles('backend/api/build.gradle.kts', 'backend/api/settings.gradle.kts') }}
+          restore-keys: gradle-${{ runner.os }}-api-
+
+      - name: Cache OWASP NVD database
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/dependency-check-data
+          key: owasp-nvd-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: owasp-nvd-${{ runner.os }}-
+
+      - name: Run OWASP Dependency Check
+        run: ./gradlew dependencyCheckAnalyze --no-daemon
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}   # Optional: higher rate limit
+
+      - name: Upload OWASP report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owasp-report-api
+          path: backend/api/build/reports/dependency-check-report.html
+          retention-days: 30
+
+  # ── OWASP Dependency Check — backend/license ────────────────────────────────
+  owasp-license:
+    name: OWASP — License
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: backend/license
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "temurin"
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-license-${{ hashFiles('backend/license/build.gradle.kts') }}
+          restore-keys: gradle-${{ runner.os }}-license-
+
+      - name: Cache OWASP NVD database
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/dependency-check-data
+          key: owasp-nvd-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: owasp-nvd-${{ runner.os }}-
+
+      - name: Run OWASP Dependency Check
+        run: ./gradlew dependencyCheckAnalyze --no-daemon
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+
+      - name: Upload OWASP report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owasp-report-license
+          path: backend/license/build/reports/dependency-check-report.html
+          retention-days: 30
+
+  # ── OWASP Dependency Check — backend/sync ───────────────────────────────────
+  owasp-sync:
+    name: OWASP — Sync
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: backend/sync
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "temurin"
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-sync-${{ hashFiles('backend/sync/build.gradle.kts') }}
+          restore-keys: gradle-${{ runner.os }}-sync-
+
+      - name: Cache OWASP NVD database
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/dependency-check-data
+          key: owasp-nvd-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: owasp-nvd-${{ runner.os }}-
+
+      - name: Run OWASP Dependency Check
+        run: ./gradlew dependencyCheckAnalyze --no-daemon
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+
+      - name: Upload OWASP report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owasp-report-sync
+          path: backend/sync/build/reports/dependency-check-report.html
+          retention-days: 30
+
+  # ── Trivy Container Image Scan ────────────────────────────────────────────────
+  trivy-images:
+    name: Trivy — Container Image Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - name: api
+            context: backend/api
+          - name: license
+            context: backend/license
+          - name: sync
+            context: backend/sync
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image (${{ matrix.service.name }})
+        run: |
+          docker build \
+            -t zyntapos-${{ matrix.service.name }}:scan \
+            ${{ matrix.service.context }}
+
+      - name: Run Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: "zyntapos-${{ matrix.service.name }}:scan"
+          format: "sarif"
+          output: "trivy-${{ matrix.service.name }}.sarif"
+          severity: "CRITICAL,HIGH"
+          exit-code: "0"   # Don't fail the build; alert via SARIF
+
+      - name: Upload Trivy SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: "trivy-${{ matrix.service.name }}.sarif"
+          category: "trivy-${{ matrix.service.name }}"
+
+  # ── Summary gate (required check) ───────────────────────────────────────────
+  security-scan-summary:
+    name: Security Scan Summary
+    runs-on: ubuntu-latest
+    needs: [owasp-api, owasp-license, owasp-sync, trivy-images]
+    if: always()
+    steps:
+      - name: Check scan results
+        run: |
+          echo "OWASP API: ${{ needs.owasp-api.result }}"
+          echo "OWASP License: ${{ needs.owasp-license.result }}"
+          echo "OWASP Sync: ${{ needs.owasp-sync.result }}"
+          echo "Trivy Images: ${{ needs.trivy-images.result }}"
+          echo "All security scans completed. Review SARIF results in Security tab."

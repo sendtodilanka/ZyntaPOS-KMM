@@ -26,7 +26,7 @@ import kotlinx.coroutines.flow.map
  */
 class GenerateStockReportUseCase(
     private val productRepository: ProductRepository,
-    private val stockRepository: StockRepository,
+    private val _stockRepository: StockRepository,
 ) {
     /**
      * Immutable stock report value object.

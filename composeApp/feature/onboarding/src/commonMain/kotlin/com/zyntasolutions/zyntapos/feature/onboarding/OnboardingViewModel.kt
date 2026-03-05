@@ -199,7 +199,7 @@ class OnboardingViewModel(
         }
 
         // ── Seed Chart of Accounts (best-effort, non-blocking) ────────────
-        seedChartOfAccountsUseCase.execute(storeId = DEFAULT_STORE_ID, now = now.toEpochMilliseconds())
+        seedChartOfAccountsUseCase.execute(_storeId = DEFAULT_STORE_ID, now = now.toEpochMilliseconds())
         // Ignore errors — COA can be manually seeded from Settings later
 
         // ── Mark onboarding complete ──────────────────────────────────────

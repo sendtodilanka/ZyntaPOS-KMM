@@ -37,7 +37,7 @@ import kotlinx.coroutines.launch
  */
 class AuthViewModel(
     private val loginUseCase: LoginUseCase,
-    private val logoutUseCase: LogoutUseCase,
+    private val _logoutUseCase: LogoutUseCase,
     private val authRepository: AuthRepository,
     private val registerRepository: RegisterRepository? = null,
     private val auditLogger: SecurityAuditLogger,

@@ -151,7 +151,8 @@ fun PosSettingsScreen(
                                         fontWeight = FontWeight.SemiBold,
                                     )
                                     Text(
-                                        "Choose the order type that is pre-selected when creating a new sale. Staff can still change it per transaction.",
+                                        "Choose the order type that is pre-selected when creating a new sale." +
+                                            " Staff can still change it per transaction.",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
@@ -232,7 +233,9 @@ fun PosSettingsScreen(
                                     )
                                     DropdownField(
                                         label = "Tax Display Mode",
-                                        options = TaxDisplayMode.entries.map { it.name.lowercase().replaceFirstChar { c -> c.uppercase() } },
+                                        options = TaxDisplayMode.entries.map {
+                                            it.name.lowercase().replaceFirstChar { c -> c.uppercase() }
+                                        },
                                         selectedIndex = TaxDisplayMode.entries.indexOf(state.taxDisplayMode).coerceAtLeast(0),
                                         onSelect = { onIntent(SettingsIntent.UpdateTaxDisplayMode(TaxDisplayMode.entries[it])) },
                                     )

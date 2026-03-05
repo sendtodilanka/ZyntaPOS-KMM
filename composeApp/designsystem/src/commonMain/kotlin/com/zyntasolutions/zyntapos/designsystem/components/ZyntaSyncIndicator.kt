@@ -59,7 +59,11 @@ fun ZyntaSyncIndicator(
                     tint = syncedColor,
                     modifier = Modifier.size(16.dp),
                 )
-                if (showLabel) Text("Synced", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium), color = syncedColor)
+                if (showLabel) Text(
+                    "Synced",
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                    color = syncedColor,
+                )
             }
 
             SyncStatus.SYNCING -> {
@@ -86,7 +90,11 @@ fun ZyntaSyncIndicator(
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
-                if (showLabel) Text("Syncing…", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium), color = syncingColor)
+                if (showLabel) Text(
+                    "Syncing…",
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                    color = syncingColor,
+                )
             }
 
             SyncStatus.OFFLINE -> {
@@ -106,7 +114,11 @@ fun ZyntaSyncIndicator(
                     tint = failedColor,
                     modifier = Modifier.size(16.dp),
                 )
-                if (showLabel) Text("Sync Failed", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium), color = failedColor)
+                if (showLabel) Text(
+                    "Sync Failed",
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                    color = failedColor,
+                )
             }
         }
     }

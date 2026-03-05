@@ -262,7 +262,7 @@ class InventoryViewModelTest {
         viewModel = InventoryViewModel(
             productRepository = fakeProductRepository,
             categoryRepository = fakeCategoryRepository,
-            searchProductsUseCase = searchProductsUseCase,
+            _searchProductsUseCase = searchProductsUseCase,
             createProductUseCase = createProductUseCase,
             updateProductUseCase = updateProductUseCase,
             adjustStockUseCase = adjustStockUseCase,

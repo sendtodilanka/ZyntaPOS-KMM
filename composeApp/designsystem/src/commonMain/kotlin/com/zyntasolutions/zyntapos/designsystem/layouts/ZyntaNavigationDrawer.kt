@@ -100,7 +100,7 @@ val LocalZyntaDrawerController = staticCompositionLocalOf<(() -> Unit)?> { null 
 
 private val DrawerFullWidth = 260.dp
 private val DrawerMiniWidth = 72.dp
-private val DrawerAnimationMs = 200
+private const val DrawerAnimationMs = 200
 private val ChildStartBorderWidth = 4.dp
 private val ChildExtraStartPadding = 16.dp
 

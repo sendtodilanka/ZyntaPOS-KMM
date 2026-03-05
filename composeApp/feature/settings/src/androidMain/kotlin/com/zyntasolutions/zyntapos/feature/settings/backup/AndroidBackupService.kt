@@ -38,7 +38,7 @@ class AndroidBackupService(private val context: Context) : BackupService {
         runCatching {
             val dbFile = context.getDatabasePath(DB_FILE_NAME)
             if (!dbFile.exists()) {
-                throw IllegalStateException("Database file not found: ${dbFile.absolutePath}")
+                error("Database file not found: ${dbFile.absolutePath}")
             }
 
             val backupDir = File(context.getExternalFilesDir(null), BACKUP_DIR)
@@ -83,12 +83,12 @@ class AndroidBackupService(private val context: Context) : BackupService {
             val uri = Uri.parse(sourcePath)
             val inputStream = if (uri.scheme == "content" || uri.scheme == "file") {
                 context.contentResolver.openInputStream(uri)
-                    ?: throw IllegalStateException("Cannot open file: $sourcePath")
+                    ?: error("Cannot open file: $sourcePath")
             } else {
                 // Treat as absolute file path
                 val sourceFile = File(sourcePath)
                 if (!sourceFile.exists()) {
-                    throw IllegalStateException("Backup file not found: $sourcePath")
+                    error("Backup file not found: $sourcePath")
                 }
                 FileInputStream(sourceFile)
             }

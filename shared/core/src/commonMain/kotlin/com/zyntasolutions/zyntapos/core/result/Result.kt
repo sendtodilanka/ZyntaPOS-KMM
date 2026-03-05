@@ -103,5 +103,5 @@ fun <T> Result<T>.getOrDefault(default: T): T = (this as? Result.Success)?.data 
 fun <T> Result<T>.getOrThrow(): T = when (this) {
     is Result.Success -> data
     is Result.Error   -> throw exception
-    is Result.Loading -> throw IllegalStateException("Result is still Loading")
+    is Result.Loading -> error("Result is still Loading")
 }

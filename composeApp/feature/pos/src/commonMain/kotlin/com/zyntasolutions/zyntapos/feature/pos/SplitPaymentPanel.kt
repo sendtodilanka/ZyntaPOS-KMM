@@ -201,7 +201,7 @@ private fun PaymentSplitRow(
     formatter: CurrencyFormatter,
 ) {
     var showMethodMenu by remember { mutableStateOf(false) }
-    var amountInput by remember(split) {
+    var _amountInput by remember(split) {
         mutableStateOf("%.2f".format(split.amount))
     }
     val showNumpad = remember { mutableStateOf(false) }

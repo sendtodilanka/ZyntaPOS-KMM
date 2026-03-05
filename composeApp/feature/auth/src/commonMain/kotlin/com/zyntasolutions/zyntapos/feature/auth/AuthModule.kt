@@ -63,7 +63,7 @@ val authModule = module {
      * Receives the session Flow from [AuthRepository.getSession] to keep its
      * internal user snapshot up-to-date.
      */
-    single { CheckPermissionUseCase(sessionFlow = get<com.zyntasolutions.zyntapos.domain.repository.AuthRepository>().getSession()) }
+    single { CheckPermissionUseCase(_sessionFlow = get<com.zyntasolutions.zyntapos.domain.repository.AuthRepository>().getSession()) }
 
     // ── Session Manager ───────────────────────────────────────────────────────
 

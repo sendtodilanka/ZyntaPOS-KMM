@@ -203,7 +203,8 @@ class ExpenseRepositoryImpl(
 
     override suspend fun updateLastRun(id: String, lastRunMillis: Long): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
-            val existing = req.getRecurringExpenseById(id).executeAsOneOrNull() ?: return@withContext Result.Error(DatabaseException("Not found: $id"))
+            val existing = req.getRecurringExpenseById(id).executeAsOneOrNull()
+                ?: return@withContext Result.Error(DatabaseException("Not found: $id"))
             val now = Clock.System.now().toEpochMilliseconds()
             req.updateRecurringExpense(
                 category_id = existing.category_id, amount = existing.amount,

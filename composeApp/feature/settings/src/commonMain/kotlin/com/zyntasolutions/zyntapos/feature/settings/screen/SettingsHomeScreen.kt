@@ -140,8 +140,14 @@ private val settingsGroups: List<SettingsGroup> = listOf(
         entries = listOf(
             SettingsEntry("Users", "Create and manage staff accounts", Icons.Filled.PersonOutline, SettingsRoute.USERS),
             SettingsEntry("Security", "PIN policy, session timeout & RBAC", Icons.Filled.Security, SettingsRoute.SECURITY),
-            SettingsEntry("Roles & Permissions", "Manage role definitions and RBAC permission matrix", Icons.Filled.AdminPanelSettings, SettingsRoute.RBAC_MANAGEMENT),
-            SettingsEntry("Edition Management", "Features enabled for your store edition", Icons.Filled.WorkspacePremium, SettingsRoute.EDITION_MANAGEMENT),
+            SettingsEntry(
+                "Roles & Permissions", "Manage role definitions and RBAC permission matrix",
+                Icons.Filled.AdminPanelSettings, SettingsRoute.RBAC_MANAGEMENT,
+            ),
+            SettingsEntry(
+                "Edition Management", "Features enabled for your store edition",
+                Icons.Filled.WorkspacePremium, SettingsRoute.EDITION_MANAGEMENT,
+            ),
             SettingsEntry("Backup", "Manual backup & restore", Icons.Filled.Backup, SettingsRoute.BACKUP),
         ),
     ),

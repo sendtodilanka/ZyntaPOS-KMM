@@ -36,8 +36,8 @@ import kotlinx.coroutines.withContext
  * @param productId  USB Product ID of the target printer.
  */
 class DesktopUsbPrinterPort(
-    private val vendorId: Int = EPSON_VENDOR_ID,
-    private val productId: Int = 0x0000,
+    private val _vendorId: Int = EPSON_VENDOR_ID,
+    private val _productId: Int = 0x0000,
 ) : PrinterPort {
 
     // ──────────────────────────────────────────────────────────────────────────

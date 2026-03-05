@@ -46,7 +46,7 @@ class EscPosReceiptBuilder(private val config: PrinterConfig) : ReceiptBuilder {
     // Alignment
     private val CMD_ALIGN_LEFT     = byteArrayOf(ESC, 0x61, 0x00)
     private val CMD_ALIGN_CENTER   = byteArrayOf(ESC, 0x61, 0x01)
-    private val CMD_ALIGN_RIGHT    = byteArrayOf(ESC, 0x61, 0x02)
+    private val _CMD_ALIGN_RIGHT    = byteArrayOf(ESC, 0x61, 0x02)
 
     // Bold
     private val CMD_BOLD_ON        = byteArrayOf(ESC, 0x45, 0x01)

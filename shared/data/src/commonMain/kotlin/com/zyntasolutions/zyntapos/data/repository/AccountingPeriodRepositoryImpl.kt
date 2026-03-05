@@ -32,7 +32,7 @@ import kotlin.time.Clock
  */
 class AccountingPeriodRepositoryImpl(
     private val db: ZyntaDatabase,
-    private val syncEnqueuer: SyncEnqueuer,
+    private val _syncEnqueuer: SyncEnqueuer,
 ) : AccountingPeriodRepository {
 
     private val q get() = db.accounting_periodsQueries

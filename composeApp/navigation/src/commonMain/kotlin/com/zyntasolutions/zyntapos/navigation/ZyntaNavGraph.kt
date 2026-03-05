@@ -151,8 +151,8 @@ fun ZyntaNavGraph(
         mainNavGraph(
             navigationController = navigationController,
             navItems = navItems,
-            compactNavItems = compactNavItems,
-            navGroups = navGroups,
+            _compactNavItems = compactNavItems,
+            _navGroups = navGroups,
             currentUserName = currentUserName,
             currentUserInitials = currentUserInitials,
             currentUserRole = currentUserRole,

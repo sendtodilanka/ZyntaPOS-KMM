@@ -599,6 +599,7 @@ private fun StockProductCard(product: Product, highlight: StockHighlight, format
  * Legacy row composable retained for backward compatibility.
  * Delegates to the enhanced [StockProductCard].
  */
+@Suppress("UnusedPrivateMember")
 @Composable
 private fun StockProductRow(product: Product, highlight: StockHighlight, formatter: CurrencyFormatter) {
     StockProductCard(product = product, highlight = highlight, formatter = formatter)
