@@ -70,10 +70,11 @@ services:
       - RS256_PUBLIC_KEY_PATH=/run/secrets/rs256_public_key
       - ACCESS_TOKEN_TTL_MINUTES=60
       - REFRESH_TOKEN_TTL_DAYS=30
-    secrets:
-      - db_password
-      - rs256_private_key
-      - rs256_public_key
+    volumes:
+      # Use direct bind mounts for secrets to avoid Docker secret caching issues
+      - ./secrets/db_password.txt:/run/secrets/db_password:ro
+      - ./secrets/rs256_private_key.pem:/run/secrets/rs256_private_key:ro
+      - ./secrets/rs256_public_key.pem:/run/secrets/rs256_public_key:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -111,9 +112,10 @@ services:
       - JWT_ISSUER=https://api.zyntapos.com
       - JWT_AUDIENCE=zyntapos-app
       - RS256_PUBLIC_KEY_PATH=/run/secrets/rs256_public_key
-    secrets:
-      - db_password
-      - rs256_public_key
+    volumes:
+      # Use direct bind mounts for secrets to avoid Docker secret caching issues
+      - ./secrets/db_password.txt:/run/secrets/db_password:ro
+      - ./secrets/rs256_public_key.pem:/run/secrets/rs256_public_key:ro
     depends_on:
       postgres:
         condition: service_healthy
