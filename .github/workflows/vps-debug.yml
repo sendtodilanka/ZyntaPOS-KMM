@@ -46,37 +46,25 @@ jobs:
             echo "=== 4: docker compose ps ==="
             docker compose ps
 
-            echo "=== 4b: git log + docker-compose.yml api section ==="
+            echo "=== 4b: VPS git log and docker-compose api section ==="
             git log --oneline -3
-            grep -A5 "bind mount" docker-compose.yml || true
-            # Check if api has volumes or secrets
-            python3 -c "
-import yaml, sys
-with open('docker-compose.yml') as f:
-    c = yaml.safe_load(f)
-api = c['services']['api']
-print('api volumes:', api.get('volumes', 'NONE'))
-print('api secrets:', api.get('secrets', 'NONE'))
-license = c['services']['license']
-print('license volumes:', license.get('volumes', 'NONE'))
-print('license secrets:', license.get('secrets', 'NONE'))
-"
+            grep -c "bind mount" docker-compose.yml && echo "bind mount comment found" || echo "bind mount comment NOT found"
+            grep "db_password" docker-compose.yml
 
             echo "=== 4c: What the api container sees at /run/secrets/db_password ==="
-            # Get the container id even if restarting
             API_CID=$(docker ps -aqf name=zyntapos_api)
             if [ -n "$API_CID" ]; then
-              docker exec "$API_CID" cat /run/secrets/db_password 2>/dev/null \
-                && echo "" || echo "exec failed (container not running)"
-              docker exec "$API_CID" wc -c /run/secrets/db_password 2>/dev/null \
-                || echo "exec wc failed"
+              CONTAINER_PASS=$(docker exec "$API_CID" cat /run/secrets/db_password 2>/dev/null || echo "EXEC_FAILED")
+              echo "Container /run/secrets/db_password length: ${#CONTAINER_PASS}"
+              echo "Container pass first 8 chars: ${CONTAINER_PASS:0:8}"
             else
-              echo "api container not found"
+              echo "api container not found by name"
             fi
 
-            echo "=== 4d: Host file vs container file comparison ==="
+            echo "=== 4d: Host vs container password comparison ==="
             HOST_PASS=$(cat secrets/db_password.txt | tr -d '\n\r')
-            echo "Host file hex: $(echo -n "$HOST_PASS" | od -A x -t x1z | head -2)"
+            echo "Host db_password.txt length: ${#HOST_PASS}"
+            echo "Host pass first 8 chars: ${HOST_PASS:0:8}"
 
             echo "=== 5: API logs (last 40) ==="
             docker logs zyntapos_api --tail 40 2>&1 | tail -40
