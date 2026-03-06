@@ -65,9 +65,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
+      - name: Extract commit title
+        id: commit
+        run: |
+          TITLE=$(echo "${{ github.event.head_commit.message }}" | head -1 | tr -d '"' | cut -c1-80)
+          echo "title=$TITLE" >> "$GITHUB_OUTPUT"
+
       - name: Dispatch auto-pr event
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.PAT_TOKEN }}
           event-type: auto-pr-trigger
-          client-payload: '{"branch": "${{ github.ref_name }}", "sha": "${{ github.sha }}", "actor": "${{ github.actor }}"}'
+          client-payload: '{"branch": "${{ github.ref_name }}", "sha": "${{ github.sha }}", "actor": "${{ github.actor }}", "title": "${{ steps.commit.outputs.title }}"}'

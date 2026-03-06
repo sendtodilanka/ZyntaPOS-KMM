@@ -1,5 +1,5 @@
 name: "Step[2]: Auto PR & Enable Merge"
-run-name: "Step[2]: Auto PR — ${{ github.event.client_payload.branch || github.ref_name }}"
+run-name: "${{ github.event.client_payload.title || 'Auto PR' }} (${{ github.event.client_payload.branch || github.ref_name }})"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PIPELINE POSITION: Step 2 of 7
