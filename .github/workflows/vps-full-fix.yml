@@ -104,9 +104,9 @@ jobs:
 
             echo ""
             echo "--- Health checks ---"
-            curl -sf http://localhost:8080/health && echo " API OK" || echo " API not healthy yet"
-            curl -sf http://localhost:8083/health && echo " License OK" || echo " License not healthy yet"
-            curl -sf http://localhost:8082/health && echo " Sync OK" || echo " Sync not healthy yet"
+            docker exec zyntapos_api wget -qO- http://localhost:8080/health 2>/dev/null && echo " API OK" || echo " API not healthy yet"
+            docker exec zyntapos_license wget -qO- http://localhost:8083/health 2>/dev/null && echo " License OK" || echo " License not healthy yet"
+            docker exec zyntapos_sync wget -qO- http://localhost:8082/health 2>/dev/null && echo " Sync OK" || echo " Sync not healthy yet"
 
             echo ""
             echo "--- API logs (last 10 lines) ---"

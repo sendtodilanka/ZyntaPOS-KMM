@@ -70,9 +70,6 @@ services:
       - RS256_PUBLIC_KEY_PATH=/run/secrets/rs256_public_key
       - ACCESS_TOKEN_TTL_MINUTES=60
       - REFRESH_TOKEN_TTL_DAYS=30
-    secrets:
-      - rs256_private_key
-      - rs256_public_key
     depends_on:
       postgres:
         condition: service_healthy
@@ -113,8 +110,6 @@ services:
       - JWT_ISSUER=https://api.zyntapos.com
       - JWT_AUDIENCE=zyntapos-app
       - RS256_PUBLIC_KEY_PATH=/run/secrets/rs256_public_key
-    secrets:
-      - rs256_public_key
     depends_on:
       postgres:
         condition: service_healthy
@@ -126,6 +121,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+    volumes:
+      - ./secrets/rs256_public_key.pem:/run/secrets/rs256_public_key:ro
     # ── TODO-009 Level 3: Container hardening ─────────────────────────
     read_only: true
     tmpfs:
@@ -147,8 +144,6 @@ services:
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
       - JWT_ISSUER=https://api.zyntapos.com
       - RS256_PUBLIC_KEY_PATH=/run/secrets/rs256_public_key
-    secrets:
-      - rs256_public_key
     depends_on:
       redis:
         condition: service_healthy
@@ -160,6 +155,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+    volumes:
+      - ./secrets/rs256_public_key.pem:/run/secrets/rs256_public_key:ro
     # ── TODO-009 Level 3: Container hardening ─────────────────────────
     read_only: true
     tmpfs:
@@ -180,10 +177,9 @@ services:
       - POSTGRES_DB=zyntapos
       - POSTGRES_USER=zyntapos
       - POSTGRES_PASSWORD_FILE=/run/secrets/db_password
-    secrets:
-      - db_password
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./secrets/db_password.txt:/run/secrets/db_password:ro
       # Tuning for 8 GB VPS (Contabo Cloud VPS 10)
       - ./backend/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
       # Init script creates per-service databases on first run
@@ -251,18 +247,9 @@ services:
     networks:
       - zyntapos_net
 
-# ── Docker Secrets ────────────────────────────────────────────────────
-# Store secret files at ./secrets/ on the VPS host (git-ignored).
-# See secrets.env.template for instructions.
-secrets:
-  db_password:
-    file: ./secrets/db_password.txt
-  rs256_private_key:
-    file: ./secrets/rs256_private_key.pem
-  rs256_public_key:
-    file: ./secrets/rs256_public_key.pem
-
 # ── Volumes ──────────────────────────────────────────────────────────
+# Secret files are bind-mounted directly via volumes: sections above.
+# Store secret files at ./secrets/ on the VPS host (git-ignored).
 volumes:
   pgdata:
   redisdata:

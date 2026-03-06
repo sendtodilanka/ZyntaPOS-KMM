@@ -204,18 +204,24 @@ jobs:
             echo ""
             echo "━━━ 9. HTTP HEALTH ENDPOINTS ━━━"
             # ═══════════════════════════════════════════════════════════
-            for endpoint in "http://localhost:80/ping:Caddy" "http://localhost:8080/health:API" "http://localhost:8083/health:License" "http://localhost:8082/health:Sync"; do
-              URL=$(echo "$endpoint" | cut -d: -f1-2)
-              NAME=$(echo "$endpoint" | cut -d: -f3)
-              # Use docker network to test internal ports
-              HTTP_CODE=$(curl -sf -o /dev/null -w '%{http_code}' "$URL" 2>/dev/null || echo "000")
-              if [ "$HTTP_CODE" = "200" ]; then
-                check_pass "$NAME health ($URL) → $HTTP_CODE"
-              elif [ "$HTTP_CODE" = "000" ]; then
-                check_warn "$NAME health ($URL) → not responding (may still be starting)"
-              else
-                check_warn "$NAME health ($URL) → HTTP $HTTP_CODE"
-              fi
+            # Caddy is published on host ports 80/443, so curl works directly
+            HTTP_CODE=$(curl -sf -o /dev/null -w '%{http_code}' "http://localhost:80/ping" 2>/dev/null || echo "000")
+            if [ "$HTTP_CODE" = "200" ]; then
+              check_pass "Caddy health (http://localhost:80/ping) → $HTTP_CODE"
+            elif [ "$HTTP_CODE" = "000" ]; then
+              check_warn "Caddy health → not responding (may still be starting)"
+            else
+              check_warn "Caddy health → HTTP $HTTP_CODE"
+            fi
+
+            # Internal services use expose: only — check via docker exec
+            for svc_check in "zyntapos_api:8080:API" "zyntapos_license:8083:License" "zyntapos_sync:8082:Sync"; do
+              CONTAINER=$(echo "$svc_check" | cut -d: -f1)
+              PORT=$(echo "$svc_check" | cut -d: -f2)
+              NAME=$(echo "$svc_check" | cut -d: -f3)
+              RESULT=$(docker exec "$CONTAINER" wget -qO- "http://localhost:$PORT/health" 2>/dev/null) && \
+                check_pass "$NAME health (port $PORT) → OK" || \
+                check_warn "$NAME health (port $PORT) → not responding (may still be starting)"
             done
 
             # ═══════════════════════════════════════════════════════════
