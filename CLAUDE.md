@@ -19,6 +19,38 @@ If nothing new was committed, a push is still safe (it will be a no-op). There i
 
 ---
 
+## 🔴 RED ALERT: CI/CD Pipeline Monitoring (MANDATORY)
+
+**After EVERY commit and push, Claude MUST actively monitor the CI/CD pipeline end-to-end BEFORE making any further commits.**
+
+This is a **blocking requirement**. Do NOT proceed with additional code changes until:
+
+1. **All triggered workflows have completed** (CI Gate, Security Scan, Deploy, Smoke Test, Verify)
+2. **All workflow results are verified** (green/passed)
+3. **If any workflow fails** — investigate and fix the failure FIRST before any new work
+
+**Why this matters:**
+- Stacking commits on top of a broken pipeline creates cascading merge conflicts
+- Each push to main triggers the full pipeline (build → deploy → smoke → verify)
+- A failing CI Gate blocks the deploy chain — fixing it takes priority over new features
+- Multiple untested commits make it impossible to identify which change broke the build
+
+**Monitoring protocol:**
+```
+1. git push → wait for CI/CD pipeline to start
+2. Monitor: CI Gate (build + test + lint) → must pass
+3. Monitor: Security Scan (if triggered) → must pass
+4. Monitor: Deploy → Smoke Test → Verify (if on main) → must pass
+5. ONLY after all green → proceed with next task
+```
+
+**If a workflow fails:**
+- Do NOT push more commits hoping it will fix itself
+- Read the failure logs, identify root cause, fix, THEN push
+- Re-monitor the entire pipeline after the fix
+
+---
+
 ## Project Overview
 
 **ZyntaPOS** is an enterprise-grade, offline-first Point of Sale system built with **Kotlin Multiplatform (KMM)** and **Compose Multiplatform**. It targets Android tablets (minSdk 24) and JVM desktop (macOS, Windows, Linux) with 100% shared business logic.
