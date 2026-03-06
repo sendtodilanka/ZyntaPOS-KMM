@@ -1,4 +1,5 @@
 name: "Step[5]: Deploy to VPS"
+run-name: "${{ github.event.client_payload.title || 'Deploy to VPS' }} (${{ github.event.client_payload.sha || github.sha }})"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PIPELINE POSITION: Step 5 of 7
@@ -120,7 +121,7 @@ jobs:
         with:
           token: ${{ secrets.PAT_TOKEN }}
           event-type: smoke-trigger
-          client-payload: '{"sha": "${{ steps.sha.outputs.deploy_sha }}", "deploy_run_id": "${{ github.run_id }}"}'
+          client-payload: '{"sha": "${{ steps.sha.outputs.deploy_sha }}", "deploy_run_id": "${{ github.run_id }}", "title": "${{ github.event.client_payload.title }}"}'
 
       - name: Post deploy summary
         if: always()

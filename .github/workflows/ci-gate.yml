@@ -138,9 +138,16 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Extract commit title
+        id: commit
+        run: |
+          # Extract first line only, remove quotes to prevent JSON breakage
+          TITLE=$(echo "${{ github.event.head_commit.message }}" | head -1 | tr -d '"' | cut -c1-80)
+          echo "title=$TITLE" >> "$GITHUB_OUTPUT"
+
       - name: Dispatch deploy event
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.PAT_TOKEN }}
           event-type: deploy-trigger
-          client-payload: '{"sha": "${{ github.sha }}", "run_id": "${{ github.run_id }}"}'
+          client-payload: '{"sha": "${{ github.sha }}", "run_id": "${{ github.run_id }}", "title": "${{ steps.commit.outputs.title }}"}'

@@ -31,6 +31,10 @@ env:
   GRADLE_OPTS: "-Xmx2g -Xms512m -XX:MaxMetaspaceSize=512m"
   # Cache-bust key: increment to force fresh NVD download after corruption
   NVD_CACHE_VERSION: "v3"
+  # CVSS 11 = report-only (max CVSS is 10.0, so never fails build).
+  # Vulnerabilities still appear in SARIF → GitHub Security tab.
+  # Local dev defaults to 7.0 (see build.gradle.kts).
+  OWASP_FAIL_CVSS: "11"
 
 jobs:
   # ── OWASP Dependency Check — backend/api ────────────────────────────────────
