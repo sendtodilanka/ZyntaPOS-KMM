@@ -1,0 +1,60 @@
+# ZyntaPOS — Custom Falco Rules
+# Detect suspicious runtime behavior in JVM containers.
+# Loaded by Falco on the VPS host (not inside containers).
+
+- rule: JVM Container — Shell Spawned
+  desc: Detect shell process started inside a Ktor JVM container (indicates potential RCE)
+  condition: >
+    spawned_process and
+    container and
+    container.image.repository contains "zyntapos" and
+    (proc.name in (bash, sh, dash, zsh, csh, ash) or proc.name = busybox)
+  output: >
+    Shell spawned in JVM container
+    (container=%container.name image=%container.image.repository
+    command=%proc.cmdline user=%user.name pid=%proc.pid)
+  priority: CRITICAL
+  tags: [container, shell, zyntapos]
+
+- rule: JVM Container — Unexpected Outbound Connection
+  desc: Detect outbound connections from Ktor containers to non-approved destinations
+  condition: >
+    outbound and
+    container and
+    container.image.repository contains "zyntapos" and
+    not (fd.sport in (443, 5432, 6379, 2801))
+  output: >
+    Unexpected outbound connection from JVM container
+    (container=%container.name image=%container.image.repository
+    connection=%fd.name user=%user.name)
+  priority: WARNING
+  tags: [container, network, zyntapos]
+
+- rule: JVM Container — Sensitive File Read
+  desc: Detect reads of /etc/shadow, /etc/passwd, or private key files inside containers
+  condition: >
+    open_read and
+    container and
+    container.image.repository contains "zyntapos" and
+    (fd.name in (/etc/shadow, /etc/passwd) or
+     fd.name endswith .pem or
+     fd.name endswith .key or
+     fd.name endswith .p12)
+  output: >
+    Sensitive file read in JVM container
+    (container=%container.name file=%fd.name command=%proc.cmdline user=%user.name)
+  priority: CRITICAL
+  tags: [container, filesystem, zyntapos]
+
+- rule: JVM Container — Package Manager Invoked
+  desc: Detect package manager usage inside a read-only JVM container (indicates tampering)
+  condition: >
+    spawned_process and
+    container and
+    container.image.repository contains "zyntapos" and
+    proc.name in (apt, apt-get, apk, yum, dnf, pip, npm, curl, wget)
+  output: >
+    Package manager or download tool invoked in JVM container
+    (container=%container.name command=%proc.cmdline user=%user.name)
+  priority: WARNING
+  tags: [container, software_mgmt, zyntapos]

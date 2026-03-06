@@ -313,6 +313,32 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  # ── Cloudflared — Cloudflare Tunnel for panel.zyntapos.com ──────────
+  # Exposes the admin panel and status page via Cloudflare Tunnel without
+  # opening inbound ports. Protected by Cloudflare Access (Zero Trust).
+  #
+  # Setup:
+  #   1. cloudflared tunnel create zyntapos
+  #   2. Set CLOUDFLARE_TUNNEL_TOKEN in .env on VPS
+  #   3. Configure DNS CNAME via: cloudflared tunnel route dns zyntapos panel.zyntapos.com
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: zyntapos_cloudflared
+    restart: unless-stopped
+    command: tunnel --config /etc/cloudflared/config.yml run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    volumes:
+      - ./config/cloudflare/tunnel-config.yml:/etc/cloudflared/config.yml:ro
+    networks:
+      - zyntapos_net
+    mem_limit: 128m
+    memswap_limit: 128m
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      - uptime-kuma
+
 # ── Volumes ──────────────────────────────────────────────────────────
 # Secret files are bind-mounted directly via volumes: sections above.
 # Store secret files at ./secrets/ on the VPS host (git-ignored).

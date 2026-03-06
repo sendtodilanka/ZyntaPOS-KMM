@@ -7,6 +7,7 @@ import com.zyntasolutions.zyntapos.domain.model.IntegrityReport
 import com.zyntasolutions.zyntapos.domain.model.DatabaseStats
 import com.zyntasolutions.zyntapos.domain.model.PurgeResult
 import com.zyntasolutions.zyntapos.domain.model.SystemHealth
+import kotlinx.datetime.Instant
 
 /** Active section in the Admin feature tab bar. */
 enum class AdminTab { SYSTEM_HEALTH, BACKUPS, AUDIT_LOG }
@@ -42,6 +43,10 @@ data class AdminState(
     val auditEventTypeFilter: AuditEventType? = null,
     /** Null = show all; true = success only; false = failed only. */
     val auditSuccessFilter: Boolean? = null,
+    /** Null = no start bound; entries on or after this instant are shown. */
+    val auditDateFrom: Instant? = null,
+    /** Null = no end bound; entries on or before this instant are shown. */
+    val auditDateTo: Instant? = null,
     val auditPage: Int = 0,
     val auditTotalPages: Int = 1,
     val integrityReport: IntegrityReport? = null,

@@ -106,6 +106,7 @@ class AdminViewModel(
             is AdminIntent.FilterAuditByUser -> updateState { copy(auditUserFilter = intent.userId, auditPage = 0) }
             is AdminIntent.FilterAuditByEventType -> updateState { copy(auditEventTypeFilter = intent.eventType, auditPage = 0) }
             is AdminIntent.FilterAuditBySuccess -> updateState { copy(auditSuccessFilter = intent.success, auditPage = 0) }
+            is AdminIntent.FilterAuditByDateRange -> updateState { copy(auditDateFrom = intent.from, auditDateTo = intent.to, auditPage = 0) }
             AdminIntent.ExportAuditLogCsv -> exportAuditLogCsv()
             AdminIntent.VerifyIntegrity -> verifyIntegrity()
             AdminIntent.NextAuditPage -> updateState { copy(auditPage = (auditPage + 1).coerceAtMost(auditTotalPages - 1)) }
@@ -182,7 +183,9 @@ class AdminViewModel(
             .filter { e ->
                 (s.auditUserFilter.isBlank() || e.userId.contains(s.auditUserFilter, ignoreCase = true)) &&
                 (s.auditEventTypeFilter == null || e.eventType == s.auditEventTypeFilter) &&
-                (s.auditSuccessFilter == null || e.success == s.auditSuccessFilter)
+                (s.auditSuccessFilter == null || e.success == s.auditSuccessFilter) &&
+                (s.auditDateFrom == null || e.createdAt >= s.auditDateFrom) &&
+                (s.auditDateTo == null || e.createdAt <= s.auditDateTo)
             }
 
         if (filtered.isEmpty()) {

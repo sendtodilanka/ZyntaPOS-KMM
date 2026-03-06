@@ -8,7 +8,9 @@ import com.zyntasolutions.zyntapos.data.di.dataModule
 import com.zyntasolutions.zyntapos.debug.debugModule
 import com.zyntasolutions.zyntapos.seed.seedModule
 import com.zyntasolutions.zyntapos.data.di.desktopDataModule
+import co.touchlab.kermit.Logger
 import com.zyntasolutions.zyntapos.data.local.db.SecurePreferencesKeyMigration
+import com.zyntasolutions.zyntapos.data.logging.KermitSqliteAdapter
 import com.zyntasolutions.zyntapos.domain.repository.FeatureRegistryRepository
 import com.zyntasolutions.zyntapos.feature.dashboard.dashboardModule
 import com.zyntasolutions.zyntapos.feature.onboarding.onboardingModule
@@ -117,6 +119,11 @@ fun main() {
         koin.koin.get<FeatureRegistryRepository>()
             .initDefaults(Clock.System.now().toEpochMilliseconds())
     }
+
+    // ── Kermit → SQLite bridge ──────────────────────────────────────────────
+    // Routes all Kermit log events to the operational_logs table for diagnostic
+    // queries via the Admin debug console. Must run after dataModule is loaded.
+    Logger.addLogWriter(koin.koin.get<KermitSqliteAdapter>())
 
     // ── Tier 7: Debug tools — loaded only when isDebug == true ───────────────
     // seedModule registers SeedRunner; debugModule registers action handlers

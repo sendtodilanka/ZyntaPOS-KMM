@@ -29,7 +29,10 @@ import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.AuditEntry
 import com.zyntasolutions.zyntapos.domain.model.AuditEventType
 import com.zyntasolutions.zyntapos.domain.model.IntegrityReport
+import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.toLocalDateTime
 
 /**
@@ -53,12 +56,17 @@ fun AuditLogScreen(
     onIntent: (AdminIntent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Apply all client-side filters (user, event type, success/fail)
-    val filtered = remember(state.auditEntries, state.auditUserFilter, state.auditEventTypeFilter, state.auditSuccessFilter) {
+    // Apply all client-side filters (user, event type, success/fail, date range)
+    val filtered = remember(
+        state.auditEntries, state.auditUserFilter, state.auditEventTypeFilter,
+        state.auditSuccessFilter, state.auditDateFrom, state.auditDateTo,
+    ) {
         state.auditEntries.filter { e ->
             (state.auditUserFilter.isBlank() || e.userId.contains(state.auditUserFilter, ignoreCase = true)) &&
             (state.auditEventTypeFilter == null || e.eventType == state.auditEventTypeFilter) &&
-            (state.auditSuccessFilter == null || e.success == state.auditSuccessFilter)
+            (state.auditSuccessFilter == null || e.success == state.auditSuccessFilter) &&
+            (state.auditDateFrom == null || e.createdAt >= state.auditDateFrom) &&
+            (state.auditDateTo == null || e.createdAt <= state.auditDateTo)
         }
     }
 
@@ -107,6 +115,18 @@ fun AuditLogScreen(
         EventTypeDropdown(
             selected = state.auditEventTypeFilter,
             onSelected = { onIntent(AdminIntent.FilterAuditByEventType(it)) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = ZyntaSpacing.sm),
+        )
+
+        // ── Filter bar: date range ──────────────────────────────────────────
+        DateRangeFilter(
+            dateFrom = state.auditDateFrom,
+            dateTo = state.auditDateTo,
+            onDateRangeChanged = { from, to ->
+                onIntent(AdminIntent.FilterAuditByDateRange(from, to))
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = ZyntaSpacing.sm),
@@ -167,7 +187,9 @@ fun AuditLogScreen(
                         when {
                             state.auditUserFilter.isBlank() &&
                             state.auditEventTypeFilter == null &&
-                            state.auditSuccessFilter == null -> "No audit events recorded."
+                            state.auditSuccessFilter == null &&
+                            state.auditDateFrom == null &&
+                            state.auditDateTo == null -> "No audit events recorded."
                             else -> "No events match the current filters."
                         },
                         style = MaterialTheme.typography.bodyMedium,
@@ -442,6 +464,130 @@ private fun formatInstant(entry: AuditEntry): String {
         "%02d:%02d:%02d".format(ldt.hour, ldt.minute, ldt.second)
     } catch (_: Exception) {
         "?"
+    }
+}
+
+/**
+ * Compact date range filter with "From" / "To" chips.
+ * Uses Material 3 DatePickerDialog for selection.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DateRangeFilter(
+    dateFrom: Instant?,
+    dateTo: Instant?,
+    onDateRangeChanged: (Instant?, Instant?) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val tz = TimeZone.currentSystemDefault()
+    var showFromPicker by remember { mutableStateOf(false) }
+    var showToPicker by remember { mutableStateOf(false) }
+
+    Row(
+        modifier = modifier.horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            Icons.Default.DateRange,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        // "From" chip
+        FilterChip(
+            selected = dateFrom != null,
+            onClick = { showFromPicker = true },
+            label = {
+                Text(
+                    text = dateFrom?.let {
+                        val ld = it.toLocalDateTime(tz).date
+                        "${ld.year}-%02d-%02d".format(ld.monthNumber, ld.dayOfMonth)
+                    } ?: "From",
+                    style = MaterialTheme.typography.labelSmall,
+                )
+            },
+            trailingIcon = if (dateFrom != null) {
+                {
+                    IconButton(
+                        onClick = { onDateRangeChanged(null, dateTo) },
+                        modifier = Modifier.size(16.dp),
+                    ) {
+                        Icon(Icons.Default.Clear, contentDescription = "Clear from date", modifier = Modifier.size(12.dp))
+                    }
+                }
+            } else null,
+        )
+
+        // "To" chip
+        FilterChip(
+            selected = dateTo != null,
+            onClick = { showToPicker = true },
+            label = {
+                Text(
+                    text = dateTo?.let {
+                        val ld = it.toLocalDateTime(tz).date
+                        "${ld.year}-%02d-%02d".format(ld.monthNumber, ld.dayOfMonth)
+                    } ?: "To",
+                    style = MaterialTheme.typography.labelSmall,
+                )
+            },
+            trailingIcon = if (dateTo != null) {
+                {
+                    IconButton(
+                        onClick = { onDateRangeChanged(dateFrom, null) },
+                        modifier = Modifier.size(16.dp),
+                    ) {
+                        Icon(Icons.Default.Clear, contentDescription = "Clear to date", modifier = Modifier.size(12.dp))
+                    }
+                }
+            } else null,
+        )
+    }
+
+    // From date picker dialog
+    if (showFromPicker) {
+        val datePickerState = rememberDatePickerState()
+        DatePickerDialog(
+            onDismissRequest = { showFromPicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    showFromPicker = false
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        onDateRangeChanged(Instant.fromEpochMilliseconds(millis), dateTo)
+                    }
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showFromPicker = false }) { Text("Cancel") }
+            },
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    // To date picker dialog
+    if (showToPicker) {
+        val datePickerState = rememberDatePickerState()
+        DatePickerDialog(
+            onDismissRequest = { showToPicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    showToPicker = false
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        // End of selected day (23:59:59.999)
+                        val endOfDay = Instant.fromEpochMilliseconds(millis + 86_400_000L - 1L)
+                        onDateRangeChanged(dateFrom, endOfDay)
+                    }
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showToPicker = false }) { Text("Cancel") }
+            },
+        ) {
+            DatePicker(state = datePickerState)
+        }
     }
 }
 

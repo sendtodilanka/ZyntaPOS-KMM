@@ -2,6 +2,7 @@ package com.zyntasolutions.zyntapos.feature.admin
 
 import com.zyntasolutions.zyntapos.domain.model.AuditEventType
 import com.zyntasolutions.zyntapos.domain.model.BackupInfo
+import kotlinx.datetime.Instant
 
 /**
  * All user-triggered and system-driven events for the Admin feature.
@@ -47,6 +48,8 @@ sealed interface AdminIntent {
     data class FilterAuditByEventType(val eventType: AuditEventType?) : AdminIntent
     /** Null = show all; true = success only; false = failed only. */
     data class FilterAuditBySuccess(val success: Boolean?) : AdminIntent
+    /** Set the date range filter. Null values clear the respective bound. */
+    data class FilterAuditByDateRange(val from: Instant?, val to: Instant?) : AdminIntent
     data object ExportAuditLogCsv : AdminIntent
     data object VerifyIntegrity : AdminIntent
     data object NextAuditPage : AdminIntent
