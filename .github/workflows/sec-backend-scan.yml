@@ -30,7 +30,7 @@ permissions:
 env:
   GRADLE_OPTS: "-Xmx2g -Xms512m -XX:MaxMetaspaceSize=512m"
   # Cache-bust key: increment to force fresh NVD download after corruption
-  NVD_CACHE_VERSION: "v3"
+  NVD_CACHE_VERSION: "v4"
   # CVSS 11 = report-only (max CVSS is 10.0, so never fails build).
   # Vulnerabilities still appear in SARIF → GitHub Security tab.
   # Local dev defaults to 7.0 (see build.gradle.kts).
@@ -71,22 +71,26 @@ jobs:
           key: owasp-nvd-${{ env.NVD_CACHE_VERSION }}-${{ runner.os }}-${{ github.run_id }}
           restore-keys: owasp-nvd-${{ env.NVD_CACHE_VERSION }}-${{ runner.os }}-
 
-      - name: Purge corrupted NVD data if present
+      - name: Purge stale NVD data
         run: |
-          DB_FILE="$HOME/.gradle/dependency-check-data/9.0/odc.mv.db"
-          if [ -f "$DB_FILE" ]; then
-            echo "Existing NVD DB found ($(du -h "$DB_FILE" | cut -f1)). Removing to prevent H2 corruption."
-            rm -f "$DB_FILE" "$HOME/.gradle/dependency-check-data/9.0/odc.mv.db.mv.db" 2>/dev/null || true
+          DATA_DIR="$HOME/.gradle/dependency-check-data"
+          if [ -d "$DATA_DIR" ]; then
+            echo "Removing all cached NVD data to prevent version mismatch:"
+            du -sh "$DATA_DIR" 2>/dev/null || true
+            rm -rf "$DATA_DIR"
           fi
+          echo "Clean state — OWASP 12.x will download fresh NVD data."
         working-directory: .
 
       - name: Run OWASP Dependency Check
         run: |
+          chmod +x ./gradlew
           ./gradlew dependencyCheckAnalyze --no-daemon \
             -Dorg.gradle.jvmargs="-Xmx2g -Xms512m" \
-            --stacktrace
+            --stacktrace --info
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+          OWASP_FAIL_CVSS: "11"
         timeout-minutes: 30
 
       - name: Upload OWASP report
@@ -132,22 +136,26 @@ jobs:
           key: owasp-nvd-${{ env.NVD_CACHE_VERSION }}-${{ runner.os }}-${{ github.run_id }}
           restore-keys: owasp-nvd-${{ env.NVD_CACHE_VERSION }}-${{ runner.os }}-
 
-      - name: Purge corrupted NVD data if present
+      - name: Purge stale NVD data
         run: |
-          DB_FILE="$HOME/.gradle/dependency-check-data/9.0/odc.mv.db"
-          if [ -f "$DB_FILE" ]; then
-            echo "Existing NVD DB found ($(du -h "$DB_FILE" | cut -f1)). Removing to prevent H2 corruption."
-            rm -f "$DB_FILE" "$HOME/.gradle/dependency-check-data/9.0/odc.mv.db.mv.db" 2>/dev/null || true
+          DATA_DIR="$HOME/.gradle/dependency-check-data"
+          if [ -d "$DATA_DIR" ]; then
+            echo "Removing all cached NVD data to prevent version mismatch:"
+            du -sh "$DATA_DIR" 2>/dev/null || true
+            rm -rf "$DATA_DIR"
           fi
+          echo "Clean state — OWASP 12.x will download fresh NVD data."
         working-directory: .
 
       - name: Run OWASP Dependency Check
         run: |
+          chmod +x ./gradlew
           ./gradlew dependencyCheckAnalyze --no-daemon \
             -Dorg.gradle.jvmargs="-Xmx2g -Xms512m" \
-            --stacktrace
+            --stacktrace --info
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+          OWASP_FAIL_CVSS: "11"
         timeout-minutes: 30
 
       - name: Upload OWASP report
@@ -193,22 +201,26 @@ jobs:
           key: owasp-nvd-${{ env.NVD_CACHE_VERSION }}-${{ runner.os }}-${{ github.run_id }}
           restore-keys: owasp-nvd-${{ env.NVD_CACHE_VERSION }}-${{ runner.os }}-
 
-      - name: Purge corrupted NVD data if present
+      - name: Purge stale NVD data
         run: |
-          DB_FILE="$HOME/.gradle/dependency-check-data/9.0/odc.mv.db"
-          if [ -f "$DB_FILE" ]; then
-            echo "Existing NVD DB found ($(du -h "$DB_FILE" | cut -f1)). Removing to prevent H2 corruption."
-            rm -f "$DB_FILE" "$HOME/.gradle/dependency-check-data/9.0/odc.mv.db.mv.db" 2>/dev/null || true
+          DATA_DIR="$HOME/.gradle/dependency-check-data"
+          if [ -d "$DATA_DIR" ]; then
+            echo "Removing all cached NVD data to prevent version mismatch:"
+            du -sh "$DATA_DIR" 2>/dev/null || true
+            rm -rf "$DATA_DIR"
           fi
+          echo "Clean state — OWASP 12.x will download fresh NVD data."
         working-directory: .
 
       - name: Run OWASP Dependency Check
         run: |
+          chmod +x ./gradlew
           ./gradlew dependencyCheckAnalyze --no-daemon \
             -Dorg.gradle.jvmargs="-Xmx2g -Xms512m" \
-            --stacktrace
+            --stacktrace --info
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+          OWASP_FAIL_CVSS: "11"
         timeout-minutes: 30
 
       - name: Upload OWASP report
