@@ -1,6 +1,6 @@
 # TODO-004: Enterprise Audit Logging (Two-Tier Architecture)
 
-**Status:** Pending
+**Status:** Complete
 **Priority:** HIGH — Legal SLA requirement (99.99% uptime)
 **Phase:** Phase 1 (start expanding now)
 **Created:** 2026-03-01
@@ -396,17 +396,17 @@ private suspend fun finalizeOrder(order: Order) {
 
 ## Validation Checklist
 
-- [ ] AuditEventType expanded to ~40 types
-- [ ] AuditEntry model includes before/after values and actor metadata
-- [ ] SQLDelight schema updated with new columns and indexes
-- [ ] operational_logs table created with appropriate indexes
-- [ ] Hash chain verification runs daily
-- [ ] Log retention job configured and running
-- [ ] All feature ViewModels wired with audit logging
-- [ ] Operational logs stored in SQLite (not text files)
-- [ ] Admin viewer supports date/type/role filters
-- [ ] Admin viewer supports pagination (50 per page)
-- [ ] Admin viewer supports CSV export
-- [ ] Brute-force detection wired to login flow
-- [ ] Tests for AuditIntegrityVerifier
-- [ ] Tests for LogRetentionJob
+- [x] AuditEventType expanded to ~40 types (39 event types in 9 categories)
+- [x] AuditEntry model includes before/after values and actor metadata
+- [x] SQLDelight schema updated with new columns and indexes (audit_log.sq + migration 8.sqm)
+- [x] operational_logs table created with appropriate indexes
+- [x] Hash chain verification runs daily (AuditIntegrityJob — 24h cycle)
+- [x] Log retention job configured and running
+- [x] All feature ViewModels wired with audit logging (via SecurityAuditLogger)
+- [x] Operational logs stored in SQLite (not text files)
+- [x] Admin viewer supports date/type/role filters (AuditLogScreen)
+- [x] Admin viewer supports pagination (50 per page)
+- [x] Admin viewer supports CSV export (GenerateSystemAuditLogReportUseCase)
+- [x] Brute-force detection wired to login flow (getRecentLoginFailureCount)
+- [x] Tests for AuditIntegrityVerifier (VerifyAuditIntegrityUseCase)
+- [x] Tests for LogRetentionJob

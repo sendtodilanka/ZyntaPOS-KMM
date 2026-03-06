@@ -355,9 +355,9 @@ This is aligned with Lightspeed (~$119/location/month) and Revel (~$99/terminal/
 - [x] `App.kt` wires `EditionManagementScreen` to the `editionManagement` lambda
 - [x] `NavGraphCompletenessTest` updated — no longer excluded as placeholder
 - [x] Settings screen includes "Edition Management" in its menu items
-- [ ] App compiles and runs without errors
-- [ ] Edition Management screen navigates correctly from Settings
-- [ ] Feature toggles work for Premium/Enterprise features
-- [ ] Standard features show as always-enabled (disabled switch)
-- [ ] Back navigation returns to Settings screen
+- [x] App compiles and runs without errors
+- [x] Edition Management screen navigates correctly from Settings
+- [x] Feature toggles work for Premium/Enterprise features
+- [x] Standard features show as always-enabled (disabled switch)
+- [x] Back navigation returns to Settings screen
 - [x] No "Coming soon" text anywhere in the app
