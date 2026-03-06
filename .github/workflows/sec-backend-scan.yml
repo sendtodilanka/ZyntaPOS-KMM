@@ -84,7 +84,6 @@ jobs:
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         timeout-minutes: 30
-        continue-on-error: true
 
       - name: Upload OWASP report
         if: always()
@@ -146,7 +145,6 @@ jobs:
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         timeout-minutes: 30
-        continue-on-error: true
 
       - name: Upload OWASP report
         if: always()
@@ -208,7 +206,6 @@ jobs:
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         timeout-minutes: 30
-        continue-on-error: true
 
       - name: Upload OWASP report
         if: always()
@@ -287,10 +284,12 @@ jobs:
           echo "  Backend Security Scan — Summary"
           echo "═══════════════════════════════════════════════════"
           echo ""
-          echo "OWASP API:      ${{ needs.owasp-api.result }}"
-          echo "OWASP License:  ${{ needs.owasp-license.result }}"
-          echo "OWASP Sync:     ${{ needs.owasp-sync.result }}"
-          echo "Trivy Images:   ${{ needs.trivy-images.result }}"
+          echo "| Job | Result |"
+          echo "|-----|--------|"
+          echo "| OWASP API | ${{ needs.owasp-api.result }} |"
+          echo "| OWASP License | ${{ needs.owasp-license.result }} |"
+          echo "| OWASP Sync | ${{ needs.owasp-sync.result }} |"
+          echo "| Trivy Images | ${{ needs.trivy-images.result }} |"
           echo ""
 
           FAILED=false
@@ -301,10 +300,9 @@ jobs:
           done
 
           if [ "$FAILED" = "true" ]; then
-            echo "::warning::One or more security scans failed. Review the logs above."
-            echo "Scans with failures need investigation — check OWASP/Trivy job logs."
+            echo "::error::One or more security scans FAILED. Check job logs above."
+            exit 1
           else
             echo "✅ All security scans completed successfully."
+            echo "Review SARIF results in the Security tab → Code scanning alerts."
           fi
-          echo ""
-          echo "Review SARIF results in the Security tab → Code scanning alerts."
