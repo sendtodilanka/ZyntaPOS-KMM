@@ -33,18 +33,55 @@ jobs:
     continue-on-error: true
 
     steps:
-      - name: Checkout (for composite action)
-        uses: actions/checkout@v4
-
-      - name: "Step[7]: Test All Subdomains"
+      # ── Verify endpoints via SSH to bypass Cloudflare ──────────────
+      # External curl from GitHub Actions gets 403 from Cloudflare WAF.
+      # SSH into VPS and test endpoints locally via Caddy (Host header).
+      - name: "Step[7]: Test All Subdomains (via SSH)"
         id: health
-        uses: ./.github/actions/health-check
+        uses: appleboy/ssh-action@v1.2.5
         with:
-          subdomains: 'api license panel docs status sync'
-          initial-wait: '0'
-          max-retries: '1'
-          retry-delay: '0'
-          curl-timeout: '20'
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_USER_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          timeout: 60s
+          command_timeout: 3m
+          script: |
+            set -euo pipefail
+            echo "=================================================="
+            echo " ZyntaPOS Endpoint Verification"
+            echo " Time: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+            echo "=================================================="
+
+            PASS=true
+            for sub in api license panel docs status sync; do
+              PING_HTTP=$(curl -s --max-time 10 -o /dev/null \
+                -w "%{http_code}" -H "Host: ${sub}.zyntapos.com" \
+                "http://localhost/ping" 2>/dev/null) || PING_HTTP="000"
+              PING_BODY=$(curl -s --max-time 10 \
+                -H "Host: ${sub}.zyntapos.com" \
+                "http://localhost/ping" 2>/dev/null) || PING_BODY=""
+              HOME_HTTP=$(curl -s --max-time 10 -o /dev/null \
+                -w "%{http_code}" -H "Host: ${sub}.zyntapos.com" \
+                "http://localhost/" 2>/dev/null) || HOME_HTTP="000"
+
+              HOME_FIRST="${HOME_HTTP:0:1}"
+              if [ "$PING_HTTP" = "200" ] && [ "$PING_BODY" = "ok" ] && { [ "$HOME_FIRST" = "2" ] || [ "$HOME_FIRST" = "3" ]; }; then
+                echo "  ✅  ${sub}.zyntapos.com  /ping → ${PING_HTTP} (ok)  / → ${HOME_HTTP}"
+              else
+                echo "  ❌  ${sub}.zyntapos.com  /ping → ${PING_HTTP}  / → ${HOME_HTTP}"
+                PASS=false
+              fi
+            done
+
+            echo "=================================================="
+            if $PASS; then
+              echo "Result: ALL ENDPOINTS HEALTHY ✅"
+            else
+              echo "Result: ONE OR MORE ENDPOINTS DEGRADED ❌"
+              exit 1
+            fi
+            echo "=================================================="
 
       - name: Write verification summary
         if: always()
@@ -61,11 +98,9 @@ jobs:
             fi
             echo "**Time:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
             echo ""
-            echo "${{ steps.health.outputs.summary }}"
-            echo ""
-            if [ "${{ steps.health.outputs.healthy }}" = "true" ]; then
-              echo "### All 6 endpoints verified healthy"
+            if [ "${{ steps.health.outcome }}" = "success" ]; then
+              echo "### All 6 endpoints verified healthy ✅"
             else
-              echo "### One or more endpoints degraded — check VPS \`docker compose ps\`"
+              echo "### One or more endpoints degraded — check VPS \`docker compose ps\` ❌"
             fi
           } >> "$GITHUB_STEP_SUMMARY"

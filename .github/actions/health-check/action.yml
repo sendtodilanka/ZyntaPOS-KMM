@@ -87,11 +87,14 @@ runs:
           PING_BODY=""
 
           # /ping — retry logic for container startup
+          # NOTE: Do NOT use curl -f here. With -f, curl exits non-zero on 4xx/5xx
+          # but still prints the http_code to stdout, causing "403" + "000" = "403000"
+          # when the || fallback also fires. Use -s only and check http_code manually.
           for attempt in $(seq 1 "$MAX_RETRIES"); do
-            PING_HTTP=$(curl -sf --max-time "$CURL_TIMEOUT" -o /dev/null -w "%{http_code}" \
-              "${BASE_URL}/ping" 2>/dev/null || echo "000")
-            PING_BODY=$(curl -sf --max-time "$CURL_TIMEOUT" \
-              "${BASE_URL}/ping" 2>/dev/null || echo "")
+            PING_HTTP=$(curl -s --max-time "$CURL_TIMEOUT" -o /dev/null -w "%{http_code}" \
+              "${BASE_URL}/ping" 2>/dev/null) || PING_HTTP="000"
+            PING_BODY=$(curl -s --max-time "$CURL_TIMEOUT" \
+              "${BASE_URL}/ping" 2>/dev/null) || PING_BODY=""
 
             if [ "$PING_HTTP" = "200" ] && [ "$PING_BODY" = "ok" ]; then
               break
@@ -104,8 +107,8 @@ runs:
           done
 
           # Homepage check (2xx or 3xx = healthy)
-          HOME_HTTP=$(curl -sf --max-time "$CURL_TIMEOUT" -o /dev/null -w "%{http_code}" \
-            "${BASE_URL}/" 2>/dev/null || echo "000")
+          HOME_HTTP=$(curl -s --max-time "$CURL_TIMEOUT" -o /dev/null -w "%{http_code}" \
+            "${BASE_URL}/" 2>/dev/null) || HOME_HTTP="000"
 
           # ── Evaluate /ping ──────────────────────────────────────────────
           if [ "$PING_HTTP" = "200" ] && [ "$PING_BODY" = "ok" ]; then
