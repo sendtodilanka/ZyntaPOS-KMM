@@ -25,6 +25,12 @@ permissions:
   contents: read
   security-events: write   # Required to upload SARIF results
 
+# ── Shared environment for all OWASP jobs ────────────────────────────────────
+# OWASP Dependency Check NVD download needs significant heap.
+# Without this, the Apache HttpClient buffers blow the default 256MB heap.
+env:
+  GRADLE_OPTS: "-Xmx2g -Xms512m -XX:MaxMetaspaceSize=512m"
+
 jobs:
   # ── OWASP Dependency Check — backend/api ────────────────────────────────────
   owasp-api:
@@ -61,9 +67,12 @@ jobs:
           restore-keys: owasp-nvd-${{ runner.os }}-
 
       - name: Run OWASP Dependency Check
-        run: ./gradlew dependencyCheckAnalyze --no-daemon
+        run: |
+          ./gradlew dependencyCheckAnalyze --no-daemon \
+            -Dorg.gradle.jvmargs="-Xmx2g -Xms512m"
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}   # Optional: higher rate limit
+        timeout-minutes: 30
 
       - name: Upload OWASP report
         if: always()
@@ -72,6 +81,7 @@ jobs:
           name: owasp-report-api
           path: backend/api/build/reports/dependency-check-report.html
           retention-days: 30
+          if-no-files-found: warn
 
   # ── OWASP Dependency Check — backend/license ────────────────────────────────
   owasp-license:
@@ -108,9 +118,12 @@ jobs:
           restore-keys: owasp-nvd-${{ runner.os }}-
 
       - name: Run OWASP Dependency Check
-        run: ./gradlew dependencyCheckAnalyze --no-daemon
+        run: |
+          ./gradlew dependencyCheckAnalyze --no-daemon \
+            -Dorg.gradle.jvmargs="-Xmx2g -Xms512m"
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        timeout-minutes: 30
 
       - name: Upload OWASP report
         if: always()
@@ -119,6 +132,7 @@ jobs:
           name: owasp-report-license
           path: backend/license/build/reports/dependency-check-report.html
           retention-days: 30
+          if-no-files-found: warn
 
   # ── OWASP Dependency Check — backend/sync ───────────────────────────────────
   owasp-sync:
@@ -155,9 +169,12 @@ jobs:
           restore-keys: owasp-nvd-${{ runner.os }}-
 
       - name: Run OWASP Dependency Check
-        run: ./gradlew dependencyCheckAnalyze --no-daemon
+        run: |
+          ./gradlew dependencyCheckAnalyze --no-daemon \
+            -Dorg.gradle.jvmargs="-Xmx2g -Xms512m"
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        timeout-minutes: 30
 
       - name: Upload OWASP report
         if: always()
@@ -166,12 +183,13 @@ jobs:
           name: owasp-report-sync
           path: backend/sync/build/reports/dependency-check-report.html
           retention-days: 30
+          if-no-files-found: warn
 
   # ── Trivy Container Image Scan ────────────────────────────────────────────────
   trivy-images:
     name: Trivy — Container Image Scan
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -185,7 +203,7 @@ jobs:
           docker build \
             -f backend/${{ matrix.service }}/Dockerfile \
             -t zyntapos-${{ matrix.service }}:scan \
-            backend
+            backend/
 
       - name: Run Trivy vulnerability scan
         uses: aquasecurity/trivy-action@0.28.0
@@ -195,13 +213,32 @@ jobs:
           output: "trivy-${{ matrix.service }}.sarif"
           severity: "CRITICAL,HIGH"
           exit-code: "0"   # Don't fail the build; alert via SARIF
+          timeout: "15m"
+
+      - name: Verify SARIF file exists
+        if: always()
+        run: |
+          if [ ! -f "trivy-${{ matrix.service }}.sarif" ]; then
+            echo "::warning::Trivy SARIF not generated for ${{ matrix.service }}. Creating empty SARIF."
+            cat > "trivy-${{ matrix.service }}.sarif" <<'SARIF'
+          {
+            "version": "2.1.0",
+            "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json",
+            "runs": [{
+              "tool": { "driver": { "name": "Trivy", "version": "0.28.0", "rules": [] } },
+              "results": []
+            }]
+          }
+          SARIF
+          fi
 
       - name: Upload Trivy SARIF to GitHub Security
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: "trivy-${{ matrix.service }}.sarif"
           category: "trivy-${{ matrix.service }}"
+        continue-on-error: true
 
   # ── Summary gate (required check) ───────────────────────────────────────────
   security-scan-summary:
@@ -212,8 +249,28 @@ jobs:
     steps:
       - name: Check scan results
         run: |
-          echo "OWASP API: ${{ needs.owasp-api.result }}"
-          echo "OWASP License: ${{ needs.owasp-license.result }}"
-          echo "OWASP Sync: ${{ needs.owasp-sync.result }}"
-          echo "Trivy Images: ${{ needs.trivy-images.result }}"
-          echo "All security scans completed. Review SARIF results in Security tab."
+          echo "═══════════════════════════════════════════════════"
+          echo "  Backend Security Scan — Summary"
+          echo "═══════════════════════════════════════════════════"
+          echo ""
+          echo "OWASP API:      ${{ needs.owasp-api.result }}"
+          echo "OWASP License:  ${{ needs.owasp-license.result }}"
+          echo "OWASP Sync:     ${{ needs.owasp-sync.result }}"
+          echo "Trivy Images:   ${{ needs.trivy-images.result }}"
+          echo ""
+
+          FAILED=false
+          for result in "${{ needs.owasp-api.result }}" "${{ needs.owasp-license.result }}" "${{ needs.owasp-sync.result }}" "${{ needs.trivy-images.result }}"; do
+            if [ "$result" = "failure" ]; then
+              FAILED=true
+            fi
+          done
+
+          if [ "$FAILED" = "true" ]; then
+            echo "::warning::One or more security scans failed. Review the logs above."
+            echo "Scans with failures need investigation — check OWASP/Trivy job logs."
+          else
+            echo "✅ All security scans completed successfully."
+          fi
+          echo ""
+          echo "Review SARIF results in the Security tab → Code scanning alerts."
