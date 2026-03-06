@@ -21,10 +21,6 @@ name: "Reusable: Build & Test"
 #     consuming the entire 60-min runner limit
 # ─────────────────────────────────────────────────────────────────────────────
 
-permissions:
-  contents: read
-  security-events: write   # Required to upload Detekt SARIF to Security tab
-
 on:
   workflow_call:
     inputs:
