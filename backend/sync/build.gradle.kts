@@ -25,7 +25,7 @@ val koinVersion = "4.1.1"
 dependencyCheck {
     failBuildOnCVSS = (System.getenv("OWASP_FAIL_CVSS")?.toFloatOrNull() ?: 7.0f)
     suppressionFile = "owasp-suppressions.xml"
-    formats = listOf("HTML", "JSON")
+    formats = listOf("HTML", "JSON", "SARIF")
     nvd {
         apiKey = System.getenv("NVD_API_KEY") ?: ""
         delay = if (System.getenv("NVD_API_KEY").isNullOrBlank()) 3500 else 500

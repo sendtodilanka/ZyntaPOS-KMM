@@ -61,6 +61,17 @@ configure<io.gitlab.arturbosch.detekt.extensions.DetektExtension> {
     ignoreFailures = true
 }
 
+// Enable SARIF report output so results are uploaded to GitHub Security tab.
+// HTML is retained for local review; XML disabled (redundant with SARIF).
+tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
+    reports {
+        html.required.set(true)
+        xml.required.set(false)
+        sarif.required.set(true)
+        sarif.outputLocation.set(file("${rootProject.layout.buildDirectory.get()}/reports/detekt/detekt.sarif"))
+    }
+}
+
 // ─── Version Properties ───────────────────────────────────────────────────
 // Single source of truth for version information across all modules.
 // Loaded from version.properties and exposed as extra properties.

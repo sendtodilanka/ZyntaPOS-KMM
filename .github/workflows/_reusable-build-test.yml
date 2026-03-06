@@ -21,6 +21,10 @@ name: "Reusable: Build & Test"
 #     consuming the entire 60-min runner limit
 # ─────────────────────────────────────────────────────────────────────────────
 
+permissions:
+  contents: read
+  security-events: write   # Required to upload Detekt SARIF to Security tab
+
 on:
   workflow_call:
     inputs:
@@ -145,6 +149,17 @@ jobs:
           echo "lint_duration=${LINT_DURATION}" >> "$GITHUB_OUTPUT"
           echo "::endgroup::"
           echo "Lint + Detekt completed in ${LINT_DURATION}s"
+
+      # ── Upload Detekt SARIF to GitHub Security tab ────────────────────────
+      # Uploads static analysis findings so they appear in Security → Code scanning.
+      # continue-on-error: true so a missing SARIF file doesn't break the gate.
+      - name: Upload Detekt SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() && inputs.run-lint
+        with:
+          sarif_file: build/reports/detekt/detekt.sarif
+          category: detekt-kotlin
+        continue-on-error: true
 
       # ── Tests ─────────────────────────────────────────────────────────────
       - name: Run all tests
