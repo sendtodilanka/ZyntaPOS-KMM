@@ -96,7 +96,7 @@ jobs:
             fi
 
             echo "=== Step 4: GHCR login + pull ==="
-            echo "${{ secrets.PAT_TOKEN }}" | docker login ghcr.io -u sendtodilanka --password-stdin
+            echo "${{ secrets.PAT_TOKEN }}" | docker login ghcr.io -u "${{ github.repository_owner }}" --password-stdin
             docker compose pull --quiet
 
             echo "=== Step 5: Start stack ==="

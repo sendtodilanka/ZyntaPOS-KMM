@@ -119,6 +119,8 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository_owner }}/zyntapos-${{ matrix.service }}:latest
             ghcr.io/${{ github.repository_owner }}/zyntapos-${{ matrix.service }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   # ── Trigger Deploy (push-to-main only) ───────────────────────────────────
   # Uses repository_dispatch to chain to cd-deploy.yml.

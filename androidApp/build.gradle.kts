@@ -91,9 +91,10 @@ android {
     }
 
     lint {
-        // GradleDependency demoted to informational: kotlinx-datetime is intentionally
-        // pinned to 0.6.1 — 0.7.1 has binary-incompatible JVM class removals.
-        // See root build.gradle.kts resolutionStrategy force block for details.
+        // GradleDependency demoted to informational: kotlinx-datetime MUST be 0.7.1
+        // (required by CMP 1.10.0). In 0.7.1, Instant is a typealias for kotlin.time.Instant.
+        // Downgrading to 0.6.1 causes NoSuchMethodError on datetime-using screens.
+        // Root build.gradle.kts enforces this version via resolutionStrategy.force().
         informational += "GradleDependency"
     }
 }

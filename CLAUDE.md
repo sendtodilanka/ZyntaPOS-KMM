@@ -148,7 +148,7 @@ Feature Modules → :composeApp:navigation / designsystem / core
 | Local DB | SQLDelight 2.0.2 on SQLite + SQLCipher 4.5 (AES-256) | 2.0.2 |
 | Networking | Ktor Client | 3.4.1 |
 | Serialization | kotlinx-serialization | 1.8.0 |
-| Date/Time | kotlinx-datetime | **0.6.1 — pinned** (0.7.1 has binary incompatibility) |
+| Date/Time | kotlinx-datetime | **0.7.1 — pinned** (required by CMP 1.10.0; 0.6.x causes NoSuchMethodError) |
 | Image Loading | Coil | 3.0.4 |
 | Logging | Kermit | 2.1.0 |
 | Testing | Kotlin Test, Mockative 3 (KSP), Turbine, Koin-test | Latest |
@@ -357,7 +357,7 @@ sqldelight.verifyMigrations=true
 
 All dependency versions are in `gradle/libs.versions.toml`. Always add new deps through the catalog — never hardcode versions in module build files.
 
-**Critical pin:** `kotlinx-datetime` is **pinned at 0.6.1** globally in `build.gradle.kts`. Do not upgrade to 0.7.1 (binary incompatibility). The root build script forces this via `resolutionStrategy`.
+**Critical pin:** `kotlinx-datetime` is **pinned at 0.7.1** globally in `build.gradle.kts`. This version is required by CMP 1.10.0 (Instant became a typealias for kotlin.time.Instant). Do not downgrade to 0.6.x — it causes NoSuchMethodError on datetime-using screens. The root build script forces this via `resolutionStrategy`.
 
 ### Always use the Gradle wrapper
 
@@ -465,7 +465,7 @@ feat(pos): add hold order use case
 fix(inventory): correct stock adjustment calculation
 refactor(data): rename mapper to align with ADR-002
 docs(adr): accept ADR-003 SecurePreferences consolidation
-build(gradle): pin kotlinx-datetime to 0.6.1
+build(gradle): pin kotlinx-datetime to 0.7.1
 test(domain): add CalculateOrderTotalsUseCase coverage
 ```
 
@@ -680,7 +680,7 @@ interface BarcodeScanner {
 1. **Do not extend `androidx.lifecycle.ViewModel` directly.** Always extend `BaseViewModel<S,I,E>` (ADR-001).
 2. **Do not add `*Entity` suffix to domain models.** Use plain names in `shared/domain/model/` (ADR-002).
 3. **Do not import `:shared:data`, `:shared:hal`, or `:shared:security` from `:shared:domain`.** Only `:shared:core` is permitted.
-4. **Do not hardcode `kotlinx-datetime` version.** It is globally pinned to 0.6.1 in root `build.gradle.kts`.
+4. **Do not hardcode `kotlinx-datetime` version.** It is globally pinned to 0.7.1 in root `build.gradle.kts`.
 5. **Do not put security primitives in `:shared:data`.** Encrypted key-value storage belongs only in `:shared:security` (ADR-003).
 6. **Do not commit `local.properties`.** It contains encryption keys and API credentials.
 7. **Do not use `loadKoinModules(global=true)`.** Use `koin.loadModules()` instead (PR #21 migration).
