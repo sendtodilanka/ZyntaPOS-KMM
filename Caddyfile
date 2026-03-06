@@ -105,6 +105,9 @@ sync.zyntapos.com {
 	# All API/WebSocket requests → real service
 	handle {
 		reverse_proxy sync:8082 {
+			# Pass real client IP through Cloudflare proxy
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
 			# WebSocket connections — pass Upgrade header
 			header_up Connection {>Connection}
 			header_up Upgrade {>Upgrade}
@@ -127,8 +130,8 @@ docs.zyntapos.com {
 	reverse_proxy canary:80
 }
 
-# ── status.zyntapos.com — Uptime status page (Phase 3) ────────────
+# ── status.zyntapos.com — Uptime status page (Uptime Kuma) ─────────
 status.zyntapos.com {
 	import cf_tls
-	reverse_proxy canary:80
+	reverse_proxy uptime-kuma:3001
 }

@@ -14,7 +14,7 @@ import kotlin.time.Duration.Companion.minutes
  * prevent license key enumeration attacks.
  *
  *  • "activate" — 5 requests / 10 minutes per IP (prevents key brute-force)
- *  • "heartbeat" — 30 requests / 1 minute per IP (generous for legitimate devices)
+ *  • "heartbeat" — 5 requests / 10 minutes per IP (devices heartbeat once per 24h)
  */
 fun Application.configureRateLimit() {
     install(RateLimit) {
@@ -23,9 +23,9 @@ fun Application.configureRateLimit() {
             rateLimiter(limit = 5, refillPeriod = 10.minutes)
         }
 
-        // Heartbeat: one per device per day, but allow bursts on reconnect
+        // Heartbeat: devices send once per 24h; allow 5 per 10min for retries
         register(RateLimitName("heartbeat")) {
-            rateLimiter(limit = 30, refillPeriod = 1.minutes)
+            rateLimiter(limit = 5, refillPeriod = 10.minutes)
         }
     }
 }

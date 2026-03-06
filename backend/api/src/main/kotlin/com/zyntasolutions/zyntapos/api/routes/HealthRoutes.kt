@@ -10,8 +10,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class HealthResponse(
     val status: String,
-    val service: String,
-    val version: String,
     val db: String
 )
 
@@ -29,8 +27,6 @@ fun Route.healthRoutes() {
             statusCode,
             HealthResponse(
                 status = overallStatus,
-                service = "zyntapos-api",
-                version = "1.0.0",
                 db = dbOk
             )
         )

@@ -11,6 +11,7 @@ COPY src ./src
 RUN ./gradlew shadowJar --no-daemon --quiet
 
 FROM eclipse-temurin:21-jre-alpine AS runtime
+RUN apk add --no-cache curl
 RUN addgroup -S zyntapos && adduser -S zyntapos -G zyntapos
 WORKDIR /app
 COPY --from=builder /build/build/libs/zyntapos-sync.jar app.jar
@@ -18,13 +19,13 @@ RUN chown -R zyntapos:zyntapos /app
 USER zyntapos
 EXPOSE 8082
 
-ENV JAVA_OPTS="-Djdk.serialFilter=!* \
-    -XX:+UseContainerSupport \
-    -XX:MaxRAMPercentage=75.0 \
-    -XX:+ExitOnOutOfMemoryError \
-    -Dfile.encoding=UTF-8"
-
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+ENTRYPOINT ["java", \
+    "-Djdk.serialFilter=!*", \
+    "-XX:+UseContainerSupport", \
+    "-XX:MaxRAMPercentage=75.0", \
+    "-XX:+ExitOnOutOfMemoryError", \
+    "-Dfile.encoding=UTF-8", \
+    "-jar", "app.jar"]
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD wget -qO- http://localhost:8082/health || exit 1
+    CMD curl -f http://localhost:8082/health || exit 1

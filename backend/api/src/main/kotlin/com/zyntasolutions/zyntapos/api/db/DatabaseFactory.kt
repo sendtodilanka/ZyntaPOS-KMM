@@ -14,7 +14,9 @@ object DatabaseFactory {
     fun init() {
         val jdbcUrl = System.getenv("DB_URL") ?: "jdbc:postgresql://localhost:5432/zyntapos"
         val user = System.getenv("DB_USER") ?: "zyntapos"
-        val password = readSecret("DB_PASSWORD_FILE") ?: System.getenv("DB_PASSWORD") ?: "zyntapos"
+        val password = readSecret("DB_PASSWORD_FILE")
+            ?: System.getenv("DB_PASSWORD")
+            ?: error("DB_PASSWORD_FILE or DB_PASSWORD environment variable must be set")
 
         val config = HikariConfig().apply {
             this.jdbcUrl = jdbcUrl

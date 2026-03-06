@@ -20,10 +20,13 @@ fun Application.configureAuthentication() {
             verifier(
                 JWT.require(Algorithm.RSA256(config.jwtPublicKey as RSAPublicKey, null))
                     .withIssuer(config.jwtIssuer)
+                    .withAudience(config.jwtAudience)
                     .build()
             )
             validate { credential ->
-                if (credential.payload.subject != null) JWTPrincipal(credential.payload) else null
+                val subject = credential.payload.subject
+                val storeId = credential.payload.getClaim("storeId")?.asString()
+                if (subject != null && storeId != null) JWTPrincipal(credential.payload) else null
             }
         }
     }

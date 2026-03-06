@@ -39,7 +39,9 @@ class SyncSessionManager {
                 try {
                     session.send(Frame.Text(message))
                 } catch (e: Exception) {
-                    logger.warn("Failed to send to session in storeId=$storeId: ${e.message}")
+                    logger.warn("Failed to send to session in storeId=$storeId, removing dead session: ${e.message}")
+                    storeSessions.remove(session)
+                    if (storeSessions.isEmpty()) sessions.remove(storeId)
                 }
             }
         }

@@ -30,7 +30,11 @@ import com.zyntasolutions.zyntapos.feature.accounting.di.accountingModule
 import com.zyntasolutions.zyntapos.hal.di.halModule
 import com.zyntasolutions.zyntapos.navigation.navigationModule
 import com.zyntasolutions.zyntapos.security.di.securityModule
+import co.touchlab.kermit.Logger
 import com.zyntasolutions.zyntapos.data.local.db.SecurePreferencesKeyMigration
+import com.zyntasolutions.zyntapos.data.job.AuditIntegrityJob
+import com.zyntasolutions.zyntapos.data.job.LogRetentionJob
+import com.zyntasolutions.zyntapos.data.logging.KermitSqliteAdapter
 import com.zyntasolutions.zyntapos.domain.repository.FeatureRegistryRepository
 import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.seed.DefaultSeedDataSet
@@ -138,6 +142,17 @@ class ZyntaApplication : Application() {
             buildDate   = BuildConfig.BUILD_DATE,
             debug       = BuildConfig.DEBUG,
         )
+
+        // ── Kermit → SQLite bridge ──────────────────────────────────────────────
+        // Routes all Kermit log events to the operational_logs table for diagnostic
+        // queries via the Admin debug console. Must run after dataModule is loaded.
+        Logger.addLogWriter(koin.koin.get<KermitSqliteAdapter>())
+
+        // ── Background jobs ──────────────────────────────────────────────────────
+        // LogRetentionJob: daily purge of expired operational_logs (3/14/30/90-day policy)
+        // AuditIntegrityJob: daily SHA-256 hash chain verification of audit_entries
+        koin.koin.get<LogRetentionJob>().start()
+        koin.koin.get<AuditIntegrityJob>().start()
 
         // ── Tier 7: Debug tools — loaded only in debug builds ─────────────────
         // seedModule    — registers SeedRunner (55+ products, 25 customers, etc.)

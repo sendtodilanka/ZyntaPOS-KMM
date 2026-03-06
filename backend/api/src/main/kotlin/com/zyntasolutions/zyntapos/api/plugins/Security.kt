@@ -22,10 +22,10 @@ fun Application.configureSecurity() {
         // Block cross-site scripting (legacy browsers)
         header("X-XSS-Protection", "0")  // 0 = disable buggy XSS auditor; rely on CSP
         // Limit referrer info
-        header("Referrer-Policy", "no-referrer")
+        header("Referrer-Policy", "strict-origin-when-cross-origin")
         // Disable permissions API
         header("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
-        // Remove server banner
-        header(HttpHeaders.Server, "ZyntaPOS-API")
+        // Generic server banner — don't expose service name
+        header(HttpHeaders.Server, "ZyntaPOS")
     }
 }

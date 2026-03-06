@@ -1,0 +1,28 @@
+# ZyntaPOS — Cloudflare Tunnel Configuration
+#
+# This file is a TEMPLATE. Replace <TUNNEL_ID> and <TUNNEL_SECRET> with
+# values from `cloudflared tunnel create zyntapos`.
+#
+# Setup:
+#   1. cloudflared tunnel create zyntapos
+#   2. Copy the tunnel ID and credentials file path
+#   3. Fill in the values below
+#   4. Add CLOUDFLARE_TUNNEL_TOKEN to .env on VPS
+#
+# The tunnel exposes panel.zyntapos.com without opening any inbound ports.
+# Cloudflare Access (Zero Trust) protects the panel behind OTP auth.
+
+tunnel: <TUNNEL_ID>
+credentials-file: /etc/cloudflared/<TUNNEL_ID>.json
+
+ingress:
+  # Admin panel — protected by CF Access
+  - hostname: panel.zyntapos.com
+    service: http://localhost:3000
+
+  # Status page — public
+  - hostname: status.zyntapos.com
+    service: http://uptime-kuma:3001
+
+  # Catch-all — return 404
+  - service: http_status:404

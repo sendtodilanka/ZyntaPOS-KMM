@@ -3,6 +3,7 @@ package com.zyntasolutions.zyntapos.license.plugins
 import com.zyntasolutions.zyntapos.license.routes.healthRoutes
 import com.zyntasolutions.zyntapos.license.routes.licenseRoutes
 import io.ktor.server.application.Application
+import io.ktor.server.auth.authenticate
 import io.ktor.server.plugins.ratelimit.RateLimitName
 import io.ktor.server.plugins.ratelimit.rateLimit
 import io.ktor.server.routing.route
@@ -12,9 +13,11 @@ fun Application.configureRouting() {
     routing {
         healthRoutes()
         route("/v1") {
-            // Strict rate limit on all license endpoints to prevent key enumeration
-            rateLimit(RateLimitName("activate")) {
-                licenseRoutes()
+            authenticate("jwt-rs256") {
+                // Strict rate limit on all license endpoints to prevent key enumeration
+                rateLimit(RateLimitName("activate")) {
+                    licenseRoutes()
+                }
             }
         }
     }

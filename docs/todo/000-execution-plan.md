@@ -1,6 +1,6 @@
 # TODO-000 — ZyntaPOS Master Execution Plan
 
-**Last updated:** 2026-03-01
+**Last updated:** 2026-03-06
 **Status:** Living document — update whenever a TODO is added, completed, or re-phased
 
 This document is the single source of truth for **what to work on, in what order, and why**. It maps all TODO files to the four development phases defined in `CLAUDE.md` and shows the dependency chain between them.
@@ -30,7 +30,7 @@ No TODO files. This phase is done. All 26 Kotlin modules are scaffolded, Gradle 
 
 ## Phase 1 — MVP
 
-**Status:** 🟡 IN PROGRESS
+**Status:** ✅ COMPLETE
 **CLAUDE.md scope:** Single-store POS, offline-first sync, core feature set
 **Goal:** A production-ready single-store POS that can be handed to a real retailer
 
@@ -40,9 +40,9 @@ No TODO files. This phase is done. All 26 Kotlin modules are scaffolded, Gradle 
 |---|-------|--------|----------|-------|
 | [001](001-single-admin-account-management.md) | Single Admin Account Management | ✅ Done | — | ADR-005 enforced |
 | [002](002-remove-signup-screen-and-account-flow.md) | Remove SignUp Screen | ✅ Done | — | ADR-005 enforced |
-| [005](005-modern-dashboard-and-hierarchical-nav-drawer.md) | Modern Dashboard + Nav Drawer | ⬜ Pending | **P0** | Visual quality gate for MVP launch |
+| [005](005-modern-dashboard-and-hierarchical-nav-drawer.md) | Modern Dashboard + Nav Drawer | ✅ Done | — | 3-breakpoint nav, animated KPI cards |
 | [003](003-edition-management-wiring.md) | Edition Management Nav Wiring | ✅ Done | — | No more placeholder screens in the app |
-| [004](004-enterprise-audit-logging.md) | Enterprise Audit Logging (Part 1) | ⬜ Pending | **P1** | Core event types only; hash chain is Phase 3 |
+| [004](004-enterprise-audit-logging.md) | Enterprise Audit Logging | ✅ Done | — | ~40 event types, SHA-256 hash chain, integrity verifier, date range filter, CSV export, Kermit→SQLite bridge |
 
 ### Execution Order (Phase 1)
 
@@ -70,18 +70,20 @@ TODO-005  →  TODO-003  →  TODO-004 (Part 1)
 - **Stop here for Phase 1** — hash chain verification, brute-force detection, log export are Phase 3
 
 ### Phase 1 Exit Criteria
-- [ ] App runs on Android tablet with no placeholder screens
-- [ ] All 29 dashboard checklist items pass
-- [ ] All 12 edition management checklist items pass
-- [ ] Audit log captures LOGIN, ORDER_CREATED, PAYMENT_PROCESSED, INVENTORY_ADJUSTED
-- [ ] Detekt passes with zero violations
-- [ ] Full CI pipeline green (`./gradlew clean test lint assembleDebug`)
+- [x] App runs on Android tablet with no placeholder screens
+- [x] All 29 dashboard checklist items pass
+- [x] All 12 edition management checklist items pass
+- [x] Audit log captures LOGIN, ORDER_CREATED, PAYMENT_PROCESSED, INVENTORY_ADJUSTED (~40 event types)
+- [x] SHA-256 hash chain computation + integrity verification implemented
+- [x] Date range filter, CSV export, Kermit→SQLite bridge operational
+- [x] Detekt passes with zero violations
+- [x] Full CI pipeline green (`./gradlew clean test lint assembleDebug`)
 
 ---
 
 ## Phase 2 — Growth
 
-**Status:** ⬜ PENDING (starts after Phase 1 exit criteria are met)
+**Status:** 🟡 IN PROGRESS
 **CLAUDE.md scope:** Multi-store, CRM, promotions, CRDT sync
 **Goal:** Backend infrastructure live, license system active, marketing website + Play Store listing launched
 
@@ -89,11 +91,13 @@ TODO-005  →  TODO-003  →  TODO-004 (Part 1)
 
 | # | Title | Status | Priority | Notes |
 |---|-------|--------|----------|-------|
-| [007](007-infrastructure-and-deployment.md) | Infrastructure & Deployment | ⬜ Pending | **P0** | Foundation for all other Phase 2 items |
-| [009](009-ktor-security-hardening.md) | Ktor Backend Security Hardening | 🔒 Blocked on 007 Step 6 | **P0** | Must complete before backend goes live (concurrent with 007 Steps 7–10) |
-| [010](010-security-monitoring-automated-response.md) | Security Monitoring & Automated Response | 🟡 Partially unblocked (CF/Snyk/Canary: start now; Falco: blocked on 007 Step 5) | **HIGH** | Active detection layer for accepted JVM risks from TODO-009 |
-| [008](008-seo-and-aso.md) | SEO & ASO — Website + Play Store | 🔒 Blocked on 007 | **P1** | Needs Astro site infrastructure from TODO-007 |
-| [006](006-remote-diagnostic-access.md) | Remote Diagnostic Access | 🔒 Blocked on 007 + 004 | **P2** | Needs JWT auth (007) and audit log (004) |
+| [007](007-infrastructure-and-deployment.md) | Infrastructure & Deployment | 🟡 ~65% done | **P0** | VPS live, Docker Compose running, Caddy + API + License + Sync deployed, monitoring + backup done. Remaining: React panel (7a), Astro site (7b), docs site (7e), sync engine server-side (7g) |
+| [007a](007a-react-admin-panel.md) | React Admin Panel | ⬜ Ready to implement | **P0** | Full 15-day (3-week) plan written. React 19 + TanStack + shadcn/ui. 10 feature areas, 40+ API endpoints. No blockers. |
+| [007b](007b-astro-marketing-website.md) | Astro Marketing Website | ⬜ Ready to implement | **P1** | Full 5-day plan written. Astro 5 + Tailwind on Cloudflare Pages. No blockers. |
+| [009](009-ktor-security-hardening.md) | Ktor Backend Security Hardening | ✅ Done | **P0** | ValidationScope, body size limits, seccomp profile, CVSS threshold — all implemented |
+| [010](010-security-monitoring-automated-response.md) | Security Monitoring & Automated Response | 🟡 ~70% done | **HIGH** | Falco rules, Falcosidekick, cloudflared tunnel done. Remaining: CF Zero Trust, Bot Fight Mode, Snyk Monitor (all CF/SaaS dashboard config) |
+| [008](008-seo-and-aso.md) | SEO & ASO — Website + Play Store | 🔒 Blocked on 007b | **P1** | Items 8a/8b/8c/8f front-loaded into 007b plan. Remaining: GA4/GTM (8d), Play Store ASO (8e) |
+| [006](006-remote-diagnostic-access.md) | Remote Diagnostic Access | 🔒 Blocked on 007a (panel) | **P2** | Needs WebSocket relay via admin panel |
 
 ### Execution Order (Phase 2)
 
@@ -240,9 +244,16 @@ Phase 3 ──── TODO-003 Phase 3 (Admin Console)
 
 ## Currently Working On
 
-**→ Phase 1, Step 1: TODO-005 (Modern Dashboard + Hierarchical Nav Drawer)**
+**→ Phase 2: Infrastructure & Growth**
 
-After TODO-005 is complete, move to TODO-003, then TODO-004 Part 1, then declare Phase 1 done and begin Phase 2 with TODO-007.
+Phase 1 is **complete** (all 5 TODOs done). Phase 2 is in progress:
+- ✅ TODO-007 backend infra (VPS, Docker, Caddy, API, License, Sync, monitoring, backup)
+- ✅ TODO-009 Ktor security hardening (all 4 items done)
+- ✅ TODO-010 in-repo items (Falco rules, Falcosidekick, cloudflared)
+- **→ Next: TODO-007b — Astro marketing website** (5-day plan ready at `docs/todo/007b-astro-marketing-website.md`)
+- Then: TODO-008 SEO/ASO (partially front-loaded into 007b)
+- Then: TODO-010 dashboard config items (CF Zero Trust, Snyk Monitor)
+- Later: TODO-007a React admin panel, TODO-006 remote diagnostics
 
 ---
 
@@ -253,6 +264,8 @@ After TODO-005 is complete, move to TODO-003, then TODO-004 Part 1, then declare
 | CLAUDE.md Development Phases | `/CLAUDE.md` — "Development Phases" section |
 | License architecture research | `003-edition-management-wiring.md` — "Enterprise License Architecture" section |
 | License server implementation spec | `007-infrastructure-and-deployment.md` — "License System Design" (lines 212–277) |
+| **Astro marketing website plan** | **`007b-astro-marketing-website.md`** — 5-day implementation plan |
+| Gap analysis & fill plan | `GAP-ANALYSIS-AND-FILL-PLAN.md` — Tracks all gaps across TODOs |
 | SEO & ASO full specification | `008-seo-and-aso.md` |
 | Remote diagnostic security design | `006-remote-diagnostic-access.md` |
 | Audit log two-tier architecture | `004-enterprise-audit-logging.md` |

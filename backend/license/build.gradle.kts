@@ -23,7 +23,7 @@ val koinVersion = "4.1.1"
 
 // ── OWASP Dependency Check (TODO-009 Level 4) ─────────────────────────────
 dependencyCheck {
-    failBuildOnCVSS = 9.0f        // Fail only on CRITICAL (CVSS >= 9.0)
+    failBuildOnCVSS = 7.0f        // Fail on HIGH or CRITICAL (CVSS >= 7.0)
     suppressionFile = "owasp-suppressions.xml"
     formats = listOf("HTML", "JSON")
     nvd {

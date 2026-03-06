@@ -1,0 +1,18 @@
+# Falcosidekick configuration — routes Falco runtime alerts to Slack.
+# Docs: https://github.com/falcosecurity/falcosidekick
+
+debug: false
+customfields:
+  environment: production
+  service: zyntapos
+
+slack:
+  webhookurl: ""  # Set via SLACK_WEBHOOK_URL env var in docker-compose
+  minimumpriority: warning
+  messageformat: |
+    *[{{ .Priority }}] {{ .Rule }}*
+    {{ .Output }}
+    _Source: {{ .Source }} | Time: {{ .Time }}_
+
+webhook:
+  minimumpriority: critical

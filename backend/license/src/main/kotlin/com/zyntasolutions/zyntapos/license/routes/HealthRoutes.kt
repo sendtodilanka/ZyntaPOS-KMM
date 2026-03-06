@@ -8,7 +8,7 @@ import io.ktor.server.routing.get
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class HealthResponse(val status: String, val service: String, val version: String, val db: String)
+data class HealthResponse(val status: String, val db: String)
 
 fun Route.healthRoutes() {
     get("/health") {
@@ -16,8 +16,6 @@ fun Route.healthRoutes() {
         val statusCode = if (dbOk == "ok") HttpStatusCode.OK else HttpStatusCode.ServiceUnavailable
         call.respond(statusCode, HealthResponse(
             status = if (dbOk == "ok") "ok" else "degraded",
-            service = "zyntapos-license",
-            version = "1.0.0",
             db = dbOk
         ))
     }

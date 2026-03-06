@@ -8,6 +8,7 @@ import com.zyntasolutions.zyntapos.api.models.LoginRequest
 import com.zyntasolutions.zyntapos.api.models.LoginResponse
 import com.zyntasolutions.zyntapos.api.models.RefreshRequest
 import com.zyntasolutions.zyntapos.api.service.UserService
+import com.zyntasolutions.zyntapos.common.validation.validateOr422
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
@@ -27,11 +28,16 @@ fun Route.authRoutes() {
         post("/login") {
             val request = call.receive<LoginRequest>()
 
-            // Input validation
-            require(request.licenseKey.isNotBlank()) { "License key is required" }
-            require(request.deviceId.isNotBlank()) { "Device ID is required" }
-            require(request.username.isNotBlank()) { "Username is required" }
-            require(request.password.isNotBlank()) { "Password is required" }
+            if (!call.validateOr422 {
+                requireNotBlank("licenseKey", request.licenseKey)
+                requireMaxLength("licenseKey", request.licenseKey, 128)
+                requireNotBlank("deviceId", request.deviceId)
+                requireMaxLength("deviceId", request.deviceId, 256)
+                requireNotBlank("username", request.username)
+                requireLength("username", request.username, 1, 100)
+                requireNotBlank("password", request.password)
+                requireLength("password", request.password, 1, 256)
+            }) return@post
 
             val user = userService.authenticate(request.licenseKey, request.deviceId, request.username, request.password)
                 ?: run {
@@ -85,7 +91,11 @@ fun Route.authRoutes() {
 
         post("/refresh") {
             val request = call.receive<RefreshRequest>()
-            require(request.refreshToken.isNotBlank()) { "Refresh token is required" }
+
+            if (!call.validateOr422 {
+                requireNotBlank("refreshToken", request.refreshToken)
+                requireMaxLength("refreshToken", request.refreshToken, 4096)
+            }) return@post
 
             val newTokens = userService.refreshTokens(request.refreshToken, config)
                 ?: run {

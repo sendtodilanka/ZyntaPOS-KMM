@@ -9,7 +9,10 @@ fun Application.configureSecurity() {
     install(DefaultHeaders) {
         header("X-Content-Type-Options", "nosniff")
         header("X-Frame-Options", "DENY")
-        header("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-        header(HttpHeaders.Server, "ZyntaPOS-Sync")
+        header("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
+        header("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")
+        header("X-XSS-Protection", "0")
+        header("Referrer-Policy", "strict-origin-when-cross-origin")
+        header(HttpHeaders.Server, "ZyntaPOS")
     }
 }

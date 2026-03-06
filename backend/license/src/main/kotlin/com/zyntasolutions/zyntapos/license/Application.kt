@@ -8,6 +8,7 @@ import com.zyntasolutions.zyntapos.license.plugins.configureRateLimit
 import com.zyntasolutions.zyntapos.license.plugins.configureRouting
 import com.zyntasolutions.zyntapos.license.plugins.configureSecurity
 import com.zyntasolutions.zyntapos.license.plugins.configureSerialization
+import com.zyntasolutions.zyntapos.license.plugins.configureContentLengthLimit
 import com.zyntasolutions.zyntapos.license.plugins.configureStatusPages
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
@@ -35,6 +36,7 @@ fun Application.module() {
     }
 
     LicenseDatabaseFactory.init()
+    check(LicenseDatabaseFactory.ping()) { "Database not available after initialization" }
 
     configureSerialization()
     configureAuthentication()
@@ -42,5 +44,6 @@ fun Application.module() {
     configureRateLimit()
     configureMonitoring()
     configureStatusPages()
+    configureContentLengthLimit()
     configureRouting()
 }

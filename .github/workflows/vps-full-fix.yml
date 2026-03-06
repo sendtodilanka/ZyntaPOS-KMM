@@ -79,8 +79,10 @@ jobs:
               echo "RS256 keys exist"
             fi
             # Ensure container's non-root user can read bind-mounted keys
-            chmod 644 secrets/rs256_private_key.pem secrets/rs256_public_key.pem
-            chmod 644 secrets/db_password.txt
+            # Private key: 640 (owner rw, group read for container user)
+            chmod 640 secrets/rs256_private_key.pem
+            chmod 644 secrets/rs256_public_key.pem
+            chmod 640 secrets/db_password.txt
 
             echo "=== Step 3: Docker compose down ==="
             docker compose down --remove-orphans
