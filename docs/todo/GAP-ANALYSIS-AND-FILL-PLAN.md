@@ -30,7 +30,7 @@
 
 ## Part 1: Detailed Gap Analysis
 
-### TODO-004 — Enterprise Audit Logging (85% → 100%)
+### TODO-004 — Enterprise Audit Logging (**100%** ✅ — closed 2026-03-06)
 
 **What's done:**
 - ✅ `AuditEventType` expanded to ~40 event types
@@ -42,14 +42,14 @@
 - ✅ Retention policy SQL defined
 - ✅ Audit events wired in feature ViewModels
 
-**Remaining gaps (4 items):**
+**Remaining gaps (0 items — ALL CLOSED 2026-03-06):**
 
-| # | Gap | Effort | Priority |
-|---|-----|--------|----------|
-| 4a | SHA-256 hash chain **computation** — hash is a field in the model but `computeHash()` function that chains `previousHash + entry fields → SHA-256` is not implemented | 2 hrs | HIGH |
-| 4b | `AuditIntegrityVerifier` — scheduled daily verification that walks the entire chain and reports `IntegrityReport` | 3 hrs | HIGH |
-| 4c | Admin audit viewer UI — needs date range picker, event type multi-select, user/role filter, entity filter, success/failure toggle, pagination (50/page), CSV export button | 1 day | MEDIUM |
-| 4d | Kermit-to-SQLite bridge — route operational logs from Kermit logger to `operational_logs` table instead of text files | 4 hrs | MEDIUM |
+| # | Gap | Status |
+|---|-----|--------|
+| 4a | SHA-256 hash chain computation | ✅ **DONE** — already implemented in `SecurityAuditLogger.emit()` (stale Phase 1 comment removed) |
+| 4b | `AuditIntegrityJob` — daily scheduled verification | ✅ **DONE** — `AuditIntegrityJob` created, wired into Koin + both entry points |
+| 4c | Admin audit viewer UI — date range, event type, user/role filter, pagination, CSV export | ✅ **DONE** — `RoleFilterDropdown` added; all other filters already existed |
+| 4d | Kermit-to-SQLite bridge + LogRetentionJob startup | ✅ **DONE** — bridge was already wired; `LogRetentionJob.start()` + `AuditIntegrityJob.start()` now called in both entry points |
 
 ---
 

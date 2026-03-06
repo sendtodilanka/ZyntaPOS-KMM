@@ -52,6 +52,7 @@ import com.zyntasolutions.zyntapos.data.repository.ShiftRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.SystemRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.WarehouseRackRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.WarehouseRepositoryImpl
+import com.zyntasolutions.zyntapos.data.job.AuditIntegrityJob
 import com.zyntasolutions.zyntapos.data.job.LogRetentionJob
 import com.zyntasolutions.zyntapos.data.logging.KermitSqliteAdapter
 import com.zyntasolutions.zyntapos.data.sync.ConflictResolver
@@ -248,6 +249,9 @@ val dataModule = module {
 
     // Daily log retention job: enforces 3/14/30/90-day purge policy for operational_logs
     single { LogRetentionJob(repository = get(), scope = get(named("IO"))) }
+
+    // Daily audit integrity job: walks SHA-256 hash chain and reports violations
+    single { AuditIntegrityJob(verifyUseCase = get(), scope = get(named("IO"))) }
 
     // User accounts: CRUD + password lifecycle.
     // PasswordHashPort injected via securityModule binding — MERGED-F3.

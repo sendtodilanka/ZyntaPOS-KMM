@@ -10,6 +10,8 @@ import com.zyntasolutions.zyntapos.seed.seedModule
 import com.zyntasolutions.zyntapos.data.di.desktopDataModule
 import co.touchlab.kermit.Logger
 import com.zyntasolutions.zyntapos.data.local.db.SecurePreferencesKeyMigration
+import com.zyntasolutions.zyntapos.data.job.AuditIntegrityJob
+import com.zyntasolutions.zyntapos.data.job.LogRetentionJob
 import com.zyntasolutions.zyntapos.data.logging.KermitSqliteAdapter
 import com.zyntasolutions.zyntapos.domain.repository.FeatureRegistryRepository
 import com.zyntasolutions.zyntapos.feature.dashboard.dashboardModule
@@ -124,6 +126,12 @@ fun main() {
     // Routes all Kermit log events to the operational_logs table for diagnostic
     // queries via the Admin debug console. Must run after dataModule is loaded.
     Logger.addLogWriter(koin.koin.get<KermitSqliteAdapter>())
+
+    // ── Background jobs ──────────────────────────────────────────────────────
+    // LogRetentionJob: daily purge of expired operational_logs (3/14/30/90-day policy)
+    // AuditIntegrityJob: daily SHA-256 hash chain verification of audit_entries
+    koin.koin.get<LogRetentionJob>().start()
+    koin.koin.get<AuditIntegrityJob>().start()
 
     // ── Tier 7: Debug tools — loaded only when isDebug == true ───────────────
     // seedModule registers SeedRunner; debugModule registers action handlers

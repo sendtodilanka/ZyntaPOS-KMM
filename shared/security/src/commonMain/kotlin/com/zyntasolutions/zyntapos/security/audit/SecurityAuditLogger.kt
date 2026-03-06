@@ -926,9 +926,9 @@ class SecurityAuditLogger(
      * Builds and persists an [AuditEntry]. Exceptions are swallowed — audit logging
      * must never block or crash a POS transaction.
      *
-     * NOTE (Phase 1): `hash` and `previousHash` are stored as empty strings.
-     * Proper SHA-256 chain computation will be added in Phase 2 when
-     * [AuditIntegrityVerifier] is wired to the scheduled verification job.
+     * Each entry's SHA-256 hash is computed from:
+     * `id + eventType + userId + createdAt + entityType + entityId + payload + success + previousHash`
+     * This forms an append-only hash chain verified daily by `AuditIntegrityJob`.
      */
     private suspend fun emit(
         eventType: AuditEventType,

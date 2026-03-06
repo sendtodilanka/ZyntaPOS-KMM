@@ -29,6 +29,7 @@ import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.AuditEntry
 import com.zyntasolutions.zyntapos.domain.model.AuditEventType
 import com.zyntasolutions.zyntapos.domain.model.IntegrityReport
+import com.zyntasolutions.zyntapos.domain.model.Role
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -59,11 +60,12 @@ fun AuditLogScreen(
     // Apply all client-side filters (user, event type, success/fail, date range)
     val filtered = remember(
         state.auditEntries, state.auditUserFilter, state.auditEventTypeFilter,
-        state.auditSuccessFilter, state.auditDateFrom, state.auditDateTo,
+        state.auditRoleFilter, state.auditSuccessFilter, state.auditDateFrom, state.auditDateTo,
     ) {
         state.auditEntries.filter { e ->
             (state.auditUserFilter.isBlank() || e.userId.contains(state.auditUserFilter, ignoreCase = true)) &&
             (state.auditEventTypeFilter == null || e.eventType == state.auditEventTypeFilter) &&
+            (state.auditRoleFilter == null || e.userRole == state.auditRoleFilter) &&
             (state.auditSuccessFilter == null || e.success == state.auditSuccessFilter) &&
             (state.auditDateFrom == null || e.createdAt >= state.auditDateFrom) &&
             (state.auditDateTo == null || e.createdAt <= state.auditDateTo)
@@ -115,6 +117,15 @@ fun AuditLogScreen(
         EventTypeDropdown(
             selected = state.auditEventTypeFilter,
             onSelected = { onIntent(AdminIntent.FilterAuditByEventType(it)) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = ZyntaSpacing.sm),
+        )
+
+        // ── Filter bar: role dropdown ───────────────────────────────────────
+        RoleFilterDropdown(
+            selected = state.auditRoleFilter,
+            onSelected = { onIntent(AdminIntent.FilterAuditByRole(it)) },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = ZyntaSpacing.sm),
@@ -187,6 +198,7 @@ fun AuditLogScreen(
                         when {
                             state.auditUserFilter.isBlank() &&
                             state.auditEventTypeFilter == null &&
+                            state.auditRoleFilter == null &&
                             state.auditSuccessFilter == null &&
                             state.auditDateFrom == null &&
                             state.auditDateTo == null -> "No audit events recorded."
@@ -293,6 +305,58 @@ private fun EventTypeDropdown(
                         )
                     },
                     onClick = { onSelected(type); expanded = false },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Material 3 exposed dropdown for filtering audit entries by [Role].
+ * Selecting "All roles" sets [selected] to null (clears filter).
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RoleFilterDropdown(
+    selected: Role?,
+    onSelected: (Role?) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        modifier = modifier,
+    ) {
+        OutlinedTextField(
+            value = selected?.name?.replace('_', ' ') ?: "All roles",
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("User role") },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(),
+            singleLine = true,
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            DropdownMenuItem(
+                text = { Text("All roles", style = MaterialTheme.typography.bodyMedium) },
+                onClick = { onSelected(null); expanded = false },
+            )
+            Role.entries.forEach { role ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            role.name.replace('_', ' '),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    },
+                    onClick = { onSelected(role); expanded = false },
                 )
             }
         }

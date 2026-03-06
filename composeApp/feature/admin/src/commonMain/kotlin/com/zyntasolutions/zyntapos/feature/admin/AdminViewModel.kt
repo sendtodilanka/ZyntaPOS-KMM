@@ -105,6 +105,7 @@ class AdminViewModel(
             AdminIntent.RefreshAuditLog -> Unit // reactive — driven by observeAuditLog()
             is AdminIntent.FilterAuditByUser -> updateState { copy(auditUserFilter = intent.userId, auditPage = 0) }
             is AdminIntent.FilterAuditByEventType -> updateState { copy(auditEventTypeFilter = intent.eventType, auditPage = 0) }
+            is AdminIntent.FilterAuditByRole -> updateState { copy(auditRoleFilter = intent.role, auditPage = 0) }
             is AdminIntent.FilterAuditBySuccess -> updateState { copy(auditSuccessFilter = intent.success, auditPage = 0) }
             is AdminIntent.FilterAuditByDateRange -> updateState { copy(auditDateFrom = intent.from, auditDateTo = intent.to, auditPage = 0) }
             AdminIntent.ExportAuditLogCsv -> exportAuditLogCsv()
@@ -183,6 +184,7 @@ class AdminViewModel(
             .filter { e ->
                 (s.auditUserFilter.isBlank() || e.userId.contains(s.auditUserFilter, ignoreCase = true)) &&
                 (s.auditEventTypeFilter == null || e.eventType == s.auditEventTypeFilter) &&
+                (s.auditRoleFilter == null || e.userRole == s.auditRoleFilter) &&
                 (s.auditSuccessFilter == null || e.success == s.auditSuccessFilter) &&
                 (s.auditDateFrom == null || e.createdAt >= s.auditDateFrom) &&
                 (s.auditDateTo == null || e.createdAt <= s.auditDateTo)
