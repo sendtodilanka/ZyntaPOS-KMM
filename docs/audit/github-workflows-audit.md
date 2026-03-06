@@ -61,7 +61,7 @@ changes**:
 | Webhooks | none | No external integrations configured |
 | `PAT_TOKEN` secret | present | Updated 2026-03-04 |
 | `VPS_HOST`, `VPS_USER`, `VPS_PORT` | present | VPS SSH access |
-| `DEPLOY_SSH_PRIVATE_KEY` | present | VPS deploy key |
+| `VPS_USER_KEY` | present | VPS deploy key |
 | `SENTRY_AUTH_TOKEN` | present | Sentry error tracking |
 | All 5 workflow files | `state: "active"` | All workflows enabled |
 | Latest release | `v1.0.0-build.75` | Created by `github-actions[bot]` ✅ |
@@ -349,7 +349,7 @@ not interfere with the continuous delivery pipeline.
 | `VPS_HOST` | ✅ | SSH deploy target | |
 | `VPS_USER` | ✅ | SSH username | |
 | `VPS_PORT` | ✅ | SSH port | |
-| `DEPLOY_SSH_PRIVATE_KEY` | ✅ | SSH private key | |
+| `VPS_USER_KEY` | ✅ | SSH private key | |
 | `SENTRY_AUTH_TOKEN` | ✅ | Sentry release tracking | |
 | `API_BASE_URL` | ❌ Missing | Release build API URL | Phase 2 |
 | `DB_ENCRYPTION_PASSWORD` | ❌ Missing | Release build DB key | Phase 2 |
@@ -482,7 +482,7 @@ Developer / Claude pushes to claude/* branch
 | `VPS_HOST` | ✅ | SSH deploy target | |
 | `VPS_USER` | ✅ | SSH username | |
 | `VPS_PORT` | ✅ | SSH port | |
-| `DEPLOY_SSH_PRIVATE_KEY` | ✅ | SSH private key | |
+| `VPS_USER_KEY` | ✅ | SSH private key | |
 | `SENTRY_AUTH_TOKEN` | ✅ | Sentry release tracking | |
 | `GITHUB_TOKEN` | Auto | GHCR image push | Auto-provided by Actions; `packages: write` granted in `ci-gate.yml` |
 | `NVD_API_KEY` | ❌ Optional | OWASP NVD higher rate limit | Not required; `nvd.delay=3500` limits requests without key |

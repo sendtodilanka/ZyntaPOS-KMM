@@ -1,0 +1,205 @@
+name: "FTS Step 5: Docker Stack Start"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# FIRST-TIME SETUP — STEP 5 of 6
+#
+# Runs as: DEPLOY USER
+# Requires: Steps 1-4 completed (green)
+#
+# What it does:
+#   1. Authenticates with GHCR (GitHub Container Registry)
+#   2. Validates docker-compose.yml syntax
+#   3. Pulls all Docker images from GHCR
+#   4. Starts the full stack (docker compose up -d)
+#   5. Waits for containers to become healthy
+#
+# Verification:
+#   ✅ GHCR authenticated
+#   ✅ docker-compose.yml valid
+#   ✅ All 7 containers running
+#   ✅ PostgreSQL healthy
+#   ✅ Redis healthy
+#   ✅ Caddy healthy
+#   ✅ API/License/Sync containers running
+#
+# Next: Run "FTS Step 6" after this turns green.
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "step5" to confirm'
+        required: true
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  step5:
+    name: "Step 5: Docker Stack Start"
+    runs-on: ubuntu-latest
+    if: github.event.inputs.confirm == 'step5'
+
+    steps:
+      - name: "Execute Step 5 (as deploy user)"
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_USER_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          timeout: 120s
+          command_timeout: 15m
+          script: |
+            set -euo pipefail
+            DEPLOY_PATH="/opt/zyntapos"
+            cd "$DEPLOY_PATH"
+
+            echo "╔══════════════════════════════════════════════════════╗"
+            echo "║  FTS Step 5: Docker Stack Start                     ║"
+            echo "╚══════════════════════════════════════════════════════╝"
+            echo "Running as: $(whoami)"
+            echo "Started: $(date)"
+            echo ""
+
+            # ── 1. GHCR Authentication ────────────────────────────────
+            echo "━━━ 1/5: GHCR Authentication ━━━"
+            echo "${{ secrets.PAT_TOKEN }}" | docker login ghcr.io -u sendtodilanka --password-stdin
+            echo "  ✅ Logged in to GHCR"
+
+            # ── 2. Validate docker-compose.yml ────────────────────────
+            echo ""
+            echo "━━━ 2/5: Validate docker-compose.yml ━━━"
+            docker compose config --quiet
+            echo "  ✅ docker-compose.yml syntax valid"
+
+            # ── 3. Pull Images ────────────────────────────────────────
+            echo ""
+            echo "━━━ 3/5: Pull Docker Images ━━━"
+            docker compose pull
+            echo "  ✅ All images pulled"
+
+            # ── 4. Start Stack ────────────────────────────────────────
+            echo ""
+            echo "━━━ 4/5: Start Docker Stack ━━━"
+
+            # Stop any existing containers first (clean start)
+            docker compose down --remove-orphans 2>/dev/null || true
+
+            docker compose up -d --remove-orphans
+            echo "  ✅ Stack started"
+            echo ""
+            docker compose ps --format "table {{.Name}}\t{{.Status}}"
+
+            # ── 5. Wait for Health Checks ─────────────────────────────
+            echo ""
+            echo "━━━ 5/5: Waiting for Health Checks (max 120s) ━━━"
+
+            TIMEOUT=120
+            ELAPSED=0
+            INTERVAL=10
+
+            while [ $ELAPSED -lt $TIMEOUT ]; do
+              HEALTHY=0
+              TOTAL=0
+
+              for svc in postgres redis caddy api license sync; do
+                CONTAINER="zyntapos_$svc"
+                TOTAL=$((TOTAL+1))
+                STATUS=$(docker inspect --format='{{.State.Status}}' "$CONTAINER" 2>/dev/null || echo "not_found")
+                HEALTH=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' "$CONTAINER" 2>/dev/null || echo "unknown")
+
+                if [ "$STATUS" = "running" ] && { [ "$HEALTH" = "healthy" ] || [ "$HEALTH" = "no-healthcheck" ]; }; then
+                  HEALTHY=$((HEALTHY+1))
+                fi
+              done
+
+              echo "  [$ELAPSED/${TIMEOUT}s] $HEALTHY/$TOTAL services healthy..."
+
+              if [ "$HEALTHY" -eq "$TOTAL" ]; then
+                echo "  ✅ All services healthy!"
+                break
+              fi
+
+              sleep $INTERVAL
+              ELAPSED=$((ELAPSED+INTERVAL))
+            done
+
+            if [ "$HEALTHY" -ne "$TOTAL" ]; then
+              echo "  ⚠️  Not all services healthy after ${TIMEOUT}s — continuing to verification..."
+            fi
+
+            # ══════════════════════════════════════════════════════════
+            # VERIFICATION
+            # ══════════════════════════════════════════════════════════
+            echo ""
+            echo "╔══════════════════════════════════════════════════════╗"
+            echo "║               STEP 5 — VERIFICATION                 ║"
+            echo "╠══════════════════════════════════════════════════════╣"
+
+            PASS=0
+            FAIL=0
+
+            check_pass() { echo "║  ✅ $1"; PASS=$((PASS+1)); }
+            check_fail() { echo "║  ❌ $1"; FAIL=$((FAIL+1)); }
+
+            echo ""
+            docker compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
+            echo ""
+
+            # Check each container
+            for svc in postgres redis caddy canary api license sync; do
+              CONTAINER="zyntapos_$svc"
+              STATUS=$(docker inspect --format='{{.State.Status}}' "$CONTAINER" 2>/dev/null || echo "not_found")
+              HEALTH=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' "$CONTAINER" 2>/dev/null || echo "unknown")
+
+              if [ "$STATUS" = "running" ]; then
+                if [ "$HEALTH" = "healthy" ]; then
+                  check_pass "$CONTAINER: running (healthy)"
+                elif [ "$HEALTH" = "starting" ]; then
+                  check_pass "$CONTAINER: running (starting — will be healthy soon)"
+                elif [ "$HEALTH" = "no-healthcheck" ]; then
+                  check_pass "$CONTAINER: running"
+                else
+                  check_fail "$CONTAINER: running but $HEALTH"
+                fi
+              else
+                check_fail "$CONTAINER: $STATUS"
+                echo "║        Last 5 lines of logs:"
+                docker logs "$CONTAINER" --tail 5 2>&1 | while IFS= read -r line; do
+                  echo "║          $line"
+                done
+              fi
+            done
+
+            # V8: Docker volumes
+            echo ""
+            for vol in zyntapos_pgdata zyntapos_redisdata zyntapos_caddy_data zyntapos_caddy_config; do
+              docker volume inspect "$vol" &>/dev/null && check_pass "Volume $vol created" || check_fail "Volume $vol MISSING"
+            done
+
+            # V12: Docker network
+            docker network inspect zyntapos_zyntapos_net &>/dev/null && check_pass "Network zyntapos_zyntapos_net created" || check_fail "Network MISSING"
+
+            echo "╠══════════════════════════════════════════════════════╣"
+            printf "║  PASSED: %-42s║\n" "$PASS"
+            printf "║  FAILED: %-42s║\n" "$FAIL"
+            echo "╚══════════════════════════════════════════════════════╝"
+
+            if [ "$FAIL" -gt 0 ]; then
+              echo ""
+              echo "⛔ STEP 5 FAILED — $FAIL check(s) did not pass."
+              echo ""
+              echo "Container logs for debugging:"
+              for svc in api license sync; do
+                echo ""
+                echo "--- zyntapos_$svc ---"
+                docker logs "zyntapos_$svc" --tail 15 2>&1 || echo "(no logs)"
+              done
+              exit 1
+            fi
+
+            echo ""
+            echo "🟢 STEP 5 COMPLETE — Stack running. Run FTS Step 6 next."

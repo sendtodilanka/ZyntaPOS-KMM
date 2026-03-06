@@ -27,172 +27,44 @@ Contabo control panel එකෙන් මේවා ලබාගන්න:
 - **Root Password**
 - **SSH Port** (default: `22`)
 
-### 1.2 SSH Key Pair එකක් හදන්න (Local Machine එකේ)
+### 1.2 SSH Key Pairs හදන්න (Local Machine එකේ)
 
-ඔයාගේ computer එකේ terminal එකේ run කරන්න:
+**Root සහ Deploy user ට වෙන වෙනම keys ඕනේ:**
 
 ```bash
-# SSH key pair එකක් හදන්න
-ssh-keygen -t ed25519 -C "zyntapos-vps-deploy" -f ~/.ssh/zyntapos_vps
+# ── Root key pair (system-level workflows: first-time-setup, postgres-fix) ──
+ssh-keygen -t ed25519 -C "zyntapos-vps-root" -f ~/.ssh/zyntapos_root
 
-# Public key එක display කරන්න (මේක VPS එකට copy කරන්න ඕනේ)
-cat ~/.ssh/zyntapos_vps.pub
+# ── Deploy key pair (daily workflows: deploy, verify, debug, full-fix) ──
+ssh-keygen -t ed25519 -C "zyntapos-vps-deploy" -f ~/.ssh/zyntapos_deploy
 
-# Private key එක display කරන්න (මේක GitHub Secret එකට දාන්න ඕනේ)
-cat ~/.ssh/zyntapos_vps
+# Private keys display (GitHub Secrets වලට copy කරන්න)
+cat ~/.ssh/zyntapos_root       # → VPS_ROOT_KEY secret
+cat ~/.ssh/zyntapos_deploy     # → VPS_USER_KEY secret
 ```
 
-### 1.3 VPS එකට SSH Key එක Add කරන්න
+### 1.3 VPS එකට Root SSH Key එක Add කරන්න
 
 ```bash
-# VPS එකට SSH කරන්න (password එක use කරන්න)
+# VPS එකට SSH කරන්න (Contabo password එක use කරන්න)
 ssh root@<VPS_IP>
 
-# SSH key add කරන්න
+# Root key add කරන්න
 mkdir -p ~/.ssh
 chmod 700 ~/.ssh
 
-# ඔයාගේ public key එක paste කරන්න
-echo "ssh-ed25519 AAAA... zyntapos-vps-deploy" >> ~/.ssh/authorized_keys
+# Root public key එක paste කරන්න
+echo "ssh-ed25519 AAAA... zyntapos-vps-root" >> ~/.ssh/authorized_keys
 chmod 600 ~/.ssh/authorized_keys
-
-# Password auth disable කරන්න (optional, security best practice)
-# sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
-# systemctl restart sshd
 ```
 
-### 1.4 Firewall සකසන්න (UFW)
+> **Note:** Deploy user key එක add කරන්න ඕනේ නැහැ — First-Time Setup workflow එක automatically deploy user create කරලා key add කරනවා `VPS_USER_KEY` secret එකෙන්.
 
-```bash
-# VPS එකේ run කරන්න
-ufw default deny incoming
-ufw default allow outgoing
+### 1.4 Manual Steps ඕනේ නැහැ!
 
-# SSH access (ඔයාගේ port එක use කරන්න)
-ufw allow 22/tcp
-
-# HTTP + HTTPS (Cloudflare proxy එක through)
-ufw allow 80/tcp
-ufw allow 443/tcp
-
-# Enable firewall
-ufw enable
-
-# Status check
-ufw status verbose
-```
-
-**Cloudflare Only Access (අමතර security):**
-
-Cloudflare IP ranges විතරක් allow කරන්න ඕනේ නම්:
-```bash
-# Cloudflare IPv4 ranges
-for ip in 173.245.48.0/20 103.21.244.0/22 103.22.200.0/22 103.31.4.0/22 \
-          141.101.64.0/18 108.162.192.0/18 190.93.240.0/20 188.114.96.0/20 \
-          197.234.240.0/22 198.41.128.0/17 162.158.0.0/15 104.16.0.0/13 \
-          104.24.0.0/14 172.64.0.0/13 131.0.72.0/22; do
-  ufw allow from "$ip" to any port 443 proto tcp
-done
-```
-
-### 1.5 Security Hardening
-
-```bash
-# System update කරන්න
-apt update && apt upgrade -y
-
-# Automatic security updates enable කරන්න
-apt install -y unattended-upgrades
-dpkg-reconfigure -plow unattended-upgrades
-
-# Fail2Ban install කරන්න (brute force protection)
-apt install -y fail2ban
-systemctl enable fail2ban
-systemctl start fail2ban
-
-# SSH hardening
-cat >> /etc/ssh/sshd_config.d/hardening.conf << 'SSHEOF'
-# Max auth attempts
-MaxAuthTries 3
-# Disable root login with password (key only)
-PermitRootLogin prohibit-password
-# Disable empty passwords
-PermitEmptyPasswords no
-# Idle timeout (5 minutes)
-ClientAliveInterval 300
-ClientAliveCountMax 2
-SSHEOF
-
-systemctl restart sshd
-```
-
-### 1.6 Performance Tuning
-
-```bash
-# Swap file එකක් හදන්න (2GB — OOM protection)
-fallocate -l 2G /swapfile
-chmod 600 /swapfile
-mkswap /swapfile
-swapon /swapfile
-echo '/swapfile none swap sw 0 0' >> /etc/fstab
-
-# Kernel tuning for Docker
-cat >> /etc/sysctl.d/99-zyntapos.conf << 'SYSEOF'
-# TCP tuning
-net.core.somaxconn = 1024
-net.ipv4.tcp_max_syn_backlog = 1024
-net.ipv4.tcp_fin_timeout = 15
-net.ipv4.tcp_keepalive_time = 300
-
-# File descriptor limits
-fs.file-max = 65535
-
-# VM tuning (reduce swappiness — prefer RAM)
-vm.swappiness = 10
-vm.dirty_ratio = 15
-vm.dirty_background_ratio = 5
-SYSEOF
-
-sysctl --system
-
-# Docker log rotation (prevent disk fill)
-mkdir -p /etc/docker
-cat > /etc/docker/daemon.json << 'DKEOF'
-{
-  "log-driver": "json-file",
-  "log-opts": {
-    "max-size": "10m",
-    "max-file": "3"
-  },
-  "storage-driver": "overlay2"
-}
-DKEOF
-```
-
-### 1.7 Deploy User හදන්න (Optional — Security Best Practice)
-
-Root වෙනුවට dedicated deploy user එකක් use කරන්න:
-
-```bash
-# Deploy user හදන්න
-adduser --disabled-password --gecos "" deploy
-
-# Docker group එකට add කරන්න
-usermod -aG docker deploy
-
-# SSH key setup
-mkdir -p /home/deploy/.ssh
-cp ~/.ssh/authorized_keys /home/deploy/.ssh/
-chown -R deploy:deploy /home/deploy/.ssh
-chmod 700 /home/deploy/.ssh
-chmod 600 /home/deploy/.ssh/authorized_keys
-
-# Deploy directory create + ownership
-mkdir -p /opt/zyntapos
-chown deploy:deploy /opt/zyntapos
-```
-
-> **Note:** Deploy user use කරනවා නම් GitHub Secrets වල `VPS_USER` එක `deploy` ලෙස set කරන්න.
+> **Important:** UFW, Fail2Ban, SSH hardening, performance tuning, deploy user creation — මේ ඔක්කොම **FTS Steps 1-3** workflows එකෙන් automatically handle කරනවා.
+>
+> Manual commands run කරන්න ඕනේ **නැහැ**. Section 2 (GitHub Secrets) set කරලා Section 3 (FTS Steps) run කරන්න.
 
 ---
 
@@ -200,13 +72,49 @@ chown deploy:deploy /opt/zyntapos
 
 GitHub repo → Settings → Secrets and variables → Actions → **New repository secret**
 
+### Connection Secrets
+
 | Secret Name | Value | Description |
 |---|---|---|
 | `VPS_HOST` | `217.216.72.102` | VPS IP address |
-| `VPS_USER` | `root` (or `deploy`) | SSH login user |
 | `VPS_PORT` | `22` | SSH port |
-| `DEPLOY_SSH_PRIVATE_KEY` | (private key file content) | `~/.ssh/zyntapos_vps` content |
-| `PAT_TOKEN` | `ghp_xxxx...` | GitHub Personal Access Token (repo + packages scope) |
+
+### Root Secrets (system-level workflows only)
+
+| Secret Name | Value | Used By |
+|---|---|---|
+| `VPS_ROOT` | `root` | `vps-first-time-setup.yml`, `vps-postgres-fix.yml` |
+| `VPS_ROOT_KEY` | `~/.ssh/zyntapos_root` content | Same as above |
+
+### Deploy Secrets (daily workflows)
+
+| Secret Name | Value | Used By |
+|---|---|---|
+| `VPS_USER` | `deploy` | `cd-deploy.yml`, `cd-smoke-rollback.yml`, `vps-verify.yml`, `vps-debug.yml`, `vps-full-fix.yml` |
+| `VPS_USER_KEY` | `~/.ssh/zyntapos_deploy` content | Same as above |
+
+### Other Secrets
+
+| Secret Name | Value | Description |
+|---|---|---|
+| `PAT_TOKEN` | `ghp_xxxx...` | GitHub PAT (repo + packages scope) |
+
+### Workflow → User Mapping
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  ROOT (VPS_ROOT / VPS_ROOT_KEY)                                 │
+│  • vps-first-time-setup.yml — Docker install, deploy user create│
+│  • vps-postgres-fix.yml     — System config modify              │
+├─────────────────────────────────────────────────────────────────┤
+│  DEPLOY (VPS_USER / VPS_USER_KEY)                     │
+│  • cd-deploy.yml            — Git pull, docker compose up       │
+│  • cd-smoke-rollback.yml    — Rollback on failure               │
+│  • vps-verify.yml           — Read-only health checks           │
+│  • vps-debug.yml            — Container logs + debugging        │
+│  • vps-full-fix.yml         — App reset, docker compose restart │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ### PAT Token හදන විදිය:
 
@@ -223,42 +131,149 @@ GitHub → Settings → Developer settings → Personal access tokens → Fine-g
 # Login
 gh auth login
 
-# Secrets set කරන්න
-gh secret set VPS_HOST --body "217.216.72.102" --repo sendtodilanka/ZyntaPOS-KMM
-gh secret set VPS_USER --body "root" --repo sendtodilanka/ZyntaPOS-KMM
-gh secret set VPS_PORT --body "22" --repo sendtodilanka/ZyntaPOS-KMM
-gh secret set DEPLOY_SSH_PRIVATE_KEY < ~/.ssh/zyntapos_vps --repo sendtodilanka/ZyntaPOS-KMM
-gh secret set PAT_TOKEN --body "ghp_xxxx..." --repo sendtodilanka/ZyntaPOS-KMM
+REPO="sendtodilanka/ZyntaPOS-KMM"
+
+# Connection
+gh secret set VPS_HOST --body "217.216.72.102" --repo "$REPO"
+gh secret set VPS_PORT --body "22" --repo "$REPO"
+
+# Root (system-level)
+gh secret set VPS_ROOT --body "root" --repo "$REPO"
+gh secret set VPS_ROOT_KEY < ~/.ssh/zyntapos_root --repo "$REPO"
+
+# Deploy (daily operations)
+gh secret set VPS_USER --body "deploy" --repo "$REPO"
+gh secret set VPS_USER_KEY < ~/.ssh/zyntapos_deploy --repo "$REPO"
+
+# GitHub PAT
+gh secret set PAT_TOKEN --body "ghp_xxxx..." --repo "$REPO"
 ```
 
 ---
 
-## 3. First-Time Setup Workflow එක Run කරන්න
+## 3. First-Time Setup (FTS) — 6-Step Workflow
 
-### 3.1 Workflow Trigger කරන්න
+### 3.0 Overview
 
-GitHub → Actions → **"VPS First-Time Setup"** → Run workflow:
-- `confirm` field එකට **`setup`** type කරන්න
-- **Run workflow** click කරන්න
+Fresh VPS එකක් setup කරන්න **6 steps** තියෙනවා. හැම step එකක්ම **separate workflow** එකක්. Step එකක් **green** වුණාම (✅) ඊළඟ step එක run කරන්න.
 
-### 3.2 මේ Workflow එක කරන දේවල්:
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  FTS Step 1 (ROOT)  → System + Docker + Deploy User                │
+│  FTS Step 2 (ROOT)  → Security Hardening (UFW, Fail2Ban, SSH)      │
+│  FTS Step 3 (ROOT)  → Performance Tuning (Swap, Kernel, Docker)    │
+│  FTS Step 4 (DEPLOY)→ Repo Clone + Secrets + TLS Certificate       │
+│  FTS Step 5 (DEPLOY)→ GHCR Login + Docker Stack Start              │
+│  FTS Step 6 (BOTH)  → Full End-to-End Verification                 │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
-1. **Docker install කරනවා** (VPS eke නැත්නම්)
-2. **`/opt/zyntapos`** folder එක හදලා repo clone කරනවා
-3. **Secrets generate කරනවා:**
-   - `secrets/db_password.txt` — PostgreSQL password (random 64-char hex)
-   - `secrets/rs256_private_key.pem` — JWT signing key (RSA 2048-bit)
-   - `secrets/rs256_public_key.pem` — JWT verification key
-4. **`.env` file එක හදනවා:**
-   - `REDIS_PASSWORD` — Redis auth password
-   - `ZYNTAPOS_DB_PASSWORD` — PostgreSQL password
-5. **Self-signed TLS cert generate කරනවා** (`backend/caddy/certs/`)
-6. **GHCR login + Docker images pull + stack start**
+**Rules:**
+- හැම step එකක්ම **green** වෙන්න ඕනේ ඊළඟ step එකට යන්න කලින්
+- Step එකක් **red** (❌) වුණොත් — ඒක fix කරලා **same step එකම** re-run කරන්න
+- Manual commands run කරන්න ඕනේ **නැහැ** — okkoma automated
+- Steps 1-3: **root** SSH key use කරනවා (system-level changes)
+- Steps 4-6: **deploy** SSH key use කරනවා (app-level changes)
 
-### 3.3 Verify Workflow Run
+### 3.1 FTS Step 1: System + Docker + Deploy User
 
-Actions tab එකේ workflow run එක green ✅ වෙන්න ඕනේ.
-Fail වුණොත් [Troubleshooting](#7-troubleshooting) බලන්න.
+**Runs as:** Root | **Confirm:** `step1`
+
+GitHub → Actions → **"FTS Step 1: System + Docker + Deploy User"** → Run workflow
+
+මේ step එක කරන දේවල්:
+1. System packages update (`apt update + upgrade`)
+2. Docker + Docker Compose plugin install
+3. Deploy user create + docker group add
+4. Docker-only sudo configure (full root access දෙන්නේ නැහැ)
+5. Deploy user SSH key setup (`VPS_USER_KEY` එකෙන්)
+6. `/opt/zyntapos` directory create + deploy user ownership
+
+**Verifies:** Docker running, deploy user exists, SSH key present, directory ownership
+
+### 3.2 FTS Step 2: Security Hardening
+
+**Runs as:** Root | **Confirm:** `step2`
+
+GitHub → Actions → **"FTS Step 2: Security Hardening"** → Run workflow
+
+මේ step එක කරන දේවල්:
+1. **UFW Firewall** — deny all incoming, allow SSH/80/443 only
+2. **Fail2Ban** — SSH brute force protection (3 retries, 2h ban)
+3. **SSH Hardening** — key-only auth, MaxAuthTries 3, idle timeout 5min, no X11/TCP forwarding
+4. **Unattended Upgrades** — automatic security patches (daily)
+5. **Kernel Security** — SYN cookies, ASLR, ICMP redirect block, core dump disable
+
+**Verifies:** UFW active, Fail2Ban SSH jail, SSH config, auto-upgrades, kernel params
+
+### 3.3 FTS Step 3: Performance Tuning
+
+**Runs as:** Root | **Confirm:** `step3`
+
+GitHub → Actions → **"FTS Step 3: Performance Tuning"** → Run workflow
+
+මේ step එක කරන දේවල්:
+1. **2GB Swap File** — OOM protection
+2. **Kernel TCP Tuning** — somaxconn=1024, keepalive, fast open
+3. **File Descriptor Limits** — 65535 (soft + hard)
+4. **VM Tuning** — swappiness=10, dirty ratios optimized
+5. **Docker Daemon Config** — log rotation (10m×3), overlay2, live-restore, ulimits
+
+**Verifies:** Swap active, kernel params, Docker daemon.json, file limits
+
+### 3.4 FTS Step 4: Repo + Secrets + TLS
+
+**Runs as:** Deploy | **Confirm:** `step4`
+
+GitHub → Actions → **"FTS Step 4: Repo + Secrets + TLS"** → Run workflow
+
+මේ step එක කරන දේවල්:
+1. Repository clone (`/opt/zyntapos`)
+2. DB password generate (64-char hex, cryptographically random)
+3. RS256 JWT key pair generate (RSA 2048-bit)
+4. `.env` file create (REDIS_PASSWORD, ZYNTAPOS_DB_PASSWORD)
+5. Self-signed TLS certificate generate (365 days)
+6. File permissions fix
+
+**Verifies:** Repo files, secrets, RS256 key match, .env vars, TLS cert
+
+### 3.5 FTS Step 5: Docker Stack Start
+
+**Runs as:** Deploy | **Confirm:** `step5`
+
+GitHub → Actions → **"FTS Step 5: Docker Stack Start"** → Run workflow
+
+මේ step එක කරන දේවල්:
+1. GHCR authenticate (GitHub Container Registry)
+2. docker-compose.yml validate
+3. Docker images pull
+4. Full stack start (7 containers)
+5. Health check wait (max 120s)
+
+**Verifies:** All 7 containers running, volumes created, network created
+
+### 3.6 FTS Step 6: Full Verification
+
+**Runs as:** Root + Deploy (2 jobs) | **Confirm:** `step6`
+
+GitHub → Actions → **"FTS Step 6: Full Verification"** → Run workflow
+
+**End-to-end verification — okkoma check කරනවා:**
+- Security: UFW, Fail2Ban, SSH, auto-upgrades, kernel security
+- Performance: Swap, kernel tuning, Docker config, file limits
+- Users: Deploy user, docker group, sudoers
+- Repo: Git, config files, healthcheck directory
+- Secrets: DB password, RS256 keys (match verify), TLS cert
+- Environment: .env variables
+- Containers: All 7 running + healthy
+- Database: PostgreSQL TCP auth + per-service DB access
+- Redis: PING → PONG
+- HTTP: Caddy /ping + API/License/Sync /health
+- Volumes + Network
+- Disk + Memory
+
+**Green (🟢)** = VPS fully ready for production
+**Red (🔴)** = Fix issues and re-run
 
 ---
 
@@ -447,7 +462,7 @@ docker compose up -d
 1. VPS IP correct ද? → `VPS_HOST` secret check
 2. SSH port correct ද? → `VPS_PORT` secret check
 3. Firewall SSH allow කරලා ද? → `ufw status`
-4. SSH key correct ද? → `DEPLOY_SSH_PRIVATE_KEY` secret re-set
+4. SSH key correct ද? → `VPS_USER_KEY` secret re-set
 
 ### Error: Docker Image Pull Failed
 

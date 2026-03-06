@@ -1,0 +1,223 @@
+name: "FTS Step 1: System + Docker + Deploy User"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# FIRST-TIME SETUP — STEP 1 of 6
+#
+# Runs as: ROOT
+# Purpose: System packages, Docker install, deploy user creation, SSH keys
+#
+# What it does:
+#   1. Updates system packages (apt update + upgrade)
+#   2. Installs Docker + Docker Compose plugin
+#   3. Creates deploy user with docker group membership
+#   4. Grants deploy user docker-only sudo (no full root)
+#   5. Sets up deploy user SSH authorized_keys from VPS_USER_KEY
+#   6. Creates /opt/zyntapos owned by deploy user
+#
+# Verification (green/red):
+#   ✅ Docker installed and running
+#   ✅ Docker Compose plugin available
+#   ✅ Deploy user exists and in docker group
+#   ✅ Deploy user sudoers configured
+#   ✅ SSH authorized_keys present for deploy user
+#   ✅ /opt/zyntapos exists and owned by deploy user
+#
+# Required secrets:
+#   VPS_HOST, VPS_PORT, VPS_ROOT, VPS_ROOT_KEY, VPS_USER, VPS_USER_KEY
+#
+# Next: Run "FTS Step 2" after this turns green.
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "step1" to confirm'
+        required: true
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  step1:
+    name: "Step 1: System + Docker + Deploy User"
+    runs-on: ubuntu-latest
+    if: github.event.inputs.confirm == 'step1'
+
+    steps:
+      - name: "Execute Step 1 (as root)"
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_ROOT }}
+          key: ${{ secrets.VPS_ROOT_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          timeout: 120s
+          command_timeout: 15m
+          script: |
+            set -euo pipefail
+            echo "╔══════════════════════════════════════════════════════╗"
+            echo "║  FTS Step 1: System + Docker + Deploy User          ║"
+            echo "╚══════════════════════════════════════════════════════╝"
+            echo "Started: $(date)"
+            echo ""
+
+            # ── 1. System update ──────────────────────────────────────
+            echo "━━━ 1/6: System packages update ━━━"
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update -qq
+            apt-get upgrade -y -qq
+            apt-get install -y -qq curl wget gnupg lsb-release ca-certificates
+            echo "  ✅ System packages updated"
+
+            # ── 2. Install Docker ─────────────────────────────────────
+            echo ""
+            echo "━━━ 2/6: Docker install ━━━"
+            if ! command -v docker &>/dev/null; then
+              echo "  Installing Docker..."
+              curl -fsSL https://get.docker.com | sh
+              echo "  ✅ Docker installed: $(docker --version)"
+            else
+              echo "  ✅ Docker already installed: $(docker --version)"
+            fi
+
+            # Ensure Docker Compose plugin
+            if docker compose version &>/dev/null; then
+              echo "  ✅ Docker Compose: $(docker compose version)"
+            else
+              echo "  ❌ Docker Compose plugin not found"
+              exit 1
+            fi
+
+            # Enable and start Docker
+            systemctl enable docker
+            systemctl start docker
+            echo "  ✅ Docker daemon enabled and running"
+
+            # ── 3. Create deploy user ─────────────────────────────────
+            echo ""
+            echo "━━━ 3/6: Deploy user creation ━━━"
+            DEPLOY_USER="${{ secrets.VPS_USER }}"
+
+            if id "$DEPLOY_USER" &>/dev/null; then
+              echo "  ✅ Deploy user '$DEPLOY_USER' already exists"
+            else
+              adduser --disabled-password --gecos "ZyntaPOS Deploy" "$DEPLOY_USER"
+              echo "  ✅ Deploy user '$DEPLOY_USER' created"
+            fi
+
+            # Add to docker group
+            usermod -aG docker "$DEPLOY_USER"
+            echo "  ✅ Deploy user added to docker group"
+
+            # ── 4. Sudoers for docker-only access ─────────────────────
+            echo ""
+            echo "━━━ 4/6: Sudoers configuration ━━━"
+            cat > /etc/sudoers.d/deploy-docker << 'SUDOEOF'
+            deploy ALL=(ALL) NOPASSWD: /usr/bin/docker, /usr/local/bin/docker, /usr/bin/docker-compose, /usr/bin/systemctl restart docker
+            SUDOEOF
+            chmod 440 /etc/sudoers.d/deploy-docker
+            echo "  ✅ Docker-only sudo configured"
+
+            # ── 5. SSH key setup for deploy user ──────────────────────
+            echo ""
+            echo "━━━ 5/6: Deploy user SSH key ━━━"
+            DEPLOY_HOME=$(eval echo "~$DEPLOY_USER")
+            DEPLOY_SSH_DIR="$DEPLOY_HOME/.ssh"
+            DEPLOY_AUTH_KEYS="$DEPLOY_SSH_DIR/authorized_keys"
+
+            mkdir -p "$DEPLOY_SSH_DIR"
+
+            # Extract public key from deploy private key
+            TEMP_KEY=$(mktemp)
+            echo "${{ secrets.VPS_USER_KEY }}" > "$TEMP_KEY"
+            chmod 600 "$TEMP_KEY"
+            PUBKEY=$(ssh-keygen -y -f "$TEMP_KEY" 2>/dev/null || true)
+            rm -f "$TEMP_KEY"
+
+            if [ -n "$PUBKEY" ]; then
+              if [ -f "$DEPLOY_AUTH_KEYS" ] && grep -qF "$PUBKEY" "$DEPLOY_AUTH_KEYS" 2>/dev/null; then
+                echo "  ✅ Deploy SSH key already authorized"
+              else
+                echo "$PUBKEY" >> "$DEPLOY_AUTH_KEYS"
+                echo "  ✅ Deploy SSH key added to authorized_keys"
+              fi
+            else
+              echo "  ❌ Could not extract public key from VPS_USER_KEY"
+              exit 1
+            fi
+
+            chown -R "$DEPLOY_USER:$DEPLOY_USER" "$DEPLOY_SSH_DIR"
+            chmod 700 "$DEPLOY_SSH_DIR"
+            chmod 600 "$DEPLOY_AUTH_KEYS"
+            echo "  ✅ SSH permissions set (700/600)"
+
+            # ── 6. Create /opt/zyntapos ───────────────────────────────
+            echo ""
+            echo "━━━ 6/6: Deploy directory ━━━"
+            DEPLOY_PATH="/opt/zyntapos"
+            mkdir -p "$DEPLOY_PATH/secrets"
+            chown -R "$DEPLOY_USER:$DEPLOY_USER" "$DEPLOY_PATH"
+            chmod 700 "$DEPLOY_PATH/secrets"
+            echo "  ✅ $DEPLOY_PATH created and owned by $DEPLOY_USER"
+            echo "  ✅ $DEPLOY_PATH/secrets created with 700 permissions"
+
+            # ══════════════════════════════════════════════════════════
+            # VERIFICATION
+            # ══════════════════════════════════════════════════════════
+            echo ""
+            echo "╔══════════════════════════════════════════════════════╗"
+            echo "║               STEP 1 — VERIFICATION                 ║"
+            echo "╠══════════════════════════════════════════════════════╣"
+
+            PASS=0
+            FAIL=0
+
+            check_pass() { echo "║  ✅ $1"; PASS=$((PASS+1)); }
+            check_fail() { echo "║  ❌ $1"; FAIL=$((FAIL+1)); }
+
+            # V1: Docker installed
+            command -v docker &>/dev/null && check_pass "Docker installed: $(docker --version | head -c 40)" || check_fail "Docker NOT installed"
+
+            # V2: Docker Compose
+            docker compose version &>/dev/null && check_pass "Docker Compose available" || check_fail "Docker Compose NOT available"
+
+            # V3: Docker daemon running
+            systemctl is-active docker &>/dev/null && check_pass "Docker daemon running" || check_fail "Docker daemon NOT running"
+
+            # V4: Deploy user exists
+            id "$DEPLOY_USER" &>/dev/null && check_pass "User '$DEPLOY_USER' exists" || check_fail "User '$DEPLOY_USER' NOT found"
+
+            # V5: Deploy user in docker group
+            groups "$DEPLOY_USER" 2>/dev/null | grep -q docker && check_pass "'$DEPLOY_USER' in docker group" || check_fail "'$DEPLOY_USER' NOT in docker group"
+
+            # V6: Sudoers file
+            [ -f /etc/sudoers.d/deploy-docker ] && check_pass "Sudoers file configured" || check_fail "Sudoers file MISSING"
+
+            # V7: SSH authorized_keys
+            [ -f "$DEPLOY_AUTH_KEYS" ] && [ -s "$DEPLOY_AUTH_KEYS" ] && check_pass "authorized_keys present" || check_fail "authorized_keys MISSING"
+
+            # V8: Deploy directory
+            [ -d "$DEPLOY_PATH" ] && check_pass "$DEPLOY_PATH exists" || check_fail "$DEPLOY_PATH MISSING"
+
+            # V9: Directory ownership
+            OWNER=$(stat -c '%U' "$DEPLOY_PATH")
+            [ "$OWNER" = "$DEPLOY_USER" ] && check_pass "$DEPLOY_PATH owned by $DEPLOY_USER" || check_fail "$DEPLOY_PATH owned by $OWNER (expected $DEPLOY_USER)"
+
+            # V10: Secrets directory
+            [ -d "$DEPLOY_PATH/secrets" ] && check_pass "secrets/ directory exists" || check_fail "secrets/ directory MISSING"
+
+            echo "╠══════════════════════════════════════════════════════╣"
+            printf "║  PASSED: %-42s║\n" "$PASS"
+            printf "║  FAILED: %-42s║\n" "$FAIL"
+            echo "╚══════════════════════════════════════════════════════╝"
+
+            if [ "$FAIL" -gt 0 ]; then
+              echo ""
+              echo "⛔ STEP 1 FAILED — $FAIL check(s) did not pass."
+              exit 1
+            fi
+
+            echo ""
+            echo "🟢 STEP 1 COMPLETE — System ready. Run FTS Step 2 next."

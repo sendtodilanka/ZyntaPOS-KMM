@@ -42,13 +42,26 @@ api.zyntapos.com {
 	# Strip sensitive response headers from upstream
 	header -X-Powered-By
 
-	reverse_proxy api:8080 {
-		# Pass real client IP through Cloudflare proxy
-		header_up X-Real-IP {remote_host}
-		header_up X-Forwarded-For {remote_host}
-		health_uri /health
-		health_interval 30s
-		health_timeout 10s
+	# Browser visiting root → show branded canary page
+	@browser_root {
+		path /
+		header Accept *text/html*
+	}
+	handle @browser_root {
+		reverse_proxy canary:80
+	}
+
+	# All API requests → real service
+	handle {
+		reverse_proxy api:8080 {
+			# Pass real client IP through Cloudflare proxy
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			# Liveness check only — DB issues won't block all traffic
+			health_uri /ping
+			health_interval 30s
+			health_timeout 10s
+		}
 	}
 }
 
@@ -56,13 +69,23 @@ api.zyntapos.com {
 license.zyntapos.com {
 	import cf_tls
 
-	reverse_proxy license:8083 {
-		# Strict rate limiting: license heartbeat every 24h per device
-		# Additional rate limiting is enforced by the license service itself
-		header_up X-Real-IP {remote_host}
-		health_uri /health
-		health_interval 30s
-		health_timeout 10s
+	# Browser visiting root → show branded canary page
+	@browser_root {
+		path /
+		header Accept *text/html*
+	}
+	handle @browser_root {
+		reverse_proxy canary:80
+	}
+
+	# All API requests → real service
+	handle {
+		reverse_proxy license:8083 {
+			header_up X-Real-IP {remote_host}
+			health_uri /ping
+			health_interval 30s
+			health_timeout 10s
+		}
 	}
 }
 
@@ -70,13 +93,25 @@ license.zyntapos.com {
 sync.zyntapos.com {
 	import cf_tls
 
-	reverse_proxy sync:8082 {
-		# WebSocket connections — pass Upgrade header
-		header_up Connection {>Connection}
-		header_up Upgrade {>Upgrade}
-		health_uri /health
-		health_interval 30s
-		health_timeout 10s
+	# Browser visiting root → show branded canary page
+	@browser_root {
+		path /
+		header Accept *text/html*
+	}
+	handle @browser_root {
+		reverse_proxy canary:80
+	}
+
+	# All API/WebSocket requests → real service
+	handle {
+		reverse_proxy sync:8082 {
+			# WebSocket connections — pass Upgrade header
+			header_up Connection {>Connection}
+			header_up Upgrade {>Upgrade}
+			health_uri /ping
+			health_interval 30s
+			health_timeout 10s
+		}
 	}
 }
 
