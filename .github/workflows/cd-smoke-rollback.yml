@@ -98,10 +98,11 @@ jobs:
                 -w "%{http_code}" -H "Host: ${sub}.zyntapos.com" \
                 "http://localhost/" 2>/dev/null) || HOME_HTTP="000"
 
-              HOME_FIRST="${HOME_HTTP:0:1}"
-
-              if [ "$PING_HTTP" = "200" ] && [ "$PING_BODY" = "ok" ] && { [ "$HOME_FIRST" = "2" ] || [ "$HOME_FIRST" = "3" ]; }; then
-                echo "  ✅  ${sub}.zyntapos.com  /ping → ${PING_HTTP} (ok)  / → ${HOME_HTTP}"
+              # /ping → 200 "ok" is the canonical health signal.
+              # Caddy :80 only handles /ping; / → 404 is expected for API services
+              # (subdomain HTTPS vhosts only apply on port 443). Homepage 404 is fine.
+              if [ "$PING_HTTP" = "200" ] && [ "$PING_BODY" = "ok" ]; then
+                echo "  ✅  ${sub}.zyntapos.com  /ping → ${PING_HTTP} (ok)  / → ${HOME_HTTP} (informational)"
               else
                 echo "  ❌  ${sub}.zyntapos.com  /ping → ${PING_HTTP}  / → ${HOME_HTTP}"
                 PASS=false
