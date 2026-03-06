@@ -7,7 +7,7 @@
 CREATE TABLE IF NOT EXISTS stores (
     id          TEXT        PRIMARY KEY,
     name        TEXT        NOT NULL,
-    license_key TEXT        NOT NULL REFERENCES licenses(key) ON DELETE CASCADE,
+    license_key TEXT        NOT NULL,  -- validated at app layer (license DB is separate)
     timezone    TEXT        NOT NULL DEFAULT 'Asia/Colombo',
     currency    TEXT        NOT NULL DEFAULT 'LKR',
     is_active   BOOLEAN     NOT NULL DEFAULT TRUE,

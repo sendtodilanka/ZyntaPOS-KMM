@@ -1,9 +1,8 @@
 -- ═══════════════════════════════════════════════════════════════════
 -- ZyntaPOS License Server — PostgreSQL Schema
 -- V1: Licenses and device registrations
--- Note: The license server shares the same DB as the API.
--- This migration is safe to run alongside the API migrations
--- (Flyway uses a shared schema_version table).
+-- Note: License server uses its own database (zyntapos_license).
+-- Fully isolated from the API database (zyntapos_api).
 -- ═══════════════════════════════════════════════════════════════════
 
 -- Licenses table (master registry)
