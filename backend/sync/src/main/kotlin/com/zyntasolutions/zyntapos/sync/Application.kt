@@ -7,6 +7,7 @@ import com.zyntasolutions.zyntapos.sync.plugins.configureRateLimit
 import com.zyntasolutions.zyntapos.sync.plugins.configureRouting
 import com.zyntasolutions.zyntapos.sync.plugins.configureSecurity
 import com.zyntasolutions.zyntapos.sync.plugins.configureSerialization
+import com.zyntasolutions.zyntapos.sync.plugins.configureContentLengthLimit
 import com.zyntasolutions.zyntapos.sync.plugins.configureStatusPages
 import com.zyntasolutions.zyntapos.sync.plugins.configureWebSockets
 import io.ktor.server.application.Application
@@ -41,5 +42,6 @@ fun Application.module() {
     configureMonitoring()
     configureWebSockets()
     configureStatusPages()
+    configureContentLengthLimit()
     configureRouting()
 }

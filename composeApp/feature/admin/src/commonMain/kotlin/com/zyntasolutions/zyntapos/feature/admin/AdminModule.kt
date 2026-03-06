@@ -10,6 +10,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.admin.RestoreBackupUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.VacuumDatabaseUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.VerifyAuditIntegrityUseCase
 import com.zyntasolutions.zyntapos.feature.admin.notification.NotificationViewModel
+import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
@@ -44,7 +45,7 @@ val adminModule = module {
     factoryOf(::DeleteBackupUseCase)
 
     // ── Sprint 15: Audit integrity ────────────────────────────────────────
-    factoryOf(::VerifyAuditIntegrityUseCase)
+    factory { VerifyAuditIntegrityUseCase(get(), SecurityAuditLogger::computeExpectedHash) }
 
     // ── AdminViewModel ────────────────────────────────────────────────────
     viewModel {

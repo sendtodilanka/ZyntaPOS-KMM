@@ -171,7 +171,7 @@ class AdminViewModelTest {
 
     // ── Use cases wired to fakes ──────────────────────────────────────────────
 
-    private val verifyAuditIntegrityUseCase = VerifyAuditIntegrityUseCase(fakeAuditRepository)
+    private val verifyAuditIntegrityUseCase = VerifyAuditIntegrityUseCase(fakeAuditRepository, SecurityAuditLogger::computeExpectedHash)
     private val testAuditLogger = SecurityAuditLogger(fakeAuditRepository, "test-device")
 
     private val getSystemHealthUseCase = GetSystemHealthUseCase(fakeSystemRepository)

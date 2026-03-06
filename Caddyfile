@@ -130,8 +130,8 @@ docs.zyntapos.com {
 	reverse_proxy canary:80
 }
 
-# ── status.zyntapos.com — Uptime status page (Phase 3) ────────────
+# ── status.zyntapos.com — Uptime status page (Uptime Kuma) ─────────
 status.zyntapos.com {
 	import cf_tls
-	reverse_proxy canary:80
+	reverse_proxy uptime-kuma:3001
 }

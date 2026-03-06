@@ -1,9 +1,8 @@
 package com.zyntasolutions.zyntapos.api.routes
 
-import com.zyntasolutions.zyntapos.api.models.PullResponse
 import com.zyntasolutions.zyntapos.api.models.PushRequest
-import com.zyntasolutions.zyntapos.api.models.PushResponse
 import com.zyntasolutions.zyntapos.api.service.SyncService
+import com.zyntasolutions.zyntapos.common.validation.validateOr422
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
@@ -19,20 +18,22 @@ fun Route.syncRoutes() {
     val syncService: SyncService by inject()
 
     route("/sync") {
-        // Push local operations to server
         post("/push") {
             val principal = call.principal<JWTPrincipal>()!!
             val storeId = principal.payload.getClaim("storeId").asString()
             val request = call.receive<PushRequest>()
 
-            require(request.operations.isNotEmpty()) { "Operations list cannot be empty" }
-            require(request.operations.size <= 1000) { "Too many operations in single push (max 1000)" }
+            if (!call.validateOr422 {
+                requireNotBlank("deviceId", request.deviceId)
+                requireMaxLength("deviceId", request.deviceId, 256)
+                requireNotEmpty("operations", request.operations)
+                requireMaxSize("operations", request.operations, 1000)
+            }) return@post
 
             val result = syncService.push(storeId, request)
             call.respond(HttpStatusCode.OK, result)
         }
 
-        // Pull server-side operations since a given vector clock
         get("/pull") {
             val principal = call.principal<JWTPrincipal>()!!
             val storeId = principal.payload.getClaim("storeId").asString()

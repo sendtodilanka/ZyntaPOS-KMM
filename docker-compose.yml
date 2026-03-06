@@ -89,9 +89,14 @@ services:
     # ── TODO-009 Level 3: Container hardening ─────────────────────────
     read_only: true
     tmpfs:
-      - /tmp:size=64m,mode=1777
+      - /tmp:size=64m,mode=1777,noexec,nosuid
     security_opt:
       - no-new-privileges:true
+      - seccomp:./config/seccomp/ktor.json
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
     mem_limit: 512m
     memswap_limit: 512m
 
@@ -126,9 +131,14 @@ services:
     # ── TODO-009 Level 3: Container hardening ─────────────────────────
     read_only: true
     tmpfs:
-      - /tmp:size=32m,mode=1777
+      - /tmp:size=32m,mode=1777,noexec,nosuid
     security_opt:
       - no-new-privileges:true
+      - seccomp:./config/seccomp/ktor.json
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
     mem_limit: 256m
     memswap_limit: 256m
 
@@ -161,9 +171,14 @@ services:
     # ── TODO-009 Level 3: Container hardening ─────────────────────────
     read_only: true
     tmpfs:
-      - /tmp:size=32m,mode=1777
+      - /tmp:size=32m,mode=1777,noexec,nosuid
     security_opt:
       - no-new-privileges:true
+      - seccomp:./config/seccomp/ktor.json
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
     mem_limit: 256m
     memswap_limit: 256m
 
@@ -258,6 +273,46 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  # ── Uptime Kuma — Self-hosted monitoring & status page ──────────────
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: zyntapos_uptime_kuma
+    restart: unless-stopped
+    volumes:
+      - uptime_kuma_data:/app/data
+    expose:
+      - "3001"
+    networks:
+      - zyntapos_net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    mem_limit: 256m
+    memswap_limit: 256m
+    security_opt:
+      - no-new-privileges:true
+
+  # ── Falcosidekick — Routes Falco alerts to Slack + webhook ────────
+  falcosidekick:
+    image: falcosecurity/falcosidekick:latest
+    container_name: zyntapos_falcosidekick
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:2801:2801"
+    environment:
+      - SLACK_WEBHOOKURL=${SLACK_WEBHOOK_URL}
+    volumes:
+      - ./config/falco/falcosidekick.yaml:/etc/falcosidekick/config.yaml:ro
+    networks:
+      - zyntapos_net
+    mem_limit: 128m
+    memswap_limit: 128m
+    security_opt:
+      - no-new-privileges:true
+
 # ── Volumes ──────────────────────────────────────────────────────────
 # Secret files are bind-mounted directly via volumes: sections above.
 # Store secret files at ./secrets/ on the VPS host (git-ignored).
@@ -266,6 +321,7 @@ volumes:
   redisdata:
   caddy_data:
   caddy_config:
+  uptime_kuma_data:
 
 # ── Networks ─────────────────────────────────────────────────────────
 networks:

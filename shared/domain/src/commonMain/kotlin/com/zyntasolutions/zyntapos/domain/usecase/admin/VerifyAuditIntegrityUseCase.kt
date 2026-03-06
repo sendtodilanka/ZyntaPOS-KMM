@@ -1,34 +1,53 @@
 package com.zyntasolutions.zyntapos.domain.usecase.admin
 
+import com.zyntasolutions.zyntapos.domain.model.AuditEntry
 import com.zyntasolutions.zyntapos.domain.model.IntegrityReport
 import com.zyntasolutions.zyntapos.domain.repository.AuditRepository
 import kotlin.time.Clock
 
 /**
- * Reads all audit entries in chronological order and verifies the hash chain.
+ * Reads all audit entries in chronological order and verifies the SHA-256 hash chain.
  *
- * **Phase 1 behaviour:** Hash fields are stored as empty strings (SHA-256
- * computation is a Phase 2 backlog item). This use case detects inconsistencies
- * only when non-empty hashes do not chain correctly — trivially intact in Phase 1.
+ * Each entry's hash is recomputed from its fields + the previous entry's hash.
+ * Any mismatch indicates potential tampering and is counted as a violation.
  *
- * **Phase 2:** Replace the loop body with a full SHA-256 recomputation.
+ * The hash computation must match [SecurityAuditLogger.computeExpectedHash] exactly.
+ *
+ * @param auditRepository Source of audit entries.
+ * @param hashComputer    Function that recomputes the expected hash for an entry given
+ *                        the previous hash. Injected to avoid a domain→security dependency.
  */
 class VerifyAuditIntegrityUseCase(
     private val auditRepository: AuditRepository,
+    private val hashComputer: (entry: AuditEntry, previousHash: String) -> String,
 ) {
     suspend operator fun invoke(): IntegrityReport {
         return runCatching {
             val entries = auditRepository.getAllChronological()
             var violations = 0
-            var previousHash = ""
+            var previousHash = "GENESIS"
+
             for (entry in entries) {
-                // Phase 2: recompute SHA-256(previousHash + entry fields) == entry.hash
-                // Phase 1: only flag if a non-empty hash breaks the chain
-                if (entry.hash.isNotEmpty() && entry.previousHash != previousHash) {
+                // Skip entries with empty hashes (legacy Phase 1 data)
+                if (entry.hash.isEmpty()) {
+                    previousHash = entry.hash
+                    continue
+                }
+
+                // Verify chain link
+                if (entry.previousHash != previousHash) {
                     violations++
                 }
+
+                // Recompute and verify hash
+                val expectedHash = hashComputer(entry, entry.previousHash)
+                if (entry.hash != expectedHash) {
+                    violations++
+                }
+
                 previousHash = entry.hash
             }
+
             IntegrityReport(
                 totalEntries = entries.size.toLong(),
                 violations = violations,

@@ -5,6 +5,7 @@ import com.zyntasolutions.zyntapos.domain.model.AuditEventType
 import com.zyntasolutions.zyntapos.domain.model.Permission
 import com.zyntasolutions.zyntapos.domain.model.Role
 import com.zyntasolutions.zyntapos.domain.repository.AuditRepository
+import com.zyntasolutions.zyntapos.security.auth.sha256
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.minutes
 import kotlin.uuid.ExperimentalUuidApi
@@ -943,9 +944,27 @@ class SecurityAuditLogger(
         ipAddress: String? = null,
     ) {
         runCatching {
+            val id = Uuid.random().toString()
+            val createdAt = Clock.System.now()
+            val prevHash = auditRepository.getLatestHash() ?: "GENESIS"
+
+            val hashInput = buildString {
+                append(id)
+                append(eventType.name)
+                append(userId)
+                append(createdAt.toString())
+                append(entityType.orEmpty())
+                append(entityId.orEmpty())
+                append(payload)
+                append(success)
+                append(prevHash)
+            }
+            val hash = sha256(hashInput.encodeToByteArray())
+                .joinToString("") { it.toUByte().toString(16).padStart(2, '0') }
+
             auditRepository.insert(
                 AuditEntry(
-                    id = Uuid.random().toString(),
+                    id = id,
                     eventType = eventType,
                     userId = userId,
                     userName = userName,
@@ -958,11 +977,33 @@ class SecurityAuditLogger(
                     newValue = newValue,
                     success = success,
                     ipAddress = ipAddress,
-                    hash = "",         // Phase 2: compute SHA-256 chain
-                    previousHash = "", // Phase 2: link to previous entry hash
-                    createdAt = Clock.System.now(),
+                    hash = hash,
+                    previousHash = prevHash,
+                    createdAt = createdAt,
                 ),
             )
+        }
+    }
+
+    companion object {
+        /**
+         * Recomputes the expected SHA-256 hash for a given [AuditEntry].
+         * Used by [VerifyAuditIntegrityUseCase] to verify chain integrity.
+         */
+        fun computeExpectedHash(entry: AuditEntry, previousHash: String): String {
+            val hashInput = buildString {
+                append(entry.id)
+                append(entry.eventType.name)
+                append(entry.userId)
+                append(entry.createdAt.toString())
+                append(entry.entityType.orEmpty())
+                append(entry.entityId.orEmpty())
+                append(entry.payload)
+                append(entry.success)
+                append(previousHash)
+            }
+            return sha256(hashInput.encodeToByteArray())
+                .joinToString("") { it.toUByte().toString(16).padStart(2, '0') }
         }
     }
 

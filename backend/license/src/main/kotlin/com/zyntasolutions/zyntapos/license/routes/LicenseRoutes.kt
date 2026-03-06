@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.license.routes
 
+import com.zyntasolutions.zyntapos.common.validation.validateOr422
 import com.zyntasolutions.zyntapos.license.models.ActivateRequest
 import com.zyntasolutions.zyntapos.license.models.ErrorResponse
 import com.zyntasolutions.zyntapos.license.models.HeartbeatRequest
@@ -19,15 +20,18 @@ fun Route.licenseRoutes() {
     val licenseService: LicenseService by inject()
 
     route("/license") {
-        // Activate a new device under a license key
         post("/activate") {
             val request = call.receive<ActivateRequest>()
-            require(request.licenseKey.isNotBlank()) { "License key is required" }
-            require(request.licenseKey.length <= 128) { "License key too long" }
-            require(LICENSE_KEY_PATTERN.matches(request.licenseKey)) { "Invalid license key format" }
-            require(request.deviceId.isNotBlank()) { "Device ID is required" }
-            require(request.deviceId.length <= 256) { "Device ID too long" }
-            require(request.appVersion.isNotBlank()) { "App version is required" }
+
+            if (!call.validateOr422 {
+                requireNotBlank("licenseKey", request.licenseKey)
+                requireMaxLength("licenseKey", request.licenseKey, 128)
+                requirePattern("licenseKey", request.licenseKey, LICENSE_KEY_PATTERN, "Invalid license key format")
+                requireNotBlank("deviceId", request.deviceId)
+                requireMaxLength("deviceId", request.deviceId, 256)
+                requireNotBlank("appVersion", request.appVersion)
+                requireMaxLength("appVersion", request.appVersion, 64)
+            }) return@post
 
             val result = licenseService.activate(request)
             when {
@@ -43,14 +47,20 @@ fun Route.licenseRoutes() {
             }
         }
 
-        // Periodic heartbeat — POS app calls this every 24 hours
         post("/heartbeat") {
             val request = call.receive<HeartbeatRequest>()
-            require(request.licenseKey.isNotBlank()) { "License key is required" }
-            require(request.licenseKey.length <= 128) { "License key too long" }
-            require(LICENSE_KEY_PATTERN.matches(request.licenseKey)) { "Invalid license key format" }
-            require(request.deviceId.isNotBlank()) { "Device ID is required" }
-            require(request.deviceId.length <= 256) { "Device ID too long" }
+
+            if (!call.validateOr422 {
+                requireNotBlank("licenseKey", request.licenseKey)
+                requireMaxLength("licenseKey", request.licenseKey, 128)
+                requirePattern("licenseKey", request.licenseKey, LICENSE_KEY_PATTERN, "Invalid license key format")
+                requireNotBlank("deviceId", request.deviceId)
+                requireMaxLength("deviceId", request.deviceId, 256)
+                requireNonNegative("dbSizeBytes", request.dbSizeBytes)
+                requireNonNegative("syncQueueDepth", request.syncQueueDepth)
+                requireNonNegative("lastErrorCount", request.lastErrorCount)
+                requireNonNegative("uptimeHours", request.uptimeHours)
+            }) return@post
 
             val result = licenseService.heartbeat(request)
             if (result == null) {
@@ -63,14 +73,17 @@ fun Route.licenseRoutes() {
             }
         }
 
-        // Query license status (used by panel and admin)
         get("/{key}") {
             val key = call.parameters["key"] ?: run {
                 call.respond(HttpStatusCode.BadRequest, ErrorResponse("MISSING_KEY", "License key required"))
                 return@get
             }
-            require(key.length <= 128) { "License key too long" }
-            require(LICENSE_KEY_PATTERN.matches(key)) { "Invalid license key format" }
+
+            if (!call.validateOr422 {
+                requireMaxLength("key", key, 128)
+                requirePattern("key", key, LICENSE_KEY_PATTERN, "Invalid license key format")
+            }) return@get
+
             val status = licenseService.getStatus(key)
             if (status == null) {
                 call.respond(HttpStatusCode.NotFound, ErrorResponse("LICENSE_NOT_FOUND", "License key not found"))
