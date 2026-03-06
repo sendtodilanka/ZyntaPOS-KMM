@@ -1,0 +1,247 @@
+name: "FTS Step 3: Performance Tuning"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# FIRST-TIME SETUP — STEP 3 of 6
+#
+# Runs as: ROOT
+# Requires: Step 2 completed (green)
+#
+# What it does:
+#   1. Creates 2GB swap file (OOM protection)
+#   2. Kernel TCP tuning (somaxconn, tcp_max_syn_backlog, keepalive)
+#   3. File descriptor limits (65535)
+#   4. VM tuning (swappiness=10, dirty ratios)
+#   5. Docker daemon config (log rotation, overlay2)
+#   6. Systemd file descriptor limits for Docker
+#
+# Verification:
+#   ✅ Swap active (2GB)
+#   ✅ Kernel TCP params applied
+#   ✅ File descriptor limits set
+#   ✅ Docker daemon.json configured
+#   ✅ Docker restarted with new config
+#
+# Next: Run "FTS Step 4" after this turns green.
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "step3" to confirm'
+        required: true
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  step3:
+    name: "Step 3: Performance Tuning"
+    runs-on: ubuntu-latest
+    if: github.event.inputs.confirm == 'step3'
+
+    steps:
+      - name: "Execute Step 3 (as root)"
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_ROOT }}
+          key: ${{ secrets.VPS_ROOT_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          timeout: 120s
+          command_timeout: 10m
+          script: |
+            set -euo pipefail
+            echo "╔══════════════════════════════════════════════════════╗"
+            echo "║  FTS Step 3: Performance Tuning                     ║"
+            echo "╚══════════════════════════════════════════════════════╝"
+            echo "Started: $(date)"
+            echo ""
+
+            # ── 1. Swap File (2GB) ────────────────────────────────────
+            echo "━━━ 1/5: Swap File ━━━"
+            if swapon --show | grep -q "/swapfile"; then
+              echo "  ✅ Swap already active: $(swapon --show | grep /swapfile | awk '{print $3}')"
+            else
+              if [ -f /swapfile ]; then
+                swapoff /swapfile 2>/dev/null || true
+                rm -f /swapfile
+              fi
+              fallocate -l 2G /swapfile
+              chmod 600 /swapfile
+              mkswap /swapfile
+              swapon /swapfile
+
+              # Add to fstab if not present
+              if ! grep -q "/swapfile" /etc/fstab; then
+                echo '/swapfile none swap sw 0 0' >> /etc/fstab
+              fi
+              echo "  ✅ 2GB swap file created and activated"
+            fi
+
+            # ── 2. Kernel Performance Tuning ──────────────────────────
+            echo ""
+            echo "━━━ 2/5: Kernel Performance Tuning ━━━"
+
+            # Create/overwrite performance config (idempotent)
+            cat > /etc/sysctl.d/99-zyntapos-performance.conf << 'PERFEOF'
+            # ═══ ZyntaPOS Performance Tuning ═══
+
+            # TCP tuning for high-connection server
+            net.core.somaxconn = 1024
+            net.ipv4.tcp_max_syn_backlog = 1024
+            net.ipv4.tcp_fin_timeout = 15
+            net.ipv4.tcp_keepalive_time = 300
+            net.ipv4.tcp_keepalive_intvl = 30
+            net.ipv4.tcp_keepalive_probes = 5
+
+            # TCP buffer tuning
+            net.core.rmem_max = 16777216
+            net.core.wmem_max = 16777216
+            net.ipv4.tcp_rmem = 4096 87380 16777216
+            net.ipv4.tcp_wmem = 4096 65536 16777216
+
+            # Enable TCP Fast Open
+            net.ipv4.tcp_fastopen = 3
+
+            # File descriptor limits
+            fs.file-max = 65535
+
+            # VM tuning (reduce swappiness — prefer RAM)
+            vm.swappiness = 10
+            vm.dirty_ratio = 15
+            vm.dirty_background_ratio = 5
+
+            # inotify limits (for Docker containers)
+            fs.inotify.max_user_watches = 524288
+            fs.inotify.max_user_instances = 512
+            PERFEOF
+
+            sysctl --system > /dev/null 2>&1
+            echo "  ✅ Kernel performance parameters applied"
+
+            # ── 3. File Descriptor Limits ─────────────────────────────
+            echo ""
+            echo "━━━ 3/5: File Descriptor Limits ━━━"
+
+            # Set limits for deploy user and docker services
+            cat > /etc/security/limits.d/99-zyntapos.conf << 'LIMEOF'
+            # ZyntaPOS file descriptor limits
+            *               soft    nofile          65535
+            *               hard    nofile          65535
+            root            soft    nofile          65535
+            root            hard    nofile          65535
+            LIMEOF
+
+            echo "  ✅ File descriptor limits set (65535)"
+
+            # ── 4. Docker Daemon Config ───────────────────────────────
+            echo ""
+            echo "━━━ 4/5: Docker Daemon Configuration ━━━"
+
+            mkdir -p /etc/docker
+            cat > /etc/docker/daemon.json << 'DKEOF'
+            {
+              "log-driver": "json-file",
+              "log-opts": {
+                "max-size": "10m",
+                "max-file": "3"
+              },
+              "storage-driver": "overlay2",
+              "default-ulimits": {
+                "nofile": {
+                  "Name": "nofile",
+                  "Hard": 65535,
+                  "Soft": 65535
+                }
+              },
+              "live-restore": true,
+              "userland-proxy": false
+            }
+            DKEOF
+
+            echo "  ✅ Docker daemon.json configured"
+            echo "     - Log rotation: 10m x 3 files"
+            echo "     - Storage: overlay2"
+            echo "     - Ulimits: nofile 65535"
+            echo "     - Live restore: enabled"
+
+            # ── 5. Restart Docker with new config ─────────────────────
+            echo ""
+            echo "━━━ 5/5: Restart Docker ━━━"
+            systemctl restart docker
+            sleep 3
+
+            if systemctl is-active docker &>/dev/null; then
+              echo "  ✅ Docker restarted with new config"
+            else
+              echo "  ❌ Docker failed to restart"
+              journalctl -u docker --no-pager --lines=10
+              exit 1
+            fi
+
+            # ══════════════════════════════════════════════════════════
+            # VERIFICATION
+            # ══════════════════════════════════════════════════════════
+            echo ""
+            echo "╔══════════════════════════════════════════════════════╗"
+            echo "║               STEP 3 — VERIFICATION                 ║"
+            echo "╠══════════════════════════════════════════════════════╣"
+
+            PASS=0
+            FAIL=0
+
+            check_pass() { echo "║  ✅ $1"; PASS=$((PASS+1)); }
+            check_fail() { echo "║  ❌ $1"; FAIL=$((FAIL+1)); }
+
+            # V1: Swap active
+            swapon --show | grep -q "/swapfile" && check_pass "Swap active: $(swapon --show | grep /swapfile | awk '{print $3}')" || check_fail "Swap NOT active"
+
+            # V2: Swap in fstab
+            grep -q "/swapfile" /etc/fstab && check_pass "Swap persistent in fstab" || check_fail "Swap NOT in fstab"
+
+            # V3: somaxconn
+            VAL=$(sysctl -n net.core.somaxconn 2>/dev/null)
+            [ "$VAL" -ge 1024 ] && check_pass "somaxconn = $VAL" || check_fail "somaxconn = $VAL (expected >= 1024)"
+
+            # V4: tcp_max_syn_backlog
+            VAL=$(sysctl -n net.ipv4.tcp_max_syn_backlog 2>/dev/null)
+            [ "$VAL" -ge 1024 ] && check_pass "tcp_max_syn_backlog = $VAL" || check_fail "tcp_max_syn_backlog = $VAL (expected >= 1024)"
+
+            # V5: swappiness
+            VAL=$(sysctl -n vm.swappiness 2>/dev/null)
+            [ "$VAL" -le 10 ] && check_pass "vm.swappiness = $VAL" || check_fail "vm.swappiness = $VAL (expected <= 10)"
+
+            # V6: file-max
+            VAL=$(sysctl -n fs.file-max 2>/dev/null)
+            [ "$VAL" -ge 65535 ] && check_pass "fs.file-max = $VAL" || check_fail "fs.file-max = $VAL (expected >= 65535)"
+
+            # V7: Docker daemon.json exists
+            [ -f /etc/docker/daemon.json ] && check_pass "Docker daemon.json exists" || check_fail "Docker daemon.json MISSING"
+
+            # V8: Docker log rotation configured
+            grep -q "max-size" /etc/docker/daemon.json && check_pass "Docker log rotation configured" || check_fail "Docker log rotation MISSING"
+
+            # V9: Docker running
+            systemctl is-active docker &>/dev/null && check_pass "Docker running after restart" || check_fail "Docker NOT running"
+
+            # V10: Performance sysctl file
+            [ -f /etc/sysctl.d/99-zyntapos-performance.conf ] && check_pass "Performance sysctl config present" || check_fail "Performance sysctl config MISSING"
+
+            # V11: Limits config
+            [ -f /etc/security/limits.d/99-zyntapos.conf ] && check_pass "File descriptor limits config present" || check_fail "Limits config MISSING"
+
+            echo "╠══════════════════════════════════════════════════════╣"
+            printf "║  PASSED: %-42s║\n" "$PASS"
+            printf "║  FAILED: %-42s║\n" "$FAIL"
+            echo "╚══════════════════════════════════════════════════════╝"
+
+            if [ "$FAIL" -gt 0 ]; then
+              echo ""
+              echo "⛔ STEP 3 FAILED — $FAIL check(s) did not pass."
+              exit 1
+            fi
+
+            echo ""
+            echo "🟢 STEP 3 COMPLETE — Performance tuned. Run FTS Step 4 next."

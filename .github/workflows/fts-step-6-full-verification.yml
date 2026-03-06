@@ -1,0 +1,368 @@
+name: "FTS Step 6: Full Verification"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# FIRST-TIME SETUP — STEP 6 of 6 (Final)
+#
+# Runs as: DEPLOY USER (read-only checks) + ROOT (system checks)
+# Requires: Steps 1-5 completed (green)
+#
+# What it does:
+#   Comprehensive end-to-end verification of EVERYTHING:
+#
+#   ROOT CHECKS:
+#     1. UFW firewall active with correct rules
+#     2. Fail2Ban running with SSH jail
+#     3. SSH hardening config present
+#     4. Swap active
+#     5. Kernel tuning applied
+#     6. Docker daemon.json configured
+#     7. Unattended upgrades enabled
+#     8. Deploy user + docker group
+#
+#   DEPLOY CHECKS:
+#     9.  Git repo present
+#     10. All config files present
+#     11. Secrets files valid (DB pass, RS256 keys, TLS)
+#     12. .env variables set
+#     13. All 7 containers running + healthy
+#     14. Database connectivity (PostgreSQL)
+#     15. Redis connectivity
+#     16. HTTP health endpoints (API, License, Sync, Caddy)
+#     17. Docker volumes + network
+#     18. Disk + memory status
+#
+# If ALL checks pass → 🟢 GREEN — VPS fully ready for production.
+# If ANY check fails → 🔴 RED — review and fix before going live.
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "step6" to confirm'
+        required: true
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  verify-root:
+    name: "Step 6a: System Verification (root)"
+    runs-on: ubuntu-latest
+    if: github.event.inputs.confirm == 'step6'
+
+    steps:
+      - name: "Verify system-level config (as root)"
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_ROOT }}
+          key: ${{ secrets.VPS_ROOT_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          timeout: 60s
+          command_timeout: 5m
+          script: |
+            set -euo pipefail
+            echo "╔══════════════════════════════════════════════════════╗"
+            echo "║  FTS Step 6a: System Verification (root)            ║"
+            echo "╚══════════════════════════════════════════════════════╝"
+            echo "Host: $(hostname) | $(date)"
+            echo "OS: $(cat /etc/os-release 2>/dev/null | grep PRETTY_NAME | cut -d= -f2 | tr -d '"')"
+            echo ""
+
+            PASS=0
+            FAIL=0
+
+            check_pass() { echo "  ✅ $1"; PASS=$((PASS+1)); }
+            check_fail() { echo "  ❌ $1"; FAIL=$((FAIL+1)); }
+
+            # ━━━ SECURITY ━━━
+            echo "━━━ SECURITY ━━━"
+
+            # UFW
+            ufw status | grep -q "Status: active" && check_pass "UFW active" || check_fail "UFW NOT active"
+            ufw status verbose | grep -q "deny (incoming)" && check_pass "UFW default deny incoming" || check_fail "UFW NOT denying incoming"
+            ufw status | grep -q "80/tcp" && check_pass "UFW port 80 allowed" || check_fail "UFW port 80 MISSING"
+            ufw status | grep -q "443/tcp" && check_pass "UFW port 443 allowed" || check_fail "UFW port 443 MISSING"
+
+            # Fail2Ban
+            systemctl is-active fail2ban &>/dev/null && check_pass "Fail2Ban running" || check_fail "Fail2Ban NOT running"
+            fail2ban-client status sshd &>/dev/null && check_pass "Fail2Ban SSH jail active" || check_fail "Fail2Ban SSH jail MISSING"
+
+            # SSH hardening
+            [ -f /etc/ssh/sshd_config.d/99-zyntapos-hardening.conf ] && check_pass "SSH hardening config present" || check_fail "SSH hardening config MISSING"
+            grep -q "PasswordAuthentication no" /etc/ssh/sshd_config.d/99-zyntapos-hardening.conf 2>/dev/null && check_pass "Password auth disabled" || check_fail "Password auth NOT disabled"
+            grep -q "MaxAuthTries 3" /etc/ssh/sshd_config.d/99-zyntapos-hardening.conf 2>/dev/null && check_pass "MaxAuthTries = 3" || check_fail "MaxAuthTries NOT set"
+
+            # Unattended upgrades
+            [ -f /etc/apt/apt.conf.d/20auto-upgrades ] && check_pass "Auto-upgrades enabled" || check_fail "Auto-upgrades NOT configured"
+
+            # Kernel security
+            [ -f /etc/sysctl.d/99-zyntapos-security.conf ] && check_pass "Kernel security params set" || check_fail "Kernel security params MISSING"
+
+            # Core dumps
+            grep -q "hard core 0" /etc/security/limits.conf 2>/dev/null && check_pass "Core dumps disabled" || check_fail "Core dumps NOT disabled"
+
+            echo ""
+            echo "━━━ PERFORMANCE ━━━"
+
+            # Swap
+            swapon --show | grep -q "/swapfile" && check_pass "Swap active: $(swapon --show | grep /swapfile | awk '{print $3}')" || check_fail "Swap NOT active"
+            grep -q "/swapfile" /etc/fstab && check_pass "Swap persistent in fstab" || check_fail "Swap NOT in fstab"
+
+            # Kernel tuning
+            [ -f /etc/sysctl.d/99-zyntapos-performance.conf ] && check_pass "Performance sysctl config present" || check_fail "Performance sysctl MISSING"
+            VAL=$(sysctl -n net.core.somaxconn 2>/dev/null || echo 0)
+            [ "$VAL" -ge 1024 ] && check_pass "somaxconn = $VAL" || check_fail "somaxconn = $VAL (need >= 1024)"
+            VAL=$(sysctl -n vm.swappiness 2>/dev/null || echo 60)
+            [ "$VAL" -le 10 ] && check_pass "swappiness = $VAL" || check_fail "swappiness = $VAL (need <= 10)"
+            VAL=$(sysctl -n fs.file-max 2>/dev/null || echo 0)
+            [ "$VAL" -ge 65535 ] && check_pass "file-max = $VAL" || check_fail "file-max = $VAL (need >= 65535)"
+
+            # Docker daemon
+            [ -f /etc/docker/daemon.json ] && check_pass "Docker daemon.json configured" || check_fail "Docker daemon.json MISSING"
+            grep -q "max-size" /etc/docker/daemon.json 2>/dev/null && check_pass "Docker log rotation configured" || check_fail "Docker log rotation MISSING"
+
+            # File descriptor limits
+            [ -f /etc/security/limits.d/99-zyntapos.conf ] && check_pass "File descriptor limits configured" || check_fail "File descriptor limits MISSING"
+
+            echo ""
+            echo "━━━ USERS & DOCKER ━━━"
+
+            # Deploy user
+            DEPLOY_USER="${{ secrets.VPS_USER }}"
+            id "$DEPLOY_USER" &>/dev/null && check_pass "User '$DEPLOY_USER' exists" || check_fail "User '$DEPLOY_USER' NOT found"
+            groups "$DEPLOY_USER" 2>/dev/null | grep -q docker && check_pass "'$DEPLOY_USER' in docker group" || check_fail "'$DEPLOY_USER' NOT in docker group"
+            [ -f /etc/sudoers.d/deploy-docker ] && check_pass "Docker-only sudoers configured" || check_fail "Sudoers file MISSING"
+
+            # Docker
+            systemctl is-active docker &>/dev/null && check_pass "Docker daemon running" || check_fail "Docker NOT running"
+
+            echo ""
+            echo "╔══════════════════════════════════════════════════════╗"
+            printf "║  SYSTEM CHECKS: %-35s║\n" "✅ $PASS  ❌ $FAIL"
+            echo "╚══════════════════════════════════════════════════════╝"
+
+            if [ "$FAIL" -gt 0 ]; then
+              echo "⛔ SYSTEM VERIFICATION FAILED — $FAIL check(s) did not pass."
+              exit 1
+            fi
+
+  verify-deploy:
+    name: "Step 6b: App Verification (deploy)"
+    runs-on: ubuntu-latest
+    if: github.event.inputs.confirm == 'step6'
+    needs: verify-root
+
+    steps:
+      - name: "Verify app-level config (as deploy user)"
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_USER_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          timeout: 60s
+          command_timeout: 5m
+          script: |
+            set -euo pipefail
+            DEPLOY_PATH="/opt/zyntapos"
+            cd "$DEPLOY_PATH"
+
+            echo "╔══════════════════════════════════════════════════════╗"
+            echo "║  FTS Step 6b: App Verification (deploy)             ║"
+            echo "╚══════════════════════════════════════════════════════╝"
+            echo "Running as: $(whoami)"
+            echo "Started: $(date)"
+            echo ""
+
+            PASS=0
+            FAIL=0
+
+            check_pass() { echo "  ✅ $1"; PASS=$((PASS+1)); }
+            check_fail() { echo "  ❌ $1"; FAIL=$((FAIL+1)); }
+
+            # ━━━ REPO & FILES ━━━
+            echo "━━━ REPO & FILES ━━━"
+            [ -d "$DEPLOY_PATH/.git" ] && check_pass "Git repo present" || check_fail "Git repo MISSING"
+            echo "    HEAD: $(git rev-parse --short HEAD 2>/dev/null) — $(git log -1 --format='%s' 2>/dev/null | head -c 60)"
+
+            for f in docker-compose.yml Caddyfile nginx.conf; do
+              [ -f "$DEPLOY_PATH/$f" ] && check_pass "$f present" || check_fail "$f MISSING"
+            done
+            [ -d "$DEPLOY_PATH/healthcheck" ] && check_pass "healthcheck/ present" || check_fail "healthcheck/ MISSING"
+            [ -f "$DEPLOY_PATH/backend/postgres/init-databases.sh" ] && check_pass "init-databases.sh present" || check_fail "init-databases.sh MISSING"
+
+            # ━━━ SECRETS ━━━
+            echo ""
+            echo "━━━ SECRETS ━━━"
+
+            # DB password
+            if [ -f secrets/db_password.txt ] && [ -s secrets/db_password.txt ]; then
+              DB_LEN=$(wc -c < secrets/db_password.txt)
+              [ "$DB_LEN" -ge 64 ] && check_pass "DB password: $DB_LEN bytes" || check_fail "DB password too short: $DB_LEN"
+            else
+              check_fail "DB password MISSING"
+            fi
+
+            # RS256 keys
+            [ -f secrets/rs256_private_key.pem ] && [ -s secrets/rs256_private_key.pem ] && check_pass "RS256 private key present" || check_fail "RS256 private key MISSING"
+            [ -f secrets/rs256_public_key.pem ] && [ -s secrets/rs256_public_key.pem ] && check_pass "RS256 public key present" || check_fail "RS256 public key MISSING"
+
+            # RS256 key pair match
+            if [ -f secrets/rs256_private_key.pem ] && [ -f secrets/rs256_public_key.pem ]; then
+              PRIV_MD5=$(openssl rsa -in secrets/rs256_private_key.pem -pubout 2>/dev/null | openssl md5 || echo "err1")
+              PUB_MD5=$(openssl rsa -pubin -in secrets/rs256_public_key.pem -pubout 2>/dev/null | openssl md5 || echo "err2")
+              [ "$PRIV_MD5" = "$PUB_MD5" ] && check_pass "RS256 key pair matches" || check_fail "RS256 key pair MISMATCH"
+            fi
+
+            # TLS cert
+            CERT_DIR="$DEPLOY_PATH/backend/caddy/certs"
+            if [ -f "$CERT_DIR/zyntapos_origin.pem" ]; then
+              EXPIRY=$(openssl x509 -enddate -noout -in "$CERT_DIR/zyntapos_origin.pem" 2>/dev/null | cut -d= -f2)
+              check_pass "TLS cert present (expires: $EXPIRY)"
+            else
+              check_fail "TLS cert MISSING"
+            fi
+            [ -f "$CERT_DIR/zyntapos_origin.key" ] && check_pass "TLS key present" || check_fail "TLS key MISSING"
+
+            # ━━━ ENVIRONMENT ━━━
+            echo ""
+            echo "━━━ ENVIRONMENT ━━━"
+            [ -f .env ] && check_pass ".env present" || check_fail ".env MISSING"
+            grep -q "REDIS_PASSWORD" .env 2>/dev/null && check_pass "REDIS_PASSWORD set" || check_fail "REDIS_PASSWORD missing"
+            grep -q "ZYNTAPOS_DB_PASSWORD" .env 2>/dev/null && check_pass "ZYNTAPOS_DB_PASSWORD set" || check_fail "ZYNTAPOS_DB_PASSWORD missing"
+
+            # ━━━ CONTAINERS ━━━
+            echo ""
+            echo "━━━ CONTAINERS ━━━"
+            docker compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
+            echo ""
+
+            for svc in postgres redis caddy canary api license sync; do
+              CONTAINER="zyntapos_$svc"
+              STATUS=$(docker inspect --format='{{.State.Status}}' "$CONTAINER" 2>/dev/null || echo "not_found")
+              HEALTH=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' "$CONTAINER" 2>/dev/null || echo "unknown")
+
+              if [ "$STATUS" = "running" ]; then
+                if [ "$HEALTH" = "healthy" ] || [ "$HEALTH" = "no-healthcheck" ]; then
+                  check_pass "$CONTAINER: running ($HEALTH)"
+                elif [ "$HEALTH" = "starting" ]; then
+                  check_pass "$CONTAINER: running (starting)"
+                else
+                  check_fail "$CONTAINER: running but $HEALTH"
+                fi
+              else
+                check_fail "$CONTAINER: $STATUS"
+              fi
+            done
+
+            # ━━━ DATABASE CONNECTIVITY ━━━
+            echo ""
+            echo "━━━ DATABASE ━━━"
+            DB_PASS=$(cat secrets/db_password.txt | tr -d '\n\r')
+
+            # Test default DB
+            TCP_RESULT=$(docker run --rm \
+              --network zyntapos_zyntapos_net \
+              -e PGPASSWORD="$DB_PASS" \
+              postgres:16-alpine \
+              psql -h postgres -p 5432 -U zyntapos -d zyntapos \
+              -c "SELECT 'TCP_OK' as result;" 2>&1) && check_pass "PostgreSQL TCP auth OK" || check_fail "PostgreSQL TCP FAILED: $(echo $TCP_RESULT | head -c 80)"
+
+            # Test per-service databases
+            for db in zyntapos_api zyntapos_license; do
+              DB_CHECK=$(docker run --rm \
+                --network zyntapos_zyntapos_net \
+                -e PGPASSWORD="$DB_PASS" \
+                postgres:16-alpine \
+                psql -h postgres -p 5432 -U zyntapos -d "$db" \
+                -c "SELECT current_database();" 2>&1) && check_pass "Database $db accessible" || check_fail "Database $db FAILED: $(echo $DB_CHECK | head -c 80)"
+            done
+
+            # ━━━ REDIS ━━━
+            echo ""
+            echo "━━━ REDIS ━━━"
+            REDIS_PASS=$(grep "^REDIS_PASSWORD=" .env | cut -d= -f2)
+            REDIS_RESULT=$(docker exec zyntapos_redis redis-cli -a "$REDIS_PASS" ping 2>&1)
+            echo "$REDIS_RESULT" | grep -q "PONG" && check_pass "Redis PING → PONG" || check_fail "Redis PING failed: $REDIS_RESULT"
+
+            # ━━━ HTTP HEALTH ━━━
+            echo ""
+            echo "━━━ HTTP HEALTH ENDPOINTS ━━━"
+
+            # Caddy (published on host)
+            HTTP_CODE=$(curl -sf -o /dev/null -w '%{http_code}' "http://localhost:80/ping" 2>/dev/null || echo "000")
+            [ "$HTTP_CODE" = "200" ] && check_pass "Caddy /ping → 200" || check_fail "Caddy /ping → $HTTP_CODE"
+
+            # Internal services via docker exec
+            for svc_check in "zyntapos_api:8080:API" "zyntapos_license:8083:License" "zyntapos_sync:8082:Sync"; do
+              CONTAINER=$(echo "$svc_check" | cut -d: -f1)
+              PORT=$(echo "$svc_check" | cut -d: -f2)
+              NAME=$(echo "$svc_check" | cut -d: -f3)
+              RESULT=$(docker exec "$CONTAINER" wget -qO- "http://localhost:$PORT/health" 2>/dev/null) && \
+                check_pass "$NAME /health (port $PORT) → OK" || \
+                check_fail "$NAME /health (port $PORT) → not responding"
+            done
+
+            # ━━━ VOLUMES & NETWORK ━━━
+            echo ""
+            echo "━━━ VOLUMES & NETWORK ━━━"
+            for vol in zyntapos_pgdata zyntapos_redisdata zyntapos_caddy_data zyntapos_caddy_config; do
+              docker volume inspect "$vol" &>/dev/null && check_pass "Volume $vol exists" || check_fail "Volume $vol MISSING"
+            done
+            docker network inspect zyntapos_zyntapos_net &>/dev/null && check_pass "Network zyntapos_zyntapos_net exists" || check_fail "Network MISSING"
+
+            # ━━━ RESOURCES ━━━
+            echo ""
+            echo "━━━ RESOURCES ━━━"
+            DISK_PCT=$(df -h / | tail -1 | awk '{print $5}' | tr -d '%')
+            [ "$DISK_PCT" -lt 80 ] && check_pass "Disk usage: ${DISK_PCT}%" || check_fail "Disk usage: ${DISK_PCT}% (CRITICAL)"
+
+            MEM_TOTAL=$(free -h | grep Mem | awk '{print $2}')
+            MEM_AVAIL=$(free -h | grep Mem | awk '{print $7}')
+            check_pass "Memory: $MEM_AVAIL available / $MEM_TOTAL total"
+
+            # ══════════════════════════════════════════════════════════
+            # FINAL SUMMARY
+            # ══════════════════════════════════════════════════════════
+            echo ""
+            echo "╔══════════════════════════════════════════════════════╗"
+            echo "║          FINAL VERIFICATION SUMMARY                 ║"
+            echo "╠══════════════════════════════════════════════════════╣"
+            printf "║  ✅ PASSED: %-40s║\n" "$PASS"
+            printf "║  ❌ FAILED: %-40s║\n" "$FAIL"
+            echo "╠══════════════════════════════════════════════════════╣"
+
+            if [ "$FAIL" -gt 0 ]; then
+              echo "║  🔴 STATUS: FAILED                                  ║"
+              echo "╚══════════════════════════════════════════════════════╝"
+              echo ""
+              echo "⛔ $FAIL check(s) FAILED — review and fix before going live."
+              echo ""
+              echo "Container logs for debugging:"
+              for svc in api license sync; do
+                echo ""
+                echo "--- zyntapos_$svc ---"
+                docker logs "zyntapos_$svc" --tail 10 2>&1 || echo "(no logs)"
+              done
+              exit 1
+            fi
+
+            echo "║  🟢 STATUS: ALL CHECKS PASSED                       ║"
+            echo "╚══════════════════════════════════════════════════════╝"
+            echo ""
+            echo "🎉 VPS FULLY CONFIGURED AND READY FOR PRODUCTION!"
+            echo ""
+            echo "Summary:"
+            echo "  • Security: UFW + Fail2Ban + SSH hardened + auto-updates"
+            echo "  • Performance: Swap + kernel tuned + Docker optimized"
+            echo "  • Services: 7 containers running and healthy"
+            echo "  • Database: PostgreSQL + Redis connected"
+            echo "  • TLS: Certificate installed"
+            echo ""
+            echo "Next steps:"
+            echo "  1. Configure Cloudflare DNS A records"
+            echo "  2. Set Cloudflare SSL mode to 'Full'"
+            echo "  3. Run cd-deploy.yml for future deployments"
