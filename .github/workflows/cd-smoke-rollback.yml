@@ -37,21 +37,85 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: ${{ github.event.client_payload.sha }}
-
-      - name: "Step[6]: Smoke Test Endpoints"
+      # ── Smoke test via SSH to bypass Cloudflare ──────────────────────
+      # External curl from GitHub Actions gets 403 from Cloudflare WAF.
+      # Instead, SSH into the VPS and test endpoints locally via Caddy
+      # on localhost (Host header routing). This is more reliable and
+      # tests the actual container health without CDN interference.
+      - name: "Step[6]: Smoke Test Endpoints (via SSH)"
         id: smoke
-        uses: ./.github/actions/health-check
+        uses: appleboy/ssh-action@v1.2.5
+        env:
+          DEPLOY_SHA: ${{ github.event.client_payload.sha }}
         with:
-          subdomains: 'api license panel docs status sync'
-          initial-wait: '30'
-          max-retries: '3'
-          retry-delay: '30'
-          curl-timeout: '20'
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_USER_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          timeout: 60s
+          command_timeout: 5m
+          envs: DEPLOY_SHA
+          script: |
+            set -euo pipefail
+
+            echo "=================================================="
+            echo " ZyntaPOS Smoke Test (local via Caddy)"
+            echo " SHA: ${DEPLOY_SHA}"
+            echo " Time: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+            echo "=================================================="
+            echo ""
+            echo "Waiting 30s for containers to initialise..."
+            sleep 30
+
+            PASS=true
+            MAX_RETRIES=3
+            RETRY_DELAY=10
+            CURL_TIMEOUT=10
+
+            for sub in api license panel docs status sync; do
+              PING_HTTP="000"
+              PING_BODY=""
+
+              for attempt in $(seq 1 "$MAX_RETRIES"); do
+                PING_HTTP=$(curl -s --max-time "$CURL_TIMEOUT" -o /dev/null \
+                  -w "%{http_code}" -H "Host: ${sub}.zyntapos.com" \
+                  "http://localhost/ping" 2>/dev/null) || PING_HTTP="000"
+                PING_BODY=$(curl -s --max-time "$CURL_TIMEOUT" \
+                  -H "Host: ${sub}.zyntapos.com" \
+                  "http://localhost/ping" 2>/dev/null) || PING_BODY=""
+
+                if [ "$PING_HTTP" = "200" ] && [ "$PING_BODY" = "ok" ]; then
+                  break
+                fi
+
+                if [ "$attempt" -lt "$MAX_RETRIES" ]; then
+                  echo "  ⏳ ${sub} /ping attempt ${attempt}/${MAX_RETRIES} — HTTP ${PING_HTTP}, retrying in ${RETRY_DELAY}s..."
+                  sleep "$RETRY_DELAY"
+                fi
+              done
+
+              HOME_HTTP=$(curl -s --max-time "$CURL_TIMEOUT" -o /dev/null \
+                -w "%{http_code}" -H "Host: ${sub}.zyntapos.com" \
+                "http://localhost/" 2>/dev/null) || HOME_HTTP="000"
+
+              HOME_FIRST="${HOME_HTTP:0:1}"
+
+              if [ "$PING_HTTP" = "200" ] && [ "$PING_BODY" = "ok" ] && { [ "$HOME_FIRST" = "2" ] || [ "$HOME_FIRST" = "3" ]; }; then
+                echo "  ✅  ${sub}.zyntapos.com  /ping → ${PING_HTTP} (ok)  / → ${HOME_HTTP}"
+              else
+                echo "  ❌  ${sub}.zyntapos.com  /ping → ${PING_HTTP}  / → ${HOME_HTTP}"
+                PASS=false
+              fi
+            done
+
+            echo "=================================================="
+            if $PASS; then
+              echo "Result: ALL ENDPOINTS HEALTHY ✅"
+            else
+              echo "Result: ONE OR MORE ENDPOINTS DEGRADED ❌"
+              exit 1
+            fi
+            echo "=================================================="
 
       - name: Write smoke test summary
         if: always()
@@ -62,18 +126,16 @@ jobs:
             echo ""
             echo "**Tested at:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
             echo ""
-            echo "${{ steps.smoke.outputs.summary }}"
-            echo ""
-            if [ "${{ steps.smoke.outputs.healthy }}" = "true" ]; then
-              echo "### All 6 endpoints healthy — deploy verified"
+            if [ "${{ steps.smoke.outcome }}" = "success" ]; then
+              echo "### All 6 endpoints healthy — deploy verified ✅"
             else
-              echo "### Smoke test FAILED — automatic rollback initiated"
+              echo "### Smoke test FAILED — automatic rollback initiated ❌"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Check smoke test result
         id: smoke_gate
-        if: steps.smoke.outputs.healthy != 'true'
+        if: steps.smoke.outcome != 'success'
         run: |
           echo "::error::Smoke test failed — one or more endpoints are degraded"
           echo "Initiating automatic rollback..."
@@ -112,7 +174,7 @@ jobs:
             docker compose ps
 
       - name: Notify Sentry of deploy
-        if: steps.smoke.outputs.healthy == 'true'
+        if: steps.smoke.outcome == 'success'
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: zyntapos
