@@ -160,10 +160,38 @@ ls /opt/zyntapos/secrets/
 | `VPS_USER` | SSH username (`deploy`) | — |
 | `VPS_PORT` | SSH port | — |
 | `VPS_USER_KEY` | SSH private key for `deploy` user | — |
+| `CF_ORIGIN_CERT` | Cloudflare Origin Certificate (PEM) for TLS between Cloudflare and VPS | — |
+| `CF_ORIGIN_KEY` | Cloudflare Origin Certificate private key (PEM) | — |
+| `CLOUDFLARE_TUNNEL_TOKEN` | Cloudflare Tunnel token for Zero Trust access (optional) | — |
+| `SLACK_WEBHOOK_URL` | Slack webhook for Falco security alerts (optional) | — |
 
 > **Important:** `PAT_TOKEN` must have `read:packages` scope for the VPS GHCR login to
 > succeed. If the PAT was created before the GHCR image pipeline was added, regenerate it
 > with this scope at: GitHub → Settings → Developer settings → Personal access tokens.
+
+### Cloudflare Origin Certificate Setup
+
+The Cloudflare Origin Certificate provides TLS encryption between Cloudflare's edge and the VPS
+(required for **Full (Strict)** SSL mode). FTS Step 4 deploys it automatically from GitHub Secrets.
+
+**How to generate and store:**
+
+1. Go to **Cloudflare Dashboard → SSL/TLS → Origin Server → Create Certificate**
+2. Select: RSA (2048), hostnames `*.zyntapos.com` and `zyntapos.com`, validity 15 years
+3. Copy the **Origin Certificate** (PEM) → add as GitHub Secret `CF_ORIGIN_CERT`
+4. Copy the **Private Key** (PEM) → add as GitHub Secret `CF_ORIGIN_KEY`
+5. Run **FTS Step 4** — it deploys the cert to `backend/caddy/certs/` on the VPS
+
+**Cloudflare Tunnel (optional):**
+
+1. Go to **Cloudflare Zero Trust → Networks → Tunnels → Create Tunnel**
+2. Copy the tunnel token → add as GitHub Secret `CLOUDFLARE_TUNNEL_TOKEN`
+3. FTS Step 4 writes the token to `.env` on the VPS
+4. FTS Step 5 starts the `cloudflared` container (Docker Compose `tunnel` profile)
+
+> **Note:** If `CF_ORIGIN_CERT` and `CF_ORIGIN_KEY` are not set, FTS Step 4 falls back to
+> generating a self-signed certificate. This works for testing but will cause browser
+> warnings. For production, always use the Cloudflare Origin Certificate.
 
 ---
 
@@ -209,6 +237,13 @@ status.zyntapos.com     → Caddy → canary:80  (placeholder — Phase 3)
 
 All orange-cloud subdomains use the Cloudflare Origin Certificate at
 `/etc/caddy/certs/zyntapos_origin.{pem,key}` (wildcard `*.zyntapos.com`, 15-year validity).
+
+**Cloudflare configuration:**
+- **SSL/TLS mode:** Full (Strict) — requires valid Origin Certificate
+- **Origin Certificate:** Deployed via `CF_ORIGIN_CERT` / `CF_ORIGIN_KEY` GitHub Secrets (FTS Step 4)
+- **Tunnel:** Optional `cloudflared` container for Zero Trust access (via `CLOUDFLARE_TUNNEL_TOKEN`)
+- **HSTS:** On, max-age 6 months, include subdomains
+- **Min TLS:** 1.2
 
 ---
 
