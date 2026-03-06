@@ -326,6 +326,8 @@ services:
     container_name: zyntapos_cloudflared
     restart: unless-stopped
     command: tunnel --config /etc/cloudflared/config.yml run
+    profiles:
+      - tunnel
     environment:
       - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
     volumes:
