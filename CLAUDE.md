@@ -491,6 +491,12 @@ Copy `local.properties.template` and fill in values before first build.
 | `ZYNTA_IRD_CLIENT_CERTIFICATE_PATH` | Absolute path to IRD `.p12` certificate |
 | `ZYNTA_IRD_CERTIFICATE_PASSWORD` | IRD certificate password |
 
+**Cloudflare & VPS secrets** are stored as **GitHub Secrets** (not in `local.properties`):
+- `CF_ORIGIN_CERT` / `CF_ORIGIN_KEY` — Cloudflare Origin Certificate, deployed to VPS by FTS Step 4
+- `CLOUDFLARE_TUNNEL_TOKEN` — written to `.env` on VPS, used by `cloudflared` Docker container
+- `SLACK_WEBHOOK_URL` — written to `.env` on VPS, used by Falcosidekick for security alerts
+- See `docs/architecture/deployment.md` → "Cloudflare Origin Certificate Setup" for generation steps
+
 ---
 
 ## CI/CD
@@ -507,6 +513,20 @@ Copy `local.properties.template` and fill in values before first build.
 - Runs on 4 matrix runners: ubuntu, macos, windows
 - Produces: Android APK (signed), macOS DMG, Windows MSI, Linux DEB
 - Creates GitHub Release tagged `v1.0.0-build.{run_number}`
+
+### GitHub Secrets (Required for CI/CD & FTS)
+
+| Secret | Purpose | Used by |
+|--------|---------|---------|
+| `PAT_TOKEN` | Repository dispatch + GHCR pull on VPS | ci-gate, cd-deploy |
+| `VPS_HOST` | Contabo VPS IP address | FTS Steps 1-6, cd-deploy |
+| `VPS_USER` | SSH username (`deploy`) | FTS Steps 1-6, cd-deploy |
+| `VPS_PORT` | SSH port | FTS Steps 1-6, cd-deploy |
+| `VPS_USER_KEY` | SSH private key for `deploy` user | FTS Steps 1-6, cd-deploy |
+| `CF_ORIGIN_CERT` | Cloudflare Origin Certificate (PEM) — TLS between CF edge and VPS | FTS Step 4 |
+| `CF_ORIGIN_KEY` | Cloudflare Origin Certificate private key (PEM) | FTS Step 4 |
+| `CLOUDFLARE_TUNNEL_TOKEN` | Cloudflare Tunnel token for Zero Trust access (optional) | FTS Step 4, Step 5 |
+| `SLACK_WEBHOOK_URL` | Slack webhook for Falco security alerts (optional) | FTS Step 4 |
 
 ---
 
