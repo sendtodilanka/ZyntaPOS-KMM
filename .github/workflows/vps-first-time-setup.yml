@@ -7,8 +7,9 @@ name: "VPS First-Time Setup"
 # What it does:
 #   1. Installs Docker + Docker Compose plugin (if missing)
 #   2. Creates /opt/zyntapos and clones the repo
-#   3. Generates a random REDIS_PASSWORD and writes /opt/zyntapos/.env
-#   4. Pulls GHCR images and starts the stack
+#   3. Creates secrets/ (DB password, RS256 JWT keys) and .env (DB + Redis passwords)
+#   4. Creates self-signed TLS cert if missing
+#   5. Pulls GHCR images and starts the stack
 #
 # Trigger: Actions → "VPS First-Time Setup" → Run workflow
 # ─────────────────────────────────────────────────────────────────────────────
@@ -76,7 +77,23 @@ jobs:
 
             echo "--- Repo HEAD: $(git rev-parse HEAD) ---"
 
-            # ── 3. Create .env with REDIS_PASSWORD ────────────────────────
+            # ── 3. Create secrets directory and DB password ─────────────
+            mkdir -p "$DEPLOY_PATH/secrets"
+
+            DB_PASS_FILE="$DEPLOY_PATH/secrets/db_password.txt"
+            if [ -f "$DB_PASS_FILE" ] && [ -s "$DB_PASS_FILE" ]; then
+              echo "--- DB password file already exists, skipping ---"
+            else
+              echo "--- Generating DB password ---"
+              DB_PASS=$(openssl rand -hex 32)
+              printf '%s' "$DB_PASS" > "$DB_PASS_FILE"
+              echo "--- Written to $DB_PASS_FILE ($(wc -c < "$DB_PASS_FILE") bytes) ---"
+            fi
+
+            # Read DB password for .env
+            DB_PASS=$(cat "$DB_PASS_FILE")
+
+            # ── 4. Create .env with all required variables ───────────────
             ENV_FILE="$DEPLOY_PATH/.env"
             if [ -f "$ENV_FILE" ] && grep -q "REDIS_PASSWORD" "$ENV_FILE"; then
               echo "--- .env already has REDIS_PASSWORD, skipping ---"
@@ -84,10 +101,48 @@ jobs:
               echo "--- Generating REDIS_PASSWORD ---"
               REDIS_PASS=$(openssl rand -hex 24)
               echo "REDIS_PASSWORD=$REDIS_PASS" >> "$ENV_FILE"
-              echo "--- Written to $ENV_FILE ---"
+              echo "--- Written REDIS_PASSWORD to $ENV_FILE ---"
             fi
 
-            # ── 4. Authenticate with GHCR and pull images ─────────────────
+            # Ensure ZYNTAPOS_DB_PASSWORD is in .env
+            if grep -q "ZYNTAPOS_DB_PASSWORD" "$ENV_FILE" 2>/dev/null; then
+              echo "--- .env already has ZYNTAPOS_DB_PASSWORD, skipping ---"
+            else
+              echo "ZYNTAPOS_DB_PASSWORD=${DB_PASS}" >> "$ENV_FILE"
+              echo "--- Written ZYNTAPOS_DB_PASSWORD to $ENV_FILE ---"
+            fi
+
+            # ── 4b. Generate RS256 JWT key pair (if missing) ─────────────
+            RS256_PRIV="$DEPLOY_PATH/secrets/rs256_private_key.pem"
+            RS256_PUB="$DEPLOY_PATH/secrets/rs256_public_key.pem"
+            if [ -f "$RS256_PRIV" ] && [ -f "$RS256_PUB" ]; then
+              echo "--- RS256 key pair already exists, skipping ---"
+            else
+              echo "--- Generating RS256 key pair ---"
+              openssl genpkey -algorithm RSA -out "$RS256_PRIV" -pkeyopt rsa_keygen_bits:2048
+              openssl rsa -pubout -in "$RS256_PRIV" -out "$RS256_PUB"
+              chmod 600 "$RS256_PRIV"
+              chmod 644 "$RS256_PUB"
+              echo "--- RS256 keys generated ---"
+            fi
+
+            # ── 4c. Generate self-signed TLS cert (if missing) ───────────
+            CERT_DIR="$DEPLOY_PATH/backend/caddy/certs"
+            mkdir -p "$CERT_DIR"
+            if [ -f "$CERT_DIR/zyntapos_origin.pem" ]; then
+              echo "--- TLS cert already exists, skipping ---"
+            else
+              echo "--- Generating self-signed TLS cert ---"
+              openssl req -x509 -newkey rsa:4096 \
+                -keyout "$CERT_DIR/zyntapos_origin.key" \
+                -out "$CERT_DIR/zyntapos_origin.pem" \
+                -days 365 -nodes \
+                -subj "/CN=zyntapos.com/O=Zynta Solutions/C=LK" \
+                -addext "subjectAltName=DNS:zyntapos.com,DNS:*.zyntapos.com"
+              echo "--- TLS cert generated ---"
+            fi
+
+            # ── 5. Authenticate with GHCR and pull images ─────────────────
             echo "--- Logging in to GHCR ---"
             echo "${{ secrets.PAT_TOKEN }}" | docker login ghcr.io -u sendtodilanka --password-stdin
 
