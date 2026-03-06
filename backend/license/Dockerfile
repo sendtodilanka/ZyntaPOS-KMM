@@ -22,7 +22,7 @@ COPY license/src ./src
 RUN ./gradlew shadowJar --no-daemon --quiet
 
 FROM eclipse-temurin:21-jre-alpine AS runtime
-RUN apk add --no-cache curl
+RUN apk upgrade --no-cache && apk add --no-cache curl
 RUN addgroup -S zyntapos && adduser -S zyntapos -G zyntapos
 WORKDIR /app
 COPY --from=builder /build/license/build/libs/zyntapos-license.jar app.jar
