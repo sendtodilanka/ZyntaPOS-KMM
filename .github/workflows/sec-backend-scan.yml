@@ -30,7 +30,7 @@ jobs:
   owasp-api:
     name: OWASP — API
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     defaults:
       run:
         working-directory: backend/api
@@ -77,7 +77,7 @@ jobs:
   owasp-license:
     name: OWASP — License
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     defaults:
       run:
         working-directory: backend/license
@@ -124,7 +124,7 @@ jobs:
   owasp-sync:
     name: OWASP — Sync
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     defaults:
       run:
         working-directory: backend/sync
@@ -175,38 +175,33 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service:
-          - name: api
-            context: backend/api
-          - name: license
-            context: backend/license
-          - name: sync
-            context: backend/sync
+        service: [api, license, sync]
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build Docker image (${{ matrix.service.name }})
+      - name: Build Docker image (${{ matrix.service }})
         run: |
           docker build \
-            -t zyntapos-${{ matrix.service.name }}:scan \
-            ${{ matrix.service.context }}
+            -f backend/${{ matrix.service }}/Dockerfile \
+            -t zyntapos-${{ matrix.service }}:scan \
+            backend
 
       - name: Run Trivy vulnerability scan
         uses: aquasecurity/trivy-action@0.28.0
         with:
-          image-ref: "zyntapos-${{ matrix.service.name }}:scan"
+          image-ref: "zyntapos-${{ matrix.service }}:scan"
           format: "sarif"
-          output: "trivy-${{ matrix.service.name }}.sarif"
+          output: "trivy-${{ matrix.service }}.sarif"
           severity: "CRITICAL,HIGH"
           exit-code: "0"   # Don't fail the build; alert via SARIF
 
       - name: Upload Trivy SARIF to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
-          sarif_file: "trivy-${{ matrix.service.name }}.sarif"
-          category: "trivy-${{ matrix.service.name }}"
+          sarif_file: "trivy-${{ matrix.service }}.sarif"
+          category: "trivy-${{ matrix.service }}"
 
   # ── Summary gate (required check) ───────────────────────────────────────────
   security-scan-summary:

@@ -26,7 +26,8 @@ dependencyCheck {
     suppressionFile = "owasp-suppressions.xml"
     formats = listOf("HTML", "JSON")
     nvd {
-        delay = 3500               // NVD API rate limit: 5 req/30s without key
+        apiKey = System.getenv("NVD_API_KEY") ?: ""
+        delay = if (System.getenv("NVD_API_KEY").isNullOrBlank()) 3500 else 500
     }
 }
 
