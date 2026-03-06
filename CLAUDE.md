@@ -722,3 +722,13 @@ See `docs/ai_workflows/execution_log.md` for the granular task checklist.
 | Gradle commands | `gradle_commands.md` |
 | Architecture decisions | `docs/adr/ADR-NNN-*.md` |
 | Version catalog | `gradle/libs.versions.toml` |
+
+---
+
+## Strict Rules & Standards
+
+1. **Architectural Integrity**: Must strictly follow **Clean Architecture** (Data, Domain, and UI separation).
+2. **State Management**: Must follow the **MVI (Model-View-Intent)** pattern for all UI logic.
+3. **Consistency**: All new code/updates must match existing coding styles, naming conventions, and file structures.
+4. **DRY Principle**: Do not reinvent the wheel; reuse existing functions, components, and utility classes.
+5. **Best Practices**: Follow industry-leading standards for KMP, including dependency injection (Hilt/Koin), concurrency (Coroutines/Flow), and memory management.
