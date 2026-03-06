@@ -32,6 +32,9 @@ dependencyCheck {
 }
 
 dependencies {
+    // ── Common validation utilities ─────────────────────────────────────
+    implementation(project(":common"))
+
     // ── Ktor Server (CIO — not Netty, per TODO-009) ───────────────────
     implementation("io.ktor:ktor-server-core:$ktorVersion")
     implementation("io.ktor:ktor-server-cio:$ktorVersion")

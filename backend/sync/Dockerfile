@@ -1,13 +1,15 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # ZyntaPOS Sync Server — WebSocket real-time sync engine
+# Build context: backend/ (parent directory for consistency with api/license)
 # ─────────────────────────────────────────────────────────────────────────────
 
 FROM eclipse-temurin:21-jdk-alpine AS builder
 WORKDIR /build
-COPY build.gradle.kts settings.gradle.kts gradlew ./
-COPY gradle ./gradle
+COPY sync/build.gradle.kts sync/settings.gradle.kts ./
+COPY sync/gradlew .
+COPY sync/gradle ./gradle
 RUN ./gradlew dependencies --no-daemon --quiet || true
-COPY src ./src
+COPY sync/src ./src
 RUN ./gradlew shadowJar --no-daemon --quiet
 
 FROM eclipse-temurin:21-jre-alpine AS runtime
