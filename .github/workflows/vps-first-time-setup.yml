@@ -121,7 +121,9 @@ jobs:
               echo "--- Generating RS256 key pair ---"
               openssl genpkey -algorithm RSA -out "$RS256_PRIV" -pkeyopt rsa_keygen_bits:2048
               openssl rsa -pubout -in "$RS256_PRIV" -out "$RS256_PUB"
-              chmod 600 "$RS256_PRIV"
+              # 644 so Docker container's non-root user (zyntapos) can read bind-mounted files.
+              # Host-level isolation + read_only container + no-new-privileges protects the key.
+              chmod 644 "$RS256_PRIV"
               chmod 644 "$RS256_PUB"
               echo "--- RS256 keys generated ---"
             fi

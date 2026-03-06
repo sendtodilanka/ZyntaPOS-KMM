@@ -73,11 +73,13 @@ jobs:
             if [ ! -f secrets/rs256_private_key.pem ]; then
               openssl genpkey -algorithm RSA -out secrets/rs256_private_key.pem -pkeyopt rsa_keygen_bits:2048
               openssl rsa -pubout -in secrets/rs256_private_key.pem -out secrets/rs256_public_key.pem
-              chmod 600 secrets/rs256_private_key.pem
               echo "RS256 keys generated"
             else
               echo "RS256 keys exist"
             fi
+            # Ensure container's non-root user can read bind-mounted keys
+            chmod 644 secrets/rs256_private_key.pem secrets/rs256_public_key.pem
+            chmod 644 secrets/db_password.txt
 
             echo "=== Step 3: Docker compose down ==="
             docker compose down --remove-orphans
