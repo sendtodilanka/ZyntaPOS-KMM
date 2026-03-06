@@ -30,7 +30,7 @@ permissions:
 env:
   GRADLE_OPTS: "-Xmx2g -Xms512m -XX:MaxMetaspaceSize=512m"
   # Cache-bust key: increment to force fresh NVD download after corruption
-  NVD_CACHE_VERSION: "v2"
+  NVD_CACHE_VERSION: "v3"
 
 jobs:
   # ── OWASP Dependency Check — backend/api ────────────────────────────────────
