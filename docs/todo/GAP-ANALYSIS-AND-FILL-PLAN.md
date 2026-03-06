@@ -11,19 +11,20 @@
 
 | TODO | Title | Completion | Phase |
 |------|-------|------------|-------|
-| 000 | Master Execution Plan | Living doc | — |
+| 000 | Master Execution Plan | Living doc (updated 2026-03-06) | — |
 | 001 | Single Admin Account | **100%** ✅ | Phase 1 |
 | 002 | Remove SignUp Screen | **100%** ✅ | Phase 1 |
 | 003 | Edition Management Wiring | **100%** ✅ | Phase 1 |
-| 004 | Enterprise Audit Logging | **~85%** 🟡 | Phase 1 |
+| 004 | Enterprise Audit Logging | **100%** ✅ | Phase 1 |
 | 005 | Modern Dashboard + Nav | **100%** ✅ | Phase 1 |
 | 006 | Remote Diagnostic Access | **0%** ⬜ | Phase 2 |
-| 007 | Infrastructure & Deployment | **~65%** 🟡 | Phase 2 |
-| 008 | SEO & ASO | **0%** ⬜ | Phase 2 |
-| 009 | Ktor Security Hardening | **~75%** 🟡 | Phase 2 |
-| 010 | Security Monitoring & Auto-Response | **~20%** 🟡 | Phase 2 |
+| 007 | Infrastructure & Deployment | **~75%** 🟡 | Phase 2 |
+| 007b | Astro Marketing Website | **0%** ⬜ (plan ready) | Phase 2 |
+| 008 | SEO & ASO | **0%** ⬜ (8a/8b/8c/8f front-loaded into 007b) | Phase 2 |
+| 009 | Ktor Security Hardening | **100%** ✅ | Phase 2 |
+| 010 | Security Monitoring & Auto-Response | **~70%** 🟡 | Phase 2 |
 
-**Bottom line:** Phase 1 is nearly complete (4 items remain in TODO-004). Phase 2 has substantial work remaining across 5 TODOs.
+**Bottom line:** Phase 1 is **COMPLETE** (all 5 TODOs done). Phase 2: TODO-009 done, TODO-010 mostly done (remaining items are CF/SaaS dashboard config). Next up: TODO-007b (Astro marketing website — 5-day plan ready).
 
 ---
 
