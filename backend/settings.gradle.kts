@@ -15,8 +15,9 @@
 rootProject.name = "zyntapos-backend"
 
 // Individual subprojects (each has its own settings.gradle.kts too)
-include(":api", ":license", ":sync")
+include(":api", ":license", ":sync", ":common")
 
 project(":api").projectDir = file("api")
 project(":license").projectDir = file("license")
 project(":sync").projectDir = file("sync")
+project(":common").projectDir = file("common")

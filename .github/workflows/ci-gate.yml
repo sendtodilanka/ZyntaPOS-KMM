@@ -117,7 +117,8 @@ jobs:
       - name: Build and push image — ${{ matrix.service }}
         uses: docker/build-push-action@v6
         with:
-          context: backend/${{ matrix.service }}
+          context: backend
+          file: backend/${{ matrix.service }}/Dockerfile
           push: true
           tags: |
             ghcr.io/${{ github.repository_owner }}/zyntapos-${{ matrix.service }}:latest

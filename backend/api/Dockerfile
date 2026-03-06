@@ -1,24 +1,30 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # ZyntaPOS API — Multi-stage Dockerfile
+# Build context: backend/ (parent directory, so common/ module is accessible)
 # Stage 1: Build fat JAR with Gradle
 # Stage 2: Minimal JRE 21 Alpine runtime (non-root, read-only FS)
 # ─────────────────────────────────────────────────────────────────────────────
 
 # ── Stage 1: Build ────────────────────────────────────────────────────────────
 FROM eclipse-temurin:21-jdk-alpine AS builder
-WORKDIR /build
+
+# Mirror the local directory layout: /build/api/ and /build/common/
+# so settings.gradle.kts file("../common") resolves correctly
+WORKDIR /build/api
 
 # Copy gradle files first for layer caching
-COPY build.gradle.kts .
-COPY settings.gradle.kts .
-COPY gradlew .
-COPY gradle ./gradle
+COPY api/build.gradle.kts api/settings.gradle.kts ./
+COPY api/gradlew .
+COPY api/gradle ./gradle
+
+# Copy common module at sibling level (../common from WORKDIR)
+COPY common /build/common
 
 # Download dependencies (cached layer)
 RUN ./gradlew dependencies --no-daemon --quiet || true
 
 # Copy source and build
-COPY src ./src
+COPY api/src ./src
 RUN ./gradlew shadowJar --no-daemon --quiet
 
 # ── Stage 2: Runtime ──────────────────────────────────────────────────────────
@@ -33,7 +39,7 @@ RUN addgroup -S zyntapos && adduser -S zyntapos -G zyntapos
 WORKDIR /app
 
 # Copy fat JAR from builder
-COPY --from=builder /build/build/libs/zyntapos-api.jar app.jar
+COPY --from=builder /build/api/build/libs/zyntapos-api.jar app.jar
 
 # Set ownership
 RUN chown -R zyntapos:zyntapos /app
