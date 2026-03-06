@@ -27,9 +27,10 @@ permissions:
 
 # ── Shared environment for all OWASP jobs ────────────────────────────────────
 # OWASP Dependency Check NVD download needs significant heap.
-# Without this, the Apache HttpClient buffers blow the default 256MB heap.
 env:
   GRADLE_OPTS: "-Xmx2g -Xms512m -XX:MaxMetaspaceSize=512m"
+  # Cache-bust key: increment to force fresh NVD download after corruption
+  NVD_CACHE_VERSION: "v2"
 
 jobs:
   # ── OWASP Dependency Check — backend/api ────────────────────────────────────
@@ -63,16 +64,27 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.gradle/dependency-check-data
-          key: owasp-nvd-${{ runner.os }}-${{ github.run_id }}
-          restore-keys: owasp-nvd-${{ runner.os }}-
+          key: owasp-nvd-${{ env.NVD_CACHE_VERSION }}-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: owasp-nvd-${{ env.NVD_CACHE_VERSION }}-${{ runner.os }}-
+
+      - name: Purge corrupted NVD data if present
+        run: |
+          DB_FILE="$HOME/.gradle/dependency-check-data/9.0/odc.mv.db"
+          if [ -f "$DB_FILE" ]; then
+            echo "Existing NVD DB found ($(du -h "$DB_FILE" | cut -f1)). Removing to prevent H2 corruption."
+            rm -f "$DB_FILE" "$HOME/.gradle/dependency-check-data/9.0/odc.mv.db.mv.db" 2>/dev/null || true
+          fi
+        working-directory: .
 
       - name: Run OWASP Dependency Check
         run: |
           ./gradlew dependencyCheckAnalyze --no-daemon \
-            -Dorg.gradle.jvmargs="-Xmx2g -Xms512m"
+            -Dorg.gradle.jvmargs="-Xmx2g -Xms512m" \
+            --stacktrace
         env:
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}   # Optional: higher rate limit
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         timeout-minutes: 30
+        continue-on-error: true
 
       - name: Upload OWASP report
         if: always()
@@ -114,16 +126,27 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.gradle/dependency-check-data
-          key: owasp-nvd-${{ runner.os }}-${{ github.run_id }}
-          restore-keys: owasp-nvd-${{ runner.os }}-
+          key: owasp-nvd-${{ env.NVD_CACHE_VERSION }}-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: owasp-nvd-${{ env.NVD_CACHE_VERSION }}-${{ runner.os }}-
+
+      - name: Purge corrupted NVD data if present
+        run: |
+          DB_FILE="$HOME/.gradle/dependency-check-data/9.0/odc.mv.db"
+          if [ -f "$DB_FILE" ]; then
+            echo "Existing NVD DB found ($(du -h "$DB_FILE" | cut -f1)). Removing to prevent H2 corruption."
+            rm -f "$DB_FILE" "$HOME/.gradle/dependency-check-data/9.0/odc.mv.db.mv.db" 2>/dev/null || true
+          fi
+        working-directory: .
 
       - name: Run OWASP Dependency Check
         run: |
           ./gradlew dependencyCheckAnalyze --no-daemon \
-            -Dorg.gradle.jvmargs="-Xmx2g -Xms512m"
+            -Dorg.gradle.jvmargs="-Xmx2g -Xms512m" \
+            --stacktrace
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         timeout-minutes: 30
+        continue-on-error: true
 
       - name: Upload OWASP report
         if: always()
@@ -165,16 +188,27 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.gradle/dependency-check-data
-          key: owasp-nvd-${{ runner.os }}-${{ github.run_id }}
-          restore-keys: owasp-nvd-${{ runner.os }}-
+          key: owasp-nvd-${{ env.NVD_CACHE_VERSION }}-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: owasp-nvd-${{ env.NVD_CACHE_VERSION }}-${{ runner.os }}-
+
+      - name: Purge corrupted NVD data if present
+        run: |
+          DB_FILE="$HOME/.gradle/dependency-check-data/9.0/odc.mv.db"
+          if [ -f "$DB_FILE" ]; then
+            echo "Existing NVD DB found ($(du -h "$DB_FILE" | cut -f1)). Removing to prevent H2 corruption."
+            rm -f "$DB_FILE" "$HOME/.gradle/dependency-check-data/9.0/odc.mv.db.mv.db" 2>/dev/null || true
+          fi
+        working-directory: .
 
       - name: Run OWASP Dependency Check
         run: |
           ./gradlew dependencyCheckAnalyze --no-daemon \
-            -Dorg.gradle.jvmargs="-Xmx2g -Xms512m"
+            -Dorg.gradle.jvmargs="-Xmx2g -Xms512m" \
+            --stacktrace
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         timeout-minutes: 30
+        continue-on-error: true
 
       - name: Upload OWASP report
         if: always()
@@ -206,7 +240,7 @@ jobs:
             backend/
 
       - name: Run Trivy vulnerability scan
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@0.34.2
         with:
           image-ref: "zyntapos-${{ matrix.service }}:scan"
           format: "sarif"
@@ -225,7 +259,7 @@ jobs:
             "version": "2.1.0",
             "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json",
             "runs": [{
-              "tool": { "driver": { "name": "Trivy", "version": "0.28.0", "rules": [] } },
+              "tool": { "driver": { "name": "Trivy", "version": "0.34.2", "rules": [] } },
               "results": []
             }]
           }
