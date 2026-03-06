@@ -34,15 +34,33 @@ object DatabaseFactory {
         dataSource = HikariDataSource(config)
         Database.connect(dataSource)
 
-        // Run Flyway migrations
-        Flyway.configure()
-            .dataSource(dataSource)
-            .locations("classpath:db/migration")
-            .baselineOnMigrate(true)
-            .load()
-            .migrate()
+        // Run Flyway migrations with retry (DB may still be initializing)
+        runMigrations(maxRetries = 5, delayMs = 3_000L)
 
         logger.info("Database initialized and migrations applied")
+    }
+
+    private fun runMigrations(maxRetries: Int, delayMs: Long) {
+        var lastException: Exception? = null
+        for (attempt in 1..maxRetries) {
+            try {
+                Flyway.configure()
+                    .dataSource(dataSource)
+                    .locations("classpath:db/migration")
+                    .baselineOnMigrate(true)
+                    .load()
+                    .migrate()
+                return
+            } catch (e: Exception) {
+                lastException = e
+                logger.warn("Flyway migration attempt $attempt/$maxRetries failed: ${e.message}")
+                if (attempt < maxRetries) {
+                    Thread.sleep(delayMs * attempt)
+                }
+            }
+        }
+        logger.error("Flyway migration failed after $maxRetries attempts", lastException)
+        throw lastException!!
     }
 
     fun ping(): Boolean {
