@@ -24,6 +24,9 @@ RUN ./gradlew shadowJar --no-daemon --quiet
 # ── Stage 2: Runtime ──────────────────────────────────────────────────────────
 FROM eclipse-temurin:21-jre-alpine AS runtime
 
+# Install curl for healthcheck (wget not available in Alpine JRE)
+RUN apk add --no-cache curl
+
 # Create non-root user
 RUN addgroup -S zyntapos && adduser -S zyntapos -G zyntapos
 
@@ -49,4 +52,4 @@ ENV JAVA_OPTS="-Djdk.serialFilter=!* \
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD wget -qO- http://localhost:8080/health || exit 1
+    CMD curl -f http://localhost:8080/health || exit 1

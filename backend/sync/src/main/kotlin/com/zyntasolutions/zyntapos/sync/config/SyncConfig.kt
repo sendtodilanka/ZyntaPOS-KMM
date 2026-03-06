@@ -7,6 +7,7 @@ import java.util.Base64
 
 data class SyncConfig(
     val jwtIssuer: String,
+    val jwtAudience: String,
     val jwtPublicKey: PublicKey,
     val redisUrl: String
 ) {
@@ -24,6 +25,7 @@ data class SyncConfig(
             )
             return SyncConfig(
                 jwtIssuer = System.getenv("JWT_ISSUER") ?: "https://api.zyntapos.com",
+                jwtAudience = System.getenv("JWT_AUDIENCE") ?: "zyntapos-app",
                 jwtPublicKey = publicKey,
                 redisUrl = System.getenv("REDIS_URL") ?: "redis://localhost:6379"
             )

@@ -78,7 +78,7 @@ services:
     networks:
       - zyntapos_net
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -116,7 +116,7 @@ services:
     networks:
       - zyntapos_net
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8083/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8083/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -143,6 +143,7 @@ services:
       - PORT=8082
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
       - JWT_ISSUER=https://api.zyntapos.com
+      - JWT_AUDIENCE=zyntapos-app
       - RS256_PUBLIC_KEY_PATH=/run/secrets/rs256_public_key
     depends_on:
       redis:
@@ -150,7 +151,7 @@ services:
     networks:
       - zyntapos_net
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8082/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -221,7 +222,7 @@ services:
     networks:
       - zyntapos_net
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ["CMD-SHELL", "redis-cli -a \"$REDIS_PASSWORD\" ping | grep PONG"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -246,6 +247,16 @@ services:
       - "80"
     networks:
       - zyntapos_net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    mem_limit: 64m
+    memswap_limit: 64m
+    security_opt:
+      - no-new-privileges:true
 
 # ── Volumes ──────────────────────────────────────────────────────────
 # Secret files are bind-mounted directly via volumes: sections above.

@@ -13,6 +13,7 @@ COPY src ./src
 RUN ./gradlew shadowJar --no-daemon --quiet
 
 FROM eclipse-temurin:21-jre-alpine AS runtime
+RUN apk add --no-cache curl
 RUN addgroup -S zyntapos && adduser -S zyntapos -G zyntapos
 WORKDIR /app
 COPY --from=builder /build/build/libs/zyntapos-license.jar app.jar
@@ -29,4 +30,4 @@ ENV JAVA_OPTS="-Djdk.serialFilter=!* \
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD wget -qO- http://localhost:8083/health || exit 1
+    CMD curl -f http://localhost:8083/health || exit 1

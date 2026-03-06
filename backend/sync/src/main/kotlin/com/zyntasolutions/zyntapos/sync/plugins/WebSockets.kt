@@ -8,7 +8,7 @@ fun Application.configureWebSockets() {
     install(WebSockets) {
         pingPeriodMillis = 30_000L
         timeoutMillis = 60_000L
-        maxFrameSize = Long.MAX_VALUE
+        maxFrameSize = 1_048_576L // 1 MB — prevents memory exhaustion DoS
         masking = false
     }
 }

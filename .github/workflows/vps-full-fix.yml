@@ -79,8 +79,10 @@ jobs:
               echo "RS256 keys exist"
             fi
             # Ensure container's non-root user can read bind-mounted keys
-            chmod 644 secrets/rs256_private_key.pem secrets/rs256_public_key.pem
-            chmod 644 secrets/db_password.txt
+            # Private key: 640 (owner rw, group read for container user)
+            chmod 640 secrets/rs256_private_key.pem
+            chmod 644 secrets/rs256_public_key.pem
+            chmod 640 secrets/db_password.txt
 
             echo "=== Step 3: Docker compose down ==="
             docker compose down --remove-orphans
@@ -107,9 +109,9 @@ jobs:
 
             echo ""
             echo "--- Health checks ---"
-            docker exec zyntapos_api wget -qO- http://localhost:8080/health 2>/dev/null && echo " API OK" || echo " API not healthy yet"
-            docker exec zyntapos_license wget -qO- http://localhost:8083/health 2>/dev/null && echo " License OK" || echo " License not healthy yet"
-            docker exec zyntapos_sync wget -qO- http://localhost:8082/health 2>/dev/null && echo " Sync OK" || echo " Sync not healthy yet"
+            docker exec zyntapos_api curl -sf http://localhost:8080/health 2>/dev/null && echo " API OK" || echo " API not healthy yet"
+            docker exec zyntapos_license curl -sf http://localhost:8083/health 2>/dev/null && echo " License OK" || echo " License not healthy yet"
+            docker exec zyntapos_sync curl -sf http://localhost:8082/health 2>/dev/null && echo " Sync OK" || echo " Sync not healthy yet"
 
             echo ""
             echo "--- API logs (last 10 lines) ---"

@@ -105,6 +105,9 @@ sync.zyntapos.com {
 	# All API/WebSocket requests → real service
 	handle {
 		reverse_proxy sync:8082 {
+			# Pass real client IP through Cloudflare proxy
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
 			# WebSocket connections — pass Upgrade header
 			header_up Connection {>Connection}
 			header_up Upgrade {>Upgrade}
