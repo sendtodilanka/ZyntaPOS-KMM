@@ -1,0 +1,301 @@
+name: "VPS Verify All Settings"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# POST-SETUP VERIFICATION — run after vps-first-time-setup to confirm
+# all services, secrets, networking, and storage are correctly configured.
+#
+# Trigger: Actions → "VPS Verify All Settings" → Run workflow
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: "Verify VPS Configuration"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Full VPS verification
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          timeout: 60s
+          command_timeout: 5m
+          script: |
+            set -euo pipefail
+            DEPLOY_PATH="/opt/zyntapos"
+            cd "$DEPLOY_PATH"
+            PASS=0
+            FAIL=0
+            WARN=0
+
+            check_pass() { echo "  ✅ PASS: $1"; PASS=$((PASS+1)); }
+            check_fail() { echo "  ❌ FAIL: $1"; FAIL=$((FAIL+1)); }
+            check_warn() { echo "  ⚠️  WARN: $1"; WARN=$((WARN+1)); }
+
+            echo "╔══════════════════════════════════════════════════════╗"
+            echo "║       ZyntaPOS VPS — Full Verification Report       ║"
+            echo "╚══════════════════════════════════════════════════════╝"
+            echo ""
+            echo "Host: $(hostname) | $(date)"
+            echo "OS: $(cat /etc/os-release 2>/dev/null | grep PRETTY_NAME | cut -d= -f2 | tr -d '"' || uname -a)"
+            echo ""
+
+            # ═══════════════════════════════════════════════════════════
+            echo "━━━ 1. DOCKER ━━━"
+            # ═══════════════════════════════════════════════════════════
+            if command -v docker &>/dev/null; then
+              check_pass "Docker installed: $(docker --version | head -1)"
+            else
+              check_fail "Docker not installed"
+            fi
+
+            if docker compose version &>/dev/null; then
+              check_pass "Docker Compose: $(docker compose version | head -1)"
+            else
+              check_fail "Docker Compose not available"
+            fi
+
+            if systemctl is-active docker &>/dev/null; then
+              check_pass "Docker daemon running"
+            else
+              check_fail "Docker daemon not running"
+            fi
+
+            # ═══════════════════════════════════════════════════════════
+            echo ""
+            echo "━━━ 2. REPO & FILES ━━━"
+            # ═══════════════════════════════════════════════════════════
+            if [ -d "$DEPLOY_PATH/.git" ]; then
+              check_pass "Git repo at $DEPLOY_PATH"
+              echo "        HEAD: $(git rev-parse --short HEAD) ($(git log -1 --format='%s' | head -c 60))"
+              echo "        Branch: $(git branch --show-current || echo 'detached')"
+            else
+              check_fail "Git repo not found at $DEPLOY_PATH"
+            fi
+
+            for f in docker-compose.yml Caddyfile nginx.conf; do
+              [ -f "$DEPLOY_PATH/$f" ] && check_pass "$f exists" || check_fail "$f MISSING"
+            done
+
+            [ -d "$DEPLOY_PATH/healthcheck" ] && check_pass "healthcheck/ directory exists" || check_fail "healthcheck/ MISSING"
+            [ -d "$DEPLOY_PATH/backend/postgres" ] && check_pass "backend/postgres/ exists" || check_fail "backend/postgres/ MISSING"
+
+            # ═══════════════════════════════════════════════════════════
+            echo ""
+            echo "━━━ 3. SECRETS ━━━"
+            # ═══════════════════════════════════════════════════════════
+            if [ -f secrets/db_password.txt ] && [ -s secrets/db_password.txt ]; then
+              DB_LEN=$(wc -c < secrets/db_password.txt)
+              check_pass "secrets/db_password.txt exists ($DB_LEN bytes)"
+            else
+              check_fail "secrets/db_password.txt MISSING or empty"
+            fi
+
+            if [ -f secrets/rs256_private_key.pem ] && [ -s secrets/rs256_private_key.pem ]; then
+              check_pass "secrets/rs256_private_key.pem exists"
+              PRIV_PERMS=$(stat -c '%a' secrets/rs256_private_key.pem 2>/dev/null || stat -f '%Lp' secrets/rs256_private_key.pem)
+              [ "$PRIV_PERMS" = "600" ] && check_pass "Private key perms: 600" || check_warn "Private key perms: $PRIV_PERMS (expected 600)"
+            else
+              check_fail "secrets/rs256_private_key.pem MISSING"
+            fi
+
+            if [ -f secrets/rs256_public_key.pem ] && [ -s secrets/rs256_public_key.pem ]; then
+              check_pass "secrets/rs256_public_key.pem exists"
+            else
+              check_fail "secrets/rs256_public_key.pem MISSING"
+            fi
+
+            # Validate RSA key pair matches
+            if [ -f secrets/rs256_private_key.pem ] && [ -f secrets/rs256_public_key.pem ]; then
+              PRIV_MD5=$(openssl rsa -in secrets/rs256_private_key.pem -pubout 2>/dev/null | openssl md5 || echo "err1")
+              PUB_MD5=$(openssl rsa -pubin -in secrets/rs256_public_key.pem -pubout 2>/dev/null | openssl md5 || echo "err2")
+              [ "$PRIV_MD5" = "$PUB_MD5" ] && check_pass "RS256 key pair matches" || check_fail "RS256 key pair MISMATCH"
+            fi
+
+            # ═══════════════════════════════════════════════════════════
+            echo ""
+            echo "━━━ 4. TLS CERTIFICATES ━━━"
+            # ═══════════════════════════════════════════════════════════
+            CERT_DIR="$DEPLOY_PATH/backend/caddy/certs"
+            if [ -f "$CERT_DIR/zyntapos_origin.pem" ]; then
+              EXPIRY=$(openssl x509 -enddate -noout -in "$CERT_DIR/zyntapos_origin.pem" 2>/dev/null | cut -d= -f2)
+              check_pass "TLS cert exists (expires: $EXPIRY)"
+            else
+              check_fail "TLS cert MISSING at $CERT_DIR/zyntapos_origin.pem"
+            fi
+
+            if [ -f "$CERT_DIR/zyntapos_origin.key" ]; then
+              check_pass "TLS key exists"
+            else
+              check_fail "TLS key MISSING"
+            fi
+
+            # ═══════════════════════════════════════════════════════════
+            echo ""
+            echo "━━━ 5. ENVIRONMENT (.env) ━━━"
+            # ═══════════════════════════════════════════════════════════
+            if [ -f .env ]; then
+              check_pass ".env file exists"
+              grep -q "REDIS_PASSWORD" .env && check_pass "REDIS_PASSWORD set" || check_fail "REDIS_PASSWORD missing"
+              grep -q "ZYNTAPOS_DB_PASSWORD" .env && check_pass "ZYNTAPOS_DB_PASSWORD set" || check_fail "ZYNTAPOS_DB_PASSWORD missing"
+            else
+              check_fail ".env file MISSING"
+            fi
+
+            # ═══════════════════════════════════════════════════════════
+            echo ""
+            echo "━━━ 6. CONTAINER STATUS ━━━"
+            # ═══════════════════════════════════════════════════════════
+            docker compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
+            echo ""
+
+            for svc in postgres redis caddy canary api license sync; do
+              CONTAINER="zyntapos_$svc"
+              STATUS=$(docker inspect --format='{{.State.Status}}' "$CONTAINER" 2>/dev/null || echo "not_found")
+              HEALTH=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' "$CONTAINER" 2>/dev/null || echo "unknown")
+
+              if [ "$STATUS" = "running" ]; then
+                if [ "$HEALTH" = "healthy" ]; then
+                  check_pass "$CONTAINER: running (healthy)"
+                elif [ "$HEALTH" = "starting" ]; then
+                  check_warn "$CONTAINER: running (health: starting — may need more time)"
+                else
+                  check_pass "$CONTAINER: running ($HEALTH)"
+                fi
+              else
+                check_fail "$CONTAINER: $STATUS"
+              fi
+            done
+
+            # ═══════════════════════════════════════════════════════════
+            echo ""
+            echo "━━━ 7. DATABASE CONNECTIVITY ━━━"
+            # ═══════════════════════════════════════════════════════════
+            # Test postgres is accepting connections with the password from file
+            DB_PASS=$(cat secrets/db_password.txt | tr -d '\n\r')
+            TCP_RESULT=$(docker run --rm \
+              --network zyntapos_zyntapos_net \
+              -e PGPASSWORD="$DB_PASS" \
+              postgres:16-alpine \
+              psql -h postgres -p 5432 -U zyntapos -d zyntapos \
+              -c "SELECT 'TCP_AUTH_OK' as result;" 2>&1) && check_pass "PostgreSQL TCP auth OK" || check_fail "PostgreSQL TCP auth FAILED: $TCP_RESULT"
+
+            # ═══════════════════════════════════════════════════════════
+            echo ""
+            echo "━━━ 8. REDIS CONNECTIVITY ━━━"
+            # ═══════════════════════════════════════════════════════════
+            REDIS_PASS=$(grep "^REDIS_PASSWORD=" .env | cut -d= -f2)
+            REDIS_RESULT=$(docker exec zyntapos_redis redis-cli -a "$REDIS_PASS" ping 2>&1)
+            if echo "$REDIS_RESULT" | grep -q "PONG"; then
+              check_pass "Redis PING → PONG"
+            else
+              check_fail "Redis PING failed: $REDIS_RESULT"
+            fi
+
+            # ═══════════════════════════════════════════════════════════
+            echo ""
+            echo "━━━ 9. HTTP HEALTH ENDPOINTS ━━━"
+            # ═══════════════════════════════════════════════════════════
+            for endpoint in "http://localhost:80/ping:Caddy" "http://localhost:8080/health:API" "http://localhost:8083/health:License" "http://localhost:8082/health:Sync"; do
+              URL=$(echo "$endpoint" | cut -d: -f1-2)
+              NAME=$(echo "$endpoint" | cut -d: -f3)
+              # Use docker network to test internal ports
+              HTTP_CODE=$(curl -sf -o /dev/null -w '%{http_code}' "$URL" 2>/dev/null || echo "000")
+              if [ "$HTTP_CODE" = "200" ]; then
+                check_pass "$NAME health ($URL) → $HTTP_CODE"
+              elif [ "$HTTP_CODE" = "000" ]; then
+                check_warn "$NAME health ($URL) → not responding (may still be starting)"
+              else
+                check_warn "$NAME health ($URL) → HTTP $HTTP_CODE"
+              fi
+            done
+
+            # ═══════════════════════════════════════════════════════════
+            echo ""
+            echo "━━━ 10. DISK & MEMORY ━━━"
+            # ═══════════════════════════════════════════════════════════
+            DISK_USAGE=$(df -h / | tail -1 | awk '{print $5}')
+            DISK_PCT=$(echo "$DISK_USAGE" | tr -d '%')
+            if [ "$DISK_PCT" -lt 80 ]; then
+              check_pass "Disk usage: $DISK_USAGE"
+            elif [ "$DISK_PCT" -lt 90 ]; then
+              check_warn "Disk usage: $DISK_USAGE (getting full)"
+            else
+              check_fail "Disk usage: $DISK_USAGE (CRITICAL)"
+            fi
+
+            MEM_TOTAL=$(free -h | grep Mem | awk '{print $2}')
+            MEM_USED=$(free -h | grep Mem | awk '{print $3}')
+            MEM_AVAIL=$(free -h | grep Mem | awk '{print $7}')
+            check_pass "Memory: $MEM_USED used / $MEM_TOTAL total ($MEM_AVAIL available)"
+
+            # ═══════════════════════════════════════════════════════════
+            echo ""
+            echo "━━━ 11. DOCKER VOLUMES ━━━"
+            # ═══════════════════════════════════════════════════════════
+            for vol in zyntapos_pgdata zyntapos_redisdata zyntapos_caddy_data zyntapos_caddy_config; do
+              if docker volume inspect "$vol" &>/dev/null; then
+                check_pass "Volume $vol exists"
+              else
+                check_fail "Volume $vol MISSING"
+              fi
+            done
+
+            # ═══════════════════════════════════════════════════════════
+            echo ""
+            echo "━━━ 12. NETWORK ━━━"
+            # ═══════════════════════════════════════════════════════════
+            if docker network inspect zyntapos_zyntapos_net &>/dev/null; then
+              CONTAINERS_IN_NET=$(docker network inspect zyntapos_zyntapos_net --format '{{range .Containers}}{{.Name}} {{end}}')
+              check_pass "Network zyntapos_zyntapos_net exists"
+              echo "        Containers: $CONTAINERS_IN_NET"
+            else
+              check_fail "Network zyntapos_zyntapos_net MISSING"
+            fi
+
+            # Check external ports
+            echo ""
+            echo "  Listening ports:"
+            ss -tlnp | grep -E ':(80|443|5432|6379|8080|8082|8083) ' || echo "  (no matching ports found via ss)"
+
+            # ═══════════════════════════════════════════════════════════
+            echo ""
+            echo "━━━ 13. CONTAINER LOGS (last 5 lines each) ━━━"
+            # ═══════════════════════════════════════════════════════════
+            for svc in api license sync; do
+              echo ""
+              echo "  --- zyntapos_$svc ---"
+              docker logs "zyntapos_$svc" --tail 5 2>&1 || echo "  (no logs)"
+            done
+
+            # ═══════════════════════════════════════════════════════════
+            echo ""
+            echo "╔══════════════════════════════════════════════════════╗"
+            echo "║                  VERIFICATION SUMMARY               ║"
+            echo "╠══════════════════════════════════════════════════════╣"
+            printf "║  ✅ PASSED: %-40s║\n" "$PASS"
+            printf "║  ⚠️  WARNINGS: %-37s║\n" "$WARN"
+            printf "║  ❌ FAILED: %-40s║\n" "$FAIL"
+            echo "╚══════════════════════════════════════════════════════╝"
+
+            if [ "$FAIL" -gt 0 ]; then
+              echo ""
+              echo "⛔ $FAIL check(s) FAILED — review above."
+              exit 1
+            elif [ "$WARN" -gt 0 ]; then
+              echo ""
+              echo "⚠️  All critical checks passed, but $WARN warning(s) found."
+              exit 0
+            else
+              echo ""
+              echo "🎉 All checks passed! VPS is fully configured."
+              exit 0
+            fi
