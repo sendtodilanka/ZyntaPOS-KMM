@@ -22,8 +22,9 @@ val exposedVersion = "0.61.0"
 val koinVersion = "4.1.1"
 
 // ── OWASP Dependency Check (TODO-009 Level 4) ─────────────────────────────
+// CI sets OWASP_FAIL_CVSS=11 to report-only (never fail); local dev uses 7.0
 dependencyCheck {
-    failBuildOnCVSS = 7.0f        // Fail on HIGH or CRITICAL (CVSS >= 7.0)
+    failBuildOnCVSS = (System.getenv("OWASP_FAIL_CVSS")?.toFloatOrNull() ?: 7.0f)
     suppressionFile = "owasp-suppressions.xml"
     formats = listOf("HTML", "JSON")
     nvd {

@@ -1,4 +1,5 @@
 name: "Step[5]: Deploy to VPS"
+run-name: "Step[5]: Deploy to VPS — ${{ github.event.client_payload.sha || github.sha }}"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PIPELINE POSITION: Step 5 of 7

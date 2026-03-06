@@ -1,4 +1,5 @@
 name: "Step[7]: Verify Endpoints"
+run-name: "Step[7]: Verify Endpoints — ${{ github.event.client_payload.sha || github.event_name }}"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PIPELINE POSITION: Step 7 of 7
