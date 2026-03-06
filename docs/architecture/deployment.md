@@ -159,7 +159,7 @@ ls /opt/zyntapos/secrets/
 | `VPS_HOST` | Contabo VPS IP address | — |
 | `VPS_USER` | SSH username (`deploy`) | — |
 | `VPS_PORT` | SSH port | — |
-| `DEPLOY_SSH_PRIVATE_KEY` | SSH private key for `deploy` user | — |
+| `VPS_USER_KEY` | SSH private key for `deploy` user | — |
 
 > **Important:** `PAT_TOKEN` must have `read:packages` scope for the VPS GHCR login to
 > succeed. If the PAT was created before the GHCR image pipeline was added, regenerate it

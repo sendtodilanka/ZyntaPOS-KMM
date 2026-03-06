@@ -27,39 +27,38 @@ Contabo control panel එකෙන් මේවා ලබාගන්න:
 - **Root Password**
 - **SSH Port** (default: `22`)
 
-### 1.2 SSH Key Pair එකක් හදන්න (Local Machine එකේ)
+### 1.2 SSH Key Pairs හදන්න (Local Machine එකේ)
 
-ඔයාගේ computer එකේ terminal එකේ run කරන්න:
+**Root සහ Deploy user ට වෙන වෙනම keys ඕනේ:**
 
 ```bash
-# SSH key pair එකක් හදන්න
-ssh-keygen -t ed25519 -C "zyntapos-vps-deploy" -f ~/.ssh/zyntapos_vps
+# ── Root key pair (system-level workflows: first-time-setup, postgres-fix) ──
+ssh-keygen -t ed25519 -C "zyntapos-vps-root" -f ~/.ssh/zyntapos_root
 
-# Public key එක display කරන්න (මේක VPS එකට copy කරන්න ඕනේ)
-cat ~/.ssh/zyntapos_vps.pub
+# ── Deploy key pair (daily workflows: deploy, verify, debug, full-fix) ──
+ssh-keygen -t ed25519 -C "zyntapos-vps-deploy" -f ~/.ssh/zyntapos_deploy
 
-# Private key එක display කරන්න (මේක GitHub Secret එකට දාන්න ඕනේ)
-cat ~/.ssh/zyntapos_vps
+# Private keys display (GitHub Secrets වලට copy කරන්න)
+cat ~/.ssh/zyntapos_root       # → VPS_ROOT_KEY secret
+cat ~/.ssh/zyntapos_deploy     # → VPS_USER_KEY secret
 ```
 
-### 1.3 VPS එකට SSH Key එක Add කරන්න
+### 1.3 VPS එකට Root SSH Key එක Add කරන්න
 
 ```bash
-# VPS එකට SSH කරන්න (password එක use කරන්න)
+# VPS එකට SSH කරන්න (Contabo password එක use කරන්න)
 ssh root@<VPS_IP>
 
-# SSH key add කරන්න
+# Root key add කරන්න
 mkdir -p ~/.ssh
 chmod 700 ~/.ssh
 
-# ඔයාගේ public key එක paste කරන්න
-echo "ssh-ed25519 AAAA... zyntapos-vps-deploy" >> ~/.ssh/authorized_keys
+# Root public key එක paste කරන්න
+echo "ssh-ed25519 AAAA... zyntapos-vps-root" >> ~/.ssh/authorized_keys
 chmod 600 ~/.ssh/authorized_keys
-
-# Password auth disable කරන්න (optional, security best practice)
-# sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
-# systemctl restart sshd
 ```
+
+> **Note:** Deploy user key එක add කරන්න ඕනේ නැහැ — First-Time Setup workflow එක automatically deploy user create කරලා key add කරනවා `VPS_USER_KEY` secret එකෙන්.
 
 ### 1.4 Firewall සකසන්න (UFW)
 
@@ -200,13 +199,49 @@ chown deploy:deploy /opt/zyntapos
 
 GitHub repo → Settings → Secrets and variables → Actions → **New repository secret**
 
+### Connection Secrets
+
 | Secret Name | Value | Description |
 |---|---|---|
 | `VPS_HOST` | `217.216.72.102` | VPS IP address |
-| `VPS_USER` | `root` (or `deploy`) | SSH login user |
 | `VPS_PORT` | `22` | SSH port |
-| `DEPLOY_SSH_PRIVATE_KEY` | (private key file content) | `~/.ssh/zyntapos_vps` content |
-| `PAT_TOKEN` | `ghp_xxxx...` | GitHub Personal Access Token (repo + packages scope) |
+
+### Root Secrets (system-level workflows only)
+
+| Secret Name | Value | Used By |
+|---|---|---|
+| `VPS_ROOT` | `root` | `vps-first-time-setup.yml`, `vps-postgres-fix.yml` |
+| `VPS_ROOT_KEY` | `~/.ssh/zyntapos_root` content | Same as above |
+
+### Deploy Secrets (daily workflows)
+
+| Secret Name | Value | Used By |
+|---|---|---|
+| `VPS_USER` | `deploy` | `cd-deploy.yml`, `cd-smoke-rollback.yml`, `vps-verify.yml`, `vps-debug.yml`, `vps-full-fix.yml` |
+| `VPS_USER_KEY` | `~/.ssh/zyntapos_deploy` content | Same as above |
+
+### Other Secrets
+
+| Secret Name | Value | Description |
+|---|---|---|
+| `PAT_TOKEN` | `ghp_xxxx...` | GitHub PAT (repo + packages scope) |
+
+### Workflow → User Mapping
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  ROOT (VPS_ROOT / VPS_ROOT_KEY)                                 │
+│  • vps-first-time-setup.yml — Docker install, deploy user create│
+│  • vps-postgres-fix.yml     — System config modify              │
+├─────────────────────────────────────────────────────────────────┤
+│  DEPLOY (VPS_USER / VPS_USER_KEY)                     │
+│  • cd-deploy.yml            — Git pull, docker compose up       │
+│  • cd-smoke-rollback.yml    — Rollback on failure               │
+│  • vps-verify.yml           — Read-only health checks           │
+│  • vps-debug.yml            — Container logs + debugging        │
+│  • vps-full-fix.yml         — App reset, docker compose restart │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ### PAT Token හදන විදිය:
 
@@ -223,12 +258,22 @@ GitHub → Settings → Developer settings → Personal access tokens → Fine-g
 # Login
 gh auth login
 
-# Secrets set කරන්න
-gh secret set VPS_HOST --body "217.216.72.102" --repo sendtodilanka/ZyntaPOS-KMM
-gh secret set VPS_USER --body "root" --repo sendtodilanka/ZyntaPOS-KMM
-gh secret set VPS_PORT --body "22" --repo sendtodilanka/ZyntaPOS-KMM
-gh secret set DEPLOY_SSH_PRIVATE_KEY < ~/.ssh/zyntapos_vps --repo sendtodilanka/ZyntaPOS-KMM
-gh secret set PAT_TOKEN --body "ghp_xxxx..." --repo sendtodilanka/ZyntaPOS-KMM
+REPO="sendtodilanka/ZyntaPOS-KMM"
+
+# Connection
+gh secret set VPS_HOST --body "217.216.72.102" --repo "$REPO"
+gh secret set VPS_PORT --body "22" --repo "$REPO"
+
+# Root (system-level)
+gh secret set VPS_ROOT --body "root" --repo "$REPO"
+gh secret set VPS_ROOT_KEY < ~/.ssh/zyntapos_root --repo "$REPO"
+
+# Deploy (daily operations)
+gh secret set VPS_USER --body "deploy" --repo "$REPO"
+gh secret set VPS_USER_KEY < ~/.ssh/zyntapos_deploy --repo "$REPO"
+
+# GitHub PAT
+gh secret set PAT_TOKEN --body "ghp_xxxx..." --repo "$REPO"
 ```
 
 ---
@@ -243,17 +288,23 @@ GitHub → Actions → **"VPS First-Time Setup"** → Run workflow:
 
 ### 3.2 මේ Workflow එක කරන දේවල්:
 
-1. **Docker install කරනවා** (VPS eke නැත්නම්)
-2. **`/opt/zyntapos`** folder එක හදලා repo clone කරනවා
-3. **Secrets generate කරනවා:**
+**Phase 1 — Root ලෙස (system-level):**
+1. **Docker install කරනවා** (VPS එකේ නැත්නම්)
+2. **Deploy user create කරනවා** + Docker group එකට add
+3. **Deploy user SSH key setup** — `VPS_USER_KEY` එකෙන් public key extract කරලා `authorized_keys` add
+4. **`/opt/zyntapos`** directory create + deploy user ownership
+
+**Phase 2 — Deploy user ලෙස (app-level):**
+5. **Repo clone කරනවා** `/opt/zyntapos` ට
+6. **Secrets generate කරනවා:**
    - `secrets/db_password.txt` — PostgreSQL password (random 64-char hex)
    - `secrets/rs256_private_key.pem` — JWT signing key (RSA 2048-bit)
    - `secrets/rs256_public_key.pem` — JWT verification key
-4. **`.env` file එක හදනවා:**
+7. **`.env` file එක හදනවා:**
    - `REDIS_PASSWORD` — Redis auth password
    - `ZYNTAPOS_DB_PASSWORD` — PostgreSQL password
-5. **Self-signed TLS cert generate කරනවා** (`backend/caddy/certs/`)
-6. **GHCR login + Docker images pull + stack start**
+8. **Self-signed TLS cert generate කරනවා** (`backend/caddy/certs/`)
+9. **GHCR login + Docker images pull + stack start**
 
 ### 3.3 Verify Workflow Run
 
@@ -447,7 +498,7 @@ docker compose up -d
 1. VPS IP correct ද? → `VPS_HOST` secret check
 2. SSH port correct ද? → `VPS_PORT` secret check
 3. Firewall SSH allow කරලා ද? → `ufw status`
-4. SSH key correct ද? → `DEPLOY_SSH_PRIVATE_KEY` secret re-set
+4. SSH key correct ද? → `VPS_USER_KEY` secret re-set
 
 ### Error: Docker Image Pull Failed
 

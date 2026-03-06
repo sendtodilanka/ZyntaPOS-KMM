@@ -25,8 +25,8 @@ jobs:
         uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          username: ${{ secrets.VPS_ROOT }}
+          key: ${{ secrets.VPS_ROOT_KEY }}
           port: ${{ secrets.VPS_PORT }}
           timeout: 60s
           command_timeout: 5m

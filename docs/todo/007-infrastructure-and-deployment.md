@@ -576,7 +576,7 @@ In GitHub → Repository → Settings → Secrets and variables → Actions → 
 | `VPS_HOST` | Your Contabo VPS IP address |
 | `VPS_USER` | `deploy` |
 | `VPS_PORT` | `22` (or your custom SSH port) |
-| `DEPLOY_SSH_PRIVATE_KEY` | Full contents of `~/.ssh/zyntapos_deploy` (the private key file) |
+| `VPS_USER_KEY` | Full contents of `~/.ssh/zyntapos_deploy` (the private key file) |
 | `SENTRY_AUTH_TOKEN` | From Sentry → Settings → Auth Tokens |
 
 > The deploy workflow file (`.github/workflows/deploy.yml`) is already in the repository and reads these secrets automatically.
@@ -623,7 +623,7 @@ The deploy workflow is defined in `.github/workflows/deploy.yml` (already added 
 13. **Set up monitoring** — Uptime Kuma + Sentry DSN
 14. **Configure automated backups** — `pg_dump` cron → Backblaze B2 via rclone
 15. **Deploy marketing website** — Astro on Cloudflare Pages
-16. **Add GitHub Actions secrets** — `VPS_HOST`, `VPS_USER`, `VPS_PORT`, `DEPLOY_SSH_PRIVATE_KEY`; verify deploy workflow green
+16. **Add GitHub Actions secrets** — `VPS_HOST`, `VPS_USER`, `VPS_PORT`, `VPS_USER_KEY`; verify deploy workflow green
 
 ---
 
@@ -643,7 +643,7 @@ The deploy workflow is defined in `.github/workflows/deploy.yml` (already added 
 - [ ] `deploy` user created with docker-only sudo
 - [ ] SSH public key installed for `deploy` user
 - [ ] `ssh zyntapos-vps "echo ok"` works from local machine
-- [ ] GitHub Actions secrets configured: VPS_HOST, VPS_USER, VPS_PORT, DEPLOY_SSH_PRIVATE_KEY
+- [ ] GitHub Actions secrets configured: VPS_HOST, VPS_USER, VPS_PORT, VPS_USER_KEY
 - [ ] `PAT_TOKEN` has `read:packages` scope (required for VPS to pull GHCR images)
 - [ ] GHCR packages visible: `github.com/sendtodilanka → Packages` shows `zyntapos-api`, `zyntapos-license`, `zyntapos-sync`
 - [ ] `/opt/zyntapos/.env` contains `REDIS_PASSWORD` (run: `echo "REDIS_PASSWORD=$(openssl rand -hex 24)" >> /opt/zyntapos/.env`)
