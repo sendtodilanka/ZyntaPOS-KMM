@@ -79,16 +79,19 @@ jobs:
               - uses: security-and-quality
           build-mode: manual
 
-      # Build KMP shared + compose modules so CodeQL can extract bytecode
+      # Build KMP shared + compose modules so CodeQL can extract bytecode.
+      # --no-build-cache is REQUIRED: if Gradle uses cached outputs, kotlinc
+      # never runs and CodeQL's tracer captures nothing, causing exit code 32.
       - name: Build KMP modules for CodeQL extraction
         run: |
           ./gradlew \
-            :shared:core:jvmJar \
-            :shared:domain:jvmJar \
-            :shared:data:jvmJar \
-            :shared:hal:jvmJar \
-            :shared:security:jvmJar \
-            :composeApp:jvmJar \
+            :shared:core:compileKotlinJvm \
+            :shared:domain:compileKotlinJvm \
+            :shared:data:compileKotlinJvm \
+            :shared:hal:compileKotlinJvm \
+            :shared:security:compileKotlinJvm \
+            :composeApp:compileKotlinJvm \
+            --no-build-cache \
             --parallel \
             --stacktrace \
             -Dorg.gradle.jvmargs="-Xmx4g -Xms512m"
@@ -150,7 +153,7 @@ jobs:
       - name: Build backend/api for CodeQL extraction
         run: |
           chmod +x ./gradlew
-          ./gradlew classes --stacktrace \
+          ./gradlew compileKotlin --no-build-cache --stacktrace \
             -Dorg.gradle.jvmargs="-Xmx2g -Xms512m"
 
       - name: Perform CodeQL Analysis
@@ -210,7 +213,7 @@ jobs:
       - name: Build backend/license for CodeQL extraction
         run: |
           chmod +x ./gradlew
-          ./gradlew classes --stacktrace \
+          ./gradlew compileKotlin --no-build-cache --stacktrace \
             -Dorg.gradle.jvmargs="-Xmx2g -Xms512m"
 
       - name: Perform CodeQL Analysis
@@ -270,7 +273,7 @@ jobs:
       - name: Build backend/sync for CodeQL extraction
         run: |
           chmod +x ./gradlew
-          ./gradlew classes --stacktrace \
+          ./gradlew compileKotlin --no-build-cache --stacktrace \
             -Dorg.gradle.jvmargs="-Xmx2g -Xms512m"
 
       - name: Perform CodeQL Analysis
