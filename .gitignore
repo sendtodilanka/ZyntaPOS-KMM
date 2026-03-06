@@ -10,7 +10,8 @@ local.properties
 *.pfx
 
 # ── TLS Certificates (stored on VPS host, never in repo) ─────────────
-certs/
+certs/*
+!certs/.gitkeep
 
 # ── Gradle Internals ────────────────────────────────────────────────
 .gradle/

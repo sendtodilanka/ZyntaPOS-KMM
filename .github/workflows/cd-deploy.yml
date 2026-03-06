@@ -101,7 +101,7 @@ jobs:
             git reset --hard "$DEPLOY_SHA"
 
             echo "=== Authenticating with GHCR ==="
-            echo "${{ secrets.PAT_TOKEN }}" | docker login ghcr.io -u sendtodilanka --password-stdin
+            echo "${{ secrets.PAT_TOKEN }}" | docker login ghcr.io -u "${{ github.repository_owner }}" --password-stdin
 
             echo "=== Validating Docker Compose config ==="
             docker compose config --quiet

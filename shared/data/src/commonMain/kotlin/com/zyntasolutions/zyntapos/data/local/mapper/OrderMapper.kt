@@ -22,17 +22,21 @@ object OrderMapper {
 
     private val json = Json { ignoreUnknownKeys = true }
 
+    /** Safe enum lookup that falls back to [default] on unknown values instead of crashing. */
+    private inline fun <reified T : Enum<T>> safeValueOf(value: String, default: T): T =
+        enumValues<T>().firstOrNull { it.name.equals(value, ignoreCase = true) } ?: default
+
     fun toDomain(row: Orders, items: List<Order_items>): Order = Order(
         id                = row.id,
         orderNumber       = row.order_number,
-        type              = OrderType.valueOf(row.type),
-        status            = OrderStatus.valueOf(row.status),
+        type              = safeValueOf(row.type, OrderType.SALE),
+        status            = safeValueOf(row.status, OrderStatus.IN_PROGRESS),
         items             = items.map { itemToDomain(it) },
         subtotal          = row.subtotal,
         taxAmount         = row.tax_amount,
         discountAmount    = row.discount_amount,
         total             = row.total,
-        paymentMethod     = PaymentMethod.valueOf(row.payment_method),
+        paymentMethod     = safeValueOf(row.payment_method, PaymentMethod.CASH),
         paymentSplits     = parsePaymentSplits(row.payment_splits_json),
         amountTendered    = row.amount_tendered ?: 0.0,
         changeAmount      = row.change_amount ?: 0.0,
@@ -45,7 +49,7 @@ object OrderMapper {
         createdAt         = Instant.fromEpochMilliseconds(row.created_at),
         updatedAt         = Instant.fromEpochMilliseconds(row.updated_at),
         syncStatus        = SyncStatus(
-            state = SyncStatus.State.valueOf(row.sync_status.uppercase()),
+            state = safeValueOf(row.sync_status.uppercase(), SyncStatus.State.PENDING),
         ),
     )
 
@@ -57,7 +61,7 @@ object OrderMapper {
         unitPrice    = row.unit_price,
         quantity     = row.quantity,
         discount     = row.discount,
-        discountType = DiscountType.valueOf(row.discount_type),
+        discountType = safeValueOf(row.discount_type, DiscountType.FIXED),
         taxRate      = row.tax_rate,
         taxAmount    = row.tax_amount,
         lineTotal    = row.line_total,
