@@ -35,6 +35,7 @@ fun Application.module() {
     }
 
     LicenseDatabaseFactory.init()
+    check(LicenseDatabaseFactory.ping()) { "Database not available after initialization" }
 
     configureSerialization()
     configureAuthentication()

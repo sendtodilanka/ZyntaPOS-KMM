@@ -1,11 +1,8 @@
 package com.zyntasolutions.zyntapos.license.routes
 
 import com.zyntasolutions.zyntapos.license.models.ActivateRequest
-import com.zyntasolutions.zyntapos.license.models.ActivateResponse
 import com.zyntasolutions.zyntapos.license.models.ErrorResponse
 import com.zyntasolutions.zyntapos.license.models.HeartbeatRequest
-import com.zyntasolutions.zyntapos.license.models.HeartbeatResponse
-import com.zyntasolutions.zyntapos.license.models.LicenseStatusResponse
 import com.zyntasolutions.zyntapos.license.service.LicenseService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
@@ -16,6 +13,8 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import org.koin.ktor.ext.inject
 
+private val LICENSE_KEY_PATTERN = Regex("^[A-Za-z0-9\\-]{1,128}$")
+
 fun Route.licenseRoutes() {
     val licenseService: LicenseService by inject()
 
@@ -24,7 +23,10 @@ fun Route.licenseRoutes() {
         post("/activate") {
             val request = call.receive<ActivateRequest>()
             require(request.licenseKey.isNotBlank()) { "License key is required" }
+            require(request.licenseKey.length <= 128) { "License key too long" }
+            require(LICENSE_KEY_PATTERN.matches(request.licenseKey)) { "Invalid license key format" }
             require(request.deviceId.isNotBlank()) { "Device ID is required" }
+            require(request.deviceId.length <= 256) { "Device ID too long" }
             require(request.appVersion.isNotBlank()) { "App version is required" }
 
             val result = licenseService.activate(request)
@@ -45,7 +47,10 @@ fun Route.licenseRoutes() {
         post("/heartbeat") {
             val request = call.receive<HeartbeatRequest>()
             require(request.licenseKey.isNotBlank()) { "License key is required" }
+            require(request.licenseKey.length <= 128) { "License key too long" }
+            require(LICENSE_KEY_PATTERN.matches(request.licenseKey)) { "Invalid license key format" }
             require(request.deviceId.isNotBlank()) { "Device ID is required" }
+            require(request.deviceId.length <= 256) { "Device ID too long" }
 
             val result = licenseService.heartbeat(request)
             if (result == null) {
@@ -64,6 +69,8 @@ fun Route.licenseRoutes() {
                 call.respond(HttpStatusCode.BadRequest, ErrorResponse("MISSING_KEY", "License key required"))
                 return@get
             }
+            require(key.length <= 128) { "License key too long" }
+            require(LICENSE_KEY_PATTERN.matches(key)) { "Invalid license key format" }
             val status = licenseService.getStatus(key)
             if (status == null) {
                 call.respond(HttpStatusCode.NotFound, ErrorResponse("LICENSE_NOT_FOUND", "License key not found"))

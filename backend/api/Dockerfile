@@ -42,14 +42,14 @@ USER zyntapos
 
 EXPOSE 8080
 
-# Security: block Java deserialization + standard JVM flags
-ENV JAVA_OPTS="-Djdk.serialFilter=!* \
-    -XX:+UseContainerSupport \
-    -XX:MaxRAMPercentage=75.0 \
-    -XX:+ExitOnOutOfMemoryError \
-    -Dfile.encoding=UTF-8"
-
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+# Security: block Java deserialization + standard JVM flags (exec form — no shell injection)
+ENTRYPOINT ["java", \
+    "-Djdk.serialFilter=!*", \
+    "-XX:+UseContainerSupport", \
+    "-XX:MaxRAMPercentage=75.0", \
+    "-XX:+ExitOnOutOfMemoryError", \
+    "-Dfile.encoding=UTF-8", \
+    "-jar", "app.jar"]
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8080/health || exit 1

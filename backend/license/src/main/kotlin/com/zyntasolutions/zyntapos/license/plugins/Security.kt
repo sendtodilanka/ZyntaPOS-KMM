@@ -12,7 +12,7 @@ fun Application.configureSecurity() {
         header("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
         header("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")
         header("X-XSS-Protection", "0")
-        header("Referrer-Policy", "no-referrer")
-        header(HttpHeaders.Server, "ZyntaPOS-License")
+        header("Referrer-Policy", "strict-origin-when-cross-origin")
+        header(HttpHeaders.Server, "ZyntaPOS")
     }
 }

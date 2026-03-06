@@ -24,7 +24,9 @@ fun Application.configureAuthentication() {
                     .build()
             )
             validate { credential ->
-                if (credential.payload.subject != null) JWTPrincipal(credential.payload) else null
+                val subject = credential.payload.subject
+                val storeId = credential.payload.getClaim("storeId")?.asString()
+                if (subject != null && storeId != null) JWTPrincipal(credential.payload) else null
             }
         }
     }

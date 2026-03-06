@@ -7,15 +7,11 @@ import io.ktor.server.routing.get
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class SyncHealthResponse(val status: String, val service: String, val version: String)
+data class SyncHealthResponse(val status: String)
 
 fun Route.healthRoutes() {
     get("/health") {
-        call.respond(HttpStatusCode.OK, SyncHealthResponse(
-            status = "ok",
-            service = "zyntapos-sync",
-            version = "1.0.0"
-        ))
+        call.respond(HttpStatusCode.OK, SyncHealthResponse(status = "ok"))
     }
     get("/ping") {
         call.respond(HttpStatusCode.OK, "ok")

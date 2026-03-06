@@ -21,13 +21,13 @@ RUN chown -R zyntapos:zyntapos /app
 USER zyntapos
 EXPOSE 8083
 
-ENV JAVA_OPTS="-Djdk.serialFilter=!* \
-    -XX:+UseContainerSupport \
-    -XX:MaxRAMPercentage=75.0 \
-    -XX:+ExitOnOutOfMemoryError \
-    -Dfile.encoding=UTF-8"
-
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+ENTRYPOINT ["java", \
+    "-Djdk.serialFilter=!*", \
+    "-XX:+UseContainerSupport", \
+    "-XX:MaxRAMPercentage=75.0", \
+    "-XX:+ExitOnOutOfMemoryError", \
+    "-Dfile.encoding=UTF-8", \
+    "-jar", "app.jar"]
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8083/health || exit 1
