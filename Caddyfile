@@ -24,6 +24,17 @@
 	tls /etc/caddy/certs/zyntapos_origin.pem /etc/caddy/certs/zyntapos_origin.key
 }
 
+# ── Healthcheck (localhost only — Docker healthcheck probe) ──────────
+:80 {
+	respond /ping 200 {
+		body "ok"
+		close
+	}
+
+	# All other requests on port 80 without a matching Host get 404
+	respond 404
+}
+
 # ── api.zyntapos.com — REST API (Ktor) ────────────────────────────
 api.zyntapos.com {
 	import cf_tls

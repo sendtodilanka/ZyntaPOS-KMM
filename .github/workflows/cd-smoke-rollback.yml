@@ -105,7 +105,8 @@ jobs:
               exit 1
             fi
 
-            docker compose up -d --build --remove-orphans
+            docker compose pull --quiet
+            docker compose up -d --remove-orphans
             docker image prune -f
             echo "=== Rollback complete: $(date) ==="
             docker compose ps
