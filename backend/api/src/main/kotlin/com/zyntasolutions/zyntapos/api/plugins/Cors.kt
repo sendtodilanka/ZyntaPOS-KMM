@@ -20,7 +20,7 @@ fun Application.configureCors() {
         // Only allow requests from the ZyntaPOS app and admin panel
         allowHost("panel.zyntapos.com", schemes = listOf("https"))
         // Desktop app makes direct API calls �� allow localhost for dev
-        allowHost("localhost:*", schemes = listOf("http", "https"))
+        allowHost("localhost", schemes = listOf("http", "https"))
         maxAgeInSeconds = 3600L
     }
 }
