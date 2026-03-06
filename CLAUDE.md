@@ -521,6 +521,8 @@ All structural decisions are documented in `docs/adr/`. Create a new ADR before 
 | ADR-003 | `SecurePreferences` Interface Consolidation — canonical in `:shared:security` only | ACCEPTED |
 | ADR-004 | Keystore Token Scaffold Removal — use `TokenStorage` interface | ACCEPTED |
 | ADR-005 | Single Admin Account Management — one ADMIN via `isSystemAdmin` flag; SignUp removed | ACCEPTED |
+| ADR-006 | Backend Docker Build in CI — images built by CI Gate, pushed to GHCR | ACCEPTED |
+| ADR-007 | Database-Per-Service — API uses `zyntapos_api`, License uses `zyntapos_license` | ACCEPTED |
 
 ---
 
@@ -685,6 +687,29 @@ interface BarcodeScanner {
 8. **Do not use `GlobalContext.get()` outside DI bootstrap code.**
 9. **Do not add `:shared:seed` as a regular dependency.** It must be `debugImplementation` only.
 10. **Do not run bare `gradle` — always use `./gradlew`** to ensure the correct Gradle wrapper version.
+11. **Do not add cross-database FK constraints in backend migrations.** API and License use separate databases (`zyntapos_api`, `zyntapos_license`) — validate references at app layer (ADR-007).
+12. **Do not share Flyway migrations between services.** Each service owns its own `db/migration/` directory and schema history.
+
+---
+
+## Backend Database Architecture (ADR-007)
+
+Each backend service uses its own PostgreSQL database on the same instance:
+
+| Service | Database | Flyway migrations |
+|---------|----------|-------------------|
+| API (`zyntapos-api`) | `zyntapos_api` | `backend/api/src/main/resources/db/migration/` |
+| License (`zyntapos-license`) | `zyntapos_license` | `backend/license/src/main/resources/db/migration/` |
+| Sync (`zyntapos-sync`) | _(none — Redis only)_ | N/A |
+
+**Init script:** `backend/postgres/init-databases.sh` creates per-service databases on first PostgreSQL volume init.
+
+**To reset databases:** Remove the `pgdata` volume so the init script runs again:
+```bash
+docker compose down && docker volume rm zyntapos_pgdata && docker compose up -d
+```
+
+Or use the "VPS Full Fix" workflow with `reset_db=yes`.
 
 ---
 
