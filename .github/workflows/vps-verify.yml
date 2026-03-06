@@ -219,7 +219,7 @@ jobs:
               CONTAINER=$(echo "$svc_check" | cut -d: -f1)
               PORT=$(echo "$svc_check" | cut -d: -f2)
               NAME=$(echo "$svc_check" | cut -d: -f3)
-              RESULT=$(docker exec "$CONTAINER" curl -sf "http://localhost:$PORT/health" 2>/dev/null) && \
+              RESULT=$(docker exec "$CONTAINER" wget -qO- "http://localhost:$PORT/health" 2>/dev/null) && \
                 check_pass "$NAME health (port $PORT) → OK" || \
                 check_warn "$NAME health (port $PORT) → not responding (may still be starting)"
             done
