@@ -3,7 +3,7 @@ plugins {
     kotlin("plugin.serialization") version "2.3.0"
     id("com.github.johnrengelman.shadow") version "8.1.1"
     application
-    id("org.owasp.dependencycheck") version "10.0.4"
+    id("org.owasp.dependencycheck") version "12.2.0"
 }
 
 group = "com.zyntasolutions.zyntapos"
