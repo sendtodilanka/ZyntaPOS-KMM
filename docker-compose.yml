@@ -275,7 +275,7 @@ services:
 
   # ── Uptime Kuma — Self-hosted monitoring & status page ──────────────
   uptime-kuma:
-    image: louislam/uptime-kuma:1
+    image: louislam/uptime-kuma:2
     container_name: zyntapos_uptime_kuma
     restart: unless-stopped
     volumes:
@@ -285,7 +285,7 @@ services:
     networks:
       - zyntapos_net
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3001/"]
+      test: ["CMD-SHELL", "node -e \"const http = require('http'); http.get('http://localhost:3001/api/entry', (r) => { process.exit(r.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))\""]
       interval: 30s
       timeout: 5s
       retries: 3
