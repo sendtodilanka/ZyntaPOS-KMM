@@ -19,7 +19,8 @@
 | 005 | Modern Dashboard + Nav | **100%** ✅ | Phase 1 |
 | 006 | Remote Diagnostic Access | **0%** ⬜ | Phase 2 |
 | 007 | Infrastructure & Deployment | **~75%** 🟡 | Phase 2 |
-| 007b | Astro Marketing Website | **0%** ⬜ (plan ready) | Phase 2 |
+| 007a | React Admin Panel | **0%** ⬜ (15-day plan ready) | Phase 2 |
+| 007b | Astro Marketing Website | **0%** ⬜ (5-day plan ready) | Phase 2 |
 | 008 | SEO & ASO | **0%** ⬜ (8a/8b/8c/8f front-loaded into 007b) | Phase 2 |
 | 009 | Ktor Security Hardening | **100%** ✅ | Phase 2 |
 | 010 | Security Monitoring & Auto-Response | **~70%** 🟡 | Phase 2 |

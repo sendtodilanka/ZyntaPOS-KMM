@@ -92,6 +92,7 @@ TODO-005  →  TODO-003  →  TODO-004 (Part 1)
 | # | Title | Status | Priority | Notes |
 |---|-------|--------|----------|-------|
 | [007](007-infrastructure-and-deployment.md) | Infrastructure & Deployment | 🟡 ~65% done | **P0** | VPS live, Docker Compose running, Caddy + API + License + Sync deployed, monitoring + backup done. Remaining: React panel (7a), Astro site (7b), docs site (7e), sync engine server-side (7g) |
+| [007a](007a-react-admin-panel.md) | React Admin Panel | ⬜ Ready to implement | **P0** | Full 15-day (3-week) plan written. React 19 + TanStack + shadcn/ui. 10 feature areas, 40+ API endpoints. No blockers. |
 | [007b](007b-astro-marketing-website.md) | Astro Marketing Website | ⬜ Ready to implement | **P1** | Full 5-day plan written. Astro 5 + Tailwind on Cloudflare Pages. No blockers. |
 | [009](009-ktor-security-hardening.md) | Ktor Backend Security Hardening | ✅ Done | **P0** | ValidationScope, body size limits, seccomp profile, CVSS threshold — all implemented |
 | [010](010-security-monitoring-automated-response.md) | Security Monitoring & Automated Response | 🟡 ~70% done | **HIGH** | Falco rules, Falcosidekick, cloudflared tunnel done. Remaining: CF Zero Trust, Bot Fight Mode, Snyk Monitor (all CF/SaaS dashboard config) |
