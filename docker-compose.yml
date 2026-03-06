@@ -60,7 +60,7 @@ services:
       - "8080"
     environment:
       - PORT=8080
-      - DB_URL=jdbc:postgresql://postgres:5432/zyntapos
+      - DB_URL=jdbc:postgresql://postgres:5432/zyntapos_api
       - DB_USER=zyntapos
       - DB_PASSWORD=${ZYNTAPOS_DB_PASSWORD}
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
@@ -104,7 +104,7 @@ services:
       - "8083"
     environment:
       - PORT=8083
-      - DB_URL=jdbc:postgresql://postgres:5432/zyntapos
+      - DB_URL=jdbc:postgresql://postgres:5432/zyntapos_license
       - DB_USER=zyntapos
       - DB_PASSWORD=${ZYNTAPOS_DB_PASSWORD}
       - JWT_ISSUER=https://api.zyntapos.com
@@ -183,6 +183,8 @@ services:
       - pgdata:/var/lib/postgresql/data
       # Tuning for 8 GB VPS (Contabo Cloud VPS 10)
       - ./backend/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      # Init script creates per-service databases on first run
+      - ./backend/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
     command: postgres -c config_file=/etc/postgresql/postgresql.conf
     networks:
       - zyntapos_net

@@ -1,9 +1,11 @@
 name: "VPS Full Fix"
 
 # Definitive fix:
-# 1. Generate known password, write to file, ALTER ROLE in postgres
-# 2. Full docker compose down + up (forces secret recreation)
-# 3. Verify all services healthy
+# 1. Pull latest code
+# 2. Generate fresh DB password
+# 3. Full docker compose down + volume reset (pgdata)
+# 4. Fresh start — init-databases.sh creates per-service DBs
+# 5. Verify all services healthy
 
 on:
   workflow_dispatch:
@@ -12,6 +14,10 @@ on:
         description: 'Type "fullfix" to confirm'
         required: true
         default: ''
+      reset_db:
+        description: 'Also reset database volume? (yes/no)'
+        required: false
+        default: 'no'
 
 permissions:
   contents: read
@@ -23,7 +29,7 @@ jobs:
     if: github.event.inputs.confirm == 'fullfix'
 
     steps:
-      - name: Full reset — password sync + down/up
+      - name: Full reset — down, optional volume reset, up
         uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -36,35 +42,21 @@ jobs:
             set -euo pipefail
             cd /opt/zyntapos
 
-            echo "=== Step 0: git pull latest compose changes ==="
+            echo "=== Step 0: git pull latest ==="
             git pull origin main
 
-            echo "=== Step 1: Generate fresh password ==="
+            echo "=== Step 1: Generate fresh DB password ==="
             NEW_PASS=$(openssl rand -hex 32)
+            mkdir -p secrets
             printf '%s' "$NEW_PASS" > secrets/db_password.txt
             echo "File size: $(wc -c < secrets/db_password.txt) bytes (expect 64)"
-            # Write to .env so docker-compose passes DB_PASSWORD to api/license containers
-            # Keep existing REDIS_PASSWORD if present; only update ZYNTAPOS_DB_PASSWORD
             if [ -f .env ]; then
               sed -i '/^ZYNTAPOS_DB_PASSWORD=/d' .env
             fi
             echo "ZYNTAPOS_DB_PASSWORD=${NEW_PASS}" >> .env
             echo ".env updated with new DB password"
 
-            echo "=== Step 2: ALTER ROLE in running postgres ==="
-            docker exec zyntapos_postgres psql -U zyntapos -d zyntapos \
-              -c "ALTER USER zyntapos WITH PASSWORD '${NEW_PASS}';"
-
-            echo "=== Step 3: Test TCP auth with new password ==="
-            docker run --rm \
-              --network zyntapos_zyntapos_net \
-              -e PGPASSWORD="$NEW_PASS" \
-              postgres:16-alpine \
-              psql -h postgres -p 5432 -U zyntapos -d zyntapos \
-              -c "SELECT 'TCP_AUTH_OK' as result;" \
-              && echo "TCP AUTH SUCCESS" || echo "TCP AUTH FAILED - password still wrong!"
-
-            echo "=== Step 4: Ensure cert exists ==="
+            echo "=== Step 2: Ensure certs + keys exist ==="
             if [ ! -f backend/caddy/certs/zyntapos_origin.pem ]; then
               mkdir -p backend/caddy/certs
               openssl req -x509 -newkey rsa:4096 \
@@ -73,30 +65,52 @@ jobs:
                 -days 365 -nodes \
                 -subj "/CN=zyntapos.com/O=Zynta Solutions/C=LK" \
                 -addext "subjectAltName=DNS:zyntapos.com,DNS:*.zyntapos.com"
+              echo "TLS cert generated"
             else
-              echo "Cert exists"
+              echo "TLS cert exists"
             fi
 
-            echo "=== Step 4b: Test bind mount accessibility (simulate api container) ==="
-            BIND_TEST=$(docker run --rm \
-              --read-only \
-              --tmpfs /run:size=2m,mode=0755 \
-              --tmpfs /tmp:size=64m,mode=1777 \
-              -v "$(pwd)/secrets/db_password.txt:/run/secrets/db_password:ro" \
-              alpine \
-              sh -c "wc -c /run/secrets/db_password && head -c 8 /run/secrets/db_password && echo ''" 2>&1)
-            echo "Bind mount test result: $BIND_TEST"
+            if [ ! -f secrets/rs256_private_key.pem ]; then
+              openssl genpkey -algorithm RSA -out secrets/rs256_private_key.pem -pkeyopt rsa_keygen_bits:2048
+              openssl rsa -pubout -in secrets/rs256_private_key.pem -out secrets/rs256_public_key.pem
+              chmod 600 secrets/rs256_private_key.pem
+              echo "RS256 keys generated"
+            else
+              echo "RS256 keys exist"
+            fi
 
-            echo "=== Step 5: Full docker compose down + up ==="
-            # 'down' removes containers + networks (volumes kept)
+            echo "=== Step 3: Docker compose down ==="
             docker compose down --remove-orphans
-            # Force-remove any stale containers that 'down' may have missed
             docker ps -aq --filter "name=zyntapos_" | xargs -r docker rm -f 2>/dev/null || true
-            sleep 3
+
+            RESET_DB="${{ github.event.inputs.reset_db }}"
+            if [ "$RESET_DB" = "yes" ]; then
+              echo "=== Step 3b: Removing pgdata volume for fresh init ==="
+              docker volume rm zyntapos_pgdata 2>/dev/null || true
+              echo "pgdata volume removed — init-databases.sh will create per-service DBs"
+            fi
+
+            echo "=== Step 4: GHCR login + pull ==="
+            echo "${{ secrets.PAT_TOKEN }}" | docker login ghcr.io -u sendtodilanka --password-stdin
+            docker compose pull --quiet
+
+            echo "=== Step 5: Start stack ==="
             docker compose up -d
-            sleep 90
+            echo "Waiting 60s for services to initialize..."
+            sleep 60
 
             echo "=== Step 6: Final status ==="
             docker compose ps
-            curl -sf http://localhost:8080/health && echo "API OK" || echo "API not healthy yet"
-            curl -sf http://localhost:8083/health && echo "License OK" || echo "License not healthy yet"
+
+            echo ""
+            echo "--- Health checks ---"
+            curl -sf http://localhost:8080/health && echo " API OK" || echo " API not healthy yet"
+            curl -sf http://localhost:8083/health && echo " License OK" || echo " License not healthy yet"
+            curl -sf http://localhost:8082/health && echo " Sync OK" || echo " Sync not healthy yet"
+
+            echo ""
+            echo "--- API logs (last 10 lines) ---"
+            docker logs zyntapos_api --tail 10 2>&1 || true
+            echo ""
+            echo "--- License logs (last 5 lines) ---"
+            docker logs zyntapos_license --tail 5 2>&1 || true
