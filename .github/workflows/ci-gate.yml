@@ -140,9 +140,11 @@ jobs:
     steps:
       - name: Extract commit title
         id: commit
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
-          # Extract first line only, remove quotes to prevent JSON breakage
-          TITLE=$(echo "${{ github.event.head_commit.message }}" | head -1 | tr -d '"' | cut -c1-80)
+          # Use env var to safely handle special characters in commit messages
+          TITLE=$(echo "$COMMIT_MSG" | head -1 | tr -d '"' | cut -c1-80)
           echo "title=$TITLE" >> "$GITHUB_OUTPUT"
 
       - name: Dispatch deploy event
