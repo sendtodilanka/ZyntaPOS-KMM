@@ -19,8 +19,14 @@ fun Application.configureCors() {
         allowHeader("X-License-Key")
         // Only allow requests from the ZyntaPOS app and admin panel
         allowHost("panel.zyntapos.com", schemes = listOf("https"))
-        // Desktop app makes direct API calls �� allow localhost for dev
-        allowHost("localhost", schemes = listOf("http", "https"))
+        // Desktop app and local dev — Ktor's allowHost rejects single-segment
+        // hostnames like "localhost", so use allowOrigins predicate instead.
+        allowOrigins { origin ->
+            origin == "http://localhost" ||
+                origin == "https://localhost" ||
+                origin.startsWith("http://localhost:") ||
+                origin.startsWith("https://localhost:")
+        }
         maxAgeInSeconds = 3600L
     }
 }
