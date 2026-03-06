@@ -72,6 +72,11 @@ jobs:
             RETRY_DELAY=10
             CURL_TIMEOUT=10
 
+            # Write markdown table to a temp file for the summary step to fetch
+            RESULTS_FILE="/tmp/zyntapos-smoke-results.md"
+            echo "| Subdomain | /ping | Body | / | Status |" > "$RESULTS_FILE"
+            echo "|-----------|-------|------|---|--------|" >> "$RESULTS_FILE"
+
             for sub in api license panel docs status sync; do
               PING_HTTP="000"
               PING_BODY=""
@@ -103,8 +108,10 @@ jobs:
               # (subdomain HTTPS vhosts only apply on port 443). Homepage 404 is fine.
               if [ "$PING_HTTP" = "200" ] && [ "$PING_BODY" = "ok" ]; then
                 echo "  ✅  ${sub}.zyntapos.com  /ping → ${PING_HTTP} (ok)  / → ${HOME_HTTP} (informational)"
+                echo "| \`${sub}.zyntapos.com\` | \`${PING_HTTP}\` | \`ok\` | \`${HOME_HTTP}\` | ✅ Healthy |" >> "$RESULTS_FILE"
               else
                 echo "  ❌  ${sub}.zyntapos.com  /ping → ${PING_HTTP}  / → ${HOME_HTTP}"
+                echo "| \`${sub}.zyntapos.com\` | \`${PING_HTTP}\` | \`${PING_BODY:-—}\` | \`${HOME_HTTP}\` | ❌ Degraded |" >> "$RESULTS_FILE"
                 PASS=false
               fi
             done
@@ -118,19 +125,36 @@ jobs:
             fi
             echo "=================================================="
 
+      # ── Setup SSH for fetching results table from VPS ───────────────
+      - name: Setup SSH key
+        if: always()
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_USER_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+
       - name: Write smoke test summary
         if: always()
         run: |
           DEPLOY_SHA="${{ github.event.client_payload.sha }}"
+          # Fetch the results table from VPS
+          RESULTS=$(ssh -i ~/.ssh/id_deploy -p ${{ secrets.VPS_PORT }} \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            'cat /tmp/zyntapos-smoke-results.md 2>/dev/null') || RESULTS=""
           {
             echo "## Step[6]: Smoke Test — \`${DEPLOY_SHA:0:8}\`"
             echo ""
             echo "**Tested at:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
             echo ""
+            if [ -n "$RESULTS" ]; then
+              echo "$RESULTS"
+              echo ""
+            fi
             if [ "${{ steps.smoke.outcome }}" = "success" ]; then
-              echo "### All 6 endpoints healthy — deploy verified ✅"
+              echo "### Result: All 6 endpoints healthy — deploy verified ✅"
             else
-              echo "### Smoke test FAILED — automatic rollback initiated ❌"
+              echo "### Result: Smoke test FAILED — automatic rollback initiated ❌"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
