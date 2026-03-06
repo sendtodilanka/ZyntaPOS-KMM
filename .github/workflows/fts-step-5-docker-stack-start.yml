@@ -88,8 +88,17 @@ jobs:
             # Stop any existing containers first (clean start)
             docker compose down --remove-orphans 2>/dev/null || true
 
+            # Start core stack
             docker compose up -d --remove-orphans
-            echo "  ✅ Stack started"
+            echo "  ✅ Core stack started"
+
+            # Start cloudflared tunnel if token is configured
+            if grep -q "CLOUDFLARE_TUNNEL_TOKEN" "$DEPLOY_PATH/.env" 2>/dev/null; then
+              docker compose --profile tunnel up -d cloudflared
+              echo "  ✅ Cloudflare tunnel started"
+            else
+              echo "  ⏭️  CLOUDFLARE_TUNNEL_TOKEN not set, skipping tunnel"
+            fi
             echo ""
             docker compose ps --format "table {{.Name}}\t{{.Status}}"
 
@@ -173,6 +182,17 @@ jobs:
                 done
               fi
             done
+
+            # Cloudflared (optional — only if tunnel profile is active)
+            CONTAINER="zyntapos_cloudflared"
+            STATUS=$(docker inspect --format='{{.State.Status}}' "$CONTAINER" 2>/dev/null || echo "not_found")
+            if [ "$STATUS" = "running" ]; then
+              check_pass "$CONTAINER: running (tunnel active)"
+            elif grep -q "CLOUDFLARE_TUNNEL_TOKEN" "$DEPLOY_PATH/.env" 2>/dev/null; then
+              check_fail "$CONTAINER: expected running but $STATUS"
+            else
+              echo "║  ⏭️  $CONTAINER: not started (no tunnel token)"
+            fi
 
             # V8: Docker volumes
             echo ""
