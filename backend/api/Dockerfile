@@ -31,7 +31,7 @@ RUN ./gradlew shadowJar --no-daemon --quiet
 FROM eclipse-temurin:21-jre-alpine AS runtime
 
 # Install curl for healthcheck (wget not available in Alpine JRE)
-RUN apk add --no-cache curl
+RUN apk upgrade --no-cache && apk add --no-cache curl
 
 # Create non-root user
 RUN addgroup -S zyntapos && adduser -S zyntapos -G zyntapos

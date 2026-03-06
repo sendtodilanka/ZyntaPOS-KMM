@@ -17,6 +17,17 @@ repositories {
     mavenCentral()
 }
 
+// ── Security: force patched transitive dependency versions ───────────────────
+// jackson-core/databind: transitive via logback-classic JSON encoder
+configurations.all {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "com.fasterxml.jackson.core") {
+            useVersion("2.19.0")
+            because("CVE fix: upgrade Jackson core to patched version (DoS)")
+        }
+    }
+}
+
 val ktorVersion = "3.4.1"
 val exposedVersion = "0.61.0"
 val koinVersion = "4.1.1"

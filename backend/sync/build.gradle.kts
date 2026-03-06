@@ -17,6 +17,17 @@ repositories {
     mavenCentral()
 }
 
+// ── Security: force patched transitive dependency versions ───────────────────
+// netty-codec/netty-handler: transitive via lettuce-core (Redis client)
+configurations.all {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "io.netty") {
+            useVersion("4.1.119.Final")
+            because("CVE fix: upgrade all Netty modules to patched version")
+        }
+    }
+}
+
 val ktorVersion = "3.4.1"
 val koinVersion = "4.1.1"
 
