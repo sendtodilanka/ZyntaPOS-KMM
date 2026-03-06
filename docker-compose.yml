@@ -318,20 +318,18 @@ services:
   # opening inbound ports. Protected by Cloudflare Access (Zero Trust).
   #
   # Setup:
-  #   1. cloudflared tunnel create zyntapos
+  #   1. Create tunnel in Cloudflare Zero Trust dashboard
   #   2. Set CLOUDFLARE_TUNNEL_TOKEN in .env on VPS
-  #   3. Configure DNS CNAME via: cloudflared tunnel route dns zyntapos panel.zyntapos.com
+  #   3. Configure public hostnames in Cloudflare dashboard (Route tunnel step)
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: zyntapos_cloudflared
     restart: unless-stopped
-    command: tunnel --config /etc/cloudflared/config.yml run
+    command: tunnel --no-autoupdate run
     profiles:
       - tunnel
     environment:
       - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
-    volumes:
-      - ./config/cloudflare/tunnel-config.yml:/etc/cloudflared/config.yml:ro
     networks:
       - zyntapos_net
     mem_limit: 128m
