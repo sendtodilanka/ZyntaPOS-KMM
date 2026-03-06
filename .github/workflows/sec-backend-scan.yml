@@ -84,7 +84,6 @@ jobs:
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         timeout-minutes: 30
-        continue-on-error: true
 
       - name: Upload OWASP report
         if: always()
@@ -146,7 +145,6 @@ jobs:
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         timeout-minutes: 30
-        continue-on-error: true
 
       - name: Upload OWASP report
         if: always()
@@ -208,7 +206,6 @@ jobs:
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         timeout-minutes: 30
-        continue-on-error: true
 
       - name: Upload OWASP report
         if: always()
