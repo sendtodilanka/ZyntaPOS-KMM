@@ -102,6 +102,14 @@ jobs:
           retention-days: 30
           if-no-files-found: warn
 
+      - name: Upload OWASP SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: backend/api/build/reports/dependency-check-report.sarif
+          category: owasp-api
+        continue-on-error: true
+
   # ── OWASP Dependency Check — backend/license ────────────────────────────────
   owasp-license:
     name: OWASP — License
@@ -167,6 +175,14 @@ jobs:
           retention-days: 30
           if-no-files-found: warn
 
+      - name: Upload OWASP SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: backend/license/build/reports/dependency-check-report.sarif
+          category: owasp-license
+        continue-on-error: true
+
   # ── OWASP Dependency Check — backend/sync ───────────────────────────────────
   owasp-sync:
     name: OWASP — Sync
@@ -231,6 +247,14 @@ jobs:
           path: backend/sync/build/reports/dependency-check-report.html
           retention-days: 30
           if-no-files-found: warn
+
+      - name: Upload OWASP SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: backend/sync/build/reports/dependency-check-report.sarif
+          category: owasp-sync
+        continue-on-error: true
 
   # ── Trivy Container Image Scan ────────────────────────────────────────────────
   trivy-images:

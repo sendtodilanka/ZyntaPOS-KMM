@@ -36,6 +36,7 @@ permissions:
   checks: write
   actions: read
   packages: write
+  security-events: write   # Required for Detekt SARIF upload to Security tab
 
 concurrency:
   group: ci-gate-${{ github.event_name }}-${{ github.event.pull_request.number || github.sha }}
