@@ -55,7 +55,7 @@ export function formatBytes(bytes: number): string {
   return i === 0 ? `${value} B` : `${value.toFixed(1)} ${sizes[i]}`;
 }
 
-export function buildQueryString(params: Record<string, unknown>): string {
+export function buildQueryString(params: object): string {
   const filtered = Object.entries(params)
     .filter(([, v]) => v !== undefined && v !== null && v !== '')
     .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`);
