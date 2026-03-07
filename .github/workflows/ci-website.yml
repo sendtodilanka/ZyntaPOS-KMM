@@ -58,4 +58,3 @@ jobs:
         with:
           configPath: website/lighthouserc.json
           uploadArtifacts: true
-          staticDistDir: website/dist/
