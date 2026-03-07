@@ -52,6 +52,8 @@ const ga4Id = analytics.GA4_MEASUREMENT_ID;
     {ga4Id && (
       <>
         <!-- Google Analytics 4 -->
+        <link rel="preconnect" href="https://www.googletagmanager.com" />
+        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
         <script async src={`https://www.googletagmanager.com/gtag/js?id=${ga4Id}`}></script>
         <script define:vars={{ ga4Id }}>
           window.dataLayer = window.dataLayer || [];
