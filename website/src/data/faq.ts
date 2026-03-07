@@ -41,7 +41,7 @@ export const faqItems: FaqItem[] = [
     category: 'Billing & Licensing',
     question: 'What payment methods do you accept?',
     answer:
-      'We accept major credit/debit cards (Visa, Mastercard) and bank transfer for annual plans. LKR invoicing is available for Sri Lankan businesses.',
+      'We accept major credit/debit cards (Visa, Mastercard) and bank transfer for annual plans. Multi-currency invoicing is available for businesses worldwide.',
   },
   // Technical
   {
