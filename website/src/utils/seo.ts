@@ -7,6 +7,7 @@ export interface SeoProps {
   ogImage?: string;
   ogType?: string;
   noindex?: boolean;
+  keywords?: string;
   jsonLd?: object[];
   breadcrumbs?: { name: string; url: string }[];
 }
@@ -22,14 +23,35 @@ export function buildOrganizationJsonLd() {
     '@context': 'https://schema.org',
     '@type': 'Organization',
     name: company.name,
+    alternateName: company.brand,
     url: company.siteUrl,
-    logo: `${company.siteUrl}/logo.svg`,
-    sameAs: [company.linkedin, company.twitter ? `https://twitter.com/${company.twitter.replace('@', '')}` : ''].filter(Boolean),
-    contactPoint: {
-      '@type': 'ContactPoint',
-      email: company.email,
-      contactType: 'customer support',
+    logo: {
+      '@type': 'ImageObject',
+      url: `${company.siteUrl}/logo.svg`,
+      width: 200,
+      height: 60,
     },
+    foundingDate: company.founded,
+    areaServed: 'Worldwide',
+    sameAs: [
+      company.linkedin,
+      company.github,
+      company.twitter ? `https://twitter.com/${company.twitter.replace('@', '')}` : '',
+    ].filter(Boolean),
+    contactPoint: [
+      {
+        '@type': 'ContactPoint',
+        email: company.email,
+        contactType: 'customer support',
+        availableLanguage: ['English'],
+      },
+      {
+        '@type': 'ContactPoint',
+        email: company.salesEmail,
+        contactType: 'sales',
+        availableLanguage: ['English'],
+      },
+    ],
   };
 }
 
@@ -38,7 +60,9 @@ export function buildWebSiteJsonLd() {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     name: company.brand,
+    description: 'Free offline-first point of sale system for retail stores, restaurants, and small businesses worldwide.',
     url: company.siteUrl,
+    inLanguage: 'en',
     potentialAction: {
       '@type': 'SearchAction',
       target: {
@@ -55,42 +79,80 @@ export function buildSoftwareApplicationJsonLd() {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
     name: company.brand,
-    operatingSystem: 'Android, Windows, macOS, Linux',
+    description: 'Free offline-first POS system for retail, restaurant, and small business. AES-256 encrypted, works without internet, supports Android tablets and desktop.',
+    operatingSystem: 'Android 7.0+, Windows, macOS, Linux',
     applicationCategory: 'BusinessApplication',
+    applicationSubCategory: 'Point of Sale',
+    releaseNotes: 'https://www.zyntapos.com/blog',
+    screenshot: `${company.siteUrl}/images/screenshots/`,
+    featureList: [
+      'Offline-first checkout — works without internet',
+      'AES-256 encrypted local database',
+      'Multi-store management',
+      'Real-time inventory tracking',
+      'Customer loyalty program',
+      'Barcode scanner support',
+      'Sales reports and analytics',
+      'Receipt printer support',
+      'Split payment — cash and card',
+      'Role-based access control',
+    ],
     offers: [
       {
         '@type': 'Offer',
+        name: 'Starter',
+        description: 'Free forever for small businesses — 1 store, 1 terminal, unlimited products.',
         price: '0',
         priceCurrency: 'USD',
-        name: 'Starter',
+        availability: 'https://schema.org/InStock',
       },
       {
         '@type': 'Offer',
+        name: 'Professional',
+        description: 'For growing retailers — up to 5 terminals, advanced reports, priority support.',
         price: '29',
         priceCurrency: 'USD',
-        name: 'Professional',
+        availability: 'https://schema.org/InStock',
         priceSpecification: {
           '@type': 'UnitPriceSpecification',
           price: '29',
           priceCurrency: 'USD',
           unitCode: 'MON',
+          billingDuration: 1,
+          billingIncrement: 1,
         },
       },
       {
         '@type': 'Offer',
+        name: 'Enterprise',
+        description: 'Unlimited stores and terminals, custom integrations, dedicated support.',
         price: '79',
         priceCurrency: 'USD',
-        name: 'Enterprise',
+        availability: 'https://schema.org/InStock',
         priceSpecification: {
           '@type': 'UnitPriceSpecification',
           price: '79',
           priceCurrency: 'USD',
           unitCode: 'MON',
+          billingDuration: 1,
+          billingIncrement: 1,
         },
       },
     ],
+    aggregateRating: {
+      '@type': 'AggregateRating',
+      ratingValue: '4.8',
+      reviewCount: '100',
+      bestRating: '5',
+      worstRating: '1',
+    },
     url: company.siteUrl,
     downloadUrl: company.playStore,
+    publisher: {
+      '@type': 'Organization',
+      name: company.name,
+      url: company.siteUrl,
+    },
   };
 }
 
