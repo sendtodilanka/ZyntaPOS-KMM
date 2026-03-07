@@ -23,31 +23,116 @@ If nothing new was committed, a push is still safe (it will be a no-op). There i
 
 **After EVERY commit and push, Claude MUST actively monitor the CI/CD pipeline end-to-end BEFORE making any further commits.**
 
-This is a **blocking requirement**. Do NOT proceed with additional code changes until:
+This is a **blocking requirement**. Do NOT proceed with additional code changes until the full pipeline chain completes and all steps are green.
 
-1. **All triggered workflows have completed** (CI Gate, Security Scan, Deploy, Smoke Test, Verify)
-2. **All workflow results are verified** (green/passed)
-3. **If any workflow fails** — investigate and fix the failure FIRST before any new work
+---
+
+### Pipeline Architecture (7-Step Chain)
+
+This project uses a **chained repository_dispatch pipeline** — each step triggers the next only on success:
+
+```
+Push to claude/* branch
+        │
+        ▼
+Step[1]: Branch Validate   (ci-branch-validate.yml)
+  • Build-only: shared modules + Android APK + Desktop JAR
+  • NO tests or lint (fast ~10 min)
+  • On success → dispatches "auto-pr-trigger"
+        │
+        ▼
+Step[2]: Auto PR           (ci-auto-pr.yml)
+  • Creates PR targeting main (idempotent — reuses existing PR)
+  • Enables auto-merge (squash + delete branch)
+  • PAT_TOKEN required to trigger CI Gate on the PR
+        │
+        ▼
+Step[3+4]: CI Gate         (ci-gate.yml)
+  • Full build + Android Lint + Detekt + allTests
+  • Publishes JUnit XML as PR check annotations
+  • Builds & pushes backend Docker images to GHCR (push-to-main only)
+  • On push-to-main success → dispatches "deploy-trigger"
+  • Blocks PR merge until all checks pass
+        │ (after auto-merge squashes PR into main)
+        ▼
+Step[5]: Deploy to VPS     (cd-deploy.yml)
+  • SSH into Contabo VPS
+  • git reset --hard <exact-SHA>
+  • docker compose pull + up -d
+  • On success → dispatches "smoke-trigger"
+        │
+        ▼
+Step[6]: Smoke Test        (cd-smoke-rollback.yml)
+  • Hits live endpoints to verify deployment
+  • Auto-rollback on failure
+        │
+        ▼
+Step[7]: Verify Endpoints  (cd-verify-endpoints.yml)
+  • Deep endpoint validation post-smoke
+```
+
+---
+
+### Live Monitoring Protocol (MANDATORY after every push)
+
+```bash
+# Monitor Step[1] — Branch Validate (triggers immediately on push)
+gh run list --branch $(git branch --show-current) --limit 5
+gh run watch <run-id>
+
+# After Step[1] passes, monitor Step[2] — Auto PR creation
+gh pr list --head $(git branch --show-current)
+
+# Monitor Step[3+4] — CI Gate on the PR
+gh pr checks <pr-number> --watch
+
+# If branch was merged to main, monitor Steps 5-7
+gh run list --workflow=cd-deploy.yml --limit 3
+gh run list --workflow=cd-smoke-rollback.yml --limit 3
+gh run list --workflow=cd-verify-endpoints.yml --limit 3
+```
+
+**Do NOT start the next implementation task until ALL applicable steps are green.**
+
+---
+
+### PR Conflict Resolution (MANDATORY — NO REBASE)
+
+When Step[2] creates a PR and it has merge conflicts with `main`:
+
+1. **Check for conflicts:**
+   ```bash
+   gh pr view <pr-number> --json mergeable,mergeStateStatus
+   ```
+
+2. **Resolve by merging main INTO the branch (NOT rebase):**
+   ```bash
+   git fetch origin main
+   git merge origin/main --no-edit   # merge main in, resolve conflicts
+   # Fix any conflict markers manually
+   git add <resolved-files>
+   git commit -m "merge: resolve conflicts with main"
+   git push -u origin $(git branch --show-current)
+   ```
+
+3. **NEVER use `git rebase` for conflict resolution** — it rewrites history and breaks the auto-merge chain.
+
+4. After push, re-monitor from Step[1] (pipeline restarts automatically).
+
+---
+
+### Failure Protocol
+
+**If any step fails:**
+- Do NOT push more commits hoping it fixes itself
+- Run `gh run view <run-id> --log-failed` to read the exact failure
+- Identify root cause, fix locally, then commit and push
+- Re-monitor the ENTIRE pipeline from Step[1] after the fix push
 
 **Why this matters:**
-- Stacking commits on top of a broken pipeline creates cascading merge conflicts
-- Each push to main triggers the full pipeline (build → deploy → smoke → verify)
-- A failing CI Gate blocks the deploy chain — fixing it takes priority over new features
-- Multiple untested commits make it impossible to identify which change broke the build
-
-**Monitoring protocol:**
-```
-1. git push → wait for CI/CD pipeline to start
-2. Monitor: CI Gate (build + test + lint) → must pass
-3. Monitor: Security Scan (if triggered) → must pass
-4. Monitor: Deploy → Smoke Test → Verify (if on main) → must pass
-5. ONLY after all green → proceed with next task
-```
-
-**If a workflow fails:**
-- Do NOT push more commits hoping it will fix itself
-- Read the failure logs, identify root cause, fix, THEN push
-- Re-monitor the entire pipeline after the fix
+- Stacking commits on a broken pipeline creates cascading conflicts
+- Each failed step blocks the entire downstream chain
+- Multiple untested commits make it impossible to isolate which change broke the build
 
 ---
 
