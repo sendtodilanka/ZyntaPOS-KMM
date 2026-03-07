@@ -5,16 +5,6 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { formatRelativeTime } from '@/lib/utils';
 import type { Store } from '@/types/store';
 
-function HealthDot({ score }: { score: number }) {
-  const color = score >= 90 ? 'bg-emerald-400' : score >= 70 ? 'bg-amber-400' : 'bg-red-400';
-  return (
-    <span className="flex items-center gap-2">
-      <span className={`w-2 h-2 rounded-full ${color} flex-shrink-0`} />
-      <span className="text-slate-300 text-xs">{score}%</span>
-    </span>
-  );
-}
-
 interface StoreTableProps {
   data: Store[];
   isLoading: boolean;

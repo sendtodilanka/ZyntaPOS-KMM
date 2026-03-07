@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
-import { Bell, CheckCheck, VolumeX, Check, AlertTriangle, AlertCircle, Info, Zap, ToggleLeft, ToggleRight } from 'lucide-react';
-import { useAlerts, useAlertCounts, useAlertRules, useAcknowledgeAlert, useResolveAlert, useSilenceAlert, useToggleAlertRule } from '@/api/alerts';
+import { Bell, CheckCheck, Check, AlertTriangle, AlertCircle, Info, Zap, ToggleLeft, ToggleRight } from 'lucide-react';
+import { useAlerts, useAlertCounts, useAlertRules, useAcknowledgeAlert, useResolveAlert, useToggleAlertRule } from '@/api/alerts';
 import type { Alert, AlertFilter, AlertSeverity, AlertStatus, AlertCategory, AlertRule } from '@/types/alert';
 import { cn, formatRelativeTime } from '@/lib/utils';
 

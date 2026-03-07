@@ -18,6 +18,13 @@ export const Route = createFileRoute('/')({
   component: DashboardPage,
 });
 
+const NOW = Date.now();
+const PLACEHOLDER_ALERTS = [
+  { store: 'Colombo Branch', message: 'Sync queue depth > 50', time: new Date(NOW - 300000).toISOString(), severity: 'WARNING' },
+  { store: 'Kandy Store', message: 'Heartbeat age > 10min', time: new Date(NOW - 900000).toISOString(), severity: 'CRITICAL' },
+  { store: 'Galle Outlet', message: 'DB size > 1GB', time: new Date(NOW - 1800000).toISOString(), severity: 'WARNING' },
+];
+
 const PERIOD_OPTIONS: { label: string; value: TimePeriod }[] = [
   { label: 'Today', value: 'today' },
   { label: 'This Week', value: 'week' },
@@ -158,11 +165,7 @@ function DashboardPage() {
           </div>
           <div className="space-y-2">
             {/* Placeholder alert items */}
-            {[
-              { store: 'Colombo Branch', message: 'Sync queue depth > 50', time: new Date(Date.now() - 300000).toISOString(), severity: 'WARNING' },
-              { store: 'Kandy Store', message: 'Heartbeat age > 10min', time: new Date(Date.now() - 900000).toISOString(), severity: 'CRITICAL' },
-              { store: 'Galle Outlet', message: 'DB size > 1GB', time: new Date(Date.now() - 1800000).toISOString(), severity: 'WARNING' },
-            ].map((alert, i) => (
+            {PLACEHOLDER_ALERTS.map((alert, i) => (
               <div key={i} className="flex items-start gap-3 p-2.5 rounded-lg bg-surface-elevated">
                 <StatusBadge status={alert.severity} className="flex-shrink-0 mt-0.5" />
                 <div className="min-w-0 flex-1">

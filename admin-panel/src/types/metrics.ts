@@ -41,13 +41,19 @@ export interface SalesReportRow {
   averageOrderValue: number;
   refunds: number;
   netRevenue: number;
+  storeId?: string;
+  storeName?: string;
 }
 
 export interface ProductPerformanceRow {
   productId: string;
   productName: string;
+  name?: string;
   category: string;
   unitsSold: number;
   revenue: number;
   marginPercent: number;
+  returns?: number;
+  storeId?: string;
+  storeName?: string;
 }

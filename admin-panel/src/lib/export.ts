@@ -1,6 +1,6 @@
 import Papa from 'papaparse';
 
-export function exportToCsv<T extends Record<string, unknown>>(
+export function exportToCsv<T extends object>(
   data: T[],
   filename: string,
   columns?: { key: keyof T; header: string }[],
@@ -11,12 +11,12 @@ export function exportToCsv<T extends Record<string, unknown>>(
     csvData = data.map((row) => {
       const mapped: Record<string, unknown> = {};
       columns.forEach(({ key, header }) => {
-        mapped[header] = row[key];
+        mapped[header] = row[key] as unknown;
       });
       return mapped;
     });
   } else {
-    csvData = data;
+    csvData = data as unknown as Record<string, unknown>[];
   }
 
   const csv = Papa.unparse(csvData);

@@ -49,18 +49,28 @@ export function useStoreComparison(period: TimePeriod = 'month') {
   });
 }
 
+function periodToDateRange(period: string): { from: string; to: string } {
+  const to = new Date().toISOString().split('T')[0];
+  const daysMap: Record<string, number> = { '7d': 7, '30d': 30, '90d': 90, '12m': 365 };
+  const days = daysMap[period] ?? 30;
+  const from = new Date(Date.now() - days * 86400000).toISOString().split('T')[0];
+  return { from, to };
+}
+
 export function useSalesReport(params: {
   storeId?: string;
-  from: string;
-  to: string;
+  period?: string;
+  from?: string;
+  to?: string;
   granularity?: ChartGranularity;
 }) {
+  const range = params.period ? periodToDateRange(params.period) : { from: params.from ?? '', to: params.to ?? '' };
   return useQuery({
     queryKey: ['reports', 'sales', params],
     queryFn: () => {
       const qs = new URLSearchParams({
-        from: params.from,
-        to: params.to,
+        from: range.from,
+        to: range.to,
         ...(params.storeId && { storeId: params.storeId }),
         ...(params.granularity && { granularity: params.granularity }),
       });
@@ -69,14 +79,22 @@ export function useSalesReport(params: {
   });
 }
 
-export function useProductPerformance(params: { storeId?: string; from: string; to: string }) {
+export function useProductPerformance(params: {
+  storeId?: string;
+  period?: string;
+  from?: string;
+  to?: string;
+  limit?: number;
+}) {
+  const range = params.period ? periodToDateRange(params.period) : { from: params.from ?? '', to: params.to ?? '' };
   return useQuery({
     queryKey: ['reports', 'products', params],
     queryFn: () => {
       const qs = new URLSearchParams({
-        from: params.from,
-        to: params.to,
+        from: range.from,
+        to: range.to,
         ...(params.storeId && { storeId: params.storeId }),
+        ...(params.limit && { limit: String(params.limit) }),
       });
       return apiClient.get(`admin/reports/products?${qs}`).json<ProductPerformanceRow[]>();
     },

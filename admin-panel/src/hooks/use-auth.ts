@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { CF_COOKIE_NAME } from '@/lib/constants';
 
 export interface AdminUser {
@@ -21,9 +20,10 @@ function decodeCfJwt(token: string): CfJwtPayload | null {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return null;
-    const payload = parts[1];
-    const padded = payload + '=='.slice((payload.length + 2) % 4 * 2 % 4);
-    const decoded = atob(padded.replace(/-/g, '+').replace(/_/g, '/'));
+    const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const rem = payload.length % 4;
+    const padded = rem > 0 ? payload + '='.repeat(4 - rem) : payload;
+    const decoded = atob(padded);
     return JSON.parse(decoded) as CfJwtPayload;
   } catch {
     return null;
@@ -44,30 +44,31 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
   VIEWER: ['license:read', 'store:read', 'audit:read', 'reports:read', 'health:read'],
 };
 
-export function useAuth() {
-  const user = useMemo<AdminUser | null>(() => {
-    const token = getCfToken();
-    if (!token) {
-      // Dev fallback
-      if (import.meta.env.DEV) {
-        return { email: 'dev@zyntasolutions.com', name: 'Dev Admin', role: 'SUPER_ADMIN' };
-      }
-      return null;
+function resolveUser(): AdminUser | null {
+  const token = getCfToken();
+  if (!token) {
+    if (import.meta.env.DEV) {
+      return { email: 'dev@zyntasolutions.com', name: 'Dev Admin', role: 'SUPER_ADMIN' };
     }
-    const payload = decodeCfJwt(token);
-    if (!payload) return null;
-    const rawRole = payload['custom:role'] ?? 'VIEWER';
-    const role = ['SUPER_ADMIN', 'SUPPORT', 'VIEWER'].includes(rawRole)
-      ? (rawRole as AdminUser['role'])
-      : 'VIEWER';
-    return {
-      email: payload.email ?? '',
-      name: payload.name ?? payload.email ?? 'Admin',
-      role,
-      avatarUrl: payload.picture,
-      sub: payload.sub,
-    };
-  }, []);
+    return null;
+  }
+  const payload = decodeCfJwt(token);
+  if (!payload) return null;
+  const rawRole = payload['custom:role'] ?? 'VIEWER';
+  const role = ['SUPER_ADMIN', 'SUPPORT', 'VIEWER'].includes(rawRole)
+    ? (rawRole as AdminUser['role'])
+    : 'VIEWER';
+  return {
+    email: payload.email ?? '',
+    name: payload.name ?? payload.email ?? 'Admin',
+    role,
+    avatarUrl: payload.picture,
+    sub: payload.sub,
+  };
+}
+
+export function useAuth() {
+  const user = resolveUser();
 
   const hasPermission = (permission: string): boolean => {
     if (!user) return false;
@@ -79,5 +80,5 @@ export function useAuth() {
     window.location.href = '/';
   };
 
-  return { user, isAuthenticated: !!user, hasPermission, signOut };
+  return { user, isAuthenticated: !!user, hasPermission, signOut, ...user };
 }

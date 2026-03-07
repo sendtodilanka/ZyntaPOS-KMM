@@ -6,7 +6,6 @@ import { Plus, Edit2, Trash2, Check, X } from 'lucide-react';
 import { useTaxRates, useCreateTaxRate, useUpdateTaxRate, useDeleteTaxRate } from '@/api/config';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import type { TaxRate } from '@/types/config';
-import { cn } from '@/lib/utils';
 
 const taxRateSchema = z.object({
   name: z.string().min(1, 'Name required'),
@@ -38,7 +37,7 @@ function TaxRateRow({ rate, onEdit, onDelete }: { rate: TaxRate; onEdit: (r: Tax
           <button onClick={() => setConfirmDelete(true)} className="p-2 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 min-h-[44px] min-w-[44px] flex items-center justify-center" aria-label="Delete"><Trash2 className="w-4 h-4" /></button>
         </div>
       </div>
-      <ConfirmDialog open={confirmDelete} onOpenChange={setConfirmDelete} title="Delete Tax Rate" description={`Delete "${rate.name}" (${rate.rate}%)? This cannot be undone.`} variant="destructive" onConfirm={() => onDelete(rate.id)} />
+      <ConfirmDialog open={confirmDelete} onClose={() => setConfirmDelete(false)} title="Delete Tax Rate" description={`Delete "${rate.name}" (${rate.rate}%)? This cannot be undone.`} variant="destructive" onConfirm={() => onDelete(rate.id)} />
     </>
   );
 }

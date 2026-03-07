@@ -52,28 +52,28 @@ function ReportsPage() {
 
   const handleExportSales = () => {
     if (!salesData?.length) return;
-    exportToCsv(salesData, `sales-report-${period}-${new Date().toISOString().slice(0, 10)}.csv`, {
-      date: 'Date',
-      revenue: 'Revenue (LKR)',
-      orders: 'Orders',
-      avgOrderValue: 'Avg Order Value',
-      storeId: 'Store ID',
-      storeName: 'Store Name',
-    });
+    exportToCsv(salesData, `sales-report-${period}`, [
+      { key: 'date', header: 'Date' },
+      { key: 'revenue', header: 'Revenue (LKR)' },
+      { key: 'orders', header: 'Orders' },
+      { key: 'averageOrderValue', header: 'Avg Order Value' },
+      { key: 'storeId', header: 'Store ID' },
+      { key: 'storeName', header: 'Store Name' },
+    ]);
   };
 
   const handleExportProducts = () => {
     if (!productsData?.length) return;
-    exportToCsv(productsData, `product-performance-${period}-${new Date().toISOString().slice(0, 10)}.csv`, {
-      productId: 'Product ID',
-      name: 'Product Name',
-      category: 'Category',
-      unitsSold: 'Units Sold',
-      revenue: 'Revenue (LKR)',
-      returns: 'Returns',
-      storeId: 'Store ID',
-      storeName: 'Store Name',
-    });
+    exportToCsv(productsData, `product-performance-${period}`, [
+      { key: 'productId', header: 'Product ID' },
+      { key: 'productName', header: 'Product Name' },
+      { key: 'category', header: 'Category' },
+      { key: 'unitsSold', header: 'Units Sold' },
+      { key: 'revenue', header: 'Revenue (LKR)' },
+      { key: 'returns', header: 'Returns' },
+      { key: 'storeId', header: 'Store ID' },
+      { key: 'storeName', header: 'Store Name' },
+    ]);
   };
 
   // Aggregate sales by date for chart
@@ -87,7 +87,7 @@ function ReportsPage() {
 
   // Aggregate top products
   const productMap = (productsData ?? []).reduce<Record<string, { name: string; 'Units Sold': number; Revenue: number }>>((acc, p) => {
-    if (!acc[p.productId]) acc[p.productId] = { name: p.name, 'Units Sold': 0, Revenue: 0 };
+    if (!acc[p.productId]) acc[p.productId] = { name: p.productName, 'Units Sold': 0, Revenue: 0 };
     acc[p.productId]['Units Sold'] += p.unitsSold;
     acc[p.productId].Revenue += p.revenue;
     return acc;
@@ -367,7 +367,7 @@ function ReportsPage() {
                   ) : (productsData ?? []).map((p, i) => (
                     <tr key={i} className="border-b border-surface-border hover:bg-surface-elevated transition-colors">
                       <td className="px-4 py-3">
-                        <span className="text-sm font-medium text-slate-100">{p.name}</span>
+                        <span className="text-sm font-medium text-slate-100">{p.productName}</span>
                         <br />
                         <span className="text-xs text-slate-500 font-mono">{p.productId}</span>
                       </td>

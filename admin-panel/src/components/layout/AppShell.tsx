@@ -9,7 +9,7 @@ import { useIsMobile } from '@/hooks/use-media-query';
 import { cn } from '@/lib/utils';
 
 export function AppShell() {
-  const { sidebarCollapsed, mobileSidebarOpen, setMobileSidebarOpen } = useUiStore();
+  const { mobileSidebarOpen, setMobileSidebarOpen } = useUiStore();
   const isMobile = useIsMobile();
   const router = useRouter();
 
