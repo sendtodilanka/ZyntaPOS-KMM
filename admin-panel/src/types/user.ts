@@ -1,4 +1,4 @@
-export type AdminRole = 'SUPER_ADMIN' | 'SUPPORT' | 'VIEWER';
+export type AdminRole = 'ADMIN' | 'SUPPORT' | 'VIEWER';
 export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
 
 export interface AdminUser {

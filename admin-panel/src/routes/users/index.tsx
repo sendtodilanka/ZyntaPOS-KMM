@@ -60,7 +60,7 @@ function UsersPage() {
           className="h-10 bg-surface-elevated border border-surface-border rounded-lg px-3 text-sm text-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500 min-w-[130px]"
         >
           <option value="">All Roles</option>
-          <option value="SUPER_ADMIN">Super Admin</option>
+          <option value="ADMIN">Admin</option>
           <option value="SUPPORT">Support</option>
           <option value="VIEWER">Viewer</option>
         </select>

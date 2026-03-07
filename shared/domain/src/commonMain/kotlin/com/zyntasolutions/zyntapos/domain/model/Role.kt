@@ -21,4 +21,11 @@ enum class Role {
 
     /** Inventory management — stock adjustments, supplier management. */
     STOCK_MANAGER,
+
+    /**
+     * Customer-facing support staff — create and manage support tickets,
+     * view customer profiles and order history, process complaint-related refunds.
+     * Cannot access financial reports, inventory, or register sessions.
+     */
+    CUSTOMER_SERVICE,
 }
