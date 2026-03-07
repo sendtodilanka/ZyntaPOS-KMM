@@ -16,7 +16,7 @@
 #   sync.zyntapos.com     → sync:8082    ✅ real service
 #   zyntapos.com          → website:80   ✅ Astro static site (Docker image from GHCR)
 #   www.zyntapos.com      → website:80   ✅ Astro static site (Docker image from GHCR)
-#   panel.zyntapos.com    → canary:80    🔲 Phase 3 (React panel)
+#   panel.zyntapos.com    → admin-panel:3000 ✅ React admin panel
 #   docs.zyntapos.com     → canary:80    🔲 Phase 3
 #   status.zyntapos.com   → canary:80    🔲 Phase 3
 # ═══════════════════════════════════════════════════════════════════
@@ -130,10 +130,21 @@ sync.zyntapos.com {
 	}
 }
 
-# ── panel.zyntapos.com — Admin dashboard (Phase 3) ────────────────
+# ── panel.zyntapos.com — Admin dashboard (React SPA) ─────────────
 panel.zyntapos.com {
 	import cf_tls
-	reverse_proxy canary:80
+
+	# SPA fallback — serve index.html for all non-asset routes
+	# so TanStack Router can handle client-side navigation
+	@assets {
+		path /assets/* /favicon.ico /robots.txt
+	}
+	handle @assets {
+		reverse_proxy admin-panel:3000
+	}
+	handle {
+		reverse_proxy admin-panel:3000
+	}
 }
 
 # ── docs.zyntapos.com — Documentation site (Phase 3) ──────────────
