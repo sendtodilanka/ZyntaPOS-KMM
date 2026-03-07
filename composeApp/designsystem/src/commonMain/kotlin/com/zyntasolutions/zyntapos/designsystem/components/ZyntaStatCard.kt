@@ -290,9 +290,12 @@ internal fun MiniSparkline(
         val paddingY = 4f
 
         val points = data.mapIndexed { index, value ->
+            val normalized = (value - minVal) / range
+            val availableHeight = size.height - (paddingY * 2)
+            val y = size.height - paddingY - normalized * availableHeight
             Offset(
                 x = index * stepX,
-                y = size.height - paddingY - ((value - minVal) / range) * (size.height - (paddingY * 2)),
+                y = y,
             )
         }
 
