@@ -19,7 +19,7 @@ const techHighlights = [
 
 const orgJsonLd = {
   '@context': 'https://schema.org',
-  '@type': ['Organization', 'LocalBusiness'],
+  '@type': 'Organization',
   name: company.name,
   url: company.siteUrl,
   logo: `${company.siteUrl}/logo.svg`,
@@ -39,7 +39,7 @@ const orgJsonLd = {
 
 <BaseLayout
   title="About — ZyntaPOS"
-  description="Zynta Solutions Pvt Ltd — building enterprise-grade POS software for Sri Lankan retailers. Founded in Sri Lanka, built with Kotlin Multiplatform."
+  description="Zynta Solutions Pvt Ltd — building enterprise-grade offline-first POS software for retailers worldwide. Built with Kotlin Multiplatform, works on Android and desktop."
   canonical={canonical}
   ogImage="/images/og/about.svg"
   jsonLd={[orgJsonLd, buildBreadcrumbJsonLd(breadcrumbs)]}
@@ -56,7 +56,7 @@ const orgJsonLd = {
         </h1>
         <p class="mt-6 text-lg text-slate-400 leading-relaxed">
           Zynta Solutions was founded with a single mission: make enterprise-grade Point of Sale software
-          affordable and accessible for every retailer in Sri Lanka and beyond. We saw small businesses
+          affordable and accessible for every retailer worldwide. We saw small businesses
           struggling with expensive, complicated POS systems that required constant internet connectivity
           — so we built ZyntaPOS.
         </p>
@@ -85,7 +85,7 @@ const orgJsonLd = {
               'Offline-first — works without internet, always',
               'Encrypted by default — your data, your control',
               'No vendor lock-in — export your data anytime',
-              'Built for Sri Lanka — local tax support, LKR pricing',
+              'Multi-currency — local tax rates for every market',
             ].map((point) => (
               <li class="flex items-start gap-3 text-slate-300">
                 <svg class="h-5 w-5 shrink-0 mt-0.5 text-sky-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -136,6 +136,6 @@ const orgJsonLd = {
 
   <CtaBanner
     title="Ready to try ZyntaPOS?"
-    subtitle="Join retailers across Sri Lanka who trust ZyntaPOS to run their business."
+    subtitle="Join retailers worldwide who trust ZyntaPOS to run their business."
   />
 </BaseLayout>

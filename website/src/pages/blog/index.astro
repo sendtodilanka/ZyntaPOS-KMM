@@ -2,15 +2,20 @@
 import BaseLayout from '@layouts/BaseLayout.astro';
 import Breadcrumbs from '@components/Breadcrumbs.astro';
 import { buildBreadcrumbJsonLd } from '@utils/seo';
+import { getCollection } from 'astro:content';
 
 const canonical = 'https://www.zyntapos.com/blog';
 const breadcrumbs = [{ name: 'Blog', url: canonical }];
+
+const allPosts = await getCollection('blog', ({ data }) => !data.draft);
+const posts = allPosts.sort((a, b) => b.data.publishDate.valueOf() - a.data.publishDate.valueOf());
 ---
 
 <BaseLayout
   title="Blog — ZyntaPOS"
-  description="ZyntaPOS blog — tips, updates, and insights for retailers in Sri Lanka."
+  description="POS system tips, retail technology guides, and ZyntaPOS updates. Learn how to run a better retail or restaurant business with offline-first software."
   canonical={canonical}
+  keywords="POS system tips, retail technology, offline POS guide, Android POS setup, small business POS"
   jsonLd={[buildBreadcrumbJsonLd(breadcrumbs)]}
   breadcrumbs={breadcrumbs}
 >
@@ -19,25 +24,60 @@ const breadcrumbs = [{ name: 'Blog', url: canonical }];
       <Breadcrumbs items={breadcrumbs} />
       <div class="mt-8 mx-auto max-w-2xl text-center">
         <h1 class="text-4xl font-extrabold tracking-tight text-white sm:text-5xl">Blog</h1>
-        <p class="mt-6 text-lg text-slate-400">
-          Tips, updates, and insights for retailers in Sri Lanka. Coming soon.
+        <p class="mt-4 text-lg text-slate-400">
+          Guides, tips, and insights for retailers using ZyntaPOS.
         </p>
       </div>
-      <!-- Empty state -->
-      <div class="mt-16 flex flex-col items-center gap-6 rounded-2xl border border-slate-700/50 bg-slate-800/30 py-20 text-center">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-        </svg>
-        <div>
-          <h2 class="text-xl font-semibold text-white">Coming Soon</h2>
-          <p class="mt-2 text-slate-400 max-w-sm">
-            We're working on articles about POS best practices, retail tips, and ZyntaPOS updates.
-          </p>
+
+      {posts.length > 0 ? (
+        <div class="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          {posts.map((post) => {
+            const formattedDate = post.data.publishDate.toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            });
+            return (
+              <article class="relative group flex flex-col rounded-2xl border border-slate-700/50 bg-slate-800/30 overflow-hidden hover:border-sky-500/30 transition-colors">
+                <div class="aspect-video bg-gradient-to-br from-sky-500/20 to-slate-800 flex items-center justify-center">
+                  <svg class="h-12 w-12 text-sky-500/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div class="flex flex-1 flex-col p-6">
+                  {post.data.tags.length > 0 && (
+                    <div class="mb-3 flex flex-wrap gap-1.5">
+                      {post.data.tags.slice(0, 2).map((tag) => (
+                        <span class="inline-flex items-center rounded-full border border-sky-500/20 bg-sky-500/10 px-2 py-0.5 text-xs font-medium text-sky-400">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <h2 class="text-lg font-bold text-white leading-snug group-hover:text-sky-400 transition-colors">
+                    <a href={`/blog/${post.slug}`} class="after:absolute after:inset-0">
+                      {post.data.title}
+                    </a>
+                  </h2>
+                  <p class="mt-3 text-sm text-slate-400 leading-relaxed line-clamp-3 flex-1">
+                    {post.data.description}
+                  </p>
+                  <div class="mt-4 flex items-center justify-between">
+                    <time datetime={post.data.publishDate.toISOString()} class="text-xs text-slate-500">
+                      {formattedDate}
+                    </time>
+                    <span class="text-xs font-medium text-sky-400">Read more →</span>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
         </div>
-        <a href="/support" class="text-sm font-medium text-sky-400 hover:text-sky-300 transition-colors">
-          View FAQ instead →
-        </a>
-      </div>
+      ) : (
+        <div class="mt-16 flex flex-col items-center gap-6 rounded-2xl border border-slate-700/50 bg-slate-800/30 py-20 text-center">
+          <p class="text-slate-400">No posts yet — check back soon.</p>
+        </div>
+      )}
     </div>
   </section>
 </BaseLayout>

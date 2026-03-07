@@ -8,6 +8,7 @@ export const mainNav: NavLink[] = [
   { label: 'Features', href: '/features' },
   { label: 'Pricing', href: '/pricing' },
   { label: 'Industries', href: '/industries' },
+  { label: 'Download', href: '/download' },
   { label: 'About', href: '/about' },
   { label: 'Support', href: '/support' },
 ];
@@ -16,6 +17,7 @@ export const footerNav: Record<string, NavLink[]> = {
   Product: [
     { label: 'Features', href: '/features' },
     { label: 'Pricing', href: '/pricing' },
+    { label: 'Download', href: '/download' },
     { label: 'Industries', href: '/industries' },
     { label: 'Changelog', href: '/blog' },
   ],
