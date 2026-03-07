@@ -248,6 +248,28 @@ services:
     mem_limit: 512m
     memswap_limit: 512m
 
+  # ── Marketing website (www.zyntapos.com) ────────────────────────────
+  # Astro static site built by CI and pushed to GHCR.
+  # Image: ghcr.io/sendtodilanka/zyntapos-website:latest
+  website:
+    image: ghcr.io/sendtodilanka/zyntapos-website:latest
+    container_name: zyntapos_website
+    restart: unless-stopped
+    expose:
+      - "80"
+    networks:
+      - zyntapos_net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80/ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    mem_limit: 64m
+    memswap_limit: 64m
+    security_opt:
+      - no-new-privileges:true
+
   # ── Canary static pages (fallback / panel placeholder) ─────────────
   # Serves branded "coming soon" pages for panel.zyntapos.com.
   # Remove when the React admin panel is deployed.
