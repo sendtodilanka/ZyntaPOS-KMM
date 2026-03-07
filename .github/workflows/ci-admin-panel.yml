@@ -85,9 +85,9 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          VITE_API_BASE_URL: /api
-          VITE_LICENSE_BASE_URL: /license
-          VITE_SYNC_BASE_URL: /sync
+          VITE_API_URL: https://api.zyntapos.com
+          VITE_LICENSE_URL: https://license.zyntapos.com
+          VITE_SYNC_URL: https://sync.zyntapos.com
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
@@ -128,8 +128,8 @@ jobs:
             ghcr.io/${{ steps.image.outputs.repo }}/admin-panel:latest
             ghcr.io/${{ steps.image.outputs.repo }}/admin-panel:${{ github.sha }}
           build-args: |
-            VITE_API_BASE_URL=/api
-            VITE_LICENSE_BASE_URL=/license
-            VITE_SYNC_BASE_URL=/sync
+            VITE_API_URL=https://api.zyntapos.com
+            VITE_LICENSE_URL=https://license.zyntapos.com
+            VITE_SYNC_URL=https://sync.zyntapos.com
           cache-from: type=gha
           cache-to: type=gha,mode=max
