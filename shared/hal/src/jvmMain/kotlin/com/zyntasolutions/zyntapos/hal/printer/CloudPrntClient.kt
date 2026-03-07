@@ -9,7 +9,7 @@ import kotlinx.coroutines.launch
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
-import java.net.URL
+import java.net.URI
 
 /**
  * ZyntaPOS — HAL | Desktop (JVM) CloudPRNT Client
@@ -71,7 +71,7 @@ class CloudPrntClient(
     private suspend fun poll() {
         runCatching {
             val pollUrl = "$serverUrl/printer/$deviceId"
-            val connection = (URL(pollUrl).openConnection() as HttpURLConnection).apply {
+            val connection = (URI.create(pollUrl).toURL().openConnection() as HttpURLConnection).apply {
                 requestMethod = "GET"
                 connectTimeout = CONNECT_TIMEOUT_MS
                 readTimeout = READ_TIMEOUT_MS

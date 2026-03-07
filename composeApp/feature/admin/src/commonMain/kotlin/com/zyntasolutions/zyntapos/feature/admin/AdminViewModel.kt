@@ -158,7 +158,7 @@ class AdminViewModel(
 
     private suspend fun purgeExpiredData(olderThanDays: Int) {
         updateState { copy(isLoading = true) }
-        val cutoff = Clock.System.now().toEpochMilliseconds() - olderThanDays * 24 * 60 * 60 * 1000L
+        val cutoff = Clock.System.now().toEpochMilliseconds() - olderThanDays.toLong() * 24 * 60 * 60 * 1000L
         when (val result = systemRepository.purgeExpiredData(cutoff)) {
             is Result.Success -> {
                 updateState {

@@ -1,7 +1,8 @@
 package com.zyntasolutions.zyntapos.feature.pos.printer
 
 import java.awt.Desktop
-import java.io.File
+import java.nio.file.Files
+import java.nio.file.attribute.PosixFilePermissions
 
 /**
  * JVM/Desktop implementation of [A4PrintDelegate].
@@ -13,8 +14,14 @@ import java.io.File
 class DesktopA4PrintDelegate : A4PrintDelegate {
 
     override suspend fun printDocument(title: String, content: String) {
-        val sanitized = title.replace(Regex("[^A-Za-z0-9_\\-. ]"), "_")
-        val tmpFile = File.createTempFile(sanitized, ".txt")
+        val tmpPath = try {
+            val attrs = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"))
+            Files.createTempFile("zyntapos_print_", ".txt", attrs)
+        } catch (_: UnsupportedOperationException) {
+            // Windows does not support POSIX attributes — fall back to standard temp file
+            Files.createTempFile("zyntapos_print_", ".txt")
+        }
+        val tmpFile = tmpPath.toFile()
         tmpFile.writeText(content)
         tmpFile.deleteOnExit()
         if (Desktop.isDesktopSupported()) {

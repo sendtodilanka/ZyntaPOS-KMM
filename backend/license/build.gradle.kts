@@ -19,11 +19,16 @@ repositories {
 
 // ── Security: force patched transitive dependency versions ───────────────────
 // jackson-core/databind: transitive via logback-classic JSON encoder
+// CVE-2025-55163: fixed in 4.1.124.Final; CVE-2025-67735: fixed in 4.1.129.Final
 configurations.all {
     resolutionStrategy.eachDependency {
+        if (requested.group == "io.netty") {
+            useVersion("4.1.131.Final")
+            because("CVE fix: CVE-2025-55163/58056/58057/67735 fixed in 4.1.131.Final")
+        }
         if (requested.group == "com.fasterxml.jackson.core") {
-            useVersion("2.19.0")
-            because("CVE fix: upgrade Jackson core to patched version (DoS)")
+            useVersion("2.19.4")
+            because("CVE fix: upgrade Jackson core to latest 2.19.x (GHSA-72hv fix pending 2.21.1)")
         }
     }
 }
@@ -81,7 +86,7 @@ dependencies {
     implementation("io.insert-koin:koin-logger-slf4j:$koinVersion")
 
     // ── Logging ───────────────────────────────────────────────────────
-    implementation("ch.qos.logback:logback-classic:1.5.18")
+    implementation("ch.qos.logback:logback-classic:1.5.32")
 
     // ── JWT RS256 ─────────────────────────────────────────────────────
     implementation("com.auth0:java-jwt:4.4.0")
