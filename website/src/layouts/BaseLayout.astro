@@ -39,6 +39,19 @@ const ga4Id = analytics.GA4_MEASUREMENT_ID;
     <meta name="generator" content={Astro.generator} />
     <link rel="preload" href="/fonts/inter-latin-400.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/inter-latin-600.woff2" as="font" type="font/woff2" crossorigin />
+
+    <!-- Theme: apply saved preference BEFORE render to prevent flash -->
+    <script is:inline>
+      (function () {
+        try {
+          const saved = localStorage.getItem('zynta-theme');
+          if (saved === 'light') {
+            document.documentElement.classList.add('light');
+          }
+        } catch (_) {}
+      })();
+    </script>
+
     <SeoHead
       title={title}
       description={description}
@@ -64,7 +77,7 @@ const ga4Id = analytics.GA4_MEASUREMENT_ID;
       </>
     )}
   </head>
-  <body class="min-h-screen bg-slate-900 text-slate-100 font-sans antialiased">
+  <body class="min-h-screen font-sans antialiased">
     <Header />
     <main id="main-content">
       <slot />
