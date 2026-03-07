@@ -125,13 +125,6 @@ enum class Permission {
 
     /** Perform inventory stocktake (physical count + variance application). */
     MANAGE_STOCKTAKE,
-
-    // ── Phase 2: Helpdesk / Support Tickets ───────────────────────────────────
-    /** Create, view, comment on, and resolve customer support tickets. */
-    MANAGE_SUPPORT_TICKETS,
-
-    /** Assign support tickets to other staff members. */
-    ASSIGN_SUPPORT_TICKETS,
     ;
 
     companion object {
@@ -164,8 +157,6 @@ enum class Permission {
                 MANAGE_STAFF, MANAGE_ACCOUNTING,
                 // Hardware / print
                 PRINT_INVOICE, MANAGE_STOCKTAKE,
-                // Helpdesk — managers can manage and assign tickets
-                MANAGE_SUPPORT_TICKETS, ASSIGN_SUPPORT_TICKETS,
             ),
 
             Role.CASHIER to setOf(
@@ -196,19 +187,6 @@ enum class Permission {
                 MANAGE_WAREHOUSES, MANAGE_STOCK_TRANSFERS,
                 // Stock managers perform physical inventory counts
                 MANAGE_STOCKTAKE,
-            ),
-
-            Role.CUSTOMER_SERVICE to setOf(
-                // View customer profiles and order history to handle complaints
-                MANAGE_CUSTOMERS,
-                // Process complaint-related refunds at the POS
-                PROCESS_REFUND,
-                // Print order receipts / invoices when resolving complaints
-                PRINT_INVOICE,
-                // Phase 2 — view and credit customer wallet during complaint resolution
-                MANAGE_WALLETS,
-                // Core helpdesk permissions
-                MANAGE_SUPPORT_TICKETS,
             ),
         )
     }

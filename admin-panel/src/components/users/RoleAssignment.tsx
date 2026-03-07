@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 import type { AdminRole } from '@/types/user';
 
 const ROLES: { value: AdminRole; label: string; description: string; color: string }[] = [
-  { value: 'ADMIN', label: 'Admin', description: 'Full access to all panel features', color: 'border-red-500/40 bg-red-500/10 text-red-400' },
+  { value: 'SUPER_ADMIN', label: 'Super Admin', description: 'Full access to all panel features', color: 'border-red-500/40 bg-red-500/10 text-red-400' },
   { value: 'SUPPORT', label: 'Support', description: 'Read-only + force sync + audit logs', color: 'border-amber-500/40 bg-amber-500/10 text-amber-400' },
   { value: 'VIEWER', label: 'Viewer', description: 'Read-only access to dashboards', color: 'border-slate-500/40 bg-slate-500/10 text-slate-400' },
 ];

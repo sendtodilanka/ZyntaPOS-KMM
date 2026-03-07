@@ -73,7 +73,7 @@ export const handlers = [
           username: 'admin',
           email: 'admin@zyntapos.com',
           fullName: 'System Admin',
-          role: 'ADMIN',
+          role: 'SUPER_ADMIN',
           storeId: null,
           active: true,
           lastLogin: new Date().toISOString(),

@@ -7,9 +7,9 @@ import { formatRelativeTime } from '@/lib/utils';
 import { useDeactivateUser } from '@/api/users';
 import type { AdminUser } from '@/types/user';
 
-const ROLE_LABELS = { ADMIN: 'Admin', SUPPORT: 'Support', VIEWER: 'Viewer' };
+const ROLE_LABELS = { SUPER_ADMIN: 'Super Admin', SUPPORT: 'Support', VIEWER: 'Viewer' };
 const ROLE_COLORS = {
-  ADMIN: 'text-red-400 bg-red-400/10 border border-red-400/20',
+  SUPER_ADMIN: 'text-red-400 bg-red-400/10 border border-red-400/20',
   SUPPORT: 'text-amber-400 bg-amber-400/10 border border-amber-400/20',
   VIEWER: 'text-slate-400 bg-slate-400/10 border border-slate-400/20',
 };

@@ -448,7 +448,7 @@ data class ProductEntity(...)
 
 **Code review rule:** If you see `*Entity` in `shared/domain/model/`, request a rename citing ADR-002.
 
-**Domain models (35 files):** `Product`, `Order`, `OrderItem`, `Customer`, `Category`, `User`, `Role`, `Permission`, `CashRegister`, `RegisterSession`, `CashMovement`, `PaymentMethod`, `PaymentSplit`, `Supplier`, `TaxGroup`, `UnitOfMeasure`, `StockAdjustment`, `SyncOperation`, `SyncStatus`, `OrderStatus`, `OrderType`, `DiscountType`, `CartItem`, `OrderTotals`, `ProductVariant`, `AuditEntry`, `Edition`, `Heartbeat`, `IntegrityReport`, `License`, `LicenseStatus`, `SupportTicket`, `TicketStatus`, `TicketPriority`, `TicketActivity`
+**Domain models (31 files):** `Product`, `Order`, `OrderItem`, `Customer`, `Category`, `User`, `Role`, `Permission`, `CashRegister`, `RegisterSession`, `CashMovement`, `PaymentMethod`, `PaymentSplit`, `Supplier`, `TaxGroup`, `UnitOfMeasure`, `StockAdjustment`, `SyncOperation`, `SyncStatus`, `OrderStatus`, `OrderType`, `DiscountType`, `CartItem`, `OrderTotals`, `ProductVariant`, `AuditEntry`, `Edition`, `Heartbeat`, `IntegrityReport`, `License`, `LicenseStatus`
 
 ### ADR-001: ViewModel Base Class (ACCEPTED)
 
@@ -943,7 +943,7 @@ interface BarcodeScanner {
 | PIN | `PinManager` (object) | SHA-256 + 16-byte random salt; format `<base64url-salt>:<hex-hash>`; constant-time compare |
 | DB Key | `DatabaseKeyManager` (expect/actual) | Android: envelope encryption — DEK wrapped by non-extractable KEK in Android Keystore; Desktop: 256-bit AES key in PKCS12 KeyStore at `~/.zyntapos/.db_keystore.p12`; passphrase never written to disk in plaintext |
 | Prefs | `SecurePreferences` (expect/actual) | Android: EncryptedSharedPreferences (AES-256-SIV keys, AES-256-GCM values); JVM: AES-GCM encrypted properties file |
-| Roles | `RbacEngine` | Stateless; roles: ADMIN, STORE_MANAGER, CASHIER, ACCOUNTANT, STOCK_MANAGER, CUSTOMER_SERVICE |
+| Roles | `RbacEngine` | Stateless; roles: ADMIN, MANAGER, CASHIER, CUSTOMER_SERVICE, REPORTER |
 | Session | `SessionManager` | In `:composeApp:feature:auth` (NOT `:shared:security`); idle-timeout countdown, emits `AuthEffect.ShowPinLock` |
 
 ---

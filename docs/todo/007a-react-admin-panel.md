@@ -231,7 +231,7 @@ The panel is protected by Cloudflare Access. No custom login page is needed.
 New admin-specific API endpoints require a separate admin JWT (not the POS app JWT). The flow:
 
 1. CF Access JWT is validated at the Caddy/API layer
-2. The API issues a short-lived admin session token scoped to `role: ADMIN`
+2. The API issues a short-lived admin session token scoped to `role: SUPER_ADMIN`
 3. All admin API calls include `Authorization: Bearer <admin-token>`
 4. Admin tokens have a 1-hour TTL, auto-refreshed by the API client interceptor
 
@@ -239,7 +239,7 @@ New admin-specific API endpoints require a separate admin JWT (not the POS app J
 
 | Role | Permissions |
 |------|-------------|
-| `ADMIN` | Full access to all panel features |
+| `SUPER_ADMIN` | Full access to all panel features |
 | `SUPPORT` | Read-only access + force sync + view audit logs (no license create/revoke) |
 | `VIEWER` | Read-only access to dashboards and reports |
 
@@ -250,7 +250,7 @@ Roles are checked client-side for UI gating and server-side for enforcement.
 interface AdminUser {
   email: string;
   name: string;
-  role: 'ADMIN' | 'SUPPORT' | 'VIEWER';
+  role: 'SUPER_ADMIN' | 'SUPPORT' | 'VIEWER';
   avatarUrl?: string;
 }
 

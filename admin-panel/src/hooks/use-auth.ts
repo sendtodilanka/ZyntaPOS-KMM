@@ -3,7 +3,7 @@ import { CF_COOKIE_NAME } from '@/lib/constants';
 export interface AdminUser {
   email: string;
   name: string;
-  role: 'ADMIN' | 'SUPPORT' | 'VIEWER';
+  role: 'SUPER_ADMIN' | 'SUPPORT' | 'VIEWER';
   avatarUrl?: string;
   sub?: string;
 }
@@ -39,7 +39,7 @@ function getCfToken(): string | null {
 }
 
 const ROLE_PERMISSIONS: Record<string, string[]> = {
-  ADMIN: ['license:write', 'license:read', 'store:write', 'store:read', 'user:write', 'user:read', 'audit:read', 'sync:write', 'sync:read', 'config:write', 'config:read', 'reports:read', 'health:read', 'alerts:write', 'alerts:read'],
+  SUPER_ADMIN: ['license:write', 'license:read', 'store:write', 'store:read', 'user:write', 'user:read', 'audit:read', 'sync:write', 'sync:read', 'config:write', 'config:read', 'reports:read', 'health:read', 'alerts:write', 'alerts:read'],
   SUPPORT: ['license:read', 'store:read', 'user:read', 'audit:read', 'sync:write', 'sync:read', 'config:read', 'reports:read', 'health:read', 'alerts:read'],
   VIEWER: ['license:read', 'store:read', 'audit:read', 'reports:read', 'health:read'],
 };
@@ -48,14 +48,14 @@ function resolveUser(): AdminUser | null {
   const token = getCfToken();
   if (!token) {
     if (import.meta.env.DEV) {
-      return { email: 'dev@zyntapos.com', name: 'Dev Admin', role: 'ADMIN' };
+      return { email: 'dev@zyntapos.com', name: 'Dev Admin', role: 'SUPER_ADMIN' };
     }
     return null;
   }
   const payload = decodeCfJwt(token);
   if (!payload) return null;
   const rawRole = payload['custom:role'] ?? 'VIEWER';
-  const role = ['ADMIN', 'SUPPORT', 'VIEWER'].includes(rawRole)
+  const role = ['SUPER_ADMIN', 'SUPPORT', 'VIEWER'].includes(rawRole)
     ? (rawRole as AdminUser['role'])
     : 'VIEWER';
   return {

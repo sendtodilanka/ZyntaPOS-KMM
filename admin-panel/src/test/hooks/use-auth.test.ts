@@ -27,7 +27,7 @@ describe('useAuth', () => {
     const payload = {
       email: 'admin@test.com',
       name: 'Test Admin',
-      custom: { role: 'ADMIN' },
+      custom: { role: 'SUPER_ADMIN' },
       exp: Math.floor(Date.now() / 1000) + 3600,
       iat: Math.floor(Date.now() / 1000),
     };
