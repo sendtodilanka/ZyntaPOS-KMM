@@ -322,7 +322,7 @@ fun Route.healthRoutes() {
 | Channel | Type | Target | Use Case |
 |---------|------|--------|----------|
 | Discord `#alerts` | Discord Webhook | `https://discord.com/api/webhooks/...` | Primary — all alerts |
-| Email (admin) | SMTP | `admin@zyntasolutions.com` | Backup — critical only |
+| Email (admin) | SMTP | `admin@zyntapos.com` | Backup — critical only |
 | Webhook → Admin Panel | HTTP POST | `http://panel:8081/api/webhooks/uptime` | Dashboard integration |
 
 ### 7.2 Alert Rules

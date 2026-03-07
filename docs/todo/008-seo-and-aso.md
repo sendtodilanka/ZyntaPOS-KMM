@@ -88,7 +88,7 @@ Add JSON-LD `<script>` blocks to the `<head>` of the relevant pages. Astro compo
   "contactPoint": {
     "@type": "ContactPoint",
     "contactType": "customer support",
-    "email": "support@zyntasolutions.com"
+    "email": "support@zyntapos.com"
   },
   "sameAs": [
     "https://www.linkedin.com/company/zynta-solutions",
@@ -237,7 +237,7 @@ Add JSON-LD `<script>` blocks to the `<head>` of the relevant pages. Astro compo
     "addressCountry": "LK"
   },
   "url": "https://www.zyntapos.com",
-  "email": "hello@zyntasolutions.com"
+  "email": "hello@zyntapos.com"
 }
 ```
 
@@ -393,7 +393,7 @@ BUILT FOR SRI LANKA
 • Sinhala and Tamil localization (coming soon)
 
 Download ZyntaPOS and start your free trial today.
-Support: support@zyntasolutions.com
+Support: support@zyntapos.com
 Website: https://www.zyntapos.com
 ```
 

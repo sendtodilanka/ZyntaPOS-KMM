@@ -12,7 +12,7 @@
 
 All source files and build configurations currently use the incorrect root package
 `com.zynta.pos`. Based on company identity (Zynta Solutions Pvt Ltd /
-zyntasolutions.com) and product brand (ZyntaPOS / zyntapos.com), the canonical
+zyntapos.com) and product brand (ZyntaPOS / zyntapos.com), the canonical
 package must be `com.zyntasolutions.zyntapos`. This plan renames every affected
 file and declaration before any Sprint 2+ implementation begins.
 
@@ -26,7 +26,7 @@ file and declaration before any Sprint 2+ implementation begins.
 | **NEW package**     | `com.zyntasolutions.zyntapos`   |
 | **OLD folder path** | `com/zynta/pos/`                |
 | **NEW folder path** | `com/zyntasolutions/zyntapos/`  |
-| Company domain      | zyntasolutions.com              |
+| Company domain      | zyntapos.com              |
 | App name            | zyntapos                        |
 
 ---

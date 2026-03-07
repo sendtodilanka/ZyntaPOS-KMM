@@ -31,7 +31,7 @@ Custom Auth Layer (identity + access — to be implemented)
   • Backend admin user table + JWT     ← to implement
   • Role-based access (SUPER_ADMIN / OPERATOR / FINANCE / AUDITOR)  ← to implement
   • MFA (TOTP — Google Authenticator)  ← to implement
-  • Google SSO (restricted to @zyntasolutions.com)  ← to implement
+  • Google SSO (restricted to @zyntapos.com)  ← to implement
   • Admin user management UI           ← to implement
   • Brute-force protection + lockout   ← to implement
   • Audit trail for auth events        ← to implement
@@ -53,7 +53,7 @@ Custom Auth Layer (identity + access — to be implemented)
 - Ktor admin auth routes (`/admin/auth/*`) behind the existing `panel.zyntapos.com` Caddy config
 - ZyntaPOS-issued JWTs (HS256, 15-min access + 7-day refresh) in httpOnly cookies
 - TOTP MFA (Google Authenticator / Authy compatible)
-- Google OAuth 2.0 SSO restricted to `@zyntasolutions.com` domain
+- Google OAuth 2.0 SSO restricted to `@zyntapos.com` domain
 - Admin user CRUD UI in the panel's `/settings/users` route
 - Full auth audit trail in the existing audit log system
 
@@ -106,7 +106,7 @@ Access Token (JWT HS256)
   Header:  { alg: "HS256", typ: "JWT" }
   Payload: {
     sub:   "admin_user_uuid",
-    email: "dilanka@zyntasolutions.com",
+    email: "dilanka@zyntapos.com",
     name:  "Dilanka",
     role:  "SUPER_ADMIN",           // SUPER_ADMIN | OPERATOR | FINANCE | AUDITOR
     mfa:   true,                    // MFA was verified in this session
@@ -465,7 +465,7 @@ panel.zyntapos.com/login
 │  │                                                   │  │
 │  │  Email address                                    │  │
 │  │  ┌─────────────────────────────────────────────┐ │  │
-│  │  │ dilanka@zyntasolutions.com                  │ │  │
+│  │  │ dilanka@zyntapos.com                  │ │  │
 │  │  └─────────────────────────────────────────────┘ │  │
 │  │                                                   │  │
 │  │  Password                                         │  │
@@ -582,7 +582,7 @@ Frontend (PKCE):
      &scope=openid email profile
      &code_challenge=<challenge>
      &code_challenge_method=S256
-     &hd=zyntasolutions.com      ← restricts to company domain in Google UI
+     &hd=zyntapos.com      ← restricts to company domain in Google UI
 
 Backend (token exchange):
 4. POST /admin/auth/google { code, code_verifier }
@@ -590,7 +590,7 @@ Backend (token exchange):
    Returns: { id_token, access_token }
 6. Verify id_token signature (Google public keys from JWKS endpoint)
 7. Extract claims: { email, name, picture, sub, hd }
-8. Validate: hd == "zyntasolutions.com"  ← domain restriction enforced server-side too
+8. Validate: hd == "zyntapos.com"  ← domain restriction enforced server-side too
 9. Upsert admin_users (google_sub = sub, email, name, avatarUrl = picture)
 10. Issue ZyntaPOS JWT + refresh token → httpOnly cookies
 11. Redirect to /
@@ -600,7 +600,7 @@ Backend (token exchange):
 
 ```
 Layer 1: Google OAuth hd= parameter      → Google blocks non-domain accounts in chooser UI
-Layer 2: Backend hd claim validation     → reject tokens where hd != "zyntasolutions.com"
+Layer 2: Backend hd claim validation     → reject tokens where hd != "zyntapos.com"
 Layer 3: Admin user is_active check      → even valid Google accounts can be deactivated
 ```
 
@@ -833,7 +833,7 @@ and tighten rules for the custom login endpoint:
 
 ### Day 5 — Google SSO
 
-**Goal:** Google OAuth 2.0 PKCE flow, domain-restricted to @zyntasolutions.com.
+**Goal:** Google OAuth 2.0 PKCE flow, domain-restricted to @zyntapos.com.
 
 ```
 [ ] Google Cloud Console setup (manual, one-time)
@@ -845,7 +845,7 @@ and tighten rules for the custom login endpoint:
 [ ] Add to VPS .env:
     GOOGLE_CLIENT_ID=...
     GOOGLE_CLIENT_SECRET=...
-    GOOGLE_ALLOWED_DOMAIN=zyntasolutions.com
+    GOOGLE_ALLOWED_DOMAIN=zyntapos.com
 
 [ ] Backend: Google token exchange
     - POST /admin/auth/google { code, code_verifier, redirect_uri }
@@ -874,7 +874,7 @@ and tighten rules for the custom login endpoint:
     - Click "Continue with Google" → redirected to Google account chooser
     - Google chooser shows "Sign in to ZyntaPOS Admin Panel"
     - Login with non-company Google account → "Access denied" error
-    - Login with @zyntasolutions.com account → auto-provisioned as AUDITOR, logged in
+    - Login with @zyntapos.com account → auto-provisioned as AUDITOR, logged in
     - Second login with same Google account → existing user, no duplicate created
     - If SUPER_ADMIN logs in via Google and MFA enabled → MFA verify step still required
     - Revoke access in admin panel → Google SSO login still blocked (is_active check)
@@ -963,7 +963,7 @@ and tighten rules for the custom login endpoint:
     - ADMIN_BOOTSTRAP_PASSWORD (first SUPER_ADMIN password — change immediately after setup)
     - GOOGLE_CLIENT_ID
     - GOOGLE_CLIENT_SECRET
-    - GOOGLE_ALLOWED_DOMAIN (= "zyntasolutions.com")
+    - GOOGLE_ALLOWED_DOMAIN (= "zyntapos.com")
 
 [ ] Security review checklist
     - [ ] No secrets in frontend bundle (GOOGLE_CLIENT_ID is safe; CLIENT_SECRET is not)
@@ -1033,9 +1033,9 @@ and tighten rules for the custom login endpoint:
 
 ### Google SSO
 
-- [ ] Google chooser shows company domain hint (`hd=zyntasolutions.com`)
+- [ ] Google chooser shows company domain hint (`hd=zyntapos.com`)
 - [ ] Login with `@gmail.com` → blocked (both Google-side and backend-side)
-- [ ] Login with `@zyntasolutions.com` → success, auto-provisioned
+- [ ] Login with `@zyntapos.com` → success, auto-provisioned
 - [ ] Second login with same Google account → no duplicate user row
 - [ ] Deactivated Google user cannot log in via SSO
 

@@ -48,7 +48,7 @@ function resolveUser(): AdminUser | null {
   const token = getCfToken();
   if (!token) {
     if (import.meta.env.DEV) {
-      return { email: 'dev@zyntasolutions.com', name: 'Dev Admin', role: 'SUPER_ADMIN' };
+      return { email: 'dev@zyntapos.com', name: 'Dev Admin', role: 'SUPER_ADMIN' };
     }
     return null;
   }

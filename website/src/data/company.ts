@@ -4,8 +4,8 @@ export const company = {
   tagline: 'The Offline-First POS for Modern Retail',
   description:
     'ZyntaPOS is a free, enterprise-grade, offline-first Point of Sale system for retail stores, restaurants, and small businesses worldwide. AES-256 encrypted, multi-store ready, works without internet on Android and desktop.',
-  email: 'support@zyntasolutions.com',
-  salesEmail: 'sales@zyntasolutions.com',
+  email: 'support@zyntapos.com',
+  salesEmail: 'sales@zyntapos.com',
   twitter: '@zyntapos',
   linkedin: 'https://linkedin.com/company/zyntasolutions',
   github: 'https://github.com/zyntasolutions',

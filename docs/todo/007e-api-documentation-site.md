@@ -122,7 +122,7 @@ info:
     Handles authentication, product catalog, and sync operations.
   contact:
     name: Zynta Solutions
-    email: dev@zyntasolutions.com
+    email: dev@zyntapos.com
   license:
     name: Proprietary
 servers:
@@ -388,7 +388,7 @@ description: Get up and running with the ZyntaPOS API in 5 minutes
 
 ## Prerequisites
 
-- A valid ZyntaPOS license key (contact sales@zyntasolutions.com)
+- A valid ZyntaPOS license key (contact sales@zyntapos.com)
 - A registered device ID (assigned during onboarding)
 - User credentials (username/password created by store admin)
 
