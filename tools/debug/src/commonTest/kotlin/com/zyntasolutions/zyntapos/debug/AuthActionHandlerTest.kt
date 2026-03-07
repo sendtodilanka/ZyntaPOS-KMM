@@ -41,7 +41,7 @@ class AuthActionHandlerTest {
 
     private val adminUser = User(
         id        = "u-admin",
-        name      = "Super Admin",
+        name      = "Admin",
         email     = "admin@store.com",
         role      = Role.ADMIN,
         storeId   = "store-1",
@@ -178,7 +178,7 @@ class AuthActionHandlerTest {
         val handler = buildHandler(userRepo = StubUserRepository(users = listOf(adminUser)))
 
         val result = handler.getAllUsers() as Result.Success
-        assertEquals("Super Admin", result.data.first().name)
+        assertEquals("Admin", result.data.first().name)
     }
 
     @Test
