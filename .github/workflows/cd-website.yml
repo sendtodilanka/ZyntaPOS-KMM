@@ -1,0 +1,41 @@
+name: Deploy Website to Cloudflare Pages
+
+on:
+  push:
+    branches: [main]
+    paths: ['website/**']
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Build & Deploy to CF Pages
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      deployments: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: website/.nvmrc
+
+      - name: Install dependencies
+        working-directory: website
+        run: npm install
+
+      - name: Build Astro site
+        working-directory: website
+        run: npx astro build
+        env:
+          SITE_URL: https://www.zyntapos.com
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=zyntapos-website
+          workingDirectory: website
