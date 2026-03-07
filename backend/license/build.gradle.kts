@@ -19,7 +19,9 @@ repositories {
 
 // ── Security: force patched transitive dependency versions ───────────────────
 // jackson-core/databind: transitive via logback-classic JSON encoder
+// kotlin-reflect: Exposed ORM pulls in an older 1.6.x transitive (CVE-2020-29582)
 // CVE-2025-55163: fixed in 4.1.124.Final; CVE-2025-67735: fixed in 4.1.129.Final
+// GHSA-72hv-8253-57qq: 2.19.x fully vulnerable until 2.21.1; backport fix is 2.18.6
 configurations.all {
     resolutionStrategy.eachDependency {
         if (requested.group == "io.netty") {
@@ -27,8 +29,12 @@ configurations.all {
             because("CVE fix: CVE-2025-55163/58056/58057/67735 fixed in 4.1.131.Final")
         }
         if (requested.group == "com.fasterxml.jackson.core") {
-            useVersion("2.19.4")
-            because("CVE fix: upgrade Jackson core to latest 2.19.x (GHSA-72hv fix pending 2.21.1)")
+            useVersion("2.18.6")
+            because("CVE fix: GHSA-72hv-8253-57qq patched in 2.18.6 (2.19.x patched version 2.21.1 not yet released)")
+        }
+        if (requested.group == "org.jetbrains.kotlin" && requested.name == "kotlin-reflect") {
+            useVersion("2.3.0")
+            because("CVE fix: CVE-2020-29582 fixed in 1.4.21; force to project Kotlin version to eliminate old transitive")
         }
     }
 }
@@ -70,7 +76,7 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-java-time:$exposedVersion")
-    implementation("org.postgresql:postgresql:42.7.5")
+    implementation("org.postgresql:postgresql:42.7.7")
     implementation("com.zaxxer:HikariCP:6.3.0")
 
     // ── Migrations ────────────────────────────────────────────────────
