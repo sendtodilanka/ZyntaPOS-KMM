@@ -1,0 +1,32 @@
+export type SyncStatus = 'SYNCED' | 'PENDING' | 'SYNCING' | 'FAILED' | 'STALE';
+export type SyncOperationType = 'CREATE' | 'UPDATE' | 'DELETE';
+
+export interface StoreSyncStatus {
+  storeId: string;
+  storeName: string;
+  status: SyncStatus;
+  queueDepth: number;
+  lastSyncAt: string | null;
+  lastSyncDurationMs: number | null;
+  errorCount: number;
+  pendingOperations: number;
+}
+
+export interface SyncOperation {
+  id: string;
+  storeId: string;
+  entityType: string;
+  entityId: string;
+  operationType: SyncOperationType;
+  payload: Record<string, unknown>;
+  clientTimestamp: string;
+  retryCount: number;
+  lastErrorMessage: string | null;
+  createdAt: string;
+}
+
+export interface ForceSyncResult {
+  storeId: string;
+  operationsQueued: number;
+  triggeredAt: string;
+}
