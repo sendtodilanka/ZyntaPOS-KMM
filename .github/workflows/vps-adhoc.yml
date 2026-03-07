@@ -1,0 +1,19 @@
+name: VPS Ad-hoc
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        description: 'Shell command to run on VPS'
+        required: true
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.VPS_USER_KEY }}
+          script: ${{ github.event.inputs.command }}
