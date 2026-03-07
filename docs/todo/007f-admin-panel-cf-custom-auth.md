@@ -29,7 +29,7 @@ Cloudflare Layer (network security — already in place)
 Custom Auth Layer (identity + access — to be implemented)
   • ZyntaPOS branded login page        ← currently CF branded
   • Backend admin user table + JWT     ← to implement
-  • Role-based access (ADMIN / OPERATOR / FINANCE / AUDITOR)  ← to implement
+  • Role-based access (ADMIN / OPERATOR / FINANCE / AUDITOR / HELPDESK)  ← to implement
   • MFA (TOTP — Google Authenticator)  ← to implement
   • Google SSO (restricted to @zyntapos.com)  ← to implement
   • Admin user management UI           ← to implement
@@ -108,7 +108,7 @@ Access Token (JWT HS256)
     sub:   "admin_user_uuid",
     email: "dilanka@zyntapos.com",
     name:  "Dilanka",
-    role:  "ADMIN",           // ADMIN | OPERATOR | FINANCE | AUDITOR
+    role:  "ADMIN",           // ADMIN | OPERATOR | FINANCE | AUDITOR | HELPDESK
     mfa:   true,                    // MFA was verified in this session
     iat:   1741305600,
     exp:   1741306500               // 15 minutes
@@ -133,7 +133,7 @@ CREATE TABLE admin_users (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email           TEXT NOT NULL UNIQUE,
     name            TEXT NOT NULL,
-    role            TEXT NOT NULL CHECK (role IN ('ADMIN', 'OPERATOR', 'FINANCE', 'AUDITOR')),
+    role            TEXT NOT NULL CHECK (role IN ('ADMIN', 'OPERATOR', 'FINANCE', 'AUDITOR', 'HELPDESK')),
     password_hash   TEXT,                      -- NULL if Google SSO only
     google_sub      TEXT UNIQUE,               -- NULL if password only
     mfa_secret      TEXT,                      -- TOTP secret, encrypted at rest
@@ -171,13 +171,100 @@ CREATE TABLE admin_mfa_backup_codes (
 CREATE INDEX idx_admin_sessions_user_id ON admin_sessions(user_id);
 CREATE INDEX idx_admin_sessions_token_hash ON admin_sessions(token_hash);
 CREATE INDEX idx_admin_mfa_backup_codes_user_id ON admin_mfa_backup_codes(user_id);
+
+-- ───────────────────────────────────────────────────────────────────────────
+-- Support Ticket System (HELPDESK extension — V6 migration)
+-- ───────────────────────────────────────────────────────────────────────────
+
+-- Support tickets created by HELPDESK, resolved by OPERATOR
+CREATE TABLE support_tickets (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    ticket_number   TEXT NOT NULL UNIQUE,          -- TKT-2026-001234 (auto-generated)
+    store_id        TEXT,                          -- links to ZyntaPOS store (nullable — not all issues are store-specific)
+    license_id      UUID,                          -- links to a license row (nullable)
+
+    -- Reporter (the HELPDESK agent who created the ticket)
+    created_by      UUID NOT NULL REFERENCES admin_users(id),
+    customer_name   TEXT NOT NULL,
+    customer_email  TEXT,
+    customer_phone  TEXT,
+
+    -- Assignment (must be OPERATOR or ADMIN)
+    assigned_to     UUID REFERENCES admin_users(id),
+    assigned_at     TIMESTAMPTZ,
+
+    -- Content
+    title           TEXT NOT NULL,
+    description     TEXT NOT NULL,
+    category        TEXT NOT NULL CHECK (category IN (
+                      'HARDWARE', 'SOFTWARE', 'SYNC', 'BILLING', 'OTHER')),
+    priority        TEXT NOT NULL DEFAULT 'MEDIUM' CHECK (priority IN (
+                      'LOW', 'MEDIUM', 'HIGH', 'CRITICAL')),
+
+    -- Lifecycle
+    status          TEXT NOT NULL DEFAULT 'OPEN' CHECK (status IN (
+                      'OPEN', 'ASSIGNED', 'IN_PROGRESS',
+                      'PENDING_CUSTOMER', 'RESOLVED', 'CLOSED')),
+
+    -- Resolution (only OPERATOR / ADMIN can set these)
+    resolved_by     UUID REFERENCES admin_users(id),
+    resolved_at     TIMESTAMPTZ,
+    resolution_note TEXT,
+    time_spent_min  INTEGER,
+
+    -- SLA (calculated from priority at creation time)
+    sla_due_at      TIMESTAMPTZ,
+    sla_breached    BOOLEAN NOT NULL DEFAULT FALSE,
+
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- SLA rules (enforced at application layer):
+--   CRITICAL → response 1h,  resolution 4h
+--   HIGH     → response 4h,  resolution 24h
+--   MEDIUM   → response 8h,  resolution 48h
+--   LOW      → response 24h, resolution 72h
+
+-- Comments / activity log per ticket
+CREATE TABLE ticket_comments (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    ticket_id   UUID NOT NULL REFERENCES support_tickets(id) ON DELETE CASCADE,
+    author_id   UUID NOT NULL REFERENCES admin_users(id),
+    body        TEXT NOT NULL,
+    is_internal BOOLEAN NOT NULL DEFAULT FALSE,    -- TRUE = internal note (hidden from customer-facing views)
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- File / diagnostic log attachments
+CREATE TABLE ticket_attachments (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    ticket_id       UUID NOT NULL REFERENCES support_tickets(id) ON DELETE CASCADE,
+    uploaded_by     UUID NOT NULL REFERENCES admin_users(id),
+    file_name       TEXT NOT NULL,
+    file_url        TEXT NOT NULL,                 -- S3/R2 URL or inline diagnostic log reference
+    attachment_type TEXT NOT NULL DEFAULT 'FILE' CHECK (attachment_type IN ('FILE', 'DIAGNOSTIC_LOG')),
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Indexes for tickets
+CREATE INDEX idx_support_tickets_status      ON support_tickets(status);
+CREATE INDEX idx_support_tickets_assigned_to ON support_tickets(assigned_to);
+CREATE INDEX idx_support_tickets_created_by  ON support_tickets(created_by);
+CREATE INDEX idx_support_tickets_store_id    ON support_tickets(store_id);
+CREATE INDEX idx_support_tickets_priority    ON support_tickets(priority);
+CREATE INDEX idx_ticket_comments_ticket_id   ON ticket_comments(ticket_id);
+CREATE INDEX idx_ticket_attachments_ticket   ON ticket_attachments(ticket_id);
 ```
+
+> **Migration file:** `backend/api/src/main/resources/db/migration/V6__helpdesk_tickets.sql`
+> Run after V5 (admin auth tables).
 
 ---
 
 ## 3.5 Role Definitions & Permission Matrix
 
-### Roles (4)
+### Roles (5)
 
 | Role | Who Gets It | Real-World Title |
 |------|------------|-----------------|
@@ -185,74 +272,153 @@ CREATE INDEX idx_admin_mfa_backup_codes_user_id ON admin_mfa_backup_codes(user_i
 | `OPERATOR` | Technical support engineers | Field techs who install/fix POS terminals |
 | `FINANCE` | Finance team | Accountant, billing manager |
 | `AUDITOR` | Company auditors | Internal/external compliance auditor |
+| `HELPDESK` | Customer support agents | Front-line staff who log customer complaints and coordinate with OPERATOR |
 
 ### Permission Matrix
 
-| Panel Feature | ADMIN | OPERATOR | FINANCE | AUDITOR |
-|--------------|:-----------:|:--------:|:-------:|:-------:|
-| Dashboard — ops KPIs (uptime, sync, errors) | ✅ | ✅ | ❌ | ❌ |
-| Dashboard — financial KPIs (MRR, churn) | ✅ | ❌ | ✅ | ❌ |
-| License — view | ✅ | ✅ | ✅ | 👁 |
-| License — create / extend | ✅ | ❌ | ❌ | ❌ |
-| License — revoke / suspend | ✅ | ❌ | ❌ | ❌ |
-| Stores — view health & sync status | ✅ | ✅ | ❌ | ❌ |
-| Stores — manage sync conflicts | ✅ | ✅ | ❌ | ❌ |
-| Remote Diagnostics | ✅ | ✅ | ❌ | ❌ |
-| Remote Config Push | ✅ | ❌ | ❌ | ❌ |
-| Financial Reports (revenue, churn, billing) | ✅ | ❌ | ✅ | 👁 |
-| Operational Reports (usage, uptime, sync) | ✅ | ✅ | ❌ | 👁 |
-| System Health & Alerts — view | ✅ | ✅ | ❌ | ❌ |
-| Alerts — acknowledge | ✅ | ✅ | ❌ | ❌ |
-| Audit Logs | ✅ | ❌ | ❌ | ✅ |
-| Admin User Management | ✅ | ❌ | ❌ | ❌ |
-| System Settings | ✅ | ❌ | ❌ | ❌ |
+> 👁 = Read-only (no export/write) | ✅ = Full access | ❌ = No access (404 on API, redirected on frontend)
 
-> 👁 = Read-only (no export) | ✅ = Full access | ❌ = No access (404 on API, redirected on frontend)
+#### Dashboard
+| Feature | ADMIN | OPERATOR | FINANCE | AUDITOR | HELPDESK |
+|---------|:-----:|:--------:|:-------:|:-------:|:--------:|
+| Dashboard — ops KPIs (uptime, sync, errors) | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Dashboard — financial KPIs (MRR, churn) | ✅ | ❌ | ✅ | ❌ | ❌ |
+| Dashboard — support KPIs (open tickets, SLA status) | ✅ | ✅ | ❌ | ❌ | ✅ |
+
+#### Licenses
+| Feature | ADMIN | OPERATOR | FINANCE | AUDITOR | HELPDESK |
+|---------|:-----:|:--------:|:-------:|:-------:|:--------:|
+| License — view | ✅ | ✅ | ✅ | 👁 | 👁 |
+| License — create / extend | ✅ | ❌ | ❌ | ❌ | ❌ |
+| License — revoke / suspend | ✅ | ❌ | ❌ | ❌ | ❌ |
+| License — export to CSV | ✅ | ❌ | ✅ | ❌ | ❌ |
+
+#### Stores
+| Feature | ADMIN | OPERATOR | FINANCE | AUDITOR | HELPDESK |
+|---------|:-----:|:--------:|:-------:|:-------:|:--------:|
+| Stores — view health & sync status | ✅ | ✅ | ❌ | ❌ | 👁 |
+| Stores — manage sync conflicts | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Store config — read | ✅ | ✅ | ❌ | ❌ | ❌ |
+
+#### Remote Operations
+| Feature | ADMIN | OPERATOR | FINANCE | AUDITOR | HELPDESK |
+|---------|:-----:|:--------:|:-------:|:-------:|:--------:|
+| Remote Diagnostics — run | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Remote Diagnostics — read results | ✅ | ✅ | ❌ | ❌ | 👁 |
+| Remote Config Push | ✅ | ❌ | ❌ | ❌ | ❌ |
+
+#### Reports
+| Feature | ADMIN | OPERATOR | FINANCE | AUDITOR | HELPDESK |
+|---------|:-----:|:--------:|:-------:|:-------:|:--------:|
+| Financial Reports (revenue, churn, billing) | ✅ | ❌ | ✅ | ❌ | ❌ |
+| Operational Reports (usage, uptime, sync) | ✅ | ✅ | ❌ | 👁 | ❌ |
+| Support Reports (ticket metrics, SLA stats) | ✅ | ✅ | ❌ | ❌ | ✅ |
+| Reports — read (any) | ✅ | ✅ | ✅ | 👁 | 👁 |
+| Reports — export to CSV/PDF | ✅ | ❌ | ✅ | ❌ | ❌ |
+
+#### Alerts
+| Feature | ADMIN | OPERATOR | FINANCE | AUDITOR | HELPDESK |
+|---------|:-----:|:--------:|:-------:|:-------:|:--------:|
+| Alerts — view | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Alerts — acknowledge | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Alerts — configure thresholds | ✅ | ❌ | ❌ | ❌ | ❌ |
+
+#### Audit Logs
+| Feature | ADMIN | OPERATOR | FINANCE | AUDITOR | HELPDESK |
+|---------|:-----:|:--------:|:-------:|:-------:|:--------:|
+| Audit Logs — read | ✅ | ❌ | ❌ | ✅ | ❌ |
+| Audit Logs — export | ✅ | ❌ | ❌ | ✅ | ❌ |
+
+#### Support Tickets *(HELPDESK extension)*
+| Feature | ADMIN | OPERATOR | FINANCE | AUDITOR | HELPDESK |
+|---------|:-----:|:--------:|:-------:|:-------:|:--------:|
+| Tickets — read all | ✅ | ✅ | ❌ | ❌ | ✅ |
+| Tickets — create | ✅ | ✅ | ❌ | ❌ | ✅ |
+| Tickets — update (title, description, priority) | ✅ | ✅ | ❌ | ❌ | ✅ |
+| Tickets — assign to OPERATOR | ✅ | ✅ | ❌ | ❌ | ✅ |
+| Tickets — resolve (mark RESOLVED + add note) | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Tickets — close (after OPERATOR resolves) | ✅ | ✅ | ❌ | ❌ | ✅ |
+| Tickets — comment (internal + customer-visible) | ✅ | ✅ | ❌ | ❌ | ✅ |
+
+> **Why HELPDESK cannot resolve:** Accountability principle — only the OPERATOR who performed the fix can mark the ticket RESOLVED, adding a required resolution note and time-spent. HELPDESK confirms with the customer and then closes the ticket.
+
+#### Admin / System
+| Feature | ADMIN | OPERATOR | FINANCE | AUDITOR | HELPDESK |
+|---------|:-----:|:--------:|:-------:|:-------:|:--------:|
+| Admin User Management — read | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Admin User Management — write | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Admin User Management — deactivate | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Admin User Sessions — revoke | ✅ | ❌ | ❌ | ❌ | ❌ |
+| System Settings | ✅ | ❌ | ❌ | ❌ | ❌ |
+| System Health | ✅ | ✅ | ❌ | ❌ | ❌ |
+| System Backup | ✅ | ❌ | ❌ | ❌ | ❌ |
 
 ### Granular Permission Constants (TypeScript + Kotlin)
 
+> **37 atomic permissions** — each maps to exactly one capability. Backend enforces via `AdminPermissions.check()`. Frontend uses `hasPermission()` to show/hide nav items and action buttons.
+
 ```typescript
 // admin-panel/src/lib/permissions.ts
+export type AdminRole = 'ADMIN' | 'OPERATOR' | 'FINANCE' | 'AUDITOR' | 'HELPDESK'
+
 export const PERMISSIONS = {
-  // Dashboard
-  'dashboard:ops':            ['ADMIN', 'OPERATOR'],
-  'dashboard:financial':      ['ADMIN', 'FINANCE'],
+  // ── Dashboard ──────────────────────────────────────────────────────────────
+  'dashboard:ops':              ['ADMIN', 'OPERATOR'],
+  'dashboard:financial':        ['ADMIN', 'FINANCE'],
+  'dashboard:support':          ['ADMIN', 'OPERATOR', 'HELPDESK'],
 
-  // Licenses
-  'license:read':             ['ADMIN', 'OPERATOR', 'FINANCE', 'AUDITOR'],
-  'license:write':            ['ADMIN'],
-  'license:revoke':           ['ADMIN'],
+  // ── Licenses ───────────────────────────────────────────────────────────────
+  'license:read':               ['ADMIN', 'OPERATOR', 'FINANCE', 'AUDITOR', 'HELPDESK'],
+  'license:write':              ['ADMIN'],
+  'license:revoke':             ['ADMIN'],
+  'license:export':             ['ADMIN', 'FINANCE'],
 
-  // Stores
-  'store:read':               ['ADMIN', 'OPERATOR'],
-  'store:sync:manage':        ['ADMIN', 'OPERATOR'],
+  // ── Stores ─────────────────────────────────────────────────────────────────
+  'store:read':                 ['ADMIN', 'OPERATOR', 'HELPDESK'],
+  'store:sync:manage':          ['ADMIN', 'OPERATOR'],
+  'store:config:read':          ['ADMIN', 'OPERATOR'],
 
-  // Remote operations
-  'diagnostics:access':       ['ADMIN', 'OPERATOR'],
-  'config:push':              ['ADMIN'],
+  // ── Remote Operations ──────────────────────────────────────────────────────
+  'diagnostics:access':         ['ADMIN', 'OPERATOR'],
+  'diagnostics:read':           ['ADMIN', 'OPERATOR', 'HELPDESK'],
+  'config:push':                ['ADMIN'],
 
-  // Reports
-  'reports:financial':        ['ADMIN', 'FINANCE'],
-  'reports:operational':      ['ADMIN', 'OPERATOR'],
-  'reports:read':             ['ADMIN', 'FINANCE', 'AUDITOR'],
+  // ── Reports ────────────────────────────────────────────────────────────────
+  'reports:financial':          ['ADMIN', 'FINANCE'],
+  'reports:operational':        ['ADMIN', 'OPERATOR'],
+  'reports:support':            ['ADMIN', 'OPERATOR', 'HELPDESK'],
+  'reports:read':               ['ADMIN', 'OPERATOR', 'FINANCE', 'AUDITOR', 'HELPDESK'],
+  'reports:export':             ['ADMIN', 'FINANCE'],
 
-  // Alerts
-  'alerts:read':              ['ADMIN', 'OPERATOR'],
-  'alerts:acknowledge':       ['ADMIN', 'OPERATOR'],
+  // ── Alerts ─────────────────────────────────────────────────────────────────
+  'alerts:read':                ['ADMIN', 'OPERATOR'],
+  'alerts:acknowledge':         ['ADMIN', 'OPERATOR'],
+  'alerts:configure':           ['ADMIN'],
 
-  // Audit logs
-  'audit:read':               ['ADMIN', 'AUDITOR'],
+  // ── Audit Logs ─────────────────────────────────────────────────────────────
+  'audit:read':                 ['ADMIN', 'AUDITOR'],
+  'audit:export':               ['ADMIN', 'AUDITOR'],
 
-  // Admin user management
-  'users:read':               ['ADMIN'],
-  'users:write':              ['ADMIN'],
+  // ── Support Tickets ────────────────────────────────────────────────────────
+  'tickets:read':               ['ADMIN', 'OPERATOR', 'HELPDESK'],
+  'tickets:create':             ['ADMIN', 'OPERATOR', 'HELPDESK'],
+  'tickets:update':             ['ADMIN', 'OPERATOR', 'HELPDESK'],
+  'tickets:assign':             ['ADMIN', 'OPERATOR', 'HELPDESK'],
+  'tickets:resolve':            ['ADMIN', 'OPERATOR'],           // HELPDESK cannot resolve
+  'tickets:close':              ['ADMIN', 'OPERATOR', 'HELPDESK'],
+  'tickets:comment':            ['ADMIN', 'OPERATOR', 'HELPDESK'],
 
-  // System
-  'system:settings':          ['ADMIN'],
-  'system:health':            ['ADMIN', 'OPERATOR'],
+  // ── Admin User Management ──────────────────────────────────────────────────
+  'users:read':                 ['ADMIN'],
+  'users:write':                ['ADMIN'],
+  'users:deactivate':           ['ADMIN'],
+  'users:sessions:revoke':      ['ADMIN'],
+
+  // ── System ─────────────────────────────────────────────────────────────────
+  'system:settings':            ['ADMIN'],
+  'system:health':              ['ADMIN', 'OPERATOR'],
+  'system:backup':              ['ADMIN'],
 } as const satisfies Record<string, AdminRole[]>
-
-export type AdminRole = 'ADMIN' | 'OPERATOR' | 'FINANCE' | 'AUDITOR'
 
 export function hasPermission(role: AdminRole, permission: keyof typeof PERMISSIONS): boolean {
   return (PERMISSIONS[permission] as string[]).includes(role)
@@ -261,29 +427,66 @@ export function hasPermission(role: AdminRole, permission: keyof typeof PERMISSI
 
 ```kotlin
 // backend/api/src/main/kotlin/com/zyntasolutions/api/auth/AdminPermissions.kt
-enum class AdminRole { ADMIN, OPERATOR, FINANCE, AUDITOR }
+enum class AdminRole { ADMIN, OPERATOR, FINANCE, AUDITOR, HELPDESK }
 
 object AdminPermissions {
     private val permissions = mapOf(
-        "dashboard:ops"          to setOf(ADMIN, OPERATOR),
-        "dashboard:financial"    to setOf(ADMIN, FINANCE),
-        "license:read"           to setOf(ADMIN, OPERATOR, FINANCE, AUDITOR),
-        "license:write"          to setOf(ADMIN),
-        "license:revoke"         to setOf(ADMIN),
-        "store:read"             to setOf(ADMIN, OPERATOR),
-        "store:sync:manage"      to setOf(ADMIN, OPERATOR),
-        "diagnostics:access"     to setOf(ADMIN, OPERATOR),
-        "config:push"            to setOf(ADMIN),
-        "reports:financial"      to setOf(ADMIN, FINANCE),
-        "reports:operational"    to setOf(ADMIN, OPERATOR),
-        "reports:read"           to setOf(ADMIN, FINANCE, AUDITOR),
-        "alerts:read"            to setOf(ADMIN, OPERATOR),
-        "alerts:acknowledge"     to setOf(ADMIN, OPERATOR),
-        "audit:read"             to setOf(ADMIN, AUDITOR),
-        "users:read"             to setOf(ADMIN),
-        "users:write"            to setOf(ADMIN),
-        "system:settings"        to setOf(ADMIN),
-        "system:health"          to setOf(ADMIN, OPERATOR),
+        // Dashboard
+        "dashboard:ops"           to setOf(ADMIN, OPERATOR),
+        "dashboard:financial"     to setOf(ADMIN, FINANCE),
+        "dashboard:support"       to setOf(ADMIN, OPERATOR, HELPDESK),
+
+        // Licenses
+        "license:read"            to setOf(ADMIN, OPERATOR, FINANCE, AUDITOR, HELPDESK),
+        "license:write"           to setOf(ADMIN),
+        "license:revoke"          to setOf(ADMIN),
+        "license:export"          to setOf(ADMIN, FINANCE),
+
+        // Stores
+        "store:read"              to setOf(ADMIN, OPERATOR, HELPDESK),
+        "store:sync:manage"       to setOf(ADMIN, OPERATOR),
+        "store:config:read"       to setOf(ADMIN, OPERATOR),
+
+        // Remote operations
+        "diagnostics:access"      to setOf(ADMIN, OPERATOR),
+        "diagnostics:read"        to setOf(ADMIN, OPERATOR, HELPDESK),
+        "config:push"             to setOf(ADMIN),
+
+        // Reports
+        "reports:financial"       to setOf(ADMIN, FINANCE),
+        "reports:operational"     to setOf(ADMIN, OPERATOR),
+        "reports:support"         to setOf(ADMIN, OPERATOR, HELPDESK),
+        "reports:read"            to setOf(ADMIN, OPERATOR, FINANCE, AUDITOR, HELPDESK),
+        "reports:export"          to setOf(ADMIN, FINANCE),
+
+        // Alerts
+        "alerts:read"             to setOf(ADMIN, OPERATOR),
+        "alerts:acknowledge"      to setOf(ADMIN, OPERATOR),
+        "alerts:configure"        to setOf(ADMIN),
+
+        // Audit logs
+        "audit:read"              to setOf(ADMIN, AUDITOR),
+        "audit:export"            to setOf(ADMIN, AUDITOR),
+
+        // Support tickets
+        "tickets:read"            to setOf(ADMIN, OPERATOR, HELPDESK),
+        "tickets:create"          to setOf(ADMIN, OPERATOR, HELPDESK),
+        "tickets:update"          to setOf(ADMIN, OPERATOR, HELPDESK),
+        "tickets:assign"          to setOf(ADMIN, OPERATOR, HELPDESK),
+        "tickets:resolve"         to setOf(ADMIN, OPERATOR),
+        "tickets:close"           to setOf(ADMIN, OPERATOR, HELPDESK),
+        "tickets:comment"         to setOf(ADMIN, OPERATOR, HELPDESK),
+
+        // Admin user management
+        "users:read"              to setOf(ADMIN),
+        "users:write"             to setOf(ADMIN),
+        "users:deactivate"        to setOf(ADMIN),
+        "users:sessions:revoke"   to setOf(ADMIN),
+
+        // System
+        "system:settings"         to setOf(ADMIN),
+        "system:health"           to setOf(ADMIN, OPERATOR),
+        "system:backup"           to setOf(ADMIN),
     )
 
     fun check(role: AdminRole, permission: String): Boolean =
@@ -299,6 +502,7 @@ object AdminPermissions {
 | `OPERATOR` | ✅ **Mandatory** — has remote diagnostic access |
 | `FINANCE` | ⚠️ Strongly recommended — has financial data |
 | `AUDITOR` | ⚠️ Recommended — read-only but sensitive logs |
+| `HELPDESK` | ⚠️ Recommended — handles customer PII (email, phone, store IDs) |
 
 ### Google SSO Auto-Provisioning
 
@@ -331,6 +535,16 @@ This prevents accidental over-privileged access.
 | `DELETE` | `/admin/users/{id}` | ADMIN | Deactivate user |
 | `GET`  | `/admin/users/{id}/sessions` | ADMIN | List active sessions |
 | `DELETE` | `/admin/users/{id}/sessions` | ADMIN | Revoke all sessions for user |
+| `GET`  | `/admin/tickets` | ADMIN, OPERATOR, HELPDESK | List tickets (filterable by status, priority, assignee) |
+| `POST` | `/admin/tickets` | ADMIN, OPERATOR, HELPDESK | Create new ticket |
+| `GET`  | `/admin/tickets/{id}` | ADMIN, OPERATOR, HELPDESK | Get ticket detail |
+| `PUT`  | `/admin/tickets/{id}` | ADMIN, OPERATOR, HELPDESK | Update ticket (title, description, priority) |
+| `POST` | `/admin/tickets/{id}/assign` | ADMIN, OPERATOR, HELPDESK | Assign to OPERATOR |
+| `POST` | `/admin/tickets/{id}/resolve` | ADMIN, OPERATOR | Mark RESOLVED (requires resolution_note + time_spent_min) |
+| `POST` | `/admin/tickets/{id}/close` | ADMIN, OPERATOR, HELPDESK | Mark CLOSED (after RESOLVED) |
+| `GET`  | `/admin/tickets/{id}/comments` | ADMIN, OPERATOR, HELPDESK | List comments |
+| `POST` | `/admin/tickets/{id}/comments` | ADMIN, OPERATOR, HELPDESK | Add comment (internal or customer-visible) |
+| `POST` | `/admin/tickets/{id}/attachments` | ADMIN, OPERATOR, HELPDESK | Upload file / link diagnostic log |
 
 ### Rate Limiting (Redis-backed)
 
@@ -389,16 +603,26 @@ Login attempt received:
 ```
 admin-panel/src/
 ├── routes/
-│   └── login.tsx                    # Login page (NEW)
+│   ├── login.tsx                        # Login page (NEW)
+│   └── tickets/
+│       ├── index.tsx                    # Ticket list + filters (NEW — HELPDESK extension)
+│       └── $ticketId.tsx                # Ticket detail + comments + timeline (NEW)
 ├── components/
-│   └── auth/
-│       ├── LoginForm.tsx            # Email + password form (NEW)
-│       ├── GoogleSsoButton.tsx      # Google OAuth PKCE button (NEW)
-│       ├── MfaVerifyForm.tsx        # TOTP input (NEW)
-│       ├── MfaSetupWizard.tsx       # QR code + backup codes (NEW)
-│       └── ProtectedRoute.tsx       # Auth guard wrapper (NEW)
+│   ├── auth/
+│   │   ├── LoginForm.tsx                # Email + password form (NEW)
+│   │   ├── GoogleSsoButton.tsx          # Google OAuth PKCE button (NEW)
+│   │   ├── MfaVerifyForm.tsx            # TOTP input (NEW)
+│   │   ├── MfaSetupWizard.tsx           # QR code + backup codes (NEW)
+│   │   └── ProtectedRoute.tsx           # Auth guard wrapper (NEW)
+│   └── tickets/
+│       ├── TicketCreateModal.tsx        # Create ticket form (NEW)
+│       ├── TicketStatusBadge.tsx        # Status + priority badges (NEW)
+│       ├── TicketAssignModal.tsx        # Assign to OPERATOR picker (NEW)
+│       ├── TicketResolveModal.tsx       # Resolution note + time entry (NEW)
+│       └── TicketCommentThread.tsx      # Comment list + add comment (NEW)
 └── stores/
-    └── auth-store.ts                # Zustand auth state (REPLACE use-auth.ts)
+    ├── auth-store.ts                    # Zustand auth state (REPLACE use-auth.ts)
+    └── ticket-store.ts                  # Zustand ticket list + selected ticket (NEW)
 ```
 
 ### Modified Files
@@ -417,7 +641,7 @@ admin-panel/src/
 
 ```typescript
 // admin-panel/src/stores/auth-store.ts
-export type AdminRole = 'ADMIN' | 'OPERATOR' | 'FINANCE' | 'AUDITOR'
+export type AdminRole = 'ADMIN' | 'OPERATOR' | 'FINANCE' | 'AUDITOR' | 'HELPDESK'
 
 export interface AdminUser {
   id: string
@@ -899,7 +1123,7 @@ and tighten rules for the custom login endpoint:
     - DataTable with columns: Name, Email, Role badge, MFA status, Last login, Status, Actions
     - Actions: Edit role | Deactivate | Revoke sessions
     - "Invite User" modal: email + name + role + initial password (or send invite email)
-    - Role selector: ADMIN | OPERATOR | FINANCE | AUDITOR (with permission descriptions)
+    - Role selector: ADMIN | OPERATOR | FINANCE | AUDITOR | HELPDESK (with permission descriptions)
     - MFA status: "Enabled ✓" | "Not configured ⚠" (with enforce link for ADMIN + OPERATOR)
 
 [ ] Frontend: /settings/profile route
@@ -1020,6 +1244,28 @@ and tighten rules for the custom login endpoint:
 - [ ] OPERATOR can access remote diagnostics → FINANCE cannot (403)
 - [ ] FINANCE can access financial reports → OPERATOR cannot (403)
 - [ ] AUDITOR can read audit logs → OPERATOR cannot (403)
+- [ ] HELPDESK cannot access `/admin/users` API (403)
+- [ ] HELPDESK cannot call `POST /admin/tickets/{id}/resolve` → 403
+- [ ] HELPDESK cannot run remote diagnostics → 403
+- [ ] HELPDESK cannot access financial reports → 403
+
+### HELPDESK & Support Tickets
+
+- [ ] HELPDESK login → support dashboard shown (ticket KPIs: open count, SLA breach count, assigned to me)
+- [ ] HELPDESK can create ticket → appears in list with `TKT-YYYY-NNNNNN` ticket number
+- [ ] HELPDESK assigns ticket to OPERATOR → OPERATOR sees it in their queue; status becomes ASSIGNED
+- [ ] OPERATOR sets status to IN_PROGRESS → HELPDESK sees the change in ticket timeline
+- [ ] OPERATOR sets PENDING_CUSTOMER → HELPDESK notified; can follow up with customer
+- [ ] OPERATOR marks RESOLVED (with resolution_note + time_spent_min) → HELPDESK can now mark CLOSED
+- [ ] HELPDESK marks CLOSED → ticket status = CLOSED, no further status transitions allowed
+- [ ] HELPDESK cannot mark CLOSED before OPERATOR resolves → 422 (invalid status transition)
+- [ ] HELPDESK can view store health (read-only) → no sync/config action buttons visible
+- [ ] HELPDESK can view license details (read-only) → no create/revoke buttons visible
+- [ ] HELPDESK can view diagnostic log results attached to tickets (read-only)
+- [ ] HELPDESK can add internal comment (is_internal=true) → OPERATOR sees it; customer-facing view hides it
+- [ ] HELPDESK can add customer-visible comment (is_internal=false)
+- [ ] SLA breach flag: `sla_breached = TRUE` when `sla_due_at` passes without RESOLVED status
+- [ ] Diagnostic log attachment: OPERATOR attaches log to ticket → HELPDESK can view it on ticket detail
 
 ### MFA
 
@@ -1065,14 +1311,18 @@ and tighten rules for the custom login endpoint:
 backend/api/src/main/kotlin/com/zyntasolutions/api/
 ├── routes/AdminAuthRoutes.kt         (NEW)
 ├── routes/AdminUserRoutes.kt         (NEW)
+├── routes/AdminTicketRoutes.kt       (NEW — HELPDESK extension)
 ├── service/AdminUserService.kt       (NEW)
 ├── service/AdminTokenService.kt      (NEW)
 ├── service/AdminMfaService.kt        (NEW)
 ├── service/GoogleAuthService.kt      (NEW)
-└── model/AdminUser.kt                (NEW)
+├── service/AdminTicketService.kt     (NEW — HELPDESK extension)
+├── model/AdminUser.kt                (NEW)
+└── model/SupportTicket.kt            (NEW — HELPDESK extension)
 
 backend/api/src/main/resources/db/migration/
-└── V5__admin_auth.sql                (NEW)
+├── V5__admin_auth.sql                (NEW)
+└── V6__helpdesk_tickets.sql          (NEW — HELPDESK extension)
 ```
 
 ### Frontend (new)
@@ -1081,12 +1331,23 @@ backend/api/src/main/resources/db/migration/
 admin-panel/src/
 ├── routes/login.tsx                  (NEW)
 ├── routes/auth/google/callback.tsx   (NEW)
+├── routes/tickets/
+│   ├── index.tsx                     (NEW — HELPDESK extension)
+│   └── $ticketId.tsx                 (NEW — HELPDESK extension)
 ├── components/auth/
 │   ├── LoginForm.tsx                 (NEW)
 │   ├── GoogleSsoButton.tsx           (NEW)
 │   ├── MfaVerifyForm.tsx             (NEW)
-│   └── MfaSetupWizard.tsx            (NEW)
-└── components/auth/ProtectedRoute.tsx (NEW)
+│   ├── MfaSetupWizard.tsx            (NEW)
+│   └── ProtectedRoute.tsx            (NEW)
+├── components/tickets/
+│   ├── TicketCreateModal.tsx         (NEW — HELPDESK extension)
+│   ├── TicketStatusBadge.tsx         (NEW — HELPDESK extension)
+│   ├── TicketAssignModal.tsx         (NEW — HELPDESK extension)
+│   ├── TicketResolveModal.tsx        (NEW — HELPDESK extension)
+│   └── TicketCommentThread.tsx       (NEW — HELPDESK extension)
+└── stores/
+    └── ticket-store.ts               (NEW — HELPDESK extension)
 ```
 
 ### Frontend (modified)
@@ -1094,11 +1355,12 @@ admin-panel/src/
 ```
 admin-panel/src/
 ├── hooks/use-auth.ts                 (REWRITE — remove CF cookie, use auth-store)
-├── stores/auth-store.ts              (REWRITE — add login/logout/refresh/checkAuth)
+├── stores/auth-store.ts              (REWRITE — add login/logout/refresh/checkAuth + HELPDESK role)
+├── lib/permissions.ts                (REWRITE — 37 atomic permissions, 5 roles including HELPDESK)
 ├── lib/constants.ts                  (MODIFY — remove CF_COOKIE_NAME, add auth constants)
 ├── lib/api-client.ts                 (MODIFY — add 401 interceptor + credential: include)
 ├── routes/__root.tsx                 (MODIFY — add ProtectedRoute wrapper)
-└── routes/settings/users.tsx         (MODIFY — wire to real API)
+└── routes/settings/users.tsx         (MODIFY — wire to real API, add HELPDESK to role selector)
 ```
 
 ---
