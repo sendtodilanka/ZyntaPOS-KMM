@@ -270,9 +270,27 @@ services:
     security_opt:
       - no-new-privileges:true
 
-  # ── Canary static pages (fallback / panel placeholder) ─────────────
-  # Serves branded "coming soon" pages for panel.zyntapos.com.
-  # Remove when the React admin panel is deployed.
+  # ── Admin Panel — React SPA (panel.zyntapos.com) ────────────────────
+  admin-panel:
+    image: ghcr.io/sendtodilanka/zyntapos-kmm/admin-panel:latest
+    container_name: zyntapos_admin_panel
+    restart: unless-stopped
+    expose:
+      - "3000"
+    networks:
+      - zyntapos_net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    mem_limit: 128m
+    memswap_limit: 128m
+    security_opt:
+      - no-new-privileges:true
+
+  # ── Canary static pages (fallback for docs/status placeholder) ──────
   canary:
     image: nginx:1-alpine
     container_name: zyntapos_canary
