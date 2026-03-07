@@ -1,4 +1,6 @@
 ---
+import { analytics } from '@data/analytics';
+
 interface Props {
   title: string;
   description: string;
@@ -44,6 +46,10 @@ const breadcrumbJsonLd = breadcrumbs.length > 0 ? {
 
 const allJsonLd = breadcrumbJsonLd ? [...jsonLd, breadcrumbJsonLd] : jsonLd;
 ---
+
+<!-- Webmaster verification -->
+{analytics.GSC_VERIFICATION && <meta name="google-site-verification" content={analytics.GSC_VERIFICATION} />}
+{analytics.BING_VERIFICATION && <meta name="msvalidate.01" content={analytics.BING_VERIFICATION} />}
 
 <!-- Primary meta -->
 <title>{fullTitle}</title>
