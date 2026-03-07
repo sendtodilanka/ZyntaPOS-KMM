@@ -11,7 +11,7 @@
 
 export const analytics = {
   // Google Analytics 4 — format: 'G-XXXXXXXXXX'
-  GA4_MEASUREMENT_ID: '',
+  GA4_MEASUREMENT_ID: 'G-MNW04560JB',
 
   // Google Search Console — HTML meta tag verification code (content= value only)
   // Example: 'abc123xyz_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
