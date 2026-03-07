@@ -1,0 +1,29 @@
+# docker-compose.admin.yml — Admin Panel service
+# Usage: docker compose -f docker-compose.yml -f docker-compose.admin.yml up -d
+
+services:
+  admin-panel:
+    image: ghcr.io/sendtodilanka/zyntapos-kmm/admin-panel:latest
+    container_name: zyntapos-admin-panel
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NGINX_HOST=panel.zyntapos.com
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.admin-panel.rule=Host(`panel.zyntapos.com`)"
+      - "traefik.http.routers.admin-panel.tls=true"
+      - "traefik.http.services.admin-panel.loadbalancer.server.port=3000"
+    networks:
+      - zyntapos-network
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  zyntapos-network:
+    external: true
