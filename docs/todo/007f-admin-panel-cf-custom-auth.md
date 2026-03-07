@@ -512,6 +512,139 @@ This prevents accidental over-privileged access.
 
 ---
 
+## 3.5 Role Definitions & Permission Matrix
+
+### Roles (4)
+
+| Role | Who Gets It | Real-World Title |
+|------|------------|-----------------|
+| `ADMIN` | Company owner / CTO | Dilanka + co-founder |
+| `OPERATOR` | Technical support engineers | Field techs who install/fix POS terminals |
+| `FINANCE` | Finance team | Accountant, billing manager |
+| `AUDITOR` | Company auditors | Internal/external compliance auditor |
+
+### Permission Matrix
+
+| Panel Feature | ADMIN | OPERATOR | FINANCE | AUDITOR |
+|--------------|:-----------:|:--------:|:-------:|:-------:|
+| Dashboard — ops KPIs (uptime, sync, errors) | ✅ | ✅ | ❌ | ❌ |
+| Dashboard — financial KPIs (MRR, churn) | ✅ | ❌ | ✅ | ❌ |
+| License — view | ✅ | ✅ | ✅ | 👁 |
+| License — create / extend | ✅ | ❌ | ❌ | ❌ |
+| License — revoke / suspend | ✅ | ❌ | ❌ | ❌ |
+| Stores — view health & sync status | ✅ | ✅ | ❌ | ❌ |
+| Stores — manage sync conflicts | ✅ | ✅ | ❌ | ❌ |
+| Remote Diagnostics | ✅ | ✅ | ❌ | ❌ |
+| Remote Config Push | ✅ | ❌ | ❌ | ❌ |
+| Financial Reports (revenue, churn, billing) | ✅ | ❌ | ✅ | 👁 |
+| Operational Reports (usage, uptime, sync) | ✅ | ✅ | ❌ | 👁 |
+| System Health & Alerts — view | ✅ | ✅ | ❌ | ❌ |
+| Alerts — acknowledge | ✅ | ✅ | ❌ | ❌ |
+| Audit Logs | ✅ | ❌ | ❌ | ✅ |
+| Admin User Management | ✅ | ❌ | ❌ | ❌ |
+| System Settings | ✅ | ❌ | ❌ | ❌ |
+
+> 👁 = Read-only (no export) | ✅ = Full access | ❌ = No access (404 on API, redirected on frontend)
+
+### Granular Permission Constants (TypeScript + Kotlin)
+
+```typescript
+// admin-panel/src/lib/permissions.ts
+export const PERMISSIONS = {
+  // Dashboard
+  'dashboard:ops':            ['ADMIN', 'OPERATOR'],
+  'dashboard:financial':      ['ADMIN', 'FINANCE'],
+
+  // Licenses
+  'license:read':             ['ADMIN', 'OPERATOR', 'FINANCE', 'AUDITOR'],
+  'license:write':            ['ADMIN'],
+  'license:revoke':           ['ADMIN'],
+
+  // Stores
+  'store:read':               ['ADMIN', 'OPERATOR'],
+  'store:sync:manage':        ['ADMIN', 'OPERATOR'],
+
+  // Remote operations
+  'diagnostics:access':       ['ADMIN', 'OPERATOR'],
+  'config:push':              ['ADMIN'],
+
+  // Reports
+  'reports:financial':        ['ADMIN', 'FINANCE'],
+  'reports:operational':      ['ADMIN', 'OPERATOR'],
+  'reports:read':             ['ADMIN', 'FINANCE', 'AUDITOR'],
+
+  // Alerts
+  'alerts:read':              ['ADMIN', 'OPERATOR'],
+  'alerts:acknowledge':       ['ADMIN', 'OPERATOR'],
+
+  // Audit logs
+  'audit:read':               ['ADMIN', 'AUDITOR'],
+
+  // Admin user management
+  'users:read':               ['ADMIN'],
+  'users:write':              ['ADMIN'],
+
+  // System
+  'system:settings':          ['ADMIN'],
+  'system:health':            ['ADMIN', 'OPERATOR'],
+} as const satisfies Record<string, AdminRole[]>
+
+export type AdminRole = 'ADMIN' | 'OPERATOR' | 'FINANCE' | 'AUDITOR'
+
+export function hasPermission(role: AdminRole, permission: keyof typeof PERMISSIONS): boolean {
+  return (PERMISSIONS[permission] as string[]).includes(role)
+}
+```
+
+```kotlin
+// backend/api/src/main/kotlin/com/zyntasolutions/api/auth/AdminPermissions.kt
+enum class AdminRole { ADMIN, OPERATOR, FINANCE, AUDITOR }
+
+object AdminPermissions {
+    private val permissions = mapOf(
+        "dashboard:ops"          to setOf(ADMIN, OPERATOR),
+        "dashboard:financial"    to setOf(ADMIN, FINANCE),
+        "license:read"           to setOf(ADMIN, OPERATOR, FINANCE, AUDITOR),
+        "license:write"          to setOf(ADMIN),
+        "license:revoke"         to setOf(ADMIN),
+        "store:read"             to setOf(ADMIN, OPERATOR),
+        "store:sync:manage"      to setOf(ADMIN, OPERATOR),
+        "diagnostics:access"     to setOf(ADMIN, OPERATOR),
+        "config:push"            to setOf(ADMIN),
+        "reports:financial"      to setOf(ADMIN, FINANCE),
+        "reports:operational"    to setOf(ADMIN, OPERATOR),
+        "reports:read"           to setOf(ADMIN, FINANCE, AUDITOR),
+        "alerts:read"            to setOf(ADMIN, OPERATOR),
+        "alerts:acknowledge"     to setOf(ADMIN, OPERATOR),
+        "audit:read"             to setOf(ADMIN, AUDITOR),
+        "users:read"             to setOf(ADMIN),
+        "users:write"            to setOf(ADMIN),
+        "system:settings"        to setOf(ADMIN),
+        "system:health"          to setOf(ADMIN, OPERATOR),
+    )
+
+    fun check(role: AdminRole, permission: String): Boolean =
+        permissions[permission]?.contains(role) ?: false
+}
+```
+
+### MFA Policy
+
+| Role | MFA Requirement |
+|------|----------------|
+| `ADMIN` | ✅ **Mandatory** — system enforced, cannot skip |
+| `OPERATOR` | ✅ **Mandatory** — has remote diagnostic access |
+| `FINANCE` | ⚠️ Strongly recommended — has financial data |
+| `AUDITOR` | ⚠️ Recommended — read-only but sensitive logs |
+
+### Google SSO Auto-Provisioning
+
+New users logging in via Google SSO for the first time are auto-provisioned
+as `AUDITOR` (most restrictive role). ADMIN manually upgrades their role.
+This prevents accidental over-privileged access.
+
+---
+
 ## 4. Backend — Ktor Auth Routes
 
 **New file:** `backend/api/src/main/kotlin/com/zyntasolutions/api/routes/AdminAuthRoutes.kt`
