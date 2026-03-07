@@ -1,0 +1,62 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Breadcrumbs from '@components/Breadcrumbs.astro';
+import FeatureSection from '@components/FeatureSection.astro';
+import CtaBanner from '@components/CtaBanner.astro';
+import { featureSections } from '@data/features';
+import { buildSoftwareApplicationJsonLd, buildBreadcrumbJsonLd } from '@utils/seo';
+
+const canonical = 'https://www.zyntapos.com/features';
+const breadcrumbs = [{ name: 'Features', url: canonical }];
+---
+
+<BaseLayout
+  title="Features — ZyntaPOS"
+  description="Explore all ZyntaPOS features: offline POS, AES-256 encryption, multi-store management, inventory, reports, customer loyalty, hardware support, and more."
+  canonical={canonical}
+  ogImage="/images/og/features.svg"
+  jsonLd={[buildSoftwareApplicationJsonLd(), buildBreadcrumbJsonLd(breadcrumbs)]}
+  breadcrumbs={breadcrumbs}
+>
+  <!-- Page hero -->
+  <section class="relative overflow-hidden bg-slate-900 py-16 sm:py-24">
+    <div class="absolute inset-0 -z-10" aria-hidden="true">
+      <div class="absolute left-1/2 top-0 -translate-x-1/2 h-[400px] w-[600px] rounded-full bg-sky-500/5 blur-3xl"></div>
+    </div>
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <Breadcrumbs items={breadcrumbs} />
+      <div class="mt-8 mx-auto max-w-3xl text-center">
+        <h1 class="text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
+          Everything You Need to<br />
+          <span class="text-sky-400">Run Your Business</span>
+        </h1>
+        <p class="mt-6 text-lg text-slate-400">
+          ZyntaPOS is a complete POS platform — from fast checkout and inventory management to enterprise-grade security and multi-store operations. All offline-first.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Feature sections -->
+  {featureSections.map((section, index) => (
+    <div class={index % 2 === 1 ? 'bg-slate-800/20' : ''}>
+      <FeatureSection
+        id={section.id}
+        title={section.title}
+        subtitle={section.subtitle}
+        features={section.features}
+        columns={2}
+      />
+    </div>
+  ))}
+
+  <!-- CTA -->
+  <CtaBanner
+    title="Ready to see it in action?"
+    subtitle="Start your free trial today — no credit card required."
+    primaryLabel="Start Free Trial"
+    primaryHref="/pricing"
+    secondaryLabel="View Pricing"
+    secondaryHref="/pricing"
+  />
+</BaseLayout>

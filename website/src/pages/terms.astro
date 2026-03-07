@@ -1,0 +1,72 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Breadcrumbs from '@components/Breadcrumbs.astro';
+import { company } from '@data/company';
+
+const canonical = 'https://www.zyntapos.com/terms';
+const breadcrumbs = [{ name: 'Terms of Service', url: canonical }];
+const lastUpdated = '2026-03-01';
+---
+
+<BaseLayout
+  title="Terms of Service — ZyntaPOS"
+  description="ZyntaPOS Terms of Service. License terms, acceptable use, and service conditions."
+  canonical={canonical}
+  breadcrumbs={breadcrumbs}
+>
+  <section class="bg-slate-900 py-16">
+    <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+      <Breadcrumbs items={breadcrumbs} />
+      <div class="mt-8">
+        <h1 class="text-3xl font-extrabold text-white mb-2">Terms of Service</h1>
+        <p class="text-sm text-slate-500 mb-12">Last updated: {lastUpdated}</p>
+
+        <div class="space-y-8">
+          {[
+            {
+              title: '1. Acceptance',
+              content: `By downloading or using ZyntaPOS, you agree to these terms. If you don't agree, don't use the software. These terms form a binding agreement between you and ${company.name}.`,
+            },
+            {
+              title: '2. License Grant',
+              content: `We grant you a non-exclusive, non-transferable license to use ZyntaPOS within the limits of your subscription plan. You may not resell, redistribute, or sublicense the software.`,
+            },
+            {
+              title: '3. Acceptable Use',
+              content: `You may use ZyntaPOS for legitimate retail business operations. You may not use ZyntaPOS to process fraudulent transactions, bypass security controls, or engage in any illegal activity.`,
+            },
+            {
+              title: '4. Your Data',
+              content: `You retain ownership of all business data entered into ZyntaPOS. We do not claim any rights over your products, orders, customer information, or other business records. You may export your data at any time.`,
+            },
+            {
+              title: '5. Subscription & Billing',
+              content: `Paid plans are billed monthly or annually. Subscriptions auto-renew unless cancelled before the renewal date. Refunds are issued at our discretion within 14 days of the billing date.`,
+            },
+            {
+              title: '6. Service Availability',
+              content: `We strive for 99.9% uptime of cloud sync services. However, ZyntaPOS is designed to operate fully offline, so service interruptions do not prevent you from running your business.`,
+            },
+            {
+              title: '7. Limitation of Liability',
+              content: `To the maximum extent permitted by law, ${company.name} is not liable for indirect, incidental, or consequential damages arising from your use of ZyntaPOS. Our total liability shall not exceed the amount you paid in the 12 months before the claim.`,
+            },
+            {
+              title: '8. Governing Law',
+              content: `These terms are governed by the laws of Sri Lanka. Disputes shall be resolved in the courts of Sri Lanka.`,
+            },
+            {
+              title: '9. Contact',
+              content: `For questions about these terms: ${company.email}`,
+            },
+          ].map((section) => (
+            <section>
+              <h2 class="text-xl font-bold text-white mb-4">{section.title}</h2>
+              <p class="text-slate-400 leading-relaxed">{section.content}</p>
+            </section>
+          ))}
+        </div>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

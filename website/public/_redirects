@@ -1,0 +1,5 @@
+# Redirect common short URLs
+/demo     /pricing        301
+/download /pricing        301
+/trial    /pricing        301
+/app      https://play.google.com/store/apps/details?id=com.zyntasolutions.zyntapos  301

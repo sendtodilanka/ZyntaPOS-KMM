@@ -1,0 +1,20 @@
+export const company = {
+  name: 'Zynta Solutions Pvt Ltd',
+  brand: 'ZyntaPOS',
+  tagline: 'The Offline-First POS for Modern Retail',
+  description:
+    'ZyntaPOS is an enterprise-grade, offline-first Point of Sale system built for Sri Lankan retailers. AES-256 encrypted, multi-store ready, and built to work without internet.',
+  email: 'support@zyntasolutions.com',
+  salesEmail: 'sales@zyntasolutions.com',
+  twitter: '@zyntapos',
+  linkedin: 'https://linkedin.com/company/zyntasolutions',
+  github: 'https://github.com/zyntasolutions',
+  playStore: 'https://play.google.com/store/apps/details?id=com.zyntasolutions.zyntapos',
+  country: 'Sri Lanka',
+  founded: '2025',
+  registrationNumber: 'PV 00312754',
+  siteUrl: 'https://www.zyntapos.com',
+  docsUrl: 'https://docs.zyntapos.com',
+  panelUrl: 'https://panel.zyntapos.com',
+  apiUrl: 'https://api.zyntapos.com',
+};

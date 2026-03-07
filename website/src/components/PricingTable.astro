@@ -1,0 +1,39 @@
+---
+import PricingCard from './PricingCard.astro';
+import { pricingTiers } from '@data/pricing';
+
+interface Props {
+  preview?: boolean;  // show simplified version for homepage
+}
+
+const { preview = false } = Astro.props;
+
+// For preview mode, show fewer features per tier
+const tiers = preview
+  ? pricingTiers.map((t) => ({ ...t, features: t.features.slice(0, 6) }))
+  : pricingTiers;
+---
+
+<div class="grid grid-cols-1 gap-8 md:grid-cols-3">
+  {tiers.map((tier) => (
+    <PricingCard
+      name={tier.name}
+      price={tier.price}
+      period={tier.period}
+      description={tier.description}
+      features={tier.features}
+      cta={tier.cta}
+      ctaHref={tier.ctaHref}
+      popular={tier.popular}
+      badge={tier.badge}
+    />
+  ))}
+</div>
+
+{preview && (
+  <div class="mt-8 text-center">
+    <a href="/pricing" class="text-sm font-medium text-sky-400 hover:text-sky-300 transition-colors">
+      View full pricing comparison →
+    </a>
+  </div>
+)}
