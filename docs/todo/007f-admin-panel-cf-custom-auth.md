@@ -29,7 +29,7 @@ Cloudflare Layer (network security — already in place)
 Custom Auth Layer (identity + access — to be implemented)
   • ZyntaPOS branded login page        ← currently CF branded
   • Backend admin user table + JWT     ← to implement
-  • Role-based access (SUPER_ADMIN / OPERATOR / FINANCE / AUDITOR)  ← to implement
+  • Role-based access (ADMIN / OPERATOR / FINANCE / AUDITOR)  ← to implement
   • MFA (TOTP — Google Authenticator)  ← to implement
   • Google SSO (restricted to @zyntapos.com)  ← to implement
   • Admin user management UI           ← to implement
@@ -108,7 +108,7 @@ Access Token (JWT HS256)
     sub:   "admin_user_uuid",
     email: "dilanka@zyntapos.com",
     name:  "Dilanka",
-    role:  "SUPER_ADMIN",           // SUPER_ADMIN | OPERATOR | FINANCE | AUDITOR
+    role:  "ADMIN",           // ADMIN | OPERATOR | FINANCE | AUDITOR
     mfa:   true,                    // MFA was verified in this session
     iat:   1741305600,
     exp:   1741306500               // 15 minutes
@@ -133,7 +133,7 @@ CREATE TABLE admin_users (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email           TEXT NOT NULL UNIQUE,
     name            TEXT NOT NULL,
-    role            TEXT NOT NULL CHECK (role IN ('SUPER_ADMIN', 'OPERATOR', 'FINANCE', 'AUDITOR')),
+    role            TEXT NOT NULL CHECK (role IN ('ADMIN', 'OPERATOR', 'FINANCE', 'AUDITOR')),
     password_hash   TEXT,                      -- NULL if Google SSO only
     google_sub      TEXT UNIQUE,               -- NULL if password only
     mfa_secret      TEXT,                      -- TOTP secret, encrypted at rest
@@ -181,14 +181,14 @@ CREATE INDEX idx_admin_mfa_backup_codes_user_id ON admin_mfa_backup_codes(user_i
 
 | Role | Who Gets It | Real-World Title |
 |------|------------|-----------------|
-| `SUPER_ADMIN` | Company owner / CTO | Dilanka + co-founder |
+| `ADMIN` | Company owner / CTO | Dilanka + co-founder |
 | `OPERATOR` | Technical support engineers | Field techs who install/fix POS terminals |
 | `FINANCE` | Finance team | Accountant, billing manager |
 | `AUDITOR` | Company auditors | Internal/external compliance auditor |
 
 ### Permission Matrix
 
-| Panel Feature | SUPER_ADMIN | OPERATOR | FINANCE | AUDITOR |
+| Panel Feature | ADMIN | OPERATOR | FINANCE | AUDITOR |
 |--------------|:-----------:|:--------:|:-------:|:-------:|
 | Dashboard — ops KPIs (uptime, sync, errors) | ✅ | ✅ | ❌ | ❌ |
 | Dashboard — financial KPIs (MRR, churn) | ✅ | ❌ | ✅ | ❌ |
@@ -215,44 +215,44 @@ CREATE INDEX idx_admin_mfa_backup_codes_user_id ON admin_mfa_backup_codes(user_i
 // admin-panel/src/lib/permissions.ts
 export const PERMISSIONS = {
   // Dashboard
-  'dashboard:ops':            ['SUPER_ADMIN', 'OPERATOR'],
-  'dashboard:financial':      ['SUPER_ADMIN', 'FINANCE'],
+  'dashboard:ops':            ['ADMIN', 'OPERATOR'],
+  'dashboard:financial':      ['ADMIN', 'FINANCE'],
 
   // Licenses
-  'license:read':             ['SUPER_ADMIN', 'OPERATOR', 'FINANCE', 'AUDITOR'],
-  'license:write':            ['SUPER_ADMIN'],
-  'license:revoke':           ['SUPER_ADMIN'],
+  'license:read':             ['ADMIN', 'OPERATOR', 'FINANCE', 'AUDITOR'],
+  'license:write':            ['ADMIN'],
+  'license:revoke':           ['ADMIN'],
 
   // Stores
-  'store:read':               ['SUPER_ADMIN', 'OPERATOR'],
-  'store:sync:manage':        ['SUPER_ADMIN', 'OPERATOR'],
+  'store:read':               ['ADMIN', 'OPERATOR'],
+  'store:sync:manage':        ['ADMIN', 'OPERATOR'],
 
   // Remote operations
-  'diagnostics:access':       ['SUPER_ADMIN', 'OPERATOR'],
-  'config:push':              ['SUPER_ADMIN'],
+  'diagnostics:access':       ['ADMIN', 'OPERATOR'],
+  'config:push':              ['ADMIN'],
 
   // Reports
-  'reports:financial':        ['SUPER_ADMIN', 'FINANCE'],
-  'reports:operational':      ['SUPER_ADMIN', 'OPERATOR'],
-  'reports:read':             ['SUPER_ADMIN', 'FINANCE', 'AUDITOR'],
+  'reports:financial':        ['ADMIN', 'FINANCE'],
+  'reports:operational':      ['ADMIN', 'OPERATOR'],
+  'reports:read':             ['ADMIN', 'FINANCE', 'AUDITOR'],
 
   // Alerts
-  'alerts:read':              ['SUPER_ADMIN', 'OPERATOR'],
-  'alerts:acknowledge':       ['SUPER_ADMIN', 'OPERATOR'],
+  'alerts:read':              ['ADMIN', 'OPERATOR'],
+  'alerts:acknowledge':       ['ADMIN', 'OPERATOR'],
 
   // Audit logs
-  'audit:read':               ['SUPER_ADMIN', 'AUDITOR'],
+  'audit:read':               ['ADMIN', 'AUDITOR'],
 
   // Admin user management
-  'users:read':               ['SUPER_ADMIN'],
-  'users:write':              ['SUPER_ADMIN'],
+  'users:read':               ['ADMIN'],
+  'users:write':              ['ADMIN'],
 
   // System
-  'system:settings':          ['SUPER_ADMIN'],
-  'system:health':            ['SUPER_ADMIN', 'OPERATOR'],
+  'system:settings':          ['ADMIN'],
+  'system:health':            ['ADMIN', 'OPERATOR'],
 } as const satisfies Record<string, AdminRole[]>
 
-export type AdminRole = 'SUPER_ADMIN' | 'OPERATOR' | 'FINANCE' | 'AUDITOR'
+export type AdminRole = 'ADMIN' | 'OPERATOR' | 'FINANCE' | 'AUDITOR'
 
 export function hasPermission(role: AdminRole, permission: keyof typeof PERMISSIONS): boolean {
   return (PERMISSIONS[permission] as string[]).includes(role)
@@ -261,29 +261,29 @@ export function hasPermission(role: AdminRole, permission: keyof typeof PERMISSI
 
 ```kotlin
 // backend/api/src/main/kotlin/com/zyntasolutions/api/auth/AdminPermissions.kt
-enum class AdminRole { SUPER_ADMIN, OPERATOR, FINANCE, AUDITOR }
+enum class AdminRole { ADMIN, OPERATOR, FINANCE, AUDITOR }
 
 object AdminPermissions {
     private val permissions = mapOf(
-        "dashboard:ops"          to setOf(SUPER_ADMIN, OPERATOR),
-        "dashboard:financial"    to setOf(SUPER_ADMIN, FINANCE),
-        "license:read"           to setOf(SUPER_ADMIN, OPERATOR, FINANCE, AUDITOR),
-        "license:write"          to setOf(SUPER_ADMIN),
-        "license:revoke"         to setOf(SUPER_ADMIN),
-        "store:read"             to setOf(SUPER_ADMIN, OPERATOR),
-        "store:sync:manage"      to setOf(SUPER_ADMIN, OPERATOR),
-        "diagnostics:access"     to setOf(SUPER_ADMIN, OPERATOR),
-        "config:push"            to setOf(SUPER_ADMIN),
-        "reports:financial"      to setOf(SUPER_ADMIN, FINANCE),
-        "reports:operational"    to setOf(SUPER_ADMIN, OPERATOR),
-        "reports:read"           to setOf(SUPER_ADMIN, FINANCE, AUDITOR),
-        "alerts:read"            to setOf(SUPER_ADMIN, OPERATOR),
-        "alerts:acknowledge"     to setOf(SUPER_ADMIN, OPERATOR),
-        "audit:read"             to setOf(SUPER_ADMIN, AUDITOR),
-        "users:read"             to setOf(SUPER_ADMIN),
-        "users:write"            to setOf(SUPER_ADMIN),
-        "system:settings"        to setOf(SUPER_ADMIN),
-        "system:health"          to setOf(SUPER_ADMIN, OPERATOR),
+        "dashboard:ops"          to setOf(ADMIN, OPERATOR),
+        "dashboard:financial"    to setOf(ADMIN, FINANCE),
+        "license:read"           to setOf(ADMIN, OPERATOR, FINANCE, AUDITOR),
+        "license:write"          to setOf(ADMIN),
+        "license:revoke"         to setOf(ADMIN),
+        "store:read"             to setOf(ADMIN, OPERATOR),
+        "store:sync:manage"      to setOf(ADMIN, OPERATOR),
+        "diagnostics:access"     to setOf(ADMIN, OPERATOR),
+        "config:push"            to setOf(ADMIN),
+        "reports:financial"      to setOf(ADMIN, FINANCE),
+        "reports:operational"    to setOf(ADMIN, OPERATOR),
+        "reports:read"           to setOf(ADMIN, FINANCE, AUDITOR),
+        "alerts:read"            to setOf(ADMIN, OPERATOR),
+        "alerts:acknowledge"     to setOf(ADMIN, OPERATOR),
+        "audit:read"             to setOf(ADMIN, AUDITOR),
+        "users:read"             to setOf(ADMIN),
+        "users:write"            to setOf(ADMIN),
+        "system:settings"        to setOf(ADMIN),
+        "system:health"          to setOf(ADMIN, OPERATOR),
     )
 
     fun check(role: AdminRole, permission: String): Boolean =
@@ -295,7 +295,7 @@ object AdminPermissions {
 
 | Role | MFA Requirement |
 |------|----------------|
-| `SUPER_ADMIN` | ✅ **Mandatory** — system enforced, cannot skip |
+| `ADMIN` | ✅ **Mandatory** — system enforced, cannot skip |
 | `OPERATOR` | ✅ **Mandatory** — has remote diagnostic access |
 | `FINANCE` | ⚠️ Strongly recommended — has financial data |
 | `AUDITOR` | ⚠️ Recommended — read-only but sensitive logs |
@@ -303,7 +303,7 @@ object AdminPermissions {
 ### Google SSO Auto-Provisioning
 
 New users logging in via Google SSO for the first time are auto-provisioned
-as `AUDITOR` (most restrictive role). SUPER_ADMIN manually upgrades their role.
+as `AUDITOR` (most restrictive role). ADMIN manually upgrades their role.
 This prevents accidental over-privileged access.
 
 ---
@@ -325,12 +325,12 @@ This prevents accidental over-privileged access.
 | `POST` | `/admin/auth/refresh` | None (cookie) | Rotate refresh token, issue new access token |
 | `POST` | `/admin/auth/logout` | Admin JWT | Revoke session, clear cookies |
 | `GET`  | `/admin/auth/me` | Admin JWT | Return current user info |
-| `GET`  | `/admin/users` | SUPER_ADMIN | List all admin users |
-| `POST` | `/admin/users` | SUPER_ADMIN | Create new admin user |
-| `PUT`  | `/admin/users/{id}` | SUPER_ADMIN | Update role / status |
-| `DELETE` | `/admin/users/{id}` | SUPER_ADMIN | Deactivate user |
-| `GET`  | `/admin/users/{id}/sessions` | SUPER_ADMIN | List active sessions |
-| `DELETE` | `/admin/users/{id}/sessions` | SUPER_ADMIN | Revoke all sessions for user |
+| `GET`  | `/admin/users` | ADMIN | List all admin users |
+| `POST` | `/admin/users` | ADMIN | Create new admin user |
+| `PUT`  | `/admin/users/{id}` | ADMIN | Update role / status |
+| `DELETE` | `/admin/users/{id}` | ADMIN | Deactivate user |
+| `GET`  | `/admin/users/{id}/sessions` | ADMIN | List active sessions |
+| `DELETE` | `/admin/users/{id}/sessions` | ADMIN | Revoke all sessions for user |
 
 ### Rate Limiting (Redis-backed)
 
@@ -417,7 +417,7 @@ admin-panel/src/
 
 ```typescript
 // admin-panel/src/stores/auth-store.ts
-export type AdminRole = 'SUPER_ADMIN' | 'OPERATOR' | 'FINANCE' | 'AUDITOR'
+export type AdminRole = 'ADMIN' | 'OPERATOR' | 'FINANCE' | 'AUDITOR'
 
 export interface AdminUser {
   id: string
@@ -510,7 +510,7 @@ panel.zyntapos.com/login
 
 **Library:** `otplib` (npm) — 4M weekly downloads, 8 years old, zero dependencies
 
-### Setup Flow (SUPER_ADMIN + OPERATOR enforced, FINANCE + AUDITOR optional)
+### Setup Flow (ADMIN + OPERATOR enforced, FINANCE + AUDITOR optional)
 
 ```
 1. Admin navigates to /settings/profile → "Enable Two-Factor Auth"
@@ -657,7 +657,7 @@ and tighten rules for the custom login endpoint:
 
 [ ] Add adminAuthPlugin to Ktor application (JWT verifier for ADMIN_JWT_SECRET)
 [ ] Add admin route guard middleware (separate from existing POS JWT guard)
-[ ] Seed first SUPER_ADMIN user via environment variable on startup
+[ ] Seed first ADMIN user via environment variable on startup
     (ADMIN_BOOTSTRAP_EMAIL + ADMIN_BOOTSTRAP_PASSWORD — hashed and inserted if table empty)
 
 [ ] Validation checklist:
@@ -778,7 +778,7 @@ and tighten rules for the custom login endpoint:
 
 ### Day 4 — MFA: TOTP Implementation
 
-**Goal:** TOTP setup flow and enforcement on login for SUPER_ADMIN accounts.
+**Goal:** TOTP setup flow and enforcement on login for ADMIN accounts.
 
 ```
 [ ] Add otplib to backend dependencies (or implement TOTP from RFC 6238 — it's only SHA-1 HMAC)
@@ -806,10 +806,10 @@ and tighten rules for the custom login endpoint:
     - /admin/auth/mfa/verify only accepts pre-MFA JWT (not full access JWT)
     - On TOTP success: revoke pre-MFA JWT, issue full access JWT + refresh token
 
-[ ] Enforce MFA for SUPER_ADMIN and OPERATOR
-    - On login: if user.role in (SUPER_ADMIN, OPERATOR) and mfa_enabled == false:
+[ ] Enforce MFA for ADMIN and OPERATOR
+    - On login: if user.role in (ADMIN, OPERATOR) and mfa_enabled == false:
         redirect frontend to /settings/profile?prompt=mfa_setup
-    - If user.role in (SUPER_ADMIN, OPERATOR) and mfa_enabled == true:
+    - If user.role in (ADMIN, OPERATOR) and mfa_enabled == true:
         always require MFA verify step (no bypass)
     - FINANCE and AUDITOR: MFA optional, but strongly recommended (shown as prompt, not enforced)
 
@@ -876,7 +876,7 @@ and tighten rules for the custom login endpoint:
     - Login with non-company Google account → "Access denied" error
     - Login with @zyntapos.com account → auto-provisioned as AUDITOR, logged in
     - Second login with same Google account → existing user, no duplicate created
-    - If SUPER_ADMIN logs in via Google and MFA enabled → MFA verify step still required
+    - If ADMIN logs in via Google and MFA enabled → MFA verify step still required
     - Revoke access in admin panel → Google SSO login still blocked (is_active check)
 ```
 
@@ -899,8 +899,8 @@ and tighten rules for the custom login endpoint:
     - DataTable with columns: Name, Email, Role badge, MFA status, Last login, Status, Actions
     - Actions: Edit role | Deactivate | Revoke sessions
     - "Invite User" modal: email + name + role + initial password (or send invite email)
-    - Role selector: SUPER_ADMIN | OPERATOR | FINANCE | AUDITOR (with permission descriptions)
-    - MFA status: "Enabled ✓" | "Not configured ⚠" (with enforce link for SUPER_ADMIN + OPERATOR)
+    - Role selector: ADMIN | OPERATOR | FINANCE | AUDITOR (with permission descriptions)
+    - MFA status: "Enabled ✓" | "Not configured ⚠" (with enforce link for ADMIN + OPERATOR)
 
 [ ] Frontend: /settings/profile route
     - View own profile (email, name, role)
@@ -909,12 +909,12 @@ and tighten rules for the custom login endpoint:
     - Active sessions list: device + IP + last used; "Revoke" button per session
 
 [ ] Validation checklist:
-    - SUPER_ADMIN can see user list and all actions
+    - ADMIN can see user list and all actions
     - OPERATOR, FINANCE and AUDITOR cannot access /settings/users (403 on API, redirect on frontend)
     - Create user → appears in list, can log in with initial password
     - Deactivate user → login returns 401, cannot SSO in either
     - Revoke sessions → next request with old refresh token returns 401
-    - SUPER_ADMIN can change own password → old password no longer works
+    - ADMIN can change own password → old password no longer works
 ```
 
 ---
@@ -959,8 +959,8 @@ and tighten rules for the custom login endpoint:
 [ ] Environment variables documentation
     New variables to add to local.properties.template and VPS .env:
     - ADMIN_JWT_SECRET (min 256-bit random: openssl rand -hex 32)
-    - ADMIN_BOOTSTRAP_EMAIL (first SUPER_ADMIN email)
-    - ADMIN_BOOTSTRAP_PASSWORD (first SUPER_ADMIN password — change immediately after setup)
+    - ADMIN_BOOTSTRAP_EMAIL (first ADMIN email)
+    - ADMIN_BOOTSTRAP_PASSWORD (first ADMIN password — change immediately after setup)
     - GOOGLE_CLIENT_ID
     - GOOGLE_CLIENT_SECRET
     - GOOGLE_ALLOWED_DOMAIN (= "zyntapos.com")
@@ -999,8 +999,8 @@ and tighten rules for the custom login endpoint:
 ### Auth Flows
 
 - [ ] Password login → dashboard (AUDITOR role — most restrictive, fewest nav items visible)
-- [ ] Password login → MFA verify screen → dashboard (SUPER_ADMIN / OPERATOR with MFA enabled)
-- [ ] Password login → force MFA setup (SUPER_ADMIN / OPERATOR without MFA → /settings/profile?prompt=mfa_setup)
+- [ ] Password login → MFA verify screen → dashboard (ADMIN / OPERATOR with MFA enabled)
+- [ ] Password login → force MFA setup (ADMIN / OPERATOR without MFA → /settings/profile?prompt=mfa_setup)
 - [ ] Google SSO → dashboard (auto-provisioned as AUDITOR)
 - [ ] Google SSO with non-company email → "Access denied" error on /login
 - [ ] Expired access token → auto-refreshed silently (user stays logged in)
@@ -1010,10 +1010,10 @@ and tighten rules for the custom login endpoint:
 
 ### User Management
 
-- [ ] SUPER_ADMIN can create user with any role → user can log in
-- [ ] SUPER_ADMIN can change another user's role → takes effect on next login
-- [ ] SUPER_ADMIN can deactivate user → login returns 401
-- [ ] SUPER_ADMIN can revoke sessions → user kicked out immediately (next request fails)
+- [ ] ADMIN can create user with any role → user can log in
+- [ ] ADMIN can change another user's role → takes effect on next login
+- [ ] ADMIN can deactivate user → login returns 401
+- [ ] ADMIN can revoke sessions → user kicked out immediately (next request fails)
 - [ ] OPERATOR cannot access `/admin/users` API (403)
 - [ ] FINANCE cannot access `/admin/users` API (403)
 - [ ] AUDITOR cannot access `/admin/users` API (403)
@@ -1106,7 +1106,7 @@ admin-panel/src/
 ## 13. Non-Goals (Out of Scope for This TODO)
 
 - Email-based invite system (users added with initial password; email invite is Phase 3)
-- Password reset via email (admin must reset via CLI or another SUPER_ADMIN — Phase 3)
+- Password reset via email (admin must reset via CLI or another ADMIN — Phase 3)
 - SMS-based MFA (TOTP only — SMS requires Twilio and adds cost)
 - WebAuthn / hardware keys (Phase 3 enterprise)
 - Session activity heatmap (Phase 3)
