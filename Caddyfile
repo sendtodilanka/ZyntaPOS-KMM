@@ -14,8 +14,8 @@
 #   api.zyntapos.com      → api:8080     ✅ real service
 #   license.zyntapos.com  → license:8083 ✅ real service
 #   sync.zyntapos.com     → sync:8082    ✅ real service
-#   zyntapos.com          → canary:80    🔲 Temporary (until Cloudflare Pages DNS cutover)
-#   www.zyntapos.com      → canary:80    🔲 Temporary (until Cloudflare Pages DNS cutover)
+#   zyntapos.com          → website:80   ✅ Astro static site (Docker image from GHCR)
+#   www.zyntapos.com      → website:80   ✅ Astro static site (Docker image from GHCR)
 #   panel.zyntapos.com    → canary:80    🔲 Phase 3 (React panel)
 #   docs.zyntapos.com     → canary:80    🔲 Phase 3
 #   status.zyntapos.com   → canary:80    🔲 Phase 3
@@ -37,10 +37,14 @@
 	respond 404
 }
 
-# ── zyntapos.com / www — Coming Soon (temporary until Cloudflare Pages) ───
+# ── zyntapos.com / www — Marketing website (Astro static site) ────────────
 zyntapos.com, www.zyntapos.com {
 	import cf_tls
-	reverse_proxy canary:80
+	reverse_proxy website:80 {
+		health_uri /ping
+		health_interval 30s
+		health_timeout 10s
+	}
 }
 
 # ── api.zyntapos.com — REST API (Ktor) ────────────────────────────
