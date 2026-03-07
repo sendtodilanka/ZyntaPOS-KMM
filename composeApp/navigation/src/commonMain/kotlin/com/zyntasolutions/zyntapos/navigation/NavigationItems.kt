@@ -423,7 +423,7 @@ object RbacNavFilter {
             }
         }
 
-        if (currentGroup != null && groupCount > 0) {
+        if (currentGroup != null) {
             result.add(
                 ZyntaNavGroup(
                     title = navGroupLabels.getValue(currentGroup!!),
