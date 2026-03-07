@@ -73,27 +73,94 @@ Step[7]: Verify Endpoints  (cd-verify-endpoints.yml)
 
 ---
 
-### Live Monitoring Protocol (MANDATORY after every push)
+### GitHub API Access (MANDATORY — use curl with PAT, NOT gh CLI)
+
+The git remote points to a local proxy (`127.0.0.1`), so `gh` CLI cannot authenticate with GitHub. Use `curl` with the `$PAT` environment variable instead. The PAT is always available in the session environment.
 
 ```bash
-# Monitor Step[1] — Branch Validate (triggers immediately on push)
-gh run list --branch $(git branch --show-current) --limit 5
-gh run watch <run-id>
+# Verify PAT is available
+echo $PAT   # should print github_pat_...
 
-# After Step[1] passes, monitor Step[2] — Auto PR creation
-gh pr list --head $(git branch --show-current)
+# Auth format: always use "token $PAT" (NOT "Bearer $PAT")
+REPO="sendtodilanka/ZyntaPOS-KMM"
+BRANCH=$(git branch --show-current)
 
-# Monitor Step[3+4] — CI Gate on the PR
-gh pr checks <pr-number> --watch
+# Check workflow runs on current branch
+curl -s -H "Authorization: token $PAT" \
+  "https://api.github.com/repos/$REPO/actions/runs?branch=$BRANCH&per_page=5" \
+  | python3 -c "
+import sys,json
+for r in json.load(sys.stdin).get('workflow_runs',[]):
+  print(f'[{r[\"status\"]:10}] [{(r[\"conclusion\"] or \"pending\"):10}] {r[\"name\"]} (#{r[\"run_number\"]})')
+"
 
-# If branch was merged to main, monitor Steps 5-7
-gh run list --workflow=cd-deploy.yml --limit 3
-gh run list --workflow=cd-smoke-rollback.yml --limit 3
-gh run list --workflow=cd-verify-endpoints.yml --limit 3
+# Check open PRs for current branch
+curl -s -H "Authorization: token $PAT" \
+  "https://api.github.com/repos/$REPO/pulls?head=sendtodilanka:$BRANCH&state=open" \
+  | python3 -c "
+import sys,json
+prs=json.load(sys.stdin)
+if not prs: print('No open PRs')
+for pr in prs:
+  print(f'PR #{pr[\"number\"]}: mergeable={pr.get(\"mergeable\")} state={pr.get(\"mergeable_state\")}')
+"
+
+# Check PR checks/status by PR number
+PR=<number>
+SHA=$(curl -s -H "Authorization: token $PAT" \
+  "https://api.github.com/repos/$REPO/pulls/$PR" | python3 -c "import sys,json; print(json.load(sys.stdin)['head']['sha'])")
+curl -s -H "Authorization: token $PAT" \
+  "https://api.github.com/repos/$REPO/commits/$SHA/check-runs" \
+  | python3 -c "
+import sys,json
+for r in json.load(sys.stdin).get('check_runs',[]):
+  print(f'[{r[\"status\"]:10}] [{(r[\"conclusion\"] or \"pending\"):10}] {r[\"name\"]}')
+"
+```
+
+> **Session start checklist:** At the start of every session, run `echo $PAT` to confirm the token is present before attempting any pipeline monitoring.
+
+---
+
+### Live Monitoring Protocol (MANDATORY after every push)
+
+> **IMPORTANT:** Claude must NEVER manually create a PR. Step[2] (ci-auto-pr.yml) creates the PR automatically after Step[1] passes. Claude's only job is to watch and wait.
+
+```bash
+REPO="sendtodilanka/ZyntaPOS-KMM"
+BRANCH=$(git branch --show-current)
+
+# Step[1] — Watch Branch Validate (triggers immediately on push)
+curl -s -H "Authorization: token $PAT" \
+  "https://api.github.com/repos/$REPO/actions/runs?branch=$BRANCH&per_page=5" \
+  | python3 -c "import sys,json; [print(f'[{r[\"status\"]:10}][{(r[\"conclusion\"] or \"pending\"):10}] {r[\"name\"]}') for r in json.load(sys.stdin).get('workflow_runs',[])]"
+
+# Step[2] — Confirm PR auto-created (do NOT create manually)
+curl -s -H "Authorization: token $PAT" \
+  "https://api.github.com/repos/$REPO/pulls?head=sendtodilanka:$BRANCH&state=open" \
+  | python3 -c "import sys,json; prs=json.load(sys.stdin); print('PR #'+str(prs[0]['number']) if prs else 'No PR yet')"
+
+# Step[3+4] — Watch CI Gate checks on the PR
+# (use PR check-runs command above with the PR number)
+
+# Steps 5-7 — Watch deploy chain (only after PR merges to main)
+curl -s -H "Authorization: token $PAT" \
+  "https://api.github.com/repos/$REPO/actions/runs?branch=main&per_page=10" \
+  | python3 -c "
+import sys,json
+for r in json.load(sys.stdin).get('workflow_runs',[]):
+  if any(x in r['name'] for x in ['Deploy','Smoke','Verify']):
+    print(f'[{r[\"status\"]:10}][{(r[\"conclusion\"] or \"pending\"):10}] {r[\"name\"]}')
+"
 ```
 
 **Do NOT start the next implementation task until ALL applicable steps are green.**
 
+**Claude ONLY intervenes when:**
+1. The PR has merge conflicts with `main` (Step[2] created it but auto-merge is blocked)
+2. A pipeline step fails (any of Steps 1–7 returns a non-green status)
+
+**In all other cases — let the pipeline run naturally without touching it.**
 ---
 
 ### PR Conflict Resolution (MANDATORY — NO REBASE)
