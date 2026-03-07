@@ -1,66 +1,47 @@
-export type AlertMetric =
-  | 'sync_queue_depth'
-  | 'error_rate'
-  | 'heartbeat_age_minutes'
-  | 'db_size_mb'
-  | 'response_time_ms'
-  | 'active_licenses'
-  | 'failed_payments';
+export type AlertSeverity = 'critical' | 'high' | 'medium' | 'low' | 'info';
+export type AlertStatus = 'active' | 'acknowledged' | 'resolved' | 'silenced';
+export type AlertCategory = 'sync' | 'license' | 'payment' | 'security' | 'system' | 'store';
 
-export type AlertOperator = '>' | '<' | '>=' | '<=' | '==' | '!=';
-export type AlertStatus = 'OK' | 'FIRING' | 'RESOLVED';
-export type NotificationChannelType = 'slack' | 'email' | 'webhook';
+export interface Alert {
+  id: string;
+  title: string;
+  message: string;
+  severity: AlertSeverity;
+  status: AlertStatus;
+  category: AlertCategory;
+  storeId?: string;
+  storeName?: string;
+  createdAt: string;
+  updatedAt: string;
+  acknowledgedBy?: string;
+  resolvedAt?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface AlertFilter {
+  severity?: AlertSeverity;
+  status?: AlertStatus;
+  category?: AlertCategory;
+  storeId?: string;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface AlertsPage {
+  items: Alert[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
 
 export interface AlertRule {
   id: string;
   name: string;
-  metric: AlertMetric;
-  operator: AlertOperator;
-  threshold: number;
-  channelIds: string[];
+  description: string;
+  category: AlertCategory;
+  severity: AlertSeverity;
   enabled: boolean;
-  cooldownMinutes: number;
-  storeIds: string[] | null;
-  lastFiredAt: string | null;
-  createdAt: string;
-}
-
-export interface AlertHistoryEntry {
-  id: string;
-  ruleId: string;
-  ruleName: string;
-  metric: AlertMetric;
-  metricValue: number;
-  threshold: number;
-  storeId: string | null;
-  storeName: string | null;
-  status: AlertStatus;
-  firedAt: string;
-  resolvedAt: string | null;
-  acknowledged: boolean;
-}
-
-export interface NotificationChannel {
-  id: string;
-  name: string;
-  type: NotificationChannelType;
-  config: Record<string, string>;
-  enabled: boolean;
-  createdAt: string;
-}
-
-export interface CreateAlertRuleRequest {
-  name: string;
-  metric: AlertMetric;
-  operator: AlertOperator;
-  threshold: number;
-  channelIds: string[];
-  cooldownMinutes: number;
-  storeIds?: string[];
-}
-
-export interface CreateChannelRequest {
-  name: string;
-  type: NotificationChannelType;
-  config: Record<string, string>;
+  conditions: Record<string, unknown>;
+  notifyChannels: string[];
 }
