@@ -6,7 +6,6 @@ import { Plus, Edit2, Trash2, Check, X } from 'lucide-react';
 import { useTaxRates, useCreateTaxRate, useUpdateTaxRate, useDeleteTaxRate } from '@/api/config';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import type { TaxRate } from '@/types/config';
-import { cn } from '@/lib/utils';
 
 const taxRateSchema = z.object({
   name: z.string().min(1, 'Name required'),

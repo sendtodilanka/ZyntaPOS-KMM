@@ -1,8 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { Activity, CheckCircle, AlertTriangle, XCircle, HelpCircle, RefreshCw } from 'lucide-react';
-import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-} from 'recharts';
+import { CheckCircle, AlertTriangle, XCircle, HelpCircle, RefreshCw } from 'lucide-react';
 import { useSystemHealth, useAllStoreHealth } from '@/api/health';
 import type { ServiceStatus, ServiceHealth, StoreHealthSummary } from '@/types/health';
 import { cn, formatRelativeTime } from '@/lib/utils';

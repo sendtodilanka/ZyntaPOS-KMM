@@ -32,12 +32,18 @@ export function formatDate(isoString: string): string {
 }
 
 export function formatRelativeTime(isoString: string): string {
+  const diffSeconds = Math.floor((Date.now() - parseISO(isoString).getTime()) / 1000);
+  if (diffSeconds < 60) return 'just now';
+  if (diffSeconds < 3600) return `${Math.floor(diffSeconds / 60)} min ago`;
+  if (diffSeconds < 86400) return `${Math.floor(diffSeconds / 3600)} hr ago`;
   return formatDistanceToNow(parseISO(isoString), { addSuffix: true });
 }
 
 export function maskLicenseKey(key: string): string {
-  if (key.length <= 8) return key;
-  return `${key.slice(0, 4)}••••${key.slice(-4)}`;
+  const parts = key.split('-');
+  if (parts.length <= 2) return key;
+  const masked = parts.slice(1, -1).map(() => '****');
+  return [parts[0], ...masked, parts[parts.length - 1]].join('-');
 }
 
 export function formatBytes(bytes: number): string {
@@ -45,14 +51,15 @@ export function formatBytes(bytes: number): string {
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+  const value = bytes / Math.pow(k, i);
+  return i === 0 ? `${value} B` : `${value.toFixed(1)} ${sizes[i]}`;
 }
 
 export function buildQueryString(params: Record<string, unknown>): string {
   const filtered = Object.entries(params)
     .filter(([, v]) => v !== undefined && v !== null && v !== '')
     .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`);
-  return filtered.length > 0 ? `?${filtered.join('&')}` : '';
+  return filtered.join('&');
 }
 
 export function truncate(str: string, maxLength: number): string {

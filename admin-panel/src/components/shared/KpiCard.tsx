@@ -3,27 +3,32 @@ import { cn } from '@/lib/utils';
 import { Skeleton } from './LoadingState';
 
 interface KpiCardProps {
-  title: string;
+  title?: string;
+  label?: string;
   value: string | number;
   subtitle?: string;
   trend?: number;
   icon?: LucideIcon;
   iconColor?: string;
   isLoading?: boolean;
+  loading?: boolean;
   className?: string;
 }
 
 export function KpiCard({
   title,
+  label,
   value,
   subtitle,
   trend,
   icon: Icon,
   iconColor = 'text-brand-400',
   isLoading = false,
+  loading = false,
   className,
 }: KpiCardProps) {
-  if (isLoading) {
+  const heading = label ?? title ?? '';
+  if (isLoading || loading) {
     return (
       <div className={cn('panel-card space-y-3', className)}>
         <Skeleton className="h-4 w-24" />
@@ -39,7 +44,7 @@ export function KpiCard({
   return (
     <div className={cn('panel-card group', className)}>
       <div className="flex items-start justify-between mb-3">
-        <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">{title}</p>
+        <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">{heading}</p>
         {Icon && (
           <div className="w-8 h-8 rounded-lg bg-surface-elevated flex items-center justify-center">
             <Icon className={cn('w-4 h-4', iconColor)} />

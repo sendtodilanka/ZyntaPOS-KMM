@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { X } from 'lucide-react';
 import { RoleAssignment } from './RoleAssignment';
 import { useCreateUser, useUpdateUser } from '@/api/users';
-import type { AdminUser, AdminRole } from '@/types/user';
+import type { AdminUser } from '@/types/user';
 
 const schema = z.object({
   username: z.string().min(3, 'Min 3 characters'),

@@ -49,7 +49,7 @@ interface StatusBadgeProps {
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
   const styles = STATUS_STYLES[status as StatusVariant] ?? 'bg-slate-500/15 text-slate-400 border-slate-500/30';
-  const label = status.replace(/_/g, ' ');
+  const label = status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 
   return (
     <span

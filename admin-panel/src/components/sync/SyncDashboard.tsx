@@ -3,7 +3,6 @@ import { RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { ForceSyncButton } from './ForceSyncButton';
 import { SyncQueueView } from './SyncQueueView';
-import { SyncHealthChart } from '@/components/charts/SyncHealthChart';
 import { useSyncQueue } from '@/api/sync';
 import { formatRelativeTime } from '@/lib/utils';
 import type { StoreSyncStatus } from '@/types/sync';
