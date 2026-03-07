@@ -101,7 +101,6 @@ gh run list --workflow=cd-verify-endpoints.yml --limit 3
 2. A pipeline step fails (any of Steps 1–7 returns a non-green status)
 
 **In all other cases — let the pipeline run naturally without touching it.**
-
 ---
 
 ### PR Conflict Resolution (MANDATORY — NO REBASE)
