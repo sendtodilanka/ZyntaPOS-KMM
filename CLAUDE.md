@@ -75,12 +75,14 @@ Step[7]: Verify Endpoints  (cd-verify-endpoints.yml)
 
 ### Live Monitoring Protocol (MANDATORY after every push)
 
+> **IMPORTANT:** Claude must NEVER manually create a PR. Step[2] (ci-auto-pr.yml) creates the PR automatically after Step[1] passes. Claude's only job is to watch and wait.
+
 ```bash
 # Monitor Step[1] — Branch Validate (triggers immediately on push)
 gh run list --branch $(git branch --show-current) --limit 5
 gh run watch <run-id>
 
-# After Step[1] passes, monitor Step[2] — Auto PR creation
+# After Step[1] passes, Step[2] auto-creates the PR — just verify it appeared
 gh pr list --head $(git branch --show-current)
 
 # Monitor Step[3+4] — CI Gate on the PR
@@ -93,6 +95,12 @@ gh run list --workflow=cd-verify-endpoints.yml --limit 3
 ```
 
 **Do NOT start the next implementation task until ALL applicable steps are green.**
+
+**Claude ONLY intervenes when:**
+1. The PR has merge conflicts with `main` (Step[2] created it but auto-merge is blocked)
+2. A pipeline step fails (any of Steps 1–7 returns a non-green status)
+
+**In all other cases — let the pipeline run naturally without touching it.**
 
 ---
 
