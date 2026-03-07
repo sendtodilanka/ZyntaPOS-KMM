@@ -6,6 +6,7 @@ interface Props {
   ogImage?: string;
   ogType?: string;
   noindex?: boolean;
+  keywords?: string;
   jsonLd?: object[];
   breadcrumbs?: { name: string; url: string }[];
 }
@@ -17,6 +18,7 @@ const {
   ogImage = '/images/og/home.svg',
   ogType = 'website',
   noindex = false,
+  keywords = 'POS system, point of sale software, retail POS, restaurant POS, offline POS, Android POS app, free POS software, inventory management, small business POS, multi-store POS',
   jsonLd = [],
   breadcrumbs = [],
 } = Astro.props;
@@ -46,8 +48,10 @@ const allJsonLd = breadcrumbJsonLd ? [...jsonLd, breadcrumbJsonLd] : jsonLd;
 <!-- Primary meta -->
 <title>{fullTitle}</title>
 <meta name="description" content={description} />
+<meta name="keywords" content={keywords} />
+<meta name="robots" content={noindex ? 'noindex, nofollow' : 'index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1'} />
+<meta name="author" content="Zynta Solutions Pvt Ltd" />
 <link rel="canonical" href={canonical} />
-{noindex && <meta name="robots" content="noindex, nofollow" />}
 
 <!-- Open Graph -->
 <meta property="og:title" content={fullTitle} />
@@ -63,6 +67,7 @@ const allJsonLd = breadcrumbJsonLd ? [...jsonLd, breadcrumbJsonLd] : jsonLd;
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:site" content="@zyntapos" />
+<meta name="twitter:creator" content="@zyntapos" />
 <meta name="twitter:title" content={fullTitle} />
 <meta name="twitter:description" content={description} />
 <meta name="twitter:image" content={ogImageUrl} />
