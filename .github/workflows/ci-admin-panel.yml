@@ -115,14 +115,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Compute lowercase image name
+        id: image
+        run: echo "repo=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: admin-panel
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: |
-            ghcr.io/${{ github.repository }}/admin-panel:latest
-            ghcr.io/${{ github.repository }}/admin-panel:${{ github.sha }}
+            ghcr.io/${{ steps.image.outputs.repo }}/admin-panel:latest
+            ghcr.io/${{ steps.image.outputs.repo }}/admin-panel:${{ github.sha }}
           build-args: |
             VITE_API_BASE_URL=/api
             VITE_LICENSE_BASE_URL=/license
