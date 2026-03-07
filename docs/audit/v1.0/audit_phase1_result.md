@@ -643,7 +643,7 @@ ZyntaPOS-KMM/
 |--------|-----------|-------------|
 | DMG    | macOS     | Standard DMG |
 | MSI    | Windows   | Directory chooser, per-user/all-users, shortcuts, upgrade UUID `b2f8c3a1-7d4e-4f5a-9b6c-1e2d3f4a5b6c` |
-| DEB    | Linux     | Maintainer `dev@zyntasolutions.com`, Category `Office`, Menu group `Office` |
+| DEB    | Linux     | Maintainer `dev@zyntapos.com`, Category `Office`, Menu group `Office` |
 
 **JVM runtime args:** `-Xmx512m`, `-Dfile.encoding=UTF-8`, `-Dapp.version=…`, `-Dapp.build.number=…`, `-Dapp.build.date=…`
 

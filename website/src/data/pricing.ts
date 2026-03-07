@@ -117,7 +117,7 @@ export const pricingFaq = [
   {
     question: 'Is pricing in USD or LKR?',
     answer:
-      'Plans are listed in USD. LKR invoicing is available for Sri Lankan businesses — contact sales@zyntasolutions.com.',
+      'Plans are listed in USD. LKR invoicing is available for Sri Lankan businesses — contact sales@zyntapos.com.',
   },
   {
     question: 'Do you offer discounts for annual billing?',

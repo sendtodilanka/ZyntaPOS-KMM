@@ -291,7 +291,7 @@ Each vertical: hero image + 4 feature bullets + "Start Free Trial" CTA
 2. Mission — "Make enterprise-grade POS affordable for every retailer"
 3. Team (optional — can be placeholder "Meet the team" section)
 4. Tech stack highlights — KMM, offline-first, encrypted
-5. Contact info — support@zyntasolutions.com, company registration number
+5. Contact info — support@zyntapos.com, company registration number
 
 **JSON-LD:** Organization + LocalBusiness + BreadcrumbList
 

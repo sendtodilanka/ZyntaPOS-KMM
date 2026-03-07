@@ -219,7 +219,7 @@ The panel is protected by Cloudflare Access. No custom login page is needed.
 
 **Flow:**
 1. User navigates to `panel.zyntapos.com`
-2. Cloudflare Access intercepts, presents OTP login (email: `*@zyntasolutions.com`)
+2. Cloudflare Access intercepts, presents OTP login (email: `*@zyntapos.com`)
 3. On success, Cloudflare sets `CF_Authorization` cookie containing a signed JWT
 4. The React app reads the JWT to extract user identity (`email`, `name`)
 5. All API requests include the `CF_Authorization` cookie (same-origin via Caddy proxy)
@@ -231,7 +231,7 @@ The panel is protected by Cloudflare Access. No custom login page is needed.
 New admin-specific API endpoints require a separate admin JWT (not the POS app JWT). The flow:
 
 1. CF Access JWT is validated at the Caddy/API layer
-2. The API issues a short-lived admin session token scoped to `role: SUPER_ADMIN`
+2. The API issues a short-lived admin session token scoped to `role: ADMIN`
 3. All admin API calls include `Authorization: Bearer <admin-token>`
 4. Admin tokens have a 1-hour TTL, auto-refreshed by the API client interceptor
 
@@ -239,7 +239,7 @@ New admin-specific API endpoints require a separate admin JWT (not the POS app J
 
 | Role | Permissions |
 |------|-------------|
-| `SUPER_ADMIN` | Full access to all panel features |
+| `ADMIN` | Full access to all panel features |
 | `SUPPORT` | Read-only access + force sync + view audit logs (no license create/revoke) |
 | `VIEWER` | Read-only access to dashboards and reports |
 
@@ -250,7 +250,7 @@ Roles are checked client-side for UI gating and server-side for enforcement.
 interface AdminUser {
   email: string;
   name: string;
-  role: 'SUPER_ADMIN' | 'SUPPORT' | 'VIEWER';
+  role: 'ADMIN' | 'SUPPORT' | 'VIEWER';
   avatarUrl?: string;
 }
 
@@ -632,7 +632,7 @@ export default {
 | 15.4 | Keyboard shortcuts | `src/hooks/use-keyboard.ts` | `/` focus search, `Escape` close dialogs, `Ctrl+K` command palette (stretch goal) |
 | 15.5 | Dark theme fine-tuning | `src/globals.css` | Ensure all components work in dark theme, proper contrast ratios (WCAG AA) |
 | 15.6 | Deploy to VPS | VPS SSH | Pull latest images, `docker compose up -d`, verify `panel.zyntapos.com` loads |
-| 15.7 | Configure Cloudflare Access | CF Zero Trust dashboard | Create Access Application for `panel.zyntapos.com`, policy: Allow `*@zyntasolutions.com` |
+| 15.7 | Configure Cloudflare Access | CF Zero Trust dashboard | Create Access Application for `panel.zyntapos.com`, policy: Allow `*@zyntapos.com` |
 | 15.8 | Verify end-to-end | Manual testing | Login via CF Access, navigate all pages, create/revoke license, view audit logs, export report |
 | 15.9 | Update execution plan | `docs/todo/000-execution-plan.md` | Mark 007a as complete, update Phase 2 status |
 | 15.10 | Update gap analysis | `docs/todo/GAP-ANALYSIS-AND-FILL-PLAN.md` | Mark 7a as done |
@@ -1063,7 +1063,7 @@ TODO-007 (Infrastructure)
 Browser → panel.zyntapos.com
    │
    ├── Cloudflare Access (edge)
-   │   └── OTP to @zyntasolutions.com
+   │   └── OTP to @zyntapos.com
    │   └── Sets CF_Authorization cookie (signed JWT)
    │
    ├── Caddy (reverse proxy)

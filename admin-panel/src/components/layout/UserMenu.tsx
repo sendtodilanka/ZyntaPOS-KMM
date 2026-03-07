@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { useState, useRef, useEffect } from 'react';
 
 const ROLE_COLORS = {
-  SUPER_ADMIN: 'text-red-400 bg-red-400/10',
+  ADMIN: 'text-red-400 bg-red-400/10',
   SUPPORT: 'text-yellow-400 bg-yellow-400/10',
   VIEWER: 'text-slate-400 bg-slate-400/10',
 } as const;

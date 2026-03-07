@@ -29,9 +29,9 @@ Cloudflare Layer (network security — already in place)
 Custom Auth Layer (identity + access — to be implemented)
   • ZyntaPOS branded login page        ← currently CF branded
   • Backend admin user table + JWT     ← to implement
-  • Role-based access (SUPER_ADMIN / SUPPORT / VIEWER)  ← to implement
+  • Role-based access (ADMIN / OPERATOR / FINANCE / AUDITOR)  ← to implement
   • MFA (TOTP — Google Authenticator)  ← to implement
-  • Google SSO (restricted to @zyntasolutions.com)  ← to implement
+  • Google SSO (restricted to @zyntapos.com)  ← to implement
   • Admin user management UI           ← to implement
   • Brute-force protection + lockout   ← to implement
   • Audit trail for auth events        ← to implement
@@ -53,7 +53,7 @@ Custom Auth Layer (identity + access — to be implemented)
 - Ktor admin auth routes (`/admin/auth/*`) behind the existing `panel.zyntapos.com` Caddy config
 - ZyntaPOS-issued JWTs (HS256, 15-min access + 7-day refresh) in httpOnly cookies
 - TOTP MFA (Google Authenticator / Authy compatible)
-- Google OAuth 2.0 SSO restricted to `@zyntasolutions.com` domain
+- Google OAuth 2.0 SSO restricted to `@zyntapos.com` domain
 - Admin user CRUD UI in the panel's `/settings/users` route
 - Full auth audit trail in the existing audit log system
 
@@ -106,9 +106,9 @@ Access Token (JWT HS256)
   Header:  { alg: "HS256", typ: "JWT" }
   Payload: {
     sub:   "admin_user_uuid",
-    email: "dilanka@zyntasolutions.com",
+    email: "dilanka@zyntapos.com",
     name:  "Dilanka",
-    role:  "SUPER_ADMIN",           // SUPER_ADMIN | SUPPORT | VIEWER
+    role:  "ADMIN",           // ADMIN | OPERATOR | FINANCE | AUDITOR
     mfa:   true,                    // MFA was verified in this session
     iat:   1741305600,
     exp:   1741306500               // 15 minutes
@@ -133,7 +133,7 @@ CREATE TABLE admin_users (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email           TEXT NOT NULL UNIQUE,
     name            TEXT NOT NULL,
-    role            TEXT NOT NULL CHECK (role IN ('SUPER_ADMIN', 'SUPPORT', 'VIEWER')),
+    role            TEXT NOT NULL CHECK (role IN ('ADMIN', 'OPERATOR', 'FINANCE', 'AUDITOR')),
     password_hash   TEXT,                      -- NULL if Google SSO only
     google_sub      TEXT UNIQUE,               -- NULL if password only
     mfa_secret      TEXT,                      -- TOTP secret, encrypted at rest
@@ -175,6 +175,139 @@ CREATE INDEX idx_admin_mfa_backup_codes_user_id ON admin_mfa_backup_codes(user_i
 
 ---
 
+## 3.5 Role Definitions & Permission Matrix
+
+### Roles (4)
+
+| Role | Who Gets It | Real-World Title |
+|------|------------|-----------------|
+| `ADMIN` | Company owner / CTO | Dilanka + co-founder |
+| `OPERATOR` | Technical support engineers | Field techs who install/fix POS terminals |
+| `FINANCE` | Finance team | Accountant, billing manager |
+| `AUDITOR` | Company auditors | Internal/external compliance auditor |
+
+### Permission Matrix
+
+| Panel Feature | ADMIN | OPERATOR | FINANCE | AUDITOR |
+|--------------|:-----------:|:--------:|:-------:|:-------:|
+| Dashboard — ops KPIs (uptime, sync, errors) | ✅ | ✅ | ❌ | ❌ |
+| Dashboard — financial KPIs (MRR, churn) | ✅ | ❌ | ✅ | ❌ |
+| License — view | ✅ | ✅ | ✅ | 👁 |
+| License — create / extend | ✅ | ❌ | ❌ | ❌ |
+| License — revoke / suspend | ✅ | ❌ | ❌ | ❌ |
+| Stores — view health & sync status | ✅ | ✅ | ❌ | ❌ |
+| Stores — manage sync conflicts | ✅ | ✅ | ❌ | ❌ |
+| Remote Diagnostics | ✅ | ✅ | ❌ | ❌ |
+| Remote Config Push | ✅ | ❌ | ❌ | ❌ |
+| Financial Reports (revenue, churn, billing) | ✅ | ❌ | ✅ | 👁 |
+| Operational Reports (usage, uptime, sync) | ✅ | ✅ | ❌ | 👁 |
+| System Health & Alerts — view | ✅ | ✅ | ❌ | ❌ |
+| Alerts — acknowledge | ✅ | ✅ | ❌ | ❌ |
+| Audit Logs | ✅ | ❌ | ❌ | ✅ |
+| Admin User Management | ✅ | ❌ | ❌ | ❌ |
+| System Settings | ✅ | ❌ | ❌ | ❌ |
+
+> 👁 = Read-only (no export) | ✅ = Full access | ❌ = No access (404 on API, redirected on frontend)
+
+### Granular Permission Constants (TypeScript + Kotlin)
+
+```typescript
+// admin-panel/src/lib/permissions.ts
+export const PERMISSIONS = {
+  // Dashboard
+  'dashboard:ops':            ['ADMIN', 'OPERATOR'],
+  'dashboard:financial':      ['ADMIN', 'FINANCE'],
+
+  // Licenses
+  'license:read':             ['ADMIN', 'OPERATOR', 'FINANCE', 'AUDITOR'],
+  'license:write':            ['ADMIN'],
+  'license:revoke':           ['ADMIN'],
+
+  // Stores
+  'store:read':               ['ADMIN', 'OPERATOR'],
+  'store:sync:manage':        ['ADMIN', 'OPERATOR'],
+
+  // Remote operations
+  'diagnostics:access':       ['ADMIN', 'OPERATOR'],
+  'config:push':              ['ADMIN'],
+
+  // Reports
+  'reports:financial':        ['ADMIN', 'FINANCE'],
+  'reports:operational':      ['ADMIN', 'OPERATOR'],
+  'reports:read':             ['ADMIN', 'FINANCE', 'AUDITOR'],
+
+  // Alerts
+  'alerts:read':              ['ADMIN', 'OPERATOR'],
+  'alerts:acknowledge':       ['ADMIN', 'OPERATOR'],
+
+  // Audit logs
+  'audit:read':               ['ADMIN', 'AUDITOR'],
+
+  // Admin user management
+  'users:read':               ['ADMIN'],
+  'users:write':              ['ADMIN'],
+
+  // System
+  'system:settings':          ['ADMIN'],
+  'system:health':            ['ADMIN', 'OPERATOR'],
+} as const satisfies Record<string, AdminRole[]>
+
+export type AdminRole = 'ADMIN' | 'OPERATOR' | 'FINANCE' | 'AUDITOR'
+
+export function hasPermission(role: AdminRole, permission: keyof typeof PERMISSIONS): boolean {
+  return (PERMISSIONS[permission] as string[]).includes(role)
+}
+```
+
+```kotlin
+// backend/api/src/main/kotlin/com/zyntasolutions/api/auth/AdminPermissions.kt
+enum class AdminRole { ADMIN, OPERATOR, FINANCE, AUDITOR }
+
+object AdminPermissions {
+    private val permissions = mapOf(
+        "dashboard:ops"          to setOf(ADMIN, OPERATOR),
+        "dashboard:financial"    to setOf(ADMIN, FINANCE),
+        "license:read"           to setOf(ADMIN, OPERATOR, FINANCE, AUDITOR),
+        "license:write"          to setOf(ADMIN),
+        "license:revoke"         to setOf(ADMIN),
+        "store:read"             to setOf(ADMIN, OPERATOR),
+        "store:sync:manage"      to setOf(ADMIN, OPERATOR),
+        "diagnostics:access"     to setOf(ADMIN, OPERATOR),
+        "config:push"            to setOf(ADMIN),
+        "reports:financial"      to setOf(ADMIN, FINANCE),
+        "reports:operational"    to setOf(ADMIN, OPERATOR),
+        "reports:read"           to setOf(ADMIN, FINANCE, AUDITOR),
+        "alerts:read"            to setOf(ADMIN, OPERATOR),
+        "alerts:acknowledge"     to setOf(ADMIN, OPERATOR),
+        "audit:read"             to setOf(ADMIN, AUDITOR),
+        "users:read"             to setOf(ADMIN),
+        "users:write"            to setOf(ADMIN),
+        "system:settings"        to setOf(ADMIN),
+        "system:health"          to setOf(ADMIN, OPERATOR),
+    )
+
+    fun check(role: AdminRole, permission: String): Boolean =
+        permissions[permission]?.contains(role) ?: false
+}
+```
+
+### MFA Policy
+
+| Role | MFA Requirement |
+|------|----------------|
+| `ADMIN` | ✅ **Mandatory** — system enforced, cannot skip |
+| `OPERATOR` | ✅ **Mandatory** — has remote diagnostic access |
+| `FINANCE` | ⚠️ Strongly recommended — has financial data |
+| `AUDITOR` | ⚠️ Recommended — read-only but sensitive logs |
+
+### Google SSO Auto-Provisioning
+
+New users logging in via Google SSO for the first time are auto-provisioned
+as `AUDITOR` (most restrictive role). ADMIN manually upgrades their role.
+This prevents accidental over-privileged access.
+
+---
+
 ## 4. Backend — Ktor Auth Routes
 
 **New file:** `backend/api/src/main/kotlin/com/zyntasolutions/api/routes/AdminAuthRoutes.kt`
@@ -192,12 +325,12 @@ CREATE INDEX idx_admin_mfa_backup_codes_user_id ON admin_mfa_backup_codes(user_i
 | `POST` | `/admin/auth/refresh` | None (cookie) | Rotate refresh token, issue new access token |
 | `POST` | `/admin/auth/logout` | Admin JWT | Revoke session, clear cookies |
 | `GET`  | `/admin/auth/me` | Admin JWT | Return current user info |
-| `GET`  | `/admin/users` | SUPER_ADMIN | List all admin users |
-| `POST` | `/admin/users` | SUPER_ADMIN | Create new admin user |
-| `PUT`  | `/admin/users/{id}` | SUPER_ADMIN | Update role / status |
-| `DELETE` | `/admin/users/{id}` | SUPER_ADMIN | Deactivate user |
-| `GET`  | `/admin/users/{id}/sessions` | SUPER_ADMIN | List active sessions |
-| `DELETE` | `/admin/users/{id}/sessions` | SUPER_ADMIN | Revoke all sessions for user |
+| `GET`  | `/admin/users` | ADMIN | List all admin users |
+| `POST` | `/admin/users` | ADMIN | Create new admin user |
+| `PUT`  | `/admin/users/{id}` | ADMIN | Update role / status |
+| `DELETE` | `/admin/users/{id}` | ADMIN | Deactivate user |
+| `GET`  | `/admin/users/{id}/sessions` | ADMIN | List active sessions |
+| `DELETE` | `/admin/users/{id}/sessions` | ADMIN | Revoke all sessions for user |
 
 ### Rate Limiting (Redis-backed)
 
@@ -284,6 +417,17 @@ admin-panel/src/
 
 ```typescript
 // admin-panel/src/stores/auth-store.ts
+export type AdminRole = 'ADMIN' | 'OPERATOR' | 'FINANCE' | 'AUDITOR'
+
+export interface AdminUser {
+  id: string
+  email: string
+  name: string
+  role: AdminRole
+  avatarUrl?: string
+  mfaEnabled: boolean
+}
+
 interface AuthState {
   user: AdminUser | null;
   isAuthenticated: boolean;
@@ -321,7 +465,7 @@ panel.zyntapos.com/login
 │  │                                                   │  │
 │  │  Email address                                    │  │
 │  │  ┌─────────────────────────────────────────────┐ │  │
-│  │  │ dilanka@zyntasolutions.com                  │ │  │
+│  │  │ dilanka@zyntapos.com                  │ │  │
 │  │  └─────────────────────────────────────────────┘ │  │
 │  │                                                   │  │
 │  │  Password                                         │  │
@@ -366,7 +510,7 @@ panel.zyntapos.com/login
 
 **Library:** `otplib` (npm) — 4M weekly downloads, 8 years old, zero dependencies
 
-### Setup Flow (SUPER_ADMIN enforced, SUPPORT optional)
+### Setup Flow (ADMIN + OPERATOR enforced, FINANCE + AUDITOR optional)
 
 ```
 1. Admin navigates to /settings/profile → "Enable Two-Factor Auth"
@@ -438,7 +582,7 @@ Frontend (PKCE):
      &scope=openid email profile
      &code_challenge=<challenge>
      &code_challenge_method=S256
-     &hd=zyntasolutions.com      ← restricts to company domain in Google UI
+     &hd=zyntapos.com      ← restricts to company domain in Google UI
 
 Backend (token exchange):
 4. POST /admin/auth/google { code, code_verifier }
@@ -446,7 +590,7 @@ Backend (token exchange):
    Returns: { id_token, access_token }
 6. Verify id_token signature (Google public keys from JWKS endpoint)
 7. Extract claims: { email, name, picture, sub, hd }
-8. Validate: hd == "zyntasolutions.com"  ← domain restriction enforced server-side too
+8. Validate: hd == "zyntapos.com"  ← domain restriction enforced server-side too
 9. Upsert admin_users (google_sub = sub, email, name, avatarUrl = picture)
 10. Issue ZyntaPOS JWT + refresh token → httpOnly cookies
 11. Redirect to /
@@ -456,7 +600,7 @@ Backend (token exchange):
 
 ```
 Layer 1: Google OAuth hd= parameter      → Google blocks non-domain accounts in chooser UI
-Layer 2: Backend hd claim validation     → reject tokens where hd != "zyntasolutions.com"
+Layer 2: Backend hd claim validation     → reject tokens where hd != "zyntapos.com"
 Layer 3: Admin user is_active check      → even valid Google accounts can be deactivated
 ```
 
@@ -513,7 +657,7 @@ and tighten rules for the custom login endpoint:
 
 [ ] Add adminAuthPlugin to Ktor application (JWT verifier for ADMIN_JWT_SECRET)
 [ ] Add admin route guard middleware (separate from existing POS JWT guard)
-[ ] Seed first SUPER_ADMIN user via environment variable on startup
+[ ] Seed first ADMIN user via environment variable on startup
     (ADMIN_BOOTSTRAP_EMAIL + ADMIN_BOOTSTRAP_PASSWORD — hashed and inserted if table empty)
 
 [ ] Validation checklist:
@@ -634,7 +778,7 @@ and tighten rules for the custom login endpoint:
 
 ### Day 4 — MFA: TOTP Implementation
 
-**Goal:** TOTP setup flow and enforcement on login for SUPER_ADMIN accounts.
+**Goal:** TOTP setup flow and enforcement on login for ADMIN accounts.
 
 ```
 [ ] Add otplib to backend dependencies (or implement TOTP from RFC 6238 — it's only SHA-1 HMAC)
@@ -662,11 +806,12 @@ and tighten rules for the custom login endpoint:
     - /admin/auth/mfa/verify only accepts pre-MFA JWT (not full access JWT)
     - On TOTP success: revoke pre-MFA JWT, issue full access JWT + refresh token
 
-[ ] Enforce MFA for SUPER_ADMIN
-    - On login: if user.role == SUPER_ADMIN and mfa_enabled == false:
+[ ] Enforce MFA for ADMIN and OPERATOR
+    - On login: if user.role in (ADMIN, OPERATOR) and mfa_enabled == false:
         redirect frontend to /settings/profile?prompt=mfa_setup
-    - If user.role == SUPER_ADMIN and mfa_enabled == true:
+    - If user.role in (ADMIN, OPERATOR) and mfa_enabled == true:
         always require MFA verify step (no bypass)
+    - FINANCE and AUDITOR: MFA optional, but strongly recommended (shown as prompt, not enforced)
 
 [ ] Frontend MFA components
     - MfaVerifyForm.tsx: 6-digit input (auto-submit on 6th digit), loading state
@@ -688,7 +833,7 @@ and tighten rules for the custom login endpoint:
 
 ### Day 5 — Google SSO
 
-**Goal:** Google OAuth 2.0 PKCE flow, domain-restricted to @zyntasolutions.com.
+**Goal:** Google OAuth 2.0 PKCE flow, domain-restricted to @zyntapos.com.
 
 ```
 [ ] Google Cloud Console setup (manual, one-time)
@@ -700,7 +845,7 @@ and tighten rules for the custom login endpoint:
 [ ] Add to VPS .env:
     GOOGLE_CLIENT_ID=...
     GOOGLE_CLIENT_SECRET=...
-    GOOGLE_ALLOWED_DOMAIN=zyntasolutions.com
+    GOOGLE_ALLOWED_DOMAIN=zyntapos.com
 
 [ ] Backend: Google token exchange
     - POST /admin/auth/google { code, code_verifier, redirect_uri }
@@ -708,7 +853,7 @@ and tighten rules for the custom login endpoint:
     - Fetch Google public keys from https://www.googleapis.com/oauth2/v3/certs (cache 1h)
     - Verify id_token signature (RS256, key from JWKS)
     - Validate claims: iss, aud == GOOGLE_CLIENT_ID, exp, hd == GOOGLE_ALLOWED_DOMAIN
-    - Upsert admin_users (first SSO login creates VIEWER role by default)
+    - Upsert admin_users (first SSO login creates AUDITOR role by default — most restrictive)
     - Issue ZyntaPOS JWT + refresh → cookies
     - If user.mfa_enabled → pre-MFA JWT instead
 
@@ -729,9 +874,9 @@ and tighten rules for the custom login endpoint:
     - Click "Continue with Google" → redirected to Google account chooser
     - Google chooser shows "Sign in to ZyntaPOS Admin Panel"
     - Login with non-company Google account → "Access denied" error
-    - Login with @zyntasolutions.com account → auto-provisioned as VIEWER, logged in
+    - Login with @zyntapos.com account → auto-provisioned as AUDITOR, logged in
     - Second login with same Google account → existing user, no duplicate created
-    - If SUPER_ADMIN logs in via Google and MFA enabled → MFA verify step still required
+    - If ADMIN logs in via Google and MFA enabled → MFA verify step still required
     - Revoke access in admin panel → Google SSO login still blocked (is_active check)
 ```
 
@@ -754,8 +899,8 @@ and tighten rules for the custom login endpoint:
     - DataTable with columns: Name, Email, Role badge, MFA status, Last login, Status, Actions
     - Actions: Edit role | Deactivate | Revoke sessions
     - "Invite User" modal: email + name + role + initial password (or send invite email)
-    - Role selector: SUPER_ADMIN | SUPPORT | VIEWER (with permission descriptions)
-    - MFA status: "Enabled ✓" | "Not configured ⚠" (with enforce link for SUPER_ADMIN)
+    - Role selector: ADMIN | OPERATOR | FINANCE | AUDITOR (with permission descriptions)
+    - MFA status: "Enabled ✓" | "Not configured ⚠" (with enforce link for ADMIN + OPERATOR)
 
 [ ] Frontend: /settings/profile route
     - View own profile (email, name, role)
@@ -764,12 +909,12 @@ and tighten rules for the custom login endpoint:
     - Active sessions list: device + IP + last used; "Revoke" button per session
 
 [ ] Validation checklist:
-    - SUPER_ADMIN can see user list and all actions
-    - SUPPORT and VIEWER cannot access /settings/users (403 on API, redirect on frontend)
+    - ADMIN can see user list and all actions
+    - OPERATOR, FINANCE and AUDITOR cannot access /settings/users (403 on API, redirect on frontend)
     - Create user → appears in list, can log in with initial password
     - Deactivate user → login returns 401, cannot SSO in either
     - Revoke sessions → next request with old refresh token returns 401
-    - SUPER_ADMIN can change own password → old password no longer works
+    - ADMIN can change own password → old password no longer works
 ```
 
 ---
@@ -814,11 +959,11 @@ and tighten rules for the custom login endpoint:
 [ ] Environment variables documentation
     New variables to add to local.properties.template and VPS .env:
     - ADMIN_JWT_SECRET (min 256-bit random: openssl rand -hex 32)
-    - ADMIN_BOOTSTRAP_EMAIL (first SUPER_ADMIN email)
-    - ADMIN_BOOTSTRAP_PASSWORD (first SUPER_ADMIN password — change immediately after setup)
+    - ADMIN_BOOTSTRAP_EMAIL (first ADMIN email)
+    - ADMIN_BOOTSTRAP_PASSWORD (first ADMIN password — change immediately after setup)
     - GOOGLE_CLIENT_ID
     - GOOGLE_CLIENT_SECRET
-    - GOOGLE_ALLOWED_DOMAIN (= "zyntasolutions.com")
+    - GOOGLE_ALLOWED_DOMAIN (= "zyntapos.com")
 
 [ ] Security review checklist
     - [ ] No secrets in frontend bundle (GOOGLE_CLIENT_ID is safe; CLIENT_SECRET is not)
@@ -853,10 +998,10 @@ and tighten rules for the custom login endpoint:
 
 ### Auth Flows
 
-- [ ] Password login → dashboard (VIEWER role)
-- [ ] Password login → MFA verify screen → dashboard (SUPER_ADMIN with MFA enabled)
-- [ ] Password login → force MFA setup (SUPER_ADMIN without MFA → /settings/profile?prompt=mfa_setup)
-- [ ] Google SSO → dashboard (auto-provisioned as VIEWER)
+- [ ] Password login → dashboard (AUDITOR role — most restrictive, fewest nav items visible)
+- [ ] Password login → MFA verify screen → dashboard (ADMIN / OPERATOR with MFA enabled)
+- [ ] Password login → force MFA setup (ADMIN / OPERATOR without MFA → /settings/profile?prompt=mfa_setup)
+- [ ] Google SSO → dashboard (auto-provisioned as AUDITOR)
 - [ ] Google SSO with non-company email → "Access denied" error on /login
 - [ ] Expired access token → auto-refreshed silently (user stays logged in)
 - [ ] Expired refresh token → redirected to /login
@@ -865,12 +1010,16 @@ and tighten rules for the custom login endpoint:
 
 ### User Management
 
-- [ ] SUPER_ADMIN can create user → user can log in
-- [ ] SUPER_ADMIN can change another user's role → takes effect on next login
-- [ ] SUPER_ADMIN can deactivate user → login returns 401
-- [ ] SUPER_ADMIN can revoke sessions → user kicked out immediately (next request fails)
-- [ ] SUPPORT cannot access `/admin/users` API (403)
-- [ ] VIEWER cannot access `/admin/users` API (403)
+- [ ] ADMIN can create user with any role → user can log in
+- [ ] ADMIN can change another user's role → takes effect on next login
+- [ ] ADMIN can deactivate user → login returns 401
+- [ ] ADMIN can revoke sessions → user kicked out immediately (next request fails)
+- [ ] OPERATOR cannot access `/admin/users` API (403)
+- [ ] FINANCE cannot access `/admin/users` API (403)
+- [ ] AUDITOR cannot access `/admin/users` API (403)
+- [ ] OPERATOR can access remote diagnostics → FINANCE cannot (403)
+- [ ] FINANCE can access financial reports → OPERATOR cannot (403)
+- [ ] AUDITOR can read audit logs → OPERATOR cannot (403)
 
 ### MFA
 
@@ -884,9 +1033,9 @@ and tighten rules for the custom login endpoint:
 
 ### Google SSO
 
-- [ ] Google chooser shows company domain hint (`hd=zyntasolutions.com`)
+- [ ] Google chooser shows company domain hint (`hd=zyntapos.com`)
 - [ ] Login with `@gmail.com` → blocked (both Google-side and backend-side)
-- [ ] Login with `@zyntasolutions.com` → success, auto-provisioned
+- [ ] Login with `@zyntapos.com` → success, auto-provisioned
 - [ ] Second login with same Google account → no duplicate user row
 - [ ] Deactivated Google user cannot log in via SSO
 
@@ -957,7 +1106,7 @@ admin-panel/src/
 ## 13. Non-Goals (Out of Scope for This TODO)
 
 - Email-based invite system (users added with initial password; email invite is Phase 3)
-- Password reset via email (admin must reset via CLI or another SUPER_ADMIN — Phase 3)
+- Password reset via email (admin must reset via CLI or another ADMIN — Phase 3)
 - SMS-based MFA (TOTP only — SMS requires Twilio and adds cost)
 - WebAuthn / hardware keys (Phase 3 enterprise)
 - Session activity heatmap (Phase 3)

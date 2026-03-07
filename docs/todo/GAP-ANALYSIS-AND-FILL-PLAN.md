@@ -306,8 +306,8 @@ Wire alerts to Slack `#alerts` channel.
 
 CF dashboard configuration:
 - Create CF Access Application for `panel.zyntapos.com`
-- Auth method: OTP to `@zyntasolutions.com`
-- Policy: Allow `*@zyntasolutions.com` only
+- Auth method: OTP to `@zyntapos.com`
+- Policy: Allow `*@zyntapos.com` only
 
 #### Step 2.4 — Falco + Falcosidekick (TODO-010, items 10d–10f) — 3 hrs
 

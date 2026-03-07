@@ -63,8 +63,8 @@ Free tier covers up to 50 users — sufficient for Zynta Solutions team.
 **Step 2 — Protect admin panel with CF Access**
 
 Create a CF Access Application for `panel.zyntapos.com`:
-- Auth method: One-time PIN to `@zyntasolutions.com` email (or Google Workspace SSO)
-- Policy: Allow only `*@zyntasolutions.com` email domain
+- Auth method: One-time PIN to `@zyntapos.com` email (or Google Workspace SSO)
+- Policy: Allow only `*@zyntapos.com` email domain
 - Effect: `panel.zyntapos.com` returns 403 to any request without a valid CF Access JWT cookie
 
 **Step 3 — Cloudflare Tunnel (replace open port with tunnel)**
@@ -117,7 +117,7 @@ CF Dashboard → Notifications → Create alert policies:
 - Alert on: WAF rule triggered > 100× per hour
 - Alert on: Bot score spike > 1,000 bots/hour
 
-Delivery: email to `security@zyntasolutions.com` + Slack webhook.
+Delivery: email to `security@zyntapos.com` + Slack webhook.
 
 ### Files to Create or Modify
 
@@ -365,7 +365,7 @@ Keep both — they catch different CVEs at different speeds.
 2. Import `ZyntaPOS-KMM` repository → Snyk auto-detects all Gradle build files
 3. Set monitoring frequency: **daily** (free tier supports this)
 4. Configure notifications:
-   - Email: `security@zyntasolutions.com` for NEW CVEs only (severity: HIGH + CRITICAL)
+   - Email: `security@zyntapos.com` for NEW CVEs only (severity: HIGH + CRITICAL)
    - Slack: `#security-alerts` channel via webhook (same webhook as Falcosidekick)
 5. Enable "Fix PRs" — Snyk raises a PR with the patched version when a fix is available
 
@@ -396,7 +396,7 @@ being used.
 **Step 1 — Create two Canary tokens at canarytokens.org**
 
 Token A — "Custom URL / Web token":
-- Alert email: `security@zyntasolutions.com`
+- Alert email: `security@zyntapos.com`
 - Alert Slack: same `#security-alerts` webhook
 - Note: "Possible .jar decompile — token A found in zyntapos-api bytecode"
 
@@ -531,7 +531,7 @@ CANARY_TOKEN_B_KEY=
 ### Cloudflare Zero Trust (4 items)
 
 - [ ] `panel.zyntapos.com` returns HTTP 403 to `curl -I https://panel.zyntapos.com` without a CF Access cookie
-- [ ] CF Access email OTP login works for `@zyntasolutions.com` addresses (test by logging in)
+- [ ] CF Access email OTP login works for `@zyntapos.com` addresses (test by logging in)
 - [ ] Cloudflare Tunnel active: `cloudflared tunnel list` shows `zyntapos-vps` with status `healthy`
 - [ ] Bot Fight Mode enabled: CF Dashboard → Security → Bots shows "Super Bot Fight Mode: ON"
 
