@@ -714,6 +714,75 @@ Copy `local.properties.template` and fill in values before first build.
 
 ---
 
+## 🔴 VPS SSH Access (MANDATORY — GitHub Actions Only)
+
+**Claude CANNOT SSH directly into the VPS from a local terminal session.** There is no direct SSH access from the Claude Code environment. All VPS operations MUST be performed via GitHub Actions workflows.
+
+### Why
+
+The VPS SSH private key (`VPS_USER_KEY`), host (`VPS_HOST`), port (`VPS_PORT`), and user (`VPS_USER`) are stored **exclusively as GitHub Secrets**. They are never exposed in the local environment or `local.properties`. The only way to run commands on the VPS is to trigger a GitHub Actions workflow that uses these secrets.
+
+### How to Run Commands on the VPS
+
+**Option 1 — Use an existing workflow (preferred)**
+
+Trigger the relevant workflow via `repository_dispatch` or `workflow_dispatch`:
+
+```bash
+# Trigger cd-deploy manually (re-deploys current main SHA)
+curl -s -X POST -H "Authorization: token $PAT" \
+  -H "Accept: application/vnd.github.v3+json" \
+  "https://api.github.com/repos/sendtodilanka/ZyntaPOS-KMM/actions/workflows/cd-deploy.yml/dispatches" \
+  -d '{"ref":"main"}'
+```
+
+**Option 2 — Create a one-off workflow**
+
+For custom VPS commands (e.g., check logs, restart a container, reset the DB), create a temporary workflow file that uses the stored secrets:
+
+```yaml
+# .github/workflows/vps-adhoc.yml  (delete after use)
+name: VPS Ad-hoc
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        description: 'Shell command to run on VPS'
+        required: true
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.VPS_USER_KEY }}
+          script: ${{ github.event.inputs.command }}
+```
+
+Then trigger it via curl:
+```bash
+curl -s -X POST -H "Authorization: token $PAT" \
+  -H "Accept: application/vnd.github.v3+json" \
+  "https://api.github.com/repos/sendtodilanka/ZyntaPOS-KMM/actions/workflows/vps-adhoc.yml/dispatches" \
+  -d '{"ref":"main","inputs":{"command":"cd /opt/zyntapos && docker compose ps"}}'
+```
+
+### Available VPS Workflows
+
+| Workflow | File | Purpose |
+|----------|------|---------|
+| Deploy | `cd-deploy.yml` | git reset + docker compose pull + up |
+| Smoke Test | `cd-smoke-rollback.yml` | Hit live endpoints, auto-rollback on failure |
+| Verify Endpoints | `cd-verify-endpoints.yml` | Deep endpoint validation post-smoke |
+
+> **Session start rule:** If you need to run anything on the VPS, do NOT attempt direct SSH. Identify the right workflow above or create a one-off `vps-adhoc.yml`. All required credentials are already in GitHub Secrets — nothing needs to be provided locally.
+
+---
+
 ## Architecture Decision Records (ADRs)
 
 All structural decisions are documented in `docs/adr/`. Create a new ADR before introducing new conventions, modules, or tech.

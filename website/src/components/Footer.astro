@@ -45,11 +45,11 @@ const currentYear = new Date().getFullYear();
             {links.map((link) => (
               <li>
                 {link.external ? (
-                  <a href={link.href} target="_blank" rel="noopener noreferrer" class="text-sm text-slate-400 hover:text-white transition-colors">
+                  <a href={link.href} target="_blank" rel="noopener noreferrer" class="block py-1 text-sm text-slate-400 hover:text-white transition-colors">
                     {link.label}
                   </a>
                 ) : (
-                  <a href={link.href} class="text-sm text-slate-400 hover:text-white transition-colors">
+                  <a href={link.href} class="block py-1 text-sm text-slate-400 hover:text-white transition-colors">
                     {link.label}
                   </a>
                 )}
