@@ -1,0 +1,103 @@
+---
+import { mainNav } from '@data/navigation';
+
+const currentPath = Astro.url.pathname;
+---
+
+<header class="sticky top-0 z-50 border-b border-slate-800 bg-slate-900/80 backdrop-blur-lg">
+  <nav class="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8" aria-label="Main navigation">
+    <!-- Logo -->
+    <a href="/" class="flex items-center gap-2 shrink-0" aria-label="ZyntaPOS home">
+      <img src="/logomark.svg" alt="" width="36" height="36" />
+      <span class="text-xl font-extrabold tracking-tight text-white">
+        Zynta<span class="text-sky-400">POS</span>
+      </span>
+    </a>
+
+    <!-- Desktop nav -->
+    <ul class="hidden items-center gap-1 md:flex" role="list">
+      {mainNav.map((link) => (
+        <li>
+          <a
+            href={link.href}
+            class:list={[
+              'rounded-md px-3 py-2 text-sm font-medium transition-colors',
+              currentPath === link.href || currentPath.startsWith(link.href + '/')
+                ? 'bg-slate-800 text-white'
+                : 'text-slate-300 hover:bg-slate-800 hover:text-white',
+            ]}
+          >
+            {link.label}
+          </a>
+        </li>
+      ))}
+    </ul>
+
+    <!-- CTA + Mobile toggle -->
+    <div class="flex items-center gap-3">
+      <a
+        href="/pricing"
+        class="hidden rounded-lg bg-sky-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-sky-600 sm:block"
+      >
+        Start Free Trial
+      </a>
+      <!-- Mobile menu button -->
+      <button
+        id="mobile-menu-btn"
+        type="button"
+        aria-expanded="false"
+        aria-controls="mobile-menu"
+        aria-label="Toggle menu"
+        class="rounded-md p-2 text-slate-400 hover:bg-slate-800 hover:text-white md:hidden"
+      >
+        <svg id="icon-open" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+        <svg id="icon-close" xmlns="http://www.w3.org/2000/svg" class="hidden h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Mobile menu -->
+  <div id="mobile-menu" class="hidden border-t border-slate-800 md:hidden">
+    <ul class="space-y-1 px-4 py-3" role="list">
+      {mainNav.map((link) => (
+        <li>
+          <a
+            href={link.href}
+            class:list={[
+              'block rounded-md px-3 py-2 text-base font-medium transition-colors',
+              currentPath === link.href
+                ? 'bg-slate-800 text-white'
+                : 'text-slate-300 hover:bg-slate-800 hover:text-white',
+            ]}
+          >
+            {link.label}
+          </a>
+        </li>
+      ))}
+      <li class="pt-2">
+        <a href="/pricing" class="block rounded-lg bg-sky-500 px-3 py-2 text-center text-base font-semibold text-white hover:bg-sky-600">
+          Start Free Trial
+        </a>
+      </li>
+    </ul>
+  </div>
+</header>
+
+<script>
+  const btn = document.getElementById('mobile-menu-btn');
+  const menu = document.getElementById('mobile-menu');
+  const iconOpen = document.getElementById('icon-open');
+  const iconClose = document.getElementById('icon-close');
+
+  btn?.addEventListener('click', () => {
+    const expanded = btn.getAttribute('aria-expanded') === 'true';
+    btn.setAttribute('aria-expanded', String(!expanded));
+    menu?.classList.toggle('hidden');
+    iconOpen?.classList.toggle('hidden');
+    iconClose?.classList.toggle('hidden');
+  });
+</script>

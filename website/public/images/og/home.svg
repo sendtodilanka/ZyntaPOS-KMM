@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" fill="none">
+  <rect width="1200" height="630" fill="#0f172a"/>
+  <rect x="0" y="0" width="1200" height="630" fill="url(#grad)"/>
+  <defs>
+    <linearGradient id="grad" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#0c4a6e"/>
+    </linearGradient>
+  </defs>
+  <text x="600" y="260" font-family="system-ui" font-size="72" font-weight="800" fill="white" text-anchor="middle">ZyntaPOS</text>
+  <text x="600" y="340" font-family="system-ui" font-size="32" fill="#0ea5e9" text-anchor="middle">The Offline-First POS for Modern Retail</text>
+  <text x="600" y="420" font-family="system-ui" font-size="24" fill="#64748b" text-anchor="middle">www.zyntapos.com</text>
+</svg>

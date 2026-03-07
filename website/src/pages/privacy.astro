@@ -1,0 +1,99 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Breadcrumbs from '@components/Breadcrumbs.astro';
+import { company } from '@data/company';
+
+const canonical = 'https://www.zyntapos.com/privacy';
+const breadcrumbs = [{ name: 'Privacy Policy', url: canonical }];
+const lastUpdated = '2026-03-01';
+---
+
+<BaseLayout
+  title="Privacy Policy — ZyntaPOS"
+  description="ZyntaPOS Privacy Policy. How we collect, use, and protect your data. GDPR compliant."
+  canonical={canonical}
+  noindex={false}
+  breadcrumbs={breadcrumbs}
+>
+  <section class="bg-slate-900 py-16">
+    <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+      <Breadcrumbs items={breadcrumbs} />
+      <div class="mt-8">
+        <h1 class="text-3xl font-extrabold text-white mb-2">Privacy Policy</h1>
+        <p class="text-sm text-slate-500 mb-12">Last updated: {lastUpdated}</p>
+
+        <div class="prose prose-invert prose-slate max-w-none space-y-8">
+
+          <section>
+            <h2 class="text-xl font-bold text-white mb-4">1. Who We Are</h2>
+            <p class="text-slate-400 leading-relaxed">
+              {company.name} ("Zynta", "we", "us") operates the ZyntaPOS application and the website at {company.siteUrl}.
+              Company registration: {company.registrationNumber}. Contact: <a href={`mailto:${company.email}`} class="text-sky-400 hover:text-sky-300">{company.email}</a>.
+            </p>
+          </section>
+
+          <section>
+            <h2 class="text-xl font-bold text-white mb-4">2. Data We Collect</h2>
+            <ul class="space-y-3 text-slate-400">
+              <li><strong class="text-slate-200">Business data:</strong> Products, orders, customers, staff — stored locally on your device, encrypted with AES-256.</li>
+              <li><strong class="text-slate-200">Account data:</strong> Email address and license key for account management.</li>
+              <li><strong class="text-slate-200">Usage data:</strong> Anonymised crash reports and feature usage statistics (opt-in only).</li>
+              <li><strong class="text-slate-200">Website data:</strong> Standard server logs (IP, browser, pages visited) — retained for 30 days.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 class="text-xl font-bold text-white mb-4">3. How We Use Your Data</h2>
+            <ul class="space-y-2 text-slate-400">
+              <li>To provide and operate the ZyntaPOS service</li>
+              <li>To send license activation emails and billing notifications</li>
+              <li>To respond to support requests</li>
+              <li>To improve the product (anonymised data only)</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 class="text-xl font-bold text-white mb-4">4. Data Security</h2>
+            <p class="text-slate-400 leading-relaxed">
+              All business data stored by ZyntaPOS is encrypted using AES-256-GCM via SQLCipher 4.5.
+              Encryption keys are managed by Android Keystore hardware on mobile devices. We have no
+              technical ability to read your transaction data or customer records.
+            </p>
+          </section>
+
+          <section id="gdpr">
+            <h2 class="text-xl font-bold text-white mb-4">5. Your Rights (GDPR)</h2>
+            <p class="text-slate-400 leading-relaxed mb-4">If you are in the EU/EEA, you have the right to:</p>
+            <ul class="space-y-2 text-slate-400">
+              <li>Access the personal data we hold about you</li>
+              <li>Correct inaccurate data</li>
+              <li>Request deletion of your data</li>
+              <li>Export your data in a portable format</li>
+              <li>Object to data processing</li>
+            </ul>
+            <p class="text-slate-400 leading-relaxed mt-4">
+              To exercise these rights, email <a href={`mailto:${company.email}`} class="text-sky-400 hover:text-sky-300">{company.email}</a>.
+              We will respond within 30 days.
+            </p>
+          </section>
+
+          <section id="cookies">
+            <h2 class="text-xl font-bold text-white mb-4">6. Cookies</h2>
+            <p class="text-slate-400 leading-relaxed">
+              This website uses no tracking cookies. We use Cloudflare for CDN and DDoS protection, which sets
+              a necessary security cookie (`__cf_bm`). No advertising or analytics cookies are used without
+              your explicit consent.
+            </p>
+          </section>
+
+          <section>
+            <h2 class="text-xl font-bold text-white mb-4">7. Contact</h2>
+            <p class="text-slate-400">
+              For privacy queries: <a href={`mailto:${company.email}`} class="text-sky-400 hover:text-sky-300">{company.email}</a>
+            </p>
+          </section>
+        </div>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

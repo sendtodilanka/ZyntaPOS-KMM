@@ -1,0 +1,88 @@
+---
+---
+
+<section class="relative overflow-hidden bg-slate-900 py-20 sm:py-28 lg:py-36">
+  <!-- Background gradient blob -->
+  <div class="absolute inset-0 -z-10" aria-hidden="true">
+    <div class="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/4 h-[600px] w-[600px] rounded-full bg-sky-500/10 blur-3xl"></div>
+  </div>
+
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div class="mx-auto max-w-3xl text-center">
+      <!-- Badge -->
+      <div class="mb-6 inline-flex items-center gap-2 rounded-full border border-sky-500/30 bg-sky-500/10 px-4 py-1.5 text-sm font-medium text-sky-400">
+        <span class="h-1.5 w-1.5 rounded-full bg-sky-400"></span>
+        Now available on Android &amp; Desktop
+      </div>
+
+      <!-- Headline -->
+      <h1 class="text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl">
+        The Offline-First POS<br />
+        <span class="text-sky-400">for Modern Retail</span>
+      </h1>
+
+      <!-- Subtext -->
+      <p class="mt-6 text-lg text-slate-400 sm:text-xl">
+        ZyntaPOS runs fully offline on Android tablets, encrypts your data with AES-256,
+        and syncs to the cloud when you're back online — so you never lose a sale.
+      </p>
+
+      <!-- CTAs -->
+      <div class="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+        <a
+          href="/pricing"
+          class="inline-flex items-center gap-2 rounded-xl bg-sky-500 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-sky-500/25 transition-all hover:bg-sky-400 hover:shadow-sky-400/30"
+        >
+          Start Free Trial
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+          </svg>
+        </a>
+        <a
+          href="/features"
+          class="inline-flex items-center gap-2 rounded-xl border border-slate-700 px-8 py-3.5 text-base font-semibold text-slate-300 transition-colors hover:border-slate-500 hover:text-white"
+        >
+          See All Features
+        </a>
+      </div>
+
+      <!-- Social proof -->
+      <p class="mt-8 text-sm text-slate-500">
+        Trusted by retailers across Sri Lanka · AES-256 encrypted · No vendor lock-in
+      </p>
+    </div>
+
+    <!-- Hero device mockup placeholder -->
+    <div class="mt-16 flex justify-center" aria-hidden="true">
+      <div class="relative rounded-2xl border border-slate-700/50 bg-slate-800/50 p-4 shadow-2xl shadow-slate-900/50">
+        <div class="flex items-center gap-1.5 mb-4">
+          <span class="h-3 w-3 rounded-full bg-slate-700"></span>
+          <span class="h-3 w-3 rounded-full bg-slate-700"></span>
+          <span class="h-3 w-3 rounded-full bg-slate-700"></span>
+        </div>
+        <!-- POS UI mockup -->
+        <div class="grid grid-cols-3 gap-3 w-[600px] max-w-full">
+          <!-- Product grid (left 2/3) -->
+          <div class="col-span-2 grid grid-cols-3 gap-2">
+            {Array.from({ length: 9 }).map((_, i) => (
+              <div class="h-16 rounded-lg bg-slate-700/60 border border-slate-600/40 p-2">
+                <div class="h-2 w-3/4 rounded bg-slate-600 mb-1"></div>
+                <div class="h-3 w-1/2 rounded bg-sky-500/40"></div>
+              </div>
+            ))}
+          </div>
+          <!-- Cart (right 1/3) -->
+          <div class="flex flex-col gap-2 rounded-lg bg-slate-700/40 border border-slate-600/40 p-3">
+            <div class="text-xs font-semibold text-slate-400">Cart (3)</div>
+            {Array.from({ length: 3 }).map(() => (
+              <div class="h-8 rounded bg-slate-600/50 border border-slate-500/30"></div>
+            ))}
+            <div class="mt-auto rounded-lg bg-sky-500 py-2 text-center text-xs font-bold text-white">
+              Checkout
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

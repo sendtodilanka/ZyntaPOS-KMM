@@ -1,0 +1,46 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Breadcrumbs from '@components/Breadcrumbs.astro';
+import IndustryCard from '@components/IndustryCard.astro';
+import CtaBanner from '@components/CtaBanner.astro';
+import { industries } from '@data/industries';
+import { buildBreadcrumbJsonLd } from '@utils/seo';
+
+const canonical = 'https://www.zyntapos.com/industries';
+const breadcrumbs = [{ name: 'Industries', url: canonical }];
+---
+
+<BaseLayout
+  title="Industries — ZyntaPOS"
+  description="ZyntaPOS for retail, restaurants, grocery stores, and pharmacies. Vertical-specific features for Sri Lankan businesses."
+  canonical={canonical}
+  jsonLd={[buildBreadcrumbJsonLd(breadcrumbs)]}
+  breadcrumbs={breadcrumbs}
+>
+  <section class="bg-slate-900 py-16 sm:py-24">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <Breadcrumbs items={breadcrumbs} />
+      <div class="mt-8 mx-auto max-w-2xl text-center mb-16">
+        <h1 class="text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
+          Built for Your <span class="text-sky-400">Industry</span>
+        </h1>
+        <p class="mt-6 text-lg text-slate-400">
+          Whether you're running a boutique, a café, a supermarket, or a pharmacy — ZyntaPOS adapts to your workflow.
+        </p>
+      </div>
+      <div class="grid grid-cols-1 gap-8 lg:grid-cols-2">
+        {industries.map((industry) => (
+          <IndustryCard
+            id={industry.id}
+            title={industry.title}
+            headline={industry.headline}
+            description={industry.description}
+            icon={industry.icon}
+            features={industry.features}
+          />
+        ))}
+      </div>
+    </div>
+  </section>
+  <CtaBanner />
+</BaseLayout>
