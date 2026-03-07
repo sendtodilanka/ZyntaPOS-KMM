@@ -40,6 +40,7 @@ const { id, title, headline, description, icon, features } = Astro.props;
 
   <a
     href={`/industries#${id}`}
+    aria-label={`Explore ${headline}`}
     class="mt-auto inline-flex items-center gap-1 text-sm font-medium text-sky-400 hover:text-sky-300 transition-colors"
   >
     Learn more
