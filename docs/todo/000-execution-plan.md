@@ -93,6 +93,7 @@ TODO-005  →  TODO-003  →  TODO-004 (Part 1)
 |---|-------|--------|----------|-------|
 | [007](007-infrastructure-and-deployment.md) | Infrastructure & Deployment | 🟡 ~65% done | **P0** | VPS live, Docker Compose running, Caddy + API + License + Sync deployed, monitoring + backup done. Remaining: React panel (7a), Astro site (7b), docs site (7e), sync engine server-side (7g) |
 | [007a](007a-react-admin-panel.md) | React Admin Panel | ⬜ Ready to implement | **P0** | Full 15-day (3-week) plan written. React 19 + TanStack + shadcn/ui. 10 feature areas, 40+ API endpoints. No blockers. |
+| [007f](007f-admin-panel-cf-custom-auth.md) | Admin Panel: CF + Custom Auth | ⬜ Ready to implement | **P0** | 7-day plan. ZyntaPOS-branded login + backend JWT auth + MFA (TOTP) + Google SSO + brute-force protection. Replaces CF Access identity layer while keeping CF network security. Depends on 007a (panel exists). |
 | [007b](007b-astro-marketing-website.md) | Astro Marketing Website | ⬜ Ready to implement | **P1** | Full 5-day plan written. Astro 5 + Tailwind on Cloudflare Pages. No blockers. |
 | [009](009-ktor-security-hardening.md) | Ktor Backend Security Hardening | ✅ Done | **P0** | ValidationScope, body size limits, seccomp profile, CVSS threshold — all implemented |
 | [010](010-security-monitoring-automated-response.md) | Security Monitoring & Automated Response | 🟡 ~70% done | **HIGH** | Falco rules, Falcosidekick, cloudflared tunnel done. Remaining: CF Zero Trust, Bot Fight Mode, Snyk Monitor (all CF/SaaS dashboard config) |
@@ -253,7 +254,7 @@ Phase 1 is **complete** (all 5 TODOs done). Phase 2 is in progress:
 - **→ Next: TODO-007b — Astro marketing website** (5-day plan ready at `docs/todo/007b-astro-marketing-website.md`)
 - Then: TODO-008 SEO/ASO (partially front-loaded into 007b)
 - Then: TODO-010 dashboard config items (CF Zero Trust, Snyk Monitor)
-- Later: TODO-007a React admin panel, TODO-006 remote diagnostics
+- Later: TODO-007a React admin panel → **TODO-007f CF + Custom Auth** (auth hardening after panel exists), TODO-006 remote diagnostics
 
 ---
 
@@ -265,6 +266,7 @@ Phase 1 is **complete** (all 5 TODOs done). Phase 2 is in progress:
 | License architecture research | `003-edition-management-wiring.md` — "Enterprise License Architecture" section |
 | License server implementation spec | `007-infrastructure-and-deployment.md` — "License System Design" (lines 212–277) |
 | **Astro marketing website plan** | **`007b-astro-marketing-website.md`** — 5-day implementation plan |
+| **Admin Panel CF + Custom Auth plan** | **`007f-admin-panel-cf-custom-auth.md`** — 7-day implementation plan |
 | Gap analysis & fill plan | `GAP-ANALYSIS-AND-FILL-PLAN.md` — Tracks all gaps across TODOs |
 | SEO & ASO full specification | `008-seo-and-aso.md` |
 | Remote diagnostic security design | `006-remote-diagnostic-access.md` |
