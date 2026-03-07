@@ -1,5 +1,3 @@
 name = "zyntapos-website"
 compatibility_date = "2026-03-01"
-
-[site]
-bucket = "./dist"
+pages_build_output_dir = "./dist"
