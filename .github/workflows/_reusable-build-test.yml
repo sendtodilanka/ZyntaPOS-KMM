@@ -107,9 +107,15 @@ jobs:
       # ── Firebase google-services.json ────────────────────────────────────
       # Injected from GitHub Secret. Falls back gracefully if secret is absent
       # (e.g., forks or non-Firebase builds) — Gradle will warn but not fail.
+      # NOTE: secrets context cannot be used in step if: conditions inside
+      # workflow_call workflows — check emptiness inside the shell script instead.
       - name: Inject google-services.json
-        if: ${{ secrets.GOOGLE_SERVICES_JSON != '' }}
-        run: echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > androidApp/google-services.json
+        env:
+          GOOGLE_SERVICES_JSON_CONTENT: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON_CONTENT" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON_CONTENT" > androidApp/google-services.json
+          fi
 
       # ── Build (single Gradle invocation) ──────────────────────────────────
       # Previous pipeline invoked ./gradlew 7 times (once per module + APK + JAR),
