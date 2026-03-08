@@ -47,6 +47,8 @@ jobs:
   build-and-test:
     name: "Step[3+4]: Build & Test"
     uses: ./.github/workflows/_reusable-build-test.yml
+    secrets:
+      GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
     with:
       run-tests: true
       run-lint: true
