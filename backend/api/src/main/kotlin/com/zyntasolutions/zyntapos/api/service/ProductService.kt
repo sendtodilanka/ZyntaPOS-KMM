@@ -3,6 +3,7 @@ package com.zyntasolutions.zyntapos.api.service
 import com.zyntasolutions.zyntapos.api.models.PagedResponse
 import com.zyntasolutions.zyntapos.api.models.ProductDto
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.greaterEq
 import org.jetbrains.exposed.sql.javatime.timestampWithTimeZone
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.slf4j.LoggerFactory
@@ -39,7 +40,7 @@ class ProductService {
 
             if (updatedSince != null) {
                 val sinceTs = OffsetDateTime.ofInstant(Instant.ofEpochMilli(updatedSince), ZoneOffset.UTC)
-                query = query.adjustWhere { Products.updatedAt greater sinceTs }
+                query = query.adjustWhere { Products.updatedAt greaterEq sinceTs }
             }
 
             val total = query.count()
