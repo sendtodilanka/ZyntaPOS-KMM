@@ -20,7 +20,7 @@ export interface AdminLoginResponse {
 // If the cookie is missing or expired, the request returns 401.
 
 export function useCurrentUser() {
-  const { setUser, clearUser } = useAuthStore();
+  const { setUser } = useAuthStore();
 
   return useQuery({
     queryKey: ['admin', 'me'],

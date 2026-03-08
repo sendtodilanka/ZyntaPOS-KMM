@@ -26,17 +26,17 @@ function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
-  // Already authenticated — go to dashboard
-  if (isAuthenticated) {
-    navigate({ to: '/' });
-    return null;
-  }
-
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<LoginForm>({ resolver: zodResolver(schema) });
+
+  // Already authenticated — go to dashboard
+  if (isAuthenticated) {
+    navigate({ to: '/' });
+    return null;
+  }
 
   const onSubmit = async (data: LoginForm) => {
     setServerError(null);
