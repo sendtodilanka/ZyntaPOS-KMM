@@ -17,6 +17,7 @@ fun Application.configureCors() {
         allowHeader(HttpHeaders.ContentType)
         allowHeader("X-Device-ID")
         allowHeader("X-License-Key")
+        allowHeader("X-XSRF-Token")
         // Only allow requests from the ZyntaPOS app and admin panel
         allowHost("panel.zyntapos.com", schemes = listOf("https"))
         // Desktop app and local dev — Ktor's allowHost rejects single-segment
