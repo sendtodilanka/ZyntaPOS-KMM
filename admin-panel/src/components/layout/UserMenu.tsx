@@ -1,16 +1,21 @@
 import { LogOut, User, Shield } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
+import { useAdminLogout } from '@/api/auth';
 import { cn } from '@/lib/utils';
 import { useState, useRef, useEffect } from 'react';
+import type { AdminRole } from '@/types/user';
 
-const ROLE_COLORS = {
-  ADMIN: 'text-red-400 bg-red-400/10',
-  SUPPORT: 'text-yellow-400 bg-yellow-400/10',
-  VIEWER: 'text-slate-400 bg-slate-400/10',
-} as const;
+const ROLE_COLORS: Record<AdminRole, string> = {
+  ADMIN:    'text-red-400 bg-red-400/10',
+  OPERATOR: 'text-yellow-400 bg-yellow-400/10',
+  FINANCE:  'text-green-400 bg-green-400/10',
+  AUDITOR:  'text-blue-400 bg-blue-400/10',
+  HELPDESK: 'text-slate-400 bg-slate-400/10',
+};
 
 export function UserMenu() {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
+  const logout = useAdminLogout();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -42,11 +47,7 @@ export function UserMenu() {
         aria-expanded={open}
       >
         <div className="w-8 h-8 rounded-full bg-brand-500/20 border border-brand-500/40 flex items-center justify-center text-xs font-semibold text-brand-400">
-          {user.avatarUrl ? (
-            <img src={user.avatarUrl} alt={user.name} className="w-full h-full rounded-full object-cover" />
-          ) : (
-            initials
-          )}
+          {initials}
         </div>
         <span className="text-sm text-slate-100 font-medium hidden sm:block max-w-[120px] truncate">
           {user.name}
@@ -68,15 +69,16 @@ export function UserMenu() {
           </div>
           <div className="py-1">
             <button
-              onClick={() => { setOpen(false); }}
+              onClick={() => setOpen(false)}
               className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-slate-300 hover:bg-surface-elevated hover:text-slate-100 transition-colors min-h-[44px]"
             >
               <User className="w-4 h-4" />
               Profile
             </button>
             <button
-              onClick={() => { setOpen(false); signOut(); }}
-              className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-red-400 hover:bg-red-400/10 transition-colors min-h-[44px]"
+              onClick={() => { setOpen(false); logout.mutate(); }}
+              disabled={logout.isPending}
+              className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-red-400 hover:bg-red-400/10 transition-colors min-h-[44px] disabled:opacity-60"
             >
               <LogOut className="w-4 h-4" />
               Sign out
