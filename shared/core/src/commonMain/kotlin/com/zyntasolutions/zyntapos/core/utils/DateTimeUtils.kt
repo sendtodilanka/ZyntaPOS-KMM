@@ -35,7 +35,7 @@ object DateTimeUtils {
     fun nowMillis(): Long = Clock.System.now().toEpochMilliseconds()
 
     /** Returns the current [LocalDateTime] in [tz]. */
-    fun nowLocal(tz: TimeZone = TimeZone.currentSystemDefault()): LocalDateTime =
+    fun nowLocal(tz: TimeZone = AppTimezone.current): LocalDateTime =
         Clock.System.now().toLocalDateTime(tz)
 
     // ── ISO 8601 serialisation ────────────────────────────────────────────────
@@ -62,7 +62,7 @@ object DateTimeUtils {
      */
     fun startOfDay(
         epochMs: Long = nowMillis(),
-        tz: TimeZone = TimeZone.currentSystemDefault(),
+        tz: TimeZone = AppTimezone.current,
     ): Long {
         val date: LocalDate = Instant.fromEpochMilliseconds(epochMs).toLocalDateTime(tz).date
         return date.atStartOfDayIn(tz).toEpochMilliseconds()
@@ -74,7 +74,7 @@ object DateTimeUtils {
      */
     fun endOfDay(
         epochMs: Long = nowMillis(),
-        tz: TimeZone = TimeZone.currentSystemDefault(),
+        tz: TimeZone = AppTimezone.current,
     ): Long {
         val startOfNext = startOfDay(epochMs, tz).let { start ->
             val nextDay = Instant.fromEpochMilliseconds(start)
@@ -93,7 +93,7 @@ object DateTimeUtils {
      */
     fun formatForDisplay(
         epochMs: Long,
-        tz: TimeZone = TimeZone.currentSystemDefault(),
+        tz: TimeZone = AppTimezone.current,
     ): String {
         val ldt = Instant.fromEpochMilliseconds(epochMs).toLocalDateTime(tz)
         val day = ldt.dayOfMonth.toString().padStart(2, '0')
@@ -111,7 +111,7 @@ object DateTimeUtils {
     fun daysAgo(
         daysAgo: Int,
         epochMs: Long = nowMillis(),
-        tz: TimeZone = TimeZone.currentSystemDefault(),
+        tz: TimeZone = AppTimezone.current,
     ): Long {
         val date = Instant.fromEpochMilliseconds(epochMs).toLocalDateTime(tz).date
         return date.plus(-daysAgo, DateTimeUnit.DAY).atStartOfDayIn(tz).toEpochMilliseconds()
@@ -120,7 +120,7 @@ object DateTimeUtils {
     /**
      * Converts a [LocalDateTime] to epoch milliseconds in [tz].
      */
-    fun LocalDateTime.toEpochMillis(tz: TimeZone = TimeZone.currentSystemDefault()): Long =
+    fun LocalDateTime.toEpochMillis(tz: TimeZone = AppTimezone.current): Long =
         toInstant(tz).toEpochMilliseconds()
 
     // ── Private ───────────────────────────────────────────────────────────────

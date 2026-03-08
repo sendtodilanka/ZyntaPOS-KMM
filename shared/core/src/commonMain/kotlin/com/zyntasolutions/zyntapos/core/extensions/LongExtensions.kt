@@ -25,7 +25,7 @@ import kotlinx.datetime.toLocalDateTime
  * order.createdAt.toLocalDateTime()  // → LocalDateTime(2025, 3, 14, 10, 30, 0)
  * ```
  */
-fun Long.toLocalDateTime(tz: TimeZone = TimeZone.currentSystemDefault()): LocalDateTime =
+fun Long.toLocalDateTime(tz: TimeZone = AppTimezone.current): LocalDateTime =
     Instant.fromEpochMilliseconds(this).toLocalDateTime(tz)
 
 /**
@@ -34,7 +34,7 @@ fun Long.toLocalDateTime(tz: TimeZone = TimeZone.currentSystemDefault()): LocalD
  * Default format: `dd/MM/yyyy` (e.g., `14/03/2025`).
  */
 fun Long.toFormattedDate(
-    tz: TimeZone = TimeZone.currentSystemDefault(),
+    tz: TimeZone = AppTimezone.current,
     separator: String = "/",
 ): String {
     val ldt = toLocalDateTime(tz)
@@ -50,7 +50,7 @@ fun Long.toFormattedDate(
  * Pass [showSeconds] = `true` for `HH:mm:ss`.
  */
 fun Long.toFormattedTime(
-    tz: TimeZone = TimeZone.currentSystemDefault(),
+    tz: TimeZone = AppTimezone.current,
     showSeconds: Boolean = false,
 ): String {
     val ldt = toLocalDateTime(tz)
@@ -63,7 +63,7 @@ fun Long.toFormattedTime(
  * Returns `true` if this epoch millisecond timestamp falls on today's date
  * (compared in [tz]).
  */
-fun Long.isToday(tz: TimeZone = TimeZone.currentSystemDefault()): Boolean {
+fun Long.isToday(tz: TimeZone = AppTimezone.current): Boolean {
     val today: LocalDate = Clock.System.now().toLocalDateTime(tz).date
     return toLocalDateTime(tz).date == today
 }
@@ -79,7 +79,7 @@ fun Long.isToday(tz: TimeZone = TimeZone.currentSystemDefault()): Boolean {
  */
 fun Long.daysBetween(
     other: Long,
-    tz: TimeZone = TimeZone.currentSystemDefault(),
+    tz: TimeZone = AppTimezone.current,
 ): Int {
     val startDate = toLocalDateTime(tz).date
     val endDate   = Instant.fromEpochMilliseconds(other).toLocalDateTime(tz).date
@@ -92,14 +92,14 @@ fun Long.daysBetween(
  * Returns a combined date-time string for display (e.g., `14/03/2025 14:35`).
  */
 fun Long.toFormattedDateTime(
-    tz: TimeZone = TimeZone.currentSystemDefault(),
+    tz: TimeZone = AppTimezone.current,
     showSeconds: Boolean = false,
 ): String = "${toFormattedDate(tz)} ${toFormattedTime(tz, showSeconds)}"
 
 /**
  * Returns a relative time label such as "Today", "Yesterday", or the formatted date.
  */
-fun Long.toRelativeDate(tz: TimeZone = TimeZone.currentSystemDefault()): String {
+fun Long.toRelativeDate(tz: TimeZone = AppTimezone.current): String {
     val days = daysBetween(Clock.System.now().toEpochMilliseconds(), tz)
     return when (days) {
         0    -> "Today"
