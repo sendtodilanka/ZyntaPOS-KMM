@@ -10,7 +10,6 @@ export function useAdminUsers(filters: UserFilter = {}) {
   if (filters.size !== undefined) qs.set('size', String(filters.size ?? 20));
   if (filters.role) qs.set('role', filters.role);
   if (filters.status) qs.set('status', filters.status);
-  if (filters.storeId) qs.set('storeId', filters.storeId);
   if (filters.search) qs.set('search', filters.search);
   return useQuery({
     queryKey: ['users', filters],

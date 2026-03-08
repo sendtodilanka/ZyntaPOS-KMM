@@ -61,8 +61,10 @@ function UsersPage() {
         >
           <option value="">All Roles</option>
           <option value="ADMIN">Admin</option>
-          <option value="SUPPORT">Support</option>
-          <option value="VIEWER">Viewer</option>
+          <option value="OPERATOR">Operator</option>
+          <option value="FINANCE">Finance</option>
+          <option value="AUDITOR">Auditor</option>
+          <option value="HELPDESK">Helpdesk</option>
         </select>
         <select
           value={statusFilter}
@@ -72,7 +74,6 @@ function UsersPage() {
           <option value="">All Statuses</option>
           <option value="ACTIVE">Active</option>
           <option value="INACTIVE">Inactive</option>
-          <option value="SUSPENDED">Suspended</option>
         </select>
       </div>
 

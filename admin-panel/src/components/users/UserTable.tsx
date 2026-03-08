@@ -1,18 +1,32 @@
 import { MoreHorizontal, Edit, UserX } from 'lucide-react';
 import { useState } from 'react';
 import { DataTable, type Column } from '@/components/shared/DataTable';
-import { StatusBadge } from '@/components/shared/StatusBadge';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
-import { formatRelativeTime } from '@/lib/utils';
 import { useDeactivateUser } from '@/api/users';
-import type { AdminUser } from '@/types/user';
+import type { AdminUser, AdminRole } from '@/types/user';
 
-const ROLE_LABELS = { ADMIN: 'Admin', SUPPORT: 'Support', VIEWER: 'Viewer' };
-const ROLE_COLORS = {
-  ADMIN: 'text-red-400 bg-red-400/10 border border-red-400/20',
-  SUPPORT: 'text-amber-400 bg-amber-400/10 border border-amber-400/20',
-  VIEWER: 'text-slate-400 bg-slate-400/10 border border-slate-400/20',
+const ROLE_LABELS: Record<AdminRole, string> = {
+  ADMIN:    'Admin',
+  OPERATOR: 'Operator',
+  FINANCE:  'Finance',
+  AUDITOR:  'Auditor',
+  HELPDESK: 'Helpdesk',
 };
+const ROLE_COLORS: Record<AdminRole, string> = {
+  ADMIN:    'text-red-400 bg-red-400/10 border border-red-400/20',
+  OPERATOR: 'text-yellow-400 bg-yellow-400/10 border border-yellow-400/20',
+  FINANCE:  'text-green-400 bg-green-400/10 border border-green-400/20',
+  AUDITOR:  'text-blue-400 bg-blue-400/10 border border-blue-400/20',
+  HELPDESK: 'text-slate-400 bg-slate-400/10 border border-slate-400/20',
+};
+
+function formatEpoch(ms: number): string {
+  const diff = Date.now() - ms;
+  if (diff < 60_000) return 'Just now';
+  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
+  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
+  return `${Math.floor(diff / 86_400_000)}d ago`;
+}
 
 interface UserTableProps {
   data: AdminUser[];
@@ -55,20 +69,19 @@ export function UserTable({ data, isLoading, page, totalPages, total, onPageChan
       ),
     },
     {
-      key: 'store',
-      header: 'Store',
-      cell: (row) => <span className="text-slate-400 text-xs">{row.storeName ?? '—'}</span>,
-    },
-    {
       key: 'status',
       header: 'Status',
-      cell: (row) => <StatusBadge status={row.status} />,
+      cell: (row) => (
+        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold ${row.isActive ? 'text-green-400 bg-green-400/10' : 'text-slate-500 bg-slate-500/10'}`}>
+          {row.isActive ? 'Active' : 'Inactive'}
+        </span>
+      ),
     },
     {
       key: 'lastLogin',
       header: 'Last Login',
       cell: (row) => row.lastLoginAt
-        ? <span className="text-slate-400 text-xs">{formatRelativeTime(row.lastLoginAt)}</span>
+        ? <span className="text-slate-400 text-xs">{formatEpoch(row.lastLoginAt)}</span>
         : <span className="text-slate-500 text-xs">Never</span>,
     },
     {
