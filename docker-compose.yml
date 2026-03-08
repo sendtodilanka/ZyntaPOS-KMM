@@ -71,6 +71,9 @@ services:
       - ADMIN_JWT_SECRET_FILE=/run/secrets/admin_jwt_secret
       - ACCESS_TOKEN_TTL_MINUTES=60
       - REFRESH_TOKEN_TTL_DAYS=30
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-https://panel.zyntapos.com/auth/google/callback}
       - SENTRY_DSN=${SENTRY_DSN_API}
       - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
     depends_on:
