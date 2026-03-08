@@ -20,19 +20,24 @@ export interface AdminLoginResponse {
 // If the cookie is missing or expired, the request returns 401.
 
 export function useCurrentUser() {
-  const { setUser } = useAuthStore();
+  const { setUser, clearUser } = useAuthStore();
 
   return useQuery({
     queryKey: ['admin', 'me'],
     queryFn: async () => {
-      const user = await apiClient.get('admin/auth/me').json<AdminUser>();
-      setUser(user);
-      return user;
+      try {
+        const user = await apiClient.get('admin/auth/me').json<AdminUser>();
+        setUser(user);
+        return user;
+      } catch (error) {
+        // On 401/network error, clear isLoading so the spinner doesn't hang forever
+        clearUser();
+        throw error;
+      }
     },
     retry: false,
     staleTime: 5 * 60 * 1000,   // 5 min — backend cookie is 15 min
     gcTime: 10 * 60 * 1000,
-    // On 401, clear local auth state (handled by api-client 401 hook too)
     throwOnError: false,
   });
 }
