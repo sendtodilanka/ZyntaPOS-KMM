@@ -7,6 +7,10 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.encodeToJsonElement
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.greaterEq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.lessEq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.like
 import org.jetbrains.exposed.sql.javatime.timestampWithTimeZone
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.security.MessageDigest
@@ -132,7 +136,7 @@ class AdminAuditService {
         val total = query.count()
         val items = query
             .orderBy(AdminAuditLog.createdAt, SortOrder.DESC)
-            .limit(size, offset = (page * size).toLong())
+            .limit(size).offset((page * size).toLong())
             .map { it.toEntry() }
 
         AdminPagedResponse(

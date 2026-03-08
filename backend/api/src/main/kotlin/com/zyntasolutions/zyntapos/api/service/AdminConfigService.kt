@@ -2,6 +2,7 @@ package com.zyntasolutions.zyntapos.api.service
 
 import com.zyntasolutions.zyntapos.api.models.*
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.javatime.timestampWithTimeZone
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.time.OffsetDateTime
@@ -16,7 +17,7 @@ object FeatureFlags : Table("feature_flags") {
     val description        = text("description")
     val enabled            = bool("enabled")
     val category           = text("category")
-    val editionsAvailable  = text("editions_available").array<String>()   // TEXT[]
+    val editionsAvailable  = text("editions_available")   // TEXT[] stored as pg array literal
     val modifiedBy         = text("modified_by")
     val updatedAt          = timestampWithTimeZone("updated_at")
     override val primaryKey = PrimaryKey(key)
@@ -27,7 +28,7 @@ object TaxRates : Table("tax_rates") {
     val name          = text("name")
     val rate          = decimal("rate", 5, 2)
     val description   = text("description")
-    val applicableTo  = text("applicable_to").array<String>()   // TEXT[]
+    val applicableTo  = text("applicable_to")   // TEXT[] stored as pg array literal
     val isDefault     = bool("is_default")
     val country       = text("country")
     val region        = text("region").nullable()
@@ -60,15 +61,15 @@ class AdminConfigService {
     suspend fun toggleFeatureFlag(key: String, enabled: Boolean, modifiedBy: String): AdminFeatureFlag? =
         newSuspendedTransaction {
             val now = OffsetDateTime.now(ZoneOffset.UTC)
-            val updated = FeatureFlags.upsert(FeatureFlags.key) {
+            FeatureFlags.upsert(FeatureFlags.key) {
                 it[FeatureFlags.key]         = key
                 it[FeatureFlags.enabled]     = enabled
                 it[FeatureFlags.modifiedBy]  = modifiedBy
                 it[FeatureFlags.updatedAt]   = now
-                // Set defaults for new flags
                 it[FeatureFlags.name]        = key.replace('_', ' ').replaceFirstChar { c -> c.uppercase() }
                 it[FeatureFlags.description] = ""
                 it[FeatureFlags.category]    = "general"
+                it[FeatureFlags.editionsAvailable] = "{}"
             }
             FeatureFlags.selectAll().where { FeatureFlags.key eq key }.singleOrNull()?.toFeatureFlag()
         }
@@ -87,7 +88,7 @@ class AdminConfigService {
             it[name]         = req.name
             it[rate]         = req.rate.toBigDecimal()
             it[description]  = req.description
-            it[applicableTo] = req.applicableTo.toTypedArray()
+            it[applicableTo] = toPgArray(req.applicableTo)
             it[isDefault]    = req.isDefault
             it[country]      = req.country
             it[region]       = req.region
@@ -108,7 +109,7 @@ class AdminConfigService {
                 req.name?.let { stmt[name] = it }
                 req.rate?.let { stmt[rate] = it.toBigDecimal() }
                 req.description?.let { stmt[description] = it }
-                req.applicableTo?.let { stmt[applicableTo] = it.toTypedArray() }
+                req.applicableTo?.let { stmt[applicableTo] = toPgArray(it) }
                 req.isDefault?.let { stmt[isDefault] = it }
                 req.country?.let { stmt[country] = it }
                 req.region?.let { stmt[region] = it }
@@ -156,7 +157,7 @@ class AdminConfigService {
         description       = this[FeatureFlags.description],
         enabled           = this[FeatureFlags.enabled],
         category          = this[FeatureFlags.category],
-        editionsAvailable = this[FeatureFlags.editionsAvailable].toList(),
+        editionsAvailable = fromPgArray(this[FeatureFlags.editionsAvailable]),
         lastModified      = this[FeatureFlags.updatedAt].toInstant().toString(),
         modifiedBy        = this[FeatureFlags.modifiedBy]
     )
@@ -166,7 +167,7 @@ class AdminConfigService {
         name         = this[TaxRates.name],
         rate         = this[TaxRates.rate].toDouble(),
         description  = this[TaxRates.description],
-        applicableTo = this[TaxRates.applicableTo].toList(),
+        applicableTo = fromPgArray(this[TaxRates.applicableTo]),
         isDefault    = this[TaxRates.isDefault],
         country      = this[TaxRates.country],
         region       = this[TaxRates.region],
@@ -182,4 +183,17 @@ class AdminConfigService {
         editable    = this[SystemConfig.editable],
         sensitive   = this[SystemConfig.sensitive]
     )
+
+    /** Converts a List<String> to PostgreSQL array literal: {val1,val2} */
+    private fun toPgArray(list: List<String>): String =
+        list.joinToString(",", "{", "}") { "\"${it.replace("\"", "\\\"")}\"" }
+
+    /** Parses a PostgreSQL array literal {val1,val2} to List<String> */
+    private fun fromPgArray(value: String): List<String> {
+        if (value.isBlank() || value == "{}") return emptyList()
+        return value.removeSurrounding("{", "}")
+            .split(",")
+            .map { it.trim().removeSurrounding("\"") }
+            .filter { it.isNotEmpty() }
+    }
 }

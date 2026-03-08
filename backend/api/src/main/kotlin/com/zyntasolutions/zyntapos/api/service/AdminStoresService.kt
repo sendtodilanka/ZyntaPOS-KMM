@@ -2,6 +2,8 @@ package com.zyntasolutions.zyntapos.api.service
 
 import com.zyntasolutions.zyntapos.api.models.*
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.like
 import org.jetbrains.exposed.sql.javatime.timestampWithTimeZone
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.time.OffsetDateTime
@@ -66,7 +68,7 @@ class AdminStoresService {
         val total = query.count()
         val items = query
             .orderBy(Stores.createdAt, SortOrder.DESC)
-            .limit(size, offset = (page * size).toLong())
+            .limit(size).offset((page * size).toLong())
             .map { it.toAdminStore() }
 
         AdminPagedResponse(
