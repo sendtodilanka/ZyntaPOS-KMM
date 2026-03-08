@@ -249,26 +249,28 @@ fun Route.adminAuthRoutes() {
 
         // GET /admin/auth/google/callback?code=&state=
         get("/google/callback") {
+            val panelUrl = config.adminPanelUrl
+
             val code = call.request.queryParameters["code"]
                 ?: run {
-                    call.respondRedirect("/login?error=google_auth_failed")
+                    call.respondRedirect("$panelUrl/login?error=google_auth_failed")
                     return@get
                 }
 
             val userInfo = googleOAuth.exchangeCodeForUser(code)
                 ?: run {
-                    call.respondRedirect("/login?error=google_auth_failed")
+                    call.respondRedirect("$panelUrl/login?error=google_auth_failed")
                     return@get
                 }
 
             val adminUser = googleOAuth.findOrCreateUser(userInfo)
                 ?: run {
-                    call.respondRedirect("/login?error=domain_not_allowed")
+                    call.respondRedirect("$panelUrl/login?error=domain_not_allowed")
                     return@get
                 }
 
             if (!adminUser.isActive) {
-                call.respondRedirect("/login?error=account_inactive")
+                call.respondRedirect("$panelUrl/login?error=account_inactive")
                 return@get
             }
 
@@ -288,7 +290,7 @@ fun Route.adminAuthRoutes() {
                     secure   = true,
                     extensions = mapOf("SameSite" to "Lax")
                 ))
-                call.respondRedirect("/login?mfa=required")
+                call.respondRedirect("$panelUrl/login?mfa=required")
                 return@get
             }
 
@@ -296,7 +298,7 @@ fun Route.adminAuthRoutes() {
             val accessTtlSec  = config.adminAccessTokenTtlMs / 1000
             val refreshTtlSec = config.adminRefreshTokenTtlDays * 86_400L
             setAuthCookies(call, tokens.first, tokens.second, accessTtlSec, refreshTtlSec)
-            call.respondRedirect("/")
+            call.respondRedirect("$panelUrl/")
         }
     }
 
