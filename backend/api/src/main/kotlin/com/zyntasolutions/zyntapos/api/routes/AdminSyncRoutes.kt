@@ -123,7 +123,7 @@ fun Route.adminSyncRoutes() {
                             Json.parseToJsonElement(row[SyncQueue.payload])
                         }.getOrDefault(JsonNull)
 
-                        SyncOperation(
+                        AdminSyncQueueItem(
                             id                = row[SyncQueue.id],
                             storeId           = row[SyncQueue.storeId],
                             entityType        = row[SyncQueue.entityType],

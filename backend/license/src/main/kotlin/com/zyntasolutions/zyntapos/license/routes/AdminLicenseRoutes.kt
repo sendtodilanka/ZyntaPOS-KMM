@@ -23,7 +23,7 @@ fun Route.adminLicenseRoutes() {
 
         // GET /admin/licenses — paginated list
         get {
-            requireAdmin(validator) ?: return@get
+            call.requireAdmin(validator) ?: return@get
             val page   = call.request.queryParameters["page"]?.toIntOrNull()?.coerceAtLeast(0) ?: 0
             val size   = call.request.queryParameters["size"]?.toIntOrNull()?.coerceIn(1, 100) ?: 20
             val status = call.request.queryParameters["status"]
@@ -35,13 +35,13 @@ fun Route.adminLicenseRoutes() {
 
         // GET /admin/licenses/stats
         get("/stats") {
-            requireAdmin(validator) ?: return@get
+            call.requireAdmin(validator) ?: return@get
             call.respond(HttpStatusCode.OK, service.getStats())
         }
 
         // POST /admin/licenses — create new license
         post {
-            requireAdmin(validator) ?: return@post
+            call.requireAdmin(validator) ?: return@post
             val body = call.receive<AdminCreateLicenseRequest>()
 
             if (!call.validateOr422 {
@@ -66,7 +66,7 @@ fun Route.adminLicenseRoutes() {
 
         // GET /admin/licenses/{key} — single license with devices
         get("/{key}") {
-            requireAdmin(validator) ?: return@get
+            call.requireAdmin(validator) ?: return@get
             val key = call.parameters["key"] ?: return@get call.respond(
                 HttpStatusCode.BadRequest, ErrorResponse("MISSING_KEY", "License key required")
             )
@@ -77,7 +77,7 @@ fun Route.adminLicenseRoutes() {
 
         // PUT /admin/licenses/{key} — update (extend, change edition, change status)
         put("/{key}") {
-            requireAdmin(validator) ?: return@put
+            call.requireAdmin(validator) ?: return@put
             val key = call.parameters["key"] ?: return@put call.respond(
                 HttpStatusCode.BadRequest, ErrorResponse("MISSING_KEY", "License key required")
             )
@@ -96,7 +96,7 @@ fun Route.adminLicenseRoutes() {
 
         // DELETE /admin/licenses/{key} — revoke (soft delete)
         delete("/{key}") {
-            requireAdmin(validator) ?: return@delete
+            call.requireAdmin(validator) ?: return@delete
             val key = call.parameters["key"] ?: return@delete call.respond(
                 HttpStatusCode.BadRequest, ErrorResponse("MISSING_KEY", "License key required")
             )
@@ -110,7 +110,7 @@ fun Route.adminLicenseRoutes() {
 
         // GET /admin/licenses/{key}/devices
         get("/{key}/devices") {
-            requireAdmin(validator) ?: return@get
+            call.requireAdmin(validator) ?: return@get
             val key = call.parameters["key"] ?: return@get call.respond(
                 HttpStatusCode.BadRequest, ErrorResponse("MISSING_KEY", "License key required")
             )
@@ -121,7 +121,7 @@ fun Route.adminLicenseRoutes() {
 
         // DELETE /admin/licenses/{key}/devices/{deviceId} — deregister
         delete("/{key}/devices/{deviceId}") {
-            requireAdmin(validator) ?: return@delete
+            call.requireAdmin(validator) ?: return@delete
             val key = call.parameters["key"] ?: return@delete call.respond(
                 HttpStatusCode.BadRequest, ErrorResponse("MISSING_KEY", "License key required")
             )

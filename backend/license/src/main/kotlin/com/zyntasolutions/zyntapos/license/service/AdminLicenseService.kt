@@ -5,6 +5,7 @@ import com.zyntasolutions.zyntapos.license.db.Licenses
 import com.zyntasolutions.zyntapos.license.models.*
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.like
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
@@ -39,7 +40,7 @@ class AdminLicenseService {
         val total = query.count()
         val items = query
             .orderBy(Licenses.createdAt, SortOrder.DESC)
-            .limit(size, offset = (page * size).toLong())
+            .limit(size).offset((page * size).toLong())
             .map { it.toAdminLicense() }
 
         AdminPagedResponse(

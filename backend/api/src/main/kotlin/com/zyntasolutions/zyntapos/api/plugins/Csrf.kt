@@ -70,7 +70,7 @@ fun Route.withCsrfProtection(build: Route.() -> Unit): Route {
 }
 
 private class CsrfRouteSelector : RouteSelector() {
-    override fun evaluate(context: RoutingResolveContext, segmentIndex: Int) =
+    override suspend fun evaluate(context: RoutingResolveContext, segmentIndex: Int) =
         RouteSelectorEvaluation.Transparent
 }
 
@@ -108,9 +108,8 @@ val CsrfPlugin = createRouteScopedPlugin("CsrfPlugin") {
                     HttpStatusCode.Forbidden,
                     ErrorResponse("CSRF_INVALID", "CSRF token missing or invalid")
                 )
-                // Signal pipeline to stop processing
-                this.application.environment.log.warn("CSRF validation failed: path=$path method=$method")
-                finish()
+                call.application.environment.log.warn("CSRF validation failed: path=$path method=$method")
+                return@onCall
             }
         }
     }

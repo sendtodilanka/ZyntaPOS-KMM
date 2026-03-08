@@ -2,6 +2,9 @@ package com.zyntasolutions.zyntapos.api.service
 
 import com.zyntasolutions.zyntapos.api.models.*
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.greaterEq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.lessEq
 import org.jetbrains.exposed.sql.javatime.timestampWithTimeZone
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.time.OffsetDateTime
@@ -19,7 +22,7 @@ object AlertRules : Table("alert_rules") {
     val severity       = text("severity")
     val enabled        = bool("enabled")
     val conditions     = text("conditions")   // JSONB stored as text
-    val notifyChannels = text("notify_channels").array<String>()
+    val notifyChannels = text("notify_channels")   // TEXT[] stored as pg array literal
     val createdAt      = timestampWithTimeZone("created_at")
     override val primaryKey = PrimaryKey(id)
 }
@@ -82,7 +85,7 @@ class AdminAlertsService {
         val total = query.count().toInt()
         val items = query
             .orderBy(AlertInstances.firedAt, SortOrder.DESC)
-            .limit(pageSize, offset = (page * pageSize).toLong())
+            .limit(pageSize).offset((page * pageSize).toLong())
             .map { it.toAdminAlert() }
 
         AlertsPage(items = items, total = total, page = page, pageSize = pageSize)
@@ -212,6 +215,12 @@ class AdminAlertsService {
         severity       = this[AlertRules.severity],
         enabled        = this[AlertRules.enabled],
         conditions     = mapOf("raw" to this[AlertRules.conditions]),
-        notifyChannels = this[AlertRules.notifyChannels].toList()
+        notifyChannels = fromPgArray(this[AlertRules.notifyChannels])
     )
+
+    private fun fromPgArray(value: String): List<String> {
+        if (value.isBlank() || value == "{}") return emptyList()
+        return value.removeSurrounding("{", "}")
+            .split(",").map { it.trim().removeSurrounding("\"") }.filter { it.isNotEmpty() }
+    }
 }

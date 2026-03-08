@@ -256,7 +256,7 @@ data class StoreSyncStatus(
 )
 
 @Serializable
-data class SyncOperation(
+data class AdminSyncQueueItem(
     val id: String,
     val storeId: String,
     val entityType: String,
