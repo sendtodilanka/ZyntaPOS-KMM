@@ -79,8 +79,8 @@ private suspend fun checkAllServices(): List<ServiceHealth> {
     }
 
     services += probe("api",     "http://localhost:8080/health")
-    services += probe("license", "http://license:8082/health")
-    services += probe("sync",    "http://sync:8083/health")
+    services += probe("license", "http://license:8083/health")
+    services += probe("sync",    "http://sync:8082/health")
 
     client.close()
     return services
