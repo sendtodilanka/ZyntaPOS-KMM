@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.api.plugins
 
+import com.zyntasolutions.zyntapos.api.routes.adminAuthRoutes
 import com.zyntasolutions.zyntapos.api.routes.authRoutes
 import com.zyntasolutions.zyntapos.api.routes.healthRoutes
 import com.zyntasolutions.zyntapos.api.routes.productRoutes
@@ -15,6 +16,11 @@ fun Application.configureRouting() {
     routing {
         // Public routes (no rate limit — health/ping are trivially cheap)
         healthRoutes()
+
+        // Admin panel auth routes — strict rate limit (auth tier)
+        rateLimit(RateLimitName("auth")) {
+            adminAuthRoutes()
+        }
 
         route("/v1") {
             // Auth endpoints: strict rate limit (10 req/min) to prevent brute-force

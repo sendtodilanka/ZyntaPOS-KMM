@@ -1,41 +1,10 @@
-import ky, { type KyInstance, type Options } from 'ky';
-import { API_BASE_URL, CF_COOKIE_NAME } from './constants';
-
-function getAuthHeaders(): Record<string, string> {
-  const cookies = document.cookie.split(';');
-  const cfCookie = cookies
-    .map((c) => c.trim())
-    .find((c) => c.startsWith(`${CF_COOKIE_NAME}=`));
-  const cfToken = cfCookie ? cfCookie.split('=').slice(1).join('=') : '';
-
-  const headers: Record<string, string> = {};
-  if (cfToken) {
-    headers['CF-Access-Token'] = cfToken;
-  }
-  return headers;
-}
-
-let adminToken: string | null = null;
-let adminTokenExpiry: number | null = null;
-
-export function setAdminToken(token: string, expiresInSeconds: number) {
-  adminToken = token;
-  adminTokenExpiry = Date.now() + expiresInSeconds * 1000;
-}
-
-export function clearAdminToken() {
-  adminToken = null;
-  adminTokenExpiry = null;
-}
-
-function isAdminTokenValid(): boolean {
-  if (!adminToken || !adminTokenExpiry) return false;
-  return Date.now() < adminTokenExpiry - 30_000; // 30s buffer
-}
+import ky, { type KyInstance, type Options, HTTPError } from 'ky';
+import { API_BASE_URL } from './constants';
 
 const baseOptions: Options = {
   prefixUrl: API_BASE_URL,
   timeout: 30_000,
+  credentials: 'include',   // sends httpOnly admin_access_token + admin_refresh_token cookies
   retry: {
     limit: 2,
     methods: ['get'],
@@ -43,21 +12,13 @@ const baseOptions: Options = {
     backoffLimit: 4_000,
   },
   hooks: {
-    beforeRequest: [
-      (request) => {
-        const authHeaders = getAuthHeaders();
-        Object.entries(authHeaders).forEach(([k, v]) => request.headers.set(k, v));
-
-        if (isAdminTokenValid() && adminToken) {
-          request.headers.set('Authorization', `Bearer ${adminToken}`);
-        }
-      },
-    ],
     afterResponse: [
       async (_request, _options, response) => {
         if (response.status === 401) {
-          clearAdminToken();
-          window.location.href = '/';
+          // Token expired or missing — redirect to login (skip if already there)
+          if (!window.location.pathname.startsWith('/login')) {
+            window.location.href = '/login';
+          }
         }
         return response;
       },
@@ -76,3 +37,5 @@ export const syncClient: KyInstance = ky.create({
   ...baseOptions,
   prefixUrl: import.meta.env.VITE_SYNC_URL ?? 'https://sync.zyntapos.com',
 });
+
+export { HTTPError };

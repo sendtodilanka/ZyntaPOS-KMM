@@ -101,9 +101,12 @@ dependencies {
     // ── Logging ───────────────────────────────────────────────────────
     implementation("ch.qos.logback:logback-classic:1.5.32")
 
-    // ── JWT RS256 ─────────────────────────────────────────────────────
+    // ── JWT RS256 + HS256 ─────────────────────────────────────────────
     implementation("com.auth0:java-jwt:4.4.0")
     implementation("com.auth0:jwks-rsa:0.22.1")
+
+    // ── Password hashing (bcrypt for admin panel users) ───────────────
+    implementation("at.favre.lib:bcrypt:0.10.2")
 
     // ── Testing ───────────────────────────────────────────────────────
     testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
