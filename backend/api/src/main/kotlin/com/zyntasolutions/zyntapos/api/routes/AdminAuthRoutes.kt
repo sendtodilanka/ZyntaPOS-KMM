@@ -26,6 +26,34 @@ fun Route.adminAuthRoutes() {
 
     route("/admin/auth") {
 
+        // GET /admin/auth/status — returns whether first-run bootstrap is needed
+        get("/status") {
+            call.respond(HttpStatusCode.OK, AdminStatusResponse(needsBootstrap = service.needsBootstrap()))
+        }
+
+        // POST /admin/auth/bootstrap — creates first ADMIN; 409 if any admin already exists
+        post("/bootstrap") {
+            val body = call.receive<AdminBootstrapRequest>()
+
+            if (!call.validateOr422 {
+                requireNotBlank("email", body.email)
+                requireMaxLength("email", body.email, 254)
+                requireNotBlank("name", body.name)
+                requireNotBlank("password", body.password)
+                requireLength("password", body.password, 8, 256)
+            }) return@post
+
+            val created = service.bootstrap(body.email, body.name, body.password)
+            if (created == null) {
+                call.respond(
+                    HttpStatusCode.Conflict,
+                    ErrorResponse("ALREADY_BOOTSTRAPPED", "An admin account already exists. Use the login page.")
+                )
+                return@post
+            }
+            call.respond(HttpStatusCode.Created, created.toResponse())
+        }
+
         // POST /admin/auth/login
         post("/login") {
             val body = call.receive<AdminLoginRequest>()

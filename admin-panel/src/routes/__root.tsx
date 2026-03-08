@@ -3,7 +3,7 @@ import type { QueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
-import { useCurrentUser } from '@/api/auth';
+import { useCurrentUser, useAdminStatus } from '@/api/auth';
 import { useAuth } from '@/hooks/use-auth';
 
 interface RouterContext {
@@ -17,26 +17,45 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 function RootLayout() {
   const navigate = useNavigate();
   const routerState = useRouterState();
-  const isLoginPage = routerState.location.pathname.startsWith('/login');
+  const pathname = routerState.location.pathname;
+  const isLoginPage = pathname.startsWith('/login');
+  const isSetupPage = pathname.startsWith('/setup');
+  const isPublicPage = isLoginPage || isSetupPage;
+
+  // Check if bootstrap is needed (first-run)
+  const { data: statusData, isLoading: statusLoading } = useAdminStatus();
 
   // Hydrate auth state on every page load via GET /admin/auth/me
   const { isLoading: queryLoading } = useCurrentUser();
   const { isAuthenticated, isLoading: storeLoading } = useAuth();
 
-  const loading = queryLoading || storeLoading;
+  const loading = statusLoading || queryLoading || storeLoading;
 
   useEffect(() => {
     if (loading) return;
-    if (!isAuthenticated && !isLoginPage) {
+
+    // First-run: redirect to setup regardless of current page
+    if (statusData?.needsBootstrap && !isSetupPage) {
+      navigate({ to: '/setup/' });
+      return;
+    }
+
+    // Bootstrap done but on setup page — go to login
+    if (!statusData?.needsBootstrap && isSetupPage) {
+      navigate({ to: '/login' });
+      return;
+    }
+
+    if (!isAuthenticated && !isPublicPage) {
       navigate({ to: '/login' });
     }
-    if (isAuthenticated && isLoginPage) {
+    if (isAuthenticated && isPublicPage) {
       navigate({ to: '/' });
     }
-  }, [isAuthenticated, isLoginPage, loading, navigate]);
+  }, [isAuthenticated, isPublicPage, isSetupPage, loading, navigate, statusData]);
 
-  // Full-screen spinner while /me is resolving
-  if (loading && !isLoginPage) {
+  // Full-screen spinner while resolving
+  if (loading && !isPublicPage) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
@@ -44,8 +63,8 @@ function RootLayout() {
     );
   }
 
-  // Login page renders without AppShell (no sidebar/header)
-  if (isLoginPage) {
+  // Public pages (login / setup) render without AppShell
+  if (isPublicPage) {
     return <Outlet />;
   }
 

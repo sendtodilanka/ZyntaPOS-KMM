@@ -15,6 +15,16 @@ export interface AdminLoginResponse {
   mfaRequired: boolean;
 }
 
+export interface AdminStatusResponse {
+  needsBootstrap: boolean;
+}
+
+export interface AdminBootstrapRequest {
+  email: string;
+  name: string;
+  password: string;
+}
+
 // ── GET /admin/auth/me ────────────────────────────────────────────────────
 // Called on every page load to hydrate auth state from the httpOnly cookie.
 // If the cookie is missing or expired, the request returns 401.
@@ -56,6 +66,27 @@ export function useAdminLogin() {
     onError: () => {
       // Error handling done in the login form component
     },
+  });
+}
+
+// ── GET /admin/auth/status ────────────────────────────────────────────────
+// Called before auth check to detect first-run bootstrap state.
+
+export function useAdminStatus() {
+  return useQuery({
+    queryKey: ['admin', 'status'],
+    queryFn: () => apiClient.get('admin/auth/status').json<AdminStatusResponse>(),
+    retry: false,
+    staleTime: 60 * 1000,
+  });
+}
+
+// ── POST /admin/auth/bootstrap ────────────────────────────────────────────
+
+export function useAdminBootstrap() {
+  return useMutation({
+    mutationFn: (data: AdminBootstrapRequest) =>
+      apiClient.post('admin/auth/bootstrap', { json: data }).json<AdminUser>(),
   });
 }
 
