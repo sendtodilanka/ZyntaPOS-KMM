@@ -164,6 +164,36 @@ class AdminAuthService(private val config: AppConfig) {
             .singleOrNull()?.toAdminUserRow()
     }
 
+    // ── Bootstrap (first-run only) ───────────────────────────────────────────
+
+    suspend fun needsBootstrap(): Boolean = newSuspendedTransaction {
+        AdminUsers.selectAll().count() == 0L
+    }
+
+    /**
+     * Creates the first ADMIN user. Returns null if an admin already exists
+     * (the route converts this to 409 Conflict).
+     */
+    suspend fun bootstrap(email: String, name: String, password: String): AdminUserRow? =
+        newSuspendedTransaction {
+            if (AdminUsers.selectAll().count() != 0L) return@newSuspendedTransaction null
+            val hash = BCrypt.withDefaults().hashToString(12, password.toCharArray())
+            val now = System.currentTimeMillis()
+            AdminUsers.insert {
+                it[this.email] = email.lowercase().trim()
+                it[this.name] = name
+                it[this.role] = AdminRole.ADMIN.name
+                it[passwordHash] = hash
+                it[mfaEnabled] = false
+                it[failedAttempts] = 0
+                it[isActive] = true
+                it[createdAt] = now
+            }
+            AdminUsers.selectAll()
+                .where { AdminUsers.email eq email.lowercase().trim() }
+                .single().toAdminUserRow()
+        }
+
     // ── Admin user management ────────────────────────────────────────────────
 
     suspend fun createUser(email: String, name: String, role: AdminRole, password: String): AdminUserRow =

@@ -50,3 +50,15 @@ data class AdminUpdateUserRequest(
     val role: String? = null,
     val isActive: Boolean? = null
 )
+
+@Serializable
+data class AdminBootstrapRequest(
+    val email: String,
+    val name: String,
+    val password: String
+)
+
+@Serializable
+data class AdminStatusResponse(
+    val needsBootstrap: Boolean
+)

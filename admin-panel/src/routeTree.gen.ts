@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SetupIndexRouteImport } from './routes/setup/index'
 import { Route as UsersIndexRouteImport } from './routes/users/index'
 import { Route as SyncIndexRouteImport } from './routes/sync/index'
 import { Route as StoresIndexRouteImport } from './routes/stores/index'
@@ -100,6 +101,11 @@ const HealthStoreIdRoute = HealthStoreIdRouteImport.update({
   path: '/health/$storeId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SetupIndexRoute = SetupIndexRouteImport.update({
+  id: '/setup/',
+  path: '/setup/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
@@ -117,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/stores/': typeof StoresIndexRoute
   '/sync/': typeof SyncIndexRoute
   '/users/': typeof UsersIndexRoute
+  '/setup/': typeof SetupIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -134,6 +141,7 @@ export interface FileRoutesByTo {
   '/stores': typeof StoresIndexRoute
   '/sync': typeof SyncIndexRoute
   '/users': typeof UsersIndexRoute
+  '/setup': typeof SetupIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -152,6 +160,7 @@ export interface FileRoutesById {
   '/stores/': typeof StoresIndexRoute
   '/sync/': typeof SyncIndexRoute
   '/users/': typeof UsersIndexRoute
+  '/setup/': typeof SetupIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -171,6 +180,7 @@ export interface FileRouteTypes {
     | '/stores/'
     | '/sync/'
     | '/users/'
+    | '/setup/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -188,6 +198,7 @@ export interface FileRouteTypes {
     | '/stores'
     | '/sync'
     | '/users'
+    | '/setup'
   id:
     | '__root__'
     | '/login'
@@ -205,11 +216,13 @@ export interface FileRouteTypes {
     | '/stores/'
     | '/sync/'
     | '/users/'
+    | '/setup/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   IndexRoute: typeof IndexRoute
+  SetupIndexRoute: typeof SetupIndexRoute
   HealthStoreIdRoute: typeof HealthStoreIdRoute
   LicensesLicenseKeyRoute: typeof LicensesLicenseKeyRoute
   StoresStoreIdRoute: typeof StoresStoreIdRoute
@@ -332,12 +345,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HealthStoreIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/setup/': {
+      id: '/setup/'
+      path: '/setup'
+      fullPath: '/setup/'
+      preLoaderRoute: typeof SetupIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   IndexRoute: IndexRoute,
+  SetupIndexRoute: SetupIndexRoute,
   HealthStoreIdRoute: HealthStoreIdRoute,
   LicensesLicenseKeyRoute: LicensesLicenseKeyRoute,
   StoresStoreIdRoute: StoresStoreIdRoute,
