@@ -182,3 +182,38 @@ export function useAdminMfaVerify() {
     },
   });
 }
+
+// ── Change password ───────────────────────────────────────────────────────
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: (data: ChangePasswordRequest) =>
+      apiClient.post('admin/auth/change-password', { json: data }),
+    onSuccess: () => toast.success('Password changed', 'You have been logged out of all other sessions.'),
+    onError: () => toast.error('Failed to change password', 'Check your current password and try again.'),
+  });
+}
+
+// ── Active sessions ───────────────────────────────────────────────────────
+
+export interface AdminSession {
+  id: string;
+  userAgent: string | null;
+  ipAddress: string | null;
+  createdAt: number;
+  expiresAt: number;
+}
+
+export function useListSessions(userId: string | undefined) {
+  return useQuery({
+    queryKey: ['users', userId, 'sessions'],
+    queryFn: () => apiClient.get(`admin/users/${userId}/sessions`).json<AdminSession[]>(),
+    enabled: !!userId,
+    staleTime: 30_000,
+  });
+}

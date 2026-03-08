@@ -55,3 +55,16 @@ export function useDeactivateUser() {
     onError: () => toast.error('Failed to deactivate user'),
   });
 }
+
+export function useRevokeSessions() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) =>
+      apiClient.delete(`admin/users/${userId}/sessions`),
+    onSuccess: (_data, userId) => {
+      qc.invalidateQueries({ queryKey: ['users', userId, 'sessions'] });
+      toast.success('Sessions revoked', 'All active sessions for this user have been terminated.');
+    },
+    onError: () => toast.error('Failed to revoke sessions'),
+  });
+}

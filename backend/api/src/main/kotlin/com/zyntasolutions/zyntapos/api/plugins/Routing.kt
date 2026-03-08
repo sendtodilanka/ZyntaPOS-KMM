@@ -24,20 +24,24 @@ fun Application.configureRouting() {
         // Public routes (no rate limit — health/ping are trivially cheap)
         healthRoutes()
 
-        // Admin panel auth routes — strict rate limit (auth tier)
+        // Admin panel auth routes — strict rate limit + CSRF protection
         rateLimit(RateLimitName("auth")) {
-            adminAuthRoutes()
+            withCsrfProtection {
+                adminAuthRoutes()
+            }
         }
 
-        // Admin panel data routes — standard API rate limit, cookie-auth validated inside each route
+        // Admin panel data routes — standard API rate limit + CSRF protection
         rateLimit(RateLimitName("api")) {
-            adminStoresRoutes()
-            adminHealthRoutes()
-            adminAuditRoutes()
-            adminMetricsRoutes()
-            adminAlertsRoutes()
-            adminSyncRoutes()
-            adminConfigRoutes()
+            withCsrfProtection {
+                adminStoresRoutes()
+                adminHealthRoutes()
+                adminAuditRoutes()
+                adminMetricsRoutes()
+                adminAlertsRoutes()
+                adminSyncRoutes()
+                adminConfigRoutes()
+            }
         }
 
         route("/v1") {
