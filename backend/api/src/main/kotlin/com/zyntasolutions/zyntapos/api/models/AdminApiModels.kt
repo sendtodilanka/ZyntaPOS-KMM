@@ -341,3 +341,20 @@ data class AdminSystemConfig(
 
 @Serializable
 data class UpdateSystemConfigRequest(val value: String)
+
+// ── Auth — sessions & password change ─────────────────────────────────────
+
+@Serializable
+data class AdminSessionResponse(
+    val id: String,
+    val userAgent: String?,
+    val ipAddress: String?,
+    val createdAt: Long,
+    val expiresAt: Long
+)
+
+@Serializable
+data class AdminChangePasswordRequest(
+    val currentPassword: String,
+    val newPassword: String
+)

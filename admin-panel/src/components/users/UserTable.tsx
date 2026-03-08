@@ -1,8 +1,8 @@
-import { MoreHorizontal, Edit, UserX } from 'lucide-react';
+import { MoreHorizontal, Edit, UserX, ShieldCheck, ShieldOff, LogOut } from 'lucide-react';
 import { useState } from 'react';
 import { DataTable, type Column } from '@/components/shared/DataTable';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
-import { useDeactivateUser } from '@/api/users';
+import { useDeactivateUser, useRevokeSessions } from '@/api/users';
 import { useTimezone } from '@/hooks/use-timezone';
 import type { AdminUser, AdminRole } from '@/types/user';
 
@@ -34,8 +34,10 @@ interface UserTableProps {
 
 export function UserTable({ data, isLoading, page, totalPages, total, onPageChange, onEdit }: UserTableProps) {
   const deactivate = useDeactivateUser();
+  const revokeSessions = useRevokeSessions();
   const { formatRelative } = useTimezone();
   const [deactivateTarget, setDeactivateTarget] = useState<AdminUser | null>(null);
+  const [revokeTarget, setRevokeTarget] = useState<AdminUser | null>(null);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
   const columns: Column<AdminUser>[] = [
@@ -62,6 +64,13 @@ export function UserTable({ data, isLoading, page, totalPages, total, onPageChan
           {ROLE_LABELS[row.role]}
         </span>
       ),
+    },
+    {
+      key: 'mfa',
+      header: 'MFA',
+      cell: (row) => row.mfaEnabled
+        ? <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-green-400"><ShieldCheck className="w-3.5 h-3.5" /> On</span>
+        : <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500"><ShieldOff className="w-3.5 h-3.5" /> Off</span>,
     },
     {
       key: 'status',
@@ -93,12 +102,18 @@ export function UserTable({ data, isLoading, page, totalPages, total, onPageChan
             <MoreHorizontal className="w-4 h-4" />
           </button>
           {openMenu === row.id && (
-            <div className="absolute right-0 top-full mt-1 w-40 bg-surface-card border border-surface-border rounded-lg shadow-xl z-20 py-1">
+            <div className="absolute right-0 top-full mt-1 w-48 bg-surface-card border border-surface-border rounded-lg shadow-xl z-20 py-1">
               <button
                 onClick={() => { setOpenMenu(null); onEdit(row); }}
                 className="flex items-center gap-2.5 w-full px-3 py-2.5 text-sm text-slate-300 hover:bg-surface-elevated transition-colors min-h-[44px]"
               >
                 <Edit className="w-4 h-4" /> Edit Role
+              </button>
+              <button
+                onClick={() => { setOpenMenu(null); setRevokeTarget(row); }}
+                className="flex items-center gap-2.5 w-full px-3 py-2.5 text-sm text-yellow-400 hover:bg-yellow-400/10 transition-colors min-h-[44px]"
+              >
+                <LogOut className="w-4 h-4" /> Revoke Sessions
               </button>
               <button
                 onClick={() => { setOpenMenu(null); setDeactivateTarget(row); }}
@@ -126,6 +141,18 @@ export function UserTable({ data, isLoading, page, totalPages, total, onPageChan
         rowKey={(r) => r.id}
         emptyTitle="No users found"
         emptyDescription="No admin users match your filters."
+      />
+      <ConfirmDialog
+        open={!!revokeTarget}
+        onClose={() => setRevokeTarget(null)}
+        onConfirm={() => {
+          if (revokeTarget) revokeSessions.mutate(revokeTarget.id, { onSettled: () => setRevokeTarget(null) });
+        }}
+        title="Revoke All Sessions"
+        description={`Force "${revokeTarget?.name}" to log in again by revoking all their active sessions?`}
+        confirmLabel="Revoke Sessions"
+        variant="destructive"
+        isLoading={revokeSessions.isPending}
       />
       <ConfirmDialog
         open={!!deactivateTarget}

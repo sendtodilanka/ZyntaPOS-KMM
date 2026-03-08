@@ -5,6 +5,7 @@ import com.zyntasolutions.zyntapos.api.auth.AdminRole
 import com.zyntasolutions.zyntapos.api.models.*
 import com.zyntasolutions.zyntapos.api.service.AdminAuthResult
 import com.zyntasolutions.zyntapos.api.service.AdminAuthService
+import com.zyntasolutions.zyntapos.api.service.AdminAuditService
 import com.zyntasolutions.zyntapos.api.service.AdminUserRow
 import com.zyntasolutions.zyntapos.api.service.GoogleOAuthService
 import com.zyntasolutions.zyntapos.api.service.MfaService
@@ -26,6 +27,7 @@ fun Route.adminAuthRoutes() {
     val service: AdminAuthService by inject()
     val mfaService: MfaService by inject()
     val googleOAuth: GoogleOAuthService by inject()
+    val auditService: AdminAuditService by inject()
     val config: AppConfig by inject()
 
     route("/admin/auth") {
@@ -44,7 +46,7 @@ fun Route.adminAuthRoutes() {
                 requireMaxLength("email", body.email, 254)
                 requireNotBlank("name", body.name)
                 requireNotBlank("password", body.password)
-                requireLength("password", body.password, 8, 256)
+                requireLength("password", body.password, 8, AdminAuthService.MAX_PASSWORD_LENGTH)
             }) return@post
 
             val created = service.bootstrap(body.email, body.name, body.password)
@@ -66,7 +68,7 @@ fun Route.adminAuthRoutes() {
                 requireNotBlank("email", body.email)
                 requireMaxLength("email", body.email, 254)
                 requireNotBlank("password", body.password)
-                requireMaxLength("password", body.password, 256)
+                requireMaxLength("password", body.password, AdminAuthService.MAX_PASSWORD_LENGTH)
             }) return@post
 
             val ip        = call.request.headers["X-Forwarded-For"]?.split(",")?.firstOrNull()?.trim()
@@ -301,11 +303,18 @@ fun Route.adminAuthRoutes() {
     // ── Admin user management (ADMIN role only) ────────────────────────────
     route("/admin/users") {
 
-        // GET /admin/users
+        // GET /admin/users?page=&size=&search=&role=&isActive=
         get {
             val user = resolveAdminUser(call, service) ?: return@get
             AdminPermissions.requirePermission(user.role, "users:read")
-            call.respond(HttpStatusCode.OK, service.listUsers().map { it.toResponse() })
+
+            val page     = call.request.queryParameters["page"]?.toIntOrNull()?.coerceAtLeast(1) ?: 1
+            val size     = call.request.queryParameters["size"]?.toIntOrNull()?.coerceIn(1, 100) ?: 20
+            val search   = call.request.queryParameters["search"]?.takeIf { it.isNotBlank() }
+            val roleParam = call.request.queryParameters["role"]?.let { AdminRole.fromString(it) }
+            val isActive = call.request.queryParameters["isActive"]?.toBooleanStrictOrNull()
+
+            call.respond(HttpStatusCode.OK, service.listUsers(page, size, search, roleParam, isActive))
         }
 
         // POST /admin/users
@@ -319,7 +328,7 @@ fun Route.adminAuthRoutes() {
                 requireMaxLength("email", body.email, 254)
                 requireNotBlank("name", body.name)
                 requireNotBlank("password", body.password)
-                requireLength("password", body.password, 8, 256)
+                requireLength("password", body.password, 8, AdminAuthService.MAX_PASSWORD_LENGTH)
                 requireNotBlank("role", body.role)
             }) return@post
 
@@ -359,6 +368,29 @@ fun Route.adminAuthRoutes() {
             call.respond(HttpStatusCode.OK, updated.toResponse())
         }
 
+        // GET /admin/users/{id}/sessions — list active sessions for a user
+        get("/{id}/sessions") {
+            val user = resolveAdminUser(call, service) ?: return@get
+            AdminPermissions.requirePermission(user.role, "users:read")
+
+            val targetId = call.parameters["id"]
+                ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+                ?: run {
+                    call.respond(HttpStatusCode.BadRequest, ErrorResponse("INVALID_ID", "Invalid user ID"))
+                    return@get
+                }
+            val sessions = service.listActiveSessions(targetId).map { s ->
+                AdminSessionResponse(
+                    id        = s.id.toString(),
+                    userAgent = s.userAgent,
+                    ipAddress = s.ipAddress,
+                    createdAt = s.createdAt,
+                    expiresAt = s.expiresAt
+                )
+            }
+            call.respond(HttpStatusCode.OK, sessions)
+        }
+
         // DELETE /admin/users/{id}/sessions
         delete("/{id}/sessions") {
             val user = resolveAdminUser(call, service) ?: return@delete
@@ -371,6 +403,57 @@ fun Route.adminAuthRoutes() {
                     return@delete
                 }
             service.revokeAllSessions(targetId)
+
+            // G3: Audit session revocation
+            auditService.log(
+                adminId    = user.id,
+                adminName  = user.name,
+                eventType  = "ADMIN_SESSIONS_REVOKED",
+                category   = "AUTH",
+                entityType = "admin_user",
+                entityId   = targetId.toString(),
+                ipAddress  = call.request.headers["X-Forwarded-For"]?.split(",")?.firstOrNull()?.trim()
+                              ?: call.request.local.remoteHost,
+                success    = true
+            )
+            call.respond(HttpStatusCode.NoContent)
+        }
+    }
+
+    // POST /admin/auth/change-password — change own password
+    route("/admin/auth") {
+        post("/change-password") {
+            val user = resolveAdminUser(call, service) ?: return@post
+            val body = call.receive<AdminChangePasswordRequest>()
+
+            if (!call.validateOr422 {
+                requireNotBlank("currentPassword", body.currentPassword)
+                requireNotBlank("newPassword", body.newPassword)
+                requireLength("newPassword", body.newPassword, 8, AdminAuthService.MAX_PASSWORD_LENGTH)
+            }) return@post
+
+            val changed = service.changePassword(user.id, body.currentPassword, body.newPassword)
+            if (!changed) {
+                call.respond(
+                    HttpStatusCode.UnprocessableEntity,
+                    ErrorResponse("INVALID_CURRENT_PASSWORD", "Current password is incorrect")
+                )
+                return@post
+            }
+
+            // G3: Audit password change
+            val ip = call.request.headers["X-Forwarded-For"]?.split(",")?.firstOrNull()?.trim()
+                     ?: call.request.local.remoteHost
+            auditService.log(
+                adminId    = user.id,
+                adminName  = user.name,
+                eventType  = "ADMIN_PASSWORD_CHANGED",
+                category   = "AUTH",
+                entityType = "admin_user",
+                entityId   = user.id.toString(),
+                ipAddress  = ip,
+                success    = true
+            )
             call.respond(HttpStatusCode.NoContent)
         }
     }

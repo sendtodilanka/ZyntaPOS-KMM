@@ -20,7 +20,7 @@ val appModule = module {
     single { UserService() }
     single { SyncService() }
     single { ProductService() }
-    single { AdminAuthService(get()) }
+    single { AdminAuthService(get(), get()) }
     single { AdminAuditService() }
     single { AdminStoresService() }
     single { AdminConfigService() }

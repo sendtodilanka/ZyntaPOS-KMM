@@ -1,6 +1,14 @@
 import ky, { type KyInstance, type Options, HTTPError } from 'ky';
 import { API_BASE_URL } from './constants';
 
+/** Reads the XSRF-TOKEN cookie set by the backend CSRF plugin. */
+function getCsrfToken(): string | null {
+  const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+const STATE_CHANGING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
 const baseOptions: Options = {
   prefixUrl: API_BASE_URL,
   timeout: 30_000,
@@ -12,6 +20,17 @@ const baseOptions: Options = {
     backoffLimit: 4_000,
   },
   hooks: {
+    beforeRequest: [
+      (request) => {
+        // Attach CSRF token on state-changing requests (double-submit cookie pattern)
+        if (STATE_CHANGING_METHODS.has(request.method)) {
+          const token = getCsrfToken();
+          if (token) {
+            request.headers.set('X-XSRF-Token', token);
+          }
+        }
+      },
+    ],
     afterResponse: [
       async (_request, _options, response) => {
         if (response.status === 401) {

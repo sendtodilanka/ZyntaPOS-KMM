@@ -17,6 +17,7 @@ import { Route as SyncIndexRouteImport } from './routes/sync/index'
 import { Route as StoresIndexRouteImport } from './routes/stores/index'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as SettingsMfaRouteImport } from './routes/settings/mfa'
+import { Route as SettingsProfileRouteImport } from './routes/settings/profile'
 import { Route as ReportsIndexRouteImport } from './routes/reports/index'
 import { Route as LicensesIndexRouteImport } from './routes/licenses/index'
 import { Route as HealthIndexRouteImport } from './routes/health/index'
@@ -60,6 +61,11 @@ const SettingsIndexRoute = SettingsIndexRouteImport.update({
 const SettingsMfaRoute = SettingsMfaRouteImport.update({
   id: '/settings/mfa',
   path: '/settings/mfa',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsProfileRoute = SettingsProfileRouteImport.update({
+  id: '/settings/profile',
+  path: '/settings/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReportsIndexRoute = ReportsIndexRouteImport.update({
@@ -127,6 +133,7 @@ export interface FileRoutesByFullPath {
   '/reports/': typeof ReportsIndexRoute
   '/settings/': typeof SettingsIndexRoute
   '/settings/mfa': typeof SettingsMfaRoute
+  '/settings/profile': typeof SettingsProfileRoute
   '/stores/': typeof StoresIndexRoute
   '/sync/': typeof SyncIndexRoute
   '/users/': typeof UsersIndexRoute
@@ -146,6 +153,7 @@ export interface FileRoutesByTo {
   '/reports': typeof ReportsIndexRoute
   '/settings': typeof SettingsIndexRoute
   '/settings/mfa': typeof SettingsMfaRoute
+  '/settings/profile': typeof SettingsProfileRoute
   '/stores': typeof StoresIndexRoute
   '/sync': typeof SyncIndexRoute
   '/users': typeof UsersIndexRoute
@@ -166,6 +174,7 @@ export interface FileRoutesById {
   '/reports/': typeof ReportsIndexRoute
   '/settings/': typeof SettingsIndexRoute
   '/settings/mfa': typeof SettingsMfaRoute
+  '/settings/profile': typeof SettingsProfileRoute
   '/stores/': typeof StoresIndexRoute
   '/sync/': typeof SyncIndexRoute
   '/users/': typeof UsersIndexRoute
@@ -187,6 +196,7 @@ export interface FileRouteTypes {
     | '/reports/'
     | '/settings/'
     | '/settings/mfa'
+    | '/settings/profile'
     | '/stores/'
     | '/sync/'
     | '/users/'
@@ -206,6 +216,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/settings'
     | '/settings/mfa'
+    | '/settings/profile'
     | '/stores'
     | '/sync'
     | '/users'
@@ -224,6 +235,7 @@ export interface FileRouteTypes {
     | '/licenses/'
     | '/reports/'
     | '/settings/mfa'
+    | '/settings/profile'
     | '/settings/'
     | '/stores/'
     | '/sync/'
@@ -246,6 +258,7 @@ export interface RootRouteChildren {
   ReportsIndexRoute: typeof ReportsIndexRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
   SettingsMfaRoute: typeof SettingsMfaRoute
+  SettingsProfileRoute: typeof SettingsProfileRoute
   StoresIndexRoute: typeof StoresIndexRoute
   SyncIndexRoute: typeof SyncIndexRoute
   UsersIndexRoute: typeof UsersIndexRoute
@@ -372,6 +385,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsMfaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/profile': {
+      id: '/settings/profile'
+      path: '/settings/profile'
+      fullPath: '/settings/profile'
+      preLoaderRoute: typeof SettingsProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -390,6 +410,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReportsIndexRoute: ReportsIndexRoute,
   SettingsIndexRoute: SettingsIndexRoute,
   SettingsMfaRoute: SettingsMfaRoute,
+  SettingsProfileRoute: SettingsProfileRoute,
   StoresIndexRoute: StoresIndexRoute,
   SyncIndexRoute: SyncIndexRoute,
   UsersIndexRoute: UsersIndexRoute,

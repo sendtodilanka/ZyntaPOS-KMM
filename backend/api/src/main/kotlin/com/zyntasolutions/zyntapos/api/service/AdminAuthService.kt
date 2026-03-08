@@ -5,6 +5,7 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.zyntasolutions.zyntapos.api.auth.AdminRole
 import com.zyntasolutions.zyntapos.api.config.AppConfig
+import com.zyntasolutions.zyntapos.api.models.AdminPagedResponse
 import com.zyntasolutions.zyntapos.api.models.AdminUserResponse
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -62,6 +63,16 @@ data class AdminUserRow(
     val createdAt: Long
 )
 
+data class AdminSessionRow(
+    val id: UUID,
+    val userId: UUID,
+    val userAgent: String?,
+    val ipAddress: String?,
+    val createdAt: Long,
+    val expiresAt: Long,
+    val revokedAt: Long?
+)
+
 sealed class AdminAuthResult {
     data class Success(val user: AdminUserRow, val accessToken: String, val refreshToken: String) : AdminAuthResult()
     data class MfaRequired(val user: AdminUserRow, val pendingToken: String) : AdminAuthResult()
@@ -72,7 +83,10 @@ sealed class AdminAuthResult {
 
 // ── Service ─────────────────────────────────────────────────────────────────
 
-class AdminAuthService(private val config: AppConfig) {
+class AdminAuthService(
+    private val config: AppConfig,
+    private val auditService: AdminAuditService
+) {
 
     private val bcryptVerifier = BCrypt.verifyer()
 
@@ -80,12 +94,19 @@ class AdminAuthService(private val config: AppConfig) {
 
     suspend fun login(email: String, password: String, ip: String?, userAgent: String?): AdminAuthResult =
         newSuspendedTransaction {
+            // G2: Reject oversized passwords before bcrypt (bcrypt silently truncates at 72 bytes)
+            if (password.length > MAX_PASSWORD_LENGTH) {
+                // Still run a dummy verify for constant-time behaviour
+                bcryptVerifier.verify(password.toCharArray(), DUMMY_HASH)
+                return@newSuspendedTransaction AdminAuthResult.InvalidCredentials
+            }
+
             val row = AdminUsers.selectAll()
                 .where { AdminUsers.email eq email.lowercase().trim() }
                 .singleOrNull()
                 ?.toAdminUserRow()
                 ?: run {
-                    // Constant-time dummy verify to prevent timing attacks
+                    // Constant-time dummy verify to prevent timing attacks on unknown emails
                     bcryptVerifier.verify(password.toCharArray(), DUMMY_HASH)
                     return@newSuspendedTransaction AdminAuthResult.InvalidCredentials
                 }
@@ -105,7 +126,7 @@ class AdminAuthService(private val config: AppConfig) {
 
             val verified = bcryptVerifier.verify(password.toCharArray(), row.passwordHash.toCharArray())
             if (!verified.verified) {
-                incrementFailedAttempts(row.id)
+                incrementFailedAttempts(row.id, row.email, ip, userAgent)
                 return@newSuspendedTransaction AdminAuthResult.InvalidCredentials
             }
 
@@ -117,6 +138,17 @@ class AdminAuthService(private val config: AppConfig) {
                 it[lastLoginAt] = now
                 it[lastLoginIp] = ip
             }
+
+            // G3: Audit successful login
+            auditService.log(
+                adminId    = row.id,
+                adminName  = row.name,
+                eventType  = "ADMIN_LOGIN_SUCCESS",
+                category   = "AUTH",
+                ipAddress  = ip,
+                userAgent  = userAgent,
+                success    = true
+            )
 
             // If MFA is enabled, issue a short-lived pending token instead of full access
             if (row.mfaEnabled) {
@@ -151,17 +183,38 @@ class AdminAuthService(private val config: AppConfig) {
                 .where { (AdminUsers.id eq userId) and (AdminUsers.isActive eq true) }
                 .singleOrNull()?.toAdminUserRow() ?: return@newSuspendedTransaction null
 
+            // G3: Audit token refresh
+            auditService.log(
+                adminId   = row.id,
+                adminName = row.name,
+                eventType = "ADMIN_TOKEN_REFRESHED",
+                category  = "AUTH",
+                ipAddress = ip,
+                userAgent = userAgent,
+                success   = true
+            )
+
             issueTokens(row, ip, userAgent)
         }
 
     // ── Logout ───────────────────────────────────────────────────────────────
 
-    suspend fun logout(rawRefreshToken: String) = newSuspendedTransaction {
-        val hash = sha256Hex(rawRefreshToken)
-        AdminSessions.update({ AdminSessions.tokenHash eq hash }) {
-            it[revokedAt] = System.currentTimeMillis()
+    suspend fun logout(rawRefreshToken: String, adminId: UUID? = null, adminName: String? = null, ip: String? = null) =
+        newSuspendedTransaction {
+            val hash = sha256Hex(rawRefreshToken)
+            AdminSessions.update({ AdminSessions.tokenHash eq hash }) {
+                it[revokedAt] = System.currentTimeMillis()
+            }
+            // G3: Audit logout
+            auditService.log(
+                adminId   = adminId,
+                adminName = adminName,
+                eventType = "ADMIN_LOGOUT",
+                category  = "AUTH",
+                ipAddress = ip,
+                success   = true
+            )
         }
-    }
 
     // ── Get user by JWT subject ───────────────────────────────────────────────
 
@@ -222,8 +275,41 @@ class AdminAuthService(private val config: AppConfig) {
                 .single().toAdminUserRow()
         }
 
-    suspend fun listUsers(): List<AdminUserRow> = newSuspendedTransaction {
-        AdminUsers.selectAll().orderBy(AdminUsers.createdAt).map { it.toAdminUserRow() }
+    /** G7: Paginated user list with optional filters. */
+    suspend fun listUsers(
+        page: Int = 1,
+        size: Int = 20,
+        search: String? = null,
+        role: AdminRole? = null,
+        isActive: Boolean? = null
+    ): AdminPagedResponse<AdminUserResponse> = newSuspendedTransaction {
+        val offset = ((page - 1) * size).toLong()
+
+        val query = AdminUsers.selectAll().apply {
+            if (!search.isNullOrBlank()) {
+                val term = "%${search.lowercase()}%"
+                andWhere {
+                    (AdminUsers.email.lowerCase() like term) or
+                    (AdminUsers.name.lowerCase() like term)
+                }
+            }
+            role?.let { andWhere { AdminUsers.role eq it.name } }
+            isActive?.let { andWhere { AdminUsers.isActive eq it } }
+        }
+
+        val total = query.count().toInt()
+        val items = query
+            .orderBy(AdminUsers.createdAt, SortOrder.DESC)
+            .limit(size).offset(offset)
+            .map { it.toAdminUserRow().toResponse() }
+
+        AdminPagedResponse(
+            data       = items,
+            page       = page,
+            size       = size,
+            total      = total,
+            totalPages = if (total == 0) 0 else ((total - 1) / size) + 1
+        )
     }
 
     suspend fun updateUser(id: UUID, name: String?, role: AdminRole?, isActive: Boolean?): AdminUserRow? =
@@ -241,6 +327,51 @@ class AdminAuthService(private val config: AppConfig) {
             it[revokedAt] = System.currentTimeMillis()
         }
     }
+
+    /** Lists active (non-revoked, non-expired) sessions for a user. */
+    suspend fun listActiveSessions(userId: UUID): List<AdminSessionRow> = newSuspendedTransaction {
+        AdminSessions.selectAll()
+            .where {
+                (AdminSessions.userId eq userId) and
+                (AdminSessions.revokedAt.isNull()) and
+                (AdminSessions.expiresAt greater System.currentTimeMillis())
+            }
+            .orderBy(AdminSessions.createdAt, SortOrder.DESC)
+            .map {
+                AdminSessionRow(
+                    id        = it[AdminSessions.id],
+                    userId    = it[AdminSessions.userId],
+                    userAgent = it[AdminSessions.userAgent],
+                    ipAddress = it[AdminSessions.ipAddress],
+                    createdAt = it[AdminSessions.createdAt],
+                    expiresAt = it[AdminSessions.expiresAt],
+                    revokedAt = it[AdminSessions.revokedAt]
+                )
+            }
+    }
+
+    /** Changes password after verifying the current password. Returns false on wrong current password. */
+    suspend fun changePassword(userId: UUID, currentPassword: String, newPassword: String): Boolean =
+        newSuspendedTransaction {
+            val row = AdminUsers.selectAll().where { AdminUsers.id eq userId }.singleOrNull()
+                ?: return@newSuspendedTransaction false
+
+            val currentHash = row[AdminUsers.passwordHash] ?: return@newSuspendedTransaction false
+            val verified = bcryptVerifier.verify(currentPassword.toCharArray(), currentHash.toCharArray())
+            if (!verified.verified) return@newSuspendedTransaction false
+
+            val newHash = BCrypt.withDefaults().hashToString(12, newPassword.toCharArray())
+            AdminUsers.update({ AdminUsers.id eq userId }) {
+                it[passwordHash] = newHash
+            }
+
+            // Revoke all existing sessions on password change (force re-login)
+            AdminSessions.update({ AdminSessions.userId eq userId }) {
+                it[revokedAt] = System.currentTimeMillis()
+            }
+
+            true
+        }
 
     // ── Token issuance for external callers (Google OAuth) ───────────────────
 
@@ -340,22 +471,39 @@ class AdminAuthService(private val config: AppConfig) {
         return accessToken to rawRefreshToken
     }
 
-    private fun incrementFailedAttempts(userId: UUID) {
-        val current = AdminUsers.selectAll()
-            .where { AdminUsers.id eq userId }
-            .single()[AdminUsers.failedAttempts]
-        val newCount = current + 1
-        val lockedUntil = if (newCount >= MAX_FAILED_ATTEMPTS) {
-            System.currentTimeMillis() + LOCKOUT_DURATION_MS
-        } else null
+    private suspend fun incrementFailedAttempts(userId: UUID, email: String, ip: String?, userAgent: String?) {
+        newSuspendedTransaction {
+            val current = AdminUsers.selectAll()
+                .where { AdminUsers.id eq userId }
+                .single()[AdminUsers.failedAttempts]
+            val newCount = current + 1
+            val lockedUntil = if (newCount >= MAX_FAILED_ATTEMPTS) {
+                System.currentTimeMillis() + LOCKOUT_DURATION_MS
+            } else null
 
-        AdminUsers.update({ AdminUsers.id eq userId }) {
-            it[failedAttempts] = newCount
-            it[this.lockedUntil] = lockedUntil
-        }
+            AdminUsers.update({ AdminUsers.id eq userId }) {
+                it[failedAttempts] = newCount
+                it[this.lockedUntil] = lockedUntil
+            }
 
-        if (lockedUntil != null) {
-            logger.warn("Admin account locked after $newCount failed attempts: userId=$userId")
+            // G3: Audit login failure
+            auditService.log(
+                adminId      = userId,
+                adminName    = null,
+                eventType    = if (lockedUntil != null) "ADMIN_LOGIN_LOCKOUT" else "ADMIN_LOGIN_FAILURE",
+                category     = "AUTH",
+                entityType   = "admin_user",
+                entityId     = userId.toString(),
+                newValues    = mapOf("failedAttempts" to newCount.toString()),
+                ipAddress    = ip,
+                userAgent    = userAgent,
+                success      = false,
+                errorMessage = if (lockedUntil != null) "Account locked after $newCount failed attempts" else "Invalid credentials"
+            )
+
+            if (lockedUntil != null) {
+                logger.warn("Admin account locked after $newCount failed attempts: userId=$userId email=$email")
+            }
         }
     }
 
@@ -379,6 +527,9 @@ class AdminAuthService(private val config: AppConfig) {
     companion object {
         private const val MAX_FAILED_ATTEMPTS = 5
         private const val LOCKOUT_DURATION_MS = 15 * 60 * 1000L  // 15 minutes
+
+        /** G2: bcrypt silently truncates at 72 bytes — reject anything over 128 chars to prevent DoS. */
+        const val MAX_PASSWORD_LENGTH = 128
 
         // Constant-time dummy hash to prevent timing attacks on unknown emails
         private val DUMMY_HASH = BCrypt.withDefaults().hashToChar(12, "dummy-prevent-timing-attack".toCharArray())
