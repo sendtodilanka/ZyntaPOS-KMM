@@ -27,6 +27,8 @@ import kotlinx.datetime.TimeZone
  */
 object AppTimezone {
 
+    private val DEFAULT = TimeZone.of("Asia/Colombo")
+
     /** The IANA timezone identifier to use throughout the app for display. */
     private var _current: TimeZone = DEFAULT
 
@@ -45,6 +47,4 @@ object AppTimezone {
 
     /** The IANA ID of the current timezone (for persistence / display). */
     val id: String get() = _current.id
-
-    private val DEFAULT = TimeZone.of("Asia/Colombo")
 }
