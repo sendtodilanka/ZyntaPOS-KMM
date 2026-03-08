@@ -68,6 +68,7 @@ services:
       - JWT_AUDIENCE=zyntapos-app
       - RS256_PRIVATE_KEY_PATH=/run/secrets/rs256_private_key
       - RS256_PUBLIC_KEY_PATH=/run/secrets/rs256_public_key
+      - ADMIN_JWT_SECRET_FILE=/run/secrets/admin_jwt_secret
       - ACCESS_TOKEN_TTL_MINUTES=60
       - REFRESH_TOKEN_TTL_DAYS=30
       - SENTRY_DSN=${SENTRY_DSN_API}
@@ -88,6 +89,7 @@ services:
     volumes:
       - ./secrets/rs256_private_key.pem:/run/secrets/rs256_private_key:ro
       - ./secrets/rs256_public_key.pem:/run/secrets/rs256_public_key:ro
+      - ./secrets/admin_jwt_secret.txt:/run/secrets/admin_jwt_secret:ro
     # ── TODO-009 Level 3: Container hardening ─────────────────────────
     read_only: true
     tmpfs:
