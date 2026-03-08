@@ -24,6 +24,12 @@ const mfaSchema = z.object({
 });
 type MfaForm = z.infer<typeof mfaSchema>;
 
+const OAUTH_ERROR_MESSAGES: Record<string, string> = {
+  google_auth_failed: 'Google sign-in failed. Please try again.',
+  domain_not_allowed: 'Your Google account is not authorised for this panel. Use email/password instead.',
+  account_inactive: 'Your account has been deactivated. Contact an administrator.',
+};
+
 function LoginPage() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
@@ -32,6 +38,11 @@ function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [pendingToken, setPendingToken] = useState<string | null>(null);
+
+  const oauthError = (() => {
+    const code = new URLSearchParams(window.location.search).get('error');
+    return code ? (OAUTH_ERROR_MESSAGES[code] ?? 'Google sign-in failed. Please try again.') : null;
+  })();
 
   const {
     register,
@@ -177,9 +188,9 @@ function LoginPage() {
           ) : (
             /* ── Password Step ── */
             <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
-              {serverError && (
+              {(serverError || oauthError) && (
                 <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-                  {serverError}
+                  {serverError ?? oauthError}
                 </div>
               )}
 

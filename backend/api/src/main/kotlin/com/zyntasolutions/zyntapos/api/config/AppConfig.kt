@@ -22,7 +22,11 @@ data class AppConfig(
     // Google OAuth (optional — empty string disables Google SSO)
     val googleClientId: String,
     val googleClientSecret: String,
-    val googleRedirectUri: String
+    val googleRedirectUri: String,
+    // Restrict Google SSO to a specific email domain (e.g. "zyntapos.com"). Empty = allow any domain.
+    val googleAllowedDomain: String,
+    // Base URL of the admin panel — used for post-OAuth redirects
+    val adminPanelUrl: String
 ) {
     companion object {
         fun fromEnvironment(): AppConfig {
@@ -60,7 +64,9 @@ data class AppConfig(
                 adminRefreshTokenTtlDays = System.getenv("ADMIN_REFRESH_TOKEN_TTL_DAYS")?.toLongOrNull() ?: 7L,
                 googleClientId = System.getenv("GOOGLE_CLIENT_ID") ?: "",
                 googleClientSecret = System.getenv("GOOGLE_CLIENT_SECRET") ?: "",
-                googleRedirectUri = System.getenv("GOOGLE_REDIRECT_URI") ?: "https://panel.zyntapos.com/auth/google/callback"
+                googleRedirectUri = System.getenv("GOOGLE_REDIRECT_URI") ?: "https://api.zyntapos.com/admin/auth/google/callback",
+                googleAllowedDomain = System.getenv("GOOGLE_ALLOWED_DOMAIN") ?: "",
+                adminPanelUrl = System.getenv("ADMIN_PANEL_URL") ?: "https://panel.zyntapos.com"
             )
         }
 

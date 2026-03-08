@@ -40,7 +40,8 @@ data class GoogleUserInfo(
 
 class GoogleOAuthService(private val config: AppConfig) {
 
-    private val ALLOWED_DOMAIN = "zyntapos.com"
+    // Empty string means any domain is allowed
+    private val allowedDomain = config.googleAllowedDomain.trim().lowercase()
 
     private val httpClient = HttpClient(CIO) {
         install(ContentNegotiation) {
@@ -104,8 +105,8 @@ class GoogleOAuthService(private val config: AppConfig) {
      */
     suspend fun findOrCreateUser(userInfo: GoogleUserInfo): AdminUserRow? {
         val email = userInfo.email.lowercase().trim()
-        if (!email.endsWith("@$ALLOWED_DOMAIN")) {
-            logger.warn("Google OAuth rejected: non-zyntapos.com email: $email")
+        if (allowedDomain.isNotEmpty() && !email.endsWith("@$allowedDomain")) {
+            logger.warn("Google OAuth rejected: email domain not in allowlist: $email (allowed: $allowedDomain)")
             return null
         }
 

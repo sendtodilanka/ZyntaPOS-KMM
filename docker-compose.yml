@@ -73,7 +73,9 @@ services:
       - REFRESH_TOKEN_TTL_DAYS=30
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
-      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-https://panel.zyntapos.com/auth/google/callback}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-https://api.zyntapos.com/admin/auth/google/callback}
+      - GOOGLE_ALLOWED_DOMAIN=${GOOGLE_ALLOWED_DOMAIN:-}
+      - ADMIN_PANEL_URL=${ADMIN_PANEL_URL:-https://panel.zyntapos.com}
       - SENTRY_DSN=${SENTRY_DSN_API}
       - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
     depends_on:
