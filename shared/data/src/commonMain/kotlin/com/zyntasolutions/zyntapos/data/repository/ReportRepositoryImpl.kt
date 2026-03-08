@@ -40,6 +40,7 @@ import com.zyntasolutions.zyntapos.domain.model.report.WalletBalanceData
 import com.zyntasolutions.zyntapos.domain.model.report.WarehouseInventoryData
 import com.zyntasolutions.zyntapos.domain.model.report.CashierDiscountVoidData
 import com.zyntasolutions.zyntapos.domain.repository.ReportRepository
+import com.zyntasolutions.zyntapos.core.utils.AppTimezone
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Instant
@@ -64,7 +65,7 @@ class ReportRepositoryImpl(
 ) : ReportRepository {
 
     private val q get() = db.reportsQueries
-    private val tz = TimeZone.currentSystemDefault()
+    private val tz: TimeZone get() = AppTimezone.current
 
     // ── Standard Reports ──────────────────────────────────────────────────────
 

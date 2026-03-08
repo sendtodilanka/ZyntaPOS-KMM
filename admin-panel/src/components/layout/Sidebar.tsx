@@ -2,7 +2,7 @@ import { Link, useRouterState } from '@tanstack/react-router';
 import {
   LayoutDashboard, Key, Store, Users, ClipboardList,
   RefreshCw, Settings2, BarChart3, Activity, Bell,
-  ChevronLeft, ChevronRight, X,
+  ChevronLeft, ChevronRight, X, SlidersHorizontal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUiStore } from '@/stores/ui-store';
@@ -49,6 +49,12 @@ const NAV_GROUPS: NavGroup[] = [
       { label: 'Audit Log', icon: ClipboardList, href: '/audit', permission: 'audit:read' },
       { label: 'Reports', icon: BarChart3, href: '/reports', permission: 'reports:read' },
       { label: 'Config', icon: Settings2, href: '/config', permission: 'config:read' },
+    ],
+  },
+  {
+    label: 'Account',
+    items: [
+      { label: 'Preferences', icon: SlidersHorizontal, href: '/settings' },
     ],
   },
 ];

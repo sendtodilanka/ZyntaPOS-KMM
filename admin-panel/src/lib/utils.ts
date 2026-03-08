@@ -23,6 +23,8 @@ export function formatPercent(value: number, decimals = 1): string {
   return `${value >= 0 ? '+' : ''}${value.toFixed(decimals)}%`;
 }
 
+// ── ISO-string formatters (legacy — used by backend string timestamps) ───────
+
 export function formatDateTime(isoString: string): string {
   return format(parseISO(isoString), 'MMM d, yyyy HH:mm');
 }
@@ -38,6 +40,67 @@ export function formatRelativeTime(isoString: string): string {
   if (diffSeconds < 86400) return `${Math.floor(diffSeconds / 3600)} hr ago`;
   return formatDistanceToNow(parseISO(isoString), { addSuffix: true });
 }
+
+// ── Epoch-ms formatters (timezone-aware) ─────────────────────────────────────
+// All ZyntaPOS timestamps are stored as epoch-ms (UTC). These helpers convert
+// them for display in the user's configured timezone using the native Intl API.
+
+/**
+ * Formats an epoch-ms timestamp as "14 Mar 2025, 14:35" in the given timezone.
+ */
+export function formatEpochDateTime(epochMs: number, tz: string): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: tz,
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(new Date(epochMs));
+}
+
+/**
+ * Formats an epoch-ms timestamp as a short date "14 Mar 2025" in the given timezone.
+ */
+export function formatEpochDate(epochMs: number, tz: string): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: tz,
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date(epochMs));
+}
+
+/**
+ * Returns a relative label ("just now", "5 min ago", "3 hr ago") or a short date
+ * for timestamps older than 24 hours, all in the given timezone.
+ */
+export function formatEpochRelative(epochMs: number, tz: string): string {
+  const diff = Date.now() - epochMs;
+  if (diff < 60_000)    return 'just now';
+  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)} min ago`;
+  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)} hr ago`;
+  return formatEpochDate(epochMs, tz);
+}
+
+/**
+ * Returns the UTC offset label for a timezone at the current moment,
+ * e.g. "Asia/Colombo" → "UTC+05:30".
+ */
+export function tzOffsetLabel(tz: string): string {
+  try {
+    const part = new Intl.DateTimeFormat('en', {
+      timeZone: tz,
+      timeZoneName: 'shortOffset',
+    }).formatToParts(new Date()).find((p) => p.type === 'timeZoneName');
+    return part?.value ?? tz;
+  } catch {
+    return tz;
+  }
+}
+
+// ── Misc utilities ────────────────────────────────────────────────────────────
 
 export function maskLicenseKey(key: string): string {
   const parts = key.split('-');

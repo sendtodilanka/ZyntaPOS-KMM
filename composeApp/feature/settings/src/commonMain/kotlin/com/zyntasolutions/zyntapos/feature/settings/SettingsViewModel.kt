@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
+import com.zyntasolutions.zyntapos.core.utils.AppTimezone
 
 /**
  * MVI ViewModel for the Settings feature (Sprint 23).
@@ -301,6 +302,8 @@ class SettingsViewModel(
                     )
                 )
             }
+            // Apply the loaded timezone immediately so all subsequent display calls use it
+            AppTimezone.set(all[SettingsKeys.TIMEZONE] ?: "Asia/Colombo")
         }
     }
 
@@ -315,6 +318,7 @@ class SettingsViewModel(
                 settingsRepository.set(SettingsKeys.STORE_LOGO_URI, s.logoUri)
                 settingsRepository.set(SettingsKeys.CURRENCY,       s.currency.code)
                 settingsRepository.set(SettingsKeys.TIMEZONE,       s.timezone)
+                AppTimezone.set(s.timezone)
                 settingsRepository.set(SettingsKeys.DATE_FORMAT,    s.dateFormat)
                 settingsRepository.set(SettingsKeys.LANGUAGE,       s.language)
                 sendEffect(SettingsEffect.GeneralSaved)

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { DataTable, type Column } from '@/components/shared/DataTable';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { useDeactivateUser } from '@/api/users';
+import { useTimezone } from '@/hooks/use-timezone';
 import type { AdminUser, AdminRole } from '@/types/user';
 
 const ROLE_LABELS: Record<AdminRole, string> = {
@@ -20,13 +21,6 @@ const ROLE_COLORS: Record<AdminRole, string> = {
   HELPDESK: 'text-slate-400 bg-slate-400/10 border border-slate-400/20',
 };
 
-function formatEpoch(ms: number): string {
-  const diff = Date.now() - ms;
-  if (diff < 60_000) return 'Just now';
-  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
-  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
-  return `${Math.floor(diff / 86_400_000)}d ago`;
-}
 
 interface UserTableProps {
   data: AdminUser[];
@@ -40,6 +34,7 @@ interface UserTableProps {
 
 export function UserTable({ data, isLoading, page, totalPages, total, onPageChange, onEdit }: UserTableProps) {
   const deactivate = useDeactivateUser();
+  const { formatRelative } = useTimezone();
   const [deactivateTarget, setDeactivateTarget] = useState<AdminUser | null>(null);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
@@ -81,7 +76,7 @@ export function UserTable({ data, isLoading, page, totalPages, total, onPageChan
       key: 'lastLogin',
       header: 'Last Login',
       cell: (row) => row.lastLoginAt
-        ? <span className="text-slate-400 text-xs">{formatEpoch(row.lastLoginAt)}</span>
+        ? <span className="text-slate-400 text-xs">{formatRelative(row.lastLoginAt)}</span>
         : <span className="text-slate-500 text-xs">Never</span>,
     },
     {
