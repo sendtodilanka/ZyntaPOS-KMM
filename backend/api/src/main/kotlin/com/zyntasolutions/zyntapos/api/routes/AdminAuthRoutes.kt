@@ -378,7 +378,7 @@ fun Route.adminAuthRoutes() {
 
 // ── Private helpers ──────────────────────────────────────────────────────────
 
-private suspend fun resolveAdminUser(call: ApplicationCall, service: AdminAuthService): AdminUserRow? {
+internal suspend fun resolveAdminUser(call: ApplicationCall, service: AdminAuthService): AdminUserRow? {
     val token = call.request.cookies[ACCESS_COOKIE] ?: run {
         call.respond(HttpStatusCode.Unauthorized, ErrorResponse("NOT_AUTHENTICATED", "Not authenticated"))
         return null
@@ -426,7 +426,7 @@ private fun setAuthCookies(
     )
 }
 
-private fun clearAuthCookies(call: ApplicationCall) {
+internal fun clearAuthCookies(call: ApplicationCall) {
     call.response.cookies.append(Cookie(ACCESS_COOKIE,  "", maxAge = 0, path = "/"))
     call.response.cookies.append(Cookie(REFRESH_COOKIE, "", maxAge = 0, path = "/admin/auth"))
 }
