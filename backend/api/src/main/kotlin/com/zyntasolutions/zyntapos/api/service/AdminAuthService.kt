@@ -64,6 +64,7 @@ data class AdminUserRow(
 
 sealed class AdminAuthResult {
     data class Success(val user: AdminUserRow, val accessToken: String, val refreshToken: String) : AdminAuthResult()
+    data class MfaRequired(val user: AdminUserRow, val pendingToken: String) : AdminAuthResult()
     data object InvalidCredentials : AdminAuthResult()
     data object AccountLocked : AdminAuthResult()
     data object AccountInactive : AdminAuthResult()
@@ -115,6 +116,12 @@ class AdminAuthService(private val config: AppConfig) {
                 it[lockedUntil] = null
                 it[lastLoginAt] = now
                 it[lastLoginIp] = ip
+            }
+
+            // If MFA is enabled, issue a short-lived pending token instead of full access
+            if (row.mfaEnabled) {
+                val pendingToken = issueMfaPendingToken(row)
+                return@newSuspendedTransaction AdminAuthResult.MfaRequired(row, pendingToken)
             }
 
             val (accessToken, refreshToken) = issueTokens(row, ip, userAgent)
@@ -232,6 +239,53 @@ class AdminAuthService(private val config: AppConfig) {
     suspend fun revokeAllSessions(userId: UUID) = newSuspendedTransaction {
         AdminSessions.update({ AdminSessions.userId eq userId }) {
             it[revokedAt] = System.currentTimeMillis()
+        }
+    }
+
+    // ── Token issuance for external callers (Google OAuth) ───────────────────
+
+    /** Issues access + refresh tokens for a pre-authenticated user (e.g., after Google OAuth). */
+    suspend fun issueTokensForUser(user: AdminUserRow, ip: String?, userAgent: String?): Pair<String, String> =
+        newSuspendedTransaction { issueTokens(user, ip, userAgent) }
+
+    // ── MFA completion ───────────────────────────────────────────────────────
+
+    /** Called after MFA code is verified — issues full tokens from a pending token. */
+    suspend fun completeMfaLogin(pendingToken: String, ip: String?, userAgent: String?): Pair<AdminUserRow, Pair<String, String>>? {
+        val userId = verifyMfaPendingToken(pendingToken) ?: return null
+        val row = newSuspendedTransaction {
+            AdminUsers.selectAll()
+                .where { (AdminUsers.id eq userId) and (AdminUsers.isActive eq true) }
+                .singleOrNull()?.toAdminUserRow()
+        } ?: return null
+        val tokens = newSuspendedTransaction { issueTokens(row, ip, userAgent) }
+        return row to tokens
+    }
+
+    fun issueMfaPendingToken(user: AdminUserRow): String {
+        val algorithm = Algorithm.HMAC256(config.adminJwtSecret)
+        val now = System.currentTimeMillis()
+        return JWT.create()
+            .withIssuer(config.adminJwtIssuer)
+            .withSubject(user.id.toString())
+            .withClaim("type", "admin_mfa_pending")
+            .withIssuedAt(Date(now))
+            .withExpiresAt(Date(now + 2 * 60 * 1000L)) // 2 minutes
+            .sign(algorithm)
+    }
+
+    fun verifyMfaPendingToken(token: String): UUID? {
+        return try {
+            val algorithm = Algorithm.HMAC256(config.adminJwtSecret)
+            val verifier = JWT.require(algorithm)
+                .withIssuer(config.adminJwtIssuer)
+                .withClaim("type", "admin_mfa_pending")
+                .build()
+            val decoded = verifier.verify(token)
+            UUID.fromString(decoded.subject)
+        } catch (e: Exception) {
+            logger.debug("MFA pending token verification failed: ${e.message}")
+            null
         }
     }
 

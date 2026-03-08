@@ -5,6 +5,81 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class ErrorResponse(val code: String, val message: String)
 
+// ── Admin panel response models ──────────────────────────────────────
+
+@Serializable
+data class AdminPagedResponse<T>(
+    val data: List<T>,
+    val page: Int,
+    val size: Int,
+    val total: Int,
+    val totalPages: Int
+)
+
+@Serializable
+data class AdminLicense(
+    val id: String,
+    val key: String,
+    val customerId: String,
+    val customerName: String,
+    val edition: String,
+    val status: String,
+    val maxDevices: Int,
+    val activeDevices: Int,
+    val activatedAt: String,
+    val expiresAt: String?,
+    val lastHeartbeatAt: String?,
+    val createdAt: String,
+    val updatedAt: String
+)
+
+@Serializable
+data class AdminLicenseWithDevices(
+    val license: AdminLicense,
+    val devices: List<LicenseDevice>
+)
+
+@Serializable
+data class LicenseDevice(
+    val id: String,
+    val licenseKey: String,
+    val deviceId: String,
+    val deviceName: String,
+    val appVersion: String,
+    val os: String,
+    val osVersion: String,
+    val firstSeenAt: String,
+    val lastSeenAt: String
+)
+
+@Serializable
+data class AdminLicenseStats(
+    val total: Int,
+    val active: Int,
+    val expired: Int,
+    val revoked: Int,
+    val suspended: Int,
+    val expiringSoon: Int,
+    val byEdition: Map<String, Int>
+)
+
+@Serializable
+data class AdminCreateLicenseRequest(
+    val customerId: String,
+    val edition: String,
+    val maxDevices: Int,
+    val expiresAt: String? = null
+)
+
+@Serializable
+data class AdminUpdateLicenseRequest(
+    val edition: String? = null,
+    val maxDevices: Int? = null,
+    val expiresAt: String? = null,
+    val clearExpiry: Boolean? = null,
+    val status: String? = null
+)
+
 @Serializable
 data class ActivateRequest(
     val licenseKey: String,

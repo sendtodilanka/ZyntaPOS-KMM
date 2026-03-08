@@ -1,6 +1,13 @@
 package com.zyntasolutions.zyntapos.api.plugins
 
+import com.zyntasolutions.zyntapos.api.routes.adminAlertsRoutes
+import com.zyntasolutions.zyntapos.api.routes.adminAuditRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminAuthRoutes
+import com.zyntasolutions.zyntapos.api.routes.adminConfigRoutes
+import com.zyntasolutions.zyntapos.api.routes.adminHealthRoutes
+import com.zyntasolutions.zyntapos.api.routes.adminMetricsRoutes
+import com.zyntasolutions.zyntapos.api.routes.adminStoresRoutes
+import com.zyntasolutions.zyntapos.api.routes.adminSyncRoutes
 import com.zyntasolutions.zyntapos.api.routes.authRoutes
 import com.zyntasolutions.zyntapos.api.routes.healthRoutes
 import com.zyntasolutions.zyntapos.api.routes.productRoutes
@@ -20,6 +27,17 @@ fun Application.configureRouting() {
         // Admin panel auth routes — strict rate limit (auth tier)
         rateLimit(RateLimitName("auth")) {
             adminAuthRoutes()
+        }
+
+        // Admin panel data routes — standard API rate limit, cookie-auth validated inside each route
+        rateLimit(RateLimitName("api")) {
+            adminStoresRoutes()
+            adminHealthRoutes()
+            adminAuditRoutes()
+            adminMetricsRoutes()
+            adminAlertsRoutes()
+            adminSyncRoutes()
+            adminConfigRoutes()
         }
 
         route("/v1") {

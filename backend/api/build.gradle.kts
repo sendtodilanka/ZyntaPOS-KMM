@@ -108,6 +108,14 @@ dependencies {
     // ── Password hashing (bcrypt for admin panel users) ───────────────
     implementation("at.favre.lib:bcrypt:0.10.2")
 
+    // ── TOTP (MFA) ────────────────────────────────────────────────────
+    implementation("com.eatthepath:java-otp:0.4.0")
+    implementation("commons-codec:commons-codec:1.17.2")
+
+    // ── Ktor HTTP client (admin health checks + Google OAuth) ─────────
+    implementation("io.ktor:ktor-client-cio:$ktorVersion")
+    implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
+
     // ── Testing ───────────────────────────────────────────────────────
     testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
     testImplementation(kotlin("test"))
