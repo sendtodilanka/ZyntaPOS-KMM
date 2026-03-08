@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.sync
 
+import io.sentry.Sentry
 import com.zyntasolutions.zyntapos.sync.di.syncModule
 import com.zyntasolutions.zyntapos.sync.plugins.configureAuthentication
 import com.zyntasolutions.zyntapos.sync.plugins.configureMonitoring
@@ -20,6 +21,13 @@ import org.koin.logger.slf4jLogger
 fun main() {
     // Block Java deserialization (TODO-009 Level 1a)
     System.setProperty("jdk.serialFilter", "!*")
+
+    // ── Sentry crash reporter — init before embeddedServer (ADR-011 rule #4) ─
+    Sentry.init { options ->
+        options.dsn         = System.getenv("SENTRY_DSN") ?: ""
+        options.environment = System.getenv("SENTRY_ENVIRONMENT") ?: "production"
+        options.release     = "zyntapos-sync@1.0.0"
+    }
 
     embeddedServer(
         factory = CIO,

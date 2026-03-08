@@ -104,10 +104,10 @@ for all ZyntaPOS platforms: Android, Desktop JVM, Ktor Backend, Web Admin Panel.
 ### Phase 1 — Immediate (after MVP stabilizes)
 - [ ] Create Firebase project → link GA4 property
 - [ ] Add Firebase Analytics SDK to Android app (`composeApp/androidMain`)
-- [ ] Add Sentry SDK to Android app
-- [ ] Add Sentry SDK to Desktop JVM (`composeApp/jvmMain`)
-- [ ] Add Sentry Ktor plugin to `backend/api` and `backend/license`
-- [ ] Add `SENTRY_DSN` to `local.properties` + GitHub Secrets + Docker env
+- [x] Add Sentry SDK to Android app — `sentry-android:8.8.0` in `androidApp/build.gradle.kts`; init in `ZyntaApplication.onCreate()` before Koin
+- [x] Add Sentry SDK to Desktop JVM — `sentry:8.8.0` in `composeApp/build.gradle.kts` jvmMain; init in `main.kt` before Koin
+- [x] Add Sentry to `backend/api`, `backend/license`, `backend/sync` — `sentry:8.8.0` in each build.gradle.kts; init in each `Application.main()` before embeddedServer
+- [x] Add `SENTRY_DSN` to `local.properties.template` (Android) + `docker-compose.yml` env vars (`SENTRY_DSN_API`, `SENTRY_DSN_LICENSE`, `SENTRY_DSN_SYNC`)
 
 ### Phase 2
 - [ ] Add Firebase JS SDK to Web Admin Panel (React)
