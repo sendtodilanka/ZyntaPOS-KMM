@@ -3,9 +3,11 @@ import { cn } from '@/lib/utils';
 import type { AdminRole } from '@/types/user';
 
 const ROLES: { value: AdminRole; label: string; description: string; color: string }[] = [
-  { value: 'ADMIN', label: 'Admin', description: 'Full access to all panel features', color: 'border-red-500/40 bg-red-500/10 text-red-400' },
-  { value: 'SUPPORT', label: 'Support', description: 'Read-only + force sync + audit logs', color: 'border-amber-500/40 bg-amber-500/10 text-amber-400' },
-  { value: 'VIEWER', label: 'Viewer', description: 'Read-only access to dashboards', color: 'border-slate-500/40 bg-slate-500/10 text-slate-400' },
+  { value: 'ADMIN',    label: 'Admin',    description: 'Full access to all panel features',              color: 'border-red-500/40 bg-red-500/10 text-red-400' },
+  { value: 'OPERATOR', label: 'Operator', description: 'Store ops, sync, tickets, diagnostics',          color: 'border-yellow-500/40 bg-yellow-500/10 text-yellow-400' },
+  { value: 'FINANCE',  label: 'Finance',  description: 'Financial reports and license exports',          color: 'border-green-500/40 bg-green-500/10 text-green-400' },
+  { value: 'AUDITOR',  label: 'Auditor',  description: 'Read-only audit log and reports',                color: 'border-blue-500/40 bg-blue-500/10 text-blue-400' },
+  { value: 'HELPDESK', label: 'Helpdesk', description: 'Support tickets and store diagnostics',          color: 'border-slate-500/40 bg-slate-500/10 text-slate-400' },
 ];
 
 interface RoleAssignmentProps {

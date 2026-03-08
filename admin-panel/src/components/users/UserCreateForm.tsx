@@ -7,12 +7,10 @@ import { useCreateUser, useUpdateUser } from '@/api/users';
 import type { AdminUser } from '@/types/user';
 
 const schema = z.object({
-  username: z.string().min(3, 'Min 3 characters'),
   email: z.string().email('Invalid email'),
   name: z.string().min(1, 'Name is required'),
   password: z.string().min(8, 'Min 8 characters').optional().or(z.literal('')),
-  role: z.enum(['ADMIN', 'SUPPORT', 'VIEWER'] as const),
-  storeId: z.string().optional(),
+  role: z.enum(['ADMIN', 'OPERATOR', 'FINANCE', 'AUDITOR', 'HELPDESK'] as const),
 });
 type FormData = z.infer<typeof schema>;
 
@@ -30,8 +28,8 @@ export function UserCreateForm({ open, onClose, editUser }: UserCreateFormProps)
   const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: editUser
-      ? { username: editUser.username, email: editUser.email, name: editUser.name, role: editUser.role, storeId: editUser.storeId ?? '' }
-      : { role: 'SUPPORT' },
+      ? { email: editUser.email, name: editUser.name, role: editUser.role }
+      : { role: 'OPERATOR' },
   });
 
   const role = watch('role');
@@ -39,12 +37,12 @@ export function UserCreateForm({ open, onClose, editUser }: UserCreateFormProps)
   const onSubmit = (data: FormData) => {
     if (isEdit) {
       updateUser.mutate(
-        { userId: editUser.id, data: { role: data.role, storeId: data.storeId || null } },
+        { userId: editUser.id, data: { role: data.role } },
         { onSuccess: () => { reset(); onClose(); } },
       );
     } else {
       createUser.mutate(
-        { ...data, password: data.password ?? '' },
+        { email: data.email, name: data.name, role: data.role, password: data.password ?? '' },
         { onSuccess: () => { reset(); onClose(); } },
       );
     }
@@ -67,11 +65,6 @@ export function UserCreateForm({ open, onClose, editUser }: UserCreateFormProps)
         <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
           {!isEdit && (
             <>
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">Username</label>
-                <input {...register('username')} className="w-full h-10 bg-surface-elevated border border-surface-border rounded-lg px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
-                {errors.username && <p className="text-xs text-red-400 mt-1">{errors.username.message}</p>}
-              </div>
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1.5">Email</label>
                 <input {...register('email')} type="email" className="w-full h-10 bg-surface-elevated border border-surface-border rounded-lg px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
