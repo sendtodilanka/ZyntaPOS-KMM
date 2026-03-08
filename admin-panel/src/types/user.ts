@@ -1,40 +1,36 @@
-export type AdminRole = 'ADMIN' | 'SUPPORT' | 'VIEWER';
-export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
+// Admin panel roles (Zynta Solutions internal staff — not POS store users)
+export type AdminRole = 'ADMIN' | 'OPERATOR' | 'FINANCE' | 'AUDITOR' | 'HELPDESK';
 
+export type UserStatus = 'ACTIVE' | 'INACTIVE';
+
+// Matches AdminUserResponse from Ktor backend
 export interface AdminUser {
   id: string;
-  username: string;
   email: string;
   name: string;
   role: AdminRole;
-  storeId: string | null;
-  storeName: string | null;
-  status: UserStatus;
-  lastLoginAt: string | null;
-  createdAt: string;
-  avatarUrl?: string;
+  mfaEnabled: boolean;
+  isActive: boolean;
+  lastLoginAt: number | null;   // epoch-ms
+  createdAt: number;            // epoch-ms
 }
 
 export interface CreateUserRequest {
-  username: string;
   email: string;
   name: string;
-  password: string;
   role: AdminRole;
-  storeId?: string;
+  password: string;
 }
 
 export interface UpdateUserRequest {
   name?: string;
   role?: AdminRole;
-  status?: UserStatus;
-  storeId?: string | null;
+  isActive?: boolean;
 }
 
 export interface UserFilter {
   role?: AdminRole;
   status?: UserStatus;
-  storeId?: string;
   search?: string;
   page?: number;
   size?: number;

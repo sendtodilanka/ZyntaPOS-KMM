@@ -12,9 +12,8 @@ export const DASHBOARD_REFRESH_INTERVAL = 30_000; // 30 seconds
 export const HEALTH_REFRESH_INTERVAL = 15_000; // 15 seconds
 export const SYNC_REFRESH_INTERVAL = 10_000; // 10 seconds
 
-export const CF_COOKIE_NAME = 'CF_Authorization';
-
 export const ROUTES = {
+  LOGIN: '/login',
   DASHBOARD: '/',
   LICENSES: '/licenses',
   LICENSE_DETAIL: '/licenses/$licenseKey',
