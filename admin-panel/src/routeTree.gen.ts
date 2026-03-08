@@ -14,6 +14,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as UsersIndexRouteImport } from './routes/users/index'
 import { Route as SyncIndexRouteImport } from './routes/sync/index'
 import { Route as StoresIndexRouteImport } from './routes/stores/index'
+import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as ReportsIndexRouteImport } from './routes/reports/index'
 import { Route as LicensesIndexRouteImport } from './routes/licenses/index'
 import { Route as HealthIndexRouteImport } from './routes/health/index'
@@ -47,6 +48,11 @@ const SyncIndexRoute = SyncIndexRouteImport.update({
 const StoresIndexRoute = StoresIndexRouteImport.update({
   id: '/stores/',
   path: '/stores/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsIndexRoute = SettingsIndexRouteImport.update({
+  id: '/settings/',
+  path: '/settings/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReportsIndexRoute = ReportsIndexRouteImport.update({
@@ -107,6 +113,7 @@ export interface FileRoutesByFullPath {
   '/health/': typeof HealthIndexRoute
   '/licenses/': typeof LicensesIndexRoute
   '/reports/': typeof ReportsIndexRoute
+  '/settings/': typeof SettingsIndexRoute
   '/stores/': typeof StoresIndexRoute
   '/sync/': typeof SyncIndexRoute
   '/users/': typeof UsersIndexRoute
@@ -123,6 +130,7 @@ export interface FileRoutesByTo {
   '/health': typeof HealthIndexRoute
   '/licenses': typeof LicensesIndexRoute
   '/reports': typeof ReportsIndexRoute
+  '/settings': typeof SettingsIndexRoute
   '/stores': typeof StoresIndexRoute
   '/sync': typeof SyncIndexRoute
   '/users': typeof UsersIndexRoute
@@ -140,6 +148,7 @@ export interface FileRoutesById {
   '/health/': typeof HealthIndexRoute
   '/licenses/': typeof LicensesIndexRoute
   '/reports/': typeof ReportsIndexRoute
+  '/settings/': typeof SettingsIndexRoute
   '/stores/': typeof StoresIndexRoute
   '/sync/': typeof SyncIndexRoute
   '/users/': typeof UsersIndexRoute
@@ -158,6 +167,7 @@ export interface FileRouteTypes {
     | '/health/'
     | '/licenses/'
     | '/reports/'
+    | '/settings/'
     | '/stores/'
     | '/sync/'
     | '/users/'
@@ -174,6 +184,7 @@ export interface FileRouteTypes {
     | '/health'
     | '/licenses'
     | '/reports'
+    | '/settings'
     | '/stores'
     | '/sync'
     | '/users'
@@ -190,6 +201,7 @@ export interface FileRouteTypes {
     | '/health/'
     | '/licenses/'
     | '/reports/'
+    | '/settings/'
     | '/stores/'
     | '/sync/'
     | '/users/'
@@ -207,6 +219,7 @@ export interface RootRouteChildren {
   HealthIndexRoute: typeof HealthIndexRoute
   LicensesIndexRoute: typeof LicensesIndexRoute
   ReportsIndexRoute: typeof ReportsIndexRoute
+  SettingsIndexRoute: typeof SettingsIndexRoute
   StoresIndexRoute: typeof StoresIndexRoute
   SyncIndexRoute: typeof SyncIndexRoute
   UsersIndexRoute: typeof UsersIndexRoute
@@ -247,6 +260,13 @@ declare module '@tanstack/react-router' {
       path: '/stores'
       fullPath: '/stores/'
       preLoaderRoute: typeof StoresIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/': {
+      id: '/settings/'
+      path: '/settings'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof SettingsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reports/': {
@@ -327,6 +347,7 @@ const rootRouteChildren: RootRouteChildren = {
   HealthIndexRoute: HealthIndexRoute,
   LicensesIndexRoute: LicensesIndexRoute,
   ReportsIndexRoute: ReportsIndexRoute,
+  SettingsIndexRoute: SettingsIndexRoute,
   StoresIndexRoute: StoresIndexRoute,
   SyncIndexRoute: SyncIndexRoute,
   UsersIndexRoute: UsersIndexRoute,
