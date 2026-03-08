@@ -48,6 +48,16 @@ export interface AdminBootstrapRequest {
   password: string;
 }
 
+export interface AdminStatusResponse {
+  needsBootstrap: boolean;
+}
+
+export interface AdminBootstrapRequest {
+  email: string;
+  name: string;
+  password: string;
+}
+
 // ── GET /admin/auth/me ────────────────────────────────────────────────────
 // Called on every page load to hydrate auth state from the httpOnly cookie.
 // If the cookie is missing or expired, the request returns 401.
