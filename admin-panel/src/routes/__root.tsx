@@ -36,7 +36,7 @@ function RootLayout() {
 
     // First-run: redirect to setup regardless of current page
     if (statusData?.needsBootstrap && !isSetupPage) {
-      navigate({ to: '/setup/' });
+      navigate({ to: '/setup' });
       return;
     }
 
