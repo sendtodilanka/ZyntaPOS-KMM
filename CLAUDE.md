@@ -669,17 +669,49 @@ Copy `local.properties.template` and fill in values before first build.
 | `ZYNTA_API_CLIENT_ID` | OAuth2 client ID |
 | `ZYNTA_API_CLIENT_SECRET` | OAuth2 client secret |
 | `ZYNTA_DB_PASSPHRASE` | AES-256 passphrase for SQLCipher (generate: `openssl rand -hex 32`) |
-| `ZYNTA_FCM_SERVER_KEY` | Firebase Cloud Messaging server key |
-| `ZYNTA_SENTRY_DSN` | Sentry crash reporting DSN |
+| `ZYNTA_FCM_VAPID_PUBLIC_KEY` | FCM v1 VAPID public key (Web Push) |
+| `ZYNTA_FCM_VAPID_PRIVATE_KEY` | FCM v1 VAPID private key (Web Push) |
+| `ZYNTA_SENTRY_DSN` | Sentry crash reporting DSN (Android) |
 | `ZYNTA_IRD_API_ENDPOINT` | IRD e-invoice API endpoint (Sri Lanka) |
 | `ZYNTA_IRD_CLIENT_CERTIFICATE_PATH` | Absolute path to IRD `.p12` certificate |
 | `ZYNTA_IRD_CERTIFICATE_PASSWORD` | IRD certificate password |
 
-**Cloudflare & VPS secrets** are stored as **GitHub Secrets** (not in `local.properties`):
-- `CF_ORIGIN_CERT` / `CF_ORIGIN_KEY` — Cloudflare Origin Certificate, deployed to VPS by FTS Step 4
-- `CLOUDFLARE_TUNNEL_TOKEN` — written to `.env` on VPS, used by `cloudflared` Docker container
-- `SLACK_WEBHOOK_URL` — written to `.env` on VPS, used by Falcosidekick for security alerts
-- See `docs/architecture/deployment.md` → "Cloudflare Origin Certificate Setup" for generation steps
+> **FCM Note:** Firebase Legacy Server Key was permanently disabled by Google (June 2024).
+> `ZYNTA_FCM_SERVER_KEY` is replaced by `ZYNTA_FCM_SERVICE_ACCOUNT_JSON` (GitHub Secret — too large for `local.properties`).
+> Backend services use `firebase-admin` SDK with the service account JSON for FCM v1 HTTP API.
+
+**All GitHub Secrets** (26 configured — stored in repository, not `local.properties`):
+
+| Secret | Purpose |
+|--------|---------|
+| `PAT_TOKEN` | Repository dispatch + GHCR pull on VPS |
+| `VPS_HOST` | Contabo VPS IP address |
+| `VPS_USER` | SSH username (`deploy`) |
+| `VPS_PORT` | SSH port |
+| `VPS_USER_KEY` | SSH private key for `deploy` user |
+| `VPS_ROOT` | VPS root username (one-time setup only) |
+| `VPS_ROOT_KEY` | SSH private key for root (one-time setup only) |
+| `DEPLOY_SSH_PRIVATE_KEY` | Alternate deploy key |
+| `CF_ORIGIN_CERT` | Cloudflare Origin Certificate (PEM) |
+| `CF_ORIGIN_KEY` | Cloudflare Origin Certificate private key (PEM) |
+| `CLOUDFLARE_TUNNEL_TOKEN` | Cloudflare Tunnel token (optional Zero Trust) |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare Account ID |
+| `CLOUDFLARE_API_TOKEN` | Cloudflare API Token |
+| `GOOGLE_OAUTH_CLIENT_ID` | Google SSO OAuth2 Client ID |
+| `GOOGLE_OAUTH_CLIENT_SECRET` | Google SSO OAuth2 Client Secret |
+| `GOOGLE_SERVICES_JSON` | `google-services.json` for Firebase Android SDK |
+| `ZYNTA_FCM_SERVICE_ACCOUNT_JSON` | Firebase Admin SDK service account (FCM v1 push notifications) |
+| `ZYNTA_FCM_VAPID_PUBLIC_KEY` | VAPID public key for Web Push |
+| `ZYNTA_FCM_VAPID_PRIVATE_KEY` | VAPID private key for Web Push |
+| `GA4_MEASUREMENT_ID` | Google Analytics 4 Measurement ID |
+| `SENTRY_AUTH_TOKEN` | Sentry CLI auth token |
+| `SENTRY_DSN_API` | Sentry DSN for `zyntapos-api` |
+| `SENTRY_DSN_LICENSE` | Sentry DSN for `zyntapos-license` |
+| `SENTRY_DSN_SYNC` | Sentry DSN for `zyntapos-sync` |
+| `SLACK_WEBHOOK_URL` | Slack webhook for Falco security alerts |
+| `NVD_API_KEY` | OWASP Dependency Check NVD API key |
+
+See `docs/architecture/deployment.md` → "GitHub Secrets required" for full details and generation instructions.
 
 ---
 
@@ -700,6 +732,8 @@ Copy `local.properties.template` and fill in values before first build.
 
 ### GitHub Secrets (Required for CI/CD & FTS)
 
+All 26 secrets are configured. See "Secrets & Local Configuration" section above for the full list.
+
 | Secret | Purpose | Used by |
 |--------|---------|---------|
 | `PAT_TOKEN` | Repository dispatch + GHCR pull on VPS | ci-gate, cd-deploy |
@@ -711,6 +745,9 @@ Copy `local.properties.template` and fill in values before first build.
 | `CF_ORIGIN_KEY` | Cloudflare Origin Certificate private key (PEM) | FTS Step 4 |
 | `CLOUDFLARE_TUNNEL_TOKEN` | Cloudflare Tunnel token for Zero Trust access (optional) | FTS Step 4, Step 5 |
 | `SLACK_WEBHOOK_URL` | Slack webhook for Falco security alerts (optional) | FTS Step 4 |
+| `ZYNTA_FCM_SERVICE_ACCOUNT_JSON` | Firebase Admin SDK service account — FCM v1 push notifications | backend services |
+| `GOOGLE_OAUTH_CLIENT_ID` | Google SSO OAuth2 Client ID | backend auth |
+| `GOOGLE_OAUTH_CLIENT_SECRET` | Google SSO OAuth2 Client Secret | backend auth |
 
 ---
 

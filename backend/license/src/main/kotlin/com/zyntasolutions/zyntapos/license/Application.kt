@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.license
 
+import io.sentry.Sentry
 import com.zyntasolutions.zyntapos.license.db.LicenseDatabaseFactory
 import com.zyntasolutions.zyntapos.license.di.licenseModule
 import com.zyntasolutions.zyntapos.license.plugins.configureAuthentication
@@ -20,6 +21,13 @@ import org.koin.logger.slf4jLogger
 fun main() {
     // Block Java deserialization (TODO-009 Level 1a) — MUST be before embeddedServer
     System.setProperty("jdk.serialFilter", "!*")
+
+    // ── Sentry crash reporter — init before embeddedServer (ADR-011 rule #4) ─
+    Sentry.init { options ->
+        options.dsn         = System.getenv("SENTRY_DSN") ?: ""
+        options.environment = System.getenv("SENTRY_ENVIRONMENT") ?: "production"
+        options.release     = "zyntapos-license@1.0.0"
+    }
 
     embeddedServer(
         factory = CIO,

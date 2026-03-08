@@ -157,6 +157,11 @@ dependencies {
     // ProGuard/R8 eliminates unreachable debug classes in release builds.
     implementation(project(":shared:seed"))
     implementation(project(":tools:debug"))
+
+    // ── Crash Reporting (Sentry) ───────────────────────────────────────────
+    // Initialized before Koin in ZyntaApplication.onCreate() (ADR-011 rule #4).
+    // DSN injected via Secrets Gradle Plugin: ZYNTA_SENTRY_DSN → BuildConfig.ZYNTA_SENTRY_DSN.
+    implementation("io.sentry:sentry-android:8.8.0")
 }
 
 // ── Secrets Gradle Plugin ────────────────────────────────────

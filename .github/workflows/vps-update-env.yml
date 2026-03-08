@@ -1,0 +1,57 @@
+name: VPS — Update .env Secrets
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for update'
+        required: false
+        default: 'Sync secrets to VPS .env'
+
+jobs:
+  update-env:
+    name: "Update .env on VPS"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write Sentry DSNs to VPS .env
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.VPS_USER_KEY }}
+          envs: SENTRY_DSN_API,SENTRY_DSN_LICENSE,SENTRY_DSN_SYNC
+          script: |
+            set -e
+            ENV_FILE="/opt/zyntapos/.env"
+
+            echo "=== Updating Sentry DSNs in $ENV_FILE ==="
+
+            # Helper: upsert a key=value in the .env file
+            upsert_env() {
+              local key="$1"
+              local value="$2"
+              if grep -q "^${key}=" "$ENV_FILE" 2>/dev/null; then
+                sed -i "s|^${key}=.*|${key}=${value}|" "$ENV_FILE"
+                echo "  updated: $key"
+              else
+                echo "${key}=${value}" >> "$ENV_FILE"
+                echo "  added:   $key"
+              fi
+            }
+
+            upsert_env "SENTRY_DSN_API"     "$SENTRY_DSN_API"
+            upsert_env "SENTRY_DSN_LICENSE" "$SENTRY_DSN_LICENSE"
+            upsert_env "SENTRY_DSN_SYNC"    "$SENTRY_DSN_SYNC"
+
+            echo "=== Verifying (keys only, no values) ==="
+            grep -E "^SENTRY_DSN_" "$ENV_FILE" | sed 's/=.*/=<set>/'
+
+            echo "=== Restarting backend services to pick up new env ==="
+            cd /opt/zyntapos
+            docker compose up -d --no-build zyntapos-api zyntapos-license zyntapos-sync 2>&1 | tail -20
+
+            echo "=== Done ==="
+        env:
+          SENTRY_DSN_API: ${{ secrets.SENTRY_DSN_API }}
+          SENTRY_DSN_LICENSE: ${{ secrets.SENTRY_DSN_LICENSE }}
+          SENTRY_DSN_SYNC: ${{ secrets.SENTRY_DSN_SYNC }}

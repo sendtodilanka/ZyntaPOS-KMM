@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.api
 
+import io.sentry.Sentry
 import com.zyntasolutions.zyntapos.api.db.DatabaseFactory
 import com.zyntasolutions.zyntapos.api.di.appModule
 import com.zyntasolutions.zyntapos.api.service.AlertGenerationJob
@@ -26,6 +27,15 @@ fun main() {
     // gadget-chain exploit class (ysoserial etc.). Must be called BEFORE
     // embeddedServer starts to prevent any library code from deserializing.
     System.setProperty("jdk.serialFilter", "!*")
+
+    // ── Sentry crash reporter — init before embeddedServer (ADR-011 rule #4) ─
+    // EU ingest endpoint (o4510976925237248.ingest.de.sentry.io).
+    // DSN injected via SENTRY_DSN environment variable in docker-compose.
+    Sentry.init { options ->
+        options.dsn         = System.getenv("SENTRY_DSN") ?: ""
+        options.environment = System.getenv("SENTRY_ENVIRONMENT") ?: "production"
+        options.release     = "zyntapos-api@1.0.0"
+    }
 
     embeddedServer(
         factory = CIO,  // CIO not Netty — avoids JNI/off-heap CVEs (TODO-009 Level 1b)

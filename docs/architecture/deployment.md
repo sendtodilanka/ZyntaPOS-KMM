@@ -1,6 +1,6 @@
 # ZyntaPOS — Deployment Architecture
 
-**Last updated:** 2026-03-05 (Session 5 — Sprint F)
+**Last updated:** 2026-03-08 (Session 6 — Secrets audit & FCM v1 migration)
 **ADR:** [ADR-006](../adr/ADR-006-backend-docker-build-in-ci.md)
 
 ---
@@ -153,17 +153,62 @@ ls /opt/zyntapos/secrets/
 
 ### GitHub Secrets required
 
+All 26 secrets below are configured in the repository. **Never commit any of these values to the codebase.**
+
+#### CI/CD Core
+
 | Secret | Purpose | Scope needed |
 |--------|---------|--------------|
 | `PAT_TOKEN` | Repository dispatch (auto-PR, deploy-trigger) + GHCR pull on VPS | `repo` + **`read:packages`** |
-| `VPS_HOST` | Contabo VPS IP address | — |
-| `VPS_USER` | SSH username (`deploy`) | — |
-| `VPS_PORT` | SSH port | — |
-| `VPS_USER_KEY` | SSH private key for `deploy` user | — |
-| `CF_ORIGIN_CERT` | Cloudflare Origin Certificate (PEM) for TLS between Cloudflare and VPS | — |
-| `CF_ORIGIN_KEY` | Cloudflare Origin Certificate private key (PEM) | — |
-| `CLOUDFLARE_TUNNEL_TOKEN` | Cloudflare Tunnel token for Zero Trust access (optional) | — |
-| `SLACK_WEBHOOK_URL` | Slack webhook for Falco security alerts (optional) | — |
+| `NVD_API_KEY` | OWASP Dependency Check NVD API (rate-limit bypass) | — |
+
+#### VPS / SSH
+
+| Secret | Purpose |
+|--------|---------|
+| `VPS_HOST` | Contabo VPS IP address |
+| `VPS_USER` | SSH username (`deploy`) |
+| `VPS_PORT` | SSH port |
+| `VPS_USER_KEY` | SSH private key for `deploy` user |
+| `VPS_ROOT` | VPS root username (used by one-time setup scripts only) |
+| `VPS_ROOT_KEY` | SSH private key for root (one-time setup scripts only) |
+| `DEPLOY_SSH_PRIVATE_KEY` | Alternate deploy key (used by some ad-hoc workflows) |
+
+#### Cloudflare
+
+| Secret | Purpose |
+|--------|---------|
+| `CF_ORIGIN_CERT` | Cloudflare Origin Certificate (PEM) — TLS between CF edge and VPS |
+| `CF_ORIGIN_KEY` | Cloudflare Origin Certificate private key (PEM) |
+| `CLOUDFLARE_TUNNEL_TOKEN` | Cloudflare Tunnel token for Zero Trust access (optional) |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare Account ID (used by Pages / Workers deployments) |
+| `CLOUDFLARE_API_TOKEN` | Cloudflare API Token (Pages deploy, DNS automation) |
+
+#### Google / Firebase
+
+| Secret | Purpose |
+|--------|---------|
+| `GOOGLE_OAUTH_CLIENT_ID` | Google SSO OAuth2 Client ID (backend auth) |
+| `GOOGLE_OAUTH_CLIENT_SECRET` | Google SSO OAuth2 Client Secret |
+| `GOOGLE_SERVICES_JSON` | `google-services.json` for Firebase Android SDK |
+| `ZYNTA_FCM_SERVICE_ACCOUNT_JSON` | Firebase Admin SDK service account JSON — FCM v1 API (push notifications) |
+| `ZYNTA_FCM_VAPID_PUBLIC_KEY` | VAPID public key for Web Push (FCM) |
+| `ZYNTA_FCM_VAPID_PRIVATE_KEY` | VAPID private key for Web Push (FCM) |
+| `GA4_MEASUREMENT_ID` | Google Analytics 4 Measurement ID |
+
+> **FCM Note:** Firebase Legacy Server Key was permanently disabled by Google (June 2024).
+> All push notifications now use **FCM v1 HTTP API** via the service account JSON above.
+> The VAPID keys are used for Web Push (PWA). Backend services must use `firebase-admin` SDK.
+
+#### Monitoring / Alerting
+
+| Secret | Purpose |
+|--------|---------|
+| `SENTRY_AUTH_TOKEN` | Sentry CLI auth token (source maps upload, release creation) |
+| `SENTRY_DSN_API` | Sentry DSN for `zyntapos-api` backend service |
+| `SENTRY_DSN_LICENSE` | Sentry DSN for `zyntapos-license` backend service |
+| `SENTRY_DSN_SYNC` | Sentry DSN for `zyntapos-sync` backend service |
+| `SLACK_WEBHOOK_URL` | Slack webhook for Falco security alerts |
 
 > **Important:** `PAT_TOKEN` must have `read:packages` scope for the VPS GHCR login to
 > succeed. If the PAT was created before the GHCR image pipeline was added, regenerate it

@@ -97,6 +97,11 @@ kotlin {
             // main.kt loads seedModule + debugModule conditionally (isDebug gate)
             implementation(project(":shared:core"))
             implementation(project(":shared:seed"))
+
+            // ── Crash Reporting (Sentry JVM) ─────────────────────────────────
+            // Initialized before Koin in main() (ADR-011 rule #4).
+            // DSN read from SENTRY_DSN environment variable at runtime.
+            implementation("io.sentry:sentry:8.8.0")
         }
     }
 }

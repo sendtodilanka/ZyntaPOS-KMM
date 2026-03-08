@@ -20,14 +20,24 @@ DB_ENCRYPTION_PASSWORD=dev-only-not-for-production
 # Generate: openssl rand -hex 32
 ZYNTA_DB_PASSPHRASE=YOUR_64_CHAR_HEX_PASSPHRASE_HERE
 
-# ── Push Notifications (FCM) ────────────────────────────────────────
-ZYNTA_FCM_SERVER_KEY=YOUR_FCM_SERVER_KEY_HERE
+# ── Push Notifications (FCM v1) ─────────────────────────────────────
+# Firebase Legacy Server Key was permanently disabled (June 2024).
+# Use FCM v1 HTTP API via Firebase Admin SDK service account.
+#
+# ZYNTA_FCM_SERVICE_ACCOUNT_JSON — set as GitHub Secret only (too large for local.properties)
+# VAPID keys for Web Push (PWA):
+ZYNTA_FCM_VAPID_PUBLIC_KEY=YOUR_VAPID_PUBLIC_KEY_HERE
+ZYNTA_FCM_VAPID_PRIVATE_KEY=YOUR_VAPID_PRIVATE_KEY_HERE
 
 # ── Maps / Geolocation ──────────────────────────────────────────────
 ZYNTA_MAPS_API_KEY=YOUR_GOOGLE_MAPS_API_KEY_HERE
 
-# ── Crash Reporting ─────────────────────────────────────────────────
-ZYNTA_SENTRY_DSN=YOUR_SENTRY_DSN_HERE
+# ── Crash Reporting (Sentry) ─────────────────────────────────────────
+# Android DSN — from Sentry project "zyntapos-android" (EU ingest region).
+# Injected into BuildConfig.ZYNTA_SENTRY_DSN via Secrets Gradle Plugin.
+# Backend DSNs (api / license / sync) are set as GitHub Secrets and
+# passed to docker-compose via SENTRY_DSN_API / SENTRY_DSN_LICENSE / SENTRY_DSN_SYNC.
+ZYNTA_SENTRY_DSN=YOUR_ANDROID_SENTRY_DSN_HERE
 
 # ── E-Invoicing / IRD ───────────────────────────────────────────────
 ZYNTA_IRD_API_ENDPOINT=https://ird-staging.gov.lk/api/v1

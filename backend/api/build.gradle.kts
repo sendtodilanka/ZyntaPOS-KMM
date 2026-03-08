@@ -117,6 +117,11 @@ dependencies {
     implementation("io.ktor:ktor-client-cio:$ktorVersion")
     implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
 
+    // ── Crash Reporting (Sentry) ──────────────────────────────────────────
+    // Initialized in main() before embeddedServer (ADR-011 rule #4).
+    // DSN injected via SENTRY_DSN environment variable in docker-compose.
+    implementation("io.sentry:sentry:8.8.0")
+
     // ── Testing ───────────────────────────────────────────────────────
     testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
     testImplementation(kotlin("test"))

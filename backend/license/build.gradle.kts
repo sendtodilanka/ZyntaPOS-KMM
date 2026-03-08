@@ -97,6 +97,11 @@ dependencies {
     // ── JWT RS256 ─────────────────────────────────────────────────────
     implementation("com.auth0:java-jwt:4.4.0")
 
+    // ── Crash Reporting (Sentry) ──────────────────────────────────────────
+    // Initialized in main() before embeddedServer (ADR-011 rule #4).
+    // DSN injected via SENTRY_DSN environment variable in docker-compose.
+    implementation("io.sentry:sentry:8.8.0")
+
     // ── Testing ───────────────────────────────────────────────────────
     testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
     testImplementation(kotlin("test"))

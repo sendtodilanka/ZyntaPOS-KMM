@@ -2,6 +2,7 @@ package com.zyntasolutions.zyntapos
 
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
+import io.sentry.Sentry
 import com.zyntasolutions.zyntapos.core.di.coreModule
 import com.zyntasolutions.zyntapos.core.platform.AppInfoProvider
 import com.zyntasolutions.zyntapos.data.di.dataModule
@@ -65,6 +66,14 @@ import org.koin.core.context.startKoin
  * MERGED-A1: Initial Koin bootstrap fix.
  */
 fun main() {
+    // ── Sentry crash reporter — MUST init before Koin (ADR-011 rule #4) ───
+    // DSN read from SENTRY_DSN environment variable (set in docker-compose / run config).
+    Sentry.init { options ->
+        options.dsn         = System.getenv("SENTRY_DSN") ?: ""
+        options.environment = System.getenv("SENTRY_ENVIRONMENT") ?: "production"
+        options.release     = "zyntapos-desktop@1.0.0"
+    }
+
     // Load order: core → security → hal → data → domain → feature modules
     val koin = startKoin {
         modules(

@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos
 
 import android.app.Application
+import io.sentry.android.core.SentryAndroid
 import com.zyntasolutions.zyntapos.core.platform.AndroidAppInfoProvider
 import com.zyntasolutions.zyntapos.core.platform.AppInfoProvider
 import com.zyntasolutions.zyntapos.core.di.coreModule
@@ -71,6 +72,17 @@ class ZyntaApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+
+        // ── Sentry crash reporter — MUST init before Koin (ADR-011 rule #4) ───
+        // EU ingest endpoint via .ingest.de.sentry.io DSN.
+        // DSN injected via Secrets Gradle Plugin (ZYNTA_SENTRY_DSN → BuildConfig).
+        SentryAndroid.init(this) { options ->
+            options.dsn         = BuildConfig.ZYNTA_SENTRY_DSN
+            options.environment = if (BuildConfig.DEBUG) "development" else "production"
+            options.release     = "com.zyntasolutions.zyntapos@${BuildConfig.APP_VERSION_NAME}+${BuildConfig.APP_VERSION_CODE}"
+            options.isEnableAutoSessionTracking = true
+            options.isAnrEnabled = true
+        }
 
         val koin = startKoin {
             androidContext(this@ZyntaApplication)
