@@ -34,7 +34,7 @@ export function useUpdateUser() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ userId, data }: { userId: string; data: UpdateUserRequest }) =>
-      apiClient.put(`admin/users/${userId}`, { json: data }).json<AdminUser>(),
+      apiClient.patch(`admin/users/${userId}`, { json: data }).json<AdminUser>(),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['users'] });
       toast.success('User updated');
@@ -47,7 +47,7 @@ export function useDeactivateUser() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (userId: string) =>
-      apiClient.delete(`admin/users/${userId}`).json(),
+      apiClient.patch(`admin/users/${userId}`, { json: { isActive: false } }).json<AdminUser>(),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['users'] });
       toast.success('User deactivated');

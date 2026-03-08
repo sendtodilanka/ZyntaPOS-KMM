@@ -6,6 +6,8 @@ import com.zyntasolutions.zyntapos.api.models.*
 import com.zyntasolutions.zyntapos.api.service.AdminAuthResult
 import com.zyntasolutions.zyntapos.api.service.AdminAuthService
 import com.zyntasolutions.zyntapos.api.service.AdminUserRow
+import com.zyntasolutions.zyntapos.api.service.GoogleOAuthService
+import com.zyntasolutions.zyntapos.api.service.MfaService
 import com.zyntasolutions.zyntapos.api.service.toResponse
 import com.zyntasolutions.zyntapos.api.config.AppConfig
 import com.zyntasolutions.zyntapos.common.validation.validateOr422
@@ -22,6 +24,8 @@ private const val REFRESH_COOKIE = "admin_refresh_token"
 
 fun Route.adminAuthRoutes() {
     val service: AdminAuthService by inject()
+    val mfaService: MfaService by inject()
+    val googleOAuth: GoogleOAuthService by inject()
     val config: AppConfig by inject()
 
     route("/admin/auth") {
@@ -82,6 +86,9 @@ fun Route.adminAuthRoutes() {
                     HttpStatusCode.Forbidden,
                     ErrorResponse("ACCOUNT_INACTIVE", "Account is deactivated")
                 )
+                is AdminAuthResult.MfaRequired -> {
+                    call.respond(HttpStatusCode.OK, MfaPendingResponse(pendingToken = result.pendingToken))
+                }
                 is AdminAuthResult.Success -> {
                     val accessTtlSec  = config.adminAccessTokenTtlMs / 1000
                     val refreshTtlSec = config.adminRefreshTokenTtlDays * 86_400L
@@ -134,6 +141,160 @@ fun Route.adminAuthRoutes() {
         get("/me") {
             val user = resolveAdminUser(call, service) ?: return@get
             call.respond(HttpStatusCode.OK, user.toResponse())
+        }
+
+        // ── MFA endpoints ────────────────────────────────────────────────────
+
+        // POST /admin/auth/mfa/setup — generate TOTP secret + QR code + backup codes
+        post("/mfa/setup") {
+            val user = resolveAdminUser(call, service) ?: return@post
+            val setup = mfaService.generateSetup(user.email)
+            val backupCodes = mfaService.generateBackupCodes(user.id)
+            call.respond(HttpStatusCode.OK, MfaSetupResponse(
+                secret      = setup.secret,
+                qrCodeUrl   = setup.qrCodeUrl,
+                backupCodes = backupCodes
+            ))
+        }
+
+        // POST /admin/auth/mfa/enable — verify code then persist secret + enable MFA
+        post("/mfa/enable") {
+            val user = resolveAdminUser(call, service) ?: return@post
+            val body = call.receive<MfaEnableRequest>()
+
+            if (!mfaService.verifyTotp(body.secret, body.code)) {
+                call.respond(HttpStatusCode.UnprocessableEntity,
+                    ErrorResponse("INVALID_TOTP", "Invalid TOTP code"))
+                return@post
+            }
+
+            mfaService.enableMfa(user.id, body.secret)
+            call.respond(HttpStatusCode.OK, user.copy(/* reflect mfaEnabled=true */).toResponse().copy(mfaEnabled = true))
+        }
+
+        // POST /admin/auth/mfa/disable — verify code then disable MFA
+        post("/mfa/disable") {
+            val user = resolveAdminUser(call, service) ?: return@post
+            val body = call.receive<MfaDisableRequest>()
+
+            val secret = mfaService.getMfaSecret(user.id)
+            val valid = if (secret != null) mfaService.verifyTotp(secret, body.code) else false
+
+            if (!valid) {
+                call.respond(HttpStatusCode.UnprocessableEntity,
+                    ErrorResponse("INVALID_TOTP", "Invalid TOTP code"))
+                return@post
+            }
+
+            mfaService.disableMfa(user.id)
+            call.respond(HttpStatusCode.NoContent)
+        }
+
+        // POST /admin/auth/mfa/verify — complete login after MFA check
+        post("/mfa/verify") {
+            val body = call.receive<MfaVerifyRequest>()
+
+            val userId = service.verifyMfaPendingToken(body.pendingToken) ?: run {
+                call.respond(HttpStatusCode.Unauthorized,
+                    ErrorResponse("INVALID_PENDING_TOKEN", "MFA session expired or invalid"))
+                return@post
+            }
+
+            val user = service.findById(userId) ?: run {
+                call.respond(HttpStatusCode.Unauthorized,
+                    ErrorResponse("USER_NOT_FOUND", "User not found"))
+                return@post
+            }
+
+            val secret = mfaService.getMfaSecret(userId)
+            val validTotp   = secret != null && mfaService.verifyTotp(secret, body.code)
+            val validBackup = !validTotp && mfaService.verifyBackupCode(userId, body.code)
+
+            if (!validTotp && !validBackup) {
+                call.respond(HttpStatusCode.UnprocessableEntity,
+                    ErrorResponse("INVALID_TOTP", "Invalid TOTP or backup code"))
+                return@post
+            }
+
+            val ip        = call.request.headers["X-Forwarded-For"]?.split(",")?.firstOrNull()?.trim()
+                         ?: call.request.local.remoteHost
+            val userAgent = call.request.headers[HttpHeaders.UserAgent]
+
+            val (_, tokens) = service.completeMfaLogin(body.pendingToken, ip, userAgent)
+                ?: run {
+                    call.respond(HttpStatusCode.Unauthorized, ErrorResponse("SESSION_ERROR", "Could not complete login"))
+                    return@post
+                }
+
+            val accessTtlSec  = config.adminAccessTokenTtlMs / 1000
+            val refreshTtlSec = config.adminRefreshTokenTtlDays * 86_400L
+            setAuthCookies(call, tokens.first, tokens.second, accessTtlSec, refreshTtlSec)
+            call.respond(HttpStatusCode.OK, AdminLoginResponse(user = user.toResponse(), expiresIn = accessTtlSec))
+        }
+
+        // ── Google OAuth endpoints ───────────────────────────────────────────
+
+        // GET /admin/auth/google — redirect to Google consent screen
+        get("/google") {
+            if (config.googleClientId.isBlank()) {
+                call.respond(HttpStatusCode.NotImplemented, ErrorResponse("OAUTH_NOT_CONFIGURED", "Google OAuth is not configured"))
+                return@get
+            }
+            val state = UUID.randomUUID().toString()
+            // In production, store state in Redis with 5-min TTL for CSRF validation
+            call.respondRedirect(googleOAuth.buildAuthUrl(state))
+        }
+
+        // GET /admin/auth/google/callback?code=&state=
+        get("/google/callback") {
+            val code = call.request.queryParameters["code"]
+                ?: run {
+                    call.respondRedirect("/login?error=google_auth_failed")
+                    return@get
+                }
+
+            val userInfo = googleOAuth.exchangeCodeForUser(code)
+                ?: run {
+                    call.respondRedirect("/login?error=google_auth_failed")
+                    return@get
+                }
+
+            val adminUser = googleOAuth.findOrCreateUser(userInfo)
+                ?: run {
+                    call.respondRedirect("/login?error=domain_not_allowed")
+                    return@get
+                }
+
+            if (!adminUser.isActive) {
+                call.respondRedirect("/login?error=account_inactive")
+                return@get
+            }
+
+            val ip        = call.request.headers["X-Forwarded-For"]?.split(",")?.firstOrNull()?.trim()
+                         ?: call.request.local.remoteHost
+            val userAgent = call.request.headers[HttpHeaders.UserAgent]
+
+            // If MFA is enabled, issue pending token and redirect to login MFA step
+            if (adminUser.mfaEnabled) {
+                val pendingToken = service.issueMfaPendingToken(adminUser)
+                call.response.cookies.append(Cookie(
+                    name     = "admin_mfa_pending",
+                    value    = pendingToken,
+                    maxAge   = 120,
+                    path     = "/",
+                    httpOnly = true,
+                    secure   = true,
+                    extensions = mapOf("SameSite" to "Lax")
+                ))
+                call.respondRedirect("/login?mfa=required")
+                return@get
+            }
+
+            val tokens = service.issueTokensForUser(adminUser, ip, userAgent)
+            val accessTtlSec  = config.adminAccessTokenTtlMs / 1000
+            val refreshTtlSec = config.adminRefreshTokenTtlDays * 86_400L
+            setAuthCookies(call, tokens.first, tokens.second, accessTtlSec, refreshTtlSec)
+            call.respondRedirect("/")
         }
     }
 

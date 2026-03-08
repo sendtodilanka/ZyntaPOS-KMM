@@ -12,7 +12,30 @@ export interface AdminLoginRequest {
 export interface AdminLoginResponse {
   user: AdminUser;
   expiresIn: number;
-  mfaRequired: boolean;
+  mfaRequired?: boolean;
+}
+
+export interface MfaPendingResponse {
+  mfaRequired: true;
+  pendingToken: string;
+}
+
+export type LoginResponse = AdminLoginResponse | MfaPendingResponse;
+
+export interface MfaSetupResponse {
+  secret: string;
+  qrCodeUrl: string;
+  backupCodes: string[];
+}
+
+export interface MfaEnableRequest {
+  secret: string;
+  code: string;
+}
+
+export interface MfaVerifyRequest {
+  code: string;
+  pendingToken: string;
 }
 
 export interface AdminStatusResponse {
@@ -59,9 +82,11 @@ export function useAdminLogin() {
 
   return useMutation({
     mutationFn: (data: AdminLoginRequest) =>
-      apiClient.post('admin/auth/login', { json: data }).json<AdminLoginResponse>(),
+      apiClient.post('admin/auth/login', { json: data }).json<LoginResponse>(),
     onSuccess: (response) => {
-      setUser(response.user);
+      if (!('pendingToken' in response)) {
+        setUser(response.user);
+      }
     },
     onError: () => {
       // Error handling done in the login form component
@@ -106,6 +131,44 @@ export function useAdminLogout() {
       clearUser();
       toast.error('Logout failed', 'Session cleared locally.');
       window.location.href = '/login';
+    },
+  });
+}
+
+// ── MFA hooks ─────────────────────────────────────────────────────────────
+
+export function useAdminMfaSetup() {
+  return useMutation({
+    mutationFn: () => apiClient.post('admin/auth/mfa/setup').json<MfaSetupResponse>(),
+  });
+}
+
+export function useAdminMfaEnable() {
+  return useMutation({
+    mutationFn: (data: MfaEnableRequest) =>
+      apiClient.post('admin/auth/mfa/enable', { json: data }).json(),
+    onSuccess: () => toast.success('MFA enabled', 'Two-factor authentication is now active.'),
+    onError: () => toast.error('Failed to enable MFA', 'Invalid code. Try again.'),
+  });
+}
+
+export function useAdminMfaDisable() {
+  return useMutation({
+    mutationFn: (code: string) =>
+      apiClient.post('admin/auth/mfa/disable', { json: { code } }),
+    onSuccess: () => toast.success('MFA disabled'),
+    onError: () => toast.error('Failed to disable MFA', 'Invalid code. Try again.'),
+  });
+}
+
+export function useAdminMfaVerify() {
+  const { setUser } = useAuthStore();
+
+  return useMutation({
+    mutationFn: (data: MfaVerifyRequest) =>
+      apiClient.post('admin/auth/mfa/verify', { json: data }).json<AdminLoginResponse>(),
+    onSuccess: (response) => {
+      setUser(response.user);
     },
   });
 }

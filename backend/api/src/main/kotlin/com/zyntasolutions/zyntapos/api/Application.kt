@@ -2,6 +2,7 @@ package com.zyntasolutions.zyntapos.api
 
 import com.zyntasolutions.zyntapos.api.db.DatabaseFactory
 import com.zyntasolutions.zyntapos.api.di.appModule
+import com.zyntasolutions.zyntapos.api.service.AlertGenerationJob
 import com.zyntasolutions.zyntapos.api.plugins.configureAuthentication
 import com.zyntasolutions.zyntapos.api.plugins.configureCors
 import com.zyntasolutions.zyntapos.api.plugins.configureMonitoring
@@ -15,6 +16,7 @@ import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
+import org.koin.ktor.ext.inject
 import org.koin.ktor.plugin.Koin
 import org.koin.logger.slf4jLogger
 
@@ -40,6 +42,10 @@ fun Application.module() {
     }
 
     DatabaseFactory.init()
+
+    // Start background jobs
+    val alertJob: AlertGenerationJob by inject()
+    alertJob.start(intervalSeconds = 60L)
 
     configureSerialization()
     configureAuthentication()

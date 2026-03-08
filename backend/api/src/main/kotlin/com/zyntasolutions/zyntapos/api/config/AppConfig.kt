@@ -18,7 +18,11 @@ data class AppConfig(
     val adminJwtSecret: String,
     val adminJwtIssuer: String,
     val adminAccessTokenTtlMs: Long,
-    val adminRefreshTokenTtlDays: Long
+    val adminRefreshTokenTtlDays: Long,
+    // Google OAuth (optional — empty string disables Google SSO)
+    val googleClientId: String,
+    val googleClientSecret: String,
+    val googleRedirectUri: String
 ) {
     companion object {
         fun fromEnvironment(): AppConfig {
@@ -53,7 +57,10 @@ data class AppConfig(
                 adminJwtSecret = adminSecret,
                 adminJwtIssuer = System.getenv("ADMIN_JWT_ISSUER") ?: "https://panel.zyntapos.com",
                 adminAccessTokenTtlMs = (System.getenv("ADMIN_ACCESS_TOKEN_TTL_MINUTES")?.toLongOrNull() ?: 15L) * 60_000L,
-                adminRefreshTokenTtlDays = System.getenv("ADMIN_REFRESH_TOKEN_TTL_DAYS")?.toLongOrNull() ?: 7L
+                adminRefreshTokenTtlDays = System.getenv("ADMIN_REFRESH_TOKEN_TTL_DAYS")?.toLongOrNull() ?: 7L,
+                googleClientId = System.getenv("GOOGLE_CLIENT_ID") ?: "",
+                googleClientSecret = System.getenv("GOOGLE_CLIENT_SECRET") ?: "",
+                googleRedirectUri = System.getenv("GOOGLE_REDIRECT_URI") ?: "https://panel.zyntapos.com/auth/google/callback"
             )
         }
 

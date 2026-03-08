@@ -62,3 +62,35 @@ data class AdminBootstrapRequest(
 data class AdminStatusResponse(
     val needsBootstrap: Boolean
 )
+
+// ── MFA request/response models ─────────────────────────────────────
+
+@Serializable
+data class MfaSetupResponse(
+    val secret: String,
+    val qrCodeUrl: String,
+    val backupCodes: List<String>
+)
+
+@Serializable
+data class MfaEnableRequest(
+    val secret: String,
+    val code: String
+)
+
+@Serializable
+data class MfaDisableRequest(
+    val code: String
+)
+
+@Serializable
+data class MfaVerifyRequest(
+    val code: String,
+    val pendingToken: String
+)
+
+@Serializable
+data class MfaPendingResponse(
+    val mfaRequired: Boolean = true,
+    val pendingToken: String
+)
