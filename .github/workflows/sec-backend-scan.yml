@@ -311,11 +311,51 @@ jobs:
           category: "trivy-${{ matrix.service }}"
         continue-on-error: true
 
+  # ── Snyk Container Scan ──────────────────────────────────────────────────────
+  snyk-images:
+    name: Snyk — Container Image Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Snyk scans the same images Trivy already built; run after Trivy to reuse cache
+    needs: trivy-images
+    if: always()
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [api, license, sync]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image (${{ matrix.service }})
+        run: |
+          docker build \
+            -f backend/${{ matrix.service }}/Dockerfile \
+            -t zyntapos-${{ matrix.service }}:scan \
+            backend/
+
+      - name: Run Snyk container scan
+        uses: snyk/actions/docker@master
+        continue-on-error: true   # Report-only — don't fail the build
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          image: zyntapos-${{ matrix.service }}:scan
+          args: --severity-threshold=high --file=backend/${{ matrix.service }}/Dockerfile
+
+      - name: Upload Snyk SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: snyk.sarif
+          category: snyk-${{ matrix.service }}
+        continue-on-error: true
+
   # ── Summary gate (required check) ───────────────────────────────────────────
   security-scan-summary:
     name: Security Scan Summary
     runs-on: ubuntu-latest
-    needs: [owasp-api, owasp-license, owasp-sync, trivy-images]
+    needs: [owasp-api, owasp-license, owasp-sync, trivy-images, snyk-images]
     if: always()
     steps:
       - name: Check scan results
@@ -330,6 +370,7 @@ jobs:
           echo "| OWASP License | ${{ needs.owasp-license.result }} |"
           echo "| OWASP Sync | ${{ needs.owasp-sync.result }} |"
           echo "| Trivy Images | ${{ needs.trivy-images.result }} |"
+          echo "| Snyk Images | ${{ needs.snyk-images.result }} |"
           echo ""
 
           FAILED=false
