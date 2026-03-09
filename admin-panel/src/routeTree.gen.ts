@@ -11,20 +11,22 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as SetupIndexRouteImport } from './routes/setup/index'
 import { Route as UsersIndexRouteImport } from './routes/users/index'
+import { Route as TicketsIndexRouteImport } from './routes/tickets/index'
 import { Route as SyncIndexRouteImport } from './routes/sync/index'
 import { Route as StoresIndexRouteImport } from './routes/stores/index'
+import { Route as SetupIndexRouteImport } from './routes/setup/index'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
-import { Route as SettingsMfaRouteImport } from './routes/settings/mfa'
-import { Route as SettingsProfileRouteImport } from './routes/settings/profile'
 import { Route as ReportsIndexRouteImport } from './routes/reports/index'
 import { Route as LicensesIndexRouteImport } from './routes/licenses/index'
 import { Route as HealthIndexRouteImport } from './routes/health/index'
 import { Route as ConfigIndexRouteImport } from './routes/config/index'
 import { Route as AuditIndexRouteImport } from './routes/audit/index'
 import { Route as AlertsIndexRouteImport } from './routes/alerts/index'
+import { Route as TicketsTicketIdRouteImport } from './routes/tickets/$ticketId'
 import { Route as StoresStoreIdRouteImport } from './routes/stores/$storeId'
+import { Route as SettingsProfileRouteImport } from './routes/settings/profile'
+import { Route as SettingsMfaRouteImport } from './routes/settings/mfa'
 import { Route as LicensesLicenseKeyRouteImport } from './routes/licenses/$licenseKey'
 import { Route as HealthStoreIdRouteImport } from './routes/health/$storeId'
 
@@ -43,6 +45,11 @@ const UsersIndexRoute = UsersIndexRouteImport.update({
   path: '/users/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TicketsIndexRoute = TicketsIndexRouteImport.update({
+  id: '/tickets/',
+  path: '/tickets/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SyncIndexRoute = SyncIndexRouteImport.update({
   id: '/sync/',
   path: '/sync/',
@@ -53,19 +60,14 @@ const StoresIndexRoute = StoresIndexRouteImport.update({
   path: '/stores/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SetupIndexRoute = SetupIndexRouteImport.update({
+  id: '/setup/',
+  path: '/setup/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsIndexRoute = SettingsIndexRouteImport.update({
   id: '/settings/',
   path: '/settings/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsMfaRoute = SettingsMfaRouteImport.update({
-  id: '/settings/mfa',
-  path: '/settings/mfa',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsProfileRoute = SettingsProfileRouteImport.update({
-  id: '/settings/profile',
-  path: '/settings/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReportsIndexRoute = ReportsIndexRouteImport.update({
@@ -98,9 +100,24 @@ const AlertsIndexRoute = AlertsIndexRouteImport.update({
   path: '/alerts/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TicketsTicketIdRoute = TicketsTicketIdRouteImport.update({
+  id: '/tickets/$ticketId',
+  path: '/tickets/$ticketId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StoresStoreIdRoute = StoresStoreIdRouteImport.update({
   id: '/stores/$storeId',
   path: '/stores/$storeId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsProfileRoute = SettingsProfileRouteImport.update({
+  id: '/settings/profile',
+  path: '/settings/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsMfaRoute = SettingsMfaRouteImport.update({
+  id: '/settings/mfa',
+  path: '/settings/mfa',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LicensesLicenseKeyRoute = LicensesLicenseKeyRouteImport.update({
@@ -113,18 +130,16 @@ const HealthStoreIdRoute = HealthStoreIdRouteImport.update({
   path: '/health/$storeId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SetupIndexRoute = SetupIndexRouteImport.update({
-  id: '/setup/',
-  path: '/setup/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
-  '/login': typeof LoginRoute
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/health/$storeId': typeof HealthStoreIdRoute
   '/licenses/$licenseKey': typeof LicensesLicenseKeyRoute
+  '/settings/mfa': typeof SettingsMfaRoute
+  '/settings/profile': typeof SettingsProfileRoute
   '/stores/$storeId': typeof StoresStoreIdRoute
+  '/tickets/$ticketId': typeof TicketsTicketIdRoute
   '/alerts/': typeof AlertsIndexRoute
   '/audit/': typeof AuditIndexRoute
   '/config/': typeof ConfigIndexRoute
@@ -132,19 +147,21 @@ export interface FileRoutesByFullPath {
   '/licenses/': typeof LicensesIndexRoute
   '/reports/': typeof ReportsIndexRoute
   '/settings/': typeof SettingsIndexRoute
-  '/settings/mfa': typeof SettingsMfaRoute
-  '/settings/profile': typeof SettingsProfileRoute
+  '/setup/': typeof SetupIndexRoute
   '/stores/': typeof StoresIndexRoute
   '/sync/': typeof SyncIndexRoute
+  '/tickets/': typeof TicketsIndexRoute
   '/users/': typeof UsersIndexRoute
-  '/setup/': typeof SetupIndexRoute
 }
 export interface FileRoutesByTo {
-  '/login': typeof LoginRoute
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/health/$storeId': typeof HealthStoreIdRoute
   '/licenses/$licenseKey': typeof LicensesLicenseKeyRoute
+  '/settings/mfa': typeof SettingsMfaRoute
+  '/settings/profile': typeof SettingsProfileRoute
   '/stores/$storeId': typeof StoresStoreIdRoute
+  '/tickets/$ticketId': typeof TicketsTicketIdRoute
   '/alerts': typeof AlertsIndexRoute
   '/audit': typeof AuditIndexRoute
   '/config': typeof ConfigIndexRoute
@@ -152,20 +169,22 @@ export interface FileRoutesByTo {
   '/licenses': typeof LicensesIndexRoute
   '/reports': typeof ReportsIndexRoute
   '/settings': typeof SettingsIndexRoute
-  '/settings/mfa': typeof SettingsMfaRoute
-  '/settings/profile': typeof SettingsProfileRoute
+  '/setup': typeof SetupIndexRoute
   '/stores': typeof StoresIndexRoute
   '/sync': typeof SyncIndexRoute
+  '/tickets': typeof TicketsIndexRoute
   '/users': typeof UsersIndexRoute
-  '/setup': typeof SetupIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/login': typeof LoginRoute
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/health/$storeId': typeof HealthStoreIdRoute
   '/licenses/$licenseKey': typeof LicensesLicenseKeyRoute
+  '/settings/mfa': typeof SettingsMfaRoute
+  '/settings/profile': typeof SettingsProfileRoute
   '/stores/$storeId': typeof StoresStoreIdRoute
+  '/tickets/$ticketId': typeof TicketsTicketIdRoute
   '/alerts/': typeof AlertsIndexRoute
   '/audit/': typeof AuditIndexRoute
   '/config/': typeof ConfigIndexRoute
@@ -173,21 +192,23 @@ export interface FileRoutesById {
   '/licenses/': typeof LicensesIndexRoute
   '/reports/': typeof ReportsIndexRoute
   '/settings/': typeof SettingsIndexRoute
-  '/settings/mfa': typeof SettingsMfaRoute
-  '/settings/profile': typeof SettingsProfileRoute
+  '/setup/': typeof SetupIndexRoute
   '/stores/': typeof StoresIndexRoute
   '/sync/': typeof SyncIndexRoute
+  '/tickets/': typeof TicketsIndexRoute
   '/users/': typeof UsersIndexRoute
-  '/setup/': typeof SetupIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/login'
     | '/'
+    | '/login'
     | '/health/$storeId'
     | '/licenses/$licenseKey'
+    | '/settings/mfa'
+    | '/settings/profile'
     | '/stores/$storeId'
+    | '/tickets/$ticketId'
     | '/alerts/'
     | '/audit/'
     | '/config/'
@@ -195,19 +216,21 @@ export interface FileRouteTypes {
     | '/licenses/'
     | '/reports/'
     | '/settings/'
-    | '/settings/mfa'
-    | '/settings/profile'
+    | '/setup/'
     | '/stores/'
     | '/sync/'
+    | '/tickets/'
     | '/users/'
-    | '/setup/'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/login'
     | '/'
+    | '/login'
     | '/health/$storeId'
     | '/licenses/$licenseKey'
+    | '/settings/mfa'
+    | '/settings/profile'
     | '/stores/$storeId'
+    | '/tickets/$ticketId'
     | '/alerts'
     | '/audit'
     | '/config'
@@ -215,41 +238,44 @@ export interface FileRouteTypes {
     | '/licenses'
     | '/reports'
     | '/settings'
-    | '/settings/mfa'
-    | '/settings/profile'
+    | '/setup'
     | '/stores'
     | '/sync'
+    | '/tickets'
     | '/users'
-    | '/setup'
   id:
     | '__root__'
-    | '/login'
     | '/'
+    | '/login'
     | '/health/$storeId'
     | '/licenses/$licenseKey'
+    | '/settings/mfa'
+    | '/settings/profile'
     | '/stores/$storeId'
+    | '/tickets/$ticketId'
     | '/alerts/'
     | '/audit/'
     | '/config/'
     | '/health/'
     | '/licenses/'
     | '/reports/'
-    | '/settings/mfa'
-    | '/settings/profile'
     | '/settings/'
+    | '/setup/'
     | '/stores/'
     | '/sync/'
+    | '/tickets/'
     | '/users/'
-    | '/setup/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  LoginRoute: typeof LoginRoute
   IndexRoute: typeof IndexRoute
-  SetupIndexRoute: typeof SetupIndexRoute
+  LoginRoute: typeof LoginRoute
   HealthStoreIdRoute: typeof HealthStoreIdRoute
   LicensesLicenseKeyRoute: typeof LicensesLicenseKeyRoute
+  SettingsMfaRoute: typeof SettingsMfaRoute
+  SettingsProfileRoute: typeof SettingsProfileRoute
   StoresStoreIdRoute: typeof StoresStoreIdRoute
+  TicketsTicketIdRoute: typeof TicketsTicketIdRoute
   AlertsIndexRoute: typeof AlertsIndexRoute
   AuditIndexRoute: typeof AuditIndexRoute
   ConfigIndexRoute: typeof ConfigIndexRoute
@@ -257,10 +283,10 @@ export interface RootRouteChildren {
   LicensesIndexRoute: typeof LicensesIndexRoute
   ReportsIndexRoute: typeof ReportsIndexRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
-  SettingsMfaRoute: typeof SettingsMfaRoute
-  SettingsProfileRoute: typeof SettingsProfileRoute
+  SetupIndexRoute: typeof SetupIndexRoute
   StoresIndexRoute: typeof StoresIndexRoute
   SyncIndexRoute: typeof SyncIndexRoute
+  TicketsIndexRoute: typeof TicketsIndexRoute
   UsersIndexRoute: typeof UsersIndexRoute
 }
 
@@ -287,6 +313,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UsersIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tickets/': {
+      id: '/tickets/'
+      path: '/tickets'
+      fullPath: '/tickets/'
+      preLoaderRoute: typeof TicketsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sync/': {
       id: '/sync/'
       path: '/sync'
@@ -299,6 +332,13 @@ declare module '@tanstack/react-router' {
       path: '/stores'
       fullPath: '/stores/'
       preLoaderRoute: typeof StoresIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/setup/': {
+      id: '/setup/'
+      path: '/setup'
+      fullPath: '/setup/'
+      preLoaderRoute: typeof SetupIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings/': {
@@ -350,11 +390,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AlertsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tickets/$ticketId': {
+      id: '/tickets/$ticketId'
+      path: '/tickets/$ticketId'
+      fullPath: '/tickets/$ticketId'
+      preLoaderRoute: typeof TicketsTicketIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/stores/$storeId': {
       id: '/stores/$storeId'
       path: '/stores/$storeId'
       fullPath: '/stores/$storeId'
       preLoaderRoute: typeof StoresStoreIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/profile': {
+      id: '/settings/profile'
+      path: '/settings/profile'
+      fullPath: '/settings/profile'
+      preLoaderRoute: typeof SettingsProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/mfa': {
+      id: '/settings/mfa'
+      path: '/settings/mfa'
+      fullPath: '/settings/mfa'
+      preLoaderRoute: typeof SettingsMfaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/licenses/$licenseKey': {
@@ -371,37 +432,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HealthStoreIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/setup/': {
-      id: '/setup/'
-      path: '/setup'
-      fullPath: '/setup/'
-      preLoaderRoute: typeof SetupIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings/mfa': {
-      id: '/settings/mfa'
-      path: '/settings/mfa'
-      fullPath: '/settings/mfa'
-      preLoaderRoute: typeof SettingsMfaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings/profile': {
-      id: '/settings/profile'
-      path: '/settings/profile'
-      fullPath: '/settings/profile'
-      preLoaderRoute: typeof SettingsProfileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
-  LoginRoute: LoginRoute,
   IndexRoute: IndexRoute,
-  SetupIndexRoute: SetupIndexRoute,
+  LoginRoute: LoginRoute,
   HealthStoreIdRoute: HealthStoreIdRoute,
   LicensesLicenseKeyRoute: LicensesLicenseKeyRoute,
+  SettingsMfaRoute: SettingsMfaRoute,
+  SettingsProfileRoute: SettingsProfileRoute,
   StoresStoreIdRoute: StoresStoreIdRoute,
+  TicketsTicketIdRoute: TicketsTicketIdRoute,
   AlertsIndexRoute: AlertsIndexRoute,
   AuditIndexRoute: AuditIndexRoute,
   ConfigIndexRoute: ConfigIndexRoute,
@@ -409,10 +451,10 @@ const rootRouteChildren: RootRouteChildren = {
   LicensesIndexRoute: LicensesIndexRoute,
   ReportsIndexRoute: ReportsIndexRoute,
   SettingsIndexRoute: SettingsIndexRoute,
-  SettingsMfaRoute: SettingsMfaRoute,
-  SettingsProfileRoute: SettingsProfileRoute,
+  SetupIndexRoute: SetupIndexRoute,
   StoresIndexRoute: StoresIndexRoute,
   SyncIndexRoute: SyncIndexRoute,
+  TicketsIndexRoute: TicketsIndexRoute,
   UsersIndexRoute: UsersIndexRoute,
 }
 export const routeTree = rootRouteImport
