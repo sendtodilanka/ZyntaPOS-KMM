@@ -92,7 +92,7 @@ TODO-005  →  TODO-003  →  TODO-004 (Part 1)
 | # | Title | Status | Priority | Notes |
 |---|-------|--------|----------|-------|
 | [007](007-infrastructure-and-deployment.md) | Infrastructure & Deployment | 🟡 ~65% done | **P0** | VPS live, Docker Compose running, Caddy + API + License + Sync deployed, monitoring + backup done. Remaining: React panel (7a), Astro site (7b), docs site (7e), sync engine server-side (7g) |
-| [007a](007a-react-admin-panel.md) | React Admin Panel | 🟡 ~90% done | **P0** | Auth, login, MFA, users, settings, support tickets, layout all implemented. Remaining: reports, sync monitoring, health, config, alerts, full test suite, CI pipeline wiring. See TODO-007a for updated status. |
+| [007a](007a-react-admin-panel.md) | React Admin Panel | 🟡 ~82% done | **P0** | Auth, login, dashboard, licenses, stores, audit, sync, health, config, reports, alerts, users, settings, layout, Dockerfile, docker-compose, CI pipeline all implemented. Remaining: tickets frontend (backend done), use-keyboard.ts, expanded test suite, VPS deploy, CF bypass. See TODO-007a for updated status. |
 | [007f](007f-admin-panel-cf-custom-auth.md) | Admin Panel: CF + Custom Auth | 🟡 ~85% done | **P0** | Backend 100% done (JWT, MFA, Google SSO, RBAC, brute-force, support tickets). Frontend Days 1–6 complete (G5/G6 resolved). Remaining: CSRF, auth audit logging, backend tests, Google Cloud Console config, VPS env vars, CF bypass. |
 | [007b](007b-astro-marketing-website.md) | Astro Marketing Website | ⬜ Ready to implement | **P1** | Full 5-day plan written. Astro 5 + Tailwind on Cloudflare Pages. No blockers. |
 | [009](009-ktor-security-hardening.md) | Ktor Backend Security Hardening | ✅ Done | **P0** | ValidationScope, body size limits, seccomp profile, CVSS threshold — all implemented |
@@ -251,7 +251,7 @@ Phase 1 is **complete** (all 5 TODOs done). Phase 2 is in progress:
 - ✅ TODO-007 backend infra (VPS, Docker, Caddy, API, License, Sync, monitoring, backup)
 - ✅ TODO-009 Ktor security hardening (all 4 items done)
 - ✅ TODO-010 in-repo items (Falco rules, Falcosidekick, cloudflared)
-- 🟡 TODO-007a React admin panel — ~90% done; remaining pages: reports, sync monitoring, health, config, alerts
+- 🟡 TODO-007a React admin panel — ~82% done; 14 of 15 days complete. Remaining: tickets frontend (6 components + 2 routes), use-keyboard.ts, expanded test suite, VPS deploy, CF bypass
 - 🟡 TODO-007f CF + Custom Auth — ~85% done; remaining: CSRF, auth audit log wiring, backend tests, Google OAuth Cloud Console config, CF Access bypass on VPS
 - **→ After 007a/007f completion: TODO-007b — Astro marketing website** (5-day plan ready)
 - Then: TODO-008 SEO/ASO (partially front-loaded into 007b)
