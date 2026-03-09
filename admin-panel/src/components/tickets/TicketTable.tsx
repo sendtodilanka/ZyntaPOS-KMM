@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { AlertTriangle, Clock } from 'lucide-react';
 import { DataTable, type Column } from '@/components/shared/DataTable';
@@ -15,7 +15,7 @@ interface TicketTableProps {
   onPageChange: (page: number) => void;
 }
 
-function SlaIndicator({ slaDueAt, slaBreached, status }: { slaDueAt: number | null; slaBreached: boolean; status: string }) {
+function SlaIndicator({ slaDueAt, slaBreached, status, now }: { slaDueAt: number | null; slaBreached: boolean; status: string; now: number }) {
   if (status === 'RESOLVED' || status === 'CLOSED') return null;
   if (!slaDueAt) return null;
 
@@ -27,7 +27,7 @@ function SlaIndicator({ slaDueAt, slaBreached, status }: { slaDueAt: number | nu
     );
   }
 
-  const remaining = slaDueAt - Date.now();
+  const remaining = slaDueAt - now;
   if (remaining <= 0) {
     return (
       <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-red-400">
@@ -51,6 +51,11 @@ function SlaIndicator({ slaDueAt, slaBreached, status }: { slaDueAt: number | nu
 export function TicketTable({ data, isLoading, page, totalPages, total, onPageChange }: TicketTableProps) {
   const navigate = useNavigate();
   const { formatRelative } = useTimezone();
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   const columns: Column<Ticket>[] = [
     {
@@ -94,7 +99,7 @@ export function TicketTable({ data, isLoading, page, totalPages, total, onPageCh
       key: 'sla',
       header: 'SLA',
       cell: (row) => (
-        <SlaIndicator slaDueAt={row.slaDueAt} slaBreached={row.slaBreached} status={row.status} />
+        <SlaIndicator slaDueAt={row.slaDueAt} slaBreached={row.slaBreached} status={row.status} now={now} />
       ),
       headerClassName: 'w-32',
     },

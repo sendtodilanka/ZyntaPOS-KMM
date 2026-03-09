@@ -26,4 +26,7 @@ export const ROUTES = {
   REPORTS: '/reports',
   HEALTH: '/health',
   ALERTS: '/alerts',
+  TICKETS: '/tickets',
+  SETTINGS_PROFILE: '/settings/profile',
+  SETTINGS_MFA: '/settings/mfa',
 } as const;

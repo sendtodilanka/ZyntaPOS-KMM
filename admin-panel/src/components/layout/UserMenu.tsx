@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useAdminLogout } from '@/api/auth';
 import { cn } from '@/lib/utils';
 import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from '@tanstack/react-router';
 import type { AdminRole } from '@/types/user';
 
 const ROLE_COLORS: Record<AdminRole, string> = {
@@ -16,6 +17,7 @@ const ROLE_COLORS: Record<AdminRole, string> = {
 export function UserMenu() {
   const { user } = useAuth();
   const logout = useAdminLogout();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -69,7 +71,7 @@ export function UserMenu() {
           </div>
           <div className="py-1">
             <button
-              onClick={() => setOpen(false)}
+              onClick={() => { setOpen(false); navigate({ to: '/settings/profile' }); }}
               className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-slate-300 hover:bg-surface-elevated hover:text-slate-100 transition-colors min-h-[44px]"
             >
               <User className="w-4 h-4" />

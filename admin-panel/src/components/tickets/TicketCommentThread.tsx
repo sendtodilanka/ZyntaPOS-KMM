@@ -13,11 +13,11 @@ export function TicketCommentThread({ ticketId }: TicketCommentThreadProps) {
   const { data: comments = [], isLoading } = useTicketComments(ticketId);
   const addComment = useAddComment();
   const { formatDateTime } = useTimezone();
-  const { user, hasPermission } = useAuth();
+  const { hasPermission } = useAuth();
   const [body, setBody] = useState('');
   const [isInternal, setIsInternal] = useState(false);
 
-  const canMarkInternal = hasPermission('audit:read'); // ADMIN, OPERATOR, AUDITOR
+  const canMarkInternal = hasPermission('tickets:resolve'); // ADMIN, OPERATOR only (not AUDITOR, not HELPDESK)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

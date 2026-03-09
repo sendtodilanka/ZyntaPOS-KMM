@@ -11,19 +11,14 @@ import { LicenseDistribution } from '@/components/charts/LicenseDistribution';
 import { UptimeChart } from '@/components/charts/UptimeChart';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { useDashboardKPIs, useSalesChart, useStoreComparison } from '@/api/metrics';
+import { useAlerts } from '@/api/alerts';
+import { useSystemHealth } from '@/api/health';
 import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 import type { TimePeriod } from '@/types/metrics';
 
 export const Route = createFileRoute('/')({
   component: DashboardPage,
 });
-
-const NOW = Date.now();
-const PLACEHOLDER_ALERTS = [
-  { store: 'Colombo Branch', message: 'Sync queue depth > 50', time: new Date(NOW - 300000).toISOString(), severity: 'WARNING' },
-  { store: 'Kandy Store', message: 'Heartbeat age > 10min', time: new Date(NOW - 900000).toISOString(), severity: 'CRITICAL' },
-  { store: 'Galle Outlet', message: 'DB size > 1GB', time: new Date(NOW - 1800000).toISOString(), severity: 'WARNING' },
-];
 
 const PERIOD_OPTIONS: { label: string; value: TimePeriod }[] = [
   { label: 'Today', value: 'today' },
@@ -41,14 +36,11 @@ function DashboardPage() {
     granularity: period === 'today' ? 'hour' : period === 'week' ? 'day' : 'day',
   });
   const { data: storeData, isLoading: storeLoading } = useStoreComparison(period);
+  const { data: alertsPage, isLoading: alertsLoading } = useAlerts({ status: 'active', pageSize: 5 });
+  const { data: healthData, isLoading: healthLoading } = useSystemHealth();
 
-  // Mock uptime data (replace with API hook when health endpoint is ready)
-  const uptimeData = [
-    { service: 'API', uptimePercent: 99.97 },
-    { service: 'License', uptimePercent: 100 },
-    { service: 'Sync', uptimePercent: 99.84 },
-    { service: 'Database', uptimePercent: 99.99 },
-  ];
+  const recentAlerts = alertsPage?.items ?? [];
+  const uptimeData = healthData?.services.map((s) => ({ service: s.name, uptimePercent: s.uptime })) ?? [];
 
   return (
     <div className="space-y-6">
@@ -154,7 +146,7 @@ function DashboardPage() {
         {/* Uptime */}
         <div className="panel-card">
           <h2 className="panel-title text-base mb-4">Service Uptime</h2>
-          <UptimeChart data={uptimeData} />
+          <UptimeChart data={uptimeData} isLoading={healthLoading} />
         </div>
 
         {/* Quick alerts */}
@@ -164,14 +156,21 @@ function DashboardPage() {
             <AlertTriangle className="w-4 h-4 text-amber-400" />
           </div>
           <div className="space-y-2">
-            {/* Placeholder alert items */}
-            {PLACEHOLDER_ALERTS.map((alert, i) => (
-              <div key={i} className="flex items-start gap-3 p-2.5 rounded-lg bg-surface-elevated">
+            {alertsLoading && (
+              <div className="space-y-2">
+                {[0, 1, 2].map((i) => <div key={i} className="h-14 rounded-lg bg-surface-elevated animate-pulse" />)}
+              </div>
+            )}
+            {!alertsLoading && recentAlerts.length === 0 && (
+              <p className="text-xs text-slate-500 py-4 text-center">No active alerts.</p>
+            )}
+            {recentAlerts.map((alert) => (
+              <div key={alert.id} className="flex items-start gap-3 p-2.5 rounded-lg bg-surface-elevated">
                 <StatusBadge status={alert.severity} className="flex-shrink-0 mt-0.5" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-medium text-slate-200 truncate">{alert.store}</p>
+                  <p className="text-xs font-medium text-slate-200 truncate">{alert.storeName ?? alert.category}</p>
                   <p className="text-xs text-slate-400 truncate">{alert.message}</p>
-                  <p className="text-[10px] text-slate-500 mt-0.5">{formatRelativeTime(alert.time)}</p>
+                  <p className="text-[10px] text-slate-500 mt-0.5">{formatRelativeTime(alert.createdAt)}</p>
                 </div>
               </div>
             ))}

@@ -37,12 +37,12 @@ describe('ConfirmDialog', () => {
         open
         onClose={vi.fn()}
         onConfirm={onConfirm}
-        title="Delete"
+        title="Confirm action"
         description="Sure?"
-        confirmLabel="Delete"
+        confirmLabel="Proceed"
       />,
     );
-    fireEvent.click(screen.getByText('Delete'));
+    fireEvent.click(screen.getByRole('button', { name: 'Proceed' }));
     expect(onConfirm).toHaveBeenCalledOnce();
   });
 
@@ -53,11 +53,11 @@ describe('ConfirmDialog', () => {
         open
         onClose={onClose}
         onConfirm={vi.fn()}
-        title="Delete"
+        title="Confirm action"
         description="Sure?"
       />,
     );
-    fireEvent.click(screen.getByText('Cancel'));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(onClose).toHaveBeenCalledOnce();
   });
 

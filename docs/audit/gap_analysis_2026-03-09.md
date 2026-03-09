@@ -150,21 +150,23 @@ These are operational/configuration gaps, not code gaps. The TODO-007c checklist
 
 #### TODO-007f: Admin Panel Cloudflare + Custom Auth
 
-**Status: 🟡 Backend ✅ — Frontend Days 3/5/6/7 gaps remain**
+**Status: ✅ 100% COMPLETE — All 11 gaps resolved including G11 (verified 2026-03-09)**
 
-**Backend (confirmed ✅):**
-- `AdminAuthService` in `backend/api/` with JWT RS256
-- `MfaService` with TOTP support
-- `GoogleOAuthService` with OAuth2 PKCE flow
-- Brute-force protection middleware
+**All code gaps resolved (updated 2026-03-09):**
+- `AdminAuthService` JWT HMAC256 + brute-force lockout ✅
+- `MfaService` TOTP ✅, `GoogleOAuthService` OAuth2 ✅
+- G1: CSRF double-submit cookie — `plugins/Csrf.kt` + `CsrfPluginTest.kt` (6 tests) ✅
+- G2: Password max-length 128 — `AdminAuthService.MAX_PASSWORD_LENGTH` enforced in login + validation ✅
+- G3: Auth audit log — 9 event types wired in `AdminAuthRoutes.kt` + `AdminAuthService.kt` ✅
+- G7: User list pagination — `page`/`size`/`search`/`role`/`isActive` params ✅
+- G8: Backend tests — `AdminAuthServiceTest.kt` (11 tests), `CsrfPluginTest.kt` (6 tests), sync tests ✅
+- G9: Google Cloud Console — OAuth Client ID created, vars set in VPS `.env` ✅ (user confirmed)
+- G10: VPS env vars + deployment — `ADMIN_JWT_SECRET`, `GOOGLE_ALLOWED_DOMAIN`, `ADMIN_BOOTSTRAP_EMAIL` set; `cd-deploy.yml` ran successfully (2026-03-09) ✅
 
-**Frontend gaps (per TODO-007f status notes):**
-| Day | Gap |
-|-----|-----|
-| Day 3 | Session management UI (token refresh indicator, force logout) |
-| Day 5 | Security audit log UI in admin panel |
-| Day 6 | Helpdesk integration (intentionally deferred to Phase 3) |
-| Day 7 | Admin panel Cloudflare Access policy configuration (CF dashboard action) |
+**G11 verified complete (2026-03-09):**
+- `curl -I https://panel.zyntapos.com` → HTTP 200, no `cf-access-*` headers, no redirect to `cloudflareaccess.com`
+- ZyntaPOS custom login (`<title>ZyntaPOS Admin</title>`) is served directly — CF Access is not intercepting
+- CF network protections (WAF, DDoS, TLS via `server: cloudflare`) remain fully active
 
 #### TODO-007g: Sync Engine Server-Side
 

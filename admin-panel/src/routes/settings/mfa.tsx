@@ -135,8 +135,17 @@ function MfaSettingsPage() {
             <li>Enter the 6-digit code to confirm setup</li>
           </ol>
 
-          {/* QR Code placeholder — display URL for manual entry */}
+          {/* QR Code — scan with authenticator app */}
           <div className="rounded-lg border border-surface-border bg-surface-elevated p-4 space-y-3">
+            <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">Scan QR Code</p>
+            <div className="flex justify-center">
+              <img
+                src={setupData.qrCodeUrl}
+                alt="Scan with your authenticator app"
+                className="w-40 h-40 rounded-lg bg-white p-2"
+              />
+            </div>
+            <p className="text-xs text-slate-500 text-center">Or enter the secret key manually:</p>
             <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">Secret Key</p>
             <div className="flex items-center gap-2">
               <code className="flex-1 text-sm font-mono text-brand-400 bg-surface-base px-3 py-2 rounded-lg border border-surface-border break-all">

@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { TicketTable } from '@/components/tickets/TicketTable';

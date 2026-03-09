@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import { exportToCsv } from '@/lib/export';
 import type { AuditEntry, AuditFilter } from '@/types/audit';
@@ -21,6 +21,7 @@ export function useAuditLogs(filters: AuditFilter = {}) {
   return useQuery({
     queryKey: ['audit', filters],
     queryFn: () => apiClient.get(`admin/audit?${qs}`).json<PagedResponse<AuditEntry>>(),
+    placeholderData: keepPreviousData,
   });
 }
 
