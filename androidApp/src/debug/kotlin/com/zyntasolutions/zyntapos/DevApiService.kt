@@ -5,6 +5,7 @@ import com.zyntasolutions.zyntapos.data.remote.dto.AuthRefreshResponseDto
 import com.zyntasolutions.zyntapos.data.remote.dto.AuthRequestDto
 import com.zyntasolutions.zyntapos.data.remote.dto.AuthResponseDto
 import com.zyntasolutions.zyntapos.data.remote.dto.ProductDto
+import com.zyntasolutions.zyntapos.data.remote.dto.PublicKeyResponseDto
 import com.zyntasolutions.zyntapos.data.remote.dto.SyncOperationDto
 import com.zyntasolutions.zyntapos.data.remote.dto.SyncPullResponseDto
 import com.zyntasolutions.zyntapos.data.remote.dto.SyncResponseDto
@@ -81,4 +82,8 @@ internal class DevApiService : ApiService {
             operations      = emptyList(),
             serverTimestamp = Clock.System.now().toEpochMilliseconds(),
         )
+
+    /** Returns a no-op placeholder key — dev builds use the default bundled key. */
+    override suspend fun fetchPublicKey(): PublicKeyResponseDto =
+        PublicKeyResponseDto(publicKey = "")
 }
