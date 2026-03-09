@@ -2,11 +2,11 @@
 
 **Phase:** 2 — Growth
 **Priority:** P0 (HIGH)
-**Status:** ✅ BACKEND IMPLEMENTED — Frontend gaps remain (see Section 9, Days 3/5/6/7)
+**Status:** 🟡 ~85% COMPLETE — Backend fully done; Day 6 frontend gaps (G5, G6) resolved; remaining: CSRF (G1), password max-length server-side (G2), auth audit log wiring (G3), backend tests (G8), Google Cloud Console setup (G9), VPS env vars (G10), CF Access bypass (G11)
 **Effort:** ~7 working days (1 developer)
 **Related:** TODO-007a (admin panel), TODO-009 (Ktor security hardening), TODO-010 (security monitoring)
 **Owner:** Zynta Solutions Pvt Ltd
-**Last updated:** 2026-03-08
+**Last updated:** 2026-03-09
 
 ---
 
@@ -1224,7 +1224,7 @@ and tighten rules for the custom login endpoint:
 
 ---
 
-### Day 6 — Admin User Management ✅ BACKEND COMPLETE / ⚠️ Frontend settings/profile missing
+### Day 6 — Admin User Management ✅ COMPLETE (Backend + Frontend)
 
 **Goal:** Full user CRUD in the panel's /settings/users route.
 
@@ -1241,13 +1241,14 @@ and tighten rules for the custom login endpoint:
     - UserTable with Name, Email, Role badge, Status columns ✅
     - UserCreateForm modal ✅
     - Connected to useAdminUsers() React Query hook ✅
-    📝 MFA status column not shown in table — GAP
-    📝 "Revoke sessions" action not in UI — GAP
+    MFA status column: ✅ shown (ShieldCheck/ShieldOff icon + "On"/"Off" label)
+    "Revoke sessions" action: ✅ in actions dropdown menu (LogOut icon + ConfirmDialog)
 
-[ ] Frontend: /settings/profile route ❌ NOT IMPLEMENTED — GAP
-    - No profile page exists (only settings/index.tsx and settings/mfa.tsx)
-    - No change-password form
-    - No active sessions list with per-session revoke
+[x] Frontend: /settings/profile route ✅ IMPLEMENTED
+    - routes/settings/profile.tsx exists ✅
+    - Change-password form (current + new + confirm, min 8 / max 128 chars validated client-side) ✅
+    - Active sessions list with per-session display (user agent, IP, start time) ✅
+    - "Revoke All" button wired to useRevokeSessions() ✅
 
 [ ] Validation checklist:
     - ADMIN can see user list and all actions
@@ -1321,8 +1322,8 @@ and tighten rules for the custom login endpoint:
 | G2 | Password max 128 chars NOT enforced server-side | MEDIUM | AdminAuthService.kt login() | Add `require(password.length <= 128)` before bcrypt |
 | G3 | Auth events not written to admin_audit_log | MEDIUM | AdminAuthService.kt | Wire AdminAuditService.log() calls for LOGIN_SUCCESS/FAILURE/LOCKOUT |
 | G4 | Rate limiter is in-process only (not Redis-backed) | LOW | plugins/RateLimit.kt | Acceptable for single-node; revisit when scaling |
-| G5 | /settings/profile page not implemented | MEDIUM | admin-panel/src/routes/settings/ | Add profile.tsx with change-password + sessions list |
-| G6 | UserTable missing MFA status column + revoke sessions action | LOW | admin-panel/src/routes/users/ | Add columns and action buttons |
+| G5 | ~~settings/profile page not implemented~~ | ~~MEDIUM~~ | **✅ RESOLVED** — `routes/settings/profile.tsx` exists with change-password form + active sessions list with per-session revoke | — |
+| G6 | ~~UserTable missing MFA status column + revoke sessions~~ | ~~LOW~~ | **✅ RESOLVED** — `UserTable.tsx` has MFA badge (ShieldCheck/ShieldOff) and "Revoke Sessions" action in the actions menu | — |
 | G7 | User list not paginated | LOW | AdminAuthRoutes.kt GET /admin/users | Add page/limit query params |
 | G8 | No backend unit or integration tests | HIGH | backend/api/src/test/ | Create test directory and test classes (Day 7) |
 | G9 | Google Cloud Console not yet configured | BLOCKER | External / manual | Create OAuth 2.0 Client ID and set redirect URIs |

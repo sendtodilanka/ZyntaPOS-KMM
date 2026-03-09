@@ -1,6 +1,6 @@
 # TODO-000 — ZyntaPOS Master Execution Plan
 
-**Last updated:** 2026-03-06
+**Last updated:** 2026-03-09
 **Status:** Living document — update whenever a TODO is added, completed, or re-phased
 
 This document is the single source of truth for **what to work on, in what order, and why**. It maps all TODO files to the four development phases defined in `CLAUDE.md` and shows the dependency chain between them.
@@ -92,8 +92,8 @@ TODO-005  →  TODO-003  →  TODO-004 (Part 1)
 | # | Title | Status | Priority | Notes |
 |---|-------|--------|----------|-------|
 | [007](007-infrastructure-and-deployment.md) | Infrastructure & Deployment | 🟡 ~65% done | **P0** | VPS live, Docker Compose running, Caddy + API + License + Sync deployed, monitoring + backup done. Remaining: React panel (7a), Astro site (7b), docs site (7e), sync engine server-side (7g) |
-| [007a](007a-react-admin-panel.md) | React Admin Panel | ⬜ Ready to implement | **P0** | Full 15-day (3-week) plan written. React 19 + TanStack + shadcn/ui. 10 feature areas, 40+ API endpoints. No blockers. |
-| [007f](007f-admin-panel-cf-custom-auth.md) | Admin Panel: CF + Custom Auth | ⬜ Ready to implement | **P0** | 7-day plan. ZyntaPOS-branded login + backend JWT auth + MFA (TOTP) + Google SSO + brute-force protection. Replaces CF Access identity layer while keeping CF network security. Depends on 007a (panel exists). |
+| [007a](007a-react-admin-panel.md) | React Admin Panel | 🟡 ~90% done | **P0** | Auth, login, MFA, users, settings, support tickets, layout all implemented. Remaining: reports, sync monitoring, health, config, alerts, full test suite, CI pipeline wiring. See TODO-007a for updated status. |
+| [007f](007f-admin-panel-cf-custom-auth.md) | Admin Panel: CF + Custom Auth | 🟡 ~85% done | **P0** | Backend 100% done (JWT, MFA, Google SSO, RBAC, brute-force, support tickets). Frontend Days 1–6 complete (G5/G6 resolved). Remaining: CSRF, auth audit logging, backend tests, Google Cloud Console config, VPS env vars, CF bypass. |
 | [007b](007b-astro-marketing-website.md) | Astro Marketing Website | ⬜ Ready to implement | **P1** | Full 5-day plan written. Astro 5 + Tailwind on Cloudflare Pages. No blockers. |
 | [009](009-ktor-security-hardening.md) | Ktor Backend Security Hardening | ✅ Done | **P0** | ValidationScope, body size limits, seccomp profile, CVSS threshold — all implemented |
 | [010](010-security-monitoring-automated-response.md) | Security Monitoring & Automated Response | 🟡 ~70% done | **HIGH** | Falco rules, Falcosidekick, cloudflared tunnel done. Remaining: CF Zero Trust, Bot Fight Mode, Snyk Monitor (all CF/SaaS dashboard config) |
@@ -251,10 +251,12 @@ Phase 1 is **complete** (all 5 TODOs done). Phase 2 is in progress:
 - ✅ TODO-007 backend infra (VPS, Docker, Caddy, API, License, Sync, monitoring, backup)
 - ✅ TODO-009 Ktor security hardening (all 4 items done)
 - ✅ TODO-010 in-repo items (Falco rules, Falcosidekick, cloudflared)
-- **→ Next: TODO-007b — Astro marketing website** (5-day plan ready at `docs/todo/007b-astro-marketing-website.md`)
+- 🟡 TODO-007a React admin panel — ~90% done; remaining pages: reports, sync monitoring, health, config, alerts
+- 🟡 TODO-007f CF + Custom Auth — ~85% done; remaining: CSRF, auth audit log wiring, backend tests, Google OAuth Cloud Console config, CF Access bypass on VPS
+- **→ After 007a/007f completion: TODO-007b — Astro marketing website** (5-day plan ready)
 - Then: TODO-008 SEO/ASO (partially front-loaded into 007b)
 - Then: TODO-010 dashboard config items (CF Zero Trust, Snyk Monitor)
-- Later: TODO-007a React admin panel → **TODO-007f CF + Custom Auth** (auth hardening after panel exists), TODO-006 remote diagnostics
+- Later: TODO-006 remote diagnostics (requires panel WebSocket relay)
 
 ---
 
