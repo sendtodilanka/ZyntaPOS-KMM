@@ -9,6 +9,7 @@ import com.zyntasolutions.zyntapos.data.remote.dto.AuthRefreshResponseDto
 import com.zyntasolutions.zyntapos.data.remote.dto.AuthRequestDto
 import com.zyntasolutions.zyntapos.data.remote.dto.AuthResponseDto
 import com.zyntasolutions.zyntapos.data.remote.dto.ProductDto
+import com.zyntasolutions.zyntapos.data.remote.dto.PublicKeyResponseDto
 import com.zyntasolutions.zyntapos.data.remote.dto.SyncOperationDto
 import com.zyntasolutions.zyntapos.data.remote.dto.SyncPullResponseDto
 import com.zyntasolutions.zyntapos.data.remote.dto.SyncResponseDto
@@ -83,6 +84,8 @@ private class FakeApiService(
         pullCallCount++
         return pullResponse()
     }
+
+    override suspend fun fetchPublicKey(): PublicKeyResponseDto = error("Not used in sync tests")
 }
 
 /** [ApiService] that always throws [NetworkException] on any network call. */
@@ -94,6 +97,7 @@ private class OfflineApiService : ApiService {
         throw NetworkException(message = "Simulated network failure", statusCode = null)
     override suspend fun pullOperations(lastSyncTimestamp: Long): SyncPullResponseDto =
         throw NetworkException(message = "Simulated network failure", statusCode = null)
+    override suspend fun fetchPublicKey(): PublicKeyResponseDto = error("unused")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

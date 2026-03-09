@@ -50,4 +50,9 @@ object SecurePreferencesKeys {
 
     /** @see SecureStorageKeys.KEY_LAST_SYNC_TS */
     val KEY_LAST_SYNC_TS: String  get() = SecureStorageKeys.KEY_LAST_SYNC_TS
+
+    // ── RS256 public key cache ─────────────────────────────────────────────────
+
+    /** @see SecureStorageKeys.KEY_RS256_PUBLIC_KEY */
+    val KEY_RS256_PUBLIC_KEY: String get() = SecureStorageKeys.KEY_RS256_PUBLIC_KEY
 }

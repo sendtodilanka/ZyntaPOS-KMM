@@ -83,6 +83,31 @@ class JwtManager(private val prefs: TokenStorage) {
         prefs.remove(SecurePreferencesKeys.KEY_REFRESH_TOKEN)
     }
 
+    // ── RS256 public key cache ─────────────────────────────────────────────
+
+    /**
+     * Persists the server-fetched RS256 public key in [SecurePreferences].
+     *
+     * Call this after every successful online login / token refresh so the cached
+     * key stays current. [verifyOfflineRole] will prefer this key over the
+     * BuildConfig-bundled fallback, enabling key rotation without an app update (ADR-008).
+     *
+     * @param publicKeyDerBase64 Standard Base64-encoded DER (SubjectPublicKeyInfo)
+     *                           as returned by `GET /.well-known/public-key`.
+     */
+    fun cachePublicKey(publicKeyDerBase64: String) {
+        prefs.put(SecurePreferencesKeys.KEY_RS256_PUBLIC_KEY, publicKeyDerBase64)
+    }
+
+    /**
+     * Returns the server-fetched RS256 public key from [SecurePreferences], or `null`
+     * if no online login has occurred yet on this device.
+     *
+     * Callers should fall back to `BuildConfig.ZYNTA_RS256_PUBLIC_KEY` when this
+     * returns `null` to ensure offline-first behaviour on first install.
+     */
+    fun getCachedPublicKey(): String? = prefs.get(SecurePreferencesKeys.KEY_RS256_PUBLIC_KEY)
+
     // ── Token inspection ──────────────────────────────────────────────────────
 
     /**
