@@ -2,7 +2,7 @@
 
 **Phase:** 2 — Growth
 **Priority:** P0 (HIGH)
-**Status:** ✅ 100% COMPLETE — All gaps resolved including G11: CF Access verified not intercepting panel.zyntapos.com (HTTP 200 directly to ZyntaPOS SPA, no cf-access-* headers, no redirect to cloudflareaccess.com — verified 2026-03-09)
+**Status:** 🟡 ~93% COMPLETE — Backend fully done; Day 6 frontend gaps (G5, G6) resolved; G3 (auth audit log wiring for login/logout/MFA events) resolved; remaining: CSRF (G1), password max-length server-side (G2), backend tests (G8), Google Cloud Console setup (G9), VPS env vars (G10), CF Access bypass (G11)
 **Effort:** ~7 working days (1 developer)
 **Related:** TODO-007a (admin panel), TODO-009 (Ktor security hardening), TODO-010 (security monitoring)
 **Owner:** Zynta Solutions Pvt Ltd
@@ -1318,17 +1318,17 @@ and tighten rules for the custom login endpoint:
 
 | # | Gap | Severity | Location | Next Step |
 |---|-----|----------|----------|-----------|
-| G1 | ~~CSRF double-submit cookie not implemented~~ | ~~HIGH~~ | **✅ RESOLVED** — `plugins/Csrf.kt` implements double-submit cookie pattern (`XSRF-TOKEN` cookie + `X-XSRF-Token` header); login/refresh/google paths excluded; `CsrfPluginTest.kt` (6 tests) validates all scenarios | — |
-| G2 | ~~Password max 128 chars NOT enforced server-side~~ | ~~MEDIUM~~ | **✅ RESOLVED** — `AdminAuthService.MAX_PASSWORD_LENGTH = 128` enforced in `login()` with constant-time dummy verify; validation in all routes via `requireLength()`; `AdminAuthServiceTest.kt` verifies the constant | — |
-| G3 | ~~Auth events not written to admin_audit_log~~ | ~~MEDIUM~~ | **✅ RESOLVED** — `AdminAuthRoutes.kt` and `AdminAuthService.kt` log `ADMIN_LOGIN`, `ADMIN_LOGIN_FAILED`, `ADMIN_LOGIN_LOCKOUT`, `ADMIN_LOGOUT`, `ADMIN_MFA_ENABLED`, `ADMIN_MFA_DISABLED`, `ADMIN_TOKEN_REFRESHED`, `ADMIN_PASSWORD_CHANGED`, `ADMIN_SESSIONS_REVOKED` | — |
+| G1 | CSRF double-submit cookie not implemented | HIGH | Backend + Frontend | Add CSRF middleware plugin to Ktor; frontend reads cookie and sends header |
+| G2 | Password max 128 chars NOT enforced server-side | MEDIUM | AdminAuthService.kt login() | Add `require(password.length <= 128)` before bcrypt |
+| G3 | Auth events not written to admin_audit_log | MEDIUM | AdminAuthService.kt | Wire AdminAuditService.log() calls for LOGIN_SUCCESS/FAILURE/LOCKOUT |
 | G4 | Rate limiter is in-process only (not Redis-backed) | LOW | plugins/RateLimit.kt | Acceptable for single-node; revisit when scaling |
 | G5 | ~~settings/profile page not implemented~~ | ~~MEDIUM~~ | **✅ RESOLVED** — `routes/settings/profile.tsx` exists with change-password form + active sessions list with per-session revoke | — |
 | G6 | ~~UserTable missing MFA status column + revoke sessions~~ | ~~LOW~~ | **✅ RESOLVED** — `UserTable.tsx` has MFA badge (ShieldCheck/ShieldOff) and "Revoke Sessions" action in the actions menu | — |
-| G7 | ~~User list not paginated~~ | ~~LOW~~ | **✅ RESOLVED** — `GET /admin/users` supports `page`, `size`, `search`, `role`, `isActive` query params; returns `AdminPagedResponse<AdminUserResponse>` | — |
-| G8 | ~~No backend unit or integration tests~~ | ~~HIGH~~ | **✅ RESOLVED** — `AdminAuthServiceTest.kt` (11 unit tests: G2 constant, MFA pending token issuance/expiry/type-segregation, access token tamper/wrong-secret/blank/type-segregation); `CsrfPluginTest.kt` (6 integration tests); `SyncPushPullIntegrationTest.kt`; `ServerConflictResolverTest.kt`; `SyncValidatorTest.kt` | — |
-| G9 | ~~Google Cloud Console not yet configured~~ | ~~BLOCKER~~ | **✅ RESOLVED** — OAuth 2.0 Client ID created; `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` set in VPS `.env` (user confirmed 2026-03-09) | — |
-| G10 | ~~VPS .env missing Google OAuth + Admin JWT vars~~ | ~~BLOCKER~~ | **✅ RESOLVED** — `ADMIN_JWT_SECRET` (openssl rand -hex 32), `GOOGLE_ALLOWED_DOMAIN=zyntapos.com`, `ADMIN_BOOTSTRAP_EMAIL=admin@zyntapos.com` added via GitHub Actions on 2026-03-09; `cd-deploy.yml` ran successfully; VPS verify: 38 PASS 0 FAIL | — |
-| G11 | ~~CF Access bypass not done (still CF-branded login)~~ | ~~MEDIUM~~ | **✅ RESOLVED** — Verified 2026-03-09: `panel.zyntapos.com` returns HTTP 200 directly to ZyntaPOS SPA; no `cf-access-*` headers; no redirect to `cloudflareaccess.com`. CF Access is not intercepting — ZyntaPOS custom login is live. | — |
+| G7 | User list not paginated | LOW | AdminAuthRoutes.kt GET /admin/users | Add page/limit query params |
+| G8 | No backend unit or integration tests | HIGH | backend/api/src/test/ | Create test directory and test classes (Day 7) |
+| G9 | Google Cloud Console not yet configured | BLOCKER | External / manual | Create OAuth 2.0 Client ID and set redirect URIs |
+| G10 | VPS .env missing Google OAuth + Admin JWT vars | BLOCKER | VPS deployment | Add vars before first production deployment |
+| G11 | CF Access bypass not done (still CF-branded login) | MEDIUM | Cloudflare dashboard | Manual: set panel.zyntapos.com CF Access to Bypass |
 
 ---
 
