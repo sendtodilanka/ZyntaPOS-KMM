@@ -22,7 +22,7 @@ const { name, price, period, description, features, cta, ctaHref, popular = fals
 ]}>
   {badge && (
     <div class="absolute -top-4 left-1/2 -translate-x-1/2">
-      <span class="rounded-full bg-sky-500 px-4 py-1 text-xs font-bold uppercase tracking-wider text-white shadow-lg">
+      <span class="rounded-full bg-sky-700 px-4 py-1 text-xs font-bold uppercase tracking-wider text-white shadow-lg">
         {badge}
       </span>
     </div>
@@ -45,7 +45,7 @@ const { name, price, period, description, features, cta, ctaHref, popular = fals
     class:list={[
       'mt-8 block rounded-xl py-3 text-center text-sm font-semibold transition-colors',
       popular
-        ? 'bg-sky-500 text-white hover:bg-sky-400'
+        ? 'bg-sky-700 text-white hover:bg-sky-600'
         : 'border border-slate-600 text-slate-300 hover:border-sky-500 hover:text-white',
     ]}
   >
