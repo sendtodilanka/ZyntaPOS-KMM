@@ -7,6 +7,7 @@ import { SearchInput } from '@/components/shared/SearchInput';
 import { useTickets } from '@/api/tickets';
 import { useAuth } from '@/hooks/use-auth';
 import { useDebounce } from '@/hooks/use-debounce';
+import { TICKET_CATEGORY_TREE } from '@/types/ticket';
 import type { TicketStatus, TicketPriority, TicketCategory } from '@/types/ticket';
 
 export const Route = createFileRoute('/tickets/')({
@@ -87,14 +88,12 @@ function TicketsPage() {
         <select
           value={categoryFilter}
           onChange={(e) => { setCategoryFilter(e.target.value as TicketCategory | ''); setPage(0); }}
-          className="h-10 bg-surface-elevated border border-surface-border rounded-lg px-3 text-sm text-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500 min-w-[130px]"
+          className="h-10 bg-surface-elevated border border-surface-border rounded-lg px-3 text-sm text-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500 min-w-[180px]"
         >
           <option value="">All Categories</option>
-          <option value="HARDWARE">Hardware</option>
-          <option value="SOFTWARE">Software</option>
-          <option value="SYNC">Sync</option>
-          <option value="BILLING">Billing</option>
-          <option value="OTHER">Other</option>
+          {(Object.keys(TICKET_CATEGORY_TREE) as TicketCategory[]).map((cat) => (
+            <option key={cat} value={cat}>{TICKET_CATEGORY_TREE[cat].label}</option>
+          ))}
         </select>
       </div>
 
