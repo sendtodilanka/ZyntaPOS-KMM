@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.feature.settings
 
+import androidx.compose.runtime.Immutable
 import com.zyntasolutions.zyntapos.domain.model.CustomRole
 import com.zyntasolutions.zyntapos.domain.model.OrderType
 import com.zyntasolutions.zyntapos.domain.model.Permission
@@ -16,6 +17,7 @@ import kotlinx.datetime.Instant
  * Each settings sub-screen has a dedicated nested [State] class.
  * All state is observable via [SettingsViewModel.state].
  */
+@Immutable
 data class SettingsState(
     val general: GeneralState               = GeneralState(),
     val pos: PosState                       = PosState(),

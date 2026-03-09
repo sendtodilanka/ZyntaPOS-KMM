@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.feature.register
 
+import androidx.compose.runtime.Immutable
 import com.zyntasolutions.zyntapos.domain.model.CashMovement
 import com.zyntasolutions.zyntapos.domain.model.CashRegister
 import com.zyntasolutions.zyntapos.domain.model.RegisterSession
@@ -30,6 +31,7 @@ import com.zyntasolutions.zyntapos.domain.model.RegisterSession
  * @property error Transient user-visible error; null = no error.
  * @property successMessage Transient success notification; null = no message.
  */
+@Immutable
 data class RegisterState(
     // ── Session ───────────────────────────────────────────────────────────
     val activeSession: RegisterSession? = null,

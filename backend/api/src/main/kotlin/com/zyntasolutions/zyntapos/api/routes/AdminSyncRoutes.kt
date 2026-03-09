@@ -3,6 +3,7 @@ package com.zyntasolutions.zyntapos.api.routes
 import com.zyntasolutions.zyntapos.api.models.*
 import com.zyntasolutions.zyntapos.api.service.AdminAuthService
 import com.zyntasolutions.zyntapos.api.service.AdminStoresService
+import com.zyntasolutions.zyntapos.api.service.ForceSyncNotifier
 import com.zyntasolutions.zyntapos.api.service.Stores
 import com.zyntasolutions.zyntapos.api.service.SyncQueue
 import io.ktor.http.*
@@ -30,6 +31,7 @@ object StoreSyncFlags : Table("store_sync_flags") {
 
 fun Route.adminSyncRoutes() {
     val authService: AdminAuthService by inject()
+    val forceSyncNotifier: ForceSyncNotifier by inject()
 
     route("/admin/sync") {
 
@@ -163,6 +165,9 @@ fun Route.adminSyncRoutes() {
                     it[requestedBy]         = admin.id
                 }
             }
+
+            // Notify connected WebSocket devices via Redis pub/sub
+            forceSyncNotifier.publish(storeId)
 
             call.respond(
                 HttpStatusCode.OK,

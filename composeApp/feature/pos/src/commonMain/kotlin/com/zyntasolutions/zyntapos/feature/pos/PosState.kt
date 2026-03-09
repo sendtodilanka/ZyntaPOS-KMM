@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.feature.pos
 
+import androidx.compose.runtime.Immutable
 import com.zyntasolutions.zyntapos.domain.model.CartItem
 import com.zyntasolutions.zyntapos.domain.model.Category
 import com.zyntasolutions.zyntapos.domain.model.Coupon
@@ -73,6 +74,7 @@ import com.zyntasolutions.zyntapos.domain.model.Product
  * @property printError Non-null when the last print attempt failed. Cleared after the cashier
  *   acknowledges the retry dialog.
  */
+@Immutable
 data class PosState(
     val products: List<Product> = emptyList(),
     val categories: List<Category> = emptyList(),

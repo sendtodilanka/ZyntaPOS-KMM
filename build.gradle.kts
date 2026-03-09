@@ -117,3 +117,19 @@ subprojects {
         }
     }
 }
+
+// ─── Compose Compiler Stability Configuration (S-02) ──────────────────────
+// Domain model classes in :shared:domain are immutable `data class` types but
+// contain `List<T>` fields that the Compose compiler conservatively treats as
+// unstable. This global config marks all domain model package classes as stable
+// without adding a Compose dependency to :shared:domain (framework-free ADR-002).
+// Applied to every module that has the Compose Compiler plugin.
+// Config file: config/compose/stability_config.conf
+// ──────────────────────────────────────────────────────────────────────────
+subprojects {
+    pluginManager.withPlugin("org.jetbrains.kotlin.plugin.compose") {
+        extensions.configure<org.jetbrains.kotlin.compose.compiler.gradle.ComposeCompilerGradlePluginExtension> {
+            stabilityConfigurationFile.set(rootProject.file("config/compose/stability_config.conf"))
+        }
+    }
+}

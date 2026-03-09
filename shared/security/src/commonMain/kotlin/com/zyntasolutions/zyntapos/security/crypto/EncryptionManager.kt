@@ -35,7 +35,7 @@ data class EncryptedData(
  * - **Android:** AES-256-GCM via [Android Keystore][android.security.keystore.AndroidKeyStoreProvider]
  *   and [javax.crypto.Cipher]. The key is non-extractable, hardware-backed where available.
  * - **Desktop (JVM):** AES-256-GCM via [javax.crypto.Cipher] (JCE provider) with a key loaded
- *   from the PKCS12 KeyStore located at `~/.zentapos/.zyntapos.p12`.
+ *   from the PKCS12 KeyStore located at `~/.zyntapos/.zyntapos.p12`.
  *
  * Both actuals use a fresh 12-byte random IV per call and a 128-bit GCM tag.
  *

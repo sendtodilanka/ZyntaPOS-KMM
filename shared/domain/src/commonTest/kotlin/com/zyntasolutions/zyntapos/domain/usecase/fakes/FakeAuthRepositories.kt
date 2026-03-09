@@ -19,7 +19,7 @@ import kotlin.time.Clock
 fun buildUser(
     id: String = "user-01",
     name: String = "Test User",
-    email: String = "test@zentapos.com",
+    email: String = "test@zyntapos.com",
     role: Role = Role.CASHIER,
     isActive: Boolean = true,
 ) = User(id = id, name = name, email = email, role = role, storeId = "store-01",

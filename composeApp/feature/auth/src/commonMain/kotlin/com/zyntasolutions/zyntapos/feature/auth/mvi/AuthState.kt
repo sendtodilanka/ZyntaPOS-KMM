@@ -1,5 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.auth.mvi
 
+import androidx.compose.runtime.Immutable
+
 /**
  * Represents the complete UI state for the authentication flow.
  *
@@ -17,6 +19,7 @@ package com.zyntasolutions.zyntapos.feature.auth.mvi
  * @property rememberMe   Whether the "Remember Me" checkbox is checked.
  * @property error        Top-level error message (login failure, network error), or `null`.
  */
+@Immutable
 data class AuthState(
     val isLoading: Boolean = false,
     val email: String = "",

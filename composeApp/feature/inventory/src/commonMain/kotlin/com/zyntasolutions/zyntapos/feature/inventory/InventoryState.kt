@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.feature.inventory
 
+import androidx.compose.runtime.Immutable
 import com.zyntasolutions.zyntapos.domain.model.Category
 import com.zyntasolutions.zyntapos.domain.model.Product
 import com.zyntasolutions.zyntapos.domain.model.ProductVariant
@@ -41,6 +42,7 @@ import com.zyntasolutions.zyntapos.domain.model.UnitOfMeasure
  * @property error Transient user-visible error message; null = no error.
  * @property successMessage Transient success message; null = no message.
  */
+@Immutable
 data class InventoryState(
     // ── List View ──────────────────────────────────────────────────────────
     val products: List<Product> = emptyList(),

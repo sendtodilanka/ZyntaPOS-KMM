@@ -2,6 +2,7 @@ package com.zyntasolutions.zyntapos.sync
 
 import io.sentry.Sentry
 import com.zyntasolutions.zyntapos.sync.di.syncModule
+import com.zyntasolutions.zyntapos.sync.pubsub.ForceSyncSubscriber
 import com.zyntasolutions.zyntapos.sync.plugins.configureAuthentication
 import com.zyntasolutions.zyntapos.sync.plugins.configureMonitoring
 import com.zyntasolutions.zyntapos.sync.plugins.configureRateLimit
@@ -15,6 +16,7 @@ import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
+import org.koin.java.KoinJavaComponent.getKoin
 import org.koin.ktor.plugin.Koin
 import org.koin.logger.slf4jLogger
 
@@ -52,4 +54,7 @@ fun Application.module() {
     configureStatusPages()
     configureContentLengthLimit()
     configureRouting()
+
+    // Start Redis pub/sub subscriber for force-sync notifications from the API service
+    getKoin().get<ForceSyncSubscriber>().start()
 }
