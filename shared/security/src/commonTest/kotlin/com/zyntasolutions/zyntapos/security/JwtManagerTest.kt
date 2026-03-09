@@ -11,11 +11,15 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 // ─────────────────────────────────────────────────────────────────────────────
-// JwtManager Tests
+// JwtManager Tests (commonTest — claim parsing, expiry, role extraction)
 // ─────────────────────────────────────────────────────────────────────────────
 //
-// JwtManager does NOT verify signatures — it only decodes claims.
-// Tests use hand-crafted tokens with a dummy signature segment ("sig").
+// These tests cover parseJwt / isTokenExpired / extractRole / extractUserId.
+// They use hand-crafted tokens with a dummy signature segment because signature
+// verification is not the concern of these paths.
+//
+// RS256 signature verification (verifyOfflineRole) is tested separately in
+// jvmTest/VerifyOfflineRoleTest.kt, which generates a real RSA key pair.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class JwtManagerTest {
