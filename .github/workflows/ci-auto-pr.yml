@@ -148,9 +148,8 @@ jobs:
             echo ""
             echo "**What happens next:**"
             echo "Step[3+4]: CI Gate runs on this PR (full test + lint + detekt)."
-            echo "When all required status checks pass and the branch is up to date"
-            echo "with \`main\`, GitHub will automatically squash-merge and delete the"
-            echo "source branch."
+            echo "When all required status checks pass, GitHub will automatically"
+            echo "squash-merge and delete the source branch."
             echo ""
             printf "> Triggered by \`%s\` — @%s\n" \
               "${{ github.event.client_payload.sha }}" \
@@ -177,6 +176,31 @@ jobs:
         run: |
           gh pr edit "${{ steps.pr.outputs.pr_number }}" \
             --add-label "${{ steps.meta.outputs.label }}" 2>/dev/null || true
+
+      - name: Sync branch with main (prevent stale-branch conflicts)
+        if: steps.pr.outputs.already_merged != 'true'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          PR="${{ steps.pr.outputs.pr_number }}"
+          # GitHub API: merge main into the PR branch (equivalent to "Update branch" button)
+          # Returns 202 Accepted when a merge commit is queued, 204 No Content when already up to date
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X PUT \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/pulls/${PR}/update-branch" \
+            -d '{"expected_head_sha":"${{ github.event.client_payload.sha }}"}')
+          if [ "$STATUS" = "202" ]; then
+            echo "Branch sync queued — GitHub is merging main into the PR branch"
+          elif [ "$STATUS" = "204" ]; then
+            echo "Branch already up to date with main — no sync needed"
+          elif [ "$STATUS" = "422" ]; then
+            echo "::notice::Branch sync skipped (HEAD SHA mismatch — new commits pushed since dispatch)"
+          else
+            echo "::warning::Branch sync returned HTTP $STATUS — auto-merge will still proceed"
+          fi
 
       - name: Enable auto-merge (squash + delete branch)
         if: steps.pr.outputs.already_merged != 'true'
