@@ -3,8 +3,6 @@ package com.zyntasolutions.zyntapos.hal.printer
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertFalse
@@ -75,7 +73,7 @@ class PrinterManagerTest {
 
     @Test
     fun `connect transitions state to Connected on success`() = runTest {
-        val manager = PrinterManager(FakePrinterPort(), this)
+        val manager = PrinterManager(FakePrinterPort(), backgroundScope)
 
         manager.connect()
 
@@ -85,7 +83,7 @@ class PrinterManagerTest {
     @Test
     fun `connect transitions state to Error on port failure`() = runTest {
         val port = AlwaysFailPrinterPort()
-        val manager = PrinterManager(port, this)
+        val manager = PrinterManager(port, backgroundScope)
 
         manager.connect()
 
@@ -94,7 +92,7 @@ class PrinterManagerTest {
 
     @Test
     fun `connect returns success when already connected (idempotent)`() = runTest {
-        val manager = PrinterManager(FakePrinterPort(), this)
+        val manager = PrinterManager(FakePrinterPort(), backgroundScope)
         manager.connect()                   // first connect
         val result = manager.connect()      // second call — must be no-op
 
@@ -116,7 +114,7 @@ class PrinterManagerTest {
     @Test
     fun `disconnect transitions state to Disconnected`() = runTest {
         val port = FakePrinterPort()
-        val manager = PrinterManager(port, this)
+        val manager = PrinterManager(port, backgroundScope)
         manager.connect()
 
         manager.disconnect()
@@ -130,7 +128,7 @@ class PrinterManagerTest {
     @Test
     fun `print delegates to port when connected`() = runTest {
         val port = FakePrinterPort()
-        val manager = PrinterManager(port, this)
+        val manager = PrinterManager(port, backgroundScope)
         manager.connect()
 
         val commands = byteArrayOf(0x1B, 0x40)
@@ -144,7 +142,7 @@ class PrinterManagerTest {
     @Test
     fun `print enqueues commands when disconnected (no immediate failure)`() = runTest {
         val port = FakePrinterPort()
-        val manager = PrinterManager(port, this)
+        val manager = PrinterManager(port, backgroundScope)
         // Not connected — state is Disconnected
 
         val result = manager.print(byteArrayOf(0x1B, 0x40))
@@ -160,7 +158,7 @@ class PrinterManagerTest {
     @Test
     fun `openCashDrawer succeeds when port succeeds`() = runTest {
         val port = FakePrinterPort()
-        val manager = PrinterManager(port, this)
+        val manager = PrinterManager(port, backgroundScope)
         manager.connect()
 
         val result = manager.openCashDrawer()
@@ -173,7 +171,7 @@ class PrinterManagerTest {
     @Test
     fun `cutPaper succeeds when port succeeds`() = runTest {
         val port = FakePrinterPort()
-        val manager = PrinterManager(port, this)
+        val manager = PrinterManager(port, backgroundScope)
         manager.connect()
 
         val result = manager.cutPaper()
