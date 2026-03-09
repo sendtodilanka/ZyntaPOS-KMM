@@ -105,32 +105,103 @@
 }
 
 html.light {
-  --th-bg:              #ffffff;
-  --th-surface:         #f8fafc;
-  --th-surface-subtle:  #f1f5f9;
-  --th-border:          #e2e8f0;
-  --th-border-subtle:   rgba(226, 232, 240, 0.8);
-  --th-text:            #374151;
-  --th-text-secondary:  #6b7280;
-  --th-text-muted:      #9ca3af;
-  --th-heading:         #111827;
-  --th-link:            #0284c7;
-  --th-code-bg:         #e0f2fe;
-  --th-code-text:       #0369a1;
-  --th-blockquote-text: #4b5563;
-  --th-blockquote-border:#0ea5e9;
-  --th-table-head-bg:   #f1f5f9;
-  --th-table-row-alt:   rgba(241, 245, 249, 0.7);
-  --th-pre-bg:          #1e293b;
-  --nav-active-bg:      #f1f5f9;
-  --nav-active-text:    #0f172a;
-  --nav-text:           #4b5563;
-  --nav-hover-bg:       #f1f5f9;
-  --nav-hover-text:     #111827;
-  --header-bg:          rgba(255, 255, 255, 0.9);
-  --header-border:      #e2e8f0;
-  --progress-color:     #0ea5e9;
+  /* === Backgrounds — sky-blue brand canvas === */
+  --th-bg:              #f0f9ff;          /* sky-50  — brand-tinted page canvas */
+  --th-surface:         #ffffff;          /* Pure white cards float above tinted bg */
+  --th-surface-subtle:  #e0f2fe;          /* sky-100 — nested/secondary surfaces */
+
+  /* === Borders — sky-tinted === */
+  --th-border:          #bae6fd;          /* sky-200 — crisp brand-aligned borders */
+  --th-border-subtle:   rgba(186, 230, 253, 0.6); /* sky-200 at 60% opacity */
+
+  /* === Typography === */
+  --th-text:            #334155;          /* slate-700 — readable body text */
+  --th-text-secondary:  #64748b;          /* slate-500 — secondary/meta text */
+  --th-text-muted:      #94a3b8;          /* slate-400 — muted/placeholder text */
+  --th-heading:         #0c1628;          /* Deep navy — authoritative headings */
+  --th-link:            #0369a1;          /* sky-700  — accessible on light bg */
+
+  /* === Code === */
+  --th-code-bg:         #e0f2fe;          /* sky-100 — brand-tinted inline code bg */
+  --th-code-text:       #0369a1;          /* sky-700 — code text */
+  --th-blockquote-text: #475569;          /* slate-600 — blockquote body */
+  --th-blockquote-border: #0ea5e9;        /* brand-500 — consistent brand accent */
+  --th-table-head-bg:   #e0f2fe;          /* sky-100 — table header */
+  --th-table-row-alt:   rgba(224, 242, 254, 0.5); /* sky-100 at 50% — alt rows */
+  --th-pre-bg:          #0c1628;          /* Deep navy — code blocks stay dark */
+
+  /* === Navigation === */
+  --nav-active-bg:      #e0f2fe;          /* sky-100 — active item highlight */
+  --nav-active-text:    #0369a1;          /* sky-700 — active item label */
+  --nav-text:           #475569;          /* slate-600 — default nav links */
+  --nav-hover-bg:       #f0f9ff;          /* sky-50  — subtle hover fill */
+  --nav-hover-text:     #0369a1;          /* sky-700 — hovered nav label */
+
+  /* === Header === */
+  --header-bg:          rgba(255, 255, 255, 0.92); /* White with backdrop blur */
+  --header-border:      #bae6fd;          /* sky-200 — matches border system */
+
+  /* === Misc === */
+  --progress-color:     #0ea5e9;          /* brand-500 — reading progress bar */
 }
+
+/* ==============================
+   LIGHT MODE COMPONENT OVERRIDES
+   Override hardcoded dark-mode Tailwind classes when html.light is active.
+   Components use dark slate classes by default; these rules adapt them for
+   the brand-aligned light theme without touching individual template files.
+   ============================== */
+
+/* --- Backgrounds --- */
+html.light .bg-slate-900             { background-color: #f0f9ff; }            /* page-level dark → sky canvas */
+html.light .bg-slate-800             { background-color: #ffffff; }            /* card dark → white */
+html.light .bg-slate-800\/50         { background-color: rgba(255,255,255,0.95); }
+html.light .bg-slate-800\/30         { background-color: rgba(224,242,254,0.35); }
+html.light .bg-slate-700             { background-color: #e0f2fe; }            /* sky-100 */
+html.light .bg-slate-700\/60         { background-color: rgba(224,242,254,0.65); }
+html.light .bg-slate-700\/40         { background-color: rgba(224,242,254,0.45); }
+html.light .bg-slate-600             { background-color: #bae6fd; }            /* sky-200 */
+html.light .bg-slate-600\/50         { background-color: rgba(186,230,253,0.35); }
+
+/* --- Borders --- */
+html.light .border-slate-800         { border-color: #bae6fd; }
+html.light .border-slate-700         { border-color: #bae6fd; }
+html.light .border-slate-700\/50     { border-color: rgba(186,230,253,0.7); }
+html.light .border-slate-600         { border-color: #7dd3fc; }                /* sky-300 */
+html.light .border-slate-600\/40     { border-color: rgba(125,211,252,0.5); }
+html.light .border-slate-500         { border-color: #38bdf8; }                /* sky-400 */
+
+/* --- Brand accent text — adjust sky-400 for light bg readability --- */
+html.light .text-sky-400             { color: #0369a1; }                       /* sky-400 → sky-700 */
+
+/* --- Slate text — lift contrast for light backgrounds --- */
+html.light .text-slate-300           { color: #475569; }                       /* slate-600 */
+html.light .text-slate-400           { color: #64748b; }                       /* slate-500 */
+html.light .text-slate-500           { color: #64748b; }                       /* slate-500 */
+html.light .text-slate-600           { color: #94a3b8; }                       /* slate-400 — muted/excluded */
+
+/* --- Heading text-white → deep navy in light mode --- */
+html.light h1.text-white,
+html.light h2.text-white,
+html.light h3.text-white,
+html.light h4.text-white             { color: #0c1628; }
+
+/* White text inside now-light card containers → dark heading */
+html.light .bg-slate-800     .text-white,
+html.light .bg-slate-800\/50 .text-white { color: #0c1628; }
+
+/* Preserve white text on brand-coloured button/banner backgrounds */
+html.light .bg-sky-500       .text-white,
+html.light .bg-sky-600       .text-white,
+html.light a.bg-sky-500,
+html.light a.bg-sky-400                  { color: #ffffff; }
+
+/* --- Hover state overrides --- */
+html.light .hover\:bg-slate-800:hover   { background-color: #f0f9ff; }
+html.light .hover\:border-slate-500:hover { border-color: #0ea5e9; }
+
+/* Prevent white-on-white on non-popular pricing button hover */
+html.light .border-slate-600.hover\:text-white:hover { color: #0c1628; }
 
 /* ==============================
    BASE STYLES
