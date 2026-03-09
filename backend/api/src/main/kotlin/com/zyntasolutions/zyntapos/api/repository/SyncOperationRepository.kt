@@ -1,0 +1,137 @@
+package com.zyntasolutions.zyntapos.api.repository
+
+import com.zyntasolutions.zyntapos.api.models.SyncOperation
+import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.greater
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
+
+data class SyncOperationSnapshot(
+    val opId: String,
+    val deviceId: String,
+    val clientTimestamp: Long,
+    val payload: String,
+    val serverSeq: Long,
+    val status: String,
+)
+
+class SyncOperationRepository {
+
+    suspend fun insert(storeId: String, deviceId: String, op: SyncOperation, status: String = "ACCEPTED"): Long =
+        newSuspendedTransaction {
+            SyncOperations.insert {
+                it[SyncOperations.id]              = op.id
+                it[SyncOperations.storeId]         = storeId
+                it[SyncOperations.deviceId]        = deviceId
+                it[SyncOperations.entityType]      = op.entityType
+                it[SyncOperations.entityId]        = op.entityId
+                it[SyncOperations.operation]       = op.operation
+                it[SyncOperations.payload]         = op.payload
+                it[SyncOperations.clientTimestamp] = op.clientTimestamp
+                it[SyncOperations.serverTimestamp] = OffsetDateTime.now(ZoneOffset.UTC)
+                it[SyncOperations.vectorClock]     = op.vectorClock
+                it[SyncOperations.status]          = status
+            }[SyncOperations.serverSeq]
+        }
+
+    suspend fun insertWithConflict(
+        storeId: String,
+        deviceId: String,
+        op: SyncOperation,
+        conflictId: String,
+        resolvedPayload: String,
+    ): Long = newSuspendedTransaction {
+        SyncOperations.insert {
+            it[SyncOperations.id]              = op.id
+            it[SyncOperations.storeId]         = storeId
+            it[SyncOperations.deviceId]        = deviceId
+            it[SyncOperations.entityType]      = op.entityType
+            it[SyncOperations.entityId]        = op.entityId
+            it[SyncOperations.operation]       = op.operation
+            it[SyncOperations.payload]         = resolvedPayload
+            it[SyncOperations.clientTimestamp] = op.clientTimestamp
+            it[SyncOperations.serverTimestamp] = OffsetDateTime.now(ZoneOffset.UTC)
+            it[SyncOperations.vectorClock]     = op.vectorClock
+            it[SyncOperations.status]          = "CONFLICT_RESOLVED"
+            it[SyncOperations.conflictId]      = conflictId
+        }[SyncOperations.serverSeq]
+    }
+
+    suspend fun findExistingIds(ids: List<String>): Set<String> = newSuspendedTransaction {
+        if (ids.isEmpty()) return@newSuspendedTransaction emptySet()
+        SyncOperations.select(SyncOperations.id)
+            .where { SyncOperations.id inList ids }
+            .map { it[SyncOperations.id] }
+            .toSet()
+    }
+
+    suspend fun findLatestForEntity(storeId: String, entityType: String, entityId: String): SyncOperationSnapshot? =
+        newSuspendedTransaction {
+            SyncOperations.selectAll()
+                .where {
+                    (SyncOperations.storeId eq storeId) and
+                    (SyncOperations.entityType eq entityType) and
+                    (SyncOperations.entityId eq entityId) and
+                    (SyncOperations.status neq "REJECTED")
+                }
+                .orderBy(SyncOperations.serverSeq, SortOrder.DESC)
+                .limit(1)
+                .singleOrNull()
+                ?.let { row ->
+                    SyncOperationSnapshot(
+                        opId            = row[SyncOperations.id],
+                        deviceId        = row[SyncOperations.deviceId],
+                        clientTimestamp = row[SyncOperations.clientTimestamp],
+                        payload         = row[SyncOperations.payload],
+                        serverSeq       = row[SyncOperations.serverSeq],
+                        status          = row[SyncOperations.status],
+                    )
+                }
+        }
+
+    suspend fun findAfterSeq(storeId: String, afterSeq: Long, limit: Int): List<SyncOperation> =
+        newSuspendedTransaction {
+            SyncOperations.selectAll()
+                .where {
+                    (SyncOperations.storeId eq storeId) and
+                    (SyncOperations.serverSeq greater afterSeq) and
+                    (SyncOperations.status neq "REJECTED")
+                }
+                .orderBy(SyncOperations.serverSeq, SortOrder.ASC)
+                .limit(limit)
+                .map { row ->
+                    SyncOperation(
+                        id              = row[SyncOperations.id],
+                        entityType      = row[SyncOperations.entityType],
+                        entityId        = row[SyncOperations.entityId],
+                        operation       = row[SyncOperations.operation],
+                        payload         = row[SyncOperations.payload],
+                        vectorClock     = row[SyncOperations.serverSeq], // use server_seq as cursor
+                        clientTimestamp = row[SyncOperations.clientTimestamp],
+                    )
+                }
+        }
+
+    suspend fun getLatestSeq(storeId: String): Long = newSuspendedTransaction {
+        SyncOperations.select(SyncOperations.serverSeq)
+            .where { SyncOperations.storeId eq storeId }
+            .orderBy(SyncOperations.serverSeq, SortOrder.DESC)
+            .limit(1)
+            .singleOrNull()
+            ?.get(SyncOperations.serverSeq)
+            ?: 0L
+    }
+
+    suspend fun getServerTimestamp(): Long = System.currentTimeMillis()
+
+    suspend fun countPending(storeId: String): Long = newSuspendedTransaction {
+        SyncOperations.selectAll()
+            .where {
+                (SyncOperations.storeId eq storeId) and
+                (SyncOperations.status eq "ACCEPTED")
+            }
+            .count()
+    }
+}

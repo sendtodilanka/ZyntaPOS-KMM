@@ -56,10 +56,19 @@ data class SyncResponseDto(
 )
 
 /**
- * Request body for `GET /api/v1/sync/pull` — wrapped for potential future extension.
+ * Response for `GET /api/v1/sync/pull`.
+ *
+ * [cursor] (aka [serverVectorClock]) is the new cursor value to pass as `?since=` on the
+ * next pull. Replaces the old timestamp-based approach; use this value instead of
+ * [serverTimestamp] for the next pull request to guarantee monotonic ordering.
+ *
+ * [hasMore] — when true the client must issue another pull with `?since=[cursor]`
+ * until [hasMore] is false to drain the full delta.
  */
 @Serializable
 data class SyncPullResponseDto(
-    @SerialName("operations")        val operations: List<SyncOperationDto> = emptyList(),
-    @SerialName("server_timestamp")  val serverTimestamp: Long,
+    @SerialName("operations")           val operations: List<SyncOperationDto> = emptyList(),
+    @SerialName("server_timestamp")     val serverTimestamp: Long,
+    @SerialName("server_vector_clock")  val cursor: Long = serverTimestamp,
+    @SerialName("has_more")             val hasMore: Boolean = false,
 )

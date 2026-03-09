@@ -1,6 +1,8 @@
 package com.zyntasolutions.zyntapos.api.routes
 
 import com.zyntasolutions.zyntapos.api.models.*
+import com.zyntasolutions.zyntapos.api.repository.ConflictLogRepository
+import com.zyntasolutions.zyntapos.api.repository.DeadLetterRepository
 import com.zyntasolutions.zyntapos.api.service.AdminAuthService
 import com.zyntasolutions.zyntapos.api.service.AdminStoresService
 import com.zyntasolutions.zyntapos.api.service.ForceSyncNotifier
@@ -32,6 +34,8 @@ object StoreSyncFlags : Table("store_sync_flags") {
 fun Route.adminSyncRoutes() {
     val authService: AdminAuthService by inject()
     val forceSyncNotifier: ForceSyncNotifier by inject()
+    val conflictLogRepo: ConflictLogRepository by inject()
+    val deadLetterRepo: DeadLetterRepository by inject()
 
     route("/admin/sync") {
 
@@ -177,6 +181,62 @@ fun Route.adminSyncRoutes() {
                     triggeredAt      = now.toInstant().toString()
                 )
             )
+        }
+
+        // ── Conflict log endpoints ──────────────────────────────────────────
+
+        get("/conflicts") {
+            resolveAdminUser(call, authService) ?: return@get
+            val conflicts = conflictLogRepo.findAll(limit = 200)
+            call.respond(HttpStatusCode.OK, conflicts)
+        }
+
+        get("/{storeId}/conflicts") {
+            resolveAdminUser(call, authService) ?: return@get
+            val storeId = call.parameters["storeId"] ?: return@get call.respond(
+                HttpStatusCode.BadRequest, ErrorResponse("MISSING_ID", "Store ID required")
+            )
+            val conflicts = conflictLogRepo.findRecent(storeId, limit = 50)
+            call.respond(HttpStatusCode.OK, conflicts)
+        }
+
+        // ── Dead letter endpoints ────────────────────────────────────────────
+
+        get("/dead-letters") {
+            resolveAdminUser(call, authService) ?: return@get
+            val letters = deadLetterRepo.findAllPending(limit = 200)
+            call.respond(HttpStatusCode.OK, letters)
+        }
+
+        get("/{storeId}/dead-letters") {
+            resolveAdminUser(call, authService) ?: return@get
+            val storeId = call.parameters["storeId"] ?: return@get call.respond(
+                HttpStatusCode.BadRequest, ErrorResponse("MISSING_ID", "Store ID required")
+            )
+            val letters = deadLetterRepo.findPending(storeId, limit = 100)
+            call.respond(HttpStatusCode.OK, letters)
+        }
+
+        post("/dead-letters/{id}/retry") {
+            val admin = resolveAdminUser(call, authService) ?: return@post
+            val id = call.parameters["id"] ?: return@post call.respond(
+                HttpStatusCode.BadRequest, ErrorResponse("MISSING_ID", "Dead letter ID required")
+            )
+            val letter = deadLetterRepo.findById(id)
+                ?: return@post call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Dead letter not found"))
+
+            deadLetterRepo.incrementRetry(id)
+            call.respond(HttpStatusCode.OK, mapOf("id" to id, "status" to "retried"))
+        }
+
+        delete("/dead-letters/{id}") {
+            val admin = resolveAdminUser(call, authService) ?: return@delete
+            val id = call.parameters["id"] ?: return@delete call.respond(
+                HttpStatusCode.BadRequest, ErrorResponse("MISSING_ID", "Dead letter ID required")
+            )
+            deadLetterRepo.markReviewed(id, admin.email)
+            deadLetterRepo.delete(id)
+            call.respond(HttpStatusCode.OK, mapOf("id" to id, "status" to "discarded"))
         }
     }
 }
