@@ -12,6 +12,7 @@ import com.zyntasolutions.zyntapos.data.remote.dto.AuthRefreshResponseDto
 import com.zyntasolutions.zyntapos.data.remote.dto.AuthRequestDto
 import com.zyntasolutions.zyntapos.data.remote.dto.AuthResponseDto
 import com.zyntasolutions.zyntapos.data.remote.dto.ProductDto
+import com.zyntasolutions.zyntapos.data.remote.dto.PublicKeyResponseDto
 import com.zyntasolutions.zyntapos.data.remote.dto.SyncOperationDto
 import com.zyntasolutions.zyntapos.data.remote.dto.SyncPullResponseDto
 import com.zyntasolutions.zyntapos.data.remote.dto.SyncResponseDto
@@ -90,6 +91,13 @@ class KtorApiService(
             client.get("$apiRoot/sync/pull") {
                 parameter("last_sync_ts", lastSyncTimestamp)
             }
+        }
+
+    // ── Well-known ────────────────────────────────────────────────────────────
+
+    override suspend fun fetchPublicKey(): PublicKeyResponseDto =
+        safeRequest {
+            client.get("$baseUrl/.well-known/public-key")
         }
 
     // ─────────────────────────────────────────────────────────────────────────

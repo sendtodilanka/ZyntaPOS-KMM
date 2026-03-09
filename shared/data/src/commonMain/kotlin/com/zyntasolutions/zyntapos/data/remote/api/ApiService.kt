@@ -7,6 +7,7 @@ import com.zyntasolutions.zyntapos.data.remote.dto.AuthRefreshResponseDto
 import com.zyntasolutions.zyntapos.data.remote.dto.AuthRequestDto
 import com.zyntasolutions.zyntapos.data.remote.dto.AuthResponseDto
 import com.zyntasolutions.zyntapos.data.remote.dto.ProductDto
+import com.zyntasolutions.zyntapos.data.remote.dto.PublicKeyResponseDto
 import com.zyntasolutions.zyntapos.data.remote.dto.SyncOperationDto
 import com.zyntasolutions.zyntapos.data.remote.dto.SyncPullResponseDto
 import com.zyntasolutions.zyntapos.data.remote.dto.SyncResponseDto
@@ -25,6 +26,7 @@ import com.zyntasolutions.zyntapos.data.remote.dto.SyncResponseDto
  * | GET  | /api/v1/products | [getProducts] |
  * | POST | /api/v1/sync/push | [pushOperations] |
  * | GET  | /api/v1/sync/pull | [pullOperations] |
+ * | GET  | /.well-known/public-key | [fetchPublicKey] |
  */
 interface ApiService {
 
@@ -71,4 +73,18 @@ interface ApiService {
      * @throws NetworkException on transport or server errors.
      */
     suspend fun pullOperations(lastSyncTimestamp: Long): SyncPullResponseDto
+
+    /**
+     * Fetches the current RS256 public key from `GET /.well-known/public-key`.
+     *
+     * Call after every successful online login or token refresh. Pass the returned
+     * [PublicKeyResponseDto.publicKey] to
+     * [com.zyntasolutions.zyntapos.security.auth.JwtManager.cachePublicKey] so that
+     * [com.zyntasolutions.zyntapos.security.auth.JwtManager.verifyOfflineRole] uses
+     * the freshest key. This enables server-side key rotation without an app update.
+     *
+     * @return [PublicKeyResponseDto] containing the standard Base64-encoded DER key.
+     * @throws NetworkException on transport or server errors.
+     */
+    suspend fun fetchPublicKey(): PublicKeyResponseDto
 }

@@ -62,4 +62,18 @@ object SecureStorageKeys {
      * to implement incremental delta-pull.
      */
     const val KEY_LAST_SYNC_TS: String  = "sync.last_timestamp"
+
+    // ── RS256 public key cache ─────────────────────────────────────────────
+
+    /**
+     * Standard Base64-encoded DER (SubjectPublicKeyInfo) of the RS256 public key
+     * fetched from `GET /.well-known/public-key` after a successful online login.
+     *
+     * Used by [com.zyntasolutions.zyntapos.security.auth.JwtManager.verifyOfflineRole]
+     * as the primary key source, falling back to the BuildConfig-bundled key when absent.
+     *
+     * Refreshed on every successful online login so key rotation on the server
+     * propagates to devices without requiring an app update (ADR-008).
+     */
+    const val KEY_RS256_PUBLIC_KEY: String = "security.rs256_public_key"
 }

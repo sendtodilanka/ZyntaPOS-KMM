@@ -833,6 +833,7 @@ All structural decisions are documented in `docs/adr/`. Create a new ADR before 
 | ADR-005 | Single Admin Account Management — one ADMIN via `isSystemAdmin` flag; SignUp removed | ACCEPTED |
 | ADR-006 | Backend Docker Build in CI — images built by CI Gate, pushed to GHCR | ACCEPTED |
 | ADR-007 | Database-Per-Service — API uses `zyntapos_api`, License uses `zyntapos_license` | ACCEPTED |
+| ADR-008 | RS256 Key Distribution — Bundle default key + SecurePreferences cache (TOFU); `GET /.well-known/public-key` | ACCEPTED |
 
 ---
 
