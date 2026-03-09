@@ -1,5 +1,6 @@
 import { MoreHorizontal, Edit, UserX, ShieldCheck, ShieldOff, LogOut } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { DataTable, type Column } from '@/components/shared/DataTable';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { useDeactivateUser, useRevokeSessions } from '@/api/users';
@@ -39,17 +40,30 @@ export function UserTable({ data, isLoading, page, totalPages, total, onPageChan
   const [deactivateTarget, setDeactivateTarget] = useState<AdminUser | null>(null);
   const [revokeTarget, setRevokeTarget] = useState<AdminUser | null>(null);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setOpenMenu(null);
+        setMenuPos(null);
       }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  const openMenuFor = (e: React.MouseEvent<HTMLButtonElement>, id: string) => {
+    if (openMenu === id) {
+      setOpenMenu(null);
+      setMenuPos(null);
+    } else {
+      const rect = e.currentTarget.getBoundingClientRect();
+      setMenuPos({ top: rect.bottom + 4, left: rect.right - 192 });
+      setOpenMenu(id);
+    }
+  };
 
   const columns: Column<AdminUser>[] = [
     {
@@ -107,32 +121,37 @@ export function UserTable({ data, isLoading, page, totalPages, total, onPageChan
       cell: (row) => (
         <div className="relative">
           <button
-            onClick={() => setOpenMenu(openMenu === row.id ? null : row.id)}
+            onClick={(e) => openMenuFor(e, row.id)}
             className="p-1.5 rounded-md text-slate-400 hover:text-slate-100 hover:bg-surface-elevated transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
           >
             <MoreHorizontal className="w-4 h-4" />
           </button>
-          {openMenu === row.id && (
-            <div ref={menuRef} className="absolute right-0 top-full mt-1 w-48 bg-surface-card border border-surface-border rounded-lg shadow-xl z-20 py-1">
+          {openMenu === row.id && menuPos && createPortal(
+            <div
+              ref={menuRef}
+              style={{ position: 'fixed', top: menuPos.top, left: menuPos.left, zIndex: 9999 }}
+              className="w-48 bg-surface-card border border-surface-border rounded-lg shadow-xl py-1"
+            >
               <button
-                onClick={() => { setOpenMenu(null); onEdit(row); }}
+                onClick={() => { setOpenMenu(null); setMenuPos(null); onEdit(row); }}
                 className="flex items-center gap-2.5 w-full px-3 py-2.5 text-sm text-slate-300 hover:bg-surface-elevated transition-colors min-h-[44px]"
               >
                 <Edit className="w-4 h-4" /> Edit Role
               </button>
               <button
-                onClick={() => { setOpenMenu(null); setRevokeTarget(row); }}
+                onClick={() => { setOpenMenu(null); setMenuPos(null); setRevokeTarget(row); }}
                 className="flex items-center gap-2.5 w-full px-3 py-2.5 text-sm text-yellow-400 hover:bg-yellow-400/10 transition-colors min-h-[44px]"
               >
                 <LogOut className="w-4 h-4" /> Revoke Sessions
               </button>
               <button
-                onClick={() => { setOpenMenu(null); setDeactivateTarget(row); }}
+                onClick={() => { setOpenMenu(null); setMenuPos(null); setDeactivateTarget(row); }}
                 className="flex items-center gap-2.5 w-full px-3 py-2.5 text-sm text-red-400 hover:bg-red-400/10 transition-colors min-h-[44px]"
               >
                 <UserX className="w-4 h-4" /> Deactivate
               </button>
-            </div>
+            </div>,
+            document.body,
           )}
         </div>
       ),
