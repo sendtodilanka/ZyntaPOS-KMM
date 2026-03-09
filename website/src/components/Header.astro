@@ -9,7 +9,7 @@ const currentPath = Astro.url.pathname;
   class="sticky top-0 z-50 backdrop-blur-lg"
   style="background: var(--header-bg); border-bottom: 1px solid var(--header-border);"
 >
-  <nav class="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8" aria-label="Main navigation">
+  <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
     <!-- Logo -->
     <a href="/" class="flex items-center gap-2 shrink-0" aria-label="ZyntaPOS home">
       <img src="/logomark.svg" alt="" width="36" height="36" />
@@ -18,32 +18,34 @@ const currentPath = Astro.url.pathname;
       </span>
     </a>
 
-    <!-- Desktop nav -->
-    <ul class="hidden items-center gap-1 md:flex" role="list">
-      {mainNav.map((link) => {
-        const isActive = currentPath === link.href || currentPath.startsWith(link.href + '/');
-        return (
-          <li>
-            <a
-              href={link.href}
-              class="rounded-md px-3 py-2 text-sm font-medium transition-colors"
-              style={isActive
-                ? 'background: var(--nav-active-bg); color: var(--nav-active-text);'
-                : 'color: var(--nav-text);'}
-              data-nav-link
-            >
-              {link.label}
-            </a>
-          </li>
-        );
-      })}
-    </ul>
+    <!-- Desktop nav — isolated so CTA link outside is not included in nav landmark -->
+    <nav aria-label="Main navigation" class="hidden md:block">
+      <ul class="flex items-center gap-1" role="list">
+        {mainNav.map((link) => {
+          const isActive = currentPath === link.href || currentPath.startsWith(link.href + '/');
+          return (
+            <li>
+              <a
+                href={link.href}
+                class="rounded-md px-3 py-2 text-sm font-medium transition-colors"
+                style={isActive
+                  ? 'background: var(--nav-active-bg); color: var(--nav-active-text);'
+                  : 'color: var(--nav-text);'}
+                data-nav-link
+              >
+                {link.label}
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
 
-    <!-- Right side: CTA + theme toggle + mobile button -->
+    <!-- Right side actions (intentionally outside <nav> to avoid Playwright strict-mode conflicts) -->
     <div class="flex items-center gap-2">
-      <!-- Download CTA → Pricing page -->
+      <!-- Download CTA — links to /download (not /pricing) -->
       <a
-        href="/pricing"
+        href="/download"
         class="hidden rounded-lg bg-sky-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-sky-400 sm:block"
       >
         Download Free
@@ -94,7 +96,7 @@ const currentPath = Astro.url.pathname;
         </svg>
       </button>
     </div>
-  </nav>
+  </div>
 
   <!-- Mobile menu -->
   <div
@@ -120,8 +122,9 @@ const currentPath = Astro.url.pathname;
         );
       })}
       <li class="pt-2">
+        <!-- Mobile CTA → /download (distinct from Pricing nav link) -->
         <a
-          href="/pricing"
+          href="/download"
           class="block rounded-lg bg-sky-500 px-3 py-2 text-center text-base font-semibold text-white hover:bg-sky-400 transition-colors"
         >
           Download Free
