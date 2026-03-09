@@ -21,10 +21,10 @@ export default {
           950: '#082f49',
         },
         surface: {
-          DEFAULT: '#0f172a',
-          card: '#1e293b',
-          elevated: '#1a2332',
-          border: '#334155',
+          DEFAULT: 'rgb(var(--surface) / <alpha-value>)',
+          card: 'rgb(var(--surface-card) / <alpha-value>)',
+          elevated: 'rgb(var(--surface-elevated) / <alpha-value>)',
+          border: 'rgb(var(--surface-border) / <alpha-value>)',
         },
       },
       fontFamily: {

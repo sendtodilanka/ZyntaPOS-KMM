@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { useCurrentUser, useAdminStatus } from '@/api/auth';
 import { useAuth } from '@/hooks/use-auth';
+import { useUiStore } from '@/stores/ui-store';
 
 interface RouterContext {
   queryClient: QueryClient;
@@ -18,6 +19,17 @@ function RootLayout() {
   const navigate = useNavigate();
   const routerState = useRouterState();
   const pathname = routerState.location.pathname;
+  const theme = useUiStore((s) => s.theme);
+
+  // Keep <html> class in sync with persisted theme preference
+  useEffect(() => {
+    const html = document.documentElement;
+    if (theme === 'dark') {
+      html.classList.add('dark');
+    } else {
+      html.classList.remove('dark');
+    }
+  }, [theme]);
   const isLoginPage = pathname.startsWith('/login');
   const isSetupPage = pathname.startsWith('/setup');
   const isPublicPage = isLoginPage || isSetupPage;

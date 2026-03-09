@@ -584,6 +584,22 @@ private fun setAuthCookies(
 }
 
 internal fun clearAuthCookies(call: ApplicationCall) {
-    call.response.cookies.append(Cookie(ACCESS_COOKIE,  "", maxAge = 0, path = "/"))
-    call.response.cookies.append(Cookie(REFRESH_COOKIE, "", maxAge = 0, path = "/admin/auth"))
+    call.response.cookies.append(Cookie(
+        name       = ACCESS_COOKIE,
+        value      = "",
+        maxAge     = 0,
+        path       = "/",
+        httpOnly   = true,
+        secure     = true,
+        extensions = mapOf("SameSite" to "Strict"),
+    ))
+    call.response.cookies.append(Cookie(
+        name       = REFRESH_COOKIE,
+        value      = "",
+        maxAge     = 0,
+        path       = "/admin/auth",
+        httpOnly   = true,
+        secure     = true,
+        extensions = mapOf("SameSite" to "Strict"),
+    ))
 }

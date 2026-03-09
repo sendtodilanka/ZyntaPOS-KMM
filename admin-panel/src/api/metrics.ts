@@ -67,14 +67,15 @@ export function useSalesReport(params: {
   const range = params.period ? periodToDateRange(params.period) : { from: params.from ?? '', to: params.to ?? '' };
   return useQuery({
     queryKey: ['reports', 'sales', params],
-    queryFn: () => {
+    queryFn: async () => {
       const qs = new URLSearchParams({
         from: range.from,
         to: range.to,
         ...(params.storeId && { storeId: params.storeId }),
         ...(params.granularity && { granularity: params.granularity }),
       });
-      return apiClient.get(`admin/reports/sales?${qs}`).json<SalesReportRow[]>();
+      const res = await apiClient.get(`admin/reports/sales?${qs}`).json<{ data: SalesReportRow[] } | SalesReportRow[]>();
+      return Array.isArray(res) ? res : (res.data ?? []);
     },
   });
 }
@@ -89,14 +90,15 @@ export function useProductPerformance(params: {
   const range = params.period ? periodToDateRange(params.period) : { from: params.from ?? '', to: params.to ?? '' };
   return useQuery({
     queryKey: ['reports', 'products', params],
-    queryFn: () => {
+    queryFn: async () => {
       const qs = new URLSearchParams({
         from: range.from,
         to: range.to,
         ...(params.storeId && { storeId: params.storeId }),
         ...(params.limit && { limit: String(params.limit) }),
       });
-      return apiClient.get(`admin/reports/products?${qs}`).json<ProductPerformanceRow[]>();
+      const res = await apiClient.get(`admin/reports/products?${qs}`).json<{ data: ProductPerformanceRow[] } | ProductPerformanceRow[]>();
+      return Array.isArray(res) ? res : (res.data ?? []);
     },
   });
 }

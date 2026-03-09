@@ -12,10 +12,12 @@ export interface Toast {
 interface UiStore {
   sidebarCollapsed: boolean;
   mobileSidebarOpen: boolean;
+  theme: 'dark' | 'light';
   toasts: Toast[];
   toggleSidebar: () => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
   setMobileSidebarOpen: (open: boolean) => void;
+  toggleTheme: () => void;
   addToast: (toast: Omit<Toast, 'id'>) => void;
   removeToast: (id: string) => void;
 }
@@ -25,11 +27,13 @@ export const useUiStore = create<UiStore>()(
     (set) => ({
       sidebarCollapsed: false,
       mobileSidebarOpen: false,
+      theme: 'dark',
       toasts: [],
 
       toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
       setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
       setMobileSidebarOpen: (open) => set({ mobileSidebarOpen: open }),
+      toggleTheme: () => set((s) => ({ theme: s.theme === 'dark' ? 'light' : 'dark' })),
 
       addToast: (toast) =>
         set((s) => ({
@@ -44,7 +48,7 @@ export const useUiStore = create<UiStore>()(
     }),
     {
       name: 'zynta-admin-ui',
-      partialize: (s) => ({ sidebarCollapsed: s.sidebarCollapsed }),
+      partialize: (s) => ({ sidebarCollapsed: s.sidebarCollapsed, theme: s.theme }),
     },
   ),
 );

@@ -1,7 +1,9 @@
 import { useRouterState } from '@tanstack/react-router';
-import { Menu, Bell } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { Breadcrumbs } from './Breadcrumbs';
 import { UserMenu } from './UserMenu';
+import { ThemeToggle } from './ThemeToggle';
+import { NotificationsPanel } from './NotificationsPanel';
 import { useUiStore } from '@/stores/ui-store';
 import { useIsMobile } from '@/hooks/use-media-query';
 
@@ -41,13 +43,8 @@ export function Header() {
 
       {/* Right actions */}
       <div className="flex items-center gap-1 sm:gap-2">
-        <button
-          className="p-2 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-surface-elevated min-w-[44px] min-h-[44px] flex items-center justify-center relative"
-          aria-label="Notifications"
-        >
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full" />
-        </button>
+        <ThemeToggle />
+        <NotificationsPanel />
         <UserMenu />
       </div>
     </header>
