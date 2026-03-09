@@ -981,7 +981,8 @@ interface BarcodeScanner {
 | PIN | `PinManager` (object) | SHA-256 + 16-byte random salt; format `<base64url-salt>:<hex-hash>`; constant-time compare |
 | DB Key | `DatabaseKeyManager` (expect/actual) | Android: envelope encryption — DEK wrapped by non-extractable KEK in Android Keystore; Desktop: 256-bit AES key in PKCS12 KeyStore at `~/.zyntapos/.db_keystore.p12`; passphrase never written to disk in plaintext |
 | Prefs | `SecurePreferences` (expect/actual) | Android: EncryptedSharedPreferences (AES-256-SIV keys, AES-256-GCM values); JVM: AES-GCM encrypted properties file |
-| Roles | `RbacEngine` | Stateless; roles: ADMIN, MANAGER, CASHIER, CUSTOMER_SERVICE, REPORTER |
+| Roles (KMM app) | `RbacEngine` | Stateless; roles: ADMIN, MANAGER, CASHIER, CUSTOMER_SERVICE, REPORTER — these are **POS store user roles** |
+| Roles (admin panel) | `admin-panel/src/hooks/use-auth.ts` | ADMIN, OPERATOR, FINANCE, AUDITOR, HELPDESK — these are **Zynta Solutions internal staff roles** (separate system) |
 | Session | `SessionManager` | In `:composeApp:feature:auth` (NOT `:shared:security`); idle-timeout countdown, emits `AuthEffect.ShowPinLock` |
 
 ---
@@ -1058,6 +1059,11 @@ See `docs/ai_workflows/execution_log.md` for the granular task checklist.
 | Gradle commands | `gradle_commands.md` |
 | Architecture decisions | `docs/adr/ADR-NNN-*.md` |
 | Version catalog | `gradle/libs.versions.toml` |
+| **Admin panel role definitions** | `admin-panel/src/types/user.ts` — `AdminRole` type (ADMIN/OPERATOR/FINANCE/AUDITOR/HELPDESK) |
+| **Admin panel permission map (37 permissions)** | `admin-panel/src/hooks/use-auth.ts` — `PERMISSIONS` record |
+| **Admin panel auth store** | `admin-panel/src/stores/auth-store.ts` — Zustand store for `AdminUser \| null` |
+| **Admin panel API hooks** | `admin-panel/src/api/auth.ts`, `users.ts` — TanStack Query mutations |
+| **Admin panel routes** | `admin-panel/src/routes/` — login, users, tickets, settings/profile, settings/mfa |
 
 ---
 

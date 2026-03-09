@@ -19,13 +19,14 @@
 | 005 | Modern Dashboard + Nav | **100%** ✅ | Phase 1 |
 | 006 | Remote Diagnostic Access | **0%** ⬜ | Phase 2 |
 | 007 | Infrastructure & Deployment | **~75%** 🟡 | Phase 2 |
-| 007a | React Admin Panel | **0%** ⬜ (15-day plan ready) | Phase 2 |
+| 007a | React Admin Panel | **~90%** 🟡 | Phase 2 |
+| 007f | Admin Panel: CF + Custom Auth | **~85%** 🟡 | Phase 2 |
 | 007b | Astro Marketing Website | **0%** ⬜ (5-day plan ready) | Phase 2 |
 | 008 | SEO & ASO | **0%** ⬜ (8a/8b/8c/8f front-loaded into 007b) | Phase 2 |
 | 009 | Ktor Security Hardening | **100%** ✅ | Phase 2 |
 | 010 | Security Monitoring & Auto-Response | **~70%** 🟡 | Phase 2 |
 
-**Bottom line:** Phase 1 is **COMPLETE** (all 5 TODOs done). Phase 2: TODO-009 done, TODO-010 mostly done (remaining items are CF/SaaS dashboard config). Next up: TODO-007b (Astro marketing website — 5-day plan ready).
+**Bottom line:** Phase 1 is **COMPLETE** (all 5 TODOs done). Phase 2: TODO-009 done, TODO-010 mostly done (remaining items are CF/SaaS dashboard config). TODO-007a (React admin panel) ~90% done — auth, users, settings, MFA, support tickets, layout shell all live. TODO-007f (CF + Custom Auth) ~85% done — backend complete, most frontend gaps resolved. Next after 007a/007f completion: TODO-007b (Astro marketing website).
 
 ---
 
@@ -339,25 +340,21 @@ CF dashboard configuration:
 **Total effort:** ~4 weeks
 **Requires:** Design decisions (React for panel, Astro for site)
 
-#### Step 3.1 — React Admin Panel (TODO-007, item 7a) — 2–3 weeks
+#### Step 3.1 — React Admin Panel (TODO-007a + TODO-007f) — 🟡 ~90% DONE
 
-```
-zyntapos-panel/
-├── src/
-│   ├── pages/
-│   │   ├── Dashboard.tsx
-│   │   ├── Licenses.tsx
-│   │   ├── Deployments.tsx
-│   │   ├── Helpdesk.tsx
-│   │   └── Settings.tsx
-│   ├── components/
-│   ├── api/
-│   └── App.tsx
-├── package.json
-└── Dockerfile
-```
+> **Status as of 2026-03-09:** `admin-panel/` project is substantially built. Auth (login, MFA, Google SSO, RBAC), users, settings, support tickets, and layout shell are live. Custom JWT auth (HS256) replaces the original CF Access plan.
 
-Features: License CRUD, deployment health monitoring, helpdesk ticket system, sync queue viewer.
+**Remaining items (~10% left):**
+- Reports page (sales, product performance, store ranking with CSV/PDF export)
+- Sync monitoring page (per-store queue depth, force re-sync)
+- System health page (per-service status, per-store health metrics)
+- Remote config page (feature flags, tax rates, config push)
+- Alert management page (rule CRUD, notification channels, history)
+- Full test suite (Vitest component tests + Playwright E2E)
+- CI pipeline wiring (Docker build + push to GHCR)
+- CF Access bypass + VPS deployment
+
+**Already done (007f gaps):** CSRF middleware (G1), password max-length server-side (G2), auth audit log wiring (G3), backend tests (G8), Google Cloud Console (G9), VPS env vars (G10), CF bypass (G11) — these are the remaining 007f work items.
 
 #### Step 3.2 — Astro Marketing Site (TODO-007, item 7b) — 1 week
 
@@ -429,7 +426,7 @@ After site is live:
 
 | Item | Gap ID | Effort | Impact |
 |------|--------|--------|--------|
-| React admin panel | 7a | 2–3 weeks | License management, helpdesk |
+| React admin panel (remaining pages) | 7a | ~1 week | Reports, sync monitoring, health, config, alerts, tests, CI |
 | Astro marketing site | 7b | 1 week | Customer acquisition |
 | SEO/ASO | 8a–f | 1 week | Organic discovery |
 | Remote diagnostics | 6a–g | 2 weeks | Customer support efficiency |

@@ -2,17 +2,19 @@
 
 **Phase:** 2 — Growth
 **Priority:** P0 (HIGH)
-**Status:** Ready to implement
+**Status:** 🟡 ~90% IMPLEMENTED — Auth, login, users, settings, MFA, support tickets, and layout shell are done; remaining: reports, sync monitoring, health, config, alerts, full test suite, and CI pipeline update
 **Effort:** ~15 working days (3 weeks, 1 developer)
-**Related:** TODO-007 (infrastructure), TODO-006 (remote diagnostics), TODO-010 (security monitoring)
+**Related:** TODO-007 (infrastructure), TODO-006 (remote diagnostics), TODO-010 (security monitoring), TODO-007f (CF + Custom Auth)
 **Owner:** Zynta Solutions Pvt Ltd
-**Last updated:** 2026-03-06
+**Last updated:** 2026-03-09
 
 ---
 
 ## 1. Overview
 
-Build an internal admin panel for centralized management of all ZyntaPOS deployments. The panel is a standalone React SPA served at `panel.zyntapos.com`, protected by Cloudflare Zero Trust (CF Access). It communicates with the existing Ktor backend services (`api.zyntapos.com`, `license.zyntapos.com`, `sync.zyntapos.com`) and adds new admin-specific API endpoints where needed.
+Build an internal admin panel for centralized management of all ZyntaPOS deployments. The panel is a standalone React SPA served at `panel.zyntapos.com`, protected by Cloudflare (DDoS/WAF/TLS) with a custom ZyntaPOS-branded login system (see TODO-007f). It communicates with the existing Ktor backend services (`api.zyntapos.com`, `license.zyntapos.com`, `sync.zyntapos.com`) and adds new admin-specific API endpoints where needed.
+
+> **Implementation status (2026-03-09):** The `admin-panel/` project exists and is substantially built. Authentication (login page, MFA, Google SSO, auth-store, 5-role RBAC), user management, settings, and support tickets are implemented. Dashboard, license management, store management, audit log, and user pages are live. Remaining: reports, sync monitoring, system health, remote config, alerts, full test suite, and CI pipeline wiring.
 
 This is **not** part of the KMM app. It is a separate web project living at `admin-panel/` in the monorepo root, built with Vite, and deployed as a Docker container served by Caddy on the VPS.
 
@@ -29,9 +31,12 @@ This is **not** part of the KMM app. It is a separate web project living at `adm
 ### Non-Goals (deferred)
 
 - Remote diagnostic WebSocket relay (TODO-006 — depends on this panel existing)
-- Helpdesk ticket system (Phase 3)
+- Email-based invite system / password reset via email (Phase 3)
+- WebAuthn / hardware keys (Phase 3 enterprise)
 - Customer-facing self-service portal
 - i18n (English only for internal tool)
+
+> **Note:** Helpdesk ticket system was originally deferred to Phase 3 but was implemented as part of TODO-007f (HELPDESK role + `support_tickets` DB table + ticket routes). See Section 10 for the Support Tickets feature and validation checklist.
 
 ---
 
@@ -54,7 +59,7 @@ This is **not** part of the KMM app. It is a separate web project living at `adm
 | Date/Time | **date-fns** | 4.x | Tree-shakable, immutable, no global state (unlike Moment/Day.js) |
 | PDF Export | **@react-pdf/renderer** | 4.x | React component-based PDF generation |
 | CSV Export | **papaparse** | 5.x | Fast CSV serialization with streaming support |
-| Auth | **Cloudflare Access JWT** | N/A | Zero Trust authentication — no custom auth UI needed |
+| Auth | **Custom JWT (HS256)** | N/A | ZyntaPOS-branded login + custom JWT + MFA + Google SSO (TODO-007f). CF Access replaced. |
 | Testing | **Vitest** + **Testing Library** | latest | Vite-native test runner, component testing with RTL |
 | E2E Testing | **Playwright** | latest | Cross-browser E2E, CI-friendly |
 | Linting | **ESLint 9** + **Prettier** | latest | Flat config, consistent formatting |
@@ -95,11 +100,15 @@ admin-panel/
 │   │   ├── utils.ts                   # cn(), formatCurrency(), etc.
 │   │   └── export.ts                  # CSV/PDF export helpers
 │   ├── hooks/
-│   │   ├── use-auth.ts                # CF Access JWT decoding, role check
-│   │   ├── use-debounce.ts            # Debounced value hook
-│   │   └── use-media-query.ts         # Responsive breakpoint hook
+│   │   ├── use-auth.ts                # Auth-store reader + 37-permission hasPermission() helper ✅
+│   │   ├── use-debounce.ts            # Debounced value hook ✅
+│   │   ├── use-timezone.ts            # Timezone-aware date formatting ✅
+│   │   ├── use-media-query.ts         # Responsive breakpoint hook
+│   │   └── use-keyboard.ts            # Keyboard shortcuts (/, Escape, Ctrl+K) — Day 15
 │   ├── stores/
-│   │   ├── ui-store.ts                # Sidebar collapsed, theme, toasts
+│   │   ├── auth-store.ts              # Zustand: AdminUser | null, isLoading, setUser/clearUser ✅
+│   │   ├── timezone-store.ts          # Persisted display timezone preference ✅
+│   │   ├── ui-store.ts                # Sidebar collapsed, theme, toasts ✅
 │   │   └── filter-store.ts            # Persisted filter state per page
 │   ├── types/
 │   │   ├── license.ts                 # License, Device, LicenseStatus types
@@ -112,9 +121,10 @@ admin-panel/
 │   │   ├── alert.ts                   # Alert, AlertRule, NotificationChannel types
 │   │   └── api.ts                     # PagedResponse<T>, ErrorResponse, etc.
 │   ├── api/                           # TanStack Query hooks per domain
+│   │   ├── auth.ts                    # useCurrentUser, useAdminLogin, useAdminMfaVerify, useAdminMfaSetup, useChangePassword, useListSessions ✅
 │   │   ├── licenses.ts                # useLicenses, useCreateLicense, etc.
 │   │   ├── stores.ts                  # useStores, useStoreHealth, etc.
-│   │   ├── users.ts                   # useAdminUsers, useCreateUser, etc.
+│   │   ├── users.ts                   # useAdminUsers, useCreateUser, useUpdateUser, useDeactivateUser, useRevokeSessions ✅
 │   │   ├── audit.ts                   # useAuditLogs, useAuditExport, etc.
 │   │   ├── sync.ts                    # useSyncStatus, useForceSync, etc.
 │   │   ├── metrics.ts                 # useDashboardKPIs, useSalesChart, etc.
@@ -157,10 +167,21 @@ admin-panel/
 │   │   │   ├── StoreDetailPanel.tsx   # Store detail: config, devices, sync
 │   │   │   ├── StoreConfigForm.tsx    # Edit store-level configuration
 │   │   │   └── StoreHealthCard.tsx    # Health metrics card per store
+│   │   ├── auth/
+│   │   │   ├── LoginForm.tsx          # Email/password form with show/hide ✅
+│   │   │   ├── MfaVerifyForm.tsx      # 6-digit TOTP input step ✅
+│   │   │   └── ProtectedRoute.tsx     # Redirects to /login when not authenticated ✅
 │   │   ├── users/
-│   │   │   ├── UserTable.tsx          # Admin user list
-│   │   │   ├── UserCreateForm.tsx     # Create/edit admin user dialog
-│   │   │   └── RoleAssignment.tsx     # Role picker component
+│   │   │   ├── UserTable.tsx          # Admin user list + MFA badge + revoke sessions action ✅
+│   │   │   ├── UserCreateForm.tsx     # Create/edit admin user dialog ✅
+│   │   │   └── RoleAssignment.tsx     # Role picker (ADMIN/OPERATOR/FINANCE/AUDITOR/HELPDESK) ✅
+│   │   ├── tickets/
+│   │   │   ├── TicketTable.tsx        # Support ticket list with status/priority badges ✅
+│   │   │   ├── TicketCreateModal.tsx  # Create ticket dialog ✅
+│   │   │   ├── TicketStatusBadge.tsx  # OPEN/ASSIGNED/IN_PROGRESS/RESOLVED/CLOSED badge ✅
+│   │   │   ├── TicketAssignModal.tsx  # Assign to OPERATOR dialog ✅
+│   │   │   ├── TicketResolveModal.tsx # Resolve with notes + time_spent_min ✅
+│   │   │   └── TicketCommentThread.tsx # Comment thread with internal/external toggle ✅
 │   │   ├── audit/
 │   │   │   ├── AuditLogTable.tsx      # Paginated audit log with filters
 │   │   │   ├── AuditFilterPanel.tsx   # Filter sidebar (date, event type, user, store)
@@ -180,6 +201,7 @@ admin-panel/
 │   │       └── NotificationChannelForm.tsx  # Slack/email/webhook config
 │   ├── routes/                        # TanStack Router file-based routes
 │   │   ├── __root.tsx                 # Root layout (AppShell)
+│   │   ├── login.tsx                  # Custom login page (email/password + MFA + Google SSO) ✅
 │   │   ├── index.tsx                  # Dashboard (/)
 │   │   ├── licenses/
 │   │   │   ├── index.tsx              # License list (/licenses)
@@ -188,7 +210,10 @@ admin-panel/
 │   │   │   ├── index.tsx              # Store list (/stores)
 │   │   │   └── $storeId.tsx           # Store detail (/stores/:id)
 │   │   ├── users/
-│   │   │   └── index.tsx              # User management (/users)
+│   │   │   └── index.tsx              # Admin user management (/users) ✅
+│   │   ├── tickets/
+│   │   │   ├── index.tsx              # Support ticket list (/tickets) ✅
+│   │   │   └── $ticketId.tsx          # Ticket detail (/tickets/:id) ✅
 │   │   ├── audit/
 │   │   │   └── index.tsx              # Audit log (/audit)
 │   │   ├── sync/
@@ -199,8 +224,12 @@ admin-panel/
 │   │   │   └── index.tsx              # Cross-store reports (/reports)
 │   │   ├── health/
 │   │   │   └── index.tsx              # System health (/health)
-│   │   └── alerts/
-│   │       └── index.tsx              # Alert management (/alerts)
+│   │   ├── alerts/
+│   │   │   └── index.tsx              # Alert management (/alerts)
+│   │   └── settings/
+│   │       ├── index.tsx              # Preferences (timezone) ✅
+│   │       ├── profile.tsx            # Change password + active sessions ✅
+│   │       └── mfa.tsx                # MFA setup/disable (TOTP + backup codes) ✅
 │   └── test/
 │       ├── setup.ts                   # Vitest setup (RTL matchers)
 │       ├── mocks/
@@ -213,52 +242,69 @@ admin-panel/
 
 ## 4. Authentication & Authorization
 
-### 4.1 Cloudflare Access (Zero Trust)
+> **✅ IMPLEMENTED** — Full auth system is live. See TODO-007f for the complete architecture, DB schema, and implementation details.
 
-The panel is protected by Cloudflare Access. No custom login page is needed.
+### 4.1 CF + Custom Hybrid Auth (Implemented)
 
-**Flow:**
-1. User navigates to `panel.zyntapos.com`
-2. Cloudflare Access intercepts, presents OTP login (email: `*@zyntapos.com`)
-3. On success, Cloudflare sets `CF_Authorization` cookie containing a signed JWT
-4. The React app reads the JWT to extract user identity (`email`, `name`)
-5. All API requests include the `CF_Authorization` cookie (same-origin via Caddy proxy)
+Cloudflare handles network-level security (DDoS, WAF, TLS) while a custom ZyntaPOS-branded login system manages identity and access management. The original plan of using CF Access for identity was superseded by TODO-007f.
 
-**JWT validation:** The panel itself does NOT validate the JWT signature (Cloudflare does that at the edge). It only decodes the payload for display purposes. The backend API validates the JWT using Cloudflare's public key endpoint (`https://<team>.cloudflareaccess.com/cdn-cgi/access/certs`).
+**Login flow:**
+1. User navigates to `panel.zyntapos.com/login` — ZyntaPOS-branded login page (not CF Access)
+2. Email + password → `POST /admin/auth/login` → backend issues HS256 JWT (15-min access) + opaque refresh token (7-day, single-use rotation)
+3. Both tokens stored as `httpOnly; Secure; SameSite=Strict` cookies
+4. MFA required? → `POST /admin/auth/mfa/verify` with TOTP code from authenticator app
+5. Google SSO? → `GET /admin/auth/google` → server-side redirect flow, `@zyntapos.com` domain enforced
+6. All API calls use `credentials: 'include'` — cookies sent automatically, no `Authorization` header needed
 
-### 4.2 Backend Admin Authentication
+**Token architecture:** Access token (HS256 JWT, 15 min, payload contains `sub`, `email`, `name`, `role`, `mfa`) + opaque refresh token (7-day, SHA-256-hashed in `admin_sessions` table, single-use rotation).
 
-New admin-specific API endpoints require a separate admin JWT (not the POS app JWT). The flow:
+### 4.2 Auth State Management (Implemented)
 
-1. CF Access JWT is validated at the Caddy/API layer
-2. The API issues a short-lived admin session token scoped to `role: ADMIN`
-3. All admin API calls include `Authorization: Bearer <admin-token>`
-4. Admin tokens have a 1-hour TTL, auto-refreshed by the API client interceptor
+Auth state is managed by Zustand (`src/stores/auth-store.ts`). On app load, `GET /admin/auth/me` is called to hydrate the user from the access token. On 401, the API client automatically calls `POST /admin/auth/refresh` and retries. On refresh failure, the user is redirected to `/login`.
 
-### 4.3 Role-Based Access
+```
+App loads → GET /admin/auth/me
+  ├── 200 → setUser(adminUser), show protected content
+  ├── 401 → POST /admin/auth/refresh → success → retry /me
+  └── 401 (no refresh) → redirect to /login
+```
 
-| Role | Permissions |
-|------|-------------|
-| `ADMIN` | Full access to all panel features |
-| `SUPPORT` | Read-only access + force sync + view audit logs (no license create/revoke) |
-| `VIEWER` | Read-only access to dashboards and reports |
+### 4.3 Role-Based Access Control — 5 Roles, 37 Permissions (Implemented)
 
-Roles are checked client-side for UI gating and server-side for enforcement.
+| Role | Description | Key Permissions |
+|------|-------------|-----------------|
+| `ADMIN` | Full access to all panel features | All 37 permissions |
+| `OPERATOR` | Store ops, sync, diagnostics, support tickets | `dashboard:ops`, `store:*`, `sync:*`, `diagnostics:*`, `tickets:*`, `alerts:read` |
+| `FINANCE` | Financial reports and license exports | `dashboard:financial`, `license:read/export`, `reports:financial/export` |
+| `AUDITOR` | Read-only compliance view | `license:read`, `reports:read`, `audit:read/export` |
+| `HELPDESK` | Customer-facing support and ticket management | `dashboard:support`, `store:read`, `diagnostics:read`, `tickets:*`, `reports:support` |
+
+Permission strings follow a `resource:action` convention (e.g., `license:revoke`, `audit:export`, `tickets:resolve`). The full 37-permission map is defined in `src/hooks/use-auth.ts`.
+
+Roles are enforced **client-side** (sidebar items, action buttons hidden via `hasPermission()`) and **server-side** (Ktor middleware returns 403 for unauthorized calls).
 
 ```typescript
-// src/hooks/use-auth.ts
-interface AdminUser {
+// src/types/user.ts — actual implementation
+export type AdminRole = 'ADMIN' | 'OPERATOR' | 'FINANCE' | 'AUDITOR' | 'HELPDESK';
+
+export interface AdminUser {
+  id: string;
   email: string;
   name: string;
-  role: 'ADMIN' | 'SUPPORT' | 'VIEWER';
-  avatarUrl?: string;
+  role: AdminRole;
+  mfaEnabled: boolean;
+  isActive: boolean;
+  lastLoginAt: number | null;   // epoch-ms
+  createdAt: number;            // epoch-ms
 }
 
+// src/hooks/use-auth.ts — actual implementation
 function useAuth(): {
   user: AdminUser | null;
+  isLoading: boolean;
   isAuthenticated: boolean;
   hasPermission: (permission: string) => boolean;
-  signOut: () => void;
+  isAdmin: boolean;
 }
 ```
 
@@ -385,7 +431,7 @@ export default {
 
 ---
 
-#### Day 1 — Project Scaffolding & Infrastructure
+#### Day 1 — Project Scaffolding & Infrastructure ✅ COMPLETE
 
 | # | Task | Files | Details |
 |---|------|-------|---------|
@@ -401,11 +447,11 @@ export default {
 | 1.10 | Create `.env.example` and `.nvmrc` | `.env.example`, `.nvmrc` | `VITE_API_URL`, `VITE_LICENSE_URL`, `VITE_SYNC_URL` |
 | 1.11 | Create Dockerfile | `Dockerfile`, `nginx.conf` | Multi-stage: `node:22-alpine` build stage, `nginx:alpine` serve stage, SPA fallback, security headers, gzip |
 
-**Deliverable:** `npm run dev` serves a blank app with routing, API client configured, Tailwind working.
+**Deliverable:** ✅ `npm run dev` serves a blank app with routing, API client configured, Tailwind working.
 
 ---
 
-#### Day 2 — Layout Shell & Navigation
+#### Day 2 — Layout Shell & Navigation ✅ COMPLETE
 
 | # | Task | Files | Details |
 |---|------|-------|---------|
@@ -413,14 +459,14 @@ export default {
 | 2.2 | Build Sidebar component | `src/components/layout/Sidebar.tsx` | Route groups: Overview (Dashboard), Management (Licenses, Stores, Users), Monitoring (Sync, Health, Alerts), Intelligence (Audit, Reports, Config). Active route highlight, collapse toggle. |
 | 2.3 | Build Header component | `src/components/layout/Header.tsx` | Breadcrumbs left, notification bell + user menu right |
 | 2.4 | Build Breadcrumbs component | `src/components/layout/Breadcrumbs.tsx` | Auto-generated from TanStack Router context |
-| 2.5 | Build UserMenu component | `src/components/layout/UserMenu.tsx` | CF Access email display, role badge, sign out action |
+| 2.5 | Build UserMenu component | `src/components/layout/UserMenu.tsx` | Custom JWT user display (name, email, role badge from auth-store), sign out action. CF Access display was replaced by custom auth. ✅ |
 | 2.6 | Create Zustand UI store | `src/stores/ui-store.ts` | `sidebarCollapsed`, `theme` (always dark for v1), toast queue |
-| 2.7 | Create auth hook | `src/hooks/use-auth.ts` | Decode `CF_Authorization` cookie JWT, extract email/name, provide `hasPermission()` helper |
+| 2.7 | Create auth hook | `src/hooks/use-auth.ts` | Reads `AdminUser` from `auth-store`; provides `hasPermission()` backed by 37-permission role map (ADMIN/OPERATOR/FINANCE/AUDITOR/HELPDESK). CF_Authorization cookie approach was replaced by custom JWT auth (TODO-007f). ✅ |
 | 2.8 | Wire root layout | `src/routes/__root.tsx` | Wrap with QueryClientProvider, render AppShell |
 | 2.9 | Create shared utility components | `src/components/shared/LoadingState.tsx`, `EmptyState.tsx`, `ErrorBoundary.tsx` | Skeleton loader, "No data" placeholder, error boundary with retry |
 | 2.10 | Build StatusBadge component | `src/components/shared/StatusBadge.tsx` | Color-coded pill: green=ACTIVE, yellow=EXPIRING_SOON, red=EXPIRED/REVOKED, gray=SUSPENDED |
 
-**Deliverable:** Full layout shell with working navigation between stub pages, sidebar collapse, breadcrumbs.
+**Deliverable:** ✅ Full layout shell with working navigation between stub pages, sidebar collapse, breadcrumbs.
 
 ---
 
@@ -479,17 +525,51 @@ export default {
 
 ---
 
-#### Day 6 — User Management
+#### Day 6 — User Management ✅ COMPLETE
 
 | # | Task | Files | Details |
 |---|------|-------|---------|
-| 6.1 | Create user API hooks | `src/api/users.ts` | `useAdminUsers(filters)`, `useCreateUser()`, `useUpdateUser()`, `useDeactivateUser()` |
-| 6.2 | Build UserTable | `src/components/users/UserTable.tsx` | Columns: Name, Email, Role (badge), Store, Status, Last Login, Actions (Edit/Deactivate) |
-| 6.3 | Build UserCreateForm | `src/components/users/UserCreateForm.tsx` | Dialog form: username, email, password (generate or manual), role select, store assignment. Zod validation. |
-| 6.4 | Build RoleAssignment | `src/components/users/RoleAssignment.tsx` | Role picker with permission preview. Roles: ADMIN, MANAGER, CASHIER, CUSTOMER_SERVICE, REPORTER (matches KMM RBAC). |
-| 6.5 | Wire user route | `src/routes/users/index.tsx` | User list with role/store filters, create dialog, edit inline |
+| 6.1 | Create user API hooks | `src/api/users.ts` | `useAdminUsers(filters)`, `useCreateUser()`, `useUpdateUser()`, `useDeactivateUser()`, `useRevokeSessions()` ✅ |
+| 6.2 | Build UserTable | `src/components/users/UserTable.tsx` | Columns: Name, Email, Role (badge), MFA status, Active/Inactive, Last Login. Actions: Edit Role, Revoke Sessions, Deactivate. ✅ |
+| 6.3 | Build UserCreateForm | `src/components/users/UserCreateForm.tsx` | Dialog form: email, name, password, role select (admin panel roles). Edit mode: role only. Zod validation. ✅ |
+| 6.4 | Build RoleAssignment | `src/components/users/RoleAssignment.tsx` | Role picker for admin panel roles: ADMIN, OPERATOR, FINANCE, AUDITOR, HELPDESK — each with color-coded border, label, and description. ✅ |
+| 6.5 | Wire user route | `src/routes/users/index.tsx` | User list with role/status filters + debounced search, create dialog, edit inline. ✅ |
 
-**Deliverable:** Full user CRUD with role assignment and store scoping.
+**Deliverable:** ✅ Full user CRUD with role assignment, MFA status column, revoke sessions, and deactivate.
+
+---
+
+#### Day 6b — Support Tickets (HELPDESK Role) ✅ COMPLETE
+
+> **Note:** Originally deferred to Phase 3. Implemented as part of TODO-007f (HELPDESK role + `support_tickets` DB table). Full ticket lifecycle: OPEN → ASSIGNED → IN_PROGRESS → PENDING_CUSTOMER → RESOLVED → CLOSED.
+
+| # | Task | Files | Status |
+|---|------|-------|--------|
+| 6b.1 | Backend: V6 migration + ticket tables | `backend/api/src/main/resources/db/migration/V6__helpdesk_tickets.sql` | ✅ `support_tickets`, `ticket_comments`, `ticket_attachments` |
+| 6b.2 | Backend: AdminTicketRoutes.kt + AdminTicketService.kt | `backend/api/src/main/kotlin/.../routes/AdminTicketRoutes.kt` | ✅ Full CRUD + status transitions + comment thread |
+| 6b.3 | Frontend: Ticket list route | `src/routes/tickets/index.tsx` | ✅ Paginated list, status/priority filters |
+| 6b.4 | Frontend: Ticket detail route | `src/routes/tickets/$ticketId.tsx` | ✅ Full timeline, comments, assignment, resolve |
+| 6b.5 | Frontend: TicketCreateModal | `src/components/tickets/TicketCreateModal.tsx` | ✅ Category, priority, description, store/license link |
+| 6b.6 | Frontend: TicketStatusBadge | `src/components/tickets/TicketStatusBadge.tsx` | ✅ Color-coded: OPEN/ASSIGNED/IN_PROGRESS/RESOLVED/CLOSED |
+| 6b.7 | Frontend: TicketAssignModal | `src/components/tickets/TicketAssignModal.tsx` | ✅ Assign to OPERATOR/ADMIN |
+| 6b.8 | Frontend: TicketResolveModal | `src/components/tickets/TicketResolveModal.tsx` | ✅ Resolution note + time_spent_min |
+| 6b.9 | Frontend: TicketCommentThread | `src/components/tickets/TicketCommentThread.tsx` | ✅ Internal/external toggle |
+| 6b.10 | Sidebar RBAC: tickets nav item | `src/components/layout/Sidebar.tsx` | Requires `tickets:read` permission → visible to ADMIN, OPERATOR, HELPDESK |
+
+**SLA rules (enforced at application layer):**
+- CRITICAL → response 1h, resolution 4h
+- HIGH → response 4h, resolution 24h
+- MEDIUM → response 8h, resolution 48h
+- LOW → response 24h, resolution 72h
+
+**Validation checklist:**
+- [ ] HELPDESK can create ticket → `TKT-YYYY-NNNNNN` auto-generated
+- [ ] HELPDESK assigns to OPERATOR → status becomes ASSIGNED
+- [ ] OPERATOR sets IN_PROGRESS → HELPDESK sees update
+- [ ] OPERATOR marks RESOLVED (with resolution_note + time_spent_min) → HELPDESK can now mark CLOSED
+- [ ] HELPDESK cannot mark CLOSED before OPERATOR resolves → 422
+- [ ] Internal comment (is_internal=true) → hidden from customer-facing view
+- [ ] FINANCE/AUDITOR cannot access /admin/tickets API → 403
 
 ---
 
@@ -632,12 +712,12 @@ export default {
 | 15.4 | Keyboard shortcuts | `src/hooks/use-keyboard.ts` | `/` focus search, `Escape` close dialogs, `Ctrl+K` command palette (stretch goal) |
 | 15.5 | Dark theme fine-tuning | `src/globals.css` | Ensure all components work in dark theme, proper contrast ratios (WCAG AA) |
 | 15.6 | Deploy to VPS | VPS SSH | Pull latest images, `docker compose up -d`, verify `panel.zyntapos.com` loads |
-| 15.7 | Configure Cloudflare Access | CF Zero Trust dashboard | Create Access Application for `panel.zyntapos.com`, policy: Allow `*@zyntapos.com` |
-| 15.8 | Verify end-to-end | Manual testing | Login via CF Access, navigate all pages, create/revoke license, view audit logs, export report |
+| 15.7 | Cloudflare Access bypass | CF Zero Trust dashboard | Set `panel.zyntapos.com` CF Access Application to "Bypass" mode — custom `/login` page takes over identity management |
+| 15.8 | Verify end-to-end | Manual testing | Login via custom `/login` page, navigate all pages, create/revoke license, view audit logs, export report |
 | 15.9 | Update execution plan | `docs/todo/000-execution-plan.md` | Mark 007a as complete, update Phase 2 status |
 | 15.10 | Update gap analysis | `docs/todo/GAP-ANALYSIS-AND-FILL-PLAN.md` | Mark 7a as done |
 
-**Deliverable:** Production-ready admin panel live at `panel.zyntapos.com` behind CF Access.
+**Deliverable:** Production-ready admin panel live at `panel.zyntapos.com` behind Cloudflare WAF + custom JWT auth.
 
 ---
 
@@ -831,40 +911,29 @@ backend/license/src/main/kotlin/com/zyntasolutions/zyntapos/license/service/Admi
 backend/license/src/main/kotlin/com/zyntasolutions/zyntapos/license/models/AdminModels.kt
 ```
 
-### 10.2 Admin Authentication Guard
+### 10.2 Admin Authentication Guard (Implemented — see TODO-007f)
 
-All `/admin/*` routes require a middleware that:
-1. Validates the CF Access JWT (via Cloudflare's public key)
-2. Checks the user email is in the admin allowlist
-3. Injects admin context into the request
+All `/admin/*` routes require a middleware that validates the custom HS256 JWT issued by `/admin/auth/login`. The CF Access JWT validation approach was superseded by TODO-007f's custom auth system.
 
-```kotlin
-// backend/common/src/main/kotlin/.../auth/AdminAuthGuard.kt
-fun Route.adminAuth(block: Route.() -> Unit) {
-    authenticate("cf-access") {
-        // Verify email is in admin allowlist
-        // Inject AdminPrincipal
-        block()
-    }
-}
-```
+The guard:
+1. Reads the `access_token` httpOnly cookie
+2. Verifies HS256 signature using `ADMIN_JWT_SECRET`
+3. Checks `exp` claim and rejects expired tokens with 401
+4. Injects `AdminPrincipal(userId, email, role)` into the call context
+5. Role-based access enforced per-route using `AdminRole` enum (ADMIN/OPERATOR/FINANCE/AUDITOR/HELPDESK)
 
-### 10.3 Database Migrations
+See `AdminAuthRoutes.kt` in the backend for the full implementation (TODO-007f, Day 1).
 
-New tables needed in `zyntapos_api`:
+### 10.3 Database Migrations (Auth tables implemented in V5/V6 — see TODO-007f)
+
+The `admin_users`, `admin_sessions`, and `admin_mfa_backup_codes` tables were created in **V5__admin_auth.sql** (TODO-007f, Day 1). The `support_tickets` and `ticket_comments` tables were created in **V6__helpdesk_tickets.sql** (TODO-007f HELPDESK extension).
+
+Additional tables still needed for the remaining panel features (config, alerts) — to be added in `zyntapos_api`:
 
 ```sql
--- V3__admin_tables.sql
-
-CREATE TABLE admin_users (
-    id TEXT PRIMARY KEY,
-    email TEXT NOT NULL UNIQUE,
-    name TEXT NOT NULL,
-    role TEXT NOT NULL DEFAULT 'VIEWER',
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+-- V7__panel_config_alerts.sql  (TODO)
+-- NOTE: admin_users table already exists from V5 with role CHECK constraint:
+--   role TEXT NOT NULL CHECK (role IN ('ADMIN','OPERATOR','FINANCE','AUDITOR','HELPDESK'))
 
 CREATE TABLE remote_configs (
     id TEXT PRIMARY KEY,
@@ -956,8 +1025,8 @@ CREATE TABLE notification_channels (
 
 ### Non-Functional Requirements
 
-- [ ] Authentication via Cloudflare Access (no custom login page)
-- [ ] All API calls authenticated with admin JWT
+- [x] Custom login page at `/login` (ZyntaPOS-branded, not CF Access) ✅
+- [x] All API calls authenticated with custom HS256 JWT (httpOnly cookies) ✅
 - [ ] Responsive layout (works at 1024px+ for admin use)
 - [ ] Dark theme consistent with ZyntaPOS brand
 - [ ] Loading skeletons on every page
@@ -966,15 +1035,16 @@ CREATE TABLE notification_channels (
 - [ ] E2E smoke tests passing (Playwright)
 - [ ] Docker image builds and runs successfully
 - [ ] CI pipeline: lint + type-check + test + build on every PR
-- [ ] Deployed at `panel.zyntapos.com` behind CF Access
+- [ ] Deployed at `panel.zyntapos.com` behind Cloudflare WAF + custom auth
 - [ ] Caddyfile updated from canary to real panel service
+- [ ] CF Access Application set to "Bypass" (custom login handles identity)
 
 ### Infrastructure Requirements
 
 - [ ] `panel` service added to `docker-compose.yml` with security hardening
 - [ ] CI builds Docker image and pushes to GHCR
 - [ ] Cloudflare Access Application created for `panel.zyntapos.com`
-- [ ] Admin API routes protected by CF Access JWT validation
+- [x] Admin API routes protected by custom JWT validation (AdminAuthGuard, HS256) ✅
 - [ ] Database migrations applied for admin tables
 
 ---
@@ -1057,24 +1127,28 @@ TODO-007 (Infrastructure)
 
 ---
 
-## Appendix C: Admin API Authentication Flow
+## Appendix C: Admin API Authentication Flow (Implemented — see TODO-007f)
 
 ```
-Browser → panel.zyntapos.com
+Browser → panel.zyntapos.com/login (ZyntaPOS branded login page)
    │
-   ├── Cloudflare Access (edge)
-   │   └── OTP to @zyntapos.com
-   │   └── Sets CF_Authorization cookie (signed JWT)
+   ├── Cloudflare (DDoS/WAF/TLS — network security only; identity bypassed)
    │
    ├── Caddy (reverse proxy)
-   │   └── Routes /api/* to api:8080
-   │   └── Routes /license-api/* to license:8083
+   │   └── Routes /admin/auth/* to api:8080
+   │   └── Routes /admin/* to api:8080 (with JWT guard)
    │
-   └── Ktor Backend
-       └── AdminAuthGuard middleware
-           └── Validates CF Access JWT signature
-           └── Checks email in admin allowlist
-           └── Returns admin-scoped data
+   ├── Custom Login System (Ktor backend — TODO-007f)
+   │   ├── POST /admin/auth/login → bcrypt verify → issue HS256 JWT + refresh token
+   │   ├── POST /admin/auth/mfa/verify → TOTP check → issue full tokens
+   │   ├── GET  /admin/auth/google → Google OAuth redirect (@zyntapos.com enforced)
+   │   ├── POST /admin/auth/refresh → rotate refresh token
+   │   └── POST /admin/auth/logout → clear cookies
+   │
+   └── AdminAuthGuard middleware
+       └── Validates HS256 JWT from httpOnly cookie
+       └── Injects AdminPrincipal(userId, email, role)
+       └── Role-based access: ADMIN/OPERATOR/FINANCE/AUDITOR/HELPDESK
 ```
 
-No custom login page. No password management. Cloudflare handles all authentication. The backend only needs to verify the CF Access JWT and check authorization.
+ZyntaPOS-branded login page. Custom password + MFA + Google SSO. Cloudflare handles DDoS/WAF/TLS only.
