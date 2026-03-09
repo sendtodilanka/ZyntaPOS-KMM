@@ -4,6 +4,50 @@ This file gives AI assistants the context needed to work effectively in this cod
 
 ---
 
+## 🔴 CRITICAL: Sync Branch with Main Before Every Commit (MANDATORY)
+
+**Before making ANY commit, Claude MUST sync the feature branch with `origin/main` to prevent PR merge conflicts.**
+
+This is a **non-negotiable, blocking requirement**. Skipping this step causes dirty PRs that stall the auto-merge pipeline and require manual conflict resolution.
+
+### Required Pre-Commit Sync Ritual
+
+Run these commands **before every `git commit`**, no exceptions:
+
+```bash
+# 1. Fetch latest main from remote
+git fetch origin main
+
+# 2. Check if main has moved ahead of current branch
+git log HEAD..origin/main --oneline
+
+# 3. If output is non-empty (main has new commits) — merge it in
+git merge origin/main --no-edit
+
+# 4. Resolve any conflicts (see PR Conflict Resolution section below)
+# 5. Only then proceed to commit and push your changes
+```
+
+### When to Sync
+
+| Trigger | Action |
+|---------|--------|
+| Before the **first** commit of a session | Always sync |
+| Before **every subsequent** commit | Always sync |
+| After any pipeline failure on `main` | Re-sync before fixing |
+| When GitHub reports PR as `dirty` / `mergeable: false` | Sync immediately |
+
+### Why This Is Mandatory
+
+- `main` is updated frequently by merged PRs from other sessions
+- A single unsynced commit creates a conflict that blocks the entire 7-step pipeline
+- Conflict resolution costs more time than a pre-commit sync ever will
+- Auto-merge cannot squash a dirty PR — a human push is required to unblock it
+
+> **Rule:** `git fetch origin main && git merge origin/main --no-edit` is the first command of every commit sequence. Treat it like `git add` — it is not optional.
+
+---
+
 ## CRITICAL: Session End Protocol (MANDATORY)
 
 **Every Claude session MUST end with a `git push` to the remote branch.**
