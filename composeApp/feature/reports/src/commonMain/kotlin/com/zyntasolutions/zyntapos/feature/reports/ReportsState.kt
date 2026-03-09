@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.feature.reports
 
+import androidx.compose.runtime.Immutable
 import com.zyntasolutions.zyntapos.domain.model.PaymentMethod
 import com.zyntasolutions.zyntapos.domain.model.Product
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateCustomerReportUseCase
@@ -16,6 +17,7 @@ import kotlinx.datetime.Instant
  * @property customerReport  State for [CustomerReportScreen].
  * @property expenseReport   State for [ExpenseReportScreen].
  */
+@Immutable
 data class ReportsState(
     val reportsHome: HomeState = HomeState(),
     val salesReport: SalesState = SalesState(),

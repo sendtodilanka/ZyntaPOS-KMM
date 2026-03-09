@@ -27,12 +27,12 @@ object AppConfig {
      * Base URL for the ZyntaPOS backend API.
      * Override via `local.properties` / BuildKonfig in production builds.
      */
-    const val BASE_URL: String = "https://api.zentapos.com"
+    const val BASE_URL: String = "https://api.zyntapos.com"
 
     /** API version prefix appended to [BASE_URL] for all endpoint calls. */
     const val API_VERSION: String = "v1"
 
-    /** Fully qualified API root: `https://api.zentapos.com/api/v1` */
+    /** Fully qualified API root: `https://api.zyntapos.com/api/v1` */
     const val API_ROOT: String = "$BASE_URL/api/$API_VERSION"
 
     // ── Database ──────────────────────────────────────────────────────────────

@@ -26,7 +26,7 @@ class AuthUseCasesTest {
     @Test
     fun `login with valid credentials - returns active user`() = runTest {
         val repo = FakeAuthRepository()
-        val result = LoginUseCase(repo)("admin@zentapos.com", "password123")
+        val result = LoginUseCase(repo)("admin@zyntapos.com", "password123")
         assertIs<Result.Success<*>>(result)
         val user = (result as Result.Success).data
         assertEquals("user-01", user.id)
@@ -50,7 +50,7 @@ class AuthUseCasesTest {
         val repo = FakeAuthRepository().also {
             it.userToReturn = buildUser(isActive = false)
         }
-        val result = LoginUseCase(repo)("inactive@zentapos.com", "pass")
+        val result = LoginUseCase(repo)("inactive@zyntapos.com", "pass")
         assertIs<Result.Error>(result)
         val ex = (result as Result.Error).exception as AuthException
         assertEquals(AuthFailureReason.ACCOUNT_DISABLED, ex.reason)
@@ -62,7 +62,7 @@ class AuthUseCasesTest {
             it.shouldFailLogin = true
             it.loginFailureReason = AuthFailureReason.OFFLINE_NO_CACHE
         }
-        val result = LoginUseCase(repo)("user@zentapos.com", "pass")
+        val result = LoginUseCase(repo)("user@zyntapos.com", "pass")
         assertIs<Result.Error>(result)
         assertEquals(AuthFailureReason.OFFLINE_NO_CACHE, ((result as Result.Error).exception as AuthException).reason)
     }
@@ -73,7 +73,7 @@ class AuthUseCasesTest {
             it.shouldFailLogin = true
             it.loginFailureReason = AuthFailureReason.TOO_MANY_ATTEMPTS
         }
-        val result = LoginUseCase(repo)("user@zentapos.com", "pass")
+        val result = LoginUseCase(repo)("user@zyntapos.com", "pass")
         assertIs<Result.Error>(result)
         assertEquals(AuthFailureReason.TOO_MANY_ATTEMPTS, ((result as Result.Error).exception as AuthException).reason)
     }

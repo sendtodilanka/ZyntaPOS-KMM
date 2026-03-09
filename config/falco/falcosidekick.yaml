@@ -16,3 +16,4 @@ slack:
 
 webhook:
   minimumpriority: critical
+  address: "http://localhost:2802/response"  # response-handler.sh served via nc/socat on the VPS

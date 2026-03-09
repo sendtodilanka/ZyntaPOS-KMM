@@ -7,7 +7,7 @@ import com.zyntasolutions.zyntapos.domain.port.SecureStoragePort
  *
  * An in-memory, non-persistent implementation of [SecureStoragePort], used
  * exclusively in integration tests that need a lightweight prefs stub without
- * touching the filesystem (~/.zentapos/secure_prefs.enc) or the Android Keystore.
+ * touching the filesystem (~/.zyntapos/secure_prefs.enc) or the Android Keystore.
  *
  * MERGED-F3 (2026-02-22): Changed from extending `SecurePreferences()` (expect class
  * in `:shared:security`) to implementing [SecureStoragePort] (interface in `:shared:domain`).

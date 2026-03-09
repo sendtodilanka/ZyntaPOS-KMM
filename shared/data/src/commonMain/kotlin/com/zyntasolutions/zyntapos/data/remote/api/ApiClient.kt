@@ -41,6 +41,17 @@ fun buildApiClient(
     baseUrl: String = AppConfig.BASE_URL,
 ): HttpClient = HttpClient {
 
+    // ── TLS Certificate Pinning (SEC-02) ───────────────────────────────
+    // Enforced in production builds only. Development/debug builds skip
+    // pinning so local servers and HTTP inspection proxies work normally.
+    if (!AppConfig.IS_DEBUG) {
+        val host = baseUrl
+            .removePrefix("https://")
+            .removePrefix("http://")
+            .substringBefore("/")
+        installCertificatePinning(host, API_SPKI_PIN_PRIMARY)
+    }
+
     // ── JSON Serialization ─────────────────────────────────────────────
     install(ContentNegotiation) {
         json(

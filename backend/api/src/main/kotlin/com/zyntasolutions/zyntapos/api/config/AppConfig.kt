@@ -26,7 +26,9 @@ data class AppConfig(
     // Restrict Google SSO to a specific email domain (e.g. "zyntapos.com"). Empty = allow any domain.
     val googleAllowedDomain: String,
     // Base URL of the admin panel — used for post-OAuth redirects
-    val adminPanelUrl: String
+    val adminPanelUrl: String,
+    // Redis URL for pub/sub (force-sync notifications to connected WS devices)
+    val redisUrl: String,
 ) {
     companion object {
         fun fromEnvironment(): AppConfig {
@@ -66,7 +68,8 @@ data class AppConfig(
                 googleClientSecret = System.getenv("GOOGLE_CLIENT_SECRET") ?: "",
                 googleRedirectUri = System.getenv("GOOGLE_REDIRECT_URI") ?: "https://api.zyntapos.com/admin/auth/google/callback",
                 googleAllowedDomain = System.getenv("GOOGLE_ALLOWED_DOMAIN") ?: "",
-                adminPanelUrl = System.getenv("ADMIN_PANEL_URL") ?: "https://panel.zyntapos.com"
+                adminPanelUrl = System.getenv("ADMIN_PANEL_URL") ?: "https://panel.zyntapos.com",
+                redisUrl = System.getenv("REDIS_URL") ?: "redis://localhost:6379",
             )
         }
 

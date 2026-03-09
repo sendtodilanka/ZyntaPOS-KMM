@@ -51,7 +51,7 @@ class LoginUseCaseTest {
     private val fakeUser = User(
         id = "user-001",
         name = "Admin User",
-        email = "admin@zentapos.com",
+        email = "admin@zyntapos.com",
         role = Role.ADMIN,
         storeId = "store-001",
         isActive = true,
@@ -64,9 +64,9 @@ class LoginUseCaseTest {
 
     @Test
     fun `invoke returns Success with User on valid credentials`() = runTest {
-        loginResponses["admin@zentapos.com" to "secure123"] = Result.Success(fakeUser)
+        loginResponses["admin@zyntapos.com" to "secure123"] = Result.Success(fakeUser)
 
-        val result = useCase(email = "admin@zentapos.com", password = "secure123")
+        val result = useCase(email = "admin@zyntapos.com", password = "secure123")
 
         assertTrue(result is Result.Success)
         assertEquals(fakeUser, (result as Result.Success).data)
@@ -77,9 +77,9 @@ class LoginUseCaseTest {
     @Test
     fun `invoke returns AuthException on wrong password`() = runTest {
         val error = AuthException("Invalid credentials", reason = AuthFailureReason.INVALID_CREDENTIALS)
-        loginResponses["admin@zentapos.com" to "wrongpass"] = Result.Error(error)
+        loginResponses["admin@zyntapos.com" to "wrongpass"] = Result.Error(error)
 
-        val result = useCase(email = "admin@zentapos.com", password = "wrongpass")
+        val result = useCase(email = "admin@zyntapos.com", password = "wrongpass")
 
         assertTrue(result is Result.Error)
         val ex = (result as Result.Error).exception
@@ -92,9 +92,9 @@ class LoginUseCaseTest {
     @Test
     fun `invoke returns ACCOUNT_DISABLED when user is inactive`() = runTest {
         val error = AuthException("Account is disabled", reason = AuthFailureReason.ACCOUNT_DISABLED)
-        loginResponses["disabled@zentapos.com" to "pass123"] = Result.Error(error)
+        loginResponses["disabled@zyntapos.com" to "pass123"] = Result.Error(error)
 
-        val result = useCase(email = "disabled@zentapos.com", password = "pass123")
+        val result = useCase(email = "disabled@zyntapos.com", password = "pass123")
 
         assertTrue(result is Result.Error)
         assertEquals(

@@ -70,7 +70,7 @@ fun String.toTitleCase(): String =
  *
  * ```kotlin
  * "1234567890".maskSensitive()           // → "12••••••••"
- * "admin@zentapos.com".maskSensitive(3)  // → "adm•••••••••••••"
+ * "admin@zyntapos.com".maskSensitive(3)  // → "adm•••••••••••••"
  * ```
  *
  * @param visibleChars Number of leading characters to leave visible.

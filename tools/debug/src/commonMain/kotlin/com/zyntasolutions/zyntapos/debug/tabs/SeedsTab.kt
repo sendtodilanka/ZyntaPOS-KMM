@@ -35,7 +35,6 @@ import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButtonVariant
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.TextButton
 
 /**
  * Seeds tab — run seed profiles, create admin account, clear seed data.
@@ -208,7 +207,11 @@ private fun AdminSetupDialog(
             )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            ZyntaButton(
+                text = "Cancel",
+                onClick = onDismiss,
+                variant = ZyntaButtonVariant.Ghost,
+            )
         },
     )
 }

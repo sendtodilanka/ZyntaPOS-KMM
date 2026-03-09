@@ -52,7 +52,7 @@ import org.koin.dsl.module
 //     Desktop PKCS12 KeyStore are accessed directly inside:
 //       • EncryptionManager.android.kt / EncryptionManager.jvm.kt  (alias-keyed AES-256-GCM)
 //       • DatabaseKeyManager.android.kt (envelope-encrypted DEK in Android Keystore)
-//       • DatabaseKeyManager.jvm.kt     (DEK stored in ~/.zentapos/.db_keystore.p12)
+//       • DatabaseKeyManager.jvm.kt     (DEK stored in ~/.zyntapos/.db_keystore.p12)
 //     A separate KeystoreProvider expect/actual would be a thin, redundant wrapper
 //     over this already-clean abstraction. Adding it would increase indirection
 //     with no architectural benefit.

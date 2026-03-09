@@ -14,7 +14,7 @@ package com.zyntasolutions.zyntapos.security.crypto
  *   DEK is stored in SharedPreferences. This matches the pattern used by [DatabaseKeyProvider]
  *   in `:shared:data` but exposes a cleaner, security-module-owned API.
  * - **Desktop (JVM):** The 32-byte key is stored directly in a PKCS12 KeyStore at
- *   `~/.zentapos/.db_keystore.p12` protected with a machine-fingerprint derived password.
+ *   `~/.zyntapos/.db_keystore.p12` protected with a machine-fingerprint derived password.
  *
  * ## Usage
  * ```kotlin

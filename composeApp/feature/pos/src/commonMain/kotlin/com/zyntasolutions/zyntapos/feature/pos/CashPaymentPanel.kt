@@ -10,6 +10,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
 import com.zyntasolutions.zyntapos.designsystem.components.NumericPadMode
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButtonSize
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButtonVariant
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaNumericPad
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 
@@ -179,18 +182,13 @@ private fun QuickAmountRow(
         horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.xs),
     ) {
         shortcuts.forEach { amount ->
-            OutlinedButton(
+            ZyntaButton(
+                text = if (amount == orderTotal) "Exact" else "$${"%.0f".format(amount)}",
                 onClick = { onAmountSelected(amount) },
-                modifier = Modifier
-                    .weight(1f)
-                    .heightIn(min = 40.dp),
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
-            ) {
-                Text(
-                    text = if (amount == orderTotal) "Exact" else "$${"%.0f".format(amount)}",
-                    style = MaterialTheme.typography.labelSmall,
-                )
-            }
+                variant = ZyntaButtonVariant.Secondary,
+                size = ZyntaButtonSize.Small,
+                modifier = Modifier.weight(1f),
+            )
         }
     }
 }

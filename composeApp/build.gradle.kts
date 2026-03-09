@@ -122,6 +122,15 @@ compose.desktop {
             "-Dapp.build.date=${LocalDate.now()}",
         )
 
+        // ── ProGuard / R8 obfuscation (SEC-05) ───────────────────────────────
+        // Applied to release distributions to protect business logic from
+        // decompilation. Debug / dev builds (./gradlew run) are unaffected.
+        buildTypes.release.proguard {
+            isEnabled.set(true)
+            obfuscate.set(true)
+            configurationFiles.from(rootProject.file("config/proguard/compose-desktop.pro"))
+        }
+
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName    = "ZyntaPOS"
