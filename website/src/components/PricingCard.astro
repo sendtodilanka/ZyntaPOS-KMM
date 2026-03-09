@@ -64,13 +64,13 @@ const { name, price, period, description, features, cta, ctaHref, popular = fals
             <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
           </svg>
         ) : (
-          <svg xmlns="http://www.w3.org/2000/svg" class="mt-0.5 h-5 w-5 shrink-0 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" class="mt-0.5 h-5 w-5 shrink-0 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         )}
-        <span class:list={['text-sm', feature.included ? 'text-slate-300' : 'text-slate-600']}>
+        <span class:list={['text-sm', feature.included ? 'text-slate-300' : 'text-slate-400']}>
           {feature.text}
-          {feature.note && <span class="ml-1 text-xs text-slate-500">({feature.note})</span>}
+          {feature.note && <span class="ml-1 text-xs text-slate-400">({feature.note})</span>}
         </span>
       </li>
     ))}

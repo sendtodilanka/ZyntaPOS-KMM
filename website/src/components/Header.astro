@@ -43,9 +43,9 @@ const currentPath = Astro.url.pathname;
 
     <!-- Right side actions (intentionally outside <nav> to avoid Playwright strict-mode conflicts) -->
     <div class="flex items-center gap-2">
-      <!-- Download CTA — links to /download (not /pricing) -->
+      <!-- Download CTA — links to /pricing (hidden below sm breakpoint) -->
       <a
-        href="/download"
+        href="/pricing"
         class="hidden rounded-lg bg-sky-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-sky-600 sm:block"
       >
         Download Free
