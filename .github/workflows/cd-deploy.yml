@@ -107,6 +107,12 @@ jobs:
             echo "=== Validating Docker Compose config ==="
             docker compose config --quiet
 
+            # Ensure secret files are world-readable so container non-root users can read them.
+            # rs256_private_key.pem is created with 600 by default (ssh-keygen / openssl),
+            # but the zyntapos container user (Alpine system UID) is not the file owner.
+            chmod 644 secrets/rs256_private_key.pem secrets/rs256_public_key.pem \
+                       secrets/admin_jwt_secret.txt 2>/dev/null || true
+
             docker compose pull --quiet
             docker compose up -d --remove-orphans
             docker image prune -f
