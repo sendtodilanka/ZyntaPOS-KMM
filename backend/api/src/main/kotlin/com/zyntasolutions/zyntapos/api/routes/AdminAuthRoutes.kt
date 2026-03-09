@@ -76,14 +76,38 @@ fun Route.adminAuthRoutes() {
             val userAgent = call.request.headers[HttpHeaders.UserAgent]
 
             when (val result = service.login(body.email, body.password, ip, userAgent)) {
-                is AdminAuthResult.InvalidCredentials -> call.respond(
-                    HttpStatusCode.Unauthorized,
-                    ErrorResponse("INVALID_CREDENTIALS", "Invalid email or password")
-                )
-                is AdminAuthResult.AccountLocked -> call.respond(
-                    HttpStatusCode.TooManyRequests,
-                    ErrorResponse("ACCOUNT_LOCKED", "Account temporarily locked due to too many failed attempts")
-                )
+                is AdminAuthResult.InvalidCredentials -> {
+                    auditService.log(
+                        adminId    = null,
+                        adminName  = body.email,
+                        eventType  = "ADMIN_LOGIN_FAILED",
+                        category   = "AUTH",
+                        entityType = "admin_user",
+                        entityId   = body.email,
+                        ipAddress  = ip,
+                        userAgent  = userAgent,
+                        success    = false,
+                        errorMessage = "Invalid credentials",
+                    )
+                    call.respond(HttpStatusCode.Unauthorized,
+                        ErrorResponse("INVALID_CREDENTIALS", "Invalid email or password"))
+                }
+                is AdminAuthResult.AccountLocked -> {
+                    auditService.log(
+                        adminId    = null,
+                        adminName  = body.email,
+                        eventType  = "ADMIN_LOGIN_FAILED",
+                        category   = "AUTH",
+                        entityType = "admin_user",
+                        entityId   = body.email,
+                        ipAddress  = ip,
+                        userAgent  = userAgent,
+                        success    = false,
+                        errorMessage = "Account locked",
+                    )
+                    call.respond(HttpStatusCode.TooManyRequests,
+                        ErrorResponse("ACCOUNT_LOCKED", "Account temporarily locked due to too many failed attempts"))
+                }
                 is AdminAuthResult.AccountInactive -> call.respond(
                     HttpStatusCode.Forbidden,
                     ErrorResponse("ACCOUNT_INACTIVE", "Account is deactivated")
@@ -92,6 +116,18 @@ fun Route.adminAuthRoutes() {
                     call.respond(HttpStatusCode.OK, MfaPendingResponse(pendingToken = result.pendingToken))
                 }
                 is AdminAuthResult.Success -> {
+                    auditService.log(
+                        adminId    = result.user.id,
+                        adminName  = result.user.name,
+                        eventType  = "ADMIN_LOGIN",
+                        category   = "AUTH",
+                        entityType = "admin_user",
+                        entityId   = result.user.id.toString(),
+                        newValues  = mapOf("role" to result.user.role.name),
+                        ipAddress  = ip,
+                        userAgent  = userAgent,
+                        success    = true,
+                    )
                     val accessTtlSec  = config.adminAccessTokenTtlMs / 1000
                     val refreshTtlSec = config.adminRefreshTokenTtlDays * 86_400L
                     setAuthCookies(call, result.accessToken, result.refreshToken, accessTtlSec, refreshTtlSec)
@@ -133,9 +169,23 @@ fun Route.adminAuthRoutes() {
 
         // POST /admin/auth/logout
         post("/logout") {
+            val user = runCatching { resolveAdminUser(call, service) }.getOrNull()
             val rawRefresh = call.request.cookies[REFRESH_COOKIE]
             if (rawRefresh != null) service.logout(rawRefresh)
             clearAuthCookies(call)
+            if (user != null) {
+                auditService.log(
+                    adminId    = user.id,
+                    adminName  = user.name,
+                    eventType  = "ADMIN_LOGOUT",
+                    category   = "AUTH",
+                    entityType = "admin_user",
+                    entityId   = user.id.toString(),
+                    ipAddress  = call.request.headers["X-Forwarded-For"]?.split(",")?.firstOrNull()?.trim()
+                                  ?: call.request.local.remoteHost,
+                    success    = true,
+                )
+            }
             call.respond(HttpStatusCode.NoContent)
         }
 
@@ -171,6 +221,17 @@ fun Route.adminAuthRoutes() {
             }
 
             mfaService.enableMfa(user.id, body.secret)
+            auditService.log(
+                adminId    = user.id,
+                adminName  = user.name,
+                eventType  = "ADMIN_MFA_ENABLED",
+                category   = "AUTH",
+                entityType = "admin_user",
+                entityId   = user.id.toString(),
+                ipAddress  = call.request.headers["X-Forwarded-For"]?.split(",")?.firstOrNull()?.trim()
+                              ?: call.request.local.remoteHost,
+                success    = true,
+            )
             call.respond(HttpStatusCode.OK, user.copy(/* reflect mfaEnabled=true */).toResponse().copy(mfaEnabled = true))
         }
 
@@ -189,6 +250,17 @@ fun Route.adminAuthRoutes() {
             }
 
             mfaService.disableMfa(user.id)
+            auditService.log(
+                adminId    = user.id,
+                adminName  = user.name,
+                eventType  = "ADMIN_MFA_DISABLED",
+                category   = "AUTH",
+                entityType = "admin_user",
+                entityId   = user.id.toString(),
+                ipAddress  = call.request.headers["X-Forwarded-For"]?.split(",")?.firstOrNull()?.trim()
+                              ?: call.request.local.remoteHost,
+                success    = true,
+            )
             call.respond(HttpStatusCode.NoContent)
         }
 

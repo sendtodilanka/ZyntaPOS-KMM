@@ -2,11 +2,12 @@ import { Link, useRouterState } from '@tanstack/react-router';
 import {
   LayoutDashboard, Key, Store, Users, ClipboardList,
   RefreshCw, Settings2, BarChart3, Activity, Bell,
-  ChevronLeft, ChevronRight, X, SlidersHorizontal,
+  ChevronLeft, ChevronRight, X, SlidersHorizontal, Ticket,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUiStore } from '@/stores/ui-store';
 import { useIsDesktop } from '@/hooks/use-media-query';
+import { useAuth } from '@/hooks/use-auth';
 
 interface NavItem {
   label: string;
@@ -32,14 +33,15 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: 'Licenses', icon: Key, href: '/licenses', permission: 'license:read' },
       { label: 'Stores', icon: Store, href: '/stores', permission: 'store:read' },
-      { label: 'Users', icon: Users, href: '/users', permission: 'user:read' },
+      { label: 'Users', icon: Users, href: '/users', permission: 'users:read' },
+      { label: 'Tickets', icon: Ticket, href: '/tickets', permission: 'tickets:read' },
     ],
   },
   {
     label: 'Monitoring',
     items: [
-      { label: 'Sync', icon: RefreshCw, href: '/sync', permission: 'sync:read' },
-      { label: 'Health', icon: Activity, href: '/health', permission: 'health:read' },
+      { label: 'Sync', icon: RefreshCw, href: '/sync', permission: 'store:sync:manage' },
+      { label: 'Health', icon: Activity, href: '/health', permission: 'system:health' },
       { label: 'Alerts', icon: Bell, href: '/alerts', permission: 'alerts:read' },
     ],
   },
@@ -48,7 +50,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: 'Audit Log', icon: ClipboardList, href: '/audit', permission: 'audit:read' },
       { label: 'Reports', icon: BarChart3, href: '/reports', permission: 'reports:read' },
-      { label: 'Config', icon: Settings2, href: '/config', permission: 'config:read' },
+      { label: 'Config', icon: Settings2, href: '/config', permission: 'config:push' },
     ],
   },
   {
@@ -68,6 +70,7 @@ export function Sidebar({ mobile = false }: SidebarProps) {
   const isDesktop = useIsDesktop();
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
+  const { hasPermission } = useAuth();
 
   const collapsed = !mobile && sidebarCollapsed && isDesktop;
 
@@ -75,6 +78,9 @@ export function Sidebar({ mobile = false }: SidebarProps) {
     if (href === '/') return currentPath === '/';
     return currentPath.startsWith(href);
   };
+
+  const isVisible = (item: NavItem) =>
+    !item.permission || hasPermission(item.permission);
 
   return (
     <aside
@@ -116,40 +122,44 @@ export function Sidebar({ mobile = false }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
-        {NAV_GROUPS.map((group) => (
-          <div key={group.label} className="mb-4">
-            {!collapsed && (
-              <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
-                {group.label}
-              </p>
-            )}
-            {group.items.map((item) => {
-              const active = isActive(item.href);
-              return (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  className={cn(
-                    'flex items-center gap-3 rounded-lg px-3 transition-colors min-h-[44px]',
-                    collapsed ? 'justify-center px-0 w-full' : 'px-3',
-                    active
-                      ? 'bg-brand-500/15 text-brand-400'
-                      : 'text-slate-400 hover:bg-surface-elevated hover:text-slate-100',
-                  )}
-                  title={collapsed ? item.label : undefined}
-                >
-                  <item.icon className={cn('flex-shrink-0', collapsed ? 'w-5 h-5' : 'w-4 h-4')} />
-                  {!collapsed && (
-                    <span className="text-sm font-medium truncate">{item.label}</span>
-                  )}
-                  {active && !collapsed && (
-                    <span className="ml-auto w-1.5 h-1.5 rounded-full bg-brand-400" />
-                  )}
-                </Link>
-              );
-            })}
-          </div>
-        ))}
+        {NAV_GROUPS.map((group) => {
+          const visibleItems = group.items.filter(isVisible);
+          if (visibleItems.length === 0) return null;
+          return (
+            <div key={group.label} className="mb-4">
+              {!collapsed && (
+                <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                  {group.label}
+                </p>
+              )}
+              {visibleItems.map((item) => {
+                const active = isActive(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    to={item.href}
+                    className={cn(
+                      'flex items-center gap-3 rounded-lg px-3 transition-colors min-h-[44px]',
+                      collapsed ? 'justify-center px-0 w-full' : 'px-3',
+                      active
+                        ? 'bg-brand-500/15 text-brand-400'
+                        : 'text-slate-400 hover:bg-surface-elevated hover:text-slate-100',
+                    )}
+                    title={collapsed ? item.label : undefined}
+                  >
+                    <item.icon className={cn('flex-shrink-0', collapsed ? 'w-5 h-5' : 'w-4 h-4')} />
+                    {!collapsed && (
+                      <span className="text-sm font-medium truncate">{item.label}</span>
+                    )}
+                    {active && !collapsed && (
+                      <span className="ml-auto w-1.5 h-1.5 rounded-full bg-brand-400" />
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          );
+        })}
       </nav>
 
       {/* Collapse toggle (desktop only) */}

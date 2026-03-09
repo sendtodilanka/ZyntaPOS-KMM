@@ -6,12 +6,14 @@ import { MobileBottomNav } from './MobileBottomNav';
 import { ToastContainer } from '../shared/ToastContainer';
 import { useUiStore } from '@/stores/ui-store';
 import { useIsMobile } from '@/hooks/use-media-query';
+import { useKeyboard } from '@/hooks/use-keyboard';
 import { cn } from '@/lib/utils';
 
 export function AppShell() {
   const { mobileSidebarOpen, setMobileSidebarOpen } = useUiStore();
   const isMobile = useIsMobile();
   const router = useRouter();
+  useKeyboard();
 
   // Close mobile sidebar on route change
   useEffect(() => {

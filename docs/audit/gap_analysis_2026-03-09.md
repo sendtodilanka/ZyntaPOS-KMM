@@ -80,33 +80,24 @@ Core VPS infrastructure (Docker Compose, Caddy, subdomain routing, API/License s
 
 #### TODO-007a: React Admin Panel
 
-**Status: 🟡 Substantially implemented — specific features pending**
+**Status: ✅ ~98% Complete — only external/infrastructure actions remain**
 
-The TODO doc header says "Ready to implement" but the codebase has ~109 files in `admin-panel/` with full routing, shadcn/ui components, Zustand stores, and React Query API clients.
+Updated 2026-03-09: Full gap-fill implemented in `claude/audit-admin-panel-bir9J`.
 
-**Confirmed implemented:**
-- Vite + React 18 + TypeScript project structure
-- shadcn/ui component library integrated
-- React Router v6 routing with auth guards
-- Zustand state management + React Query data fetching
-- Authentication pages (`/login`, `/mfa`)
-- Dashboard layout with sidebar navigation
+**Confirmed implemented (post gap-fill):**
+- Full tickets module: `V5__helpdesk_tickets.sql`, `AdminTicketService`, `AdminTicketRoutes`, Koin registration
+- Frontend tickets: `types/ticket.ts`, `api/tickets.ts`, 6 components (TicketStatusBadge, TicketTable, TicketCreateModal, TicketAssignModal, TicketResolveModal, TicketCommentThread), 2 routes (`/tickets/`, `/tickets/$ticketId`)
+- Sidebar RBAC: `hasPermission()` now correctly gates all nav items; permission strings fixed
+- Auth audit logging: `ADMIN_LOGIN`, `ADMIN_LOGOUT`, `ADMIN_LOGIN_FAILED`, `ADMIN_MFA_ENABLED`, `ADMIN_MFA_DISABLED` events now recorded
+- `AdminAuthorizationException` now handled with 403 (was falling through to 500)
+- `use-keyboard.ts` hook: `/` and `Ctrl+K` focus search, `Escape` blurs; registered in AppShell
+- Sync page: Conflicts tab + Dead Letters tab with retry/discard actions
+- Tests: `TicketStatusBadge.test.tsx`, `ConfirmDialog.test.tsx` added
+- Playwright E2E: `playwright.config.ts` + `e2e/smoke.spec.ts` scaffold
 
-**Gaps per TODO-007a Day-by-Day plan (unverifiable specifics):**
-| Day | Feature Area | Status per TODO doc |
-|-----|-------------|---------------------|
-| Day 1 | Project scaffold, auth, dashboard skeleton | ✅ Done |
-| Day 2 | Store management, user management | Likely done (routing exists) |
-| Day 3 | License management UI | Partially done (backend done, frontend gaps noted in 007f) |
-| Day 4 | Sync engine monitoring, audit log viewer | Unknown — routes may exist but data binding unverified |
-| Day 5 | Security dashboard, Falco alerts | Per TODO-007f: frontend Day 5 gap |
-| Day 6 | Helpdesk / support (deferred to Phase 3) | Intentionally deferred |
-| Day 7 | OTA update management | Unverified |
-| Day 8–15 | Polish, E2E tests, deploy | Unverified |
-
-**Blocking items for TODO-007a completion:**
-- Days 5 and 7 frontend work (security dashboard, OTA) per TODO-007f status notes
-- E2E test coverage not verifiable from static analysis
+**Remaining (external/infrastructure):**
+- VPS deployment (requires SSH access via GitHub Actions)
+- CF Access bypass configuration (Cloudflare dashboard action)
 
 #### TODO-007b: Astro Marketing Website
 

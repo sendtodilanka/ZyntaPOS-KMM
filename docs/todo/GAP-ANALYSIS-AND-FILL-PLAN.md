@@ -19,14 +19,14 @@
 | 005 | Modern Dashboard + Nav | **100%** ✅ | Phase 1 |
 | 006 | Remote Diagnostic Access | **0%** ⬜ | Phase 2 |
 | 007 | Infrastructure & Deployment | **~75%** 🟡 | Phase 2 |
-| 007a | React Admin Panel | **~82%** 🟡 | Phase 2 |
-| 007f | Admin Panel: CF + Custom Auth | **~85%** 🟡 | Phase 2 |
+| 007a | React Admin Panel | **~98%** ✅ | Phase 2 |
+| 007f | Admin Panel: CF + Custom Auth | **~93%** 🟡 | Phase 2 |
 | 007b | Astro Marketing Website | **0%** ⬜ (5-day plan ready) | Phase 2 |
 | 008 | SEO & ASO | **0%** ⬜ (8a/8b/8c/8f front-loaded into 007b) | Phase 2 |
 | 009 | Ktor Security Hardening | **100%** ✅ | Phase 2 |
 | 010 | Security Monitoring & Auto-Response | **~70%** 🟡 | Phase 2 |
 
-**Bottom line:** Phase 1 is **COMPLETE** (all 5 TODOs done). Phase 2: TODO-009 done, TODO-010 mostly done (remaining items are CF/SaaS dashboard config). TODO-007a (React admin panel) ~82% done — 14 of 15 days implemented; all feature pages live (dashboard, licenses, stores, users, audit, sync, health, config, reports, alerts, settings); remaining: tickets frontend, use-keyboard.ts, expanded tests, VPS deploy, CF bypass. TODO-007f ~85% done — backend complete, most frontend gaps resolved. Next: TODO-007b (Astro marketing website) after 007a deployment.
+**Bottom line:** Phase 1 is **COMPLETE** (all 5 TODOs done). Phase 2: TODO-009 done, TODO-010 mostly done (remaining items are CF/SaaS dashboard config). TODO-007a (React admin panel) **~98% done** — all feature pages live including full tickets module (backend DB migration + service + routes + frontend types/hooks/6 components/2 routes), Sidebar RBAC fixed, auth audit logging wired, keyboard shortcuts, sync Conflicts/Dead Letters tabs, expanded tests, Playwright E2E scaffold. Remaining: VPS deploy + CF bypass (external/infrastructure). TODO-007f ~93% done — auth audit log (G3) now wired. Next: TODO-007b (Astro marketing website) after 007a VPS deployment.
 
 ---
 

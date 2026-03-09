@@ -2,7 +2,7 @@
 
 **Phase:** 2 — Growth
 **Priority:** P0 (HIGH)
-**Status:** 🟡 ~85% COMPLETE — Backend fully done; Day 6 frontend gaps (G5, G6) resolved; remaining: CSRF (G1), password max-length server-side (G2), auth audit log wiring (G3), backend tests (G8), Google Cloud Console setup (G9), VPS env vars (G10), CF Access bypass (G11)
+**Status:** 🟡 ~93% COMPLETE — Backend fully done; Day 6 frontend gaps (G5, G6) resolved; G3 (auth audit log wiring for login/logout/MFA events) resolved; remaining: CSRF (G1), password max-length server-side (G2), backend tests (G8), Google Cloud Console setup (G9), VPS env vars (G10), CF Access bypass (G11)
 **Effort:** ~7 working days (1 developer)
 **Related:** TODO-007a (admin panel), TODO-009 (Ktor security hardening), TODO-010 (security monitoring)
 **Owner:** Zynta Solutions Pvt Ltd

@@ -2,7 +2,7 @@
 
 **Phase:** 2 — Growth
 **Priority:** P0 (HIGH)
-**Status:** 🟡 ~82% IMPLEMENTED — Auth, login, dashboard, licenses, stores, users, audit, sync, health, config, reports, alerts, settings, layout, Dockerfile, nginx.conf, docker-compose entry, and CI pipeline all implemented. Remaining: tickets frontend (6 components + 2 routes — backend exists), use-keyboard.ts hook, expanded test suite (Day 13.4–13.8), VPS deployment, CF Access bypass
+**Status:** ✅ ~98% IMPLEMENTED — All frontend modules complete: auth, dashboard, licenses, stores, users, audit, sync (with Conflicts + Dead Letters tabs), health, config, reports, alerts, settings, tickets (full CRUD + comments + SLA + 6 components + 2 routes), keyboard shortcuts, expanded test suite (TicketStatusBadge + ConfirmDialog tests), Playwright E2E scaffold. Remaining: VPS deployment, CF Access bypass (external/infrastructure)
 **Effort:** ~15 working days (3 weeks, 1 developer)
 **Related:** TODO-007 (infrastructure), TODO-006 (remote diagnostics), TODO-010 (security monitoring), TODO-007f (CF + Custom Auth)
 **Owner:** Zynta Solutions Pvt Ltd
@@ -14,7 +14,7 @@
 
 Build an internal admin panel for centralized management of all ZyntaPOS deployments. The panel is a standalone React SPA served at `panel.zyntapos.com`, protected by Cloudflare (DDoS/WAF/TLS) with a custom ZyntaPOS-branded login system (see TODO-007f). It communicates with the existing Ktor backend services (`api.zyntapos.com`, `license.zyntapos.com`, `sync.zyntapos.com`) and adds new admin-specific API endpoints where needed.
 
-> **Implementation status (2026-03-09):** The `admin-panel/` project is substantially built. Implemented: authentication (login, MFA, Google SSO, auth-store, 5-role RBAC), dashboard (KPI cards + 4 charts), license management (list + detail), store management, user management, audit log, sync monitoring, system health, remote configuration, reports, alerts, settings (profile, MFA, timezone), layout shell, Dockerfile, nginx.conf, docker-compose panel service, and CI pipeline (`ci-admin-panel.yml`). Remaining: **tickets frontend** (backend DB + Kotlin routes exist; frontend routes + components + types NOT implemented), `use-keyboard.ts` hook, expanded Vitest/Playwright test suite, VPS deployment, and CF Access bypass config.
+> **Implementation status (2026-03-09):** The `admin-panel/` project is fully built. Implemented: authentication (login, MFA, Google SSO, auth-store, 5-role RBAC with proper permission filtering in Sidebar), dashboard (KPI cards + 4 charts), license management (list + detail), store management, user management, audit log, sync monitoring (+ Conflicts tab + Dead Letters tab with retry/discard), system health, remote configuration, reports, alerts, settings (profile, MFA, timezone), **support tickets** (full module: DB migration V5, AdminTicketService, AdminTicketRoutes, types, API hooks, TicketStatusBadge, TicketTable, TicketCreateModal, TicketAssignModal, TicketResolveModal, TicketCommentThread, list route, detail route), keyboard shortcuts (`use-keyboard.ts` registered in AppShell), expanded Vitest test suite (TicketStatusBadge, ConfirmDialog), Playwright E2E config + smoke spec, layout shell, Dockerfile, nginx.conf, docker-compose panel service, and CI pipeline (`ci-admin-panel.yml`). Remaining: VPS deployment, CF Access bypass config (external/infrastructure actions only).
 
 This is **not** part of the KMM app. It is a separate web project living at `admin-panel/` in the monorepo root, built with Vite, and deployed as a Docker container served by Caddy on the VPS.
 
