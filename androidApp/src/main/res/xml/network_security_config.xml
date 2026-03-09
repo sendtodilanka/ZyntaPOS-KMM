@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Android Network Security Config (SEC-03)
+    - Blocks all cleartext (HTTP) traffic
+    - Trusts system CAs only (user-installed CAs rejected)
+    - Applies globally to all network connections
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
