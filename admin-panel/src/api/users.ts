@@ -14,6 +14,7 @@ export function useAdminUsers(filters: UserFilter = {}) {
   return useQuery({
     queryKey: ['users', filters],
     queryFn: () => apiClient.get(`admin/users?${qs}`).json<PagedResponse<AdminUser>>(),
+    staleTime: 5 * 60 * 1000,
   });
 }
 

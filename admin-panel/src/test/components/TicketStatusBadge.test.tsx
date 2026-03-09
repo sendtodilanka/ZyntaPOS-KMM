@@ -1,57 +1,48 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '../utils';
+import { render, screen } from '@testing-library/react';
 import { TicketStatusBadge, TicketPriorityBadge } from '@/components/tickets/TicketStatusBadge';
+import type { TicketStatus, TicketPriority } from '@/types/ticket';
 
 describe('TicketStatusBadge', () => {
-  it('renders OPEN status', () => {
-    render(<TicketStatusBadge status="OPEN" />);
-    expect(screen.getByText('Open')).toBeInTheDocument();
-  });
+  const statuses: { status: TicketStatus; expectedLabel: string; colorClass: string }[] = [
+    { status: 'OPEN',             expectedLabel: 'Open',             colorClass: 'text-blue-400' },
+    { status: 'ASSIGNED',         expectedLabel: 'Assigned',         colorClass: 'text-amber-400' },
+    { status: 'IN_PROGRESS',      expectedLabel: 'In Progress',      colorClass: 'text-orange-400' },
+    { status: 'PENDING_CUSTOMER', expectedLabel: 'Pending Customer', colorClass: 'text-purple-400' },
+    { status: 'RESOLVED',         expectedLabel: 'Resolved',         colorClass: 'text-emerald-400' },
+    { status: 'CLOSED',           expectedLabel: 'Closed',           colorClass: 'text-slate-400' },
+  ];
 
-  it('renders ASSIGNED status', () => {
-    render(<TicketStatusBadge status="ASSIGNED" />);
-    expect(screen.getByText('Assigned')).toBeInTheDocument();
-  });
+  statuses.forEach(({ status, expectedLabel, colorClass }) => {
+    it(`renders label "${expectedLabel}" for status ${status}`, () => {
+      render(<TicketStatusBadge status={status} />);
+      expect(screen.getByText(expectedLabel)).toBeInTheDocument();
+    });
 
-  it('renders IN_PROGRESS status', () => {
-    render(<TicketStatusBadge status="IN_PROGRESS" />);
-    expect(screen.getByText('In Progress')).toBeInTheDocument();
-  });
-
-  it('renders PENDING_CUSTOMER status', () => {
-    render(<TicketStatusBadge status="PENDING_CUSTOMER" />);
-    expect(screen.getByText('Pending Customer')).toBeInTheDocument();
-  });
-
-  it('renders RESOLVED status', () => {
-    render(<TicketStatusBadge status="RESOLVED" />);
-    expect(screen.getByText('Resolved')).toBeInTheDocument();
-  });
-
-  it('renders CLOSED status', () => {
-    render(<TicketStatusBadge status="CLOSED" />);
-    expect(screen.getByText('Closed')).toBeInTheDocument();
+    it(`applies color class "${colorClass}" for status ${status}`, () => {
+      const { container } = render(<TicketStatusBadge status={status} />);
+      expect((container.firstChild as HTMLElement).className).toContain(colorClass);
+    });
   });
 });
 
 describe('TicketPriorityBadge', () => {
-  it('renders LOW priority', () => {
-    render(<TicketPriorityBadge priority="LOW" />);
-    expect(screen.getByText('LOW')).toBeInTheDocument();
-  });
+  const priorities: { priority: TicketPriority; colorClass: string }[] = [
+    { priority: 'LOW',      colorClass: 'text-slate-400' },
+    { priority: 'MEDIUM',   colorClass: 'text-blue-400' },
+    { priority: 'HIGH',     colorClass: 'text-amber-400' },
+    { priority: 'CRITICAL', colorClass: 'text-red-400' },
+  ];
 
-  it('renders CRITICAL priority', () => {
-    render(<TicketPriorityBadge priority="CRITICAL" />);
-    expect(screen.getByText('CRITICAL')).toBeInTheDocument();
-  });
+  priorities.forEach(({ priority, colorClass }) => {
+    it(`renders label text for ${priority}`, () => {
+      render(<TicketPriorityBadge priority={priority} />);
+      expect(screen.getByText(priority)).toBeInTheDocument();
+    });
 
-  it('renders HIGH priority', () => {
-    render(<TicketPriorityBadge priority="HIGH" />);
-    expect(screen.getByText('HIGH')).toBeInTheDocument();
-  });
-
-  it('renders MEDIUM priority', () => {
-    render(<TicketPriorityBadge priority="MEDIUM" />);
-    expect(screen.getByText('MEDIUM')).toBeInTheDocument();
+    it(`applies color class "${colorClass}" for ${priority}`, () => {
+      const { container } = render(<TicketPriorityBadge priority={priority} />);
+      expect((container.firstChild as HTMLElement).className).toContain(colorClass);
+    });
   });
 });

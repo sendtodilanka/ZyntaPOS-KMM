@@ -1,5 +1,5 @@
 import { MoreHorizontal, Edit, UserX, ShieldCheck, ShieldOff, LogOut } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { DataTable, type Column } from '@/components/shared/DataTable';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { useDeactivateUser, useRevokeSessions } from '@/api/users';
@@ -39,6 +39,17 @@ export function UserTable({ data, isLoading, page, totalPages, total, onPageChan
   const [deactivateTarget, setDeactivateTarget] = useState<AdminUser | null>(null);
   const [revokeTarget, setRevokeTarget] = useState<AdminUser | null>(null);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpenMenu(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const columns: Column<AdminUser>[] = [
     {
@@ -102,7 +113,7 @@ export function UserTable({ data, isLoading, page, totalPages, total, onPageChan
             <MoreHorizontal className="w-4 h-4" />
           </button>
           {openMenu === row.id && (
-            <div className="absolute right-0 top-full mt-1 w-48 bg-surface-card border border-surface-border rounded-lg shadow-xl z-20 py-1">
+            <div ref={menuRef} className="absolute right-0 top-full mt-1 w-48 bg-surface-card border border-surface-border rounded-lg shadow-xl z-20 py-1">
               <button
                 onClick={() => { setOpenMenu(null); onEdit(row); }}
                 className="flex items-center gap-2.5 w-full px-3 py-2.5 text-sm text-slate-300 hover:bg-surface-elevated transition-colors min-h-[44px]"

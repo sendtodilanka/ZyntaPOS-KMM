@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft, AlertTriangle, Clock, User } from 'lucide-react';
 import { TicketStatusBadge, TicketPriorityBadge } from '@/components/tickets/TicketStatusBadge';
 import { TicketAssignModal } from '@/components/tickets/TicketAssignModal';
@@ -57,7 +57,11 @@ function TicketDetailPage() {
 
   const { data: ticket, isLoading } = useTicket(ticketId);
   const closeTicket = useCloseTicket();
-  const now = useMemo(() => Date.now(), []);
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   const [assignOpen, setAssignOpen] = useState(false);
   const [resolveOpen, setResolveOpen] = useState(false);

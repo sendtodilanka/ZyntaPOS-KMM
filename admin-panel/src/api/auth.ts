@@ -48,16 +48,6 @@ export interface AdminBootstrapRequest {
   password: string;
 }
 
-export interface AdminStatusResponse {
-  needsBootstrap: boolean;
-}
-
-export interface AdminBootstrapRequest {
-  email: string;
-  name: string;
-  password: string;
-}
-
 // ── GET /admin/auth/me ────────────────────────────────────────────────────
 // Called on every page load to hydrate auth state from the httpOnly cookie.
 // If the cookie is missing or expired, the request returns 401.
@@ -81,6 +71,7 @@ export function useCurrentUser() {
     retry: false,
     staleTime: 5 * 60 * 1000,   // 5 min — backend cookie is 15 min
     gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
     throwOnError: false,
   });
 }
@@ -112,7 +103,9 @@ export function useAdminStatus() {
     queryKey: ['admin', 'status'],
     queryFn: () => apiClient.get('admin/auth/status').json<AdminStatusResponse>(),
     retry: false,
-    staleTime: 60 * 1000,
+    staleTime: Infinity,   // Bootstrap state never changes mid-session
+    gcTime: Infinity,
+    refetchOnWindowFocus: false,
   });
 }
 

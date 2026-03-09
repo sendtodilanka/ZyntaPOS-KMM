@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { KeyRound, Monitor, Globe, Clock } from 'lucide-react';
 import { useCurrentUser, useChangePassword, useListSessions } from '@/api/auth';
 import { useRevokeSessions } from '@/api/users';
+import { useTimezone } from '@/hooks/use-timezone';
 
 export const Route = createFileRoute('/settings/profile')({
   component: ProfileSettingsPage,
@@ -13,6 +14,7 @@ function ProfileSettingsPage() {
   const changePassword = useChangePassword();
   const { data: sessions, refetch: refetchSessions } = useListSessions(user?.id);
   const revokeSessions = useRevokeSessions();
+  const { formatDateTime } = useTimezone();
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -159,7 +161,7 @@ function ProfileSettingsPage() {
                       </span>
                     )}
                     <span className="flex items-center gap-1 text-slate-500 text-xs">
-                      <Clock className="w-3 h-3" /> Started {new Date(session.createdAt).toLocaleString()}
+                      <Clock className="w-3 h-3" /> Started {formatDateTime(session.createdAt)}
                     </span>
                   </div>
                 </div>

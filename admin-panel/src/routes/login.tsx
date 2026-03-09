@@ -3,10 +3,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Eye, EyeOff, Loader2, ShieldCheck, Chrome } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAdminLogin, useAdminMfaVerify } from '@/api/auth';
 import { useAuth } from '@/hooks/use-auth';
 import { HTTPError } from '@/lib/api-client';
+import { API_BASE_URL } from '@/lib/constants';
 
 export const Route = createFileRoute('/login')({
   component: LoginPage,
@@ -56,11 +57,10 @@ function LoginPage() {
     formState: { errors: mfaErrors, isSubmitting: mfaSubmitting },
   } = useForm<MfaForm>({ resolver: zodResolver(mfaSchema) });
 
-  // Already authenticated — go to dashboard
-  if (isAuthenticated) {
-    navigate({ to: '/' });
-    return null;
-  }
+  // Already authenticated — go to dashboard (must be in useEffect, not render body)
+  useEffect(() => {
+    if (isAuthenticated) navigate({ to: '/' });
+  }, [isAuthenticated, navigate]);
 
   const onSubmit = async (data: LoginForm) => {
     setServerError(null);
@@ -275,7 +275,7 @@ function LoginPage() {
 
               <button
                 type="button"
-                onClick={() => { window.location.href = `${window.location.origin.replace('panel.', 'api.')}/admin/auth/google`; }}
+                onClick={() => { window.location.href = `${import.meta.env.VITE_GOOGLE_AUTH_URL ?? `${API_BASE_URL}/admin/auth/google`}`; }}
                 className={[
                   'w-full flex items-center justify-center gap-2 rounded-lg px-4 py-2.5',
                   'text-sm font-semibold text-gray-700 bg-white border border-gray-300',

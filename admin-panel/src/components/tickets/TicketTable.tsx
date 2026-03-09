@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { AlertTriangle, Clock } from 'lucide-react';
 import { DataTable, type Column } from '@/components/shared/DataTable';
@@ -51,7 +51,11 @@ function SlaIndicator({ slaDueAt, slaBreached, status, now }: { slaDueAt: number
 export function TicketTable({ data, isLoading, page, totalPages, total, onPageChange }: TicketTableProps) {
   const navigate = useNavigate();
   const { formatRelative } = useTimezone();
-  const now = useMemo(() => Date.now(), []);
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   const columns: Column<Ticket>[] = [
     {

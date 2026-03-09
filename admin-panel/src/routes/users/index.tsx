@@ -6,6 +6,7 @@ import { UserCreateForm } from '@/components/users/UserCreateForm';
 import { SearchInput } from '@/components/shared/SearchInput';
 import { useAdminUsers } from '@/api/users';
 import { useDebounce } from '@/hooks/use-debounce';
+import { useAuth } from '@/hooks/use-auth';
 import type { AdminUser, AdminRole, UserStatus } from '@/types/user';
 
 export const Route = createFileRoute('/users/')({
@@ -13,6 +14,7 @@ export const Route = createFileRoute('/users/')({
 });
 
 function UsersPage() {
+  const { hasPermission } = useAuth();
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<AdminRole | ''>('');
@@ -38,13 +40,15 @@ function UsersPage() {
           <h1 className="panel-title">Users</h1>
           <p className="panel-subtitle">{data?.total ?? 0} admin users</p>
         </div>
-        <button
-          onClick={() => { setEditUser(undefined); setFormOpen(true); }}
-          className="flex items-center gap-2 px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium rounded-lg transition-colors min-h-[44px]"
-        >
-          <Plus className="w-4 h-4" />
-          <span>New User</span>
-        </button>
+        {hasPermission('users:write') && (
+          <button
+            onClick={() => { setEditUser(undefined); setFormOpen(true); }}
+            className="flex items-center gap-2 px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium rounded-lg transition-colors min-h-[44px]"
+          >
+            <Plus className="w-4 h-4" />
+            <span>New User</span>
+          </button>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-3">

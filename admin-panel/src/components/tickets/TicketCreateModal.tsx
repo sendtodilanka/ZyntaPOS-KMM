@@ -3,6 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X } from 'lucide-react';
 import { useCreateTicket } from '@/api/tickets';
+import { toast } from '@/stores/ui-store';
 import type { TicketCategory, TicketPriority } from '@/types/ticket';
 
 const schema = z.object({
@@ -46,7 +47,7 @@ export function TicketCreateModal({ open, onClose }: TicketCreateModalProps) {
         storeId: data.storeId || undefined,
       },
       {
-        onSuccess: () => { reset(); onClose(); },
+        onSuccess: () => { reset(); onClose(); toast.success('Ticket created', 'Support ticket has been submitted.'); },
       },
     );
   };

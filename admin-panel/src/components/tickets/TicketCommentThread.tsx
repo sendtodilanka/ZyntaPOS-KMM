@@ -17,7 +17,7 @@ export function TicketCommentThread({ ticketId }: TicketCommentThreadProps) {
   const [body, setBody] = useState('');
   const [isInternal, setIsInternal] = useState(false);
 
-  const canMarkInternal = hasPermission('audit:read'); // ADMIN, OPERATOR, AUDITOR
+  const canMarkInternal = hasPermission('tickets:resolve'); // ADMIN, OPERATOR only (not AUDITOR, not HELPDESK)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
