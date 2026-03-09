@@ -6,7 +6,9 @@ import { useCreateLicense } from '@/api/licenses';
 import type { LicenseEdition } from '@/types/license';
 
 const schema = z.object({
-  customerId: z.string().min(1, 'Customer ID is required'),
+  customerId: z.string().min(1, 'Customer ID is required').refine((v) => !v.startsWith('cust_'), {
+    message: 'Do not include the "cust_" prefix — it is added automatically',
+  }),
   edition: z.enum(['STARTER', 'PROFESSIONAL', 'ENTERPRISE'] as const),
   maxDevices: z.number().int().min(1).max(100),
   expiresAt: z.string().optional(),
@@ -30,7 +32,7 @@ export function LicenseCreateForm({ open, onClose }: LicenseCreateFormProps) {
 
   const onSubmit = (data: FormData) => {
     createLicense.mutate(
-      { ...data, expiresAt: data.expiresAt || undefined },
+      { ...data, customerId: `cust_${data.customerId}`, expiresAt: data.expiresAt || undefined },
       { onSuccess: () => { reset(); onClose(); } },
     );
   };
@@ -50,7 +52,16 @@ export function LicenseCreateForm({ open, onClose }: LicenseCreateFormProps) {
         <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
           <div>
             <label className="block text-xs font-medium text-slate-400 mb-1.5">Customer ID</label>
-            <input {...register('customerId')} className="w-full h-10 bg-surface-elevated border border-surface-border rounded-lg px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-brand-500" placeholder="cust_..." />
+            <div className="flex h-10 rounded-lg border border-surface-border overflow-hidden focus-within:ring-1 focus-within:ring-brand-500">
+              <span className="flex items-center px-3 bg-surface-border text-sm font-mono text-slate-300 select-none whitespace-nowrap">
+                cust_
+              </span>
+              <input
+                {...register('customerId')}
+                className="flex-1 bg-surface-elevated px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none"
+                placeholder="your-id-here"
+              />
+            </div>
             {errors.customerId && <p className="text-xs text-red-400 mt-1">{errors.customerId.message}</p>}
           </div>
           <div>
