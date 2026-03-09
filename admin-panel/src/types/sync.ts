@@ -30,3 +30,28 @@ export interface ForceSyncResult {
   operationsQueued: number;
   triggeredAt: string;
 }
+
+export interface SyncConflict {
+  id: string;
+  storeId: string;
+  entityType: string;
+  entityId: string;
+  clientData: Record<string, unknown>;
+  serverData: Record<string, unknown>;
+  resolvedBy: 'lww' | 'server' | 'client' | 'manual';
+  createdAt: number;
+  resolvedAt: number | null;
+}
+
+export interface DeadLetterOperation {
+  id: string;
+  storeId: string;
+  operationType: string;
+  entityType: string;
+  entityId: string;
+  payload: Record<string, unknown>;
+  failureReason: string;
+  retryCount: number;
+  createdAt: number;
+  lastAttemptAt: number | null;
+}

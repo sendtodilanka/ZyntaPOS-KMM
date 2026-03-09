@@ -8,6 +8,7 @@ import com.zyntasolutions.zyntapos.api.routes.adminHealthRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminMetricsRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminStoresRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminSyncRoutes
+import com.zyntasolutions.zyntapos.api.routes.adminTicketRoutes
 import com.zyntasolutions.zyntapos.api.routes.authRoutes
 import com.zyntasolutions.zyntapos.api.routes.healthRoutes
 import com.zyntasolutions.zyntapos.api.routes.productRoutes
@@ -47,6 +48,7 @@ fun Application.configureRouting() {
                 adminAlertsRoutes()
                 adminSyncRoutes()
                 adminConfigRoutes()
+                adminTicketRoutes()
             }
         }
 
@@ -59,6 +61,7 @@ fun Application.configureRouting() {
             adminAlertsRoutes()
             adminSyncRoutes()
             adminConfigRoutes()
+            adminTicketRoutes()
         }
 
         route("/v1") {

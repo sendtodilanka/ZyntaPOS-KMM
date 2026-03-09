@@ -12,6 +12,7 @@ import com.zyntasolutions.zyntapos.api.service.AdminAuthService
 import com.zyntasolutions.zyntapos.api.service.AdminConfigService
 import com.zyntasolutions.zyntapos.api.service.AdminMetricsService
 import com.zyntasolutions.zyntapos.api.service.AdminStoresService
+import com.zyntasolutions.zyntapos.api.service.AdminTicketService
 import com.zyntasolutions.zyntapos.api.service.AlertGenerationJob
 import com.zyntasolutions.zyntapos.api.service.ForceSyncNotifier
 import com.zyntasolutions.zyntapos.api.service.GoogleOAuthService
@@ -82,6 +83,7 @@ val appModule = module {
     single { AdminMetricsService() }
     single { MfaService() }
     single { GoogleOAuthService(get()) }
+    single { AdminTicketService() }
     single { AlertGenerationJob(get()) }
     single { ForceSyncNotifier(get<AppConfig>().redisUrl) }
 }

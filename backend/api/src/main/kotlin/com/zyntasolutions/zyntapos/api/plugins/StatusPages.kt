@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.api.plugins
 
+import com.zyntasolutions.zyntapos.api.auth.AdminAuthorizationException
 import com.zyntasolutions.zyntapos.api.models.ErrorResponse
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
@@ -16,6 +17,12 @@ fun Application.configureStatusPages() {
             call.respond(
                 HttpStatusCode.BadRequest,
                 ErrorResponse(code = "INVALID_REQUEST", message = cause.message ?: "Invalid request")
+            )
+        }
+        exception<AdminAuthorizationException> { call, cause ->
+            call.respond(
+                HttpStatusCode.Forbidden,
+                ErrorResponse(code = "FORBIDDEN", message = cause.message ?: "Access denied")
             )
         }
         exception<SecurityException> { call, cause ->
