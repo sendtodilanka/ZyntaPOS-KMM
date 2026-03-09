@@ -243,7 +243,7 @@ class AdminTicketService {
         val total = query.count().toInt()
         val rows = query
             .orderBy(SupportTickets.createdAt, SortOrder.DESC)
-            .limit(size, offset = (page * size).toLong())
+            .limit(size).offset((page * size).toLong())
             .toList()
 
         val userIds = (rows.mapNotNull { it[SupportTickets.createdBy] } +
