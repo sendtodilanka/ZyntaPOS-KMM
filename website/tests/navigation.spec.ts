@@ -30,7 +30,9 @@ test.describe('Header navigation', () => {
     });
   }
 
-  test('"Download Free" header CTA → /pricing', async ({ page }) => {
+  test('"Download Free" header CTA → /pricing', async ({ page, viewport }) => {
+    // The header CTA is hidden below sm (640px) — skip on mobile viewports
+    test.skip((viewport?.width ?? 1280) < 640, 'CTA hidden on mobile viewports');
     // The header CTA (hidden on mobile) links to /pricing
     const cta = page.locator('header a[href="/pricing"]').first();
     await expect(cta).toBeVisible();
