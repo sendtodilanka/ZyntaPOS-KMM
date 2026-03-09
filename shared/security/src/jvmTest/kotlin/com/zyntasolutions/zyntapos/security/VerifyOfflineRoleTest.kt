@@ -62,12 +62,12 @@ class VerifyOfflineRoleTest {
     }
 
     @Test
-    fun `verifyOfflineRole returns MANAGER for manager role`() {
+    fun `verifyOfflineRole returns STORE_MANAGER for store_manager role`() {
         val token = signedToken(
-            """{"sub":"u2","role":"MANAGER","store_id":"s1","exp":253402300800,"iat":0}"""
+            """{"sub":"u2","role":"STORE_MANAGER","store_id":"s1","exp":253402300800,"iat":0}"""
         )
         val role = JwtManager(FakeSecurePreferences()).verifyOfflineRole(token, publicKeyDerBase64)
-        assertEquals(Role.MANAGER, role)
+        assertEquals(Role.STORE_MANAGER, role)
     }
 
     @Test
