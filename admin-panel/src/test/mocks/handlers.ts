@@ -2,8 +2,20 @@ import { http, HttpResponse } from 'msw';
 
 const API_BASE = 'http://localhost:3000/api';
 
+// Shared fixture for a mock admin user
+const mockUser = {
+  id: 'user-1',
+  email: 'admin@zyntapos.com',
+  name: 'System Admin',
+  role: 'ADMIN' as const,
+  mfaEnabled: false,
+  isActive: true,
+  lastLoginAt: null,
+  createdAt: new Date('2024-01-01T00:00:00Z').getTime(),
+};
+
 export const handlers = [
-  // Dashboard KPIs
+  // ── Dashboard KPIs ──────────────────────────────────────────────────────────
   http.get(`${API_BASE}/admin/metrics/kpis`, () => {
     return HttpResponse.json({
       totalRevenue: 4500000,
@@ -17,7 +29,7 @@ export const handlers = [
     });
   }),
 
-  // Licenses
+  // ── Licenses ─────────────────────────────────────────────────────────────────
   http.get(`${API_BASE}/admin/licenses`, () => {
     return HttpResponse.json({
       items: [
@@ -40,7 +52,7 @@ export const handlers = [
     });
   }),
 
-  // Stores
+  // ── Stores ───────────────────────────────────────────────────────────────────
   http.get(`${API_BASE}/admin/stores`, () => {
     return HttpResponse.json({
       items: [
@@ -64,7 +76,7 @@ export const handlers = [
     });
   }),
 
-  // Users
+  // ── Users ────────────────────────────────────────────────────────────────────
   http.get(`${API_BASE}/admin/users`, () => {
     return HttpResponse.json({
       items: [
@@ -86,7 +98,7 @@ export const handlers = [
     });
   }),
 
-  // Health - System
+  // ── Health — System ──────────────────────────────────────────────────────────
   http.get(`${API_BASE}/admin/health/system`, () => {
     return HttpResponse.json({
       overall: 'healthy',
@@ -99,7 +111,7 @@ export const handlers = [
     });
   }),
 
-  // Health - Stores
+  // ── Health — Stores ──────────────────────────────────────────────────────────
   http.get(`${API_BASE}/admin/health/stores`, () => {
     return HttpResponse.json([
       {
@@ -115,7 +127,7 @@ export const handlers = [
     ]);
   }),
 
-  // Alerts
+  // ── Alerts ───────────────────────────────────────────────────────────────────
   http.get(`${API_BASE}/admin/alerts`, () => {
     return HttpResponse.json({
       items: [],
@@ -129,7 +141,7 @@ export const handlers = [
     return HttpResponse.json({ active: 0, critical: 0 });
   }),
 
-  // Audit
+  // ── Audit ────────────────────────────────────────────────────────────────────
   http.get(`${API_BASE}/admin/audit`, () => {
     return HttpResponse.json({
       items: [],
@@ -139,7 +151,7 @@ export const handlers = [
     });
   }),
 
-  // Feature flags
+  // ── Feature flags ─────────────────────────────────────────────────────────────
   http.get(`${API_BASE}/admin/config/feature-flags`, () => {
     return HttpResponse.json([
       {
@@ -155,7 +167,7 @@ export const handlers = [
     ]);
   }),
 
-  // Tax rates
+  // ── Tax rates ─────────────────────────────────────────────────────────────────
   http.get(`${API_BASE}/admin/config/tax-rates`, () => {
     return HttpResponse.json([
       {
@@ -171,7 +183,7 @@ export const handlers = [
     ]);
   }),
 
-  // Sync status
+  // ── Sync status ───────────────────────────────────────────────────────────────
   http.get(`${API_BASE}/admin/sync/status`, () => {
     return HttpResponse.json([
       {
@@ -185,5 +197,114 @@ export const handlers = [
         syncVersion: 100,
       },
     ]);
+  }),
+
+  // ── Auth — login ──────────────────────────────────────────────────────────────
+  http.post(`${API_BASE}/admin/auth/login`, () => {
+    return HttpResponse.json({
+      user: mockUser,
+      expiresIn: 3600,
+    });
+  }),
+
+  // ── Auth — logout ─────────────────────────────────────────────────────────────
+  http.post(`${API_BASE}/admin/auth/logout`, () => {
+    return new HttpResponse(null, { status: 200 });
+  }),
+
+  // ── Auth — bootstrap status ───────────────────────────────────────────────────
+  http.get(`${API_BASE}/admin/auth/status`, () => {
+    return HttpResponse.json({ needsBootstrap: false });
+  }),
+
+  // ── Auth — bootstrap (first-run admin creation) ────────────────────────────────
+  http.post(`${API_BASE}/admin/auth/bootstrap`, () => {
+    return HttpResponse.json(mockUser, { status: 201 });
+  }),
+
+  // ── Auth — MFA setup ──────────────────────────────────────────────────────────
+  http.post(`${API_BASE}/admin/auth/mfa/setup`, () => {
+    return HttpResponse.json({
+      secret: 'JBSWY3DPEHPK3PXP',
+      qrCodeUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA',
+      backupCodes: ['AAAA-BBBB', 'CCCC-DDDD'],
+    });
+  }),
+
+  // ── Auth — MFA enable ─────────────────────────────────────────────────────────
+  http.post(`${API_BASE}/admin/auth/mfa/enable`, () => {
+    return new HttpResponse(null, { status: 200 });
+  }),
+
+  // ── Auth — MFA disable ────────────────────────────────────────────────────────
+  http.post(`${API_BASE}/admin/auth/mfa/disable`, () => {
+    return new HttpResponse(null, { status: 200 });
+  }),
+
+  // ── Auth — MFA verify (step-up challenge) ─────────────────────────────────────
+  http.post(`${API_BASE}/admin/auth/mfa/verify`, () => {
+    return HttpResponse.json({
+      user: { ...mockUser, mfaEnabled: true },
+      expiresIn: 3600,
+    });
+  }),
+
+  // ── Auth — change password ────────────────────────────────────────────────────
+  http.post(`${API_BASE}/admin/auth/change-password`, () => {
+    return new HttpResponse(null, { status: 200 });
+  }),
+
+  // ── Auth — current user ───────────────────────────────────────────────────────
+  http.get(`${API_BASE}/admin/auth/me`, () => {
+    return HttpResponse.json(mockUser);
+  }),
+
+  // ── Users — sessions for a specific user ──────────────────────────────────────
+  http.get(`${API_BASE}/admin/users/:id/sessions`, () => {
+    return HttpResponse.json([
+      {
+        sessionId: 'session-1',
+        userId: 'user-1',
+        userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
+        ipAddress: '192.168.1.1',
+        createdAt: new Date(Date.now() - 3600_000).toISOString(),
+        expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+        current: true,
+      },
+    ]);
+  }),
+
+  // ── Users — create ────────────────────────────────────────────────────────────
+  http.post(`${API_BASE}/admin/users`, async ({ request }) => {
+    const body = await request.json() as Record<string, unknown>;
+    return HttpResponse.json(
+      {
+        ...mockUser,
+        id: 'user-new',
+        email: body['email'] as string ?? 'new@zyntapos.com',
+        name: body['name'] as string ?? 'New User',
+        role: body['role'] as string ?? 'OPERATOR',
+        mfaEnabled: false,
+        isActive: true,
+        lastLoginAt: null,
+        createdAt: Date.now(),
+      },
+      { status: 201 },
+    );
+  }),
+
+  // ── Users — update ────────────────────────────────────────────────────────────
+  http.patch(`${API_BASE}/admin/users/:id`, async ({ params, request }) => {
+    const body = await request.json() as Record<string, unknown>;
+    return HttpResponse.json({
+      ...mockUser,
+      id: params['id'] as string,
+      ...body,
+    });
+  }),
+
+  // ── Users — revoke all sessions ───────────────────────────────────────────────
+  http.delete(`${API_BASE}/admin/users/:id/sessions`, () => {
+    return new HttpResponse(null, { status: 200 });
   }),
 ];
