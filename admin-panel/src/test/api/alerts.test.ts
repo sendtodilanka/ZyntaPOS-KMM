@@ -54,7 +54,7 @@ describe('alertKeys', () => {
   });
 
   it('list(filter) includes the filter in the key', () => {
-    const filter = { status: 'active' };
+    const filter: import('@/types/alert').AlertFilter = { status: 'active' };
     const key = alertKeys.list(filter);
     expect(key[0]).toBe('alerts');
     expect(key[1]).toBe('list');
@@ -133,12 +133,12 @@ describe('useAlerts', () => {
       }),
     );
 
-    const { result } = renderHook(() => useAlerts({ severity: 'HIGH' } as Parameters<typeof useAlerts>[0]), {
+    const { result } = renderHook(() => useAlerts({ severity: 'high' }), {
       wrapper: createWrapper(),
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(capturedUrl).toContain('severity=HIGH');
+    expect(capturedUrl).toContain('severity=high');
   });
 
   it('surfaces server errors', async () => {

@@ -33,12 +33,12 @@ const mockSyncOperation: SyncOperation = {
   storeId: 'store-1',
   entityType: 'Product',
   entityId: 'prod-1',
-  operation: 'UPDATE',
-  payload: null,
-  status: 'PENDING',
+  operationType: 'UPDATE',
+  payload: {},
+  clientTimestamp: new Date().toISOString(),
+  retryCount: 0,
+  lastErrorMessage: null,
   createdAt: new Date().toISOString(),
-  processedAt: null,
-  errorMessage: null,
 };
 
 const mockConflict: SyncConflict = {
@@ -46,11 +46,11 @@ const mockConflict: SyncConflict = {
   storeId: 'store-1',
   entityType: 'Product',
   entityId: 'prod-1',
-  localVersion: 2,
-  serverVersion: 3,
-  conflictType: 'UPDATE_UPDATE',
+  clientData: { version: 2 },
+  serverData: { version: 3 },
+  resolvedBy: 'lww',
   resolvedAt: null,
-  createdAt: new Date().toISOString(),
+  createdAt: Date.now(),
 };
 
 const mockDeadLetter: DeadLetterOperation = {
@@ -58,11 +58,12 @@ const mockDeadLetter: DeadLetterOperation = {
   storeId: 'store-1',
   entityType: 'Order',
   entityId: 'order-1',
-  operation: 'CREATE',
-  payload: null,
-  errorMessage: 'Timeout',
-  failedAt: new Date().toISOString(),
+  operationType: 'CREATE',
+  payload: {},
+  failureReason: 'Timeout',
   retryCount: 3,
+  createdAt: Date.now(),
+  lastAttemptAt: null,
 };
 
 // ── useSyncStatus ────────────────────────────────────────────────────────────
