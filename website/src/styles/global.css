@@ -204,17 +204,21 @@ html.light .bg-slate-800\/50 .text-white,
 html.light .bg-slate-800\/30 .text-white,
 html.light .bg-slate-800\/20 .text-white { color: #0f172a; }
 
-/* ── Brand buttons: sky-500/600 → sky-700/800 for WCAG compliance ──────
-   sky-700 (#0369a1) with white text: 5.89:1 ✓
-   sky-800 (#075985) with white text: 7.15:1 ✓
+/* ── Brand buttons — light mode darkening ───────────────────────────────
+   Components use sky-700 as primary button bg (5.89:1 with white ✓).
+   In light mode, darken to sky-800 (7.15:1) for extra WCAG headroom.
+   sky-800 (#075985) with white: 7.15:1 ✓
 ────────────────────────────────────────────────────────────────────────── */
-html.light .bg-sky-500               { background-color: #0369a1; }
-html.light .bg-sky-600               { background-color: #075985; }
+html.light .bg-sky-500               { background-color: #075985; }   /* any residual → sky-800 */
+html.light .bg-sky-600               { background-color: #075985; }   /* sky-600 → sky-800 */
+html.light .bg-sky-700               { background-color: #075985; }   /* sky-700 → sky-800 */
 html.light .hover\:bg-sky-400:hover  { background-color: #0284c7; }   /* sky-600 */
+html.light .hover\:bg-sky-600:hover  { background-color: #0284c7; }   /* slightly lighter on hover */
 
 /* Preserve white text on brand button/banner elements */
 html.light a.bg-sky-500,
-html.light a.bg-sky-600              { color: #ffffff; }
+html.light a.bg-sky-600,
+html.light a.bg-sky-700              { color: #ffffff; }
 
 /* ── Hover states ─────────────────────────────────────────────────────── */
 html.light .hover\:bg-slate-800:hover    { background-color: #f1f5f9; }
@@ -223,7 +227,8 @@ html.light .hover\:border-slate-500:hover { border-color: #0369a1; }
 html.light .hover\:text-white:hover      { color: #0f172a; }
 /* Exception: sky-coloured CTA buttons that already have white text */
 html.light a.bg-sky-500:hover,
-html.light a.bg-sky-600:hover            { color: #ffffff; }
+html.light a.bg-sky-600:hover,
+html.light a.bg-sky-700:hover            { color: #ffffff; }
 
 /* ==============================
    BASE STYLES
