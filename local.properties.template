@@ -16,6 +16,17 @@ ZYNTA_API_CLIENT_SECRET=YOUR_CLIENT_SECRET_HERE
 API_BASE_URL=https://localhost/api
 DB_ENCRYPTION_PASSWORD=dev-only-not-for-production
 
+# ── JWT RS256 Public Key ─────────────────────────────────────────────
+# Base64-encoded DER of the RSA public key used by the backend to sign JWTs.
+# The KMP client does NOT verify signatures locally (see JwtManager.kt) — the
+# backend verifies on every authenticated call. This key is provided here for
+# future client-side verification and for tooling (e.g., jwt.io debugging).
+#
+# Generate (from your RSA private key):
+#   openssl rsa -in private_key.pem -pubout -outform DER \
+#     | openssl base64 -A
+ZYNTA_RS256_PUBLIC_KEY=YOUR_BASE64_DER_RSA_PUBLIC_KEY_HERE
+
 # ── Database Encryption ─────────────────────────────────────────────
 # Generate: openssl rand -hex 32
 ZYNTA_DB_PASSPHRASE=YOUR_64_CHAR_HEX_PASSPHRASE_HERE
