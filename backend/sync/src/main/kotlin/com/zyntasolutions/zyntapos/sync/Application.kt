@@ -2,6 +2,7 @@ package com.zyntasolutions.zyntapos.sync
 
 import io.sentry.Sentry
 import com.zyntasolutions.zyntapos.sync.di.syncModule
+import com.zyntasolutions.zyntapos.sync.hub.RedisPubSubListener
 import com.zyntasolutions.zyntapos.sync.pubsub.ForceSyncSubscriber
 import com.zyntasolutions.zyntapos.sync.plugins.configureAuthentication
 import com.zyntasolutions.zyntapos.sync.plugins.configureMonitoring
@@ -55,6 +56,9 @@ fun Application.module() {
     configureContentLengthLimit()
     configureRouting()
 
-    // Start Redis pub/sub subscriber for force-sync notifications from the API service
+    // Start Redis delta fan-out listener (TODO-007g) — broadcasts push deltas to WS devices
+    getKoin().get<RedisPubSubListener>().start()
+
+    // Start force-sync subscriber — admin-triggered force-sync commands
     getKoin().get<ForceSyncSubscriber>().start()
 }

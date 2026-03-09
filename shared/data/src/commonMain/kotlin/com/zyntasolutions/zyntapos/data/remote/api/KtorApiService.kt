@@ -89,7 +89,9 @@ class KtorApiService(
     override suspend fun pullOperations(lastSyncTimestamp: Long): SyncPullResponseDto =
         safeRequest {
             client.get("$apiRoot/sync/pull") {
-                parameter("last_sync_ts", lastSyncTimestamp)
+                // "since" is the server_seq cursor returned by prior pull (TODO-007g)
+                parameter("since", lastSyncTimestamp)
+                parameter("limit", 50)
             }
         }
 

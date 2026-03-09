@@ -1,11 +1,13 @@
 package com.zyntasolutions.zyntapos.api.routes
 
 import com.zyntasolutions.zyntapos.api.db.DatabaseFactory
+import com.zyntasolutions.zyntapos.api.sync.SyncMetrics
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import kotlinx.serialization.Serializable
+import org.koin.ktor.ext.inject
 
 @Serializable
 data class HealthResponse(
@@ -14,6 +16,8 @@ data class HealthResponse(
 )
 
 fun Route.healthRoutes() {
+    val syncMetrics: SyncMetrics by inject()
+
     get("/health") {
         val dbOk = try {
             DatabaseFactory.ping()
@@ -30,6 +34,12 @@ fun Route.healthRoutes() {
                 db = dbOk
             )
         )
+    }
+
+    // Sync-specific health metrics (queue depth, conflict rate, WS connections)
+    get("/health/sync") {
+        val metrics = syncMetrics.snapshot()
+        call.respond(HttpStatusCode.OK, metrics)
     }
 
     // Lightweight liveness probe (no DB check) — used by load balancer

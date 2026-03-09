@@ -230,24 +230,48 @@ class SyncEngine(
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
-     * Pulls server-side changes created after the stored [SecureStorageKeys.KEY_LAST_SYNC_TS].
+     * Pulls server-side changes using cursor-based pagination (TODO-007g).
      *
-     * @return Number of delta operations applied locally.
+     * Uses [SecureStorageKeys.KEY_LAST_SYNC_TS] as the cursor (server_seq value).
+     * Loops until [SyncPullResponseDto.hasMore] is false to drain the full delta.
+     *
+     * @return Total number of delta operations applied locally.
      */
     private suspend fun pullServerDelta(): Int {
-        val lastSyncTs = prefs.get(SecureStorageKeys.KEY_LAST_SYNC_TS)?.toLongOrNull() ?: 0L
-        log.d("Pulling delta since ts=$lastSyncTs")
+        var cursor = prefs.get(SecureStorageKeys.KEY_LAST_SYNC_TS)?.toLongOrNull() ?: 0L
+        log.d("Pulling delta since cursor=$cursor")
 
-        val pullResponse = api.pullOperations(lastSyncTimestamp = lastSyncTs)
+        var totalPulled = 0
+        var iterations = 0
+        val maxIterations = 20 // Safety cap — prevents infinite loops on server bugs
 
-        if (pullResponse.operations.isEmpty()) {
-            log.d("No server-side delta — up to date")
-            return 0
+        while (iterations < maxIterations) {
+            iterations++
+            val pullResponse = api.pullOperations(lastSyncTimestamp = cursor)
+
+            if (pullResponse.operations.isEmpty()) {
+                log.d("No server-side delta — up to date (cursor=$cursor)")
+                break
+            }
+
+            log.d("Applying ${pullResponse.operations.size} delta ops (iteration=$iterations cursor=$cursor)")
+            applyDeltaOperations(pullResponse.operations)
+            totalPulled += pullResponse.operations.size
+
+            // Advance cursor to the new position returned by server
+            val newCursor = pullResponse.cursor
+            if (newCursor <= cursor) break // Defensive: cursor did not advance, stop
+            cursor = newCursor
+            prefs.put(SecureStorageKeys.KEY_LAST_SYNC_TS, cursor.toString())
+
+            if (!pullResponse.hasMore) break
         }
 
-        log.d("Applying ${pullResponse.operations.size} server delta operation(s)")
-        applyDeltaOperations(pullResponse.operations)
-        return pullResponse.operations.size
+        if (iterations >= maxIterations) {
+            log.w("Pull stopped at max iterations ($maxIterations) — possible server-side issue")
+        }
+
+        return totalPulled
     }
 
     // ─────────────────────────────────────────────────────────────────────────
