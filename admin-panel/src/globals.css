@@ -3,62 +3,96 @@
 @tailwind utilities;
 
 @layer base {
+
+  /* ── Surface color tokens ───────────────────────────────────────────────
+     Values are space-separated R G B (no commas) so Tailwind opacity
+     variants like bg-surface-card/50 work correctly via rgb(var(--x)/0.5).
+  ──────────────────────────────────────────────────────────────────────── */
+
+  /* Light mode (default) */
   :root {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 199 89% 48%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --surface:          248 250 252;   /* slate-50  */
+    --surface-card:     255 255 255;   /* white     */
+    --surface-elevated: 241 245 249;   /* slate-100 */
+    --surface-border:   226 232 240;   /* slate-200 */
     --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 199 89% 48%;
     --radius: 0.5rem;
   }
 
+  /* Dark mode */
+  .dark {
+    --surface:          15 23 42;      /* slate-900  */
+    --surface-card:     30 41 59;      /* slate-800  */
+    --surface-elevated: 26 35 50;      /* custom     */
+    --surface-border:   51 65 85;      /* slate-700  */
+  }
+
+  /* ── Base resets ────────────────────────────────────────────────────── */
+
   * {
-    @apply border-border;
     box-sizing: border-box;
   }
 
   html {
-    @apply bg-surface text-slate-100 antialiased;
+    @apply bg-surface antialiased;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  /* Dark mode base text */
+  html.dark {
+    @apply text-slate-100;
+  }
+
+  /* Light mode base text */
+  html:not(.dark) {
+    color: #0f172a; /* slate-900 */
   }
 
   body {
     @apply min-h-screen font-sans;
   }
 
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
+  /* ── Light mode text remapping ──────────────────────────────────────────
+     Components use text-slate-100/200/300/400/500 as semantic text tokens
+     for the dark theme. In light mode these resolve to near-white, making
+     text invisible. We remap them to their dark counterparts.
+     Selector specificity (0,2,1) beats utility class (0,1,0) — no !important.
+  ──────────────────────────────────────────────────────────────────────── */
 
-  ::-webkit-scrollbar-track {
-    @apply bg-surface;
-  }
+  html:not(.dark) .text-slate-100 { color: #0f172a; } /* → slate-900 primary    */
+  html:not(.dark) .text-slate-200 { color: #1e293b; } /* → slate-800            */
+  html:not(.dark) .text-slate-300 { color: #334155; } /* → slate-700 secondary  */
+  html:not(.dark) .text-slate-400 { color: #475569; } /* → slate-600 muted      */
+  html:not(.dark) .text-slate-500 { color: #64748b; } /* → slate-500 subtle     */
 
-  ::-webkit-scrollbar-thumb {
-    @apply rounded-full bg-slate-600;
-  }
+  /* brand-400 (#38bdf8) is too light on white — use brand-600 instead */
+  html:not(.dark) .text-brand-400 { color: #0284c7; }
 
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-slate-500;
-  }
+  /* Mono/code text */
+  html:not(.dark) .font-mono { color: inherit; }
+
+  /* ── Light mode background remapping ───────────────────────────────────
+     Some components use bg-slate-* directly for skeleton/placeholder fills.
+  ──────────────────────────────────────────────────────────────────────── */
+
+  html:not(.dark) .bg-slate-700\/50  { background-color: rgb(203 213 225 / 0.5); }
+  html:not(.dark) .bg-slate-800      { background-color: #f1f5f9; }
+
+  /* ── Scrollbar ──────────────────────────────────────────────────────── */
+
+  ::-webkit-scrollbar        { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track  { background: rgb(var(--surface)); }
+
+  .dark ::-webkit-scrollbar-thumb       { @apply rounded-full bg-slate-600; }
+  .dark ::-webkit-scrollbar-thumb:hover { @apply bg-slate-500; }
+
+  html:not(.dark) ::-webkit-scrollbar-thumb       { background: #cbd5e1; border-radius: 9999px; }
+  html:not(.dark) ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
 }
 
 @layer components {
+
   .panel-card {
     @apply rounded-lg border border-surface-border bg-surface-card p-6 shadow-sm;
   }
@@ -78,4 +112,5 @@
   .table-row-hover {
     @apply hover:bg-surface-elevated transition-colors cursor-default;
   }
+
 }

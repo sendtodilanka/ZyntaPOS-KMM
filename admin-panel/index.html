@@ -1,6 +1,13 @@
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
+    <!-- Prevent flash of wrong theme: read persisted preference before React mounts -->
+    <script>
+      try {
+        var s = JSON.parse(localStorage.getItem('zynta-admin-ui') || '{}');
+        if ((s.state || s).theme !== 'light') document.documentElement.classList.add('dark');
+      } catch (_) { document.documentElement.classList.add('dark'); }
+    </script>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
