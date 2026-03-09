@@ -204,6 +204,17 @@ html.light .bg-slate-800\/50 .text-white,
 html.light .bg-slate-800\/30 .text-white,
 html.light .bg-slate-800\/20 .text-white { color: #0f172a; }
 
+/* ── Exception: sky-700 brand elements keep white text ────────────────
+   Overrides the card-surface and heading rules above.
+   sky-800 (#075985) with white: 7.15:1 ✓ at all text sizes.
+   Must come AFTER the bg-slate-8xx rules (same specificity → cascade).
+────────────────────────────────────────────────────────────────────────── */
+html.light .bg-sky-700 .text-white,
+html.light .bg-sky-700.text-white,
+html.light .bg-sky-700 h1.text-white,
+html.light .bg-sky-700 h2.text-white,
+html.light .bg-sky-700 h3.text-white { color: #ffffff; }
+
 /* ── Brand buttons — light mode darkening ───────────────────────────────
    Components use sky-700 as primary button bg (5.89:1 with white ✓).
    In light mode, darken to sky-800 (7.15:1) for extra WCAG headroom.
