@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '../utils';
+import { render } from '../utils';
 import {
   Skeleton,
   CardSkeleton,

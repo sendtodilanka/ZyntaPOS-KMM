@@ -27,7 +27,6 @@ describe('Breadcrumbs', () => {
     setPathname('/licenses/ZYNTA-1234');
     render(<Breadcrumbs />);
     // Home link points to "/"
-    const homeLink = screen.getByRole('link', { name: '' }) as HTMLAnchorElement;
     // Home icon is rendered inside the first link — just verify the link exists and has the right href
     const homeAnchor = document.querySelector('a[href="/"]') as HTMLAnchorElement;
     expect(homeAnchor).toBeInTheDocument();

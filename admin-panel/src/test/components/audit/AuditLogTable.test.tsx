@@ -6,9 +6,9 @@ import type { AuditEntry } from '@/types/audit';
 
 vi.mock('@/hooks/use-timezone', () => ({
   useTimezone: () => ({
-    formatDateTime: (ms: number) => new Date(ms).toLocaleString(),
-    formatDate: (ms: number) => new Date(ms).toLocaleDateString(),
-    formatRelative: (ms: number) => 'just now',
+    formatDateTime: (_ms: number) => new Date(ms).toLocaleString(),
+    formatDate: (_ms: number) => new Date(ms).toLocaleDateString(),
+    formatRelative: (_ms: number) => 'just now',
   }),
 }));
 

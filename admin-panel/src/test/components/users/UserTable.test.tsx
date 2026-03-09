@@ -82,7 +82,6 @@ describe('UserTable', () => {
 
   it('clicking Actions button opens dropdown with Edit, Revoke, and Deactivate options', async () => {
     render(<UserTable {...defaultProps} />);
-    const actionButton = screen.getByRole('button', { name: '' });
     // The MoreHorizontal icon button — find by querying the SVG container
     const actionButtons = screen.getAllByRole('button');
     // The only non-pagination button in the row is the actions menu trigger

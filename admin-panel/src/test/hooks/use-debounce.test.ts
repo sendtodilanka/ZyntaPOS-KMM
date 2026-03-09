@@ -138,7 +138,7 @@ describe('useDebounce', () => {
   });
 
   it('cleans up the timeout on unmount without error', () => {
-    const { result, rerender, unmount } = renderHook(
+    const { rerender, unmount } = renderHook(
       ({ value }: { value: string }) => useDebounce(value, 300),
       { initialProps: { value: 'a' } },
     );

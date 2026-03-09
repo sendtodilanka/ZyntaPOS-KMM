@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   cn,
   formatCurrency,
@@ -25,7 +25,8 @@ describe('cn', () => {
   });
 
   it('handles conditional classes with falsy values', () => {
-    expect(cn('foo', false && 'bar', undefined, null, 'baz')).toBe('foo baz');
+    const falsy = false;
+    expect(cn('foo', falsy && 'bar', undefined, null, 'baz')).toBe('foo baz');
   });
 
   it('deduplicates conflicting tailwind classes (last wins)', () => {
