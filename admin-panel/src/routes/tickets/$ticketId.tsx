@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useState } from 'react';
-import { ArrowLeft, AlertTriangle, Clock, User, Calendar, Tag } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { ArrowLeft, AlertTriangle, Clock, User } from 'lucide-react';
 import { TicketStatusBadge, TicketPriorityBadge } from '@/components/tickets/TicketStatusBadge';
 import { TicketAssignModal } from '@/components/tickets/TicketAssignModal';
 import { TicketResolveModal } from '@/components/tickets/TicketResolveModal';
@@ -15,11 +15,11 @@ export const Route = createFileRoute('/tickets/$ticketId')({
   component: TicketDetailPage,
 });
 
-function SlaStatus({ slaDueAt, slaBreached, status }: { slaDueAt: number | null; slaBreached: boolean; status: string }) {
+function SlaStatus({ slaDueAt, slaBreached, status, now }: { slaDueAt: number | null; slaBreached: boolean; status: string; now: number }) {
   if (status === 'RESOLVED' || status === 'CLOSED') return <span className="text-slate-500 text-sm">—</span>;
   if (!slaDueAt) return <span className="text-slate-500 text-sm">No SLA</span>;
 
-  if (slaBreached || slaDueAt < Date.now()) {
+  if (slaBreached || slaDueAt < now) {
     return (
       <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-red-400">
         <AlertTriangle className="w-4 h-4" /> SLA Breached
@@ -27,7 +27,7 @@ function SlaStatus({ slaDueAt, slaBreached, status }: { slaDueAt: number | null;
     );
   }
 
-  const remaining = slaDueAt - Date.now();
+  const remaining = slaDueAt - now;
   const hours = Math.floor(remaining / 3_600_000);
   const mins = Math.floor((remaining % 3_600_000) / 60_000);
   const label = hours > 0 ? `${hours}h ${mins}m remaining` : `${mins}m remaining`;
@@ -57,6 +57,7 @@ function TicketDetailPage() {
 
   const { data: ticket, isLoading } = useTicket(ticketId);
   const closeTicket = useCloseTicket();
+  const now = useMemo(() => Date.now(), []);
 
   const [assignOpen, setAssignOpen] = useState(false);
   const [resolveOpen, setResolveOpen] = useState(false);
@@ -158,7 +159,7 @@ function TicketDetailPage() {
               <InfoRow label="Priority"><TicketPriorityBadge priority={ticket.priority} /></InfoRow>
               <InfoRow label="Category">{ticket.category}</InfoRow>
               <InfoRow label="SLA">
-                <SlaStatus slaDueAt={ticket.slaDueAt} slaBreached={ticket.slaBreached} status={ticket.status} />
+                <SlaStatus slaDueAt={ticket.slaDueAt} slaBreached={ticket.slaBreached} status={ticket.status} now={now} />
               </InfoRow>
             </dl>
           </div>
