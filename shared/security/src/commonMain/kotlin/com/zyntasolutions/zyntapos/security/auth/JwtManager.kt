@@ -35,10 +35,20 @@ data class JwtClaims(
 /**
  * Client-side JWT manager: decodes and inspects ZyntaPOS access/refresh tokens.
  *
- * **Security note:** This class does NOT cryptographically verify JWT signatures.
- * Signature verification is the responsibility of the backend on each API call.
- * The client parses tokens only to extract display-relevant claims (userId, role)
- * and to detect client-side token expiry for proactive refresh.
+ * ### Signature verification policy
+ *
+ * **Online path** — the backend verifies every JWT on each authenticated API call.
+ * The client does not need to verify signatures while connected.
+ *
+ * **Offline RBAC gating** — the client MUST verify the RS256 signature before
+ * trusting the `role` claim for navigation route gating. Without verification, an
+ * attacker with physical device access could modify the stored JWT in SecurePreferences
+ * to claim a higher-privilege role and unlock admin UI while offline. Use
+ * [verifyOfflineRole] for this path — it returns `null` when the signature is
+ * invalid, forcing the caller to fall back to the lowest-privilege role ([Role.CASHIER]).
+ *
+ * For all other purposes (expiry checking, userId display) signature verification is
+ * not required and [parseJwt] / [extractRole] may be used directly.
  *
  * Tokens are persisted in [SecurePreferences] under the well-known key constants.
  *
@@ -112,8 +122,11 @@ class JwtManager(private val prefs: TokenStorage) {
     fun extractUserId(token: String): String = parseJwt(token).sub
 
     /**
-     * Extracts the [Role] from [token].
+     * Extracts the [Role] from [token] **without** verifying the RS256 signature.
      * Falls back to [Role.CASHIER] if the role string does not match any known role.
+     *
+     * **Only use this for non-sensitive display purposes** (e.g., showing the role
+     * label in the UI while online). For RBAC route gating use [verifyOfflineRole].
      *
      * @throws IllegalArgumentException if the token is malformed.
      */
@@ -122,6 +135,38 @@ class JwtManager(private val prefs: TokenStorage) {
         return Role.entries.firstOrNull { it.name.equals(roleName, ignoreCase = true) }
             ?: Role.CASHIER
     }
+
+    /**
+     * Cryptographically verifies the RS256 signature of [token] and returns its [Role]
+     * claim, or `null` if the signature is invalid or the token is malformed.
+     *
+     * **Use this for offline RBAC route gating** to prevent privilege escalation via
+     * JWT tampering in [SecurePreferences]. Falls back to `null` on any failure so
+     * callers can degrade safely to [Role.CASHIER].
+     *
+     * @param token            Raw JWT string (three base64url segments separated by `.`).
+     * @param publicKeyDerBase64 Base64-encoded DER bytes of the RSA public key
+     *                           (SubjectPublicKeyInfo format — same as `ZYNTA_RS256_PUBLIC_KEY`
+     *                           in `local.properties`). Standard Base64, not URL-safe.
+     * @return The [Role] from the `role` claim if the signature is valid;
+     *         `null` if verification fails or the role string is unrecognised.
+     */
+    @OptIn(ExperimentalEncodingApi::class)
+    fun verifyOfflineRole(token: String, publicKeyDerBase64: String): Role? = runCatching {
+        val parts = token.split(".")
+        if (parts.size != 3) return@runCatching null
+
+        // Signed data is the raw ASCII bytes of "header.payload"
+        val signedData = "${parts[0]}.${parts[1]}".encodeToByteArray()
+        val signatureBytes = decodeBase64Url(parts[2])
+        val publicKeyDer = Base64.decode(publicKeyDerBase64)
+
+        if (!verifyRs256Signature(signedData, signatureBytes, publicKeyDer)) return@runCatching null
+
+        val payloadJson = decodeBase64Url(parts[1]).decodeToString()
+        val claims = json.decodeFromString<JwtClaims>(payloadJson)
+        Role.entries.firstOrNull { it.name.equals(claims.role, ignoreCase = true) }
+    }.getOrDefault(null)
 
     // ── Internal ──────────────────────────────────────────────────────────────
 
