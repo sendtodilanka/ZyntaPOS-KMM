@@ -18,7 +18,7 @@ test.describe('Header navigation', () => {
 
   test('logo navigates to home', async ({ page }) => {
     await page.goto('/features');
-    await page.click('a[aria-label="ZyntaPOS home"]');
+    await page.click('header a[aria-label="ZyntaPOS home"]');
     await expect(page).toHaveURL('/');
   });
 

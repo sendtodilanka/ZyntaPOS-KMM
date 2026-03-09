@@ -58,7 +58,7 @@ test.describe('Keyboard navigation', () => {
   test('can Tab through header nav links', async ({ page }) => {
     await page.goto('/');
     // Focus the logo link first
-    await page.locator('a[aria-label="ZyntaPOS home"]').focus();
+    await page.locator('header a[aria-label="ZyntaPOS home"]').focus();
 
     // Tab through each nav item and confirm focus moves forward
     const navItems = page.locator('nav[aria-label="Main navigation"] a');
