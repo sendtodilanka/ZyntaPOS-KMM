@@ -2,7 +2,7 @@
 
 **Phase:** 2 — Growth
 **Priority:** P0 (HIGH)
-**Status:** 🟡 ~99% COMPLETE — All code gaps resolved: CSRF plugin (G1), password max-length (G2), auth audit logging (G3), backend tests (G8), Google Cloud Console (G9 ✅ user confirmed), VPS env vars set + deployed (G10 ✅). Only remaining: CF Access bypass (G11) — pending user decision on implementation approach
+**Status:** ✅ 100% COMPLETE — All gaps resolved including G11: CF Access verified not intercepting panel.zyntapos.com (HTTP 200 directly to ZyntaPOS SPA, no cf-access-* headers, no redirect to cloudflareaccess.com — verified 2026-03-09)
 **Effort:** ~7 working days (1 developer)
 **Related:** TODO-007a (admin panel), TODO-009 (Ktor security hardening), TODO-010 (security monitoring)
 **Owner:** Zynta Solutions Pvt Ltd
@@ -1328,7 +1328,7 @@ and tighten rules for the custom login endpoint:
 | G8 | ~~No backend unit or integration tests~~ | ~~HIGH~~ | **✅ RESOLVED** — `AdminAuthServiceTest.kt` (11 unit tests: G2 constant, MFA pending token issuance/expiry/type-segregation, access token tamper/wrong-secret/blank/type-segregation); `CsrfPluginTest.kt` (6 integration tests); `SyncPushPullIntegrationTest.kt`; `ServerConflictResolverTest.kt`; `SyncValidatorTest.kt` | — |
 | G9 | ~~Google Cloud Console not yet configured~~ | ~~BLOCKER~~ | **✅ RESOLVED** — OAuth 2.0 Client ID created; `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` set in VPS `.env` (user confirmed 2026-03-09) | — |
 | G10 | ~~VPS .env missing Google OAuth + Admin JWT vars~~ | ~~BLOCKER~~ | **✅ RESOLVED** — `ADMIN_JWT_SECRET` (openssl rand -hex 32), `GOOGLE_ALLOWED_DOMAIN=zyntapos.com`, `ADMIN_BOOTSTRAP_EMAIL=admin@zyntapos.com` added via GitHub Actions on 2026-03-09; `cd-deploy.yml` ran successfully; VPS verify: 38 PASS 0 FAIL | — |
-| G11 | CF Access bypass not done (still CF-branded login) | MEDIUM | Cloudflare dashboard | Manual: set panel.zyntapos.com CF Access to Bypass; pending user decision on approach |
+| G11 | ~~CF Access bypass not done (still CF-branded login)~~ | ~~MEDIUM~~ | **✅ RESOLVED** — Verified 2026-03-09: `panel.zyntapos.com` returns HTTP 200 directly to ZyntaPOS SPA; no `cf-access-*` headers; no redirect to `cloudflareaccess.com`. CF Access is not intercepting — ZyntaPOS custom login is live. | — |
 
 ---
 

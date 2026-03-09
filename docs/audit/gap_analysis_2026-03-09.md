@@ -150,7 +150,7 @@ These are operational/configuration gaps, not code gaps. The TODO-007c checklist
 
 #### TODO-007f: Admin Panel Cloudflare + Custom Auth
 
-**Status: 🟡 ~99% — Only G11 (CF Access bypass) pending user decision**
+**Status: ✅ 100% COMPLETE — All 11 gaps resolved including G11 (verified 2026-03-09)**
 
 **All code gaps resolved (updated 2026-03-09):**
 - `AdminAuthService` JWT HMAC256 + brute-force lockout ✅
@@ -163,8 +163,10 @@ These are operational/configuration gaps, not code gaps. The TODO-007c checklist
 - G9: Google Cloud Console — OAuth Client ID created, vars set in VPS `.env` ✅ (user confirmed)
 - G10: VPS env vars + deployment — `ADMIN_JWT_SECRET`, `GOOGLE_ALLOWED_DOMAIN`, `ADMIN_BOOTSTRAP_EMAIL` set; `cd-deploy.yml` ran successfully (2026-03-09) ✅
 
-**Remaining (infrastructure, not code):**
-- G11: CF Access bypass — Cloudflare dashboard action pending user decision on approach
+**G11 verified complete (2026-03-09):**
+- `curl -I https://panel.zyntapos.com` → HTTP 200, no `cf-access-*` headers, no redirect to `cloudflareaccess.com`
+- ZyntaPOS custom login (`<title>ZyntaPOS Admin</title>`) is served directly — CF Access is not intercepting
+- CF network protections (WAF, DDoS, TLS via `server: cloudflare`) remain fully active
 
 #### TODO-007g: Sync Engine Server-Side
 
