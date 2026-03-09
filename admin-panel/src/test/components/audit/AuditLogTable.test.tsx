@@ -1,4 +1,3 @@
-import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '../../utils';
 import { AuditLogTable } from '@/components/audit/AuditLogTable';
@@ -6,8 +5,8 @@ import type { AuditEntry } from '@/types/audit';
 
 vi.mock('@/hooks/use-timezone', () => ({
   useTimezone: () => ({
-    formatDateTime: (_ms: number) => new Date(ms).toLocaleString(),
-    formatDate: (_ms: number) => new Date(ms).toLocaleDateString(),
+    formatDateTime: (_ms: number) => '1 Jan 2025 10:00',
+    formatDate: (_ms: number) => '1 Jan 2025',
     formatRelative: (_ms: number) => 'just now',
   }),
 }));

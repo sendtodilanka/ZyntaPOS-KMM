@@ -14,16 +14,20 @@ const API_BASE = 'https://api.zyntapos.com';
 const mockEntry: AuditEntry = {
   id: 'audit-1',
   eventType: 'PRODUCT_CREATED',
-  category: 'inventory',
+  category: 'INVENTORY',
   userId: 'user-1',
   userName: 'Admin User',
   storeId: 'store-1',
   storeName: 'Colombo',
   entityType: 'Product',
   entityId: 'prod-1',
+  previousValues: null,
+  newValues: null,
+  ipAddress: null,
+  userAgent: null,
   success: true,
   errorMessage: null,
-  metadata: null,
+  hashChain: 'abc123',
   createdAt: new Date('2024-06-01T10:00:00Z').toISOString(),
 };
 
@@ -117,12 +121,12 @@ describe('useAuditLogs', () => {
       }),
     );
 
-    const { result } = renderHook(() => useAuditLogs({ category: 'inventory' }), {
+    const { result } = renderHook(() => useAuditLogs({ category: 'INVENTORY' }), {
       wrapper: createWrapper(),
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(capturedUrl).toContain('category=inventory');
+    expect(capturedUrl).toContain('category=INVENTORY');
   });
 
   it('forwards eventType query param', async () => {
@@ -310,9 +314,9 @@ describe('exportAuditLogs', () => {
       }),
     );
 
-    await exportAuditLogs({ category: 'pos' });
+    await exportAuditLogs({ category: 'ORDER' });
 
-    expect(capturedUrl).toContain('category=pos');
+    expect(capturedUrl).toContain('category=ORDER');
   });
 
   it('forwards success filter to the export endpoint', async () => {
