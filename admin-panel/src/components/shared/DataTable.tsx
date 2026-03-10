@@ -47,7 +47,7 @@ export function DataTable<T>({
   return (
     <div className="space-y-3">
       {/* Scrollable table wrapper */}
-      <div className="overflow-x-auto rounded-lg border border-surface-border">
+      <div className="overflow-x-auto rounded-lg border border-surface-border" tabIndex={0}>
         <table className="w-full text-sm min-w-[640px]">
           <thead>
             <tr className="border-b border-surface-border bg-surface-elevated">

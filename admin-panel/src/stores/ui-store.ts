@@ -49,6 +49,10 @@ export const useUiStore = create<UiStore>()(
     {
       name: 'zynta-admin-ui',
       partialize: (s) => ({ sidebarCollapsed: s.sidebarCollapsed, theme: s.theme }),
+      // Flatten the persisted value so localStorage.getItem('zynta-admin-ui') returns
+      // { theme: '...' } directly (not wrapped in { state: {...} })
+      serialize: (value) => JSON.stringify(value.state),
+      deserialize: (str) => ({ state: JSON.parse(str) as { sidebarCollapsed: boolean; theme: 'dark' | 'light' }, version: 0 }),
     },
   ),
 );

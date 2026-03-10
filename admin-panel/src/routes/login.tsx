@@ -113,7 +113,8 @@ function LoginPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600 mb-4">
             <span className="text-white text-2xl font-bold">Z</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">ZyntaPOS Admin</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Sign in</h1>
+          <p className="mt-0.5 text-sm font-medium text-gray-500">ZyntaPOS Admin</p>
           <p className="mt-1 text-sm text-gray-500">
             {pendingToken ? 'Two-factor authentication' : 'Sign in to the management console'}
           </p>

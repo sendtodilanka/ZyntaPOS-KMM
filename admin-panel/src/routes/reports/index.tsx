@@ -257,7 +257,7 @@ function ReportsPage() {
             <div className="p-4 border-b border-surface-border">
               <h2 className="text-base font-semibold text-slate-100">Daily Breakdown</h2>
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" tabIndex={0}>
               <table className="w-full min-w-[640px]">
                 <thead>
                   <tr className="border-b border-surface-border bg-surface-elevated">
@@ -342,7 +342,7 @@ function ReportsPage() {
             <div className="p-4 border-b border-surface-border">
               <h2 className="text-base font-semibold text-slate-100">Product Details</h2>
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" tabIndex={0}>
               <table className="w-full min-w-[640px]">
                 <thead>
                   <tr className="border-b border-surface-border bg-surface-elevated">

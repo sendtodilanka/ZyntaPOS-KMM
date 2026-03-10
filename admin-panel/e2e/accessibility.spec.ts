@@ -28,6 +28,8 @@ test.describe('Accessibility — dark mode (WCAG 2.1 AA)', () => {
         document.documentElement.classList.add('dark');
       });
       await page.waitForLoadState('networkidle');
+      // Wait for React to finish rendering (avoids scanning loading spinner)
+      await page.locator('main').first().waitFor({ state: 'visible', timeout: 15_000 });
 
       const results = await new AxeBuilder({ page })
         .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'best-practice'])
@@ -48,6 +50,8 @@ test.describe('Accessibility — light mode (WCAG 2.1 AA)', () => {
         document.documentElement.classList.remove('dark');
       });
       await page.waitForLoadState('networkidle');
+      // Wait for React to finish rendering (avoids scanning loading spinner)
+      await page.locator('main').first().waitFor({ state: 'visible', timeout: 15_000 });
 
       const results = await new AxeBuilder({ page })
         .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'best-practice'])
@@ -64,6 +68,7 @@ test.describe('Accessibility — login page (WCAG 2.1 AA)', () => {
   test('dark mode', async ({ page }) => {
     await page.context().clearCookies();
     await page.goto('/login');
+    await page.waitForLoadState('networkidle');
     await page.evaluate(() => document.documentElement.classList.add('dark'));
 
     const results = await new AxeBuilder({ page })
@@ -76,6 +81,7 @@ test.describe('Accessibility — login page (WCAG 2.1 AA)', () => {
   test('light mode', async ({ page }) => {
     await page.context().clearCookies();
     await page.goto('/login');
+    await page.waitForLoadState('networkidle');
     await page.evaluate(() => document.documentElement.classList.remove('dark'));
 
     const results = await new AxeBuilder({ page })
@@ -91,6 +97,10 @@ test.describe('Accessibility — login page (WCAG 2.1 AA)', () => {
 test.describe('Keyboard navigation', () => {
   test('can Tab through sidebar nav links', async ({ page }) => {
     await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    // Wait for sidebar to render
+    await page.locator('nav a, aside a').first().waitFor({ state: 'visible', timeout: 15_000 });
+
     const navLinks = page.locator('nav a, aside a');
     const count = await navLinks.count();
     expect(count).toBeGreaterThan(0);
