@@ -3,6 +3,9 @@
 
 # Default: allow all well-behaved crawlers
 User-agent: *
+Allow: /_astro/
+Allow: /fonts/
+Allow: /images/
 Allow: /
 Disallow: /admin
 Disallow: /api
