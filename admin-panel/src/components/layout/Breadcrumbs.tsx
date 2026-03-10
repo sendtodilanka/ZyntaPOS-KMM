@@ -29,8 +29,8 @@ export function Breadcrumbs() {
 
   return (
     <nav className="flex items-center gap-1 text-sm min-w-0" aria-label="Breadcrumb">
-      <Link to="/" className="text-slate-400 hover:text-slate-100 transition-colors flex-shrink-0">
-        <Home className="w-4 h-4" />
+      <Link to="/" aria-label="Home" className="text-slate-400 hover:text-slate-100 transition-colors flex-shrink-0">
+        <Home className="w-4 h-4" aria-hidden="true" />
       </Link>
       {segments.map((segment, index) => {
         const isLast = index === segments.length - 1;

@@ -113,9 +113,9 @@ export function FeatureFlagTable() {
       />
       {Object.entries(byCategory).map(([category, items]) => (
         <div key={category} className="bg-surface-card border border-surface-border rounded-xl p-4">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">
             {category.replace(/_/g, ' ')}
-          </h3>
+          </p>
           <div>
             {items.map((flag) => (
               <FlagRow key={flag.key} flag={flag} />
