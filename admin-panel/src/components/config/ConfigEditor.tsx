@@ -56,7 +56,7 @@ export function ConfigEditor() {
       <input type="search" placeholder="Search config keys..." value={search} onChange={e=>setSearch(e.target.value)} className="w-full h-10 px-3 bg-surface-elevated border border-surface-border rounded-lg text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500"/>
       {Object.entries(byCategory).map(([cat,items])=>(
         <div key={cat} className="bg-surface-card border border-surface-border rounded-xl p-4">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">{cat.replace(/_/g,' ')}</h3>
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">{cat.replace(/_/g,' ')}</p>
           {items.map(c=><ConfigRow key={c.key} config={c}/>)}
         </div>
       ))}
