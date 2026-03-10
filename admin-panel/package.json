@@ -5,13 +5,20 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:mock": "VITE_MOCK=true vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts,.tsx --max-warnings 0",
     "test": "vitest",
     "test:ci": "vitest run --coverage",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:a11y": "playwright test e2e/accessibility.spec.ts",
+    "test:visual": "playwright test e2e/visual.spec.ts",
+    "test:nav": "playwright test e2e/navigation.spec.ts",
+    "test:update-snapshots": "playwright test --update-snapshots e2e/visual.spec.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -36,6 +43,8 @@
     "zustand": "^5.0.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.1",
+    "@playwright/test": "^1.52.0",
     "@eslint/js": "^9.39.4",
     "@tailwindcss/postcss": "^4.2.1",
     "@tanstack/router-plugin": "^1.56.0",
@@ -62,5 +71,10 @@
     "typescript-eslint": "^8.56.1",
     "vite": "^6.0.0",
     "vitest": "^2.1.1"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
   }
 }
