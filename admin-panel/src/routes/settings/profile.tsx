@@ -80,8 +80,9 @@ function ProfileSettingsPage() {
 
         <form onSubmit={handleChangePassword} className="space-y-4">
           <div>
-            <label className="block text-slate-400 text-sm mb-1.5">Current password</label>
+            <label htmlFor="current-password" className="block text-slate-400 text-sm mb-1.5">Current password</label>
             <input
+              id="current-password"
               type="password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
@@ -91,8 +92,9 @@ function ProfileSettingsPage() {
             />
           </div>
           <div>
-            <label className="block text-slate-400 text-sm mb-1.5">New password</label>
+            <label htmlFor="new-password" className="block text-slate-400 text-sm mb-1.5">New password</label>
             <input
+              id="new-password"
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
@@ -104,8 +106,9 @@ function ProfileSettingsPage() {
             />
           </div>
           <div>
-            <label className="block text-slate-400 text-sm mb-1.5">Confirm new password</label>
+            <label htmlFor="confirm-password" className="block text-slate-400 text-sm mb-1.5">Confirm new password</label>
             <input
+              id="confirm-password"
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}

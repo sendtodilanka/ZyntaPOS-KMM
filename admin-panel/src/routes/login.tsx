@@ -106,7 +106,7 @@ function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <main className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md space-y-8">
         {/* Logo + Title */}
         <div className="text-center">
@@ -295,6 +295,6 @@ function LoginPage() {
           Zynta Solutions Pvt Ltd &mdash; Internal use only
         </p>
       </div>
-    </div>
+    </main>
   );
 }
