@@ -198,11 +198,16 @@ html.light h2.text-white,
 html.light h3.text-white,
 html.light h4.text-white             { color: #0f172a; }
 
-/* ── White text inside re-themed card surfaces → dark ────────────────── */
+/* ── White text inside re-themed dark surfaces → dark ────────────────── */
+html.light .bg-slate-900     .text-white,
 html.light .bg-slate-800     .text-white,
 html.light .bg-slate-800\/50 .text-white,
 html.light .bg-slate-800\/30 .text-white,
 html.light .bg-slate-800\/20 .text-white { color: #0f172a; }
+/* Headings inside re-themed dark surfaces */
+html.light .bg-slate-900 h1.text-white,
+html.light .bg-slate-900 h2.text-white,
+html.light .bg-slate-900 h3.text-white  { color: #0f172a; }
 
 /* ── Exception: sky-700 brand elements keep white text ────────────────
    Overrides the card-surface and heading rules above.

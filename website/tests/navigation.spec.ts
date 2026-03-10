@@ -23,7 +23,9 @@ test.describe('Header navigation', () => {
   });
 
   for (const link of navLinks) {
-    test(`desktop nav: "${link.label}" → ${link.href}`, async ({ page }) => {
+    test(`desktop nav: "${link.label}" → ${link.href}`, async ({ page, viewport }) => {
+      // Desktop nav is hidden md:hidden below 768px — skip on mobile viewports
+      test.skip((viewport?.width ?? 1280) < 768, 'Desktop nav hidden on mobile viewports');
       const navLink = page.locator('nav[aria-label="Main navigation"] a', { hasText: link.label });
       await navLink.click();
       await expect(page).toHaveURL(link.href);
