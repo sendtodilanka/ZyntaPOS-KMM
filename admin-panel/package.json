@@ -18,7 +18,7 @@
     "test:a11y": "playwright test e2e/accessibility.spec.ts",
     "test:visual": "playwright test e2e/visual.spec.ts",
     "test:nav": "playwright test e2e/navigation.spec.ts",
-    "test:update-snapshots": "playwright test --update-snapshots e2e/visual.spec.ts"
+    "test:update-snapshots": "playwright test --update-snapshots=all e2e/visual.spec.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
