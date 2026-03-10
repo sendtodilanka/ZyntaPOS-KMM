@@ -5,6 +5,7 @@ import icon from 'astro-icon';
 
 export default defineConfig({
   site: 'https://www.zyntapos.com',
+  trailingSlash: 'never',
   integrations: [
     sitemap({
       filter: (page) => !page.includes('/404'),
