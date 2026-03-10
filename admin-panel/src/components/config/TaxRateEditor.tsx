@@ -62,7 +62,7 @@ export function TaxRateEditor() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-slate-400">{(rates ?? []).length} tax rates configured</p>
-        <button onClick={openCreate} className="flex items-center gap-2 px-3 py-2 bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium rounded-lg min-h-[44px] transition-colors"><Plus className="w-4 h-4" />Add Rate</button>
+        <button onClick={openCreate} className="flex items-center gap-2 px-3 py-2 bg-brand-700 hover:bg-brand-800 text-white text-sm font-medium rounded-lg min-h-[44px] transition-colors"><Plus className="w-4 h-4" />Add Rate</button>
       </div>
       {showForm && (
         <form onSubmit={handleSubmit(onSubmit)} className="bg-surface-elevated border border-surface-border rounded-xl p-4 space-y-3">
@@ -76,7 +76,7 @@ export function TaxRateEditor() {
             <div className="sm:col-span-2 flex items-center gap-2"><input {...register('isDefault')} type="checkbox" id="isDefault" className="w-4 h-4 rounded border-surface-border bg-surface-card accent-brand-500" /><label htmlFor="isDefault" className="text-sm text-slate-400">Set as default tax rate</label></div>
           </div>
           <div className="flex gap-2 pt-2">
-            <button type="submit" disabled={creating || updating} className="flex items-center gap-2 px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium rounded-lg min-h-[44px] disabled:opacity-50 transition-colors"><Check className="w-4 h-4" />{creating || updating ? 'Saving...' : 'Save'}</button>
+            <button type="submit" disabled={creating || updating} className="flex items-center gap-2 px-4 py-2 bg-brand-700 hover:bg-brand-800 text-white text-sm font-medium rounded-lg min-h-[44px] disabled:opacity-50 transition-colors"><Check className="w-4 h-4" />{creating || updating ? 'Saving...' : 'Save'}</button>
             <button type="button" onClick={() => { setShowForm(false); setEditing(null); }} className="flex items-center gap-2 px-4 py-2 text-slate-400 hover:text-slate-100 text-sm rounded-lg min-h-[44px] border border-surface-border transition-colors"><X className="w-4 h-4" />Cancel</button>
           </div>
         </form>

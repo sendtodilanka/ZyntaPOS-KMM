@@ -120,7 +120,7 @@ function ProfileSettingsPage() {
           <button
             type="submit"
             disabled={changePassword.isPending}
-            className="px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium disabled:opacity-50 transition-colors"
+            className="px-4 py-2 rounded-lg bg-brand-700 hover:bg-brand-800 text-white text-sm font-medium disabled:opacity-50 transition-colors"
           >
             {changePassword.isPending ? 'Changing…' : 'Change Password'}
           </button>

@@ -46,7 +46,7 @@ function TicketsPage() {
         {hasPermission('tickets:create') && (
           <button
             onClick={() => setCreateOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium rounded-lg transition-colors min-h-[44px]"
+            className="flex items-center gap-2 px-4 py-2 bg-brand-700 hover:bg-brand-800 text-white text-sm font-medium rounded-lg transition-colors min-h-[44px]"
           >
             <Plus className="w-4 h-4" />
             <span>New Ticket</span>

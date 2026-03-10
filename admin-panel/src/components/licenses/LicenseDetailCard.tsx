@@ -31,7 +31,7 @@ export function LicenseDetailCard({ license, onExtend }: LicenseDetailCardProps)
           </div>
           <button
             onClick={onExtend}
-            className="px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium rounded-lg transition-colors min-h-[44px]"
+            className="px-4 py-2 bg-brand-700 hover:bg-brand-800 text-white text-sm font-medium rounded-lg transition-colors min-h-[44px]"
           >
             Extend / Edit
           </button>
