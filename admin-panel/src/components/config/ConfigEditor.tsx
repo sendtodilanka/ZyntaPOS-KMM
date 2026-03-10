@@ -35,7 +35,7 @@ function ConfigRow({ config }: { config: SystemConfig }) {
           ) : (
             <input type={config.type==='number'?'number':'text'} value={config.sensitive&&!showValue?'••••••••••••':localValue} onChange={e=>setLocalValue(e.target.value)} readOnly={config.sensitive&&!showValue} className="flex-1 h-10 px-3 bg-surface-card border border-surface-border rounded-lg text-sm text-slate-100 font-mono focus:outline-none focus:ring-2 focus:ring-brand-500"/>
           )}
-          <button onClick={handleSave} disabled={!isDirty||isPending} className={cn('flex items-center gap-2 px-3 min-h-[44px] rounded-lg text-sm font-medium transition-colors', isDirty?'bg-brand-500 hover:bg-brand-600 text-white':'bg-surface-elevated text-slate-500 cursor-not-allowed')}><Save className="w-4 h-4"/>{isPending?'Saving...':'Save'}</button>
+          <button onClick={handleSave} disabled={!isDirty||isPending} className={cn('flex items-center gap-2 px-3 min-h-[44px] rounded-lg text-sm font-medium transition-colors', isDirty?'bg-brand-700 hover:bg-brand-800 text-white':'bg-surface-elevated text-slate-500 cursor-not-allowed')}><Save className="w-4 h-4"/>{isPending?'Saving...':'Save'}</button>
         </div>
       ) : (
         <div className="mt-2 px-3 py-2 bg-surface-elevated rounded-lg text-sm text-slate-400 font-mono">{config.sensitive&&!showValue?'••••••••••••':localValue}</div>

@@ -65,9 +65,6 @@
   html:not(.dark) .text-slate-400 { color: #475569; } /* → slate-600 muted      */
   html:not(.dark) .text-slate-500 { color: #475569; } /* → slate-600 (WCAG AA: slate-500 is 4.43:1 on white, slate-600 is 7.0:1) */
 
-  /* Dark mode: slate-500 (#64748b) = 3.07:1 on surface-card — upgrade to slate-400 (#94a3b8) = 5.19:1 */
-  html.dark .text-slate-500 { color: #94a3b8; }
-
   /* brand-400 (#38bdf8) is too light on white — use brand-600 instead */
   html:not(.dark) .text-brand-400 { color: #0284c7; }
 
@@ -93,6 +90,12 @@
   html:not(.dark) ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
 }
+
+/* ── Dark mode text overrides (outside @layer — beats Tailwind utility layer) ──
+   Tailwind utilities are in @layer utilities; unlayered CSS wins the cascade.
+   slate-500 (#64748b) = 3.07:1 on surface-card (#1e293b) — fails WCAG AA.
+   Override to slate-400 (#94a3b8) = 5.19:1. ──────────────────────────────── */
+html.dark .text-slate-500 { color: #94a3b8; }
 
 @layer components {
 

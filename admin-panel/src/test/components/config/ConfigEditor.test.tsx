@@ -83,9 +83,9 @@ describe('ConfigEditor', () => {
     const input = screen.getByDisplayValue('50');
     fireEvent.change(input, { target: { value: '100' } });
     await waitFor(() => {
-      // After change, isDirty=true so Save button gets brand-500 background
+      // After change, isDirty=true so Save button gets brand-700 background
       const saveBtn = screen.getByText('Save');
-      expect(saveBtn.className).toContain('bg-brand-500');
+      expect(saveBtn.className).toContain('bg-brand-700');
     });
   });
 

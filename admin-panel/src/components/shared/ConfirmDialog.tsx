@@ -45,7 +45,7 @@ export function ConfirmDialog({
               'px-4 py-2 rounded-lg text-sm font-medium min-h-[44px] disabled:opacity-50 transition-colors',
               variant === 'destructive'
                 ? 'bg-red-500 hover:bg-red-600 text-white'
-                : 'bg-brand-500 hover:bg-brand-600 text-white',
+                : 'bg-brand-700 hover:bg-brand-800 text-white',
             )}
           >
             {isLoading ? 'Processing…' : confirmLabel}
