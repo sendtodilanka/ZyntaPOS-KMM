@@ -35,13 +35,19 @@ test.describe('Sidebar navigation', () => {
 
 test.describe('Auth guard', () => {
   test('unauthenticated user is redirected to /login', async ({ page }) => {
-    await page.context().clearCookies();
+    // Simulate unauthenticated state — page.route() intercepts before MSW
+    await page.route('**/admin/auth/me', route =>
+      route.fulfill({ status: 401, body: JSON.stringify({ error: 'Unauthorized' }) }),
+    );
     await page.goto('/');
     await expect(page).toHaveURL(/\/login/);
   });
 
   test('login page loads correct heading', async ({ page }) => {
-    await page.context().clearCookies();
+    // Simulate unauthenticated state — page.route() intercepts before MSW
+    await page.route('**/admin/auth/me', route =>
+      route.fulfill({ status: 401, body: JSON.stringify({ error: 'Unauthorized' }) }),
+    );
     await page.goto('/login');
     await expect(page.getByRole('heading', { name: /sign in|login|welcome/i })).toBeVisible();
   });

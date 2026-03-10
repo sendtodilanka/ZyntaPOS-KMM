@@ -255,12 +255,9 @@ export const handlers = [
   }),
 
   // ── Auth — current user ───────────────────────────────────────────────────────
-  // Checks for admin_access_token cookie so clearCookies() properly simulates logout
-  http.get(`${API_BASE}/admin/auth/me`, ({ request }) => {
-    const cookies = request.headers.get('cookie') ?? '';
-    if (!cookies.includes('admin_access_token=')) {
-      return new HttpResponse(null, { status: 401 });
-    }
+  // Always returns authenticated user in mock mode.
+  // Tests that need unauthenticated state use page.route() to override this.
+  http.get(`${API_BASE}/admin/auth/me`, () => {
     return HttpResponse.json(mockUser);
   }),
 
