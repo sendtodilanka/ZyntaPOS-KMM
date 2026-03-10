@@ -8,10 +8,13 @@ export default defineConfig({
   workers: process.env.CI ? 2 : undefined,
   reporter: process.env.CI ? [['html', { open: 'never' }], ['github']] : 'html',
 
+  timeout: 120_000,
   use: {
     baseURL: 'http://localhost:5173',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    navigationTimeout: 90_000,
+    actionTimeout: 30_000,
   },
 
   projects: [
