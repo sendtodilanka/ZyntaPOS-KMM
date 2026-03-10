@@ -57,7 +57,7 @@ export function LicenseExtendDialog({ license, onClose }: LicenseExtendDialogPro
           </div>
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-300 border border-surface-border hover:bg-surface-elevated transition-colors min-h-[44px]">Cancel</button>
-            <button type="submit" disabled={update.isPending} className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-50 transition-colors min-h-[44px]">
+            <button type="submit" disabled={update.isPending} className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium bg-brand-700 text-white hover:bg-brand-600 disabled:opacity-50 transition-colors min-h-[44px]">
               {update.isPending ? 'Saving…' : 'Extend License'}
             </button>
           </div>

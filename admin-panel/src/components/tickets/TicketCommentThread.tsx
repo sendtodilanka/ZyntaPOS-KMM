@@ -104,7 +104,7 @@ export function TicketCommentThread({ ticketId }: TicketCommentThreadProps) {
             <button
               type="submit"
               disabled={!body.trim() || addComment.isPending}
-              className="ml-auto px-4 py-2 rounded-lg text-sm font-medium bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-50 transition-colors min-h-[36px]"
+              className="ml-auto px-4 py-2 rounded-lg text-sm font-medium bg-brand-700 text-white hover:bg-brand-600 disabled:opacity-50 transition-colors min-h-[36px]"
             >
               {addComment.isPending ? 'Posting…' : 'Add Comment'}
             </button>

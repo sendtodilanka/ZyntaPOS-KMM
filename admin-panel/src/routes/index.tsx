@@ -58,7 +58,7 @@ function DashboardPage() {
               onClick={() => setPeriod(opt.value)}
               className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors min-h-[36px] ${
                 period === opt.value
-                  ? 'bg-brand-500 text-white'
+                  ? 'bg-brand-700 text-white'
                   : 'text-slate-400 hover:text-slate-100'
               }`}
             >

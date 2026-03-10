@@ -225,7 +225,7 @@ export function TicketCreateModal({ open, onClose }: TicketCreateModalProps) {
             <button
               type="submit"
               disabled={createTicket.isPending}
-              className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-50 transition-colors min-h-[44px]"
+              className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium bg-brand-700 text-white hover:bg-brand-600 disabled:opacity-50 transition-colors min-h-[44px]"
             >
               {createTicket.isPending ? 'Creating…' : 'Create Ticket'}
             </button>
