@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
 export interface Toast {
   id: string;
@@ -22,8 +22,28 @@ interface UiStore {
   removeToast: (id: string) => void;
 }
 
+type PersistedUiState = { sidebarCollapsed: boolean; theme: 'dark' | 'light' };
+
+// Custom underlying storage: stores { theme, sidebarCollapsed } as a flat JSON object
+// so localStorage.getItem('zynta-admin-ui') returns { "theme": "...", ... } directly.
+// Tests read JSON.parse(raw).theme without needing to dig into { state: {...} }.
+const flatRawStorage = {
+  getItem: (name: string): string | null => {
+    const raw = localStorage.getItem(name);
+    if (!raw) return null;
+    // raw is the flat state; wrap it into the { state, version } shape Zustand expects
+    return JSON.stringify({ state: JSON.parse(raw), version: 0 });
+  },
+  setItem: (name: string, value: string): void => {
+    // value is '{ "state": {...}, "version": ... }'; store only the inner state
+    const parsed = JSON.parse(value) as { state: PersistedUiState };
+    localStorage.setItem(name, JSON.stringify(parsed.state));
+  },
+  removeItem: (name: string): void => localStorage.removeItem(name),
+};
+
 export const useUiStore = create<UiStore>()(
-  persist(
+  persist<UiStore, [], [], PersistedUiState>(
     (set) => ({
       sidebarCollapsed: false,
       mobileSidebarOpen: false,
@@ -49,10 +69,7 @@ export const useUiStore = create<UiStore>()(
     {
       name: 'zynta-admin-ui',
       partialize: (s) => ({ sidebarCollapsed: s.sidebarCollapsed, theme: s.theme }),
-      // Flatten the persisted value so localStorage.getItem('zynta-admin-ui') returns
-      // { theme: '...' } directly (not wrapped in { state: {...} })
-      serialize: (value) => JSON.stringify(value.state),
-      deserialize: (str) => ({ state: JSON.parse(str) as { sidebarCollapsed: boolean; theme: 'dark' | 'light' }, version: 0 }),
+      storage: createJSONStorage(() => flatRawStorage),
     },
   ),
 );
