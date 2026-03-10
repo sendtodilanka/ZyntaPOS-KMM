@@ -270,7 +270,7 @@ function LoginPage() {
                   <div className="w-full border-t border-gray-200" />
                 </div>
                 <div className="relative flex justify-center text-xs">
-                  <span className="bg-white px-2 text-gray-400">or</span>
+                  <span className="bg-white px-2 text-gray-500">or</span>
                 </div>
               </div>
 
@@ -292,7 +292,7 @@ function LoginPage() {
           )}
         </div>
 
-        <p className="text-center text-xs text-gray-400">
+        <p className="text-center text-xs text-gray-500">
           Zynta Solutions Pvt Ltd &mdash; Internal use only
         </p>
       </div>
