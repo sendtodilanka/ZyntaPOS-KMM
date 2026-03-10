@@ -96,6 +96,7 @@ describe('FeatureFlagTable', () => {
     fireEvent.click(toggle);
     expect(mockUpdateFlag).toHaveBeenCalledWith(
       { key: 'pos.hold_orders', enabled: false },
+      expect.any(Object),
     );
   });
 
