@@ -96,7 +96,7 @@ function SettingsPage() {
           <button
             onClick={handleSave}
             disabled={!isDirty}
-            className="px-5 py-2 rounded-lg text-sm font-medium bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors min-h-[40px]"
+            className="px-5 py-2 rounded-lg text-sm font-medium bg-brand-700 text-white hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors min-h-[40px]"
           >
             Save Preferences
           </button>

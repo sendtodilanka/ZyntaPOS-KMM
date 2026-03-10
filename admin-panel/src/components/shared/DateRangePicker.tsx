@@ -77,7 +77,7 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
                 if (customFrom && customTo) { onChange({ from: customFrom, to: customTo }); setOpen(false); }
               }}
               disabled={!customFrom || !customTo}
-              className="w-full px-3 py-2 bg-brand-500 text-white text-xs font-medium rounded-lg disabled:opacity-40 hover:bg-brand-600 transition-colors min-h-[36px]"
+              className="w-full px-3 py-2 bg-brand-700 text-white text-xs font-medium rounded-lg disabled:opacity-40 hover:bg-brand-600 transition-colors min-h-[36px]"
             >
               Apply
             </button>

@@ -111,7 +111,7 @@ function MfaSettingsPage() {
                 'px-4 py-2 rounded-lg text-sm font-medium transition-colors min-h-[36px] whitespace-nowrap',
                 isMfaEnabled
                   ? 'bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20'
-                  : 'bg-brand-500 text-white hover:bg-brand-600',
+                  : 'bg-brand-700 text-white hover:bg-brand-600',
                 'disabled:opacity-50 disabled:cursor-not-allowed',
               ].join(' ')}
             >
@@ -205,7 +205,7 @@ function MfaSettingsPage() {
             <button
               onClick={handleEnable}
               disabled={verifyCode.length !== 6 || enableMfa.isPending}
-              className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold bg-brand-700 text-white hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {enableMfa.isPending ? 'Verifying…' : 'Enable MFA'}
             </button>
