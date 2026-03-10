@@ -25,7 +25,7 @@ export function LicenseExtendDialog({ license, onClose }: LicenseExtendDialogPro
   const onSubmit = (data: FormData) => {
     if (!license) return;
     update.mutate(
-      { key: license.key, data: { expiresAt: data.expiresAt } },
+      { key: license.key, data: { expiresAt: `${data.expiresAt}T00:00:00Z` } },
       { onSuccess: () => { reset(); onClose(); } },
     );
   };

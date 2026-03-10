@@ -32,7 +32,7 @@ export function LicenseCreateForm({ open, onClose }: LicenseCreateFormProps) {
 
   const onSubmit = (data: FormData) => {
     createLicense.mutate(
-      { ...data, customerId: `cust_${data.customerId}`, expiresAt: data.expiresAt || undefined },
+      { ...data, customerId: `cust_${data.customerId}`, expiresAt: data.expiresAt ? `${data.expiresAt}T00:00:00Z` : undefined },
       { onSuccess: () => { reset(); onClose(); } },
     );
   };
