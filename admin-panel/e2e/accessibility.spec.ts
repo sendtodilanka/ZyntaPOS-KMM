@@ -66,7 +66,10 @@ test.describe('Accessibility — light mode (WCAG 2.1 AA)', () => {
 
 test.describe('Accessibility — login page (WCAG 2.1 AA)', () => {
   test('dark mode', async ({ page }) => {
-    await page.context().clearCookies();
+    // Simulate unauthenticated state — page.route() intercepts before MSW
+    await page.route('**/admin/auth/me', route =>
+      route.fulfill({ status: 401, body: JSON.stringify({ error: 'Unauthorized' }) }),
+    );
     await page.goto('/login');
     await page.waitForLoadState('networkidle');
     await page.evaluate(() => document.documentElement.classList.add('dark'));
@@ -79,7 +82,10 @@ test.describe('Accessibility — login page (WCAG 2.1 AA)', () => {
   });
 
   test('light mode', async ({ page }) => {
-    await page.context().clearCookies();
+    // Simulate unauthenticated state — page.route() intercepts before MSW
+    await page.route('**/admin/auth/me', route =>
+      route.fulfill({ status: 401, body: JSON.stringify({ error: 'Unauthorized' }) }),
+    );
     await page.goto('/login');
     await page.waitForLoadState('networkidle');
     await page.evaluate(() => document.documentElement.classList.remove('dark'));

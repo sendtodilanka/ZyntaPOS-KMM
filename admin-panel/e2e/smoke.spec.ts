@@ -2,15 +2,20 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Smoke tests', () => {
   test('login page loads', async ({ page }) => {
-    // Clear auth cookies so we see the login page (not redirect to dashboard)
-    await page.context().clearCookies();
+    // Simulate unauthenticated state — page.route() intercepts before MSW
+    await page.route('**/admin/auth/me', route =>
+      route.fulfill({ status: 401, body: JSON.stringify({ error: 'Unauthorized' }) }),
+    );
     await page.goto('/login');
     await page.waitForLoadState('networkidle');
     await expect(page.getByRole('heading', { name: /sign in|login|welcome/i })).toBeVisible();
   });
 
   test('unauthenticated user is redirected to login', async ({ page }) => {
-    await page.context().clearCookies();
+    // Simulate unauthenticated state — page.route() intercepts before MSW
+    await page.route('**/admin/auth/me', route =>
+      route.fulfill({ status: 401, body: JSON.stringify({ error: 'Unauthorized' }) }),
+    );
     await page.goto('/');
     await expect(page).toHaveURL(/\/login/);
   });
