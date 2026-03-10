@@ -1,5 +1,19 @@
-# Redirect common short URLs
-/demo     /pricing        301
-/download /pricing        301
-/trial    /pricing        301
-/app      https://play.google.com/store/apps/details?id=com.zyntasolutions.zyntapos  301
+# ─────────────────────────────────────────────────────────────────
+# Trailing slash normalization (SEO — canonical URL is no-slash)
+# ─────────────────────────────────────────────────────────────────
+/features/      /features       301
+/pricing/       /pricing        301
+/industries/    /industries     301
+/blog/          /blog           301
+/about/         /about          301
+/support/       /support        301
+/privacy/       /privacy        301
+/terms/         /terms          301
+/download/      /download       301
+
+# ─────────────────────────────────────────────────────────────────
+# Short / vanity URL redirects
+# ─────────────────────────────────────────────────────────────────
+/demo           /pricing        301
+/trial          /pricing        301
+/app            https://play.google.com/store/apps/details?id=com.zyntasolutions.zyntapos  301
