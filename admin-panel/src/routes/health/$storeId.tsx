@@ -121,7 +121,7 @@ function StoreHealthDetailPage() {
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-slate-300 break-words">{entry.message}</p>
-                  <p className="text-xs text-slate-600 mt-0.5">{formatRelativeTime(entry.timestamp)}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{formatRelativeTime(entry.timestamp)}</p>
                 </div>
               </div>
             ))}

@@ -50,9 +50,10 @@ function StoreCard({ store }: { store: StoreSyncStatus }) {
           <ForceSyncButton storeId={store.storeId} storeName={store.storeName} />
           <button
             onClick={() => setExpanded((e) => !e)}
+            aria-label={expanded ? 'Collapse sync details' : 'Expand sync details'}
             className="p-2 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-surface-elevated transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
           >
-            {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            {expanded ? <ChevronUp className="w-4 h-4" aria-hidden="true" /> : <ChevronDown className="w-4 h-4" aria-hidden="true" />}
           </button>
         </div>
       </div>

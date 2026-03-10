@@ -224,6 +224,7 @@ function AlertsPage() {
       {tab !== 'rules' && (
         <div className="flex gap-2 flex-wrap">
           <select
+            aria-label="Filter by severity"
             value={severityFilter}
             onChange={e => setSeverityFilter(e.target.value as AlertSeverity | '')}
             className="h-10 px-3 bg-surface-elevated border border-surface-border rounded-lg text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
@@ -236,6 +237,7 @@ function AlertsPage() {
             <option value="info">Info</option>
           </select>
           <select
+            aria-label="Filter by category"
             value={categoryFilter}
             onChange={e => setCategoryFilter(e.target.value as AlertCategory | '')}
             className="h-10 px-3 bg-surface-elevated border border-surface-border rounded-lg text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
@@ -268,7 +270,7 @@ function AlertsPage() {
             <div className="p-4 space-y-4">{[1,2,3,4,5].map(i=><div key={i} className="h-20 bg-surface-elevated rounded animate-pulse"/>)}</div>
           ) : alerts.length===0 ? (
             <div className="text-center py-12">
-              <Bell className="w-10 h-10 text-slate-600 mx-auto mb-3"/>
+              <Bell className="w-10 h-10 text-slate-500 mx-auto mb-3"/>
               <p className="text-slate-400">{tab==='active' ? 'No active alerts' : 'No alerts in history'}</p>
             </div>
           ) : (

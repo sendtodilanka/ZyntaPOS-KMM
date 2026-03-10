@@ -59,6 +59,7 @@ function UsersPage() {
           className="flex-1 min-w-[200px] max-w-sm"
         />
         <select
+          aria-label="Filter by role"
           value={roleFilter}
           onChange={(e) => { setRoleFilter(e.target.value as AdminRole | ''); setPage(0); }}
           className="h-10 bg-surface-elevated border border-surface-border rounded-lg px-3 text-sm text-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500 min-w-[130px]"
@@ -71,6 +72,7 @@ function UsersPage() {
           <option value="HELPDESK">Helpdesk</option>
         </select>
         <select
+          aria-label="Filter by status"
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value as UserStatus | ''); setPage(0); }}
           className="h-10 bg-surface-elevated border border-surface-border rounded-lg px-3 text-sm text-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500 min-w-[130px]"

@@ -3,11 +3,12 @@ import { useFeatureFlags, useUpdateFeatureFlag } from '@/api/config';
 import type { FeatureFlag } from '@/types/config';
 import { cn } from '@/lib/utils';
 
-function ToggleSwitch({ checked, onChange, disabled }: { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
+function ToggleSwitch({ checked, onChange, disabled, label }: { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean; label?: string }) {
   return (
     <button
       role="switch"
       aria-checked={checked}
+      aria-label={label ?? (checked ? 'Disable' : 'Enable')}
       onClick={() => !disabled && onChange(!checked)}
       disabled={disabled}
       className={cn(
@@ -52,7 +53,7 @@ function FlagRow({ flag }: { flag: FeatureFlag }) {
           ))}
         </div>
         <p className="mt-0.5 text-xs text-slate-500">{flag.description}</p>
-        <p className="mt-0.5 text-[10px] text-slate-600">
+        <p className="mt-0.5 text-[10px] text-slate-500">
           Modified {new Date(flag.lastModified).toLocaleDateString()} by {flag.modifiedBy}
         </p>
       </div>
@@ -61,6 +62,7 @@ function FlagRow({ flag }: { flag: FeatureFlag }) {
           checked={optimisticEnabled}
           onChange={handleChange}
           disabled={isPending}
+          label={optimisticEnabled ? `Disable ${flag.name}` : `Enable ${flag.name}`}
         />
       </div>
     </div>
