@@ -7,7 +7,6 @@ Allow: /
 Disallow: /admin
 Disallow: /api
 Disallow: /panel
-Disallow: /_astro/
 Disallow: /404
 
 # Block AI training scrapers
