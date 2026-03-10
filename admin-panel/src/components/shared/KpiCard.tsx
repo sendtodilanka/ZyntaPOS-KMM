@@ -30,7 +30,7 @@ export function KpiCard({
   const heading = label ?? title ?? '';
   if (isLoading || loading) {
     return (
-      <div className={cn('panel-card space-y-3', className)}>
+      <div data-testid="kpi-card" className={cn('panel-card space-y-3', className)}>
         <Skeleton className="h-4 w-24" />
         <Skeleton className="h-8 w-32" />
         <Skeleton className="h-3 w-20" />
@@ -42,7 +42,7 @@ export function KpiCard({
   const trendColor = trend === undefined ? '' : trend > 0 ? 'text-emerald-400' : trend < 0 ? 'text-red-400' : 'text-slate-400';
 
   return (
-    <div className={cn('panel-card group', className)}>
+    <div data-testid="kpi-card" className={cn('panel-card group', className)}>
       <div className="flex items-start justify-between mb-3">
         <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">{heading}</p>
         {Icon && (

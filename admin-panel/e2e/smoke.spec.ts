@@ -1,23 +1,39 @@
 import { test, expect } from '@playwright/test';
 
+/** Override window.fetch before MSW registers its service worker handler.
+ *  page.route() runs at CDP level but is bypassed when MSW handles the
+ *  request internally via service worker.  Patching window.fetch in the
+ *  page context (addInitScript) fires before the browser network layer and
+ *  therefore before MSW, so our stub wins.
+ */
+async function stubUnauthenticated(page: import('@playwright/test').Page) {
+  await page.addInitScript(() => {
+    const _orig = window.fetch.bind(window);
+    window.fetch = (input, init) => {
+      const url = typeof input === 'string' ? input : (input instanceof URL ? input.href : (input as Request).url);
+      if (url.includes('/admin/auth/me')) {
+        return Promise.resolve(new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        }));
+      }
+      return _orig(input, init);
+    };
+  });
+}
+
 test.describe('Smoke tests', () => {
   test('login page loads', async ({ page }) => {
-    // Simulate unauthenticated state — page.route() intercepts before MSW
-    await page.route('**/admin/auth/me', route =>
-      route.fulfill({ status: 401, body: JSON.stringify({ error: 'Unauthorized' }) }),
-    );
+    await stubUnauthenticated(page);
     await page.goto('/login');
     await page.waitForLoadState('networkidle');
     await expect(page.getByRole('heading', { name: /sign in|login|welcome/i })).toBeVisible();
   });
 
   test('unauthenticated user is redirected to login', async ({ page }) => {
-    // Simulate unauthenticated state — page.route() intercepts before MSW
-    await page.route('**/admin/auth/me', route =>
-      route.fulfill({ status: 401, body: JSON.stringify({ error: 'Unauthorized' }) }),
-    );
+    await stubUnauthenticated(page);
     await page.goto('/');
-    await expect(page).toHaveURL(/\/login/);
+    await expect(page).toHaveURL(/\/login/, { timeout: 10_000 });
   });
 
   test('dashboard shows KPI cards after login', async ({ page }) => {

@@ -1,6 +1,28 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
+/** Override window.fetch before MSW registers its service worker handler.
+ *  page.route() runs at CDP level but is bypassed when MSW handles the
+ *  request internally via service worker.  Patching window.fetch in the
+ *  page context (addInitScript) fires before the browser network layer and
+ *  therefore before MSW, so our stub wins.
+ */
+async function stubUnauthenticated(page: import('@playwright/test').Page) {
+  await page.addInitScript(() => {
+    const _orig = window.fetch.bind(window);
+    window.fetch = (input, init) => {
+      const url = typeof input === 'string' ? input : (input instanceof URL ? input.href : (input as Request).url);
+      if (url.includes('/admin/auth/me')) {
+        return Promise.resolve(new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        }));
+      }
+      return _orig(input, init);
+    };
+  });
+}
+
 // All authenticated routes to audit
 const pages = [
   { name: 'Dashboard',       path: '/'                 },
@@ -66,10 +88,7 @@ test.describe('Accessibility — light mode (WCAG 2.1 AA)', () => {
 
 test.describe('Accessibility — login page (WCAG 2.1 AA)', () => {
   test('dark mode', async ({ page }) => {
-    // Simulate unauthenticated state — page.route() intercepts before MSW
-    await page.route('**/admin/auth/me', route =>
-      route.fulfill({ status: 401, body: JSON.stringify({ error: 'Unauthorized' }) }),
-    );
+    await stubUnauthenticated(page);
     await page.goto('/login');
     await page.waitForLoadState('networkidle');
     await page.evaluate(() => document.documentElement.classList.add('dark'));
@@ -82,10 +101,7 @@ test.describe('Accessibility — login page (WCAG 2.1 AA)', () => {
   });
 
   test('light mode', async ({ page }) => {
-    // Simulate unauthenticated state — page.route() intercepts before MSW
-    await page.route('**/admin/auth/me', route =>
-      route.fulfill({ status: 401, body: JSON.stringify({ error: 'Unauthorized' }) }),
-    );
+    await stubUnauthenticated(page);
     await page.goto('/login');
     await page.waitForLoadState('networkidle');
     await page.evaluate(() => document.documentElement.classList.remove('dark'));
