@@ -22,6 +22,17 @@ export function AppShell() {
     });
   }, [router, setMobileSidebarOpen]);
 
+  // Close mobile sidebar on Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && mobileSidebarOpen) {
+        setMobileSidebarOpen(false);
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [mobileSidebarOpen, setMobileSidebarOpen]);
+
   return (
     <div className="flex h-screen bg-surface overflow-hidden">
       {/* Desktop/Tablet Sidebar */}
@@ -38,7 +49,11 @@ export function AppShell() {
             onClick={() => setMobileSidebarOpen(false)}
           />
           {/* Slide-in sidebar */}
-          <div className="fixed inset-y-0 left-0 z-50 w-72 animate-slide-in">
+          <div
+            data-testid="mobile-sidebar"
+            aria-label="Navigation sidebar"
+            className="fixed inset-y-0 left-0 z-50 w-72 animate-slide-in"
+          >
             <Sidebar mobile />
           </div>
         </>

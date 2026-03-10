@@ -24,6 +24,7 @@ export function ExportButton({ onExportCsv, onExportPdf, isLoading = false }: Ex
       <button
         onClick={() => setOpen((o) => !o)}
         disabled={isLoading}
+        aria-label="Export"
         className="flex items-center gap-2 px-3 py-2 bg-surface-elevated border border-surface-border rounded-lg text-sm text-slate-300 hover:text-slate-100 hover:bg-surface-card transition-colors min-h-[44px] disabled:opacity-50"
       >
         <Download className="w-4 h-4" />

@@ -6,12 +6,23 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const AUTH_STATE = path.join(__dirname, '.auth/state.json');
 
 setup('authenticate', async ({ page }) => {
-  // Navigate to login. The MSW mock always returns a user for GET /admin/auth/me,
-  // so the app auto-authenticates and redirects to "/" without requiring form input.
-  await page.goto('/login');
+  // Set the mock auth cookie so the MSW handler for GET /admin/auth/me returns
+  // a user. Tests that call clearCookies() will remove this cookie, causing
+  // /me to return 401 and the app to redirect to /login (unauthenticated state).
+  await page.context().addCookies([
+    {
+      name: 'admin_access_token',
+      value: 'mock-token',
+      domain: 'localhost',
+      path: '/',
+      sameSite: 'Lax',
+    },
+  ]);
 
-  // Wait for the app to settle — either it stays on /login or redirects to /
-  await page.waitForURL(/^\S*\/$/, { timeout: 90_000 });
+  await page.goto('/');
+
+  // Wait for the main content area to be visible (auth + React render complete)
+  await page.locator('main').first().waitFor({ state: 'visible', timeout: 90_000 });
 
   // Persist cookies + localStorage so all authenticated tests reuse this session
   await page.context().storageState({ path: AUTH_STATE });

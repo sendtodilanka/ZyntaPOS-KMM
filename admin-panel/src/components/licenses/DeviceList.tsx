@@ -20,7 +20,7 @@ export function DeviceList({ licenseKey, devices, isLoading }: DeviceListProps) 
 
   return (
     <>
-      <div className="overflow-x-auto rounded-lg border border-surface-border">
+      <div className="overflow-x-auto rounded-lg border border-surface-border" tabIndex={0}>
         <table className="w-full text-sm min-w-[500px]">
           <thead>
             <tr className="border-b border-surface-border bg-surface-elevated">

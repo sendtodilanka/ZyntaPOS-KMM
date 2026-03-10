@@ -17,6 +17,7 @@ export function ForceSyncButton({ storeId, storeName, className }: ForceSyncButt
     <>
       <button
         onClick={() => setOpen(true)}
+        aria-label="Force Sync"
         className={`flex items-center gap-2 px-3 py-2 bg-surface-elevated border border-surface-border rounded-lg text-sm text-slate-300 hover:text-slate-100 hover:bg-surface-card transition-colors min-h-[44px] ${className ?? ''}`}
       >
         <RefreshCw className="w-4 h-4" />
