@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '@/lib/api-client';
+import { apiClient, HTTPError } from '@/lib/api-client';
 import { toast } from '@/stores/ui-store';
 import type { AdminUser, UserFilter, CreateUserRequest, UpdateUserRequest } from '@/types/user';
 import type { PagedResponse } from '@/types/api';
@@ -27,7 +27,13 @@ export function useCreateUser() {
       qc.invalidateQueries({ queryKey: ['users'] });
       toast.success('User created', 'New admin user has been created.');
     },
-    onError: () => toast.error('Failed to create user'),
+    onError: async (err) => {
+      if (err instanceof HTTPError && err.response.status === 409) {
+        toast.error('Email already in use', 'An account with this email already exists.');
+      } else {
+        toast.error('Failed to create user');
+      }
+    },
   });
 }
 

@@ -411,6 +411,11 @@ fun Route.adminAuthRoutes() {
                 return@post
             }
 
+            if (service.emailExists(body.email)) {
+                call.respond(HttpStatusCode.Conflict, ErrorResponse("EMAIL_TAKEN", "An account with this email already exists"))
+                return@post
+            }
+
             val created = service.createUser(body.email, body.name, role, body.password)
             call.respond(HttpStatusCode.Created, created.toResponse())
         }

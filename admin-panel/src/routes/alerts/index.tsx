@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
-import { Bell, CheckCheck, Check, AlertTriangle, AlertCircle, Info, Zap, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Bell, CheckCheck, Check, AlertTriangle, AlertCircle, Info, Zap } from 'lucide-react';
 import { useAlerts, useAlertCounts, useAlertRules, useAcknowledgeAlert, useResolveAlert, useToggleAlertRule } from '@/api/alerts';
 import type { Alert, AlertFilter, AlertSeverity, AlertStatus, AlertCategory, AlertRule } from '@/types/alert';
 import { cn, formatRelativeTime } from '@/lib/utils';
@@ -116,6 +116,16 @@ function AlertRow({ alert }: { alert: Alert }) {
 
 function RuleRow({ rule }: { rule: AlertRule }) {
   const { mutate: toggle, isPending } = useToggleAlertRule();
+  const [optimisticEnabled, setOptimisticEnabled] = useState(rule.enabled);
+
+  const handleToggle = () => {
+    const next = !optimisticEnabled;
+    setOptimisticEnabled(next);
+    toggle({ id: rule.id, enabled: next }, {
+      onError: () => setOptimisticEnabled(!next),
+    });
+  };
+
   return (
     <div className="flex items-start justify-between gap-4 py-3 border-b border-surface-border last:border-0">
       <div className="flex-1 min-w-0">
@@ -127,14 +137,22 @@ function RuleRow({ rule }: { rule: AlertRule }) {
         <p className="text-xs text-slate-500 mt-0.5">{rule.description}</p>
       </div>
       <button
-        onClick={() => toggle({ id: rule.id, enabled: !rule.enabled })}
+        role="switch"
+        aria-checked={optimisticEnabled}
+        onClick={handleToggle}
         disabled={isPending}
-        className="flex-shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center"
-        aria-label={rule.enabled ? 'Disable rule' : 'Enable rule'}
+        className="flex-shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center disabled:opacity-50"
+        aria-label={optimisticEnabled ? 'Disable rule' : 'Enable rule'}
       >
-        {rule.enabled
-          ? <ToggleRight className="w-6 h-6 text-brand-400" />
-          : <ToggleLeft className="w-6 h-6 text-slate-500" />}
+        <span className={cn(
+          'relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200',
+          optimisticEnabled ? 'bg-brand-500' : 'bg-slate-600',
+        )}>
+          <span className={cn(
+            'inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200',
+            optimisticEnabled ? 'translate-x-6' : 'translate-x-1',
+          )} />
+        </span>
       </button>
     </div>
   );

@@ -224,6 +224,12 @@ class AdminAuthService(
             .singleOrNull()?.toAdminUserRow()
     }
 
+    suspend fun emailExists(email: String): Boolean = newSuspendedTransaction {
+        AdminUsers.selectAll()
+            .where { AdminUsers.email eq email.lowercase().trim() }
+            .count() > 0
+    }
+
     // ── Bootstrap (first-run only) ───────────────────────────────────────────
 
     suspend fun needsBootstrap(): Boolean = newSuspendedTransaction {

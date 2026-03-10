@@ -28,6 +28,14 @@ function ToggleSwitch({ checked, onChange, disabled }: { checked: boolean; onCha
 
 function FlagRow({ flag }: { flag: FeatureFlag }) {
   const { mutate: updateFlag, isPending } = useUpdateFeatureFlag();
+  const [optimisticEnabled, setOptimisticEnabled] = useState(flag.enabled);
+
+  const handleChange = (enabled: boolean) => {
+    setOptimisticEnabled(enabled);
+    updateFlag({ key: flag.key, enabled }, {
+      onError: () => setOptimisticEnabled(!enabled),
+    });
+  };
 
   return (
     <div className="flex items-start justify-between gap-4 py-4 border-b border-surface-border last:border-0">
@@ -48,10 +56,10 @@ function FlagRow({ flag }: { flag: FeatureFlag }) {
           Modified {new Date(flag.lastModified).toLocaleDateString()} by {flag.modifiedBy}
         </p>
       </div>
-      <div className="flex-shrink-0 pt-0.5">
+      <div className="flex-shrink-0 flex items-center min-h-[44px]">
         <ToggleSwitch
-          checked={flag.enabled}
-          onChange={(enabled) => updateFlag({ key: flag.key, enabled })}
+          checked={optimisticEnabled}
+          onChange={handleChange}
           disabled={isPending}
         />
       </div>
