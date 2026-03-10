@@ -53,7 +53,7 @@ export function SyncQueueView({ operations, isLoading }: SyncQueueViewProps) {
                     <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
                     <span className="text-xs">{truncate(op.lastErrorMessage, 30)}</span>
                   </div>
-                ) : <span className="text-slate-600 text-xs">—</span>}
+                ) : <span className="text-slate-500 text-xs">—</span>}
               </td>
             </tr>
           ))}

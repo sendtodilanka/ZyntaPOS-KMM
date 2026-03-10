@@ -109,7 +109,7 @@ export function NotificationsPanel() {
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold text-slate-200 truncate">{alert.title}</p>
                     <p className="text-[10px] text-slate-500 mt-0.5 truncate">{alert.message}</p>
-                    <p className="text-[10px] text-slate-600 mt-0.5 capitalize">
+                    <p className="text-[10px] text-slate-500 mt-0.5 capitalize">
                       {alert.category} · {new Date(alert.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>

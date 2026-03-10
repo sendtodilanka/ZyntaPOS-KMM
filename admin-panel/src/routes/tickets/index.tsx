@@ -62,6 +62,7 @@ function TicketsPage() {
           className="flex-1 min-w-[200px] max-w-sm"
         />
         <select
+          aria-label="Filter by status"
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value as TicketStatus | ''); setPage(0); }}
           className="h-10 bg-surface-elevated border border-surface-border rounded-lg px-3 text-sm text-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500 min-w-[140px]"
@@ -75,6 +76,7 @@ function TicketsPage() {
           <option value="CLOSED">Closed</option>
         </select>
         <select
+          aria-label="Filter by priority"
           value={priorityFilter}
           onChange={(e) => { setPriorityFilter(e.target.value as TicketPriority | ''); setPage(0); }}
           className="h-10 bg-surface-elevated border border-surface-border rounded-lg px-3 text-sm text-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500 min-w-[130px]"
@@ -86,6 +88,7 @@ function TicketsPage() {
           <option value="CRITICAL">Critical</option>
         </select>
         <select
+          aria-label="Filter by category"
           value={categoryFilter}
           onChange={(e) => { setCategoryFilter(e.target.value as TicketCategory | ''); setPage(0); }}
           className="h-10 bg-surface-elevated border border-surface-border rounded-lg px-3 text-sm text-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500 min-w-[180px]"

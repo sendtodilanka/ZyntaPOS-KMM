@@ -57,7 +57,7 @@ function ServiceCard({ service }: { service: ServiceHealth }) {
           </p>
         </div>
       </div>
-      <p className="text-xs text-slate-600 mt-2">
+      <p className="text-xs text-slate-400 mt-2">
         Checked {formatRelativeTime(service.lastChecked)}
       </p>
     </div>
@@ -78,7 +78,7 @@ function StoreRow({ store }: { store: StoreHealthSummary }) {
       </div>
       <div className="text-right flex-shrink-0">
         <p className="text-xs text-slate-400">{store.pendingOperations > 0 ? <span className="text-amber-400">{store.pendingOperations} pending</span> : 'Synced'}</p>
-        <p className="text-xs text-slate-600">{formatRelativeTime(store.lastSync)}</p>
+        <p className="text-xs text-slate-400">{formatRelativeTime(store.lastSync)}</p>
       </div>
       <span className={cn('px-2 py-0.5 text-xs rounded-full border hidden sm:inline-flex', statusColor(store.status))}>
         {store.status}

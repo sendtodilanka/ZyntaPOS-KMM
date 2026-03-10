@@ -21,6 +21,7 @@ export function AuditFilterPanel({ filters, onChange, className }: AuditFilterPa
     <div className={cn('flex flex-wrap gap-3 items-end', className)}>
       {/* Category */}
       <select
+        aria-label="Filter by category"
         value={filters.category ?? ''}
         onChange={(e) => update({ category: (e.target.value as AuditEventCategory) || undefined })}
         className="h-10 bg-surface-elevated border border-surface-border rounded-lg px-3 text-sm text-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500 min-w-[130px]"
@@ -31,6 +32,7 @@ export function AuditFilterPanel({ filters, onChange, className }: AuditFilterPa
 
       {/* Success filter */}
       <select
+        aria-label="Filter by result"
         value={filters.success === undefined ? '' : String(filters.success)}
         onChange={(e) => update({ success: e.target.value === '' ? undefined : e.target.value === 'true' })}
         className="h-10 bg-surface-elevated border border-surface-border rounded-lg px-3 text-sm text-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500 min-w-[120px]"

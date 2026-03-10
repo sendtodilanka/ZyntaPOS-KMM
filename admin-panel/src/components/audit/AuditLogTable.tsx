@@ -62,7 +62,7 @@ export function AuditLogTable({ data, isLoading, page, totalPages, total, onPage
       header: 'Entity',
       cell: (row) => row.entityType
         ? <span className="text-xs text-slate-400">{row.entityType}</span>
-        : <span className="text-slate-600 text-xs">—</span>,
+        : <span className="text-slate-500 text-xs">—</span>,
     },
     {
       key: 'result',
