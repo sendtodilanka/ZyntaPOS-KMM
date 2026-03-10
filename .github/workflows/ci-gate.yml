@@ -57,6 +57,66 @@ jobs:
       timeout-minutes: 45
       artifact-suffix: '-ci-${{ github.run_id }}'
 
+  # ── Admin Panel: TypeScript, ESLint, Vitest, Playwright (no visual) ─────────
+  # Runs in parallel with build-and-test. Visual snapshot tests are excluded
+  # because pixel comparisons differ between local and ubuntu-22.04 renderers.
+  test-admin-panel:
+    name: "Admin Panel Tests"
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: admin-panel
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: admin-panel/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: npm run typecheck
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: Vitest unit tests (with coverage)
+        run: npm run test:ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Playwright e2e tests (nav + a11y + smoke)
+        run: npx playwright test e2e/navigation.spec.ts e2e/accessibility.spec.ts e2e/smoke.spec.ts
+        env:
+          CI: true
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ github.run_id }}
+          path: admin-panel/playwright-report/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Upload Vitest coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vitest-coverage-${{ github.run_id }}
+          path: admin-panel/coverage/
+          retention-days: 7
+          if-no-files-found: ignore
+
   # ── Test Result Reporting ──────────────────────────────────────────────────
   test-report:
     name: "Publish Test Results"
@@ -220,7 +280,7 @@ jobs:
   # Only fires on push events (not PRs) and only when ALL builds succeed.
   trigger-deploy:
     name: "Trigger Deploy"
-    needs: [build-and-test, build-backend-images, build-website-image, build-admin-panel-image]
+    needs: [build-and-test, test-admin-panel, build-backend-images, build-website-image, build-admin-panel-image]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 2
