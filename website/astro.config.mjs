@@ -8,6 +8,9 @@ export default defineConfig({
   site: 'https://www.zyntapos.com',
   trailingSlash: 'never',
   compressHTML: true,
+  build: {
+    format: 'file',
+  },
   integrations: [
     sitemap({
       filter: (page) => !page.includes('/404'),
