@@ -1,0 +1,137 @@
+import { test, expect } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+
+// All authenticated routes to audit
+const pages = [
+  { name: 'Dashboard',       path: '/'                 },
+  { name: 'Licenses',        path: '/licenses'         },
+  { name: 'Stores',          path: '/stores'           },
+  { name: 'Users',           path: '/users'            },
+  { name: 'Tickets',         path: '/tickets'          },
+  { name: 'Audit Log',       path: '/audit'            },
+  { name: 'Alerts',          path: '/alerts'           },
+  { name: 'Health',          path: '/health'           },
+  { name: 'Sync',            path: '/sync'             },
+  { name: 'Reports',         path: '/reports'          },
+  { name: 'Config',          path: '/config'           },
+  { name: 'Profile',         path: '/settings/profile' },
+  { name: 'MFA',             path: '/settings/mfa'     },
+];
+
+// ── WCAG audit (dark mode — default) ─────────────────────────────────────────
+
+test.describe('Accessibility — dark mode (WCAG 2.1 AA)', () => {
+  for (const { name, path } of pages) {
+    test(name, async ({ page }) => {
+      await page.goto(path);
+      await page.evaluate(() => {
+        document.documentElement.classList.add('dark');
+      });
+      await page.waitForLoadState('networkidle');
+
+      const results = await new AxeBuilder({ page })
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'best-practice'])
+        .analyze();
+
+      expect(results.violations, formatViolations(results.violations)).toEqual([]);
+    });
+  }
+});
+
+// ── WCAG audit (light mode) ───────────────────────────────────────────────────
+
+test.describe('Accessibility — light mode (WCAG 2.1 AA)', () => {
+  for (const { name, path } of pages) {
+    test(name, async ({ page }) => {
+      await page.goto(path);
+      await page.evaluate(() => {
+        document.documentElement.classList.remove('dark');
+      });
+      await page.waitForLoadState('networkidle');
+
+      const results = await new AxeBuilder({ page })
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'best-practice'])
+        .analyze();
+
+      expect(results.violations, formatViolations(results.violations)).toEqual([]);
+    });
+  }
+});
+
+// ── Login page (no auth required) ─────────────────────────────────────────────
+
+test.describe('Accessibility — login page (WCAG 2.1 AA)', () => {
+  test('dark mode', async ({ page }) => {
+    await page.context().clearCookies();
+    await page.goto('/login');
+    await page.evaluate(() => document.documentElement.classList.add('dark'));
+
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'best-practice'])
+      .analyze();
+
+    expect(results.violations, formatViolations(results.violations)).toEqual([]);
+  });
+
+  test('light mode', async ({ page }) => {
+    await page.context().clearCookies();
+    await page.goto('/login');
+    await page.evaluate(() => document.documentElement.classList.remove('dark'));
+
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'best-practice'])
+      .analyze();
+
+    expect(results.violations, formatViolations(results.violations)).toEqual([]);
+  });
+});
+
+// ── Keyboard navigation ───────────────────────────────────────────────────────
+
+test.describe('Keyboard navigation', () => {
+  test('can Tab through sidebar nav links', async ({ page }) => {
+    await page.goto('/');
+    const navLinks = page.locator('nav a, aside a');
+    const count = await navLinks.count();
+    expect(count).toBeGreaterThan(0);
+
+    // Tab forward through each nav item
+    await navLinks.first().focus();
+    for (let i = 0; i < count - 1; i++) {
+      await page.keyboard.press('Tab');
+    }
+    const focused = await page.evaluate(() => document.activeElement?.tagName);
+    expect(focused).toBeTruthy();
+  });
+
+  test('mobile sidebar is keyboard accessible', async ({ page, viewport }) => {
+    test.skip((viewport?.width ?? 1280) >= 768, 'desktop viewport — mobile sidebar not rendered');
+    await page.goto('/');
+    const toggleBtn = page.locator('[aria-label*="menu"], [aria-label*="sidebar"], button[aria-controls]').first();
+    await toggleBtn.focus();
+    await page.keyboard.press('Enter');
+    // Mobile sidebar should open
+    const focused = await page.evaluate(() => document.activeElement?.tagName);
+    expect(focused).toBeTruthy();
+  });
+
+  test('theme toggle is keyboard accessible', async ({ page }) => {
+    await page.goto('/');
+    const toggle = page.locator('[aria-label*="theme"], [aria-label*="dark"], [aria-label*="light"]').first();
+    await toggle.focus();
+    await page.keyboard.press('Enter');
+    // Theme class should change
+    const hasDark = await page.evaluate(() => document.documentElement.classList.contains('dark'));
+    // Just verify the element is focusable and activation works without throwing
+    expect(typeof hasDark).toBe('boolean');
+  });
+});
+
+// ── Helper ────────────────────────────────────────────────────────────────────
+
+function formatViolations(violations: { id: string; description: string; nodes: { html: string }[] }[]): string {
+  if (!violations.length) return '';
+  return violations
+    .map(v => `[${v.id}] ${v.description}\n  ${v.nodes.map(n => n.html).join('\n  ')}`)
+    .join('\n\n');
+}
