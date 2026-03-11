@@ -92,7 +92,7 @@ class DiagnosticSessionService(private val config: AppConfig) {
             it[DiagnosticSessions.tokenHash]    = tokenHash
             it[dataScope]        = scope
             it[status]           = "PENDING_CONSENT"
-            it[expiresAt]        = expiresAt
+            it[DiagnosticSessions.expiresAt] = expiresAt
             it[createdAt]        = now
         }
 
