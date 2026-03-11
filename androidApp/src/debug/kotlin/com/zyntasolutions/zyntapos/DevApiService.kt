@@ -9,6 +9,10 @@ import com.zyntasolutions.zyntapos.data.remote.dto.PublicKeyResponseDto
 import com.zyntasolutions.zyntapos.data.remote.dto.SyncOperationDto
 import com.zyntasolutions.zyntapos.data.remote.dto.SyncPullResponseDto
 import com.zyntasolutions.zyntapos.data.remote.dto.SyncResponseDto
+import com.zyntasolutions.zyntapos.data.remote.dto.LicenseActivateRequestDto
+import com.zyntasolutions.zyntapos.data.remote.dto.LicenseActivateResponseDto
+import com.zyntasolutions.zyntapos.data.remote.dto.LicenseHeartbeatRequestDto
+import com.zyntasolutions.zyntapos.data.remote.dto.LicenseHeartbeatResponseDto
 import com.zyntasolutions.zyntapos.data.remote.dto.UserDto
 import kotlin.time.Clock
 
@@ -86,4 +90,29 @@ internal class DevApiService : ApiService {
     /** Returns a no-op placeholder key — dev builds use the default bundled key. */
     override suspend fun fetchPublicKey(): PublicKeyResponseDto =
         PublicKeyResponseDto(publicKey = "")
+
+    /** Dev builds stub activation as always valid — no license server needed locally. */
+    override suspend fun activateLicense(request: LicenseActivateRequestDto): LicenseActivateResponseDto =
+        LicenseActivateResponseDto(
+            isValid         = true,
+            licenseKey      = request.licenseKey,
+            edition         = "STARTER",
+            maxDevices      = 1,
+            activeDevices   = 1,
+            expiresAt       = null,
+            gracePeriodDays = 7,
+            message         = "Dev mode — activation stubbed",
+            errorCode       = null,
+        )
+
+    /** Dev builds stub heartbeat as always healthy — no license server needed locally. */
+    override suspend fun licenseHeartbeat(request: LicenseHeartbeatRequestDto): LicenseHeartbeatResponseDto =
+        LicenseHeartbeatResponseDto(
+            status          = "ACTIVE",
+            licenseKey      = request.licenseKey,
+            expiresAt       = null,
+            daysUntilExpiry = null,
+            forceSync       = false,
+            serverTimestamp = Clock.System.now().toEpochMilliseconds(),
+        )
 }

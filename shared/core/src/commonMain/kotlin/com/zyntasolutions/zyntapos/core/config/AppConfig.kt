@@ -29,6 +29,12 @@ object AppConfig {
      */
     const val BASE_URL: String = "https://api.zyntapos.com"
 
+    /**
+     * Base URL for the ZyntaPOS license service.
+     * Override via `local.properties` / BuildKonfig in production builds.
+     */
+    const val LICENSE_BASE_URL: String = "https://license.zyntapos.com"
+
     /** API version prefix appended to [BASE_URL] for all endpoint calls. */
     const val API_VERSION: String = "v1"
 

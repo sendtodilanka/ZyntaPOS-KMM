@@ -16,6 +16,10 @@ import com.zyntasolutions.zyntapos.data.remote.dto.PublicKeyResponseDto
 import com.zyntasolutions.zyntapos.data.remote.dto.SyncOperationDto
 import com.zyntasolutions.zyntapos.data.remote.dto.SyncPullResponseDto
 import com.zyntasolutions.zyntapos.data.remote.dto.SyncResponseDto
+import com.zyntasolutions.zyntapos.data.remote.dto.LicenseActivateRequestDto
+import com.zyntasolutions.zyntapos.data.remote.dto.LicenseActivateResponseDto
+import com.zyntasolutions.zyntapos.data.remote.dto.LicenseHeartbeatRequestDto
+import com.zyntasolutions.zyntapos.data.remote.dto.LicenseHeartbeatResponseDto
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
@@ -100,6 +104,26 @@ class KtorApiService(
     override suspend fun fetchPublicKey(): PublicKeyResponseDto =
         safeRequest {
             client.get("$baseUrl/.well-known/public-key")
+        }
+
+    // ── License ───────────────────────────────────────────────────────────────
+
+    private val licenseBaseUrl: String = AppConfig.LICENSE_BASE_URL
+
+    override suspend fun activateLicense(request: LicenseActivateRequestDto): LicenseActivateResponseDto =
+        safeRequest {
+            client.post("$licenseBaseUrl/v1/license/activate") {
+                contentType(ContentType.Application.Json)
+                setBody(request)
+            }
+        }
+
+    override suspend fun licenseHeartbeat(request: LicenseHeartbeatRequestDto): LicenseHeartbeatResponseDto =
+        safeRequest {
+            client.post("$licenseBaseUrl/v1/license/heartbeat") {
+                contentType(ContentType.Application.Json)
+                setBody(request)
+            }
         }
 
     // ─────────────────────────────────────────────────────────────────────────

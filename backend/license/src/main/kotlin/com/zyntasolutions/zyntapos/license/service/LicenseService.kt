@@ -19,6 +19,10 @@ import java.util.UUID
 class LicenseService {
     private val logger = LoggerFactory.getLogger(LicenseService::class.java)
 
+    companion object {
+        private const val GRACE_PERIOD_DAYS = 7L
+    }
+
     suspend fun activate(request: ActivateRequest): ActivateResponse? = newSuspendedTransaction {
         logger.info("Activate: key=****${request.licenseKey.takeLast(4)} device=${request.deviceId}")
 
@@ -43,17 +47,24 @@ class LicenseService {
             )
         }
 
-        if (expiresAt != null && expiresAt.isBefore(OffsetDateTime.now())) {
-            return@newSuspendedTransaction ActivateResponse(
-                isValid = false,
-                licenseKey = maskKey(request.licenseKey),
-                edition = edition,
-                maxDevices = maxDevices,
-                activeDevices = 0,
-                expiresAt = expiresAt.toInstant().toEpochMilli(),
-                errorCode = "LICENSE_EXPIRED",
-                message = "License has expired"
-            )
+        val now = OffsetDateTime.now()
+        if (expiresAt != null && expiresAt.isBefore(now)) {
+            val gracePeriodEnd = expiresAt.plusDays(GRACE_PERIOD_DAYS)
+            if (gracePeriodEnd.isBefore(now)) {
+                // Grace period has also elapsed — deny activation
+                return@newSuspendedTransaction ActivateResponse(
+                    isValid = false,
+                    licenseKey = maskKey(request.licenseKey),
+                    edition = edition,
+                    maxDevices = maxDevices,
+                    activeDevices = 0,
+                    expiresAt = expiresAt.toInstant().toEpochMilli(),
+                    errorCode = "LICENSE_EXPIRED",
+                    message = "License has expired"
+                )
+            }
+            // Within grace period — allow activation but signal GRACE_PERIOD
+            logger.info("License ${maskKey(request.licenseKey)} is in grace period until $gracePeriodEnd")
         }
 
         // Count active devices excluding this one (re-activation case)
@@ -75,7 +86,6 @@ class LicenseService {
             )
         }
 
-        val now = OffsetDateTime.now()
         DeviceRegistrations.upsert(
             DeviceRegistrations.licenseKey, DeviceRegistrations.deviceId
         ) {
@@ -123,9 +133,13 @@ class LicenseService {
             it[osVersion] = request.osVersion
         }
 
+        // Read forceSync flag and reset it atomically
+        val forceSyncRequested = license[Licenses.forceSyncRequested]
+
         Licenses.update({ Licenses.key eq request.licenseKey }) {
             it[lastHeartbeatAt] = now
             it[updatedAt] = now
+            if (forceSyncRequested) it[Licenses.forceSyncRequested] = false
         }
 
         val expiresAt = license[Licenses.expiresAt]
@@ -135,7 +149,10 @@ class LicenseService {
 
         val heartbeatStatus = when {
             license[Licenses.status] != "ACTIVE" -> license[Licenses.status]
-            expiresAt != null && expiresAt.isBefore(now) -> "EXPIRED"
+            expiresAt != null && expiresAt.isBefore(now) -> {
+                val graceEnd = expiresAt.plusDays(GRACE_PERIOD_DAYS)
+                if (graceEnd.isAfter(now)) "GRACE_PERIOD" else "EXPIRED"
+            }
             daysUntilExpiry != null && daysUntilExpiry <= 7 -> "EXPIRING_SOON"
             else -> "ACTIVE"
         }
@@ -145,7 +162,8 @@ class LicenseService {
             licenseKey = maskKey(request.licenseKey),
             expiresAt = expiresAt?.toInstant()?.toEpochMilli(),
             daysUntilExpiry = daysUntilExpiry,
-            serverTimestamp = System.currentTimeMillis()
+            serverTimestamp = System.currentTimeMillis(),
+            forceSync = forceSyncRequested
         )
     }
 

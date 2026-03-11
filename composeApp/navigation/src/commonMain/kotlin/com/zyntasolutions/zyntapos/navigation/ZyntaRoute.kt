@@ -87,6 +87,22 @@ sealed class ZyntaRoute {
     @Serializable
     data object PinLock : ZyntaRoute()
 
+    /**
+     * License activation screen.
+     * Displayed after login when no local license is found (UNACTIVATED state).
+     * The user enters their XXXX-XXXX-XXXX-XXXX license key here.
+     */
+    @Serializable
+    data object LicenseActivation : ZyntaRoute()
+
+    /**
+     * License expired/revoked blocker screen.
+     * Displayed when the local license has status EXPIRED or REVOKED.
+     * No retry is possible — user must contact Zynta Solutions.
+     */
+    @Serializable
+    data object LicenseExpired : ZyntaRoute()
+
     // ─────────────────────────────────────────────────────────────────
     // MAIN GROUP
     // ─────────────────────────────────────────────────────────────────
