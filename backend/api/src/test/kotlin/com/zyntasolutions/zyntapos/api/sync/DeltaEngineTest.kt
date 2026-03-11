@@ -23,7 +23,7 @@ class DeltaEngineTest {
     /** No-op cursor repo. */
     private class StubCursorRepo : SyncCursorRepository() {
         var lastUpserted: Long = -1L
-        override suspend fun upsert(storeId: String, deviceId: String, seq: Long) { lastUpserted = seq }
+        override suspend fun upsert(storeId: String, deviceId: String, lastSeq: Long) { lastUpserted = lastSeq }
     }
 
     private fun op(seq: Long) = SyncOperation(
