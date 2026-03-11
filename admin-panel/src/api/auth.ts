@@ -1,4 +1,5 @@
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from '@tanstack/react-router';
 import { apiClient } from '@/lib/api-client';
 import { useAuthStore } from '@/stores/auth-store';
 import { toast } from '@/stores/ui-store';
@@ -122,18 +123,22 @@ export function useAdminBootstrap() {
 
 export function useAdminLogout() {
   const { clearUser } = useAuthStore();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   return useMutation({
     mutationFn: () => apiClient.post('admin/auth/logout').json(),
     onSuccess: () => {
+      queryClient.removeQueries({ queryKey: ['admin'] });
       clearUser();
-      window.location.href = '/login';
+      navigate({ to: '/login' });
     },
     onError: () => {
       // Force local clear even if server logout fails
+      queryClient.removeQueries({ queryKey: ['admin'] });
       clearUser();
       toast.error('Logout failed', 'Session cleared locally.');
-      window.location.href = '/login';
+      navigate({ to: '/login' });
     },
   });
 }
