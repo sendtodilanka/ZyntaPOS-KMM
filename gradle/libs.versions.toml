@@ -72,6 +72,10 @@ camerax                        = "1.4.1"
 # ── ML Kit ───────────────────────────────────────────────────
 mlkit-barcode                  = "17.3.0"
 
+# ── Firebase ─────────────────────────────────────────────────
+firebase-bom                   = "33.7.0"
+google-services                = "4.4.2"
+
 # ── Build Tooling ─────────────────────────────────────────────
 secrets-gradle-plugin          = "2.0.1"
 buildkonfig                    = "0.15.2"
@@ -132,6 +136,11 @@ koin-android                           = { module = "io.insert-koin:koin-android
 koin-compose                           = { module = "io.insert-koin:koin-compose",              version.ref = "koin" }
 koin-compose-viewmodel                 = { module = "io.insert-koin:koin-compose-viewmodel",    version.ref = "koin" }
 koin-test                              = { module = "io.insert-koin:koin-test",                 version.ref = "koin" }
+
+# ── Firebase (Android only) ────────────────────────────────────
+firebase-bom                           = { module = "com.google.firebase:firebase-bom",          version.ref = "firebase-bom" }
+firebase-analytics-ktx                 = { module = "com.google.firebase:firebase-analytics-ktx" }
+firebase-crashlytics-ktx               = { module = "com.google.firebase:firebase-crashlytics-ktx" }
 
 # ── Ktor ──────────────────────────────────────────────────────
 ktor-client-core                       = { module = "io.ktor:ktor-client-core",                 version.ref = "ktor" }
@@ -243,6 +252,10 @@ composeHotReload                       = { id = "org.jetbrains.compose.hot-reloa
 
 # ── Persistence ───────────────────────────────────────────────
 sqldelight                             = { id = "app.cash.sqldelight",                             version.ref = "sqldelight" }
+
+# ── Firebase / Google Services ────────────────────────────────
+googleServices                         = { id = "com.google.gms.google-services",                  version.ref = "google-services" }
+firebaseCrashlytics                    = { id = "com.google.firebase.crashlytics",                 version = "3.0.3" }
 
 # ── Build Tooling ─────────────────────────────────────────────
 buildkonfig                            = { id = "com.codingfeline.buildkonfig",                    version.ref = "buildkonfig" }

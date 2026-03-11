@@ -2,11 +2,19 @@ package com.zyntasolutions.zyntapos.data.sync
 
 import com.zyntasolutions.zyntapos.core.config.AppConfig
 import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
+import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.core.result.SyncException
+import com.zyntasolutions.zyntapos.domain.model.SyncOperation
 import com.zyntasolutions.zyntapos.domain.port.SecureStorageKeys
 import com.zyntasolutions.zyntapos.domain.port.SecureStoragePort
 import com.zyntasolutions.zyntapos.data.remote.api.ApiService
 import com.zyntasolutions.zyntapos.data.remote.dto.SyncOperationDto
+import com.zyntasolutions.zyntapos.data.repository.CategoryRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.CustomerRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.OrderRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.ProductRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.StockRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.SupplierRepositoryImpl
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -50,6 +58,13 @@ class SyncEngine(
     private val api: ApiService,
     private val prefs: SecureStoragePort,
     private val networkMonitor: NetworkMonitor,
+    // Sprint 7: concrete repository impls for delta application
+    private val productRepository: ProductRepositoryImpl,
+    private val orderRepository: OrderRepositoryImpl,
+    private val customerRepository: CustomerRepositoryImpl,
+    private val categoryRepository: CategoryRepositoryImpl,
+    private val supplierRepository: SupplierRepositoryImpl,
+    private val stockRepository: StockRepositoryImpl,
 ) {
     private val log = ZyntaLogger.forModule("SyncEngine")
 
@@ -281,19 +296,46 @@ class SyncEngine(
     /**
      * Applies a list of server-authoritative [SyncOperationDto]s to the local database.
      *
-     * For Phase 1: Operations are applied naively (last-write-wins per entity).
-     * Phase 2 will introduce CRDT-based conflict resolution.
+     * Routes each operation to the appropriate [RepositoryImpl.upsertFromSync] method.
+     * DELETE operations call the repository's soft-delete; CREATE/UPDATE both call upsertFromSync
+     * (last-write-wins, server is authoritative). Unknown entity types are logged and skipped.
      *
-     * Currently only logs unhandled entity types — extend per entity as Phase 1
-     * feature modules are completed.
+     * No [SyncEnqueuer.enqueue] is called here — server-originated data must not be
+     * re-queued for push (would create an infinite sync loop).
      */
-    private fun applyDeltaOperations(ops: List<SyncOperationDto>) {
+    private suspend fun applyDeltaOperations(ops: List<SyncOperationDto>) {
         for (op in ops) {
             try {
                 log.d("Applying delta: ${op.operation} on ${op.entityType}(${op.entityId})")
-                // Phase 1: payload is a JSON snapshot; entities are re-seeded via their
-                // respective RepositoryImpl "upsert" queries. Full dispatcher added in Sprint 7.
-                // TODO Sprint 7: route by entityType → appropriate RepositoryImpl.upsertFromSync(op.payload)
+                when (op.operation) {
+                    "DELETE" -> {
+                        val result: Result<Unit>? = when (op.entityType) {
+                            SyncOperation.EntityType.PRODUCT  -> productRepository.delete(op.entityId)
+                            SyncOperation.EntityType.ORDER    -> orderRepository.void(op.entityId, "server-sync")
+                            SyncOperation.EntityType.CUSTOMER -> customerRepository.delete(op.entityId)
+                            SyncOperation.EntityType.CATEGORY -> categoryRepository.delete(op.entityId)
+                            else -> {
+                                log.w("Unhandled DELETE for entityType: ${op.entityType}")
+                                null
+                            }
+                        }
+                        if (result is Result.Error) {
+                            log.w("Delta DELETE failed for ${op.entityType}(${op.entityId}): ${result.exception.message}")
+                        }
+                    }
+                    else -> { // "CREATE" | "UPDATE" — server snapshot wins
+                        when (op.entityType) {
+                            SyncOperation.EntityType.PRODUCT          -> productRepository.upsertFromSync(op.payload)
+                            SyncOperation.EntityType.ORDER            -> orderRepository.upsertFromSync(op.payload)
+                            SyncOperation.EntityType.CUSTOMER         -> customerRepository.upsertFromSync(op.payload)
+                            SyncOperation.EntityType.CATEGORY         -> categoryRepository.upsertFromSync(op.payload)
+                            SyncOperation.EntityType.SUPPLIER         -> supplierRepository.upsertFromSync(op.payload)
+                            SyncOperation.EntityType.STOCK_ADJUSTMENT -> stockRepository.upsertFromSync(op.payload)
+                            SyncOperation.EntityType.USER             -> { /* read-only from device — managed via auth */ }
+                            else -> log.w("Unknown entityType for delta op: ${op.entityType}")
+                        }
+                    }
+                }
             } catch (e: Exception) {
                 log.e("Failed to apply delta for ${op.entityType}(${op.entityId})", throwable = e)
             }

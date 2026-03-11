@@ -579,6 +579,19 @@ sealed class ZyntaRoute {
     ) : ZyntaRoute()
 
     // ─────────────────────────────────────────────────────────────────
+    // REMOTE DIAGNOSTICS  (ENTERPRISE — TODO-006)
+    // ─────────────────────────────────────────────────────────────────
+
+    /**
+     * Diagnostic consent screen — shown when a Zynta technician requests
+     * temporary remote read access. Gated by [ZyntaFeature.REMOTE_DIAGNOSTICS].
+     *
+     * @param token Raw JIT diagnostic token (15-min TTL) from push notification or QR.
+     */
+    @Serializable
+    data class DiagnosticConsent(val token: String) : ZyntaRoute()
+
+    // ─────────────────────────────────────────────────────────────────
     // DEEP-LINK TARGETS (not primary nav destinations)
     // ─────────────────────────────────────────────────────────────────
 

@@ -6,6 +6,7 @@ import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.data.local.SyncEnqueuer
 import com.zyntasolutions.zyntapos.data.local.mapper.CustomerMapper
+import com.zyntasolutions.zyntapos.data.remote.dto.CustomerDto
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
 import com.zyntasolutions.zyntapos.domain.model.Customer
 import com.zyntasolutions.zyntapos.domain.model.SyncOperation
@@ -14,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
 import kotlin.time.Clock
 
 /**
@@ -29,6 +31,10 @@ class CustomerRepositoryImpl(
 ) : CustomerRepository {
 
     private val q get() = db.customersQueries
+
+    companion object {
+        private val syncJson = Json { ignoreUnknownKeys = true; isLenient = true }
+    }
 
     override fun getAll(): Flow<List<Customer>> =
         q.getAllCustomers()
@@ -46,6 +52,49 @@ class CustomerRepositoryImpl(
             onSuccess = { row -> Result.Success(CustomerMapper.toDomain(row)) },
             onFailure = { t -> Result.Error(DatabaseException(t.message ?: "DB error", cause = t)) },
         )
+    }
+
+    // ── Sync (server-originated) ────────────────────────────────────────
+
+    /**
+     * Applies a server-authoritative customer snapshot from a sync delta payload.
+     *
+     * Fields not present in [CustomerDto] (credit_limit, gender, etc.) are preserved
+     * from the existing local row on update, or defaulted to null/false on insert.
+     * Does NOT enqueue a [SyncOperation] — server data must not be re-pushed.
+     */
+    suspend fun upsertFromSync(payload: String) = withContext(Dispatchers.IO) {
+        val dto = syncJson.decodeFromString<CustomerDto>(payload)
+        val existing = q.getCustomerById(dto.id).executeAsOneOrNull()
+        val isActive = if (dto.isActive) 1L else 0L
+        val loyaltyPoints = dto.loyaltyPoints.toLong()
+        if (existing != null) {
+            // Preserve extended fields from local row; server sends core fields only
+            q.updateCustomer(
+                name = dto.name, phone = dto.phone, email = dto.email,
+                address = dto.address, group_id = dto.groupId,
+                loyalty_points = loyaltyPoints, notes = dto.notes,
+                is_active = isActive,
+                credit_limit = existing.credit_limit,
+                credit_enabled = existing.credit_enabled,
+                gender = existing.gender, birthday = existing.birthday,
+                is_walk_in = existing.is_walk_in, store_id = existing.store_id,
+                updated_at = dto.updatedAt, sync_status = "SYNCED", id = dto.id,
+            )
+        } else {
+            val now = Clock.System.now().toEpochMilliseconds()
+            q.insertCustomer(
+                id = dto.id, name = dto.name, phone = dto.phone, email = dto.email,
+                address = dto.address, group_id = dto.groupId,
+                loyalty_points = loyaltyPoints, notes = dto.notes,
+                is_active = isActive,
+                credit_limit = null, credit_enabled = 0L,
+                gender = null, birthday = null,
+                is_walk_in = 0L, store_id = null,
+                created_at = now, updated_at = dto.updatedAt,
+                sync_status = "SYNCED",
+            )
+        }
     }
 
     override fun search(query: String): Flow<List<Customer>> =

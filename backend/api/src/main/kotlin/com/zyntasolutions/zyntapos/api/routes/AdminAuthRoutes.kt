@@ -7,6 +7,7 @@ import com.zyntasolutions.zyntapos.api.service.AdminAuthResult
 import com.zyntasolutions.zyntapos.api.service.AdminAuthService
 import com.zyntasolutions.zyntapos.api.service.AdminAuditService
 import com.zyntasolutions.zyntapos.api.service.AdminUserRow
+import com.zyntasolutions.zyntapos.api.service.EmailService
 import com.zyntasolutions.zyntapos.api.service.GoogleOAuthService
 import com.zyntasolutions.zyntapos.api.service.MfaService
 import com.zyntasolutions.zyntapos.api.service.toResponse
@@ -28,6 +29,7 @@ fun Route.adminAuthRoutes() {
     val mfaService: MfaService by inject()
     val googleOAuth: GoogleOAuthService by inject()
     val auditService: AdminAuditService by inject()
+    val emailService: EmailService by inject()
     val config: AppConfig by inject()
 
     route("/admin/auth") {
@@ -57,6 +59,7 @@ fun Route.adminAuthRoutes() {
                 )
                 return@post
             }
+            emailService.sendWelcomeAdmin(body.email, body.name)
             call.respond(HttpStatusCode.Created, created.toResponse())
         }
 
@@ -371,6 +374,44 @@ fun Route.adminAuthRoutes() {
             val refreshTtlSec = config.adminRefreshTokenTtlDays * 86_400L
             setAuthCookies(call, tokens.first, tokens.second, accessTtlSec, refreshTtlSec)
             call.respondRedirect("$panelUrl/")
+        }
+
+        // POST /admin/auth/forgot-password — request password reset email
+        // Always returns 202 to prevent email enumeration
+        post("/forgot-password") {
+            val body = call.receive<AdminForgotPasswordRequest>()
+            if (!call.validateOr422 {
+                requireNotBlank("email", body.email)
+                requireMaxLength("email", body.email, 254)
+            }) return@post
+
+            val resetToken = service.generatePasswordResetToken(body.email)
+            if (resetToken != null) {
+                val resetLink = "${config.adminPanelUrl}/reset-password?token=$resetToken"
+                emailService.sendPasswordReset(body.email, resetLink)
+            }
+            // Always 202 — never reveal whether the email exists
+            call.respond(HttpStatusCode.Accepted)
+        }
+
+        // POST /admin/auth/reset-password — consume token and set new password
+        post("/reset-password") {
+            val body = call.receive<AdminResetPasswordRequest>()
+            if (!call.validateOr422 {
+                requireNotBlank("token", body.token)
+                requireNotBlank("newPassword", body.newPassword)
+                requireLength("newPassword", body.newPassword, 8, AdminAuthService.MAX_PASSWORD_LENGTH)
+            }) return@post
+
+            val success = service.resetPassword(body.token, body.newPassword)
+            if (!success) {
+                call.respond(
+                    HttpStatusCode.UnprocessableEntity,
+                    ErrorResponse("INVALID_OR_EXPIRED_TOKEN", "Password reset token is invalid or has expired")
+                )
+                return@post
+            }
+            call.respond(HttpStatusCode.NoContent)
         }
     }
 

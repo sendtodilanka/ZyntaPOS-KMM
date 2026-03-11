@@ -18,6 +18,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import kotlin.time.Clock
 
 /**
@@ -44,6 +47,46 @@ class StockRepositoryImpl(
     private val aq get() = db.stockQueries
     private val pq get() = db.productsQueries
     private val lq get() = db.stockQueries
+
+    @Serializable
+    private data class StockAdjustmentSyncPayload(
+        @SerialName("id")           val id: String,
+        @SerialName("product_id")   val productId: String,
+        @SerialName("type")         val type: String,
+        @SerialName("quantity")     val quantity: Double,
+        @SerialName("reason")       val reason: String? = null,
+        @SerialName("adjusted_by")  val adjustedBy: String? = null,
+        @SerialName("reference_id") val referenceId: String? = null,
+        @SerialName("timestamp")    val timestamp: Long,
+    )
+
+    companion object {
+        private val syncJson = Json { ignoreUnknownKeys = true; isLenient = true }
+    }
+
+    // ── Sync (server-originated) ────────────────────────────────────────
+
+    /**
+     * Applies a server-authoritative stock adjustment record from a sync delta payload.
+     *
+     * Only inserts the adjustment log row — does NOT update product stock_qty.
+     * The server sends authoritative product snapshots separately (via PRODUCT deltas).
+     * Does NOT enqueue a [SyncOperation] — server data must not be re-pushed.
+     */
+    suspend fun upsertFromSync(payload: String) = withContext(Dispatchers.IO) {
+        val dto = syncJson.decodeFromString<StockAdjustmentSyncPayload>(payload)
+        val exists = aq.getAdjustmentsByProduct(dto.productId)
+            .executeAsList()
+            .any { it.id == dto.id }
+        if (!exists) {
+            aq.insertAdjustment(
+                id = dto.id, product_id = dto.productId, type = dto.type,
+                quantity = dto.quantity, reason = dto.reason,
+                adjusted_by = dto.adjustedBy, reference_id = dto.referenceId,
+                timestamp = dto.timestamp, sync_status = "SYNCED",
+            )
+        }
+    }
 
     override suspend fun adjustStock(adjustment: StockAdjustment): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {

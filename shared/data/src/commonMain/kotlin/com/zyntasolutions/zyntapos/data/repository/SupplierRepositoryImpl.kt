@@ -14,6 +14,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import kotlin.time.Clock
 
 /**
@@ -29,6 +32,51 @@ class SupplierRepositoryImpl(
 ) : SupplierRepository {
 
     private val q get() = db.suppliersQueries
+
+    @Serializable
+    private data class SupplierSyncPayload(
+        @SerialName("id")             val id: String,
+        @SerialName("name")           val name: String,
+        @SerialName("contact_person") val contactPerson: String? = null,
+        @SerialName("phone")          val phone: String? = null,
+        @SerialName("email")          val email: String? = null,
+        @SerialName("address")        val address: String? = null,
+        @SerialName("notes")          val notes: String? = null,
+        @SerialName("is_active")      val isActive: Boolean = true,
+        @SerialName("updated_at")     val updatedAt: Long,
+    )
+
+    companion object {
+        private val syncJson = Json { ignoreUnknownKeys = true; isLenient = true }
+    }
+
+    // ── Sync (server-originated) ────────────────────────────────────────
+
+    /**
+     * Applies a server-authoritative supplier snapshot from a sync delta payload.
+     * Does NOT enqueue a [SyncOperation] — server data must not be re-pushed.
+     */
+    suspend fun upsertFromSync(payload: String) = withContext(Dispatchers.IO) {
+        val dto = syncJson.decodeFromString<SupplierSyncPayload>(payload)
+        val exists = q.getSupplierById(dto.id).executeAsOneOrNull() != null
+        val isActive = if (dto.isActive) 1L else 0L
+        val now = Clock.System.now().toEpochMilliseconds()
+        if (exists) {
+            q.updateSupplier(
+                name = dto.name, contact_person = dto.contactPerson,
+                phone = dto.phone, email = dto.email, address = dto.address,
+                notes = dto.notes, is_active = isActive,
+                updated_at = dto.updatedAt, sync_status = "SYNCED", id = dto.id,
+            )
+        } else {
+            q.insertSupplier(
+                id = dto.id, name = dto.name, contact_person = dto.contactPerson,
+                phone = dto.phone, email = dto.email, address = dto.address,
+                notes = dto.notes, is_active = isActive,
+                created_at = now, updated_at = dto.updatedAt, sync_status = "SYNCED",
+            )
+        }
+    }
 
     override fun getAll(): Flow<List<Supplier>> =
         q.getAllSuppliers()

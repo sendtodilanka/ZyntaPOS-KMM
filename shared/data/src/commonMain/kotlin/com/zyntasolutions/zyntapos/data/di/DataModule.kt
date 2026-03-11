@@ -193,24 +193,36 @@ val dataModule = module {
 
     // Product catalog + FTS5 search
     single<ProductRepository> { ProductRepositoryImpl(db = get(), syncEnqueuer = get()) }
+    // Concrete binding for SyncEngine delta routing
+    single { get<ProductRepository>() as ProductRepositoryImpl }
 
     // Category tree (recursive CTE)
     single<CategoryRepository> { CategoryRepositoryImpl(db = get(), syncEnqueuer = get()) }
+    // Concrete binding for SyncEngine delta routing
+    single { get<CategoryRepository>() as CategoryRepositoryImpl }
 
     // Order lifecycle — transactional order + items creation
     single<OrderRepository> { OrderRepositoryImpl(db = get(), syncEnqueuer = get()) }
+    // Concrete binding for SyncEngine delta routing
+    single { get<OrderRepository>() as OrderRepositoryImpl }
 
     // Customer CRUD + FTS5 search
     single<CustomerRepository> { CustomerRepositoryImpl(db = get(), syncEnqueuer = get()) }
+    // Concrete binding for SyncEngine delta routing
+    single { get<CustomerRepository>() as CustomerRepositoryImpl }
 
     // Cash register session lifecycle + cash movement recording
     single<RegisterRepository> { RegisterRepositoryImpl(db = get(), syncEnqueuer = get()) }
 
     // Stock adjustments + low-stock alert upserts
     single<StockRepository> { StockRepositoryImpl(db = get(), syncEnqueuer = get()) }
+    // Concrete binding for SyncEngine delta routing
+    single { get<StockRepository>() as StockRepositoryImpl }
 
     // Supplier CRUD
     single<SupplierRepository> { SupplierRepositoryImpl(db = get(), syncEnqueuer = get()) }
+    // Concrete binding for SyncEngine delta routing
+    single { get<SupplierRepository>() as SupplierRepositoryImpl }
 
     // Auth: local BCrypt verification + SecurePreferences JWT cache.
     // PasswordHashPort is provided by securityModule (PasswordHasherAdapter) — MERGED-F3.
@@ -364,10 +376,16 @@ val dataModule = module {
      */
     single {
         SyncEngine(
-            db             = get(),
-            api            = get(),
-            prefs          = get(),
-            networkMonitor = get(),
+            db                  = get(),
+            api                 = get(),
+            prefs               = get(),
+            networkMonitor      = get(),
+            productRepository   = get(),
+            orderRepository     = get(),
+            customerRepository  = get(),
+            categoryRepository  = get(),
+            supplierRepository  = get(),
+            stockRepository     = get(),
         )
     }
 

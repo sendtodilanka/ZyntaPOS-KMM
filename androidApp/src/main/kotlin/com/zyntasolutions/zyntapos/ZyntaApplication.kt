@@ -1,6 +1,10 @@
 package com.zyntasolutions.zyntapos
 
+// CANARY:ZyntaPOS-android-app-i9j0k1l2
+
 import android.app.Application
+import com.google.firebase.analytics.FirebaseAnalytics
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import io.sentry.android.core.SentryAndroid
 import com.zyntasolutions.zyntapos.core.platform.AndroidAppInfoProvider
 import com.zyntasolutions.zyntapos.core.platform.AppInfoProvider
@@ -12,6 +16,7 @@ import com.zyntasolutions.zyntapos.data.di.dataModule
 import com.zyntasolutions.zyntapos.feature.dashboard.dashboardModule
 import com.zyntasolutions.zyntapos.feature.onboarding.onboardingModule
 import com.zyntasolutions.zyntapos.feature.admin.adminModule
+import com.zyntasolutions.zyntapos.feature.diagnostic.di.diagnosticModule
 import com.zyntasolutions.zyntapos.feature.auth.authModule
 import com.zyntasolutions.zyntapos.feature.coupons.couponsModule
 import com.zyntasolutions.zyntapos.feature.customers.customersModule
@@ -73,6 +78,11 @@ class ZyntaApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
+        // ── Firebase Analytics + Crashlytics — MUST init before Koin (TODO-011) ─
+        // google-services.json is CI-injected from GOOGLE_SERVICES_JSON secret.
+        FirebaseAnalytics.getInstance(this)
+        FirebaseCrashlytics.getInstance().isCrashlyticsCollectionEnabled = !BuildConfig.DEBUG
+
         // ── Sentry crash reporter — MUST init before Koin (ADR-011 rule #4) ───
         // EU ingest endpoint via .ingest.de.sentry.io DSN.
         // DSN injected via Secrets Gradle Plugin (ZYNTA_SENTRY_DSN → BuildConfig).
@@ -126,6 +136,7 @@ class ZyntaApplication : Application() {
                 androidSettingsModule(this@ZyntaApplication), // AndroidBackupService
                 staffModule,         // Employee HR, attendance, payroll
                 accountingModule,    // E-Invoice / IRD submission (Sprint 18-24)
+                diagnosticModule,    // Remote diagnostic consent (ENTERPRISE, TODO-006)
             )
         }
 

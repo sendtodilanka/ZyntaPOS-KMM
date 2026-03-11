@@ -397,3 +397,21 @@ DOCUMENTATION (Phase 3 prep):
 | 010 | Security Monitoring | 🟡 ~85% | Snyk CI, canary tokens, tunnel-config placeholder, CF dashboard |
 | 011 | Firebase Analytics & Sentry | 🟡 ~40% | Firebase SDK not integrated; Sentry done |
 | Phase 3 | (no TODO files yet) | ⬜ Planned | TODO files not written; Phase 3 feature scaffolds exist |
+
+---
+
+## Update — 2026-03-11: Gap Fill Applied
+
+All gaps addressed by branch `claude/audit-api-documentation-ileya`. See plan file at `/root/.claude/plans/vast-coalescing-karp.md` for full implementation details.
+
+**Changes applied:**
+
+| Gap | Resolution |
+|-----|-----------|
+| GAP-1 (`SyncEngine.applyDeltaOperations()`) | Fully implemented — routes 7 entity types to correct `RepositoryImpl.upsertFromSync()`. 5 new `upsertFromSync()` methods added. Koin DI updated with 6 concrete repo params. |
+| GAP-2/GAP-3 (API docs out of date) | `docs/api/README.md` corrected (8 contract fixes). `docs/api/openapi.yaml` created (full OpenAPI 3.0.3 spec for all 3 services). |
+| GAP-4 (No OpenAPI spec) | `docs/api/openapi.yaml` — 60+ endpoints across api/license/sync services. |
+| GAP-5 (Remote Diagnostics TODO-006) | `DiagnosticSession` domain model, `DiagnosticTokenValidator` (shared/security), V8 migration, `DiagnosticSessionService` + `AdminDiagnosticRoutes` (backend), `:composeApp:feature:diagnostic` module, `ZyntaRoute.DiagnosticConsent`. |
+| GAP-6 (Email System TODO-008a) | `EmailService` (Ktor HTTP to Resend API), V7 migration (email_preferences + password_reset_tokens), forgot-password/reset-password endpoints, welcome/ticket email wiring, `UnsubscribeRoutes`. `AppConfig` email env vars added. |
+| GAP-7 (Firebase TODO-011) | Firebase BOM + Analytics + Crashlytics deps in `androidApp`, google-services plugins in root + androidApp, `google-services.json` placeholder, Firebase init in `ZyntaApplication`. |
+| GAP-8 (Security Monitoring) | Snyk advisory job added to `ci-gate.yml`. `<TUNNEL_ID>` replaced with `${CF_TUNNEL_ID}` in tunnel-config.yml. Canary tokens embedded in 3 source files. |

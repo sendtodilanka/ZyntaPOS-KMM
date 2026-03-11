@@ -14,6 +14,8 @@ import com.zyntasolutions.zyntapos.api.service.AdminMetricsService
 import com.zyntasolutions.zyntapos.api.service.AdminStoresService
 import com.zyntasolutions.zyntapos.api.service.AdminTicketService
 import com.zyntasolutions.zyntapos.api.service.AlertGenerationJob
+import com.zyntasolutions.zyntapos.api.service.DiagnosticSessionService
+import com.zyntasolutions.zyntapos.api.service.EmailService
 import com.zyntasolutions.zyntapos.api.service.ForceSyncNotifier
 import com.zyntasolutions.zyntapos.api.service.GoogleOAuthService
 import com.zyntasolutions.zyntapos.api.service.MfaService
@@ -72,6 +74,8 @@ val appModule = module {
     }
 
     // ── Services ──────────────────────────────────────────────────────────────
+    single { EmailService(get()) }
+    single { DiagnosticSessionService(get()) }
     single { UserService() }
     single { SyncService() }
     single { ProductService() }

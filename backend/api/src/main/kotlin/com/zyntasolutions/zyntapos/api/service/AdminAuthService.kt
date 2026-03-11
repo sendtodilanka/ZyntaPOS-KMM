@@ -12,6 +12,7 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.slf4j.LoggerFactory
 import java.security.MessageDigest
+import java.security.SecureRandom
 import java.time.Instant
 import java.util.*
 
@@ -46,6 +47,16 @@ object AdminSessions : Table("admin_sessions") {
     val createdAt   = long("created_at")
     val expiresAt   = long("expires_at")   // epoch-ms
     val revokedAt   = long("revoked_at").nullable()
+    override val primaryKey = PrimaryKey(id)
+}
+
+object PasswordResetTokens : Table("password_reset_tokens") {
+    val id           = uuid("id")
+    val adminUserId  = uuid("admin_user_id")
+    val tokenHash    = varchar("token_hash", 64)
+    val expiresAt    = long("expires_at")   // epoch-ms
+    val usedAt       = long("used_at").nullable()  // epoch-ms
+    val createdAt    = long("created_at")   // epoch-ms
     override val primaryKey = PrimaryKey(id)
 }
 
@@ -518,6 +529,83 @@ class AdminAuthService(
         return digest.digest(input.toByteArray()).joinToString("") { "%02x".format(it) }
     }
 
+    // ── Password Reset ────────────────────────────────────────────────────────
+
+    /**
+     * Generates a one-time password reset token for the given email.
+     * Returns the raw token (to embed in email link) or null if the user doesn't exist.
+     * The token hash is stored in the DB; the raw token never touches the DB.
+     */
+    suspend fun generatePasswordResetToken(email: String): String? = newSuspendedTransaction {
+        val user = AdminUsers.selectAll()
+            .where { AdminUsers.email eq email.lowercase() }
+            .firstOrNull() ?: return@newSuspendedTransaction null
+
+        // Invalidate any existing unused tokens for this user
+        PasswordResetTokens.deleteWhere {
+            (adminUserId eq user[AdminUsers.id]) and (usedAt.isNull())
+        }
+
+        val rawToken  = generateSecureToken()
+        val tokenHash = sha256Hex(rawToken)
+        val now       = System.currentTimeMillis()
+
+        PasswordResetTokens.insert {
+            it[id]          = UUID.randomUUID()
+            it[adminUserId] = user[AdminUsers.id]
+            it[PasswordResetTokens.tokenHash] = tokenHash
+            it[expiresAt]   = now + RESET_TOKEN_TTL_MS
+            it[createdAt]   = now
+        }
+        rawToken
+    }
+
+    /**
+     * Validates the reset token, updates the password, and marks the token as used.
+     * Returns true on success, false if token is invalid, expired, or already used.
+     */
+    suspend fun resetPassword(rawToken: String, newPassword: String): Boolean = newSuspendedTransaction {
+        val tokenHash = sha256Hex(rawToken)
+        val now       = System.currentTimeMillis()
+
+        val tokenRow = PasswordResetTokens.selectAll()
+            .where { PasswordResetTokens.tokenHash eq tokenHash }
+            .firstOrNull() ?: return@newSuspendedTransaction false
+
+        if (tokenRow[PasswordResetTokens.usedAt] != null) return@newSuspendedTransaction false
+        if (tokenRow[PasswordResetTokens.expiresAt] < now) return@newSuspendedTransaction false
+
+        val userId      = tokenRow[PasswordResetTokens.adminUserId]
+        val newHash     = BCrypt.withDefaults().hashToString(12, newPassword.toCharArray())
+
+        AdminUsers.update({ AdminUsers.id eq userId }) {
+            it[passwordHash] = newHash
+        }
+        // Revoke all active sessions for this user
+        AdminSessions.update({
+            (AdminSessions.userId eq userId) and AdminSessions.revokedAt.isNull()
+        }) {
+            it[revokedAt] = now
+        }
+        // Mark token as used
+        PasswordResetTokens.update({ PasswordResetTokens.tokenHash eq tokenHash }) {
+            it[usedAt] = now
+        }
+        true
+    }
+
+    private fun generateSecureToken(): String {
+        val bytes = ByteArray(32)
+        SecureRandom().nextBytes(bytes)
+        return bytes.joinToString("") { "%02x".format(it) }
+    }
+
+    private fun sha256Hex(input: String): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        return digest.digest(input.toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it) }
+    }
+
     private fun ResultRow.toAdminUserRow() = AdminUserRow(
         id           = this[AdminUsers.id],
         email        = this[AdminUsers.email],
@@ -533,6 +621,7 @@ class AdminAuthService(
     companion object {
         private const val MAX_FAILED_ATTEMPTS = 5
         private const val LOCKOUT_DURATION_MS = 15 * 60 * 1000L  // 15 minutes
+        private const val RESET_TOKEN_TTL_MS  = 60 * 60 * 1000L  // 1 hour
 
         /** G2: bcrypt silently truncates at 72 bytes — reject anything over 128 chars to prevent DoS. */
         const val MAX_PASSWORD_LENGTH = 128
