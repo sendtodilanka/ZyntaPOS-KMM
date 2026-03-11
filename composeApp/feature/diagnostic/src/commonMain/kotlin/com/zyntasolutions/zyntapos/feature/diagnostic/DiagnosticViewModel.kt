@@ -1,5 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.diagnostic
 
+import com.zyntasolutions.zyntapos.core.result.onError
+import com.zyntasolutions.zyntapos.core.result.onSuccess
 import com.zyntasolutions.zyntapos.domain.model.DiagnosticSession
 import com.zyntasolutions.zyntapos.security.auth.DiagnosticTokenValidator
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
@@ -30,8 +32,8 @@ class DiagnosticViewModel(
         viewModelScope.launch {
             updateState { it.copy(isLoading = true, errorMessage = null) }
             val result = tokenValidator.validateToken(rawToken)
-            result.fold(
-                onSuccess = { claims ->
+            result
+                .onSuccess { claims ->
                     val session = DiagnosticSession(
                         id               = claims.sessionId,
                         storeId          = claims.storeId,
@@ -46,12 +48,11 @@ class DiagnosticViewModel(
                         },
                     )
                     updateState { it.copy(pendingSession = session, isLoading = false) }
-                },
-                onFailure = { error ->
+                }
+                .onError { error ->
                     updateState { it.copy(isLoading = false, errorMessage = error.message) }
-                    sendEffect(DiagnosticEffect.ShowError(error.message ?: "Invalid diagnostic token"))
-                },
-            )
+                    sendEffect(DiagnosticEffect.ShowError(error.message))
+                }
         }
     }
 
