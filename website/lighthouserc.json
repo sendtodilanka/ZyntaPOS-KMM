@@ -1,9 +1,9 @@
 {
   "ci": {
     "collect": {
-      "startServerCommand": "npx --yes http-server website/dist --port 4321 --ext html -c-1",
-      "startServerReadyPattern": "Available on",
-      "numberOfRuns": 1,
+      "startServerCommand": "npx --yes serve website/dist -l 4321",
+      "startServerReadyPattern": "Accepting connections",
+      "numberOfRuns": 3,
       "url": [
         "http://localhost:4321/",
         "http://localhost:4321/features",
