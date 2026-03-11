@@ -56,7 +56,7 @@ fun LicenseActivationScreen(
             )
             OutlinedTextField(
                 value = state.licenseKey,
-                onValueChange = { viewModel.onIntent(LicenseIntent.LicenseKeyChanged(it.uppercase())) },
+                onValueChange = { viewModel.dispatch(LicenseIntent.LicenseKeyChanged(it.uppercase())) },
                 label = { Text("License Key") },
                 placeholder = { Text("XXXX-XXXX-XXXX-XXXX") },
                 singleLine = true,
@@ -70,7 +70,7 @@ fun LicenseActivationScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
             Button(
-                onClick = { viewModel.onIntent(LicenseIntent.ActivateClicked) },
+                onClick = { viewModel.dispatch(LicenseIntent.ActivateClicked) },
                 enabled = !state.isLoading,
                 modifier = Modifier.fillMaxWidth().height(48.dp),
             ) {

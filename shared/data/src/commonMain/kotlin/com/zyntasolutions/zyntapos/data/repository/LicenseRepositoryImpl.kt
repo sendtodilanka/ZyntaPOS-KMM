@@ -10,7 +10,7 @@ import com.zyntasolutions.zyntapos.domain.model.LicenseStatus
 import com.zyntasolutions.zyntapos.domain.repository.LicenseRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 import kotlinx.datetime.Instant
 
 /**
@@ -123,7 +123,7 @@ class LicenseRepositoryImpl(
     override suspend fun getLocalLicense(): License? = withContext(Dispatchers.IO) {
         db.licenseQueries.getLicense().executeAsOneOrNull()?.let { row ->
             License(
-                key = row.key_,
+                key = row.key,
                 deviceId = row.device_id,
                 customerId = row.customer_id,
                 edition = runCatching { Edition.valueOf(row.edition) }.getOrDefault(Edition.STARTER),
@@ -145,7 +145,7 @@ class LicenseRepositoryImpl(
 
     private fun persistLicense(license: License) {
         db.licenseQueries.upsertLicense(
-            key_ = license.key,
+            key = license.key,
             device_id = license.deviceId,
             customer_id = license.customerId,
             edition = license.edition.name,

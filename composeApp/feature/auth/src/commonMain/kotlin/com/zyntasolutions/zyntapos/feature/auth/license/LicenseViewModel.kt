@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.feature.auth.license
 
+import androidx.lifecycle.viewModelScope
 import com.zyntasolutions.zyntapos.domain.usecase.license.ActivateLicenseUseCase
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlinx.coroutines.launch
