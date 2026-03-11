@@ -57,9 +57,70 @@ jobs:
       timeout-minutes: 45
       artifact-suffix: '-ci-${{ github.run_id }}'
 
-  # ── Admin Panel: TypeScript, ESLint, Vitest, Playwright (no visual) ─────────
+  # ── Backend: Compile + Unit Tests (PR + push-to-main) ──────────────────────
+  # Validates that all three backend Gradle subprojects compile and pass unit
+  # tests BEFORE they are merged. Without this, compilation errors only surface
+  # during the Docker shadowJar build on push-to-main (post-merge), requiring
+  # a follow-up fix PR to unblock the deploy chain.
+  #
+  # Each backend subproject has its own settings.gradle.kts and Gradle wrapper;
+  # they are NOT compiled by the root KMP build.
+  test-backend:
+    name: "Backend Compile & Test"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [api, license, sync]
+    defaults:
+      run:
+        working-directory: backend/${{ matrix.service }}
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "temurin"
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ matrix.service }}-${{ hashFiles(format('backend/{0}/**/*.gradle.kts', matrix.service)) }}
+          restore-keys: gradle-${{ runner.os }}-${{ matrix.service }}-
+
+      - name: Compile backend/${{ matrix.service }}
+        run: |
+          chmod +x ./gradlew
+          ./gradlew compileKotlin --no-daemon --stacktrace \
+            -Dorg.gradle.jvmargs="-Xmx2g -Xms512m"
+
+      - name: Run unit tests — ${{ matrix.service }}
+        run: |
+          ./gradlew test --no-daemon --continue --stacktrace \
+            -Dorg.gradle.jvmargs="-Xmx2g -Xms512m"
+        continue-on-error: false
+
+      - name: Upload test reports — ${{ matrix.service }}
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-reports-${{ matrix.service }}-${{ github.run_id }}
+          path: backend/${{ matrix.service }}/build/reports/tests/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # ── Admin Panel: TypeScript, ESLint, Vitest, npm audit, Playwright ──────────
   # Runs in parallel with build-and-test. Visual snapshot tests are excluded
   # because pixel comparisons differ between local and ubuntu-22.04 renderers.
+  # Node 22 aligns with ci-admin-panel.yml (was Node 20 — version inconsistency).
   test-admin-panel:
     name: "Admin Panel Tests"
     runs-on: ubuntu-22.04
@@ -75,12 +136,16 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: admin-panel/package-lock.json
 
       - name: Install dependencies
         run: npm ci
+
+      - name: npm audit (security)
+        run: npm audit --audit-level=high
+        continue-on-error: true   # Report-only until audit backlog is triaged
 
       - name: TypeScript check
         run: npm run typecheck
@@ -280,7 +345,7 @@ jobs:
   # Only fires on push events (not PRs) and only when ALL builds succeed.
   trigger-deploy:
     name: "Trigger Deploy"
-    needs: [build-and-test, test-admin-panel, build-backend-images, build-website-image, build-admin-panel-image]
+    needs: [build-and-test, test-admin-panel, test-backend, build-backend-images, build-website-image, build-admin-panel-image]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 2

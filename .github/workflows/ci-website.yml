@@ -27,6 +27,10 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: npm audit (security)
+        run: npm audit --audit-level=high
+        continue-on-error: true   # Report-only until audit backlog is triaged
+
       - name: Build
         run: npx astro build
         env:
