@@ -9,6 +9,7 @@ import com.zyntasolutions.zyntapos.api.models.AdminPagedResponse
 import com.zyntasolutions.zyntapos.api.models.AdminUserResponse
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.isNull
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.slf4j.LoggerFactory
 import java.security.MessageDigest
