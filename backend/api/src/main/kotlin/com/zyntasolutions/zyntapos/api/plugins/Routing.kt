@@ -58,19 +58,6 @@ fun Application.configureRouting() {
             }
         }
 
-        // Admin panel data routes — standard API rate limit, cookie-auth validated inside each route
-        rateLimit(RateLimitName("api")) {
-            adminStoresRoutes()
-            adminHealthRoutes()
-            adminAuditRoutes()
-            adminMetricsRoutes()
-            adminAlertsRoutes()
-            adminSyncRoutes()
-            adminConfigRoutes()
-            adminTicketRoutes()
-            adminDiagnosticRoutes()
-        }
-
         route("/v1") {
             // Auth endpoints: strict rate limit (10 req/min) to prevent brute-force
             rateLimit(RateLimitName("auth")) {

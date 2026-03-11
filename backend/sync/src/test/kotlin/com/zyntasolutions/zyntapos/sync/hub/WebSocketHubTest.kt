@@ -98,4 +98,11 @@ class WebSocketHubTest {
         hub.broadcast("no-such-store", """{"type":"ping"}""")
         // Should not throw
     }
+
+    @Test
+    fun `close does not throw`() {
+        val hub = WebSocketHub()
+        hub.register("store-A", "device-1", stubSession())
+        hub.close()  // Should cancel scope without throwing
+    }
 }
