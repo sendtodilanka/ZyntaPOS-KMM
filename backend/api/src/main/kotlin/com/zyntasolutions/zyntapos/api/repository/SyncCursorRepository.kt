@@ -5,7 +5,7 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 
-class SyncCursorRepository {
+open class SyncCursorRepository {
 
     open suspend fun upsert(storeId: String, deviceId: String, lastSeq: Long): Unit = newSuspendedTransaction {
         val now = OffsetDateTime.now(ZoneOffset.UTC)
