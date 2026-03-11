@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { server } from '../mocks/server';
@@ -19,6 +19,17 @@ import {
 } from '@/api/auth';
 import type { AdminUser } from '@/types/user';
 
+// ── Router mock ──────────────────────────────────────────────────────────────
+// useAdminLogout calls useNavigate() which requires a RouterProvider.
+// We mock the module so the hook can be tested in isolation without a full
+// router context. Each test that cares about navigation asserts on mockNavigate.
+
+const mockNavigate = vi.fn();
+
+vi.mock('@tanstack/react-router', () => ({
+  useNavigate: () => mockNavigate,
+}));
+
 const API_BASE = 'https://api.zyntapos.com';
 
 const mockUser: AdminUser = {
@@ -32,14 +43,16 @@ const mockUser: AdminUser = {
   createdAt: new Date('2024-01-01T00:00:00Z').getTime(),
 };
 
-// Reset auth store state between tests
+// Reset auth store state and router mock between tests
 beforeEach(() => {
   act(() => {
     useAuthStore.getState().clearUser();
   });
+  mockNavigate.mockClear();
 });
 
 // ── window.location.href redirect helpers ────────────────────────────────────
+// Still needed for the api-client 401 interceptor tests (non-auth endpoints).
 
 const originalLocation = window.location;
 
@@ -253,7 +266,7 @@ describe('useAdminBootstrap', () => {
 // ── useAdminLogout ───────────────────────────────────────────────────────────
 
 describe('useAdminLogout', () => {
-  it('calls clearUser and redirects to /login on success', async () => {
+  it('calls clearUser and navigates to /login on success', async () => {
     act(() => {
       useAuthStore.getState().setUser(mockUser);
     });
@@ -272,10 +285,10 @@ describe('useAdminLogout', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(useAuthStore.getState().user).toBeNull();
-    expect(window.location.href).toBe('/login');
+    expect(mockNavigate).toHaveBeenCalledWith({ to: '/login' });
   });
 
-  it('still calls clearUser and redirects to /login when the server returns an error', async () => {
+  it('still calls clearUser and navigates to /login when the server returns an error', async () => {
     act(() => {
       useAuthStore.getState().setUser(mockUser);
     });
@@ -294,7 +307,7 @@ describe('useAdminLogout', () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(useAuthStore.getState().user).toBeNull();
-    expect(window.location.href).toBe('/login');
+    expect(mockNavigate).toHaveBeenCalledWith({ to: '/login' });
   });
 });
 
