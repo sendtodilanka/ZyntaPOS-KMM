@@ -156,7 +156,7 @@ class ProductRepositoryImpl(
         if (exists) {
             q.updateProduct(
                 name = dto.name, barcode = dto.barcode, sku = dto.sku,
-                category_id = dto.categoryId, unit_id = dto.unitId,
+                category_id = dto.categoryId, unit_id = dto.unitId ?: "",
                 price = dto.price, cost_price = dto.costPrice,
                 tax_group_id = dto.taxGroupId, min_stock_qty = dto.minStockQty,
                 image_url = dto.imageUrl, description = dto.description,
@@ -166,7 +166,7 @@ class ProductRepositoryImpl(
         } else {
             q.insertProduct(
                 id = dto.id, name = dto.name, barcode = dto.barcode, sku = dto.sku,
-                category_id = dto.categoryId, unit_id = dto.unitId, price = dto.price,
+                category_id = dto.categoryId, unit_id = dto.unitId ?: "", price = dto.price,
                 cost_price = dto.costPrice, tax_group_id = dto.taxGroupId,
                 stock_qty = dto.stockQty, min_stock_qty = dto.minStockQty,
                 image_url = dto.imageUrl, description = dto.description,

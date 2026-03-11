@@ -81,8 +81,8 @@ class StockRepositoryImpl(
         if (!exists) {
             aq.insertAdjustment(
                 id = dto.id, product_id = dto.productId, type = dto.type,
-                quantity = dto.quantity, reason = dto.reason,
-                adjusted_by = dto.adjustedBy, reference_id = dto.referenceId,
+                quantity = dto.quantity, reason = dto.reason ?: "",
+                adjusted_by = dto.adjustedBy ?: "", reference_id = dto.referenceId,
                 timestamp = dto.timestamp, sync_status = "SYNCED",
             )
         }

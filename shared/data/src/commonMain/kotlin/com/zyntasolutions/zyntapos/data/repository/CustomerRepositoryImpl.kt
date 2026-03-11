@@ -88,7 +88,7 @@ class CustomerRepositoryImpl(
                 address = dto.address, group_id = dto.groupId,
                 loyalty_points = loyaltyPoints, notes = dto.notes,
                 is_active = isActive,
-                credit_limit = null, credit_enabled = 0L,
+                credit_limit = 0.0, credit_enabled = 0L,
                 gender = null, birthday = null,
                 is_walk_in = 0L, store_id = null,
                 created_at = now, updated_at = dto.updatedAt,
