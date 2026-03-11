@@ -10,30 +10,33 @@ import androidx.navigation.compose.navigation
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Nested navigation graph for unauthenticated / lock-screen flows.
+ * Nested navigation graph for unauthenticated / lock-screen / license flows.
  *
  * Destinations:
- * - [ZyntaRoute.Onboarding] — first-run setup wizard (shown only once on first launch).
- * - [ZyntaRoute.Login]      — credential entry; normal start destination.
- * - [ZyntaRoute.PinLock]   — quick PIN re-authentication after idle timeout.
+ * - [ZyntaRoute.Onboarding]        — first-run setup wizard (shown only once on first launch).
+ * - [ZyntaRoute.Login]             — credential entry; normal start destination.
+ * - [ZyntaRoute.PinLock]           — quick PIN re-authentication after idle timeout.
+ * - [ZyntaRoute.LicenseActivation] — license key entry; shown when device is unactivated.
+ * - [ZyntaRoute.LicenseExpired]    — blocker shown when license is EXPIRED or REVOKED.
  *
  * Flow:
  * ```
  * App first launch ──► Onboarding ──► (done) ──► Login
- * App normal start ──► Login ──► (success) ──► Main graph (via navigateAndClear)
+ * App normal start ──► Login ──► (success) ──► LicenseActivation (if unactivated)
+ *                                           ──► LicenseExpired   (if revoked/expired)
+ *                                           ──► Main graph       (if ACTIVE/GRACE)
  *                  ▲
  *                  │  idle timeout
  * Main area ──► PinLock ──► (success) ──► pop back to previous screen
  * ```
- *
- * Screen composables are passed as lambdas to keep this graph decoupled from
- * feature module implementations (screens live in feature sub-modules).
  *
  * @param navigationController  Controller used to trigger navigateAndClear on success.
  * @param isFirstRun            When `true`, [ZyntaRoute.Onboarding] is the start destination.
  * @param loginScreen           Composable for the Login screen.
  * @param onboardingScreen      Composable for the first-run Onboarding wizard.
  * @param pinLockScreen         Composable for the PinLock screen.
+ * @param licenseActivationScreen Composable for the license key entry screen.
+ * @param licenseExpiredScreen  Composable for the license expired/revoked blocker.
  */
 fun NavGraphBuilder.authNavGraph(
     navigationController: NavigationController,
@@ -41,6 +44,8 @@ fun NavGraphBuilder.authNavGraph(
     loginScreen: @Composable (onLoginSuccess: () -> Unit) -> Unit,
     onboardingScreen: @Composable (onOnboardingComplete: () -> Unit) -> Unit,
     pinLockScreen: @Composable (onUnlocked: () -> Unit) -> Unit,
+    licenseActivationScreen: @Composable (onActivated: () -> Unit) -> Unit = {},
+    licenseExpiredScreen: @Composable () -> Unit = {},
 ) {
     val startDestination: ZyntaRoute = if (isFirstRun) ZyntaRoute.Onboarding else ZyntaRoute.Login
 
@@ -68,6 +73,18 @@ fun NavGraphBuilder.authNavGraph(
                     navigationController.popBackStack()
                 },
             )
+        }
+
+        // ── License activation ────────────────────────────────────────────────
+        composable<ZyntaRoute.LicenseActivation> {
+            licenseActivationScreen {
+                navigationController.navigateAndClear(ZyntaRoute.Dashboard)
+            }
+        }
+
+        // ── License expired / revoked ─────────────────────────────────────────
+        composable<ZyntaRoute.LicenseExpired> {
+            licenseExpiredScreen()
         }
     }
 }

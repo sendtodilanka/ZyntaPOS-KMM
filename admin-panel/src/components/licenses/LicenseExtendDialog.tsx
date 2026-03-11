@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -6,7 +7,7 @@ import { useUpdateLicense } from '@/api/licenses';
 import type { License } from '@/types/license';
 
 const schema = z.object({
-  expiresAt: z.string().min(1, 'New expiry date is required'),
+  expiresAt: z.string().optional(),
   reason: z.string().optional(),
 });
 type FormData = z.infer<typeof schema>;
@@ -18,15 +19,19 @@ interface LicenseExtendDialogProps {
 
 export function LicenseExtendDialog({ license, onClose }: LicenseExtendDialogProps) {
   const update = useUpdateLicense();
+  const [clearExpiry, setClearExpiry] = useState(false);
   const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
 
   const onSubmit = (data: FormData) => {
     if (!license) return;
+    const payload = clearExpiry
+      ? { clearExpiry: true as const }
+      : { expiresAt: `${data.expiresAt}T00:00:00Z` };
     update.mutate(
-      { key: license.key, data: { expiresAt: `${data.expiresAt}T00:00:00Z` } },
-      { onSuccess: () => { reset(); onClose(); } },
+      { key: license.key, data: payload },
+      { onSuccess: () => { reset(); setClearExpiry(false); onClose(); } },
     );
   };
 
@@ -48,9 +53,23 @@ export function LicenseExtendDialog({ license, onClose }: LicenseExtendDialogPro
           </p>
           <div>
             <label className="block text-xs font-medium text-slate-400 mb-1.5">New Expiry Date</label>
-            <input {...register('expiresAt')} type="date" className="w-full h-10 bg-surface-elevated border border-surface-border rounded-lg px-3 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            <input
+              {...register('expiresAt')}
+              type="date"
+              disabled={clearExpiry}
+              className="w-full h-10 bg-surface-elevated border border-surface-border rounded-lg px-3 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-brand-500 disabled:opacity-40 disabled:cursor-not-allowed"
+            />
             {errors.expiresAt && <p className="text-xs text-red-400 mt-1">{errors.expiresAt.message}</p>}
           </div>
+          <label className="flex items-center gap-2.5 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={clearExpiry}
+              onChange={e => setClearExpiry(e.target.checked)}
+              className="w-4 h-4 rounded accent-brand-500"
+            />
+            <span className="text-sm text-slate-300">Make perpetual (no expiry)</span>
+          </label>
           <div>
             <label className="block text-xs font-medium text-slate-400 mb-1.5">Reason <span className="text-slate-500">(optional)</span></label>
             <input {...register('reason')} className="w-full h-10 bg-surface-elevated border border-surface-border rounded-lg px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-brand-500" placeholder="e.g. Annual renewal" />

@@ -11,6 +11,10 @@ import com.zyntasolutions.zyntapos.data.remote.dto.PublicKeyResponseDto
 import com.zyntasolutions.zyntapos.data.remote.dto.SyncOperationDto
 import com.zyntasolutions.zyntapos.data.remote.dto.SyncPullResponseDto
 import com.zyntasolutions.zyntapos.data.remote.dto.SyncResponseDto
+import com.zyntasolutions.zyntapos.data.remote.dto.LicenseActivateRequestDto
+import com.zyntasolutions.zyntapos.data.remote.dto.LicenseActivateResponseDto
+import com.zyntasolutions.zyntapos.data.remote.dto.LicenseHeartbeatRequestDto
+import com.zyntasolutions.zyntapos.data.remote.dto.LicenseHeartbeatResponseDto
 
 /**
  * ZyntaPOS — Remote API service contract.
@@ -87,4 +91,19 @@ interface ApiService {
      * @throws NetworkException on transport or server errors.
      */
     suspend fun fetchPublicKey(): PublicKeyResponseDto
+
+    /**
+     * Activates the current device against the license service.
+     *
+     * @throws NetworkException on transport or server errors.
+     */
+    suspend fun activateLicense(request: LicenseActivateRequestDto): LicenseActivateResponseDto
+
+    /**
+     * Sends a periodic heartbeat to the license service.
+     * The response may carry [LicenseHeartbeatResponseDto.forceSync] == true to request an immediate sync.
+     *
+     * @throws NetworkException on transport or server errors.
+     */
+    suspend fun licenseHeartbeat(request: LicenseHeartbeatRequestDto): LicenseHeartbeatResponseDto
 }

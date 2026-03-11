@@ -1,0 +1,30 @@
+-- Local license state cache
+-- One row maximum (the active license for this device)
+CREATE TABLE license_state (
+    key                  TEXT    NOT NULL PRIMARY KEY,
+    device_id            TEXT    NOT NULL,
+    customer_id          TEXT    NOT NULL,
+    edition              TEXT    NOT NULL,
+    status               TEXT    NOT NULL,
+    max_devices          INTEGER NOT NULL,
+    issued_at            INTEGER NOT NULL,  -- Unix epoch millis
+    expires_at           INTEGER,           -- Unix epoch millis, NULL = perpetual
+    grace_period_ends_at INTEGER,           -- Unix epoch millis, NULL if not in grace period
+    last_heartbeat_at    INTEGER            -- Unix epoch millis, NULL if never
+);
+
+-- ── Read queries ─────────────────────────────────────────────────────────────
+
+getLicense:
+SELECT * FROM license_state LIMIT 1;
+
+-- ── Write queries ─────────────────────────────────────────────────────────────
+
+upsertLicense:
+INSERT OR REPLACE INTO license_state(
+    key, device_id, customer_id, edition, status, max_devices,
+    issued_at, expires_at, grace_period_ends_at, last_heartbeat_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+deleteLicense:
+DELETE FROM license_state;

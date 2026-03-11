@@ -29,6 +29,12 @@ export interface LicenseDevice {
   lastSeenAt: string;
 }
 
+/** Response from GET /admin/licenses/{key} — includes both license and its registered devices. */
+export interface LicenseWithDevices {
+  license: License;
+  devices: LicenseDevice[];
+}
+
 export interface LicenseStats {
   total: number;
   active: number;
@@ -41,6 +47,7 @@ export interface LicenseStats {
 
 export interface CreateLicenseRequest {
   customerId: string;
+  customerName?: string;
   edition: LicenseEdition;
   maxDevices: number;
   expiresAt?: string;
@@ -50,7 +57,9 @@ export interface UpdateLicenseRequest {
   edition?: LicenseEdition;
   maxDevices?: number;
   expiresAt?: string;
+  clearExpiry?: boolean;
   status?: LicenseStatus;
+  forceSync?: boolean;
 }
 
 export interface LicenseFilter {

@@ -16,6 +16,10 @@ import com.zyntasolutions.zyntapos.data.remote.dto.PublicKeyResponseDto
 import com.zyntasolutions.zyntapos.data.remote.dto.SyncOperationDto
 import com.zyntasolutions.zyntapos.data.remote.dto.SyncPullResponseDto
 import com.zyntasolutions.zyntapos.data.remote.dto.SyncResponseDto
+import com.zyntasolutions.zyntapos.data.remote.dto.LicenseActivateRequestDto
+import com.zyntasolutions.zyntapos.data.remote.dto.LicenseActivateResponseDto
+import com.zyntasolutions.zyntapos.data.remote.dto.LicenseHeartbeatRequestDto
+import com.zyntasolutions.zyntapos.data.remote.dto.LicenseHeartbeatResponseDto
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get

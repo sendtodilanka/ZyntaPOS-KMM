@@ -66,6 +66,7 @@ data class AdminLicenseStats(
 @Serializable
 data class AdminCreateLicenseRequest(
     val customerId: String,
+    val customerName: String? = null,
     val edition: String,
     val maxDevices: Int,
     val expiresAt: String? = null
@@ -77,7 +78,8 @@ data class AdminUpdateLicenseRequest(
     val maxDevices: Int? = null,
     val expiresAt: String? = null,
     val clearExpiry: Boolean? = null,
-    val status: String? = null
+    val status: String? = null,
+    val forceSync: Boolean? = null
 )
 
 @Serializable

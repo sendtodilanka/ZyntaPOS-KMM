@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { licenseClient } from '@/lib/api-client';
 import { toast } from '@/stores/ui-store';
 import type {
-  License, LicenseDevice, LicenseStats, LicenseFilter,
+  License, LicenseDevice, LicenseStats, LicenseFilter, LicenseWithDevices,
   CreateLicenseRequest, UpdateLicenseRequest,
 } from '@/types/license';
 import type { PagedResponse } from '@/types/api';
@@ -20,10 +20,11 @@ export function useLicenses(filters: LicenseFilter = {}) {
   });
 }
 
+/** Fetches a single license together with its registered devices. */
 export function useLicense(key: string) {
   return useQuery({
     queryKey: ['licenses', key],
-    queryFn: () => licenseClient.get(`admin/licenses/${key}`).json<License>(),
+    queryFn: () => licenseClient.get(`admin/licenses/${key}`).json<LicenseWithDevices>(),
     enabled: !!key,
   });
 }
@@ -89,8 +90,23 @@ export function useDeregisterDevice() {
       licenseClient.delete(`admin/licenses/${key}/devices/${deviceId}`).json(),
     onSuccess: (_, { key }) => {
       qc.invalidateQueries({ queryKey: ['licenses', key, 'devices'] });
+      qc.invalidateQueries({ queryKey: ['licenses', key] });
       toast.success('Device deregistered');
     },
     onError: () => toast.error('Failed to deregister device'),
+  });
+}
+
+/** Requests an immediate sync on the next heartbeat from this device. */
+export function useForceSyncLicense() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (key: string) =>
+      licenseClient.put(`admin/licenses/${key}`, { json: { forceSync: true } as UpdateLicenseRequest }).json<License>(),
+    onSuccess: (_, key) => {
+      qc.invalidateQueries({ queryKey: ['licenses', key] });
+      toast.success('Force sync requested', 'The device will perform a full sync on its next heartbeat.');
+    },
+    onError: () => toast.error('Failed to request force sync'),
   });
 }

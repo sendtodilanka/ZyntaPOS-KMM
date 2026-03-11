@@ -11,6 +11,9 @@ ZYNTA_API_BASE_URL=https://api.your-backend.com
 ZYNTA_API_CLIENT_ID=YOUR_CLIENT_ID_HERE
 ZYNTA_API_CLIENT_SECRET=YOUR_CLIENT_SECRET_HERE
 
+# ── License Service ──────────────────────────────────────────────────
+ZYNTA_LICENSE_BASE_URL=https://license.zyntapos.com
+
 # ── BuildConfig fields consumed by Secrets Gradle Plugin ────────────
 # These MUST have non-empty values or the generated Java will not compile.
 API_BASE_URL=https://localhost/api

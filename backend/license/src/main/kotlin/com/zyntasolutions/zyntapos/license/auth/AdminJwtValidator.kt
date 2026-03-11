@@ -28,6 +28,25 @@ class AdminJwtValidator(private val secret: String, private val issuer: String) 
         null
     }
 
+    /**
+     * Returns the admin user UUID and role if the token is valid, null otherwise.
+     * Role claim is optional; falls back to empty string when absent.
+     */
+    fun verifyWithRole(token: String): Pair<UUID, String>? = try {
+        val algorithm = Algorithm.HMAC256(secret)
+        val decoded = JWT.require(algorithm)
+            .withIssuer(issuer)
+            .withClaim("type", "admin_access")
+            .build()
+            .verify(token)
+        val adminId = UUID.fromString(decoded.subject)
+        val role = decoded.getClaim("role").asString() ?: ""
+        Pair(adminId, role)
+    } catch (e: Exception) {
+        logger.debug("Admin JWT verification failed: ${e.message}")
+        null
+    }
+
     companion object {
         fun fromEnvironment(): AdminJwtValidator {
             val secret = readSecret("ADMIN_JWT_SECRET_FILE")

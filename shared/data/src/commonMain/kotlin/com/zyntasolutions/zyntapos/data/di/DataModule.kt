@@ -105,6 +105,8 @@ import com.zyntasolutions.zyntapos.domain.repository.SystemRepository
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseRackRepository
 import com.zyntasolutions.zyntapos.domain.repository.RoleRepository
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseRepository
+import com.zyntasolutions.zyntapos.data.repository.LicenseRepositoryImpl
+import com.zyntasolutions.zyntapos.domain.repository.LicenseRepository
 import org.koin.dsl.module
 
 /**
@@ -466,4 +468,11 @@ val dataModule = module {
 
     // Stocktake sessions + per-product count entries for physical inventory counts
     single<StocktakeRepository> { StocktakeRepositoryImpl(db = get()) }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ── License Management ────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // License activation + heartbeat via license.zyntapos.com
+    single<LicenseRepository> { LicenseRepositoryImpl(db = get(), apiService = get()) }
 }
