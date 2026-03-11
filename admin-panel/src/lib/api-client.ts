@@ -37,7 +37,7 @@ const baseOptions: Options = {
           // Auth check and login endpoints manage their own 401 flow via the root
           // layout effect — skip hard redirect for those to avoid racing with the
           // soft navigation that __root.tsx performs after clearUser() resolves.
-          const isAuthEndpoint = /\/admin\/auth\/(me|login|mfa\/verify)/.test(request.url);
+          const isAuthEndpoint = /\/admin\/auth\/(me|login|logout|mfa\/verify)/.test(request.url);
           if (!isAuthEndpoint && !window.location.pathname.startsWith('/login')) {
             window.location.href = '/login';
           }
