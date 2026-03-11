@@ -4,8 +4,12 @@ name: Backend Security Scan
 #
 # Runs:
 #   • Weekly (Monday 01:00 UTC = 06:30 LKT) — scheduled sweep
-#   • On push to main/develop that touches backend/ files
 #   • On demand (workflow_dispatch)
+#
+# NOTE: push trigger intentionally removed — ci-gate.yml already builds and
+# pushes Docker images on every push to main, catching compilation errors.
+# Security CVE scanning on every push creates noise and redundant builds;
+# the weekly sweep is sufficient for vulnerability management.
 #
 # Results: uploaded as SARIF → GitHub Security → Code Scanning alerts
 # ─────────────────────────────────────────────────────────────────────────────
@@ -13,12 +17,6 @@ name: Backend Security Scan
 on:
   schedule:
     - cron: "0 1 * * 1"   # Monday 01:00 UTC
-  push:
-    branches: [main, develop]
-    paths:
-      - "backend/**"
-      - "docker-compose.yml"
-      - ".github/workflows/sec-backend-scan.yml"
   workflow_dispatch:
 
 permissions:
@@ -239,12 +237,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build Docker image (${{ matrix.service }})
-        run: |
-          docker build \
-            -f backend/${{ matrix.service }}/Dockerfile \
-            -t zyntapos-${{ matrix.service }}:scan \
-            backend/
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          file: backend/${{ matrix.service }}/Dockerfile
+          load: true
+          tags: zyntapos-${{ matrix.service }}:scan
+          cache-from: type=gha   # Reuse layers from ci-gate.yml build-backend-images
+          cache-to: type=gha,mode=max
 
       - name: Run Trivy vulnerability scan
         uses: aquasecurity/trivy-action@0.34.2
@@ -297,12 +301,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build Docker image (${{ matrix.service }})
-        run: |
-          docker build \
-            -f backend/${{ matrix.service }}/Dockerfile \
-            -t zyntapos-${{ matrix.service }}:scan \
-            backend/
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          file: backend/${{ matrix.service }}/Dockerfile
+          load: true
+          tags: zyntapos-${{ matrix.service }}:scan
+          cache-from: type=gha   # Reuse layers from Trivy build (same runner context via cache)
+          cache-to: type=gha,mode=max
 
       - name: Run Snyk container scan
         uses: snyk/actions/docker@master

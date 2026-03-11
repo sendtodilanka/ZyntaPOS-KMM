@@ -152,8 +152,9 @@ jobs:
   verify-deploy:
     name: "Step 6b: App Verification (deploy)"
     runs-on: ubuntu-latest
+    # Runs in parallel with verify-root — system checks (root) and app checks
+    # (deploy user) are independent and use different SSH credentials.
     if: github.event.inputs.confirm == 'step6'
-    needs: verify-root
 
     steps:
       - name: "Verify app-level config (as deploy user)"
