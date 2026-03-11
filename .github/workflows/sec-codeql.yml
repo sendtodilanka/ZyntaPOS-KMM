@@ -15,17 +15,27 @@ name: CodeQL — Kotlin/JVM Source Scanning
 #
 # Triggers:
 #   • Push to main / develop (catches merged code immediately)
+#   • Pull request to main — path-filtered to source code changes only.
+#     CodeQL is report-only (SARIF → Security tab; never blocks merge) but
+#     gives developers security visibility BEFORE merge, not just after.
+#     Path filter skips the scan on docs, CI config, and asset-only PRs
+#     so it doesn't add 60 min to every PR — only source-touching ones.
 #   • Weekly schedule — Wednesday 02:00 UTC (offset from OWASP Monday)
 #   • Manual dispatch
-#
-# NOTE: PR trigger intentionally removed — CodeQL takes 60 min per run and is
-# report-only (SARIF → Security tab). Push-to-main coverage is sufficient;
-# removing the PR trigger saves ~60 min × every PR opened.
 # ─────────────────────────────────────────────────────────────────────────────
 
 on:
   push:
     branches: [main, develop]
+  pull_request:
+    branches: [main]
+    paths:
+      - 'shared/**'
+      - 'composeApp/**'
+      - 'androidApp/**'
+      - 'backend/api/src/**'
+      - 'backend/license/src/**'
+      - 'backend/sync/src/**'
   schedule:
     - cron: "0 2 * * 3"   # Wednesday 02:00 UTC
   workflow_dispatch:
