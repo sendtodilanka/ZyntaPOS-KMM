@@ -69,10 +69,16 @@ class SyncValidator {
                 errors.add("Payload exceeds 1 MB limit")
             }
 
-            try {
-                json.parseToJsonElement(op.payload)
-            } catch (_: Exception) {
+            // Quick structural check before full parse: sync payloads must be JSON objects or arrays
+            val firstChar = op.payload.trimStart().firstOrNull()
+            if (firstChar != '{' && firstChar != '[') {
                 errors.add("Payload is not valid JSON")
+            } else {
+                try {
+                    json.parseToJsonElement(op.payload)
+                } catch (e: Exception) {
+                    errors.add("Payload is not valid JSON")
+                }
             }
 
             val now = System.currentTimeMillis()
