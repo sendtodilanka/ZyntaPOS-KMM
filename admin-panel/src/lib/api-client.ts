@@ -32,10 +32,13 @@ const baseOptions: Options = {
       },
     ],
     afterResponse: [
-      async (_request, _options, response) => {
+      async (request, _options, response) => {
         if (response.status === 401) {
-          // Token expired or missing — redirect to login (skip if already there)
-          if (!window.location.pathname.startsWith('/login')) {
+          // Auth check and login endpoints manage their own 401 flow via the root
+          // layout effect — skip hard redirect for those to avoid racing with the
+          // soft navigation that __root.tsx performs after clearUser() resolves.
+          const isAuthEndpoint = /\/admin\/auth\/(me|login|mfa\/verify)/.test(request.url);
+          if (!isAuthEndpoint && !window.location.pathname.startsWith('/login')) {
             window.location.href = '/login';
           }
         }
