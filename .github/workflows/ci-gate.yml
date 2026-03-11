@@ -57,6 +57,58 @@ jobs:
       timeout-minutes: 45
       artifact-suffix: '-ci-${{ github.run_id }}'
 
+  # ── Website: Build validation (runs only when website/** files changed) ─────
+  # ci-website.yml runs full Playwright + Lighthouse tests on website PRs, but
+  # it is NOT a required CI Gate check (separate workflow). This job closes the
+  # gap by catching website build failures inside the merge gate.
+  # Skipped on non-website changes to avoid adding 5+ min to every PR.
+  test-website:
+    name: "Website Build (validate)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: website
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2   # need HEAD~1 for changed-files diff
+
+      - name: Detect website file changes
+        id: changes
+        run: |
+          # Check if any website/** files changed in this PR or push
+          CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null | grep -c '^website/' || true)
+          echo "website_changed=${CHANGED}" >> "$GITHUB_OUTPUT"
+          echo "Website files changed: ${CHANGED}"
+
+      - name: Set up Node.js
+        if: steps.changes.outputs.website_changed != '0'
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: website/.nvmrc
+
+      - name: Install dependencies
+        if: steps.changes.outputs.website_changed != '0'
+        run: npm install
+
+      - name: npm audit (security)
+        if: steps.changes.outputs.website_changed != '0'
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+      - name: Build Astro site
+        if: steps.changes.outputs.website_changed != '0'
+        run: npx astro build
+        env:
+          SITE_URL: https://www.zyntapos.com
+
+      - name: Skip (no website changes)
+        if: steps.changes.outputs.website_changed == '0'
+        run: echo "No website/** files changed — skipping website build."
+
   # ── Backend: Compile + Unit Tests (PR + push-to-main) ──────────────────────
   # Validates that all three backend Gradle subprojects compile and pass unit
   # tests BEFORE they are merged. Without this, compilation errors only surface
@@ -181,6 +233,77 @@ jobs:
           path: admin-panel/coverage/
           retention-days: 7
           if-no-files-found: ignore
+
+  # ── Flyway Migration Validation ───────────────────────────────────────────
+  # Spins up a fresh PostgreSQL container and applies all Flyway migrations for
+  # api and license services. Catches SQL syntax errors and version conflicts
+  # BEFORE they reach production and cause a deploy-time outage.
+  # sync service has no Flyway migrations (Redis only).
+  validate-migrations:
+    name: "Validate DB Migrations (${{ matrix.service }})"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: api
+            db: zyntapos_api
+          - service: license
+            db: zyntapos_license
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: ${{ matrix.db }}
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Run Flyway migrations — ${{ matrix.service }}
+        uses: docker://flyway/flyway:10
+        with:
+          args: >-
+            -url=jdbc:postgresql://postgres:5432/${{ matrix.db }}
+            -user=ci
+            -password=ci
+            -locations=filesystem:/github/workspace/backend/${{ matrix.service }}/src/main/resources/db/migration
+            migrate
+
+  # ── Docker Compose Config Validation ─────────────────────────────────────
+  # Validates docker-compose.yml syntax before merge. Catches broken YAML,
+  # invalid service references, or misconfigured volumes without needing the VPS.
+  validate-compose:
+    name: "Validate docker-compose.yml"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate docker-compose.yml
+        run: docker compose config --quiet
+
+      - name: Validate docker-compose.admin.yml
+        run: |
+          if [ -f docker-compose.admin.yml ]; then
+            docker compose -f docker-compose.admin.yml config --quiet
+          fi
 
   # ── Test Result Reporting ──────────────────────────────────────────────────
   test-report:
@@ -345,7 +468,7 @@ jobs:
   # Only fires on push events (not PRs) and only when ALL builds succeed.
   trigger-deploy:
     name: "Trigger Deploy"
-    needs: [build-and-test, test-admin-panel, test-backend, build-backend-images, build-website-image, build-admin-panel-image]
+    needs: [build-and-test, test-website, test-admin-panel, test-backend, validate-migrations, validate-compose, build-backend-images, build-website-image, build-admin-panel-image]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 2

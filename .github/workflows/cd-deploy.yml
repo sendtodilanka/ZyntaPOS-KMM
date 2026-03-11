@@ -98,6 +98,10 @@ jobs:
             PREV_SHA=$(git rev-parse HEAD 2>/dev/null || echo "none")
             echo "=== Pre-deploy SHA: $PREV_SHA ==="
 
+            # Save pre-deploy SHA so smoke test rollback can restore exactly this
+            # commit (not HEAD~1, which is fragile when rapid deploys occur).
+            echo "$PREV_SHA" > /tmp/zyntapos-prev-sha
+
             git fetch origin
             git reset --hard "$DEPLOY_SHA"
 

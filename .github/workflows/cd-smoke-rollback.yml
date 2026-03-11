@@ -104,12 +104,29 @@ jobs:
                 -w "%{http_code}" -H "Host: ${sub}.zyntapos.com" \
                 "http://localhost/" 2>/dev/null) || HOME_HTTP="000"
 
-              # /ping → 200 "ok" is the canonical health signal.
-              # Caddy :80 only handles /ping; / → 404 is expected for API services
-              # (subdomain HTTPS vhosts only apply on port 443). Homepage 404 is fine.
+              # /ping → 200 "ok" is the canonical liveness signal.
+              # For api and license services, also verify /health → db: "ok" to
+              # confirm the database connection pool is healthy post-deploy.
+              HEALTH_DB=""
+              if [ "$sub" = "api" ] || [ "$sub" = "license" ]; then
+                HEALTH_BODY=$(curl -s --max-time "$CURL_TIMEOUT" \
+                  -H "Host: ${sub}.zyntapos.com" \
+                  "http://localhost/health" 2>/dev/null) || HEALTH_BODY=""
+                HEALTH_DB=$(echo "$HEALTH_BODY" | python3 -c \
+                  "import sys,json; d=json.load(sys.stdin); print(d.get('db','?'))" \
+                  2>/dev/null) || HEALTH_DB="?"
+              fi
+
               if [ "$PING_HTTP" = "200" ] && [ "$PING_BODY" = "ok" ]; then
-                echo "  ✅  ${sub}.zyntapos.com  /ping → ${PING_HTTP} (ok)  / → ${HOME_HTTP} (informational)"
-                echo "| \`${sub}.zyntapos.com\` | \`${PING_HTTP}\` | \`ok\` | \`${HOME_HTTP}\` | ✅ Healthy |" >> "$RESULTS_FILE"
+                if [ -n "$HEALTH_DB" ] && [ "$HEALTH_DB" != "ok" ]; then
+                  echo "  ❌  ${sub}.zyntapos.com  /ping ✅  /health db=${HEALTH_DB} ❌"
+                  echo "| \`${sub}.zyntapos.com\` | \`${PING_HTTP}\` | \`ok\` | \`${HOME_HTTP}\` | ❌ DB Degraded (db=${HEALTH_DB}) |" >> "$RESULTS_FILE"
+                  PASS=false
+                else
+                  DB_NOTE=""; [ -n "$HEALTH_DB" ] && DB_NOTE=" db=${HEALTH_DB}"
+                  echo "  ✅  ${sub}.zyntapos.com  /ping → ${PING_HTTP} (ok)  / → ${HOME_HTTP}${DB_NOTE}"
+                  echo "| \`${sub}.zyntapos.com\` | \`${PING_HTTP}\` | \`ok\` | \`${HOME_HTTP}\` | ✅ Healthy${DB_NOTE} |" >> "$RESULTS_FILE"
+                fi
               else
                 echo "  ❌  ${sub}.zyntapos.com  /ping → ${PING_HTTP}  / → ${HOME_HTTP}"
                 echo "| \`${sub}.zyntapos.com\` | \`${PING_HTTP}\` | \`${PING_BODY:-—}\` | \`${HOME_HTTP}\` | ❌ Degraded |" >> "$RESULTS_FILE"
@@ -183,10 +200,17 @@ jobs:
             CURRENT_SHA=$(git rev-parse HEAD)
             echo "=== ROLLBACK: smoke test failed for ${CURRENT_SHA} ==="
 
-            if git rev-parse HEAD~1 >/dev/null 2>&1; then
+            # Use the pre-deploy SHA saved by cd-deploy.yml (more reliable than HEAD~1
+            # which is fragile when rapid successive deploys occur).
+            SAVED_SHA=$(cat /tmp/zyntapos-prev-sha 2>/dev/null | tr -d '[:space:]') || SAVED_SHA=""
+
+            if [ -n "$SAVED_SHA" ] && [ "$SAVED_SHA" != "none" ] && git rev-parse "$SAVED_SHA" >/dev/null 2>&1; then
+              git reset --hard "$SAVED_SHA"
+              echo "=== Rolled back to pre-deploy SHA: ${SAVED_SHA} ==="
+            elif git rev-parse HEAD~1 >/dev/null 2>&1; then
               git reset --hard HEAD~1
               PREV_SHA=$(git rev-parse HEAD)
-              echo "=== Rolled back to ${PREV_SHA} ==="
+              echo "=== Rolled back to HEAD~1: ${PREV_SHA} (pre-deploy SHA file not available) ==="
             else
               echo "=== Cannot rollback — this appears to be the first deploy ==="
               echo "=== Manual intervention required ==="
