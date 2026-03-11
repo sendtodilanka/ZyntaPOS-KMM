@@ -20,7 +20,6 @@ import com.zyntasolutions.zyntapos.api.service.ForceSyncNotifier
 import com.zyntasolutions.zyntapos.api.service.GoogleOAuthService
 import com.zyntasolutions.zyntapos.api.service.MfaService
 import com.zyntasolutions.zyntapos.api.service.ProductService
-import com.zyntasolutions.zyntapos.api.service.SyncService
 import com.zyntasolutions.zyntapos.api.service.UserService
 import com.zyntasolutions.zyntapos.api.sync.DeltaEngine
 import com.zyntasolutions.zyntapos.api.sync.EntityApplier
@@ -77,7 +76,6 @@ val appModule = module {
     single { EmailService(get()) }
     single { DiagnosticSessionService(get()) }
     single { UserService() }
-    single { SyncService() }
     single { ProductService() }
     single { AdminAuthService(get(), get()) }
     single { AdminAuditService() }

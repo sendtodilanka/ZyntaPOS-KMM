@@ -83,11 +83,12 @@ class UserService {
                     }
             } else null
 
-            val baseQuery = AppUsers.selectAll().where { AppUsers.isActive eq true }
             val candidates = if (storeId != null) {
-                baseQuery.andWhere { AppUsers.storeId eq storeId }
+                AppUsers.selectAll()
+                    .where { (AppUsers.isActive eq true) and (AppUsers.storeId eq storeId) }
             } else {
-                baseQuery
+                AppUsers.selectAll()
+                    .where { AppUsers.isActive eq true }
             }.toList()
 
             // Match on email column (V9+) or fall back to username for legacy rows
