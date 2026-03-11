@@ -10,6 +10,7 @@ import com.zyntasolutions.zyntapos.domain.model.LicenseStatus
 import com.zyntasolutions.zyntapos.domain.repository.LicenseRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 
 /**
@@ -56,7 +57,7 @@ class LicenseRepositoryImpl(
                 customerId = "",   // Not returned by activate; populated from JWT claims at app layer
                 edition = Edition.valueOf(response.edition),
                 status = LicenseStatus.ACTIVE,
-                issuedAt = Instant.fromEpochMilliseconds(System.currentTimeMillis()),
+                issuedAt = Instant.fromEpochMilliseconds(Clock.System.now().toEpochMilliseconds()),
                 expiresAt = response.expiresAt?.let { Instant.fromEpochMilliseconds(it) },
                 gracePeriodEndsAt = gracePeriodEndsAt,
                 lastHeartbeatAt = null,
@@ -90,7 +91,7 @@ class LicenseRepositoryImpl(
                 )
             )
 
-            val existing = db.licenseStateQueries.getLicense().executeAsOneOrNull()
+            val existing = db.licenseQueries.getLicense().executeAsOneOrNull()
 
             val status = runCatching { LicenseStatus.valueOf(response.status) }
                 .getOrDefault(LicenseStatus.ACTIVE)
@@ -107,7 +108,7 @@ class LicenseRepositoryImpl(
                     ?: Edition.STARTER,
                 status = status,
                 issuedAt = existing?.issued_at?.let { Instant.fromEpochMilliseconds(it) }
-                    ?: Instant.fromEpochMilliseconds(System.currentTimeMillis()),
+                    ?: Instant.fromEpochMilliseconds(Clock.System.now().toEpochMilliseconds()),
                 expiresAt = response.expiresAt?.let { Instant.fromEpochMilliseconds(it) },
                 gracePeriodEndsAt = gracePeriodEndsAt,
                 lastHeartbeatAt = Instant.fromEpochMilliseconds(response.serverTimestamp),
@@ -120,7 +121,7 @@ class LicenseRepositoryImpl(
     }
 
     override suspend fun getLocalLicense(): License? = withContext(Dispatchers.IO) {
-        db.licenseStateQueries.getLicense().executeAsOneOrNull()?.let { row ->
+        db.licenseQueries.getLicense().executeAsOneOrNull()?.let { row ->
             License(
                 key = row.key_,
                 deviceId = row.device_id,
@@ -137,13 +138,13 @@ class LicenseRepositoryImpl(
     }
 
     override suspend fun clearLocalLicense() = withContext(Dispatchers.IO) {
-        db.licenseStateQueries.deleteLicense()
+        db.licenseQueries.deleteLicense()
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun persistLicense(license: License) {
-        db.licenseStateQueries.upsertLicense(
+        db.licenseQueries.upsertLicense(
             key_ = license.key,
             device_id = license.deviceId,
             customer_id = license.customerId,

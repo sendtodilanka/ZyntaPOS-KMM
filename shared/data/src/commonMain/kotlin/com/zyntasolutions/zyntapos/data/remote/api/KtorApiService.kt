@@ -106,6 +106,26 @@ class KtorApiService(
             client.get("$baseUrl/.well-known/public-key")
         }
 
+    // ── License ───────────────────────────────────────────────────────────────
+
+    private val licenseBaseUrl: String = AppConfig.LICENSE_BASE_URL
+
+    override suspend fun activateLicense(request: LicenseActivateRequestDto): LicenseActivateResponseDto =
+        safeRequest {
+            client.post("$licenseBaseUrl/v1/license/activate") {
+                contentType(ContentType.Application.Json)
+                setBody(request)
+            }
+        }
+
+    override suspend fun licenseHeartbeat(request: LicenseHeartbeatRequestDto): LicenseHeartbeatResponseDto =
+        safeRequest {
+            client.post("$licenseBaseUrl/v1/license/heartbeat") {
+                contentType(ContentType.Application.Json)
+                setBody(request)
+            }
+        }
+
     // ─────────────────────────────────────────────────────────────────────────
     // ── Private helpers ───────────────────────────────────────────────────────
     // ─────────────────────────────────────────────────────────────────────────
