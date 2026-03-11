@@ -57,7 +57,6 @@ class ProductService {
                 .map { row ->
                     ProductDto(
                         id          = row[Products.id],
-                        storeId     = row[Products.storeId],
                         name        = row[Products.name],
                         sku         = row[Products.sku],
                         barcode     = row[Products.barcode],
@@ -67,12 +66,11 @@ class ProductService {
                         categoryId  = row[Products.categoryId],
                         unitId      = row[Products.unitId],
                         taxGroupId  = row[Products.taxGroupId],
-                        minStockQty = row[Products.minStockQty]?.toDouble(),
+                        minStockQty = row[Products.minStockQty]?.toDouble() ?: 0.0,
                         imageUrl    = row[Products.imageUrl],
                         description = row[Products.description],
                         isActive    = row[Products.isActive],
-                        syncVersion = row[Products.syncVersion],
-                        createdAt   = row[Products.createdAt]?.toInstant()?.toEpochMilli(),
+                        createdAt   = row[Products.createdAt]?.toInstant()?.toEpochMilli() ?: 0L,
                         updatedAt   = row[Products.updatedAt].toInstant().toEpochMilli(),
                         syncStatus  = "SYNCED",
                     )
