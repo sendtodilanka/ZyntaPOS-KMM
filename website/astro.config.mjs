@@ -4,8 +4,13 @@ import tailwindcss from '@tailwindcss/vite';
 import icon from 'astro-icon';
 
 export default defineConfig({
+  output: 'static',
   site: 'https://www.zyntapos.com',
   trailingSlash: 'never',
+  compressHTML: true,
+  build: {
+    format: 'file',
+  },
   integrations: [
     sitemap({
       filter: (page) => !page.includes('/404'),
