@@ -46,7 +46,7 @@ class DeltaEngine(
 
         val hasMore    = rows.size > effectiveLimit
         val page       = if (hasMore) rows.dropLast(1) else rows
-        val newCursor  = page.lastOrNull()?.vectorClock ?: since // vectorClock = server_seq in repo
+        val newCursor  = page.lastOrNull()?.serverSeq ?: since
 
         // Persist cursor so admin panel can show "last pull" per device
         cursorRepo.upsert(storeId, deviceId, newCursor)
@@ -55,6 +55,7 @@ class DeltaEngine(
 
         return PullResponse(
             operations        = page,
+            serverTimestamp   = System.currentTimeMillis(),
             serverVectorClock = newCursor,
             hasMore           = hasMore,
         )

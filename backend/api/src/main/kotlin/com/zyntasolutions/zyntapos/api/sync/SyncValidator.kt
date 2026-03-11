@@ -14,7 +14,7 @@ class SyncValidator {
     companion object {
         const val MAX_BATCH_SIZE = 50
         const val MAX_PAYLOAD_BYTES = 1_048_576 // 1 MB per operation
-        val VALID_OPERATIONS = setOf("INSERT", "UPDATE", "DELETE")
+        val VALID_OPERATIONS = setOf("INSERT", "CREATE", "UPDATE", "DELETE")
         val VALID_ENTITY_TYPES = setOf(
             "PRODUCT", "CATEGORY", "CUSTOMER", "ORDER", "ORDER_ITEM",
             "SUPPLIER", "TAX_GROUP", "STOCK", "STOCK_ADJUSTMENT",
@@ -76,8 +76,8 @@ class SyncValidator {
             }
 
             val now = System.currentTimeMillis()
-            if (op.clientTimestamp > now + 60_000) {
-                errors.add("clientTimestamp is in the future (clock skew > 60s)")
+            if (op.createdAt > now + 60_000) {
+                errors.add("created_at is in the future (clock skew > 60s)")
             }
 
             if (errors.isEmpty()) valid.add(op)

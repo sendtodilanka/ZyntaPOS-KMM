@@ -29,9 +29,9 @@ class SyncOperationRepository {
                 it[SyncOperations.entityId]        = op.entityId
                 it[SyncOperations.operation]       = op.operation
                 it[SyncOperations.payload]         = op.payload
-                it[SyncOperations.clientTimestamp] = op.clientTimestamp
+                it[SyncOperations.clientTimestamp] = op.createdAt
                 it[SyncOperations.serverTimestamp] = OffsetDateTime.now(ZoneOffset.UTC)
-                it[SyncOperations.vectorClock]     = op.vectorClock
+                it[SyncOperations.vectorClock]     = op.retryCount.toLong()
                 it[SyncOperations.status]          = status
             }[SyncOperations.serverSeq]
         }
@@ -51,9 +51,9 @@ class SyncOperationRepository {
             it[SyncOperations.entityId]        = op.entityId
             it[SyncOperations.operation]       = op.operation
             it[SyncOperations.payload]         = resolvedPayload
-            it[SyncOperations.clientTimestamp] = op.clientTimestamp
+            it[SyncOperations.clientTimestamp] = op.createdAt
             it[SyncOperations.serverTimestamp] = OffsetDateTime.now(ZoneOffset.UTC)
-            it[SyncOperations.vectorClock]     = op.vectorClock
+            it[SyncOperations.vectorClock]     = op.retryCount.toLong()
             it[SyncOperations.status]          = "CONFLICT_RESOLVED"
             it[SyncOperations.conflictId]      = conflictId
         }[SyncOperations.serverSeq]
@@ -91,6 +91,44 @@ class SyncOperationRepository {
                 }
         }
 
+    /**
+     * Batch version of [findLatestForEntity] — resolves all entity refs in a single
+     * WHERE (entity_type, entity_id) IN (...) query, avoiding the N+1 pattern.
+     *
+     * Returns a map keyed by Pair(entityType, entityId) → most recent snapshot.
+     */
+    suspend fun findLatestForEntities(
+        storeId: String,
+        entityRefs: List<Pair<String, String>>,
+    ): Map<Pair<String, String>, SyncOperationSnapshot> = newSuspendedTransaction {
+        if (entityRefs.isEmpty()) return@newSuspendedTransaction emptyMap()
+
+        // Fetch all matching rows, then pick the latest serverSeq per (entityType, entityId)
+        SyncOperations.selectAll()
+            .where {
+                (SyncOperations.storeId eq storeId) and
+                (SyncOperations.status neq "REJECTED") and
+                (SyncOperations.entityType inList entityRefs.map { it.first }) and
+                (SyncOperations.entityId inList entityRefs.map { it.second })
+            }
+            .orderBy(SyncOperations.serverSeq, SortOrder.DESC)
+            .mapNotNull { row ->
+                val key = row[SyncOperations.entityType] to row[SyncOperations.entityId]
+                if (key in entityRefs) {
+                    key to SyncOperationSnapshot(
+                        opId            = row[SyncOperations.id],
+                        deviceId        = row[SyncOperations.deviceId],
+                        clientTimestamp = row[SyncOperations.clientTimestamp],
+                        payload         = row[SyncOperations.payload],
+                        serverSeq       = row[SyncOperations.serverSeq],
+                        status          = row[SyncOperations.status],
+                    )
+                } else null
+            }
+            .distinctBy { it.first }   // keep only the first (highest serverSeq) per key
+            .toMap()
+    }
+
     suspend fun findAfterSeq(storeId: String, afterSeq: Long, limit: Int): List<SyncOperation> =
         newSuspendedTransaction {
             SyncOperations.selectAll()
@@ -103,13 +141,14 @@ class SyncOperationRepository {
                 .limit(limit)
                 .map { row ->
                     SyncOperation(
-                        id              = row[SyncOperations.id],
-                        entityType      = row[SyncOperations.entityType],
-                        entityId        = row[SyncOperations.entityId],
-                        operation       = row[SyncOperations.operation],
-                        payload         = row[SyncOperations.payload],
-                        vectorClock     = row[SyncOperations.serverSeq], // use server_seq as cursor
-                        clientTimestamp = row[SyncOperations.clientTimestamp],
+                        id        = row[SyncOperations.id],
+                        entityType = row[SyncOperations.entityType],
+                        entityId  = row[SyncOperations.entityId],
+                        operation = row[SyncOperations.operation],
+                        payload   = row[SyncOperations.payload],
+                        createdAt = row[SyncOperations.clientTimestamp],
+                        retryCount = row[SyncOperations.vectorClock].toInt(),
+                        serverSeq = row[SyncOperations.serverSeq],
                     )
                 }
         }

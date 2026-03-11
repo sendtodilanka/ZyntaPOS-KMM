@@ -15,13 +15,20 @@ class SyncValidatorTest {
         entityId: String = "entity-1",
         operation: String = "INSERT",
         payload: String = """{"name":"Test"}""",
-        clientTimestamp: Long = System.currentTimeMillis() - 1000,
-        vectorClock: Long = 0L,
-    ) = SyncOperation(id, entityType, entityId, operation, payload, vectorClock, clientTimestamp)
+        createdAt: Long = System.currentTimeMillis() - 1000,
+        retryCount: Int = 0,
+    ) = SyncOperation(id, entityType, entityId, operation, payload, createdAt, retryCount)
 
     @Test
     fun `valid single operation passes`() {
         val result = validator.validateBatch(listOf(op()))
+        assertEquals(1, result.valid.size)
+        assertTrue(result.invalid.isEmpty())
+    }
+
+    @Test
+    fun `CREATE operation type is valid`() {
+        val result = validator.validateBatch(listOf(op(operation = "CREATE")))
         assertEquals(1, result.valid.size)
         assertTrue(result.invalid.isEmpty())
     }
@@ -59,7 +66,7 @@ class SyncValidatorTest {
     @Test
     fun `future timestamp is rejected`() {
         val future = System.currentTimeMillis() + 120_000
-        val result = validator.validateBatch(listOf(op(clientTimestamp = future)))
+        val result = validator.validateBatch(listOf(op(createdAt = future)))
         assertEquals(1, result.invalid.size)
         assertTrue(result.invalid.first().reason.contains("future"))
     }

@@ -38,13 +38,13 @@ class ServerConflictResolver(
         incomingDeviceId: String,
     ): ConflictResolution {
         val incomingWins = when {
-            incoming.clientTimestamp > existing.clientTimestamp -> true
-            incoming.clientTimestamp < existing.clientTimestamp -> false
+            incoming.createdAt > existing.clientTimestamp -> true
+            incoming.createdAt < existing.clientTimestamp -> false
             else -> incomingDeviceId > existing.deviceId
         }
 
         val strategy = when {
-            incoming.clientTimestamp != existing.clientTimestamp -> ResolutionStrategy.LWW_TIMESTAMP
+            incoming.createdAt != existing.clientTimestamp -> ResolutionStrategy.LWW_TIMESTAMP
             else -> ResolutionStrategy.DEVICE_ID_TIEBREAK
         }
 
@@ -67,7 +67,7 @@ class ServerConflictResolver(
             serverOpId       = existing.opId,
             localDeviceId    = incomingDeviceId,
             serverDeviceId   = existing.deviceId,
-            localTimestamp   = incoming.clientTimestamp,
+            localTimestamp   = incoming.createdAt,
             serverTs         = existing.clientTimestamp,
             resolution       = finalStrategy.name,
             localPayload     = incoming.payload,

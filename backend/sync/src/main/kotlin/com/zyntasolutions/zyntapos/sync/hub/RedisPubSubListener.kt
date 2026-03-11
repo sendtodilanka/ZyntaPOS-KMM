@@ -8,11 +8,17 @@ import io.lettuce.core.pubsub.RedisPubSubListener
 import io.lettuce.core.pubsub.StatefulRedisPubSubConnection
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.slf4j.LoggerFactory
 
 private const val SYNC_DELTA_PATTERN = "sync:delta:*"
 private const val SYNC_COMMANDS_CHANNEL = "sync:commands"
 private const val SMALL_DELTA_THRESHOLD = 10
+private const val MAX_RECONNECT_ATTEMPTS = 8
+private val BACKOFF_MS = listOf(1_000L, 2_000L, 4_000L, 8_000L, 16_000L, 30_000L, 60_000L, 60_000L)
 
 /**
  * Subscribes to two Redis channels via pattern matching and broadcasts
@@ -20,8 +26,11 @@ private const val SMALL_DELTA_THRESHOLD = 10
  *
  * Channels:
  * - `sync:delta:{storeId}` — published by API service on every push batch
- * - `sync:commands`        — admin force-sync commands (already handled by
- *                            [ForceSyncSubscriber], kept here for consolidated routing)
+ * - `sync:commands`        — admin force-sync commands
+ *
+ * Connection failures are handled with exponential-backoff retry (C6). The
+ * service continues to serve WebSocket connections in degraded mode (no
+ * real-time push) while Redis is unavailable.
  */
 class RedisPubSubListener(
     private val redisUrl: String,
@@ -34,6 +43,28 @@ class RedisPubSubListener(
     private var connection: StatefulRedisPubSubConnection<String, String>? = null
 
     fun start() {
+        var attempt = 0
+        while (attempt < MAX_RECONNECT_ATTEMPTS) {
+            try {
+                connect()
+                return  // success — stop retrying
+            } catch (e: Exception) {
+                val delay = BACKOFF_MS.getOrElse(attempt) { 60_000L }
+                logger.warn(
+                    "RedisPubSubListener failed to connect (attempt ${attempt + 1}/$MAX_RECONNECT_ATTEMPTS): " +
+                    "${e.message}. Retrying in ${delay}ms …"
+                )
+                Thread.sleep(delay)
+                attempt++
+            }
+        }
+        logger.error(
+            "RedisPubSubListener gave up after $MAX_RECONNECT_ATTEMPTS attempts. " +
+            "Real-time sync push is disabled — WebSocket clients will poll on reconnect."
+        )
+    }
+
+    private fun connect() {
         connection = client.connectPubSub()
         connection?.addListener(object : RedisPubSubListener<String, String> {
             override fun message(channel: String, message: String) = handleDirect(channel, message)
@@ -86,8 +117,8 @@ class RedisPubSubListener(
         if (channel != SYNC_COMMANDS_CHANNEL) return
         try {
             val parsed = json.parseToJsonElement(message)
-            val type    = parsed.jsonObject["type"]?.jsonPrimitive?.content
-            val storeId = parsed.jsonObject["storeId"]?.jsonPrimitive?.content
+            val type    = (parsed.jsonObject["type"] as? JsonPrimitive)?.content
+            val storeId = (parsed.jsonObject["storeId"] as? JsonPrimitive)?.content
             if (type == "force_sync" && storeId != null) {
                 hub.broadcast(storeId, message)
             }
@@ -101,10 +132,4 @@ class RedisPubSubListener(
         try { client.shutdown() } catch (_: Exception) {}
         logger.info("RedisPubSubListener stopped")
     }
-
-    // JSON element helpers (avoid importing full serialization for this inline parse)
-    private val kotlinx.serialization.json.JsonElement.jsonObject
-        get() = (this as kotlinx.serialization.json.JsonObject)
-    private val kotlinx.serialization.json.JsonElement.jsonPrimitive
-        get() = (this as kotlinx.serialization.json.JsonPrimitive)
 }

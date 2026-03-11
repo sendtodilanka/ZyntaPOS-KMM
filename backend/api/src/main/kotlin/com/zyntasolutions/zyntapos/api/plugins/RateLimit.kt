@@ -2,10 +2,11 @@ package com.zyntasolutions.zyntapos.api.plugins
 
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
 import io.ktor.server.plugins.ratelimit.RateLimit
 import io.ktor.server.plugins.ratelimit.RateLimitName
 import kotlin.time.Duration.Companion.minutes
-import kotlin.time.Duration.Companion.seconds
 
 /**
  * Rate limiting (TODO-009 Level 2).
@@ -32,6 +33,17 @@ fun Application.configureRateLimit() {
         // Sync/push endpoints: 60 requests / 1 minute per IP (write-heavy ops throttled)
         register(RateLimitName("sync")) {
             rateLimiter(limit = 60, refillPeriod = 1.minutes)
+        }
+
+        // Sync/push per device: 60 requests / 1 minute per authenticated deviceId (B3).
+        // Prevents NAT environments from sharing a single IP quota across many terminals.
+        register(RateLimitName("sync-device")) {
+            rateLimiter(limit = 60, refillPeriod = 1.minutes)
+            requestKey { call ->
+                call.principal<JWTPrincipal>()
+                    ?.payload?.getClaim("deviceId")?.asString()
+                    ?: call.request.local.remoteAddress
+            }
         }
     }
 }

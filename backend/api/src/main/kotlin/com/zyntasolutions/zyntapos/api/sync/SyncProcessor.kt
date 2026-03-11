@@ -8,6 +8,7 @@ import com.zyntasolutions.zyntapos.api.repository.SyncOperationRepository
 import io.lettuce.core.api.StatefulRedisConnection
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.slf4j.LoggerFactory
 
 /**
@@ -16,10 +17,9 @@ import org.slf4j.LoggerFactory
  * Pipeline per batch:
  * 1. Validate all operations (schema, entity types, payload)
  * 2. Deduplicate already-processed operation IDs (idempotent retry safety)
- * 3. For each new op: detect conflict → resolve (LWW) → persist
- * 4. Apply to normalized entity tables via [EntityApplier]
- * 5. Publish change notification to Redis for WebSocket fan-out
- * 6. Return [PushResponse] with accepted/rejected/conflict counts
+ * 3. For each new op: detect conflict → resolve (LWW) → persist + apply in a single transaction
+ * 4. Publish change notification to Redis for WebSocket fan-out
+ * 5. Return [PushResponse] with accepted/rejected/conflict ID lists
  */
 class SyncProcessor(
     private val syncOpRepo: SyncOperationRepository,
@@ -67,40 +67,45 @@ class SyncProcessor(
         val alreadyAccepted = validOps.filter { it.id in existingIds }.map { it.id }
         val newOps = validOps.filter { it.id !in existingIds }
 
-        // Step 3: Process each new operation
+        // Step 3: Process each new operation — insert + apply in single transaction (B5)
         val accepted   = mutableListOf<String>()
         val conflicts  = mutableListOf<String>()
 
         for (op in newOps) {
             try {
-                val latestSnapshot = syncOpRepo.findLatestForEntity(storeId, op.entityType, op.entityId)
+                newSuspendedTransaction {
+                    val latestSnapshot = syncOpRepo.findLatestForEntity(storeId, op.entityType, op.entityId)
 
-                if (latestSnapshot != null && latestSnapshot.deviceId != request.deviceId) {
-                    val existingIsNewer = latestSnapshot.clientTimestamp > op.clientTimestamp ||
-                        (latestSnapshot.clientTimestamp == op.clientTimestamp &&
-                         latestSnapshot.deviceId > request.deviceId)
+                    if (latestSnapshot != null && latestSnapshot.deviceId != request.deviceId) {
+                        val existingIsNewer = latestSnapshot.clientTimestamp > op.createdAt ||
+                            (latestSnapshot.clientTimestamp == op.createdAt &&
+                             latestSnapshot.deviceId > request.deviceId)
 
-                    if (existingIsNewer) {
-                        // Conflict: existing server state wins or needs field merge
-                        val resolution = conflictResolver.resolve(storeId, op, latestSnapshot, request.deviceId)
-                        syncOpRepo.insertWithConflict(
-                            storeId         = storeId,
-                            deviceId        = request.deviceId,
-                            op              = op,
-                            conflictId      = resolution.conflictId,
-                            resolvedPayload = resolution.winnerPayload,
-                        )
-                        conflicts.add(op.id)
-                        metrics.conflictsTotal.incrementAndGet()
+                        if (existingIsNewer) {
+                            // Conflict: existing server state wins or needs field merge
+                            val resolution = conflictResolver.resolve(storeId, op, latestSnapshot, request.deviceId)
+                            syncOpRepo.insertWithConflict(
+                                storeId         = storeId,
+                                deviceId        = request.deviceId,
+                                op              = op,
+                                conflictId      = resolution.conflictId,
+                                resolvedPayload = resolution.winnerPayload,
+                            )
+                            entityApplier.applyInTransaction(storeId, op)
+                            conflicts.add(op.id)
+                            metrics.conflictsTotal.incrementAndGet()
+                        } else {
+                            // Incoming wins over existing — accept normally
+                            syncOpRepo.insert(storeId, request.deviceId, op)
+                            entityApplier.applyInTransaction(storeId, op)
+                            accepted.add(op.id)
+                        }
                     } else {
-                        // Incoming wins over existing — accept normally
+                        // No conflict — accept directly
                         syncOpRepo.insert(storeId, request.deviceId, op)
+                        entityApplier.applyInTransaction(storeId, op)
                         accepted.add(op.id)
                     }
-                } else {
-                    // No conflict — accept directly
-                    syncOpRepo.insert(storeId, request.deviceId, op)
-                    accepted.add(op.id)
                 }
             } catch (e: Exception) {
                 logger.warn("Failed to process op ${op.id}: ${e.message}")
@@ -109,17 +114,7 @@ class SyncProcessor(
             }
         }
 
-        // Step 4: Apply accepted ops to normalized entity tables
-        val opsToApply = newOps.filter { it.id in accepted }
-        if (opsToApply.isNotEmpty()) {
-            try {
-                entityApplier.applyBatch(storeId, opsToApply)
-            } catch (e: Exception) {
-                logger.warn("EntityApplier batch failed for store $storeId: ${e.message}")
-            }
-        }
-
-        // Step 5: Publish to Redis for WebSocket fan-out
+        // Step 4: Publish to Redis for WebSocket fan-out
         val latestSeq = syncOpRepo.getLatestSeq(storeId)
         publishToRedis(storeId, request.deviceId, accepted.size + conflicts.size, latestSeq)
 
@@ -134,10 +129,11 @@ class SyncProcessor(
         )
 
         return PushResponse(
-            accepted          = accepted.size + alreadyAccepted.size,
-            rejected          = rejected.size,
-            conflicts         = conflicts,
-            serverVectorClock = latestSeq,
+            accepted        = accepted + alreadyAccepted,
+            rejected        = rejected,
+            conflicts       = conflicts,
+            deltaOperations = emptyList(),
+            serverTimestamp = latestSeq,
         )
     }
 
