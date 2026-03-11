@@ -4,7 +4,7 @@
 -- ── Diagnostic sessions ───────────────────────────────────────────────────────
 CREATE TABLE diagnostic_sessions (
     id                  UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-    store_id            UUID        NOT NULL REFERENCES stores(id),
+    store_id            TEXT        NOT NULL REFERENCES stores(id),
     technician_id       UUID        NOT NULL REFERENCES admin_users(id),
     requested_by        UUID        NOT NULL REFERENCES admin_users(id),
     token_hash          VARCHAR(64) NOT NULL UNIQUE,

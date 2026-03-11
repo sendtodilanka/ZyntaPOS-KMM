@@ -48,7 +48,13 @@ class AdminAuthServiceTest {
                 adminRefreshTokenTtlDays = 7L,
                 googleClientId         = "",
                 googleClientSecret     = "",
-                googleRedirectUri      = ""
+                googleRedirectUri      = "",
+                googleAllowedDomain    = "",
+                adminPanelUrl          = "https://panel.test.local",
+                redisUrl               = "redis://localhost:6379",
+                resendApiKey           = "",
+                emailFromAddress       = "test@test.local",
+                emailFromName          = "Test",
             )
         }
 

@@ -129,7 +129,7 @@ class SyncOperationRepository {
             .toMap()
     }
 
-    suspend fun findAfterSeq(storeId: String, afterSeq: Long, limit: Int): List<SyncOperation> =
+    open suspend fun findAfterSeq(storeId: String, afterSeq: Long, limit: Int): List<SyncOperation> =
         newSuspendedTransaction {
             SyncOperations.selectAll()
                 .where {
@@ -153,7 +153,7 @@ class SyncOperationRepository {
                 }
         }
 
-    suspend fun getLatestSeq(storeId: String): Long = newSuspendedTransaction {
+    open suspend fun getLatestSeq(storeId: String): Long = newSuspendedTransaction {
         SyncOperations.select(SyncOperations.serverSeq)
             .where { SyncOperations.storeId eq storeId }
             .orderBy(SyncOperations.serverSeq, SortOrder.DESC)

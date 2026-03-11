@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.sync.hub
 
 import io.ktor.server.websocket.DefaultWebSocketServerSession
+import io.ktor.utils.io.InternalAPI
 import io.ktor.websocket.CloseReason
 import io.ktor.websocket.Frame
 import io.ktor.websocket.WebSocketExtension
@@ -15,6 +16,7 @@ import kotlin.test.assertEquals
  * Unit tests for WebSocketHub — verifies connection tracking state.
  * Broadcast I/O is not tested here (requires Ktor testApplication).
  */
+@OptIn(InternalAPI::class)
 class WebSocketHubTest {
 
     /** Minimal stub — hub stores references but never calls methods in these tests. */
@@ -24,11 +26,12 @@ class WebSocketHubTest {
             override val outgoing: SendChannel<Frame> get() = error("stub")
             override val extensions: List<WebSocketExtension<*>> get() = emptyList()
             override var maxFrameSize: Long = Long.MAX_VALUE
+            override var pingIntervalMillis: Long = 0L
             override val closeReason = CompletableDeferred<CloseReason?>()
             override suspend fun flush() {}
             override suspend fun send(frame: Frame) {}
             override val coroutineContext = EmptyCoroutineContext
-            override suspend fun start(negotiatedExtensions: List<WebSocketExtension<*>>) {}
+            override fun start(negotiatedExtensions: List<WebSocketExtension<*>>) {}
         }
 
     @Test

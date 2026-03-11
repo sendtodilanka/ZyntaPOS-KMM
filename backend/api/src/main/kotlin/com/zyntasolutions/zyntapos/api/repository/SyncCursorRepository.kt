@@ -7,7 +7,7 @@ import java.time.ZoneOffset
 
 class SyncCursorRepository {
 
-    suspend fun upsert(storeId: String, deviceId: String, lastSeq: Long) = newSuspendedTransaction {
+    open suspend fun upsert(storeId: String, deviceId: String, lastSeq: Long): Unit = newSuspendedTransaction {
         val now = OffsetDateTime.now(ZoneOffset.UTC)
         SyncCursors.upsert(SyncCursors.storeId, SyncCursors.deviceId) {
             it[SyncCursors.storeId]    = storeId
