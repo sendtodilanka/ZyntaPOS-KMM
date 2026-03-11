@@ -7,6 +7,7 @@ import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.core.utils.IdGenerator
 import com.zyntasolutions.zyntapos.data.local.SyncEnqueuer
 import com.zyntasolutions.zyntapos.data.local.mapper.OrderMapper
+import com.zyntasolutions.zyntapos.data.remote.dto.OrderDto
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
 import com.zyntasolutions.zyntapos.domain.model.CartItem
 import com.zyntasolutions.zyntapos.domain.model.Order
@@ -20,6 +21,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
 import kotlin.time.Clock
 import kotlinx.datetime.Instant
 
@@ -38,6 +40,57 @@ class OrderRepositoryImpl(
     private val q  get() = db.ordersQueries
     private val iq get() = db.ordersQueries
     private val pq get() = db.productsQueries
+
+    companion object {
+        private val syncJson = Json { ignoreUnknownKeys = true; isLenient = true }
+    }
+
+    // ── Sync (server-originated) ────────────────────────────────────────
+
+    /**
+     * Applies a server-authoritative order snapshot from a sync delta payload.
+     *
+     * Stock is NOT decremented — the server already adjusted stock levels.
+     * On insert: order header + all items are written in a single transaction.
+     * On update (order exists): header is refreshed; items are deleted + re-inserted
+     * to handle quantity/price changes from the server.
+     * Does NOT enqueue a [SyncOperation] — server data must not be re-pushed.
+     */
+    suspend fun upsertFromSync(payload: String) = withContext(Dispatchers.IO) {
+        val dto = syncJson.decodeFromString<OrderDto>(payload)
+        val sessionId = dto.registerSessionId.ifBlank { null }
+        val exists = q.getOrderById(dto.id).executeAsOneOrNull() != null
+        db.transaction {
+            if (exists) {
+                q.voidOrder(notes = dto.notes, updated_at = dto.updatedAt, id = dto.id)
+            } else {
+                q.insertOrder(
+                    id = dto.id, order_number = dto.orderNumber,
+                    type = dto.type, status = dto.status,
+                    customer_id = dto.customerId, cashier_id = dto.cashierId,
+                    store_id = dto.storeId, register_session_id = sessionId,
+                    subtotal = dto.subtotal, tax_amount = dto.taxAmount,
+                    discount_amount = dto.discountAmount, total = dto.total,
+                    payment_method = dto.paymentMethod,
+                    payment_splits_json = null,
+                    amount_tendered = dto.amountTendered, change_amount = dto.changeAmount,
+                    notes = dto.notes, reference = dto.reference,
+                    created_at = dto.createdAt, updated_at = dto.updatedAt,
+                    sync_status = "SYNCED",
+                )
+                dto.items.forEach { item ->
+                    iq.insertOrderItem(
+                        id = item.id, order_id = dto.id,
+                        product_id = item.productId, product_name = item.productName,
+                        unit_price = item.unitPrice, quantity = item.quantity,
+                        discount = item.discount, discount_type = item.discountType,
+                        tax_rate = item.taxRate, tax_amount = item.taxAmount,
+                        line_total = item.lineTotal,
+                    )
+                }
+            }
+        }
+    }
 
     // ── Read ─────────────────────────────────────────────────────────────────
 

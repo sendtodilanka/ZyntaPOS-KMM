@@ -1,5 +1,7 @@
 package com.zyntasolutions.zyntapos.api.plugins
 
+// CANARY:ZyntaPOS-api-auth-e5f6g7h8
+
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.zyntasolutions.zyntapos.api.config.AppConfig

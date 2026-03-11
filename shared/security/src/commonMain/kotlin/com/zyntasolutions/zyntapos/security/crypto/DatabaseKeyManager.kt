@@ -1,5 +1,7 @@
 package com.zyntasolutions.zyntapos.security.crypto
 
+// CANARY:ZyntaPOS-security-db-key-a1b2c3d4
+
 /**
  * Cross-platform secure storage for the SQLCipher database encryption key.
  *

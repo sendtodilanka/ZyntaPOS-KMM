@@ -1,7 +1,7 @@
 # 011 — Firebase Analytics, Crash Reporting & Google SSO Integration
 
 **Decision Date:** 2026-03-08
-**Status:** Decided — Pending Implementation
+**Status:** In Progress — Firebase BOM deps, google-services plugin, google-services.json placeholder, and ZyntaApplication init implemented (2026-03-11). AnalyticsService KMP expect/actual and ViewModel wiring pending.
 **Phases:** Phase 1 (partial) → Phase 2 → Phase 3
 
 ---

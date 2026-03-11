@@ -167,6 +167,10 @@ include(":composeApp:feature:multistore")
 // System health, audit log viewer, DB maintenance, backup management.
 include(":composeApp:feature:admin")
 
+// ── ComposeApp — Feature: Remote Diagnostics ─────────────────
+// JIT consent-based technician session management (ENTERPRISE tier, TODO-006).
+include(":composeApp:feature:diagnostic")
+
 // ── ComposeApp — Feature: Media ───────────────────────────────
 // Product image picker, crop, compression pipeline.
 include(":composeApp:feature:media")

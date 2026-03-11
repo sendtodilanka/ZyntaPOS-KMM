@@ -139,7 +139,7 @@ enum class AuditEventType {
     /** Tax rate or tax group configuration changed. */
     TAX_CONFIG_CHANGED,
 
-    // ── System (5) ────────────────────────────────────────────────────────────
+    // ── System (8) ────────────────────────────────────────────────────────────
     /** Application configuration or settings changed. */
     SETTINGS_CHANGED,
     /** Database backup successfully created. */
@@ -148,8 +148,14 @@ enum class AuditEventType {
     BACKUP_RESTORED,
     /** Data exported to CSV or PDF; payload includes data type and requester. */
     DATA_EXPORTED,
-    /** Technician diagnostic session started or ended. */
+    /** Technician diagnostic session created — awaiting store-side consent. */
     DIAGNOSTIC_SESSION,
+    /** Store operator accepted a remote diagnostic session request. */
+    DIAGNOSTIC_SESSION_CONSENT_GRANTED,
+    /** Remote diagnostic session revoked by admin or store operator before expiry. */
+    DIAGNOSTIC_SESSION_REVOKED,
+    /** Remote diagnostic session expired due to 15-minute TTL with no consent. */
+    DIAGNOSTIC_SESSION_EXPIRED,
 
     // ── Data (3) ──────────────────────────────────────────────────────────────
     /** Background sync cycle completed successfully. */

@@ -12,8 +12,8 @@
 # The tunnel exposes panel.zyntapos.com without opening any inbound ports.
 # Cloudflare Access (Zero Trust) protects the panel behind OTP auth.
 
-tunnel: <TUNNEL_ID>
-credentials-file: /etc/cloudflared/<TUNNEL_ID>.json
+tunnel: ${CF_TUNNEL_ID}
+credentials-file: /etc/cloudflared/${CF_TUNNEL_ID}.json
 
 ingress:
   # Admin panel — protected by CF Access

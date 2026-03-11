@@ -2,6 +2,13 @@ package com.zyntasolutions.zyntapos.data.sync
 
 import com.zyntasolutions.zyntapos.core.result.NetworkException
 import com.zyntasolutions.zyntapos.data.createTestDatabase
+import com.zyntasolutions.zyntapos.data.local.SyncEnqueuer
+import com.zyntasolutions.zyntapos.data.repository.CategoryRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.CustomerRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.OrderRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.ProductRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.StockRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.SupplierRepositoryImpl
 import com.zyntasolutions.zyntapos.domain.port.SecureStorageKeys
 import com.zyntasolutions.zyntapos.domain.port.SecureStoragePort
 import com.zyntasolutions.zyntapos.data.remote.api.ApiService
@@ -128,12 +135,21 @@ class SyncEngineIntegrationTest {
         prefs = InMemorySecurePreferences()
     }
 
-    private fun engine(api: ApiService) = SyncEngine(
-        db             = db,
-        api            = api,
-        prefs          = prefs,
-        networkMonitor = networkMonitor,
-    )
+    private fun engine(api: ApiService): SyncEngine {
+        val syncEnqueuer = SyncEnqueuer(db)
+        return SyncEngine(
+            db                 = db,
+            api                = api,
+            prefs              = prefs,
+            networkMonitor     = networkMonitor,
+            productRepository  = ProductRepositoryImpl(db, syncEnqueuer),
+            orderRepository    = OrderRepositoryImpl(db, syncEnqueuer),
+            customerRepository = CustomerRepositoryImpl(db, syncEnqueuer),
+            categoryRepository = CategoryRepositoryImpl(db, syncEnqueuer),
+            supplierRepository = SupplierRepositoryImpl(db, syncEnqueuer),
+            stockRepository    = StockRepositoryImpl(db, syncEnqueuer),
+        )
+    }
 
     private fun enqueue(id: String, entityType: String = "ORDER") {
         db.sync_queueQueries.enqueueOperation(

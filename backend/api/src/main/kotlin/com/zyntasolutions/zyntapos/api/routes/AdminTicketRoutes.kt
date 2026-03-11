@@ -5,6 +5,7 @@ import com.zyntasolutions.zyntapos.api.models.ErrorResponse
 import com.zyntasolutions.zyntapos.api.service.AdminAuthService
 import com.zyntasolutions.zyntapos.api.service.AdminAuditService
 import com.zyntasolutions.zyntapos.api.service.AdminTicketService
+import com.zyntasolutions.zyntapos.api.service.EmailService
 import com.zyntasolutions.zyntapos.api.service.AddCommentRequest
 import com.zyntasolutions.zyntapos.api.service.AssignTicketRequest
 import com.zyntasolutions.zyntapos.api.service.CreateTicketRequest
@@ -23,6 +24,7 @@ fun Route.adminTicketRoutes() {
     val ticketService: AdminTicketService by inject()
     val authService: AdminAuthService by inject()
     val auditService: AdminAuditService by inject()
+    val emailService: EmailService by inject()
 
     route("/admin/tickets") {
 
@@ -76,6 +78,10 @@ fun Route.adminTicketRoutes() {
             }
 
             val ticket = ticketService.createTicket(body, admin.id)
+
+            body.customerEmail?.takeIf { it.isNotBlank() }?.let {
+                emailService.sendTicketCreated(it, ticket.ticketNumber, ticket.title)
+            }
 
             auditService.log(
                 adminId    = admin.id,
@@ -172,6 +178,10 @@ fun Route.adminTicketRoutes() {
                 call.respond(HttpStatusCode.UnprocessableEntity, ErrorResponse("INVALID_STATE", e.message ?: ""))
                 return@post
             } ?: return@post call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Ticket not found"))
+
+            ticket.customerEmail?.takeIf { it.isNotBlank() }?.let {
+                emailService.sendTicketUpdated(it, ticket.ticketNumber, ticket.status)
+            }
 
             auditService.log(
                 adminId    = admin.id,

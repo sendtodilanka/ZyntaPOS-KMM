@@ -2,11 +2,11 @@
 
 **Phase:** 2 — Growth
 **Priority:** P2 (LOW)
-**Status:** Ready to implement
+**Status:** In Progress — OpenAPI spec created (`docs/api/openapi.yaml`); docs site deployment pending
 **Effort:** ~5 working days (1 week, 1 developer)
 **Related:** TODO-007 (infrastructure), TODO-007a (admin panel — consumes same APIs), TODO-007g (sync engine — documented here)
 **Owner:** Zynta Solutions Pvt Ltd
-**Last updated:** 2026-03-06
+**Last updated:** 2026-03-11
 
 ---
 
