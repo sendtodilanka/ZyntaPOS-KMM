@@ -543,7 +543,7 @@ class AdminAuthService(
 
         // Invalidate any existing unused tokens for this user
         PasswordResetTokens.deleteWhere {
-            (adminUserId eq user[AdminUsers.id]) and (usedAt.isNull())
+            (PasswordResetTokens.adminUserId eq user[AdminUsers.id]) and (PasswordResetTokens.usedAt.isNull())
         }
 
         val rawToken  = generateSecureToken()
