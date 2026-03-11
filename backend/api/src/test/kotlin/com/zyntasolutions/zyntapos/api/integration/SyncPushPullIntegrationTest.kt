@@ -26,7 +26,7 @@ class SyncPushPullIntegrationTest {
         operation: String = "INSERT",
         payload: String = """{"id":"entity-$id","name":"Product $id"}""",
         clientTimestamp: Long = System.currentTimeMillis() - 100,
-    ) = SyncOperation(id, entityType, entityId, operation, payload, 0L, clientTimestamp)
+    ) = SyncOperation(id, entityType, entityId, operation, payload, clientTimestamp)
 
     @Test
     fun `valid push batch of 50 ops all accepted`() {
