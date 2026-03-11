@@ -19,7 +19,7 @@ class DeadLetterRepository {
                 it[SyncDeadLetters.entityId]        = op.entityId
                 it[SyncDeadLetters.operation]       = op.operation
                 it[SyncDeadLetters.payload]         = op.payload
-                it[SyncDeadLetters.clientTimestamp] = op.clientTimestamp
+                it[SyncDeadLetters.clientTimestamp] = op.createdAt
                 it[SyncDeadLetters.errorReason]     = reason
                 it[SyncDeadLetters.retryCount]      = 0
                 it[SyncDeadLetters.createdAt]       = OffsetDateTime.now(ZoneOffset.UTC)
