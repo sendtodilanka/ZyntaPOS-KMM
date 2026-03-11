@@ -4,6 +4,8 @@ import com.zyntasolutions.zyntapos.api.plugins.withCsrfProtection
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import io.ktor.serialization.kotlinx.json.*
+import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.testing.*
@@ -28,6 +30,7 @@ class CsrfPluginTest {
      * The block receives [ApplicationTestBuilder] as receiver, giving access to [client].
      */
     private fun withCsrfTestApp(block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {
+        install(ContentNegotiation) { json() }
         routing {
             withCsrfProtection {
                 get("/test") {

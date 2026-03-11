@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.sync.hub
 
+import io.ktor.server.application.ApplicationCall
 import io.ktor.server.websocket.DefaultWebSocketServerSession
 import io.ktor.utils.io.InternalAPI
 import io.ktor.websocket.CloseReason
@@ -28,6 +29,8 @@ class WebSocketHubTest {
             override var maxFrameSize: Long = Long.MAX_VALUE
             override var pingIntervalMillis: Long = 0L
             override var timeoutMillis: Long = 0L
+            override var masking: Boolean = false
+            override val call: ApplicationCall get() = error("stub")
             override val closeReason = CompletableDeferred<CloseReason?>()
             override suspend fun flush() {}
             override suspend fun send(frame: Frame) {}
