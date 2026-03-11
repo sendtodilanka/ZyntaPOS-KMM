@@ -1,6 +1,9 @@
 package com.zyntasolutions.zyntapos.security.auth
 
+import com.zyntasolutions.zyntapos.core.result.AuthException
+import com.zyntasolutions.zyntapos.core.result.AuthFailureReason
 import com.zyntasolutions.zyntapos.core.result.Result
+import com.zyntasolutions.zyntapos.core.result.ValidationException
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -54,13 +57,18 @@ class DiagnosticTokenValidator {
 
             if (isExpired(claims)) {
                 return Result.Error(
-                    IllegalStateException("Diagnostic token has expired (exp=${claims.exp})")
+                    AuthException(
+                        message = "Diagnostic token has expired (exp=${claims.exp})",
+                        reason = AuthFailureReason.SESSION_EXPIRED,
+                    )
                 )
             }
             claims
         }.fold(
             onSuccess = { Result.Success(it) },
-            onFailure = { Result.Error(it) },
+            onFailure = { cause ->
+                Result.Error(ValidationException(message = cause.message ?: "Invalid diagnostic token", cause = cause))
+            },
         )
     }
 
