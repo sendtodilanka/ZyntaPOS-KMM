@@ -2,6 +2,9 @@ package com.zyntasolutions.zyntapos.common
 
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
 
 /** Returns the string value for [key], or null if absent or JSON null. */
