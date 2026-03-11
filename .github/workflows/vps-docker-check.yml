@@ -1,0 +1,17 @@
+name: VPS Docker Health Check
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.VPS_USER_KEY }}
+          script: |
+            cd /opt/zyntapos
+            docker compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Health}}"
