@@ -27,11 +27,13 @@ class WebSocketHubTest {
             override val extensions: List<WebSocketExtension<*>> get() = emptyList()
             override var maxFrameSize: Long = Long.MAX_VALUE
             override var pingIntervalMillis: Long = 0L
+            override var timeoutMillis: Long = 0L
             override val closeReason = CompletableDeferred<CloseReason?>()
             override suspend fun flush() {}
             override suspend fun send(frame: Frame) {}
             override val coroutineContext = EmptyCoroutineContext
             override fun start(negotiatedExtensions: List<WebSocketExtension<*>>) {}
+            override fun terminate() {}
         }
 
     @Test

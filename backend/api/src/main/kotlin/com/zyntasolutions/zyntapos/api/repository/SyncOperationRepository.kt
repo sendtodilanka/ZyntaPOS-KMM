@@ -17,7 +17,7 @@ data class SyncOperationSnapshot(
     val status: String,
 )
 
-class SyncOperationRepository {
+open class SyncOperationRepository {
 
     suspend fun insert(storeId: String, deviceId: String, op: SyncOperation, status: String = "ACCEPTED"): Long =
         newSuspendedTransaction {

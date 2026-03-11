@@ -25,6 +25,6 @@ CREATE INDEX idx_ds_expiry ON diagnostic_sessions(expires_at)
     WHERE status = 'PENDING_CONSENT';
 
 -- ── Seed REMOTE_DIAGNOSTICS feature flag ──────────────────────────────────────
-INSERT INTO feature_flags (key, enabled, edition, updated_at)
-VALUES ('REMOTE_DIAGNOSTICS', false, 'ENTERPRISE', EXTRACT(EPOCH FROM NOW())::BIGINT * 1000)
+INSERT INTO feature_flags (key, name, description, enabled, category, editions_available)
+VALUES ('REMOTE_DIAGNOSTICS', 'Remote Diagnostics', 'Remote technician diagnostic access sessions', false, 'support', '{"ENTERPRISE"}')
 ON CONFLICT (key) DO NOTHING;
