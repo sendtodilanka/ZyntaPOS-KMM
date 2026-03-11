@@ -9,6 +9,10 @@ import com.zyntasolutions.zyntapos.data.remote.dto.AuthRefreshResponseDto
 import com.zyntasolutions.zyntapos.data.remote.dto.AuthRequestDto
 import com.zyntasolutions.zyntapos.data.remote.dto.AuthResponseDto
 import com.zyntasolutions.zyntapos.data.remote.dto.ProductDto
+import com.zyntasolutions.zyntapos.data.remote.dto.LicenseActivateRequestDto
+import com.zyntasolutions.zyntapos.data.remote.dto.LicenseActivateResponseDto
+import com.zyntasolutions.zyntapos.data.remote.dto.LicenseHeartbeatRequestDto
+import com.zyntasolutions.zyntapos.data.remote.dto.LicenseHeartbeatResponseDto
 import com.zyntasolutions.zyntapos.data.remote.dto.PublicKeyResponseDto
 import com.zyntasolutions.zyntapos.data.remote.dto.SyncOperationDto
 import com.zyntasolutions.zyntapos.data.remote.dto.SyncPullResponseDto
@@ -86,6 +90,8 @@ private class FakeApiService(
     }
 
     override suspend fun fetchPublicKey(): PublicKeyResponseDto = error("Not used in sync tests")
+    override suspend fun activateLicense(request: LicenseActivateRequestDto): LicenseActivateResponseDto = error("Not used in sync tests")
+    override suspend fun licenseHeartbeat(request: LicenseHeartbeatRequestDto): LicenseHeartbeatResponseDto = error("Not used in sync tests")
 }
 
 /** [ApiService] that always throws [NetworkException] on any network call. */
@@ -98,6 +104,8 @@ private class OfflineApiService : ApiService {
     override suspend fun pullOperations(lastSyncTimestamp: Long): SyncPullResponseDto =
         throw NetworkException(message = "Simulated network failure", statusCode = null)
     override suspend fun fetchPublicKey(): PublicKeyResponseDto = error("unused")
+    override suspend fun activateLicense(request: LicenseActivateRequestDto): LicenseActivateResponseDto = error("unused")
+    override suspend fun licenseHeartbeat(request: LicenseHeartbeatRequestDto): LicenseHeartbeatResponseDto = error("unused")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
