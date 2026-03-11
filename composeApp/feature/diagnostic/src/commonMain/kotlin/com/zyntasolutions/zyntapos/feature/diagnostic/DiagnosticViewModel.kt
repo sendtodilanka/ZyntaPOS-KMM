@@ -1,12 +1,12 @@
 package com.zyntasolutions.zyntapos.feature.diagnostic
 
+import androidx.lifecycle.viewModelScope
 import com.zyntasolutions.zyntapos.core.result.onError
 import com.zyntasolutions.zyntapos.core.result.onSuccess
 import com.zyntasolutions.zyntapos.domain.model.DiagnosticSession
 import com.zyntasolutions.zyntapos.security.auth.DiagnosticTokenValidator
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlinx.coroutines.launch
-import kotlin.time.Clock
 
 /**
  * ViewModel for the remote diagnostic consent flow.
@@ -30,7 +30,7 @@ class DiagnosticViewModel(
      */
     fun loadToken(rawToken: String) {
         viewModelScope.launch {
-            updateState { it.copy(isLoading = true, errorMessage = null) }
+            updateState { copy(isLoading = true, errorMessage = null) }
             val result = tokenValidator.validateToken(rawToken)
             result
                 .onSuccess { claims ->
@@ -47,10 +47,10 @@ class DiagnosticViewModel(
                             else             -> com.zyntasolutions.zyntapos.domain.model.DiagnosticDataScope.READ_ONLY_DIAGNOSTICS
                         },
                     )
-                    updateState { it.copy(pendingSession = session, isLoading = false) }
+                    updateState { copy(pendingSession = session, isLoading = false) }
                 }
                 .onError { error ->
-                    updateState { it.copy(isLoading = false, errorMessage = error.message) }
+                    updateState { copy(isLoading = false, errorMessage = error.message) }
                     sendEffect(DiagnosticEffect.ShowError(error.message))
                 }
         }
@@ -60,23 +60,23 @@ class DiagnosticViewModel(
         when (intent) {
             is DiagnosticIntent.AcceptConsent -> acceptConsent()
             is DiagnosticIntent.DenyConsent   -> denyConsent()
-            is DiagnosticIntent.DismissError  -> updateState { it.copy(errorMessage = null) }
+            is DiagnosticIntent.DismissError  -> updateState { copy(errorMessage = null) }
         }
     }
 
     private suspend fun acceptConsent() {
         val session = state.value.pendingSession ?: return
-        updateState { it.copy(isLoading = true) }
+        updateState { copy(isLoading = true) }
         // Phase 2: call ApiService.grantDiagnosticConsent(session.id, Clock.System.now().toEpochMilliseconds())
-        updateState { it.copy(isLoading = false, pendingSession = null) }
+        updateState { copy(isLoading = false, pendingSession = null) }
         sendEffect(DiagnosticEffect.ConsentAccepted)
     }
 
     private suspend fun denyConsent() {
         val session = state.value.pendingSession ?: return
-        updateState { it.copy(isLoading = true) }
+        updateState { copy(isLoading = true) }
         // Phase 2: call ApiService.revokeDiagnosticConsent(session.id)
-        updateState { it.copy(isLoading = false, pendingSession = null) }
+        updateState { copy(isLoading = false, pendingSession = null) }
         sendEffect(DiagnosticEffect.ConsentDenied)
     }
 }
