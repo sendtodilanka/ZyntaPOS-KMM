@@ -23,7 +23,11 @@ import kotlin.test.assertTrue
  */
 class CsrfPluginTest {
 
-    private fun buildTestApp() = testApplication {
+    /**
+     * Runs [block] inside a [testApplication] that has the CSRF-protected routes installed.
+     * The block receives [ApplicationTestBuilder] as receiver, giving access to [client].
+     */
+    private fun withCsrfTestApp(block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {
         routing {
             withCsrfProtection {
                 get("/test") {
@@ -41,10 +45,11 @@ class CsrfPluginTest {
                 }
             }
         }
+        block()
     }
 
     @Test
-    fun `GET response sets XSRF-TOKEN cookie`() = buildTestApp().run {
+    fun `GET response sets XSRF-TOKEN cookie`() = withCsrfTestApp {
         val response = client.get("/test")
         assertEquals(HttpStatusCode.OK, response.status)
 
@@ -57,7 +62,7 @@ class CsrfPluginTest {
     }
 
     @Test
-    fun `POST without XSRF header returns 403`() = buildTestApp().run {
+    fun `POST without XSRF header returns 403`() = withCsrfTestApp {
         val response = client.post("/test") {
             // No X-XSRF-Token header, no cookie
         }
@@ -67,7 +72,7 @@ class CsrfPluginTest {
     }
 
     @Test
-    fun `POST to excluded login path bypasses CSRF check`() = buildTestApp().run {
+    fun `POST to excluded login path bypasses CSRF check`() = withCsrfTestApp {
         val response = client.post("/admin/auth/login") {
             // No XSRF header — but login is excluded
         }
@@ -75,7 +80,7 @@ class CsrfPluginTest {
     }
 
     @Test
-    fun `POST to excluded refresh path bypasses CSRF check`() = buildTestApp().run {
+    fun `POST to excluded refresh path bypasses CSRF check`() = withCsrfTestApp {
         val response = client.post("/admin/auth/refresh") {
             // No XSRF header — but refresh is excluded
         }
@@ -83,7 +88,7 @@ class CsrfPluginTest {
     }
 
     @Test
-    fun `POST with correct XSRF header passes through`() = buildTestApp().run {
+    fun `POST with correct XSRF header passes through`() = withCsrfTestApp {
         // First GET to obtain the token from the cookie
         val getResponse = client.get("/test")
         val setCookieHeader = getResponse.headers.getAll(HttpHeaders.SetCookie)
@@ -104,7 +109,7 @@ class CsrfPluginTest {
     }
 
     @Test
-    fun `POST with wrong XSRF header value returns 403`() = buildTestApp().run {
+    fun `POST with wrong XSRF header value returns 403`() = withCsrfTestApp {
         val getResponse = client.get("/test")
         val setCookieHeader = getResponse.headers.getAll(HttpHeaders.SetCookie)
             ?.firstOrNull { it.startsWith("XSRF-TOKEN=") }

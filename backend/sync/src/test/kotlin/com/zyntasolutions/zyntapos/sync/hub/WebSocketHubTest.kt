@@ -2,11 +2,12 @@ package com.zyntasolutions.zyntapos.sync.hub
 
 import io.ktor.server.websocket.DefaultWebSocketServerSession
 import io.ktor.websocket.CloseReason
-import io.ktor.websocket.DefaultWebSocketSession
 import io.ktor.websocket.Frame
-import io.ktor.websocket.WebSocketSession
+import io.ktor.websocket.WebSocketExtension
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.SendChannel
+import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -21,17 +22,13 @@ class WebSocketHubTest {
         object : DefaultWebSocketServerSession {
             override val incoming: ReceiveChannel<Frame> get() = error("stub")
             override val outgoing: SendChannel<Frame> get() = error("stub")
-            override val extensions get() = emptyList<Any>()
-            override val closeReason get() = error("stub")
-            override val isActive = false
+            override val extensions: List<WebSocketExtension<*>> get() = emptyList()
+            override var maxFrameSize: Long = Long.MAX_VALUE
+            override val closeReason = CompletableDeferred<CloseReason?>()
             override suspend fun flush() {}
             override suspend fun send(frame: Frame) {}
-            override fun cancel() {}
-            override fun cancel(cause: Throwable?) {}
-            override suspend fun close(cause: Throwable?) {}
-            override suspend fun close(reason: CloseReason?) {}
-            override val coroutineContext get() = error("stub")
-            override fun start(negotiatedExtensions: List<Any>) {}
+            override val coroutineContext = EmptyCoroutineContext
+            override suspend fun start(negotiatedExtensions: List<WebSocketExtension<*>>) {}
         }
 
     @Test
