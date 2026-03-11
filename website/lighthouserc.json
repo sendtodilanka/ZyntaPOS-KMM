@@ -1,9 +1,15 @@
 {
   "ci": {
     "collect": {
-      "staticDistDir": "./website/dist",
+      "startServerCommand": "npx --yes http-server website/dist --port 4321 --ext html -c-1",
+      "startServerReadyPattern": "Available on",
       "numberOfRuns": 1,
-      "url": ["/", "/features", "/pricing", "/support"],
+      "url": [
+        "http://localhost:4321/",
+        "http://localhost:4321/features",
+        "http://localhost:4321/pricing",
+        "http://localhost:4321/support"
+      ],
       "settings": {
         "blockedUrlPatterns": [
           "https://www.googletagmanager.com/*",
