@@ -37,7 +37,7 @@ enum class ZyntaFeature(
     MEDIA(ZyntaEdition.PREMIUM, setOf(Permission.MANAGE_PRODUCTS)),
     REPORTS_PREMIUM(ZyntaEdition.PREMIUM, setOf(Permission.VIEW_REPORTS)),
 
-    // ── ENTERPRISE (7) ───────────────────────────────────────────────────────
+    // ── ENTERPRISE (8) ───────────────────────────────────────────────────────
     STAFF_HR(ZyntaEdition.ENTERPRISE, setOf(Permission.MANAGE_STAFF)),
     ACCOUNTING(ZyntaEdition.ENTERPRISE, setOf(Permission.MANAGE_ACCOUNTING)),
     E_INVOICE(ZyntaEdition.ENTERPRISE, setOf(Permission.MANAGE_ACCOUNTING)),
@@ -45,4 +45,6 @@ enum class ZyntaFeature(
     MULTISTORE(ZyntaEdition.ENTERPRISE, setOf(Permission.MANAGE_WAREHOUSES)),
     CUSTOM_RBAC(ZyntaEdition.ENTERPRISE, setOf(Permission.ADMIN_ACCESS)),
     REPORTS_ENTERPRISE(ZyntaEdition.ENTERPRISE, setOf(Permission.VIEW_REPORTS)),
+    /** Allows Zynta technicians to access a store's device remotely via JIT consent token. */
+    REMOTE_DIAGNOSTICS(ZyntaEdition.ENTERPRISE, setOf(Permission.ADMIN_ACCESS)),
 }

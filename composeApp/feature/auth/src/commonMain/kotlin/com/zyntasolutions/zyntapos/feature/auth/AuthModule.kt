@@ -4,6 +4,10 @@ import com.zyntasolutions.zyntapos.domain.usecase.auth.CheckPermissionUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.auth.LoginUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.auth.LogoutUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.auth.ValidatePinUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.license.ActivateLicenseUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.license.GetLicenseStatusUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.license.SendHeartbeatUseCase
+import com.zyntasolutions.zyntapos.feature.auth.license.LicenseViewModel
 import com.zyntasolutions.zyntapos.feature.auth.session.SessionManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -91,4 +95,19 @@ val authModule = module {
      * primary constructor, so all dependencies are resolved via Koin.
      */
     viewModelOf(::AuthViewModel)
+
+    // ── License Use Cases ──────────────────────────────────────────────────────
+
+    /** Activates this device against license.zyntapos.com. */
+    single { ActivateLicenseUseCase(licenseRepository = get()) }
+
+    /** Sends periodic heartbeats to license.zyntapos.com. */
+    single { SendHeartbeatUseCase(licenseRepository = get()) }
+
+    /** Returns the locally-cached license without a network round-trip. */
+    single { GetLicenseStatusUseCase(licenseRepository = get()) }
+
+    // ── License ViewModel ─────────────────────────────────────────────────────
+
+    viewModelOf(::LicenseViewModel)
 }

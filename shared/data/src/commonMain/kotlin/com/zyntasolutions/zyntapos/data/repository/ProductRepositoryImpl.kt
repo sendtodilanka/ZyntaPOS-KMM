@@ -6,6 +6,7 @@ import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.data.local.SyncEnqueuer
 import com.zyntasolutions.zyntapos.data.local.mapper.ProductMapper
+import com.zyntasolutions.zyntapos.data.remote.dto.ProductDto
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
 import com.zyntasolutions.zyntapos.domain.model.Product
 import com.zyntasolutions.zyntapos.domain.model.SyncOperation
@@ -14,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
 import kotlin.time.Clock
 
 /**
@@ -33,6 +35,10 @@ class ProductRepositoryImpl(
 ) : ProductRepository {
 
     private val q get() = db.productsQueries
+
+    companion object {
+        private val syncJson = Json { ignoreUnknownKeys = true; isLenient = true }
+    }
 
     // ── Read ─────────────────────────────────────────────────────────────────
 
@@ -132,6 +138,42 @@ class ProductRepositoryImpl(
             onSuccess = { Result.Success(Unit) },
             onFailure = { t -> Result.Error(DatabaseException(t.message ?: "Update failed", operation = "updateProduct", cause = t)) },
         )
+    }
+
+    // ── Sync (server-originated) ────────────────────────────────────────
+
+    /**
+     * Applies a server-authoritative product snapshot from a sync delta payload.
+     *
+     * Uses INSERT (new) or UPDATE (existing) depending on local presence.
+     * Does NOT enqueue a [SyncOperation] — server data must not be re-pushed.
+     * [sync_status] is always "SYNCED" for server-originated records.
+     */
+    suspend fun upsertFromSync(payload: String) = withContext(Dispatchers.IO) {
+        val dto = syncJson.decodeFromString<ProductDto>(payload)
+        val exists = q.getProductById(dto.id).executeAsOneOrNull() != null
+        val isActive = if (dto.isActive) 1L else 0L
+        if (exists) {
+            q.updateProduct(
+                name = dto.name, barcode = dto.barcode, sku = dto.sku,
+                category_id = dto.categoryId, unit_id = dto.unitId ?: "",
+                price = dto.price, cost_price = dto.costPrice,
+                tax_group_id = dto.taxGroupId, min_stock_qty = dto.minStockQty,
+                image_url = dto.imageUrl, description = dto.description,
+                is_active = isActive, updated_at = dto.updatedAt,
+                sync_status = "SYNCED", id = dto.id,
+            )
+        } else {
+            q.insertProduct(
+                id = dto.id, name = dto.name, barcode = dto.barcode, sku = dto.sku,
+                category_id = dto.categoryId, unit_id = dto.unitId ?: "", price = dto.price,
+                cost_price = dto.costPrice, tax_group_id = dto.taxGroupId,
+                stock_qty = dto.stockQty, min_stock_qty = dto.minStockQty,
+                image_url = dto.imageUrl, description = dto.description,
+                is_active = isActive, created_at = dto.createdAt,
+                updated_at = dto.updatedAt, sync_status = "SYNCED",
+            )
+        }
     }
 
     // ── FTS ────────────────────────────────────────────────────────────────

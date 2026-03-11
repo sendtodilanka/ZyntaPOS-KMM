@@ -1,8 +1,9 @@
 # API Documentation — ZyntaPOS Network Layer
 
-**Status:** Phase 1 endpoints documented. Known gaps explicitly called out.
-**Last updated:** 2026-02-25
-**Sources:** `shared/data/src/commonMain/kotlin/.../remote/api/ApiService.kt`, `ApiClient.kt`
+**Status:** All documented endpoints verified against server source. Full OpenAPI 3.0 spec available at [`docs/api/openapi.yaml`](openapi.yaml).
+**Last updated:** 2026-03-11
+**Sources:** `shared/data/src/commonMain/kotlin/.../remote/api/ApiService.kt`, `ApiClient.kt`,
+`backend/api/src/main/kotlin/com/zyntasolutions/zyntapos/api/models/Models.kt`
 
 ---
 
@@ -29,30 +30,33 @@ The base URL is configured per environment in `local.properties`:
 ZYNTA_API_BASE_URL=api.zyntapos.example.com   # without protocol prefix
 ```
 
-All Phase 1 endpoints are prefixed with `/api/v1/`.
+All POS terminal endpoints are prefixed with `/v1/` (no `/api` infix).
+Admin panel endpoints are prefixed with `/admin/`.
 
 ---
 
 ## 3. Authentication
 
-All endpoints (except `/auth/login`) require a **Bearer token** in the `Authorization` header.
+All endpoints (except `/v1/auth/login` and `/.well-known/public-key`) require a **Bearer token**
+in the `Authorization` header.
 
 ```
 Authorization: Bearer <access_token>
 ```
 
 Tokens are persisted in `SecurePreferences` (AES-256-GCM encrypted storage) under the keys:
-- `KEY_ACCESS_TOKEN` — short-lived JWT (~15 min expiry)
-- `KEY_REFRESH_TOKEN` — long-lived JWT
+- `KEY_ACCESS_TOKEN` — short-lived JWT (60 min expiry for POS; 15 min for admin panel)
+- `KEY_REFRESH_TOKEN` — long-lived JWT (30 days for POS; 7 days for admin panel)
 
 ### Token Refresh
 
 The Ktor `Auth` plugin handles token refresh automatically on 401 responses. The `refreshTokens`
 callback in `buildApiClient()` surfaces the stored refresh token; `AuthRepositoryImpl` is
-responsible for calling `POST /api/v1/auth/refresh` and persisting the new access token.
+responsible for calling `POST /v1/auth/refresh` and persisting the new access token.
 
 Client-side JWT expiry is checked proactively using `JwtManager.isTokenExpired()` with a 30-second
-clock-skew buffer.
+clock-skew buffer. Tokens are RS256-signed and the public key is available at
+`GET /.well-known/public-key` (TOFU model, cached in `SecurePreferences`).
 
 ---
 
@@ -89,91 +93,129 @@ if (AppConfig.IS_DEBUG) { install(Logging) { level = LogLevel.HEADERS } }
 
 ## 5. Endpoint Reference
 
-All endpoints are defined in `ApiService` interface:
+All POS terminal endpoints are defined in `ApiService` interface:
 `shared/data/src/commonMain/kotlin/com/zyntasolutions/zyntapos/data/remote/api/ApiService.kt`
 
-| Method | Path | Function | Request Type | Response Type |
+| Method | Path | KMM Function | Request Type | Response Type |
 |--------|------|----------|--------------|---------------|
-| POST | `/api/v1/auth/login` | `login()` | `AuthRequestDto` | `AuthResponseDto` |
-| POST | `/api/v1/auth/refresh` | `refreshToken()` | `refreshToken: String` | `AuthRefreshResponseDto` |
-| GET | `/api/v1/products` | `getProducts()` | _(none)_ | `List<ProductDto>` |
-| POST | `/api/v1/sync/push` | `pushOperations()` | `List<SyncOperationDto>` | `SyncResponseDto` |
-| GET | `/api/v1/sync/pull` | `pullOperations()` | `lastSyncTimestamp: Long` | `SyncPullResponseDto` |
+| POST | `/v1/auth/login` | `login()` | `AuthRequestDto` | `AuthResponseDto` |
+| POST | `/v1/auth/refresh` | `refreshToken()` | `refreshToken: String` | `AuthRefreshResponseDto` |
+| GET | `/v1/products` | `getProducts()` | _(query params)_ | `List<ProductDto>` |
+| POST | `/v1/sync/push` | `pushOperations()` | `List<SyncOperationDto>` | `SyncResponseDto` |
+| GET | `/v1/sync/pull` | `pullOperations()` | `lastSyncTimestamp: Long` | `SyncPullResponseDto` |
+| GET | `/.well-known/public-key` | `fetchPublicKey()` | _(none)_ | `PublicKeyResponseDto` |
 
-### POST `/api/v1/auth/login`
+For the full endpoint reference including admin panel, license service, and sync WebSocket,
+see [`docs/api/openapi.yaml`](openapi.yaml).
 
-Authenticates with server credentials and returns JWT tokens.
+### POST `/v1/auth/login`
 
-**Request (`AuthRequestDto`):**
+Authenticates the device with the server and returns JWT tokens.
+
+**Request (server accepts):**
 ```json
-{ "username": "cashier@store.com", "password": "..." }
+{
+  "licenseKey": "ZYNTA-XXXX-XXXX-XXXX",
+  "deviceId": "device-uuid",
+  "username": "cashier@store.com",
+  "password": "..."
+}
 ```
 
-**Response (`AuthResponseDto`):**
+**Response:**
 ```json
-{ "access_token": "eyJ...", "refresh_token": "eyJ...", "expires_in": 900 }
+{
+  "accessToken": "eyJ...",
+  "refreshToken": "eyJ...",
+  "expiresIn": 3600,
+  "tokenType": "Bearer",
+  "userId": "user-uuid",
+  "role": "CASHIER",
+  "storeId": "store-uuid"
+}
 ```
 
-**Error:** Throws `AuthException` on 401 (invalid credentials).
+**Rate limit:** 10 requests/minute per IP.
+**Error:** HTTP 401 `{"code":"INVALID_CREDENTIALS","message":"..."}` on bad credentials.
 
-### POST `/api/v1/auth/refresh`
+### POST `/v1/auth/refresh`
 
 Exchanges a refresh token for a new access token.
 
-**Error:** Throws `AuthException` on 401 (expired refresh token — requires re-login).
+**Error:** HTTP 401 (expired refresh token — requires re-login).
 
-### GET `/api/v1/products`
+### GET `/v1/products`
 
-Retrieves the full product catalog. Typically called during initial seeding or full resync.
+Retrieves a paginated product catalog page. Used during initial seeding or after a full resync.
 
-**Error:** Throws `NetworkException` on transport or server errors.
+**Query params:** `?page=0&size=50&updatedSince=<epoch_ms>`
 
-### POST `/api/v1/sync/push`
+**Response (`PagedResponse<ProductDto>`):**
+```json
+{
+  "data": [ { "id": "...", "name": "...", "price": 9.99, ... } ],
+  "page": 0,
+  "size": 50,
+  "total": 312,
+  "hasMore": true
+}
+```
+
+**Error:** HTTP 5xx → `NetworkException`.
+
+### POST `/v1/sync/push`
 
 Pushes a batch of locally pending operations to the server.
 
-**Request (`SyncOperationDto`):**
+**Request body (`SyncOperationDto`):**
 ```json
-{
+[{
   "id": "uuid",
-  "entity_type": "PRODUCT",
+  "entity_type": "product",
   "entity_id": "uuid",
   "operation": "UPDATE",
-  "payload": "{...}",
+  "payload": "{}",
   "created_at": 1706000000000,
   "retry_count": 0
-}
+}]
 ```
 
-**Response (`SyncResponseDto`):**
+**Response:**
 ```json
 {
-  "accepted": ["uuid1", "uuid2"],
-  "rejected": ["uuid3"],
-  "delta_operations": [...]
+  "accepted": 3,
+  "rejected": 0,
+  "conflicts": [],
+  "serverVectorClock": 1234567
 }
 ```
 
-The `delta_operations` field contains server-authoritative conflict resolutions bundled with the
-push acknowledgement. These are applied locally via `applyDeltaOperations()` in `SyncEngine`.
+**Error:** HTTP 4xx/5xx → `SyncException`.
 
-**Error:** Throws `SyncException` on 4xx/5xx server-side batch failure.
+### GET `/v1/sync/pull`
 
-### GET `/api/v1/sync/pull`
+Pulls server-side changes since the given cursor position (cursor-based pagination).
 
-Pulls server-side changes created after `lastSyncTimestamp`.
+**Query params:** `?since=<server_seq:Long>&limit=<Int>`
 
-**Query params:** `?since=<epoch_ms>`
-
-**Response (`SyncPullResponseDto`):**
+**Response:**
 ```json
 {
-  "operations": [...],
-  "server_timestamp": 1706000060000
+  "operations": [ { "id": "...", "entity_type": "product", ... } ],
+  "serverVectorClock": 1234600,
+  "hasMore": false
 }
 ```
 
-**Error:** Throws `NetworkException` on transport or server errors.
+When `hasMore` is `true`, issue another pull with `?since=<serverVectorClock>` until false.
+
+**Error:** HTTP 5xx → `NetworkException`.
+
+### GET `/.well-known/public-key`
+
+Returns the current RS256 public key used to sign JWT tokens. Call after every successful online
+login or token refresh. Pass the returned key to `JwtManager.cachePublicKey()` for offline
+JWT verification and RBAC. Supports server-side key rotation without an app update (TOFU model).
 
 ---
 
@@ -187,40 +229,40 @@ All HTTP errors are mapped to typed domain exceptions defined in `:shared:core`:
 | `NetworkException` | Transport errors, timeouts, 5xx | General connectivity / server issues |
 | `SyncException` | 4xx/5xx on sync endpoints | Sync-specific server rejections |
 
+Standard error response body:
+```json
+{ "code": "ERROR_CODE", "message": "Human-readable description" }
+```
+
 The Ktor retry plugin automatically retries on server errors (5xx) and timeouts, up to 3 times
 with exponential backoff.
 
 ---
 
-## 7. Known Gaps
+## 7. Rate Limits
 
-### SyncRepositoryImpl — Network Stubs (Phase 1)
+| Tier | Limit | Applied to |
+|------|-------|------------|
+| `auth` | 10 req/min | `/v1/auth/login`, `/v1/auth/refresh`, `/admin/auth/login` |
+| `sync` | 60 req/min | `/v1/sync/push` |
+| `api` | 300 req/min | All other endpoints |
 
-**File:** `SyncRepositoryImpl.kt`, lines 155–171
+---
 
-`SyncRepository.pushToServer()` and `pullFromServer()` are Phase 1 stubs that do NOT make HTTP
-calls. They mark operations as locally SYNCED and return empty lists respectively.
+## 8. Known Gaps (Resolved)
 
-The actual Ktor `ApiService` wiring is planned for Sprint 6, Step 3.4:
+### SyncRepositoryImpl — Network Stubs (Phase 1) — ✅ Resolved
 
-```kotlin
-// TODO(Sprint6-Step3.4): wire Ktor ApiService here
-override suspend fun pushToServer(ops: List<SyncOperation>): Result<Unit> {
-    return if (ops.isEmpty()) Result.Success(Unit)
-    else markSynced(ops.map { it.id })  // stub: marks local only
-}
-```
+`SyncEngine` calls `ApiService` directly (bypassing `SyncRepositoryImpl`), so push/pull HTTP calls
+function through `SyncEngine`. The `SyncRepository` interface contract layer remains a Phase 1
+stub but does not block sync functionality.
 
-Note: `SyncEngine.kt` calls `ApiService` directly (bypassing `SyncRepositoryImpl`), so push/pull
-HTTP calls DO function through `SyncEngine`. The stub affects only the `SyncRepository` interface
-contract layer.
+### applyDeltaOperations — Sprint 7 — ✅ Implemented (2026-03-11)
 
-### applyDeltaOperations — Sprint 7 TODO
+The entity-type router in `SyncEngine.applyDeltaOperations()` now dispatches server delta
+operations to the appropriate `RepositoryImpl.upsertFromSync()` method for each entity type.
 
-Server delta operations are received by `SyncEngine` but not applied to the local database.
-The entity-type router (`entityType → RepositoryImpl.upsertFromSync()`) is a Sprint 7 TODO.
+### OpenAPI Specification — ✅ Available
 
-### OpenAPI Specification
-
-No OpenAPI / Swagger specification exists yet for the ZyntaPOS backend API. The endpoint table
-above is derived from the Kotlin interface comments and DTO definitions.
+See [`docs/api/openapi.yaml`](openapi.yaml) — full OpenAPI 3.0.3 spec covering 60+ endpoints
+across three services (POS API, License, Admin panel).

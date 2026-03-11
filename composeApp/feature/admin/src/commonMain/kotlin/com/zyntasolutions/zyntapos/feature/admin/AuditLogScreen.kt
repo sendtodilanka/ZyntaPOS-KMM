@@ -699,7 +699,10 @@ private fun iconForEventType(type: AuditEventType) = when (type) {
     AuditEventType.BACKUP_CREATED     -> Icons.Default.Save
     AuditEventType.BACKUP_RESTORED    -> Icons.Default.Restore
     AuditEventType.DATA_EXPORTED      -> Icons.Default.FileDownload
-    AuditEventType.DIAGNOSTIC_SESSION -> Icons.Default.BugReport
+    AuditEventType.DIAGNOSTIC_SESSION                 -> Icons.Default.BugReport
+    AuditEventType.DIAGNOSTIC_SESSION_CONSENT_GRANTED -> Icons.Default.CheckCircle
+    AuditEventType.DIAGNOSTIC_SESSION_REVOKED         -> Icons.Default.Cancel
+    AuditEventType.DIAGNOSTIC_SESSION_EXPIRED         -> Icons.Default.Timer
     // Data
     AuditEventType.SYNC_COMPLETED     -> Icons.Default.Sync
     AuditEventType.SYNC_FAILED        -> Icons.Default.SyncProblem

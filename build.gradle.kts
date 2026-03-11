@@ -36,6 +36,8 @@ plugins {
     alias(libs.plugins.buildkonfig)            apply false   // BuildKonfig (typed config per flavor)
     alias(libs.plugins.secretsGradle)          apply false   // Secrets Gradle Plugin (API key injection)
     alias(libs.plugins.mockative)              apply false   // Mockative KSP processor
+    alias(libs.plugins.googleServices)         apply false   // Firebase google-services plugin (TODO-011)
+    alias(libs.plugins.firebaseCrashlytics)    apply false   // Firebase Crashlytics plugin
 }
 
 apply(plugin = "io.gitlab.arturbosch.detekt")

@@ -1,8 +1,8 @@
-import { Key, Monitor, Calendar, Clock } from 'lucide-react';
+import { Key, Monitor, Calendar, Clock, RefreshCw } from 'lucide-react';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { DeviceList } from './DeviceList';
 import { formatDateTime, formatRelativeTime, maskLicenseKey } from '@/lib/utils';
-import { useLicenseDevices } from '@/api/licenses';
+import { useLicenseDevices, useForceSyncLicense } from '@/api/licenses';
 import type { License } from '@/types/license';
 
 interface LicenseDetailCardProps {
@@ -12,6 +12,7 @@ interface LicenseDetailCardProps {
 
 export function LicenseDetailCard({ license, onExtend }: LicenseDetailCardProps) {
   const { data: devices = [], isLoading: devicesLoading } = useLicenseDevices(license.key);
+  const forceSync = useForceSyncLicense();
 
   return (
     <div className="space-y-6">
@@ -29,12 +30,23 @@ export function LicenseDetailCard({ license, onExtend }: LicenseDetailCardProps)
               <span className="text-xs text-slate-400 uppercase font-medium">{license.edition}</span>
             </div>
           </div>
-          <button
-            onClick={onExtend}
-            className="px-4 py-2 bg-brand-700 hover:bg-brand-800 text-white text-sm font-medium rounded-lg transition-colors min-h-[44px]"
-          >
-            Extend / Edit
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => forceSync.mutate(license.key)}
+              disabled={forceSync.isPending}
+              title="Request a full sync on the device's next heartbeat"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-300 border border-surface-border hover:bg-surface-elevated disabled:opacity-50 transition-colors min-h-[44px]"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${forceSync.isPending ? 'animate-spin' : ''}`} />
+              Force Sync
+            </button>
+            <button
+              onClick={onExtend}
+              className="px-4 py-2 bg-brand-700 hover:bg-brand-800 text-white text-sm font-medium rounded-lg transition-colors min-h-[44px]"
+            >
+              Extend / Edit
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

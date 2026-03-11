@@ -13,13 +13,16 @@ export const Route = createFileRoute('/licenses/$licenseKey')({
 function LicenseDetailPage() {
   const { licenseKey } = Route.useParams();
   const navigate = useNavigate();
-  const { data: license, isLoading } = useLicense(licenseKey);
+  // useLicense now returns LicenseWithDevices (license + devices)
+  const { data, isLoading } = useLicense(licenseKey);
   const [extendOpen, setExtendOpen] = useState(false);
 
   if (isLoading) return <PageLoader />;
-  if (!license) return (
+  if (!data) return (
     <div className="text-center py-16 text-slate-400">License not found.</div>
   );
+
+  const { license } = data;
 
   return (
     <div className="space-y-6">

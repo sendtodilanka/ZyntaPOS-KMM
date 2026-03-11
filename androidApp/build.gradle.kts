@@ -19,6 +19,9 @@ plugins {
     alias(libs.plugins.composeCompiler)
     // Secrets Gradle Plugin — injects local.properties keys into BuildConfig.
     alias(libs.plugins.secretsGradle)
+    // Firebase — google-services.json processed at build time (injected by CI from GOOGLE_SERVICES_JSON secret)
+    alias(libs.plugins.googleServices)
+    alias(libs.plugins.firebaseCrashlytics)
 }
 
 android {
@@ -162,6 +165,16 @@ dependencies {
     // Initialized before Koin in ZyntaApplication.onCreate() (ADR-011 rule #4).
     // DSN injected via Secrets Gradle Plugin: ZYNTA_SENTRY_DSN → BuildConfig.ZYNTA_SENTRY_DSN.
     implementation("io.sentry:sentry-android:8.8.0")
+
+    // ── Feature: Diagnostic module ────────────────────────────────────────
+    implementation(project(":composeApp:feature:diagnostic"))
+
+    // ── Firebase Analytics + Crashlytics (TODO-011) ───────────────────────
+    // google-services.json is CI-injected from GOOGLE_SERVICES_JSON secret.
+    // Placeholder file must exist at androidApp/google-services.json for local builds.
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics.ktx)
+    implementation(libs.firebase.crashlytics.ktx)
 }
 
 // ── Secrets Gradle Plugin ────────────────────────────────────

@@ -719,6 +719,8 @@ Copy `local.properties.template` and fill in values before first build.
 | `ZYNTA_IRD_API_ENDPOINT` | IRD e-invoice API endpoint (Sri Lanka) |
 | `ZYNTA_IRD_CLIENT_CERTIFICATE_PATH` | Absolute path to IRD `.p12` certificate |
 | `ZYNTA_IRD_CERTIFICATE_PASSWORD` | IRD certificate password |
+| `RESEND_API_KEY` | Resend transactional email API key (TODO-008a) |
+| `EMAIL_FROM_ADDRESS` | Sender email address (e.g. `noreply@zyntapos.com`) |
 
 > **FCM Note:** Firebase Legacy Server Key was permanently disabled by Google (June 2024).
 > `ZYNTA_FCM_SERVER_KEY` is replaced by `ZYNTA_FCM_SERVICE_ACCOUNT_JSON` (GitHub Secret — too large for `local.properties`).

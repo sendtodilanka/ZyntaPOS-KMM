@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.license.service
 
+import com.zyntasolutions.zyntapos.license.db.AdminAuditLog
 import com.zyntasolutions.zyntapos.license.db.DeviceRegistrations
 import com.zyntasolutions.zyntapos.license.db.Licenses
 import com.zyntasolutions.zyntapos.license.models.*
@@ -110,7 +111,7 @@ class AdminLicenseService {
             .map { it.toLicenseDevice() }
     }
 
-    suspend fun createLicense(req: AdminCreateLicenseRequest): AdminLicense = newSuspendedTransaction {
+    suspend fun createLicense(req: AdminCreateLicenseRequest, adminId: String): AdminLicense = newSuspendedTransaction {
         val key = generateLicenseKey()
         val now = OffsetDateTime.now(ZoneOffset.UTC)
         val expiresAt = req.expiresAt?.let { OffsetDateTime.parse(it) }
@@ -118,6 +119,7 @@ class AdminLicenseService {
         Licenses.insert {
             it[Licenses.key] = key
             it[customerId] = req.customerId
+            it[customerName] = req.customerName
             it[edition] = req.edition.uppercase()
             it[maxDevices] = req.maxDevices
             it[status] = "ACTIVE"
@@ -127,10 +129,12 @@ class AdminLicenseService {
             it[updatedAt] = now
         }
 
+        logAudit(adminId, "CREATE_LICENSE", key, "edition=${req.edition} maxDevices=${req.maxDevices}")
+
         Licenses.selectAll().where { Licenses.key eq key }.single().toAdminLicense()
     }
 
-    suspend fun updateLicense(key: String, req: AdminUpdateLicenseRequest): AdminLicense? =
+    suspend fun updateLicense(key: String, req: AdminUpdateLicenseRequest, adminId: String): AdminLicense? =
         newSuspendedTransaction {
             val existing = Licenses.selectAll().where { Licenses.key eq key }.singleOrNull()
                 ?: return@newSuspendedTransaction null
@@ -142,26 +146,40 @@ class AdminLicenseService {
                 req.expiresAt?.let { stmt[expiresAt] = OffsetDateTime.parse(it) }
                     ?: run { if (req.clearExpiry == true) stmt[expiresAt] = null }
                 req.status?.let { stmt[status] = it.uppercase() }
+                if (req.forceSync == true) stmt[forceSyncRequested] = true
                 stmt[updatedAt] = now
             }
+
+            val changes = buildString {
+                req.edition?.let { append("edition=$it ") }
+                req.maxDevices?.let { append("maxDevices=$it ") }
+                req.expiresAt?.let { append("expiresAt=$it ") }
+                if (req.clearExpiry == true) append("clearExpiry=true ")
+                req.status?.let { append("status=$it ") }
+                if (req.forceSync == true) append("forceSync=true ")
+            }.trim()
+            logAudit(adminId, "UPDATE_LICENSE", key, changes.ifEmpty { "no changes" })
 
             Licenses.selectAll().where { Licenses.key eq key }.single().toAdminLicense()
         }
 
-    suspend fun revokeLicense(key: String): Boolean = newSuspendedTransaction {
+    suspend fun revokeLicense(key: String, adminId: String): Boolean = newSuspendedTransaction {
         val updated = Licenses.update({ Licenses.key eq key }) {
             it[status] = "REVOKED"
             it[updatedAt] = OffsetDateTime.now(ZoneOffset.UTC)
         }
+        if (updated > 0) logAudit(adminId, "REVOKE_LICENSE", key, null)
         updated > 0
     }
 
-    suspend fun deregisterDevice(licenseKey: String, deviceId: String): Boolean =
+    suspend fun deregisterDevice(licenseKey: String, deviceId: String, adminId: String): Boolean =
         newSuspendedTransaction {
+            // deviceId here is the row UUID (id column), as sent by the admin panel DeviceList
             val deleted = DeviceRegistrations.deleteWhere {
                 (DeviceRegistrations.licenseKey eq licenseKey) and
                 (DeviceRegistrations.id eq deviceId)
             }
+            if (deleted > 0) logAudit(adminId, "DEREGISTER_DEVICE", licenseKey, "deviceRowId=$deviceId")
             deleted > 0
         }
 
@@ -171,6 +189,18 @@ class AdminLicenseService {
         val chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
         fun segment(n: Int) = (1..n).map { chars.random() }.joinToString("")
         return "${segment(4)}-${segment(4)}-${segment(4)}-${segment(4)}"
+    }
+
+    private fun logAudit(adminId: String, action: String, licenseKey: String?, details: String?) {
+        val now = OffsetDateTime.now(ZoneOffset.UTC)
+        AdminAuditLog.insert {
+            it[id] = UUID.randomUUID().toString()
+            it[AdminAuditLog.adminId] = adminId
+            it[AdminAuditLog.action] = action
+            it[AdminAuditLog.licenseKey] = licenseKey
+            it[AdminAuditLog.details] = details
+            it[performedAt] = now
+        }
     }
 
     private fun ResultRow.toAdminLicense(): AdminLicense {
@@ -191,7 +221,7 @@ class AdminLicenseService {
             id = this[Licenses.key],
             key = this[Licenses.key],
             customerId = this[Licenses.customerId],
-            customerName = this[Licenses.customerId],
+            customerName = this[Licenses.customerName] ?: this[Licenses.customerId],
             edition = this[Licenses.edition],
             status = computedStatus,
             maxDevices = this[Licenses.maxDevices],

@@ -94,3 +94,16 @@ data class MfaPendingResponse(
     val mfaRequired: Boolean = true,
     val pendingToken: String
 )
+
+// ── Password reset models ────────────────────────────────────────────
+
+@Serializable
+data class AdminForgotPasswordRequest(
+    val email: String
+)
+
+@Serializable
+data class AdminResetPasswordRequest(
+    val token: String,
+    val newPassword: String
+)

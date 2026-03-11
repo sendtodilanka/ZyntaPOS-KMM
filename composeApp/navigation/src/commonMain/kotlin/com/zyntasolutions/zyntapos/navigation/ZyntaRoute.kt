@@ -87,6 +87,22 @@ sealed class ZyntaRoute {
     @Serializable
     data object PinLock : ZyntaRoute()
 
+    /**
+     * License activation screen.
+     * Displayed after login when no local license is found (UNACTIVATED state).
+     * The user enters their XXXX-XXXX-XXXX-XXXX license key here.
+     */
+    @Serializable
+    data object LicenseActivation : ZyntaRoute()
+
+    /**
+     * License expired/revoked blocker screen.
+     * Displayed when the local license has status EXPIRED or REVOKED.
+     * No retry is possible — user must contact Zynta Solutions.
+     */
+    @Serializable
+    data object LicenseExpired : ZyntaRoute()
+
     // ─────────────────────────────────────────────────────────────────
     // MAIN GROUP
     // ─────────────────────────────────────────────────────────────────
@@ -561,6 +577,19 @@ sealed class ZyntaRoute {
         val rackId: String? = null,
         val warehouseId: String,
     ) : ZyntaRoute()
+
+    // ─────────────────────────────────────────────────────────────────
+    // REMOTE DIAGNOSTICS  (ENTERPRISE — TODO-006)
+    // ─────────────────────────────────────────────────────────────────
+
+    /**
+     * Diagnostic consent screen — shown when a Zynta technician requests
+     * temporary remote read access. Gated by [ZyntaFeature.REMOTE_DIAGNOSTICS].
+     *
+     * @param token Raw JIT diagnostic token (15-min TTL) from push notification or QR.
+     */
+    @Serializable
+    data class DiagnosticConsent(val token: String) : ZyntaRoute()
 
     // ─────────────────────────────────────────────────────────────────
     // DEEP-LINK TARGETS (not primary nav destinations)

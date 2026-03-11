@@ -6,6 +6,7 @@ import type { License } from '@/types/license';
 vi.mock('@/api/licenses', () => ({
   useLicenseDevices: () => ({ data: [], isLoading: false }),
   useDeregisterDevice: () => ({ mutate: vi.fn(), isPending: false }),
+  useForceSyncLicense: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 
 const mockLicense: License = {

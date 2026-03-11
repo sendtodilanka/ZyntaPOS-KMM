@@ -176,13 +176,13 @@ class FeatureRegistryUseCasesTest {
     // ─── GetAllFeatureConfigsUseCase ──────────────────────────────────────────
 
     @Test
-    fun `GetAllFeatureConfigsUseCase returns all 23 features`() = runTest {
+    fun `GetAllFeatureConfigsUseCase returns all 24 features`() = runTest {
         val repo = makeRepo()
         val useCase = GetAllFeatureConfigsUseCase(repo)
 
         val configs = useCase().first()
 
-        assertEquals(23, configs.size)
+        assertEquals(24, configs.size)
     }
 
     @Test

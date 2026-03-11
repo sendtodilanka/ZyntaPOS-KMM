@@ -108,6 +108,7 @@ fun ZyntaNavGraph(
     isFirstRun: Boolean,
     isSessionActive: Boolean,
     userRole: Role?,
+    licenseStatus: com.zyntasolutions.zyntapos.domain.model.LicenseStatus? = null,
     currentUserName: String? = null,
     currentUserInitials: String? = null,
     currentUserRole: String? = null,
@@ -115,6 +116,8 @@ fun ZyntaNavGraph(
     loginScreen: @Composable (onLoginSuccess: () -> Unit) -> Unit,
     onboardingScreen: @Composable (onOnboardingComplete: () -> Unit) -> Unit,
     pinLockScreen: @Composable (onUnlocked: () -> Unit) -> Unit,
+    licenseActivationScreen: @Composable (onActivated: () -> Unit) -> Unit = {},
+    licenseExpiredScreen: @Composable () -> Unit = {},
     debugScreen: (@Composable (onNavigateUp: () -> Unit) -> Unit)? = null,
 ) {
     // Compute RBAC-filtered nav items once per role change
@@ -145,6 +148,8 @@ fun ZyntaNavGraph(
             loginScreen = loginScreen,
             onboardingScreen = onboardingScreen,
             pinLockScreen = pinLockScreen,
+            licenseActivationScreen = licenseActivationScreen,
+            licenseExpiredScreen = licenseExpiredScreen,
         )
 
         // ── Authenticated graph ──────────────────────────────────────────────
@@ -161,15 +166,26 @@ fun ZyntaNavGraph(
         )
     }
 
-    // ── Session redirect ─────────────────────────────────────────────────────
+    // ── Session redirect + license gate ──────────────────────────────────────
     // After composition settles, skip the login screen if a valid session exists.
-    // LaunchedEffect key on isSessionActive so re-authentication re-evaluates.
-    // The else branch handles logout and session expiry — navigates back to the
-    // auth graph (safe to call even when already on AuthGraph; navigateAndClear
-    // is idempotent for same-graph navigation).
-    LaunchedEffect(isSessionActive) {
+    // If session is active, check the license status:
+    //   - UNACTIVATED (null) → show LicenseActivation screen
+    //   - REVOKED / EXPIRED  → show LicenseExpired blocker
+    //   - ACTIVE / EXPIRING_SOON / GRACE_PERIOD → proceed to Dashboard
+    // The else branch handles logout and session expiry.
+    LaunchedEffect(isSessionActive, licenseStatus) {
         if (isSessionActive) {
-            navigationController.navigateAndClear(ZyntaRoute.Dashboard)
+            when (licenseStatus) {
+                null,
+                com.zyntasolutions.zyntapos.domain.model.LicenseStatus.UNACTIVATED ->
+                    navigationController.navigateAndClear(ZyntaRoute.LicenseActivation)
+
+                com.zyntasolutions.zyntapos.domain.model.LicenseStatus.REVOKED,
+                com.zyntasolutions.zyntapos.domain.model.LicenseStatus.EXPIRED ->
+                    navigationController.navigateAndClear(ZyntaRoute.LicenseExpired)
+
+                else -> navigationController.navigateAndClear(ZyntaRoute.Dashboard)
+            }
         } else {
             navigationController.navigateAndClear(ZyntaRoute.AuthGraph)
         }

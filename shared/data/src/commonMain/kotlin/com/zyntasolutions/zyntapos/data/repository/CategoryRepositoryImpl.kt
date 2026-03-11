@@ -7,6 +7,7 @@ import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.core.result.ValidationException
 import com.zyntasolutions.zyntapos.data.local.SyncEnqueuer
 import com.zyntasolutions.zyntapos.data.local.mapper.CategoryMapper
+import com.zyntasolutions.zyntapos.data.remote.dto.CategoryDto
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
 import com.zyntasolutions.zyntapos.domain.model.Category
 import com.zyntasolutions.zyntapos.domain.model.SyncOperation
@@ -15,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
 import kotlin.time.Clock
 
 /**
@@ -32,6 +34,10 @@ class CategoryRepositoryImpl(
 ) : CategoryRepository {
 
     private val q get() = db.categoriesQueries
+
+    companion object {
+        private val syncJson = Json { ignoreUnknownKeys = true; isLenient = true }
+    }
 
     override fun getAll(): Flow<List<Category>> =
         q.getAllCategories()
@@ -67,6 +73,33 @@ class CategoryRepositoryImpl(
                     )
                 }
             }
+
+    // ── Sync (server-originated) ────────────────────────────────────────
+
+    /**
+     * Applies a server-authoritative category snapshot from a sync delta payload.
+     * Does NOT enqueue a [SyncOperation] — server data must not be re-pushed.
+     */
+    suspend fun upsertFromSync(payload: String) = withContext(Dispatchers.IO) {
+        val dto = syncJson.decodeFromString<CategoryDto>(payload)
+        val exists = q.getCategoryById(dto.id).executeAsOneOrNull() != null
+        val isActive = if (dto.isActive) 1L else 0L
+        val now = Clock.System.now().toEpochMilliseconds()
+        if (exists) {
+            q.updateCategory(
+                name = dto.name, parent_id = dto.parentId, image_url = dto.imageUrl,
+                display_order = dto.displayOrder.toLong(), is_active = isActive,
+                updated_at = dto.updatedAt, sync_status = "SYNCED", id = dto.id,
+            )
+        } else {
+            q.insertCategory(
+                id = dto.id, name = dto.name, parent_id = dto.parentId,
+                image_url = dto.imageUrl, display_order = dto.displayOrder.toLong(),
+                is_active = isActive, created_at = now, updated_at = dto.updatedAt,
+                sync_status = "SYNCED",
+            )
+        }
+    }
 
     override suspend fun insert(category: Category): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {

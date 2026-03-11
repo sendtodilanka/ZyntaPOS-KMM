@@ -29,6 +29,10 @@ data class AppConfig(
     val adminPanelUrl: String,
     // Redis URL for pub/sub (force-sync notifications to connected WS devices)
     val redisUrl: String,
+    // Email system — Resend transactional email (TODO-008a)
+    val resendApiKey: String,
+    val emailFromAddress: String,
+    val emailFromName: String,
 ) {
     companion object {
         fun fromEnvironment(): AppConfig {
@@ -70,6 +74,9 @@ data class AppConfig(
                 googleAllowedDomain = System.getenv("GOOGLE_ALLOWED_DOMAIN") ?: "",
                 adminPanelUrl = System.getenv("ADMIN_PANEL_URL") ?: "https://panel.zyntapos.com",
                 redisUrl = System.getenv("REDIS_URL") ?: "redis://localhost:6379",
+                resendApiKey = System.getenv("RESEND_API_KEY") ?: "",
+                emailFromAddress = System.getenv("EMAIL_FROM_ADDRESS") ?: "noreply@zyntapos.com",
+                emailFromName = System.getenv("EMAIL_FROM_NAME") ?: "ZyntaPOS",
             )
         }
 

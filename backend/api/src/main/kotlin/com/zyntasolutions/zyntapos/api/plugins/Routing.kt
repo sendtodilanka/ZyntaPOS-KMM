@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.api.plugins
 
 import com.zyntasolutions.zyntapos.api.routes.adminAlertsRoutes
+import com.zyntasolutions.zyntapos.api.routes.adminDiagnosticRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminAuditRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminAuthRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminConfigRoutes
@@ -13,6 +14,7 @@ import com.zyntasolutions.zyntapos.api.routes.authRoutes
 import com.zyntasolutions.zyntapos.api.routes.healthRoutes
 import com.zyntasolutions.zyntapos.api.routes.productRoutes
 import com.zyntasolutions.zyntapos.api.routes.syncRoutes
+import com.zyntasolutions.zyntapos.api.routes.unsubscribeRoutes
 import com.zyntasolutions.zyntapos.api.routes.wellKnownRoutes
 import io.ktor.server.application.Application
 import io.ktor.server.auth.authenticate
@@ -25,6 +27,9 @@ fun Application.configureRouting() {
     routing {
         // Public routes (no rate limit — health/ping are trivially cheap)
         healthRoutes()
+
+        // Email unsubscribe — public, no auth required
+        unsubscribeRoutes()
 
         // RFC 5785 well-known — public key for offline JWT verification (ADR-008)
         rateLimit(RateLimitName("api")) {
@@ -49,6 +54,7 @@ fun Application.configureRouting() {
                 adminSyncRoutes()
                 adminConfigRoutes()
                 adminTicketRoutes()
+                adminDiagnosticRoutes()
             }
         }
 
@@ -62,6 +68,7 @@ fun Application.configureRouting() {
             adminSyncRoutes()
             adminConfigRoutes()
             adminTicketRoutes()
+            adminDiagnosticRoutes()
         }
 
         route("/v1") {
