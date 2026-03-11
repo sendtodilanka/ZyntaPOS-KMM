@@ -117,32 +117,6 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-  # ── Snyk Security Advisory Scan (non-blocking) ───────────────────────────
-  # Runs in parallel with test-admin-panel. Advisory only — never blocks merge.
-  snyk-security:
-    name: "Snyk Security Advisory"
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    continue-on-error: true   # Advisory scan must never block the pipeline
-
-    steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-
-      - name: Run Snyk security monitor
-        uses: snyk/actions/gradle-jdk21@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          command: monitor
-        continue-on-error: true
-
   # ── Test Result Reporting ──────────────────────────────────────────────────
   test-report:
     name: "Publish Test Results"

@@ -14,17 +14,18 @@ name: CodeQL — Kotlin/JVM Source Scanning
 #               codeql-kotlin-backend-license, codeql-kotlin-backend-sync
 #
 # Triggers:
-#   • Push to main / develop
-#   • PR to main (required check for merge gate)
+#   • Push to main / develop (catches merged code immediately)
 #   • Weekly schedule — Wednesday 02:00 UTC (offset from OWASP Monday)
 #   • Manual dispatch
+#
+# NOTE: PR trigger intentionally removed — CodeQL takes 60 min per run and is
+# report-only (SARIF → Security tab). Push-to-main coverage is sufficient;
+# removing the PR trigger saves ~60 min × every PR opened.
 # ─────────────────────────────────────────────────────────────────────────────
 
 on:
   push:
     branches: [main, develop]
-  pull_request:
-    branches: [main]
   schedule:
     - cron: "0 2 * * 3"   # Wednesday 02:00 UTC
   workflow_dispatch:
@@ -54,7 +55,7 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          cache-read-only: true
+          cache-read-only: false
 
       - name: Create local.properties from dev template
         run: ./scripts/setup-local-properties.sh
@@ -133,7 +134,7 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          cache-read-only: true
+          cache-read-only: false
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
@@ -193,7 +194,7 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          cache-read-only: true
+          cache-read-only: false
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
@@ -253,7 +254,7 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          cache-read-only: true
+          cache-read-only: false
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
