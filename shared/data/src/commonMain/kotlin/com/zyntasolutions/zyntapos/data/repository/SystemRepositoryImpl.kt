@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.data.repository
 
+import app.cash.sqldelight.db.QueryResult
 import app.cash.sqldelight.db.SqlDriver
 import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
@@ -150,13 +151,25 @@ class SystemRepositoryImpl(
 
     /** Executes a PRAGMA query and returns the first column as Long. */
     private fun pragmaLong(pragma: String): Long {
-        val cursor = driver.executeQuery(null, "PRAGMA $pragma", parameters = 0)
-        return if (cursor.next().value) cursor.getLong(0) ?: 0L else 0L
+        return driver.executeQuery(
+            identifier = null,
+            sql = "PRAGMA $pragma",
+            mapper = { cursor ->
+                QueryResult.Value(if (cursor.next().value) cursor.getLong(0) ?: 0L else 0L)
+            },
+            parameters = 0,
+        ).value
     }
 
     /** Returns COUNT(*) for a table via raw SQL. */
     private fun countTable(tableName: String): Long {
-        val cursor = driver.executeQuery(null, "SELECT COUNT(*) FROM $tableName", parameters = 0)
-        return if (cursor.next().value) cursor.getLong(0) ?: 0L else 0L
+        return driver.executeQuery(
+            identifier = null,
+            sql = "SELECT COUNT(*) FROM $tableName",
+            mapper = { cursor ->
+                QueryResult.Value(if (cursor.next().value) cursor.getLong(0) ?: 0L else 0L)
+            },
+            parameters = 0,
+        ).value
     }
 }

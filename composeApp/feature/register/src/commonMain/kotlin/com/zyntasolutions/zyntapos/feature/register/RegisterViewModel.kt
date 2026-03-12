@@ -3,6 +3,8 @@ package com.zyntasolutions.zyntapos.feature.register
 import androidx.lifecycle.viewModelScope
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.CashMovement
+import com.zyntasolutions.zyntapos.domain.model.OrderStatus
+import com.zyntasolutions.zyntapos.domain.model.RegisterSession
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
 import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
@@ -384,13 +386,12 @@ class RegisterViewModel(
     }
 
     private suspend fun loadSalesByPaymentMethod(session: RegisterSession): Map<String, Double> {
-        val from = kotlinx.datetime.Instant.fromEpochMilliseconds(session.openedAt)
-        val to = session.closedAt?.let { kotlinx.datetime.Instant.fromEpochMilliseconds(it) }
-            ?: kotlinx.datetime.Clock.System.now()
+        val from = session.openedAt
+        val to = session.closedAt ?: Clock.System.now()
 
         val orders = orderRepository.getByDateRange(from, to).first()
         val completed = orders.filter {
-            it.status == com.zyntasolutions.zyntapos.domain.model.OrderStatus.COMPLETED
+            it.status == OrderStatus.COMPLETED
         }
         return completed.groupBy { it.paymentMethod.name }
             .mapValues { (_, orderList) -> orderList.sumOf { it.total } }
