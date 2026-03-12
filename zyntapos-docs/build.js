@@ -47,4 +47,3 @@ fs.writeFileSync(path.join(distDir, 'index.html'), indexHtml);
 console.log('Build complete — output in dist/');
 console.log('  - index.html (Scalar API reference)');
 console.log('  - openapi/ (spec files)');
-`;
