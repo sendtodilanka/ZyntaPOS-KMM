@@ -27,13 +27,43 @@
 }
 
 # ── Healthcheck (localhost only — Docker healthcheck probe) ──────────
+# Also routes /health to backend services for smoke tests (SSH via localhost).
+# Named virtual hosts with TLS only bind to port 443, so the smoke test
+# hits http://localhost/health with Host: header — which matches here.
 :80 {
 	respond /ping 200 {
 		body "ok"
 		close
 	}
 
-	# All other requests on port 80 without a matching Host get 404
+	# Route /health to api backend (used by smoke test & Docker healthcheck)
+	@api_health {
+		host api.zyntapos.com
+		path /health /health/*
+	}
+	handle @api_health {
+		reverse_proxy api:8080
+	}
+
+	# Route /health to license backend
+	@license_health {
+		host license.zyntapos.com
+		path /health /health/*
+	}
+	handle @license_health {
+		reverse_proxy license:8083
+	}
+
+	# Route /health to sync backend
+	@sync_health {
+		host sync.zyntapos.com
+		path /health /health/*
+	}
+	handle @sync_health {
+		reverse_proxy sync:8082
+	}
+
+	# All other requests on port 80 without a matching Host/path get 404
 	respond 404
 }
 
