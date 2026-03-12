@@ -3,7 +3,7 @@ package com.zyntasolutions.zyntapos.feature.diagnostic
 import androidx.lifecycle.viewModelScope
 import com.zyntasolutions.zyntapos.core.result.onError
 import com.zyntasolutions.zyntapos.core.result.onSuccess
-import com.zyntasolutions.zyntapos.data.remote.api.ApiService
+import com.zyntasolutions.zyntapos.domain.repository.DiagnosticConsentRepository
 import com.zyntasolutions.zyntapos.domain.model.DiagnosticSession
 import com.zyntasolutions.zyntapos.security.auth.DiagnosticTokenValidator
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
@@ -16,11 +16,11 @@ import kotlin.time.Clock
  * When a Zynta technician requests remote access, the backend issues a 15-minute
  * JIT token and delivers it to the store device (via push notification or QR code).
  * This VM decodes the token claims, presents the [DiagnosticConsentScreen], and
- * posts the consent decision back to the server via [ApiService].
+ * posts the consent decision back to the server via [DiagnosticConsentRepository].
  */
 class DiagnosticViewModel(
     private val tokenValidator: DiagnosticTokenValidator,
-    private val apiService: ApiService,
+    private val consentRepository: DiagnosticConsentRepository,
 ) : BaseViewModel<DiagnosticState, DiagnosticIntent, DiagnosticEffect>(DiagnosticState()) {
 
     /**
@@ -67,7 +67,7 @@ class DiagnosticViewModel(
         val session = state.value.pendingSession ?: return
         updateState { copy(isLoading = true) }
         try {
-            apiService.grantDiagnosticConsent(session.id, Clock.System.now().toEpochMilliseconds())
+            consentRepository.grantConsent(session.id, Clock.System.now().toEpochMilliseconds())
             updateState { copy(isLoading = false, pendingSession = null) }
             sendEffect(DiagnosticEffect.ConsentAccepted)
         } catch (e: Exception) {
@@ -80,7 +80,7 @@ class DiagnosticViewModel(
         val session = state.value.pendingSession ?: return
         updateState { copy(isLoading = true) }
         try {
-            apiService.revokeDiagnosticConsent(session.id)
+            consentRepository.revokeConsent(session.id)
             updateState { copy(isLoading = false, pendingSession = null) }
             sendEffect(DiagnosticEffect.ConsentDenied)
         } catch (e: Exception) {
