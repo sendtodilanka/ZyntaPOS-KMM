@@ -39,7 +39,9 @@ import com.zyntasolutions.zyntapos.domain.model.Role
 import com.zyntasolutions.zyntapos.domain.model.TaxGroup
 import com.zyntasolutions.zyntapos.domain.model.UnitOfMeasure
 import com.zyntasolutions.zyntapos.domain.model.User
+import com.zyntasolutions.zyntapos.domain.model.Supplier
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
+import com.zyntasolutions.zyntapos.domain.repository.SupplierRepository
 import com.zyntasolutions.zyntapos.domain.repository.TaxGroupRepository
 import com.zyntasolutions.zyntapos.domain.repository.UnitGroupRepository
 import kotlinx.coroutines.flow.flowOf
@@ -219,6 +221,16 @@ class InventoryViewModelTest {
         override fun getTree(): Flow<List<Category>> = categoriesFlow
     }
 
+    // ── Fake SupplierRepository ────────────────────────────────────────────────
+
+    private val fakeSupplierRepository = object : SupplierRepository {
+        override fun getAll(): Flow<List<Supplier>> = flowOf(emptyList())
+        override suspend fun getById(id: String): Result<Supplier> = Result.Error(DatabaseException("Not found"))
+        override suspend fun insert(supplier: Supplier): Result<Unit> = Result.Success(Unit)
+        override suspend fun update(supplier: Supplier): Result<Unit> = Result.Success(Unit)
+        override suspend fun delete(id: String): Result<Unit> = Result.Success(Unit)
+    }
+
     // ── Fake StockRepository ──────────────────────────────────────────────────
 
     private val fakeStockRepository = object : StockRepository {
@@ -262,6 +274,7 @@ class InventoryViewModelTest {
         viewModel = InventoryViewModel(
             productRepository = fakeProductRepository,
             categoryRepository = fakeCategoryRepository,
+            supplierRepository = fakeSupplierRepository,
             _searchProductsUseCase = searchProductsUseCase,
             createProductUseCase = createProductUseCase,
             updateProductUseCase = updateProductUseCase,

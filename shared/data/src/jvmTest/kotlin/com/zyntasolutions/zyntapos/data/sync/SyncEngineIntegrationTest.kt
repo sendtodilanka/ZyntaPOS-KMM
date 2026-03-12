@@ -99,6 +99,8 @@ private class FakeApiService(
     override suspend fun fetchPublicKey(): PublicKeyResponseDto = error("Not used in sync tests")
     override suspend fun activateLicense(request: LicenseActivateRequestDto): LicenseActivateResponseDto = error("Not used in sync tests")
     override suspend fun licenseHeartbeat(request: LicenseHeartbeatRequestDto): LicenseHeartbeatResponseDto = error("Not used in sync tests")
+    override suspend fun grantDiagnosticConsent(sessionId: String, grantedAtMs: Long) = error("Not used in sync tests")
+    override suspend fun revokeDiagnosticConsent(sessionId: String) = error("Not used in sync tests")
 }
 
 /** [ApiService] that always throws [NetworkException] on any network call. */
@@ -113,6 +115,8 @@ private class OfflineApiService : ApiService {
     override suspend fun fetchPublicKey(): PublicKeyResponseDto = error("unused")
     override suspend fun activateLicense(request: LicenseActivateRequestDto): LicenseActivateResponseDto = error("unused")
     override suspend fun licenseHeartbeat(request: LicenseHeartbeatRequestDto): LicenseHeartbeatResponseDto = error("unused")
+    override suspend fun grantDiagnosticConsent(sessionId: String, grantedAtMs: Long) = error("unused")
+    override suspend fun revokeDiagnosticConsent(sessionId: String) = error("unused")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
