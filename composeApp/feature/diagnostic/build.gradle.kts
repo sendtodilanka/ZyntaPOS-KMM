@@ -27,6 +27,7 @@ kotlin {
             implementation(project(":composeApp:designsystem"))
             implementation(project(":composeApp:core"))
             implementation(project(":shared:core"))
+            implementation(project(":shared:data"))
             implementation(project(":shared:domain"))
             implementation(project(":shared:security"))
             implementation(libs.bundles.koin.common)
