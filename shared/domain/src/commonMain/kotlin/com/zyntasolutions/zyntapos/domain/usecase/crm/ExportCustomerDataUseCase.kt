@@ -1,10 +1,12 @@
 package com.zyntasolutions.zyntapos.domain.usecase.crm
 
+import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.Customer
 import com.zyntasolutions.zyntapos.domain.model.Order
 import com.zyntasolutions.zyntapos.domain.repository.CustomerRepository
 import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
+import kotlin.time.Clock
 
 /**
  * GDPR-compliant customer data export use case (S4-10).
@@ -39,7 +41,7 @@ class ExportCustomerDataUseCase(
             is Result.Success -> customerResult.data
             is Result.Error -> return customerResult
             is Result.Loading -> return Result.Error(
-                Exception("Unexpected loading state while fetching customer")
+                DatabaseException("Unexpected loading state while fetching customer")
             )
         }
 
@@ -53,7 +55,7 @@ class ExportCustomerDataUseCase(
             CustomerDataExport(
                 customer = customer,
                 orders = orders,
-                exportedAt = kotlinx.datetime.Clock.System.now().toEpochMilliseconds(),
+                exportedAt = Clock.System.now().toEpochMilliseconds(),
             )
         )
     }
