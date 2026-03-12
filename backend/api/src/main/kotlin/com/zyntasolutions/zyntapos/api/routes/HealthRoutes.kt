@@ -6,17 +6,30 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
+import io.lettuce.core.api.StatefulRedisConnection
 import kotlinx.serialization.Serializable
 import org.koin.ktor.ext.inject
 
 @Serializable
 data class HealthResponse(
     val status: String,
-    val db: String
+    val db: String,
+    val redis: String = "unknown",
 )
+
+@Serializable
+data class DeepHealthResponse(
+    val status: String,
+    val db: String,
+    val redis: String,
+    val uptimeMs: Long,
+)
+
+private val startTime = System.currentTimeMillis()
 
 fun Route.healthRoutes() {
     val syncMetrics: SyncMetrics by inject()
+    val redisConnection: StatefulRedisConnection<String, String>? by inject()
 
     get("/health") {
         val dbOk = try {
@@ -25,13 +38,37 @@ fun Route.healthRoutes() {
         } catch (_: Exception) {
             "degraded"
         }
-        val overallStatus = if (dbOk == "ok") "ok" else "degraded"
-        val statusCode = if (dbOk == "ok") HttpStatusCode.OK else HttpStatusCode.ServiceUnavailable
+        val redisOk = checkRedis(redisConnection)
+        val overallStatus = if (dbOk == "ok" && redisOk == "ok") "ok" else "degraded"
+        val statusCode = if (overallStatus == "ok") HttpStatusCode.OK else HttpStatusCode.ServiceUnavailable
         call.respond(
             statusCode,
             HealthResponse(
                 status = overallStatus,
-                db = dbOk
+                db = dbOk,
+                redis = redisOk,
+            )
+        )
+    }
+
+    // Deep health check — validates all downstream dependencies
+    get("/health/deep") {
+        val dbOk = try {
+            DatabaseFactory.ping()
+            "ok"
+        } catch (_: Exception) {
+            "degraded"
+        }
+        val redisOk = checkRedis(redisConnection)
+        val overallStatus = if (dbOk == "ok" && redisOk == "ok") "ok" else "degraded"
+        val statusCode = if (overallStatus == "ok") HttpStatusCode.OK else HttpStatusCode.ServiceUnavailable
+        call.respond(
+            statusCode,
+            DeepHealthResponse(
+                status = overallStatus,
+                db = dbOk,
+                redis = redisOk,
+                uptimeMs = System.currentTimeMillis() - startTime,
             )
         )
     }
@@ -45,5 +82,15 @@ fun Route.healthRoutes() {
     // Lightweight liveness probe (no DB check) — used by load balancer
     get("/ping") {
         call.respond(HttpStatusCode.OK, "ok")
+    }
+}
+
+private fun checkRedis(connection: StatefulRedisConnection<String, String>?): String {
+    if (connection == null) return "not_configured"
+    return try {
+        val pong = connection.sync().ping()
+        if (pong == "PONG") "ok" else "degraded"
+    } catch (_: Exception) {
+        "degraded"
     }
 }
