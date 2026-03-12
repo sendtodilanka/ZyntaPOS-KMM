@@ -7,5 +7,5 @@ CREATE INDEX IF NOT EXISTS idx_sync_operations_store_status
     ON sync_operations(store_id, status);
 
 -- Covers time-range queries for audit, cleanup, and monitoring
-CREATE INDEX IF NOT EXISTS idx_sync_operations_created
-    ON sync_operations(created_at);
+CREATE INDEX IF NOT EXISTS idx_sync_operations_server_timestamp
+    ON sync_operations(server_timestamp);
