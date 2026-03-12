@@ -26,8 +26,8 @@ import { Route as AlertsIndexRouteImport } from './routes/alerts/index'
 import { Route as TicketsTicketIdRouteImport } from './routes/tickets/$ticketId'
 import { Route as StoresStoreIdRouteImport } from './routes/stores/$storeId'
 import { Route as SettingsProfileRouteImport } from './routes/settings/profile'
-import { Route as SettingsEmailRouteImport } from './routes/settings/email'
 import { Route as SettingsMfaRouteImport } from './routes/settings/mfa'
+import { Route as SettingsEmailRouteImport } from './routes/settings/email'
 import { Route as LicensesLicenseKeyRouteImport } from './routes/licenses/$licenseKey'
 import { Route as HealthStoreIdRouteImport } from './routes/health/$storeId'
 
@@ -116,14 +116,14 @@ const SettingsProfileRoute = SettingsProfileRouteImport.update({
   path: '/settings/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SettingsEmailRoute = SettingsEmailRouteImport.update({
-  id: '/settings/email',
-  path: '/settings/email',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SettingsMfaRoute = SettingsMfaRouteImport.update({
   id: '/settings/mfa',
   path: '/settings/mfa',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsEmailRoute = SettingsEmailRouteImport.update({
+  id: '/settings/email',
+  path: '/settings/email',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LicensesLicenseKeyRoute = LicensesLicenseKeyRouteImport.update({
@@ -424,18 +424,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/settings/email': {
-      id: '/settings/email'
-      path: '/settings/email'
-      fullPath: '/settings/email'
-      preLoaderRoute: typeof SettingsEmailRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/settings/mfa': {
       id: '/settings/mfa'
       path: '/settings/mfa'
       fullPath: '/settings/mfa'
       preLoaderRoute: typeof SettingsMfaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/email': {
+      id: '/settings/email'
+      path: '/settings/email'
+      fullPath: '/settings/email'
+      preLoaderRoute: typeof SettingsEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/licenses/$licenseKey': {
