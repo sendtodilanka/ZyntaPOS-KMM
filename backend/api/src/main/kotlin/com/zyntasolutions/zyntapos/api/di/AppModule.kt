@@ -27,20 +27,34 @@ import com.zyntasolutions.zyntapos.api.sync.ServerConflictResolver
 import com.zyntasolutions.zyntapos.api.sync.SyncMetrics
 import com.zyntasolutions.zyntapos.api.sync.SyncProcessor
 import com.zyntasolutions.zyntapos.api.sync.SyncValidator
+import io.lettuce.core.ClientOptions
 import io.lettuce.core.RedisClient
+import io.lettuce.core.RedisURI
+import io.lettuce.core.TimeoutOptions
 import io.lettuce.core.api.StatefulRedisConnection
 import org.koin.dsl.module
 import org.slf4j.LoggerFactory
+import java.time.Duration
 
 private val log = LoggerFactory.getLogger("AppModule")
 
 val appModule = module {
     single { AppConfig.fromEnvironment() }
 
-    // ── Redis connection for pub/sub publishing ───────────────────────────────
+    // ── Redis connection with configured timeouts and auto-reconnect (S3-13) ──
     single<StatefulRedisConnection<String, String>?> {
         try {
-            RedisClient.create(get<AppConfig>().redisUrl).connect()
+            val uri = RedisURI.create(get<AppConfig>().redisUrl)
+            uri.timeout = Duration.ofSeconds(
+                System.getenv("REDIS_TIMEOUT_SECONDS")?.toLongOrNull() ?: 5
+            )
+            val client = RedisClient.create(uri)
+            client.options = ClientOptions.builder()
+                .autoReconnect(true)
+                .disconnectedBehavior(ClientOptions.DisconnectedBehavior.REJECT_COMMANDS)
+                .timeoutOptions(TimeoutOptions.enabled(Duration.ofSeconds(5)))
+                .build()
+            client.connect()
         } catch (e: Exception) {
             log.warn("Redis connection unavailable — sync notifications disabled: ${e.message}")
             null

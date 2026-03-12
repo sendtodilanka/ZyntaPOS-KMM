@@ -77,6 +77,9 @@ fun Application.module() {
     val alertJob: AlertGenerationJob by inject()
     alertJob.start(intervalSeconds = 60L)
 
+    // S4-2: Request correlation ID for cross-service tracing
+    install(com.zyntasolutions.zyntapos.common.CorrelationId)
+
     configureSerialization()
     configureAuthentication()
     configureCors()

@@ -57,6 +57,9 @@ fun Application.module() {
     LicenseDatabaseFactory.init()
     check(LicenseDatabaseFactory.ping()) { "Database not available after initialization" }
 
+    // S4-2: Request correlation ID for cross-service tracing
+    install(com.zyntasolutions.zyntapos.common.CorrelationId)
+
     configureSerialization()
     configureAuthentication()
     configureSecurity()

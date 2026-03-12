@@ -4,6 +4,8 @@ plugins {
     id("com.github.johnrengelman.shadow") version "8.1.1"
     application
     id("org.owasp.dependencycheck") version "12.2.0"
+    id("org.jetbrains.kotlinx.kover") version "0.9.1"
+    id("io.gitlab.arturbosch.detekt") version "1.23.8"
 }
 
 group = "com.zyntasolutions.zyntapos"
@@ -117,6 +119,14 @@ dependencies {
     implementation("io.ktor:ktor-client-cio:$ktorVersion")
     implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
 
+    // ── Metrics (Prometheus/Micrometer) — S4-1 ────────────────────────────
+    implementation("io.ktor:ktor-server-metrics-micrometer:$ktorVersion")
+    implementation("io.micrometer:micrometer-registry-prometheus:1.14.5")
+
+    // ── OpenAPI / Swagger UI — S4-4 ─────────────────────────────────────
+    implementation("io.ktor:ktor-server-openapi:$ktorVersion")
+    implementation("io.ktor:ktor-server-swagger:$ktorVersion")
+
     // ── Crash Reporting (Sentry) ──────────────────────────────────────────
     // Initialized in main() before embeddedServer (ADR-011 rule #4).
     // DSN injected via SENTRY_DSN environment variable in docker-compose.
@@ -125,6 +135,17 @@ dependencies {
     // ── Testing ───────────────────────────────────────────────────────
     testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
     testImplementation(kotlin("test"))
+    testImplementation("io.mockk:mockk:1.13.16")
+    testImplementation("org.testcontainers:testcontainers:1.20.4")
+    testImplementation("org.testcontainers:postgresql:1.20.4")
+    testImplementation("org.testcontainers:junit-jupiter:1.20.4")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
+
+    // ── Architecture enforcement tests ──────────────────────────────────
+    testImplementation("com.lemonappdev:konsist:0.17.3")
+
+    // ── Detekt formatting rules ─────────────────────────────────────────
+    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.8")
 }
 
 tasks.shadowJar {
