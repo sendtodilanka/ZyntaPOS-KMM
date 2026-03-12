@@ -248,8 +248,8 @@ val dataModule = module {
     // Unit-of-Measure CRUD + base-unit promotion (SQLDelight queries tracked in MERGED-D2)
     single<UnitGroupRepository> { UnitGroupRepositoryImpl(db = get(), syncEnqueuer = get()) }
 
-    // Security audit log: append-only; no remote sync in Phase 1
-    single<AuditRepository> { AuditRepositoryImpl(db = get()) }
+    // Security audit log: append-only; S4-11 enables sync to server
+    single<AuditRepository> { AuditRepositoryImpl(db = get(), syncEnqueuer = get()) }
 
     // Diagnostic consent: grants/revokes remote technician access via API
     single<DiagnosticConsentRepository> { DiagnosticConsentRepositoryImpl(apiService = get()) }

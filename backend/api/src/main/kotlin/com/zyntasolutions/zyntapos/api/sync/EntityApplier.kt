@@ -78,6 +78,28 @@ object Orders : Table("orders") {
     override val primaryKey = PrimaryKey(id)
 }
 
+object AuditEntries : Table("audit_entries") {
+    val id            = text("id")
+    val storeId       = text("store_id")
+    val deviceId      = text("device_id")
+    val eventType     = text("event_type")
+    val userId        = text("user_id")
+    val userName      = text("user_name").nullable()
+    val userRole      = text("user_role").nullable()
+    val entityType    = text("entity_type").nullable()
+    val entityId      = text("entity_id").nullable()
+    val details       = text("details")
+    val previousValue = text("previous_value").nullable()
+    val newValue      = text("new_value").nullable()
+    val success       = bool("success")
+    val ipAddress     = text("ip_address").nullable()
+    val hash          = text("hash")
+    val previousHash  = text("previous_hash")
+    val timestamp     = long("timestamp")
+    val syncVersion   = long("sync_version")
+    override val primaryKey = PrimaryKey(id)
+}
+
 object OrderItems : Table("order_items") {
     val id          = text("id")
     val orderId     = text("order_id")
@@ -124,6 +146,7 @@ class EntityApplier {
                 "SUPPLIER" -> applySupplier(storeId, op)
                 "ORDER"    -> applyOrder(storeId, op)
                 "ORDER_ITEM" -> applyOrderItem(op)
+                "AUDIT_ENTRY" -> applyAuditEntry(storeId, op)
                 else -> { /* entity_snapshots trigger handles any remaining types */ }
             }
         } catch (e: Exception) {
@@ -287,6 +310,40 @@ class EntityApplier {
             }
             "DELETE" -> {
                 OrderItems.deleteWhere { OrderItems.id eq op.entityId }
+            }
+        }
+    }
+
+    // ── Audit Entry ───────────────────────────────────────────────────────
+
+    private fun applyAuditEntry(storeId: String, op: SyncOperation) {
+        val payload = parsePayload(op) ?: return
+        // Audit entries are append-only — INSERT only, never UPDATE or DELETE
+        when (op.operation) {
+            "INSERT", "CREATE" -> {
+                AuditEntries.insertIgnore {
+                    it[AuditEntries.id]            = op.entityId
+                    it[AuditEntries.storeId]       = storeId
+                    it[AuditEntries.deviceId]      = payload.str("device_id") ?: ""
+                    it[AuditEntries.eventType]     = payload.str("event_type") ?: "UNKNOWN"
+                    it[AuditEntries.userId]        = payload.str("user_id") ?: ""
+                    it[AuditEntries.userName]      = payload.str("user_name")
+                    it[AuditEntries.userRole]      = payload.str("user_role")
+                    it[AuditEntries.entityType]    = payload.str("entity_type")
+                    it[AuditEntries.entityId]      = payload.str("entity_id")
+                    it[AuditEntries.details]       = payload.str("details") ?: "{}"
+                    it[AuditEntries.previousValue] = payload.str("previous_value")
+                    it[AuditEntries.newValue]      = payload.str("new_value")
+                    it[AuditEntries.success]       = payload.bool("success")
+                    it[AuditEntries.ipAddress]     = payload.str("ip_address")
+                    it[AuditEntries.hash]          = payload.str("hash") ?: ""
+                    it[AuditEntries.previousHash]  = payload.str("previous_hash") ?: ""
+                    it[AuditEntries.timestamp]     = payload.str("timestamp")?.toLongOrNull() ?: op.createdAt
+                    it[AuditEntries.syncVersion]   = op.createdAt
+                }
+            }
+            else -> {
+                logger.debug("Ignoring ${op.operation} on AUDIT_ENTRY — audit entries are append-only")
             }
         }
     }
