@@ -3,10 +3,12 @@ package com.zyntasolutions.zyntapos.feature.diagnostic
 import androidx.lifecycle.viewModelScope
 import com.zyntasolutions.zyntapos.core.result.onError
 import com.zyntasolutions.zyntapos.core.result.onSuccess
+import com.zyntasolutions.zyntapos.data.remote.api.ApiService
 import com.zyntasolutions.zyntapos.domain.model.DiagnosticSession
 import com.zyntasolutions.zyntapos.security.auth.DiagnosticTokenValidator
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlinx.coroutines.launch
+import kotlin.time.Clock
 
 /**
  * ViewModel for the remote diagnostic consent flow.
@@ -14,14 +16,11 @@ import kotlinx.coroutines.launch
  * When a Zynta technician requests remote access, the backend issues a 15-minute
  * JIT token and delivers it to the store device (via push notification or QR code).
  * This VM decodes the token claims, presents the [DiagnosticConsentScreen], and
- * posts the consent decision back to the server.
- *
- * The VM is intentionally lightweight — actual network calls are stub placeholders
- * because the ApiService interface does not yet have diagnostic endpoints (added
- * as backend-only in this sprint; KMM API client extension is Phase 2 work).
+ * posts the consent decision back to the server via [ApiService].
  */
 class DiagnosticViewModel(
     private val tokenValidator: DiagnosticTokenValidator,
+    private val apiService: ApiService,
 ) : BaseViewModel<DiagnosticState, DiagnosticIntent, DiagnosticEffect>(DiagnosticState()) {
 
     /**
@@ -67,16 +66,26 @@ class DiagnosticViewModel(
     private suspend fun acceptConsent() {
         val session = state.value.pendingSession ?: return
         updateState { copy(isLoading = true) }
-        // Phase 2: call ApiService.grantDiagnosticConsent(session.id, Clock.System.now().toEpochMilliseconds())
-        updateState { copy(isLoading = false, pendingSession = null) }
-        sendEffect(DiagnosticEffect.ConsentAccepted)
+        try {
+            apiService.grantDiagnosticConsent(session.id, Clock.System.now().toEpochMilliseconds())
+            updateState { copy(isLoading = false, pendingSession = null) }
+            sendEffect(DiagnosticEffect.ConsentAccepted)
+        } catch (e: Exception) {
+            updateState { copy(isLoading = false, errorMessage = e.message) }
+            sendEffect(DiagnosticEffect.ShowError(e.message ?: "Failed to grant consent"))
+        }
     }
 
     private suspend fun denyConsent() {
         val session = state.value.pendingSession ?: return
         updateState { copy(isLoading = true) }
-        // Phase 2: call ApiService.revokeDiagnosticConsent(session.id)
-        updateState { copy(isLoading = false, pendingSession = null) }
-        sendEffect(DiagnosticEffect.ConsentDenied)
+        try {
+            apiService.revokeDiagnosticConsent(session.id)
+            updateState { copy(isLoading = false, pendingSession = null) }
+            sendEffect(DiagnosticEffect.ConsentDenied)
+        } catch (e: Exception) {
+            updateState { copy(isLoading = false, errorMessage = e.message) }
+            sendEffect(DiagnosticEffect.ShowError(e.message ?: "Failed to revoke consent"))
+        }
     }
 }

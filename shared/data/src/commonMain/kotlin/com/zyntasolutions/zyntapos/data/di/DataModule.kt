@@ -441,8 +441,8 @@ val dataModule = module {
     // Accounting periods: OPEN → CLOSED → LOCKED lifecycle management
     single<AccountingPeriodRepository> { AccountingPeriodRepositoryImpl(db = get(), _syncEnqueuer = get()) }
 
-    // System health: DB stats, memory metrics, VACUUM, soft-delete purge
-    single<SystemRepository> { SystemRepositoryImpl(db = get()) }
+    // System health: DB stats via PRAGMA, memory metrics, VACUUM, soft-delete purge
+    single<SystemRepository> { SystemRepositoryImpl(db = get(), driver = get()) }
 
     // Backup: in-memory registry (Phase 3 stub; file I/O added in Sprint 13)
     single<BackupRepository> { BackupRepositoryImpl(db = get()) }

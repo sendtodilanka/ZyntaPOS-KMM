@@ -1,36 +1,20 @@
 package com.zyntasolutions.zyntapos.hal.printer
 
+import com.fazecast.jSerialComm.SerialPort
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * ZyntaPOS — HAL | Desktop (JVM) Implementation
- *
  * [DesktopUsbPrinterPort] provides USB direct-print capability for desktop
  * thermal receipt printers (e.g. Epson TM-T88, Star TSP100 in native USB mode).
  *
- * ### MVP status — Stub implementation
- * For the MVP release the USB path is implemented as a functional stub that:
- * - Reports [isConnected] = `false` until a real USB handle is acquired.
- * - Returns [Result.failure] with a descriptive [UnsupportedOperationException] for
- *   all print operations.
- * - Logs a clear "USB printer not yet initialised" message so QA can differentiate
- *   a stub no-op from an actual transport error.
+ * USB thermal printers typically appear as virtual serial ports on the OS.
+ * This implementation uses jSerialComm to enumerate serial ports and match
+ * by USB descriptor patterns.
  *
- * ### Full implementation path (Phase 2)
- * USB thermal printers expose a **HID / Vendor-class** interface with a bulk-OUT
- * endpoint that accepts raw ESC/POS byte arrays.  The full implementation will:
- * 1. Enumerate USB devices via `javax.usb` (`UsbHostManager.getUsbServices()`) or
- *    **libusb4j** (`LibUsbContext.init()` + `LibUsb.getDeviceList()`).
- * 2. Match the printer by Vendor ID + Product ID (configured in [PrinterConfig]).
- * 3. Claim the bulk-OUT interface and open a pipe.
- * 4. Write ESC/POS byte arrays to the pipe in chunks ≤ `wMaxPacketSize` (typically 64 B).
- * 5. Release the interface and close context on [disconnect].
- *
- * ### Activation trigger
- * At startup [PrinterManager] calls `DesktopUsbPrinterPort.detectAndConnect()`.
- * If a matching USB device is found the port is promoted to active; otherwise the
- * system falls back to [DesktopTcpPrinterPort] or [DesktopSerialPrinterPort].
+ * At startup [PrinterManager] calls [detectAndConnect] to find a matching printer.
+ * If found, the port is promoted to active; otherwise the system falls back to
+ * [DesktopTcpPrinterPort] or [DesktopSerialPrinterPort].
  *
  * @param vendorId   USB Vendor ID of the target printer (e.g. `0x04B8` for Epson).
  * @param productId  USB Product ID of the target printer.
@@ -40,86 +24,130 @@ class DesktopUsbPrinterPort(
     private val _productId: Int = 0x0000,
 ) : PrinterPort {
 
-    // ──────────────────────────────────────────────────────────────────────────
-    // State
-    // ──────────────────────────────────────────────────────────────────────────
-
-    /** Whether a real USB handle has been acquired. Always false in MVP stub. */
     @Volatile private var connected: Boolean = false
-
-    // ──────────────────────────────────────────────────────────────────────────
-    // PrinterPort implementation
-    // ──────────────────────────────────────────────────────────────────────────
+    private var port: SerialPort? = null
 
     override suspend fun connect(): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
-            // TODO Phase 2: enumerate USB bus, match vendorId/productId, claim interface
-            connected = false
-            throw UnsupportedOperationException(
-                "DesktopUsbPrinterPort: USB direct-print not yet implemented (MVP stub). " +
-                    "Configure a TCP or Serial printer port instead."
+            if (port?.isOpen == true) return@runCatching
+
+            val matchedPort = findUsbPrinterPort()
+                ?: throw IllegalStateException(
+                    "DesktopUsbPrinterPort: no USB printer found matching vendorId=0x${_vendorId.toString(16)}. " +
+                        "Available ports: ${SerialPort.getCommPorts().map { it.systemPortName }.joinToString()}"
+                )
+
+            matchedPort.baudRate = 115_200
+            matchedPort.numDataBits = 8
+            matchedPort.numStopBits = SerialPort.ONE_STOP_BIT
+            matchedPort.parity = SerialPort.NO_PARITY
+            matchedPort.setComPortTimeouts(
+                SerialPort.TIMEOUT_WRITE_BLOCKING, 0, WRITE_TIMEOUT_MS,
             )
+
+            check(matchedPort.openPort()) {
+                "jSerialComm: could not open USB port ${matchedPort.systemPortName}"
+            }
+            port = matchedPort
+            connected = true
         }
     }
 
     override suspend fun disconnect(): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
-            // TODO Phase 2: release USB interface + close libusb context
+            port?.closePort()
+            port = null
             connected = false
         }
     }
 
-    override suspend fun isConnected(): Boolean = connected
+    override suspend fun isConnected(): Boolean = connected && port?.isOpen == true
 
-    override suspend fun print(commands: ByteArray): Result<Unit> =
-        Result.failure(notImplemented("print"))
-
-    override suspend fun openCashDrawer(): Result<Unit> =
-        Result.failure(notImplemented("openCashDrawer"))
-
-    override suspend fun cutPaper(): Result<Unit> =
-        Result.failure(notImplemented("cutPaper"))
-
-    // ──────────────────────────────────────────────────────────────────────────
-    // Helpers
-    // ──────────────────────────────────────────────────────────────────────────
-
-    private fun notImplemented(op: String): UnsupportedOperationException =
-        UnsupportedOperationException(
-            "DesktopUsbPrinterPort.$op: USB direct-print is an MVP stub. " +
-                "Use DesktopTcpPrinterPort or DesktopSerialPrinterPort."
-        )
-
-    /**
-     * Attempts to detect a connected USB printer matching [vendorId]/[productId] and
-     * connect to it.  Returns [Result.success] with `true` if a device was found and
-     * claimed, `false` if the bus was enumerated but no matching device was present.
-     *
-     * Called once at startup by [PrinterManager].
-     *
-     * @return `Result.success(true)` — device found and connected.
-     *         `Result.success(false)` — bus enumerated, no matching device.
-     *         `Result.failure` — USB subsystem unavailable.
-     */
-    suspend fun detectAndConnect(): Result<Boolean> = withContext(Dispatchers.IO) {
+    override suspend fun print(commands: ByteArray): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
-            // TODO Phase 2: real USB enumeration
-            false
+            val sp = requireConnected()
+            sp.outputStream.use {
+                it.write(commands)
+                it.flush()
+            }
         }
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    // Constants
-    // ──────────────────────────────────────────────────────────────────────────
+    override suspend fun openCashDrawer(): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            requireConnected().outputStream.use {
+                it.write(ESC_P_DRAWER_KICK)
+                it.flush()
+            }
+        }
+    }
+
+    override suspend fun cutPaper(): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            requireConnected().outputStream.use {
+                it.write(GS_V_PARTIAL_CUT)
+                it.flush()
+            }
+        }
+    }
+
+    /**
+     * Attempts to detect a connected USB printer matching [_vendorId]/[_productId] and
+     * connect to it. Returns `true` if a device was found and claimed, `false` otherwise.
+     *
+     * Called once at startup by [PrinterManager].
+     */
+    suspend fun detectAndConnect(): Result<Boolean> = withContext(Dispatchers.IO) {
+        runCatching {
+            val matchedPort = findUsbPrinterPort() ?: return@runCatching false
+            matchedPort.baudRate = 115_200
+            matchedPort.numDataBits = 8
+            matchedPort.numStopBits = SerialPort.ONE_STOP_BIT
+            matchedPort.parity = SerialPort.NO_PARITY
+            matchedPort.setComPortTimeouts(
+                SerialPort.TIMEOUT_WRITE_BLOCKING, 0, WRITE_TIMEOUT_MS,
+            )
+            if (matchedPort.openPort()) {
+                port = matchedPort
+                connected = true
+                true
+            } else {
+                false
+            }
+        }
+    }
+
+    private fun findUsbPrinterPort(): SerialPort? {
+        val ports = SerialPort.getCommPorts()
+        val vid = _vendorId.toString(16).padStart(4, '0')
+        // Match by USB vendor ID in the port description
+        return ports.firstOrNull { sp ->
+            sp.portDescription.lowercase().contains(vid)
+        } ?: ports.firstOrNull { sp ->
+            // Fallback: match common USB-to-serial adapters used with receipt printers
+            sp.portDescription.lowercase().let {
+                it.contains("usb") && (it.contains("printer") || it.contains("receipt"))
+            }
+        }
+    }
+
+    private fun requireConnected(): SerialPort =
+        checkNotNull(port?.takeIf { it.isOpen }) {
+            "DesktopUsbPrinterPort: not connected"
+        }
 
     companion object {
         /** Epson USB Vendor ID — covers TM-T20, TM-T88, TM-m30 families. */
         const val EPSON_VENDOR_ID = 0x04B8
-
         /** Star Micronics USB Vendor ID — covers TSP100, TSP650 families. */
         const val STAR_VENDOR_ID = 0x0519
-
         /** BIXOLON USB Vendor ID — covers SRP-350, SRP-500 families. */
         const val BIXOLON_VENDOR_ID = 0x1504
+
+        private const val WRITE_TIMEOUT_MS = 2_000
+        /** ESC p 0 50 250 — drawer kick pin 0, on-time 100 ms, off-time 500 ms. */
+        private val ESC_P_DRAWER_KICK = byteArrayOf(0x1B, 0x70, 0x00, 50, -6)
+        /** GS V 66 0 — partial paper cut. */
+        private val GS_V_PARTIAL_CUT = byteArrayOf(0x1D, 0x56, 0x42, 0x00)
     }
 }

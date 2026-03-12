@@ -2,6 +2,7 @@
 CREATE TABLE registers (
     id                 TEXT    NOT NULL PRIMARY KEY,
     name               TEXT    NOT NULL,
+    store_id           TEXT    NOT NULL DEFAULT '',
     current_session_id TEXT,
     is_active          INTEGER NOT NULL DEFAULT 1,
     created_at         INTEGER NOT NULL,
@@ -50,8 +51,8 @@ getAll:
 SELECT * FROM registers WHERE is_active = 1 ORDER BY name ASC;
 
 insertRegister:
-INSERT INTO registers(id, name, current_session_id, is_active, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?);
+INSERT INTO registers(id, name, store_id, current_session_id, is_active, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?);
 
 updateRegisterSession:
 UPDATE registers SET current_session_id = ? WHERE id = ?;

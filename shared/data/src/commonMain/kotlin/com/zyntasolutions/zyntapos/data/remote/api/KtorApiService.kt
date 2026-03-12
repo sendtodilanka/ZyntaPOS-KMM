@@ -126,6 +126,26 @@ class KtorApiService(
             }
         }
 
+    // ── Diagnostics ────────────────────────────────────────────────────────────
+
+    override suspend fun grantDiagnosticConsent(sessionId: String, grantedAtMs: Long) {
+        safeRequest<Unit> {
+            client.post("$baseUrl/api/v1/diagnostic/consent/grant") {
+                contentType(ContentType.Application.Json)
+                setBody(mapOf("sessionId" to sessionId, "grantedAtMs" to grantedAtMs.toString()))
+            }
+        }
+    }
+
+    override suspend fun revokeDiagnosticConsent(sessionId: String) {
+        safeRequest<Unit> {
+            client.post("$baseUrl/api/v1/diagnostic/consent/revoke") {
+                contentType(ContentType.Application.Json)
+                setBody(mapOf("sessionId" to sessionId))
+            }
+        }
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // ── Private helpers ───────────────────────────────────────────────────────
     // ─────────────────────────────────────────────────────────────────────────

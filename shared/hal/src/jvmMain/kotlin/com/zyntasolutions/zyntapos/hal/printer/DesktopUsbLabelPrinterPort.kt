@@ -1,28 +1,16 @@
 package com.zyntasolutions.zyntapos.hal.printer
 
+import com.fazecast.jSerialComm.SerialPort
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * ZyntaPOS — HAL | Desktop (JVM) Label Printer Implementation
- *
  * [DesktopUsbLabelPrinterPort] provides USB direct-print capability for desktop
  * label printers (Zebra ZD series, TSC TTP series in native USB mode).
  *
- * ### MVP status — Stub implementation
- * For the MVP release the USB path is implemented as a functional stub that:
- * - Reports [isConnected] = `false` until a real USB handle is acquired.
- * - Returns [Result.failure] with a descriptive [UnsupportedOperationException] for
- *   all print operations.
- *
- * ### Full implementation path (Phase 2)
- * Zebra and TSC label printers expose a **Vendor-class USB** interface with a
- * bulk-OUT endpoint accepting raw ZPL/TSPL bytes. The full implementation will:
- * 1. Enumerate USB devices via libusb4j (`LibUsb.getDeviceList()`).
- * 2. Match the printer by Vendor ID + Product ID.
- * 3. Claim the bulk-OUT interface.
- * 4. Write ZPL/TSPL byte arrays to the endpoint.
- * 5. Release interface and close context on [disconnect].
+ * USB label printers typically appear as virtual serial ports. This implementation
+ * uses jSerialComm to enumerate and match by USB descriptor patterns, then sends
+ * raw ZPL/TSPL command bytes over the serial channel.
  *
  * @param vendorId   USB Vendor ID of the target label printer.
  * @param productId  USB Product ID of the target label printer.
@@ -33,41 +21,87 @@ class DesktopUsbLabelPrinterPort(
 ) : LabelPrinterPort {
 
     @Volatile private var connected: Boolean = false
+    private var port: SerialPort? = null
 
     override suspend fun connect(): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
-            // TODO Phase 2: enumerate USB bus, match vendorId/productId, claim interface
-            connected = false
-            throw UnsupportedOperationException(
-                "DesktopUsbLabelPrinterPort: USB direct-print not yet implemented (MVP stub). " +
-                    "Configure a TCP or Serial label printer port instead."
+            if (port?.isOpen == true) return@runCatching
+
+            val matchedPort = findUsbLabelPrinterPort()
+                ?: throw IllegalStateException(
+                    "DesktopUsbLabelPrinterPort: no USB label printer found matching vendorId=0x${_vendorId.toString(16)}. " +
+                        "Available ports: ${SerialPort.getCommPorts().map { it.systemPortName }.joinToString()}"
+                )
+
+            matchedPort.baudRate = 115_200
+            matchedPort.numDataBits = 8
+            matchedPort.numStopBits = SerialPort.ONE_STOP_BIT
+            matchedPort.parity = SerialPort.NO_PARITY
+            matchedPort.setComPortTimeouts(
+                SerialPort.TIMEOUT_WRITE_BLOCKING, 0, WRITE_TIMEOUT_MS,
             )
+
+            check(matchedPort.openPort()) {
+                "jSerialComm: could not open USB label printer port ${matchedPort.systemPortName}"
+            }
+            port = matchedPort
+            connected = true
         }
     }
 
     override suspend fun disconnect(): Result<Unit> = withContext(Dispatchers.IO) {
-        runCatching { connected = false }
+        runCatching {
+            port?.closePort()
+            port = null
+            connected = false
+        }
     }
 
-    override suspend fun isConnected(): Boolean = connected
+    override suspend fun isConnected(): Boolean = connected && port?.isOpen == true
 
-    override suspend fun printZpl(commands: ByteArray): Result<Unit> =
-        Result.failure(notImplemented("printZpl"))
+    override suspend fun printZpl(commands: ByteArray): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            val sp = requireConnected()
+            sp.outputStream.use {
+                it.write(commands)
+                it.flush()
+            }
+        }
+    }
 
-    override suspend fun printTspl(commands: ByteArray): Result<Unit> =
-        Result.failure(notImplemented("printTspl"))
+    override suspend fun printTspl(commands: ByteArray): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            val sp = requireConnected()
+            sp.outputStream.use {
+                it.write(commands)
+                it.flush()
+            }
+        }
+    }
 
-    private fun notImplemented(op: String): UnsupportedOperationException =
-        UnsupportedOperationException(
-            "DesktopUsbLabelPrinterPort.$op: USB label printing is an MVP stub. " +
-                "Use DesktopTcpLabelPrinterPort or DesktopSerialLabelPrinterPort."
-        )
+    private fun findUsbLabelPrinterPort(): SerialPort? {
+        val ports = SerialPort.getCommPorts()
+        val vid = _vendorId.toString(16).padStart(4, '0')
+        return ports.firstOrNull { sp ->
+            sp.portDescription.lowercase().contains(vid)
+        } ?: ports.firstOrNull { sp ->
+            sp.portDescription.lowercase().let {
+                it.contains("usb") && (it.contains("label") || it.contains("zebra") || it.contains("tsc"))
+            }
+        }
+    }
+
+    private fun requireConnected(): SerialPort =
+        checkNotNull(port?.takeIf { it.isOpen }) {
+            "DesktopUsbLabelPrinterPort: not connected"
+        }
 
     companion object {
         /** Zebra Technologies USB Vendor ID — covers ZD410, ZD420, ZD620, ZT series. */
         const val ZEBRA_VENDOR_ID = 0x0A5F
-
         /** TSC Auto ID Technology USB Vendor ID. */
         const val TSC_VENDOR_ID = 0x1203
+
+        private const val WRITE_TIMEOUT_MS = 2_000
     }
 }

@@ -364,22 +364,36 @@ class RegisterViewModel(
 
     private suspend fun loadZReport(sessionId: String) {
         updateState { copy(isLoading = true) }
-        // Load the closed session from repository — collect first value from getActive won't work
-        // because session is CLOSED; we use the zReportSession stored after close or reload.
         val session = currentState.zReportSession
         if (session != null && session.id == sessionId) {
-            // Already loaded from close flow
             val movements = currentState.movements
+
+            // Load sales breakdown by payment method for the session's time window
+            val salesByPayment = loadSalesByPaymentMethod(session)
+
             updateState {
                 copy(
                     isLoading = false,
                     zReportMovements = movements,
+                    zReportSalesByPayment = salesByPayment,
                 )
             }
         } else {
-            // Fallback: no cached session — try to reload movements
             updateState { copy(isLoading = false) }
         }
+    }
+
+    private suspend fun loadSalesByPaymentMethod(session: RegisterSession): Map<String, Double> {
+        val from = kotlinx.datetime.Instant.fromEpochMilliseconds(session.openedAt)
+        val to = session.closedAt?.let { kotlinx.datetime.Instant.fromEpochMilliseconds(it) }
+            ?: kotlinx.datetime.Clock.System.now()
+
+        val orders = orderRepository.getByDateRange(from, to).first()
+        val completed = orders.filter {
+            it.status == com.zyntasolutions.zyntapos.domain.model.OrderStatus.COMPLETED
+        }
+        return completed.groupBy { it.paymentMethod.name }
+            .mapValues { (_, orderList) -> orderList.sumOf { it.total } }
     }
 
     private suspend fun printZReport(sessionId: String) {

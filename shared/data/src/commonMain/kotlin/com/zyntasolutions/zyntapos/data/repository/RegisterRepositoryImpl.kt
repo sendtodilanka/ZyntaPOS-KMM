@@ -46,7 +46,7 @@ class RegisterRepositoryImpl(
                     CashRegister(
                         id               = row.id,
                         name             = row.name,
-                        storeId          = "", // store_id column not yet in schema — resolved in Phase 2
+                        storeId          = row.store_id,
                         currentSessionId = row.current_session_id,
                         isActive         = row.is_active != 0L,
                     )

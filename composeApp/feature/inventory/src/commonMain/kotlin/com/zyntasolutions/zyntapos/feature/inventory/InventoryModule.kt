@@ -115,6 +115,7 @@ val inventoryModule = module {
         InventoryViewModel(
             productRepository       = get(),
             categoryRepository      = get(),
+            supplierRepository      = get(),
             taxGroupRepository      = get(),
             unitGroupRepository     = get(),
             _searchProductsUseCase  = get(),
