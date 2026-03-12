@@ -2,6 +2,8 @@ package com.zyntasolutions.zyntapos.data.di
 
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseDriverFactory
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseKeyProvider
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
+import com.zyntasolutions.zyntapos.data.analytics.AnalyticsService
 import com.zyntasolutions.zyntapos.data.sync.NetworkMonitor
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
@@ -85,6 +87,13 @@ val desktopDataModule = module {
     // Desktop actual uses periodic InetAddress.isReachable() polling.
     // Call NetworkMonitor.start() after Koin initialization.
     single { NetworkMonitor() }
+
+    // ── Analytics (platform expect/actual) ──────────────────────────────
+    // Desktop actual uses logging stub (Phase 1); GA4 Measurement Protocol in Phase 2.
+    // Bound as both concrete type and AnalyticsTracker interface so feature
+    // modules can depend on the interface from :shared:core.
+    single { AnalyticsService() }
+    single<AnalyticsTracker> { get<AnalyticsService>() }
 
     // Note: SecurePreferences is bound by securityModule (canonical expect/actual).
     // Adapter class DesktopAesSecurePreferences removed — MERGED-D3 (2026-02-21).

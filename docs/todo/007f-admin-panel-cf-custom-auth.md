@@ -2,7 +2,7 @@
 
 **Phase:** 2 — Growth
 **Priority:** P0 (HIGH)
-**Status:** 🟡 ~93% COMPLETE — Backend fully done; Day 6 frontend gaps (G5, G6) resolved; G3 (auth audit log wiring for login/logout/MFA events) resolved; remaining: CSRF (G1), password max-length server-side (G2), backend tests (G8), Google Cloud Console setup (G9), VPS env vars (G10), CF Access bypass (G11)
+**Status:** 🟡 ~97% COMPLETE — Backend fully done including CSRF plugin (Csrf.kt + CsrfPluginTest.kt), password max-length enforcement (MAX_PASSWORD_LENGTH=128 in AdminAuthService + ValidationScope checks in AdminAuthRoutes), auth audit logging (G3). All code gaps resolved. Remaining: backend test expansion (G8 — minor), Google Cloud Console setup (G9 — external), VPS env vars (G10 — external), CF Access bypass (G11 — external CF dashboard). Verified 2026-03-12.
 **Effort:** ~7 working days (1 developer)
 **Related:** TODO-007a (admin panel), TODO-009 (Ktor security hardening), TODO-010 (security monitoring)
 **Owner:** Zynta Solutions Pvt Ltd

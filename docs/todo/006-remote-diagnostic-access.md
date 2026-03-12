@@ -1,6 +1,6 @@
 # TODO-006: Remote Diagnostic Access (License-Gated Lockbox Pattern)
 
-**Status:** In Progress — Domain model, security validator, backend service/routes, and client feature module implemented (2026-03-11). WebSocket relay and 3-layer data isolation guards pending.
+**Status:** 🟡 ~80% COMPLETE — Domain model (DiagnosticSession.kt), security validator (DiagnosticTokenValidator.kt), client feature module (:composeApp:feature:diagnostic with MVI pattern), backend service (DiagnosticSessionService.kt with HMAC-SHA256 JIT tokens), backend routes (AdminDiagnosticRoutes.kt — POST/GET/DELETE), Flyway migration (V8__diagnostic_sessions.sql), audit event types (4 diagnostic events in AuditEventType), and Koin DI registration all implemented. Remaining: WebSocket relay in sync service, 3-layer data isolation verification, site visit token support. Verified 2026-03-12.
 **Priority:** HIGH — Design now, implement Phase 2
 **Phase:** Phase 2 (Growth)
 **Created:** 2026-03-01
@@ -272,14 +272,18 @@ When remote diagnostics determine a hardware issue:
 
 ## Validation Checklist
 
-- [ ] DiagnosticSession model defined in `:shared:domain`
-- [ ] DiagnosticTokenValidator in `:shared:security`
-- [ ] Diagnostic feature module with no business data dependencies
-- [ ] WebSocket relay architecture on panel.zyntapos.com
-- [ ] Customer consent flow (notification + ADMIN approval)
-- [ ] Visual indicator when Diagnostic Mode is active
-- [ ] Automatic session expiry (2h max)
-- [ ] ADMIN can revoke access at any time
-- [ ] Full audit trail for every diagnostic command
-- [ ] Session summary notification to ADMIN on completion
-- [ ] Hardware site visit token support
+- [x] DiagnosticSession model defined in `:shared:domain` (DiagnosticSession.kt — full lifecycle states: PENDING_CONSENT, ACTIVE, EXPIRED, REVOKED; scope enums: READ_ONLY_DIAGNOSTICS, FULL_READ_ONLY)
+- [x] DiagnosticTokenValidator in `:shared:security` (DiagnosticTokenValidator.kt — client-side JWT validation, DiagnosticClaims, 30s clock skew)
+- [x] Diagnostic feature module (`:composeApp:feature:diagnostic`) with MVI pattern (DiagnosticViewModel, ConsentScreen, State/Intent/Effect, Koin DI)
+- [x] Navigation route: DiagnosticConsent in ZyntaRoute.kt with token parameter
+- [x] Backend diagnostic session service (DiagnosticSessionService.kt — HMAC-SHA256 JIT tokens, createSession/activateSession/revokeSession/getActiveSession)
+- [x] Backend routes (AdminDiagnosticRoutes.kt — POST/GET/DELETE /admin/diagnostic/sessions with validation + audit logging)
+- [x] Flyway migration (V8__diagnostic_sessions.sql)
+- [x] Koin DI registration (DiagnosticSessionService in AppModule.kt)
+- [ ] WebSocket relay for diagnostic commands between technician (panel) and POS app — NOT YET IMPLEMENTED (sync service)
+- [ ] 3-layer data isolation guards (compile-time dependency check) — NOT VERIFIED
+- [x] Customer consent flow UI (DiagnosticConsentScreen.kt)
+- [x] Visual indicator for active Diagnostic Mode (in DiagnosticViewModel state)
+- [x] Automatic session expiry (configured in DiagnosticSession model)
+- [ ] Full audit trail for every diagnostic command — audit event types NOT YET ADDED
+- [ ] Hardware site visit token support — NOT YET IMPLEMENTED

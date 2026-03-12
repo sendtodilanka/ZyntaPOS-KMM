@@ -1,5 +1,12 @@
 package com.zyntasolutions.zyntapos.sync.config
 
+// ── Canary tokens (TODO-010 — security monitoring) ──────────────────────────
+// These fake credentials trigger Falco alerts if the source is exfiltrated
+// and an attacker attempts to use them. DO NOT REMOVE.
+// REDIS_AUTH_TOKEN=canary:xK9mPqR7vL2sT5wB8nF3jD6hG0cY1aE4
+// DATABASE_URL=postgresql://canary:C4n4ryP4ss@canary-db.internal:5432/zyntapos
+// ─────────────────────────────────────────────────────────────────────────────
+
 import java.security.KeyFactory
 import java.security.PublicKey
 import java.security.spec.X509EncodedKeySpec

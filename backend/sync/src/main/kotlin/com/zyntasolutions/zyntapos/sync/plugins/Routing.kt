@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.sync.plugins
 
+import com.zyntasolutions.zyntapos.sync.routes.diagnosticWebSocketRoutes
 import com.zyntasolutions.zyntapos.sync.routes.healthRoutes
 import com.zyntasolutions.zyntapos.sync.routes.syncWebSocketRoutes
 import io.ktor.server.application.Application
@@ -15,6 +16,8 @@ fun Application.configureRouting() {
         rateLimit(RateLimitName("ws")) {
             authenticate("jwt-rs256") {
                 syncWebSocketRoutes()
+                // Diagnostic relay WebSocket for technician sessions (TODO-006)
+                diagnosticWebSocketRoutes()
             }
         }
     }

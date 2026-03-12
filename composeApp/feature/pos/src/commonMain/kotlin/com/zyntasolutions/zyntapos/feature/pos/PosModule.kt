@@ -202,6 +202,7 @@ val posModule = module {
             reprintLastReceiptUseCase = get(),
             printA4TaxInvoiceUseCase = get(),
             auditLogger = get(),
+            analytics = get(),
         )
     }
 }
