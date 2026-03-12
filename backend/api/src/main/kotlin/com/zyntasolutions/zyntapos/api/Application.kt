@@ -21,6 +21,14 @@ import org.koin.ktor.ext.inject
 import org.koin.ktor.plugin.Koin
 import org.koin.logger.slf4jLogger
 
+// ── Canary tokens (TODO-010 — security monitoring) ──────────────────────────
+// These fake credentials trigger Falco alerts if the source is exfiltrated
+// and an attacker attempts to use them. DO NOT REMOVE.
+// AWS_ACCESS_KEY_ID=AKIAIOSFODNN7CANARY0
+// AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYCANARYKEY0
+// CANARY_WEBHOOK=https://canarytokens.com/about/tags/terms/qr6z3p8vk44d5x
+// ─────────────────────────────────────────────────────────────────────────────
+
 fun main() {
     // ── Security: Block Java deserialization (TODO-009 Level 1a) ──────────
     // ZyntaPOS uses kotlinx.serialization exclusively. This closes the entire

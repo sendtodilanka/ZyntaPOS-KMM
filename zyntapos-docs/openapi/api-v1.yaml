@@ -1,0 +1,73 @@
+openapi: "3.0.3"
+info:
+  title: ZyntaPOS API
+  version: "1.0.0"
+  description: |
+    Complete API reference for ZyntaPOS — an enterprise-grade offline-first Point of Sale system.
+
+    ## Authentication
+    - **POS terminals**: JWT RS256 Bearer token (`/v1/*` endpoints)
+    - **Admin panel**: HttpOnly cookie + CSRF token (`/admin/*` endpoints)
+    - **License service**: API key (`/license/*` endpoints)
+
+    ## Rate Limits
+    - Auth tier: 10 req/min
+    - Sync tier: 60 req/min
+    - API tier: 300 req/min
+
+    ## Versioning
+    All POS terminal endpoints are versioned under `/v1/`. Admin and license endpoints
+    are unversioned but stable. Breaking changes will introduce a new version prefix.
+  contact:
+    name: Zynta Solutions Pvt Ltd
+    url: https://zyntapos.com
+  license:
+    name: Proprietary
+    url: https://zyntapos.com/terms
+
+servers:
+  - url: https://api.zyntapos.com
+    description: Production (POS API + Admin)
+  - url: https://license.zyntapos.com
+    description: License Service
+
+tags:
+  - name: POS Auth
+    description: POS terminal authentication (login, token refresh)
+  - name: POS Products
+    description: Product catalog access for POS terminals
+  - name: POS Sync
+    description: Offline-first sync push/pull and WebSocket
+  - name: Well-Known
+    description: Public key distribution and health probes
+  - name: Admin Auth
+    description: Admin panel authentication, MFA, password management
+  - name: Admin Users
+    description: Admin user management (CRUD, sessions)
+  - name: Admin Stores
+    description: Store listing, health, and configuration
+  - name: Admin Health
+    description: System and store health monitoring
+  - name: Admin Audit
+    description: Immutable audit log access and export
+  - name: Admin Metrics
+    description: KPI dashboards and sales metrics
+  - name: Admin Reports
+    description: Sales and product reports
+  - name: Admin Alerts
+    description: Alert management and alert rule configuration
+  - name: Admin Config
+    description: Feature flags, tax rates, and system configuration
+  - name: Admin Sync
+    description: Sync queue monitoring, conflict resolution, dead-letter queue
+  - name: Admin Tickets
+    description: Support ticket management
+  - name: Admin Diagnostic
+    description: Remote diagnostic sessions for stores
+  - name: Admin Licenses
+    description: License lifecycle management (admin-side)
+  - name: License Public
+    description: License activation and heartbeat (called by POS terminals)
+  - name: Unsubscribe
+    description: Email unsubscribe link
+

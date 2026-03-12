@@ -1,6 +1,9 @@
 package com.zyntasolutions.zyntapos.feature.pos
 
 import androidx.lifecycle.viewModelScope
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsEvents
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsParams
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.DiscountType
 import com.zyntasolutions.zyntapos.domain.model.OrderStatus
@@ -132,6 +135,7 @@ class PosViewModel(
     private val reprintLastReceiptUseCase: ReprintLastReceiptUseCase,
     private val printA4TaxInvoiceUseCase: PrintA4TaxInvoiceUseCase,
     private val auditLogger: SecurityAuditLogger,
+    private val analytics: AnalyticsTracker,
 ) : BaseViewModel<PosState, PosIntent, PosEffect>(PosState()) {
 
     private var cashierId: String = "unknown"
@@ -393,6 +397,7 @@ class PosViewModel(
         when (val result = holdOrderUseCase(currentState.cartItems)) {
             is Result.Success -> {
                 auditLogger.logOrderHeld(cashierId, result.data)
+                analytics.logEvent(AnalyticsEvents.ORDER_HELD)
                 onClearCart()
             }
             is Result.Error -> sendEffect(PosEffect.ShowError(result.exception.message ?: "Failed to hold order"))
@@ -404,6 +409,7 @@ class PosViewModel(
         when (val result = retrieveHeldUseCase(holdId)) {
             is Result.Success -> {
                 auditLogger.logOrderResumed(cashierId, holdId)
+                analytics.logEvent(AnalyticsEvents.ORDER_RESUMED)
                 val totalsResult = calculateTotalsUseCase(result.data, 0.0, DiscountType.FIXED)
                 val totals = (totalsResult as? Result.Success)?.data ?: OrderTotals.EMPTY
                 updateState {
@@ -469,6 +475,12 @@ class PosViewModel(
                 }
                 auditLogger.logOrderCreated(cashierId, order.id, order.total, order.items.size, intent.method.name)
                 auditLogger.logPaymentProcessed(cashierId, order.id, order.total, intent.method.name)
+                analytics.logEvent(AnalyticsEvents.SALE_COMPLETED, mapOf(
+                    AnalyticsParams.ORDER_TOTAL to order.total.toString(),
+                    AnalyticsParams.ITEM_COUNT to order.items.size.toString(),
+                    AnalyticsParams.PAYMENT_METHOD to intent.method.name,
+                    AnalyticsParams.STORE_ID to storeId,
+                ))
                 // ── Post-payment: earn loyalty points + debit wallet ──────────
                 val customer = currentState.selectedCustomer
                 if (customer != null) {

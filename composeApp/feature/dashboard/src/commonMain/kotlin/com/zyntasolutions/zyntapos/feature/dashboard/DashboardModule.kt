@@ -16,6 +16,7 @@ val dashboardModule = module {
             productRepository = get(),
             registerRepository = get(),
             authRepository = get(),
+            analytics = get(),
         )
     }
 }

@@ -15,6 +15,7 @@ import com.zyntasolutions.zyntapos.domain.model.RegisterSession
 import com.zyntasolutions.zyntapos.domain.model.Role
 import com.zyntasolutions.zyntapos.domain.model.SyncStatus
 import com.zyntasolutions.zyntapos.domain.model.User
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
 import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
@@ -62,6 +63,13 @@ import kotlin.test.assertTrue
 class DashboardViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
+
+    private val noOpAnalytics = object : AnalyticsTracker {
+        override fun logEvent(name: String, params: Map<String, String>) {}
+        override fun logScreenView(screenName: String, screenClass: String) {}
+        override fun setUserId(userId: String?) {}
+        override fun setUserProperty(name: String, value: String) {}
+    }
 
     // ── Fake collaborators ─────────────────────────────────────────────────────
 
@@ -146,6 +154,7 @@ class DashboardViewModelTest {
             productRepository = fakeProductRepository,
             registerRepository = fakeRegisterRepository,
             authRepository = fakeAuthRepository,
+            analytics = noOpAnalytics,
         )
     }
 

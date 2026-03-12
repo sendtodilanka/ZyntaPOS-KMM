@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.pos
 
 import app.cash.turbine.test
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
@@ -103,6 +104,13 @@ class PosViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private val now: Instant = Clock.System.now()
+
+    private val noOpAnalytics = object : AnalyticsTracker {
+        override fun logEvent(name: String, params: Map<String, String>) {}
+        override fun logScreenView(screenName: String, screenClass: String) {}
+        override fun setUserId(userId: String?) {}
+        override fun setUserProperty(name: String, value: String) {}
+    }
 
     // ── No-op AuditRepository + SecurityAuditLogger ───────────────────────────
 
@@ -515,6 +523,7 @@ class PosViewModelTest {
             reprintLastReceiptUseCase = ReprintLastReceiptUseCase(fakeOrderRepository, fakeReceiptPrinterPort),
             printA4TaxInvoiceUseCase = PrintA4TaxInvoiceUseCase(fakeOrderRepository, fakeA4PrinterPort, checkPermissionUseCase),
             auditLogger = testAuditLogger,
+            analytics = noOpAnalytics,
         )
     }
 

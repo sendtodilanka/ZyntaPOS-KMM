@@ -13,6 +13,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.auth.LoginUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.auth.LogoutUseCase
 import com.zyntasolutions.zyntapos.feature.auth.mvi.AuthEffect
 import com.zyntasolutions.zyntapos.feature.auth.mvi.AuthIntent
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -42,6 +43,13 @@ import kotlin.test.assertTrue
 class AuthViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
+
+    private val noOpAnalytics = object : AnalyticsTracker {
+        override fun logEvent(name: String, params: Map<String, String>) {}
+        override fun logScreenView(screenName: String, screenClass: String) {}
+        override fun setUserId(userId: String?) {}
+        override fun setUserProperty(name: String, value: String) {}
+    }
 
     // ── No-op AuditRepository + SecurityAuditLogger ───────────────────────────
 
@@ -110,6 +118,7 @@ class AuthViewModelTest {
             _logoutUseCase = logoutUseCase,
             authRepository = fakeAuthRepository,
             auditLogger = testAuditLogger,
+            analytics = noOpAnalytics,
         )
     }
 

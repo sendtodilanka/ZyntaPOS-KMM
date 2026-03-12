@@ -2,6 +2,7 @@ package com.zyntasolutions.zyntapos.sync
 
 import io.sentry.Sentry
 import com.zyntasolutions.zyntapos.sync.di.syncModule
+import com.zyntasolutions.zyntapos.sync.hub.DiagnosticRelay
 import com.zyntasolutions.zyntapos.sync.hub.RedisPubSubListener
 import com.zyntasolutions.zyntapos.sync.hub.WebSocketHub
 import com.zyntasolutions.zyntapos.sync.plugins.configureAuthentication
@@ -62,10 +63,12 @@ fun Application.module() {
     val redisListener = getKoin().get<RedisPubSubListener>()
     redisListener.start()
 
-    // A7: Graceful shutdown — close Redis connections, flush Sentry, close WebSocketHub
+    // A7: Graceful shutdown — close Redis connections, diagnostic relay, flush Sentry, close WebSocketHub
     val hub = getKoin().get<WebSocketHub>()
+    val diagnosticRelay = getKoin().get<DiagnosticRelay>()
     monitor.subscribe(ApplicationStopping) {
         redisListener.stop()
+        diagnosticRelay.close()
         hub.close()
         Sentry.close()
     }

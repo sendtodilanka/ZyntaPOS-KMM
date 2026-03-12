@@ -71,6 +71,48 @@ data class WsPing(override val type: String = "ping") : WsMessage()
 @SerialName("pong")
 data class WsPong(override val type: String = "pong") : WsMessage()
 
+// ── Diagnostic relay messages (TODO-006) ────────────────────────────────────
+
+/**
+ * Diagnostic command sent by a technician (via admin panel) to the POS app.
+ * Commands are scoped to the session's dataScope — only safe, read-only operations.
+ */
+@Serializable
+@SerialName("diag_command")
+data class WsDiagCommand(
+    override val type: String = "diag_command",
+    val sessionId: String,
+    val command: String,
+    val payload: String = "{}",
+) : WsMessage()
+
+/**
+ * Diagnostic response sent by the POS app back to the technician.
+ */
+@Serializable
+@SerialName("diag_response")
+data class WsDiagResponse(
+    override val type: String = "diag_response",
+    val sessionId: String,
+    val command: String,
+    val result: String,
+    val success: Boolean = true,
+) : WsMessage()
+
+/**
+ * Notification that a diagnostic session has started or ended for a store.
+ */
+@Serializable
+@SerialName("diag_session_event")
+data class WsDiagSessionEvent(
+    override val type: String = "diag_session_event",
+    val sessionId: String,
+    val storeId: String,
+    val event: String,
+) : WsMessage()
+
+// ── Redis pub/sub payloads ──────────────────────────────────────────────────
+
 /** Redis pub/sub notification payload published by the API service. */
 @Serializable
 data class SyncNotification(

@@ -26,6 +26,7 @@ import { Route as AlertsIndexRouteImport } from './routes/alerts/index'
 import { Route as TicketsTicketIdRouteImport } from './routes/tickets/$ticketId'
 import { Route as StoresStoreIdRouteImport } from './routes/stores/$storeId'
 import { Route as SettingsProfileRouteImport } from './routes/settings/profile'
+import { Route as SettingsEmailRouteImport } from './routes/settings/email'
 import { Route as SettingsMfaRouteImport } from './routes/settings/mfa'
 import { Route as LicensesLicenseKeyRouteImport } from './routes/licenses/$licenseKey'
 import { Route as HealthStoreIdRouteImport } from './routes/health/$storeId'
@@ -115,6 +116,11 @@ const SettingsProfileRoute = SettingsProfileRouteImport.update({
   path: '/settings/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsEmailRoute = SettingsEmailRouteImport.update({
+  id: '/settings/email',
+  path: '/settings/email',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsMfaRoute = SettingsMfaRouteImport.update({
   id: '/settings/mfa',
   path: '/settings/mfa',
@@ -136,6 +142,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/health/$storeId': typeof HealthStoreIdRoute
   '/licenses/$licenseKey': typeof LicensesLicenseKeyRoute
+  '/settings/email': typeof SettingsEmailRoute
   '/settings/mfa': typeof SettingsMfaRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/stores/$storeId': typeof StoresStoreIdRoute
@@ -158,6 +165,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/health/$storeId': typeof HealthStoreIdRoute
   '/licenses/$licenseKey': typeof LicensesLicenseKeyRoute
+  '/settings/email': typeof SettingsEmailRoute
   '/settings/mfa': typeof SettingsMfaRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/stores/$storeId': typeof StoresStoreIdRoute
@@ -181,6 +189,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/health/$storeId': typeof HealthStoreIdRoute
   '/licenses/$licenseKey': typeof LicensesLicenseKeyRoute
+  '/settings/email': typeof SettingsEmailRoute
   '/settings/mfa': typeof SettingsMfaRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/stores/$storeId': typeof StoresStoreIdRoute
@@ -205,6 +214,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/health/$storeId'
     | '/licenses/$licenseKey'
+    | '/settings/email'
     | '/settings/mfa'
     | '/settings/profile'
     | '/stores/$storeId'
@@ -227,6 +237,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/health/$storeId'
     | '/licenses/$licenseKey'
+    | '/settings/email'
     | '/settings/mfa'
     | '/settings/profile'
     | '/stores/$storeId'
@@ -249,6 +260,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/health/$storeId'
     | '/licenses/$licenseKey'
+    | '/settings/email'
     | '/settings/mfa'
     | '/settings/profile'
     | '/stores/$storeId'
@@ -272,6 +284,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   HealthStoreIdRoute: typeof HealthStoreIdRoute
   LicensesLicenseKeyRoute: typeof LicensesLicenseKeyRoute
+  SettingsEmailRoute: typeof SettingsEmailRoute
   SettingsMfaRoute: typeof SettingsMfaRoute
   SettingsProfileRoute: typeof SettingsProfileRoute
   StoresStoreIdRoute: typeof StoresStoreIdRoute
@@ -411,6 +424,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/email': {
+      id: '/settings/email'
+      path: '/settings/email'
+      fullPath: '/settings/email'
+      preLoaderRoute: typeof SettingsEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings/mfa': {
       id: '/settings/mfa'
       path: '/settings/mfa'
@@ -440,6 +460,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   HealthStoreIdRoute: HealthStoreIdRoute,
   LicensesLicenseKeyRoute: LicensesLicenseKeyRoute,
+  SettingsEmailRoute: SettingsEmailRoute,
   SettingsMfaRoute: SettingsMfaRoute,
   SettingsProfileRoute: SettingsProfileRoute,
   StoresStoreIdRoute: StoresStoreIdRoute,

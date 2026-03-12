@@ -1,0 +1,17 @@
+{
+  "name": "zyntapos-docs",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ZyntaPOS API Documentation Site — Scalar OpenAPI viewer + guides",
+  "scripts": {
+    "dev": "npx @scalar/cli serve openapi/api-v1.yaml --port 3001 --watch",
+    "build": "node build.js",
+    "lint:openapi": "npx @redocly/cli lint openapi/*.yaml",
+    "preview": "npx serve dist -l 3001"
+  },
+  "devDependencies": {
+    "@scalar/api-reference": "^1.25.0",
+    "@redocly/cli": "^1.25.0",
+    "serve": "^14.2.0"
+  }
+}

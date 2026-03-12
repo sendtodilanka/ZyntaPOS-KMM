@@ -1,0 +1,44 @@
+name: CI — API Docs
+
+on:
+  push:
+    paths:
+      - 'zyntapos-docs/**'
+      - 'docs/api/**'
+    branches: [main]
+  pull_request:
+    paths:
+      - 'zyntapos-docs/**'
+      - 'docs/api/**'
+
+jobs:
+  build-and-lint:
+    name: Build & Lint OpenAPI
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        working-directory: zyntapos-docs
+        run: npm install
+
+      - name: Lint OpenAPI specs
+        working-directory: zyntapos-docs
+        run: npx @redocly/cli lint openapi/*.yaml
+        continue-on-error: true
+
+      - name: Build static site
+        working-directory: zyntapos-docs
+        run: node build.js
+
+      - name: Verify build output
+        run: |
+          test -f zyntapos-docs/dist/index.html
+          test -f zyntapos-docs/dist/openapi/api-v1.yaml
+          echo "Build output verified"

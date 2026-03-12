@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.feature.dashboard
 
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import com.zyntasolutions.zyntapos.designsystem.components.ChartDataPoint
 import com.zyntasolutions.zyntapos.domain.model.OrderStatus
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
@@ -31,6 +32,7 @@ class DashboardViewModel(
     private val productRepository: ProductRepository,
     private val registerRepository: RegisterRepository,
     private val authRepository: AuthRepository,
+    private val analytics: AnalyticsTracker,
 ) : BaseViewModel<DashboardState, DashboardIntent, DashboardEffect>(DashboardState()) {
 
     override suspend fun handleIntent(intent: DashboardIntent) {
@@ -42,6 +44,7 @@ class DashboardViewModel(
 
     private suspend fun loadDashboard() {
         updateState { copy(isLoading = true) }
+        analytics.logScreenView("Dashboard", "DashboardViewModel")
 
         try {
             val user = authRepository.getSession().first()

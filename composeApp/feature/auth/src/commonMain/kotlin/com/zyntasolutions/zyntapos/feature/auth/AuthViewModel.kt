@@ -1,6 +1,9 @@
 package com.zyntasolutions.zyntapos.feature.auth
 
 import androidx.lifecycle.viewModelScope
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsEvents
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsParams
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
@@ -41,6 +44,7 @@ class AuthViewModel(
     private val authRepository: AuthRepository,
     private val registerRepository: RegisterRepository? = null,
     private val auditLogger: SecurityAuditLogger,
+    private val analytics: AnalyticsTracker,
 ) : BaseViewModel<AuthState, AuthIntent, AuthEffect>(AuthState()) {
 
     init {
@@ -113,6 +117,8 @@ class AuthViewModel(
         when (val result = loginUseCase(email = s.email, password = s.password)) {
             is Result.Success -> {
                 auditLogger.logLoginAttempt(true, s.email, "", null)
+                analytics.logEvent(AnalyticsEvents.LOGIN, mapOf(AnalyticsParams.METHOD to "email"))
+                analytics.setUserId(s.email)
                 updateState { copy(isLoading = false) }
                 // Sprint 20: Check whether a cash register session is currently open.
                 // If no session is open, redirect to the RegisterGuard screen so the

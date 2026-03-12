@@ -183,6 +183,12 @@ docs.zyntapos.com {
 	reverse_proxy canary:80
 }
 
+# ── docs.zyntapos.com — API Documentation (Scalar OpenAPI viewer) ──
+docs.zyntapos.com {
+	import cf_tls
+	reverse_proxy docs:3001
+}
+
 # ── status.zyntapos.com — Uptime status page (Uptime Kuma) ─────────
 status.zyntapos.com {
 	import cf_tls
