@@ -7,6 +7,9 @@ import com.zyntasolutions.zyntapos.api.auth.AdminRole
 import com.zyntasolutions.zyntapos.api.config.AppConfig
 import com.zyntasolutions.zyntapos.api.models.AdminPagedResponse
 import com.zyntasolutions.zyntapos.api.models.AdminUserResponse
+import com.zyntasolutions.zyntapos.api.db.AdminSessions
+import com.zyntasolutions.zyntapos.api.db.AdminUsers
+import com.zyntasolutions.zyntapos.api.db.PasswordResetTokens
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.isNull
@@ -19,47 +22,7 @@ import java.util.*
 
 private val logger = LoggerFactory.getLogger(AdminAuthService::class.java)
 
-// ── Exposed table objects ──────────────────────────────────────────────────
-
-object AdminUsers : Table("admin_users") {
-    val id           = uuid("id")
-    val email        = text("email")
-    val name         = text("name")
-    val role         = text("role")
-    val passwordHash = text("password_hash").nullable()
-    val googleSub    = text("google_sub").nullable()
-    val mfaSecret    = text("mfa_secret").nullable()
-    val mfaEnabled   = bool("mfa_enabled")
-    val failedAttempts = integer("failed_attempts")
-    val lockedUntil  = long("locked_until").nullable()   // epoch-ms
-    val lastLoginAt  = long("last_login_at").nullable()  // epoch-ms
-    val lastLoginIp  = text("last_login_ip").nullable()
-    val isActive     = bool("is_active")
-    val createdAt    = long("created_at")
-    override val primaryKey = PrimaryKey(id)
-}
-
-object AdminSessions : Table("admin_sessions") {
-    val id          = uuid("id")
-    val userId      = uuid("user_id")
-    val tokenHash   = text("token_hash")
-    val userAgent   = text("user_agent").nullable()
-    val ipAddress   = text("ip_address").nullable()
-    val createdAt   = long("created_at")
-    val expiresAt   = long("expires_at")   // epoch-ms
-    val revokedAt   = long("revoked_at").nullable()
-    override val primaryKey = PrimaryKey(id)
-}
-
-object PasswordResetTokens : Table("password_reset_tokens") {
-    val id           = uuid("id")
-    val adminUserId  = uuid("admin_user_id")
-    val tokenHash    = varchar("token_hash", 64)
-    val expiresAt    = long("expires_at")   // epoch-ms
-    val usedAt       = long("used_at").nullable()  // epoch-ms
-    val createdAt    = long("created_at")   // epoch-ms
-    override val primaryKey = PrimaryKey(id)
-}
+// S2-5: Table objects moved to db/Tables.kt
 
 // ── Data classes ────────────────────────────────────────────────────────────
 

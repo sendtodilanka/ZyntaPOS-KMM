@@ -85,7 +85,8 @@ dependencies {
 
     // ── Serialization ─────────────────────────────────────────────────
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
+    // S2-4: Pinned to 0.7.1 — required by CMP 1.10.0 (same as root project)
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
 
     // ── DI ────────────────────────────────────────────────────────────
     implementation("io.insert-koin:koin-ktor:$koinVersion")

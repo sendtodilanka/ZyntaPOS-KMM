@@ -1,8 +1,9 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { KeyRound, Monitor, Globe, Clock } from 'lucide-react';
 import { useCurrentUser, useChangePassword, useListSessions } from '@/api/auth';
 import { useRevokeSessions } from '@/api/users';
+import { useAuthStore } from '@/stores/auth-store';
 import { useTimezone } from '@/hooks/use-timezone';
 
 export const Route = createFileRoute('/settings/profile')({
@@ -12,7 +13,7 @@ export const Route = createFileRoute('/settings/profile')({
 function ProfileSettingsPage() {
   const { data: user } = useCurrentUser();
   const changePassword = useChangePassword();
-  const { data: sessions, refetch: refetchSessions } = useListSessions(user?.id);
+  const { data: sessions } = useListSessions(user?.id);
   const revokeSessions = useRevokeSessions();
   const { formatDateTime } = useTimezone();
 
@@ -38,15 +39,30 @@ function ProfileSettingsPage() {
       return;
     }
 
-    await changePassword.mutateAsync({ currentPassword, newPassword });
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
+    // S1-4: Wrap in try/catch to prevent unhandled promise rejection
+    try {
+      await changePassword.mutateAsync({ currentPassword, newPassword });
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch {
+      // Error toast handled by the mutation's onError callback
+    }
   };
+
+  // S1-5: Handle "Revoke All Sessions" for own user — clears local auth and redirects
+  const { clearUser } = useAuthStore();
+  const navigate = useNavigate();
 
   const handleRevokeAll = () => {
     if (user) {
-      revokeSessions.mutate(user.id, { onSuccess: () => refetchSessions() });
+      revokeSessions.mutate(user.id, {
+        onSuccess: () => {
+          // Revoking own sessions invalidates our cookie — log out gracefully
+          clearUser();
+          navigate({ to: '/login' });
+        },
+      });
     }
   };
 

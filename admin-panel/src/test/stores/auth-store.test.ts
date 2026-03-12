@@ -29,7 +29,7 @@ describe('useAuthStore', () => {
   beforeEach(() => {
     // Reset to initial state before each test so tests are independent
     act(() => {
-      useAuthStore.setState({ user: null, isLoading: true });
+      useAuthStore.setState({ user: null });
     });
   });
 
@@ -38,15 +38,10 @@ describe('useAuthStore', () => {
       const { result } = renderHook(() => useAuthStore());
       expect(result.current.user).toBeNull();
     });
-
-    it('has isLoading true (awaiting /me resolution)', () => {
-      const { result } = renderHook(() => useAuthStore());
-      expect(result.current.isLoading).toBe(true);
-    });
   });
 
   describe('setUser', () => {
-    it('sets the user and clears loading flag', () => {
+    it('sets the user', () => {
       const { result } = renderHook(() => useAuthStore());
 
       act(() => {
@@ -54,7 +49,6 @@ describe('useAuthStore', () => {
       });
 
       expect(result.current.user).toEqual(mockUser);
-      expect(result.current.isLoading).toBe(false);
     });
 
     it('replaces an existing user with a new one', () => {
@@ -70,21 +64,6 @@ describe('useAuthStore', () => {
 
       expect(result.current.user).toEqual(mockOperator);
       expect(result.current.user?.email).toBe('operator@zyntasolutions.com');
-    });
-
-    it('accepts null to clear the session', () => {
-      act(() => {
-        useAuthStore.getState().setUser(mockUser);
-      });
-
-      const { result } = renderHook(() => useAuthStore());
-
-      act(() => {
-        result.current.setUser(null);
-      });
-
-      expect(result.current.user).toBeNull();
-      expect(result.current.isLoading).toBe(false);
     });
 
     it('preserves all user fields', () => {
@@ -115,20 +94,6 @@ describe('useAuthStore', () => {
       expect(result.current.user).toBeNull();
     });
 
-    it('sets isLoading to false', () => {
-      act(() => {
-        useAuthStore.getState().setUser(mockUser);
-      });
-
-      const { result } = renderHook(() => useAuthStore());
-
-      act(() => {
-        result.current.clearUser();
-      });
-
-      expect(result.current.isLoading).toBe(false);
-    });
-
     it('is idempotent when called on an already-null store', () => {
       const { result } = renderHook(() => useAuthStore());
 
@@ -138,48 +103,6 @@ describe('useAuthStore', () => {
       });
 
       expect(result.current.user).toBeNull();
-      expect(result.current.isLoading).toBe(false);
-    });
-  });
-
-  describe('setLoading', () => {
-    it('sets isLoading to false', () => {
-      const { result } = renderHook(() => useAuthStore());
-
-      act(() => {
-        result.current.setLoading(false);
-      });
-
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    it('sets isLoading to true', () => {
-      // Start from a cleared state (isLoading false)
-      act(() => {
-        useAuthStore.getState().clearUser();
-      });
-
-      const { result } = renderHook(() => useAuthStore());
-
-      act(() => {
-        result.current.setLoading(true);
-      });
-
-      expect(result.current.isLoading).toBe(true);
-    });
-
-    it('does not affect the user field', () => {
-      act(() => {
-        useAuthStore.getState().setUser(mockUser);
-      });
-
-      const { result } = renderHook(() => useAuthStore());
-
-      act(() => {
-        result.current.setLoading(true);
-      });
-
-      expect(result.current.user).toEqual(mockUser);
     });
   });
 

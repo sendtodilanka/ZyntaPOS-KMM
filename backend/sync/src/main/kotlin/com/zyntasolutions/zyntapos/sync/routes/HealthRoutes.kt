@@ -9,12 +9,15 @@ import io.lettuce.core.api.StatefulRedisConnection
 import kotlinx.serialization.Serializable
 import org.koin.ktor.ext.inject
 
+// S2-13: Added service identifier + version
 @Serializable
 data class SyncHealthResponse(
     val status: String,
     val redis: String = "unknown",
     val activeConnections: Int = 0,
     val activeStores: Int = 0,
+    val service: String = "zyntapos-sync",
+    val version: String = "1.0.0",
 )
 
 fun Route.healthRoutes() {

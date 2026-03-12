@@ -9,6 +9,36 @@ function getCsrfToken(): string | null {
 
 const STATE_CHANGING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
+// ── Token refresh queue (S1-1) ───────────────────────────────────────────
+// When multiple requests hit 401 simultaneously, only one refresh call fires.
+// All other requests wait for the result, then replay automatically.
+let refreshPromise: Promise<boolean> | null = null;
+
+const AUTH_ENDPOINTS = /\/admin\/auth\/(me|login|logout|mfa\/verify|refresh|status|bootstrap)/;
+
+async function attemptTokenRefresh(): Promise<boolean> {
+  try {
+    const res = await ky.post('admin/auth/refresh', {
+      prefixUrl: API_BASE_URL,
+      credentials: 'include',
+      timeout: 10_000,
+      retry: 0,
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+function getRefreshPromise(): Promise<boolean> {
+  if (!refreshPromise) {
+    refreshPromise = attemptTokenRefresh().finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
+}
+
 const baseOptions: Options = {
   prefixUrl: API_BASE_URL,
   timeout: 30_000,
@@ -32,13 +62,21 @@ const baseOptions: Options = {
       },
     ],
     afterResponse: [
-      async (request, _options, response) => {
+      async (request, options, response) => {
         if (response.status === 401) {
-          // Auth check and login endpoints manage their own 401 flow via the root
-          // layout effect — skip hard redirect for those to avoid racing with the
-          // soft navigation that __root.tsx performs after clearUser() resolves.
-          const isAuthEndpoint = /\/admin\/auth\/(me|login|logout|mfa\/verify)/.test(request.url);
-          if (!isAuthEndpoint && !window.location.pathname.startsWith('/login')) {
+          // Auth endpoints manage their own 401 flow — skip refresh
+          if (AUTH_ENDPOINTS.test(request.url)) {
+            return response;
+          }
+
+          // Attempt silent token refresh, then replay the original request
+          const refreshed = await getRefreshPromise();
+          if (refreshed) {
+            return ky(request, { ...options, hooks: {} });
+          }
+
+          // Refresh failed — redirect to login
+          if (!window.location.pathname.startsWith('/login')) {
             window.location.href = '/login';
           }
         }

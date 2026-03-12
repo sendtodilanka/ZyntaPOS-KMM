@@ -7,8 +7,14 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import kotlinx.serialization.Serializable
 
+// S2-13: Added service identifier + version
 @Serializable
-data class HealthResponse(val status: String, val db: String)
+data class HealthResponse(
+    val status: String,
+    val db: String,
+    val service: String = "zyntapos-license",
+    val version: String = "1.0.0",
+)
 
 fun Route.healthRoutes() {
     get("/health") {

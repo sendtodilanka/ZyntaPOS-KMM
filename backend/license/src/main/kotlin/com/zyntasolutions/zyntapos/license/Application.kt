@@ -27,6 +27,17 @@ fun main() {
         options.dsn         = System.getenv("SENTRY_DSN") ?: ""
         options.environment = System.getenv("SENTRY_ENVIRONMENT") ?: "production"
         options.release     = "zyntapos-license@1.0.0"
+        // S2-15: Configure sampling + PII scrubbing
+        options.tracesSampleRate = (System.getenv("SENTRY_TRACES_SAMPLE_RATE")?.toDoubleOrNull() ?: 0.1)
+        options.isSendDefaultPii = false
+        options.setBeforeSend { event, _ ->
+            event.user?.let { user ->
+                user.email = null
+                user.ipAddress = null
+                user.username = null
+            }
+            event
+        }
     }
 
     embeddedServer(

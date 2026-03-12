@@ -10,11 +10,14 @@ import io.lettuce.core.api.StatefulRedisConnection
 import kotlinx.serialization.Serializable
 import org.koin.ktor.ext.inject
 
+// S2-13: Health responses include dependency status indicators + version + uptime
 @Serializable
 data class HealthResponse(
     val status: String,
     val db: String,
     val redis: String = "unknown",
+    val service: String = "zyntapos-api",
+    val version: String = "1.0.0",
 )
 
 @Serializable
@@ -22,6 +25,8 @@ data class DeepHealthResponse(
     val status: String,
     val db: String,
     val redis: String,
+    val service: String = "zyntapos-api",
+    val version: String = "1.0.0",
     val uptimeMs: Long,
 )
 

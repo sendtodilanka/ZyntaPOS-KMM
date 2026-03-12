@@ -2,8 +2,8 @@ package com.zyntasolutions.zyntapos.license.models
 
 import kotlinx.serialization.Serializable
 
-@Serializable
-data class ErrorResponse(val code: String, val message: String)
+// S2-2: ErrorResponse moved to common module — re-export for backward compatibility
+typealias ErrorResponse = com.zyntasolutions.zyntapos.common.ErrorResponse
 
 // ── Admin panel response models ──────────────────────────────────────
 

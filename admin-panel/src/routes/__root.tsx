@@ -38,10 +38,11 @@ function RootLayout() {
   const { data: statusData, isLoading: statusLoading } = useAdminStatus();
 
   // Hydrate auth state on every page load via GET /admin/auth/me
+  // S1-7: Only use query loading — removed storeLoading (Zustand isLoading removed)
   const { isLoading: queryLoading } = useCurrentUser();
-  const { isAuthenticated, isLoading: storeLoading } = useAuth();
+  const { isAuthenticated } = useAuth();
 
-  const loading = statusLoading || queryLoading || storeLoading;
+  const loading = statusLoading || queryLoading;
 
   useEffect(() => {
     if (loading) return;
@@ -66,8 +67,8 @@ function RootLayout() {
     }
   }, [isAuthenticated, isPublicPage, isSetupPage, loading, navigate, statusData]);
 
-  // Full-screen spinner while resolving
-  if (loading && !isPublicPage) {
+  // S1-8: Show spinner on public pages while statusLoading (prevents flash before bootstrap redirect)
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />

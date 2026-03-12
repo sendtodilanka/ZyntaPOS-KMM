@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
+import { useEffect } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { useAuthStore } from '@/stores/auth-store';
 import { toast } from '@/stores/ui-store';
@@ -56,25 +57,27 @@ export interface AdminBootstrapRequest {
 export function useCurrentUser() {
   const { setUser, clearUser } = useAuthStore();
 
-  return useQuery({
+  // S1-2: Pure queryFn — no side effects inside. Store sync via useEffect below.
+  const query = useQuery({
     queryKey: ['admin', 'me'],
-    queryFn: async () => {
-      try {
-        const user = await apiClient.get('admin/auth/me').json<AdminUser>();
-        setUser(user);
-        return user;
-      } catch (error) {
-        // On 401/network error, clear isLoading so the spinner doesn't hang forever
-        clearUser();
-        throw error;
-      }
-    },
+    queryFn: () => apiClient.get('admin/auth/me').json<AdminUser>(),
     retry: false,
-    staleTime: 5 * 60 * 1000,   // 5 min — backend cookie is 15 min
+    staleTime: 60_000,          // S1-11: 1 min (was 5 min) — faster deactivation propagation
     gcTime: 10 * 60 * 1000,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true,  // S1-11: re-check auth on tab focus
     throwOnError: false,
   });
+
+  // S1-2: Sync query result to Zustand store via useEffect (not inside queryFn)
+  useEffect(() => {
+    if (query.data) {
+      setUser(query.data);
+    } else if (query.isError) {
+      clearUser();
+    }
+  }, [query.data, query.isError, setUser, clearUser]);
+
+  return query;
 }
 
 // ── POST /admin/auth/login ────────────────────────────────────────────────
@@ -160,10 +163,11 @@ export function useAdminMfaEnable() {
   });
 }
 
+// S1-9: Added .json() to parse response
 export function useAdminMfaDisable() {
   return useMutation({
     mutationFn: (code: string) =>
-      apiClient.post('admin/auth/mfa/disable', { json: { code } }),
+      apiClient.post('admin/auth/mfa/disable', { json: { code } }).json(),
     onSuccess: () => toast.success('MFA disabled'),
     onError: () => toast.error('Failed to disable MFA', 'Invalid code. Try again.'),
   });

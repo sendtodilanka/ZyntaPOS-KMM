@@ -3,6 +3,7 @@ package com.zyntasolutions.zyntapos.api.service
 import at.favre.lib.crypto.bcrypt.BCrypt
 import com.zyntasolutions.zyntapos.api.auth.AdminRole
 import com.zyntasolutions.zyntapos.api.config.AppConfig
+import com.zyntasolutions.zyntapos.api.db.AdminUsers
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*

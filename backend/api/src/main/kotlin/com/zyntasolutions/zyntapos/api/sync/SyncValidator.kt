@@ -1,7 +1,10 @@
 package com.zyntasolutions.zyntapos.api.sync
 
 import com.zyntasolutions.zyntapos.api.models.SyncOperation
+import com.zyntasolutions.zyntapos.common.dbl
+import com.zyntasolutions.zyntapos.common.str
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
 
 /**
  * Validates incoming push batches from POS terminals.
@@ -86,10 +89,52 @@ class SyncValidator {
                 errors.add("created_at is in the future (clock skew > 60s)")
             }
 
+            // S2-7: Field-level validation for known entity types (CREATE/UPDATE only)
+            if (errors.isEmpty() && op.operation in setOf("CREATE", "INSERT", "UPDATE")) {
+                validatePayloadFields(op.entityType, op.payload, errors)
+            }
+
             if (errors.isEmpty()) valid.add(op)
             else invalid.add(InvalidOperation(op.id, errors.joinToString("; ")))
         }
 
         return ValidationResult(valid, invalid)
+    }
+
+    /**
+     * S2-7: Validates payload fields for known entity types.
+     * Prevents invalid data (negative prices, blank names) from entering the sync pipeline.
+     */
+    private fun validatePayloadFields(entityType: String, payload: String, errors: MutableList<String>) {
+        try {
+            val obj = json.parseToJsonElement(payload).jsonObject
+            when (entityType) {
+                "PRODUCT" -> {
+                    val name = obj.str("name")
+                    if (name.isNullOrBlank()) errors.add("PRODUCT.name must not be blank")
+                    val price = obj.dbl("price")
+                    if (price < 0) errors.add("PRODUCT.price must be non-negative")
+                    val costPrice = obj.dbl("cost_price")
+                    if (costPrice < 0) errors.add("PRODUCT.cost_price must be non-negative")
+                    val stockQty = obj.dbl("stock_qty")
+                    if (stockQty < 0) errors.add("PRODUCT.stock_qty must be non-negative")
+                }
+                "CUSTOMER" -> {
+                    val name = obj.str("name")
+                    if (name.isNullOrBlank()) errors.add("CUSTOMER.name must not be blank")
+                }
+                "CATEGORY" -> {
+                    val name = obj.str("name")
+                    if (name.isNullOrBlank()) errors.add("CATEGORY.name must not be blank")
+                }
+                "ORDER" -> {
+                    val total = obj.dbl("total")
+                    if (total < 0) errors.add("ORDER.total must be non-negative")
+                }
+                // Other entity types: structural JSON validation only (already done above)
+            }
+        } catch (_: Exception) {
+            // JSON parsing already validated above — skip field validation on parse error
+        }
     }
 }
