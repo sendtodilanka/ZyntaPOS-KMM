@@ -74,6 +74,7 @@ mlkit-barcode                  = "17.3.0"
 
 # ── Firebase ─────────────────────────────────────────────────
 firebase-bom                   = "33.7.0"
+firebase-analytics             = "22.1.2"
 google-services                = "4.4.2"
 
 # ── Build Tooling ─────────────────────────────────────────────
@@ -140,6 +141,7 @@ koin-test                              = { module = "io.insert-koin:koin-test", 
 # ── Firebase (Android only) ────────────────────────────────────
 firebase-bom                           = { module = "com.google.firebase:firebase-bom",          version.ref = "firebase-bom" }
 firebase-analytics-ktx                 = { module = "com.google.firebase:firebase-analytics-ktx" }
+firebase-analytics-ktx-versioned      = { module = "com.google.firebase:firebase-analytics-ktx", version.ref = "firebase-analytics" }
 firebase-crashlytics-ktx               = { module = "com.google.firebase:firebase-crashlytics-ktx" }
 
 # ── Ktor ──────────────────────────────────────────────────────
