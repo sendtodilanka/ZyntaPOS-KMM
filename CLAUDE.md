@@ -1087,7 +1087,7 @@ Or use the "VPS Full Fix" workflow with `reset_db=yes`.
 |-------|-----------|
 | Framework | Ktor 3.4.1 (CIO transport) |
 | ORM | Exposed 0.61.0 |
-| Migrations | Flyway (API: 11 migrations, License: 4 migrations) |
+| Migrations | Flyway (API: 14 migrations, License: 4 migrations) |
 | DI | Koin 4.1.1 |
 | Auth (POS) | RS256 JWT (asymmetric) — API signs, all services verify |
 | Auth (Admin) | HS256 JWT (symmetric) — shared secret between API and License |
@@ -1102,16 +1102,26 @@ Or use the "VPS Full Fix" workflow with `reset_db=yes`.
 | What | Where |
 |------|-------|
 | API entry point | `backend/api/src/main/kotlin/.../Application.kt` |
+| API route registration | `backend/api/src/main/kotlin/.../plugins/Routing.kt` |
 | POS user auth + brute-force | `backend/api/src/main/kotlin/.../service/UserService.kt` |
 | Admin auth (bcrypt, MFA) | `backend/api/src/main/kotlin/.../service/AdminAuthService.kt` |
+| License validation client | `backend/api/src/main/kotlin/.../service/LicenseValidationClient.kt` |
+| Admin user repository | `backend/api/src/main/kotlin/.../repository/AdminUserRepository.kt` |
+| POS user repository | `backend/api/src/main/kotlin/.../repository/PosUserRepository.kt` |
+| Product repository | `backend/api/src/main/kotlin/.../repository/ProductRepository.kt` |
 | Sync push/pull processor | `backend/api/src/main/kotlin/.../sync/SyncProcessor.kt` |
+| Entity applier (normalized tables) | `backend/api/src/main/kotlin/.../sync/EntityApplier.kt` |
 | Conflict resolver (LWW) | `backend/api/src/main/kotlin/.../sync/ServerConflictResolver.kt` |
-| API Flyway migrations | `backend/api/src/main/resources/db/migration/V1-V11` |
+| GDPR customer data export | `backend/api/src/main/kotlin/.../routes/ExportRoutes.kt` |
+| Audit trail service | `backend/api/src/main/kotlin/.../service/AdminAuditService.kt` |
+| API Flyway migrations | `backend/api/src/main/resources/db/migration/V1-V14` |
 | License service entry | `backend/license/src/main/kotlin/.../Application.kt` |
 | License Flyway migrations | `backend/license/src/main/resources/db/migration/V1-V4` |
 | Sync WebSocket hub | `backend/sync/src/main/kotlin/.../hub/WebSocketHub.kt` |
+| Diagnostic WebSocket | `backend/sync/src/main/kotlin/.../routes/DiagnosticWebSocketRoutes.kt` |
 | Redis pub/sub listener | `backend/sync/src/main/kotlin/.../hub/RedisPubSubListener.kt` |
 | Shared validation DSL | `backend/common/src/main/kotlin/.../ValidationScope.kt` |
+| Koin DI module (API) | `backend/api/src/main/kotlin/.../di/AppModule.kt` |
 | Docker Compose | `docker-compose.yml` |
 
 ### Backend Audit Status
@@ -1121,11 +1131,11 @@ A comprehensive audit was completed on 2026-03-12. See `docs/audit/backend-modul
 | Phase | Status |
 |-------|--------|
 | Phase A: Critical Security | **COMPLETED** (PR #285) |
-| Phase B: Cross-Module Alignment | Pending |
-| Phase C: Test Coverage (52 files) | Pending |
+| Phase B: Cross-Module Alignment | **COMPLETED** (S2-3 timestamps, S2-12 license validation) |
+| Phase C: Test Coverage (52 files) | **PARTIAL** (S3-6 admin auth tests, S3-11 indexes, S3-14 pool tuning, S3-15 repository extraction) |
 | Phase D: Code Quality & Performance | Pending |
-| Phase E: Documentation & API Spec | Pending |
-| Phase F: Advanced Security Hardening | Pending |
+| Phase E: Documentation & API Spec | **PARTIAL** (S4-5/S4-6/S4-7 backend docs, S4-10 GDPR export, S4-11 audit sync) |
+| Phase F: Advanced Security Hardening | **PARTIAL** (S4-9 CSP nonce) |
 
 ### Backend Common Pitfalls
 

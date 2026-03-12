@@ -34,7 +34,7 @@ class DeltaEngine(
         since: Long,
         limit: Int = DEFAULT_LIMIT,
     ): PullResponse {
-        val t0 = System.currentTimeMillis()
+        val t0 = java.time.Instant.now().toEpochMilli()
         val effectiveLimit = limit.coerceIn(1, MAX_LIMIT)
 
         // Fetch one extra to determine hasMore without an extra COUNT
@@ -51,11 +51,11 @@ class DeltaEngine(
         // Persist cursor so admin panel can show "last pull" per device
         cursorRepo.upsert(storeId, deviceId, newCursor)
 
-        metrics.recordPullDuration(System.currentTimeMillis() - t0)
+        metrics.recordPullDuration(java.time.Instant.now().toEpochMilli() - t0)
 
         return PullResponse(
             operations        = page,
-            serverTimestamp   = System.currentTimeMillis(),
+            serverTimestamp   = java.time.Instant.now().toEpochMilli(),
             serverVectorClock = newCursor,
             hasMore           = hasMore,
         )

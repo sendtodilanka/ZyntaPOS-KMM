@@ -2,16 +2,20 @@ package com.zyntasolutions.zyntapos.data.repository
 
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
+import com.zyntasolutions.zyntapos.data.local.SyncEnqueuer
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
 import com.zyntasolutions.zyntapos.domain.model.AuditEntry
 import com.zyntasolutions.zyntapos.domain.model.AuditEventType
 import com.zyntasolutions.zyntapos.domain.model.Role
+import com.zyntasolutions.zyntapos.domain.model.SyncOperation
 import com.zyntasolutions.zyntapos.domain.repository.AuditRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Instant
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 /**
  * Concrete implementation of [AuditRepository] backed by the SQLDelight
@@ -38,6 +42,7 @@ import kotlinx.datetime.Instant
  */
 class AuditRepositoryImpl(
     private val db: ZyntaDatabase,
+    private val syncEnqueuer: SyncEnqueuer? = null,
 ) : AuditRepository {
 
     private val q get() = db.audit_logQueries
@@ -62,6 +67,30 @@ class AuditRepositoryImpl(
             previous_hash = entry.previousHash,
             timestamp = entry.createdAt.toEpochMilliseconds(),
             device_id = entry.deviceId,
+        )
+
+        // S4-11: Enqueue audit entry for server sync
+        syncEnqueuer?.enqueue(
+            entityType = "AUDIT_ENTRY",
+            entityId = entry.id,
+            operation = SyncOperation.Operation.INSERT,
+            payload = buildJsonObject {
+                put("event_type", entry.eventType.name)
+                put("user_id", entry.userId)
+                put("user_name", entry.userName)
+                put("user_role", entry.userRole?.name ?: "")
+                put("entity_type", entry.entityType)
+                put("entity_id", entry.entityId)
+                put("details", entry.payload)
+                put("previous_value", entry.previousValue)
+                put("new_value", entry.newValue)
+                put("success", entry.success)
+                put("ip_address", entry.ipAddress)
+                put("hash", entry.hash)
+                put("previous_hash", entry.previousHash)
+                put("timestamp", entry.createdAt.toEpochMilliseconds())
+                put("device_id", entry.deviceId)
+            }.toString(),
         )
     }
 

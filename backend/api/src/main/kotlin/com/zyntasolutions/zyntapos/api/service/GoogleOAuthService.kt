@@ -112,7 +112,7 @@ class GoogleOAuthService(private val config: AppConfig) {
         }
 
         return newSuspendedTransaction {
-            val now = System.currentTimeMillis()
+            val now = java.time.Instant.now().toEpochMilli()
 
             // 1. Try to find by google_sub (linked account)
             val byGoogleSub = AdminUsers.selectAll()

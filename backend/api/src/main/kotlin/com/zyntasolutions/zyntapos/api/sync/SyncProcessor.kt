@@ -42,7 +42,7 @@ class SyncProcessor(
     )
 
     suspend fun processPush(storeId: String, request: PushRequest): PushResponse {
-        val t0 = System.currentTimeMillis()
+        val t0 = java.time.Instant.now().toEpochMilli()
 
         // Step 1: Validate
         val (validOps, invalidOps) = validator.validateBatch(request.operations)
@@ -125,7 +125,7 @@ class SyncProcessor(
         // Update metrics
         metrics.opsAccepted.addAndGet(accepted.size.toLong())
         metrics.opsRejected.addAndGet(rejected.size.toLong())
-        metrics.recordPushDuration(System.currentTimeMillis() - t0)
+        metrics.recordPushDuration(java.time.Instant.now().toEpochMilli() - t0)
 
         logger.info(
             "Push: store=$storeId device=${request.deviceId} " +

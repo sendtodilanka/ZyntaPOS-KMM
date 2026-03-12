@@ -2,7 +2,8 @@
 <html lang="en">
   <head>
     <!-- Prevent flash of wrong theme: read persisted preference before React mounts -->
-    <script>
+    <!-- S4-9: nonce injected by nginx sub_filter at request time -->
+    <script nonce="<!--CSP_NONCE-->">
       try {
         var s = JSON.parse(localStorage.getItem('zynta-admin-ui') || '{}');
         if ((s.state || s).theme !== 'light') document.documentElement.classList.add('dark');

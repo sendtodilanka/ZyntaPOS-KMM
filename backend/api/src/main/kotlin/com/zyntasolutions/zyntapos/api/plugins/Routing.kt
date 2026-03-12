@@ -11,6 +11,7 @@ import com.zyntasolutions.zyntapos.api.routes.adminStoresRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminSyncRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminTicketRoutes
 import com.zyntasolutions.zyntapos.api.routes.authRoutes
+import com.zyntasolutions.zyntapos.api.routes.exportRoutes
 import com.zyntasolutions.zyntapos.api.routes.healthRoutes
 import com.zyntasolutions.zyntapos.api.routes.productRoutes
 import com.zyntasolutions.zyntapos.api.routes.syncRoutes
@@ -68,6 +69,7 @@ fun Application.configureRouting() {
             authenticate("jwt-rs256") {
                 rateLimit(RateLimitName("api")) {
                     productRoutes()
+                    exportRoutes()
                 }
                 // Sync push is write-heavy — use sync tier (60 req/min)
                 rateLimit(RateLimitName("sync")) {

@@ -37,7 +37,7 @@ fun Route.unsubscribeRoutes() {
         }
 
         val updated = newSuspendedTransaction {
-            val now = System.currentTimeMillis()
+            val now = java.time.Instant.now().toEpochMilli()
             val count = EmailPreferences.update(
                 where = {
                     (EmailPreferences.unsubscribeToken eq token) and

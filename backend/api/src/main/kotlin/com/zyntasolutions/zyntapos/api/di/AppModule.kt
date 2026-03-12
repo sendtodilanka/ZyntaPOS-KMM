@@ -1,9 +1,15 @@
 package com.zyntasolutions.zyntapos.api.di
 
 import com.zyntasolutions.zyntapos.api.config.AppConfig
+import com.zyntasolutions.zyntapos.api.repository.AdminUserRepository
+import com.zyntasolutions.zyntapos.api.repository.AdminUserRepositoryImpl
 import com.zyntasolutions.zyntapos.api.repository.ConflictLogRepository
 import com.zyntasolutions.zyntapos.api.repository.DeadLetterRepository
 import com.zyntasolutions.zyntapos.api.repository.EntitySnapshotRepository
+import com.zyntasolutions.zyntapos.api.repository.PosUserRepository
+import com.zyntasolutions.zyntapos.api.repository.PosUserRepositoryImpl
+import com.zyntasolutions.zyntapos.api.repository.ProductRepository
+import com.zyntasolutions.zyntapos.api.repository.ProductRepositoryImpl
 import com.zyntasolutions.zyntapos.api.repository.SyncCursorRepository
 import com.zyntasolutions.zyntapos.api.repository.SyncOperationRepository
 import com.zyntasolutions.zyntapos.api.service.AdminAlertsService
@@ -18,6 +24,7 @@ import com.zyntasolutions.zyntapos.api.service.DiagnosticSessionService
 import com.zyntasolutions.zyntapos.api.service.EmailService
 import com.zyntasolutions.zyntapos.api.service.ForceSyncNotifier
 import com.zyntasolutions.zyntapos.api.service.GoogleOAuthService
+import com.zyntasolutions.zyntapos.api.service.LicenseValidationClient
 import com.zyntasolutions.zyntapos.api.service.MfaService
 import com.zyntasolutions.zyntapos.api.service.ProductService
 import com.zyntasolutions.zyntapos.api.service.UserService
@@ -61,6 +68,11 @@ val appModule = module {
         }
     }
 
+    // ── Repositories (S3-15) ────────────────────────────────────────────────
+    single<AdminUserRepository> { AdminUserRepositoryImpl() }
+    single<PosUserRepository> { PosUserRepositoryImpl() }
+    single<ProductRepository> { ProductRepositoryImpl() }
+
     // ── Sync engine repositories ──────────────────────────────────────────────
     single { SyncOperationRepository() }
     single { SyncCursorRepository() }
@@ -89,9 +101,10 @@ val appModule = module {
     // ── Services ──────────────────────────────────────────────────────────────
     single { EmailService(get()) }
     single { DiagnosticSessionService(get()) }
-    single { UserService() }
-    single { ProductService() }
-    single { AdminAuthService(get(), get()) }
+    single { LicenseValidationClient() }
+    single { UserService(posUserRepo = get()) }
+    single { ProductService(productRepo = get()) }
+    single { AdminAuthService(config = get(), auditService = get(), adminUserRepo = get()) }
     single { AdminAuditService() }
     single { AdminStoresService() }
     single { AdminConfigService() }

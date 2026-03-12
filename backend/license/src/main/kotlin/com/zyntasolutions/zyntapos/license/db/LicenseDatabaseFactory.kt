@@ -24,10 +24,12 @@ object LicenseDatabaseFactory {
             this.username = user
             this.password = password
             driverClassName = "org.postgresql.Driver"
-            maximumPoolSize = System.getenv("DB_POOL_MAX")?.toIntOrNull() ?: 5
-            minimumIdle = System.getenv("DB_POOL_MIN_IDLE")?.toIntOrNull() ?: 1
+            maximumPoolSize = System.getenv("DB_POOL_MAX")?.toIntOrNull() ?: 10
+            minimumIdle = System.getenv("DB_POOL_MIN")?.toIntOrNull()
+                ?: System.getenv("DB_POOL_MIN_IDLE")?.toIntOrNull()
+                ?: 2
             connectionTimeout = System.getenv("DB_CONNECTION_TIMEOUT_MS")?.toLongOrNull() ?: 30_000L
-            idleTimeout = 600_000L
+            idleTimeout = System.getenv("DB_POOL_IDLE_TIMEOUT")?.toLongOrNull() ?: 60_000L
             maxLifetime = 1_800_000L
             isAutoCommit = false
             transactionIsolation = "TRANSACTION_READ_COMMITTED"

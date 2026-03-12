@@ -84,7 +84,7 @@ class SyncValidator {
                 }
             }
 
-            val now = System.currentTimeMillis()
+            val now = java.time.Instant.now().toEpochMilli()
             if (op.createdAt > now + 60_000) {
                 errors.add("created_at is in the future (clock skew > 60s)")
             }

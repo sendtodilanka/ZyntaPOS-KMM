@@ -163,7 +163,7 @@ open class SyncOperationRepository {
             ?: 0L
     }
 
-    suspend fun getServerTimestamp(): Long = System.currentTimeMillis()
+    suspend fun getServerTimestamp(): Long = java.time.Instant.now().toEpochMilli()
 
     suspend fun countPending(storeId: String): Long = newSuspendedTransaction {
         SyncOperations.selectAll()
