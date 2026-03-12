@@ -415,3 +415,59 @@ All gaps addressed by branch `claude/audit-api-documentation-ileya`. See plan fi
 | GAP-6 (Email System TODO-008a) | `EmailService` (Ktor HTTP to Resend API), V7 migration (email_preferences + password_reset_tokens), forgot-password/reset-password endpoints, welcome/ticket email wiring, `UnsubscribeRoutes`. `AppConfig` email env vars added. |
 | GAP-7 (Firebase TODO-011) | Firebase BOM + Analytics + Crashlytics deps in `androidApp`, google-services plugins in root + androidApp, `google-services.json` placeholder, Firebase init in `ZyntaApplication`. |
 | GAP-8 (Security Monitoring) | Snyk advisory job added to `ci-gate.yml`. `<TUNNEL_ID>` replaced with `${CF_TUNNEL_ID}` in tunnel-config.yml. Canary tokens embedded in 3 source files. |
+
+---
+
+## Update — 2026-03-12: One-Shot Remediation (Sprint 1+2)
+
+Applied from branch `claude/kmp-architecture-audit-66Ypu`. Implements 24 of 26 Sprint 1+2 tasks from the remediation plan (`docs/audit/one-shot-remediation-plan-2026-03-12.md`).
+
+### Admin Panel — Session Stability (Sprint 1: 11/11 tasks)
+
+| Task | Resolution |
+|------|-----------|
+| S1-1 | Token refresh interceptor with request queue for concurrent 401s |
+| S1-2 | Moved `setUser`/`clearUser` out of `queryFn` into `useEffect` |
+| S1-3 | Removed redundant `navigate()` calls on login |
+| S1-4 | Wrapped `changePassword` in try/catch |
+| S1-5 | "Revoke All Sessions" now redirects own user to login |
+| S1-6 | TanStack Query is auth source of truth; Zustand synced via useEffect |
+| S1-7 | Removed `storeLoading` from root loading check |
+| S1-8 | Spinner shown on all pages while `statusLoading` |
+| S1-9 | Added `.json()` to `useAdminMfaDisable` + `useRevokeSessions` |
+| S1-10 | Narrowed `setUser` to non-null type |
+| S1-11 | Reduced `staleTime` to 1min, enabled `refetchOnWindowFocus` |
+
+### Backend — Cross-Module Alignment & Security (Sprint 2: 13/15 tasks)
+
+| Task | Resolution |
+|------|-----------|
+| S2-1 | Centralized JWT config (`JwtDefaults`) in `backend/common` |
+| S2-2 | Centralized `ErrorResponse` model in `backend/common` |
+| S2-4 | Pinned `kotlinx-datetime` to 0.7.1 in license build |
+| S2-5 | Centralized Exposed table objects into `api/db/Tables.kt` |
+| S2-6 | Dual-hash password migration (SHA-256 → bcrypt rolling upgrade) |
+| S2-7 | Sync payload field-level validation for PRODUCT/CUSTOMER/etc |
+| S2-8 | Heartbeat replay protection in `LicenseService` |
+| S2-9 | POS token revocation check on JWT validation |
+| S2-10 | `storeId` claim validated against DB on sync operations |
+| S2-11 | `ADMIN_PANEL_URL` validated at startup |
+| S2-13 | Service/version indicators added to all health endpoints |
+| S2-14 | Redis retry made async (suspend fun + coroutine launch) |
+| S2-15 | Sentry: 10% trace sampling + PII scrubbing (all 3 services) |
+
+### Deferred to next session
+
+| Task | Reason |
+|------|--------|
+| S2-3 | Timestamp standardization — low risk, would touch many files |
+| S2-12 | License validation in API auth — requires cross-service HTTP client |
+
+### Infra (Sprint 4 early)
+
+| Task | Resolution |
+|------|-----------|
+| S4-8 | HSTS + Permissions-Policy headers added to `admin-panel/nginx.conf` |
+| S3-14 | HikariCP pool size made configurable via environment variables |
+
+**Sync engine status:** Now ~60% complete (was ~5%). Full push/pull REST endpoints, LWW conflict resolution, Redis pub/sub fan-out, and field-level payload validation are all implemented.

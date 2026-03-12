@@ -13,7 +13,7 @@ export const Route = createFileRoute('/settings/profile')({
 function ProfileSettingsPage() {
   const { data: user } = useCurrentUser();
   const changePassword = useChangePassword();
-  const { data: sessions, refetch: refetchSessions } = useListSessions(user?.id);
+  const { data: sessions } = useListSessions(user?.id);
   const revokeSessions = useRevokeSessions();
   const { formatDateTime } = useTimezone();
 

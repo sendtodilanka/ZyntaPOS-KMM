@@ -18,14 +18,17 @@ object LicenseDatabaseFactory {
             ?: System.getenv("DB_PASSWORD")
             ?: error("DB_PASSWORD_FILE or DB_PASSWORD environment variable must be set")
 
+        // S3-14: Make HikariCP pool configurable via environment variables
         val config = HikariConfig().apply {
             this.jdbcUrl = jdbcUrl
             this.username = user
             this.password = password
             driverClassName = "org.postgresql.Driver"
-            maximumPoolSize = 5
-            minimumIdle = 1
-            connectionTimeout = 30_000L
+            maximumPoolSize = System.getenv("DB_POOL_MAX")?.toIntOrNull() ?: 5
+            minimumIdle = System.getenv("DB_POOL_MIN_IDLE")?.toIntOrNull() ?: 1
+            connectionTimeout = System.getenv("DB_CONNECTION_TIMEOUT_MS")?.toLongOrNull() ?: 30_000L
+            idleTimeout = 600_000L
+            maxLifetime = 1_800_000L
             isAutoCommit = false
             transactionIsolation = "TRANSACTION_READ_COMMITTED"
             validate()
