@@ -115,4 +115,10 @@ internal class DevApiService : ApiService {
             forceSync       = false,
             serverTimestamp = Clock.System.now().toEpochMilliseconds(),
         )
+
+    /** Dev builds stub diagnostic consent — no remote server needed. */
+    override suspend fun grantDiagnosticConsent(sessionId: String, grantedAtMs: Long) = Unit
+
+    /** Dev builds stub diagnostic consent revoke — no remote server needed. */
+    override suspend fun revokeDiagnosticConsent(sessionId: String) = Unit
 }
