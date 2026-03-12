@@ -117,12 +117,20 @@ class LicenseService {
             ?: return@newSuspendedTransaction null
 
         // Verify device is registered
-        DeviceRegistrations.selectAll().where {
+        val device = DeviceRegistrations.selectAll().where {
             (DeviceRegistrations.licenseKey eq request.licenseKey) and
                 (DeviceRegistrations.deviceId eq request.deviceId)
         }.singleOrNull() ?: return@newSuspendedTransaction null
 
         val now = OffsetDateTime.now()
+
+        // S2-8: Replay protection — reject heartbeats if lastSeenAt is in the future
+        // compared to the server clock (indicates replayed or tampered request)
+        val lastSeen = device[DeviceRegistrations.lastSeenAt]
+        if (lastSeen != null && lastSeen.isAfter(now.plusSeconds(30))) {
+            logger.warn("Heartbeat replay detected for device=${request.deviceId}: lastSeen=$lastSeen > now=$now")
+            return@newSuspendedTransaction null
+        }
 
         DeviceRegistrations.update({
             (DeviceRegistrations.licenseKey eq request.licenseKey) and

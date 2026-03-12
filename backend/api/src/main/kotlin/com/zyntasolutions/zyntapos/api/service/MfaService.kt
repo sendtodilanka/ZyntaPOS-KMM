@@ -2,6 +2,7 @@ package com.zyntasolutions.zyntapos.api.service
 
 import at.favre.lib.crypto.bcrypt.BCrypt
 import com.eatthepath.otp.TimeBasedOneTimePasswordGenerator
+import com.zyntasolutions.zyntapos.api.db.AdminUsers
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction

@@ -29,7 +29,7 @@ const testUser: AdminUser = {
 
 beforeEach(() => {
   // Set a logged-in user before every test
-  useAuthStore.setState({ user: testUser, isLoading: false });
+  useAuthStore.setState({ user: testUser });
 });
 
 describe('UserMenu', () => {
@@ -45,7 +45,7 @@ describe('UserMenu', () => {
   });
 
   it('renders nothing when there is no authenticated user', () => {
-    useAuthStore.setState({ user: null, isLoading: false });
+    useAuthStore.setState({ user: null });
     const { container } = render(<UserMenu />);
     expect(container).toBeEmptyDOMElement();
   });
@@ -112,7 +112,6 @@ describe('UserMenu', () => {
   it('renders a single initial when name is a single word', () => {
     useAuthStore.setState({
       user: { ...testUser, name: 'Administrator' },
-      isLoading: false,
     });
     render(<UserMenu />);
     // Single-word name: split gives one token → one initial letter "A"

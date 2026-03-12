@@ -1,16 +1,18 @@
 package com.zyntasolutions.zyntapos.api.service
 
+import at.favre.lib.crypto.bcrypt.BCrypt
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.zyntasolutions.zyntapos.api.config.AppConfig
+import com.zyntasolutions.zyntapos.api.db.PosSessions
+import com.zyntasolutions.zyntapos.api.db.Stores
+import com.zyntasolutions.zyntapos.api.db.Users
 import com.zyntasolutions.zyntapos.api.models.RefreshResponse
 import com.zyntasolutions.zyntapos.api.models.UserInfo
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.isNull
-import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.javatime.timestampWithTimeZone
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.update
@@ -24,44 +26,7 @@ import java.util.Base64
 import java.util.Date
 import java.util.UUID
 
-// ── Exposed tables (mirrors V1 + V9 + V11 schema) ────────────────────────────
-
-private object AppUsers : Table("users") {
-    val id             = text("id")
-    val storeId        = text("store_id")
-    val username       = text("username")
-    val email          = text("email").nullable()
-    val name           = text("name").nullable()
-    val passwordHash   = text("password_hash")
-    val role           = text("role")
-    val isActive       = bool("is_active")
-    val failedAttempts = integer("failed_attempts")
-    val lockedUntil    = timestampWithTimeZone("locked_until").nullable()
-    val createdAt      = timestampWithTimeZone("created_at")
-    val updatedAt      = timestampWithTimeZone("updated_at")
-    override val primaryKey = PrimaryKey(id)
-}
-
-private object AppStores : Table("stores") {
-    val id         = text("id")
-    val licenseKey = text("license_key")
-    val isActive   = bool("is_active")
-    override val primaryKey = PrimaryKey(id)
-}
-
-private object PosSessions : Table("pos_sessions") {
-    val id         = uuid("id")
-    val userId     = text("user_id")
-    val storeId    = text("store_id")
-    val tokenHash  = text("token_hash")
-    val deviceId   = text("device_id").nullable()
-    val userAgent  = text("user_agent").nullable()
-    val ipAddress  = text("ip_address").nullable()
-    val createdAt  = timestampWithTimeZone("created_at")
-    val expiresAt  = timestampWithTimeZone("expires_at")
-    val revokedAt  = timestampWithTimeZone("revoked_at").nullable()
-    override val primaryKey = PrimaryKey(id)
-}
+// S2-5: Table objects moved to db/Tables.kt (Stores, Users, PosSessions)
 
 class UserService {
     private val logger = LoggerFactory.getLogger(UserService::class.java)
@@ -69,13 +34,35 @@ class UserService {
     companion object {
         private const val MAX_FAILED_ATTEMPTS = 5
         private const val LOCKOUT_DURATION_MS = 15 * 60 * 1000L // 15 minutes
+        private const val BCRYPT_COST = 12
     }
 
+    private val bcryptVerifier = BCrypt.verifyer()
+
     /**
-     * Verifies [password] against the stored PinManager hash.
-     * Format: `<base64url-salt>:<hex-sha256>` — constant-time comparison.
+     * S2-6: Dual-hash password verification — supports both formats:
+     * - bcrypt (`$2a$...` or `$2b$...`) — new format, GPU-resistant
+     * - SHA-256 (`<base64url-salt>:<hex-hash>`) — legacy PinManager format
+     *
+     * On successful SHA-256 match, the password is re-hashed to bcrypt
+     * (rolling migration — no forced password resets, no downtime).
      */
-    private fun verifyPasswordHash(password: String, storedHash: String): Boolean = runCatching {
+    private fun verifyPasswordHash(password: String, storedHash: String, userId: String? = null): Boolean {
+        // Try bcrypt first (new format)
+        if (storedHash.startsWith("\$2")) {
+            return bcryptVerifier.verify(password.toCharArray(), storedHash.toCharArray()).verified
+        }
+
+        // Fallback to SHA-256 (legacy PinManager format: base64url-salt:hex-sha256)
+        val sha256Match = verifySha256Hash(password, storedHash)
+        if (sha256Match && userId != null) {
+            // Rolling upgrade: re-hash to bcrypt on successful login
+            upgradeHashToBcrypt(userId, password)
+        }
+        return sha256Match
+    }
+
+    private fun verifySha256Hash(password: String, storedHash: String): Boolean = runCatching {
         val parts = storedHash.split(":")
         if (parts.size != 2) return@runCatching false
         val salt = Base64.getUrlDecoder().decode(parts[0])
@@ -89,6 +76,20 @@ class UserService {
         for (i in actualHex.indices) diff = diff or (actualHex[i].code xor expectedHex[i].code)
         diff == 0
     }.getOrDefault(false)
+
+    /** S2-6: Silently upgrade SHA-256 hash to bcrypt on next successful login. */
+    private fun upgradeHashToBcrypt(userId: String, plainPassword: String) {
+        try {
+            val bcryptHash = BCrypt.withDefaults().hashToString(BCRYPT_COST, plainPassword.toCharArray())
+            Users.update({ Users.id eq userId }) {
+                it[passwordHash] = bcryptHash
+            }
+            logger.info("POS password upgraded to bcrypt for userId=$userId")
+        } catch (e: Exception) {
+            // Non-fatal — login still succeeds with SHA-256; upgrade will retry next login
+            logger.warn("Failed to upgrade password hash for userId=$userId: ${e.message}")
+        }
+    }
 
     /**
      * Authenticates a POS user by email and password.
@@ -104,10 +105,10 @@ class UserService {
             logger.info("Auth attempt: email=$maskedEmail")
 
             val storeId: String? = if (licenseKey != null) {
-                AppStores.selectAll()
-                    .where { (AppStores.licenseKey eq licenseKey) and (AppStores.isActive eq true) }
+                Stores.selectAll()
+                    .where { (Stores.licenseKey eq licenseKey) and (Stores.isActive eq true) }
                     .singleOrNull()
-                    ?.get(AppStores.id)
+                    ?.get(Stores.id)
                     ?: run {
                         logger.warn("Auth failed: license key not found or inactive")
                         return@newSuspendedTransaction null
@@ -115,16 +116,16 @@ class UserService {
             } else null
 
             val candidates = if (storeId != null) {
-                AppUsers.selectAll()
-                    .where { (AppUsers.isActive eq true) and (AppUsers.storeId eq storeId) }
+                Users.selectAll()
+                    .where { (Users.isActive eq true) and (Users.storeId eq storeId) }
             } else {
-                AppUsers.selectAll()
-                    .where { AppUsers.isActive eq true }
+                Users.selectAll()
+                    .where { Users.isActive eq true }
             }.toList()
 
             val user = candidates.firstOrNull { row ->
-                val storedEmail    = row[AppUsers.email]
-                val storedUsername = row[AppUsers.username]
+                val storedEmail    = row[Users.email]
+                val storedUsername = row[Users.username]
                 if (storedEmail != null) storedEmail == email else storedUsername == email
             } ?: run {
                 logger.warn("Auth failed: user not found for email=$maskedEmail")
@@ -132,39 +133,40 @@ class UserService {
             }
 
             // A1: Check account lockout
-            val lockedUntil = user[AppUsers.lockedUntil]
+            val lockedUntil = user[Users.lockedUntil]
             if (lockedUntil != null && OffsetDateTime.now(ZoneOffset.UTC).isBefore(lockedUntil)) {
                 logger.warn("Auth failed: account locked for email=$maskedEmail")
                 return@newSuspendedTransaction null
             }
 
-            if (!verifyPasswordHash(password, user[AppUsers.passwordHash])) {
-                incrementFailedAttempts(user[AppUsers.id], maskedEmail)
+            // S2-6: Dual-hash verification with rolling bcrypt upgrade
+            if (!verifyPasswordHash(password, user[Users.passwordHash], user[Users.id])) {
+                incrementFailedAttempts(user[Users.id], maskedEmail)
                 logger.warn("Auth failed: invalid password for email=$maskedEmail")
                 return@newSuspendedTransaction null
             }
 
             // Reset failed attempts on successful login
-            if (user[AppUsers.failedAttempts] > 0) {
-                AppUsers.update({ AppUsers.id eq user[AppUsers.id] }) {
+            if (user[Users.failedAttempts] > 0) {
+                Users.update({ Users.id eq user[Users.id] }) {
                     it[failedAttempts] = 0
-                    it[AppUsers.lockedUntil] = null
+                    it[Users.lockedUntil] = null
                 }
             }
 
-            val resolvedEmail = user[AppUsers.email] ?: user[AppUsers.username]
-            val resolvedName  = user[AppUsers.name]  ?: resolvedEmail.substringBefore("@")
+            val resolvedEmail = user[Users.email] ?: user[Users.username]
+            val resolvedName  = user[Users.name]  ?: resolvedEmail.substringBefore("@")
 
-            logger.info("Auth success: email=$maskedEmail role=${user[AppUsers.role]} storeId=${user[AppUsers.storeId]}")
+            logger.info("Auth success: email=$maskedEmail role=${user[Users.role]} storeId=${user[Users.storeId]}")
             UserInfo(
-                id        = user[AppUsers.id],
+                id        = user[Users.id],
                 email     = resolvedEmail,
                 name      = resolvedName,
-                role      = user[AppUsers.role],
-                storeId   = user[AppUsers.storeId],
-                isActive  = user[AppUsers.isActive],
-                createdAt = user[AppUsers.createdAt].toInstant().toEpochMilli(),
-                updatedAt = user[AppUsers.updatedAt].toInstant().toEpochMilli(),
+                role      = user[Users.role],
+                storeId   = user[Users.storeId],
+                isActive  = user[Users.isActive],
+                createdAt = user[Users.createdAt].toInstant().toEpochMilli(),
+                updatedAt = user[Users.updatedAt].toInstant().toEpochMilli(),
             )
         }
 
@@ -180,6 +182,7 @@ class UserService {
         userAgent: String?
     ): Triple<String, String, Long> = newSuspendedTransaction {
         val now = System.currentTimeMillis()
+        val jti = UUID.randomUUID().toString()
         val algorithm = Algorithm.RSA256(
             config.jwtPublicKey as RSAPublicKey,
             config.jwtPrivateKey as RSAPrivateKey
@@ -189,6 +192,7 @@ class UserService {
             .withIssuer(config.jwtIssuer)
             .withAudience(config.jwtAudience)
             .withSubject(user.id)
+            .withJWTId(jti)
             .withClaim("role", user.role)
             .withClaim("storeId", user.storeId)
             .withClaim("type", "access")
@@ -239,10 +243,11 @@ class UserService {
             val userId = session[PosSessions.userId]
             val storeId = session[PosSessions.storeId]
 
-            val user = AppUsers.selectAll()
-                .where { (AppUsers.id eq userId) and (AppUsers.isActive eq true) }
+            val user = Users.selectAll()
+                .where { (Users.id eq userId) and (Users.isActive eq true) }
                 .singleOrNull() ?: return@newSuspendedTransaction null
 
+            val jti = UUID.randomUUID().toString()
             val algorithm = Algorithm.RSA256(
                 config.jwtPublicKey as RSAPublicKey,
                 config.jwtPrivateKey as RSAPrivateKey
@@ -253,7 +258,8 @@ class UserService {
                 .withIssuer(config.jwtIssuer)
                 .withAudience(config.jwtAudience)
                 .withSubject(userId)
-                .withClaim("role", user[AppUsers.role])
+                .withJWTId(jti)
+                .withClaim("role", user[Users.role])
                 .withClaim("storeId", storeId)
                 .withClaim("type", "access")
                 .withExpiresAt(Date(nowMs + config.accessTokenTtlMs))
@@ -294,15 +300,15 @@ class UserService {
     // ── Private helpers ────────────────────────────────────────────────────────
 
     private fun incrementFailedAttempts(userId: String, maskedEmail: String) {
-        val current = AppUsers.selectAll()
-            .where { AppUsers.id eq userId }
-            .single()[AppUsers.failedAttempts]
+        val current = Users.selectAll()
+            .where { Users.id eq userId }
+            .single()[Users.failedAttempts]
         val newCount = current + 1
         val lockoutTime = if (newCount >= MAX_FAILED_ATTEMPTS) {
             OffsetDateTime.now(ZoneOffset.UTC).plusSeconds(LOCKOUT_DURATION_MS / 1000)
         } else null
 
-        AppUsers.update({ AppUsers.id eq userId }) {
+        Users.update({ Users.id eq userId }) {
             it[failedAttempts] = newCount
             it[lockedUntil] = lockoutTime
         }

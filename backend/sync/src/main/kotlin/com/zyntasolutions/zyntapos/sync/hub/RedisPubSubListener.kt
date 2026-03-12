@@ -6,6 +6,7 @@ import com.zyntasolutions.zyntapos.sync.models.WsNotify
 import io.lettuce.core.RedisClient
 import io.lettuce.core.pubsub.RedisPubSubListener
 import io.lettuce.core.pubsub.StatefulRedisPubSubConnection
+import kotlinx.coroutines.delay
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -42,19 +43,21 @@ class RedisPubSubListener(
     private val client = RedisClient.create(redisUrl)
     private var connection: StatefulRedisPubSubConnection<String, String>? = null
 
-    fun start() {
+    // S2-14: Made async — Thread.sleep replaced with coroutine delay to prevent
+    // blocking the startup thread and causing Docker health check failures.
+    suspend fun start() {
         var attempt = 0
         while (attempt < MAX_RECONNECT_ATTEMPTS) {
             try {
                 connect()
                 return  // success — stop retrying
             } catch (e: Exception) {
-                val delay = BACKOFF_MS.getOrElse(attempt) { 60_000L }
+                val backoff = BACKOFF_MS.getOrElse(attempt) { 60_000L }
                 logger.warn(
                     "RedisPubSubListener failed to connect (attempt ${attempt + 1}/$MAX_RECONNECT_ATTEMPTS): " +
-                    "${e.message}. Retrying in ${delay}ms …"
+                    "${e.message}. Retrying in ${backoff}ms …"
                 )
-                Thread.sleep(delay)
+                delay(backoff)
                 attempt++
             }
         }

@@ -1,19 +1,16 @@
 import { create } from 'zustand';
 import type { AdminUser } from '@/types/user';
 
+// S1-10: setUser accepts non-null only — use clearUser() for logout
 interface AuthStore {
   user: AdminUser | null;
-  isLoading: boolean;
-  setUser: (user: AdminUser | null) => void;
-  setLoading: (loading: boolean) => void;
+  setUser: (user: AdminUser) => void;
   clearUser: () => void;
 }
 
 export const useAuthStore = create<AuthStore>()((set) => ({
   user: null,
-  isLoading: true,   // true on startup until /me resolves
 
-  setUser: (user) => set({ user, isLoading: false }),
-  setLoading: (isLoading) => set({ isLoading }),
-  clearUser: () => set({ user: null, isLoading: false }),
+  setUser: (user) => set({ user }),
+  clearUser: () => set({ user: null }),
 }));

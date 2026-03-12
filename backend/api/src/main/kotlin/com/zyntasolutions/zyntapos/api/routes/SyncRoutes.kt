@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.api.routes
 
+import com.zyntasolutions.zyntapos.api.db.Stores
 import com.zyntasolutions.zyntapos.api.models.ErrorResponse
 import com.zyntasolutions.zyntapos.api.models.PushRequest
 import com.zyntasolutions.zyntapos.api.sync.DeltaEngine
@@ -14,6 +15,9 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
+import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.transactions.transaction
 import org.koin.ktor.ext.inject
 
 fun Route.syncRoutes() {
@@ -26,6 +30,12 @@ fun Route.syncRoutes() {
         post("/push") {
             val principal = call.principal<JWTPrincipal>()!!
             val storeId   = principal.payload.getClaim("storeId").asString()
+
+            // S2-10: Validate storeId claim against DB — prevents JWT manipulation attacks
+            if (storeId.isBlank() || !verifyStoreExists(storeId)) {
+                call.respond(HttpStatusCode.Forbidden, ErrorResponse("INVALID_STORE", "storeId not found or inactive"))
+                return@post
+            }
 
             val request = call.receive<PushRequest>()
 
@@ -48,8 +58,9 @@ fun Route.syncRoutes() {
             val since     = call.request.queryParameters["since"]?.toLongOrNull() ?: 0L
             val limit     = call.request.queryParameters["limit"]?.toIntOrNull()?.coerceIn(1, 200) ?: 50
 
-            if (storeId.isBlank()) {
-                call.respond(HttpStatusCode.Forbidden, ErrorResponse("MISSING_STORE", "storeId claim required"))
+            // S2-10: Validate storeId claim against DB
+            if (storeId.isBlank() || !verifyStoreExists(storeId)) {
+                call.respond(HttpStatusCode.Forbidden, ErrorResponse("INVALID_STORE", "storeId not found or inactive"))
                 return@get
             }
 
@@ -62,4 +73,11 @@ fun Route.syncRoutes() {
             call.respond(HttpStatusCode.OK, result)
         }
     }
+}
+
+/** S2-10: Checks that the storeId from the JWT claim maps to an active store. */
+private fun verifyStoreExists(storeId: String): Boolean = transaction {
+    Stores.selectAll()
+        .where { (Stores.id eq storeId) and (Stores.isActive eq true) }
+        .count() > 0
 }

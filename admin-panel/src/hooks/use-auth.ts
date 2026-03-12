@@ -48,8 +48,9 @@ const PERMISSIONS: Record<AdminRole, string[]> = {
   ],
 };
 
+// S1-7: isLoading removed from store — query loading state used in __root.tsx instead
 export function useAuth() {
-  const { user, isLoading } = useAuthStore();
+  const { user } = useAuthStore();
 
   const hasPermission = (permission: string): boolean => {
     if (!user) return false;
@@ -58,7 +59,6 @@ export function useAuth() {
 
   return {
     user,
-    isLoading,
     isAuthenticated: !!user,
     hasPermission,
     isAdmin: user?.role === 'ADMIN',

@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.api.service
 
+import com.zyntasolutions.zyntapos.api.db.AdminUsers
 import com.zyntasolutions.zyntapos.api.models.AdminPagedResponse
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.sql.*

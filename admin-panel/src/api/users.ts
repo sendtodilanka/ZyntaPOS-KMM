@@ -66,8 +66,9 @@ export function useDeactivateUser() {
 export function useRevokeSessions() {
   const qc = useQueryClient();
   return useMutation({
+    // S1-9: Added .json() to parse response body
     mutationFn: (userId: string) =>
-      apiClient.delete(`admin/users/${userId}/sessions`),
+      apiClient.delete(`admin/users/${userId}/sessions`).json(),
     onSuccess: (_data, userId) => {
       qc.invalidateQueries({ queryKey: ['users', userId, 'sessions'] });
       toast.success('Sessions revoked', 'All active sessions for this user have been terminated.');

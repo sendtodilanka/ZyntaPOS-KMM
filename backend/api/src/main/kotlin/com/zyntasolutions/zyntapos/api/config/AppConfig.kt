@@ -1,10 +1,11 @@
 package com.zyntasolutions.zyntapos.api.config
 
+import com.zyntasolutions.zyntapos.common.JwtDefaults
+import java.net.URI
 import java.security.KeyFactory
 import java.security.PrivateKey
 import java.security.PublicKey
 import java.security.spec.PKCS8EncodedKeySpec
-import java.security.spec.X509EncodedKeySpec
 import java.util.Base64
 
 data class AppConfig(
@@ -36,24 +37,23 @@ data class AppConfig(
 ) {
     companion object {
         fun fromEnvironment(): AppConfig {
-            val issuer = System.getenv("JWT_ISSUER") ?: "https://api.zyntapos.com"
-            val audience = System.getenv("JWT_AUDIENCE") ?: "zyntapos-app"
-            val publicKeyPem = readKeyFile("RS256_PUBLIC_KEY_PATH")
+            // S2-1: Use centralized defaults from common module
+            val issuer = System.getenv("JWT_ISSUER") ?: JwtDefaults.POS_ISSUER
+            val audience = System.getenv("JWT_AUDIENCE") ?: JwtDefaults.POS_AUDIENCE
+            val publicKeyPem = JwtDefaults.readKeyFile("RS256_PUBLIC_KEY_PATH")
                 ?: System.getenv("RS256_PUBLIC_KEY")
                 ?: error("RS256_PUBLIC_KEY_PATH or RS256_PUBLIC_KEY must be set")
-            val privateKeyPem = readKeyFile("RS256_PRIVATE_KEY_PATH")
+            val privateKeyPem = JwtDefaults.readKeyFile("RS256_PRIVATE_KEY_PATH")
                 ?: System.getenv("RS256_PRIVATE_KEY")
                 ?: error("RS256_PRIVATE_KEY_PATH or RS256_PRIVATE_KEY must be set")
 
+            val publicKey = JwtDefaults.parseRsaPublicKey(publicKeyPem)
             val keyFactory = KeyFactory.getInstance("RSA")
-            val publicKey = keyFactory.generatePublic(
-                X509EncodedKeySpec(Base64.getDecoder().decode(stripPemHeaders(publicKeyPem)))
-            )
             val privateKey = keyFactory.generatePrivate(
-                PKCS8EncodedKeySpec(Base64.getDecoder().decode(stripPemHeaders(privateKeyPem)))
+                PKCS8EncodedKeySpec(Base64.getDecoder().decode(JwtDefaults.stripPemHeaders(privateKeyPem)))
             )
 
-            val adminSecret = readSecret("ADMIN_JWT_SECRET_FILE")
+            val adminSecret = JwtDefaults.readSecret("ADMIN_JWT_SECRET_FILE")
                 ?: System.getenv("ADMIN_JWT_SECRET")
                 ?: error("ADMIN_JWT_SECRET_FILE or ADMIN_JWT_SECRET must be set")
 
@@ -62,17 +62,24 @@ data class AppConfig(
                 jwtAudience = audience,
                 jwtPublicKey = publicKey,
                 jwtPrivateKey = privateKey,
-                accessTokenTtlMs = (System.getenv("ACCESS_TOKEN_TTL_MINUTES")?.toLongOrNull() ?: 60L) * 60_000L,
-                refreshTokenTtlMs = (System.getenv("REFRESH_TOKEN_TTL_DAYS")?.toLongOrNull() ?: 30L) * 86_400_000L,
+                accessTokenTtlMs = (System.getenv("ACCESS_TOKEN_TTL_MINUTES")?.toLongOrNull()
+                    ?: JwtDefaults.POS_ACCESS_TOKEN_TTL_MINUTES) * 60_000L,
+                refreshTokenTtlMs = (System.getenv("REFRESH_TOKEN_TTL_DAYS")?.toLongOrNull()
+                    ?: JwtDefaults.POS_REFRESH_TOKEN_TTL_DAYS) * 86_400_000L,
                 adminJwtSecret = adminSecret,
-                adminJwtIssuer = System.getenv("ADMIN_JWT_ISSUER") ?: "https://panel.zyntapos.com",
-                adminAccessTokenTtlMs = (System.getenv("ADMIN_ACCESS_TOKEN_TTL_MINUTES")?.toLongOrNull() ?: 15L) * 60_000L,
-                adminRefreshTokenTtlDays = System.getenv("ADMIN_REFRESH_TOKEN_TTL_DAYS")?.toLongOrNull() ?: 7L,
+                adminJwtIssuer = System.getenv("ADMIN_JWT_ISSUER") ?: JwtDefaults.ADMIN_ISSUER,
+                adminAccessTokenTtlMs = (System.getenv("ADMIN_ACCESS_TOKEN_TTL_MINUTES")?.toLongOrNull()
+                    ?: JwtDefaults.ADMIN_ACCESS_TOKEN_TTL_MINUTES) * 60_000L,
+                adminRefreshTokenTtlDays = System.getenv("ADMIN_REFRESH_TOKEN_TTL_DAYS")?.toLongOrNull()
+                    ?: JwtDefaults.ADMIN_REFRESH_TOKEN_TTL_DAYS,
                 googleClientId = System.getenv("GOOGLE_CLIENT_ID") ?: "",
                 googleClientSecret = System.getenv("GOOGLE_CLIENT_SECRET") ?: "",
                 googleRedirectUri = System.getenv("GOOGLE_REDIRECT_URI") ?: "https://api.zyntapos.com/admin/auth/google/callback",
                 googleAllowedDomain = System.getenv("GOOGLE_ALLOWED_DOMAIN") ?: "",
-                adminPanelUrl = System.getenv("ADMIN_PANEL_URL") ?: "https://panel.zyntapos.com",
+                adminPanelUrl = validateUrl(
+                    System.getenv("ADMIN_PANEL_URL") ?: "https://panel.zyntapos.com",
+                    "ADMIN_PANEL_URL"
+                ),
                 redisUrl = System.getenv("REDIS_URL") ?: "redis://localhost:6379",
                 resendApiKey = System.getenv("RESEND_API_KEY") ?: "",
                 emailFromAddress = System.getenv("EMAIL_FROM_ADDRESS") ?: "noreply@zyntapos.com",
@@ -80,19 +87,16 @@ data class AppConfig(
             )
         }
 
-        private fun stripPemHeaders(pem: String): String =
-            pem.replace("-----BEGIN.*?-----".toRegex(), "")
-               .replace("-----END.*?-----".toRegex(), "")
-               .replace("\\s".toRegex(), "")
-
-        private fun readKeyFile(envVar: String): String? {
-            val path = System.getenv(envVar) ?: return null
-            return try { java.io.File(path).readText() } catch (_: Exception) { null }
-        }
-
-        private fun readSecret(envVar: String): String? {
-            val path = System.getenv(envVar) ?: return null
-            return try { java.io.File(path).readText().trim() } catch (_: Exception) { null }
+        /** S2-11: Validates a URL at startup — prevents misconfigured env vars from leaking tokens. */
+        private fun validateUrl(url: String, envName: String): String {
+            val parsed = URI.create(url)
+            require(parsed.scheme in listOf("http", "https")) {
+                "$envName must use http or https scheme, got: ${parsed.scheme}"
+            }
+            require(parsed.host != null && parsed.host.isNotBlank()) {
+                "$envName must have a valid host, got: $url"
+            }
+            return url
         }
     }
 }

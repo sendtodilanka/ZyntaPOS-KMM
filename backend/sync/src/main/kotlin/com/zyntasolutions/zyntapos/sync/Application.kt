@@ -19,6 +19,7 @@ import io.ktor.server.application.ApplicationStopping
 import io.ktor.server.application.install
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
+import kotlinx.coroutines.launch
 import org.koin.java.KoinJavaComponent.getKoin
 import org.koin.ktor.plugin.Koin
 import org.koin.logger.slf4jLogger
@@ -32,6 +33,17 @@ fun main() {
         options.dsn         = System.getenv("SENTRY_DSN") ?: ""
         options.environment = System.getenv("SENTRY_ENVIRONMENT") ?: "production"
         options.release     = "zyntapos-sync@1.0.0"
+        // S2-15: Configure sampling + PII scrubbing
+        options.tracesSampleRate = (System.getenv("SENTRY_TRACES_SAMPLE_RATE")?.toDoubleOrNull() ?: 0.1)
+        options.isSendDefaultPii = false
+        options.setBeforeSend { event, _ ->
+            event.user?.let { user ->
+                user.email = null
+                user.ipAddress = null
+                user.username = null
+            }
+            event
+        }
     }
 
     embeddedServer(
@@ -60,8 +72,9 @@ fun Application.module() {
 
     // Start Redis delta fan-out listener — broadcasts push deltas + force-sync to WS devices
     // A6: ForceSyncSubscriber removed — RedisPubSubListener already handles sync:commands
+    // S2-14: start() is now a suspend fun — launch in coroutine to avoid blocking startup
     val redisListener = getKoin().get<RedisPubSubListener>()
-    redisListener.start()
+    launch { redisListener.start() }
 
     // A7: Graceful shutdown — close Redis connections, diagnostic relay, flush Sentry, close WebSocketHub
     val hub = getKoin().get<WebSocketHub>()

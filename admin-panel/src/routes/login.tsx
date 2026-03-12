@@ -62,15 +62,16 @@ function LoginPage() {
     if (isAuthenticated) navigate({ to: '/' });
   }, [isAuthenticated, navigate]);
 
+  // S1-3: No manual navigate() on success — __root.tsx guard handles redirect
+  // when isAuthenticated becomes true after setUser() in the login mutation.
   const onSubmit = async (data: LoginForm) => {
     setServerError(null);
     try {
       const response = await login.mutateAsync(data);
       if ('pendingToken' in response) {
         setPendingToken(response.pendingToken);
-      } else {
-        navigate({ to: '/' });
       }
+      // Navigation handled by __root.tsx useEffect when isAuthenticated changes
     } catch (err) {
       if (err instanceof HTTPError) {
         if (err.response.status === 401) {
@@ -92,7 +93,7 @@ function LoginPage() {
     setServerError(null);
     try {
       await mfaVerify.mutateAsync({ code: data.code, pendingToken: pendingToken! });
-      navigate({ to: '/' });
+      // S1-3: Navigation handled by __root.tsx guard
     } catch (err) {
       if (err instanceof HTTPError && err.response.status === 422) {
         setServerError('Invalid code. Check your authenticator app and try again.');
