@@ -1071,6 +1071,73 @@ Or use the "VPS Full Fix" workflow with `reset_db=yes`.
 
 ---
 
+## Backend Architecture (3 Microservices)
+
+### Service Topology
+
+| Service | Port | Database | Purpose |
+|---------|------|----------|---------|
+| `zyntapos-api` | 8081 | `zyntapos_api` (PostgreSQL) | REST API for POS app + Admin panel |
+| `zyntapos-sync` | 8082 | None (stateless) | WebSocket real-time sync relay |
+| `zyntapos-license` | 8083 | `zyntapos_license` (PostgreSQL) | License activation, heartbeat, device management |
+
+### Backend Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | Ktor 3.4.1 (CIO transport) |
+| ORM | Exposed 0.61.0 |
+| Migrations | Flyway (API: 11 migrations, License: 4 migrations) |
+| DI | Koin 4.1.1 |
+| Auth (POS) | RS256 JWT (asymmetric) — API signs, all services verify |
+| Auth (Admin) | HS256 JWT (symmetric) — shared secret between API and License |
+| Redis | Lettuce 6.6.0 — pub/sub for sync notifications |
+| Password (POS) | SHA-256 + salt (PinManager format) with brute-force lockout |
+| Password (Admin) | BCrypt cost 12 with account lockout |
+| Crash Reporting | Sentry |
+| Containers | Docker Compose (10 containers: api, license, sync, postgres, redis, caddy, etc.) |
+
+### Key Backend Files
+
+| What | Where |
+|------|-------|
+| API entry point | `backend/api/src/main/kotlin/.../Application.kt` |
+| POS user auth + brute-force | `backend/api/src/main/kotlin/.../service/UserService.kt` |
+| Admin auth (bcrypt, MFA) | `backend/api/src/main/kotlin/.../service/AdminAuthService.kt` |
+| Sync push/pull processor | `backend/api/src/main/kotlin/.../sync/SyncProcessor.kt` |
+| Conflict resolver (LWW) | `backend/api/src/main/kotlin/.../sync/ServerConflictResolver.kt` |
+| API Flyway migrations | `backend/api/src/main/resources/db/migration/V1-V11` |
+| License service entry | `backend/license/src/main/kotlin/.../Application.kt` |
+| License Flyway migrations | `backend/license/src/main/resources/db/migration/V1-V4` |
+| Sync WebSocket hub | `backend/sync/src/main/kotlin/.../hub/WebSocketHub.kt` |
+| Redis pub/sub listener | `backend/sync/src/main/kotlin/.../hub/RedisPubSubListener.kt` |
+| Shared validation DSL | `backend/common/src/main/kotlin/.../ValidationScope.kt` |
+| Docker Compose | `docker-compose.yml` |
+
+### Backend Audit Status
+
+A comprehensive audit was completed on 2026-03-12. See `docs/audit/backend-modules-audit-2026-03-12.md` for the full 78-finding report with 6-phase remediation plan.
+
+| Phase | Status |
+|-------|--------|
+| Phase A: Critical Security | **COMPLETED** (PR #285) |
+| Phase B: Cross-Module Alignment | Pending |
+| Phase C: Test Coverage (52 files) | Pending |
+| Phase D: Code Quality & Performance | Pending |
+| Phase E: Documentation & API Spec | Pending |
+| Phase F: Advanced Security Hardening | Pending |
+
+### Backend Common Pitfalls
+
+1. **Do not create cross-database FK constraints** — API and License use separate databases (ADR-007). Validate references at app layer.
+2. **Do not share Flyway migrations between services** — each service owns its own `db/migration/` directory.
+3. **Do not use `SyncSessionManager`** — it was removed. Use `WebSocketHub` for all WS connection management.
+4. **Do not add `ForceSyncSubscriber`** — `RedisPubSubListener` handles both `sync:delta:*` and `sync:commands`.
+5. **Do not issue POS refresh tokens as JWTs** — use opaque tokens stored in `pos_sessions` table.
+6. **Do not interpolate user values in email templates without HTML-escaping** — use `htmlEscape()`.
+
+---
+
 ## Development Phases
 
 | Phase | Status | Scope |

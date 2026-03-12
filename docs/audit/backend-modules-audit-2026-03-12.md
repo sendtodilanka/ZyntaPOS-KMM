@@ -820,17 +820,24 @@ The default pool size of 5 connections means at most 5 concurrent database opera
 
 ## 7. Remediation Plan (Priority-Ordered)
 
-### Phase A: Critical Security Fixes (Immediate — 1-2 days)
+### Phase A: Critical Security Fixes (Immediate — 1-2 days) — COMPLETED 2026-03-12
 
-| # | Issue | Module | Effort | Section |
-|---|-------|--------|--------|---------|
-| A1 | Add brute-force protection to POS login | API | 3h | 2.1 |
-| A2 | HTML-escape email template variables | API | 1h | 2.3 |
-| A3 | Implement POS refresh token revocation | API | 4h | 1.3 |
-| A4 | Add CSRF enforcement to License admin endpoints | License | 2h | 2.4 |
-| A5 | Add rate limiting to POS auth endpoints | API | 1h | 2.11 |
-| A6 | Fix duplicate Redis subscriptions | Sync | 1h | 1.4 |
-| A7 | Add graceful shutdown to Sync service | Sync | 2h | 3.2 |
+> **PR #285** — All 7 items implemented and merged.
+
+| # | Issue | Module | Effort | Section | Status |
+|---|-------|--------|--------|---------|--------|
+| A1 | Add brute-force protection to POS login | API | 3h | 2.1 | **DONE** — V11 migration adds `failed_attempts` + `locked_until`; 5 attempts / 15-min lockout |
+| A2 | HTML-escape email template variables | API | 1h | 2.3 | **DONE** — `htmlEscape()` on all user-provided values in templates |
+| A3 | Implement POS refresh token revocation | API | 4h | 1.3 | **DONE** — `pos_sessions` table with single-use opaque rotation (mirrors admin pattern) |
+| A4 | Add CSRF enforcement to License admin endpoints | License | 2h | 2.4 | **DONE** — `Csrf.kt` + `withCsrfProtection` in License routing |
+| A5 | Add rate limiting to POS auth endpoints | API | 1h | 2.11 | **DONE** — Already in place via `auth` rate limit tier (10 req/min) |
+| A6 | Fix duplicate Redis subscriptions | Sync | 1h | 1.4 | **DONE** — `ForceSyncSubscriber` + `SyncSessionManager` removed; `RedisPubSubListener` handles both channels |
+| A7 | Add graceful shutdown to Sync service | Sync | 2h | 3.2 | **DONE** — `ApplicationStopping` hook closes Redis, WebSocketHub, flushes Sentry |
+
+**Bonus fixes included in Phase A:**
+- PII masking in POS auth logs (§2.12 / D8) — `maskEmail()` utility
+- `EmailService.close()` method for resource cleanup (§3.4 / B9)
+- `SyncSessionManager` dead code removed (§3.3 / B8)
 
 ### Phase B: Cross-Module Alignment (3-5 days)
 
@@ -843,8 +850,8 @@ The default pool size of 5 connections means at most 5 concurrent database opera
 | B5 | Add license status validation to API auth flow | API | 4h | 1.11 |
 | B6 | Pin kotlinx-datetime 0.7.1 in backend | License | 0.5h | 3.13 |
 | B7 | Centralize API table objects in `db/Tables.kt` | API | 3h | 3.1 |
-| B8 | Remove SyncSessionManager dead code | Sync | 1h | 3.3 |
-| B9 | Close HttpClient in EmailService | API | 0.5h | 3.4 |
+| B8 | ~~Remove SyncSessionManager dead code~~ | Sync | 1h | 3.3 | **DONE in A6** |
+| B9 | ~~Close HttpClient in EmailService~~ | API | 0.5h | 3.4 | **DONE in A2** |
 
 ### Phase C: Test Coverage (5-8 days)
 
@@ -872,7 +879,7 @@ The default pool size of 5 connections means at most 5 concurrent database opera
 | D5 | Implement EntityApplier for ORDER, CUSTOMER, CATEGORY | API | 8h | 1.5 |
 | D6 | Add structured logging (MDC) | All | 3h | 3.12 |
 | D7 | Configure Sentry sampling | All | 1h | 2.13 |
-| D8 | Mask PII in logs | API | 2h | 2.12 |
+| D8 | ~~Mask PII in logs~~ | API | 2h | 2.12 | **DONE in A1** |
 | D9 | Add Redis connection pooling to API | API | 2h | 6.3 |
 | D10 | Make License HikariCP pool configurable | License | 1h | 6.4 |
 
@@ -891,7 +898,7 @@ The default pool size of 5 connections means at most 5 concurrent database opera
 |---|-------|--------|--------|---------|
 | F1 | Dual-hash password migration (SHA-256 → bcrypt) | API | 6h | 2.2 |
 | F2 | Add sync payload field-level validation | API | 4h | 2.5 |
-| F3 | Replace POS refresh JWT with opaque tokens | API | 6h | 2.6 |
+| F3 | ~~Replace POS refresh JWT with opaque tokens~~ | API | 6h | 2.6 | **DONE in A3** |
 | F4 | Add license heartbeat replay protection | License | 3h | 2.7 |
 | F5 | Add POS token revocation check | API | 3h | 2.8 |
 | F6 | Add storeId claim validation against DB | API | 2h | 2.9 |
@@ -901,15 +908,15 @@ The default pool size of 5 connections means at most 5 concurrent database opera
 
 ## Total Estimated Effort
 
-| Phase | Effort | Priority |
-|-------|--------|----------|
-| Phase A: Critical Security | 14h (~2 days) | P0 — Before any production traffic |
-| Phase B: Cross-Module Alignment | 24h (~3 days) | P1 — Before scale |
-| Phase C: Test Coverage | 48h (~6 days) | P1 — Before feature additions |
-| Phase D: Code Quality | 33h (~4 days) | P2 — Before Phase 2 features |
-| Phase E: Documentation | 14h (~2 days) | P2 — Ongoing |
-| Phase F: Advanced Security | 24h (~3 days) | P2 — Before enterprise customers |
-| **Total** | **~157h (~20 working days)** | |
+| Phase | Effort | Priority | Status |
+|-------|--------|----------|--------|
+| Phase A: Critical Security | 14h (~2 days) | P0 — Before any production traffic | **COMPLETED** 2026-03-12 (PR #285) |
+| Phase B: Cross-Module Alignment | 22.5h (~3 days) | P1 — Before scale | Pending (B8, B9 done in A) |
+| Phase C: Test Coverage | 48h (~6 days) | P1 — Before feature additions | Pending |
+| Phase D: Code Quality | 31h (~4 days) | P2 — Before Phase 2 features | Pending (D8 done in A) |
+| Phase E: Documentation | 14h (~2 days) | P2 — Ongoing | Pending |
+| Phase F: Advanced Security | 18h (~2 days) | P2 — Before enterprise customers | Pending (F3 done in A) |
+| **Total remaining** | **~133.5h (~17 working days)** | | |
 
 ---
 
