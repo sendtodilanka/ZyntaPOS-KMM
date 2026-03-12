@@ -1,7 +1,7 @@
 # 011 — Firebase Analytics, Crash Reporting & Google SSO Integration
 
 **Decision Date:** 2026-03-08
-**Status:** 🟡 ~60% COMPLETE — Firebase BOM deps + google-services plugin + google-services.json placeholder + ZyntaApplication init (Analytics + Crashlytics) implemented. Sentry SDK in all 3 backend services + Android + Desktop JVM. Remaining: AnalyticsService KMP expect/actual (commonMain/androidMain/jvmMain), ViewModel event wiring, GA4 Measurement Protocol for Desktop JVM. Verified 2026-03-12.
+**Status:** 🟡 ~65% COMPLETE — Firebase BOM deps + google-services plugin + google-services.json placeholder + ZyntaApplication init (Analytics + Crashlytics) implemented. Sentry SDK in all 3 backend services + Android + Desktop JVM. JVM AnalyticsService GA4 Measurement Protocol stub implemented. Remaining: AnalyticsService KMP expect/actual completion (commonMain expect + androidMain Firebase actual), Koin wiring, ViewModel event wiring. Verified 2026-03-12.
 **Phases:** Phase 1 (partial) → Phase 2 → Phase 3
 
 ---

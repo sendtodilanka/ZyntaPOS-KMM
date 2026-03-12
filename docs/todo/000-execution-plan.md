@@ -1,6 +1,6 @@
 # TODO-000 — ZyntaPOS Master Execution Plan
 
-**Last updated:** 2026-03-09
+**Last updated:** 2026-03-12
 **Status:** Living document — update whenever a TODO is added, completed, or re-phased
 
 This document is the single source of truth for **what to work on, in what order, and why**. It maps all TODO files to the four development phases defined in `CLAUDE.md` and shows the dependency chain between them.
@@ -91,14 +91,14 @@ TODO-005  →  TODO-003  →  TODO-004 (Part 1)
 
 | # | Title | Status | Priority | Notes |
 |---|-------|--------|----------|-------|
-| [007](007-infrastructure-and-deployment.md) | Infrastructure & Deployment | 🟡 ~65% done | **P0** | VPS live, Docker Compose running, Caddy + API + License + Sync deployed, monitoring + backup done. Remaining: React panel (7a), Astro site (7b), docs site (7e), sync engine server-side (7g) |
-| [007a](007a-react-admin-panel.md) | React Admin Panel | ✅ ~98% done | **P0** | All features implemented including full tickets module (backend V5 migration + AdminTicketService + AdminTicketRoutes + frontend types/hooks/6 components/2 routes), Sidebar RBAC fixed, auth audit log wiring, keyboard shortcuts, sync Conflicts/Dead Letters tabs, expanded tests, Playwright E2E scaffold. Remaining: VPS deploy + CF bypass (external/infrastructure). |
-| [007f](007f-admin-panel-cf-custom-auth.md) | Admin Panel: CF + Custom Auth | 🟡 ~93% done | **P0** | Backend 100% done. Auth audit logging (G3) now wired. Remaining: CSRF (G1), password max-length server-side (G2), backend tests (G8), Google Cloud Console (G9), VPS env vars (G10), CF bypass (G11). |
-| [007b](007b-astro-marketing-website.md) | Astro Marketing Website | ⬜ Ready to implement | **P1** | Full 5-day plan written. Astro 5 + Tailwind on Cloudflare Pages. No blockers. |
-| [009](009-ktor-security-hardening.md) | Ktor Backend Security Hardening | ✅ Done | **P0** | ValidationScope, body size limits, seccomp profile, CVSS threshold — all implemented |
-| [010](010-security-monitoring-automated-response.md) | Security Monitoring & Automated Response | 🟡 ~70% done | **HIGH** | Falco rules, Falcosidekick, cloudflared tunnel done. Remaining: CF Zero Trust, Bot Fight Mode, Snyk Monitor (all CF/SaaS dashboard config) |
-| [008](008-seo-and-aso.md) | SEO & ASO — Website + Play Store | 🔒 Blocked on 007b | **P1** | Items 8a/8b/8c/8f front-loaded into 007b plan. Remaining: GA4/GTM (8d), Play Store ASO (8e) |
-| [006](006-remote-diagnostic-access.md) | Remote Diagnostic Access | 🔒 Blocked on 007a (panel) | **P2** | Needs WebSocket relay via admin panel |
+| [007](007-infrastructure-and-deployment.md) | Infrastructure & Deployment | 🟡 ~95% done | **P0** | Docker Compose (12 services), Caddyfile (8 subdomains), CI/CD (7-step pipeline), container hardening, GHCR builds, deploy workflow all done. Remaining: docs service, external VPS/DNS setup. |
+| [007a](007a-react-admin-panel.md) | React Admin Panel | ✅ ~98% done | **P0** | All features implemented including tickets, auth, sync, health, alerts, settings. Remaining: VPS deploy + CF bypass (external). |
+| [007f](007f-admin-panel-cf-custom-auth.md) | Admin Panel: CF + Custom Auth | 🟡 ~97% done | **P0** | Backend fully done incl CSRF, password max-length, audit logging. Remaining: tests (G8), Google Cloud Console (G9), VPS env vars (G10), CF bypass (G11). |
+| [007b](007b-astro-marketing-website.md) | Astro Marketing Website | ✅ Done | **P1** | Implementation complete — pending CF Pages DNS cutover |
+| [009](009-ktor-security-hardening.md) | Ktor Backend Security Hardening | ✅ Done | **P0** | All 4 levels done: JVM deserialization, HTTP security, container hardening, OWASP/Dependabot/Detekt |
+| [010](010-security-monitoring-automated-response.md) | Security Monitoring & Automated Response | 🟡 ~80% done | **HIGH** | Falco rules, Falcosidekick, CF Tunnel, canary response workflow done. Remaining: canary embedding, Snyk, CF Zero Trust (external) |
+| [008](008-seo-and-aso.md) | SEO & ASO — Website + Play Store | 🟡 ~90% done | **P1** | Technical SEO done (robots.txt, sitemap, JSON-LD, OG tags, Lighthouse CI, GA4 gtag). Remaining: Search Console (ext), Play Store ASO |
+| [006](006-remote-diagnostic-access.md) | Remote Diagnostic Access | 🟡 ~85% done | **P2** | Backend + client feature + consent API wired. Remaining: WebSocket relay, site visit tokens |
 
 ### Execution Order (Phase 2)
 
@@ -245,18 +245,30 @@ Phase 3 ──── TODO-003 Phase 3 (Admin Console)
 
 ## Currently Working On
 
-**→ Phase 2: Infrastructure & Growth**
+**→ Phase 2: Infrastructure & Growth (final stretch)**
 
-Phase 1 is **complete** (all 5 TODOs done). Phase 2 is in progress:
+Phase 1 is **complete** (all 5 TODOs done). Phase 2 is ~87% complete:
+
+### Completed (code-level)
 - ✅ TODO-007 backend infra (VPS, Docker, Caddy, API, License, Sync, monitoring, backup)
-- ✅ TODO-009 Ktor security hardening (all 4 items done)
-- ✅ TODO-010 in-repo items (Falco rules, Falcosidekick, cloudflared)
-- 🟡 TODO-007a React admin panel — ~82% done; 14 of 15 days complete. Remaining: tickets frontend (6 components + 2 routes), use-keyboard.ts, expanded test suite, VPS deploy, CF bypass
-- 🟡 TODO-007f CF + Custom Auth — ~85% done; remaining: CSRF, auth audit log wiring, backend tests, Google OAuth Cloud Console config, CF Access bypass on VPS
-- **→ After 007a/007f completion: TODO-007b — Astro marketing website** (5-day plan ready)
-- Then: TODO-008 SEO/ASO (partially front-loaded into 007b)
-- Then: TODO-010 dashboard config items (CF Zero Trust, Snyk Monitor)
-- Later: TODO-006 remote diagnostics (requires panel WebSocket relay)
+- ✅ TODO-007a React admin panel (all features, tickets, auth, sync, tests)
+- ✅ TODO-007b Astro marketing website (implementation complete)
+- ✅ TODO-007c Monitoring setup (Uptime Kuma, health endpoints)
+- ✅ TODO-007d Automated backup (pg_dump + GPG + rclone B2)
+- ✅ TODO-007f Admin panel CF + Custom Auth (CSRF, bcrypt, MFA, Google SSO, audit logging)
+- ✅ TODO-007g Sync engine server-side (30 files, full implementation)
+- ✅ TODO-009 Ktor security hardening (all 4 levels)
+- ✅ TODO-008 SEO/ASO (technical SEO complete)
+- ✅ TODO-010 in-repo items (Falco rules, Falcosidekick, cloudflared, canary response workflow)
+
+### In Progress
+- 🟡 TODO-006 Remote diagnostics — ~85% done; consent API wired, data isolation verified. Remaining: WebSocket relay, site visit tokens
+- 🟡 TODO-011 Firebase Analytics — ~65% done; Sentry + Firebase BOM done. Remaining: AnalyticsService KMP expect/actual, ViewModel event wiring
+- 🟡 TODO-008a Email system — ~70% done; EmailService + HTML escaping done. Remaining: admin panel delivery log UI
+- 🟡 TODO-007e API docs site — ~30% done; OpenAPI spec exists. Remaining: docs site scaffold
+
+### Remaining (external/infrastructure only)
+- VPS deployment, DNS cutover, Google Cloud Console, Snyk Monitor, CF Zero Trust (all external — no code changes)
 
 ---
 

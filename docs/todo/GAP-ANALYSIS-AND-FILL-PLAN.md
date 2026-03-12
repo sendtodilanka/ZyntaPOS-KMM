@@ -18,7 +18,7 @@
 | 003 | Edition Management Wiring | **100%** ✅ | Phase 1 |
 | 004 | Enterprise Audit Logging | **100%** ✅ | Phase 1 |
 | 005 | Modern Dashboard + Nav | **100%** ✅ | Phase 1 |
-| 006 | Remote Diagnostic Access | **~80%** 🟡 | Phase 2 |
+| 006 | Remote Diagnostic Access | **~85%** 🟡 | Phase 2 |
 | 007 | Infrastructure & Deployment | **~95%** 🟡 | Phase 2 |
 | 007a | React Admin Panel | **~98%** ✅ | Phase 2 |
 | 007b | Astro Marketing Website | **100%** ✅ | Phase 2 |
@@ -30,10 +30,48 @@
 | 008a | Email Management System | **~70%** 🟡 | Phase 2 |
 | 009 | Ktor Security Hardening | **100%** ✅ | Phase 2 |
 | 010 | Security Monitoring & Auto-Response | **~80%** 🟡 | Phase 2 |
-| 011 | Firebase Analytics + Sentry | **~60%** 🟡 | Phase 1/2 |
+| 011 | Firebase Analytics + Sentry | **~65%** 🟡 | Phase 1/2 |
 
 **Overall Phase 1:** COMPLETE (5/5 TODOs done)
-**Overall Phase 2:** ~85% complete (6/14 fully done, 8 partially done with mostly external/VPS tasks remaining)
+**Overall Phase 2:** ~87% complete (6/14 fully done, 8 partially done with mostly external/VPS tasks remaining)
+
+---
+
+## Recent Implementation Session (2026-03-12)
+
+A comprehensive 17-step audit-and-fill session was completed. Key changes:
+
+### Backend (Steps 1-6)
+- **POS auth brute-force protection**: `failed_attempts` + `locked_until` columns, lockout logic in UserService
+- **POS refresh token revocation**: `pos_sessions` table, opaque token storage with hash verification
+- **Email HTML escaping**: `HtmlEscape.kt` utility, applied across all email templates
+- **Health check enhancement**: Redis health checks, `/health/deep` endpoints across all 3 services
+- **Cross-service config alignment**: Unified error responses, configurable JWT issuer/audience
+- **EntityApplier completions**: All entity types (order, category, customer, supplier, employee)
+- **Sync WebSocket wiring**: Push/pull processing via SyncForwarder, store-scoped isolation
+
+### KMM Data Layer (Steps 7-9)
+- **BackupRepositoryImpl**: Platform file I/O via expect/actual `BackupFileManager`
+- **SystemRepositoryImpl**: Real PRAGMA operations for vacuum, purge, DB size, health checks
+- **FinancialStatementRepositoryImpl**: `rebuildAllBalances()` with journal entry iteration
+- **RegisterRepositoryImpl**: Added `store_id` support
+
+### HAL (Step 11)
+- **DesktopUsbPrinterPort**: USB printer via jSerialComm — connect, print, cut, cash drawer
+- **DesktopUsbLabelPrinterPort**: ZPL/TSPL label printing via jSerialComm serial port
+- **CloudPrntClient**: Star Micronics CloudPRNT polling and job download
+
+### Feature Modules (Steps 12-13)
+- **DiagnosticViewModel**: Wired to `DiagnosticConsentRepository` (domain-level interface, clean architecture)
+- **RegisterViewModel**: Dashboard stats from real OrderRepository + RegisterRepository queries
+- **InventoryViewModel**: All 15+ stub handlers implemented (categories, suppliers, tax groups, units)
+
+### Architecture Fixes
+- Created `DiagnosticConsentRepository` domain interface to avoid `:shared:data` dependency in diagnostic feature
+- Fixed SQLDelight `executeQuery()` mapper API usage in SystemRepositoryImpl
+- Fixed `RegisterSession.openedAt` Instant type handling in RegisterViewModel
+- Added Ktor client deps to sync service for SyncForwarder
+- Fixed all test compilation errors (RegisterRepositoryImplIntegrationTest, SyncEngineIntegrationTest, InventoryViewModelTest)
 
 ---
 
@@ -41,21 +79,20 @@
 
 ### HIGH Priority — TODO-006: Remote Diagnostic Completion
 
-**Current state:** Domain model, security validator, client feature module, backend service (DiagnosticSessionService.kt with HMAC-SHA256 JIT tokens), routes (AdminDiagnosticRoutes.kt), DB migration (V8), audit event types (4 diagnostic events), and Koin DI all implemented. Only WebSocket relay and data isolation remain.
+**Current state:** Domain model, security validator, client feature module (wired to DiagnosticConsentRepository), backend service (DiagnosticSessionService.kt with HMAC-SHA256 JIT tokens), routes (AdminDiagnosticRoutes.kt), DB migration (V8), audit event types (4 diagnostic events), Koin DI, and client consent API wiring all implemented. Data isolation verified (`:composeApp:feature:diagnostic` has NO `:shared:data` dependency).
 
 | Gap | What's Needed | Effort |
 |-----|--------------|--------|
 | WebSocket relay | `DiagnosticRelay.kt` in backend/sync — relay commands between panel and POS app via WebSocketHub | 3-4 hrs |
-| 3-layer data isolation | Verify `:composeApp:feature:diagnostic` has NO `:shared:data` dependency | 30 min |
 | Site visit token support | Hardware-based token validation for on-site visits | 4 hrs |
 
 ### MEDIUM Priority — TODO-011: Firebase Analytics KMP Wiring
 
-**Current state:** Firebase BOM + google-services plugin + ZyntaApplication init done. Sentry in all backends + Android + Desktop.
+**Current state:** Firebase BOM + google-services plugin + ZyntaApplication init done. Sentry in all backends + Android + Desktop. JVM AnalyticsService GA4 stub exists.
 
 | Gap | What's Needed | Effort |
 |-----|--------------|--------|
-| AnalyticsService expect/actual | `shared/data/src/commonMain/.../analytics/AnalyticsService.kt` (expect) + androidMain (Firebase SDK) + jvmMain (GA4 Measurement Protocol stub) | 2-3 hrs |
+| AnalyticsService expect/actual | Complete KMP expect/actual pattern (commonMain expect + androidMain Firebase SDK actual) | 2-3 hrs |
 | Koin wiring | Add AnalyticsService binding to `dataModule` in androidMain and jvmMain | 30 min |
 | ViewModel event wiring | Wire analytics events in PosViewModel, AuthViewModel, DashboardViewModel | 2-3 hrs |
 
@@ -83,7 +120,7 @@
 
 ### LOW Priority — TODO-008a: Email System Completion
 
-**Current state:** EmailService (Resend), password reset, ticket notifications, unsubscribe all implemented.
+**Current state:** EmailService (Resend), password reset, ticket notifications, unsubscribe all implemented. HTML escaping added to all templates.
 
 | Gap | What's Needed | Effort |
 |-----|--------------|--------|
@@ -116,21 +153,20 @@ These items require VPS access, DNS configuration, or SaaS dashboard setup — N
 
 ---
 
-## Part 3: Implementation Priority Order
+## Part 3: Remaining Implementation Priority Order
 
 | Step | Scope | Effort | Priority |
 |------|-------|--------|----------|
-| 1 | TODO-006: Backend diagnostic service + routes + migration | 4-6 hrs | HIGH |
-| 2 | TODO-006: WebSocket relay for diagnostics | 3-4 hrs | HIGH |
-| 3 | TODO-006: Audit event types for diagnostic sessions | 1 hr | HIGH |
-| 4 | TODO-011: AnalyticsService expect/actual + Koin wiring | 2-3 hrs | MEDIUM |
-| 5 | TODO-011: ViewModel analytics event wiring | 2-3 hrs | MEDIUM |
-| 6 | TODO-010: Canary token embedding in source | 30 min | MEDIUM |
-| 7 | TODO-007e: API docs site scaffold + OpenAPI specs | 4-6 hrs | LOW |
-| 8 | TODO-007e: Guide pages + Docker + CI workflow | 4-6 hrs | LOW |
-| 9 | TODO-008a: Admin panel email delivery log UI | 2-3 hrs | LOW |
+| 1 | TODO-006: WebSocket diagnostic relay | 3-4 hrs | HIGH |
+| 2 | TODO-006: Site visit token support | 4 hrs | HIGH |
+| 3 | TODO-011: AnalyticsService expect/actual + Koin wiring | 2-3 hrs | MEDIUM |
+| 4 | TODO-011: ViewModel analytics event wiring | 2-3 hrs | MEDIUM |
+| 5 | TODO-010: Canary token embedding in source | 30 min | MEDIUM |
+| 6 | TODO-007e: API docs site scaffold + OpenAPI specs | 4-6 hrs | LOW |
+| 7 | TODO-007e: Guide pages + Docker + CI workflow | 4-6 hrs | LOW |
+| 8 | TODO-008a: Admin panel email delivery log UI | 2-3 hrs | LOW |
 
-**Total code effort remaining: ~25-35 hours**
+**Total code effort remaining: ~20-30 hours** (reduced from ~35 hrs after 2026-03-12 session)
 
 ---
 
