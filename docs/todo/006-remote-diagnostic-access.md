@@ -1,6 +1,6 @@
 # TODO-006: Remote Diagnostic Access (License-Gated Lockbox Pattern)
 
-**Status:** 🟡 ~80% COMPLETE — Domain model (DiagnosticSession.kt), security validator (DiagnosticTokenValidator.kt), client feature module (:composeApp:feature:diagnostic with MVI pattern), backend service (DiagnosticSessionService.kt with HMAC-SHA256 JIT tokens), backend routes (AdminDiagnosticRoutes.kt — POST/GET/DELETE), Flyway migration (V8__diagnostic_sessions.sql), audit event types (4 diagnostic events in AuditEventType), and Koin DI registration all implemented. Remaining: WebSocket relay in sync service, 3-layer data isolation verification, site visit token support. Verified 2026-03-12.
+**Status:** 🟡 ~85% COMPLETE — Domain model (DiagnosticSession.kt), security validator (DiagnosticTokenValidator.kt), client feature module (:composeApp:feature:diagnostic with MVI pattern, consent API wired via DiagnosticConsentRepository domain interface), backend service (DiagnosticSessionService.kt with HMAC-SHA256 JIT tokens), backend routes (AdminDiagnosticRoutes.kt — POST/GET/DELETE), Flyway migration (V8__diagnostic_sessions.sql), audit event types (4 diagnostic events in AuditEventType), Koin DI registration, and 3-layer data isolation verified (diagnostic feature has NO :shared:data dependency). Remaining: WebSocket relay in sync service, site visit token support. Verified 2026-03-12.
 **Priority:** HIGH — Design now, implement Phase 2
 **Phase:** Phase 2 (Growth)
 **Created:** 2026-03-01
