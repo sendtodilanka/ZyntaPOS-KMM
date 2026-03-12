@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap
 /**
  * Manages active WebSocket connections per store, tracked at the device level.
  *
- * Key improvement over the old [SyncSessionManager]: connections are keyed by
+ * Connections are keyed by
  * (storeId, deviceId) so that push notifications can exclude the sender device
  * and avoid echo. Each device may have at most one active session (reconnect
  * replaces the previous session).

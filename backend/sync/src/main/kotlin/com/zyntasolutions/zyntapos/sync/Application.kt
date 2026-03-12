@@ -3,7 +3,7 @@ package com.zyntasolutions.zyntapos.sync
 import io.sentry.Sentry
 import com.zyntasolutions.zyntapos.sync.di.syncModule
 import com.zyntasolutions.zyntapos.sync.hub.RedisPubSubListener
-import com.zyntasolutions.zyntapos.sync.pubsub.ForceSyncSubscriber
+import com.zyntasolutions.zyntapos.sync.hub.WebSocketHub
 import com.zyntasolutions.zyntapos.sync.plugins.configureAuthentication
 import com.zyntasolutions.zyntapos.sync.plugins.configureMonitoring
 import com.zyntasolutions.zyntapos.sync.plugins.configureRateLimit
@@ -14,6 +14,7 @@ import com.zyntasolutions.zyntapos.sync.plugins.configureContentLengthLimit
 import com.zyntasolutions.zyntapos.sync.plugins.configureStatusPages
 import com.zyntasolutions.zyntapos.sync.plugins.configureWebSockets
 import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationStopping
 import io.ktor.server.application.install
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
@@ -56,9 +57,16 @@ fun Application.module() {
     configureContentLengthLimit()
     configureRouting()
 
-    // Start Redis delta fan-out listener (TODO-007g) — broadcasts push deltas to WS devices
-    getKoin().get<RedisPubSubListener>().start()
+    // Start Redis delta fan-out listener — broadcasts push deltas + force-sync to WS devices
+    // A6: ForceSyncSubscriber removed — RedisPubSubListener already handles sync:commands
+    val redisListener = getKoin().get<RedisPubSubListener>()
+    redisListener.start()
 
-    // Start force-sync subscriber — admin-triggered force-sync commands
-    getKoin().get<ForceSyncSubscriber>().start()
+    // A7: Graceful shutdown — close Redis connections, flush Sentry, close WebSocketHub
+    val hub = getKoin().get<WebSocketHub>()
+    monitor.subscribe(ApplicationStopping) {
+        redisListener.stop()
+        hub.close()
+        Sentry.close()
+    }
 }
