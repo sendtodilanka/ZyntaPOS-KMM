@@ -170,7 +170,7 @@ These are operational/configuration gaps, not code gaps. The TODO-007c checklist
 
 #### TODO-007g: Sync Engine Server-Side
 
-**Status: ⬜ ~5% — STUB ONLY**
+**Status: 🟡 ~60% — FUNCTIONAL** (updated 2026-03-12: push/pull endpoints, LWW conflict resolution, Redis pub/sub, EntityApplier, audit sync)
 
 **File:** `backend/sync/routes/SyncWebSocketRoutes.kt`
 
@@ -390,7 +390,7 @@ DOCUMENTATION (Phase 3 prep):
 | 007d | Automated Backup | ✅ Complete | — |
 | 007e | API Documentation Site | ⬜ Not started | No OpenAPI spec, no Redoc/Swagger hosting |
 | 007f | Admin Panel CF + Custom Auth | 🟡 ~75% | Frontend Days 3/5/6/7; CF dashboard action |
-| 007g | Sync Engine Server-Side | ⬜ ~5% (stub) | All sync logic; only ACK stub exists |
+| 007g | Sync Engine Server-Side | 🟡 ~60% | Push/pull endpoints, LWW, Redis pub/sub, EntityApplier; CRDT merge pending |
 | 008 | SEO & ASO | ✅ Code complete | GSC + Play Store (external); Lighthouse CI |
 | 008a | Email Management System | ⬜ Not started | Stalwart, Chatwoot, transactional email, templates |
 | 009 | Ktor Security Hardening | ✅ Complete | — |
