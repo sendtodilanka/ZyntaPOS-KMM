@@ -1,7 +1,5 @@
 package com.zyntasolutions.zyntapos.api.routes
 
-import com.auth0.jwt.JWT
-import com.auth0.jwt.algorithms.Algorithm
 import com.zyntasolutions.zyntapos.api.config.AppConfig
 import com.zyntasolutions.zyntapos.api.models.ErrorResponse
 import com.zyntasolutions.zyntapos.api.models.LoginRequest
@@ -17,9 +15,6 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import org.koin.ktor.ext.inject
-import java.security.interfaces.RSAPrivateKey
-import java.security.interfaces.RSAPublicKey
-import java.util.Date
 
 fun Route.authRoutes() {
     val config: AppConfig by inject()
@@ -49,38 +44,19 @@ fun Route.authRoutes() {
                     return@post
                 }
 
-            val now = System.currentTimeMillis()
-            val algorithm = Algorithm.RSA256(
-                config.jwtPublicKey as RSAPublicKey,
-                config.jwtPrivateKey as RSAPrivateKey
+            // A3: Issue opaque refresh token stored server-side (single-use rotation)
+            val ip = call.request.local.remoteAddress
+            val ua = call.request.headers["User-Agent"]
+            val (accessToken, refreshToken, expiresIn) = userService.issueTokens(
+                user, config, request.deviceId, ip, ua
             )
-
-            val accessToken = JWT.create()
-                .withIssuer(config.jwtIssuer)
-                .withAudience(config.jwtAudience)
-                .withSubject(user.id)
-                .withClaim("role", user.role)
-                .withClaim("storeId", user.storeId)
-                .withClaim("type", "access")
-                .withExpiresAt(Date(now + config.accessTokenTtlMs))
-                .sign(algorithm)
-
-            val refreshToken = JWT.create()
-                .withIssuer(config.jwtIssuer)
-                .withAudience(config.jwtAudience)
-                .withSubject(user.id)
-                .withClaim("role", user.role)
-                .withClaim("storeId", user.storeId)
-                .withClaim("type", "refresh")
-                .withExpiresAt(Date(now + config.refreshTokenTtlMs))
-                .sign(algorithm)
 
             call.respond(
                 HttpStatusCode.OK,
                 LoginResponse(
                     accessToken  = accessToken,
                     refreshToken = refreshToken,
-                    expiresIn    = config.accessTokenTtlMs / 1000,
+                    expiresIn    = expiresIn,
                     user         = UserResponseDto(
                         id        = user.id,
                         name      = user.name,
@@ -104,7 +80,9 @@ fun Route.authRoutes() {
                 requireMaxLength("refresh_token", request.refreshToken, 4096)
             }) return@post
 
-            val response = userService.refreshTokens(request.refreshToken, config)
+            val ip = call.request.local.remoteAddress
+            val ua = call.request.headers["User-Agent"]
+            val response = userService.refreshTokens(request.refreshToken, config, ip, ua)
                 ?: run {
                     call.respond(
                         HttpStatusCode.Unauthorized,

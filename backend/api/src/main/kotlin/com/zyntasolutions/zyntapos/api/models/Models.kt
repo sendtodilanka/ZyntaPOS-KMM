@@ -35,11 +35,12 @@ data class LoginResponse(
     @SerialName("user")          val user: UserResponseDto,
 )
 
-/** Slim refresh response — aligned with KMP [AuthRefreshResponseDto]. */
+/** Refresh response — includes new refresh token for single-use rotation (A3). */
 @Serializable
 data class RefreshResponse(
-    @SerialName("access_token") val accessToken: String,
-    @SerialName("expires_in")   val expiresIn: Long,
+    @SerialName("access_token")  val accessToken: String,
+    @SerialName("refresh_token") val refreshToken: String? = null,
+    @SerialName("expires_in")    val expiresIn: Long,
 )
 
 @Serializable

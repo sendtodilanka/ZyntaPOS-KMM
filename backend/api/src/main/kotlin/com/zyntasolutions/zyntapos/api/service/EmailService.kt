@@ -109,6 +109,11 @@ class EmailService(private val config: AppConfig) {
         }
     }
 
+    /** Closes the HTTP client. Call during application shutdown (§3.4). */
+    fun close() {
+        client.close()
+    }
+
     // ── HTML templates ─────────────────────────────────────────────────────────
 
     private fun passwordResetHtml(resetLink: String) = """
@@ -116,7 +121,7 @@ class EmailService(private val config: AppConfig) {
         <h2>Reset your ZyntaPOS password</h2>
         <p>You requested a password reset for your ZyntaPOS Admin Panel account.</p>
         <p>Click the link below to set a new password. This link expires in 1 hour.</p>
-        <p><a href="$resetLink" style="background:#1976d2;color:#fff;padding:12px 24px;border-radius:4px;text-decoration:none;display:inline-block">Reset Password</a></p>
+        <p><a href="${resetLink.htmlEscape()}" style="background:#1976d2;color:#fff;padding:12px 24px;border-radius:4px;text-decoration:none;display:inline-block">Reset Password</a></p>
         <p>If you did not request this, you can safely ignore this email.</p>
         <p style="color:#666;font-size:12px">ZyntaPOS &mdash; Enterprise Point of Sale</p>
         </body></html>
@@ -124,9 +129,9 @@ class EmailService(private val config: AppConfig) {
 
     private fun welcomeAdminHtml(name: String) = """
         <!DOCTYPE html><html><body style="font-family:sans-serif;max-width:600px;margin:0 auto">
-        <h2>Welcome to ZyntaPOS, $name!</h2>
+        <h2>Welcome to ZyntaPOS, ${name.htmlEscape()}!</h2>
         <p>Your ZyntaPOS Admin Panel account has been created.</p>
-        <p>You can access the admin panel at <a href="${config.adminPanelUrl}">${config.adminPanelUrl}</a>.</p>
+        <p>You can access the admin panel at <a href="${config.adminPanelUrl}">${config.adminPanelUrl.htmlEscape()}</a>.</p>
         <p>Use the credentials set during account creation to log in. We recommend enabling MFA immediately.</p>
         <p style="color:#666;font-size:12px">ZyntaPOS &mdash; Enterprise Point of Sale</p>
         </body></html>
@@ -134,9 +139,9 @@ class EmailService(private val config: AppConfig) {
 
     private fun ticketCreatedHtml(ticketNumber: String, title: String) = """
         <!DOCTYPE html><html><body style="font-family:sans-serif;max-width:600px;margin:0 auto">
-        <h2>Support Ticket Created: #$ticketNumber</h2>
+        <h2>Support Ticket Created: #${ticketNumber.htmlEscape()}</h2>
         <p>Your support ticket has been received and will be addressed shortly.</p>
-        <p><strong>Title:</strong> $title</p>
+        <p><strong>Title:</strong> ${title.htmlEscape()}</p>
         <p>You can track the status of your ticket in the ZyntaPOS Admin Panel.</p>
         <p style="color:#666;font-size:12px">ZyntaPOS &mdash; Enterprise Point of Sale</p>
         </body></html>
@@ -144,10 +149,18 @@ class EmailService(private val config: AppConfig) {
 
     private fun ticketUpdatedHtml(ticketNumber: String, newStatus: String) = """
         <!DOCTYPE html><html><body style="font-family:sans-serif;max-width:600px;margin:0 auto">
-        <h2>Ticket #$ticketNumber Updated</h2>
-        <p>The status of your support ticket has been updated to: <strong>$newStatus</strong></p>
+        <h2>Ticket #${ticketNumber.htmlEscape()} Updated</h2>
+        <p>The status of your support ticket has been updated to: <strong>${newStatus.htmlEscape()}</strong></p>
         <p>Log in to the ZyntaPOS Admin Panel for more details.</p>
         <p style="color:#666;font-size:12px">ZyntaPOS &mdash; Enterprise Point of Sale</p>
         </body></html>
     """.trimIndent()
+
+    /** Escapes HTML special characters to prevent XSS in email templates (A2). */
+    private fun String.htmlEscape(): String = this
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace("\"", "&quot;")
+        .replace("'", "&#x27;")
 }

@@ -14,9 +14,11 @@ fun Application.configureRouting() {
     routing {
         healthRoutes()
 
-        // Admin panel license management — cookie-based JWT (validated inside each route)
+        // Admin panel license management — cookie-based JWT + CSRF protection (A4)
         rateLimit(RateLimitName("activate")) {
-            adminLicenseRoutes()
+            withCsrfProtection {
+                adminLicenseRoutes()
+            }
         }
 
         route("/v1") {
