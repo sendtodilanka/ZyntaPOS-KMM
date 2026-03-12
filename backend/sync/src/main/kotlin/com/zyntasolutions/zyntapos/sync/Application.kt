@@ -60,6 +60,9 @@ fun Application.module() {
         modules(syncModule)
     }
 
+    // S4-2: Request correlation ID for cross-service tracing
+    install(com.zyntasolutions.zyntapos.common.CorrelationId)
+
     configureSerialization()
     configureAuthentication()
     configureSecurity()

@@ -15,4 +15,6 @@ val ktorVersion = "3.4.1"
 dependencies {
     implementation("io.ktor:ktor-server-core:$ktorVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
+
+    testImplementation(kotlin("test"))
 }

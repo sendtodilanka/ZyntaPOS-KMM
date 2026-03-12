@@ -67,50 +67,54 @@ class SyncProcessor(
         val alreadyAccepted = validOps.filter { it.id in existingIds }.map { it.id }
         val newOps = validOps.filter { it.id !in existingIds }
 
-        // Step 3: Process each new operation — insert + apply in single transaction (B5)
+        // Step 3: Process new operations in a single batched transaction (S3-12)
+        // Reduces commit overhead from N transactions to 1 for non-failing batches.
+        // Individual operation failures are caught and added to rejected list.
         val accepted   = mutableListOf<String>()
         val conflicts  = mutableListOf<String>()
 
-        for (op in newOps) {
-            try {
-                newSuspendedTransaction {
-                    val latestSnapshot = syncOpRepo.findLatestForEntity(storeId, op.entityType, op.entityId)
+        if (newOps.isNotEmpty()) {
+            newSuspendedTransaction {
+                for (op in newOps) {
+                    try {
+                        val latestSnapshot = syncOpRepo.findLatestForEntity(storeId, op.entityType, op.entityId)
 
-                    if (latestSnapshot != null && latestSnapshot.deviceId != request.deviceId) {
-                        val existingIsNewer = latestSnapshot.clientTimestamp > op.createdAt ||
-                            (latestSnapshot.clientTimestamp == op.createdAt &&
-                             latestSnapshot.deviceId > request.deviceId)
+                        if (latestSnapshot != null && latestSnapshot.deviceId != request.deviceId) {
+                            val existingIsNewer = latestSnapshot.clientTimestamp > op.createdAt ||
+                                (latestSnapshot.clientTimestamp == op.createdAt &&
+                                 latestSnapshot.deviceId > request.deviceId)
 
-                        if (existingIsNewer) {
-                            // Conflict: existing server state wins or needs field merge
-                            val resolution = conflictResolver.resolve(storeId, op, latestSnapshot, request.deviceId)
-                            syncOpRepo.insertWithConflict(
-                                storeId         = storeId,
-                                deviceId        = request.deviceId,
-                                op              = op,
-                                conflictId      = resolution.conflictId,
-                                resolvedPayload = resolution.winnerPayload,
-                            )
-                            entityApplier.applyInTransaction(storeId, op)
-                            conflicts.add(op.id)
-                            metrics.conflictsTotal.incrementAndGet()
+                            if (existingIsNewer) {
+                                // Conflict: existing server state wins or needs field merge
+                                val resolution = conflictResolver.resolve(storeId, op, latestSnapshot, request.deviceId)
+                                syncOpRepo.insertWithConflict(
+                                    storeId         = storeId,
+                                    deviceId        = request.deviceId,
+                                    op              = op,
+                                    conflictId      = resolution.conflictId,
+                                    resolvedPayload = resolution.winnerPayload,
+                                )
+                                entityApplier.applyInTransaction(storeId, op)
+                                conflicts.add(op.id)
+                                metrics.conflictsTotal.incrementAndGet()
+                            } else {
+                                // Incoming wins over existing — accept normally
+                                syncOpRepo.insert(storeId, request.deviceId, op)
+                                entityApplier.applyInTransaction(storeId, op)
+                                accepted.add(op.id)
+                            }
                         } else {
-                            // Incoming wins over existing — accept normally
+                            // No conflict — accept directly
                             syncOpRepo.insert(storeId, request.deviceId, op)
                             entityApplier.applyInTransaction(storeId, op)
                             accepted.add(op.id)
                         }
-                    } else {
-                        // No conflict — accept directly
-                        syncOpRepo.insert(storeId, request.deviceId, op)
-                        entityApplier.applyInTransaction(storeId, op)
-                        accepted.add(op.id)
+                    } catch (e: Exception) {
+                        logger.warn("Failed to process op ${op.id}: ${e.message}")
+                        rejected.add(op.id)
+                        metrics.opsRejected.incrementAndGet()
                     }
                 }
-            } catch (e: Exception) {
-                logger.warn("Failed to process op ${op.id}: ${e.message}")
-                rejected.add(op.id)
-                metrics.opsRejected.incrementAndGet()
             }
         }
 

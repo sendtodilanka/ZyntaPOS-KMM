@@ -14,8 +14,16 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 /**
- * Unit tests for WebSocketHub — verifies connection tracking state.
- * Broadcast I/O is not tested here (requires Ktor testApplication).
+ * S3-7: Expanded unit tests for WebSocketHub — connection tracking lifecycle.
+ *
+ * Tests cover:
+ * - Registration / unregistration state tracking
+ * - Multi-device multi-store scenarios
+ * - Session replacement on reconnect
+ * - Store cleanup after last device disconnects
+ * - Broadcast to unknown stores (no-op)
+ * - Hub close lifecycle
+ * - Edge cases: unregister non-existent device, unregister from unknown store
  */
 @OptIn(InternalAPI::class)
 class WebSocketHubTest {
@@ -36,8 +44,11 @@ class WebSocketHubTest {
             override suspend fun send(frame: Frame) {}
             override val coroutineContext = EmptyCoroutineContext
             override fun start(negotiatedExtensions: List<WebSocketExtension<*>>) {}
+            @Deprecated("Deprecated in interface")
             override fun terminate() {}
         }
+
+    // ── Initial state ───────────────────────────────────────────────────
 
     @Test
     fun `initial state has no connections`() {
@@ -45,6 +56,8 @@ class WebSocketHubTest {
         assertEquals(0, hub.totalConnections())
         assertEquals(0, hub.activeStoreCount())
     }
+
+    // ── Registration ────────────────────────────────────────────────────
 
     @Test
     fun `registering increments connection count`() {
@@ -55,6 +68,19 @@ class WebSocketHubTest {
     }
 
     @Test
+    fun `registering in different stores tracked independently`() {
+        val hub = WebSocketHub()
+        hub.register("store-A", "device-1", stubSession())
+        hub.register("store-B", "device-1", stubSession())
+        assertEquals(1, hub.connectionCount("store-A"))
+        assertEquals(1, hub.connectionCount("store-B"))
+        assertEquals(2, hub.totalConnections())
+        assertEquals(2, hub.activeStoreCount())
+    }
+
+    // ── Unregistration ──────────────────────────────────────────────────
+
+    @Test
     fun `unregistering decrements connection count`() {
         val hub = WebSocketHub()
         hub.register("store-A", "device-1", stubSession())
@@ -62,6 +88,23 @@ class WebSocketHubTest {
         assertEquals(0, hub.connectionCount("store-A"))
         assertEquals(0, hub.activeStoreCount())
     }
+
+    @Test
+    fun `unregistering non-existent device is no-op`() {
+        val hub = WebSocketHub()
+        hub.register("store-A", "device-1", stubSession())
+        hub.unregister("store-A", "device-99") // doesn't exist
+        assertEquals(1, hub.connectionCount("store-A"))
+    }
+
+    @Test
+    fun `unregistering from unknown store is no-op`() {
+        val hub = WebSocketHub()
+        hub.unregister("no-such-store", "device-1") // should not throw
+        assertEquals(0, hub.totalConnections())
+    }
+
+    // ── Multi-device scenarios ──────────────────────────────────────────
 
     @Test
     fun `multiple devices in same store tracked separately`() {
@@ -76,12 +119,27 @@ class WebSocketHubTest {
     }
 
     @Test
+    fun `unregistering one device of many preserves others`() {
+        val hub = WebSocketHub()
+        hub.register("store-A", "device-1", stubSession())
+        hub.register("store-A", "device-2", stubSession())
+        hub.register("store-A", "device-3", stubSession())
+        hub.unregister("store-A", "device-2")
+        assertEquals(2, hub.connectionCount("store-A"))
+        assertEquals(1, hub.activeStoreCount())
+    }
+
+    // ── Reconnect ───────────────────────────────────────────────────────
+
+    @Test
     fun `reconnect replaces existing session for same device`() {
         val hub = WebSocketHub()
         hub.register("store-A", "device-1", stubSession())
-        hub.register("store-A", "device-1", stubSession())
+        hub.register("store-A", "device-1", stubSession()) // replacement
         assertEquals(1, hub.connectionCount("store-A"))
     }
+
+    // ── Store cleanup ───────────────────────────────────────────────────
 
     @Test
     fun `unregistering last device removes store entry`() {
@@ -92,10 +150,24 @@ class WebSocketHubTest {
     }
 
     @Test
+    fun `store entry persists while devices remain`() {
+        val hub = WebSocketHub()
+        hub.register("store-A", "device-1", stubSession())
+        hub.register("store-A", "device-2", stubSession())
+        hub.unregister("store-A", "device-1")
+        assertEquals(1, hub.activeStoreCount())
+        assertEquals(1, hub.connectionCount("store-A"))
+    }
+
+    // ── connectionCount ─────────────────────────────────────────────────
+
+    @Test
     fun `connectionCount returns 0 for unknown store`() {
         val hub = WebSocketHub()
         assertEquals(0, hub.connectionCount("no-such-store"))
     }
+
+    // ── Broadcast ───────────────────────────────────────────────────────
 
     @Test
     fun `broadcast to unknown store is no-op`() {
@@ -105,9 +177,40 @@ class WebSocketHubTest {
     }
 
     @Test
+    fun `broadcast with excludeDeviceId does not throw`() {
+        val hub = WebSocketHub()
+        hub.register("store-A", "device-1", stubSession())
+        hub.broadcast("store-A", """{"type":"delta"}""", excludeDeviceId = "device-1")
+        // No exception expected; device-1 is excluded
+    }
+
+    // ── Lifecycle ───────────────────────────────────────────────────────
+
+    @Test
     fun `close does not throw`() {
         val hub = WebSocketHub()
         hub.register("store-A", "device-1", stubSession())
-        hub.close()  // Should cancel scope without throwing
+        hub.close()
+    }
+
+    @Test
+    fun `close on empty hub does not throw`() {
+        val hub = WebSocketHub()
+        hub.close()
+    }
+
+    // ── Large scale ─────────────────────────────────────────────────────
+
+    @Test
+    fun `handles 100 devices across 10 stores`() {
+        val hub = WebSocketHub()
+        repeat(10) { storeIdx ->
+            repeat(10) { deviceIdx ->
+                hub.register("store-$storeIdx", "device-$deviceIdx", stubSession())
+            }
+        }
+        assertEquals(100, hub.totalConnections())
+        assertEquals(10, hub.activeStoreCount())
+        assertEquals(10, hub.connectionCount("store-0"))
     }
 }
