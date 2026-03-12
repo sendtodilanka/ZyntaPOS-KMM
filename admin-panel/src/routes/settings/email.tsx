@@ -81,7 +81,7 @@ function EmailSettingsPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-muted-foreground text-xs">
-                        {formatDateTime(log.sentAt)}
+                        {formatDateTime(new Date(log.sentAt).getTime())}
                       </td>
                     </tr>
                   );

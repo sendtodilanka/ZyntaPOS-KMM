@@ -43,6 +43,9 @@ kotlin {
             implementation(libs.androidx.work.runtime)
             // koin-android required by AndroidDataModule.androidContext() extension
             implementation(libs.koin.android)
+            // Firebase Analytics SDK — used by AnalyticsService androidMain actual (TODO-011)
+            implementation(platform(libs.firebase.bom))
+            implementation(libs.firebase.analytics.ktx)
         }
         jvmMain.dependencies {
             implementation(libs.ktor.client.cio)
