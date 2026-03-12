@@ -4,10 +4,17 @@
 # ─────────────────────────────────────────────────────────────────────────────
 
 FROM eclipse-temurin:21-jdk-alpine AS builder
-WORKDIR /build
+
+# Mirror the local directory layout: /build/sync/ and /build/common/
+# so settings.gradle.kts file("../common") resolves correctly
+WORKDIR /build/sync
 COPY sync/build.gradle.kts sync/settings.gradle.kts ./
 COPY sync/gradlew .
 COPY sync/gradle ./gradle
+
+# Copy common module at sibling level (../common from WORKDIR)
+COPY common /build/common
+
 RUN ./gradlew dependencies --no-daemon --quiet || true
 COPY sync/src ./src
 RUN ./gradlew shadowJar --no-daemon --quiet
@@ -16,7 +23,7 @@ FROM eclipse-temurin:21-jre-alpine AS runtime
 RUN apk upgrade --no-cache && apk add --no-cache curl
 RUN addgroup -S zyntapos && adduser -S zyntapos -G zyntapos
 WORKDIR /app
-COPY --from=builder /build/build/libs/zyntapos-sync.jar app.jar
+COPY --from=builder /build/sync/build/libs/zyntapos-sync.jar app.jar
 RUN chown -R zyntapos:zyntapos /app
 USER zyntapos
 EXPOSE 8082
