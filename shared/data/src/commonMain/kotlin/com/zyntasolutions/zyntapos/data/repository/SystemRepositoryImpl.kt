@@ -1,5 +1,7 @@
 package com.zyntasolutions.zyntapos.data.repository
 
+import app.cash.sqldelight.db.QueryResult
+import app.cash.sqldelight.db.SqlDriver
 import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
@@ -15,17 +17,18 @@ import kotlin.time.Clock
 /**
  * [SystemRepository] implementation — database statistics and maintenance.
  *
- * Phase 3 Sprint 5-7: core DB stats via SQLite PRAGMA through the driver,
- * memory stats from [Runtime], and soft-delete purge across all tables.
- * Full UI integration is completed in Sprint 13-15 (:composeApp:feature:admin).
+ * Uses SQLite PRAGMA queries via the raw [SqlDriver] for accurate database
+ * size reporting and incremental vacuum. Memory stats come from [Runtime].
  *
- * @param db          The encrypted [ZyntaDatabase] singleton.
- * @param appVersion  Version string (default "1.0.0").
- * @param buildNumber Integer build number (default 1).
+ * @param db            The encrypted [ZyntaDatabase] singleton.
+ * @param driver        The [SqlDriver] for raw PRAGMA execution.
+ * @param appVersion    Version string (default "1.0.0").
+ * @param buildNumber   Integer build number (default 1).
  * @param networkOnline Latest network connectivity state (injected by caller).
  */
 class SystemRepositoryImpl(
     private val db: ZyntaDatabase,
+    private val driver: SqlDriver,
     private val appVersion: String = "1.0.0",
     private val buildNumber: Int = 1,
     private val networkOnline: Boolean = false,
@@ -43,11 +46,13 @@ class SystemRepositoryImpl(
                 .executeAsOne()
                 .toInt()
 
-            // Estimate DB size: product count × avg row size (coarse approximation until Sprint 13)
-            val estDbSize = (pendingCount.toLong() + 1L) * 4096L
+            // Compute actual DB size via PRAGMA page_count * page_size
+            val pageSize = pragmaLong("page_size")
+            val pageCount = pragmaLong("page_count")
+            val dbSizeBytes = pageSize * pageCount
 
             SystemHealth(
-                databaseSizeBytes = estDbSize,
+                databaseSizeBytes = dbSizeBytes,
                 totalMemoryBytes = totalMemory,
                 usedMemoryBytes = usedMemory,
                 pendingSyncCount = pendingCount,
@@ -64,19 +69,25 @@ class SystemRepositoryImpl(
 
     override suspend fun getDatabaseStats(): Result<DatabaseStats> = withContext(Dispatchers.IO) {
         runCatching {
-            // Sample row counts from key tables
+            // Row counts via COUNT(*) for efficiency (avoids loading all rows into memory)
             val tableStats = buildList {
-                add(TableStats("products", db.productsQueries.getAllProducts().executeAsList().size.toLong()))
-                add(TableStats("orders", db.ordersQueries.getAllOrders().executeAsList().size.toLong()))
-                add(TableStats("customers", db.customersQueries.getAllCustomers().executeAsList().size.toLong()))
-                add(TableStats("employees", db.employeesQueries.getEmployeesByStore("").executeAsList().size.toLong()))
+                add(TableStats("products", countTable("products")))
+                add(TableStats("orders", countTable("orders")))
+                add(TableStats("customers", countTable("customers")))
+                add(TableStats("categories", countTable("categories")))
+                add(TableStats("sync_queue", countTable("sync_queue")))
+                add(TableStats("audit_log", countTable("audit_log")))
             }
             val totalRows = tableStats.sumOf { it.rowCount }
+            val pageSize = pragmaLong("page_size")
+            val pageCount = pragmaLong("page_count")
+            val freePages = pragmaLong("freelist_count")
+
             DatabaseStats(
                 totalRows = totalRows,
                 tables = tableStats,
-                sizeBytes = totalRows * 512L, // rough estimate
-                walSizeBytes = 0L,
+                sizeBytes = pageSize * pageCount,
+                walSizeBytes = freePages * pageSize,
             )
         }.fold(
             onSuccess = { Result.Success(it) },
@@ -87,10 +98,20 @@ class SystemRepositoryImpl(
     override suspend fun vacuumDatabase(): Result<PurgeResult> = withContext(Dispatchers.IO) {
         runCatching {
             val startTime = Clock.System.now().toEpochMilliseconds()
-            // Full PRAGMA VACUUM is performed via driver in Sprint 13 when admin.sq is added.
-            // Phase 3 stub returns a successful no-op result.
+
+            // Measure free pages before vacuum
+            val freePagesBefore = pragmaLong("freelist_count")
+            val pageSize = pragmaLong("page_size")
+
+            // Run incremental vacuum to reclaim unused pages
+            driver.execute(null, "PRAGMA incremental_vacuum", 0)
+
+            val freePagesAfter = pragmaLong("freelist_count")
+            val pagesFreed = freePagesBefore - freePagesAfter
+            val bytesFreed = pagesFreed * pageSize
+
             val duration = Clock.System.now().toEpochMilliseconds() - startTime
-            PurgeResult(bytesFreed = 0L, durationMs = duration, success = true)
+            PurgeResult(bytesFreed = bytesFreed, durationMs = duration, success = true)
         }.fold(
             onSuccess = { Result.Success(it) },
             onFailure = { t -> Result.Error(DatabaseException(t.message ?: "vacuumDatabase failed", cause = t)) },
@@ -102,17 +123,24 @@ class SystemRepositoryImpl(
             runCatching {
                 val startTime = Clock.System.now().toEpochMilliseconds()
                 val cutoff = startTime - olderThanMillis
+                val freePagesBefore = pragmaLong("freelist_count")
+                val pageSize = pragmaLong("page_size")
 
                 db.transaction {
-                    // Products use is_active flag, not deleted_at — no hard-delete in Phase 3.
-                    // Full purge logic (PRAGMA VACUUM, cascade deletes) is added in Sprint 13.
-
                     // Prune completed sync operations older than cutoff
                     db.sync_queueQueries.pruneSynced(cutoff)
+
+                    // Purge old audit log entries beyond retention window
+                    driver.execute(null, "DELETE FROM audit_log WHERE timestamp < $cutoff", 0)
                 }
 
+                // Run incremental vacuum after deletes to reclaim space
+                driver.execute(null, "PRAGMA incremental_vacuum", 0)
+                val freePagesAfter = pragmaLong("freelist_count")
+                val bytesFreed = (freePagesBefore - freePagesAfter) * pageSize
+
                 val duration = Clock.System.now().toEpochMilliseconds() - startTime
-                PurgeResult(bytesFreed = 0L, durationMs = duration, success = true)
+                PurgeResult(bytesFreed = bytesFreed, durationMs = duration, success = true)
             }.fold(
                 onSuccess = { Result.Success(it) },
                 onFailure = { t ->
@@ -120,4 +148,28 @@ class SystemRepositoryImpl(
                 },
             )
         }
+
+    /** Executes a PRAGMA query and returns the first column as Long. */
+    private fun pragmaLong(pragma: String): Long {
+        return driver.executeQuery(
+            identifier = null,
+            sql = "PRAGMA $pragma",
+            mapper = { cursor ->
+                QueryResult.Value(if (cursor.next().value) cursor.getLong(0) ?: 0L else 0L)
+            },
+            parameters = 0,
+        ).value
+    }
+
+    /** Returns COUNT(*) for a table via raw SQL. */
+    private fun countTable(tableName: String): Long {
+        return driver.executeQuery(
+            identifier = null,
+            sql = "SELECT COUNT(*) FROM $tableName",
+            mapper = { cursor ->
+                QueryResult.Value(if (cursor.next().value) cursor.getLong(0) ?: 0L else 0L)
+            },
+            parameters = 0,
+        ).value
+    }
 }

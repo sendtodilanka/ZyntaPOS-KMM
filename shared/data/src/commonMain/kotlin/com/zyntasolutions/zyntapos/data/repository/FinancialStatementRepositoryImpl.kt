@@ -15,6 +15,7 @@ import com.zyntasolutions.zyntapos.domain.repository.FinancialStatementRepositor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.math.abs
+import kotlin.time.Clock
 
 /**
  * SQLDelight-backed implementation of [FinancialStatementRepository].
@@ -354,10 +355,57 @@ class FinancialStatementRepositoryImpl(
 
     override suspend fun rebuildAllBalances(storeId: String, periodId: String): Result<Unit> =
         withContext(Dispatchers.IO) {
-            // TODO(Phase 2): Full balance rebuild from posted journal entry lines.
-            // This requires: querying all posted JELs within the period date range,
-            // grouping by account_id, computing opening/closing balances, and upserting
-            // each AccountBalance record. CRDT conflict resolution is Phase 2 backlog.
-            Result.Success(Unit)
+            runCatching {
+                val period = db.accounting_periodsQueries.getPeriodById(periodId).executeAsOneOrNull()
+                    ?: return@withContext Result.Error(
+                        DatabaseException("Accounting period not found: $periodId")
+                    )
+
+                val dateFrom = period.start_date
+                val dateTo = period.end_date
+                val now = Clock.System.now().toEpochMilliseconds()
+
+                // Get all accounts with posted entries up to period end
+                val rows = lq.getTrialBalance(as_of_date = dateTo).executeAsList()
+
+                db.transaction {
+                    rows.forEach { row ->
+                        val periodDebits = lq.getAccountDebitTotalForPeriod(
+                            account_id = row.account_id,
+                            date_from = dateFrom,
+                            date_to = dateTo,
+                        ).executeAsOne()
+                        val periodCredits = lq.getAccountCreditTotalForPeriod(
+                            account_id = row.account_id,
+                            date_from = dateFrom,
+                            date_to = dateTo,
+                        ).executeAsOne()
+
+                        val normalBalance = runCatching { NormalBalance.valueOf(row.normal_balance) }
+                            .getOrDefault(NormalBalance.DEBIT)
+                        val currentBalance = when (normalBalance) {
+                            NormalBalance.DEBIT -> periodDebits - periodCredits
+                            NormalBalance.CREDIT -> periodCredits - periodDebits
+                        }
+
+                        bq.upsertBalance(
+                            id = "${row.account_id}_${periodId}_${storeId}",
+                            account_id = row.account_id,
+                            period_id = periodId,
+                            store_id = storeId,
+                            opening_balance = 0.0,
+                            debit_total = periodDebits,
+                            credit_total = periodCredits,
+                            current_balance = currentBalance,
+                            last_updated = now,
+                        )
+                    }
+                }
+            }.fold(
+                onSuccess = { Result.Success(Unit) },
+                onFailure = { t ->
+                    Result.Error(DatabaseException(t.message ?: "rebuildAllBalances failed", cause = t))
+                },
+            )
         }
 }

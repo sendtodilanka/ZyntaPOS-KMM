@@ -12,6 +12,7 @@ import com.zyntasolutions.zyntapos.data.repository.AuditRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.AuthRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.CategoryRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.CouponRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.DiagnosticConsentRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.CustomerGroupRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.CustomerRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.CustomerWalletRepositoryImpl
@@ -66,6 +67,7 @@ import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.CategoryRepository
 import com.zyntasolutions.zyntapos.domain.repository.CouponRepository
 import com.zyntasolutions.zyntapos.domain.repository.CustomerGroupRepository
+import com.zyntasolutions.zyntapos.domain.repository.DiagnosticConsentRepository
 import com.zyntasolutions.zyntapos.domain.repository.CustomerRepository
 import com.zyntasolutions.zyntapos.domain.repository.CustomerWalletRepository
 import com.zyntasolutions.zyntapos.domain.repository.ExpenseRepository
@@ -248,6 +250,9 @@ val dataModule = module {
 
     // Security audit log: append-only; no remote sync in Phase 1
     single<AuditRepository> { AuditRepositoryImpl(db = get()) }
+
+    // Diagnostic consent: grants/revokes remote technician access via API
+    single<DiagnosticConsentRepository> { DiagnosticConsentRepositoryImpl(apiService = get()) }
 
     // Operational log: Tier 2 diagnostic logging with automated retention policy
     single<OperationalLogRepository> { OperationalLogRepositoryImpl(db = get()) }
@@ -441,8 +446,8 @@ val dataModule = module {
     // Accounting periods: OPEN → CLOSED → LOCKED lifecycle management
     single<AccountingPeriodRepository> { AccountingPeriodRepositoryImpl(db = get(), _syncEnqueuer = get()) }
 
-    // System health: DB stats, memory metrics, VACUUM, soft-delete purge
-    single<SystemRepository> { SystemRepositoryImpl(db = get()) }
+    // System health: DB stats via PRAGMA, memory metrics, VACUUM, soft-delete purge
+    single<SystemRepository> { SystemRepositoryImpl(db = get(), driver = get()) }
 
     // Backup: in-memory registry (Phase 3 stub; file I/O added in Sprint 13)
     single<BackupRepository> { BackupRepositoryImpl(db = get()) }

@@ -106,4 +106,21 @@ interface ApiService {
      * @throws NetworkException on transport or server errors.
      */
     suspend fun licenseHeartbeat(request: LicenseHeartbeatRequestDto): LicenseHeartbeatResponseDto
+
+    /**
+     * Grants diagnostic consent for a remote session.
+     *
+     * @param sessionId The diagnostic session ID.
+     * @param grantedAtMs Consent timestamp in epoch milliseconds.
+     * @throws NetworkException on transport errors.
+     */
+    suspend fun grantDiagnosticConsent(sessionId: String, grantedAtMs: Long)
+
+    /**
+     * Revokes diagnostic consent for a remote session.
+     *
+     * @param sessionId The diagnostic session ID.
+     * @throws NetworkException on transport errors.
+     */
+    suspend fun revokeDiagnosticConsent(sessionId: String)
 }

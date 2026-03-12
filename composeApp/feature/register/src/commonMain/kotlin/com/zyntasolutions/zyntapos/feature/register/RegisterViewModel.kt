@@ -3,6 +3,8 @@ package com.zyntasolutions.zyntapos.feature.register
 import androidx.lifecycle.viewModelScope
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.CashMovement
+import com.zyntasolutions.zyntapos.domain.model.OrderStatus
+import com.zyntasolutions.zyntapos.domain.model.RegisterSession
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
 import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
@@ -364,22 +366,35 @@ class RegisterViewModel(
 
     private suspend fun loadZReport(sessionId: String) {
         updateState { copy(isLoading = true) }
-        // Load the closed session from repository — collect first value from getActive won't work
-        // because session is CLOSED; we use the zReportSession stored after close or reload.
         val session = currentState.zReportSession
         if (session != null && session.id == sessionId) {
-            // Already loaded from close flow
             val movements = currentState.movements
+
+            // Load sales breakdown by payment method for the session's time window
+            val salesByPayment = loadSalesByPaymentMethod(session)
+
             updateState {
                 copy(
                     isLoading = false,
                     zReportMovements = movements,
+                    zReportSalesByPayment = salesByPayment,
                 )
             }
         } else {
-            // Fallback: no cached session — try to reload movements
             updateState { copy(isLoading = false) }
         }
+    }
+
+    private suspend fun loadSalesByPaymentMethod(session: RegisterSession): Map<String, Double> {
+        val from = session.openedAt
+        val to = session.closedAt ?: Clock.System.now()
+
+        val orders = orderRepository.getByDateRange(from, to).first()
+        val completed = orders.filter {
+            it.status == OrderStatus.COMPLETED
+        }
+        return completed.groupBy { it.paymentMethod.name }
+            .mapValues { (_, orderList) -> orderList.sumOf { it.total } }
     }
 
     private suspend fun printZReport(sessionId: String) {

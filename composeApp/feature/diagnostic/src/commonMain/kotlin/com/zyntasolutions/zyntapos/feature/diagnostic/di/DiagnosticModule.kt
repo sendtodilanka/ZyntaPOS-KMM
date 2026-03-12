@@ -7,5 +7,5 @@ import org.koin.dsl.module
 
 val diagnosticModule = module {
     single { DiagnosticTokenValidator() }
-    viewModel { DiagnosticViewModel(get()) }
+    viewModel { DiagnosticViewModel(get(), get()) }
 }

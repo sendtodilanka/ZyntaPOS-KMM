@@ -3,12 +3,17 @@ package com.zyntasolutions.zyntapos.feature.inventory
 import androidx.lifecycle.viewModelScope
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.core.utils.IdGenerator
+import com.zyntasolutions.zyntapos.domain.model.Category
 import com.zyntasolutions.zyntapos.domain.model.Product
 import com.zyntasolutions.zyntapos.domain.model.ProductVariant
 import com.zyntasolutions.zyntapos.domain.model.StockAdjustment
+import com.zyntasolutions.zyntapos.domain.model.Supplier
+import com.zyntasolutions.zyntapos.domain.model.TaxGroup
+import com.zyntasolutions.zyntapos.domain.model.UnitOfMeasure
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.CategoryRepository
 import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
+import com.zyntasolutions.zyntapos.domain.repository.SupplierRepository
 import com.zyntasolutions.zyntapos.domain.repository.TaxGroupRepository
 import com.zyntasolutions.zyntapos.domain.repository.UnitGroupRepository
 import com.zyntasolutions.zyntapos.domain.validation.ProductValidationParams
@@ -58,6 +63,7 @@ import kotlin.time.Clock
 class InventoryViewModel(
     private val productRepository: ProductRepository,
     private val categoryRepository: CategoryRepository,
+    private val supplierRepository: SupplierRepository,
     private val taxGroupRepository: TaxGroupRepository,
     private val unitGroupRepository: UnitGroupRepository,
     private val _searchProductsUseCase: SearchProductsUseCase,
@@ -153,29 +159,29 @@ class InventoryViewModel(
             is InventoryIntent.DismissBulkImport -> updateState { copy(bulkImportState = BulkImportState()) }
             is InventoryIntent.DismissError -> updateState { copy(error = null) }
             is InventoryIntent.DismissSuccess -> updateState { copy(successMessage = null) }
-            // ── Sprint 19 Category Management (stubs — full impl in Sprint 19 execution)
-            is InventoryIntent.LoadCategories -> Unit
-            is InventoryIntent.OpenCategoryDetail -> Unit
-            is InventoryIntent.SaveCategory -> Unit
-            is InventoryIntent.DeleteCategory -> Unit
-            is InventoryIntent.CloseCategoryDetail -> Unit
-            // ── Sprint 19 Supplier Management
-            is InventoryIntent.LoadSuppliers -> Unit
-            is InventoryIntent.OpenSupplierDetail -> Unit
-            is InventoryIntent.SaveSupplier -> Unit
-            is InventoryIntent.DeleteSupplier -> Unit
-            is InventoryIntent.CloseSupplierDetail -> Unit
-            // ── Sprint 19 Tax Group Management
-            is InventoryIntent.OpenTaxGroupManagement -> Unit
-            is InventoryIntent.CloseTaxGroupManagement -> Unit
-            is InventoryIntent.SaveTaxGroup -> Unit
-            is InventoryIntent.DeleteTaxGroup -> Unit
-            // ── Sprint 19 Unit Management
-            is InventoryIntent.OpenUnitManagement -> Unit
-            is InventoryIntent.CloseUnitManagement -> Unit
-            is InventoryIntent.SaveUnit -> Unit
-            is InventoryIntent.DeleteUnit -> Unit
-            is InventoryIntent.SaveUnitGroup -> Unit
+            // ── Category Management ─────────────────────────────────────────
+            is InventoryIntent.LoadCategories -> onLoadCategories()
+            is InventoryIntent.OpenCategoryDetail -> onOpenCategoryDetail(intent.categoryId)
+            is InventoryIntent.SaveCategory -> onSaveCategory(intent.category)
+            is InventoryIntent.DeleteCategory -> onDeleteCategory(intent.categoryId)
+            is InventoryIntent.CloseCategoryDetail -> updateState { copy(showCategoryDetail = false, selectedCategory = null) }
+            // ── Supplier Management ─────────────────────────────────────────
+            is InventoryIntent.LoadSuppliers -> onLoadSuppliers()
+            is InventoryIntent.OpenSupplierDetail -> onOpenSupplierDetail(intent.supplierId)
+            is InventoryIntent.SaveSupplier -> onSaveSupplier(intent.supplier)
+            is InventoryIntent.DeleteSupplier -> onDeleteSupplier(intent.supplierId)
+            is InventoryIntent.CloseSupplierDetail -> updateState { copy(showSupplierDetail = false, selectedSupplier = null) }
+            // ── Tax Group Management ────────────────────────────────────────
+            is InventoryIntent.OpenTaxGroupManagement -> updateState { copy(showTaxGroupManagement = true) }
+            is InventoryIntent.CloseTaxGroupManagement -> updateState { copy(showTaxGroupManagement = false) }
+            is InventoryIntent.SaveTaxGroup -> onSaveTaxGroup(intent.taxGroup)
+            is InventoryIntent.DeleteTaxGroup -> onDeleteTaxGroup(intent.taxGroupId)
+            // ── Unit Management ─────────────────────────────────────────────
+            is InventoryIntent.OpenUnitManagement -> updateState { copy(showUnitManagement = true) }
+            is InventoryIntent.CloseUnitManagement -> updateState { copy(showUnitManagement = false) }
+            is InventoryIntent.SaveUnit -> onSaveUnit(intent.groupId, intent.unit)
+            is InventoryIntent.DeleteUnit -> onDeleteUnit(intent.unitId)
+            is InventoryIntent.SaveUnitGroup -> onSaveUnitGroup(intent.group)
         }
     }
 
@@ -492,6 +498,172 @@ class InventoryViewModel(
         sendEffect(InventoryEffect.BulkImportComplete(imported, errors.size))
         if (errors.isEmpty()) {
             updateState { copy(bulkImportState = BulkImportState()) }
+        }
+    }
+
+    // ── Category Management ────────────────────────────────────────────
+
+    private fun onLoadCategories() {
+        categoryRepository.getTree()
+            .onEach { cats -> updateState { copy(allCategoriesFlat = cats) } }
+            .launchIn(viewModelScope)
+    }
+
+    private suspend fun onOpenCategoryDetail(categoryId: String?) {
+        if (categoryId == null) {
+            updateState { copy(selectedCategory = null, showCategoryDetail = true) }
+            return
+        }
+        when (val result = categoryRepository.getById(categoryId)) {
+            is Result.Success -> updateState { copy(selectedCategory = result.data, showCategoryDetail = true) }
+            is Result.Error -> sendEffect(InventoryEffect.ShowError(result.exception.message ?: "Category not found"))
+            is Result.Loading -> Unit
+        }
+    }
+
+    private suspend fun onSaveCategory(category: Category) {
+        updateState { copy(isLoading = true) }
+        val isNew = currentState.selectedCategory == null
+        val result = if (isNew) categoryRepository.insert(category) else categoryRepository.update(category)
+        updateState { copy(isLoading = false) }
+        when (result) {
+            is Result.Success -> {
+                updateState { copy(showCategoryDetail = false, selectedCategory = null) }
+                sendEffect(InventoryEffect.ShowSuccess("Category '${category.name}' ${if (isNew) "created" else "updated"}."))
+            }
+            is Result.Error -> sendEffect(InventoryEffect.ShowError(result.exception.message ?: "Save failed"))
+            is Result.Loading -> Unit
+        }
+    }
+
+    private suspend fun onDeleteCategory(categoryId: String) {
+        updateState { copy(isLoading = true) }
+        when (val result = categoryRepository.delete(categoryId)) {
+            is Result.Success -> {
+                updateState { copy(isLoading = false, showCategoryDetail = false, selectedCategory = null) }
+                sendEffect(InventoryEffect.ShowSuccess("Category deleted."))
+            }
+            is Result.Error -> {
+                updateState { copy(isLoading = false) }
+                sendEffect(InventoryEffect.ShowError(result.exception.message ?: "Delete failed"))
+            }
+            is Result.Loading -> Unit
+        }
+    }
+
+    // ── Supplier Management ────────────────────────────────────────────
+
+    private fun onLoadSuppliers() {
+        supplierRepository.getAll()
+            .onEach { suppliers -> updateState { copy(suppliers = suppliers) } }
+            .launchIn(viewModelScope)
+    }
+
+    private suspend fun onOpenSupplierDetail(supplierId: String?) {
+        if (supplierId == null) {
+            updateState { copy(selectedSupplier = null, showSupplierDetail = true, supplierPurchaseHistory = emptyList()) }
+            return
+        }
+        when (val result = supplierRepository.getById(supplierId)) {
+            is Result.Success -> updateState { copy(selectedSupplier = result.data, showSupplierDetail = true) }
+            is Result.Error -> sendEffect(InventoryEffect.ShowError(result.exception.message ?: "Supplier not found"))
+            is Result.Loading -> Unit
+        }
+    }
+
+    private suspend fun onSaveSupplier(supplier: Supplier) {
+        updateState { copy(isLoading = true) }
+        val isNew = currentState.selectedSupplier == null
+        val result = if (isNew) supplierRepository.insert(supplier) else supplierRepository.update(supplier)
+        updateState { copy(isLoading = false) }
+        when (result) {
+            is Result.Success -> {
+                updateState { copy(showSupplierDetail = false, selectedSupplier = null) }
+                sendEffect(InventoryEffect.ShowSuccess("Supplier '${supplier.name}' ${if (isNew) "created" else "updated"}."))
+            }
+            is Result.Error -> sendEffect(InventoryEffect.ShowError(result.exception.message ?: "Save failed"))
+            is Result.Loading -> Unit
+        }
+    }
+
+    private suspend fun onDeleteSupplier(supplierId: String) {
+        updateState { copy(isLoading = true) }
+        when (val result = supplierRepository.delete(supplierId)) {
+            is Result.Success -> {
+                updateState { copy(isLoading = false, showSupplierDetail = false, selectedSupplier = null) }
+                sendEffect(InventoryEffect.ShowSuccess("Supplier deleted."))
+            }
+            is Result.Error -> {
+                updateState { copy(isLoading = false) }
+                sendEffect(InventoryEffect.ShowError(result.exception.message ?: "Delete failed"))
+            }
+            is Result.Loading -> Unit
+        }
+    }
+
+    // ── Tax Group Management ───────────────────────────────────────────
+
+    private suspend fun onSaveTaxGroup(taxGroup: TaxGroup) {
+        updateState { copy(isLoading = true) }
+        val isNew = currentState.allTaxGroups.none { it.id == taxGroup.id }
+        val result = if (isNew) taxGroupRepository.insert(taxGroup) else taxGroupRepository.update(taxGroup)
+        updateState { copy(isLoading = false) }
+        when (result) {
+            is Result.Success -> sendEffect(InventoryEffect.ShowSuccess("Tax group '${taxGroup.name}' saved."))
+            is Result.Error -> sendEffect(InventoryEffect.ShowError(result.exception.message ?: "Save failed"))
+            is Result.Loading -> Unit
+        }
+    }
+
+    private suspend fun onDeleteTaxGroup(taxGroupId: String) {
+        updateState { copy(isLoading = true) }
+        when (val result = taxGroupRepository.delete(taxGroupId)) {
+            is Result.Success -> {
+                updateState { copy(isLoading = false) }
+                sendEffect(InventoryEffect.ShowSuccess("Tax group deleted."))
+            }
+            is Result.Error -> {
+                updateState { copy(isLoading = false) }
+                sendEffect(InventoryEffect.ShowError(result.exception.message ?: "Delete failed"))
+            }
+            is Result.Loading -> Unit
+        }
+    }
+
+    // ── Unit Management ────────────────────────────────────────────────
+
+    private suspend fun onSaveUnit(groupId: String, unit: UnitOfMeasure) {
+        updateState { copy(isLoading = true) }
+        val isNew = currentState.allUnits.none { it.id == unit.id }
+        val result = if (isNew) unitGroupRepository.insert(unit) else unitGroupRepository.update(unit)
+        updateState { copy(isLoading = false) }
+        when (result) {
+            is Result.Success -> sendEffect(InventoryEffect.ShowSuccess("Unit '${unit.name}' saved."))
+            is Result.Error -> sendEffect(InventoryEffect.ShowError(result.exception.message ?: "Save failed"))
+            is Result.Loading -> Unit
+        }
+    }
+
+    private suspend fun onDeleteUnit(unitId: String) {
+        updateState { copy(isLoading = true) }
+        when (val result = unitGroupRepository.delete(unitId)) {
+            is Result.Success -> {
+                updateState { copy(isLoading = false) }
+                sendEffect(InventoryEffect.ShowSuccess("Unit deleted."))
+            }
+            is Result.Error -> {
+                updateState { copy(isLoading = false) }
+                sendEffect(InventoryEffect.ShowError(result.exception.message ?: "Delete failed"))
+            }
+            is Result.Loading -> Unit
+        }
+    }
+
+    private fun onSaveUnitGroup(group: UnitGroup) {
+        // UnitGroup is a UI-level grouping concept. No direct repository operation needed.
+        // Units are saved individually via SaveUnit intent.
+        updateState {
+            copy(unitGroups = unitGroups.map { if (it.id == group.id) group else it })
         }
     }
 

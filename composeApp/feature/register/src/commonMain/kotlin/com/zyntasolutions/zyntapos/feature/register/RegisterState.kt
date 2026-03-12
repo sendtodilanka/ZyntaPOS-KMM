@@ -56,6 +56,7 @@ data class RegisterState(
     // ── Z-Report (Sprint 21) ──────────────────────────────────────────────
     val zReportSession: RegisterSession? = null,
     val zReportMovements: List<CashMovement> = emptyList(),
+    val zReportSalesByPayment: Map<String, Double> = emptyMap(),
     val isPrintingZReport: Boolean = false,
     val isPrintingA4ZReport: Boolean = false,
 

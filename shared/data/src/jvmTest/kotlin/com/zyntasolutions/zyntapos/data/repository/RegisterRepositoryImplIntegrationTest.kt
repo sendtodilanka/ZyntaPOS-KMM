@@ -56,6 +56,7 @@ class RegisterRepositoryImplIntegrationTest {
         db.registersQueries.insertRegister(
             id                 = id,
             name               = name,
+            store_id           = "store-test",
             current_session_id = null,
             is_active          = 1L,
             created_at         = now,

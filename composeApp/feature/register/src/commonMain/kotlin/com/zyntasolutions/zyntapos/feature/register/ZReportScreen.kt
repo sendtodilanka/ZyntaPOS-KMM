@@ -151,8 +151,8 @@ fun ZReportScreen(
 
                 ReportDivider()
 
-                // ── 5. Sales summary (placeholder) ───────────────────────
-                ZReportSalesSummary(fmt)
+                // ── 5. Sales summary ────────────────────────────────────
+                ZReportSalesSummary(state.zReportSalesByPayment, fmt)
 
                 ReportDivider()
 
@@ -306,28 +306,30 @@ private fun ZReportCashMovements(movements: List<CashMovement>, fmt: (Double) ->
 }
 
 /**
- * Sales summary by payment method.
- * Phase 1 placeholder — will be wired to OrderRepository in Phase 2.
+ * Sales summary by payment method, populated from OrderRepository.
  */
 @Composable
-private fun ZReportSalesSummary(fmt: (Double) -> String) {
+private fun ZReportSalesSummary(salesByPayment: Map<String, Double>, fmt: (Double) -> String) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
             text = "Sales Summary",
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold,
         )
-        Text(
-            text = "Sales breakdown by payment method will be available when POS order data is integrated.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        // Placeholder totals — these will be populated from OrderRepository
-        ReportRow("Cash Sales", fmt(0.0))
-        ReportRow("Card Sales", fmt(0.0))
-        ReportRow("Mobile Sales", fmt(0.0))
+        if (salesByPayment.isEmpty()) {
+            Text(
+                text = "No sales recorded during this session.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            salesByPayment.forEach { (method, amount) ->
+                val label = method.lowercase().replaceFirstChar { it.uppercase() } + " Sales"
+                ReportRow(label, fmt(amount))
+            }
+        }
         HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
-        ReportRow("Total Sales", fmt(0.0))
+        ReportRow("Total Sales", fmt(salesByPayment.values.sum()))
     }
 }
 
