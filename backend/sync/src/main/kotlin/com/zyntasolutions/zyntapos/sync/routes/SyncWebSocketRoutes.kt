@@ -50,7 +50,7 @@ fun Route.syncWebSocketRoutes() {
         send(Frame.Text(json.encodeToString(WsAck(
             storeId     = storeId,
             deviceId    = deviceId,
-            connectedAt = System.currentTimeMillis(),
+            connectedAt = java.time.Instant.now().toEpochMilli(),
         ))))
 
         try {

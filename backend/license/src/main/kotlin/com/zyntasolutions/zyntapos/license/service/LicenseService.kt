@@ -170,7 +170,7 @@ class LicenseService {
             licenseKey = maskKey(request.licenseKey),
             expiresAt = expiresAt?.toInstant()?.toEpochMilli(),
             daysUntilExpiry = daysUntilExpiry,
-            serverTimestamp = System.currentTimeMillis(),
+            serverTimestamp = java.time.Instant.now().toEpochMilli(),
             forceSync = forceSyncRequested
         )
     }

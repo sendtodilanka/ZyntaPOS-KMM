@@ -66,7 +66,7 @@ class DiagnosticSessionService(private val config: AppConfig) {
         requestedBy: UUID,
         scope: String,
     ): DiagnosticSessionResponse = newSuspendedTransaction {
-        val now       = System.currentTimeMillis()
+        val now       = java.time.Instant.now().toEpochMilli()
         val expiresAt = now + TOKEN_TTL_MS
         val sessionId = UUID.randomUUID()
 
@@ -119,7 +119,7 @@ class DiagnosticSessionService(private val config: AppConfig) {
                 .where { (DiagnosticSessions.id eq sessionId) and (DiagnosticSessions.status eq "PENDING_CONSENT") }
                 .firstOrNull() ?: return@newSuspendedTransaction null
 
-            val now = System.currentTimeMillis()
+            val now = java.time.Instant.now().toEpochMilli()
             if (row[DiagnosticSessions.expiresAt] < now) {
                 DiagnosticSessions.update({ DiagnosticSessions.id eq sessionId }) {
                     it[status] = "EXPIRED"
@@ -143,7 +143,7 @@ class DiagnosticSessionService(private val config: AppConfig) {
             (DiagnosticSessions.status inList listOf("PENDING_CONSENT", "ACTIVE"))
         }) {
             it[status]    = "REVOKED"
-            it[revokedAt] = System.currentTimeMillis()
+            it[revokedAt] = java.time.Instant.now().toEpochMilli()
             it[DiagnosticSessions.revokedBy] = revokedBy
         }
         count > 0
@@ -153,7 +153,7 @@ class DiagnosticSessionService(private val config: AppConfig) {
      * Returns the current active or pending session for a store, or null if none.
      */
     suspend fun getActiveSession(storeId: UUID): DiagnosticSessionResponse? = newSuspendedTransaction {
-        val now = System.currentTimeMillis()
+        val now = java.time.Instant.now().toEpochMilli()
         // Expire any sessions past their TTL
         DiagnosticSessions.update({
             (DiagnosticSessions.storeId eq storeId) and
@@ -189,7 +189,7 @@ class DiagnosticSessionService(private val config: AppConfig) {
             .withClaim("store_id",      storeId.toString())
             .withClaim("scope",         scope)
             .withClaim("exp",           expiresAtMs / 1000)
-            .withClaim("iat",           System.currentTimeMillis() / 1000)
+            .withClaim("iat",           java.time.Instant.now().toEpochMilli() / 1000)
             .sign(algorithm)
     }
 

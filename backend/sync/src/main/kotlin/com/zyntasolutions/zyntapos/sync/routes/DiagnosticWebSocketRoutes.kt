@@ -67,7 +67,7 @@ fun Route.diagnosticWebSocketRoutes() {
         send(Frame.Text(json.encodeToString(WsAck(
             storeId = resolvedStoreId,
             deviceId = "technician-$technicianId",
-            connectedAt = System.currentTimeMillis(),
+            connectedAt = java.time.Instant.now().toEpochMilli(),
         ))))
 
         // Notify store devices that diagnostic session started

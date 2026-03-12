@@ -10,6 +10,7 @@ import com.zyntasolutions.zyntapos.api.models.AdminUserResponse
 import com.zyntasolutions.zyntapos.api.db.AdminSessions
 import com.zyntasolutions.zyntapos.api.db.AdminUsers
 import com.zyntasolutions.zyntapos.api.db.PasswordResetTokens
+import com.zyntasolutions.zyntapos.api.repository.AdminUserRepository
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.isNull
@@ -60,201 +61,138 @@ sealed class AdminAuthResult {
 
 class AdminAuthService(
     private val config: AppConfig,
-    private val auditService: AdminAuditService
+    private val auditService: AdminAuditService,
+    private val adminUserRepo: AdminUserRepository,
 ) {
 
     private val bcryptVerifier = BCrypt.verifyer()
 
     // ── Login ────────────────────────────────────────────────────────────────
 
-    suspend fun login(email: String, password: String, ip: String?, userAgent: String?): AdminAuthResult =
-        newSuspendedTransaction {
-            // G2: Reject oversized passwords before bcrypt (bcrypt silently truncates at 72 bytes)
-            if (password.length > MAX_PASSWORD_LENGTH) {
-                // Still run a dummy verify for constant-time behaviour
-                bcryptVerifier.verify(password.toCharArray(), DUMMY_HASH)
-                return@newSuspendedTransaction AdminAuthResult.InvalidCredentials
-            }
-
-            val row = AdminUsers.selectAll()
-                .where { AdminUsers.email eq email.lowercase().trim() }
-                .singleOrNull()
-                ?.toAdminUserRow()
-                ?: run {
-                    // Constant-time dummy verify to prevent timing attacks on unknown emails
-                    bcryptVerifier.verify(password.toCharArray(), DUMMY_HASH)
-                    return@newSuspendedTransaction AdminAuthResult.InvalidCredentials
-                }
-
-            if (!row.isActive) return@newSuspendedTransaction AdminAuthResult.AccountInactive
-
-            val lockedUntilMs = AdminUsers.selectAll()
-                .where { AdminUsers.id eq row.id }
-                .single()[AdminUsers.lockedUntil]
-            if (lockedUntilMs != null && System.currentTimeMillis() < lockedUntilMs) {
-                return@newSuspendedTransaction AdminAuthResult.AccountLocked
-            }
-
-            if (row.passwordHash == null) {
-                return@newSuspendedTransaction AdminAuthResult.InvalidCredentials
-            }
-
-            val verified = bcryptVerifier.verify(password.toCharArray(), row.passwordHash.toCharArray())
-            if (!verified.verified) {
-                incrementFailedAttempts(row.id, row.email, ip, userAgent)
-                return@newSuspendedTransaction AdminAuthResult.InvalidCredentials
-            }
-
-            // Reset lockout state on successful login
-            val now = System.currentTimeMillis()
-            AdminUsers.update({ AdminUsers.id eq row.id }) {
-                it[failedAttempts] = 0
-                it[lockedUntil] = null
-                it[lastLoginAt] = now
-                it[lastLoginIp] = ip
-            }
-
-            // G3: Audit successful login
-            auditService.log(
-                adminId    = row.id,
-                adminName  = row.name,
-                eventType  = "ADMIN_LOGIN_SUCCESS",
-                category   = "AUTH",
-                ipAddress  = ip,
-                userAgent  = userAgent,
-                success    = true
-            )
-
-            // If MFA is enabled, issue a short-lived pending token instead of full access
-            if (row.mfaEnabled) {
-                val pendingToken = issueMfaPendingToken(row)
-                return@newSuspendedTransaction AdminAuthResult.MfaRequired(row, pendingToken)
-            }
-
-            val (accessToken, refreshToken) = issueTokens(row, ip, userAgent)
-            AdminAuthResult.Success(row, accessToken, refreshToken)
+    suspend fun login(email: String, password: String, ip: String?, userAgent: String?): AdminAuthResult {
+        // G2: Reject oversized passwords before bcrypt (bcrypt silently truncates at 72 bytes)
+        if (password.length > MAX_PASSWORD_LENGTH) {
+            bcryptVerifier.verify(password.toCharArray(), DUMMY_HASH)
+            return AdminAuthResult.InvalidCredentials
         }
+
+        val row = adminUserRepo.findByEmail(email) ?: run {
+            bcryptVerifier.verify(password.toCharArray(), DUMMY_HASH)
+            return AdminAuthResult.InvalidCredentials
+        }
+
+        if (!row.isActive) return AdminAuthResult.AccountInactive
+
+        val lockedUntilMs = adminUserRepo.getLockedUntil(row.id)
+        if (lockedUntilMs != null && Instant.now().toEpochMilli() < lockedUntilMs) {
+            return AdminAuthResult.AccountLocked
+        }
+
+        if (row.passwordHash == null) {
+            return AdminAuthResult.InvalidCredentials
+        }
+
+        val verified = bcryptVerifier.verify(password.toCharArray(), row.passwordHash.toCharArray())
+        if (!verified.verified) {
+            incrementFailedAttempts(row.id, row.email, ip, userAgent)
+            return AdminAuthResult.InvalidCredentials
+        }
+
+        // Reset lockout state on successful login
+        val now = Instant.now().toEpochMilli()
+        adminUserRepo.updateLoginSuccess(row.id, now, ip)
+
+        // G3: Audit successful login
+        auditService.log(
+            adminId    = row.id,
+            adminName  = row.name,
+            eventType  = "ADMIN_LOGIN_SUCCESS",
+            category   = "AUTH",
+            ipAddress  = ip,
+            userAgent  = userAgent,
+            success    = true
+        )
+
+        // If MFA is enabled, issue a short-lived pending token instead of full access
+        if (row.mfaEnabled) {
+            val pendingToken = issueMfaPendingToken(row)
+            return AdminAuthResult.MfaRequired(row, pendingToken)
+        }
+
+        val (accessToken, refreshToken) = issueTokens(row, ip, userAgent)
+        return AdminAuthResult.Success(row, accessToken, refreshToken)
+    }
 
     // ── Token refresh ────────────────────────────────────────────────────────
 
-    suspend fun refresh(rawRefreshToken: String, ip: String?, userAgent: String?): Pair<String, String>? =
-        newSuspendedTransaction {
-            val hash = sha256Hex(rawRefreshToken)
-            val session = AdminSessions.selectAll()
-                .where {
-                    (AdminSessions.tokenHash eq hash) and
-                    (AdminSessions.revokedAt.isNull()) and
-                    (AdminSessions.expiresAt greater System.currentTimeMillis())
-                }
-                .singleOrNull() ?: return@newSuspendedTransaction null
+    suspend fun refresh(rawRefreshToken: String, ip: String?, userAgent: String?): Pair<String, String>? {
+        val hash = sha256Hex(rawRefreshToken)
+        val now = Instant.now().toEpochMilli()
+        val session = adminUserRepo.findSessionByTokenHash(hash, now) ?: return null
 
-            // Revoke the old session (single-use rotation)
-            AdminSessions.update({ AdminSessions.id eq session[AdminSessions.id] }) {
-                it[revokedAt] = System.currentTimeMillis()
-            }
+        // Revoke the old session (single-use rotation)
+        adminUserRepo.revokeSession(session.id, now)
 
-            val userId = session[AdminSessions.userId]
-            val row = AdminUsers.selectAll()
-                .where { (AdminUsers.id eq userId) and (AdminUsers.isActive eq true) }
-                .singleOrNull()?.toAdminUserRow() ?: return@newSuspendedTransaction null
+        val row = adminUserRepo.findById(session.userId) ?: return null
 
-            // G3: Audit token refresh
-            auditService.log(
-                adminId   = row.id,
-                adminName = row.name,
-                eventType = "ADMIN_TOKEN_REFRESHED",
-                category  = "AUTH",
-                ipAddress = ip,
-                userAgent = userAgent,
-                success   = true
-            )
+        // G3: Audit token refresh
+        auditService.log(
+            adminId   = row.id,
+            adminName = row.name,
+            eventType = "ADMIN_TOKEN_REFRESHED",
+            category  = "AUTH",
+            ipAddress = ip,
+            userAgent = userAgent,
+            success   = true
+        )
 
-            issueTokens(row, ip, userAgent)
-        }
+        return issueTokens(row, ip, userAgent)
+    }
 
     // ── Logout ───────────────────────────────────────────────────────────────
 
-    suspend fun logout(rawRefreshToken: String, adminId: UUID? = null, adminName: String? = null, ip: String? = null) =
+    suspend fun logout(rawRefreshToken: String, adminId: UUID? = null, adminName: String? = null, ip: String? = null) {
+        val hash = sha256Hex(rawRefreshToken)
+        val now = Instant.now().toEpochMilli()
+        // Revoke by finding and revoking the session
         newSuspendedTransaction {
-            val hash = sha256Hex(rawRefreshToken)
             AdminSessions.update({ AdminSessions.tokenHash eq hash }) {
-                it[revokedAt] = System.currentTimeMillis()
+                it[revokedAt] = now
             }
-            // G3: Audit logout
-            auditService.log(
-                adminId   = adminId,
-                adminName = adminName,
-                eventType = "ADMIN_LOGOUT",
-                category  = "AUTH",
-                ipAddress = ip,
-                success   = true
-            )
         }
+        // G3: Audit logout
+        auditService.log(
+            adminId   = adminId,
+            adminName = adminName,
+            eventType = "ADMIN_LOGOUT",
+            category  = "AUTH",
+            ipAddress = ip,
+            success   = true
+        )
+    }
 
     // ── Get user by JWT subject ───────────────────────────────────────────────
 
-    suspend fun findById(userId: UUID): AdminUserRow? = newSuspendedTransaction {
-        AdminUsers.selectAll()
-            .where { (AdminUsers.id eq userId) and (AdminUsers.isActive eq true) }
-            .singleOrNull()?.toAdminUserRow()
-    }
+    suspend fun findById(userId: UUID): AdminUserRow? = adminUserRepo.findById(userId)
 
-    suspend fun emailExists(email: String): Boolean = newSuspendedTransaction {
-        AdminUsers.selectAll()
-            .where { AdminUsers.email eq email.lowercase().trim() }
-            .count() > 0
-    }
+    suspend fun emailExists(email: String): Boolean = adminUserRepo.findByEmail(email) != null
 
     // ── Bootstrap (first-run only) ───────────────────────────────────────────
 
-    suspend fun needsBootstrap(): Boolean = newSuspendedTransaction {
-        AdminUsers.selectAll().count() == 0L
-    }
+    suspend fun needsBootstrap(): Boolean = adminUserRepo.count() == 0L
 
-    /**
-     * Creates the first ADMIN user. Returns null if an admin already exists
-     * (the route converts this to 409 Conflict).
-     */
-    suspend fun bootstrap(email: String, name: String, password: String): AdminUserRow? =
-        newSuspendedTransaction {
-            if (AdminUsers.selectAll().count() != 0L) return@newSuspendedTransaction null
-            val hash = BCrypt.withDefaults().hashToString(12, password.toCharArray())
-            val now = System.currentTimeMillis()
-            AdminUsers.insert {
-                it[this.email] = email.lowercase().trim()
-                it[this.name] = name
-                it[this.role] = AdminRole.ADMIN.name
-                it[passwordHash] = hash
-                it[mfaEnabled] = false
-                it[failedAttempts] = 0
-                it[isActive] = true
-                it[createdAt] = now
-            }
-            AdminUsers.selectAll()
-                .where { AdminUsers.email eq email.lowercase().trim() }
-                .single().toAdminUserRow()
-        }
+    suspend fun bootstrap(email: String, name: String, password: String): AdminUserRow? {
+        if (adminUserRepo.count() != 0L) return null
+        val hash = BCrypt.withDefaults().hashToString(12, password.toCharArray())
+        return adminUserRepo.createUser(email, name, AdminRole.ADMIN, hash)
+    }
 
     // ── Admin user management ────────────────────────────────────────────────
 
-    suspend fun createUser(email: String, name: String, role: AdminRole, password: String): AdminUserRow =
-        newSuspendedTransaction {
-            val hash = BCrypt.withDefaults().hashToString(12, password.toCharArray())
-            val now = System.currentTimeMillis()
-            AdminUsers.insert {
-                it[this.email] = email.lowercase().trim()
-                it[this.name] = name
-                it[this.role] = role.name
-                it[passwordHash] = hash
-                it[mfaEnabled] = false
-                it[failedAttempts] = 0
-                it[isActive] = true
-                it[createdAt] = now
-            }
-            AdminUsers.selectAll()
-                .where { AdminUsers.email eq email.lowercase().trim() }
-                .single().toAdminUserRow()
-        }
+    suspend fun createUser(email: String, name: String, role: AdminRole, password: String): AdminUserRow {
+        val hash = BCrypt.withDefaults().hashToString(12, password.toCharArray())
+        return adminUserRepo.createUser(email, name, role, hash)
+    }
 
     /** G7: Paginated user list with optional filters. */
     suspend fun listUsers(
@@ -294,28 +232,19 @@ class AdminAuthService(
     }
 
     suspend fun updateUser(id: UUID, name: String?, role: AdminRole?, isActive: Boolean?): AdminUserRow? =
-        newSuspendedTransaction {
-            AdminUsers.update({ AdminUsers.id eq id }) { stmt ->
-                name?.let { stmt[AdminUsers.name] = it }
-                role?.let { stmt[AdminUsers.role] = it.name }
-                isActive?.let { stmt[AdminUsers.isActive] = it }
-            }
-            AdminUsers.selectAll().where { AdminUsers.id eq id }.singleOrNull()?.toAdminUserRow()
-        }
+        adminUserRepo.updateUser(id, name, role, isActive)
 
-    suspend fun revokeAllSessions(userId: UUID) = newSuspendedTransaction {
-        AdminSessions.update({ AdminSessions.userId eq userId }) {
-            it[revokedAt] = System.currentTimeMillis()
-        }
-    }
+    suspend fun revokeAllSessions(userId: UUID) =
+        adminUserRepo.revokeAllSessions(userId, Instant.now().toEpochMilli())
 
     /** Lists active (non-revoked, non-expired) sessions for a user. */
     suspend fun listActiveSessions(userId: UUID): List<AdminSessionRow> = newSuspendedTransaction {
+        val now = Instant.now().toEpochMilli()
         AdminSessions.selectAll()
             .where {
                 (AdminSessions.userId eq userId) and
                 (AdminSessions.revokedAt.isNull()) and
-                (AdminSessions.expiresAt greater System.currentTimeMillis())
+                (AdminSessions.expiresAt greater now)
             }
             .orderBy(AdminSessions.createdAt, SortOrder.DESC)
             .map {
@@ -332,51 +261,38 @@ class AdminAuthService(
     }
 
     /** Changes password after verifying the current password. Returns false on wrong current password. */
-    suspend fun changePassword(userId: UUID, currentPassword: String, newPassword: String): Boolean =
-        newSuspendedTransaction {
-            val row = AdminUsers.selectAll().where { AdminUsers.id eq userId }.singleOrNull()
-                ?: return@newSuspendedTransaction false
+    suspend fun changePassword(userId: UUID, currentPassword: String, newPassword: String): Boolean {
+        val row = newSuspendedTransaction {
+            AdminUsers.selectAll().where { AdminUsers.id eq userId }.singleOrNull()
+        } ?: return false
 
-            val currentHash = row[AdminUsers.passwordHash] ?: return@newSuspendedTransaction false
-            val verified = bcryptVerifier.verify(currentPassword.toCharArray(), currentHash.toCharArray())
-            if (!verified.verified) return@newSuspendedTransaction false
+        val currentHash = row[AdminUsers.passwordHash] ?: return false
+        val verified = bcryptVerifier.verify(currentPassword.toCharArray(), currentHash.toCharArray())
+        if (!verified.verified) return false
 
-            val newHash = BCrypt.withDefaults().hashToString(12, newPassword.toCharArray())
-            AdminUsers.update({ AdminUsers.id eq userId }) {
-                it[passwordHash] = newHash
-            }
-
-            // Revoke all existing sessions on password change (force re-login)
-            AdminSessions.update({ AdminSessions.userId eq userId }) {
-                it[revokedAt] = System.currentTimeMillis()
-            }
-
-            true
-        }
+        val newHash = BCrypt.withDefaults().hashToString(12, newPassword.toCharArray())
+        adminUserRepo.updatePassword(userId, newHash)
+        adminUserRepo.revokeAllSessions(userId, Instant.now().toEpochMilli())
+        return true
+    }
 
     // ── Token issuance for external callers (Google OAuth) ───────────────────
 
-    /** Issues access + refresh tokens for a pre-authenticated user (e.g., after Google OAuth). */
     suspend fun issueTokensForUser(user: AdminUserRow, ip: String?, userAgent: String?): Pair<String, String> =
-        newSuspendedTransaction { issueTokens(user, ip, userAgent) }
+        issueTokens(user, ip, userAgent)
 
     // ── MFA completion ───────────────────────────────────────────────────────
 
-    /** Called after MFA code is verified — issues full tokens from a pending token. */
     suspend fun completeMfaLogin(pendingToken: String, ip: String?, userAgent: String?): Pair<AdminUserRow, Pair<String, String>>? {
         val userId = verifyMfaPendingToken(pendingToken) ?: return null
-        val row = newSuspendedTransaction {
-            AdminUsers.selectAll()
-                .where { (AdminUsers.id eq userId) and (AdminUsers.isActive eq true) }
-                .singleOrNull()?.toAdminUserRow()
-        } ?: return null
-        val tokens = newSuspendedTransaction { issueTokens(row, ip, userAgent) }
+        val row = adminUserRepo.findById(userId) ?: return null
+        val tokens = issueTokens(row, ip, userAgent)
         return row to tokens
     }
 
     fun issueMfaPendingToken(user: AdminUserRow): String {
         val algorithm = Algorithm.HMAC256(config.adminJwtSecret)
-        val now = System.currentTimeMillis()
+        val now = Instant.now().toEpochMilli()
         return JWT.create()
             .withIssuer(config.adminJwtIssuer)
             .withSubject(user.id.toString())
@@ -420,9 +336,9 @@ class AdminAuthService(
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
-    private fun issueTokens(user: AdminUserRow, ip: String?, userAgent: String?): Pair<String, String> {
+    private suspend fun issueTokens(user: AdminUserRow, ip: String?, userAgent: String?): Pair<String, String> {
         val algorithm = Algorithm.HMAC256(config.adminJwtSecret)
-        val now = System.currentTimeMillis()
+        val now = Instant.now().toEpochMilli()
 
         val accessToken = JWT.create()
             .withIssuer(config.adminJwtIssuer)
@@ -440,117 +356,68 @@ class AdminAuthService(
         val refreshHash = sha256Hex(rawRefreshToken)
         val refreshExpiresAt = now + config.adminRefreshTokenTtlDays * 86_400_000L
 
-        AdminSessions.insert {
-            it[userId] = user.id
-            it[tokenHash] = refreshHash
-            it[this.userAgent] = userAgent
-            it[ipAddress] = ip
-            it[createdAt] = now
-            it[expiresAt] = refreshExpiresAt
-        }
+        adminUserRepo.insertSession(user.id, refreshHash, ip, userAgent, now, refreshExpiresAt)
 
         return accessToken to rawRefreshToken
     }
 
     private suspend fun incrementFailedAttempts(userId: UUID, email: String, ip: String?, userAgent: String?) {
-        newSuspendedTransaction {
-            val current = AdminUsers.selectAll()
-                .where { AdminUsers.id eq userId }
-                .single()[AdminUsers.failedAttempts]
-            val newCount = current + 1
-            val lockedUntil = if (newCount >= MAX_FAILED_ATTEMPTS) {
-                System.currentTimeMillis() + LOCKOUT_DURATION_MS
-            } else null
+        val current = adminUserRepo.getFailedAttempts(userId)
+        val newCount = current + 1
+        val lockedUntil = if (newCount >= MAX_FAILED_ATTEMPTS) {
+            Instant.now().toEpochMilli() + LOCKOUT_DURATION_MS
+        } else null
 
-            AdminUsers.update({ AdminUsers.id eq userId }) {
-                it[failedAttempts] = newCount
-                it[this.lockedUntil] = lockedUntil
-            }
+        adminUserRepo.updateFailedAttempts(userId, newCount, lockedUntil)
 
-            // G3: Audit login failure
-            auditService.log(
-                adminId      = userId,
-                adminName    = null,
-                eventType    = if (lockedUntil != null) "ADMIN_LOGIN_LOCKOUT" else "ADMIN_LOGIN_FAILURE",
-                category     = "AUTH",
-                entityType   = "admin_user",
-                entityId     = userId.toString(),
-                newValues    = mapOf("failedAttempts" to newCount.toString()),
-                ipAddress    = ip,
-                userAgent    = userAgent,
-                success      = false,
-                errorMessage = if (lockedUntil != null) "Account locked after $newCount failed attempts" else "Invalid credentials"
-            )
+        // G3: Audit login failure
+        auditService.log(
+            adminId      = userId,
+            adminName    = null,
+            eventType    = if (lockedUntil != null) "ADMIN_LOGIN_LOCKOUT" else "ADMIN_LOGIN_FAILURE",
+            category     = "AUTH",
+            entityType   = "admin_user",
+            entityId     = userId.toString(),
+            newValues    = mapOf("failedAttempts" to newCount.toString()),
+            ipAddress    = ip,
+            userAgent    = userAgent,
+            success      = false,
+            errorMessage = if (lockedUntil != null) "Account locked after $newCount failed attempts" else "Invalid credentials"
+        )
 
-            if (lockedUntil != null) {
-                logger.warn("Admin account locked after $newCount failed attempts: userId=$userId email=$email")
-            }
+        if (lockedUntil != null) {
+            logger.warn("Admin account locked after $newCount failed attempts: userId=$userId email=$email")
         }
     }
 
     // ── Password Reset ────────────────────────────────────────────────────────
 
-    /**
-     * Generates a one-time password reset token for the given email.
-     * Returns the raw token (to embed in email link) or null if the user doesn't exist.
-     * The token hash is stored in the DB; the raw token never touches the DB.
-     */
-    suspend fun generatePasswordResetToken(email: String): String? = newSuspendedTransaction {
-        val user = AdminUsers.selectAll()
-            .where { AdminUsers.email eq email.lowercase() }
-            .firstOrNull() ?: return@newSuspendedTransaction null
+    suspend fun generatePasswordResetToken(email: String): String? {
+        val user = adminUserRepo.findByEmail(email) ?: return null
 
-        // Invalidate any existing unused tokens for this user
-        PasswordResetTokens.deleteWhere {
-            (PasswordResetTokens.adminUserId eq user[AdminUsers.id]) and (PasswordResetTokens.usedAt.isNull())
-        }
+        adminUserRepo.deleteUnusedResetTokens(user.id)
 
-        val rawToken  = generateSecureToken()
+        val rawToken = generateSecureToken()
         val tokenHash = sha256Hex(rawToken)
-        val now       = System.currentTimeMillis()
+        val now = Instant.now().toEpochMilli()
 
-        PasswordResetTokens.insert {
-            it[id]          = UUID.randomUUID()
-            it[adminUserId] = user[AdminUsers.id]
-            it[PasswordResetTokens.tokenHash] = tokenHash
-            it[expiresAt]   = now + RESET_TOKEN_TTL_MS
-            it[createdAt]   = now
-        }
-        rawToken
+        adminUserRepo.insertResetToken(UUID.randomUUID(), user.id, tokenHash, now + RESET_TOKEN_TTL_MS, now)
+        return rawToken
     }
 
-    /**
-     * Validates the reset token, updates the password, and marks the token as used.
-     * Returns true on success, false if token is invalid, expired, or already used.
-     */
-    suspend fun resetPassword(rawToken: String, newPassword: String): Boolean = newSuspendedTransaction {
+    suspend fun resetPassword(rawToken: String, newPassword: String): Boolean {
         val tokenHash = sha256Hex(rawToken)
-        val now       = System.currentTimeMillis()
+        val now = Instant.now().toEpochMilli()
 
-        val tokenRow = PasswordResetTokens.selectAll()
-            .where { PasswordResetTokens.tokenHash eq tokenHash }
-            .firstOrNull() ?: return@newSuspendedTransaction false
+        val tokenRow = adminUserRepo.findResetToken(tokenHash) ?: return false
+        if (tokenRow.usedAt != null) return false
+        if (tokenRow.expiresAt < now) return false
 
-        if (tokenRow[PasswordResetTokens.usedAt] != null) return@newSuspendedTransaction false
-        if (tokenRow[PasswordResetTokens.expiresAt] < now) return@newSuspendedTransaction false
-
-        val userId      = tokenRow[PasswordResetTokens.adminUserId]
-        val newHash     = BCrypt.withDefaults().hashToString(12, newPassword.toCharArray())
-
-        AdminUsers.update({ AdminUsers.id eq userId }) {
-            it[passwordHash] = newHash
-        }
-        // Revoke all active sessions for this user
-        AdminSessions.update({
-            (AdminSessions.userId eq userId) and AdminSessions.revokedAt.isNull()
-        }) {
-            it[revokedAt] = now
-        }
-        // Mark token as used
-        PasswordResetTokens.update({ PasswordResetTokens.tokenHash eq tokenHash }) {
-            it[usedAt] = now
-        }
-        true
+        val newHash = BCrypt.withDefaults().hashToString(12, newPassword.toCharArray())
+        adminUserRepo.updatePassword(tokenRow.adminUserId, newHash)
+        adminUserRepo.revokeAllSessions(tokenRow.adminUserId, now)
+        adminUserRepo.markResetTokenUsed(tokenHash, now)
+        return true
     }
 
     private fun generateSecureToken(): String {

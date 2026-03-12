@@ -2,6 +2,7 @@ package com.zyntasolutions.zyntapos.api.service
 
 import com.zyntasolutions.zyntapos.api.models.PagedResponse
 import com.zyntasolutions.zyntapos.api.models.ProductDto
+import com.zyntasolutions.zyntapos.api.repository.ProductRepository
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.greaterEq
 import org.jetbrains.exposed.sql.javatime.timestampWithTimeZone
@@ -12,6 +13,7 @@ import java.time.OffsetDateTime
 import java.time.ZoneOffset
 
 // ── Exposed table (mirrors products table + V9 additional columns) ────────────
+// Retained here for backward compatibility — used by ProductRepositoryImpl
 
 object Products : Table("products") {
     val id          = text("id")
@@ -37,52 +39,20 @@ object Products : Table("products") {
 
 // ── Service ───────────────────────────────────────────────────────────────────
 
-class ProductService {
+class ProductService(
+    private val productRepo: ProductRepository,
+) {
     private val logger = LoggerFactory.getLogger(ProductService::class.java)
 
-    suspend fun list(storeId: String, page: Int, size: Int, updatedSince: Long?): PagedResponse<ProductDto> =
-        newSuspendedTransaction {
-            var query = Products.selectAll().where { Products.storeId eq storeId }
-
-            if (updatedSince != null) {
-                val sinceTs = OffsetDateTime.ofInstant(Instant.ofEpochMilli(updatedSince), ZoneOffset.UTC)
-                query = query.adjustWhere { Products.updatedAt greaterEq sinceTs }
-            }
-
-            val total = query.count()
-            val items = query
-                .orderBy(Products.updatedAt, SortOrder.ASC)
-                .limit(size)
-                .offset((page * size).toLong())
-                .map { row ->
-                    ProductDto(
-                        id          = row[Products.id],
-                        name        = row[Products.name],
-                        sku         = row[Products.sku],
-                        barcode     = row[Products.barcode],
-                        price       = row[Products.price].toDouble(),
-                        costPrice   = row[Products.costPrice].toDouble(),
-                        stockQty    = row[Products.stockQty].toDouble(),
-                        categoryId  = row[Products.categoryId],
-                        unitId      = row[Products.unitId],
-                        taxGroupId  = row[Products.taxGroupId],
-                        minStockQty = row[Products.minStockQty]?.toDouble() ?: 0.0,
-                        imageUrl    = row[Products.imageUrl],
-                        description = row[Products.description],
-                        isActive    = row[Products.isActive],
-                        createdAt   = row[Products.createdAt]?.toInstant()?.toEpochMilli() ?: 0L,
-                        updatedAt   = row[Products.updatedAt].toInstant().toEpochMilli(),
-                        syncStatus  = "SYNCED",
-                    )
-                }
-
-            logger.info("Products list: storeId=$storeId page=$page size=$size updatedSince=$updatedSince total=$total")
-            PagedResponse(
-                data    = items,
-                page    = page,
-                size    = size,
-                total   = total,
-                hasMore = (page.toLong() * size + size) < total
-            )
-        }
+    suspend fun list(storeId: String, page: Int, size: Int, updatedSince: Long?): PagedResponse<ProductDto> {
+        val result = productRepo.list(storeId, page, size, updatedSince)
+        logger.info("Products list: storeId=$storeId page=$page size=$size updatedSince=$updatedSince total=${result.total}")
+        return PagedResponse(
+            data    = result.items,
+            page    = page,
+            size    = size,
+            total   = result.total,
+            hasMore = (page.toLong() * size + size) < result.total
+        )
+    }
 }

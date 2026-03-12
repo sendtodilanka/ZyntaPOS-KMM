@@ -95,7 +95,7 @@ class MfaService {
         MfaBackupCodes.deleteWhere { MfaBackupCodes.userId eq userId }
 
         val codes = (1..8).map { generateRandomCode() }
-        val now = System.currentTimeMillis()
+        val now = java.time.Instant.now().toEpochMilli()
 
         codes.forEach { code ->
             val hash = bcrypt.hashToString(10, code.toCharArray())
@@ -114,7 +114,7 @@ class MfaService {
      * Returns true if a valid, unused code was found.
      */
     suspend fun verifyBackupCode(userId: UUID, code: String): Boolean = newSuspendedTransaction {
-        val now = System.currentTimeMillis()
+        val now = java.time.Instant.now().toEpochMilli()
         val rows = MfaBackupCodes.selectAll()
             .where { (MfaBackupCodes.userId eq userId) and (MfaBackupCodes.usedAt.isNull()) }
 

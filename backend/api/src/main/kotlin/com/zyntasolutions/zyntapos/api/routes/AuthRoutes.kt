@@ -6,6 +6,8 @@ import com.zyntasolutions.zyntapos.api.models.LoginRequest
 import com.zyntasolutions.zyntapos.api.models.LoginResponse
 import com.zyntasolutions.zyntapos.api.models.RefreshRequest
 import com.zyntasolutions.zyntapos.api.models.UserResponseDto
+import com.zyntasolutions.zyntapos.api.service.LicenseValidationClient
+import com.zyntasolutions.zyntapos.api.service.LicenseValidationResult
 import com.zyntasolutions.zyntapos.api.service.UserService
 import com.zyntasolutions.zyntapos.common.validation.validateOr422
 import io.ktor.http.HttpStatusCode
@@ -19,6 +21,7 @@ import org.koin.ktor.ext.inject
 fun Route.authRoutes() {
     val config: AppConfig by inject()
     val userService: UserService by inject()
+    val licenseClient: LicenseValidationClient by inject()
 
     route("/auth") {
 
@@ -34,6 +37,22 @@ fun Route.authRoutes() {
                 request.licenseKey?.let { requireMaxLength("license_key", it, 128) }
                 request.deviceId?.let { requireMaxLength("device_id", it, 256) }
             }) return@post
+
+            // S2-12: Validate store license before authenticating
+            if (request.licenseKey != null) {
+                val licenseResult = licenseClient.validate(request.licenseKey)
+                if (licenseResult == LicenseValidationResult.INVALID) {
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        ErrorResponse(
+                            code = "LICENSE_INVALID",
+                            message = "Store license is expired, revoked, or not found. Contact support."
+                        )
+                    )
+                    return@post
+                }
+                // UNAVAILABLE = fail-open (license service unreachable) — allow login
+            }
 
             val user = userService.authenticate(request.email, request.password, request.licenseKey)
                 ?: run {
