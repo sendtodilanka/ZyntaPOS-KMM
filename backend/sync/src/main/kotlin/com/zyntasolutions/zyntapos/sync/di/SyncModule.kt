@@ -3,6 +3,7 @@ package com.zyntasolutions.zyntapos.sync.di
 import com.zyntasolutions.zyntapos.sync.config.SyncConfig
 import com.zyntasolutions.zyntapos.sync.hub.DiagnosticRelay
 import com.zyntasolutions.zyntapos.sync.hub.RedisPubSubListener
+import com.zyntasolutions.zyntapos.sync.hub.SyncForwarder
 import com.zyntasolutions.zyntapos.sync.hub.WebSocketHub
 import io.lettuce.core.RedisClient
 import io.lettuce.core.api.StatefulRedisConnection
@@ -21,6 +22,9 @@ val syncModule = module {
     single<StatefulRedisConnection<String, String>?> {
         try { RedisClient.create(get<SyncConfig>().redisUrl).connect() } catch (_: Exception) { null }
     }
+
+    // SyncForwarder proxies WebSocket sync push/pull to API service REST endpoints
+    single { SyncForwarder(get<SyncConfig>().apiBaseUrl) }
 
     // Redis delta fan-out listener — broadcasts push notifications + force-sync to WS devices
     // A6: ForceSyncSubscriber removed — RedisPubSubListener handles both sync:delta:* and sync:commands

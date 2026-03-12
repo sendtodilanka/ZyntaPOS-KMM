@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.sync.routes
 
 import com.zyntasolutions.zyntapos.sync.hub.DiagnosticRelay
+import com.zyntasolutions.zyntapos.sync.hub.SyncForwarder
 import com.zyntasolutions.zyntapos.sync.hub.WebSocketHub
 import com.zyntasolutions.zyntapos.sync.models.WsAck
 import com.zyntasolutions.zyntapos.sync.models.WsPong
@@ -25,13 +26,15 @@ private val json = Json { ignoreUnknownKeys = true }
 fun Route.syncWebSocketRoutes() {
     val hub: WebSocketHub by inject()
     val diagnosticRelay: DiagnosticRelay by inject()
+    val syncForwarder: SyncForwarder by inject()
 
     // WSS /v1/sync/ws?deviceId=<device>
-    // POS terminals connect here for real-time delta notifications (TODO-007g).
+    // POS terminals connect here for real-time delta notifications and sync push.
     webSocket("/v1/sync/ws") {
         val principal = call.principal<JWTPrincipal>()
         val storeId   = principal?.payload?.getClaim("storeId")?.asString()
         val userId    = principal?.payload?.subject
+        val rawToken  = call.request.headers["Authorization"]?.removePrefix("Bearer ")
 
         if (storeId == null || userId == null) {
             close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Missing JWT claims"))
@@ -58,6 +61,19 @@ fun Route.syncWebSocketRoutes() {
                         when {
                             text.contains("\"type\":\"ping\"") -> {
                                 send(Frame.Text(json.encodeToString(WsPong())))
+                            }
+                            text.contains("\"type\":\"sync_push\"") -> {
+                                // Forward sync push to API service's /v1/sync/push endpoint
+                                val response = syncForwarder.forwardPush(text, rawToken)
+                                send(Frame.Text(response))
+                            }
+                            text.contains("\"type\":\"sync_pull\"") -> {
+                                // Forward sync pull request to API service's /v1/sync/pull endpoint
+                                val parsed = json.parseToJsonElement(text).jsonObject
+                                val since = parsed["since"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
+                                val limit = parsed["limit"]?.jsonPrimitive?.content?.toIntOrNull() ?: 50
+                                val response = syncForwarder.forwardPull(storeId, deviceId, since, limit, rawToken)
+                                send(Frame.Text(response))
                             }
                             text.contains("\"type\":\"diag_response\"") -> {
                                 // Relay diagnostic response from POS device to technician (TODO-006)
