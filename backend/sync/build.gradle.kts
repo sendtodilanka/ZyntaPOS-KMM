@@ -55,6 +55,9 @@ dependencyCheck {
 }
 
 dependencies {
+    // ── Common validation utilities + JWT defaults ───────────────────
+    implementation(project(":common"))
+
     // ── Ktor Server (CIO) ──────────────────────────────────────────────
     implementation("io.ktor:ktor-server-core:$ktorVersion")
     implementation("io.ktor:ktor-server-cio:$ktorVersion")
