@@ -36,6 +36,8 @@ import com.zyntasolutions.zyntapos.data.repository.JournalRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.FinancialStatementRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.AccountingPeriodRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.AttendanceRepositoryImpl
+import com.zyntasolutions.zyntapos.data.backup.BackupFileManager
+import com.zyntasolutions.zyntapos.data.remote.ird.IrdApiClient
 import com.zyntasolutions.zyntapos.data.repository.BackupRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.EInvoiceRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.EmployeeRepositoryImpl
@@ -449,11 +451,11 @@ val dataModule = module {
     // System health: DB stats via PRAGMA, memory metrics, VACUUM, soft-delete purge
     single<SystemRepository> { SystemRepositoryImpl(db = get(), driver = get()) }
 
-    // Backup: in-memory registry (Phase 3 stub; file I/O added in Sprint 13)
-    single<BackupRepository> { BackupRepositoryImpl(db = get()) }
+    // Backup: SQLDelight-backed + BackupFileManager for real file I/O (Phase 3 Sprint 13)
+    single<BackupRepository> { BackupRepositoryImpl(db = get(), fileManager = get<BackupFileManager>()) }
 
-    // E-Invoice: SQLDelight-backed (Sprint 18 — replaces in-memory stub)
-    single<EInvoiceRepository> { EInvoiceRepositoryImpl(db = get(), syncEnqueuer = get()) }
+    // E-Invoice: SQLDelight-backed + IrdApiClient for real IRD API submission (Phase 3)
+    single<EInvoiceRepository> { EInvoiceRepositoryImpl(db = get(), syncEnqueuer = get(), irdApiClient = get<IrdApiClient>()) }
 
     // ─────────────────────────────────────────────────────────────────────────
     // ── Feature Registry (Edition Management) ────────────────────────────────

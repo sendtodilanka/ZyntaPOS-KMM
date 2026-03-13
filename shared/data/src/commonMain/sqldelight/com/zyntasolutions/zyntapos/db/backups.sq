@@ -1,0 +1,47 @@
+-- ============================================================
+-- backups.sq — Database backup metadata persistence.
+-- Tracks backup file metadata across sessions.
+-- Phase 3 Sprint 13+ (BackupFileManager expect/actual).
+-- ============================================================
+
+CREATE TABLE backups (
+    id              TEXT    NOT NULL PRIMARY KEY,
+    file_name       TEXT    NOT NULL,
+    file_path       TEXT    NOT NULL DEFAULT '',
+    size_bytes      INTEGER NOT NULL DEFAULT 0,
+    status          TEXT    NOT NULL DEFAULT 'CREATING',
+    schema_version  INTEGER NOT NULL DEFAULT 1,
+    app_version     TEXT    NOT NULL DEFAULT '1.0.0',
+    error_message   TEXT,
+    created_at      INTEGER NOT NULL,
+    completed_at    INTEGER
+);
+
+CREATE INDEX idx_backups_created ON backups(created_at DESC);
+CREATE INDEX idx_backups_status  ON backups(status);
+
+-- ── Read queries ─────────────────────────────────────────────────────────────
+
+getAll:
+SELECT * FROM backups ORDER BY created_at DESC;
+
+getById:
+SELECT * FROM backups WHERE id = ?;
+
+-- ── Write queries ────────────────────────────────────────────────────────────
+
+insert:
+INSERT INTO backups(id, file_name, file_path, size_bytes, status, schema_version, app_version, error_message, created_at, completed_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateStatus:
+UPDATE backups SET
+    status        = ?,
+    size_bytes    = ?,
+    file_path     = ?,
+    error_message = ?,
+    completed_at  = ?
+WHERE id = ?;
+
+delete:
+DELETE FROM backups WHERE id = ?;

@@ -128,4 +128,24 @@ object AppConfig {
 
     /** Default number of decimal places for currency display. */
     const val CURRENCY_DECIMAL_PLACES: Int = 2
+
+    // ── IRD e-Invoice (Sri Lanka) ─────────────────────────────────────────────
+
+    /**
+     * IRD (Inland Revenue Department) API endpoint for e-invoice submission.
+     * Override at runtime from BuildConfig.ZYNTA_IRD_API_ENDPOINT or SettingsRepository.
+     */
+    var IRD_API_ENDPOINT: String = ""
+
+    /**
+     * Absolute path to the IRD client certificate (.p12 / PKCS12) used for mTLS.
+     * Override at runtime from BuildConfig.ZYNTA_IRD_CLIENT_CERTIFICATE_PATH.
+     */
+    var IRD_CLIENT_CERT_PATH: String = ""
+
+    /**
+     * Password for the IRD client certificate.
+     * Override at runtime from BuildConfig / secure storage — never hard-code.
+     */
+    var IRD_CLIENT_CERT_PASSWORD: String = ""
 }

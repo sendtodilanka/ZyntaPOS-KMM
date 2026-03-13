@@ -379,18 +379,12 @@ class ReportRepositoryImpl(
 
     override suspend fun getLeaveBalances(asOf: Instant): List<LeaveBalanceData> =
         withContext(Dispatchers.IO) {
-            // asOf is passed as ISO date string for TEXT date comparison
             val asOfStr = asOf.toLocalDateTime(tz).date.toString()
-            // Default annual allotment per leave type (Phase 3 stub; real allotment tracking is backlog)
-            val defaultAllotment = mapOf(
-                "ANNUAL"   to 14,
-                "SICK"     to 7,
-                "PERSONAL" to 3,
-                "UNPAID"   to 0,
-            )
-            q.leaveBalances(asOfStr).executeAsList().map { row ->
-                val allotted  = defaultAllotment[row.leave_type] ?: 0
-                val taken     = (row.taken_days ?: 0L).toInt()
+            // Pass asOfStr twice: once for year extraction in the subquery, once for end_date comparison.
+            // allotted_days resolved from leave_allotments table (Phase 3 Sprint 13+).
+            q.leaveBalances(asOfStr, asOfStr).executeAsList().map { row ->
+                val allotted = (row.allotted_days ?: 0L).toInt()
+                val taken    = (row.taken_days ?: 0L).toInt()
                 LeaveBalanceData(
                     employeeId   = row.employee_id,
                     employeeName = row.employee_name,
@@ -436,7 +430,7 @@ class ReportRepositoryImpl(
             ).executeAsList().map { row ->
                 StoreSalesData(
                     storeId           = row.store_id,
-                    storeName         = row.store_id, // Store registry not yet in local DB; use id as name
+                    storeName         = row.store_name, // Resolved from stores table (Phase 3 Sprint 13+)
                     totalRevenue      = row.total_revenue ?: 0.0,
                     orderCount        = (row.order_count ?: 0L).toInt(),
                     averageOrderValue = row.average_order_value ?: 0.0,
@@ -473,19 +467,17 @@ class ReportRepositoryImpl(
 
     override suspend fun getWarehouseInventory(): List<WarehouseInventoryData> =
         withContext(Dispatchers.IO) {
-            val racks = q.warehouseInventory().executeAsList()
-            // For each rack, attach all products from the products table.
-            // Full rack-level product assignment requires a rack_products table (Phase 3 backlog);
-            // this stub returns one row per rack with a placeholder product.
-            racks.map { row ->
+            // warehouseInventory now LEFT JOINs rack_products for product-level data.
+            // Racks with no assigned products return empty strings and zero quantity.
+            q.warehouseInventory().executeAsList().map { row ->
                 WarehouseInventoryData(
                     warehouseId   = row.warehouse_id,
                     warehouseName = row.warehouse_name,
                     rackId        = row.rack_id,
                     rackCode      = row.rack_code,
-                    productId     = "",   // TODO: rack_products table needed for product assignment
-                    productName   = "",
-                    quantity      = 0,
+                    productId     = row.product_id,
+                    productName   = row.product_name,
+                    quantity      = (row.quantity ?: 0L).toInt(),
                 )
             }
         }
@@ -532,9 +524,11 @@ class ReportRepositoryImpl(
         to: Instant,
     ): List<SupplierPurchaseData> =
         withContext(Dispatchers.IO) {
-            // No purchase_orders table exists yet; returns suppliers with zero totals as stub.
-            // TODO: Implement when purchase_orders table is added in Phase 3.
-            q.supplierPurchases().executeAsList().map { row ->
+            // supplierPurchases now aggregates from purchase_orders table (Phase 3 Sprint 13+).
+            q.supplierPurchases(
+                from.toEpochMilliseconds(),
+                to.toEpochMilliseconds(),
+            ).executeAsList().map { row ->
                 SupplierPurchaseData(
                     supplierId            = row.supplier_id,
                     supplierName          = row.supplier_name,
@@ -789,10 +783,23 @@ class ReportRepositoryImpl(
     override suspend fun getPurchaseOrders(
         from: Instant,
         to: Instant,
-    ): List<PurchaseOrderData> {
-        // TODO: Implement when a purchase_orders table is added in Phase 3.
-        return emptyList()
-    }
+    ): List<PurchaseOrderData> =
+        withContext(Dispatchers.IO) {
+            // purchaseOrders query uses the new purchase_orders table (Phase 3 Sprint 13+).
+            q.purchaseOrders(
+                from.toEpochMilliseconds(),
+                to.toEpochMilliseconds(),
+            ).executeAsList().map { row ->
+                PurchaseOrderData(
+                    orderId      = row.order_id,
+                    supplierId   = row.supplier_id,
+                    supplierName = row.supplier_name,
+                    totalAmount  = row.total_amount,
+                    status       = row.order_status,
+                    createdAt    = Instant.fromEpochMilliseconds(row.order_date),
+                )
+            }
+        }
 
     override suspend fun getExpensesByDepartment(
         from: Instant,

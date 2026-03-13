@@ -31,6 +31,8 @@ Phase 2: ~97% complete
 - BLOCK 2: All Sprint 3 items done (S3-1 through S3-15)
 - BLOCK 3: All Sprint 4 items done (S4-1 through S4-11)
 - BLOCK 4: DiagnosticRelay.kt, AnalyticsService expect/actual, email delivery log UI, zyntapos-docs site all done
+- BLOCK 5: BackupFileManager expect/actual + backups.sq; ReportRepositoryImpl stubs + 4 new .sq tables; EInvoiceRepositoryImpl.submitToIrd() with IrdApiClient expect/actual; AppConfig IRD vars; platform DI wiring DONE
+- BLOCK 6: DiagnosticSession.VisitType enum + visitType/siteVisitToken fields; V15 Flyway migration; DiagnosticSessionService.createSiteVisitToken() DONE
 
 ### Feature Status
 - TODO-006 (~85%): WebSocket diagnostic relay DONE. Remaining: site visit token support (Phase 3)
@@ -47,7 +49,7 @@ Use `curl` with `$PAT` for GitHub API — NOT `gh` CLI (git remote is a local pr
 
 ---
 
-### BLOCK 5: KMM Client Stubs to Complete (Phase 3 deferred)
+### BLOCK 5: KMM Client Stubs to Complete (Phase 3 deferred) — ✅ COMPLETE 2026-03-13
 
 **BackupRepositoryImpl** — `shared/data/src/commonMain/kotlin/.../repository/BackupRepositoryImpl.kt`
 - Currently in-memory only — needs platform expect/actual `BackupFileManager` for real file I/O
@@ -78,7 +80,7 @@ Use `curl` with `$PAT` for GitHub API — NOT `gh` CLI (git remote is a local pr
 
 ---
 
-### BLOCK 6: TODO-006 Remaining — Site Visit Token Support (Phase 3)
+### BLOCK 6: TODO-006 Remaining — Site Visit Token Support (Phase 3) — ✅ COMPLETE 2026-03-13
 
 **Site Visit Token** — for on-site technician hardware access
 - Domain model: extend `DiagnosticSession` with `visitType: VisitType` (REMOTE | ON_SITE)

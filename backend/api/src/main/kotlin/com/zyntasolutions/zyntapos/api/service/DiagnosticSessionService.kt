@@ -15,18 +15,20 @@ import java.util.UUID
 // ── Exposed table ────────────────────────────────────────────────────────────
 
 object DiagnosticSessions : Table("diagnostic_sessions") {
-    val id               = uuid("id")
-    val storeId          = uuid("store_id")
-    val technicianId     = uuid("technician_id")
-    val requestedBy      = uuid("requested_by")
-    val tokenHash        = varchar("token_hash", 64)
-    val dataScope        = varchar("data_scope", 32)
-    val status           = varchar("status", 32)
-    val consentGrantedAt = long("consent_granted_at").nullable()
-    val expiresAt        = long("expires_at")
-    val revokedAt        = long("revoked_at").nullable()
-    val revokedBy        = uuid("revoked_by").nullable()
-    val createdAt        = long("created_at")
+    val id                  = uuid("id")
+    val storeId             = uuid("store_id")
+    val technicianId        = uuid("technician_id")
+    val requestedBy         = uuid("requested_by")
+    val tokenHash           = varchar("token_hash", 64)
+    val dataScope           = varchar("data_scope", 32)
+    val status              = varchar("status", 32)
+    val visitType           = varchar("visit_type", 16).default("REMOTE")
+    val siteVisitTokenHash  = varchar("site_visit_token_hash", 64).nullable()
+    val consentGrantedAt    = long("consent_granted_at").nullable()
+    val expiresAt           = long("expires_at")
+    val revokedAt           = long("revoked_at").nullable()
+    val revokedBy           = uuid("revoked_by").nullable()
+    val createdAt           = long("created_at")
     override val primaryKey = PrimaryKey(id)
 }
 
@@ -40,11 +42,17 @@ data class DiagnosticSessionResponse(
     val requestedBy: String,
     val dataScope: String,
     val status: String,
+    val visitType: String,
     val expiresAt: Long,
     val consentGrantedAt: Long?,
     val createdAt: Long,
     /** Raw JIT token — only present at creation time, never stored or returned again. */
     val token: String? = null,
+    /**
+     * Raw site visit token for ON_SITE sessions — only present when issued via
+     * [DiagnosticSessionService.createSiteVisitToken], never stored or returned again.
+     */
+    val siteVisitToken: String? = null,
 )
 
 // ── Service ──────────────────────────────────────────────────────────────────
@@ -65,6 +73,7 @@ class DiagnosticSessionService(private val config: AppConfig) {
         technicianId: UUID,
         requestedBy: UUID,
         scope: String,
+        visitType: String = "REMOTE",
     ): DiagnosticSessionResponse = newSuspendedTransaction {
         val now       = java.time.Instant.now().toEpochMilli()
         val expiresAt = now + TOKEN_TTL_MS
@@ -92,21 +101,23 @@ class DiagnosticSessionService(private val config: AppConfig) {
             it[DiagnosticSessions.tokenHash]    = tokenHash
             it[dataScope]        = scope
             it[status]           = "PENDING_CONSENT"
-            it[DiagnosticSessions.expiresAt] = expiresAt
+            it[DiagnosticSessions.visitType]    = visitType
+            it[DiagnosticSessions.expiresAt]    = expiresAt
             it[createdAt]        = now
         }
 
         DiagnosticSessionResponse(
-            id             = sessionId.toString(),
-            storeId        = storeId.toString(),
-            technicianId   = technicianId.toString(),
-            requestedBy    = requestedBy.toString(),
-            dataScope      = scope,
-            status         = "PENDING_CONSENT",
-            expiresAt      = expiresAt,
+            id               = sessionId.toString(),
+            storeId          = storeId.toString(),
+            technicianId     = technicianId.toString(),
+            requestedBy      = requestedBy.toString(),
+            dataScope        = scope,
+            status           = "PENDING_CONSENT",
+            visitType        = visitType,
+            expiresAt        = expiresAt,
             consentGrantedAt = null,
-            createdAt      = now,
-            token          = rawToken,
+            createdAt        = now,
+            token            = rawToken,
         )
     }
 
@@ -172,6 +183,67 @@ class DiagnosticSessionService(private val config: AppConfig) {
             ?.toResponse()
     }
 
+    /**
+     * Issues a short-lived site-visit token for an existing ACTIVE or PENDING_CONSENT ON_SITE
+     * diagnostic session. The token is a 32-byte cryptographically random hex string that the
+     * technician presents (e.g., as a QR code) to authenticate at the store kiosk.
+     *
+     * Only the SHA-256 hash of the token is persisted — the raw token is returned once and
+     * never stored or retrievable again.
+     *
+     * Returns null if the session does not exist, is not in an eligible state, or has expired.
+     */
+    suspend fun createSiteVisitToken(sessionId: UUID): DiagnosticSessionResponse? =
+        newSuspendedTransaction {
+            val now = java.time.Instant.now().toEpochMilli()
+
+            val row = DiagnosticSessions.selectAll()
+                .where {
+                    (DiagnosticSessions.id eq sessionId) and
+                    (DiagnosticSessions.status inList listOf("PENDING_CONSENT", "ACTIVE")) and
+                    (DiagnosticSessions.visitType eq "ON_SITE")
+                }
+                .firstOrNull()
+
+            if (row == null) {
+                log.warn("createSiteVisitToken: session {} not found or not eligible", sessionId)
+                return@newSuspendedTransaction null
+            }
+
+            if (row[DiagnosticSessions.expiresAt] < now) {
+                DiagnosticSessions.update({ DiagnosticSessions.id eq sessionId }) {
+                    it[status] = "EXPIRED"
+                }
+                log.warn("createSiteVisitToken: session {} has expired", sessionId)
+                return@newSuspendedTransaction null
+            }
+
+            // Generate a cryptographically random 32-byte token and store its hash
+            val rawBytes = ByteArray(32).also { SecureRandom().nextBytes(it) }
+            val rawToken = rawBytes.joinToString("") { "%02x".format(it) }
+            val tokenHash = sha256Hex(rawToken)
+
+            DiagnosticSessions.update({ DiagnosticSessions.id eq sessionId }) {
+                it[siteVisitTokenHash] = tokenHash
+            }
+
+            log.info("createSiteVisitToken: issued site visit token for session {}", sessionId)
+
+            DiagnosticSessionResponse(
+                id               = row[DiagnosticSessions.id].toString(),
+                storeId          = row[DiagnosticSessions.storeId].toString(),
+                technicianId     = row[DiagnosticSessions.technicianId].toString(),
+                requestedBy      = row[DiagnosticSessions.requestedBy].toString(),
+                dataScope        = row[DiagnosticSessions.dataScope],
+                status           = row[DiagnosticSessions.status],
+                visitType        = row[DiagnosticSessions.visitType],
+                expiresAt        = row[DiagnosticSessions.expiresAt],
+                consentGrantedAt = row[DiagnosticSessions.consentGrantedAt],
+                createdAt        = row[DiagnosticSessions.createdAt],
+                siteVisitToken   = rawToken,
+            )
+        }
+
     // ── Private helpers ───────────────────────────────────────────────────────
 
     private fun generateToken(
@@ -206,9 +278,11 @@ class DiagnosticSessionService(private val config: AppConfig) {
         requestedBy      = this[DiagnosticSessions.requestedBy].toString(),
         dataScope        = this[DiagnosticSessions.dataScope],
         status           = this[DiagnosticSessions.status],
+        visitType        = this[DiagnosticSessions.visitType],
         expiresAt        = this[DiagnosticSessions.expiresAt],
         consentGrantedAt = this[DiagnosticSessions.consentGrantedAt],
         createdAt        = this[DiagnosticSessions.createdAt],
         token            = null,
+        siteVisitToken   = null,
     )
 }

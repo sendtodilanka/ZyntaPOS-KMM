@@ -3773,3 +3773,97 @@ Implemented the full Astro 5 + Tailwind CSS 4 marketing website for `www.zyntapo
 ### DNS Diagnosis
 
 Root cause of `zyntapos.com` file download: Caddyfile has no `zyntapos.com {}` virtual host block. Caddy returns empty HTTP 200 with no Content-Type. Fix is Cloudflare Pages (above), NOT Caddyfile.
+
+---
+
+## Phase 3 Block 5 — KMM Client Stubs (Completed 2026-03-13)
+
+**Branch:** `claude/phase-3-kmm-stubs-uyy8z`
+**Status:** ✅ COMPLETE
+
+### Block 5a — BackupRepositoryImpl + BackupFileManager expect/actual
+
+**Problem:** `BackupRepositoryImpl` was in-memory only with no file I/O and no persistence.
+
+**Solution:**
+
+New SQLDelight schema:
+- [x] `shared/data/src/commonMain/sqldelight/.../db/backups.sq` — `backups` table (id, file_name, file_path, size_bytes, status, schema_version, app_version, error_message, created_at, completed_at); indexes on `created_at DESC` and `status`
+
+New expect/actual:
+- [x] `shared/data/src/commonMain/.../backup/BackupFileManager.kt` — expect class (5 methods: `backupsDir`, `copyDbToBackup`, `copyBackupToDb`, `deleteBackupFile`, `exportBackupFile`)
+- [x] `shared/data/src/androidMain/.../backup/BackupFileManager.kt` — Android actual: `Context`-based; DB file from `getDatabasePath()`; backups dir from `getExternalFilesDir("backups")` with `filesDir/backups` fallback
+- [x] `shared/data/src/jvmMain/.../backup/BackupFileManager.kt` — JVM actual: `appDataDir`-based; backups dir at `<appDataDir>/../backups/`; uses `java.nio.file` APIs
+
+`BackupRepositoryImpl` rewrite:
+- [x] Reactive `getAll()` via `db.backupsQueries.getAll().asFlow().mapToList(Dispatchers.IO)`
+- [x] `createBackup()`: inserts CREATING → `fileManager.copyDbToBackup()` → updates SUCCESS or FAILED
+- [x] `restoreBackup()`: marks RESTORING → `fileManager.copyBackupToDb()` → reverts to SUCCESS on error
+- [x] `deleteBackup()`: deletes file first, then metadata row
+- [x] `exportBackup()`: delegates to `fileManager.exportBackupFile()`
+
+### Block 5b — ReportRepositoryImpl Stubs
+
+**Problem:** Five report methods returned empty lists or stubs.
+
+**New SQLDelight schemas:**
+- [x] `purchase_orders.sq` — `purchase_orders` + `purchase_order_items` tables; queries for date range, supplier aggregation
+- [x] `rack_products.sq` — `rack_products` join table (product ↔ warehouse rack); upsert + delete queries
+- [x] `stores.sq` — `stores` registry table for multi-store name resolution
+- [x] `leave_allotments.sq` — `leave_allotments` table with UNIQUE(employee_id, leave_type, year) constraint
+
+Updated `reports.sq`:
+- [x] `leaveBalances` — LEFT JOIN `leave_allotments` subquery; returns `allotted_days`; 2 params (asOfStr twice for year + date)
+- [x] `multiStoreSales` — LEFT JOIN `stores` table; returns `store_name` (COALESCE to store_id)
+- [x] `warehouseInventory` — LEFT JOIN `rack_products` + `products` for product-level data
+- [x] `supplierPurchases` — LEFT JOIN `purchase_orders`; 2 params (fromMs, toMs)
+- [x] `purchaseOrders` — new query; returns purchase orders for a date range
+
+`ReportRepositoryImpl` updates:
+- [x] `getPurchaseOrders()` — full implementation using `q.purchaseOrders(fromMs, toMs)`
+- [x] `getWarehouseInventory()` — maps `row.product_id`, `row.product_name`, `row.quantity`
+- [x] `getSupplierPurchases()` — passes epoch-ms range params
+- [x] `getMultiStoreComparison()` — maps `row.store_name`
+- [x] `getLeaveBalances()` — passes `asOfStr` twice; maps `row.allotted_days`
+
+### Block 5c — EInvoiceRepositoryImpl.submitToIrd()
+
+**Problem:** `submitToIrd()` returned a stub error "IRD API integration pending".
+
+**New expect/actual:**
+- [x] `shared/data/src/commonMain/.../remote/ird/IrdApiClient.kt` — expect class + `IrdInvoicePayload` + `IrdApiResponse` data classes
+- [x] `shared/data/src/androidMain/.../remote/ird/IrdApiClient.kt` — Android actual: Ktor OkHttp engine; mTLS via `OkHttpClient.Builder().sslSocketFactory()` + PKCS12 `KeyStore`
+- [x] `shared/data/src/jvmMain/.../remote/ird/IrdApiClient.kt` — JVM actual: Ktor CIO engine; mTLS via `SSLContext.setDefault()`
+
+`EInvoiceRepositoryImpl` update:
+- [x] `submitToIrd()` replaced stub with: optimistic SUBMITTED → `irdApiClient.submitInvoice(payload)` → ACCEPTED (with referenceNumber) or REJECTED (with errorCode/message)
+
+### Block 5d — Platform DI Wiring
+
+- [x] `shared/core/.../config/AppConfig.kt` — added `IRD_API_ENDPOINT`, `IRD_CLIENT_CERT_PATH`, `IRD_CLIENT_CERT_PASSWORD` mutable vars
+- [x] `shared/data/src/androidMain/.../di/AndroidDataModule.kt` — registered `BackupFileManager(context)` and `IrdApiClient(endpoint, certPath, certPassword)`
+- [x] `shared/data/src/jvmMain/.../di/DesktopDataModule.kt` — registered `BackupFileManager(appDataDir)` and `IrdApiClient(endpoint, certPath, certPassword)`
+- [x] `shared/data/.../di/DataModule.kt` — `BackupRepositoryImpl(db, fileManager=get())` and `EInvoiceRepositoryImpl(db, syncEnqueuer, irdApiClient=get())`
+
+---
+
+## Phase 3 Block 6 — Site Visit Token (TODO-006 Remaining, Completed 2026-03-13)
+
+**Branch:** `claude/phase-3-kmm-stubs-uyy8z`
+**Status:** ✅ COMPLETE
+
+### Changes
+
+Domain model:
+- [x] `shared/domain/.../model/DiagnosticSession.kt` — added `VisitType` enum (REMOTE | ON_SITE); added `visitType: VisitType` and `siteVisitToken: String?` fields to `DiagnosticSession`
+
+Backend — Flyway migration:
+- [x] `backend/api/src/main/resources/db/migration/V15__site_visit_token.sql` — `ALTER TABLE diagnostic_sessions ADD COLUMN visit_type TEXT NOT NULL DEFAULT 'REMOTE'`; `ADD COLUMN site_visit_token_hash TEXT`; index on `site_visit_token_hash WHERE NOT NULL`
+
+Backend — Service update:
+- [x] `DiagnosticSessions` Exposed table — added `visitType` and `siteVisitTokenHash` columns
+- [x] `DiagnosticSessionResponse` — added `visitType: String` and `siteVisitToken: String?` fields
+- [x] `createSession()` — accepts `visitType: String = "REMOTE"` param; persists to `visit_type` column
+- [x] `createSiteVisitToken()` — new method: finds eligible ON_SITE session → generates 32-byte cryptographically random token → stores SHA-256 hash → returns raw token once (never retrievable again)
+- [x] `toResponse()` extension — includes `visitType` and `siteVisitToken = null` in all generic responses
+
