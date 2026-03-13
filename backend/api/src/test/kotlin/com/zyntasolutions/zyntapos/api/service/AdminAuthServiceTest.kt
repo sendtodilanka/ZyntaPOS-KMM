@@ -4,7 +4,12 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.zyntasolutions.zyntapos.api.auth.AdminRole
 import com.zyntasolutions.zyntapos.api.config.AppConfig
+import com.zyntasolutions.zyntapos.api.repository.AdminAuditRepository
 import com.zyntasolutions.zyntapos.api.repository.AdminUserRepository
+import com.zyntasolutions.zyntapos.api.repository.AuditEntryInput
+import com.zyntasolutions.zyntapos.api.repository.AuditFilter
+import com.zyntasolutions.zyntapos.api.repository.AuditPage
+import com.zyntasolutions.zyntapos.api.repository.AuditEntryRow
 import com.zyntasolutions.zyntapos.api.repository.ResetTokenRow
 import com.zyntasolutions.zyntapos.api.repository.SessionRow
 import java.util.UUID
@@ -89,7 +94,16 @@ class AdminAuthServiceTest {
             override suspend fun markResetTokenUsed(tokenHash: String, usedAt: Long) = throw NotImplementedError()
         }
 
-        private val noOpAudit = object : AdminAuditService() {
+        private val noOpAuditRepo = object : AdminAuditRepository {
+            override suspend fun insertEntry(entry: AuditEntryInput) { /* no-op */ }
+            override suspend fun findLatestHash() = ""
+            override suspend fun listEntries(filter: AuditFilter, page: Int, size: Int) =
+                AuditPage(emptyList(), page, size, 0, 0)
+            override suspend fun exportEntries(filter: AuditFilter, limit: Int) =
+                emptyList<AuditEntryRow>()
+        }
+
+        private val noOpAudit = object : AdminAuditService(noOpAuditRepo) {
             override suspend fun log(
                 adminId: UUID?,
                 adminName: String?,

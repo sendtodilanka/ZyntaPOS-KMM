@@ -5,7 +5,12 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.zyntasolutions.zyntapos.api.auth.AdminRole
 import com.zyntasolutions.zyntapos.api.config.AppConfig
+import com.zyntasolutions.zyntapos.api.repository.AdminAuditRepository
 import com.zyntasolutions.zyntapos.api.repository.AdminUserRepository
+import com.zyntasolutions.zyntapos.api.repository.AuditEntryInput
+import com.zyntasolutions.zyntapos.api.repository.AuditEntryRow
+import com.zyntasolutions.zyntapos.api.repository.AuditFilter
+import com.zyntasolutions.zyntapos.api.repository.AuditPage
 import com.zyntasolutions.zyntapos.api.repository.ResetTokenRow
 import com.zyntasolutions.zyntapos.api.repository.SessionRow
 import kotlinx.coroutines.runBlocking
@@ -63,8 +68,18 @@ class AdminAuthServiceExtendedTest {
             )
         }
 
+        /** No-op audit repository — safe for unit tests without a database. */
+        private val noOpAuditRepo = object : AdminAuditRepository {
+            override suspend fun insertEntry(entry: AuditEntryInput) { /* no-op */ }
+            override suspend fun findLatestHash() = ""
+            override suspend fun listEntries(filter: AuditFilter, page: Int, size: Int) =
+                AuditPage(emptyList(), page, size, 0, 0)
+            override suspend fun exportEntries(filter: AuditFilter, limit: Int) =
+                emptyList<AuditEntryRow>()
+        }
+
         /** No-op audit service that skips DB writes — safe for unit tests without a database. */
-        private val noOpAudit = object : AdminAuditService() {
+        private val noOpAudit = object : AdminAuditService(noOpAuditRepo) {
             override suspend fun log(
                 adminId: java.util.UUID?,
                 adminName: String?,
