@@ -128,10 +128,13 @@ test.describe('Theme toggle', () => {
 test.describe('Settings navigation', () => {
   test('profile and MFA pages load', async ({ page }) => {
     await page.goto('/settings/profile');
+    await page.waitForLoadState('networkidle');
+    await page.locator('main').first().waitFor({ state: 'visible', timeout: 15_000 });
     await expect(page.getByRole('heading', { name: /profile/i })).toBeVisible({ timeout: 15_000 });
 
     await page.goto('/settings/mfa');
     await page.waitForLoadState('networkidle');
+    await page.locator('main').first().waitFor({ state: 'visible', timeout: 15_000 });
     await expect(page.getByRole('heading', { name: /mfa|two.factor|authenticat/i })).toBeVisible({ timeout: 15_000 });
   });
 });
@@ -142,12 +145,14 @@ test.describe('Tickets', () => {
   test('tickets list loads', async ({ page }) => {
     await page.goto('/tickets');
     await page.waitForLoadState('networkidle');
+    await page.locator('main').first().waitFor({ state: 'visible', timeout: 15_000 });
     await expect(page.getByRole('heading', { name: /support tickets/i })).toBeVisible({ timeout: 15_000 });
   });
 
   test('new ticket modal opens', async ({ page }) => {
     await page.goto('/tickets');
     await page.waitForLoadState('networkidle');
+    await page.locator('main').first().waitFor({ state: 'visible', timeout: 15_000 });
     await page.getByRole('button', { name: /new ticket/i }).waitFor({ state: 'visible', timeout: 15_000 });
     await page.getByRole('button', { name: /new ticket/i }).click();
     await expect(page.getByRole('heading', { name: /new support ticket/i })).toBeVisible({ timeout: 10_000 });
