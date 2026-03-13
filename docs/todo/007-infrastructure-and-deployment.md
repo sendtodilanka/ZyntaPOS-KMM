@@ -1,6 +1,6 @@
 # TODO-007: Infrastructure, Deployment & Backend Architecture
 
-**Status:** 🟡 ~95% COMPLETE — Docker Compose (12 services: caddy, api, license, sync, postgres, redis, website, admin-panel, uptime-kuma, falcosidekick, cloudflared, canary), Caddyfile (8 subdomain routes), CI/CD (10+ workflows including 7-step pipeline), container hardening (read-only FS, seccomp, cap_drop, non-root), GHCR image builds, deploy workflow all implemented. Remaining: docs service (placeholder pointing to canary), external VPS/DNS setup. Verified 2026-03-12.
+**Status:** ✅ ~99% COMPLETE — Docker Compose (12 services: caddy, api, license, sync, postgres, redis, website, admin-panel, uptime-kuma, falcosidekick, cloudflared, canary), Caddyfile (8 subdomain routes), CI/CD (10+ workflows including 7-step pipeline), container hardening (read-only FS, seccomp, cap_drop, non-root), GHCR image builds, deploy workflow all implemented. External infra confirmed complete: Namecheap→Cloudflare DNS delegation, A records, ufw firewall, SSH hardening, Cloudflare Origin Certificate, VPS .env, CF Access bypass all done. Remaining: Backblaze B2 bucket setup (Phase 3). Verified 2026-03-13.
 **Priority:** HIGH — Foundation for licensing, sync, and remote diagnostics
 **Phase:** Phase 2 (Growth)
 **Created:** 2026-03-01
@@ -635,10 +635,10 @@ The deploy workflow is defined in `.github/workflows/deploy.yml` (already added 
 - [x] Cloudflare Origin Certificate TLS block in Caddyfile (shared TLS import)
 - [x] Docker Compose running 12 services: Caddy, API, License, Sync, Panel, Website, PostgreSQL, Redis, Uptime Kuma, Falcosidekick, Cloudflared, Canary
 - [x] Container hardening: read-only FS, seccomp, cap_drop ALL, non-root users, no-new-privileges on all services
-- [ ] Namecheap nameservers pointing to Cloudflare (external DNS)
-- [ ] All A records in Cloudflare pointing to Contabo VPS IP (external DNS)
-- [ ] ufw firewall active on VPS (VPS setup)
-- [ ] SSH hardened on VPS (VPS setup)
+- [x] Namecheap nameservers pointing to Cloudflare (external DNS) — confirmed done 2026-03-13
+- [x] All A records in Cloudflare pointing to Contabo VPS IP (external DNS) — confirmed done 2026-03-13
+- [x] ufw firewall active on VPS (VPS setup) — confirmed done 2026-03-13
+- [x] SSH hardened on VPS (VPS setup) — confirmed done 2026-03-13
 
 ### Deploy Access (CI/CD configured — VPS secrets assumed set)
 - [x] `deploy` user referenced in cd-deploy.yml via VPS_USER secret
@@ -646,17 +646,17 @@ The deploy workflow is defined in `.github/workflows/deploy.yml` (already added 
 - [x] GHCR image references in docker-compose.yml (zyntapos-api, zyntapos-license, zyntapos-sync, admin-panel, website)
 - [x] 7-step pipeline workflows implemented (ci-branch-validate, ci-auto-pr, ci-gate, cd-deploy, cd-smoke-rollback, cd-verify-endpoints)
 - [x] FTS setup workflows (fts-step-1 through fts-step-6)
-- [ ] `PAT_TOKEN` has `read:packages` scope (GitHub secret — assumed)
-- [ ] `/opt/zyntapos/.env` configured on VPS (VPS setup)
+- [x] `PAT_TOKEN` has `read:packages` scope (GitHub secret — confirmed done 2026-03-13)
+- [x] `/opt/zyntapos/.env` configured on VPS (VPS setup) — confirmed done 2026-03-13
 
 ### Services (code implemented — VPS runtime verification pending)
 - [x] License system: activate, heartbeat, GET endpoints in backend/license service
 - [x] JWT RS256 authentication in API + Sync services (private key Docker secret, public key in KMM app)
 - [x] Rate limiting implemented in API (Redis-backed, referenced in docker-compose env vars)
 - [x] Admin panel: 20 routes (dashboard, licenses, stores, users, audit, sync, health, config, alerts, reports, tickets, settings)
-- [ ] Sync engine push/pull operations — server-side (Phase 2 backlog)
-- [ ] Remote diagnostic WebSocket relay — NOT YET IMPLEMENTED
-- [ ] Offline grace period enforcement — verify on VPS runtime
+- [x] Sync engine push/pull operations — server-side (SyncForwarder + WebSocket relay implemented)
+- [x] Remote diagnostic WebSocket relay — DiagnosticRelay.kt + DiagnosticWebSocketRoutes.kt implemented
+- [ ] Offline grace period enforcement — verify on VPS runtime (operational check only)
 
 ### Reliability (code/config implemented — VPS runtime pending)
 - [x] Monitoring: Uptime Kuma in docker-compose, Caddyfile route for status.zyntapos.com

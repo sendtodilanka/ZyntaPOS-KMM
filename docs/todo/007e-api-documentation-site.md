@@ -2,7 +2,7 @@
 
 **Phase:** 2 — Growth
 **Priority:** P2 (LOW)
-**Status:** 🟡 ~90% COMPLETE — Full docs site implemented at `zyntapos-docs/` (Scalar OpenAPI viewer, build.js bundler, nginx.conf). OpenAPI spec at `zyntapos-docs/openapi/api-v1.yaml`. Guide pages implemented (getting-started.md, authentication.md, sync-protocol.md, license-activation.md, error-handling.md). Docker container + docker-compose service + Caddyfile route (docs.zyntapos.com → docs:3001) configured. CI workflow `ci-docs.yml` added. Remaining: DNS setup for docs.zyntapos.com (external VPS), admin-v1.yaml + license-v1.yaml + sync-v1.yaml OpenAPI split.
+**Status:** ✅ 100% COMPLETE — Full docs site implemented at `zyntapos-docs/` (Scalar OpenAPI viewer, multi-spec build.js bundler with 4-spec dropdown, nginx.conf). All 4 OpenAPI specs implemented: `api-v1.yaml` (POS API — full paths+components), `admin-v1.yaml` (Admin API — 67+ endpoints), `license-v1.yaml` (License API — POS + admin routes), `sync-v1.yaml` (Sync WebSocket — OpenAPI 3.1.0). Guide pages implemented (getting-started.md, authentication.md, sync-protocol.md, license-activation.md, error-handling.md). Docker container + docker-compose service + Caddyfile route (docs.zyntapos.com → docs:3001) configured. CI workflow `ci-docs.yml` added. DNS setup confirmed done (CloudFlare A record). Verified 2026-03-13.
 **Effort:** ~5 working days (1 week, 1 developer)
 **Related:** TODO-007 (infrastructure), TODO-007a (admin panel — consumes same APIs), TODO-007g (sync engine — documented here)
 **Owner:** Zynta Solutions Pvt Ltd

@@ -1,0 +1,2385 @@
+openapi: "3.0.3"
+info:
+  title: ZyntaPOS Admin API
+  version: "1.0.0"
+  description: |
+    Internal admin panel API for ZyntaPOS — centralized management of licenses, stores,
+    users, sync, support tickets, remote diagnostics, and configuration.
+
+    ## Authentication
+    All `/admin/*` endpoints (except `/admin/auth/login`, `/admin/auth/bootstrap`,
+    `/admin/auth/google`, and `/admin/auth/google/callback`) require:
+    - **HttpOnly cookie**: `access_token` (set by the login endpoint)
+    - **CSRF header**: `X-CSRF-Token` (double-submit cookie pattern, required on all
+      state-changing requests)
+
+    The CSRF token is available in the `csrf_token` cookie (non-HttpOnly, readable by JS).
+
+    ## Roles
+    | Role | Access |
+    |------|--------|
+    | ADMIN | Full access to all endpoints |
+    | OPERATOR | Stores, sync, remote diagnostics, tickets |
+    | FINANCE | Metrics, reports, config |
+    | AUDITOR | Audit logs (read-only) |
+    | HELPDESK | Support tickets only |
+
+    ## Rate Limits
+    - Auth tier (`/admin/auth/*`): **10 req/min** per IP
+    - API tier (all other `/admin/*`): **300 req/min** per IP
+  contact:
+    name: Zynta Solutions Pvt Ltd
+    url: https://zyntapos.com
+  license:
+    name: Proprietary
+
+servers:
+  - url: https://api.zyntapos.com
+    description: Production
+
+security:
+  - cookieAuth: []
+
+tags:
+  - name: Setup
+    description: First-run bootstrap and status check
+  - name: Auth
+    description: Admin panel authentication, MFA, Google SSO, password management
+  - name: Users
+    description: Admin user management
+  - name: Stores
+    description: POS store listing, health, and configuration
+  - name: Health
+    description: System and store health monitoring
+  - name: Audit
+    description: Immutable audit log viewer and export
+  - name: Metrics
+    description: KPI dashboards and sales analytics
+  - name: Reports
+    description: Sales and product performance reports
+  - name: Alerts
+    description: Alert rules and alert history
+  - name: Config
+    description: Feature flags, tax rates, and system configuration
+  - name: Sync
+    description: Sync queue monitoring, conflict resolution, dead-letter management
+  - name: Tickets
+    description: Support ticket system (HELPDESK role)
+  - name: Diagnostic
+    description: Remote diagnostic sessions (OPERATOR role)
+  - name: Licenses
+    description: License lifecycle management (ADMIN role, served by license service)
+
+paths:
+
+  # ── Setup ──────────────────────────────────────────────────────────────────
+
+  /admin/auth/status:
+    get:
+      operationId: getBootstrapStatus
+      summary: Check if bootstrap has been completed
+      description: Returns whether an admin account exists. Used by the frontend to decide whether to show the bootstrap form or the login form.
+      tags: [Setup]
+      security: []
+      responses:
+        "200":
+          description: Bootstrap status
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [bootstrapped]
+                properties:
+                  bootstrapped:
+                    type: boolean
+                    description: True if at least one admin user exists
+
+  /admin/auth/bootstrap:
+    post:
+      operationId: bootstrapAdmin
+      summary: Create the first admin account
+      description: |
+        Creates the initial admin user. Only succeeds if no admin users exist yet.
+        Subsequent calls return 409 ALREADY_BOOTSTRAPPED.
+      tags: [Setup]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BootstrapRequest"
+      responses:
+        "201":
+          description: Admin account created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+        "409":
+          description: Admin account already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ── Auth ──────────────────────────────────────────────────────────────────
+
+  /admin/auth/login:
+    post:
+      operationId: adminLogin
+      summary: Admin panel password login
+      description: |
+        Authenticates an admin user with email + password. Returns HttpOnly access and
+        refresh token cookies. If MFA is enabled, returns `mfaPending: true` and a
+        short-lived MFA challenge token — call `/admin/auth/mfa/verify` to complete.
+
+        **Rate limit:** 10 req/min per IP.
+        **Brute-force:** 5 failed attempts triggers a 15-minute lockout.
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminLoginRequest"
+      responses:
+        "200":
+          description: Login successful (or MFA step required)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminLoginResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "423":
+          description: Account locked due to too many failed attempts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/auth/mfa/verify:
+    post:
+      operationId: adminMfaVerify
+      summary: Complete TOTP MFA verification
+      description: Verifies the 6-digit TOTP code after a login that returned `mfaPending: true`.
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mfaToken, code]
+              properties:
+                mfaToken:
+                  type: string
+                  description: Short-lived MFA challenge token from the login response
+                code:
+                  type: string
+                  pattern: "^[0-9]{6}$"
+                  description: 6-digit TOTP code from authenticator app
+      responses:
+        "200":
+          description: MFA verified, full session cookies set
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+        "401":
+          description: Invalid or expired TOTP code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/auth/mfa/setup:
+    post:
+      operationId: adminMfaSetup
+      summary: Start TOTP MFA setup (returns QR code secret)
+      description: Generates a new TOTP secret. The client must display it as a QR code and then call `/admin/auth/mfa/enable` to confirm.
+      tags: [Auth]
+      responses:
+        "200":
+          description: TOTP setup payload
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [secret, qrCodeUri]
+                properties:
+                  secret:
+                    type: string
+                    description: Base32-encoded TOTP secret (show only once)
+                  qrCodeUri:
+                    type: string
+                    description: otpauth:// URI for QR code generation
+
+  /admin/auth/mfa/enable:
+    post:
+      operationId: adminMfaEnable
+      summary: Confirm and enable TOTP MFA
+      description: Validates a TOTP code against the pending secret and activates MFA on the account.
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:
+                  type: string
+                  pattern: "^[0-9]{6}$"
+      responses:
+        "200":
+          description: MFA enabled
+        "400":
+          description: Invalid TOTP code or no pending setup
+
+  /admin/auth/mfa/disable:
+    post:
+      operationId: adminMfaDisable
+      summary: Disable TOTP MFA
+      description: Disables MFA on the current account. Requires a valid TOTP code to confirm.
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:
+                  type: string
+                  pattern: "^[0-9]{6}$"
+      responses:
+        "200":
+          description: MFA disabled
+
+  /admin/auth/google:
+    get:
+      operationId: adminGoogleOAuth
+      summary: Initiate Google SSO
+      description: Redirects to Google OAuth2 consent screen. The `hd` parameter restricts to the configured `GOOGLE_ALLOWED_DOMAIN`.
+      tags: [Auth]
+      security: []
+      responses:
+        "302":
+          description: Redirect to Google OAuth consent
+
+  /admin/auth/google/callback:
+    get:
+      operationId: adminGoogleOAuthCallback
+      summary: Google SSO callback
+      description: Handles the Google OAuth callback. Auto-provisions an AUDITOR account if the email domain matches `GOOGLE_ALLOWED_DOMAIN`.
+      tags: [Auth]
+      security: []
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "302":
+          description: Redirect to panel dashboard on success, /login on failure
+
+  /admin/auth/refresh:
+    post:
+      operationId: adminRefreshToken
+      summary: Refresh admin access token
+      description: Issues a new access token using the HttpOnly refresh cookie.
+      tags: [Auth]
+      responses:
+        "200":
+          description: New access token set in cookie
+        "401":
+          description: Refresh token expired or revoked
+
+  /admin/auth/logout:
+    post:
+      operationId: adminLogout
+      summary: Logout and clear session cookies
+      description: Revokes the current session and clears both access and refresh cookies.
+      tags: [Auth]
+      responses:
+        "200":
+          description: Logged out successfully
+
+  /admin/auth/me:
+    get:
+      operationId: getAdminMe
+      summary: Get current admin user profile
+      tags: [Auth]
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+
+  /admin/auth/forgot-password:
+    post:
+      operationId: adminForgotPassword
+      summary: Request password reset email
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        "200":
+          description: Reset email sent if account exists (always returns 200 to prevent email enumeration)
+
+  /admin/auth/reset-password:
+    post:
+      operationId: adminResetPassword
+      summary: Reset password using token from email
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, newPassword]
+              properties:
+                token:
+                  type: string
+                newPassword:
+                  type: string
+                  minLength: 8
+                  maxLength: 128
+      responses:
+        "200":
+          description: Password reset successful
+        "400":
+          description: Invalid or expired reset token
+
+  /admin/auth/change-password:
+    post:
+      operationId: adminChangePassword
+      summary: Change password (authenticated)
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, newPassword]
+              properties:
+                currentPassword:
+                  type: string
+                newPassword:
+                  type: string
+                  minLength: 8
+                  maxLength: 128
+      responses:
+        "200":
+          description: Password changed
+        "401":
+          description: Current password incorrect
+
+  # ── Users ─────────────────────────────────────────────────────────────────
+
+  /admin/users:
+    get:
+      operationId: listAdminUsers
+      summary: List admin users
+      description: Returns paginated admin user list. Requires ADMIN role.
+      tags: [Users]
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Filter by name or email
+        - name: role
+          in: query
+          schema:
+            $ref: "#/components/schemas/AdminRole"
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: Paginated user list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedAdminUsers"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/users/{id}:
+    patch:
+      operationId: updateAdminUser
+      summary: Update admin user role or active status
+      description: ADMIN role required to change other users' roles or deactivate accounts.
+      tags: [Users]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role:
+                  $ref: "#/components/schemas/AdminRole"
+                isActive:
+                  type: boolean
+      responses:
+        "200":
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/users/{id}/sessions:
+    get:
+      operationId: listUserSessions
+      summary: List active sessions for a user
+      tags: [Users]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Active sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminSession"
+    delete:
+      operationId: revokeUserSessions
+      summary: Revoke all sessions for a user (force logout)
+      tags: [Users]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: All sessions revoked
+
+  # ── Stores ────────────────────────────────────────────────────────────────
+
+  /admin/stores:
+    get:
+      operationId: listStores
+      summary: List all stores
+      tags: [Stores]
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Store list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedStores"
+
+  /admin/stores/{storeId}:
+    get:
+      operationId: getStore
+      summary: Get store details
+      tags: [Stores]
+      parameters:
+        - name: storeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Store details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Store"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/stores/{storeId}/health:
+    get:
+      operationId: getStoreHealth
+      summary: Get health metrics for a specific store
+      tags: [Stores]
+      parameters:
+        - name: storeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Store health metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoreHealth"
+
+  /admin/stores/{storeId}/config:
+    put:
+      operationId: updateStoreConfig
+      summary: Update store configuration
+      tags: [Stores]
+      parameters:
+        - name: storeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StoreConfig"
+      responses:
+        "200":
+          description: Config updated
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  # ── Health ────────────────────────────────────────────────────────────────
+
+  /admin/health/system:
+    get:
+      operationId: getSystemHealth
+      summary: Get system-wide health (CPU, memory, DB, Redis)
+      tags: [Health]
+      responses:
+        "200":
+          description: System health metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystemHealth"
+
+  /admin/health/stores:
+    get:
+      operationId: getAllStoreHealth
+      summary: Get health overview for all stores
+      tags: [Health]
+      responses:
+        "200":
+          description: Store health list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StoreHealth"
+
+  /admin/health/stores/{storeId}:
+    get:
+      operationId: getStoreHealthById
+      summary: Get health metrics for a specific store (alias)
+      tags: [Health]
+      parameters:
+        - name: storeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Store health metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoreHealth"
+
+  # ── Audit ─────────────────────────────────────────────────────────────────
+
+  /admin/audit:
+    get:
+      operationId: listAuditLogs
+      summary: List audit log entries
+      description: Returns paginated audit log. Requires ADMIN or AUDITOR role.
+      tags: [Audit]
+      parameters:
+        - name: eventType
+          in: query
+          schema:
+            type: string
+          description: Filter by AuditEventType enum value
+        - name: userId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: storeId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: from
+          in: query
+          schema:
+            type: integer
+            format: int64
+          description: Unix epoch milliseconds (start of date range)
+        - name: to
+          in: query
+          schema:
+            type: integer
+            format: int64
+          description: Unix epoch milliseconds (end of date range)
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 200
+      responses:
+        "200":
+          description: Paginated audit log
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedAuditEntries"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/audit/export:
+    get:
+      operationId: exportAuditLogs
+      summary: Export audit log as CSV
+      tags: [Audit]
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: to
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: storeId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: CSV export
+          content:
+            text/csv:
+              schema:
+                type: string
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  # ── Metrics ───────────────────────────────────────────────────────────────
+
+  /admin/metrics/dashboard:
+    get:
+      operationId: getDashboardKpis
+      summary: Get KPI dashboard summary
+      tags: [Metrics]
+      responses:
+        "200":
+          description: Dashboard KPIs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardKpis"
+
+  /admin/metrics/sales:
+    get:
+      operationId: getSalesMetrics
+      summary: Get sales time-series data
+      tags: [Metrics]
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: to
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: granularity
+          in: query
+          schema:
+            type: string
+            enum: [HOUR, DAY, WEEK, MONTH]
+            default: DAY
+        - name: storeId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Sales time-series
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/TimeSeriesPoint"
+
+  /admin/metrics/stores:
+    get:
+      operationId: getStoreMetrics
+      summary: Get per-store comparison metrics
+      tags: [Metrics]
+      responses:
+        "200":
+          description: Per-store metrics
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StoreMetrics"
+
+  # ── Reports ───────────────────────────────────────────────────────────────
+
+  /admin/reports/sales:
+    get:
+      operationId: getSalesReport
+      summary: Get sales summary report
+      tags: [Reports]
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: to
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: storeId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [json, csv]
+            default: json
+      responses:
+        "200":
+          description: Sales report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalesReport"
+
+  /admin/reports/products:
+    get:
+      operationId: getProductsReport
+      summary: Get product performance report
+      tags: [Reports]
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: to
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: storeId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Product performance report
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  products:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ProductPerformance"
+
+  # ── Alerts ────────────────────────────────────────────────────────────────
+
+  /admin/alerts/counts:
+    get:
+      operationId: getAlertCounts
+      summary: Get alert counts by severity and status
+      tags: [Alerts]
+      responses:
+        "200":
+          description: Alert counts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  open:
+                    type: integer
+                  acknowledged:
+                    type: integer
+                  critical:
+                    type: integer
+
+  /admin/alerts/rules:
+    get:
+      operationId: listAlertRules
+      summary: List configured alert rules
+      tags: [Alerts]
+      responses:
+        "200":
+          description: Alert rules
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AlertRule"
+
+  /admin/alerts/{id}/acknowledge:
+    post:
+      operationId: acknowledgeAlert
+      summary: Acknowledge an alert
+      tags: [Alerts]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Alert acknowledged
+
+  /admin/alerts/{id}/resolve:
+    post:
+      operationId: resolveAlert
+      summary: Resolve an alert
+      tags: [Alerts]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                resolution:
+                  type: string
+                  description: Resolution notes
+      responses:
+        "200":
+          description: Alert resolved
+
+  /admin/alerts/{id}/silence:
+    post:
+      operationId: silenceAlert
+      summary: Silence an alert for a duration
+      tags: [Alerts]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [durationMinutes]
+              properties:
+                durationMinutes:
+                  type: integer
+                  minimum: 1
+                  maximum: 10080
+      responses:
+        "200":
+          description: Alert silenced
+
+  /admin/alerts/rules/{id}:
+    patch:
+      operationId: updateAlertRule
+      summary: Enable, disable, or update an alert rule
+      tags: [Alerts]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                threshold:
+                  type: number
+                notificationChannels:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "200":
+          description: Rule updated
+
+  # ── Config ────────────────────────────────────────────────────────────────
+
+  /admin/config/feature-flags:
+    get:
+      operationId: listFeatureFlags
+      summary: List all feature flags
+      tags: [Config]
+      responses:
+        "200":
+          description: Feature flags
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FeatureFlag"
+
+  /admin/config/feature-flags/{key}:
+    patch:
+      operationId: updateFeatureFlag
+      summary: Enable or disable a feature flag
+      tags: [Config]
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [enabled]
+              properties:
+                enabled:
+                  type: boolean
+      responses:
+        "200":
+          description: Flag updated
+
+  /admin/config/tax-rates:
+    get:
+      operationId: listTaxRates
+      summary: List configured tax rates
+      tags: [Config]
+      responses:
+        "200":
+          description: Tax rates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TaxRate"
+    post:
+      operationId: createTaxRate
+      summary: Create a new tax rate
+      tags: [Config]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaxRateInput"
+      responses:
+        "201":
+          description: Tax rate created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaxRate"
+
+  /admin/config/tax-rates/{id}:
+    put:
+      operationId: updateTaxRate
+      summary: Update a tax rate
+      tags: [Config]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaxRateInput"
+      responses:
+        "200":
+          description: Updated tax rate
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaxRate"
+    delete:
+      operationId: deleteTaxRate
+      summary: Delete a tax rate
+      tags: [Config]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Deleted
+
+  /admin/config/system:
+    get:
+      operationId: getSystemConfig
+      summary: Get system-wide configuration keys
+      tags: [Config]
+      responses:
+        "200":
+          description: System config
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+
+  /admin/config/system/{key}:
+    patch:
+      operationId: updateSystemConfig
+      summary: Update a system configuration value
+      tags: [Config]
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [value]
+              properties:
+                value:
+                  type: string
+      responses:
+        "200":
+          description: Config updated
+
+  # ── Sync ──────────────────────────────────────────────────────────────────
+
+  /admin/sync/status:
+    get:
+      operationId: getSyncStatus
+      summary: Get sync status overview for all stores
+      tags: [Sync]
+      responses:
+        "200":
+          description: Sync status overview
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StoreSyncStatus"
+
+  /admin/sync/{storeId}:
+    get:
+      operationId: getStoreSyncStatus
+      summary: Get sync status for a specific store
+      tags: [Sync]
+      parameters:
+        - name: storeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Store sync status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoreSyncStatus"
+
+  /admin/sync/{storeId}/queue:
+    get:
+      operationId: getStoreSyncQueue
+      summary: Get pending sync operations for a store
+      tags: [Sync]
+      parameters:
+        - name: storeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Pending operations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedSyncOps"
+
+  /admin/sync/{storeId}/force:
+    post:
+      operationId: forceSync
+      summary: Force a sync cycle for a store
+      description: Sends a `force_sync` WebSocket message to all connected devices in the store.
+      tags: [Sync]
+      parameters:
+        - name: storeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Force sync triggered
+
+  /admin/sync/conflicts:
+    get:
+      operationId: listAllConflicts
+      summary: List unresolved sync conflicts across all stores
+      tags: [Sync]
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Conflicts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedConflicts"
+
+  /admin/sync/{storeId}/conflicts:
+    get:
+      operationId: getStoreConflicts
+      summary: List conflicts for a specific store
+      tags: [Sync]
+      parameters:
+        - name: storeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Store conflicts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedConflicts"
+
+  /admin/sync/dead-letters:
+    get:
+      operationId: listAllDeadLetters
+      summary: List dead-letter sync operations (permanently failed) across all stores
+      tags: [Sync]
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Dead-letter operations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedDeadLetters"
+
+  /admin/sync/{storeId}/dead-letters:
+    get:
+      operationId: getStoreDeadLetters
+      summary: List dead-letter operations for a specific store
+      tags: [Sync]
+      parameters:
+        - name: storeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Dead letters for the store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedDeadLetters"
+
+  /admin/sync/dead-letters/{id}/retry:
+    post:
+      operationId: retryDeadLetter
+      summary: Retry a dead-letter operation
+      tags: [Sync]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Retried
+
+  /admin/sync/dead-letters/{id}:
+    delete:
+      operationId: discardDeadLetter
+      summary: Permanently discard a dead-letter operation
+      tags: [Sync]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Discarded
+
+  # ── Tickets ───────────────────────────────────────────────────────────────
+
+  /admin/tickets:
+    get:
+      operationId: listTickets
+      summary: List support tickets
+      tags: [Tickets]
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [OPEN, ASSIGNED, IN_PROGRESS, PENDING_CUSTOMER, RESOLVED, CLOSED]
+        - name: assigneeId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: storeId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Paginated tickets
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedTickets"
+    post:
+      operationId: createTicket
+      summary: Create a new support ticket
+      tags: [Tickets]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTicketRequest"
+      responses:
+        "201":
+          description: Ticket created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ticket"
+
+  /admin/tickets/{id}:
+    get:
+      operationId: getTicket
+      summary: Get ticket details
+      tags: [Tickets]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Ticket
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ticket"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      operationId: updateTicket
+      summary: Update ticket status or priority
+      tags: [Tickets]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [IN_PROGRESS, PENDING_CUSTOMER]
+                priority:
+                  type: string
+                  enum: [LOW, MEDIUM, HIGH, CRITICAL]
+      responses:
+        "200":
+          description: Ticket updated
+
+  /admin/tickets/{id}/assign:
+    post:
+      operationId: assignTicket
+      summary: Assign ticket to an OPERATOR
+      tags: [Tickets]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [assigneeId]
+              properties:
+                assigneeId:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: Ticket assigned
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/tickets/{id}/resolve:
+    post:
+      operationId: resolveTicket
+      summary: Resolve a ticket (OPERATOR/ADMIN only)
+      tags: [Tickets]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [resolution]
+              properties:
+                resolution:
+                  type: string
+                timeSpentMinutes:
+                  type: integer
+                  minimum: 0
+      responses:
+        "200":
+          description: Ticket resolved
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/tickets/{id}/close:
+    post:
+      operationId: closeTicket
+      summary: Close a resolved ticket
+      tags: [Tickets]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Ticket closed
+
+  /admin/tickets/{id}/comments:
+    get:
+      operationId: listTicketComments
+      summary: Get comments on a ticket
+      tags: [Tickets]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Comments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TicketComment"
+    post:
+      operationId: addTicketComment
+      summary: Add a comment to a ticket
+      tags: [Tickets]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body:
+                  type: string
+                  maxLength: 5000
+                isInternal:
+                  type: boolean
+                  default: false
+                  description: True = only visible to admin staff; false = visible to customer
+      responses:
+        "201":
+          description: Comment added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TicketComment"
+
+  # ── Diagnostic ────────────────────────────────────────────────────────────
+
+  /admin/diagnostic/sessions:
+    post:
+      operationId: createDiagnosticSession
+      summary: Create a diagnostic session for a store
+      description: |
+        Creates a JIT remote diagnostic session. Any existing PENDING_CONSENT or ACTIVE
+        session for the target store is revoked. Returns a one-time token the customer
+        must approve via the POS app consent screen.
+      tags: [Diagnostic]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDiagnosticSessionRequest"
+      responses:
+        "201":
+          description: Session created. The `token` field is returned only at creation time.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiagnosticSession"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/diagnostic/sessions/{storeId}:
+    get:
+      operationId: getActiveDiagnosticSession
+      summary: Get the active or pending diagnostic session for a store
+      tags: [Diagnostic]
+      parameters:
+        - name: storeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Active session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiagnosticSession"
+        "404":
+          description: No active session
+
+  /admin/diagnostic/sessions/{sessionId}:
+    delete:
+      operationId: revokeDiagnosticSession
+      summary: Revoke a diagnostic session
+      description: Immediately terminates the session and disconnects the WebSocket relay.
+      tags: [Diagnostic]
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Session revoked
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/diagnostic/sessions/{id}/site-visit-token:
+    post:
+      operationId: createSiteVisitToken
+      summary: Issue a site visit token for on-site hardware diagnostics
+      description: |
+        Only valid for sessions with `visitType: ON_SITE`. Issues a short-lived random
+        token (QR code) that the technician presents at the customer's physical device.
+        The raw token is returned once and never stored.
+      tags: [Diagnostic]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Site visit token issued
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [siteVisitToken, expiresAt]
+                properties:
+                  siteVisitToken:
+                    type: string
+                    description: Raw hex token (64 chars). Returned once, never retrievable.
+                  expiresAt:
+                    type: integer
+                    format: int64
+        "404":
+          description: Session not found or not eligible (wrong visitType or wrong status)
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: access_token
+      description: HttpOnly JWT cookie set by `/admin/auth/login`
+
+  responses:
+    Forbidden:
+      description: Insufficient role permissions
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            code: FORBIDDEN
+            message: Your role does not permit this action
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            code: NOT_FOUND
+            message: Resource not found
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties:
+            type: string
+
+    AdminRole:
+      type: string
+      enum: [ADMIN, OPERATOR, FINANCE, AUDITOR, HELPDESK]
+      description: |
+        - ADMIN: Full access
+        - OPERATOR: Stores, sync, diagnostics, tickets
+        - FINANCE: Metrics, reports, config (read)
+        - AUDITOR: Audit logs (read-only)
+        - HELPDESK: Support tickets only
+
+    AdminUser:
+      type: object
+      required: [id, email, role, isActive, mfaEnabled, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        role:
+          $ref: "#/components/schemas/AdminRole"
+        isActive:
+          type: boolean
+        mfaEnabled:
+          type: boolean
+        createdAt:
+          type: integer
+          format: int64
+        lastLoginAt:
+          type: integer
+          format: int64
+
+    AdminSession:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        createdAt:
+          type: integer
+          format: int64
+        expiresAt:
+          type: integer
+          format: int64
+        ipAddress:
+          type: string
+        userAgent:
+          type: string
+
+    BootstrapRequest:
+      type: object
+      required: [email, password, name]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
+        name:
+          type: string
+
+    AdminLoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          maxLength: 128
+
+    AdminLoginResponse:
+      type: object
+      required: [mfaPending]
+      properties:
+        mfaPending:
+          type: boolean
+          description: True if the user has MFA enabled and must complete verification
+        mfaToken:
+          type: string
+          description: Short-lived MFA challenge token (only present when mfaPending=true)
+        user:
+          $ref: "#/components/schemas/AdminUser"
+          description: Present only when mfaPending=false
+
+    PagedAdminUsers:
+      type: object
+      required: [items, total, page, size]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminUser"
+        total:
+          type: integer
+        page:
+          type: integer
+        size:
+          type: integer
+
+    Store:
+      type: object
+      required: [id, name, licenseKey, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        licenseKey:
+          type: string
+        edition:
+          type: string
+          enum: [STARTER, PROFESSIONAL, ENTERPRISE]
+        timezone:
+          type: string
+          example: Asia/Colombo
+        currency:
+          type: string
+          example: LKR
+        createdAt:
+          type: integer
+          format: int64
+
+    PagedStores:
+      type: object
+      required: [items, total, page, size]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Store"
+        total:
+          type: integer
+        page:
+          type: integer
+        size:
+          type: integer
+
+    StoreHealth:
+      type: object
+      properties:
+        storeId:
+          type: string
+          format: uuid
+        storeName:
+          type: string
+        lastSyncAt:
+          type: integer
+          format: int64
+        syncQueueDepth:
+          type: integer
+        connectedDevices:
+          type: integer
+        lastHeartbeatAt:
+          type: integer
+          format: int64
+        appVersion:
+          type: string
+        status:
+          type: string
+          enum: [HEALTHY, DEGRADED, OFFLINE]
+
+    StoreConfig:
+      type: object
+      properties:
+        timezone:
+          type: string
+        currency:
+          type: string
+        taxIncluded:
+          type: boolean
+        receiptFooter:
+          type: string
+        lowStockThreshold:
+          type: integer
+
+    SystemHealth:
+      type: object
+      properties:
+        cpuUsagePercent:
+          type: number
+        memoryUsedMb:
+          type: integer
+        memoryTotalMb:
+          type: integer
+        dbConnectionsActive:
+          type: integer
+        redisLatencyMs:
+          type: integer
+        uptimeSeconds:
+          type: integer
+        services:
+          type: object
+          properties:
+            api:
+              type: string
+              enum: [ok, degraded, down]
+            license:
+              type: string
+              enum: [ok, degraded, down]
+            sync:
+              type: string
+              enum: [ok, degraded, down]
+
+    PagedAuditEntries:
+      type: object
+      required: [items, total, page, size]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditEntry"
+        total:
+          type: integer
+        page:
+          type: integer
+        size:
+          type: integer
+
+    AuditEntry:
+      type: object
+      required: [id, eventType, userId, timestamp]
+      properties:
+        id:
+          type: string
+          format: uuid
+        eventType:
+          type: string
+          description: AuditEventType enum value (e.g., DIAGNOSTIC_SESSION, USER_LOGIN)
+        userId:
+          type: string
+          format: uuid
+        storeId:
+          type: string
+          format: uuid
+        entityId:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+        timestamp:
+          type: integer
+          format: int64
+
+    DashboardKpis:
+      type: object
+      properties:
+        totalRevenue:
+          type: number
+        totalOrders:
+          type: integer
+        activeLicenses:
+          type: integer
+        totalStores:
+          type: integer
+        connectedDevices:
+          type: integer
+        syncErrorRate:
+          type: number
+
+    TimeSeriesPoint:
+      type: object
+      required: [timestamp, value]
+      properties:
+        timestamp:
+          type: integer
+          format: int64
+        value:
+          type: number
+        label:
+          type: string
+
+    StoreMetrics:
+      type: object
+      properties:
+        storeId:
+          type: string
+          format: uuid
+        storeName:
+          type: string
+        revenue:
+          type: number
+        orderCount:
+          type: integer
+        avgOrderValue:
+          type: number
+
+    SalesReport:
+      type: object
+      properties:
+        period:
+          type: string
+        totalRevenue:
+          type: number
+        totalOrders:
+          type: integer
+        avgOrderValue:
+          type: number
+        topProducts:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProductPerformance"
+
+    ProductPerformance:
+      type: object
+      properties:
+        productId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        unitsSold:
+          type: integer
+        revenue:
+          type: number
+
+    AlertRule:
+      type: object
+      required: [id, name, enabled]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        enabled:
+          type: boolean
+        threshold:
+          type: number
+        metric:
+          type: string
+        severity:
+          type: string
+          enum: [INFO, WARNING, CRITICAL]
+
+    FeatureFlag:
+      type: object
+      required: [key, enabled]
+      properties:
+        key:
+          type: string
+        enabled:
+          type: boolean
+        description:
+          type: string
+        updatedAt:
+          type: integer
+          format: int64
+
+    TaxRate:
+      type: object
+      required: [id, name, rate]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: VAT
+        rate:
+          type: number
+          example: 18.0
+        isDefault:
+          type: boolean
+
+    TaxRateInput:
+      type: object
+      required: [name, rate]
+      properties:
+        name:
+          type: string
+        rate:
+          type: number
+          minimum: 0
+          maximum: 100
+        isDefault:
+          type: boolean
+
+    StoreSyncStatus:
+      type: object
+      properties:
+        storeId:
+          type: string
+          format: uuid
+        storeName:
+          type: string
+        pendingOps:
+          type: integer
+        lastSyncAt:
+          type: integer
+          format: int64
+        syncErrors:
+          type: integer
+        conflictCount:
+          type: integer
+        deadLetterCount:
+          type: integer
+
+    PagedSyncOps:
+      type: object
+      required: [items, total, page, size]
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+        total:
+          type: integer
+        page:
+          type: integer
+        size:
+          type: integer
+
+    PagedConflicts:
+      type: object
+      required: [items, total, page, size]
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+        total:
+          type: integer
+        page:
+          type: integer
+        size:
+          type: integer
+
+    PagedDeadLetters:
+      type: object
+      required: [items, total, page, size]
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+        total:
+          type: integer
+        page:
+          type: integer
+        size:
+          type: integer
+
+    Ticket:
+      type: object
+      required: [id, ticketNumber, title, status, priority, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        ticketNumber:
+          type: string
+          example: "TKT-2026-000001"
+        title:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [OPEN, ASSIGNED, IN_PROGRESS, PENDING_CUSTOMER, RESOLVED, CLOSED]
+        priority:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, CRITICAL]
+        storeId:
+          type: string
+          format: uuid
+        createdById:
+          type: string
+          format: uuid
+        assigneeId:
+          type: string
+          format: uuid
+        resolution:
+          type: string
+        timeSpentMinutes:
+          type: integer
+        createdAt:
+          type: integer
+          format: int64
+        resolvedAt:
+          type: integer
+          format: int64
+
+    PagedTickets:
+      type: object
+      required: [items, total, page, size]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Ticket"
+        total:
+          type: integer
+        page:
+          type: integer
+        size:
+          type: integer
+
+    CreateTicketRequest:
+      type: object
+      required: [title, description]
+      properties:
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 10000
+        priority:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, CRITICAL]
+          default: MEDIUM
+        storeId:
+          type: string
+          format: uuid
+
+    TicketComment:
+      type: object
+      required: [id, ticketId, authorId, body, isInternal, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        ticketId:
+          type: string
+          format: uuid
+        authorId:
+          type: string
+          format: uuid
+        authorName:
+          type: string
+        body:
+          type: string
+        isInternal:
+          type: boolean
+        createdAt:
+          type: integer
+          format: int64
+
+    DiagnosticSession:
+      type: object
+      required: [id, storeId, technicianId, dataScope, status, visitType, expiresAt, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        storeId:
+          type: string
+          format: uuid
+        technicianId:
+          type: string
+          format: uuid
+        requestedBy:
+          type: string
+          format: uuid
+        dataScope:
+          type: string
+          enum: [READ_ONLY_DIAGNOSTICS, FULL_READ_ONLY]
+        status:
+          type: string
+          enum: [PENDING_CONSENT, ACTIVE, EXPIRED, REVOKED]
+        visitType:
+          type: string
+          enum: [REMOTE, ON_SITE]
+        expiresAt:
+          type: integer
+          format: int64
+        consentGrantedAt:
+          type: integer
+          format: int64
+        createdAt:
+          type: integer
+          format: int64
+        token:
+          type: string
+          description: One-time JIT token (present only in creation response, never retrievable)
+
+    CreateDiagnosticSessionRequest:
+      type: object
+      required: [storeId, scope]
+      properties:
+        storeId:
+          type: string
+          format: uuid
+        scope:
+          type: string
+          enum: [READ_ONLY_DIAGNOSTICS, FULL_READ_ONLY]
+        visitType:
+          type: string
+          enum: [REMOTE, ON_SITE]
+          default: REMOTE
+        reason:
+          type: string
+          maxLength: 500
+        ticketNumber:
+          type: string

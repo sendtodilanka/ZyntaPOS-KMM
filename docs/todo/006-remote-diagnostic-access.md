@@ -1,6 +1,6 @@
 # TODO-006: Remote Diagnostic Access (License-Gated Lockbox Pattern)
 
-**Status:** 🟡 ~90% COMPLETE — Domain model (DiagnosticSession.kt), security validator (DiagnosticTokenValidator.kt), client feature module (:composeApp:feature:diagnostic with MVI pattern, consent API wired via DiagnosticConsentRepository domain interface), backend service (DiagnosticSessionService.kt with HMAC-SHA256 JIT tokens), backend routes (AdminDiagnosticRoutes.kt — POST/GET/DELETE), Flyway migration (V8__diagnostic_sessions.sql), audit event types (4 diagnostic events in AuditEventType), Koin DI registration, 3-layer data isolation verified, and WebSocket relay (DiagnosticRelay.kt in backend/sync) implemented. Remaining: site visit token support (Phase 3). Verified 2026-03-13.
+**Status:** ✅ 100% COMPLETE — Domain model (DiagnosticSession.kt), security validator (DiagnosticTokenValidator.kt), client feature module (:composeApp:feature:diagnostic with MVI pattern, consent API wired via DiagnosticConsentRepository domain interface), backend service (DiagnosticSessionService.kt with HMAC-SHA256 JIT tokens + createSiteVisitToken()), backend routes (AdminDiagnosticRoutes.kt — POST/GET/DELETE), Flyway migrations (V8__diagnostic_sessions.sql + V15__site_visit_token.sql), audit event types (4 diagnostic events in AuditEventType), Koin DI registration, 3-layer data isolation verified (compile-time — no :shared:data dep in diagnostic build.gradle.kts), WebSocket relay (DiagnosticRelay.kt + DiagnosticWebSocketRoutes.kt in backend/sync) implemented, and hardware site visit token support complete. Verified 2026-03-13.
 **Priority:** HIGH — Design now, implement Phase 2
 **Phase:** Phase 2 (Growth)
 **Created:** 2026-03-01
@@ -280,10 +280,10 @@ When remote diagnostics determine a hardware issue:
 - [x] Backend routes (AdminDiagnosticRoutes.kt — POST/GET/DELETE /admin/diagnostic/sessions with validation + audit logging)
 - [x] Flyway migration (V8__diagnostic_sessions.sql)
 - [x] Koin DI registration (DiagnosticSessionService in AppModule.kt)
-- [ ] WebSocket relay for diagnostic commands between technician (panel) and POS app — NOT YET IMPLEMENTED (sync service)
-- [ ] 3-layer data isolation guards (compile-time dependency check) — NOT VERIFIED
+- [x] WebSocket relay for diagnostic commands between technician (panel) and POS app — DiagnosticRelay.kt + DiagnosticWebSocketRoutes.kt in backend/sync; routes: `wss://.../v1/diagnostic/ws?sessionId=`
+- [x] 3-layer data isolation guards (compile-time dependency check) — VERIFIED: composeApp/feature/diagnostic/build.gradle.kts has zero `:shared:data` dep
 - [x] Customer consent flow UI (DiagnosticConsentScreen.kt)
 - [x] Visual indicator for active Diagnostic Mode (in DiagnosticViewModel state)
 - [x] Automatic session expiry (configured in DiagnosticSession model)
-- [ ] Full audit trail for every diagnostic command — audit event types NOT YET ADDED
-- [ ] Hardware site visit token support — NOT YET IMPLEMENTED
+- [x] Full audit trail for every diagnostic command — 4 DIAGNOSTIC_SESSION* AuditEventType entries in shared/domain AuditEntry.kt
+- [x] Hardware site visit token support — V15__site_visit_token.sql migration + createSiteVisitToken() in DiagnosticSessionService.kt
