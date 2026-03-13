@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.license.service
 
+import com.zyntasolutions.zyntapos.license.config.LicenseConfig
 import com.zyntasolutions.zyntapos.license.db.DeviceRegistrations
 import com.zyntasolutions.zyntapos.license.db.Licenses
 import com.zyntasolutions.zyntapos.license.models.ActivateRequest
@@ -16,12 +17,8 @@ import org.slf4j.LoggerFactory
 import java.time.OffsetDateTime
 import java.util.UUID
 
-class LicenseService {
+class LicenseService(private val config: LicenseConfig) {
     private val logger = LoggerFactory.getLogger(LicenseService::class.java)
-
-    companion object {
-        private const val GRACE_PERIOD_DAYS = 7L
-    }
 
     suspend fun activate(request: ActivateRequest): ActivateResponse? = newSuspendedTransaction {
         logger.info("Activate: key=****${request.licenseKey.takeLast(4)} device=${request.deviceId}")
@@ -49,7 +46,7 @@ class LicenseService {
 
         val now = OffsetDateTime.now()
         if (expiresAt != null && expiresAt.isBefore(now)) {
-            val gracePeriodEnd = expiresAt.plusDays(GRACE_PERIOD_DAYS)
+            val gracePeriodEnd = expiresAt.plusDays(config.gracePeriodDays.toLong())
             if (gracePeriodEnd.isBefore(now)) {
                 // Grace period has also elapsed — deny activation
                 return@newSuspendedTransaction ActivateResponse(
@@ -158,7 +155,7 @@ class LicenseService {
         val heartbeatStatus = when {
             license[Licenses.status] != "ACTIVE" -> license[Licenses.status]
             expiresAt != null && expiresAt.isBefore(now) -> {
-                val graceEnd = expiresAt.plusDays(GRACE_PERIOD_DAYS)
+                val graceEnd = expiresAt.plusDays(config.gracePeriodDays.toLong())
                 if (graceEnd.isAfter(now)) "GRACE_PERIOD" else "EXPIRED"
             }
             daysUntilExpiry != null && daysUntilExpiry <= 7 -> "EXPIRING_SOON"

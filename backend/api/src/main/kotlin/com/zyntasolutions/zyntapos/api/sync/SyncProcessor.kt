@@ -10,7 +10,9 @@ import com.zyntasolutions.zyntapos.api.repository.SyncOperationRepository
 import io.lettuce.core.api.StatefulRedisConnection
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.apache.commons.pool2.impl.GenericObjectPool
 import org.slf4j.LoggerFactory
+import org.slf4j.MDC
 
 /**
  * Orchestrates the full push processing pipeline (TODO-007g Step 8).
@@ -29,7 +31,7 @@ class SyncProcessor(
     private val entityApplier: EntityApplier,
     private val deadLetterRepo: DeadLetterRepository,
     private val metrics: SyncMetrics,
-    private val redisConnection: StatefulRedisConnection<String, String>?,
+    private val redisPool: GenericObjectPool<StatefulRedisConnection<String, String>>?,
     private val txRunner: TransactionRunner = ExposedTransactionRunner(),
 ) {
     private val logger = LoggerFactory.getLogger(SyncProcessor::class.java)
@@ -44,106 +46,118 @@ class SyncProcessor(
     )
 
     suspend fun processPush(storeId: String, request: PushRequest): PushResponse {
-        val t0 = java.time.Instant.now().toEpochMilli()
+        // D6: Populate MDC so all log lines within this batch carry storeId + deviceId.
+        // CorrelationId plugin already sets requestId; these add sync-specific context.
+        MDC.put("storeId", storeId)
+        MDC.put("deviceId", request.deviceId)
+        try {
+            val t0 = java.time.Instant.now().toEpochMilli()
 
-        // Step 1: Validate
-        val (validOps, invalidOps) = validator.validateBatch(request.operations)
-        val rejected = mutableListOf<String>()
+            // Step 1: Validate
+            val (validOps, invalidOps) = validator.validateBatch(request.operations)
+            val rejected = mutableListOf<String>()
 
-        // Send invalid ops to dead letter queue
-        for (inv in invalidOps) {
-            rejected.add(inv.id)
-            val op = request.operations.find { it.id == inv.id }
-            if (op != null) {
-                try {
-                    deadLetterRepo.insert(storeId, request.deviceId, op, inv.reason)
-                    metrics.deadLettersTotal.incrementAndGet()
-                } catch (e: Exception) {
-                    logger.warn("Failed to save dead letter for op ${inv.id}: ${e.message}")
+            // Send invalid ops to dead letter queue
+            for (inv in invalidOps) {
+                rejected.add(inv.id)
+                val op = request.operations.find { it.id == inv.id }
+                if (op != null) {
+                    try {
+                        deadLetterRepo.insert(storeId, request.deviceId, op, inv.reason)
+                        metrics.deadLettersTotal.incrementAndGet()
+                    } catch (e: Exception) {
+                        logger.warn("Failed to save dead letter for op ${inv.id}: ${e.message}")
+                    }
                 }
             }
-        }
 
-        // Step 2: Dedup — skip operations the server already processed
-        val existingIds = syncOpRepo.findExistingIds(validOps.map { it.id })
-        val alreadyAccepted = validOps.filter { it.id in existingIds }.map { it.id }
-        val newOps = validOps.filter { it.id !in existingIds }
+            // Step 2: Dedup — skip operations the server already processed
+            val existingIds = syncOpRepo.findExistingIds(validOps.map { it.id })
+            val alreadyAccepted = validOps.filter { it.id in existingIds }.map { it.id }
+            val newOps = validOps.filter { it.id !in existingIds }
 
-        // Step 3: Process new operations in a single batched transaction (S3-12)
-        // Reduces commit overhead from N transactions to 1 for non-failing batches.
-        // Individual operation failures are caught and added to rejected list.
-        val accepted   = mutableListOf<String>()
-        val conflicts  = mutableListOf<String>()
+            // Step 3: Process new operations in a single batched transaction (S3-12)
+            // Reduces commit overhead from N transactions to 1 for non-failing batches.
+            // Individual operation failures are caught and added to rejected list.
+            val accepted  = mutableListOf<String>()
+            val conflicts = mutableListOf<String>()
 
-        if (newOps.isNotEmpty()) {
-            txRunner.invoke {
-                for (op in newOps) {
-                    try {
-                        val latestSnapshot = syncOpRepo.findLatestForEntity(storeId, op.entityType, op.entityId)
+            if (newOps.isNotEmpty()) {
+                txRunner.invoke {
+                    for (op in newOps) {
+                        try {
+                            val latestSnapshot = syncOpRepo.findLatestForEntity(storeId, op.entityType, op.entityId)
 
-                        if (latestSnapshot != null && latestSnapshot.deviceId != request.deviceId) {
-                            val existingIsNewer = latestSnapshot.clientTimestamp > op.createdAt ||
-                                (latestSnapshot.clientTimestamp == op.createdAt &&
-                                 latestSnapshot.deviceId > request.deviceId)
+                            if (latestSnapshot != null && latestSnapshot.deviceId != request.deviceId) {
+                                val existingIsNewer = latestSnapshot.clientTimestamp > op.createdAt ||
+                                    (latestSnapshot.clientTimestamp == op.createdAt &&
+                                     latestSnapshot.deviceId > request.deviceId)
 
-                            if (existingIsNewer) {
-                                // Conflict: existing server state wins or needs field merge
-                                val resolution = conflictResolver.resolve(storeId, op, latestSnapshot, request.deviceId)
-                                syncOpRepo.insertWithConflict(
-                                    storeId         = storeId,
-                                    deviceId        = request.deviceId,
-                                    op              = op,
-                                    conflictId      = resolution.conflictId,
-                                    resolvedPayload = resolution.winnerPayload,
-                                )
-                                entityApplier.applyInTransaction(storeId, op)
-                                conflicts.add(op.id)
-                                metrics.conflictsTotal.incrementAndGet()
+                                if (existingIsNewer) {
+                                    // Conflict: existing server state wins or needs field merge
+                                    val resolution = conflictResolver.resolve(storeId, op, latestSnapshot, request.deviceId)
+                                    syncOpRepo.insertWithConflict(
+                                        storeId         = storeId,
+                                        deviceId        = request.deviceId,
+                                        op              = op,
+                                        conflictId      = resolution.conflictId,
+                                        resolvedPayload = resolution.winnerPayload,
+                                    )
+                                    entityApplier.applyInTransaction(storeId, op)
+                                    conflicts.add(op.id)
+                                    metrics.conflictsTotal.incrementAndGet()
+                                } else {
+                                    // Incoming wins over existing — accept normally
+                                    syncOpRepo.insert(storeId, request.deviceId, op)
+                                    entityApplier.applyInTransaction(storeId, op)
+                                    accepted.add(op.id)
+                                }
                             } else {
-                                // Incoming wins over existing — accept normally
+                                // No conflict — accept directly
                                 syncOpRepo.insert(storeId, request.deviceId, op)
                                 entityApplier.applyInTransaction(storeId, op)
                                 accepted.add(op.id)
                             }
-                        } else {
-                            // No conflict — accept directly
-                            syncOpRepo.insert(storeId, request.deviceId, op)
-                            entityApplier.applyInTransaction(storeId, op)
-                            accepted.add(op.id)
+                        } catch (e: Exception) {
+                            logger.warn("Failed to process op ${op.id}: ${e.message}")
+                            rejected.add(op.id)
+                            metrics.opsRejected.incrementAndGet()
                         }
-                    } catch (e: Exception) {
-                        logger.warn("Failed to process op ${op.id}: ${e.message}")
-                        rejected.add(op.id)
-                        metrics.opsRejected.incrementAndGet()
                     }
                 }
             }
+
+            // Step 4: Publish to Redis for WebSocket fan-out
+            val latestSeq = syncOpRepo.getLatestSeq(storeId)
+            publishToRedis(storeId, request.deviceId, accepted.size + conflicts.size, latestSeq)
+
+            // Update metrics
+            metrics.opsAccepted.addAndGet(accepted.size.toLong())
+            metrics.opsRejected.addAndGet(rejected.size.toLong())
+            metrics.recordPushDuration(java.time.Instant.now().toEpochMilli() - t0)
+
+            logger.info(
+                "Push: store=$storeId device=${request.deviceId} " +
+                "accepted=${accepted.size} conflicts=${conflicts.size} rejected=${rejected.size}"
+            )
+
+            return PushResponse(
+                accepted        = accepted + alreadyAccepted,
+                rejected        = rejected,
+                conflicts       = conflicts,
+                deltaOperations = emptyList(),
+                serverTimestamp = latestSeq,
+            )
+        } finally {
+            // D6: Clear MDC after each processPush invocation to avoid context leakage
+            // across coroutine boundaries (coroutines may reuse threads).
+            MDC.remove("storeId")
+            MDC.remove("deviceId")
         }
-
-        // Step 4: Publish to Redis for WebSocket fan-out
-        val latestSeq = syncOpRepo.getLatestSeq(storeId)
-        publishToRedis(storeId, request.deviceId, accepted.size + conflicts.size, latestSeq)
-
-        // Update metrics
-        metrics.opsAccepted.addAndGet(accepted.size.toLong())
-        metrics.opsRejected.addAndGet(rejected.size.toLong())
-        metrics.recordPushDuration(java.time.Instant.now().toEpochMilli() - t0)
-
-        logger.info(
-            "Push: store=$storeId device=${request.deviceId} " +
-            "accepted=${accepted.size} conflicts=${conflicts.size} rejected=${rejected.size}"
-        )
-
-        return PushResponse(
-            accepted        = accepted + alreadyAccepted,
-            rejected        = rejected,
-            conflicts       = conflicts,
-            deltaOperations = emptyList(),
-            serverTimestamp = latestSeq,
-        )
     }
 
     private fun publishToRedis(storeId: String, senderDeviceId: String, opCount: Int, latestSeq: Long) {
+        if (redisPool == null) return
         try {
             val notification = SyncNotification(
                 storeId         = storeId,
@@ -151,10 +165,13 @@ class SyncProcessor(
                 operationCount  = opCount,
                 latestSeq       = latestSeq,
             )
-            redisConnection?.async()?.publish(
-                "sync:delta:$storeId",
-                json.encodeToString(notification)
-            )
+            val payload = json.encodeToString(notification)
+            val conn = redisPool.borrowObject()
+            try {
+                conn.async().publish("sync:delta:$storeId", payload)
+            } finally {
+                redisPool.returnObject(conn)
+            }
         } catch (e: Exception) {
             logger.warn("Failed to publish sync notification to Redis: ${e.message}")
         }

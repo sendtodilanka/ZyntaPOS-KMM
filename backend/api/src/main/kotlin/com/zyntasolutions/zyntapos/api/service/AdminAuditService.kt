@@ -2,207 +2,149 @@ package com.zyntasolutions.zyntapos.api.service
 
 import com.zyntasolutions.zyntapos.api.models.AdminAuditEntry
 import com.zyntasolutions.zyntapos.api.models.AdminPagedResponse
+import com.zyntasolutions.zyntapos.api.repository.AdminAuditRepository
+import com.zyntasolutions.zyntapos.api.repository.AuditEntryInput
+import com.zyntasolutions.zyntapos.api.repository.AuditFilter
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonNull
-import kotlinx.serialization.json.encodeToJsonElement
-import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.greaterEq
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.lessEq
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.like
-import org.jetbrains.exposed.sql.javatime.timestampWithTimeZone
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.slf4j.MDC
 import java.security.MessageDigest
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.UUID
-import kotlin.math.ceil
 
-// ── Exposed table ────────────────────────────────────────────────────────────
-
-object AdminAuditLog : Table("admin_audit_log") {
-    val id             = uuid("id")
-    val eventType      = text("event_type")
-    val category       = text("category")
-    val adminId        = uuid("admin_id").nullable()
-    val adminName      = text("admin_name").nullable()
-    val storeId        = text("store_id").nullable()
-    val storeName      = text("store_name").nullable()
-    val entityType     = text("entity_type").nullable()
-    val entityId       = text("entity_id").nullable()
-    val previousValues = text("previous_values").nullable()  // JSONB stored as text
-    val newValues      = text("new_values").nullable()
-    val ipAddress      = text("ip_address").nullable()
-    val userAgent      = text("user_agent").nullable()
-    val success        = bool("success")
-    val errorMessage   = text("error_message").nullable()
-    val hashChain      = text("hash_chain")
-    val createdAt      = timestampWithTimeZone("created_at")
-    override val primaryKey = PrimaryKey(id)
-}
-
-// ── Service ──────────────────────────────────────────────────────────────────
-
-open class AdminAuditService {
+/**
+ * Audit-log business logic (S3-15).
+ *
+ * Responsibilities:
+ * - Hash-chain computation (tamper-evident log integrity)
+ * - Mapping domain parameters to [AuditEntryInput]
+ * - Delegating all SQL to [AdminAuditRepository]
+ *
+ * No [org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction] calls here.
+ */
+open class AdminAuditService(
+    private val auditRepo: AdminAuditRepository,
+) {
 
     /** Write a new audit entry — call after every admin mutation. */
     open suspend fun log(
-        adminId: UUID?,
-        adminName: String?,
-        eventType: String,
-        category: String,
-        entityType: String? = null,
-        entityId: String? = null,
+        adminId:        UUID?,
+        adminName:      String?,
+        eventType:      String,
+        category:       String,
+        entityType:     String? = null,
+        entityId:       String? = null,
         previousValues: Map<String, String>? = null,
-        newValues: Map<String, String>? = null,
-        ipAddress: String? = null,
-        userAgent: String? = null,
-        success: Boolean = true,
-        errorMessage: String? = null
+        newValues:      Map<String, String>? = null,
+        ipAddress:      String? = null,
+        userAgent:      String? = null,
+        success:        Boolean = true,
+        errorMessage:   String? = null,
     ) {
-        newSuspendedTransaction {
-            val now = OffsetDateTime.now(ZoneOffset.UTC)
-            val newId = UUID.randomUUID()
-
-            // Compute hash chain: SHA-256(previousHash + eventType + entityId + timestamp)
-            val lastHash = AdminAuditLog.selectAll()
-                .orderBy(AdminAuditLog.createdAt, SortOrder.DESC)
-                .limit(1)
-                .singleOrNull()?.get(AdminAuditLog.hashChain) ?: ""
+        // D6: Populate MDC so all log lines within this audit write carry adminId context.
+        MDC.put("adminId", adminId?.toString())
+        try {
+            val now      = OffsetDateTime.now(ZoneOffset.UTC)
+            val newId    = UUID.randomUUID()
+            val lastHash = auditRepo.findLatestHash()
             val chainInput = "$lastHash|$eventType|${entityId ?: ""}|${now.toInstant().toEpochMilli()}"
-            val hashChain = sha256Hex(chainInput)
+            val hashChain  = sha256Hex(chainInput)
 
-            AdminAuditLog.insert {
-                it[id]                   = newId
-                it[this.eventType]       = eventType
-                it[this.category]        = category
-                it[this.adminId]         = adminId
-                it[this.adminName]       = adminName
-                it[this.entityType]      = entityType
-                it[this.entityId]        = entityId
-                it[this.previousValues]  = previousValues?.let { m ->
-                    "{${m.entries.joinToString(",") { (k, v) -> "\"$k\":\"$v\"" }}}" }
-                it[this.newValues]       = newValues?.let { m ->
-                    "{${m.entries.joinToString(",") { (k, v) -> "\"$k\":\"$v\"" }}}" }
-                it[this.ipAddress]       = ipAddress
-                it[this.userAgent]       = userAgent
-                it[this.success]         = success
-                it[this.errorMessage]    = errorMessage
-                it[this.hashChain]       = hashChain
-                it[createdAt]            = now
+            val prevJson = previousValues?.let { m ->
+                "{${m.entries.joinToString(",") { (k, v) -> "\"$k\":\"$v\"" }}}"
             }
+            val newJson = newValues?.let { m ->
+                "{${m.entries.joinToString(",") { (k, v) -> "\"$k\":\"$v\"" }}}"
+            }
+
+            auditRepo.insertEntry(
+                AuditEntryInput(
+                    id             = newId,
+                    eventType      = eventType,
+                    category       = category,
+                    adminId        = adminId,
+                    adminName      = adminName,
+                    storeId        = null,
+                    storeName      = null,
+                    entityType     = entityType,
+                    entityId       = entityId,
+                    previousValues = prevJson,
+                    newValues      = newJson,
+                    ipAddress      = ipAddress,
+                    userAgent      = userAgent,
+                    success        = success,
+                    errorMessage   = errorMessage,
+                    hashChain      = hashChain,
+                    createdAt      = now,
+                )
+            )
+        } finally {
+            // D6: Clear MDC to avoid context leakage across coroutine thread boundaries.
+            MDC.remove("adminId")
         }
     }
 
     suspend fun listEntries(
-        page: Int,
-        size: Int,
-        category: String?,
+        page:      Int,
+        size:      Int,
+        category:  String?,
         eventType: String?,
-        adminId: String?,
-        from: String?,
-        to: String?,
-        search: String?
-    ): AdminPagedResponse<AdminAuditEntry> = newSuspendedTransaction {
-        var query = AdminAuditLog.selectAll()
-
-        if (!category.isNullOrBlank()) {
-            query = query.adjustWhere { AdminAuditLog.category eq category.uppercase() }
-        }
-        if (!eventType.isNullOrBlank()) {
-            query = query.adjustWhere { AdminAuditLog.eventType eq eventType }
-        }
-        if (!adminId.isNullOrBlank()) {
-            runCatching { UUID.fromString(adminId) }.getOrNull()?.let { uid ->
-                query = query.adjustWhere { AdminAuditLog.adminId eq uid }
-            }
-        }
-        if (!from.isNullOrBlank()) {
-            val fromTs = runCatching { OffsetDateTime.parse(from) }.getOrNull()
-            if (fromTs != null) query = query.adjustWhere { AdminAuditLog.createdAt greaterEq fromTs }
-        }
-        if (!to.isNullOrBlank()) {
-            val toTs = runCatching { OffsetDateTime.parse(to) }.getOrNull()
-            if (toTs != null) query = query.adjustWhere { AdminAuditLog.createdAt lessEq toTs }
-        }
-        if (!search.isNullOrBlank()) {
-            val term = "%${search.lowercase()}%"
-            query = query.adjustWhere {
-                (AdminAuditLog.eventType.lowerCase() like term) or
-                (AdminAuditLog.entityId.lowerCase() like term) or
-                (AdminAuditLog.adminName.lowerCase() like term)
-            }
-        }
-
-        val total = query.count()
-        val items = query
-            .orderBy(AdminAuditLog.createdAt, SortOrder.DESC)
-            .limit(size).offset((page * size).toLong())
-            .map { it.toEntry() }
-
-        AdminPagedResponse(
-            data = items,
-            page = page,
-            size = size,
-            total = total.toInt(),
-            totalPages = ceil(total.toDouble() / size).toInt()
+        adminId:   String?,
+        from:      String?,
+        to:        String?,
+        search:    String?,
+    ): AdminPagedResponse<AdminAuditEntry> {
+        val result = auditRepo.listEntries(
+            filter = AuditFilter(category, eventType, adminId, from, to, search),
+            page   = page,
+            size   = size,
+        )
+        return AdminPagedResponse(
+            data       = result.data.map { it.toModel() },
+            page       = result.page,
+            size       = result.size,
+            total      = result.total,
+            totalPages = result.totalPages,
         )
     }
 
     suspend fun exportEntries(
-        category: String?,
+        category:  String?,
         eventType: String?,
-        from: String?,
-        to: String?,
-        limit: Int = 10_000
-    ): List<AdminAuditEntry> = newSuspendedTransaction {
-        var query = AdminAuditLog.selectAll()
-        if (!category.isNullOrBlank()) query = query.adjustWhere { AdminAuditLog.category eq category.uppercase() }
-        if (!eventType.isNullOrBlank()) query = query.adjustWhere { AdminAuditLog.eventType eq eventType }
-        if (!from.isNullOrBlank()) {
-            runCatching { OffsetDateTime.parse(from) }.getOrNull()?.let { ts ->
-                query = query.adjustWhere { AdminAuditLog.createdAt greaterEq ts }
-            }
-        }
-        if (!to.isNullOrBlank()) {
-            runCatching { OffsetDateTime.parse(to) }.getOrNull()?.let { ts ->
-                query = query.adjustWhere { AdminAuditLog.createdAt lessEq ts }
-            }
-        }
-        query.orderBy(AdminAuditLog.createdAt, SortOrder.DESC).limit(limit).map { it.toEntry() }
+        from:      String?,
+        to:        String?,
+        limit:     Int = 10_000,
+    ): List<AdminAuditEntry> {
+        return auditRepo.exportEntries(
+            filter = AuditFilter(category, eventType, null, from, to, null),
+            limit  = limit,
+        ).map { it.toModel() }
     }
 
-    private fun ResultRow.toEntry(): AdminAuditEntry {
-        val pvJson = this[AdminAuditLog.previousValues]?.let {
-            runCatching { Json.parseToJsonElement(it) }.getOrNull()
-        }
-        val nvJson = this[AdminAuditLog.newValues]?.let {
-            runCatching { Json.parseToJsonElement(it) }.getOrNull()
-        }
-        return AdminAuditEntry(
-            id             = this[AdminAuditLog.id].toString(),
-            eventType      = this[AdminAuditLog.eventType],
-            category       = this[AdminAuditLog.category],
-            userId         = this[AdminAuditLog.adminId]?.toString(),
-            userName       = this[AdminAuditLog.adminName],
-            storeId        = this[AdminAuditLog.storeId],
-            storeName      = this[AdminAuditLog.storeName],
-            entityType     = this[AdminAuditLog.entityType],
-            entityId       = this[AdminAuditLog.entityId],
-            previousValues = pvJson,
-            newValues      = nvJson,
-            ipAddress      = this[AdminAuditLog.ipAddress],
-            userAgent      = this[AdminAuditLog.userAgent],
-            success        = this[AdminAuditLog.success],
-            errorMessage   = this[AdminAuditLog.errorMessage],
-            hashChain      = this[AdminAuditLog.hashChain],
-            createdAt      = this[AdminAuditLog.createdAt].toInstant().toString()
-        )
-    }
+    // ── Business logic helpers ────────────────────────────────────────────────
 
     private fun sha256Hex(input: String): String {
         val digest = MessageDigest.getInstance("SHA-256")
         return digest.digest(input.toByteArray()).joinToString("") { "%02x".format(it) }
     }
+
+    private fun com.zyntasolutions.zyntapos.api.repository.AuditEntryRow.toModel() = AdminAuditEntry(
+        id             = id,
+        eventType      = eventType,
+        category       = category,
+        userId         = userId,
+        userName       = userName,
+        storeId        = storeId,
+        storeName      = storeName,
+        entityType     = entityType,
+        entityId       = entityId,
+        previousValues = previousValues?.let { runCatching { Json.parseToJsonElement(it) }.getOrNull() },
+        newValues      = newValues?.let { runCatching { Json.parseToJsonElement(it) }.getOrNull() },
+        ipAddress      = ipAddress,
+        userAgent      = userAgent,
+        success        = success,
+        errorMessage   = errorMessage,
+        hashChain      = hashChain,
+        createdAt      = createdAt,
+    )
 }

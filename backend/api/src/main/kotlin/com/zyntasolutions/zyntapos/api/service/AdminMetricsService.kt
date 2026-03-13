@@ -1,5 +1,7 @@
 package com.zyntasolutions.zyntapos.api.service
 
+import com.zyntasolutions.zyntapos.api.db.Stores
+import com.zyntasolutions.zyntapos.api.db.SyncQueue
 import com.zyntasolutions.zyntapos.api.models.*
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject

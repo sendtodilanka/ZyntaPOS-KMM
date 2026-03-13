@@ -872,16 +872,16 @@ The default pool size of 5 connections means at most 5 concurrent database opera
 
 | # | Issue | Module | Effort | Section |
 |---|-------|--------|--------|---------|
-| D1 | Add Prometheus metrics endpoint | All | 8h | 3.7 |
-| D2 | Add request ID / correlation ID middleware | All | 3h | 3.10 |
-| D3 | Add composite index on sync_operations | API | 1h | 6.2 |
-| D4 | Batch sync push transactions | API | 4h | 6.1 |
+| D1 | ~~Add Prometheus metrics endpoint~~ | All | 8h | 3.7 | **DONE** — `MicrometerMetrics` + Prometheus registry in all 3 services |
+| D2 | ~~Add request ID / correlation ID middleware~~ | All | 3h | 3.10 | **DONE** — `CorrelationId` plugin in all 3 `Application.kt` |
+| D3 | ~~Add composite index on sync_operations~~ | API | 1h | 6.2 | **DONE** — `V16__high_query_indexes.sql` adds `idx_sync_ops_store_entity` + `idx_sync_ops_pending` |
+| D4 | ~~Batch sync push transactions~~ | API | 4h | 6.1 | **DONE** — `SyncProcessor.kt` wraps entire batch in single `txRunner.invoke {}` |
 | D5 | Implement EntityApplier for ORDER, CUSTOMER, CATEGORY | API | 8h | 1.5 |
-| D6 | Add structured logging (MDC) | All | 3h | 3.12 |
-| D7 | Configure Sentry sampling | All | 1h | 2.13 |
+| D6 | ~~Add structured logging (MDC)~~ | All | 3h | 3.12 | **DONE** — `SyncProcessor.processPush` + `AdminAuditService.log` populate `storeId`/`deviceId`/`adminId` MDC context with try-finally cleanup |
+| D7 | ~~Configure Sentry sampling~~ | All | 1h | 2.13 | **DONE** — Sentry PII scrubbing + `SENTRY_TRACES_SAMPLE_RATE` env var in API + License |
 | D8 | ~~Mask PII in logs~~ | API | 2h | 2.12 | **DONE in A1** |
-| D9 | Add Redis connection pooling to API | API | 2h | 6.3 |
-| D10 | Make License HikariCP pool configurable | License | 1h | 6.4 |
+| D9 | ~~Add Redis connection pooling to API~~ | API | 2h | 6.3 | **DONE** — `GenericObjectPool<StatefulRedisConnection>` via Lettuce `ConnectionPoolSupport`; `SyncProcessor` + `ForceSyncNotifier` borrow/return per publish |
+| D10 | ~~Make License HikariCP pool configurable~~ | License | 1h | 6.4 | **DONE** — `LicenseDatabaseFactory` reads `DB_POOL_MAX`/`DB_POOL_MIN`/`DB_CONNECTION_TIMEOUT_MS`/`DB_POOL_IDLE_TIMEOUT`; API `DatabaseFactory` updated to match |
 
 ### Phase E: Documentation & API Spec (2-3 days)
 
@@ -912,10 +912,10 @@ The default pool size of 5 connections means at most 5 concurrent database opera
 |-------|--------|----------|--------|
 | Phase A: Critical Security | 14h (~2 days) | P0 — Before any production traffic | **COMPLETED** 2026-03-12 (PR #285) |
 | Phase B: Cross-Module Alignment | 22.5h (~3 days) | P1 — Before scale | Pending (B8, B9 done in A) |
-| Phase C: Test Coverage | 48h (~6 days) | P1 — Before feature additions | Pending |
-| Phase D: Code Quality | 31h (~4 days) | P2 — Before Phase 2 features | Pending (D8 done in A) |
-| Phase E: Documentation | 14h (~2 days) | P2 — Ongoing | Pending |
-| Phase F: Advanced Security | 18h (~2 days) | P2 — Before enterprise customers | Pending (F3 done in A) |
+| Phase C: Test Coverage | 48h (~6 days) | P1 — Before feature additions | Partial (S3-11 indexes ✅, S3-14 pool ✅, S3-15 repository extraction ✅, S3-13 Redis pool ✅; unit tests C1–C10 pending) |
+| Phase D: Code Quality | 31h (~4 days) | P2 — Before Phase 2 features | **COMPLETED** 2026-03-13 (D1/D2/D3/D4/D6/D7/D8/D9/D10 ✅; D5 EntityApplier ORDER/CUSTOMER/CATEGORY deferred to Phase 2) |
+| Phase E: Documentation | 14h (~2 days) | P2 — Ongoing | Partial (E2 CLAUDE.md ✅, E3 gap analysis ✅; E1 OpenAPI spec, E4 DB schemas pending) |
+| Phase F: Advanced Security | 18h (~2 days) | P2 — Before enterprise customers | Pending (F3 done in A; F4 heartbeat replay ✅ in B) |
 | **Total remaining** | **~133.5h (~17 working days)** | | |
 
 ---

@@ -4,9 +4,9 @@ import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.javatime.timestampWithTimeZone
 
 /**
- * Centralized Exposed table definitions for the API service (S2-5).
+ * Centralized Exposed table definitions for the API service (S2-5, S3-15).
  *
- * Mirrors the Flyway migrations V1–V12. All services reference these
+ * Mirrors the Flyway migrations V1–V16. All services reference these
  * objects for type-safe queries — no inline table objects in services.
  *
  * License service has its own centralized tables in `license/db/`.
@@ -16,8 +16,30 @@ import org.jetbrains.exposed.sql.javatime.timestampWithTimeZone
 
 object Stores : Table("stores") {
     val id         = text("id")
+    val name       = text("name")
     val licenseKey = text("license_key")
+    val timezone   = text("timezone")
+    val currency   = text("currency")
     val isActive   = bool("is_active")
+    val createdAt  = timestampWithTimeZone("created_at")
+    val updatedAt  = timestampWithTimeZone("updated_at")
+    override val primaryKey = PrimaryKey(id)
+}
+
+// ── V4: Sync queue ────────────────────────────────────────────────────────
+
+object SyncQueue : Table("sync_queue") {
+    val id          = text("id")
+    val storeId     = text("store_id")
+    val deviceId    = text("device_id")
+    val entityType  = text("entity_type")
+    val entityId    = text("entity_id")
+    val operation   = text("operation")
+    val payload     = text("payload")        // JSONB stored as text
+    val vectorClock = long("vector_clock")
+    val clientTs    = timestampWithTimeZone("client_ts")
+    val serverTs    = timestampWithTimeZone("server_ts")
+    val isProcessed = bool("is_processed")
     override val primaryKey = PrimaryKey(id)
 }
 
@@ -104,5 +126,67 @@ object PosSessions : Table("pos_sessions") {
     val createdAt = timestampWithTimeZone("created_at")
     val expiresAt = timestampWithTimeZone("expires_at")
     val revokedAt = timestampWithTimeZone("revoked_at").nullable()
+    override val primaryKey = PrimaryKey(id)
+}
+
+// ── V14: Admin audit log (S3-15) ─────────────────────────────────────────
+
+object AdminAuditLog : Table("admin_audit_log") {
+    val id             = uuid("id")
+    val eventType      = text("event_type")
+    val category       = text("category")
+    val adminId        = uuid("admin_id").nullable()
+    val adminName      = text("admin_name").nullable()
+    val storeId        = text("store_id").nullable()
+    val storeName      = text("store_name").nullable()
+    val entityType     = text("entity_type").nullable()
+    val entityId       = text("entity_id").nullable()
+    val previousValues = text("previous_values").nullable()  // JSONB stored as text
+    val newValues      = text("new_values").nullable()
+    val ipAddress      = text("ip_address").nullable()
+    val userAgent      = text("user_agent").nullable()
+    val success        = bool("success")
+    val errorMessage   = text("error_message").nullable()
+    val hashChain      = text("hash_chain")
+    val createdAt      = timestampWithTimeZone("created_at")
+    override val primaryKey = PrimaryKey(id)
+}
+
+// ── V5: Helpdesk tickets (S3-15) ─────────────────────────────────────────
+
+object SupportTickets : Table("support_tickets") {
+    val id             = uuid("id")
+    val ticketNumber   = text("ticket_number")
+    val storeId        = text("store_id").nullable()
+    val licenseId      = text("license_id").nullable()
+    val createdBy      = uuid("created_by")
+    val customerName   = text("customer_name")
+    val customerEmail  = text("customer_email").nullable()
+    val customerPhone  = text("customer_phone").nullable()
+    val assignedTo     = uuid("assigned_to").nullable()
+    val assignedAt     = long("assigned_at").nullable()
+    val title          = text("title")
+    val description    = text("description")
+    val category       = text("category")
+    val priority       = text("priority")
+    val status         = text("status")
+    val resolvedBy     = uuid("resolved_by").nullable()
+    val resolvedAt     = long("resolved_at").nullable()
+    val resolutionNote = text("resolution_note").nullable()
+    val timeSpentMin   = integer("time_spent_min").nullable()
+    val slaDueAt       = long("sla_due_at").nullable()
+    val slaBreached    = bool("sla_breached")
+    val createdAt      = long("created_at")
+    val updatedAt      = long("updated_at")
+    override val primaryKey = PrimaryKey(id)
+}
+
+object TicketComments : Table("ticket_comments") {
+    val id         = uuid("id")
+    val ticketId   = uuid("ticket_id")
+    val authorId   = uuid("author_id")
+    val body       = text("body")
+    val isInternal = bool("is_internal")
+    val createdAt  = long("created_at")
     override val primaryKey = PrimaryKey(id)
 }

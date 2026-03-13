@@ -18,15 +18,17 @@ object DatabaseFactory {
             ?: System.getenv("DB_PASSWORD")
             ?: error("DB_PASSWORD_FILE or DB_PASSWORD environment variable must be set")
 
+        // S3-14: Pool sizing is configurable via env vars (mirrors LicenseDatabaseFactory pattern).
+        // Defaults are tuned for the API service which handles more concurrent request types than License.
         val config = HikariConfig().apply {
             this.jdbcUrl = jdbcUrl
             this.username = user
             this.password = password
             driverClassName = "org.postgresql.Driver"
-            maximumPoolSize = 10
-            minimumIdle = 2
-            connectionTimeout = 30_000L
-            idleTimeout = 600_000L
+            maximumPoolSize = System.getenv("DB_POOL_MAX")?.toIntOrNull() ?: 10
+            minimumIdle = System.getenv("DB_POOL_MIN")?.toIntOrNull() ?: 2
+            connectionTimeout = System.getenv("DB_CONNECTION_TIMEOUT_MS")?.toLongOrNull() ?: 30_000L
+            idleTimeout = System.getenv("DB_POOL_IDLE_TIMEOUT")?.toLongOrNull() ?: 600_000L
             maxLifetime = 1_800_000L
             isAutoCommit = false
             transactionIsolation = "TRANSACTION_READ_COMMITTED"
