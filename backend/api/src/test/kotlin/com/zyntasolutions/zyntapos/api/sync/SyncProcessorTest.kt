@@ -38,7 +38,7 @@ class SyncProcessorTest {
         entityApplier = entityApplier,
         deadLetterRepo = deadLetterRepo,
         metrics = metrics,
-        redisConnection = null, // no Redis in tests
+        redisPool = null, // no Redis in tests
         txRunner = NoOpTransactionRunner(),
     )
 
