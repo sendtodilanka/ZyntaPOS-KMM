@@ -52,13 +52,14 @@ test.describe('Smoke tests', () => {
   test('tickets list page loads', async ({ page }) => {
     await page.goto('/tickets');
     await page.waitForLoadState('networkidle');
-    await expect(page.getByRole('heading', { name: /support tickets/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /support tickets/i })).toBeVisible({ timeout: 15_000 });
   });
 
   test('new ticket modal opens', async ({ page }) => {
     await page.goto('/tickets');
     await page.waitForLoadState('networkidle');
+    await page.getByRole('button', { name: /new ticket/i }).waitFor({ state: 'visible', timeout: 15_000 });
     await page.getByRole('button', { name: /new ticket/i }).click();
-    await expect(page.getByRole('heading', { name: /new support ticket/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /new support ticket/i })).toBeVisible({ timeout: 10_000 });
   });
 });

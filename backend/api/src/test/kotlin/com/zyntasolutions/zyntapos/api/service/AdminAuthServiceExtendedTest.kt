@@ -209,7 +209,7 @@ class AdminAuthServiceExtendedTest {
     // ── Login happy path ────────────────────────────────────────────────────
 
     @Test
-    fun `login succeeds with correct email and password`() = runBlocking {
+    fun `login succeeds with correct email and password`() { runBlocking {
         val repo = FakeAdminUserRepo()
         repo.addTestUser()
         val service = AdminAuthService(testConfig(), noOpAudit, repo)
@@ -220,10 +220,10 @@ class AdminAuthServiceExtendedTest {
         assertEquals("admin@test.local", result.user.email)
         assertTrue(result.accessToken.isNotBlank())
         assertTrue(result.refreshToken.isNotBlank())
-    }
+    } }
 
     @Test
-    fun `login returns InvalidCredentials for wrong password`() = runBlocking {
+    fun `login returns InvalidCredentials for wrong password`() { runBlocking {
         val repo = FakeAdminUserRepo()
         repo.addTestUser()
         val service = AdminAuthService(testConfig(), noOpAudit, repo)
@@ -231,20 +231,20 @@ class AdminAuthServiceExtendedTest {
         val result = service.login("admin@test.local", "wrong-password", null, null)
 
         assertIs<AdminAuthResult.InvalidCredentials>(result)
-    }
+    } }
 
     @Test
-    fun `login returns InvalidCredentials for non-existent email`() = runBlocking {
+    fun `login returns InvalidCredentials for non-existent email`() { runBlocking {
         val repo = FakeAdminUserRepo()
         val service = AdminAuthService(testConfig(), noOpAudit, repo)
 
         val result = service.login("nobody@test.local", TEST_PASSWORD, null, null)
 
         assertIs<AdminAuthResult.InvalidCredentials>(result)
-    }
+    } }
 
     @Test
-    fun `login returns AccountInactive for disabled user`() = runBlocking {
+    fun `login returns AccountInactive for disabled user`() { runBlocking {
         val repo = FakeAdminUserRepo()
         repo.addTestUser(isActive = false)
         val service = AdminAuthService(testConfig(), noOpAudit, repo)
@@ -252,12 +252,12 @@ class AdminAuthServiceExtendedTest {
         val result = service.login("admin@test.local", TEST_PASSWORD, null, null)
 
         assertIs<AdminAuthResult.AccountInactive>(result)
-    }
+    } }
 
     // ── Brute-force lockout ─────────────────────────────────────────────────
 
     @Test
-    fun `account locks after 5 failed attempts`() = runBlocking {
+    fun `account locks after 5 failed attempts`() { runBlocking {
         val repo = FakeAdminUserRepo()
         repo.addTestUser()
         val service = AdminAuthService(testConfig(), noOpAudit, repo)
@@ -270,10 +270,10 @@ class AdminAuthServiceExtendedTest {
         // 6th attempt should be locked
         val result = service.login("admin@test.local", TEST_PASSWORD, null, null)
         assertIs<AdminAuthResult.AccountLocked>(result)
-    }
+    } }
 
     @Test
-    fun `successful login resets failed attempt counter`() = runBlocking {
+    fun `successful login resets failed attempt counter`() { runBlocking {
         val repo = FakeAdminUserRepo()
         val user = repo.addTestUser()
         val service = AdminAuthService(testConfig(), noOpAudit, repo)
@@ -289,12 +289,12 @@ class AdminAuthServiceExtendedTest {
 
         // Counter should be reset
         assertEquals(0, repo.failedAttemptsByUser[user.id])
-    }
+    } }
 
     // ── MFA ─────────────────────────────────────────────────────────────────
 
     @Test
-    fun `login returns MfaRequired when MFA is enabled`() = runBlocking {
+    fun `login returns MfaRequired when MFA is enabled`() { runBlocking {
         val repo = FakeAdminUserRepo()
         repo.addTestUser(mfaEnabled = true)
         val service = AdminAuthService(testConfig(), noOpAudit, repo)
@@ -303,10 +303,10 @@ class AdminAuthServiceExtendedTest {
 
         assertIs<AdminAuthResult.MfaRequired>(result)
         assertTrue(result.pendingToken.isNotBlank())
-    }
+    } }
 
     @Test
-    fun `completeMfaLogin issues full tokens from valid pending token`() = runBlocking {
+    fun `completeMfaLogin issues full tokens from valid pending token`() { runBlocking {
         val repo = FakeAdminUserRepo()
         repo.addTestUser(mfaEnabled = true)
         val service = AdminAuthService(testConfig(), noOpAudit, repo)
@@ -318,22 +318,22 @@ class AdminAuthServiceExtendedTest {
         assertNotNull(mfaResult)
         assertTrue(mfaResult.second.first.isNotBlank())  // access token
         assertTrue(mfaResult.second.second.isNotBlank()) // refresh token
-    }
+    } }
 
     @Test
-    fun `completeMfaLogin returns null for invalid pending token`() = runBlocking {
+    fun `completeMfaLogin returns null for invalid pending token`() { runBlocking {
         val repo = FakeAdminUserRepo()
         repo.addTestUser(mfaEnabled = true)
         val service = AdminAuthService(testConfig(), noOpAudit, repo)
 
         val result = service.completeMfaLogin("invalid-token", null, null)
         assertNull(result)
-    }
+    } }
 
     // ── Password reset ──────────────────────────────────────────────────────
 
     @Test
-    fun `generatePasswordResetToken returns token for existing user`() = runBlocking {
+    fun `generatePasswordResetToken returns token for existing user`() { runBlocking {
         val repo = FakeAdminUserRepo()
         repo.addTestUser()
         val service = AdminAuthService(testConfig(), noOpAudit, repo)
@@ -341,19 +341,19 @@ class AdminAuthServiceExtendedTest {
         val token = service.generatePasswordResetToken("admin@test.local")
         assertNotNull(token)
         assertTrue(token.length >= 32) // 32 bytes hex = 64 chars
-    }
+    } }
 
     @Test
-    fun `generatePasswordResetToken returns null for non-existent email`() = runBlocking {
+    fun `generatePasswordResetToken returns null for non-existent email`() { runBlocking {
         val repo = FakeAdminUserRepo()
         val service = AdminAuthService(testConfig(), noOpAudit, repo)
 
         val token = service.generatePasswordResetToken("nobody@test.local")
         assertNull(token)
-    }
+    } }
 
     @Test
-    fun `resetPassword succeeds with valid token`() = runBlocking {
+    fun `resetPassword succeeds with valid token`() { runBlocking {
         val repo = FakeAdminUserRepo()
         repo.addTestUser()
         val service = AdminAuthService(testConfig(), noOpAudit, repo)
@@ -361,20 +361,20 @@ class AdminAuthServiceExtendedTest {
         val token = service.generatePasswordResetToken("admin@test.local")!!
         val result = service.resetPassword(token, "NewP@ssw0rd!")
         assertTrue(result)
-    }
+    } }
 
     @Test
-    fun `resetPassword fails with invalid token`() = runBlocking {
+    fun `resetPassword fails with invalid token`() { runBlocking {
         val repo = FakeAdminUserRepo()
         repo.addTestUser()
         val service = AdminAuthService(testConfig(), noOpAudit, repo)
 
         val result = service.resetPassword("invalid-token", "NewP@ssw0rd!")
         assertTrue(!result)
-    }
+    } }
 
     @Test
-    fun `resetPassword revokes all active sessions`() = runBlocking {
+    fun `resetPassword revokes all active sessions`() { runBlocking {
         val repo = FakeAdminUserRepo()
         val user = repo.addTestUser()
         val service = AdminAuthService(testConfig(), noOpAudit, repo)
@@ -389,12 +389,12 @@ class AdminAuthServiceExtendedTest {
 
         // All sessions should be revoked
         assertTrue(repo.sessions.values.all { it.revokedAt != null })
-    }
+    } }
 
     // ── Session management ──────────────────────────────────────────────────
 
     @Test
-    fun `revokeAllSessions marks all sessions as revoked`() = runBlocking {
+    fun `revokeAllSessions marks all sessions as revoked`() { runBlocking {
         val repo = FakeAdminUserRepo()
         val user = repo.addTestUser()
         val service = AdminAuthService(testConfig(), noOpAudit, repo)
@@ -408,10 +408,10 @@ class AdminAuthServiceExtendedTest {
         service.revokeAllSessions(user.id)
 
         assertTrue(repo.sessions.values.all { it.revokedAt != null })
-    }
+    } }
 
     @Test
-    fun `bootstrap creates first admin user`() = runBlocking {
+    fun `bootstrap creates first admin user`() { runBlocking {
         val repo = FakeAdminUserRepo()
         val service = AdminAuthService(testConfig(), noOpAudit, repo)
 
@@ -423,22 +423,22 @@ class AdminAuthServiceExtendedTest {
         assertEquals(AdminRole.ADMIN, user.role)
 
         assertTrue(!service.needsBootstrap())
-    }
+    } }
 
     @Test
-    fun `bootstrap returns null when admin already exists`() = runBlocking {
+    fun `bootstrap returns null when admin already exists`() { runBlocking {
         val repo = FakeAdminUserRepo()
         repo.addTestUser()
         val service = AdminAuthService(testConfig(), noOpAudit, repo)
 
         val result = service.bootstrap("another@admin.com", "Another", TEST_PASSWORD)
         assertNull(result)
-    }
+    } }
 
     // ── Password length validation ──────────────────────────────────────────
 
     @Test
-    fun `login rejects password longer than MAX_PASSWORD_LENGTH`() = runBlocking {
+    fun `login rejects password longer than MAX_PASSWORD_LENGTH`() { runBlocking {
         val repo = FakeAdminUserRepo()
         repo.addTestUser()
         val service = AdminAuthService(testConfig(), noOpAudit, repo)
@@ -447,12 +447,12 @@ class AdminAuthServiceExtendedTest {
         val result = service.login("admin@test.local", longPassword, null, null)
 
         assertIs<AdminAuthResult.InvalidCredentials>(result)
-    }
+    } }
 
     // ── Access token JWT claims ─────────────────────────────────────────────
 
     @Test
-    fun `login success produces JWT with correct claims`() = runBlocking {
+    fun `login success produces JWT with correct claims`() { runBlocking {
         val repo = FakeAdminUserRepo()
         val user = repo.addTestUser(role = AdminRole.OPERATOR)
         val service = AdminAuthService(testConfig(), noOpAudit, repo)
@@ -469,5 +469,5 @@ class AdminAuthServiceExtendedTest {
         assertEquals("admin@test.local", decoded.getClaim("email").asString())
         assertEquals("OPERATOR", decoded.getClaim("role").asString())
         assertNotNull(decoded.expiresAt)
-    }
+    } }
 }

@@ -199,6 +199,108 @@ export const handlers = [
     ]);
   }),
 
+  // ── Tickets ─────────────────────────────────────────────────────────────────
+  http.get(`${API_BASE}/admin/tickets`, () => {
+    return HttpResponse.json({
+      items: [
+        {
+          id: 'ticket-1',
+          ticketNumber: 'TKT-0001',
+          storeId: 'store-1',
+          licenseId: null,
+          createdBy: 'user-1',
+          createdByName: 'System Admin',
+          customerName: 'John Doe',
+          customerEmail: 'john@example.com',
+          customerPhone: '+94711234567',
+          assignedTo: 'user-1',
+          assignedToName: 'System Admin',
+          assignedAt: Date.now() - 3600_000,
+          title: 'Receipt printer not working',
+          description: 'Printer stopped printing after firmware update.',
+          category: 'HARDWARE',
+          priority: 'HIGH',
+          status: 'OPEN',
+          resolvedBy: null,
+          resolvedAt: null,
+          resolutionNote: null,
+          timeSpentMin: null,
+          slaDueAt: Date.now() + 86400_000,
+          slaBreached: false,
+          createdAt: Date.now() - 7200_000,
+          updatedAt: Date.now() - 3600_000,
+        },
+      ],
+      total: 1,
+      page: 0,
+      size: 20,
+    });
+  }),
+
+  http.get(`${API_BASE}/admin/tickets/:id`, ({ params }) => {
+    return HttpResponse.json({
+      id: params['id'] as string,
+      ticketNumber: 'TKT-0001',
+      storeId: 'store-1',
+      licenseId: null,
+      createdBy: 'user-1',
+      createdByName: 'System Admin',
+      customerName: 'John Doe',
+      customerEmail: 'john@example.com',
+      customerPhone: '+94711234567',
+      assignedTo: 'user-1',
+      assignedToName: 'System Admin',
+      assignedAt: Date.now() - 3600_000,
+      title: 'Receipt printer not working',
+      description: 'Printer stopped printing after firmware update.',
+      category: 'HARDWARE',
+      priority: 'HIGH',
+      status: 'OPEN',
+      resolvedBy: null,
+      resolvedAt: null,
+      resolutionNote: null,
+      timeSpentMin: null,
+      slaDueAt: Date.now() + 86400_000,
+      slaBreached: false,
+      createdAt: Date.now() - 7200_000,
+      updatedAt: Date.now() - 3600_000,
+    });
+  }),
+
+  http.post(`${API_BASE}/admin/tickets`, async ({ request }) => {
+    const body = await request.json() as Record<string, unknown>;
+    return HttpResponse.json(
+      {
+        id: 'ticket-new',
+        ticketNumber: 'TKT-0002',
+        storeId: body['storeId'] ?? null,
+        licenseId: body['licenseId'] ?? null,
+        createdBy: 'user-1',
+        createdByName: 'System Admin',
+        customerName: body['customerName'] ?? 'New Customer',
+        customerEmail: body['customerEmail'] ?? null,
+        customerPhone: body['customerPhone'] ?? null,
+        assignedTo: null,
+        assignedToName: null,
+        assignedAt: null,
+        title: body['title'] ?? 'New ticket',
+        description: body['description'] ?? '',
+        category: body['category'] ?? 'OTHER',
+        priority: body['priority'] ?? 'MEDIUM',
+        status: 'OPEN',
+        resolvedBy: null,
+        resolvedAt: null,
+        resolutionNote: null,
+        timeSpentMin: null,
+        slaDueAt: Date.now() + 86400_000,
+        slaBreached: false,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      },
+      { status: 201 },
+    );
+  }),
+
   // ── Auth — login ──────────────────────────────────────────────────────────────
   http.post(`${API_BASE}/admin/auth/login`, () => {
     return HttpResponse.json({
