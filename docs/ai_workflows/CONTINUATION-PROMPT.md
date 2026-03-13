@@ -31,6 +31,19 @@ Use `curl` with `$PAT` for GitHub API — NOT `gh` CLI (git remote is a local pr
 
 ---
 
+### BLOCK 0: CRITICAL Runtime Crash Fixes (DO FIRST)
+
+**TaxGroupRepositoryImpl — RUNTIME CRASH**
+- File: `shared/data/src/commonMain/kotlin/com/zyntasolutions/zyntapos/data/repository/TaxGroupRepositoryImpl.kt`
+- Every method throws `NotImplementedError` — crashes when user visits Settings → Tax Groups
+- SQLDelight schema exists (`tax_groups.sq`) — implement `getAll()`, `getById()`, `insert()`, `update()`, `softDelete()`
+
+**UnitGroupRepositoryImpl — RUNTIME CRASH**
+- Same issue — all methods throw `NotImplementedError`
+- SQLDelight schema exists (`units_of_measure.sq`) — implement all CRUD methods
+
+---
+
 ### BLOCK 1: Deferred Sprint 2 Tasks (2 items, ~7 hrs)
 
 **S2-3: Timestamp Standardization**
