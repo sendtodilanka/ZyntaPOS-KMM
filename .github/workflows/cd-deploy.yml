@@ -121,6 +121,12 @@ jobs:
             docker compose up -d --remove-orphans
             docker image prune -f
 
+            # Reload Caddy config — the Caddyfile is bind-mounted and updated
+            # by git reset, but Caddy only reads config at startup unless
+            # explicitly reloaded. Without this, new routes (e.g. /health)
+            # won't take effect until the Caddy container is recreated.
+            docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile 2>/dev/null || true
+
             echo "=== Deploy complete: $(date) ==="
             docker compose ps
 

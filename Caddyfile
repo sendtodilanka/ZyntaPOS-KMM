@@ -84,6 +84,14 @@ api.zyntapos.com {
 	# Strip sensitive response headers from upstream
 	header -X-Powered-By
 
+	# /health and /ping — proxy to backend for smoke tests & monitoring
+	@health_or_ping {
+		path /health /health/* /ping
+	}
+	handle @health_or_ping {
+		reverse_proxy api:8080
+	}
+
 	# Browser visiting root → show branded canary page
 	@browser_root {
 		path /
@@ -111,6 +119,14 @@ api.zyntapos.com {
 license.zyntapos.com {
 	import cf_tls
 
+	# /health and /ping — proxy to backend for smoke tests & monitoring
+	@health_or_ping {
+		path /health /health/* /ping
+	}
+	handle @health_or_ping {
+		reverse_proxy license:8083
+	}
+
 	# Browser visiting root → show branded canary page
 	@browser_root {
 		path /
@@ -134,6 +150,14 @@ license.zyntapos.com {
 # ── sync.zyntapos.com — WebSocket sync engine ─────────────────────
 sync.zyntapos.com {
 	import cf_tls
+
+	# /health and /ping — proxy to backend for smoke tests & monitoring
+	@health_or_ping {
+		path /health /health/* /ping
+	}
+	handle @health_or_ping {
+		reverse_proxy sync:8082
+	}
 
 	# Browser visiting root → show branded canary page
 	@browser_root {
