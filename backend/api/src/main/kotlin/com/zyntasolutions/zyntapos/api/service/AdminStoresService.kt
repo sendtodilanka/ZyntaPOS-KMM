@@ -1,196 +1,127 @@
 package com.zyntasolutions.zyntapos.api.service
 
 import com.zyntasolutions.zyntapos.api.models.*
-import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.like
-import org.jetbrains.exposed.sql.javatime.timestampWithTimeZone
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import java.time.OffsetDateTime
-import java.time.ZoneOffset
-import kotlin.math.ceil
+import com.zyntasolutions.zyntapos.api.repository.AdminStoresRepository
+import com.zyntasolutions.zyntapos.api.repository.StoreAdminRow
+import com.zyntasolutions.zyntapos.api.repository.StoreConfigPatch
 
-// ── Exposed tables (reuse V1 schema) ─────────────────────────────────────────
-
-object Stores : Table("stores") {
-    val id             = text("id")
-    val name           = text("name")
-    val licenseKey     = text("license_key")
-    val timezone       = text("timezone")
-    val currency       = text("currency")
-    val isActive       = bool("is_active")
-    val createdAt      = timestampWithTimeZone("created_at")
-    val updatedAt      = timestampWithTimeZone("updated_at")
-    override val primaryKey = PrimaryKey(id)
-}
-
-object SyncQueue : Table("sync_queue") {
-    val id          = text("id")
-    val storeId     = text("store_id")
-    val deviceId    = text("device_id")
-    val entityType  = text("entity_type")
-    val entityId    = text("entity_id")
-    val operation   = text("operation")
-    val payload     = text("payload")   // JSONB
-    val vectorClock = long("vector_clock")
-    val clientTs    = timestampWithTimeZone("client_ts")
-    val serverTs    = timestampWithTimeZone("server_ts")
-    val isProcessed = bool("is_processed")
-    override val primaryKey = PrimaryKey(id)
-}
-
-// ── Service ──────────────────────────────────────────────────────────────────
-
-class AdminStoresService {
+/**
+ * Store admin business logic (S3-15).
+ *
+ * Responsibilities:
+ * - Health-score calculation (thresholds: >50 pending ops → WARNING)
+ * - Mapping repository rows to API response types
+ *
+ * No [org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction] calls here.
+ */
+class AdminStoresService(
+    private val storesRepo: AdminStoresRepository,
+) {
 
     suspend fun listStores(
-        page: Int,
-        size: Int,
+        page:   Int,
+        size:   Int,
         search: String?,
-        status: String?
-    ): AdminPagedResponse<AdminStore> = newSuspendedTransaction {
-        var query = Stores.selectAll()
-
-        if (!search.isNullOrBlank()) {
-            val term = "%${search.lowercase()}%"
-            query = query.adjustWhere {
-                (Stores.name.lowerCase() like term) or
-                (Stores.id.lowerCase() like term)
-            }
+        status: String?,
+    ): AdminPagedResponse<AdminStore> {
+        // status filter maps to isActive flag (simplified)
+        val isActive: Boolean? = when (status?.uppercase()) {
+            "OFFLINE" -> false
+            null      -> null
+            else      -> true
         }
-        // status filter: compute from isActive + last heartbeat (simplified: use isActive)
-        if (status == "OFFLINE") {
-            query = query.adjustWhere { Stores.isActive eq false }
-        } else if (!status.isNullOrBlank() && status != "OFFLINE") {
-            query = query.adjustWhere { Stores.isActive eq true }
-        }
-
-        val total = query.count()
-        val items = query
-            .orderBy(Stores.createdAt, SortOrder.DESC)
-            .limit(size).offset((page * size).toLong())
-            .map { it.toAdminStore() }
-
-        AdminPagedResponse(
-            data = items,
-            page = page,
-            size = size,
-            total = total.toInt(),
-            totalPages = ceil(total.toDouble() / size).toInt()
+        val result = storesRepo.list(search, isActive, page, size)
+        return AdminPagedResponse(
+            data       = result.data.map { it.toAdminStore() },
+            page       = result.page,
+            size       = result.size,
+            total      = result.total,
+            totalPages = result.totalPages,
         )
     }
 
-    suspend fun getStore(storeId: String): AdminStore? = newSuspendedTransaction {
-        Stores.selectAll().where { Stores.id eq storeId }.singleOrNull()?.toAdminStore()
-    }
+    suspend fun getStore(storeId: String): AdminStore? =
+        storesRepo.findById(storeId)?.toAdminStore()
 
-    suspend fun getStoreHealth(storeId: String): AdminStoreHealth? = newSuspendedTransaction {
-        val store = Stores.selectAll().where { Stores.id eq storeId }.singleOrNull()
-            ?: return@newSuspendedTransaction null
-
-        val pendingOps = SyncQueue.selectAll().where {
-            (SyncQueue.storeId eq storeId) and (SyncQueue.isProcessed eq false)
-        }.count().toInt()
-
-        val status = when {
-            !store[Stores.isActive] -> "OFFLINE"
-            pendingOps > 50 -> "WARNING"
-            else -> "HEALTHY"
-        }
-
-        AdminStoreHealth(
-            storeId = storeId,
-            status = status,
-            healthScore = if (status == "HEALTHY") 100 else if (status == "WARNING") 60 else 0,
-            dbSizeBytes = 0L,
+    suspend fun getStoreHealth(storeId: String): AdminStoreHealth? {
+        val store = storesRepo.findById(storeId) ?: return null
+        val pendingOps = storesRepo.countPendingOps(storeId)
+        val status = healthStatus(store.isActive, pendingOps)
+        return AdminStoreHealth(
+            storeId        = storeId,
+            status         = status,
+            healthScore    = healthScore(status),
+            dbSizeBytes    = 0L,
             syncQueueDepth = pendingOps,
-            errorCount24h = 0,
-            uptimeHours = 0.0,
+            errorCount24h  = 0,
+            uptimeHours    = 0.0,
             lastHeartbeatAt = null,
             responseTimeMs = 0L,
-            appVersion = "",
-            osInfo = "Android"
+            appVersion     = "",
+            osInfo         = "Android",
         )
     }
 
-    suspend fun updateStoreConfig(storeId: String, req: AdminUpdateStoreConfigRequest): AdminStore? =
-        newSuspendedTransaction {
-            val existing = Stores.selectAll().where { Stores.id eq storeId }.singleOrNull()
-                ?: return@newSuspendedTransaction null
+    suspend fun updateStoreConfig(storeId: String, req: AdminUpdateStoreConfigRequest): AdminStore? {
+        val updated = storesRepo.update(storeId, StoreConfigPatch(req.timezone, req.currency))
+        return updated?.toAdminStore()
+    }
 
-            val now = OffsetDateTime.now(ZoneOffset.UTC)
-            Stores.update({ Stores.id eq storeId }) { stmt ->
-                req.timezone?.let { stmt[timezone] = it }
-                req.currency?.let { stmt[currency] = it }
-                stmt[updatedAt] = now
-            }
-
-            Stores.selectAll().where { Stores.id eq storeId }.single().toAdminStore()
-        }
-
-    suspend fun getAllStoreHealthSummaries(): List<StoreHealthSummary> = newSuspendedTransaction {
-        Stores.selectAll().map { row ->
-            val storeId = row[Stores.id]
-            val pendingOps = SyncQueue.selectAll().where {
-                (SyncQueue.storeId eq storeId) and (SyncQueue.isProcessed eq false)
-            }.count().toInt()
-
-            val status = when {
-                !row[Stores.isActive] -> "unknown"
-                pendingOps > 50 -> "degraded"
-                else -> "healthy"
-            }
-
+    suspend fun getAllStoreHealthSummaries(): List<StoreHealthSummary> {
+        return storesRepo.listAllWithPendingOps().map { (store, pendingOps) ->
             StoreHealthSummary(
-                storeId = storeId,
-                storeName = row[Stores.name],
-                status = status,
-                lastSync = null,
+                storeId           = store.id,
+                storeName         = store.name,
+                status            = healthStatus(store.isActive, pendingOps).lowercase(),
+                lastSync          = null,
                 pendingOperations = pendingOps,
-                appVersion = "",
-                androidVersion = "",
-                uptimePercent = if (row[Stores.isActive]) 99.0 else 0.0
+                appVersion        = "",
+                androidVersion    = "",
+                uptimePercent     = if (store.isActive) 99.0 else 0.0,
             )
         }
     }
 
-    suspend fun getStoreHealthDetail(storeId: String): StoreHealthDetail? = newSuspendedTransaction {
-        val store = Stores.selectAll().where { Stores.id eq storeId }.singleOrNull()
-            ?: return@newSuspendedTransaction null
-
-        val pendingOps = SyncQueue.selectAll().where {
-            (SyncQueue.storeId eq storeId) and (SyncQueue.isProcessed eq false)
-        }.count().toInt()
-
-        val status = when {
-            !store[Stores.isActive] -> "unknown"
-            pendingOps > 50 -> "degraded"
-            else -> "healthy"
-        }
-
-        StoreHealthDetail(
-            storeId = storeId,
-            storeName = store[Stores.name],
-            status = status,
-            lastSync = null,
+    suspend fun getStoreHealthDetail(storeId: String): StoreHealthDetail? {
+        val store = storesRepo.findById(storeId) ?: return null
+        val pendingOps = storesRepo.countPendingOps(storeId)
+        return StoreHealthDetail(
+            storeId           = storeId,
+            storeName         = store.name,
+            status            = healthStatus(store.isActive, pendingOps).lowercase(),
+            lastSync          = null,
             pendingOperations = pendingOps,
-            appVersion = "",
-            androidVersion = "",
-            uptimePercent = if (store[Stores.isActive]) 99.0 else 0.0
+            appVersion        = "",
+            androidVersion    = "",
+            uptimePercent     = if (store.isActive) 99.0 else 0.0,
         )
     }
 
-    private fun ResultRow.toAdminStore() = AdminStore(
-        id             = this[Stores.id],
-        name           = this[Stores.name],
-        location       = this[Stores.timezone],
-        licenseKey     = this[Stores.licenseKey],
-        edition        = "STANDARD",
-        status         = if (this[Stores.isActive]) "HEALTHY" else "OFFLINE",
-        activeUsers    = 0,
-        lastSyncAt     = null,
+    // ── Business logic helpers ────────────────────────────────────────────────
+
+    private fun healthStatus(isActive: Boolean, pendingOps: Int) = when {
+        !isActive       -> "OFFLINE"
+        pendingOps > 50 -> "WARNING"
+        else            -> "HEALTHY"
+    }
+
+    private fun healthScore(status: String) = when (status) {
+        "HEALTHY" -> 100
+        "WARNING" -> 60
+        else      -> 0
+    }
+
+    private fun StoreAdminRow.toAdminStore() = AdminStore(
+        id              = id,
+        name            = name,
+        location        = timezone,
+        licenseKey      = licenseKey,
+        edition         = "STANDARD",
+        status          = if (isActive) "HEALTHY" else "OFFLINE",
+        activeUsers     = 0,
+        lastSyncAt      = null,
         lastHeartbeatAt = null,
-        appVersion     = "",
-        createdAt      = this[Stores.createdAt].toInstant().toString()
+        appVersion      = "",
+        createdAt       = createdAt,
     )
 }

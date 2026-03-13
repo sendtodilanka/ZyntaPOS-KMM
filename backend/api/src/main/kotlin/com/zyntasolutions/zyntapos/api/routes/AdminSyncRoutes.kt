@@ -6,8 +6,8 @@ import com.zyntasolutions.zyntapos.api.repository.DeadLetterRepository
 import com.zyntasolutions.zyntapos.api.service.AdminAuthService
 import com.zyntasolutions.zyntapos.api.service.AdminStoresService
 import com.zyntasolutions.zyntapos.api.service.ForceSyncNotifier
-import com.zyntasolutions.zyntapos.api.service.Stores
-import com.zyntasolutions.zyntapos.api.service.SyncQueue
+import com.zyntasolutions.zyntapos.api.db.Stores
+import com.zyntasolutions.zyntapos.api.db.SyncQueue
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*

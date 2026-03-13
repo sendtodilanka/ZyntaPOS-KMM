@@ -78,6 +78,13 @@ services:
       - ADMIN_PANEL_URL=${ADMIN_PANEL_URL:-https://panel.zyntapos.com}
       - SENTRY_DSN=${SENTRY_DSN_API}
       - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
+      # S3-14: HikariCP pool tuning (DB_POOL_MAX * num_services must not exceed PostgreSQL max_connections=100)
+      # API handles more concurrent request types → larger pool than License (15)
+      - DB_POOL_MAX=20
+      - DB_POOL_MIN=3
+      - DB_CONNECTION_TIMEOUT_MS=30000
+      - DB_POOL_IDLE_TIMEOUT=600000
+      - REDIS_POOL_SIZE=8
     depends_on:
       postgres:
         condition: service_healthy
@@ -126,6 +133,11 @@ services:
       - RS256_PUBLIC_KEY_PATH=/run/secrets/rs256_public_key
       - SENTRY_DSN=${SENTRY_DSN_LICENSE}
       - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
+      # S3-14: HikariCP pool tuning — License handles heartbeats + activations
+      - DB_POOL_MAX=15
+      - DB_POOL_MIN=2
+      - DB_CONNECTION_TIMEOUT_MS=30000
+      - DB_POOL_IDLE_TIMEOUT=600000
     depends_on:
       postgres:
         condition: service_healthy

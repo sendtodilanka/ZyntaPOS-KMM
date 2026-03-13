@@ -8,7 +8,7 @@ import org.koin.dsl.module
 
 val licenseModule = module {
     single { LicenseConfig.fromEnvironment() }
-    single { LicenseService() }
+    single { LicenseService(config = get()) }
     single { AdminLicenseService() }
     single { AdminJwtValidator.fromEnvironment() }
 }

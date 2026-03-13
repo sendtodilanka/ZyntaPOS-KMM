@@ -135,7 +135,7 @@ Sprint 4 depends on Sprint 3 (documented API must reflect tested implementation)
 |---|------|---------|--------|-------|
 | S3-1 | Add Testcontainers (PostgreSQL + Redis) | All 3 `build.gradle.kts`, test config | 3h | Integration test prerequisite — in-memory H2 is insufficient. |
 | S3-2 | Add MockK to test dependencies | All 3 `build.gradle.kts` | 1h | Mocking prerequisite for unit tests. |
-| S3-15 | **Extract repository layer from API service classes** | New repository files for Admin/User/Product | 8h | Services mix business logic and data access (violates Clean Architecture). Extract to enable unit testing. |
+| S3-15 | ~~**Extract repository layer from API service classes**~~ | New repository files for Admin/User/Product | 8h | Services mix business logic and data access (violates Clean Architecture). Extract to enable unit testing. **DONE 2026-03-13** — `AdminAuditRepository`, `AdminTicketRepository`, `TicketCommentRepository`, `AdminStoresRepository` extracted with interface + impl pairs; table objects centralised in `db/Tables.kt`. |
 
 ### Test Coverage (Current: API ~25%, License <1%, Sync ~15%, Common 0%)
 
@@ -154,10 +154,10 @@ Sprint 4 depends on Sprint 3 (documented API must reflect tested implementation)
 
 | # | Task | File(s) | Effort | Issue |
 |---|------|---------|--------|-------|
-| S3-11 | Add composite index on `sync_operations(store_id, entity_type, entity_id)` | V14 migration | 1h | Full table scan on conflict detection. |
-| S3-12 | Batch sync push transactions | `SyncProcessor.kt` | 4h | Sequential transaction per operation — 50x fewer transactions with batching. |
-| S3-13 | Add Redis connection pooling to API | `AppModule.kt`, `SyncProcessor.kt` | 2h | Single connection bottleneck under concurrency. |
-| S3-14 | Make License HikariCP pool configurable | `DatabaseFactory.kt` in License | 1h | Pool size = 5 (too low for production with many devices). |
+| S3-11 | ~~Add composite index on `sync_operations(store_id, entity_type, entity_id)`~~ | V14 migration | 1h | Full table scan on conflict detection. **DONE 2026-03-13** — `V16__high_query_indexes.sql` adds `idx_sync_ops_store_entity` + `idx_sync_ops_pending` partial index. |
+| S3-12 | ~~Batch sync push transactions~~ | `SyncProcessor.kt` | 4h | Sequential transaction per operation — 50x fewer transactions with batching. **DONE** — single `txRunner.invoke {}` wraps entire batch. |
+| S3-13 | ~~Add Redis connection pooling to API~~ | `AppModule.kt`, `SyncProcessor.kt` | 2h | Single connection bottleneck under concurrency. **DONE 2026-03-13** — `GenericObjectPool<StatefulRedisConnection>` via Lettuce `ConnectionPoolSupport`; `REDIS_POOL_SIZE` env var (default 8). |
+| S3-14 | ~~Make License HikariCP pool configurable~~ | `DatabaseFactory.kt` in License | 1h | Pool size = 5 (too low for production with many devices). **DONE 2026-03-13** — API `DatabaseFactory` reads `DB_POOL_MAX`/`DB_POOL_MIN`/`DB_CONNECTION_TIMEOUT_MS`/`DB_POOL_IDLE_TIMEOUT`; docker-compose sets API=20/3, License=15/2. |
 
 ### Coverage Targets After Sprint 3
 

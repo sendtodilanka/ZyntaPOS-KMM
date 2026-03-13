@@ -90,8 +90,10 @@ dependencies {
     implementation("org.flywaydb:flyway-core:10.22.0")
     implementation("org.flywaydb:flyway-database-postgresql:10.22.0")
 
-    // ── Redis (Lettuce) ───────────────────────────────────────────────
+    // ── Redis (Lettuce + connection pool) ────────────────────────────
     implementation("io.lettuce:lettuce-core:6.6.0.RELEASE")
+    // D9: Required for Lettuce ConnectionPoolSupport.createGenericObjectPool()
+    implementation("org.apache.commons:commons-pool2:2.12.1")
 
     // ── Serialization ─────────────────────────────────────────────────
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")

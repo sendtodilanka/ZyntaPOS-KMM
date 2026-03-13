@@ -1,8 +1,16 @@
 package com.zyntasolutions.zyntapos.api.di
 
 import com.zyntasolutions.zyntapos.api.config.AppConfig
+import com.zyntasolutions.zyntapos.api.repository.AdminAuditRepository
+import com.zyntasolutions.zyntapos.api.repository.AdminAuditRepositoryImpl
+import com.zyntasolutions.zyntapos.api.repository.AdminStoresRepository
+import com.zyntasolutions.zyntapos.api.repository.AdminStoresRepositoryImpl
+import com.zyntasolutions.zyntapos.api.repository.AdminTicketRepository
+import com.zyntasolutions.zyntapos.api.repository.AdminTicketRepositoryImpl
 import com.zyntasolutions.zyntapos.api.repository.AdminUserRepository
 import com.zyntasolutions.zyntapos.api.repository.AdminUserRepositoryImpl
+import com.zyntasolutions.zyntapos.api.repository.TicketCommentRepository
+import com.zyntasolutions.zyntapos.api.repository.TicketCommentRepositoryImpl
 import com.zyntasolutions.zyntapos.api.repository.ConflictLogRepository
 import com.zyntasolutions.zyntapos.api.repository.DeadLetterRepository
 import com.zyntasolutions.zyntapos.api.repository.EntitySnapshotRepository
@@ -39,6 +47,9 @@ import io.lettuce.core.RedisClient
 import io.lettuce.core.RedisURI
 import io.lettuce.core.TimeoutOptions
 import io.lettuce.core.api.StatefulRedisConnection
+import io.lettuce.core.support.ConnectionPoolSupport
+import org.apache.commons.pool2.impl.GenericObjectPool
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig
 import org.koin.dsl.module
 import org.slf4j.LoggerFactory
 import java.time.Duration
@@ -48,8 +59,10 @@ private val log = LoggerFactory.getLogger("AppModule")
 val appModule = module {
     single { AppConfig.fromEnvironment() }
 
-    // ── Redis connection with configured timeouts and auto-reconnect (S3-13) ──
-    single<StatefulRedisConnection<String, String>?> {
+    // ── Redis connection pool (D9: GenericObjectPool via Lettuce ConnectionPoolSupport) ──
+    // Replaces the single shared StatefulRedisConnection to eliminate publish() serialization
+    // under concurrent sync load. Pool size configurable via REDIS_POOL_SIZE env var.
+    single<GenericObjectPool<StatefulRedisConnection<String, String>>?> {
         try {
             val uri = RedisURI.create(get<AppConfig>().redisUrl)
             uri.timeout = Duration.ofSeconds(
@@ -61,14 +74,24 @@ val appModule = module {
                 .disconnectedBehavior(ClientOptions.DisconnectedBehavior.REJECT_COMMANDS)
                 .timeoutOptions(TimeoutOptions.enabled(Duration.ofSeconds(5)))
                 .build()
-            client.connect()
+            val poolConfig = GenericObjectPoolConfig<StatefulRedisConnection<String, String>>().apply {
+                maxTotal = System.getenv("REDIS_POOL_SIZE")?.toIntOrNull() ?: 8
+                maxIdle  = 4
+                minIdle  = 1
+                testOnBorrow = true
+            }
+            ConnectionPoolSupport.createGenericObjectPool({ client.connect() }, poolConfig)
         } catch (e: Exception) {
-            log.warn("Redis connection unavailable — sync notifications disabled: ${e.message}")
+            log.warn("Redis unavailable — sync notifications disabled: ${e.message}")
             null
         }
     }
 
     // ── Repositories (S3-15) ────────────────────────────────────────────────
+    single<AdminAuditRepository> { AdminAuditRepositoryImpl() }
+    single<AdminStoresRepository> { AdminStoresRepositoryImpl() }
+    single<AdminTicketRepository> { AdminTicketRepositoryImpl() }
+    single<TicketCommentRepository> { TicketCommentRepositoryImpl() }
     single<AdminUserRepository> { AdminUserRepositoryImpl() }
     single<PosUserRepository> { PosUserRepositoryImpl() }
     single<ProductRepository> { ProductRepositoryImpl() }
@@ -94,7 +117,7 @@ val appModule = module {
             entityApplier    = get(),
             deadLetterRepo   = get(),
             metrics          = get(),
-            redisConnection  = get(),
+            redisPool        = get(),
         )
     }
 
@@ -105,14 +128,14 @@ val appModule = module {
     single { UserService(posUserRepo = get()) }
     single { ProductService(productRepo = get()) }
     single { AdminAuthService(config = get(), auditService = get(), adminUserRepo = get()) }
-    single { AdminAuditService() }
-    single { AdminStoresService() }
+    single { AdminAuditService(auditRepo = get()) }
+    single { AdminStoresService(storesRepo = get()) }
     single { AdminConfigService() }
     single { AdminAlertsService() }
     single { AdminMetricsService() }
     single { MfaService() }
     single { GoogleOAuthService(get()) }
-    single { AdminTicketService() }
+    single { AdminTicketService(ticketRepo = get(), commentRepo = get()) }
     single { AlertGenerationJob(get()) }
-    single { ForceSyncNotifier(get<AppConfig>().redisUrl) }
+    single { ForceSyncNotifier(redisPool = get()) }
 }
