@@ -43,6 +43,10 @@ tags:
     description: Product catalog access for POS terminals
   - name: Sync
     description: Offline-first sync push/pull
+  - name: Diagnostic
+    description: |
+      Store-side consent for remote diagnostic sessions initiated by the Zynta Solutions
+      admin panel. Only POS users with role=ADMIN may call these endpoints.
   - name: Export
     description: GDPR data export
 
@@ -366,6 +370,154 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
 
+  /v1/diagnostic/consent/grant:
+    post:
+      operationId: diagnosticConsentGrant
+      summary: Grant diagnostic session consent
+      description: |
+        Called by a POS store ADMIN to approve an active `PENDING_CONSENT` diagnostic session
+        created by the Zynta Solutions support team.
+
+        **Role required:** `ADMIN` (store administrator only).
+
+        **Security properties:**
+        - The `sessionId` is cross-checked against the JWT `storeId` claim to prevent
+          cross-store authorization bypass.
+        - Store liveness is verified against the database (defense-in-depth).
+        - The grant is permanently recorded in the tamper-evident audit log.
+
+        On success, the session transitions from `PENDING_CONSENT` → `ACTIVE` and the
+        sync service begins routing diagnostic WebSocket commands to this device.
+
+        **Rate limit:** 300 req/min per IP.
+      tags: [Diagnostic]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DiagnosticConsentGrantRequest"
+            example:
+              sessionId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+              grantedAtMs: "1710326400000"
+      responses:
+        "200":
+          description: Session activated — diagnostic access is now live
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiagnosticSessionResponse"
+        "400":
+          description: Invalid sessionId format
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Caller does not have ADMIN role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: FORBIDDEN
+                message: Only store administrators may grant diagnostic consent
+        "404":
+          description: No pending session found for this store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: SESSION_NOT_FOUND
+                message: No pending diagnostic session found for this store
+        "409":
+          description: Session is already ACTIVE or in a terminal state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: INVALID_STATE
+                message: "Session is not awaiting consent (current status: ACTIVE)"
+        "410":
+          description: Session has expired (15-minute TTL elapsed)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: SESSION_EXPIRED
+                message: Diagnostic session has expired and cannot be activated
+        "422":
+          description: Validation error (blank sessionId or invalid grantedAtMs)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/diagnostic/consent/revoke:
+    post:
+      operationId: diagnosticConsentRevoke
+      summary: Revoke active diagnostic session
+      description: |
+        Called by a POS store ADMIN to immediately terminate an active or pending diagnostic
+        session. The session transitions to `REVOKED` and the technician's WebSocket
+        connection is closed by the sync service.
+
+        **Role required:** `ADMIN` (store administrator only).
+
+        This endpoint gives store operators full control to end a remote diagnostic session
+        at any time without waiting for the 15-minute TTL to expire.
+
+        **Rate limit:** 300 req/min per IP.
+      tags: [Diagnostic]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DiagnosticConsentRevokeRequest"
+            example:
+              sessionId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+      responses:
+        "204":
+          description: Session revoked successfully
+        "400":
+          description: Invalid sessionId format
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Caller does not have ADMIN role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: FORBIDDEN
+                message: Only store administrators may revoke diagnostic consent
+        "404":
+          description: No active session found for this store, or session already revoked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: SESSION_NOT_FOUND
+                message: No active diagnostic session found for this store
+        "422":
+          description: Validation error (blank sessionId)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /unsubscribe:
     get:
       operationId: emailUnsubscribe
@@ -677,6 +829,72 @@ components:
         hasMore:
           type: boolean
           description: True if there are more operations to pull
+
+    DiagnosticConsentGrantRequest:
+      type: object
+      required: [sessionId, grantedAtMs]
+      properties:
+        sessionId:
+          type: string
+          format: uuid
+          description: The diagnostic session ID issued by the admin panel
+          example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        grantedAtMs:
+          type: string
+          description: Store-side timestamp (epoch milliseconds) when the ADMIN approved. Sent as a string.
+          example: "1710326400000"
+
+    DiagnosticConsentRevokeRequest:
+      type: object
+      required: [sessionId]
+      properties:
+        sessionId:
+          type: string
+          format: uuid
+          description: The diagnostic session ID to revoke
+          example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+
+    DiagnosticSessionResponse:
+      type: object
+      required: [id, storeId, technicianId, requestedBy, dataScope, status, visitType, expiresAt, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Session identifier
+        storeId:
+          type: string
+          format: uuid
+        technicianId:
+          type: string
+          format: uuid
+          description: Technician who will perform the diagnostic
+        requestedBy:
+          type: string
+          format: uuid
+          description: Admin user who created the session
+        dataScope:
+          type: string
+          enum: [READ_ONLY_DIAGNOSTICS, FULL_READ_ONLY]
+          description: Maximum data access granted (enforced by 3-layer architecture)
+        status:
+          type: string
+          enum: [PENDING_CONSENT, ACTIVE, REVOKED, EXPIRED]
+        visitType:
+          type: string
+          enum: [REMOTE, ON_SITE]
+        expiresAt:
+          type: integer
+          format: int64
+          description: Session expiry (Unix epoch milliseconds, 15-minute TTL from creation)
+        consentGrantedAt:
+          type: integer
+          format: int64
+          nullable: true
+          description: When the store ADMIN granted consent (null if PENDING_CONSENT)
+        createdAt:
+          type: integer
+          format: int64
 
     ErrorResponse:
       type: object
