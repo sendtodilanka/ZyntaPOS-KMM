@@ -2,11 +2,11 @@
 
 **Phase:** 2 — Growth
 **Priority:** P2 (LOW)
-**Status:** In Progress — OpenAPI spec created (`docs/api/openapi.yaml`); docs site deployment pending
+**Status:** 🟡 ~90% COMPLETE — Full docs site implemented at `zyntapos-docs/` (Scalar OpenAPI viewer, build.js bundler, nginx.conf). OpenAPI spec at `zyntapos-docs/openapi/api-v1.yaml`. Guide pages implemented (getting-started.md, authentication.md, sync-protocol.md, license-activation.md, error-handling.md). Docker container + docker-compose service + Caddyfile route (docs.zyntapos.com → docs:3001) configured. CI workflow `ci-docs.yml` added. Remaining: DNS setup for docs.zyntapos.com (external VPS), admin-v1.yaml + license-v1.yaml + sync-v1.yaml OpenAPI split.
 **Effort:** ~5 working days (1 week, 1 developer)
 **Related:** TODO-007 (infrastructure), TODO-007a (admin panel — consumes same APIs), TODO-007g (sync engine — documented here)
 **Owner:** Zynta Solutions Pvt Ltd
-**Last updated:** 2026-03-11
+**Last updated:** 2026-03-13
 
 ---
 

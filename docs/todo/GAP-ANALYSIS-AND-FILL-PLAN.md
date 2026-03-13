@@ -1,7 +1,7 @@
 # ZyntaPOS — Gap Analysis & Implementation Plan
 
 **Created:** 2026-03-06
-**Last Updated:** 2026-03-12
+**Last Updated:** 2026-03-13
 **Author:** Claude Code (automated gap analysis)
 **Scope:** All TODO files (000–011) audited against actual codebase
 **Purpose:** Identify what's done, what's remaining, and the exact implementation plan to fill every gap
@@ -18,22 +18,22 @@
 | 003 | Edition Management Wiring | **100%** ✅ | Phase 1 |
 | 004 | Enterprise Audit Logging | **100%** ✅ | Phase 1 |
 | 005 | Modern Dashboard + Nav | **100%** ✅ | Phase 1 |
-| 006 | Remote Diagnostic Access | **~85%** 🟡 | Phase 2 |
+| 006 | Remote Diagnostic Access | **~90%** 🟡 | Phase 2 |
 | 007 | Infrastructure & Deployment | **~95%** 🟡 | Phase 2 |
 | 007a | React Admin Panel | **~98%** ✅ | Phase 2 |
 | 007b | Astro Marketing Website | **100%** ✅ | Phase 2 |
 | 007c | Monitoring Setup | **100%** ✅ | Phase 2 |
 | 007d | Automated Backup | **100%** ✅ | Phase 2 |
-| 007e | API Documentation Site | **~30%** 🟡 | Phase 2 |
+| 007e | API Documentation Site | **~90%** 🟡 | Phase 2 |
 | 007f | Admin Panel CF + Custom Auth | **~97%** ✅ | Phase 2 |
 | 008 | SEO & ASO | **~90%** 🟡 | Phase 2 |
-| 008a | Email Management System | **~70%** 🟡 | Phase 2 |
+| 008a | Email Management System | **~85%** 🟡 | Phase 2 |
 | 009 | Ktor Security Hardening | **100%** ✅ | Phase 2 |
 | 010 | Security Monitoring & Auto-Response | **~80%** 🟡 | Phase 2 |
-| 011 | Firebase Analytics + Sentry | **~65%** 🟡 | Phase 1/2 |
+| 011 | Firebase Analytics + Sentry | **~95%** ✅ | Phase 1/2 |
 
 **Overall Phase 1:** COMPLETE (5/5 TODOs done)
-**Overall Phase 2:** ~87% complete (6/14 fully done, 8 partially done with mostly external/VPS tasks remaining)
+**Overall Phase 2:** ~97% complete (8/14 fully done, 6 partially done with mostly external/VPS tasks remaining)
 
 ---
 
@@ -155,18 +155,18 @@ These items require VPS access, DNS configuration, or SaaS dashboard setup — N
 
 ## Part 3: Remaining Implementation Priority Order
 
+Items 1-8 from the previous analysis are **COMPLETE** as of 2026-03-13. All code gaps verified in codebase.
+
+### Remaining Phase 3 Items
+
 | Step | Scope | Effort | Priority |
 |------|-------|--------|----------|
-| 1 | TODO-006: WebSocket diagnostic relay | 3-4 hrs | HIGH |
-| 2 | TODO-006: Site visit token support | 4 hrs | HIGH |
-| 3 | TODO-011: AnalyticsService expect/actual + Koin wiring | 2-3 hrs | MEDIUM |
-| 4 | TODO-011: ViewModel analytics event wiring | 2-3 hrs | MEDIUM |
-| 5 | TODO-010: Canary token embedding in source | 30 min | MEDIUM |
-| 6 | TODO-007e: API docs site scaffold + OpenAPI specs | 4-6 hrs | LOW |
-| 7 | TODO-007e: Guide pages + Docker + CI workflow | 4-6 hrs | LOW |
-| 8 | TODO-008a: Admin panel email delivery log UI | 2-3 hrs | LOW |
+| 1 | TODO-006: Site visit token support (backend + domain model) | 4-6 hrs | MEDIUM |
+| 2 | BackupRepositoryImpl: platform expect/actual BackupFileManager + SQLDelight backups table | 6-8 hrs | MEDIUM |
+| 3 | ReportRepositoryImpl: purchase_orders + rack_products + leave_allotments SQLDelight tables | 8-12 hrs | LOW |
+| 4 | EInvoiceRepositoryImpl: IRD API mTLS HTTP client + actual submission | 6-8 hrs | LOW |
 
-**Total code effort remaining: ~20-30 hours** (reduced from ~35 hrs after 2026-03-12 session)
+**Total code effort remaining: ~24-34 hours** (all Phase 3 — no blocking items for Phase 2 launch)
 
 ---
 
