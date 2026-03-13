@@ -262,14 +262,23 @@ ORDER BY e.last_name ASC;
 
 -- ── Enterprise: Leave balances ────────────────────────────────────────────────
 -- Counts approved leave records per employee per type up to asOf date.
--- allotted_days is approximated as a fixed constant per type; actual allotment
--- tracking requires a dedicated allotment table (Phase 3+ backlog).
+-- allotted_days is resolved from the leave_allotments table (Phase 3 Sprint 13+).
+-- Params: asOfStr (ISO date for year extraction), asOfStr (end_date comparison).
 leaveBalances:
 SELECT
     e.id                                       AS employee_id,
     (e.first_name || ' ' || e.last_name)       AS employee_name,
     lr.leave_type,
-    COUNT(*)                                   AS taken_days
+    COUNT(*)                                   AS taken_days,
+    COALESCE(
+        (SELECT la.allotted_days + la.carry_over_days
+         FROM leave_allotments la
+         WHERE la.employee_id = e.id
+           AND la.leave_type = lr.leave_type
+           AND la.year = CAST(strftime('%Y', ?) AS INTEGER)
+         LIMIT 1),
+        0
+    )                                          AS allotted_days
 FROM employees e
 JOIN leave_records lr ON lr.employee_id = e.id
 WHERE lr.status = 'APPROVED'
@@ -300,16 +309,20 @@ WHERE ss.shift_date >= ? AND ss.shift_date <= ?
 ORDER BY ss.shift_date ASC, e.last_name ASC;
 
 -- ── Enterprise: Multi-store sales comparison ──────────────────────────────────
+-- store_name is resolved from the stores registry table (Phase 3 Sprint 13+).
+-- Falls back to store_id if the store is not yet in the local stores table.
 multiStoreSales:
 SELECT
     o.store_id,
-    COALESCE(SUM(o.total), 0.0)  AS total_revenue,
-    COUNT(o.id)                  AS order_count,
-    COALESCE(AVG(o.total), 0.0)  AS average_order_value
+    COALESCE(st.name, o.store_id)   AS store_name,
+    COALESCE(SUM(o.total), 0.0)     AS total_revenue,
+    COUNT(o.id)                      AS order_count,
+    COALESCE(AVG(o.total), 0.0)     AS average_order_value
 FROM orders o
+LEFT JOIN stores st ON st.id = o.store_id
 WHERE o.created_at >= ? AND o.created_at < ?
   AND o.status = 'COMPLETED'
-GROUP BY o.store_id
+GROUP BY o.store_id, st.name
 ORDER BY total_revenue DESC;
 
 -- ── Enterprise: Inter-store stock transfers ───────────────────────────────────
@@ -329,19 +342,24 @@ WHERE st.transferred_at >= ? AND st.transferred_at < ?
 ORDER BY st.transferred_at ASC;
 
 -- ── Enterprise: Warehouse inventory snapshot ──────────────────────────────────
--- warehouse_racks tracks physical rack locations; product-level quantities are
--- in the products table (stock_qty). This query returns the rack-level structure;
--- the caller maps product quantities from products.stock_qty in-memory.
+-- Joins rack_products and products for full product-level inventory visibility.
+-- Phase 3 Sprint 13+: product_id / product_name / quantity come from rack_products.
+-- Rows where a rack has no products return empty strings and zero quantity.
 warehouseInventory:
 SELECT
-    w.id        AS warehouse_id,
-    w.name      AS warehouse_name,
-    wr.id       AS rack_id,
-    wr.name     AS rack_code
+    w.id                                    AS warehouse_id,
+    w.name                                  AS warehouse_name,
+    wr.id                                   AS rack_id,
+    wr.name                                 AS rack_code,
+    COALESCE(rp.product_id, '')             AS product_id,
+    COALESCE(p.name, '')                    AS product_name,
+    CAST(COALESCE(rp.quantity, 0) AS INTEGER) AS quantity
 FROM warehouses w
 JOIN warehouse_racks wr ON wr.warehouse_id = w.id AND wr.deleted_at IS NULL
+LEFT JOIN rack_products rp ON rp.rack_id = wr.id
+LEFT JOIN products p       ON p.id = rp.product_id AND p.is_active = 1
 WHERE w.is_active = 1
-ORDER BY w.name ASC, wr.name ASC;
+ORDER BY w.name ASC, wr.name ASC, p.name ASC;
 
 -- ── Enterprise: Stock aging ───────────────────────────────────────────────────
 -- Products that have not had a completed sale in the past noSalesDays days.
@@ -380,22 +398,40 @@ WHERE p.is_active = 1
 ORDER BY (p.min_stock_qty - p.stock_qty) DESC;
 
 -- ── Enterprise: Supplier purchases ───────────────────────────────────────────
--- Currently the schema tracks suppliers but not purchase orders explicitly.
--- This query returns a count from stock_adjustments of type 'PURCHASE'
--- grouped by product's supplier (no supplier_id on products; returns empty
--- until a supplier_purchases table is added in Phase 3).
--- Kept as minimal stub returning supplier name and zero totals using expenses
--- as a proxy for supplier costs:
+-- Aggregates purchase_orders by supplier for the given date range.
+-- Phase 3 Sprint 13+: uses the new purchase_orders table.
+-- Params: fromMs (epoch ms), toMs (epoch ms).
 supplierPurchases:
 SELECT
-    s.id                    AS supplier_id,
-    s.name                  AS supplier_name,
-    0.0                     AS total_purchase_amount,
-    0                       AS order_count
+    s.id                                     AS supplier_id,
+    s.name                                   AS supplier_name,
+    COALESCE(SUM(po.total_amount), 0.0)      AS total_purchase_amount,
+    COUNT(po.id)                             AS order_count
 FROM suppliers s
+LEFT JOIN purchase_orders po
+    ON po.supplier_id = s.id
+    AND po.status != 'CANCELLED'
+    AND po.order_date >= ?
+    AND po.order_date < ?
 WHERE s.is_active = 1
-  AND 0 = 0   -- placeholder: no purchase_orders table yet
+GROUP BY s.id, s.name
 ORDER BY s.name ASC;
+
+-- ── Enterprise: Purchase orders report ───────────────────────────────────────
+-- Returns purchase orders for a given date range.
+-- Phase 3 Sprint 13+: uses the new purchase_orders table.
+purchaseOrders:
+SELECT
+    po.id            AS order_id,
+    s.id             AS supplier_id,
+    s.name           AS supplier_name,
+    po.total_amount,
+    po.status        AS order_status,
+    po.order_date
+FROM purchase_orders po
+JOIN suppliers s ON s.id = po.supplier_id
+WHERE po.order_date >= ? AND po.order_date < ?
+ORDER BY po.order_date DESC;
 
 -- ── Enterprise: Returns / refunds ────────────────────────────────────────────
 returnRefundTotals:

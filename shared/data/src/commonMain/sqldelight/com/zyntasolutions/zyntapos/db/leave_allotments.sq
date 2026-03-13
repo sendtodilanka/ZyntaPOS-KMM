@@ -1,0 +1,45 @@
+-- ============================================================
+-- leave_allotments.sq — Per-employee leave allotment tracking.
+-- Enables getLeaveBalances() to use actual entitlements instead
+-- of hardcoded defaults.
+-- Phase 3 Sprint 13+.
+-- ============================================================
+
+CREATE TABLE leave_allotments (
+    id              TEXT    NOT NULL PRIMARY KEY,
+    employee_id     TEXT    NOT NULL REFERENCES employees(id),
+    leave_type      TEXT    NOT NULL,    -- 'ANNUAL', 'SICK', 'PERSONAL', 'UNPAID'
+    year            INTEGER NOT NULL,    -- Calendar year (e.g. 2026)
+    allotted_days   INTEGER NOT NULL DEFAULT 0,
+    carry_over_days INTEGER NOT NULL DEFAULT 0,
+    created_at      INTEGER NOT NULL,
+    updated_at      INTEGER NOT NULL,
+    UNIQUE(employee_id, leave_type, year)
+);
+
+CREATE INDEX idx_la_employee ON leave_allotments(employee_id);
+CREATE INDEX idx_la_year     ON leave_allotments(year);
+
+-- ── Read queries ─────────────────────────────────────────────────────────────
+
+getLeaveAllotmentsByYear:
+SELECT la.*, (la.allotted_days + la.carry_over_days) AS total_days
+FROM leave_allotments la
+WHERE la.year = ?
+ORDER BY la.employee_id ASC, la.leave_type ASC;
+
+getLeaveAllotmentForEmployee:
+SELECT la.*, (la.allotted_days + la.carry_over_days) AS total_days
+FROM leave_allotments la
+WHERE la.employee_id = ? AND la.year = ?
+ORDER BY la.leave_type ASC;
+
+-- ── Write queries ────────────────────────────────────────────────────────────
+
+upsertLeaveAllotment:
+INSERT INTO leave_allotments(id, employee_id, leave_type, year, allotted_days, carry_over_days, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT(employee_id, leave_type, year) DO UPDATE SET
+    allotted_days   = excluded.allotted_days,
+    carry_over_days = excluded.carry_over_days,
+    updated_at      = excluded.updated_at;

@@ -2,10 +2,13 @@ package com.zyntasolutions.zyntapos.data.di
 
 import android.content.Context
 import android.provider.Settings
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
+import com.zyntasolutions.zyntapos.core.config.AppConfig
+import com.zyntasolutions.zyntapos.data.analytics.AnalyticsService
+import com.zyntasolutions.zyntapos.data.backup.BackupFileManager
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseDriverFactory
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseKeyProvider
-import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
-import com.zyntasolutions.zyntapos.data.analytics.AnalyticsService
+import com.zyntasolutions.zyntapos.data.remote.ird.IrdApiClient
 import com.zyntasolutions.zyntapos.data.sync.NetworkMonitor
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.qualifier.named
@@ -71,6 +74,22 @@ val androidDataModule = module {
     // modules can depend on the interface from :shared:core.
     single { AnalyticsService(context = androidContext()) }
     single<AnalyticsTracker> { get<AnalyticsService>() }
+
+    // ── Backup file I/O (platform expect/actual) ──────────────────────────────
+    // Android actual copies DB files to getExternalFilesDir("backups") with
+    // a fallback to filesDir/backups when external storage is unavailable.
+    single { BackupFileManager(context = androidContext()) }
+
+    // ── IRD e-Invoice API client (mTLS, platform expect/actual) ───────────────
+    // Reads endpoint + cert config from AppConfig (set at app startup from
+    // BuildConfig.ZYNTA_IRD_* secrets injected by the Gradle Secrets Plugin).
+    single {
+        IrdApiClient(
+            endpoint     = AppConfig.IRD_API_ENDPOINT,
+            certPath     = AppConfig.IRD_CLIENT_CERT_PATH,
+            certPassword = AppConfig.IRD_CLIENT_CERT_PASSWORD,
+        )
+    }
 
     // Note: SecurePreferences is bound by securityModule (canonical expect/actual).
     // Adapter class AndroidEncryptedSecurePreferences removed — MERGED-D3 (2026-02-21).

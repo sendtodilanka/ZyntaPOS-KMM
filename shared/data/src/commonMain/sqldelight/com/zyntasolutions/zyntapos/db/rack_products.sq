@@ -1,0 +1,41 @@
+-- ============================================================
+-- rack_products.sq — Maps products to warehouse racks.
+-- Enables proper getWarehouseInventory() report.
+-- Phase 3 Sprint 13+.
+-- ============================================================
+
+CREATE TABLE rack_products (
+    id              TEXT    NOT NULL PRIMARY KEY,
+    rack_id         TEXT    NOT NULL REFERENCES warehouse_racks(id),
+    product_id      TEXT    NOT NULL REFERENCES products(id),
+    quantity        REAL    NOT NULL DEFAULT 0.0,
+    bin_location    TEXT,
+    created_at      INTEGER NOT NULL,
+    updated_at      INTEGER NOT NULL,
+    UNIQUE(rack_id, product_id)
+);
+
+CREATE INDEX idx_rp_rack    ON rack_products(rack_id);
+CREATE INDEX idx_rp_product ON rack_products(product_id);
+
+-- ── Read queries ─────────────────────────────────────────────────────────────
+
+getProductsByRack:
+SELECT rp.*, p.name AS product_name, p.sku, p.barcode
+FROM rack_products rp
+JOIN products p ON p.id = rp.product_id
+WHERE rp.rack_id = ?
+ORDER BY rp.bin_location ASC;
+
+-- ── Write queries ────────────────────────────────────────────────────────────
+
+upsertRackProduct:
+INSERT INTO rack_products(id, rack_id, product_id, quantity, bin_location, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT(rack_id, product_id) DO UPDATE SET
+    quantity     = excluded.quantity,
+    bin_location = excluded.bin_location,
+    updated_at   = excluded.updated_at;
+
+deleteRackProduct:
+DELETE FROM rack_products WHERE rack_id = ? AND product_id = ?;

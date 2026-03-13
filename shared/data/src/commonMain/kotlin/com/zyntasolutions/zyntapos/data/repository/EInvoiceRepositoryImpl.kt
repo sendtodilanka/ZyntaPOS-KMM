@@ -6,6 +6,9 @@ import app.cash.sqldelight.coroutines.mapToOneOrNull
 import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.data.local.SyncEnqueuer
+import com.zyntasolutions.zyntapos.data.remote.ird.IrdApiClient
+import com.zyntasolutions.zyntapos.data.remote.ird.IrdApiResponse
+import com.zyntasolutions.zyntapos.data.remote.ird.IrdInvoicePayload
 import com.zyntasolutions.zyntapos.db.E_invoices
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
 import com.zyntasolutions.zyntapos.domain.model.EInvoice
@@ -25,7 +28,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 /**
- * SQLDelight-backed [EInvoiceRepository] implementation (Sprint 18).
+ * SQLDelight-backed [EInvoiceRepository] implementation (Sprint 18 + Phase 3).
  *
  * Replaces the in-memory [MutableStateFlow] stub introduced in Sprint 5-7.
  * `lineItems` and `taxBreakdown` are stored as JSON TEXT columns because e-invoices
@@ -33,10 +36,16 @@ import kotlinx.serialization.json.Json
  *
  * JSON serialisation uses local `@Serializable` DTOs to keep the domain layer free
  * of framework annotations (architecture guard: domain layer is pure Kotlin).
+ *
+ * ## IRD API integration (Phase 3)
+ * [submitToIrd] calls the actual Sri Lanka IRD API via [IrdApiClient] with mTLS.
+ * On success, the invoice status is updated to [EInvoiceStatus.ACCEPTED] with the
+ * IRD-assigned reference number. On failure, the status is updated to [EInvoiceStatus.REJECTED].
  */
 class EInvoiceRepositoryImpl(
     private val db: ZyntaDatabase,
     private val syncEnqueuer: SyncEnqueuer,
+    private val irdApiClient: IrdApiClient,
 ) : EInvoiceRepository {
 
     private val q get() = db.e_invoicesQueries
@@ -126,31 +135,70 @@ class EInvoiceRepositoryImpl(
                 )
             }
 
-            // Persist status transition; full IRD API integration is a later Sprint.
             val now = Clock.System.now().toEpochMilliseconds()
+
+            // Mark as SUBMITTED before calling the API (optimistic update)
             runCatching {
                 q.updateStatus(
-                    status = EInvoiceStatus.SUBMITTED.name,
+                    status               = EInvoiceStatus.SUBMITTED.name,
                     ird_reference_number = null,
-                    submitted_at = submittedAt,
-                    accepted_at = null,
-                    rejection_reason = null,
-                    updated_at = now,
-                    id = id,
+                    submitted_at         = submittedAt,
+                    accepted_at          = null,
+                    rejection_reason     = null,
+                    updated_at           = now,
+                    id                   = id,
                 )
-            }.fold(
-                onSuccess = {
-                    Result.Success(
-                        IrdSubmissionResult(
-                            success = true,
-                            referenceNumber = null,
-                            errorCode = null,
-                            errorMessage = "IRD API integration pending",
-                            submittedAt = submittedAt,
-                        )
-                    )
-                },
-                onFailure = { t -> Result.Error(DatabaseException(t.message ?: "Submit failed", cause = t)) },
+            }.onFailure { t ->
+                return@withContext Result.Error(DatabaseException("DB update failed: ${t.message}", cause = t))
+            }
+
+            // Call the IRD API
+            val payload = IrdInvoicePayload(
+                invoiceId       = invoice.id,
+                invoiceNumber   = invoice.invoice_number,
+                invoiceDate     = invoice.invoice_date,
+                customerName    = invoice.customer_name,
+                customerTaxId   = invoice.customer_tax_id,
+                lineItemsJson   = invoice.line_items_json,
+                taxBreakdownJson= invoice.tax_breakdown_json,
+                subtotal        = invoice.subtotal,
+                totalTax        = invoice.total_tax,
+                total           = invoice.total,
+                currency        = invoice.currency,
+                storeId         = invoice.store_id,
+            )
+
+            val apiResponse = runCatching { irdApiClient.submitInvoice(payload) }.getOrElse { t ->
+                IrdApiResponse(
+                    success      = false,
+                    errorMessage = t.message ?: "Network error during IRD submission",
+                )
+            }
+
+            // Update DB status based on IRD API response
+            val finalStatus = if (apiResponse.success) EInvoiceStatus.ACCEPTED else EInvoiceStatus.REJECTED
+            runCatching {
+                q.updateStatus(
+                    status               = finalStatus.name,
+                    ird_reference_number = apiResponse.referenceNumber,
+                    submitted_at         = submittedAt,
+                    accepted_at          = if (apiResponse.success) now else null,
+                    rejection_reason     = if (!apiResponse.success)
+                        "[${apiResponse.errorCode}] ${apiResponse.errorMessage}" else null,
+                    updated_at           = now,
+                    id                   = id,
+                )
+                syncEnqueuer.enqueue(SyncOperation.EntityType.E_INVOICE, id, SyncOperation.Operation.UPDATE)
+            }
+
+            Result.Success(
+                IrdSubmissionResult(
+                    success         = apiResponse.success,
+                    referenceNumber = apiResponse.referenceNumber,
+                    errorCode       = apiResponse.errorCode,
+                    errorMessage    = apiResponse.errorMessage,
+                    submittedAt     = submittedAt,
+                )
             )
         }
 

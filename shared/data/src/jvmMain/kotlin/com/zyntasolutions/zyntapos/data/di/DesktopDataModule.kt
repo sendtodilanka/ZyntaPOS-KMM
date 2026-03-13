@@ -1,9 +1,12 @@
 package com.zyntasolutions.zyntapos.data.di
 
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
+import com.zyntasolutions.zyntapos.core.config.AppConfig
+import com.zyntasolutions.zyntapos.data.analytics.AnalyticsService
+import com.zyntasolutions.zyntapos.data.backup.BackupFileManager
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseDriverFactory
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseKeyProvider
-import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
-import com.zyntasolutions.zyntapos.data.analytics.AnalyticsService
+import com.zyntasolutions.zyntapos.data.remote.ird.IrdApiClient
 import com.zyntasolutions.zyntapos.data.sync.NetworkMonitor
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
@@ -94,6 +97,23 @@ val desktopDataModule = module {
     // modules can depend on the interface from :shared:core.
     single { AnalyticsService() }
     single<AnalyticsTracker> { get<AnalyticsService>() }
+
+    // ── Backup file I/O (platform expect/actual) ──────────────────────────────
+    // Desktop actual resolves backups dir as <appDataDir>/../backups/ so backups
+    // sit alongside the data dir at ~/.zyntapos/backups/ (macOS/Linux) or
+    // %APPDATA%/ZyntaPOS/backups/ (Windows).
+    single { BackupFileManager(appDataDir = get()) }
+
+    // ── IRD e-Invoice API client (mTLS, platform expect/actual) ───────────────
+    // Reads endpoint + cert config from AppConfig (set at app startup from
+    // BuildKonfig / local.properties ZYNTA_IRD_* keys).
+    single {
+        IrdApiClient(
+            endpoint     = AppConfig.IRD_API_ENDPOINT,
+            certPath     = AppConfig.IRD_CLIENT_CERT_PATH,
+            certPassword = AppConfig.IRD_CLIENT_CERT_PASSWORD,
+        )
+    }
 
     // Note: SecurePreferences is bound by securityModule (canonical expect/actual).
     // Adapter class DesktopAesSecurePreferences removed — MERGED-D3 (2026-02-21).

@@ -32,6 +32,9 @@ data class DiagnosticSession(
     val expiresAt: Long,
     val status: DiagnosticSessionStatus,
     val dataScope: DiagnosticDataScope,
+    val visitType: VisitType = VisitType.REMOTE,
+    /** Short-lived token for on-site technician kiosk authentication (null for REMOTE sessions). */
+    val siteVisitToken: String? = null,
 )
 
 /**
@@ -46,6 +49,18 @@ enum class DiagnosticSessionStatus {
     EXPIRED,
     /** Explicitly revoked by admin or store operator. */
     REVOKED,
+}
+
+/**
+ * Whether the diagnostic session is conducted remotely or on-site.
+ *
+ * - [REMOTE]  — technician connects via the admin panel WebSocket tunnel.
+ * - [ON_SITE] — technician is physically present and authenticates via a short-lived
+ *               [DiagnosticSession.siteVisitToken] scanned as a QR code on the store device.
+ */
+enum class VisitType {
+    REMOTE,
+    ON_SITE,
 }
 
 /**

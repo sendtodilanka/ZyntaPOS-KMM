@@ -1,0 +1,83 @@
+-- ============================================================
+-- purchase_orders.sq — Supplier purchase order tracking.
+-- Enables getSupplierPurchases() and getPurchaseOrders() reports.
+-- Phase 3 Sprint 13+.
+-- ============================================================
+
+CREATE TABLE purchase_orders (
+    id              TEXT    NOT NULL PRIMARY KEY,
+    supplier_id     TEXT    NOT NULL REFERENCES suppliers(id),
+    order_number    TEXT    NOT NULL,
+    status          TEXT    NOT NULL DEFAULT 'PENDING', -- 'PENDING', 'RECEIVED', 'PARTIAL', 'CANCELLED'
+    order_date      INTEGER NOT NULL,
+    expected_date   INTEGER,
+    received_date   INTEGER,
+    total_amount    REAL    NOT NULL DEFAULT 0.0,
+    currency        TEXT    NOT NULL DEFAULT 'LKR',
+    notes           TEXT,
+    created_by      TEXT    NOT NULL,
+    created_at      INTEGER NOT NULL,
+    updated_at      INTEGER NOT NULL,
+    sync_status     TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE TABLE purchase_order_items (
+    id                  TEXT    NOT NULL PRIMARY KEY,
+    purchase_order_id   TEXT    NOT NULL REFERENCES purchase_orders(id),
+    product_id          TEXT    NOT NULL REFERENCES products(id),
+    quantity_ordered    REAL    NOT NULL,
+    quantity_received   REAL    NOT NULL DEFAULT 0.0,
+    unit_cost           REAL    NOT NULL,
+    line_total          REAL    NOT NULL,
+    notes               TEXT
+);
+
+CREATE INDEX idx_po_supplier ON purchase_orders(supplier_id);
+CREATE INDEX idx_po_status   ON purchase_orders(status);
+CREATE INDEX idx_po_date     ON purchase_orders(order_date DESC);
+CREATE INDEX idx_poi_po      ON purchase_order_items(purchase_order_id);
+CREATE INDEX idx_poi_product ON purchase_order_items(product_id);
+
+-- ── Read queries ─────────────────────────────────────────────────────────────
+
+getAllPurchaseOrders:
+SELECT po.*, s.name AS supplier_name
+FROM purchase_orders po
+JOIN suppliers s ON s.id = po.supplier_id
+ORDER BY po.order_date DESC;
+
+getPurchaseOrdersByDateRange:
+SELECT po.*, s.name AS supplier_name
+FROM purchase_orders po
+JOIN suppliers s ON s.id = po.supplier_id
+WHERE po.order_date >= ? AND po.order_date < ?
+ORDER BY po.order_date DESC;
+
+getPurchaseOrderById:
+SELECT po.*, s.name AS supplier_name
+FROM purchase_orders po
+JOIN suppliers s ON s.id = po.supplier_id
+WHERE po.id = ?;
+
+getPurchaseOrderItems:
+SELECT poi.*, p.name AS product_name, p.sku
+FROM purchase_order_items poi
+JOIN products p ON p.id = poi.product_id
+WHERE poi.purchase_order_id = ?;
+
+-- ── Write queries ────────────────────────────────────────────────────────────
+
+insertPurchaseOrder:
+INSERT INTO purchase_orders(id, supplier_id, order_number, status, order_date, expected_date,
+    received_date, total_amount, currency, notes, created_by, created_at, updated_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+insertPurchaseOrderItem:
+INSERT INTO purchase_order_items(id, purchase_order_id, product_id, quantity_ordered,
+    quantity_received, unit_cost, line_total, notes)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+updatePurchaseOrderStatus:
+UPDATE purchase_orders
+SET status = ?, received_date = ?, updated_at = ?, sync_status = 'PENDING'
+WHERE id = ?;
