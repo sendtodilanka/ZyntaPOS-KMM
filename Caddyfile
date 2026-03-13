@@ -17,8 +17,8 @@
 #   zyntapos.com          → website:80   ✅ Astro static site (Docker image from GHCR)
 #   www.zyntapos.com      → website:80   ✅ Astro static site (Docker image from GHCR)
 #   panel.zyntapos.com    → admin-panel:3000 ✅ React admin panel
-#   docs.zyntapos.com     → canary:80    🔲 Phase 3
-#   status.zyntapos.com   → canary:80    🔲 Phase 3
+#   docs.zyntapos.com     → docs:3001    ✅ Scalar OpenAPI docs
+#   status.zyntapos.com   → uptime-kuma:3001 ✅ Uptime Kuma
 # ═══════════════════════════════════════════════════════════════════
 
 # Shared TLS block — Cloudflare Origin Certificate (wildcard *.zyntapos.com)
@@ -27,43 +27,19 @@
 }
 
 # ── Healthcheck (localhost only — Docker healthcheck probe) ──────────
-# Also routes /health to backend services for smoke tests (SSH via localhost).
-# Named virtual hosts with TLS only bind to port 443, so the smoke test
-# hits http://localhost/health with Host: header — which matches here.
+# /ping is the canonical liveness probe used by Docker healthcheck and
+# the smoke test.  Host-matched /health routes were removed because
+# Caddy silently drops them: when named HTTPS blocks (api.zyntapos.com,
+# etc.) own a hostname, the :80 catch-all block's host matchers for
+# those names are not included in the adapted config.  The smoke test
+# now calls /health directly on backend containers via docker compose exec.
 :80 {
 	respond /ping 200 {
 		body "ok"
 		close
 	}
 
-	# Route /health to api backend (used by smoke test & Docker healthcheck)
-	@api_health {
-		host api.zyntapos.com
-		path /health /health/*
-	}
-	handle @api_health {
-		reverse_proxy api:8080
-	}
-
-	# Route /health to license backend
-	@license_health {
-		host license.zyntapos.com
-		path /health /health/*
-	}
-	handle @license_health {
-		reverse_proxy license:8083
-	}
-
-	# Route /health to sync backend
-	@sync_health {
-		host sync.zyntapos.com
-		path /health /health/*
-	}
-	handle @sync_health {
-		reverse_proxy sync:8082
-	}
-
-	# All other requests on port 80 without a matching Host/path get 404
+	# All other requests on port 80 get 404
 	respond 404
 }
 
@@ -199,12 +175,6 @@ panel.zyntapos.com {
 	handle {
 		reverse_proxy admin-panel:3000
 	}
-}
-
-# ── docs.zyntapos.com — Documentation site (Phase 3) ──────────────
-docs.zyntapos.com {
-	import cf_tls
-	reverse_proxy canary:80
 }
 
 # ── docs.zyntapos.com — API Documentation (Scalar OpenAPI viewer) ──
