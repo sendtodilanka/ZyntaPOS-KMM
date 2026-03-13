@@ -22,6 +22,43 @@ async function stubUnauthenticated(page: import('@playwright/test').Page) {
   });
 }
 
+/**
+ * Ensure the authenticated user is available even before MSW service worker
+ * activates.  The addInitScript patches window.fetch at page-creation time,
+ * which fires before the MSW service worker intercepts requests.
+ */
+async function ensureAuthenticated(page: import('@playwright/test').Page) {
+  await page.addInitScript(() => {
+    const _orig = window.fetch.bind(window);
+    const mockUser = {
+      id: 'user-1',
+      email: 'admin@zyntapos.com',
+      name: 'System Admin',
+      role: 'ADMIN',
+      mfaEnabled: false,
+      isActive: true,
+      lastLoginAt: null,
+      createdAt: new Date('2024-01-01T00:00:00Z').getTime(),
+    };
+    window.fetch = (input, init) => {
+      const url = typeof input === 'string' ? input : (input instanceof URL ? input.href : (input as Request).url);
+      if (url.includes('/admin/auth/me')) {
+        return Promise.resolve(new Response(JSON.stringify(mockUser), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }));
+      }
+      if (url.includes('/admin/auth/status')) {
+        return Promise.resolve(new Response(JSON.stringify({ needsBootstrap: false }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }));
+      }
+      return _orig(input, init);
+    };
+  });
+}
+
 // ── Sidebar nav links ─────────────────────────────────────────────────────────
 
 const navLinks = [
@@ -127,6 +164,7 @@ test.describe('Theme toggle', () => {
 
 test.describe('Settings navigation', () => {
   test('profile and MFA pages load', async ({ page }) => {
+    await ensureAuthenticated(page);
     await page.goto('/settings/profile');
     await page.waitForLoadState('networkidle');
     await page.locator('main').first().waitFor({ state: 'visible', timeout: 15_000 });
@@ -143,6 +181,7 @@ test.describe('Settings navigation', () => {
 
 test.describe('Tickets', () => {
   test('tickets list loads', async ({ page }) => {
+    await ensureAuthenticated(page);
     await page.goto('/tickets');
     await page.waitForLoadState('networkidle');
     await page.locator('main').first().waitFor({ state: 'visible', timeout: 15_000 });
@@ -150,6 +189,7 @@ test.describe('Tickets', () => {
   });
 
   test('new ticket modal opens', async ({ page }) => {
+    await ensureAuthenticated(page);
     await page.goto('/tickets');
     await page.waitForLoadState('networkidle');
     await page.locator('main').first().waitFor({ state: 'visible', timeout: 15_000 });
