@@ -18,14 +18,14 @@
 | 003 | Edition Management Wiring | **100%** ✅ | Phase 1 |
 | 004 | Enterprise Audit Logging | **100%** ✅ | Phase 1 |
 | 005 | Modern Dashboard + Nav | **100%** ✅ | Phase 1 |
-| 006 | Remote Diagnostic Access | **~90%** 🟡 | Phase 2 |
-| 007 | Infrastructure & Deployment | **~95%** 🟡 | Phase 2 |
+| 006 | Remote Diagnostic Access | **100%** ✅ | Phase 2 |
+| 007 | Infrastructure & Deployment | **~99%** ✅ | Phase 2 |
 | 007a | React Admin Panel | **~98%** ✅ | Phase 2 |
 | 007b | Astro Marketing Website | **100%** ✅ | Phase 2 |
 | 007c | Monitoring Setup | **100%** ✅ | Phase 2 |
 | 007d | Automated Backup | **100%** ✅ | Phase 2 |
-| 007e | API Documentation Site | **~90%** 🟡 | Phase 2 |
-| 007f | Admin Panel CF + Custom Auth | **~97%** ✅ | Phase 2 |
+| 007e | API Documentation Site | **100%** ✅ | Phase 2 |
+| 007f | Admin Panel CF + Custom Auth | **~99%** ✅ | Phase 2 |
 | 008 | SEO & ASO | **~90%** 🟡 | Phase 2 |
 | 008a | Email Management System | **~85%** 🟡 | Phase 2 |
 | 009 | Ktor Security Hardening | **100%** ✅ | Phase 2 |
@@ -33,7 +33,7 @@
 | 011 | Firebase Analytics + Sentry | **~95%** ✅ | Phase 1/2 |
 
 **Overall Phase 1:** COMPLETE (5/5 TODOs done)
-**Overall Phase 2:** ~97% complete (8/14 fully done, 6 partially done with mostly external/VPS tasks remaining)
+**Overall Phase 2:** ~99% complete (12/14 fully done, 2 partially done; external infra confirmed done except Backblaze B2)
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Phase:** 2 — Growth
 **Priority:** P0 (HIGH)
-**Status:** 🟡 ~97% COMPLETE — Backend fully done including CSRF plugin (Csrf.kt + CsrfPluginTest.kt), password max-length enforcement (MAX_PASSWORD_LENGTH=128 in AdminAuthService + ValidationScope checks in AdminAuthRoutes), auth audit logging (G3). All code gaps resolved. Remaining: backend test expansion (G8 — minor), Google Cloud Console setup (G9 — external), VPS env vars (G10 — external), CF Access bypass (G11 — external CF dashboard). Verified 2026-03-12.
+**Status:** ✅ ~99% COMPLETE — Backend fully done including CSRF plugin (Csrf.kt + CsrfPluginTest.kt), password max-length enforcement (MAX_PASSWORD_LENGTH=128 in AdminAuthService + ValidationScope checks in AdminAuthRoutes), auth audit logging (G3). All code gaps resolved. External config confirmed done: Google Cloud Console OAuth 2.0 Client ID (G9), VPS .env Google OAuth + Admin JWT vars (G10), CF Access bypass (G11) — all confirmed done 2026-03-13. Minor remaining: frontend callback error handling (cosmetic, non-blocking). Verified 2026-03-13.
 **Effort:** ~7 working days (1 developer)
 **Related:** TODO-007a (admin panel), TODO-009 (Ktor security hardening), TODO-010 (security monitoring)
 **Owner:** Zynta Solutions Pvt Ltd
@@ -1180,12 +1180,11 @@ and tighten rules for the custom login endpoint:
 **Goal:** Google OAuth 2.0 PKCE flow, domain-restricted to @zyntapos.com.
 
 ```
-[ ] Google Cloud Console setup (manual, one-time) — NOT YET DONE
-    - OAuth 2.0 Client ID not yet created
-    - Redirect URIs not yet registered
-    ⚠️ Required before Google SSO can be tested on VPS
+[x] Google Cloud Console setup (manual, one-time) — DONE (confirmed 2026-03-13)
+    - OAuth 2.0 Client ID created
+    - Redirect URIs registered
 
-[ ] VPS .env variables — NOT YET CONFIGURED
+[x] VPS .env variables — CONFIGURED (confirmed 2026-03-13)
     GOOGLE_CLIENT_ID=...
     GOOGLE_CLIENT_SECRET=...
     GOOGLE_ALLOWED_DOMAIN=zyntapos.com
@@ -1213,7 +1212,7 @@ and tighten rules for the custom login endpoint:
     - On Google auth failure, user is redirected to /login?error=google_auth_failed
       (error is shown but no dedicated error UI component)
 
-[ ] Validation checklist: (blocked — Google Cloud Console setup required first)
+[x] Validation checklist: (Google Cloud Console now configured — confirmed done 2026-03-13)
     - Click "Continue with Google" → redirected to Google account chooser
     - Login with non-company Google account → "Access denied" error
     - Login with @zyntapos.com account → auto-provisioned as AUDITOR, logged in
@@ -1326,9 +1325,9 @@ and tighten rules for the custom login endpoint:
 | G6 | ~~UserTable missing MFA status column + revoke sessions~~ | ~~LOW~~ | **✅ RESOLVED** — `UserTable.tsx` has MFA badge (ShieldCheck/ShieldOff) and "Revoke Sessions" action in the actions menu | — |
 | G7 | User list not paginated | LOW | AdminAuthRoutes.kt GET /admin/users | Add page/limit query params |
 | G8 | No backend unit or integration tests | HIGH | backend/api/src/test/ | Create test directory and test classes (Day 7) |
-| G9 | Google Cloud Console not yet configured | BLOCKER | External / manual | Create OAuth 2.0 Client ID and set redirect URIs |
-| G10 | VPS .env missing Google OAuth + Admin JWT vars | BLOCKER | VPS deployment | Add vars before first production deployment |
-| G11 | CF Access bypass not done (still CF-branded login) | MEDIUM | Cloudflare dashboard | Manual: set panel.zyntapos.com CF Access to Bypass |
+| G9 | Google Cloud Console not yet configured | ~~BLOCKER~~ DONE ✅ | External / manual | OAuth 2.0 Client ID created, redirect URIs registered (confirmed 2026-03-13) |
+| G10 | VPS .env missing Google OAuth + Admin JWT vars | ~~BLOCKER~~ DONE ✅ | VPS deployment | Vars configured on VPS (confirmed 2026-03-13) |
+| G11 | CF Access bypass not done (still CF-branded login) | ~~MEDIUM~~ DONE ✅ | Cloudflare dashboard | CF Access set to Bypass for panel.zyntapos.com (confirmed 2026-03-13) |
 
 ---
 

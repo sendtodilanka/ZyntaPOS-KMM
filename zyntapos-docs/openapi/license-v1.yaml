@@ -1,0 +1,1149 @@
+openapi: 3.0.3
+info:
+  title: ZyntaPOS License API
+  version: 1.0.0
+  description: |
+    License activation, heartbeat telemetry, and device management for ZyntaPOS deployments.
+
+    ## Authentication
+
+    ### POS Device Routes (`/v1/license/*`)
+    Unauthenticated — the license key and device ID in the request body serve as the
+    credential. All requests must be sent over HTTPS.
+
+    ### Admin Routes (`/admin/licenses/*`)
+    Admin routes require:
+    1. **Cookie**: `admin_access_token` — HttpOnly, Secure, SameSite=Strict HS256 JWT
+    2. **Header**: `X-CSRF-Token` — double-submit cookie CSRF protection
+
+    Admin roles and permissions:
+    - **ADMIN**, **OPERATOR** — full CRUD (create, update, revoke, deregister devices)
+    - **FINANCE**, **AUDITOR**, **HELPDESK** — read-only (list, get, stats)
+
+  contact:
+    name: Zynta Solutions Pvt Ltd
+    email: support@zyntapos.com
+  license:
+    name: Proprietary
+    url: https://zyntapos.com/terms
+
+servers:
+  - url: https://license.zyntapos.com
+    description: Production license service (Cloudflare CDN → Caddy → Ktor)
+  - url: http://localhost:8083
+    description: Local development
+
+tags:
+  - name: Health
+    description: Service health and liveness checks
+  - name: License
+    description: POS device license activation and heartbeat (device-facing)
+  - name: Admin / Licenses
+    description: License management for internal admin staff
+  - name: Admin / Devices
+    description: Registered device management per license
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Security Schemes
+# ─────────────────────────────────────────────────────────────────────────────
+
+components:
+  securitySchemes:
+    adminCookie:
+      type: apiKey
+      in: cookie
+      name: admin_access_token
+      description: HttpOnly HS256 JWT cookie set on successful `/admin/auth/login` (API service).
+    csrfHeader:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+      description: CSRF token obtained from the `csrf_token` cookie (double-submit pattern).
+
+  schemas:
+
+    # ── Shared ─────────────────────────────────────────────────────────────
+
+    ErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code (SCREAMING_SNAKE_CASE).
+          example: LICENSE_NOT_FOUND
+        message:
+          type: string
+          description: Human-readable error description.
+          example: License key not found
+
+    LicenseStatus:
+      type: string
+      enum: [ACTIVE, GRACE_PERIOD, EXPIRING_SOON, EXPIRED, SUSPENDED, REVOKED]
+      description: |
+        Lifecycle state of a license:
+        - **ACTIVE** — valid, within subscription period
+        - **GRACE_PERIOD** — subscription ended; 7-day grace window active
+        - **EXPIRING_SOON** — expires within 30 days
+        - **EXPIRED** — past grace period; POS enters read-only mode
+        - **SUSPENDED** — manually suspended by admin
+        - **REVOKED** — permanently deactivated; cannot be reactivated
+
+    LicenseEdition:
+      type: string
+      enum: [STARTER, PROFESSIONAL, ENTERPRISE]
+      description: |
+        ZyntaPOS edition tier:
+        - **STARTER** — single store, up to 2 devices
+        - **PROFESSIONAL** — multi-store, up to 10 devices, advanced reporting
+        - **ENTERPRISE** — unlimited stores/devices, custom branding, SLA support
+
+    # ── POS-facing request/response schemas ────────────────────────────────
+
+    ActivateRequest:
+      type: object
+      required: [licenseKey, deviceId, appVersion]
+      properties:
+        licenseKey:
+          type: string
+          maxLength: 128
+          pattern: '^[A-Za-z0-9\-]{1,128}$'
+          description: License key issued by Zynta Solutions (format ZYNTA-XXXX-XXXX-XXXX).
+          example: ZYNTA-A1B2-C3D4-E5F6
+        deviceId:
+          type: string
+          maxLength: 256
+          description: Unique, stable identifier for this device (Android ID or UUID persisted in secure storage).
+          example: 550e8400-e29b-41d4-a716-446655440000
+        deviceName:
+          type: string
+          nullable: true
+          description: Human-readable device name (e.g. "Main Counter Tablet").
+          example: Main Counter Tablet
+        appVersion:
+          type: string
+          maxLength: 64
+          description: Semantic version of the ZyntaPOS app.
+          example: 1.0.0
+        osVersion:
+          type: string
+          nullable: true
+          description: Operating system version string.
+          example: Android 14 (API 34)
+
+    ActivateResponse:
+      type: object
+      required: [isValid, licenseKey, edition, maxDevices, activeDevices]
+      properties:
+        isValid:
+          type: boolean
+          description: Whether the activation succeeded and the license is in a valid state.
+        licenseKey:
+          type: string
+          example: ZYNTA-A1B2-C3D4-E5F6
+        edition:
+          $ref: '#/components/schemas/LicenseEdition'
+        maxDevices:
+          type: integer
+          description: Maximum number of concurrently registered devices.
+          example: 5
+        activeDevices:
+          type: integer
+          description: Number of currently registered devices (after this registration).
+          example: 2
+        expiresAt:
+          type: integer
+          format: int64
+          nullable: true
+          description: Unix epoch milliseconds. Null means perpetual license.
+          example: 1767225600000
+        gracePeriodDays:
+          type: integer
+          default: 7
+          description: Grace period in days applied after license expiry.
+          example: 7
+        message:
+          type: string
+          nullable: true
+          description: Human-readable message (present on partial success or warnings).
+          example: License expires in 10 days — please renew.
+        errorCode:
+          type: string
+          nullable: true
+          description: Error code when `isValid=false`. Null on success.
+          example: DEVICE_LIMIT_EXCEEDED
+
+    HeartbeatRequest:
+      type: object
+      required: [licenseKey, deviceId, appVersion]
+      properties:
+        licenseKey:
+          type: string
+          maxLength: 128
+          pattern: '^[A-Za-z0-9\-]{1,128}$'
+          example: ZYNTA-A1B2-C3D4-E5F6
+        deviceId:
+          type: string
+          maxLength: 256
+          example: 550e8400-e29b-41d4-a716-446655440000
+        appVersion:
+          type: string
+          maxLength: 64
+          example: 1.0.0
+        osVersion:
+          type: string
+          nullable: true
+          example: Android 14 (API 34)
+        dbSizeBytes:
+          type: integer
+          format: int64
+          minimum: 0
+          default: 0
+          description: Current SQLite database file size in bytes.
+          example: 52428800
+        syncQueueDepth:
+          type: integer
+          minimum: 0
+          default: 0
+          description: Number of pending operations in the offline sync queue.
+          example: 3
+        lastErrorCount:
+          type: integer
+          minimum: 0
+          default: 0
+          description: Number of errors since the last heartbeat.
+          example: 0
+        uptimeHours:
+          type: number
+          format: double
+          minimum: 0
+          default: 0
+          description: Device uptime in hours since last reboot.
+          example: 72.5
+
+    HeartbeatResponse:
+      type: object
+      required: [status, licenseKey, serverTimestamp]
+      properties:
+        status:
+          $ref: '#/components/schemas/LicenseStatus'
+        licenseKey:
+          type: string
+          example: ZYNTA-A1B2-C3D4-E5F6
+        expiresAt:
+          type: integer
+          format: int64
+          nullable: true
+          description: Unix epoch milliseconds. Null = perpetual.
+          example: 1767225600000
+        daysUntilExpiry:
+          type: integer
+          nullable: true
+          description: Days remaining until expiry. Null for perpetual licenses.
+          example: 45
+        serverTimestamp:
+          type: integer
+          format: int64
+          description: Server clock at time of response (Unix epoch ms). Use to detect clock drift.
+          example: 1741824000000
+        forceSync:
+          type: boolean
+          default: false
+          description: When true, the device should trigger an immediate full sync pull.
+
+    LicenseStatusResponse:
+      type: object
+      required: [key, edition, status, maxDevices, activeDevices, issuedAt]
+      properties:
+        key:
+          type: string
+          example: ZYNTA-A1B2-C3D4-E5F6
+        edition:
+          $ref: '#/components/schemas/LicenseEdition'
+        status:
+          $ref: '#/components/schemas/LicenseStatus'
+        maxDevices:
+          type: integer
+          example: 5
+        activeDevices:
+          type: integer
+          example: 2
+        issuedAt:
+          type: integer
+          format: int64
+          description: Unix epoch milliseconds when the license was first issued.
+          example: 1709251200000
+        expiresAt:
+          type: integer
+          format: int64
+          nullable: true
+          description: Unix epoch milliseconds. Null = perpetual.
+          example: 1767225600000
+        lastHeartbeatAt:
+          type: integer
+          format: int64
+          nullable: true
+          description: Unix epoch milliseconds of the most recent heartbeat.
+          example: 1741824000000
+
+    # ── Admin schemas ──────────────────────────────────────────────────────
+
+    AdminLicense:
+      type: object
+      required: [id, key, customerId, customerName, edition, status, maxDevices, activeDevices, activatedAt, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+        key:
+          type: string
+          example: ZYNTA-A1B2-C3D4-E5F6
+        customerId:
+          type: string
+          example: cust_550e8400
+        customerName:
+          type: string
+          example: Colombo Supermart Pvt Ltd
+        edition:
+          $ref: '#/components/schemas/LicenseEdition'
+        status:
+          $ref: '#/components/schemas/LicenseStatus'
+        maxDevices:
+          type: integer
+          example: 5
+        activeDevices:
+          type: integer
+          example: 2
+        activatedAt:
+          type: string
+          format: date-time
+          example: 2024-03-01T08:00:00Z
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: 2025-03-01T00:00:00Z
+        lastHeartbeatAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: 2026-03-13T10:00:00Z
+        createdAt:
+          type: string
+          format: date-time
+          example: 2024-02-15T12:00:00Z
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2026-03-13T10:00:00Z
+
+    AdminLicenseWithDevices:
+      type: object
+      required: [license, devices]
+      properties:
+        license:
+          $ref: '#/components/schemas/AdminLicense'
+        devices:
+          type: array
+          items:
+            $ref: '#/components/schemas/LicenseDevice'
+
+    LicenseDevice:
+      type: object
+      required: [id, licenseKey, deviceId, deviceName, appVersion, os, osVersion, firstSeenAt, lastSeenAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+        licenseKey:
+          type: string
+          example: ZYNTA-A1B2-C3D4-E5F6
+        deviceId:
+          type: string
+          example: 550e8400-e29b-41d4-a716-446655440000
+        deviceName:
+          type: string
+          example: Main Counter Tablet
+        appVersion:
+          type: string
+          example: 1.0.0
+        os:
+          type: string
+          example: Android
+        osVersion:
+          type: string
+          example: Android 14 (API 34)
+        firstSeenAt:
+          type: string
+          format: date-time
+          example: 2024-03-01T08:00:00Z
+        lastSeenAt:
+          type: string
+          format: date-time
+          example: 2026-03-13T10:00:00Z
+
+    AdminLicenseStats:
+      type: object
+      required: [total, active, expired, revoked, suspended, expiringSoon, byEdition]
+      properties:
+        total:
+          type: integer
+          example: 142
+        active:
+          type: integer
+          example: 115
+        expired:
+          type: integer
+          example: 12
+        revoked:
+          type: integer
+          example: 3
+        suspended:
+          type: integer
+          example: 2
+        expiringSoon:
+          type: integer
+          description: Licenses expiring within 30 days.
+          example: 10
+        byEdition:
+          type: object
+          additionalProperties:
+            type: integer
+          description: Count per edition name.
+          example:
+            STARTER: 45
+            PROFESSIONAL: 85
+            ENTERPRISE: 12
+
+    AdminPagedLicenses:
+      type: object
+      required: [data, page, size, total, totalPages]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminLicense'
+        page:
+          type: integer
+          example: 0
+        size:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 142
+        totalPages:
+          type: integer
+          example: 8
+
+    AdminCreateLicenseRequest:
+      type: object
+      required: [customerId, edition, maxDevices]
+      properties:
+        customerId:
+          type: string
+          maxLength: 256
+          description: Customer identifier from your CRM or billing system.
+          example: cust_550e8400
+        customerName:
+          type: string
+          nullable: true
+          description: Human-readable customer name (stored for display).
+          example: Colombo Supermart Pvt Ltd
+        edition:
+          $ref: '#/components/schemas/LicenseEdition'
+        maxDevices:
+          type: integer
+          minimum: 1
+          maximum: 100
+          example: 5
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: ISO-8601 expiry date. Null = perpetual license.
+          example: 2027-03-01T00:00:00Z
+
+    AdminUpdateLicenseRequest:
+      type: object
+      description: All fields are optional — only provided fields are updated.
+      properties:
+        edition:
+          $ref: '#/components/schemas/LicenseEdition'
+        maxDevices:
+          type: integer
+          minimum: 1
+          nullable: true
+          example: 10
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: ISO-8601 OffsetDateTime. Must be in the future.
+          example: 2028-03-01T00:00:00Z
+        clearExpiry:
+          type: boolean
+          nullable: true
+          description: Set to `true` to convert to a perpetual license.
+          example: false
+        status:
+          $ref: '#/components/schemas/LicenseStatus'
+        forceSync:
+          type: boolean
+          nullable: true
+          description: When true, next heartbeat response will set `forceSync=true`.
+
+    HealthResponse:
+      type: object
+      required: [status, service, version]
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded, down]
+          example: ok
+        service:
+          type: string
+          example: zyntapos-license
+        version:
+          type: string
+          example: 1.0.0
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Paths
+# ─────────────────────────────────────────────────────────────────────────────
+
+paths:
+
+  # ── Health ─────────────────────────────────────────────────────────────────
+
+  /health:
+    get:
+      tags: [Health]
+      summary: Service liveness
+      description: Returns HTTP 200 when the service is up and database connectivity is healthy.
+      operationId: getLicenseHealth
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: ok
+                service: zyntapos-license
+                version: 1.0.0
+
+  /ping:
+    get:
+      tags: [Health]
+      summary: Ping / readiness probe
+      description: Returns HTTP 200 with body `pong`. Used by load balancers and uptime monitors.
+      operationId: pingLicense
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: pong
+
+  # ── POS Device Routes ───────────────────────────────────────────────────────
+
+  /v1/license/activate:
+    post:
+      tags: [License]
+      summary: Activate license on a device
+      description: |
+        Registers a device against a license key. Call once on first run and again
+        after a factory reset.
+
+        **Idempotent:** calling with the same `licenseKey` + `deviceId` updates the
+        device's `lastSeenAt` and `appVersion` without consuming an additional device slot.
+
+        **Device limit:** if `activeDevices >= maxDevices` and the device is new, returns
+        `403 DEVICE_LIMIT_EXCEEDED`.
+
+        **Grace period:** if the license has expired within the 7-day grace window,
+        `isValid=true` and `status=GRACE_PERIOD` are returned so the POS can still operate.
+      operationId: activateLicense
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActivateRequest'
+            example:
+              licenseKey: ZYNTA-A1B2-C3D4-E5F6
+              deviceId: 550e8400-e29b-41d4-a716-446655440000
+              deviceName: Main Counter Tablet
+              appVersion: 1.0.0
+              osVersion: Android 14 (API 34)
+      responses:
+        '200':
+          description: Activation successful (or within grace period)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivateResponse'
+              examples:
+                active:
+                  summary: Active license
+                  value:
+                    isValid: true
+                    licenseKey: ZYNTA-A1B2-C3D4-E5F6
+                    edition: PROFESSIONAL
+                    maxDevices: 5
+                    activeDevices: 2
+                    expiresAt: 1767225600000
+                    gracePeriodDays: 7
+                    message: null
+                    errorCode: null
+                gracePeriod:
+                  summary: Grace period (expired but within 7 days)
+                  value:
+                    isValid: true
+                    licenseKey: ZYNTA-A1B2-C3D4-E5F6
+                    edition: PROFESSIONAL
+                    maxDevices: 5
+                    activeDevices: 2
+                    expiresAt: 1741737600000
+                    gracePeriodDays: 7
+                    message: License has expired. 5 grace period days remaining.
+                    errorCode: null
+        '403':
+          description: License invalid, expired beyond grace period, or device limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                deviceLimit:
+                  summary: Device limit exceeded
+                  value:
+                    code: DEVICE_LIMIT_EXCEEDED
+                    message: Maximum device limit reached for this license
+                expired:
+                  summary: License fully expired
+                  value:
+                    code: LICENSE_EXPIRED
+                    message: License has expired and the grace period has ended
+        '404':
+          description: License key not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: LICENSE_NOT_FOUND
+                message: License key not found
+        '422':
+          description: Validation error (blank or invalid format)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/license/heartbeat:
+    post:
+      tags: [License]
+      summary: Device heartbeat with telemetry
+      description: |
+        Sent daily (or on reconnect) by each POS device to signal it is alive and report
+        health telemetry. Updates `lastHeartbeatAt` and telemetry columns in the database.
+
+        The response includes the current license status which the device must honour:
+        - `EXPIRING_SOON` — surface a renewal warning to the admin user
+        - `GRACE_PERIOD` — allow POS operation with a prominent banner
+        - `EXPIRED` — switch POS to read-only mode
+
+        When `forceSync=true`, the device should initiate an immediate pull sync.
+      operationId: deviceHeartbeat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HeartbeatRequest'
+            example:
+              licenseKey: ZYNTA-A1B2-C3D4-E5F6
+              deviceId: 550e8400-e29b-41d4-a716-446655440000
+              appVersion: 1.0.0
+              osVersion: Android 14 (API 34)
+              dbSizeBytes: 52428800
+              syncQueueDepth: 3
+              lastErrorCount: 0
+              uptimeHours: 72.5
+      responses:
+        '200':
+          description: Heartbeat accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HeartbeatResponse'
+              example:
+                status: ACTIVE
+                licenseKey: ZYNTA-A1B2-C3D4-E5F6
+                expiresAt: 1767225600000
+                daysUntilExpiry: 365
+                serverTimestamp: 1741824000000
+                forceSync: false
+        '401':
+          description: License key not found or device not registered (must re-activate)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: LICENSE_INVALID
+                message: License key or device not registered
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/license/{key}:
+    get:
+      tags: [License]
+      summary: Get license status
+      description: |
+        Returns the current status and limits for a license key. Used by the POS app
+        to validate the license on startup without performing a full activation.
+
+        **Note:** This endpoint does not update `lastHeartbeatAt` or telemetry. Use
+        `/v1/license/heartbeat` for regular check-ins.
+      operationId: getLicenseStatus
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 128
+            pattern: '^[A-Za-z0-9\-]{1,128}$'
+          description: License key (format ZYNTA-XXXX-XXXX-XXXX)
+          example: ZYNTA-A1B2-C3D4-E5F6
+      responses:
+        '200':
+          description: License found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LicenseStatusResponse'
+              example:
+                key: ZYNTA-A1B2-C3D4-E5F6
+                edition: PROFESSIONAL
+                status: ACTIVE
+                maxDevices: 5
+                activeDevices: 2
+                issuedAt: 1709251200000
+                expiresAt: 1767225600000
+                lastHeartbeatAt: 1741824000000
+        '404':
+          description: License not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: LICENSE_NOT_FOUND
+                message: License key not found
+        '422':
+          description: Invalid license key format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ── Admin License Management ───────────────────────────────────────────────
+
+  /admin/licenses:
+    get:
+      tags: [Admin / Licenses]
+      summary: List licenses (paginated)
+      description: |
+        Returns a paginated list of all licenses with filtering options.
+        All authenticated admin roles may call this endpoint.
+      operationId: listAdminLicenses
+      security:
+        - adminCookie: []
+          csrfHeader: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: Zero-based page index
+        - name: size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Page size (max 100)
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/LicenseStatus'
+          description: Filter by license status
+        - name: edition
+          in: query
+          schema:
+            $ref: '#/components/schemas/LicenseEdition'
+          description: Filter by edition
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Full-text search on license key, customer ID, or customer name
+          example: Colombo
+      responses:
+        '200':
+          description: Paginated license list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminPagedLicenses'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags: [Admin / Licenses]
+      summary: Create a new license
+      description: |
+        Generates a new license key and associates it with a customer.
+        **Requires ADMIN or OPERATOR role.**
+
+        The license key is generated server-side in `ZYNTA-XXXX-XXXX-XXXX` format
+        using a cryptographically random UUID segment.
+      operationId: createAdminLicense
+      security:
+        - adminCookie: []
+          csrfHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminCreateLicenseRequest'
+            example:
+              customerId: cust_550e8400
+              customerName: Colombo Supermart Pvt Ltd
+              edition: PROFESSIONAL
+              maxDevices: 5
+              expiresAt: 2027-03-01T00:00:00Z
+      responses:
+        '201':
+          description: License created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminLicense'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Insufficient role (FINANCE/AUDITOR/HELPDESK cannot create)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error (missing required field, invalid edition, invalid maxDevices)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/licenses/stats:
+    get:
+      tags: [Admin / Licenses]
+      summary: License aggregate statistics
+      description: |
+        Returns counts by status and edition. Used by the admin dashboard KPI cards.
+        All authenticated admin roles may call this endpoint.
+      operationId: getLicenseStats
+      security:
+        - adminCookie: []
+          csrfHeader: []
+      responses:
+        '200':
+          description: License statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminLicenseStats'
+              example:
+                total: 142
+                active: 115
+                expired: 12
+                revoked: 3
+                suspended: 2
+                expiringSoon: 10
+                byEdition:
+                  STARTER: 45
+                  PROFESSIONAL: 85
+                  ENTERPRISE: 12
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/licenses/{key}:
+    get:
+      tags: [Admin / Licenses]
+      summary: Get single license with devices
+      description: |
+        Returns full license details including the list of registered devices.
+        All authenticated admin roles may call this endpoint.
+      operationId: getAdminLicense
+      security:
+        - adminCookie: []
+          csrfHeader: []
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+          example: ZYNTA-A1B2-C3D4-E5F6
+      responses:
+        '200':
+          description: License found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminLicenseWithDevices'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: License not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags: [Admin / Licenses]
+      summary: Update license
+      description: |
+        Partially updates a license. Only provided fields are modified.
+        **Requires ADMIN or OPERATOR role.**
+
+        Use `clearExpiry: true` to convert a time-limited license to perpetual.
+        Setting `status: SUSPENDED` blocks device heartbeats and returns 401 to the POS app.
+      operationId: updateAdminLicense
+      security:
+        - adminCookie: []
+          csrfHeader: []
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+          example: ZYNTA-A1B2-C3D4-E5F6
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUpdateLicenseRequest'
+            examples:
+              extendExpiry:
+                summary: Extend expiry by one year
+                value:
+                  expiresAt: 2028-03-01T00:00:00Z
+              suspend:
+                summary: Suspend license
+                value:
+                  status: SUSPENDED
+              makePerpetual:
+                summary: Convert to perpetual
+                value:
+                  clearExpiry: true
+      responses:
+        '200':
+          description: License updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminLicense'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Insufficient role
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: License not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error (invalid date format, invalid maxDevices)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags: [Admin / Licenses]
+      summary: Revoke license permanently
+      description: |
+        Permanently revokes a license. The POS app will enter read-only mode on the next
+        heartbeat. **This action is irreversible.**
+
+        **Requires ADMIN or OPERATOR role.**
+      operationId: revokeAdminLicense
+      security:
+        - adminCookie: []
+          csrfHeader: []
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+          example: ZYNTA-A1B2-C3D4-E5F6
+      responses:
+        '204':
+          description: License revoked successfully (no body)
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Insufficient role
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: License not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ── Admin Device Management ────────────────────────────────────────────────
+
+  /admin/licenses/{key}/devices:
+    get:
+      tags: [Admin / Devices]
+      summary: List registered devices for a license
+      description: |
+        Returns all device registrations for the specified license key.
+        All authenticated admin roles may call this endpoint.
+      operationId: getAdminLicenseDevices
+      security:
+        - adminCookie: []
+          csrfHeader: []
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+          example: ZYNTA-A1B2-C3D4-E5F6
+      responses:
+        '200':
+          description: Device list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LicenseDevice'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: License not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/licenses/{key}/devices/{deviceId}:
+    delete:
+      tags: [Admin / Devices]
+      summary: Deregister a device
+      description: |
+        Removes a device registration from the license, freeing a device slot.
+        After deregistration, the device must re-activate to resume syncing.
+
+        **Requires ADMIN or OPERATOR role.**
+
+        Use this to reclaim slots when devices are retired, lost, or replaced.
+      operationId: deregisterAdminDevice
+      security:
+        - adminCookie: []
+          csrfHeader: []
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+          example: ZYNTA-A1B2-C3D4-E5F6
+        - name: deviceId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: 550e8400-e29b-41d4-a716-446655440000
+      responses:
+        '204':
+          description: Device deregistered (no body)
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Insufficient role
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: License or device not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'

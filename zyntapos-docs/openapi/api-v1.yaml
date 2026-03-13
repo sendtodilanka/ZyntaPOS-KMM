@@ -1,23 +1,23 @@
 openapi: "3.0.3"
 info:
-  title: ZyntaPOS API
+  title: ZyntaPOS POS API
   version: "1.0.0"
   description: |
-    Complete API reference for ZyntaPOS — an enterprise-grade offline-first Point of Sale system.
+    REST API for ZyntaPOS terminals — authentication, product catalog, and offline-first sync.
 
     ## Authentication
-    - **POS terminals**: JWT RS256 Bearer token (`/v1/*` endpoints)
-    - **Admin panel**: HttpOnly cookie + CSRF token (`/admin/*` endpoints)
-    - **License service**: API key (`/license/*` endpoints)
+    - All `/v1/*` endpoints (except `/v1/auth/login` and `/v1/auth/refresh`) require a
+      JWT RS256 Bearer token obtained from `/v1/auth/login`.
+    - Include as `Authorization: Bearer <access_token>` header.
 
     ## Rate Limits
-    - Auth tier: 10 req/min
-    - Sync tier: 60 req/min
-    - API tier: 300 req/min
+    - Auth tier (`/v1/auth/*`): **10 req/min** per IP (brute-force protection)
+    - Sync tier (`/v1/sync/*`): **60 req/min** per IP
+    - API tier (all other `/v1/*`): **300 req/min** per IP
 
     ## Versioning
-    All POS terminal endpoints are versioned under `/v1/`. Admin and license endpoints
-    are unversioned but stable. Breaking changes will introduce a new version prefix.
+    All POS terminal endpoints are versioned under `/v1/`. Breaking changes introduce a new
+    version prefix (e.g., `/v2/`). Admin and license endpoints are documented in separate specs.
   contact:
     name: Zynta Solutions Pvt Ltd
     url: https://zyntapos.com
@@ -27,47 +27,671 @@ info:
 
 servers:
   - url: https://api.zyntapos.com
-    description: Production (POS API + Admin)
-  - url: https://license.zyntapos.com
-    description: License Service
+    description: Production
+
+security:
+  - bearerAuth: []
 
 tags:
-  - name: POS Auth
-    description: POS terminal authentication (login, token refresh)
-  - name: POS Products
-    description: Product catalog access for POS terminals
-  - name: POS Sync
-    description: Offline-first sync push/pull and WebSocket
+  - name: Health
+    description: Liveness and readiness probes
   - name: Well-Known
-    description: Public key distribution and health probes
-  - name: Admin Auth
-    description: Admin panel authentication, MFA, password management
-  - name: Admin Users
-    description: Admin user management (CRUD, sessions)
-  - name: Admin Stores
-    description: Store listing, health, and configuration
-  - name: Admin Health
-    description: System and store health monitoring
-  - name: Admin Audit
-    description: Immutable audit log access and export
-  - name: Admin Metrics
-    description: KPI dashboards and sales metrics
-  - name: Admin Reports
-    description: Sales and product reports
-  - name: Admin Alerts
-    description: Alert management and alert rule configuration
-  - name: Admin Config
-    description: Feature flags, tax rates, and system configuration
-  - name: Admin Sync
-    description: Sync queue monitoring, conflict resolution, dead-letter queue
-  - name: Admin Tickets
-    description: Support ticket management
-  - name: Admin Diagnostic
-    description: Remote diagnostic sessions for stores
-  - name: Admin Licenses
-    description: License lifecycle management (admin-side)
-  - name: License Public
-    description: License activation and heartbeat (called by POS terminals)
-  - name: Unsubscribe
-    description: Email unsubscribe link
+    description: Public key distribution for offline JWT verification (ADR-008)
+  - name: Auth
+    description: POS terminal authentication — login and token refresh
+  - name: Products
+    description: Product catalog access for POS terminals
+  - name: Sync
+    description: Offline-first sync push/pull
+  - name: Export
+    description: GDPR data export
 
+paths:
+
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Service liveness
+      description: Returns OK when the API service is running. Used by Docker health checks and Uptime Kuma.
+      tags: [Health]
+      security: []
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+              example:
+                status: ok
+                version: "1.0.0"
+
+  /ping:
+    get:
+      operationId: ping
+      summary: Round-trip latency check
+      description: Returns `pong`. Useful for measuring network latency to the API.
+      tags: [Health]
+      security: []
+      responses:
+        "200":
+          description: Pong
+          content:
+            text/plain:
+              example: pong
+
+  /.well-known/public-key:
+    get:
+      operationId: getPublicKey
+      summary: RS256 public key for offline JWT verification
+      description: |
+        Returns the RSA public key used to sign JWT access tokens. POS terminals download
+        and cache this key at startup to verify tokens locally without a network call
+        (ADR-008 Trust-On-First-Use pattern).
+      tags: [Well-Known]
+      security: []
+      responses:
+        "200":
+          description: PEM-encoded RSA public key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicKeyResponse"
+
+  /v1/auth/login:
+    post:
+      operationId: login
+      summary: Authenticate POS terminal user
+      description: |
+        Authenticates a store user for a registered device. Validates the license key,
+        checks device registration (auto-registers if within `maxDevices` limit), and
+        returns JWT access + refresh tokens.
+
+        **Rate limit:** 10 req/min per IP.
+
+        **Brute-force protection:** 5 failed attempts locks the account for 15 minutes.
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+            example:
+              licenseKey: "ZYNTA-ABCD-1234-EFGH-5678"
+              deviceId: "android-tablet-001"
+              email: "cashier@store.com"
+              password: "securepass123"
+              storeId: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: AUTH_INVALID_CREDENTIALS
+                message: Invalid username or password
+        "403":
+          description: License inactive or device limit reached
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "423":
+          description: Account locked due to too many failed attempts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: AUTH_ACCOUNT_LOCKED
+                message: Account locked. Try again in 15 minutes.
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/auth/refresh:
+    post:
+      operationId: refreshToken
+      summary: Refresh access token
+      description: |
+        Exchanges a valid refresh token for a new access token. The refresh token is
+        stored as an opaque hash in `pos_sessions` — it is not a JWT.
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TokenRefreshRequest"
+      responses:
+        "200":
+          description: New access token issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenRefreshResponse"
+        "401":
+          description: Refresh token invalid or expired
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/products:
+    get:
+      operationId: listProducts
+      summary: List all products
+      description: |
+        Returns all active products in the store's catalog. Full-text search is supported
+        via the `q` query parameter (backed by SQLite FTS5 on the client after sync).
+        Server-side search is available via the `search` parameter.
+      tags: [Products]
+      parameters:
+        - name: storeId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: Filter by store (for multi-store setups)
+        - name: categoryId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: Filter by category
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Full-text search across product name and barcode
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        "200":
+          description: Product list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/sync/push:
+    post:
+      operationId: syncPush
+      summary: Push local operations to server
+      description: |
+        Uploads a batch of locally queued operations (creates, updates, deletes) to the
+        server. The server applies them with Last-Write-Wins conflict resolution and
+        notifies other store devices via WebSocket (`WsDelta` or `WsNotify`).
+
+        **Batch limit:** 50 operations per request.
+        **Rate limit:** 60 req/min per IP.
+      tags: [Sync]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SyncPushRequest"
+      responses:
+        "200":
+          description: Operations accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncPushResponse"
+        "400":
+          description: Batch too large or invalid entity type
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                batchTooLarge:
+                  value:
+                    code: SYNC_BATCH_TOO_LARGE
+                    message: Push batch exceeds 50 operations
+                invalidEntity:
+                  value:
+                    code: SYNC_INVALID_ENTITY
+                    message: Unknown entity type in sync operation
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/sync/pull:
+    get:
+      operationId: syncPull
+      summary: Pull remote changes since cursor
+      description: |
+        Downloads all operations that occurred on the server since the given `since`
+        sequence cursor. The client applies these to its local SQLite database.
+      tags: [Sync]
+      parameters:
+        - name: since
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int64
+            default: 0
+          description: Sequence cursor from last pull. Pass 0 for initial sync.
+        - name: storeId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Store to pull from
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 200
+      responses:
+        "200":
+          description: Remote operations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncPullResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/export/gdpr/{customerId}:
+    get:
+      operationId: exportGdprData
+      summary: GDPR data export for a customer
+      description: |
+        Exports all personal data held for a customer in compliance with GDPR Article 20
+        (right to data portability). Returns a JSON document with all records.
+        Requires ADMIN or MANAGER role.
+      tags: [Export]
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: GDPR data export
+          content:
+            application/json:
+              schema:
+                type: object
+                description: All customer data in portable JSON format
+        "404":
+          description: Customer not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /unsubscribe:
+    get:
+      operationId: emailUnsubscribe
+      summary: Email unsubscribe
+      description: Processes email unsubscribe requests from marketing/notification emails.
+      tags: [Export]
+      security: []
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Signed unsubscribe token from email link
+      responses:
+        "200":
+          description: Unsubscribed successfully
+          content:
+            text/html:
+              example: "<html><body>You have been unsubscribed.</body></html>"
+        "400":
+          description: Invalid or expired unsubscribe token
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        RS256 JWT access token from `/v1/auth/login`. Tokens expire in 1 hour.
+        Use `/v1/auth/refresh` to obtain a new access token using the refresh token.
+
+  responses:
+    Unauthorized:
+      description: Missing or expired access token
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            code: AUTH_TOKEN_EXPIRED
+            message: Access token expired — use /v1/auth/refresh
+    Forbidden:
+      description: Insufficient role permissions
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            code: FORBIDDEN
+            message: Your role does not permit this action
+
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded]
+          example: ok
+        version:
+          type: string
+          example: "1.0.0"
+
+    PublicKeyResponse:
+      type: object
+      required: [publicKey, algorithm]
+      properties:
+        publicKey:
+          type: string
+          description: PEM-encoded RSA-2048 public key
+          example: "-----BEGIN PUBLIC KEY-----\nMIIBIjANBg..."
+        algorithm:
+          type: string
+          enum: [RS256]
+        issuedAt:
+          type: integer
+          format: int64
+          description: Unix epoch of key generation
+
+    LoginRequest:
+      type: object
+      required: [licenseKey, deviceId, email, password]
+      properties:
+        licenseKey:
+          type: string
+          description: Active ZyntaPOS license key (format ZYNTA-XXXX-XXXX-XXXX-XXXX)
+          example: "ZYNTA-ABCD-1234-EFGH-5678"
+        deviceId:
+          type: string
+          description: Unique device identifier (UUID or hardware ID)
+          example: "android-tablet-001"
+        email:
+          type: string
+          format: email
+          example: "cashier@store.com"
+        password:
+          type: string
+          format: password
+          example: "securepass123"
+        storeId:
+          type: string
+          format: uuid
+          description: Store the terminal belongs to
+
+    LoginResponse:
+      type: object
+      required: [accessToken, refreshToken, expiresIn]
+      properties:
+        accessToken:
+          type: string
+          description: JWT RS256 access token (1-hour TTL)
+        refreshToken:
+          type: string
+          description: Opaque refresh token (7-day TTL)
+        expiresIn:
+          type: integer
+          description: Access token TTL in seconds
+          example: 3600
+        user:
+          $ref: "#/components/schemas/PosUser"
+
+    PosUser:
+      type: object
+      required: [id, email, role]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [ADMIN, STORE_MANAGER, CASHIER, CUSTOMER_SERVICE, REPORTER]
+        storeId:
+          type: string
+          format: uuid
+
+    TokenRefreshRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+          description: Opaque refresh token from `/v1/auth/login`
+
+    TokenRefreshResponse:
+      type: object
+      required: [accessToken, expiresIn]
+      properties:
+        accessToken:
+          type: string
+          description: New JWT RS256 access token
+        expiresIn:
+          type: integer
+          example: 3600
+
+    ProductListResponse:
+      type: object
+      required: [items, total, page, size]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Product"
+        total:
+          type: integer
+          description: Total number of products matching the filter
+        page:
+          type: integer
+        size:
+          type: integer
+
+    Product:
+      type: object
+      required: [id, name, price, categoryId, isActive]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: "Chicken Burger"
+        sku:
+          type: string
+          example: "SKU-001"
+        barcode:
+          type: string
+          example: "4006381333931"
+        price:
+          type: number
+          format: double
+          example: 850.00
+        costPrice:
+          type: number
+          format: double
+        categoryId:
+          type: string
+          format: uuid
+        stockQty:
+          type: number
+        isActive:
+          type: boolean
+        imageUrl:
+          type: string
+          format: uri
+        updatedAt:
+          type: string
+          format: date-time
+
+    SyncOperation:
+      type: object
+      required: [id, entityType, entityId, operation, payload, timestamp, deviceId]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Client-generated operation UUID
+        entityType:
+          type: string
+          enum:
+            - PRODUCT
+            - CATEGORY
+            - ORDER
+            - ORDER_ITEM
+            - CUSTOMER
+            - SUPPLIER
+            - STOCK
+            - SETTINGS
+            - EMPLOYEE
+            - EXPENSE
+            - COUPON
+            - REGISTER_SESSION
+          example: PRODUCT
+        entityId:
+          type: string
+          format: uuid
+          description: ID of the affected entity
+        operation:
+          type: string
+          enum: [INSERT, UPDATE, DELETE]
+        payload:
+          type: string
+          description: JSON-encoded entity snapshot (for INSERT/UPDATE)
+        timestamp:
+          type: integer
+          format: int64
+          description: Client-side Unix epoch milliseconds
+        deviceId:
+          type: string
+          description: Originating device ID (for conflict resolution)
+        storeId:
+          type: string
+          format: uuid
+
+    SyncPushRequest:
+      type: object
+      required: [operations, storeId, deviceId]
+      properties:
+        operations:
+          type: array
+          items:
+            $ref: "#/components/schemas/SyncOperation"
+          maxItems: 50
+          description: Batch of pending operations. Maximum 50 per request.
+        storeId:
+          type: string
+          format: uuid
+        deviceId:
+          type: string
+        currentSeq:
+          type: integer
+          format: int64
+          description: Device's current sync sequence (for optimistic locking)
+
+    SyncPushResponse:
+      type: object
+      required: [accepted, rejected, serverSeq]
+      properties:
+        accepted:
+          type: integer
+          description: Number of operations successfully applied
+        rejected:
+          type: integer
+          description: Number of operations rejected (e.g., stale deletes)
+        conflicts:
+          type: integer
+          description: Number of operations that triggered conflict resolution
+        serverSeq:
+          type: integer
+          format: int64
+          description: Latest server sequence after applying the batch
+
+    SyncPullResponse:
+      type: object
+      required: [operations, nextSeq, hasMore]
+      properties:
+        operations:
+          type: array
+          items:
+            $ref: "#/components/schemas/SyncOperation"
+        nextSeq:
+          type: integer
+          format: int64
+          description: Cursor for the next pull request
+        hasMore:
+          type: boolean
+          description: True if there are more operations to pull
+
+    ErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code
+          example: AUTH_INVALID_CREDENTIALS
+        message:
+          type: string
+          description: Human-readable error description
+          example: Invalid username or password
+        details:
+          type: object
+          description: Optional field-level validation errors
+          additionalProperties:
+            type: string

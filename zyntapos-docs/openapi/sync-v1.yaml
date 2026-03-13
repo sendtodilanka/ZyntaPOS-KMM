@@ -1,0 +1,760 @@
+openapi: 3.1.0
+info:
+  title: ZyntaPOS Sync & Diagnostic WebSocket API
+  version: 1.0.0
+  description: |
+    Real-time WebSocket channels for the ZyntaPOS sync engine and remote diagnostic relay.
+
+    This service provides two persistent WebSocket channels:
+
+    1. **`/v1/sync/ws`** — POS device sync channel. Devices connect here for real-time
+       delta notifications and to push/pull sync operations. One long-lived connection
+       per device, scoped to a store.
+
+    2. **`/v1/diagnostic/ws`** — Diagnostic relay channel (TODO-006). Technicians at
+       the ZyntaPOS admin panel connect here to relay diagnostic commands to POS devices
+       through the server, maintaining complete data isolation (no business data exposed).
+
+    ## Transport
+
+    All connections use **WebSocket Secure (WSS)** over TLS 1.3. The upgrade negotiation
+    proceeds as a standard HTTP/1.1 request with `Upgrade: websocket`.
+
+    ## Authentication
+
+    ### Sync Channel (`/v1/sync/ws`)
+    Requires a **RS256 POS JWT** obtained from `POST /v1/auth/login` on the API service.
+
+    Pass the token either:
+    - `Authorization: Bearer <token>` header (preferred)
+    - `?token=<token>` query parameter (fallback for environments that cannot set custom headers)
+
+    Required JWT claims: `sub` (userId), `storeId`.
+
+    ### Diagnostic Channel (`/v1/diagnostic/ws`)
+    Requires an **HS256 Admin JWT** obtained from `POST /admin/auth/login` on the API service,
+    plus a `sessionId` query parameter matching an ACTIVE `diagnostic_sessions` record.
+
+    Pass the token in the `Authorization: Bearer <token>` header.
+    Required JWT claims: `sub` (technicianId/adminUserId), `storeId` or `store_id`.
+
+    ## Connection Lifecycle
+
+    ```
+    Client → Server: HTTP GET /v1/sync/ws (with Authorization header)
+    Server → Client: 101 Switching Protocols
+    Server → Client: {"type":"ack", "storeId":"...", "deviceId":"...", "connectedAt":...}
+    Client ↔ Server: message exchange
+    Client/Server → either side: WebSocket Close frame
+    ```
+
+    ## Ping / Keep-Alive
+
+    The client should send a JSON `{"type":"ping"}` every 30 seconds to prevent
+    idle-connection timeouts on proxies. The server responds with `{"type":"pong"}`.
+
+    WebSocket-level Ping frames are also supported and will receive a Pong frame reply.
+
+    ## Error Handling
+
+    If authentication fails or a required query parameter is missing, the server closes
+    the connection immediately with a `1008 Policy Violation` close code before any
+    messages are exchanged.
+
+  contact:
+    name: Zynta Solutions Pvt Ltd
+    email: support@zyntapos.com
+  license:
+    name: Proprietary
+    url: https://zyntapos.com/terms
+
+servers:
+  - url: wss://sync.zyntapos.com
+    description: Production sync service (Cloudflare → Caddy → Ktor CIO)
+  - url: ws://localhost:8082
+    description: Local development
+
+tags:
+  - name: Health
+    description: Service liveness and readiness probes
+  - name: Sync Channel
+    description: |
+      POS device real-time sync WebSocket (`/v1/sync/ws`).
+
+      Message flow:
+      - Server → Device: `ack`, `delta`, `notify`, `force_sync`, `pong`, `diag_command`, `diag_session_event`
+      - Device → Server: `ping`, `sync_push`, `sync_pull`, `diag_response`
+  - name: Diagnostic Channel
+    description: |
+      Technician diagnostic relay WebSocket (`/v1/diagnostic/ws`).
+
+      Message flow:
+      - Technician → Server: `ping`, `diag_command`
+      - Server → Technician: `ack`, `pong`, `diag_response`, `diag_session_event`
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Security Schemes
+# ─────────────────────────────────────────────────────────────────────────────
+
+components:
+  securitySchemes:
+    posJwt:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        RS256-signed JWT issued by `POST /v1/auth/login` on the API service.
+        Required claims: `sub` (userId), `storeId`.
+    adminJwt:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        HS256-signed JWT issued by `POST /admin/auth/login` on the API service.
+        Required claims: `sub` (admin user ID), `storeId` or `store_id`.
+
+  schemas:
+
+    # ── Shared message envelope ────────────────────────────────────────────
+
+    WsAck:
+      type: object
+      description: |
+        **Server → Client.** Sent immediately after the WebSocket handshake succeeds.
+        Confirms the connection parameters the server recorded for this session.
+      required: [type, storeId, deviceId, connectedAt]
+      properties:
+        type:
+          type: string
+          const: ack
+        storeId:
+          type: string
+          format: uuid
+          description: Store UUID extracted from the JWT `storeId` claim.
+          example: f47ac10b-58cc-4372-a567-0e02b2c3d479
+        deviceId:
+          type: string
+          description: Device identifier from the `?deviceId=` query param, or `device-{userId}` if omitted.
+          example: android-kiosk-01
+        connectedAt:
+          type: integer
+          format: int64
+          description: Server-side Unix epoch milliseconds at connection time.
+          example: 1741824000000
+
+    WsDelta:
+      type: object
+      description: |
+        **Server → Device.** Broadcast to all other store devices when a sync push
+        lands and the delta is small (≤ 10 operations).
+
+        The client may apply the `operations` array directly without issuing a separate
+        pull request. If the client does not recognise an operation type it should
+        ignore it and issue a pull to resync safely.
+      required: [type, storeId, operationCount, latestSeq]
+      properties:
+        type:
+          type: string
+          const: delta
+        storeId:
+          type: string
+          format: uuid
+        operationCount:
+          type: integer
+          description: Number of new operations in this batch (≤ 10).
+          example: 3
+        latestSeq:
+          type: integer
+          format: int64
+          description: Server-side sequence number of the most recent applied operation.
+          example: 1042
+
+    WsNotify:
+      type: object
+      description: |
+        **Server → Device.** Broadcast when a push batch lands with > 10 operations.
+        The client should trigger a pull request using `latestSeq` as the `since` cursor.
+      required: [type, storeId, message, latestSeq]
+      properties:
+        type:
+          type: string
+          const: notify
+        storeId:
+          type: string
+          format: uuid
+        message:
+          type: string
+          default: sync_available
+          example: sync_available
+        latestSeq:
+          type: integer
+          format: int64
+          description: Latest known server sequence number — use as `since` in the next pull.
+          example: 1250
+
+    WsForceSync:
+      type: object
+      description: |
+        **Server → Device.** Sent when an admin triggers a force-sync from the admin panel,
+        or when the server detects the device is significantly behind. The client should
+        issue an immediate pull to catch up.
+      required: [type, storeId]
+      properties:
+        type:
+          type: string
+          const: force_sync
+        storeId:
+          type: string
+          format: uuid
+
+    WsPing:
+      type: object
+      description: |
+        **Client → Server.** JSON-level keep-alive. The server replies with `{"type":"pong"}`.
+        Send every 30 seconds to prevent proxy idle-connection timeouts.
+      required: [type]
+      properties:
+        type:
+          type: string
+          const: ping
+
+    WsPong:
+      type: object
+      description: |
+        **Server → Client.** Reply to a JSON `ping` message.
+      required: [type]
+      properties:
+        type:
+          type: string
+          const: pong
+
+    WsSyncPush:
+      type: object
+      description: |
+        **Device → Server.** Sends a batch of offline operations to the server.
+        The sync service forwards this to `POST /v1/sync/push` on the API service and
+        returns the response as a JSON message on the same WebSocket connection.
+      required: [type, operations]
+      properties:
+        type:
+          type: string
+          const: sync_push
+        operations:
+          type: array
+          description: Serialized sync operations (same format as `POST /v1/sync/push` body).
+          items:
+            $ref: '#/components/schemas/SyncOperation'
+
+    WsSyncPull:
+      type: object
+      description: |
+        **Device → Server.** Requests a batch of operations the device has not yet seen.
+        The sync service forwards this to `GET /v1/sync/pull` on the API service and
+        returns the response as a JSON message on the same WebSocket connection.
+      required: [type]
+      properties:
+        type:
+          type: string
+          const: sync_pull
+        since:
+          type: integer
+          format: int64
+          default: 0
+          description: Return operations with sequence number > this value. Use 0 for full sync.
+          example: 1000
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+          description: Maximum number of operations to return in one batch.
+          example: 50
+
+    SyncOperation:
+      type: object
+      description: A single offline change operation from the POS device sync queue.
+      required: [id, entityType, operation, payload, deviceId, timestamp]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Client-generated UUID for this operation (used for idempotency).
+        entityType:
+          type: string
+          description: Type of entity being changed.
+          enum: [product, order, order_item, customer, category, supplier, stock, expense, employee, coupon, tax_group, unit_of_measure]
+        operation:
+          type: string
+          enum: [CREATE, UPDATE, DELETE]
+        payload:
+          type: string
+          description: JSON-serialized entity snapshot (entity type determines schema).
+        deviceId:
+          type: string
+          description: Source device identifier.
+        timestamp:
+          type: integer
+          format: int64
+          description: Client-side Unix epoch milliseconds when the operation was created.
+
+    # ── Diagnostic relay messages (TODO-006) ─────────────────────────────────
+
+    WsDiagCommand:
+      type: object
+      description: |
+        **Technician → Server → POS Device.** A diagnostic command sent by the technician
+        (via the admin panel) to the target POS device. The server relays it to all
+        active connections for the session's store.
+
+        Commands are strictly scoped to the session's `dataScope` — only read-only
+        diagnostic operations are permitted. The POS app validates the scope before
+        executing any command.
+
+        Permitted commands (REMOTE_READ_ONLY scope):
+        - `system_health` — CPU, memory, storage, network status
+        - `error_logs` — last 30 days of error/crash log entries
+        - `db_integrity` — SQLite integrity check result
+        - `sync_status` — sync queue depth, last sync time, error count
+        - `hardware_diag` — printer, scanner, cash drawer status
+        - `config_view` — non-secret app configuration snapshot
+        - `license_status` — current license info and feature flags
+
+        Commands available with FULL_READ_ONLY scope additionally include:
+        - `db_vacuum` — VACUUM operation on SQLite database
+        - `db_reindex` — REINDEX operation
+        - `patch_apply` — apply a server-provided patch/migration
+
+      required: [type, sessionId, command]
+      properties:
+        type:
+          type: string
+          const: diag_command
+        sessionId:
+          type: string
+          format: uuid
+          description: Active diagnostic session ID from `diagnostic_sessions` table.
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+        command:
+          type: string
+          description: Command identifier (snake_case).
+          enum:
+            - system_health
+            - error_logs
+            - db_integrity
+            - sync_status
+            - hardware_diag
+            - config_view
+            - license_status
+            - db_vacuum
+            - db_reindex
+            - patch_apply
+          example: system_health
+        payload:
+          type: string
+          default: '{}'
+          description: JSON-encoded command parameters (command-specific schema).
+          example: '{}'
+
+    WsDiagResponse:
+      type: object
+      description: |
+        **POS Device → Server → Technician.** The POS app's response to a diagnostic
+        command. The server relays it to the connected technician WebSocket session.
+
+        The `result` field contains a JSON-encoded command-specific response object.
+        The technician client is responsible for parsing and rendering `result` based
+        on the `command` value.
+      required: [type, sessionId, command, result, success]
+      properties:
+        type:
+          type: string
+          const: diag_response
+        sessionId:
+          type: string
+          format: uuid
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+        command:
+          type: string
+          description: The command this is a response to.
+          example: system_health
+        result:
+          type: string
+          description: JSON-encoded result payload (command-specific schema).
+          example: '{"cpuUsagePercent":12.5,"memoryUsedMb":512,"storageFreeGb":14.2}'
+        success:
+          type: boolean
+          description: False if the command failed on the device (e.g. insufficient scope).
+          default: true
+
+    WsDiagSessionEvent:
+      type: object
+      description: |
+        **Server → Client (both technician and POS devices).** Lifecycle notification
+        for the diagnostic session. Published when a session starts or ends.
+
+        POS devices receiving `SESSION_STARTED` should display the diagnostic mode
+        visual indicator in the status bar and restrict access to business data.
+
+        POS devices receiving `SESSION_ENDED` should hide the indicator and resume
+        normal operation.
+      required: [type, sessionId, storeId, event]
+      properties:
+        type:
+          type: string
+          const: diag_session_event
+        sessionId:
+          type: string
+          format: uuid
+        storeId:
+          type: string
+          format: uuid
+        event:
+          type: string
+          enum: [SESSION_STARTED, SESSION_ENDED]
+          description: |
+            - `SESSION_STARTED` — technician connected; POS enters diagnostic mode
+            - `SESSION_ENDED` — technician disconnected or session expired/revoked
+
+    HealthResponse:
+      type: object
+      required: [status, service, version]
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded, down]
+          example: ok
+        service:
+          type: string
+          example: zyntapos-sync
+        version:
+          type: string
+          example: 1.0.0
+
+    WsCloseReason:
+      type: object
+      description: Reasons the server may close a WebSocket connection.
+      properties:
+        code:
+          type: integer
+          description: WebSocket close code (RFC 6455)
+        reason:
+          type: string
+      examples:
+        - code: 1008
+          reason: Missing JWT claims
+        - code: 1008
+          reason: Missing sessionId query parameter
+        - code: 1008
+          reason: Missing storeId claim
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Paths
+# ─────────────────────────────────────────────────────────────────────────────
+
+paths:
+
+  /health:
+    get:
+      tags: [Health]
+      summary: Service liveness
+      description: Returns HTTP 200 when the service is up and Redis connectivity is healthy.
+      operationId: getSyncHealth
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /ping:
+    get:
+      tags: [Health]
+      summary: Ping / readiness probe
+      description: Returns HTTP 200 with body `pong`.
+      operationId: pingSyncService
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: pong
+
+  /v1/sync/ws:
+    get:
+      tags: [Sync Channel]
+      summary: POS device real-time sync channel (WebSocket upgrade)
+      description: |
+        Upgrades an HTTP connection to a persistent WebSocket session for a POS device.
+
+        ### Connection
+
+        ```http
+        GET /v1/sync/ws?deviceId=android-kiosk-01 HTTP/1.1
+        Host: sync.zyntapos.com
+        Authorization: Bearer <RS256_POS_JWT>
+        Upgrade: websocket
+        Connection: Upgrade
+        Sec-WebSocket-Key: <base64-nonce>
+        Sec-WebSocket-Version: 13
+        ```
+
+        The server verifies the RS256 JWT signature and extracts `storeId` and `sub`
+        claims before completing the upgrade. If validation fails, the server returns
+        `101 Switching Protocols` but immediately closes with `1008 Policy Violation`.
+
+        ### Post-Handshake Flow
+
+        1. Server sends `ack` message
+        2. Client and server exchange messages (see message type schemas)
+        3. Either side can close with a WebSocket Close frame
+
+        ### Store-Scoped Broadcast
+
+        All devices connected with the same `storeId` receive `delta`, `notify`,
+        `force_sync`, and `diag_*` messages broadcast for that store. Devices from
+        different stores are completely isolated.
+
+        ### Sync Push / Pull via WebSocket
+
+        Rather than using the REST `/v1/sync/push` and `/v1/sync/pull` endpoints
+        directly, the POS device can send `sync_push` and `sync_pull` message types
+        over this WebSocket connection. The sync service proxies them to the API service
+        and returns the response as a JSON message on the same connection.
+
+        ### Diagnostic Mode Integration
+
+        When a `diag_session_event` message with `event=SESSION_STARTED` is received,
+        the POS device enters **Diagnostic Mode** — displaying a visual indicator and
+        blocking access to business data from the diagnostic command handler. Diagnostic
+        commands (`diag_command`) are executed in a sandboxed scope that has no access
+        to sales, orders, customers, or financial data.
+      operationId: connectSyncWs
+      security:
+        - posJwt: []
+      parameters:
+        - name: deviceId
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 256
+          description: |
+            Stable device identifier (e.g. Android Device ID or persistent UUID).
+            If omitted, defaults to `device-{userId}`.
+          example: android-kiosk-01
+        - name: token
+          in: query
+          required: false
+          schema:
+            type: string
+          description: |
+            Fallback bearer token for environments that cannot set `Authorization` headers
+            (e.g. browser WebSocket API). Prefer the `Authorization` header where possible.
+      responses:
+        '101':
+          description: |
+            Switching Protocols — WebSocket connection established.
+
+            After upgrade, the server immediately sends a JSON `ack` message:
+            ```json
+            {"type":"ack","storeId":"<uuid>","deviceId":"<id>","connectedAt":<epoch_ms>}
+            ```
+
+            ### Server → Client messages
+
+            | `type` | When sent | Action |
+            |--------|-----------|--------|
+            | `ack` | On connect | Confirm connection parameters |
+            | `delta` | After peer push (≤10 ops) | Apply operations directly |
+            | `notify` | After peer push (>10 ops) | Trigger a `sync_pull` |
+            | `force_sync` | Admin action | Trigger an immediate `sync_pull` |
+            | `pong` | After `ping` | Keep-alive reply |
+            | `diag_command` | During diagnostic session | Execute diagnostic command |
+            | `diag_session_event` | Session start/end | Enter/exit diagnostic mode |
+
+            ### Client → Server messages
+
+            | `type` | Purpose |
+            |--------|---------|
+            | `ping` | Keep-alive (send every 30 seconds) |
+            | `sync_push` | Submit offline operations batch |
+            | `sync_pull` | Request operations since a sequence number |
+            | `diag_response` | Return diagnostic command result to technician |
+
+            ### Message Schemas
+
+            See the `Ws*` schemas in the Components section for full field definitions.
+        '401':
+          description: Invalid or expired JWT (HTTP-level, before upgrade)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: INVALID_TOKEN
+                  message:
+                    type: string
+                    example: Token expired or invalid
+
+  /v1/diagnostic/ws:
+    get:
+      tags: [Diagnostic Channel]
+      summary: Technician diagnostic relay channel (WebSocket upgrade)
+      description: |
+        Upgrades an HTTP connection to a persistent WebSocket session for a ZyntaPOS
+        technician to relay diagnostic commands to a customer's POS devices.
+
+        **Security Architecture (TODO-006 — License-Gated Lockbox Pattern):**
+
+        - The technician NEVER connects directly to the customer device
+        - The sync service acts as a relay — commands flow: Technician → Relay → POS device
+        - The POS device executes commands in a sandboxed scope with NO access to business data
+        - All actions are logged in the customer's immutable audit trail
+        - Sessions are time-limited (configurable, max 2 hours) and customer-consent-gated
+
+        ### Prerequisites
+
+        1. Admin user creates a diagnostic session via `POST /admin/diagnostic/sessions`
+        2. Customer's POS ADMIN user approves the request in the consent UI
+        3. Session status transitions to `ACTIVE` in `diagnostic_sessions` table
+        4. Technician connects to this endpoint with the session JWT and `?sessionId=`
+
+        ### Connection
+
+        ```http
+        GET /v1/diagnostic/ws?sessionId=<session-uuid> HTTP/1.1
+        Host: sync.zyntapos.com
+        Authorization: Bearer <HS256_ADMIN_JWT>
+        Upgrade: websocket
+        Connection: Upgrade
+        Sec-WebSocket-Key: <base64-nonce>
+        Sec-WebSocket-Version: 13
+        ```
+
+        ### Data Isolation (Compile-Time Enforced)
+
+        The `:composeApp:feature:diagnostic` module has zero dependency on
+        `:shared:data` (which contains business repositories). Data isolation is
+        architectural — not permission-based — meaning it is impossible for diagnostic
+        commands to accidentally return business data regardless of bugs in permission checks.
+
+        ### Three-Layer Isolation Model
+
+        ```
+        CUSTOMER LAYER — Sales, Orders, Revenue, Customers (ADMIN/MANAGER/CASHIER only)
+             ↑ FIREWALL (no cross-access)
+        DIAGNOSTIC LAYER — System health, logs, DB integrity, sync status, hardware
+             ↑ FIREWALL (no cross-access)
+        AUDIT LAYER — All actions logged immutably (read-only, visible to ADMIN)
+        ```
+      operationId: connectDiagnosticWs
+      security:
+        - adminJwt: []
+      parameters:
+        - name: sessionId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: |
+            UUID of the active diagnostic session created via
+            `POST /admin/diagnostic/sessions` on the API service.
+            The session must be in `ACTIVE` status (customer consent granted).
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+      responses:
+        '101':
+          description: |
+            Switching Protocols — WebSocket connection established.
+
+            After upgrade, the server:
+            1. Sends `ack` to the technician
+            2. Broadcasts `diag_session_event` (SESSION_STARTED) to all POS devices in the store
+            3. POS devices enter Diagnostic Mode
+
+            On disconnect:
+            1. Server broadcasts `diag_session_event` (SESSION_ENDED) to all POS devices
+            2. POS devices exit Diagnostic Mode
+
+            ### Server → Technician messages
+
+            | `type` | When sent |
+            |--------|-----------|
+            | `ack` | On connect |
+            | `pong` | After `ping` |
+            | `diag_response` | POS device responded to a command |
+            | `diag_session_event` | Session lifecycle (e.g. SESSION_ENDED by timeout) |
+
+            ### Technician → Server messages
+
+            | `type` | Purpose |
+            |--------|---------|
+            | `ping` | Keep-alive |
+            | `diag_command` | Send command to POS device(s) |
+
+            ### Command Execution Flow
+
+            ```
+            Technician → {"type":"diag_command","sessionId":"...","command":"system_health","payload":"{}"}
+            Server relays → all POS devices connected for the session's store
+            POS device executes → in sandboxed diagnostic scope
+            POS device → {"type":"diag_response","sessionId":"...","command":"system_health","result":"{...}","success":true}
+            Server relays → back to the technician WebSocket
+            ```
+
+            ### Session Expiry
+
+            When the session TTL elapses (max 2 hours), the server:
+            1. Broadcasts `diag_session_event` (SESSION_ENDED) to the technician
+            2. Closes the WebSocket with code 1000 (Normal Closure)
+            3. Updates `status=EXPIRED` in `diagnostic_sessions` table
+
+            ### Audit Trail
+
+            Every diagnostic command is logged in the customer's immutable audit trail
+            with event type `DIAGNOSTIC_SESSION_COMMAND`, including technician identity,
+            session ID, store ID, command name, and timestamp.
+        '401':
+          description: Invalid or expired admin JWT
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: INVALID_TOKEN
+                  message:
+                    type: string
+                    example: Token expired or invalid
+
+# ─────────────────────────────────────────────────────────────────────────────
+# WebSocket Message Type Reference
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# OpenAPI 3.1.0 does not have a dedicated WebSocket message schema section.
+# The schemas below are referenced from path response descriptions above and
+# serve as the canonical message format documentation.
+#
+# All messages are UTF-8 JSON text frames. Binary frames are not used.
+# The `type` discriminator field is always present as the first property.
+#
+# Sync Channel Messages (Server → Device):
+#   WsAck, WsDelta, WsNotify, WsForceSync, WsPong, WsDiagCommand, WsDiagSessionEvent
+#
+# Sync Channel Messages (Device → Server):
+#   WsPing, WsSyncPush, WsSyncPull, WsDiagResponse
+#
+# Diagnostic Channel Messages (Server → Technician):
+#   WsAck, WsPong, WsDiagResponse, WsDiagSessionEvent
+#
+# Diagnostic Channel Messages (Technician → Server):
+#   WsPing, WsDiagCommand
+#
+# All schemas are defined in the components/schemas section above.
+# ─────────────────────────────────────────────────────────────────────────────
