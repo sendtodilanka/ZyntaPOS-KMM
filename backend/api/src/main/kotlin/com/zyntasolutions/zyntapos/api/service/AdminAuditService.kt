@@ -44,10 +44,10 @@ object AdminAuditLog : Table("admin_audit_log") {
 
 // ── Service ──────────────────────────────────────────────────────────────────
 
-class AdminAuditService {
+open class AdminAuditService {
 
     /** Write a new audit entry — call after every admin mutation. */
-    suspend fun log(
+    open suspend fun log(
         adminId: UUID?,
         adminName: String?,
         eventType: String,
@@ -60,36 +60,38 @@ class AdminAuditService {
         userAgent: String? = null,
         success: Boolean = true,
         errorMessage: String? = null
-    ) = newSuspendedTransaction {
-        val now = OffsetDateTime.now(ZoneOffset.UTC)
-        val newId = UUID.randomUUID()
+    ) {
+        newSuspendedTransaction {
+            val now = OffsetDateTime.now(ZoneOffset.UTC)
+            val newId = UUID.randomUUID()
 
-        // Compute hash chain: SHA-256(previousHash + eventType + entityId + timestamp)
-        val lastHash = AdminAuditLog.selectAll()
-            .orderBy(AdminAuditLog.createdAt, SortOrder.DESC)
-            .limit(1)
-            .singleOrNull()?.get(AdminAuditLog.hashChain) ?: ""
-        val chainInput = "$lastHash|$eventType|${entityId ?: ""}|${now.toInstant().toEpochMilli()}"
-        val hashChain = sha256Hex(chainInput)
+            // Compute hash chain: SHA-256(previousHash + eventType + entityId + timestamp)
+            val lastHash = AdminAuditLog.selectAll()
+                .orderBy(AdminAuditLog.createdAt, SortOrder.DESC)
+                .limit(1)
+                .singleOrNull()?.get(AdminAuditLog.hashChain) ?: ""
+            val chainInput = "$lastHash|$eventType|${entityId ?: ""}|${now.toInstant().toEpochMilli()}"
+            val hashChain = sha256Hex(chainInput)
 
-        AdminAuditLog.insert {
-            it[id]                   = newId
-            it[this.eventType]       = eventType
-            it[this.category]        = category
-            it[this.adminId]         = adminId
-            it[this.adminName]       = adminName
-            it[this.entityType]      = entityType
-            it[this.entityId]        = entityId
-            it[this.previousValues]  = previousValues?.let { m ->
-                "{${m.entries.joinToString(",") { (k, v) -> "\"$k\":\"$v\"" }}}" }
-            it[this.newValues]       = newValues?.let { m ->
-                "{${m.entries.joinToString(",") { (k, v) -> "\"$k\":\"$v\"" }}}" }
-            it[this.ipAddress]       = ipAddress
-            it[this.userAgent]       = userAgent
-            it[this.success]         = success
-            it[this.errorMessage]    = errorMessage
-            it[this.hashChain]       = hashChain
-            it[createdAt]            = now
+            AdminAuditLog.insert {
+                it[id]                   = newId
+                it[this.eventType]       = eventType
+                it[this.category]        = category
+                it[this.adminId]         = adminId
+                it[this.adminName]       = adminName
+                it[this.entityType]      = entityType
+                it[this.entityId]        = entityId
+                it[this.previousValues]  = previousValues?.let { m ->
+                    "{${m.entries.joinToString(",") { (k, v) -> "\"$k\":\"$v\"" }}}" }
+                it[this.newValues]       = newValues?.let { m ->
+                    "{${m.entries.joinToString(",") { (k, v) -> "\"$k\":\"$v\"" }}}" }
+                it[this.ipAddress]       = ipAddress
+                it[this.userAgent]       = userAgent
+                it[this.success]         = success
+                it[this.errorMessage]    = errorMessage
+                it[this.hashChain]       = hashChain
+                it[createdAt]            = now
+            }
         }
     }
 

@@ -1,5 +1,7 @@
 package com.zyntasolutions.zyntapos.api.sync
 
+import com.zyntasolutions.zyntapos.api.db.ExposedTransactionRunner
+import com.zyntasolutions.zyntapos.api.db.TransactionRunner
 import com.zyntasolutions.zyntapos.api.models.PushRequest
 import com.zyntasolutions.zyntapos.api.models.PushResponse
 import com.zyntasolutions.zyntapos.api.models.SyncOperation
@@ -8,7 +10,6 @@ import com.zyntasolutions.zyntapos.api.repository.SyncOperationRepository
 import io.lettuce.core.api.StatefulRedisConnection
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.slf4j.LoggerFactory
 
 /**
@@ -29,6 +30,7 @@ class SyncProcessor(
     private val deadLetterRepo: DeadLetterRepository,
     private val metrics: SyncMetrics,
     private val redisConnection: StatefulRedisConnection<String, String>?,
+    private val txRunner: TransactionRunner = ExposedTransactionRunner(),
 ) {
     private val logger = LoggerFactory.getLogger(SyncProcessor::class.java)
     private val json = Json { ignoreUnknownKeys = true }
@@ -74,7 +76,7 @@ class SyncProcessor(
         val conflicts  = mutableListOf<String>()
 
         if (newOps.isNotEmpty()) {
-            newSuspendedTransaction {
+            txRunner.invoke {
                 for (op in newOps) {
                     try {
                         val latestSnapshot = syncOpRepo.findLatestForEntity(storeId, op.entityType, op.entityId)

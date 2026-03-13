@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.api.sync
 
+import com.zyntasolutions.zyntapos.api.db.NoOpTransactionRunner
 import com.zyntasolutions.zyntapos.api.models.PushRequest
 import com.zyntasolutions.zyntapos.api.models.SyncOperation
 import com.zyntasolutions.zyntapos.api.repository.DeadLetterRepository
@@ -38,6 +39,7 @@ class SyncProcessorTest {
         deadLetterRepo = deadLetterRepo,
         metrics = metrics,
         redisConnection = null, // no Redis in tests
+        txRunner = NoOpTransactionRunner(),
     )
 
     private fun validOp(

@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.api.repository
 
 import com.zyntasolutions.zyntapos.api.auth.AdminRole
+import com.zyntasolutions.zyntapos.api.service.AdminSessionRow
 import com.zyntasolutions.zyntapos.api.service.AdminUserRow
 import java.util.UUID
 
@@ -45,6 +46,14 @@ interface AdminUserRepository {
     suspend fun revokeSession(sessionId: UUID, revokedAtMs: Long)
 
     suspend fun revokeAllSessions(userId: UUID, revokedAtMs: Long)
+
+    suspend fun revokeSessionByTokenHash(tokenHash: String, revokedAtMs: Long)
+
+    suspend fun listActiveSessions(userId: UUID, nowMs: Long): List<AdminSessionRow>
+
+    // ── User lookup (including inactive — for password change verification) ─
+
+    suspend fun findByIdWithPassword(id: UUID): AdminUserRow?
 
     // ── Password reset ──────────────────────────────────────────────────────
 

@@ -63,7 +63,23 @@ class AdminAuthServiceExtendedTest {
             )
         }
 
-        private val noOpAudit = AdminAuditService()
+        /** No-op audit service that skips DB writes — safe for unit tests without a database. */
+        private val noOpAudit = object : AdminAuditService() {
+            override suspend fun log(
+                adminId: java.util.UUID?,
+                adminName: String?,
+                eventType: String,
+                category: String,
+                entityType: String?,
+                entityId: String?,
+                previousValues: Map<String, String>?,
+                newValues: Map<String, String>?,
+                ipAddress: String?,
+                userAgent: String?,
+                success: Boolean,
+                errorMessage: String?
+            ) { /* no-op */ }
+        }
 
         private const val TEST_PASSWORD = "SecureP@ssw0rd!"
         private val TEST_BCRYPT_HASH = BCrypt.withDefaults().hashToString(4, TEST_PASSWORD.toCharArray())
@@ -160,8 +176,20 @@ class AdminAuthServiceExtendedTest {
             }
         }
 
+        override suspend fun revokeSessionByTokenHash(tokenHash: String, revokedAtMs: Long) {
+            // tokenHash not stored in SessionRow — no-op for current tests
+        }
+
+        override suspend fun listActiveSessions(userId: UUID, nowMs: Long): List<AdminSessionRow> =
+            sessions.values
+                .filter { it.userId == userId && it.revokedAt == null && it.expiresAt > nowMs }
+                .map { AdminSessionRow(it.id, it.userId, it.userAgent, it.ipAddress, it.createdAt, it.expiresAt, it.revokedAt) }
+
+        override suspend fun findByIdWithPassword(id: UUID): AdminUserRow? = users[id]
+
         override suspend fun deleteUnusedResetTokens(userId: UUID) {
-            resetTokens.entries.removeAll { it.value.adminUserId == userId && it.value.usedAt == null }
+            val keysToRemove = resetTokens.entries.filter { it.value.adminUserId == userId && it.value.usedAt == null }.map { it.key }
+            keysToRemove.forEach { resetTokens.remove(it) }
         }
 
         override suspend fun insertResetToken(id: UUID, userId: UUID, tokenHash: String, expiresAt: Long, createdAt: Long) {

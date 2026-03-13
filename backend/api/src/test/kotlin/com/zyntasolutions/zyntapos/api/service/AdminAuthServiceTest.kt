@@ -80,13 +80,31 @@ class AdminAuthServiceTest {
             override suspend fun findSessionByTokenHash(tokenHash: String, nowMs: Long): SessionRow? = throw NotImplementedError()
             override suspend fun revokeSession(sessionId: UUID, revokedAtMs: Long) = throw NotImplementedError()
             override suspend fun revokeAllSessions(userId: UUID, revokedAtMs: Long) = throw NotImplementedError()
+            override suspend fun revokeSessionByTokenHash(tokenHash: String, revokedAtMs: Long) = throw NotImplementedError()
+            override suspend fun listActiveSessions(userId: UUID, nowMs: Long): List<AdminSessionRow> = throw NotImplementedError()
+            override suspend fun findByIdWithPassword(id: UUID): AdminUserRow? = throw NotImplementedError()
             override suspend fun deleteUnusedResetTokens(userId: UUID) = throw NotImplementedError()
             override suspend fun insertResetToken(id: UUID, userId: UUID, tokenHash: String, expiresAt: Long, createdAt: Long) = throw NotImplementedError()
             override suspend fun findResetToken(tokenHash: String): ResetTokenRow? = throw NotImplementedError()
             override suspend fun markResetTokenUsed(tokenHash: String, usedAt: Long) = throw NotImplementedError()
         }
 
-        private val noOpAudit = AdminAuditService()
+        private val noOpAudit = object : AdminAuditService() {
+            override suspend fun log(
+                adminId: UUID?,
+                adminName: String?,
+                eventType: String,
+                category: String,
+                entityType: String?,
+                entityId: String?,
+                previousValues: Map<String, String>?,
+                newValues: Map<String, String>?,
+                ipAddress: String?,
+                userAgent: String?,
+                success: Boolean,
+                errorMessage: String?
+            ) { /* no-op */ }
+        }
 
         private fun testUser(mfaEnabled: Boolean = false) = AdminUserRow(
             id           = UUID.randomUUID(),
