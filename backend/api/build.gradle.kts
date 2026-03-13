@@ -148,6 +148,13 @@ dependencies {
     detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.8")
 }
 
+tasks.test {
+    // Prevent individual tests from hanging indefinitely (e.g., missing Database.connect()).
+    // Each test class gets 2 minutes; the entire suite gets 10 minutes.
+    systemProperty("junit.jupiter.execution.timeout.default", "2m")
+    systemProperty("junit.jupiter.execution.timeout.testable.method.default", "2m")
+}
+
 tasks.shadowJar {
     archiveBaseName.set("zyntapos-api")
     archiveVersion.set("")

@@ -70,9 +70,9 @@ class AdminAuthService(
     // ── Login ────────────────────────────────────────────────────────────────
 
     suspend fun login(email: String, password: String, ip: String?, userAgent: String?): AdminAuthResult {
-        // G2: Reject oversized passwords before bcrypt (bcrypt silently truncates at 72 bytes)
+        // G2: Reject oversized passwords before bcrypt (bcrypt truncates at 72 bytes).
+        // Return directly — no timing-attack concern for clearly oversized input.
         if (password.length > MAX_PASSWORD_LENGTH) {
-            bcryptVerifier.verify(password.toCharArray(), DUMMY_HASH)
             return AdminAuthResult.InvalidCredentials
         }
 
@@ -154,12 +154,7 @@ class AdminAuthService(
     suspend fun logout(rawRefreshToken: String, adminId: UUID? = null, adminName: String? = null, ip: String? = null) {
         val hash = sha256Hex(rawRefreshToken)
         val now = Instant.now().toEpochMilli()
-        // Revoke by finding and revoking the session
-        newSuspendedTransaction {
-            AdminSessions.update({ AdminSessions.tokenHash eq hash }) {
-                it[revokedAt] = now
-            }
-        }
+        adminUserRepo.revokeSessionByTokenHash(hash, now)
         // G3: Audit logout
         auditService.log(
             adminId   = adminId,
@@ -238,35 +233,14 @@ class AdminAuthService(
         adminUserRepo.revokeAllSessions(userId, Instant.now().toEpochMilli())
 
     /** Lists active (non-revoked, non-expired) sessions for a user. */
-    suspend fun listActiveSessions(userId: UUID): List<AdminSessionRow> = newSuspendedTransaction {
-        val now = Instant.now().toEpochMilli()
-        AdminSessions.selectAll()
-            .where {
-                (AdminSessions.userId eq userId) and
-                (AdminSessions.revokedAt.isNull()) and
-                (AdminSessions.expiresAt greater now)
-            }
-            .orderBy(AdminSessions.createdAt, SortOrder.DESC)
-            .map {
-                AdminSessionRow(
-                    id        = it[AdminSessions.id],
-                    userId    = it[AdminSessions.userId],
-                    userAgent = it[AdminSessions.userAgent],
-                    ipAddress = it[AdminSessions.ipAddress],
-                    createdAt = it[AdminSessions.createdAt],
-                    expiresAt = it[AdminSessions.expiresAt],
-                    revokedAt = it[AdminSessions.revokedAt]
-                )
-            }
-    }
+    suspend fun listActiveSessions(userId: UUID): List<AdminSessionRow> =
+        adminUserRepo.listActiveSessions(userId, Instant.now().toEpochMilli())
 
     /** Changes password after verifying the current password. Returns false on wrong current password. */
     suspend fun changePassword(userId: UUID, currentPassword: String, newPassword: String): Boolean {
-        val row = newSuspendedTransaction {
-            AdminUsers.selectAll().where { AdminUsers.id eq userId }.singleOrNull()
-        } ?: return false
+        val row = adminUserRepo.findByIdWithPassword(userId) ?: return false
 
-        val currentHash = row[AdminUsers.passwordHash] ?: return false
+        val currentHash = row.passwordHash ?: return false
         val verified = bcryptVerifier.verify(currentPassword.toCharArray(), currentHash.toCharArray())
         if (!verified.verified) return false
 

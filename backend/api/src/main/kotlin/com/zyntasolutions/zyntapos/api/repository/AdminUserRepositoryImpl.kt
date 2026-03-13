@@ -4,6 +4,7 @@ import com.zyntasolutions.zyntapos.api.auth.AdminRole
 import com.zyntasolutions.zyntapos.api.db.AdminSessions
 import com.zyntasolutions.zyntapos.api.db.AdminUsers
 import com.zyntasolutions.zyntapos.api.db.PasswordResetTokens
+import com.zyntasolutions.zyntapos.api.service.AdminSessionRow
 import com.zyntasolutions.zyntapos.api.service.AdminUserRow
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -153,6 +154,41 @@ class AdminUserRepositoryImpl : AdminUserRepository {
                 it[revokedAt] = revokedAtMs
             }
         }
+    }
+
+    override suspend fun revokeSessionByTokenHash(tokenHash: String, revokedAtMs: Long) {
+        newSuspendedTransaction {
+            AdminSessions.update({ AdminSessions.tokenHash eq tokenHash }) {
+                it[revokedAt] = revokedAtMs
+            }
+        }
+    }
+
+    override suspend fun listActiveSessions(userId: UUID, nowMs: Long): List<AdminSessionRow> = newSuspendedTransaction {
+        AdminSessions.selectAll()
+            .where {
+                (AdminSessions.userId eq userId) and
+                (AdminSessions.revokedAt.isNull()) and
+                (AdminSessions.expiresAt greater nowMs)
+            }
+            .orderBy(AdminSessions.createdAt, SortOrder.DESC)
+            .map {
+                AdminSessionRow(
+                    id        = it[AdminSessions.id],
+                    userId    = it[AdminSessions.userId],
+                    userAgent = it[AdminSessions.userAgent],
+                    ipAddress = it[AdminSessions.ipAddress],
+                    createdAt = it[AdminSessions.createdAt],
+                    expiresAt = it[AdminSessions.expiresAt],
+                    revokedAt = it[AdminSessions.revokedAt]
+                )
+            }
+    }
+
+    override suspend fun findByIdWithPassword(id: UUID): AdminUserRow? = newSuspendedTransaction {
+        AdminUsers.selectAll()
+            .where { AdminUsers.id eq id }
+            .singleOrNull()?.toAdminUserRow()
     }
 
     // ── Password reset ──────────────────────────────────────────────────────
