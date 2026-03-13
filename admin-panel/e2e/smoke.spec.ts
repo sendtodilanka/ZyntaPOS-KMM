@@ -22,6 +22,45 @@ async function stubUnauthenticated(page: import('@playwright/test').Page) {
   });
 }
 
+/**
+ * Ensure the authenticated user is available even before MSW service worker
+ * activates.  The addInitScript patches window.fetch at page-creation time,
+ * which fires before the MSW service worker intercepts requests.  This
+ * guarantees /admin/auth/me always returns the mock user so the auth guard
+ * in __root.tsx never redirects to /login.
+ */
+async function ensureAuthenticated(page: import('@playwright/test').Page) {
+  await page.addInitScript(() => {
+    const _orig = window.fetch.bind(window);
+    const mockUser = {
+      id: 'user-1',
+      email: 'admin@zyntapos.com',
+      name: 'System Admin',
+      role: 'ADMIN',
+      mfaEnabled: false,
+      isActive: true,
+      lastLoginAt: null,
+      createdAt: new Date('2024-01-01T00:00:00Z').getTime(),
+    };
+    window.fetch = (input, init) => {
+      const url = typeof input === 'string' ? input : (input instanceof URL ? input.href : (input as Request).url);
+      if (url.includes('/admin/auth/me')) {
+        return Promise.resolve(new Response(JSON.stringify(mockUser), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }));
+      }
+      if (url.includes('/admin/auth/status')) {
+        return Promise.resolve(new Response(JSON.stringify({ needsBootstrap: false }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }));
+      }
+      return _orig(input, init);
+    };
+  });
+}
+
 test.describe('Smoke tests', () => {
   test('login page loads', async ({ page }) => {
     await stubUnauthenticated(page);
@@ -37,7 +76,7 @@ test.describe('Smoke tests', () => {
   });
 
   test('dashboard shows KPI cards after login', async ({ page }) => {
-    // With storageState the user is already authenticated; go directly to dashboard
+    await ensureAuthenticated(page);
     await page.goto('/');
     await page.waitForLoadState('networkidle');
     await page.locator('main').first().waitFor({ state: 'visible', timeout: 15_000 });
@@ -50,6 +89,7 @@ test.describe('Smoke tests', () => {
   });
 
   test('tickets list page loads', async ({ page }) => {
+    await ensureAuthenticated(page);
     await page.goto('/tickets');
     await page.waitForLoadState('networkidle');
     await page.locator('main').first().waitFor({ state: 'visible', timeout: 15_000 });
@@ -57,6 +97,7 @@ test.describe('Smoke tests', () => {
   });
 
   test('new ticket modal opens', async ({ page }) => {
+    await ensureAuthenticated(page);
     await page.goto('/tickets');
     await page.waitForLoadState('networkidle');
     await page.locator('main').first().waitFor({ state: 'visible', timeout: 15_000 });
