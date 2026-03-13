@@ -4,7 +4,6 @@ import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { useCurrentUser, useAdminStatus } from '@/api/auth';
-import { useAuth } from '@/hooks/use-auth';
 import { useUiStore } from '@/stores/ui-store';
 
 interface RouterContext {
@@ -39,8 +38,13 @@ function RootLayout() {
 
   // Hydrate auth state on every page load via GET /admin/auth/me
   // S1-7: Only use query loading — removed storeLoading (Zustand isLoading removed)
-  const { isLoading: queryLoading } = useCurrentUser();
-  const { isAuthenticated } = useAuth();
+  // Derive isAuthenticated from query data directly (not from Zustand store).
+  // useCurrentUser's useEffect syncs query.data → Zustand asynchronously, but
+  // the auth guard useEffect below captures isAuthenticated during render. If we
+  // read from the store, the guard sees the stale `null` value and redirects to
+  // /login before the sync effect fires. Using query data avoids this race.
+  const { isLoading: queryLoading, data: currentUser } = useCurrentUser();
+  const isAuthenticated = !!currentUser;
 
   const loading = statusLoading || queryLoading;
 
