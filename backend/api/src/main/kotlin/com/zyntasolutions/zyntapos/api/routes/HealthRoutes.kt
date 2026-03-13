@@ -8,6 +8,7 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.lettuce.core.api.StatefulRedisConnection
 import kotlinx.serialization.Serializable
+import org.apache.commons.pool2.impl.GenericObjectPool
 import org.koin.ktor.ext.inject
 
 // S2-13: Health responses include dependency status indicators + version + uptime
@@ -34,7 +35,7 @@ private val startTime = System.currentTimeMillis()
 
 fun Route.healthRoutes() {
     val syncMetrics: SyncMetrics by inject()
-    val redisConnection: StatefulRedisConnection<String, String>? by inject()
+    val redisPool: GenericObjectPool<StatefulRedisConnection<String, String>>? by inject()
 
     get("/health") {
         val dbOk = try {
@@ -43,7 +44,7 @@ fun Route.healthRoutes() {
         } catch (_: Exception) {
             "degraded"
         }
-        val redisOk = checkRedis(redisConnection)
+        val redisOk = checkRedis(redisPool)
         val overallStatus = if (dbOk == "ok" && redisOk == "ok") "ok" else "degraded"
         val statusCode = if (overallStatus == "ok") HttpStatusCode.OK else HttpStatusCode.ServiceUnavailable
         call.respond(
@@ -64,7 +65,7 @@ fun Route.healthRoutes() {
         } catch (_: Exception) {
             "degraded"
         }
-        val redisOk = checkRedis(redisConnection)
+        val redisOk = checkRedis(redisPool)
         val overallStatus = if (dbOk == "ok" && redisOk == "ok") "ok" else "degraded"
         val statusCode = if (overallStatus == "ok") HttpStatusCode.OK else HttpStatusCode.ServiceUnavailable
         call.respond(
@@ -90,11 +91,16 @@ fun Route.healthRoutes() {
     }
 }
 
-private fun checkRedis(connection: StatefulRedisConnection<String, String>?): String {
-    if (connection == null) return "not_configured"
+private fun checkRedis(pool: GenericObjectPool<StatefulRedisConnection<String, String>>?): String {
+    if (pool == null) return "not_configured"
     return try {
-        val pong = connection.sync().ping()
-        if (pong == "PONG") "ok" else "degraded"
+        val conn = pool.borrowObject()
+        try {
+            val pong = conn.sync().ping()
+            if (pong == "PONG") "ok" else "degraded"
+        } finally {
+            pool.returnObject(conn)
+        }
     } catch (_: Exception) {
         "degraded"
     }
