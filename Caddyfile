@@ -201,14 +201,16 @@ status.zyntapos.com {
 # mail.zyntapos.com MUST be grey-cloud (DNS-only) in Cloudflare so that
 # IMAP (993), SMTP (587/465/25) ports reach the VPS directly.
 #
-# IMPORTANT: The *.zyntapos.com CF Origin wildcard cert (loaded by all other
-# sites) would silently match this domain and Caddy would skip ACME entirely.
-# tls { issuer acme } explicitly overrides the wildcard and forces Let's
-# Encrypt via HTTP-01 challenge on port 80 (which Caddy handles internally).
+# TLS: Uses an explicit Let's Encrypt cert obtained externally via DNS-01
+# (cert-renew-mail.yml GitHub Actions workflow using acme.sh + Cloudflare API).
+# Caddy's built-in ACME cannot be used here because the *.zyntapos.com
+# Cloudflare Origin Certificate loaded by other site blocks is in Caddy's
+# shared cert cache, causing Caddy to skip ACME automation for this domain.
+# The cert is placed at /etc/caddy/certs/ by the renewal workflow and must
+# exist on the VPS before Caddy is (re)started. Run cert-renew-mail.yml
+# manually after first deploy to issue the initial certificate.
 mail.zyntapos.com {
-	tls {
-		issuer acme
-	}
+	tls /etc/caddy/certs/mail.zyntapos.com.pem /etc/caddy/certs/mail.zyntapos.com.key
 	reverse_proxy stalwart:8080 {
 		health_uri /.well-known/jmap
 		health_interval 30s
