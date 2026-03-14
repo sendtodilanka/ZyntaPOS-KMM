@@ -474,6 +474,8 @@ services:
     image: chatwoot/chatwoot:latest
     container_name: zyntapos_chatwoot_web
     restart: unless-stopped
+    profiles:
+      - chatwoot  # Opt-in: CHATWOOT_SECRET must be set. Enable with COMPOSE_PROFILES=chatwoot
     command: ["bundle", "exec", "rails", "s", "-p", "3000", "-b", "0.0.0.0"]
     expose:
       - "3000"
@@ -518,6 +520,8 @@ services:
     image: chatwoot/chatwoot:latest
     container_name: zyntapos_chatwoot_sidekiq
     restart: unless-stopped
+    profiles:
+      - chatwoot  # Opt-in: same as chatwoot-web
     command: ["bundle", "exec", "sidekiq", "-C", "config/sidekiq.yml"]
     environment:
       - SECRET_KEY_BASE=${CHATWOOT_SECRET}

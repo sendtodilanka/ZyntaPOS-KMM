@@ -117,6 +117,20 @@ jobs:
             chmod 644 secrets/rs256_private_key.pem secrets/rs256_public_key.pem \
                        secrets/admin_jwt_secret.txt 2>/dev/null || true
 
+            # Ensure mail.zyntapos.com cert files exist so Caddy can start.
+            # The real LE cert is issued by cert-renew-mail.yml (DNS-01);
+            # this creates a temporary self-signed placeholder if missing.
+            CERTS_DIR=backend/caddy/certs
+            if [ ! -f "$CERTS_DIR/mail.zyntapos.com.pem" ]; then
+              echo "=== Creating placeholder cert for mail.zyntapos.com ==="
+              openssl req -x509 -nodes -days 7 -newkey rsa:2048 \
+                -keyout "$CERTS_DIR/mail.zyntapos.com.key" \
+                -out "$CERTS_DIR/mail.zyntapos.com.pem" \
+                -subj '/CN=mail.zyntapos.com' 2>/dev/null
+              chmod 644 "$CERTS_DIR/mail.zyntapos.com.pem" "$CERTS_DIR/mail.zyntapos.com.key"
+              echo "=== Placeholder created — run cert-renew-mail workflow for real LE cert ==="
+            fi
+
             docker compose pull --quiet
             docker compose up -d --remove-orphans
             docker image prune -f
