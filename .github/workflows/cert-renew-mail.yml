@@ -1,0 +1,102 @@
+name: "Renew mail.zyntapos.com TLS cert (DNS-01)"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Issues and renews a Let's Encrypt certificate for mail.zyntapos.com via
+# Cloudflare DNS-01 challenge (acme.sh + neilpang/acme.sh Docker image).
+#
+# Why DNS-01 instead of HTTP-01 (Caddy's built-in ACME):
+#   The *.zyntapos.com Cloudflare Origin Certificate loaded by other site
+#   blocks is stored in Caddy's shared cert cache. Caddy considers TLS
+#   "satisfied" for mail.zyntapos.com before attempting ACME, so it never
+#   calls Let's Encrypt. DNS-01 runs outside Caddy, obtaining a real LE cert
+#   and placing it where Caddy reads explicit cert files.
+#
+# Cert files placed at (bind-mounted into Caddy container as /etc/caddy/certs/):
+#   /opt/zyntapos/backend/caddy/certs/mail.zyntapos.com.pem   (fullchain)
+#   /opt/zyntapos/backend/caddy/certs/mail.zyntapos.com.key
+#
+# Caddyfile uses:  tls /etc/caddy/certs/mail.zyntapos.com.pem /etc/caddy/certs/mail.zyntapos.com.key
+#
+# acme.sh state is persisted in /home/deploy/acme-home on VPS so renewals
+# re-use the existing account and cert registration.
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Renew every 60 days at 03:00 UTC on the 1st (LE certs expire in 90 days)
+    - cron: '0 3 1 */2 *'
+
+jobs:
+  renew:
+    name: "Issue/renew LE cert for mail.zyntapos.com"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Issue cert via acme.sh (Cloudflare DNS-01) and install to Caddy certs dir
+        uses: appleboy/ssh-action@v1.2.5
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_USER_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          envs: CF_TOKEN
+          timeout: 60s
+          command_timeout: 5m
+          script: |
+            set -euo pipefail
+            DOMAIN=mail.zyntapos.com
+            CERTS_DIR=/opt/zyntapos/backend/caddy/certs
+            ACME_HOME=/home/deploy/acme-home
+
+            mkdir -p "$ACME_HOME" "$CERTS_DIR"
+
+            echo "=== Step 1: Issue/renew cert for $DOMAIN (LE via Cloudflare DNS-01) ==="
+            # Exit code 2 = cert already valid and not due for renewal (not an error)
+            docker run --rm \
+              -e CF_Token="$CF_TOKEN" \
+              -v "$ACME_HOME:/acme.sh" \
+              neilpang/acme.sh \
+              --issue \
+              --dns dns_cf \
+              -d "$DOMAIN" \
+              --server letsencrypt \
+            && echo "Cert issued successfully" \
+            || (EXIT=$?; [ "$EXIT" -eq 2 ] && echo "Cert already valid — installing existing cert" || (echo "acme.sh issue failed with exit $EXIT"; exit "$EXIT"))
+
+            echo "=== Step 2: Install cert files to $CERTS_DIR ==="
+            docker run --rm \
+              -v "$ACME_HOME:/acme.sh" \
+              -v "$CERTS_DIR:/certs" \
+              neilpang/acme.sh \
+              --install-cert \
+              -d "$DOMAIN" \
+              --key-file  /certs/mail.zyntapos.com.key \
+              --fullchain-file /certs/mail.zyntapos.com.pem
+
+            # Ensure Caddy (non-root Alpine user) can read the cert files
+            chmod 644 "$CERTS_DIR/mail.zyntapos.com.pem" "$CERTS_DIR/mail.zyntapos.com.key"
+
+            echo "=== Step 3: Reload Caddy with new cert ==="
+            cd /opt/zyntapos
+            docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile
+
+            echo "=== Done — verifying cert subject ==="
+            openssl x509 -noout -subject -issuer -dates \
+              -in "$CERTS_DIR/mail.zyntapos.com.pem" 2>/dev/null || true
+
+      - name: Post cert-renew summary
+        if: always()
+        run: |
+          {
+            echo "## Cert Renew — mail.zyntapos.com"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| **Domain** | \`mail.zyntapos.com\` |"
+            echo "| **Method** | Let's Encrypt DNS-01 via Cloudflare API |"
+            echo "| **Status** | **${{ job.status }}** |"
+            echo "| **Triggered** | ${{ github.event_name }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
