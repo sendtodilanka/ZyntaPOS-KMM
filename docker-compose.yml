@@ -441,7 +441,8 @@ services:
     networks:
       - zyntapos_net
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8080/healthz"]
+      # Stalwart serves JMAP discovery at /.well-known/jmap (not /healthz)
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/.well-known/jmap"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -495,7 +496,7 @@ services:
       redis:
         condition: service_healthy
       stalwart:
-        condition: service_healthy
+        condition: service_started  # service_healthy would block deploy if Stalwart is slow
     networks:
       - zyntapos_net
     healthcheck:
