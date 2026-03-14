@@ -212,7 +212,9 @@ status.zyntapos.com {
 mail.zyntapos.com {
 	tls /etc/caddy/certs/mail.zyntapos.com.pem /etc/caddy/certs/mail.zyntapos.com.key
 	reverse_proxy stalwart:8080 {
-		health_uri /.well-known/jmap
+		# Stalwart redirects /.well-known/jmap → admin UI (307), which Caddy
+		# treats as unhealthy. Use root path instead — returns 200 (admin HTML).
+		health_uri /
 		health_interval 30s
 		health_timeout 10s
 	}
