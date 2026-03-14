@@ -441,12 +441,13 @@ services:
     networks:
       - zyntapos_net
     healthcheck:
-      # Stalwart serves JMAP discovery at /.well-known/jmap (not /healthz)
-      test: ["CMD", "curl", "-sf", "http://localhost:8080/.well-known/jmap"]
+      # Stalwart image has no curl/wget — use bash /dev/tcp to probe port 8080
+      # CMD-SHELL uses /bin/sh (dash) which lacks /dev/tcp; call bash explicitly.
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/8080"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 20s
+      start_period: 60s
     mem_limit: 256m
     memswap_limit: 256m
     security_opt:
