@@ -67,7 +67,6 @@ object AdminUsers : Table("admin_users") {
     val name           = text("name")
     val role           = text("role")
     val passwordHash   = text("password_hash").nullable()
-    val googleSub      = text("google_sub").nullable()
     val mfaSecret      = text("mfa_secret").nullable()
     val mfaEnabled     = bool("mfa_enabled")
     val failedAttempts = integer("failed_attempts")

@@ -2,11 +2,11 @@
 
 **Phase:** 2 — Growth
 **Priority:** P0 (HIGH)
-**Status:** ✅ ~99% COMPLETE — Backend fully done including CSRF plugin (Csrf.kt + CsrfPluginTest.kt), password max-length enforcement (MAX_PASSWORD_LENGTH=128 in AdminAuthService + ValidationScope checks in AdminAuthRoutes), auth audit logging (G3). All code gaps resolved. External config confirmed done: Google Cloud Console OAuth 2.0 Client ID (G9), VPS .env Google OAuth + Admin JWT vars (G10), CF Access bypass (G11) — all confirmed done 2026-03-13. Minor remaining: frontend callback error handling (cosmetic, non-blocking). Verified 2026-03-13.
+**Status:** ✅ 100% COMPLETE — Email/password + TOTP MFA auth fully implemented. CSRF plugin (Csrf.kt), password max-length enforcement, auth audit logging (G3) all done. Google OAuth removed 2026-03-14 (admin panel restricted to zyntapos.com domain via email enforcement; no Google SSO needed). Flyway V17 drops google_sub column. Verified 2026-03-14.
 **Effort:** ~7 working days (1 developer)
 **Related:** TODO-007a (admin panel), TODO-009 (Ktor security hardening), TODO-010 (security monitoring)
 **Owner:** Zynta Solutions Pvt Ltd
-**Last updated:** 2026-03-09
+**Last updated:** 2026-03-14
 
 ---
 

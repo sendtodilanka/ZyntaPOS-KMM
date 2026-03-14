@@ -2,12 +2,11 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Eye, EyeOff, Loader2, ShieldCheck, Chrome } from 'lucide-react';
+import { Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAdminLogin, useAdminMfaVerify } from '@/api/auth';
 import { useAuth } from '@/hooks/use-auth';
 import { HTTPError } from '@/lib/api-client';
-import { API_BASE_URL } from '@/lib/constants';
 
 export const Route = createFileRoute('/login')({
   component: LoginPage,
@@ -25,12 +24,6 @@ const mfaSchema = z.object({
 });
 type MfaForm = z.infer<typeof mfaSchema>;
 
-const OAUTH_ERROR_MESSAGES: Record<string, string> = {
-  google_auth_failed: 'Google sign-in failed. Please try again.',
-  domain_not_allowed: 'Your Google account is not authorised for this panel. Use email/password instead.',
-  account_inactive: 'Your account has been deactivated. Contact an administrator.',
-};
-
 function LoginPage() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
@@ -39,11 +32,6 @@ function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [pendingToken, setPendingToken] = useState<string | null>(null);
-
-  const oauthError = (() => {
-    const code = new URLSearchParams(window.location.search).get('error');
-    return code ? (OAUTH_ERROR_MESSAGES[code] ?? 'Google sign-in failed. Please try again.') : null;
-  })();
 
   const {
     register,
@@ -190,9 +178,9 @@ function LoginPage() {
           ) : (
             /* ── Password Step ── */
             <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
-              {(serverError || oauthError) && (
+              {serverError && (
                 <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-                  {serverError ?? oauthError}
+                  {serverError}
                 </div>
               )}
 
@@ -267,29 +255,6 @@ function LoginPage() {
                 Sign in
               </button>
 
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200" />
-                </div>
-                <div className="relative flex justify-center text-xs">
-                  <span className="bg-white px-2 text-gray-500">or</span>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => { window.location.href = `${import.meta.env.VITE_GOOGLE_AUTH_URL ?? `${API_BASE_URL}/admin/auth/google`}`; }}
-                className={[
-                  'w-full flex items-center justify-center gap-2 rounded-lg px-4 py-2.5',
-                  'text-sm font-semibold text-gray-700 bg-white border border-gray-300',
-                  'hover:bg-gray-50 active:bg-gray-100',
-                  'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
-                  'transition-colors',
-                ].join(' ')}
-              >
-                <Chrome size={16} />
-                Continue with Google
-              </button>
             </form>
           )}
         </div>

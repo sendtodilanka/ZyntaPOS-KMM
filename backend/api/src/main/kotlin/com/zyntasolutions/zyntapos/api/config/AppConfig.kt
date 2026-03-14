@@ -20,13 +20,7 @@ data class AppConfig(
     val adminJwtIssuer: String,
     val adminAccessTokenTtlMs: Long,
     val adminRefreshTokenTtlDays: Long,
-    // Google OAuth (optional — empty string disables Google SSO)
-    val googleClientId: String,
-    val googleClientSecret: String,
-    val googleRedirectUri: String,
-    // Restrict Google SSO to a specific email domain (e.g. "zyntapos.com"). Empty = allow any domain.
-    val googleAllowedDomain: String,
-    // Base URL of the admin panel — used for post-OAuth redirects
+    // Base URL of the admin panel — used for post-auth redirects (password reset links)
     val adminPanelUrl: String,
     // Redis URL for pub/sub (force-sync notifications to connected WS devices)
     val redisUrl: String,
@@ -72,10 +66,6 @@ data class AppConfig(
                     ?: JwtDefaults.ADMIN_ACCESS_TOKEN_TTL_MINUTES) * 60_000L,
                 adminRefreshTokenTtlDays = System.getenv("ADMIN_REFRESH_TOKEN_TTL_DAYS")?.toLongOrNull()
                     ?: JwtDefaults.ADMIN_REFRESH_TOKEN_TTL_DAYS,
-                googleClientId = System.getenv("GOOGLE_CLIENT_ID") ?: "",
-                googleClientSecret = System.getenv("GOOGLE_CLIENT_SECRET") ?: "",
-                googleRedirectUri = System.getenv("GOOGLE_REDIRECT_URI") ?: "https://api.zyntapos.com/admin/auth/google/callback",
-                googleAllowedDomain = System.getenv("GOOGLE_ALLOWED_DOMAIN") ?: "",
                 adminPanelUrl = validateUrl(
                     System.getenv("ADMIN_PANEL_URL") ?: "https://panel.zyntapos.com",
                     "ADMIN_PANEL_URL"

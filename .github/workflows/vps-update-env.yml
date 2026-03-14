@@ -19,7 +19,7 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           port: ${{ secrets.VPS_PORT }}
           key: ${{ secrets.VPS_USER_KEY }}
-          envs: SENTRY_DSN_API,SENTRY_DSN_LICENSE,SENTRY_DSN_SYNC,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,GOOGLE_REDIRECT_URI
+          envs: SENTRY_DSN_API,SENTRY_DSN_LICENSE,SENTRY_DSN_SYNC
           script: |
             set -e
             ENV_FILE="/opt/zyntapos/.env"
@@ -43,13 +43,8 @@ jobs:
             upsert_env "SENTRY_DSN_LICENSE" "$SENTRY_DSN_LICENSE"
             upsert_env "SENTRY_DSN_SYNC"    "$SENTRY_DSN_SYNC"
 
-            echo "=== Updating Google OAuth credentials ==="
-            upsert_env "GOOGLE_CLIENT_ID"     "$GOOGLE_CLIENT_ID"
-            upsert_env "GOOGLE_CLIENT_SECRET" "$GOOGLE_CLIENT_SECRET"
-            upsert_env "GOOGLE_REDIRECT_URI"  "$GOOGLE_REDIRECT_URI"
-
             echo "=== Verifying (keys only, no values) ==="
-            grep -E "^(SENTRY_DSN_|GOOGLE_)" "$ENV_FILE" | sed 's/=.*/=<set>/'
+            grep -E "^SENTRY_DSN_" "$ENV_FILE" | sed 's/=.*/=<set>/'
 
             echo "=== Restarting api service to pick up new env ==="
             cd /opt/zyntapos
@@ -60,6 +55,3 @@ jobs:
           SENTRY_DSN_API: ${{ secrets.SENTRY_DSN_API }}
           SENTRY_DSN_LICENSE: ${{ secrets.SENTRY_DSN_LICENSE }}
           SENTRY_DSN_SYNC: ${{ secrets.SENTRY_DSN_SYNC }}
-          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
-          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
-          GOOGLE_REDIRECT_URI: ${{ secrets.GOOGLE_REDIRECT_URI }}
