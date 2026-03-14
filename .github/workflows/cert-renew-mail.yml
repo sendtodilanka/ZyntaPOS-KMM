@@ -37,12 +37,13 @@ jobs:
         uses: appleboy/ssh-action@v1.2.5
         env:
           CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_USER_KEY }}
           port: ${{ secrets.VPS_PORT }}
-          envs: CF_TOKEN
+          envs: CF_TOKEN,CF_ACCOUNT_ID
           timeout: 60s
           command_timeout: 5m
           script: |
@@ -55,8 +56,11 @@ jobs:
 
             echo "=== Step 1: Issue/renew cert for $DOMAIN (LE via Cloudflare DNS-01) ==="
             # Exit code 2 = cert already valid and not due for renewal (not an error)
+            # CF_Account_ID is required when using a scoped API token so acme.sh
+            # can locate the correct DNS zone without needing Zone:Read permission.
             docker run --rm \
               -e CF_Token="$CF_TOKEN" \
+              -e CF_Account_ID="$CF_ACCOUNT_ID" \
               -v "$ACME_HOME:/acme.sh" \
               neilpang/acme.sh \
               --issue \
