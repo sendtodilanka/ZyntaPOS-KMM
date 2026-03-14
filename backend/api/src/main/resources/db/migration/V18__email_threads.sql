@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS email_threads (
     -- RFC 2822 message identifiers for thread linking
     message_id      TEXT            UNIQUE,           -- <msg-id@domain> from Message-ID header
     in_reply_to     TEXT,                             -- In-Reply-To header value
-    references      TEXT,                             -- References header (space-separated IDs)
+    email_references TEXT,                            -- References header (space-separated IDs)
 
     -- Sender / recipient
     from_address    TEXT            NOT NULL,
