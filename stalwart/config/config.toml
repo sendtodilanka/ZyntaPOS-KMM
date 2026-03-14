@@ -49,6 +49,14 @@ bind = ["[::]:8080"]
 protocol = "http"
 
 # ── Storage (local filesystem, Docker volume) ─────────────────────
+# Required in Stalwart v0.11+: map store roles to named store IDs.
+# Without this section Stalwart aborts with "Store not configured".
+[storage]
+data   = "data"
+blob   = "blob"
+fts    = "fts"
+lookup = "lookup"
+
 [store."data"]
 type = "rocksdb"
 path = "/opt/stalwart/data"
