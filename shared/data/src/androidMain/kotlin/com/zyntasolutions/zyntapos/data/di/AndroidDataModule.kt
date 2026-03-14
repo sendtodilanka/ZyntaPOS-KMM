@@ -62,19 +62,6 @@ val androidDataModule = module {
     single { DatabaseKeyProvider(androidContext()) }
     single { DatabaseDriverFactory(context = androidContext()) }
 
-    // ── Network Monitoring (platform expect/actual) ───────────────────
-    // Android actual uses ConnectivityManager.NetworkCallback.
-    // Call NetworkMonitor.start() from Application.onCreate() or the
-    // app-level ViewModel initialization.
-    single { NetworkMonitor(context = androidContext()) }
-
-    // ── Analytics (platform expect/actual) ──────────────────────────────
-    // Android actual uses Firebase Analytics SDK.
-    // Bound as both concrete type and AnalyticsTracker interface so feature
-    // modules can depend on the interface from :shared:core.
-    single { AnalyticsService(context = androidContext()) }
-    single<AnalyticsTracker> { get<AnalyticsService>() }
-
     // ── Backup file I/O (platform expect/actual) ──────────────────────────────
     // Android actual copies DB files to getExternalFilesDir("backups") with
     // a fallback to filesDir/backups when external storage is unavailable.
@@ -90,6 +77,19 @@ val androidDataModule = module {
             certPassword = AppConfig.IRD_CLIENT_CERT_PASSWORD,
         )
     }
+
+    // ── Network Monitoring (platform expect/actual) ───────────────────
+    // Android actual uses ConnectivityManager.NetworkCallback.
+    // Call NetworkMonitor.start() from Application.onCreate() or the
+    // app-level ViewModel initialization.
+    single { NetworkMonitor(context = androidContext()) }
+
+    // ── Analytics (platform expect/actual) ──────────────────────────────
+    // Android actual uses Firebase Analytics SDK.
+    // Bound as both concrete type and AnalyticsTracker interface so feature
+    // modules can depend on the interface from :shared:core.
+    single { AnalyticsService(context = androidContext()) }
+    single<AnalyticsTracker> { get<AnalyticsService>() }
 
     // Note: SecurePreferences is bound by securityModule (canonical expect/actual).
     // Adapter class AndroidEncryptedSecurePreferences removed — MERGED-D3 (2026-02-21).
