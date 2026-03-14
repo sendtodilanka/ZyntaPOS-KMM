@@ -90,9 +90,13 @@ jobs:
             # Ensure Caddy (non-root Alpine user) can read the cert files
             chmod 644 "$CERTS_DIR/mail.zyntapos.com.pem" "$CERTS_DIR/mail.zyntapos.com.key"
 
-            echo "=== Step 3: Reload Caddy with new cert ==="
+            echo "=== Step 3: Restart Caddy to pick up new cert ==="
             cd /opt/zyntapos
-            docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile
+            # Full restart required — Caddy's in-memory cert cache retains the
+            # old cert across reloads when a wildcard CF Origin cert (*.zyntapos.com)
+            # is also loaded. A container restart forces a fresh read from disk.
+            docker compose restart caddy
+            sleep 5  # Wait for Caddy to become healthy
 
             echo "=== Step 4: Verify cert file ==="
             openssl x509 -noout -subject -issuer -dates \
