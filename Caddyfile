@@ -200,8 +200,15 @@ status.zyntapos.com {
 # NOTE: Does NOT use cf_tls (Cloudflare Origin Cert).
 # mail.zyntapos.com MUST be grey-cloud (DNS-only) in Cloudflare so that
 # IMAP (993), SMTP (587/465/25) ports reach the VPS directly.
-# Caddy auto-provisions a Let's Encrypt cert for this domain instead.
+#
+# IMPORTANT: The *.zyntapos.com CF Origin wildcard cert (loaded by all other
+# sites) would silently match this domain and Caddy would skip ACME entirely.
+# tls { issuer acme } explicitly overrides the wildcard and forces Let's
+# Encrypt via HTTP-01 challenge on port 80 (which Caddy handles internally).
 mail.zyntapos.com {
+	tls {
+		issuer acme
+	}
 	reverse_proxy stalwart:8080 {
 		health_uri /.well-known/jmap
 		health_interval 30s
