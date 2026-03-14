@@ -1,0 +1,98 @@
+# ═══════════════════════════════════════════════════════════════════
+# Stalwart Mail Server — ZyntaPOS Configuration (TODO-008a)
+#
+# Hostname:  mail.zyntapos.com
+# Domain:    zyntapos.com
+# Admin UI:  https://mail.zyntapos.com (proxied via Caddy)
+#
+# After first deploy:
+#   1. Visit https://mail.zyntapos.com → login with admin credentials
+#   2. Go to Settings → DKIM → Generate key for zyntapos.com
+#   3. Add DKIM DNS TXT record as shown (selector: _dkim._domainkey.zyntapos.com)
+#   4. Enable DMARC: add _dmarc.zyntapos.com TXT "v=DMARC1; p=quarantine; rua=mailto:dmarc@zyntapos.com"
+#   5. Create staff mailboxes: Settings → Accounts → Add Account
+#
+# DNS records required (add via Namecheap DNS panel):
+#   MX:   zyntapos.com   → mail.zyntapos.com  (priority 10)
+#   A:    mail.zyntapos.com → <VPS public IP>
+#   SPF:  zyntapos.com   → "v=spf1 mx a:mail.zyntapos.com ~all"
+#   DKIM: see admin console after first deploy
+#   DMARC: _dmarc.zyntapos.com → "v=DMARC1; p=quarantine; ..."
+# ═══════════════════════════════════════════════════════════════════
+
+[server]
+hostname = "mail.zyntapos.com"
+
+# ── SMTP (inbound from internet + submission) ──────────────────────
+[[server.listener]]
+id = "smtp"
+bind = ["[::]:25"]
+protocol = "smtp"
+
+[[server.listener]]
+id = "submission"
+bind = ["[::]:587"]
+protocol = "smtp"
+tls.implicit = false
+
+# ── IMAP (staff email clients) ────────────────────────────────────
+[[server.listener]]
+id = "imap"
+bind = ["[::]:143"]
+protocol = "imap"
+tls.implicit = false
+
+# ── JMAP + Admin HTTP (internal — Caddy proxies) ─────────────────
+[[server.listener]]
+id = "http"
+bind = ["[::]:8080"]
+protocol = "http"
+
+# ── Storage (local filesystem, Docker volume) ─────────────────────
+[store."data"]
+type = "rocksdb"
+path = "/opt/stalwart/data"
+
+[store."blob"]
+type = "fs"
+path = "/opt/stalwart/blobs"
+
+[store."fts"]
+type = "rocksdb"
+path = "/opt/stalwart/fts"
+
+[store."lookup"]
+type = "rocksdb"
+path = "/opt/stalwart/lookup"
+
+# ── Authentication ────────────────────────────────────────────────
+# Accounts are managed via the Stalwart admin console.
+# Initial admin password is set via STALWART_ADMIN_PASSWORD env var
+# when the container starts for the first time.
+[auth.internal]
+directory = "internal"
+
+[directory."internal"]
+type = "internal"
+store = "data"
+
+# ── Session limits ────────────────────────────────────────────────
+[session.smtp]
+# Reject messages larger than 25 MB (matches typical mail limits)
+transfer-limit = 26214400
+
+[session.data]
+# Max recipients per message
+max-recipients = 50
+
+# ── Queue (outbound) ──────────────────────────────────────────────
+[queue.outbound]
+# Retry schedule: 1m, 5m, 15m, 1h, 4h, 12h, 24h
+[queue.outbound.retry]
+period = "1d"
+notify = ["1m", "5m", "15m", "1h", "4h", "12h"]
+
+# ── Spam protection ───────────────────────────────────────────────
+[spam.header]
+status = true
+result = true

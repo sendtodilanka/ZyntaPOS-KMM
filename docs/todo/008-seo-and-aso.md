@@ -2,10 +2,17 @@
 
 **Phase:** 2 — Growth (starts after TODO-007 infrastructure is live)
 **Priority:** P1
-**Status:** 🟡 ~90% COMPLETE — Technical SEO fully implemented in website/: robots.txt (with AI scraper blocks), Astro sitemap integration (priority/frequency rules), canonical tags (SeoHead.astro), custom 404 page, JSON-LD structured data (Organization, SoftwareApplication, WebSite, FAQPage, BreadcrumbList), Open Graph + Twitter Card meta tags, Lighthouse CI (lighthouserc.json + ci-website.yml), GA4 direct via gtag.js. Remaining: Google Search Console verification (external DNS), GTM container (optional — GA4 direct already works), hreflang (English-only site), Play Store ASO (requires app publication). Verified 2026-03-12.
+**Status:** 🟡 ~95% COMPLETE — Technical SEO + Play In-App Review API + Play Integrity API all implemented. Remaining items require external action (DNS, VPS deploy, Play Store publication). Verified 2026-03-14.
+- ✅ Technical SEO (robots.txt, sitemap, canonical, JSON-LD, Open Graph, Twitter Card, Lighthouse CI, GA4)
+- ✅ Play In-App Review API — `PosAppReviewEffect` (expect/actual), emits after every 5th sale
+- ✅ Play Integrity API — `PlayIntegrityService` + `POST /v1/integrity/verify` (soft enforcement Phase 1)
+- ⏳ Google Search Console domain verification — requires DNS TXT record (see manual steps below)
+- ⏳ GA4 property receiving data — requires live site + GA4 property setup (see manual steps below)
+- ⏳ Play Store ASO listing — requires app publication to Play Store (see manual steps below)
+- ⏳ Core Web Vitals / Rich Results / mobile test — requires VPS deploy (external)
 **Related:** TODO-007 (infrastructure), TODO-000 (execution plan)
 **Owner:** Zynta Solutions Pvt Ltd
-**Last updated:** 2026-03-01
+**Last updated:** 2026-03-14
 
 ---
 
@@ -610,6 +617,61 @@ Google's **Search Generative Experience (SGE / AI Overviews)** and **Gemini** pu
 - [ ] Feature graphic 1024×500px uploaded
 - [ ] 8 phone screenshots uploaded (English)
 - [ ] 8 tablet (10") screenshots uploaded
-- [ ] Rating prompt implemented using Play In-App Review API
-- [ ] Play Integrity API check implemented server-side
+- [x] Rating prompt implemented using Play In-App Review API — `PosAppReviewEffect` (androidMain actual), triggers every 5th completed order via `PosEffect.RequestAppReview`
+- [x] Play Integrity API check implemented server-side — `PlayIntegrityService` + `POST /v1/integrity/verify` (soft enforcement; hard block in Phase 2)
 - [ ] App rated on IARC content rating system
+
+---
+
+## 📋 Manual Steps Required (External Actions)
+
+These items cannot be automated via code — they require action in external dashboards.
+
+### A. Google Search Console — Domain Verification
+
+**You must do this.** Tell me when you're ready and I'll guide you step by step.
+
+1. Go to [Google Search Console](https://search.google.com/search-console) → Add Property
+2. Enter `zyntapos.com` → Select "Domain" property type
+3. Google shows a TXT record: `google-site-verification=XXXXXXXXXX`
+4. Go to **Namecheap DNS** (same panel as TODO-007) → Add TXT record:
+   - Host: `@`
+   - Value: `google-site-verification=XXXXXXXXXX`
+   - TTL: Automatic
+5. Click "Verify" in Search Console (may take up to 24 hours to propagate)
+6. Once verified, go to Sitemaps → Add: `https://www.zyntapos.com/sitemap.xml`
+
+### B. Google Analytics 4 — Create Property
+
+**You must do this.** Tell me when you're ready.
+
+1. Go to [analytics.google.com](https://analytics.google.com) → Create Account/Property
+2. Property name: `ZyntaPOS Website`
+3. Reporting time zone: Your timezone
+4. Currency: Your currency
+5. Select platform: `Web`
+6. Website URL: `https://www.zyntapos.com`
+7. Copy the **Measurement ID** (format: `G-XXXXXXXXXX`)
+8. The ID `G-MNW04560JB` is already pre-configured in `website/src/data/analytics.ts` — update it with your actual ID if different
+9. Connect GA4 to Search Console in GA4 → Admin → Search Console Links
+
+### C. Play Store ASO Listing (after app publication)
+
+**Required after the Android APK is submitted to Google Play Console.**
+
+1. **App title** (≤50 chars): `ZyntaPOS — Offline POS System`
+2. **Short description** (≤80 chars): `Offline-first point of sale for Sri Lankan retail. Works without internet.`
+3. **Long description**: See `docs/marketing/play-store-description.md` (to be created)
+4. **Data Safety**: Declare data collected (device ID, store data) — no personal data sent to servers without consent
+5. **Screenshots**: Capture from a real device with 50+ orders in the system (see `docs/marketing/screenshot-guide.md`)
+6. **Feature graphic**: 1024×500px, use brand colors (#1976D2), logo centered
+7. **IARC content rating**: Answer the questionnaire — ZyntaPOS is rated **Everyone** (no user-generated content, no violence)
+
+### D. Core Web Vitals / Rich Results Test (after VPS deploy)
+
+**Required after the website is live on https://www.zyntapos.com.**
+
+1. Run [PageSpeed Insights](https://pagespeed.web.dev/) on `https://www.zyntapos.com`
+2. Run [Rich Results Test](https://search.google.com/test/rich-results) on homepage, /pricing, /support
+3. Run [Mobile-Friendly Test](https://search.google.com/test/mobile-friendly) on all pages
+4. Check Search Console → Core Web Vitals report (populated after 28 days of traffic)

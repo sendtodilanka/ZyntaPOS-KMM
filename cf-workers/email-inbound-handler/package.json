@@ -1,0 +1,17 @@
+{
+  "name": "email-inbound-handler",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cloudflare Email Worker — routes inbound @zyntapos.com emails to ZyntaPOS API or Stalwart IMAP",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "type-check": "tsc --noEmit",
+    "lint": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241127.0",
+    "typescript": "^5.5.0",
+    "wrangler": "^3.87.0"
+  }
+}

@@ -17,6 +17,8 @@ import com.zyntasolutions.zyntapos.api.routes.healthRoutes
 import com.zyntasolutions.zyntapos.api.routes.productRoutes
 import com.zyntasolutions.zyntapos.api.routes.syncRoutes
 import com.zyntasolutions.zyntapos.api.routes.unsubscribeRoutes
+import com.zyntasolutions.zyntapos.api.routes.inboundEmailRoutes
+import com.zyntasolutions.zyntapos.api.routes.integrityRoutes
 import com.zyntasolutions.zyntapos.api.routes.wellKnownRoutes
 import io.ktor.server.application.Application
 import io.ktor.server.auth.authenticate
@@ -32,6 +34,12 @@ fun Application.configureRouting() {
 
         // Email unsubscribe — public, no auth required
         unsubscribeRoutes()
+
+        // Inbound email from CF Email Worker — HMAC-signed, NOT JWT auth
+        // Rate-limited to prevent spam but NOT behind CSRF (Worker can't send CSRF tokens)
+        rateLimit(RateLimitName("api")) {
+            inboundEmailRoutes()
+        }
 
         // RFC 5785 well-known — public key for offline JWT verification (ADR-008)
         rateLimit(RateLimitName("api")) {
@@ -72,6 +80,7 @@ fun Application.configureRouting() {
                     productRoutes()
                     exportRoutes()
                     diagnosticConsentRoutes()
+                    integrityRoutes()   // Play Integrity attestation (TODO-008 ASO)
                 }
                 // Sync push is write-heavy — use sync tier (60 req/min)
                 rateLimit(RateLimitName("sync")) {

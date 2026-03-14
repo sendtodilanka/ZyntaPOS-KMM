@@ -28,6 +28,16 @@ data class AppConfig(
     val resendApiKey: String,
     val emailFromAddress: String,
     val emailFromName: String,
+    // Google Play Integrity API — device/app attestation (TODO-008 ASO)
+    val playIntegrityPackageName: String,
+    val playIntegrityApiKey: String,
+    // Inbound email HMAC secret — CF Worker → /internal/email/inbound (TODO-008a)
+    val inboundEmailHmacSecret: String,
+    // Chatwoot — customer support platform integration (TODO-008a)
+    val chatwootApiUrl: String,
+    val chatwootApiToken: String,
+    val chatwootAccountId: String,
+    val chatwootInboxId: String,
 ) {
     companion object {
         fun fromEnvironment(): AppConfig {
@@ -74,6 +84,14 @@ data class AppConfig(
                 resendApiKey = System.getenv("RESEND_API_KEY") ?: "",
                 emailFromAddress = System.getenv("EMAIL_FROM_ADDRESS") ?: "noreply@zyntapos.com",
                 emailFromName = System.getenv("EMAIL_FROM_NAME") ?: "ZyntaPOS",
+                playIntegrityPackageName = System.getenv("PLAY_INTEGRITY_PACKAGE_NAME")
+                    ?: "com.zyntasolutions.zyntapos",
+                playIntegrityApiKey = System.getenv("PLAY_INTEGRITY_API_KEY") ?: "",
+                inboundEmailHmacSecret = System.getenv("INBOUND_EMAIL_HMAC_SECRET") ?: "",
+                chatwootApiUrl = System.getenv("CHATWOOT_API_URL") ?: "http://chatwoot:3000",
+                chatwootApiToken = System.getenv("CHATWOOT_API_TOKEN") ?: "",
+                chatwootAccountId = System.getenv("CHATWOOT_ACCOUNT_ID") ?: "",
+                chatwootInboxId = System.getenv("CHATWOOT_INBOX_ID") ?: "",
             )
         }
 

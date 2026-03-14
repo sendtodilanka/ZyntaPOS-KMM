@@ -29,7 +29,10 @@ import com.zyntasolutions.zyntapos.api.service.AdminStoresService
 import com.zyntasolutions.zyntapos.api.service.AdminTicketService
 import com.zyntasolutions.zyntapos.api.service.AlertGenerationJob
 import com.zyntasolutions.zyntapos.api.service.DiagnosticSessionService
+import com.zyntasolutions.zyntapos.api.service.ChatwootService
 import com.zyntasolutions.zyntapos.api.service.EmailService
+import com.zyntasolutions.zyntapos.api.service.InboundEmailProcessor
+import com.zyntasolutions.zyntapos.api.service.PlayIntegrityService
 import com.zyntasolutions.zyntapos.api.service.ForceSyncNotifier
 import com.zyntasolutions.zyntapos.api.service.LicenseValidationClient
 import com.zyntasolutions.zyntapos.api.service.MfaService
@@ -122,6 +125,14 @@ val appModule = module {
 
     // ── Services ──────────────────────────────────────────────────────────────
     single { EmailService(get()) }
+    single { PlayIntegrityService(get()) }          // Play Integrity API verification (TODO-008)
+    single { ChatwootService(get()) }               // Chatwoot support inbox (TODO-008a)
+    single { InboundEmailProcessor(                 // CF Worker → ticket pipeline (TODO-008a)
+        config = get(),
+        ticketRepo = get(),
+        emailService = get(),
+        chatwootService = get(),
+    ) }
     single { DiagnosticSessionService(get()) }
     single { LicenseValidationClient() }
     single { UserService(posUserRepo = get()) }

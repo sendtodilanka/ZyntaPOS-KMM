@@ -188,3 +188,26 @@ status.zyntapos.com {
 	import cf_tls
 	reverse_proxy uptime-kuma:3001
 }
+
+# ── mail.zyntapos.com — Stalwart Mail Server admin console (TODO-008a) ─────
+# JMAP API + admin UI. Protected by Stalwart's own auth (admin password).
+# Staff mailboxes: configured here by admin after first deploy.
+mail.zyntapos.com {
+	import cf_tls
+	reverse_proxy stalwart:8080 {
+		health_uri /healthz
+		health_interval 30s
+		health_timeout 10s
+	}
+}
+
+# ── support.zyntapos.com — Chatwoot customer support inbox (TODO-008a) ───────
+# HELPDESK agents use this to see and respond to support tickets created
+# from inbound emails (support@, billing@, bugs@).
+support.zyntapos.com {
+	import cf_tls
+	reverse_proxy chatwoot-web:3000 {
+		health_interval 30s
+		health_timeout 10s
+	}
+}

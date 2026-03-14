@@ -81,6 +81,16 @@ services:
       - DB_CONNECTION_TIMEOUT_MS=30000
       - DB_POOL_IDLE_TIMEOUT=600000
       - REDIS_POOL_SIZE=8
+      # Play Integrity API — device attestation (TODO-008 ASO)
+      - PLAY_INTEGRITY_PACKAGE_NAME=com.zyntasolutions.zyntapos
+      - PLAY_INTEGRITY_API_KEY=${PLAY_INTEGRITY_API_KEY}
+      # Inbound email HMAC — CF Worker authentication (TODO-008a)
+      - INBOUND_EMAIL_HMAC_SECRET=${INBOUND_EMAIL_HMAC_SECRET}
+      # Chatwoot — customer support platform (TODO-008a)
+      - CHATWOOT_API_URL=http://chatwoot-web:3000
+      - CHATWOOT_API_TOKEN=${CHATWOOT_API_TOKEN}
+      - CHATWOOT_ACCOUNT_ID=${CHATWOOT_ACCOUNT_ID}
+      - CHATWOOT_INBOX_ID=${CHATWOOT_INBOX_ID}
     depends_on:
       postgres:
         condition: service_healthy
@@ -396,6 +406,143 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  # ── Stalwart Mail Server — SMTP/IMAP/JMAP (TODO-008a) ──────────────────────
+  # Handles @zyntapos.com staff mailboxes (name@zyntapos.com).
+  # Support inboxes (support@, billing@, bugs@) are handled by CF Email Worker
+  # which POSTs to the API; staff mailboxes are forwarded directly here via MX.
+  #
+  # Ports exposed to host (VPS MX record points to VPS public IP):
+  #   25  — SMTP (inbound from internet / CF Email Routing custom destination)
+  #   143 — IMAP (staff clients: Thunderbird, Apple Mail, etc.)
+  #   587 — SMTP submission (authenticated outbound from staff clients)
+  # Admin UI (internal only, proxied by Caddy as mail.zyntapos.com):
+  #   8080 — Stalwart JMAP + admin console
+  #
+  # Setup checklist (see docs/setup/stalwart-setup.md):
+  #   1. Generate STALWART_ADMIN_PASSWORD and STALWART_JMAP_TOKEN secrets
+  #   2. Add MX record: zyntapos.com → mail.zyntapos.com (VPS IP)
+  #   3. Add SPF, DKIM, DMARC DNS records as shown in admin console
+  #   4. Create staff mailboxes via admin console or REST API
+  stalwart:
+    image: stalwartlabs/stalwart:latest
+    container_name: zyntapos_stalwart
+    restart: unless-stopped
+    ports:
+      - "25:25"     # SMTP inbound (public — required for MX delivery)
+      - "143:143"   # IMAP (staff access)
+      - "587:587"   # SMTP submission (authenticated outbound)
+    expose:
+      - "8080"      # JMAP/admin (internal — Caddy proxies mail.zyntapos.com)
+    environment:
+      - STALWART_ADMIN_PASSWORD=${STALWART_ADMIN_PASSWORD}
+    volumes:
+      - stalwart_data:/opt/stalwart
+      - ./stalwart/config/config.toml:/opt/stalwart/etc/config.toml:ro
+    networks:
+      - zyntapos_net
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    mem_limit: 256m
+    memswap_limit: 256m
+    security_opt:
+      - no-new-privileges:true
+
+  # ── Chatwoot — Customer support platform (TODO-008a) ────────────────────────
+  # Shared inbox for support@, billing@, bugs@ — HELPDESK agents reply here.
+  # CF Email Worker creates conversations via Chatwoot REST API.
+  # Admin panel links to support.zyntapos.com for the support inbox view.
+  #
+  # Requires:
+  #   CHATWOOT_SECRET       — Rails SECRET_KEY_BASE (min 64 chars random hex)
+  #   CHATWOOT_DB_PASS      — PostgreSQL password for zyntapos_chatwoot DB
+  #   CHATWOOT_SMTP_PASS    — Stalwart app password for Chatwoot outbound email
+  #
+  # After first deploy:
+  #   1. Visit https://support.zyntapos.com → create superadmin account
+  #   2. Create inbox "Support" (email type) linked to support@zyntapos.com
+  #   3. Set CHATWOOT_API_TOKEN and CHATWOOT_ACCOUNT_ID in VPS .env
+  chatwoot-web:
+    image: chatwoot/chatwoot:latest
+    container_name: zyntapos_chatwoot_web
+    restart: unless-stopped
+    command: ["bundle", "exec", "rails", "s", "-p", "3000", "-b", "0.0.0.0"]
+    expose:
+      - "3000"
+    environment:
+      - SECRET_KEY_BASE=${CHATWOOT_SECRET}
+      - DATABASE_URL=postgresql://zyntapos:${CHATWOOT_DB_PASS}@postgres:5432/zyntapos_chatwoot
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/1
+      - FRONTEND_URL=https://support.zyntapos.com
+      - MAILER_SENDER_EMAIL=support@zyntapos.com
+      - SMTP_ADDRESS=stalwart
+      - SMTP_PORT=587
+      - SMTP_USERNAME=support@zyntapos.com
+      - SMTP_PASSWORD=${CHATWOOT_SMTP_PASS}
+      - SMTP_AUTHENTICATION=plain
+      - SMTP_ENABLE_STARTTLS_AUTO=true
+      - ACTIVE_STORAGE_SERVICE=local
+      - RAILS_ENV=production
+      - NODE_ENV=production
+    volumes:
+      - chatwoot_storage:/app/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      stalwart:
+        condition: service_healthy
+    networks:
+      - zyntapos_net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/auth/sign_in"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    mem_limit: 1g
+    memswap_limit: 1g
+    security_opt:
+      - no-new-privileges:true
+
+  chatwoot-sidekiq:
+    image: chatwoot/chatwoot:latest
+    container_name: zyntapos_chatwoot_sidekiq
+    restart: unless-stopped
+    command: ["bundle", "exec", "sidekiq", "-C", "config/sidekiq.yml"]
+    environment:
+      - SECRET_KEY_BASE=${CHATWOOT_SECRET}
+      - DATABASE_URL=postgresql://zyntapos:${CHATWOOT_DB_PASS}@postgres:5432/zyntapos_chatwoot
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/1
+      - FRONTEND_URL=https://support.zyntapos.com
+      - MAILER_SENDER_EMAIL=support@zyntapos.com
+      - SMTP_ADDRESS=stalwart
+      - SMTP_PORT=587
+      - SMTP_USERNAME=support@zyntapos.com
+      - SMTP_PASSWORD=${CHATWOOT_SMTP_PASS}
+      - SMTP_AUTHENTICATION=plain
+      - SMTP_ENABLE_STARTTLS_AUTO=true
+      - ACTIVE_STORAGE_SERVICE=local
+      - RAILS_ENV=production
+      - NODE_ENV=production
+    volumes:
+      - chatwoot_storage:/app/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - zyntapos_net
+    mem_limit: 512m
+    memswap_limit: 512m
+    security_opt:
+      - no-new-privileges:true
+
   # ── Cloudflared — Cloudflare Tunnel for panel.zyntapos.com ──────────
   # Exposes the admin panel and status page via Cloudflare Tunnel without
   # opening inbound ports. Protected by Cloudflare Access (Zero Trust).
@@ -431,6 +578,8 @@ volumes:
   caddy_data:
   caddy_config:
   uptime_kuma_data:
+  stalwart_data:       # Stalwart mail server data + DKIM keys (TODO-008a)
+  chatwoot_storage:    # Chatwoot file attachments (TODO-008a)
 
 # ── Networks ─────────────────────────────────────────────────────────
 networks:

@@ -41,6 +41,7 @@ kotlin {
         }
         androidMain.dependencies {
             implementation(libs.koin.android)
+            implementation(libs.play.review.ktx)   // Play In-App Review API (TODO-008 ASO)
         }
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
