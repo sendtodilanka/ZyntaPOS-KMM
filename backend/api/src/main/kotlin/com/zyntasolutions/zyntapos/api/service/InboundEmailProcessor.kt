@@ -133,14 +133,14 @@ class InboundEmailProcessor(
 
     private suspend fun emailThreadExists(messageId: String): Boolean =
         newSuspendedTransaction {
-            EmailThreads.select { EmailThreads.messageId eq messageId }.count() > 0
+            EmailThreads.selectAll().where { EmailThreads.messageId eq messageId }.count() > 0
         }
 
     private suspend fun resolveTicket(payload: InboundEmailPayload) = newSuspendedTransaction {
         // Try to link to existing ticket via In-Reply-To thread
         val existingTicketId: UUID? = payload.inReplyTo?.let { replyTo ->
             EmailThreads
-                .select { EmailThreads.messageId eq replyTo }
+                .selectAll().where { EmailThreads.messageId eq replyTo }
                 .limit(1)
                 .firstOrNull()
                 ?.get(EmailThreads.ticketId)
