@@ -34,13 +34,22 @@
 # those names are not included in the adapted config.  The smoke test
 # now calls /health directly on backend containers via docker compose exec.
 #
-# NOTE: Caddy handles ACME HTTP-01 challenges for mail.zyntapos.com
-# internally before this :80 catch-all is reached. This block does NOT
-# interfere with Let's Encrypt cert provisioning for grey-cloud domains.
+# /.well-known/acme-challenge/* — served from bind-mounted webroot for
+# ACME HTTP-01 cert renewal (mail.zyntapos.com).  cert-renew-mail.yml
+# uses acme.sh --webroot mode which writes challenge files to
+# backend/caddy/acme-challenges/ on the VPS host (mapped to
+# /etc/caddy/acme-challenges/ in this container).
+# mail.zyntapos.com is grey-cloud (DNS-only) so LE can reach port 80 directly.
 :80 {
 	respond /ping 200 {
 		body "ok"
 		close
+	}
+
+	# ACME HTTP-01 challenge webroot for mail.zyntapos.com cert renewal
+	handle /.well-known/acme-challenge/* {
+		root * /etc/caddy/acme-challenges
+		file_server
 	}
 
 	# All other requests on port 80 get 404

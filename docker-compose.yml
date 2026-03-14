@@ -35,6 +35,9 @@ services:
       # Generate at: Cloudflare → SSL/TLS → Origin Server → Create Certificate
       # Or use self-signed for testing: see docs/adr/ADR-006
       - ./backend/caddy/certs:/etc/caddy/certs:ro
+      # ACME HTTP-01 webroot for mail.zyntapos.com cert renewal (cert-renew-mail.yml)
+      # acme.sh writes challenge files here; Caddy serves /.well-known/acme-challenge/*
+      - ./backend/caddy/acme-challenges:/etc/caddy/acme-challenges:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:

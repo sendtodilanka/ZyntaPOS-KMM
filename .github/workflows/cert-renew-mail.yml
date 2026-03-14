@@ -1,24 +1,31 @@
-name: "Renew mail.zyntapos.com TLS cert (DNS-01)"
+name: "Renew mail.zyntapos.com TLS cert (HTTP-01 webroot)"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Issues and renews a Let's Encrypt certificate for mail.zyntapos.com via
-# Cloudflare DNS-01 challenge (acme.sh + neilpang/acme.sh Docker image).
+# HTTP-01 challenge using acme.sh --webroot mode.
 #
-# Why DNS-01 instead of HTTP-01 (Caddy's built-in ACME):
+# Why HTTP-01 webroot instead of DNS-01 (Cloudflare API):
+#   The CLOUDFLARE_API_TOKEN does not have DNS:Edit permission, so the
+#   dns_cf plugin cannot add the required TXT record. HTTP-01 works directly
+#   because mail.zyntapos.com is grey-cloud (DNS-only) — Let's Encrypt can
+#   reach the VPS on port 80 without going through Cloudflare's proxy.
+#
+# Why HTTP-01 webroot instead of Caddy's built-in ACME:
 #   The *.zyntapos.com Cloudflare Origin Certificate loaded by other site
 #   blocks is stored in Caddy's shared cert cache. Caddy considers TLS
-#   "satisfied" for mail.zyntapos.com before attempting ACME, so it never
-#   calls Let's Encrypt. DNS-01 runs outside Caddy, obtaining a real LE cert
-#   and placing it where Caddy reads explicit cert files.
+#   "satisfied" for mail.zyntapos.com and never initiates ACME.
+#
+# How it works:
+#   1. acme.sh (Docker) writes challenge files to /opt/zyntapos/backend/caddy/acme-challenges/
+#   2. Caddy serves /.well-known/acme-challenge/* from that directory (see :80 block in Caddyfile)
+#   3. Let's Encrypt validates via http://mail.zyntapos.com/.well-known/acme-challenge/<token>
+#   4. Cert is installed to /opt/zyntapos/backend/caddy/certs/ and Caddy reloads
 #
 # Cert files placed at (bind-mounted into Caddy container as /etc/caddy/certs/):
 #   /opt/zyntapos/backend/caddy/certs/mail.zyntapos.com.pem   (fullchain)
 #   /opt/zyntapos/backend/caddy/certs/mail.zyntapos.com.key
 #
 # Caddyfile uses:  tls /etc/caddy/certs/mail.zyntapos.com.pem /etc/caddy/certs/mail.zyntapos.com.key
-#
-# acme.sh state is persisted in /home/deploy/acme-home on VPS so renewals
-# re-use the existing account and cert registration.
 # ─────────────────────────────────────────────────────────────────────────────
 
 on:
@@ -33,17 +40,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Issue cert via acme.sh (Cloudflare DNS-01) and install to Caddy certs dir
+      - name: Issue cert via acme.sh (HTTP-01 webroot) and install to Caddy certs dir
         uses: appleboy/ssh-action@v1.2.5
-        env:
-          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_USER_KEY }}
           port: ${{ secrets.VPS_PORT }}
-          envs: CF_TOKEN,CF_ACCOUNT_ID
           timeout: 60s
           command_timeout: 5m
           script: |
@@ -51,32 +54,36 @@ jobs:
             DOMAIN=mail.zyntapos.com
             CERTS_DIR=/opt/zyntapos/backend/caddy/certs
             ACME_HOME=/home/deploy/acme-home
+            # Webroot is bind-mounted in Caddy as /etc/caddy/acme-challenges:ro
+            # acme.sh writes to this path inside its container at /webroot
+            WEBROOT_HOST=/opt/zyntapos/backend/caddy/acme-challenges
 
-            mkdir -p "$ACME_HOME" "$CERTS_DIR"
+            mkdir -p "$ACME_HOME" "$CERTS_DIR" "$WEBROOT_HOST"
 
-            echo "=== Step 1: Issue/renew cert for $DOMAIN (LE via Cloudflare DNS-01) ==="
+            echo "=== Step 1: Issue/renew cert for $DOMAIN (LE via HTTP-01 webroot) ==="
             # Exit code 2 = cert already valid and not due for renewal (not an error)
-            # CF_Account_ID is required when using a scoped API token so acme.sh
-            # can locate the correct DNS zone without needing Zone:Read permission.
+            # acme.sh writes challenge to $WEBROOT_HOST/.well-known/acme-challenge/<token>
+            # Caddy serves /.well-known/acme-challenge/* from /etc/caddy/acme-challenges
             docker run --rm \
-              -e CF_Token="$CF_TOKEN" \
-              -e CF_Account_ID="$CF_ACCOUNT_ID" \
               -v "$ACME_HOME:/acme.sh" \
+              -v "$WEBROOT_HOST:/webroot" \
               neilpang/acme.sh \
               --issue \
-              --dns dns_cf \
+              --webroot /webroot \
               -d "$DOMAIN" \
               --server letsencrypt \
             && echo "Cert issued successfully" \
             || (EXIT=$?; [ "$EXIT" -eq 2 ] && echo "Cert already valid — installing existing cert" || (echo "acme.sh issue failed with exit $EXIT"; exit "$EXIT"))
 
             echo "=== Step 2: Install cert files to $CERTS_DIR ==="
+            # acme.sh defaults to ECC (ec-256) — use --ecc flag for install-cert
             docker run --rm \
               -v "$ACME_HOME:/acme.sh" \
               -v "$CERTS_DIR:/certs" \
               neilpang/acme.sh \
               --install-cert \
               -d "$DOMAIN" \
+              --ecc \
               --key-file  /certs/mail.zyntapos.com.key \
               --fullchain-file /certs/mail.zyntapos.com.pem
 
@@ -100,7 +107,7 @@ jobs:
             echo "| | |"
             echo "|---|---|"
             echo "| **Domain** | \`mail.zyntapos.com\` |"
-            echo "| **Method** | Let's Encrypt DNS-01 via Cloudflare API |"
+            echo "| **Method** | Let's Encrypt HTTP-01 via acme.sh webroot |"
             echo "| **Status** | **${{ job.status }}** |"
             echo "| **Triggered** | ${{ github.event_name }} |"
           } >> "$GITHUB_STEP_SUMMARY"
