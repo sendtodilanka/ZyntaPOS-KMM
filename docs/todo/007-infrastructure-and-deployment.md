@@ -1,6 +1,6 @@
 # TODO-007: Infrastructure, Deployment & Backend Architecture
 
-**Status:** ✅ ~99% COMPLETE — Docker Compose (12 services: caddy, api, license, sync, postgres, redis, website, admin-panel, uptime-kuma, falcosidekick, cloudflared, canary), Caddyfile (8 subdomain routes), CI/CD (10+ workflows including 7-step pipeline), container hardening (read-only FS, seccomp, cap_drop, non-root), GHCR image builds, deploy workflow all implemented. External infra confirmed complete: Namecheap→Cloudflare DNS delegation, A records, ufw firewall, SSH hardening, Cloudflare Origin Certificate, VPS .env, CF Access bypass all done. Remaining: Backblaze B2 bucket setup (Phase 3). Verified 2026-03-13.
+**Status:** ✅ ~99% COMPLETE — Docker Compose (12 services: caddy, api, license, sync, postgres, redis, website, admin-panel, uptime-kuma, falcosidekick, cloudflared, canary), Caddyfile (8 subdomain routes), CI/CD (10+ workflows including 7-step pipeline), container hardening (read-only FS, seccomp, cap_drop, non-root), GHCR image builds, deploy workflow all implemented. External infra confirmed complete: Namecheap→Cloudflare DNS delegation, A records, ufw firewall, SSH hardening, Cloudflare Origin Certificate, VPS .env, CF Access bypass all done. HikariCP pool tuning (S3-14), Redis connection pool (D9/S3-13), and License config env-vars (D8) added 2026-03-14. Remaining: Backblaze B2 bucket setup (Phase 3). Verified 2026-03-14.
 **Priority:** HIGH — Foundation for licensing, sync, and remote diagnostics
 **Phase:** Phase 2 (Growth)
 **Created:** 2026-03-01
@@ -231,6 +231,10 @@ services:
     environment:
       - DB_URL=jdbc:postgresql://postgres:5432/zyntapos
       - REDIS_URL=redis://redis:6379
+      # HikariCP pool tuning (S3-14) — override in VPS .env for larger loads
+      - DB_POOL_MAX=20
+      - DB_POOL_MIN=3
+      # Redis pool tuning (D9/S3-13) — defaults: REDIS_POOL_SIZE=8, REDIS_TIMEOUT_SECONDS=5
     depends_on: [postgres, redis]
     # Ktor server — REST API
 
@@ -241,6 +245,7 @@ services:
       - DB_URL=jdbc:postgresql://postgres:5432/zyntapos
       - REDIS_URL=redis://redis:6379
       - RS256_PRIVATE_KEY_PATH=/run/secrets/rs256_private_key
+      # License business-logic tuning (D8) — defaults: GRACE=7d, MAX_DEVICES=100, HEARTBEAT=60m
     depends_on: [postgres, redis]
     secrets: [rs256_private_key]
     # Ktor server — license issuance, heartbeat, terminal activation

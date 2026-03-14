@@ -6,7 +6,7 @@
 **Effort:** ~5 working days (1 week, 1 developer)
 **Related:** TODO-007 (infrastructure), TODO-007a (admin sync dashboard), TODO-007e (API docs — sync protocol)
 **Owner:** Zynta Solutions Pvt Ltd
-**Last updated:** 2026-03-09
+**Last updated:** 2026-03-14 (S3-11 V16 indexes, S3-14 HikariCP env-backed, D9 Redis pool)
 **Completed:** 2026-03-09
 **PR:** #214 — feat(sync): implement full server-side sync engine
 **CI:** All checks green (Branch Validate ✅, CI Gate ✅, Detekt ✅, CodeQL ✅, JUnit ✅)
@@ -31,7 +31,7 @@ All 20 implementation steps completed. 30 files changed, 2,113 insertions. CI fu
 | **SyncValidator** | `sync/SyncValidator.kt` | ✅ |
 | **ServerConflictResolver** | `sync/ServerConflictResolver.kt` | ✅ |
 | **DeltaEngine** | `sync/DeltaEngine.kt` | ✅ |
-| **SyncProcessor** | `sync/SyncProcessor.kt` | ✅ |
+| **SyncProcessor** | `sync/SyncProcessor.kt` | ✅ — updated D9: uses `GenericObjectPool<StatefulRedisConnection>` (borrow/return) |
 | **EntityApplier** | `sync/EntityApplier.kt` | ✅ |
 | **SyncMetrics** | `sync/SyncMetrics.kt` | ✅ |
 | **SyncRoutes.kt** (full push/pull) | `routes/SyncRoutes.kt` | ✅ |
@@ -1091,20 +1091,41 @@ CREATE POLICY sync_ops_store_isolation ON sync_operations
 | Dedup check (`WHERE id IN (...)`) | `idx_sync_ops_dedup` (unique) | O(k × log n) |
 | Conflict check (`WHERE store_id AND entity_type AND entity_id`) | `idx_sync_ops_entity` | O(log n) |
 | Entity snapshot lookup | `entity_snapshots` PK | O(1) hash |
+| EntityApplier lookup (store+type+id) | `idx_sync_ops_store_entity` ✅ V16 (S3-11) | O(log n) — new composite index |
+| Batch-fetch pending ops | `idx_sync_ops_pending` ✅ V16 (S3-11) | Partial index (`WHERE status='PENDING'`); skips APPLIED/FAILED rows |
 
 ### 8.2 Connection Pooling
 
+HikariCP parameters are now **env-var-backed** (S3-14). Defaults are production-ready; override in VPS `.env` for larger deployments:
+
 ```kotlin
-// HikariCP configuration for sync workload
+// DatabaseFactory.kt — actual implementation (env-var-backed, S3-14)
 val hikariConfig = HikariConfig().apply {
-    maximumPoolSize = 20           // 500 terminals ÷ 25 ops/sec avg = 20 connections
-    minimumIdle = 5
-    connectionTimeout = 10_000     // 10s
-    idleTimeout = 300_000          // 5 min
-    maxLifetime = 1_800_000        // 30 min
-    leakDetectionThreshold = 30_000
+    maximumPoolSize      = System.getenv("DB_POOL_MAX")?.toIntOrNull() ?: 20
+    minimumIdle          = System.getenv("DB_POOL_MIN")?.toIntOrNull() ?: 3
+    connectionTimeout    = System.getenv("DB_CONNECTION_TIMEOUT_MS")?.toLongOrNull() ?: 30_000L
+    idleTimeout          = System.getenv("DB_POOL_IDLE_TIMEOUT")?.toLongOrNull() ?: 600_000L
+    maxLifetime          = 1_800_000L   // 30 min (fixed)
+    leakDetectionThreshold = 30_000L
 }
 ```
+
+Redis connections are similarly pooled via **Apache Commons Pool2** (D9 / S3-13):
+
+```kotlin
+// AppModule.kt — GenericObjectPool replaces single StatefulRedisConnection
+single<GenericObjectPool<StatefulRedisConnection<String, String>>?> {
+    val poolConfig = GenericObjectPoolConfig<StatefulRedisConnection<String, String>>().apply {
+        maxTotal     = System.getenv("REDIS_POOL_SIZE")?.toIntOrNull() ?: 8
+        maxIdle      = 4
+        minIdle      = 1
+        testOnBorrow = true
+    }
+    ConnectionPoolSupport.createGenericObjectPool({ client.connect() }, poolConfig)
+}
+```
+
+`SyncProcessor` and `ForceSyncNotifier` borrow/return connections from the pool in a `try/finally` block. `HealthRoutes` also uses the pool for the Redis liveness check.
 
 ### 8.3 Batch Processing
 
