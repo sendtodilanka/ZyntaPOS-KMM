@@ -18,6 +18,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.koin.ktor.ext.inject
+import java.util.UUID
 
 private const val ACCESS_COOKIE  = "admin_access_token"
 private const val REFRESH_COOKIE = "admin_refresh_token"
