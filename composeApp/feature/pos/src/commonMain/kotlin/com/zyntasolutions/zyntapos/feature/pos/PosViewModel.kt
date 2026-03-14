@@ -142,6 +142,15 @@ class PosViewModel(
     private var storeId: String = "default-store"
     private var registerSessionId: String = ""
 
+    // ── Play In-App Review counter (TODO-008 ASO) ─────────────────────────────
+    // Incremented on each successful payment. [PosEffect.RequestAppReview] is
+    // emitted every REVIEW_PROMPT_INTERVAL completions so Google can decide
+    // whether to show the native review dialog (it throttles automatically).
+    private var completedOrderCount = 0
+    private companion object {
+        private const val REVIEW_PROMPT_INTERVAL = 5
+    }
+
     // ── Internal search / category filter state flows ─────────────────────────
 
     /** Mirrors [PosState.searchQuery] for reactive debounce pipeline. */
@@ -481,6 +490,11 @@ class PosViewModel(
                     AnalyticsParams.PAYMENT_METHOD to intent.method.name,
                     AnalyticsParams.STORE_ID to storeId,
                 ))
+                // ── Play In-App Review prompt (every 5th order) — TODO-008 ASO ─
+                completedOrderCount++
+                if (completedOrderCount % REVIEW_PROMPT_INTERVAL == 0) {
+                    sendEffect(PosEffect.RequestAppReview)
+                }
                 // ── Post-payment: earn loyalty points + debit wallet ──────────
                 val customer = currentState.selectedCustomer
                 if (customer != null) {

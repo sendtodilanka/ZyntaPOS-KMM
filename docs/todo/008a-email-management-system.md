@@ -2,11 +2,28 @@
 
 **Phase:** 2 — Growth
 **Priority:** P1 (HIGH — required before enterprise customer onboarding)
-**Status:** 🟡 ~85% COMPLETE — EmailService (Resend API), password reset endpoints, ticket notification emails, unsubscribe endpoint all implemented in backend/api. Admin panel delivery log UI implemented (admin-panel/src/routes/settings/email.tsx + admin-panel/src/api/email.ts). Remaining: Stalwart mail server (Phase 3 — deferred), Chatwoot integration (Phase 3 — deferred). Verified 2026-03-13.
+**Status:** 🟡 ~95% COMPLETE — All backend code implemented. Manual external steps remaining (DNS, Stalwart first-run, Chatwoot first-run, CF Worker deployment). Verified 2026-03-14.
+- ✅ `InboundEmailProcessor` — HMAC verification, deduplication, ticket threading, auto-reply
+- ✅ `POST /internal/email/inbound` route — HMAC-signed, outside JWT auth
+- ✅ `ChatwootService` — Chatwoot REST API client for conversation creation
+- ✅ `PlayIntegrityService` + `POST /v1/integrity/verify` — Android attestation (soft enforcement)
+- ✅ V18 Flyway migration — `email_threads` table with ticket FK, message threading, Chatwoot conversation ID
+- ✅ `EmailThreads` Exposed table object in `db/Tables.kt`
+- ✅ CF Email Worker — `cf-workers/email-inbound-handler/` (TypeScript, HMAC-signed, MIME parsing)
+- ✅ Stalwart + Chatwoot Docker services added to `docker-compose.yml`
+- ✅ `stalwart/config/config.toml` — Stalwart mail server configuration
+- ✅ `backend/postgres/init-databases.sh` — `zyntapos_chatwoot` database created
+- ✅ `Caddyfile` — `mail.zyntapos.com` + `support.zyntapos.com` reverse proxy entries
+- ✅ `AppConfig.kt` — HMAC secret + Chatwoot + Play Integrity env vars added
+- ✅ `di/AppModule.kt` — `PlayIntegrityService`, `ChatwootService`, `InboundEmailProcessor` registered
+- ⏳ DNS records (MX, SPF, DKIM, DMARC, PTR) — requires Cloudflare dashboard (see manual steps)
+- ⏳ Stalwart first-run setup — requires VPS deploy + wizard (see manual steps)
+- ⏳ Chatwoot first-run — requires `support.zyntapos.com` setup + API token retrieval (see manual steps)
+- ⏳ CF Worker deployment — requires `wrangler secret put` + `wrangler deploy` (see manual steps)
 **Effort:** ~7 working days (1 developer)
 **Related:** TODO-007f (admin panel + HELPDESK role + ticket system), TODO-009 (Ktor security hardening), TODO-010 (security monitoring)
 **Owner:** Zynta Solutions Pvt Ltd
-**Last updated:** 2026-03-11
+**Last updated:** 2026-03-14
 
 ---
 
@@ -1142,3 +1159,271 @@ INBOUND_EMAIL_HMAC_SECRET=dev-secret-placeholder
 - **Marketing email:** Add a separate service (Listmonk — MIT, self-hosted, Docker-ready) purely for newsletters. Never use transactional email infrastructure for bulk mail.
 - **GDPR right to erasure:** When a customer requests data deletion, cascade-delete `email_threads` where `from_address = customer_email` + anonymize `ticket` records.
 - **Email analytics:** Stalwart + webhook-based event tracking → open rates, click rates, bounce rates in admin dashboard.
+
+---
+
+## 15. Manual Steps Required (External Actions)
+
+> **All code is committed.** Complete these steps in order to bring the system fully live.
+> After each step, verify it before proceeding to the next.
+
+---
+
+### Step A — Deploy to VPS (prerequisite for all other steps)
+
+First push the code changes to trigger the CI/CD pipeline and deploy to VPS.
+
+```bash
+# Trigger re-deploy after this branch merges to main — no action needed
+# Pipeline: Branch Validate → Auto PR → CI Gate → Deploy → Smoke Test
+```
+
+Wait for `cd-deploy.yml` to complete successfully before proceeding.
+
+---
+
+### Step B — DNS Records (Cloudflare Dashboard)
+
+**B1. Open Cloudflare Dashboard → DNS → Records for `zyntapos.com`**
+
+Add these records (replace `<VPS_IP>` with your Contabo VPS IP address):
+
+| Type | Name | Content | TTL | Proxy |
+|------|------|---------|-----|-------|
+| `A` | `mail` | `<VPS_IP>` | Auto | **DNS only** (grey cloud — NOT proxied) |
+| `TXT` | `zyntapos.com` | `v=spf1 ip4:<VPS_IP> ~all` | Auto | — |
+| `TXT` | `_dmarc` | `v=DMARC1; p=quarantine; rua=mailto:postmaster@zyntapos.com; ruf=mailto:postmaster@zyntapos.com; adkim=r; aspf=r` | Auto | — |
+
+> **Note:** DKIM TXT record is added in Step D after Stalwart generates the key.
+
+**B2. Enable Cloudflare Email Routing**
+
+1. In Cloudflare Dashboard → **Email** → **Email Routing** → Enable
+2. Cloudflare will add its own MX records automatically (`route1.mx.cloudflare.net`, `route2.mx.cloudflare.net`)
+3. Verify with: `dig MX zyntapos.com` → should show CF MX records within 5 minutes
+
+**B3. Set PTR Record (Reverse DNS) in Contabo**
+
+1. Log in to [Contabo Customer Panel](https://new.contabo.com/)
+2. Go to **Your Services** → **VPS** → your server → **Manage** → **Reverse DNS**
+3. Set: `<VPS_IP>` → `mail.zyntapos.com`
+4. Save. PTR records propagate within 24 hours.
+5. Verify: `dig -x <VPS_IP>` → should eventually return `mail.zyntapos.com`
+
+**Verification:**
+```bash
+dig MX zyntapos.com        # → route1.mx.cloudflare.net, route2.mx.cloudflare.net
+dig TXT zyntapos.com       # → includes "v=spf1 ip4:<VPS_IP> ~all"
+dig TXT _dmarc.zyntapos.com  # → v=DMARC1; p=quarantine; ...
+```
+
+---
+
+### Step C — Stalwart First-Run Setup
+
+**C1. Verify Stalwart is running:**
+
+```bash
+# From VPS (via GitHub Actions ad-hoc workflow or direct SSH)
+docker compose ps stalwart   # should be "Up"
+curl http://localhost:8080/.well-known/jmap   # should return JSON
+```
+
+**C2. Set Stalwart admin password via VPS:**
+
+Create a one-off GitHub Actions workflow dispatch:
+```bash
+# Workflow dispatch (from your local machine):
+curl -s -X POST -H "Authorization: token $PAT" \
+  -H "Accept: application/vnd.github.v3+json" \
+  "https://api.github.com/repos/sendtodilanka/ZyntaPOS-KMM/actions/workflows/vps-adhoc.yml/dispatches" \
+  -d '{"ref":"main","inputs":{"command":"cd /opt/zyntapos && docker compose exec stalwart /usr/local/bin/stalwart-mail --config /opt/stalwart-mail/etc/config.toml account add --name admin --secret YOUR_ADMIN_PASSWORD --role admin"}}'
+```
+
+Alternatively, access Stalwart's web admin at `https://mail.zyntapos.com` and complete setup via wizard.
+
+**C3. Generate DKIM key in Stalwart admin:**
+
+1. Open `https://mail.zyntapos.com` → log in as admin
+2. Go to **Email** → **DKIM** → **Generate new key**
+3. Key type: `RSA-2048`, Selector: `stalwart`
+4. Copy the **public key** (base64 string)
+
+**C4. Add DKIM TXT record to Cloudflare:**
+
+```
+Type: TXT
+Name: stalwart._domainkey
+Content: v=DKIM1; k=rsa; p=<PASTE_PUBLIC_KEY_HERE>
+TTL: Auto
+```
+
+**C5. Create staff mailboxes in Stalwart:**
+
+1. Open `https://mail.zyntapos.com` → **Accounts** → **Add account**
+2. Create: `dilanka@zyntapos.com` (and any other staff members)
+3. Create system accounts: `noreply@zyntapos.com`, `panel@zyntapos.com`, `postmaster@zyntapos.com`, `chatwoot@zyntapos.com`
+
+**C6. Create JMAP API token for Ktor:**
+
+1. In Stalwart admin → **API Tokens** → **Create token**
+2. Name: `zyntapos-api`, Permissions: `email:send`
+3. Copy the token value
+4. Add to VPS `.env`: `STALWART_JMAP_TOKEN=<token>`
+
+**Verification:**
+```bash
+# DKIM check
+dig TXT stalwart._domainkey.zyntapos.com  # → returns DKIM public key
+
+# Send test email from Stalwart admin → verify delivery
+# Check mail-tester.com score (should be 8+/10)
+```
+
+---
+
+### Step D — Chatwoot First-Run Setup
+
+**D1. Verify Chatwoot is running:**
+
+```bash
+# Check services
+curl -s https://support.zyntapos.com  # should load Chatwoot login page
+```
+
+**D2. Create Chatwoot superadmin:**
+
+1. Open `https://support.zyntapos.com/auth/sign_up`
+2. Create the first account — this becomes the superadmin
+3. Email: use your admin email address
+
+**D3. Create the Support inbox in Chatwoot:**
+
+1. Go to **Settings** → **Inboxes** → **Add Inbox**
+2. Select **Email**
+3. Channel name: `ZyntaPOS Support`
+4. Email: `support@zyntapos.com`
+5. SMTP settings:
+   - Host: `stalwart` (internal container name)
+   - Port: `587`
+   - Username: `chatwoot@zyntapos.com`
+   - Password: `<CHATWOOT_SMTP_PASS>` (set in `.env`)
+   - Enable STARTTLS: Yes
+6. Save and note the **Inbox ID** (shown in the URL: `/app/accounts/1/settings/inboxes/<INBOX_ID>/settings`)
+
+**D4. Create API token in Chatwoot:**
+
+1. Go to **Settings** → **Integrations** → **API Access Tokens**
+2. Click **Generate Access Token**
+3. Name: `zyntapos-api`
+4. Copy the token
+
+**D5. Update VPS `.env` with Chatwoot credentials:**
+
+```bash
+# Add to /opt/zyntapos/.env on VPS:
+CHATWOOT_API_TOKEN=<token-from-step-D4>
+CHATWOOT_ACCOUNT_ID=1
+CHATWOOT_INBOX_ID=<inbox-id-from-step-D3>
+```
+
+Then restart the API service:
+```bash
+docker compose restart api
+```
+
+**Verification:**
+- Open Chatwoot at `https://support.zyntapos.com`
+- Send a test email to `support@zyntapos.com` from Gmail
+- Verify a new conversation appears in Chatwoot inbox within 30 seconds
+
+---
+
+### Step E — CF Email Worker Deployment
+
+**E1. Install Wrangler CLI** (if not already):
+
+```bash
+npm install -g wrangler
+wrangler login  # opens browser OAuth with your Cloudflare account
+```
+
+**E2. Set Worker secrets:**
+
+```bash
+cd cf-workers/email-inbound-handler
+
+# Required secrets (Wrangler prompts for the value interactively):
+wrangler secret put INBOUND_HMAC_SECRET
+# → Enter the same value as INBOUND_EMAIL_HMAC_SECRET in your VPS .env
+
+wrangler secret put ZYNTA_API_ENDPOINT
+# → Enter: https://api.zyntapos.com
+
+wrangler secret put STALWART_SMTP_HOST
+# → Enter: mail.zyntapos.com
+```
+
+**E3. Deploy the Worker:**
+
+```bash
+cd cf-workers/email-inbound-handler
+npm install
+wrangler deploy
+# → Deploys to: email-inbound-handler.<your-cf-subdomain>.workers.dev
+```
+
+**E4. Configure CF Email Routing rules:**
+
+1. In Cloudflare Dashboard → **Email** → **Email Routing** → **Routes**
+2. Add these rules:
+
+| Match | Action |
+|-------|--------|
+| `support@zyntapos.com` | Send to Worker → `email-inbound-handler` |
+| `billing@zyntapos.com` | Send to Worker → `email-inbound-handler` |
+| `bugs@zyntapos.com` | Send to Worker → `email-inbound-handler` |
+| `alerts@zyntapos.com` | Send to Worker → `email-inbound-handler` |
+| `*@zyntapos.com` (catch-all) | Forward to: `smtp://mail.zyntapos.com:25` |
+
+**E5. Add INBOUND_EMAIL_HMAC_SECRET to GitHub Secrets:**
+
+1. Open GitHub → `sendtodilanka/ZyntaPOS-KMM` → **Settings** → **Secrets and variables** → **Actions**
+2. Click **New repository secret**
+3. Name: `INBOUND_EMAIL_HMAC_SECRET`
+4. Value: same random secret used in step E2
+5. Save
+
+Also add to VPS `.env`: `INBOUND_EMAIL_HMAC_SECRET=<same-value>`
+
+**Verification:**
+```bash
+# Send test email to support@zyntapos.com from Gmail
+# Check API logs:
+docker compose logs api --tail 50 | grep "Inbound email"
+# Should show: "Inbound email stored — threadId=... ticketId=... from=your@gmail.com"
+```
+
+---
+
+### Step F — End-to-End Validation
+
+Run through the validation checklist in Section 12. Key tests to confirm manually:
+
+1. **Full inbound flow:**
+   - Send email to `support@zyntapos.com` → ticket created in admin panel → auto-reply arrives in Gmail inbox
+
+2. **Thread linking:**
+   - Reply to the auto-reply email → ticket gets a new comment (not a new ticket)
+
+3. **Chatwoot sync:**
+   - Open `https://support.zyntapos.com` → verify conversation appeared with email body
+
+4. **Deliverability score:**
+   - Go to [mail-tester.com](https://www.mail-tester.com) → get a test address
+   - Send email from `dilanka@zyntapos.com` (via Stalwart SMTP in Thunderbird) to the mail-tester address
+   - Score should be 8+/10
+
+5. **DMARC report (after 24h):**
+   - Check `postmaster@zyntapos.com` inbox for first DMARC aggregate report
+   - All messages should show `dkim=pass` and `spf=pass`

@@ -189,3 +189,23 @@ object TicketComments : Table("ticket_comments") {
     val createdAt  = long("created_at")
     override val primaryKey = PrimaryKey(id)
 }
+
+// ── V18: Inbound email threads (TODO-008a) ────────────────────────────────────
+
+object EmailThreads : Table("email_threads") {
+    val id                    = uuid("id")
+    val ticketId              = uuid("ticket_id").nullable()
+    val messageId             = text("message_id").nullable()
+    val inReplyTo             = text("in_reply_to").nullable()
+    val references            = text("references").nullable()
+    val fromAddress           = text("from_address")
+    val fromName              = text("from_name").nullable()
+    val toAddress             = text("to_address")
+    val subject               = text("subject")
+    val bodyText              = text("body_text").nullable()
+    val bodyHtml              = text("body_html").nullable()
+    val chatwootConversationId = integer("chatwoot_conversation_id").nullable()
+    val receivedAt            = timestampWithTimeZone("received_at")
+    val createdAt             = timestampWithTimeZone("created_at")
+    override val primaryKey   = PrimaryKey(id)
+}

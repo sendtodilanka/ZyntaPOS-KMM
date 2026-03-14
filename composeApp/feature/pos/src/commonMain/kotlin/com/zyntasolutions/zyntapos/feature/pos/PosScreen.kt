@@ -59,6 +59,8 @@ fun PosScreen(
     var isCartSheetVisible by remember { mutableStateOf(false) }
     var isPaymentScreenVisible by remember { mutableStateOf(false) }
     var isCustomerPickerVisible by remember { mutableStateOf(false) }
+    // Play In-App Review trigger (TODO-008 ASO) — toggled by PosEffect.RequestAppReview
+    var reviewTrigger by remember { mutableStateOf(false) }
 
     // Trigger initial data load
     LaunchedEffect(Unit) {
@@ -81,9 +83,13 @@ fun PosScreen(
                 is PosEffect.ReceiptEmailSent   -> snackbarHostState.showSnackbar("Receipt emailed successfully")
                 is PosEffect.A4InvoicePrinted   -> snackbarHostState.showSnackbar("A4 invoice sent to printer")
                 is PosEffect.NavigateToRefund   -> onNavigateToRefund(effect.orderId)
+                is PosEffect.RequestAppReview   -> reviewTrigger = true
             }
         }
     }
+
+    // Play In-App Review composable — fires the native dialog on Android (no-op on JVM)
+    PosAppReviewEffect(trigger = reviewTrigger) { reviewTrigger = false }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(

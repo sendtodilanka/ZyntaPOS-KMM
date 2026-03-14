@@ -1,0 +1,32 @@
+name            = "email-inbound-handler"
+main            = "src/index.ts"
+compatibility_date  = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+# ── Deployment ─────────────────────────────────────────────────────────────────
+# Workers are deployed via:
+#   1. wrangler deploy (from this directory)
+#   OR
+#   2. Cloudflare Dashboard → Email Routing → Email Workers → Upload script
+#
+# The worker is triggered automatically by Cloudflare Email Routing
+# when an email arrives at @zyntapos.com — no HTTP trigger needed.
+
+# ── Email trigger ──────────────────────────────────────────────────────────────
+# Configure in Cloudflare Dashboard → Email Routing → Routes:
+#   support@zyntapos.com  → Send to Worker: email-inbound-handler
+#   billing@zyntapos.com  → Send to Worker: email-inbound-handler
+#   bugs@zyntapos.com     → Send to Worker: email-inbound-handler
+#   alerts@zyntapos.com   → Send to Worker: email-inbound-handler
+#   *@zyntapos.com        → Forward to: smtp://mail.zyntapos.com:25 (Stalwart)
+
+# ── Required Secrets ───────────────────────────────────────────────────────────
+# Set via: wrangler secret put INBOUND_HMAC_SECRET
+#          wrangler secret put ZYNTA_API_ENDPOINT
+#
+# INBOUND_HMAC_SECRET  — must match INBOUND_EMAIL_HMAC_SECRET on VPS
+#                        Generate: openssl rand -base64 32
+# ZYNTA_API_ENDPOINT   — "https://api.zyntapos.com"
+#
+# Secrets are NOT stored in this file. Set them once via wrangler CLI.
+# View current secret names (not values): wrangler secret list

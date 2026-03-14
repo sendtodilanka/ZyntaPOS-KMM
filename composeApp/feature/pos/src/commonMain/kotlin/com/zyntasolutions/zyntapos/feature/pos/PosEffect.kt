@@ -111,4 +111,13 @@ sealed interface PosEffect {
      * Emitted when a receipt barcode is scanned in POS mode.
      */
     data class NavigateToRefund(val orderId: String) : PosEffect
+
+    /**
+     * Prompt the cashier for a Google Play Store in-app review.
+     * Emitted by [PosViewModel] after every 5th successful sale.
+     *
+     * Handled in [PosScreen] by [PosAppReviewEffect] — Android shows the native
+     * review overlay; JVM Desktop silently consumes it (no-op).
+     */
+    data object RequestAppReview : PosEffect
 }
