@@ -87,9 +87,21 @@ jobs:
             cd /opt/zyntapos
             docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile
 
-            echo "=== Done — verifying cert subject ==="
+            echo "=== Step 4: Verify cert file ==="
             openssl x509 -noout -subject -issuer -dates \
               -in "$CERTS_DIR/mail.zyntapos.com.pem" 2>/dev/null || true
+
+            echo "=== Step 5: Verify Caddy serves the LE cert (not CF origin) ==="
+            sleep 3
+            SERVED_ISSUER=$(echo | openssl s_client -connect 127.0.0.1:443 \
+              -servername mail.zyntapos.com 2>/dev/null \
+              | openssl x509 -noout -issuer 2>/dev/null) || SERVED_ISSUER="(unable to check)"
+            echo "Served cert issuer: $SERVED_ISSUER"
+            if echo "$SERVED_ISSUER" | grep -qi "Let's Encrypt\|R3\|R10\|R11\|E5\|E6"; then
+              echo "=== SUCCESS: Let's Encrypt cert is being served ==="
+            else
+              echo "=== WARNING: Cert served is not from Let's Encrypt — may need Caddy restart ==="
+            fi
 
       - name: Post cert-renew summary
         if: always()
