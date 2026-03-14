@@ -255,7 +255,7 @@ Phase 1 is **complete** (all 5 TODOs done). Phase 2 is ~87% complete:
 - ✅ TODO-007b Astro marketing website (implementation complete)
 - ✅ TODO-007c Monitoring setup (Uptime Kuma, health endpoints)
 - ✅ TODO-007d Automated backup (pg_dump + GPG + rclone B2)
-- ✅ TODO-007f Admin panel CF + Custom Auth (CSRF, bcrypt, MFA, Google SSO, audit logging)
+- ✅ TODO-007f Admin panel CF + Custom Auth (CSRF, bcrypt, MFA, audit logging; Google SSO removed — email/password only)
 - ✅ TODO-007g Sync engine server-side (30 files, full implementation)
 - ✅ TODO-009 Ktor security hardening (all 4 levels)
 - ✅ TODO-008 SEO/ASO (technical SEO complete)

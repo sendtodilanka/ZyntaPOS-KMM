@@ -35,8 +35,6 @@ import java.util.UUID
  *   - GET requests (read-only)
  *   - /admin/auth/login
  *   - /admin/auth/bootstrap
- *   - /admin/auth/google  (server-side OAuth redirect)
- *   - /admin/auth/google/callback
  *   - /admin/auth/refresh (uses httpOnly refresh cookie, not XSRF)
  */
 
@@ -48,9 +46,7 @@ private val STATE_CHANGING_METHODS = setOf(
 private val CSRF_EXCLUDED_PATHS = setOf(
     "/admin/auth/login",
     "/admin/auth/bootstrap",
-    "/admin/auth/refresh",
-    "/admin/auth/google",
-    "/admin/auth/google/callback"
+    "/admin/auth/refresh"
 )
 
 private const val XSRF_COOKIE  = "XSRF-TOKEN"

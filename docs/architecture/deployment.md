@@ -218,8 +218,8 @@ All 26 secrets below are configured in the repository. **Never commit any of the
 
 | Secret | Purpose |
 |--------|---------|
-| `GOOGLE_OAUTH_CLIENT_ID` | Google SSO OAuth2 Client ID (backend auth) |
-| `GOOGLE_OAUTH_CLIENT_SECRET` | Google SSO OAuth2 Client Secret |
+| ~~`GOOGLE_OAUTH_CLIENT_ID`~~ | ~~Google SSO OAuth2 Client ID~~ — **removed 2026-03-14** (Google OAuth removed; admin auth is email/password + TOTP only) |
+| ~~`GOOGLE_OAUTH_CLIENT_SECRET`~~ | ~~Google SSO OAuth2 Client Secret~~ — **removed 2026-03-14** |
 | `GOOGLE_SERVICES_JSON` | `google-services.json` for Firebase Android SDK |
 | `ZYNTA_FCM_SERVICE_ACCOUNT_JSON` | Firebase Admin SDK service account JSON — FCM v1 API (push notifications) |
 | `ZYNTA_FCM_VAPID_PUBLIC_KEY` | VAPID public key for Web Push (FCM) |

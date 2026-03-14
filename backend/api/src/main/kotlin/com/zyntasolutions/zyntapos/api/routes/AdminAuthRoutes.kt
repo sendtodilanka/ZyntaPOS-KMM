@@ -8,7 +8,6 @@ import com.zyntasolutions.zyntapos.api.service.AdminAuthService
 import com.zyntasolutions.zyntapos.api.service.AdminAuditService
 import com.zyntasolutions.zyntapos.api.service.AdminUserRow
 import com.zyntasolutions.zyntapos.api.service.EmailService
-import com.zyntasolutions.zyntapos.api.service.GoogleOAuthService
 import com.zyntasolutions.zyntapos.api.service.MfaService
 import com.zyntasolutions.zyntapos.api.service.toResponse
 import com.zyntasolutions.zyntapos.api.config.AppConfig
@@ -19,7 +18,6 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.koin.ktor.ext.inject
-import java.util.UUID
 
 private const val ACCESS_COOKIE  = "admin_access_token"
 private const val REFRESH_COOKIE = "admin_refresh_token"
@@ -27,7 +25,6 @@ private const val REFRESH_COOKIE = "admin_refresh_token"
 fun Route.adminAuthRoutes() {
     val service: AdminAuthService by inject()
     val mfaService: MfaService by inject()
-    val googleOAuth: GoogleOAuthService by inject()
     val auditService: AdminAuditService by inject()
     val emailService: EmailService by inject()
     val config: AppConfig by inject()
@@ -307,73 +304,6 @@ fun Route.adminAuthRoutes() {
             val refreshTtlSec = config.adminRefreshTokenTtlDays * 86_400L
             setAuthCookies(call, tokens.first, tokens.second, accessTtlSec, refreshTtlSec)
             call.respond(HttpStatusCode.OK, AdminLoginResponse(user = user.toResponse(), expiresIn = accessTtlSec))
-        }
-
-        // ── Google OAuth endpoints ───────────────────────────────────────────
-
-        // GET /admin/auth/google — redirect to Google consent screen
-        get("/google") {
-            if (config.googleClientId.isBlank()) {
-                call.respond(HttpStatusCode.NotImplemented, ErrorResponse("OAUTH_NOT_CONFIGURED", "Google OAuth is not configured"))
-                return@get
-            }
-            val state = UUID.randomUUID().toString()
-            // In production, store state in Redis with 5-min TTL for CSRF validation
-            call.respondRedirect(googleOAuth.buildAuthUrl(state))
-        }
-
-        // GET /admin/auth/google/callback?code=&state=
-        get("/google/callback") {
-            val panelUrl = config.adminPanelUrl
-
-            val code = call.request.queryParameters["code"]
-                ?: run {
-                    call.respondRedirect("$panelUrl/login?error=google_auth_failed")
-                    return@get
-                }
-
-            val userInfo = googleOAuth.exchangeCodeForUser(code)
-                ?: run {
-                    call.respondRedirect("$panelUrl/login?error=google_auth_failed")
-                    return@get
-                }
-
-            val adminUser = googleOAuth.findOrCreateUser(userInfo)
-                ?: run {
-                    call.respondRedirect("$panelUrl/login?error=domain_not_allowed")
-                    return@get
-                }
-
-            if (!adminUser.isActive) {
-                call.respondRedirect("$panelUrl/login?error=account_inactive")
-                return@get
-            }
-
-            val ip        = call.request.headers["X-Forwarded-For"]?.split(",")?.firstOrNull()?.trim()
-                         ?: call.request.local.remoteHost
-            val userAgent = call.request.headers[HttpHeaders.UserAgent]
-
-            // If MFA is enabled, issue pending token and redirect to login MFA step
-            if (adminUser.mfaEnabled) {
-                val pendingToken = service.issueMfaPendingToken(adminUser)
-                call.response.cookies.append(Cookie(
-                    name     = "admin_mfa_pending",
-                    value    = pendingToken,
-                    maxAge   = 120,
-                    path     = "/",
-                    httpOnly = true,
-                    secure   = true,
-                    extensions = mapOf("SameSite" to "Lax")
-                ))
-                call.respondRedirect("$panelUrl/login?mfa=required")
-                return@get
-            }
-
-            val tokens = service.issueTokensForUser(adminUser, ip, userAgent)
-            val accessTtlSec  = config.adminAccessTokenTtlMs / 1000
-            val refreshTtlSec = config.adminRefreshTokenTtlDays * 86_400L
-            setAuthCookies(call, tokens.first, tokens.second, accessTtlSec, refreshTtlSec)
-            call.respondRedirect("$panelUrl/")
         }
 
         // POST /admin/auth/forgot-password — request password reset email

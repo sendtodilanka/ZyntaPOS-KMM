@@ -128,7 +128,6 @@ export const TICKET_CATEGORY_TREE: Record<TicketCategory, TicketCategoryMeta> = 
       'Account Locked / Suspended',
       'Suspicious / Unauthorized Access',
       'Session Expiring Too Quickly',
-      'Google SSO Issue',
       'Other Account Issue',
     ],
   },

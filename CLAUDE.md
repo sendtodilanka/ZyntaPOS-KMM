@@ -743,8 +743,6 @@ Copy `local.properties.template` and fill in values before first build.
 | `CLOUDFLARE_TUNNEL_TOKEN` | Cloudflare Tunnel token (optional Zero Trust) |
 | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare Account ID |
 | `CLOUDFLARE_API_TOKEN` | Cloudflare API Token |
-| `GOOGLE_OAUTH_CLIENT_ID` | Google SSO OAuth2 Client ID |
-| `GOOGLE_OAUTH_CLIENT_SECRET` | Google SSO OAuth2 Client Secret |
 | `GOOGLE_SERVICES_JSON` | `google-services.json` for Firebase Android SDK |
 | `ZYNTA_FCM_SERVICE_ACCOUNT_JSON` | Firebase Admin SDK service account (FCM v1 push notifications) |
 | `ZYNTA_FCM_VAPID_PUBLIC_KEY` | VAPID public key for Web Push |
@@ -792,8 +790,6 @@ All 26 secrets are configured. See "Secrets & Local Configuration" section above
 | `CLOUDFLARE_TUNNEL_TOKEN` | Cloudflare Tunnel token for Zero Trust access (optional) | FTS Step 4, Step 5 |
 | `SLACK_WEBHOOK_URL` | Slack webhook for Falco security alerts (optional) | FTS Step 4 |
 | `ZYNTA_FCM_SERVICE_ACCOUNT_JSON` | Firebase Admin SDK service account — FCM v1 push notifications | backend services |
-| `GOOGLE_OAUTH_CLIENT_ID` | Google SSO OAuth2 Client ID | backend auth |
-| `GOOGLE_OAUTH_CLIENT_SECRET` | Google SSO OAuth2 Client Secret | backend auth |
 
 ---
 
