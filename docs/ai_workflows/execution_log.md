@@ -3867,3 +3867,63 @@ Backend — Service update:
 - [x] `createSiteVisitToken()` — new method: finds eligible ON_SITE session → generates 32-byte cryptographically random token → stores SHA-256 hash → returns raw token once (never retrievable again)
 - [x] `toResponse()` extension — includes `visitType` and `siteVisitToken = null` in all generic responses
 
+
+---
+
+## Backend Audit Phase C/D Remediation (Completed 2026-03-14)
+
+**Branch:** `claude/plan-architecture-implementation-9U1Bk`
+**Status:** ✅ COMPLETE — full 7-step pipeline green (SHA `7c1878a`)
+
+### S3-11 — Missing DB Indexes (WP-1)
+
+- [x] `backend/api/src/main/resources/db/migration/V16__high_query_indexes.sql` — two new indexes on `sync_operations`:
+  - `idx_sync_ops_store_entity(store_id, entity_type, entity_id)` — covers EntityApplier's full predicate
+  - `idx_sync_ops_pending(store_id, created_at DESC) WHERE status='PENDING'` — partial index avoids scanning APPLIED/FAILED rows
+
+### S3-14 — HikariCP Pool Tuning (WP-2)
+
+- [x] `backend/api/src/main/kotlin/.../api/data/DatabaseFactory.kt` — all pool parameters now read from env vars with production-ready defaults: `DB_POOL_MAX=20`, `DB_POOL_MIN=3`, `DB_CONNECTION_TIMEOUT_MS=30000`, `DB_POOL_IDLE_TIMEOUT=600000`
+- [x] `docker-compose.yml` — `api` service sets `DB_POOL_MAX=20`, `DB_POOL_MIN=3`
+
+### S3-15 — Fat-Service Repository Extraction (WP-3)
+
+- [x] `AdminAuditRepository` + `AdminAuditRepositoryImpl` — extracted from `AdminAuditService`; all SQL moved to impl; service delegates via interface
+- [x] `AdminTicketRepository` + `AdminTicketRepositoryImpl` — extracted from `AdminTicketService`
+- [x] `TicketCommentRepository` + `TicketCommentRepositoryImpl` — comment SQL sub-extracted
+- [x] `AdminStoresRepository` + `AdminStoresRepositoryImpl` — extracted from `AdminStoresService`
+- [x] Koin `AppModule.kt` updated — all four repository impls registered as `single<Interface>`
+
+### D6 — SLF4J MDC Logging (WP-4)
+
+- [x] `SyncProcessor.kt` — `storeId` and `deviceId` added to MDC at start of `process()`, removed in `finally`
+- [x] `AdminAuditService.kt` — `adminId` added to MDC around `log()` body, removed in `finally`
+
+### D8 — LicenseConfig Constants (WP-4)
+
+- [x] `backend/license/.../config/LicenseConfig.kt` — 3 new env-backed fields: `gracePeriodDays` (`LICENSE_GRACE_PERIOD_DAYS`, default 7), `maxDevicesPerLicense` (`LICENSE_MAX_DEVICES`, default 100), `heartbeatIntervalMinutes` (`LICENSE_HEARTBEAT_INTERVAL_MIN`, default 60)
+- [x] `LicenseService.kt` — removed `companion object` hardcoded constants; uses `config.gracePeriodDays.toLong()` etc.
+- [x] `LicenseModule.kt` — `LicenseService(config = get())` wired
+
+### D9 — Redis Connection Pooling (S3-13) (WP-4)
+
+- [x] `backend/api/build.gradle.kts` — added `org.apache.commons:commons-pool2:2.12.1`
+- [x] `AppModule.kt` — replaced `single<StatefulRedisConnection?>` with `single<GenericObjectPool<StatefulRedisConnection<String,String>>?>` using `ConnectionPoolSupport.createGenericObjectPool()`; pool config reads `REDIS_POOL_SIZE` (default 8) and `REDIS_TIMEOUT_SECONDS` (default 5)
+- [x] `SyncProcessor.kt` — `redisPool` parameter (was `redisConnection`); borrow/return pattern in `publishToRedis()`
+- [x] `ForceSyncNotifier.kt` — `redisPool` parameter; borrow/return pattern in `publish()`
+- [x] `HealthRoutes.kt` — **critical fix**: updated to inject `GenericObjectPool` (not the removed `StatefulRedisConnection`); `checkRedis()` borrows/returns from pool — this was the root cause of the smoke test failure
+
+### Test Fixes
+
+- [x] `SyncProcessorTest.kt` — renamed `redisConnection = null` → `redisPool = null`
+- [x] `AdminAuthServiceTest.kt` + `AdminAuthServiceExtendedTest.kt` — added `noOpAuditRepo` stub for `AdminAuditRepository` (required after S3-15 constructor change)
+
+### Pipeline Outcome
+
+| Step | Workflow | Run | Result |
+|------|----------|-----|--------|
+| Step[1] | Branch Validate | #394 | ✅ |
+| Step[3+4] | CI Gate | #483/#484 | ✅ |
+| Step[5] | Deploy to VPS | #169 | ✅ |
+| Step[6] | Smoke Test | #161 | ✅ (`/ping` ✅ `/health db=ok` ✅) |
+| Step[7] | Verify Endpoints | #315 | ✅ |

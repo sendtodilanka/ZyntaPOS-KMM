@@ -151,6 +151,36 @@ ls /opt/zyntapos/secrets/
 # See: secrets/secrets.env.template for generation instructions
 ```
 
+### Runtime-tunable env vars (optional — VPS `.env`)
+
+All values below have safe defaults hardcoded in the service and only need to be set when the defaults are insufficient for the deployment's load profile.
+
+#### HikariCP Connection Pool (`api` service)
+
+| Env var | Default | Description |
+|---------|---------|-------------|
+| `DB_POOL_MAX` | `20` | Maximum connections in pool |
+| `DB_POOL_MIN` | `3` | Minimum idle connections |
+| `DB_CONNECTION_TIMEOUT_MS` | `30000` | Max wait to acquire a connection (ms) |
+| `DB_POOL_IDLE_TIMEOUT` | `600000` | Time before idle connection is evicted (ms) |
+
+#### Redis Connection Pool (`api` service)
+
+| Env var | Default | Description |
+|---------|---------|-------------|
+| `REDIS_POOL_SIZE` | `8` | Max total pooled Redis connections |
+| `REDIS_TIMEOUT_SECONDS` | `5` | Connect / command timeout (seconds) |
+
+#### License Business Logic (`license` service)
+
+| Env var | Default | Description |
+|---------|---------|-------------|
+| `LICENSE_GRACE_PERIOD_DAYS` | `7` | Days an expired license stays in GRACE state before blocking |
+| `LICENSE_MAX_DEVICES` | `100` | Max simultaneous device registrations per license (soft cap) |
+| `LICENSE_HEARTBEAT_INTERVAL_MIN` | `60` | Expected client heartbeat cadence (minutes); used for last-seen staleness detection |
+
+---
+
 ### GitHub Secrets required
 
 All 26 secrets below are configured in the repository. **Never commit any of these values to the codebase.**
