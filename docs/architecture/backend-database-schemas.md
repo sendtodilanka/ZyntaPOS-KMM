@@ -1,13 +1,13 @@
 # Backend Database Schemas
 
-**Last updated:** 2026-03-12 (S4-7 remediation)
+**Last updated:** 2026-03-14 (S3-11 indexes, Phase 3 Block 6 site-visit token)
 
 This document catalogs all PostgreSQL tables across the two backend databases.
 For the KMM client-side SQLDelight schema, see `shared/data/src/commonMain/sqldelight/`.
 
 ---
 
-## Database: `zyntapos_api` (14 Migrations)
+## Database: `zyntapos_api` (16 Migrations)
 
 ### V1 — Initial Schema
 
@@ -113,6 +113,23 @@ Added `idx_sync_operations_store_status` and `idx_sync_operations_created`.
 |-------|------------|-------|
 | **audit_entries** | id, store_id, device_id, event_type, user_id, entity_type, entity_id, details (JSONB), hash, previous_hash, timestamp, sync_version | Server-side storage of synced POS audit entries; hash-chain for tamper detection |
 
+### V15 — Site Visit Token (TODO-006)
+
+Added columns to `diagnostic_sessions`:
+- `visit_type TEXT NOT NULL DEFAULT 'REMOTE'` — `REMOTE` | `ON_SITE`
+- `site_visit_token_hash TEXT` — SHA-256 hash of the one-time on-site access token (raw token returned once, never stored)
+
+Added index: `idx_diag_sessions_token_hash` on `site_visit_token_hash WHERE NOT NULL`.
+
+### V16 — High-Query Indexes (S3-11)
+
+Performance indexes added to `sync_operations` (the highest-traffic table):
+
+| Index | Columns | Predicate | Purpose |
+|-------|---------|-----------|---------|
+| `idx_sync_ops_store_entity` | `(store_id, entity_type, entity_id)` | — | EntityApplier lookup; covers the full join predicate used by `SyncProcessor` |
+| `idx_sync_ops_pending` | `(store_id, created_at DESC)` | `WHERE status = 'PENDING'` | Partial index; skips APPLIED/FAILED rows entirely on `SyncProcessor`'s batch-fetch query |
+
 ---
 
 ## Database: `zyntapos_license` (4 Migrations)
@@ -146,7 +163,7 @@ Updated edition CHECK constraint: `STARTER` renamed to `COMMUNITY`.
 |--------|-------|
 | API tables | 24 |
 | License tables | 3 |
-| Total indexes | 55+ |
+| Total indexes | 60+ |
 | Triggers | 1 (entity snapshot) |
 | Sequences | 1 (ticket numbering) |
 

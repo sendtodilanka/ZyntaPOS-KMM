@@ -1,7 +1,7 @@
 # Sync Strategy — ZyntaPOS Offline-First Architecture
 
 **Status:** Phase 1 implementation documented. Phase 2 CRDT gaps explicitly called out.
-**Last updated:** 2026-02-25
+**Last updated:** 2026-03-14
 **Sources:** `shared/data/src/commonMain/kotlin/.../sync/SyncEngine.kt`, `SyncRepositoryImpl.kt`, `SyncEnqueuer.kt`, SQLDelight `.sq` files
 
 ---
@@ -223,7 +223,37 @@ per-entity-type sync cursors are needed. Not yet wired into the sync engine.
 
 ---
 
-## 8. Known Gaps Summary
+## 8. Server-Side Sync Infrastructure (Backend)
+
+The backend `api` service handles the server side of the outbox push/pull protocol.
+
+### SyncProcessor
+
+`backend/api/src/main/kotlin/.../sync/SyncProcessor.kt` — processes incoming `POST /api/v1/sync/push` payloads:
+1. Validates store ownership of each operation
+2. Persists operations to `sync_operations` table (V4) via `newSuspendedTransaction`
+3. Dispatches `EntityApplier` to write normalized rows to V12 tables (products/categories/customers/orders/order_items)
+4. Publishes `sync:delta:<storeId>` to Redis pub/sub so connected WebSocket clients (Sync service) are notified
+
+**Redis connection pooling (S3-13):** `SyncProcessor` uses a `GenericObjectPool<StatefulRedisConnection<String, String>>` (Apache Commons Pool2) shared via Koin. Connections are borrowed for each `publishToRedis()` call and returned in a `finally` block. Pool size is configurable via `REDIS_POOL_SIZE` (default: 8). If Redis is unavailable, the pool binding is `null` and publish is silently skipped (sync continues; real-time notifications are best-effort).
+
+**MDC logging (D6):** `storeId` and `deviceId` are added to SLF4J MDC at the start of each `process()` call and removed in a `finally` block. This ensures every log line emitted within a sync request carries the store/device context without cross-coroutine leakage.
+
+**Performance index (S3-11 / V16):** `sync_operations` has two new indexes:
+- `idx_sync_ops_store_entity(store_id, entity_type, entity_id)` — covers EntityApplier's full lookup predicate
+- `idx_sync_ops_pending(store_id, created_at DESC) WHERE status='PENDING'` — partial index for batch-fetch queries
+
+### ForceSyncNotifier
+
+`backend/api/src/main/kotlin/.../api/service/ForceSyncNotifier.kt` — publishes `force_sync` commands to the `sync:commands` Redis channel. Shares the same Koin `GenericObjectPool` as `SyncProcessor` (borrow/return pattern).
+
+### AdminAuditService
+
+`backend/api/src/main/kotlin/.../api/service/AdminAuditService.kt` — delegates all SQL to `AdminAuditRepository` (S3-15 extraction). Adds `adminId` to SLF4J MDC around each `log()` call for structured log correlation.
+
+---
+
+## 9. Known Gaps Summary
 
 | Gap | Ticket | Phase |
 |-----|--------|-------|
