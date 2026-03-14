@@ -197,7 +197,7 @@ object EmailThreads : Table("email_threads") {
     val ticketId              = uuid("ticket_id").nullable()
     val messageId             = text("message_id").nullable()
     val inReplyTo             = text("in_reply_to").nullable()
-    val references            = text("references").nullable()
+    val emailReferences       = text("email_references").nullable()
     val fromAddress           = text("from_address")
     val fromName              = text("from_name").nullable()
     val toAddress             = text("to_address")

@@ -88,7 +88,7 @@ class InboundEmailProcessor(
                 it[ticketId]    = ticket.id
                 it[messageId]   = payload.messageId
                 it[inReplyTo]   = payload.inReplyTo
-                it[references]  = payload.references
+                it[emailReferences]  = payload.references
                 it[fromAddress] = payload.fromAddress
                 it[fromName]    = payload.fromName
                 it[toAddress]   = payload.toAddress

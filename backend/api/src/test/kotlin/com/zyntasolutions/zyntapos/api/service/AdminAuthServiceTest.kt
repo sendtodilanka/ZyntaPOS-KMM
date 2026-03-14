@@ -59,6 +59,13 @@ class AdminAuthServiceTest {
                 resendApiKey           = "",
                 emailFromAddress       = "test@test.local",
                 emailFromName          = "Test",
+                playIntegrityPackageName = "",
+                playIntegrityApiKey    = "",
+                inboundEmailHmacSecret = "",
+                chatwootApiUrl         = "",
+                chatwootApiToken       = "",
+                chatwootAccountId      = "",
+                chatwootInboxId        = "",
             )
         }
 
