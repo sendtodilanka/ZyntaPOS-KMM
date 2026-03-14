@@ -33,6 +33,10 @@
 # etc.) own a hostname, the :80 catch-all block's host matchers for
 # those names are not included in the adapted config.  The smoke test
 # now calls /health directly on backend containers via docker compose exec.
+#
+# NOTE: Caddy handles ACME HTTP-01 challenges for mail.zyntapos.com
+# internally before this :80 catch-all is reached. This block does NOT
+# interfere with Let's Encrypt cert provisioning for grey-cloud domains.
 :80 {
 	respond /ping 200 {
 		body "ok"
@@ -199,7 +203,7 @@ status.zyntapos.com {
 # Caddy auto-provisions a Let's Encrypt cert for this domain instead.
 mail.zyntapos.com {
 	reverse_proxy stalwart:8080 {
-		health_uri /healthz
+		health_uri /.well-known/jmap
 		health_interval 30s
 		health_timeout 10s
 	}
