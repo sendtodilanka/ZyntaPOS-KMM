@@ -72,6 +72,7 @@ fun Application.module() {
     }
 
     DatabaseFactory.init()
+    check(DatabaseFactory.ping()) { "Database not available after initialization" }
 
     // Start background jobs
     val alertJob: AlertGenerationJob by inject()
