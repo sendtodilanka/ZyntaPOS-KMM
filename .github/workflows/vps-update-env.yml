@@ -19,7 +19,7 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           port: ${{ secrets.VPS_PORT }}
           key: ${{ secrets.VPS_USER_KEY }}
-          envs: SENTRY_DSN_API,SENTRY_DSN_LICENSE,SENTRY_DSN_SYNC
+          envs: SENTRY_DSN_API,SENTRY_DSN_LICENSE,SENTRY_DSN_SYNC,RESEND_API_KEY,STALWART_JMAP_TOKEN,CHATWOOT_API_TOKEN,INBOUND_EMAIL_HMAC_SECRET
           script: |
             set -e
             ENV_FILE="/opt/zyntapos/.env"
@@ -43,8 +43,14 @@ jobs:
             upsert_env "SENTRY_DSN_LICENSE" "$SENTRY_DSN_LICENSE"
             upsert_env "SENTRY_DSN_SYNC"    "$SENTRY_DSN_SYNC"
 
+            echo "=== Updating Email System Secrets (TODO-008a) ==="
+            upsert_env "RESEND_API_KEY"              "$RESEND_API_KEY"
+            upsert_env "STALWART_JMAP_TOKEN"         "$STALWART_JMAP_TOKEN"
+            upsert_env "CHATWOOT_API_TOKEN"          "$CHATWOOT_API_TOKEN"
+            upsert_env "INBOUND_EMAIL_HMAC_SECRET"   "$INBOUND_EMAIL_HMAC_SECRET"
+
             echo "=== Verifying (keys only, no values) ==="
-            grep -E "^SENTRY_DSN_" "$ENV_FILE" | sed 's/=.*/=<set>/'
+            grep -E "^(SENTRY_DSN_|RESEND_|STALWART_|CHATWOOT_|INBOUND_EMAIL)" "$ENV_FILE" | sed 's/=.*/=<set>/'
 
             echo "=== Restarting api service to pick up new env ==="
             cd /opt/zyntapos
@@ -55,3 +61,7 @@ jobs:
           SENTRY_DSN_API: ${{ secrets.SENTRY_DSN_API }}
           SENTRY_DSN_LICENSE: ${{ secrets.SENTRY_DSN_LICENSE }}
           SENTRY_DSN_SYNC: ${{ secrets.SENTRY_DSN_SYNC }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          STALWART_JMAP_TOKEN: ${{ secrets.STALWART_JMAP_TOKEN }}
+          CHATWOOT_API_TOKEN: ${{ secrets.CHATWOOT_API_TOKEN }}
+          INBOUND_EMAIL_HMAC_SECRET: ${{ secrets.INBOUND_EMAIL_HMAC_SECRET }}
