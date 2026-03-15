@@ -220,12 +220,20 @@ status.zyntapos.com {
 # manually after first deploy to issue the initial certificate.
 mail.zyntapos.com {
 	tls /etc/caddy/certs/mail.zyntapos.com.pem /etc/caddy/certs/mail.zyntapos.com.key
+
+	# Compress WASM + JS assets — the admin UI WASM binary is ~6.7 MB
+	# uncompressed, causing HTTP/2 stream resets on slow connections.
+	encode zstd gzip
+
 	reverse_proxy stalwart:8080 {
 		# Stalwart redirects /.well-known/jmap → admin UI (307), which Caddy
 		# treats as unhealthy. Use root path instead — returns 200 (admin HTML).
 		health_uri /
 		health_interval 30s
 		health_timeout 10s
+		# Buffer full response before sending to client — prevents HTTP/2
+		# stream closures on large WASM transfers (TODO-008a fix).
+		flush_interval -1
 	}
 }
 
