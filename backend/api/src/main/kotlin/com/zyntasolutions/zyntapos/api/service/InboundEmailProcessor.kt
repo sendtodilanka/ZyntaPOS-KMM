@@ -17,6 +17,7 @@ import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.Year
 import java.time.ZoneOffset
+import java.security.MessageDigest
 import java.util.Base64
 import java.util.UUID
 import javax.crypto.Mac
@@ -61,7 +62,11 @@ class InboundEmailProcessor(
         if (authHeader == null || !authHeader.startsWith(expectedPrefix)) return false
         val receivedSig = authHeader.removePrefix(expectedPrefix)
         val computed = hmacSha256(rawBody, config.inboundEmailHmacSecret)
-        return computed == receivedSig
+        // Constant-time comparison to prevent timing attacks
+        return MessageDigest.isEqual(
+            computed.toByteArray(Charsets.UTF_8),
+            receivedSig.toByteArray(Charsets.UTF_8),
+        )
     }
 
     // ── Main processing ────────────────────────────────────────────────────────

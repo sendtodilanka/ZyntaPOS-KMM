@@ -209,3 +209,18 @@ object EmailThreads : Table("email_threads") {
     val createdAt             = timestampWithTimeZone("created_at")
     override val primaryKey   = PrimaryKey(id)
 }
+
+// ── V20: Outbound email delivery log (TODO-008a) ─────────────────────────────
+
+object EmailDeliveryLogs : Table("email_delivery_log") {
+    val id           = uuid("id")
+    val toAddress    = text("to_address")
+    val fromAddress  = text("from_address")
+    val subject      = text("subject")
+    val templateSlug = text("template_slug").nullable()
+    val status       = text("status")
+    val errorMessage = text("error_message").nullable()
+    val sentAt       = timestampWithTimeZone("sent_at").nullable()
+    val createdAt    = timestampWithTimeZone("created_at")
+    override val primaryKey = PrimaryKey(id)
+}
