@@ -45,7 +45,12 @@ fun Route.healthRoutes() {
             "degraded"
         }
         val redisOk = checkRedis(redisPool)
-        val overallStatus = if (dbOk == "ok" && redisOk == "ok") "ok" else "degraded"
+        // "not_configured" Redis is acceptable — only "degraded" is a problem.
+        // Returning 503 when Redis is merely absent causes the smoke test to
+        // report db=? (curl -sf discards the body on non-2xx), masking the
+        // actual DB status.
+        val redisHealthy = redisOk == "ok" || redisOk == "not_configured"
+        val overallStatus = if (dbOk == "ok" && redisHealthy) "ok" else "degraded"
         val statusCode = if (overallStatus == "ok") HttpStatusCode.OK else HttpStatusCode.ServiceUnavailable
         call.respond(
             statusCode,
@@ -66,7 +71,8 @@ fun Route.healthRoutes() {
             "degraded"
         }
         val redisOk = checkRedis(redisPool)
-        val overallStatus = if (dbOk == "ok" && redisOk == "ok") "ok" else "degraded"
+        val redisHealthy = redisOk == "ok" || redisOk == "not_configured"
+        val overallStatus = if (dbOk == "ok" && redisHealthy) "ok" else "degraded"
         val statusCode = if (overallStatus == "ok") HttpStatusCode.OK else HttpStatusCode.ServiceUnavailable
         call.respond(
             statusCode,
