@@ -1,7 +1,7 @@
 import { useAuthStore } from '@/stores/auth-store';
 import type { AdminRole } from '@/types/user';
 
-// 37 atomic permissions — mirrors AdminPermissions.kt on the backend
+// 39 atomic permissions — mirrors AdminPermissions.kt on the backend
 const PERMISSIONS: Record<AdminRole, string[]> = {
   ADMIN: [
     'dashboard:ops', 'dashboard:financial', 'dashboard:support',
@@ -15,6 +15,7 @@ const PERMISSIONS: Record<AdminRole, string[]> = {
     'tickets:resolve', 'tickets:close', 'tickets:comment',
     'users:read', 'users:write', 'users:deactivate', 'users:sessions:revoke',
     'system:settings', 'system:health', 'system:backup',
+    'email:settings', 'email:logs',
   ],
   OPERATOR: [
     'dashboard:ops', 'dashboard:support',
@@ -26,6 +27,7 @@ const PERMISSIONS: Record<AdminRole, string[]> = {
     'tickets:read', 'tickets:create', 'tickets:update', 'tickets:assign',
     'tickets:resolve', 'tickets:close', 'tickets:comment',
     'system:health',
+    'email:logs',
   ],
   FINANCE: [
     'dashboard:financial',

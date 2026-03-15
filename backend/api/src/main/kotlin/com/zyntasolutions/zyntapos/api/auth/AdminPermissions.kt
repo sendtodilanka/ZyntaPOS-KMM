@@ -3,7 +3,7 @@ package com.zyntasolutions.zyntapos.api.auth
 import com.zyntasolutions.zyntapos.api.auth.AdminRole.*
 
 /**
- * 37 atomic permissions for the admin panel.
+ * 39 atomic permissions for the admin panel.
  * Each permission maps to exactly one capability.
  * Backend enforces via [check]; frontend mirrors this in permissions.ts.
  */
@@ -60,6 +60,10 @@ object AdminPermissions {
         "users:write"               to setOf(ADMIN),
         "users:deactivate"          to setOf(ADMIN),
         "users:sessions:revoke"     to setOf(ADMIN),
+
+        // ── Email (TODO-008a) ────────────────────────────────────────────────
+        "email:settings"            to setOf(ADMIN),
+        "email:logs"                to setOf(ADMIN, OPERATOR),
 
         // ── System ─────────────────────────────────────────────────────────────
         "system:settings"           to setOf(ADMIN),

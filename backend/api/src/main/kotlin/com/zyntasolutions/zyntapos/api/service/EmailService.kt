@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.api.service
 
 import com.zyntasolutions.zyntapos.api.config.AppConfig
+import com.zyntasolutions.zyntapos.api.db.EmailDeliveryLogs
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -16,7 +17,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.slf4j.LoggerFactory
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
+import java.util.UUID
 
 /**
  * Transactional email delivery via the Resend HTTP API.
@@ -54,6 +60,7 @@ class EmailService(private val config: AppConfig) {
             to = toEmail,
             subject = "Reset your ZyntaPOS password",
             html = passwordResetHtml(resetLink),
+            templateSlug = "password_reset",
         )
 
     suspend fun sendWelcomeAdmin(toEmail: String, name: String) =
@@ -61,6 +68,7 @@ class EmailService(private val config: AppConfig) {
             to = toEmail,
             subject = "Welcome to ZyntaPOS Admin Panel",
             html = welcomeAdminHtml(name),
+            templateSlug = "welcome_admin",
         )
 
     suspend fun sendTicketCreated(toEmail: String, ticketNumber: String, title: String) =
@@ -68,6 +76,7 @@ class EmailService(private val config: AppConfig) {
             to = toEmail,
             subject = "Support Ticket Created: #$ticketNumber",
             html = ticketCreatedHtml(ticketNumber, title),
+            templateSlug = "ticket_created",
         )
 
     suspend fun sendTicketUpdated(toEmail: String, ticketNumber: String, newStatus: String) =
@@ -75,23 +84,25 @@ class EmailService(private val config: AppConfig) {
             to = toEmail,
             subject = "Ticket #$ticketNumber status updated: $newStatus",
             html = ticketUpdatedHtml(ticketNumber, newStatus),
+            templateSlug = "ticket_updated",
         )
 
     // ── Private helpers ────────────────────────────────────────────────────────
 
-    private suspend fun send(to: String, subject: String, html: String) {
+    private suspend fun send(to: String, subject: String, html: String, templateSlug: String? = null) {
         if (config.resendApiKey.isBlank()) {
             log.warn("RESEND_API_KEY not configured — skipping email to $to (subject: $subject)")
             return
         }
         withContext(Dispatchers.IO) {
-            runCatching {
+            val fromAddress = config.emailFromAddress
+            val result = runCatching {
                 val response = client.post("https://api.resend.com/emails") {
                     bearerAuth(config.resendApiKey)
                     contentType(ContentType.Application.Json)
                     setBody(
                         ResendEmailRequest(
-                            from = "${config.emailFromName} <${config.emailFromAddress}>",
+                            from = "${config.emailFromName} <$fromAddress>",
                             to   = listOf(to),
                             subject = subject,
                             html = html,
@@ -99,13 +110,41 @@ class EmailService(private val config: AppConfig) {
                     )
                 }
                 if (response.status != HttpStatusCode.OK && response.status.value !in 200..299) {
-                    log.warn("Resend API returned ${response.status} for email to $to: ${response.bodyAsText()}")
-                } else {
-                    log.info("Email sent to $to (subject: $subject)")
+                    val body = response.bodyAsText()
+                    log.warn("Resend API returned ${response.status} for email to $to: $body")
+                    throw RuntimeException("Resend API ${response.status}: $body")
                 }
-            }.onFailure { e ->
-                log.error("Failed to send email to $to (subject: $subject): ${e.message}", e)
+                log.info("Email sent to $to (subject: $subject)")
             }
+            // Log delivery to email_delivery_log table
+            logDelivery(to, fromAddress, subject, templateSlug, result)
+        }
+    }
+
+    private suspend fun logDelivery(
+        to: String,
+        from: String,
+        subject: String,
+        templateSlug: String?,
+        result: Result<Unit>,
+    ) {
+        runCatching {
+            val now = OffsetDateTime.now(ZoneOffset.UTC)
+            newSuspendedTransaction {
+                EmailDeliveryLogs.insert {
+                    it[id]           = UUID.randomUUID()
+                    it[toAddress]    = to
+                    it[fromAddress]  = from
+                    it[EmailDeliveryLogs.subject] = subject
+                    it[EmailDeliveryLogs.templateSlug] = templateSlug
+                    it[status]       = if (result.isSuccess) "SENT" else "FAILED"
+                    it[errorMessage] = result.exceptionOrNull()?.message
+                    it[sentAt]       = if (result.isSuccess) now else null
+                    it[createdAt]    = now
+                }
+            }
+        }.onFailure { e ->
+            log.warn("Failed to log email delivery: ${e.message}")
         }
     }
 
