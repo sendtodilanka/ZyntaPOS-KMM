@@ -74,10 +74,15 @@ path = "/opt/stalwart/fts"
 type = "rocksdb"
 path = "/opt/stalwart/lookup"
 
+# ── Fallback admin (bootstrap access) ────────────────────────────
+# Used for initial login before any accounts are created in the
+# internal directory. Uses env var STALWART_ADMIN_PASSWORD.
+[authentication.fallback-admin]
+user = "admin"
+secret = "%{env:STALWART_ADMIN_PASSWORD}%"
+
 # ── Authentication ────────────────────────────────────────────────
 # Accounts are managed via the Stalwart admin console.
-# Initial admin password is set via STALWART_ADMIN_PASSWORD env var
-# when the container starts for the first time.
 [auth.internal]
 directory = "internal"
 
