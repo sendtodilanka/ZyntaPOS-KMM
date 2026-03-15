@@ -48,12 +48,16 @@ object DatabaseFactory {
         var lastException: Exception? = null
         for (attempt in 1..maxRetries) {
             try {
-                Flyway.configure()
+                val flyway = Flyway.configure()
                     .dataSource(dataSource)
                     .locations("classpath:db/migration")
                     .baselineOnMigrate(true)
                     .load()
-                    .migrate()
+                // Repair first: updates checksums in flyway_schema_history to match
+                // current migration files. Required after V15 was reverted to its
+                // original content (new columns moved to V19).
+                flyway.repair()
+                flyway.migrate()
                 return
             } catch (e: Exception) {
                 lastException = e
