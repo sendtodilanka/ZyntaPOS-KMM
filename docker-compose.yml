@@ -516,6 +516,7 @@ services:
       - SETUID       # Apache drops from root → www-data
       - SETGID       # Apache drops from root → www-data
       - DAC_OVERRIDE # PHP session writes in restricted temp dirs
+      - CHOWN        # Roundcube chowns /tmp/roundcube-temp on startup
     mem_limit: 256m
     memswap_limit: 256m
 
