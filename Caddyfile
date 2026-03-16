@@ -246,11 +246,12 @@ mail.zyntapos.com {
 webmail.zyntapos.com {
 	import cf_tls
 
-	# Compress assets — Roundcube elastic skin ships ~2 MB of CSS/JS
-	# NOTE: encode must NOT be combined with flush_interval -1 (streaming mode).
-	# Roundcube sends standard buffered HTML responses, so default Caddy
-	# buffering is correct and encode works as expected.
-	encode zstd gzip
+	# NOTE: encode zstd gzip is intentionally omitted.
+	# Caddy's encode module silently drops the response body when used with
+	# Roundcube's reverse_proxy (both HTTP/1.1 and HTTP/2 return 0 bytes).
+	# Cloudflare's edge already handles compression between the browser and
+	# Cloudflare; the origin leg (Cloudflare → Caddy → Roundcube) is LAN-speed
+	# and doesn't need Caddy-level compression.
 
 	reverse_proxy roundcube:80 {
 		# Pass real client IP through Cloudflare proxy
