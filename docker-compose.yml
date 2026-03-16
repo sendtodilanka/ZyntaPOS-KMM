@@ -464,7 +464,7 @@ services:
   # New secret required: ROUNDCUBE_DES_KEY (24-char session encryption key)
   #   Generate: openssl rand -base64 18 | head -c 24
   roundcube:
-    image: roundcube/roundcubemail:1.6-apache
+    image: roundcube/roundcubemail:1.6.x-apache
     container_name: zyntapos_roundcube
     restart: unless-stopped
     expose:
