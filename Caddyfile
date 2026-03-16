@@ -247,6 +247,9 @@ webmail.zyntapos.com {
 	import cf_tls
 
 	# Compress assets — Roundcube elastic skin ships ~2 MB of CSS/JS
+	# NOTE: encode must NOT be combined with flush_interval -1 (streaming mode).
+	# Roundcube sends standard buffered HTML responses, so default Caddy
+	# buffering is correct and encode works as expected.
 	encode zstd gzip
 
 	reverse_proxy roundcube:80 {
@@ -257,8 +260,6 @@ webmail.zyntapos.com {
 		health_uri /
 		health_interval 30s
 		health_timeout 10s
-		# Stream JS assets without buffering — prevents HTTP/2 stream resets
-		flush_interval -1
 	}
 }
 
