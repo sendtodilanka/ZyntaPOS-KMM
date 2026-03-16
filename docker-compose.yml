@@ -9,6 +9,7 @@
 #   • postgres    — PostgreSQL 16 database (internal only)
 #   • redis       — Redis 7 cache + pub/sub (internal only)
 #   • canary      — nginx canary pages (fallback during migration)
+#   • roundcube   — Roundcube webmail (browser-based IMAP client)
 #
 # Secrets never go in this file. Use Docker secrets (files in ./secrets/).
 # Copy secrets.env.template → secrets.env and fill in values.
@@ -456,6 +457,68 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  # ── Roundcube Webmail — Browser-based IMAP client (webmail.zyntapos.com) ────
+  # Provides staff with browser-based access to @zyntapos.com mailboxes via Stalwart.
+  # Connects to Stalwart IMAP (143) and SMTP submission (587) on the internal network.
+  # No new DB secret needed — reuses ZYNTAPOS_DB_PASSWORD.
+  # New secret required: ROUNDCUBE_DES_KEY (24-char session encryption key)
+  #   Generate: openssl rand -base64 18 | head -c 24
+  roundcube:
+    image: roundcube/roundcubemail:1.6-apache
+    container_name: zyntapos_roundcube
+    restart: unless-stopped
+    expose:
+      - "80"
+    environment:
+      # Database — reuses existing PostgreSQL user and password
+      - ROUNDCUBEMAIL_DB_TYPE=pgsql
+      - ROUNDCUBEMAIL_DB_HOST=postgres
+      - ROUNDCUBEMAIL_DB_PORT=5432
+      - ROUNDCUBEMAIL_DB_NAME=zyntapos_webmail
+      - ROUNDCUBEMAIL_DB_USER=zyntapos
+      - ROUNDCUBEMAIL_DB_PASSWORD=${ZYNTAPOS_DB_PASSWORD}
+      # Mail server — container-to-container on zyntapos_net (STARTTLS on both)
+      - ROUNDCUBEMAIL_DEFAULT_HOST=stalwart
+      - ROUNDCUBEMAIL_DEFAULT_PORT=143
+      - ROUNDCUBEMAIL_SMTP_SERVER=stalwart
+      - ROUNDCUBEMAIL_SMTP_PORT=587
+      # %u/%p — use the logged-in IMAP user's credentials for SMTP submission
+      - ROUNDCUBEMAIL_SMTP_USER=%u
+      - ROUNDCUBEMAIL_SMTP_PASS=%p
+      # Session cookie encryption key (24-char, stored in ROUNDCUBE_DES_KEY secret)
+      - ROUNDCUBEMAIL_DES_KEY=${ROUNDCUBE_DES_KEY}
+      # UI + plugins
+      - ROUNDCUBEMAIL_SKIN=elastic
+      - ROUNDCUBEMAIL_PLUGINS=archive,zipdownload
+      - ROUNDCUBEMAIL_UPLOAD_MAX_FILESIZE=25M
+      - ROUNDCUBEMAIL_ASPELL_DICTS=en
+    volumes:
+      - roundcube_temp:/tmp/roundcube-temp
+    depends_on:
+      postgres:
+        condition: service_healthy
+      stalwart:
+        condition: service_healthy
+    networks:
+      - zyntapos_net
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+    # ── Container hardening (matches existing service baseline) ───────
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETUID       # Apache drops from root → www-data
+      - SETGID       # Apache drops from root → www-data
+      - DAC_OVERRIDE # PHP session writes in restricted temp dirs
+    mem_limit: 256m
+    memswap_limit: 256m
+
   # ── Chatwoot — Customer support platform (TODO-008a) ────────────────────────
   # Shared inbox for support@, billing@, bugs@ — HELPDESK agents reply here.
   # CF Email Worker creates conversations via Chatwoot REST API.
@@ -588,6 +651,7 @@ volumes:
   caddy_config:
   uptime_kuma_data:
   stalwart_data:       # Stalwart mail server data + DKIM keys (TODO-008a)
+  roundcube_temp:      # Roundcube PHP session temp files
   chatwoot_storage:    # Chatwoot file attachments (TODO-008a)
 
 # ── Networks ─────────────────────────────────────────────────────────
