@@ -135,14 +135,11 @@ jobs:
             docker compose up -d --remove-orphans
             docker image prune -f
 
-            # Force-recreate the Caddy container so it picks up the latest Caddyfile.
-            # git reset --hard replaces files by creating new inodes; Docker file
-            # bind mounts latch onto the OLD inode at container creation and do NOT
-            # see changes after git reset. --force-recreate removes the old container
-            # and starts a new one with fresh bind-mount bindings (new inode).
-            # NOTE: caddy reload does NOT help here — it reads the bind-mounted file
-            # which still points to the old inode inside the container.
-            docker compose up -d --force-recreate caddy
+            # Reload Caddy config — the Caddyfile is bind-mounted and updated
+            # by git reset, but Caddy only reads config at startup unless
+            # explicitly reloaded. Without this, new routes (e.g. /health)
+            # won't take effect until the Caddy container is recreated.
+            docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile 2>/dev/null || true
 
             echo "=== Deploy complete: $(date) ==="
             docker compose ps
