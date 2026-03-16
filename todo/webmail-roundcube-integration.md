@@ -37,7 +37,7 @@ Browser → Cloudflare (orange-cloud proxy)
 
 ```yaml
 roundcube:
-  image: roundcube/roundcubemail:1.6-apache
+  image: roundcube/roundcubemail:1.6.x-apache
   restart: unless-stopped
   depends_on:
     postgres:
