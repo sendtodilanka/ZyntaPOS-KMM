@@ -383,6 +383,11 @@ fun Route.adminAuthRoutes() {
                 return@post
             }
 
+            if (role == AdminRole.ADMIN) {
+                call.respond(HttpStatusCode.Forbidden, ErrorResponse("ADMIN_CREATION_BLOCKED", "ADMIN accounts can only be created via bootstrap. Use a staff role instead."))
+                return@post
+            }
+
             if (service.emailExists(body.email)) {
                 call.respond(HttpStatusCode.Conflict, ErrorResponse("EMAIL_TAKEN", "An account with this email already exists"))
                 return@post
@@ -411,6 +416,11 @@ fun Route.adminAuthRoutes() {
                     call.respond(HttpStatusCode.UnprocessableEntity, ErrorResponse("INVALID_ROLE", "Unknown role: $it"))
                     return@patch
                 }
+            }
+
+            if (role == AdminRole.ADMIN) {
+                call.respond(HttpStatusCode.Forbidden, ErrorResponse("ADMIN_ESCALATION_BLOCKED", "Cannot escalate a user to ADMIN role. ADMIN is reserved for the bootstrap account."))
+                return@patch
             }
 
             val updated = service.updateUser(targetId, body.name, role, body.isActive) ?: run {
