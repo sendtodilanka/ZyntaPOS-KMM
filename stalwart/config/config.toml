@@ -23,24 +23,47 @@
 [server]
 hostname = "mail.zyntapos.com"
 
-# ── SMTP (inbound from internet + submission) ──────────────────────
+# ── TLS certificate (Let's Encrypt — renewed by cert-renew-mail.yml) ──
+# Cert files are bind-mounted from the VPS host into the container.
+# Same cert used by Caddy for mail.zyntapos.com HTTPS admin UI.
+[certificate."default"]
+cert = "/opt/stalwart/certs/mail.zyntapos.com.pem"
+private-key = "/opt/stalwart/certs/mail.zyntapos.com.key"
+default = true
+
+# ── SMTP (inbound from internet) ────────────────────────────────────
 [[server.listener]]
 id = "smtp"
 bind = ["[::]:25"]
 protocol = "smtp"
 
+# ── SMTP submission (STARTTLS — port 587) ───────────────────────────
 [[server.listener]]
 id = "submission"
 bind = ["[::]:587"]
 protocol = "smtp"
 tls.implicit = false
 
-# ── IMAP (staff email clients) ────────────────────────────────────
+# ── SMTPS (implicit TLS — port 465, for iOS/Outlook) ───────────────
+[[server.listener]]
+id = "submissions"
+bind = ["[::]:465"]
+protocol = "smtp"
+tls.implicit = true
+
+# ── IMAP (STARTTLS — port 143) ──────────────────────────────────────
 [[server.listener]]
 id = "imap"
 bind = ["[::]:143"]
 protocol = "imap"
 tls.implicit = false
+
+# ── IMAPS (implicit TLS — port 993, for iOS/Outlook) ────────────────
+[[server.listener]]
+id = "imaps"
+bind = ["[::]:993"]
+protocol = "imap"
+tls.implicit = true
 
 # ── JMAP + Admin HTTP (internal — Caddy proxies) ─────────────────
 [[server.listener]]

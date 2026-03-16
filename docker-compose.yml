@@ -416,8 +416,10 @@ services:
   #
   # Ports exposed to host (VPS MX record points to VPS public IP):
   #   25  — SMTP (inbound from internet / CF Email Routing custom destination)
-  #   143 — IMAP (staff clients: Thunderbird, Apple Mail, etc.)
-  #   587 — SMTP submission (authenticated outbound from staff clients)
+  #   143 — IMAP STARTTLS (staff clients: Thunderbird, etc.)
+  #   465 — SMTPS implicit TLS (iOS Mail, Outlook — authenticated outbound)
+  #   587 — SMTP submission STARTTLS (authenticated outbound from staff clients)
+  #   993 — IMAPS implicit TLS (iOS Mail, Outlook — staff IMAP access)
   # Admin UI (internal only, proxied by Caddy as mail.zyntapos.com):
   #   8080 — Stalwart JMAP + admin console
   #
@@ -432,8 +434,10 @@ services:
     restart: unless-stopped
     ports:
       - "25:25"     # SMTP inbound (public — required for MX delivery)
-      - "143:143"   # IMAP (staff access)
-      - "587:587"   # SMTP submission (authenticated outbound)
+      - "143:143"   # IMAP STARTTLS (staff access)
+      - "465:465"   # SMTPS implicit TLS (iOS/Outlook submission)
+      - "587:587"   # SMTP submission STARTTLS (authenticated outbound)
+      - "993:993"   # IMAPS implicit TLS (iOS/Outlook IMAP)
     expose:
       - "8080"      # JMAP/admin (internal — Caddy proxies mail.zyntapos.com)
     environment:
@@ -441,6 +445,9 @@ services:
     volumes:
       - stalwart_data:/opt/stalwart
       - ./stalwart/config/config.toml:/opt/stalwart/etc/config.toml:ro
+      # TLS cert for IMAPS/SMTPS — same Let's Encrypt cert used by Caddy for mail.zyntapos.com
+      - ./backend/caddy/certs/mail.zyntapos.com.pem:/opt/stalwart/certs/mail.zyntapos.com.pem:ro
+      - ./backend/caddy/certs/mail.zyntapos.com.key:/opt/stalwart/certs/mail.zyntapos.com.key:ro
     networks:
       - zyntapos_net
     healthcheck:
