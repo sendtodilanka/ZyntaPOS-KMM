@@ -389,6 +389,7 @@ fun Route.adminAuthRoutes() {
             }
 
             val created = service.createUser(body.email, body.name, role, body.password)
+            emailService.sendWelcomeAdmin(body.email, body.name)
             call.respond(HttpStatusCode.Created, created.toResponse())
         }
 
