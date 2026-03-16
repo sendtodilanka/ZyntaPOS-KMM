@@ -19,6 +19,7 @@
 #   panel.zyntapos.com    → admin-panel:3000 ✅ React admin panel
 #   docs.zyntapos.com     → docs:3001    ✅ Scalar OpenAPI docs
 #   status.zyntapos.com   → uptime-kuma:3001 ✅ Uptime Kuma
+#   webmail.zyntapos.com  → roundcube:80     ✅ Roundcube webmail
 # ═══════════════════════════════════════════════════════════════════
 
 # Shared TLS block — Cloudflare Origin Certificate (wildcard *.zyntapos.com)
@@ -233,6 +234,30 @@ mail.zyntapos.com {
 		health_timeout 10s
 		# Buffer full response before sending to client — prevents HTTP/2
 		# stream closures on large WASM transfers (TODO-008a fix).
+		flush_interval -1
+	}
+}
+
+# ── webmail.zyntapos.com — Roundcube webmail (staff browser-based email) ─────
+# Provides browser-based IMAP/SMTP access to @zyntapos.com mailboxes via Stalwart.
+# Uses the wildcard Cloudflare Origin Certificate (cf_tls) — no separate cert needed.
+# DNS: webmail.zyntapos.com → VPS IP, orange-cloud (Cloudflare proxied).
+# Contrast with mail.zyntapos.com which is grey-cloud (needs direct IMAP/SMTP TCP).
+webmail.zyntapos.com {
+	import cf_tls
+
+	# Compress assets — Roundcube elastic skin ships ~2 MB of CSS/JS
+	encode zstd gzip
+
+	reverse_proxy roundcube:80 {
+		# Pass real client IP through Cloudflare proxy
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		# Root path returns 200 login page — safe health URI
+		health_uri /
+		health_interval 30s
+		health_timeout 10s
+		# Stream JS assets without buffering — prevents HTTP/2 stream resets
 		flush_interval -1
 	}
 }
