@@ -451,8 +451,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
-    mem_limit: 256m
-    memswap_limit: 256m
+    mem_limit: 512m
+    memswap_limit: 512m
     security_opt:
       - no-new-privileges:true
 
@@ -547,8 +547,8 @@ services:
         condition: service_healthy
     networks:
       - zyntapos_net
-    mem_limit: 512m
-    memswap_limit: 512m
+    mem_limit: 768m
+    memswap_limit: 768m
     security_opt:
       - no-new-privileges:true
 
