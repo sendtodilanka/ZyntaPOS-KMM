@@ -117,6 +117,32 @@ Step[7]: Verify Endpoints  (cd-verify-endpoints.yml)
 
 ---
 
+### Cloudflare API Access (use Global API Key for Email Routing)
+
+For Cloudflare Email Routing operations, use the Global API Key (not the scoped API Token which lacks Email Routing permissions):
+
+```bash
+# Auth format: X-Auth-Email + X-Auth-Key (Global API Key)
+# These are stored as GitHub Secrets: CF_AUTH_EMAIL, CF_GLOBAL_API_KEY
+# Use them in GitHub Actions workflows — they are NOT available locally.
+
+# To manage Email Routing, use the cf-email-fix.yml workflow:
+curl -s -X POST -H "Authorization: token $PAT" \
+  -H "Accept: application/vnd.github.v3+json" \
+  "https://api.github.com/repos/sendtodilanka/ZyntaPOS-KMM/actions/workflows/cf-email-fix.yml/dispatches" \
+  -d '{"ref":"main","inputs":{"action":"debug"}}'
+
+# Actions: debug (read-only), setup-rules, deploy-worker, full-fix
+```
+
+**Email architecture:**
+- MX records → Cloudflare Email Routing (`route{1,2,3}.mx.cloudflare.net`)
+- Support inboxes (support@, billing@, bugs@, alerts@) → CF Worker → POST to API
+- Staff mailboxes (*@zyntapos.com catch-all) → CF Worker → Stalwart JMAP API
+- Stalwart handles IMAP/SMTP for staff (iOS Mail, Outlook, etc.)
+
+---
+
 ### GitHub API Access (MANDATORY — use curl with PAT, NOT gh CLI)
 
 The git remote points to a local proxy (`127.0.0.1`), so `gh` CLI cannot authenticate with GitHub. Use `curl` with the `$PAT` environment variable instead. The PAT is always available in the session environment.
@@ -742,7 +768,9 @@ Copy `local.properties.template` and fill in values before first build.
 | `CF_ORIGIN_KEY` | Cloudflare Origin Certificate private key (PEM) |
 | `CLOUDFLARE_TUNNEL_TOKEN` | Cloudflare Tunnel token (optional Zero Trust) |
 | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare Account ID |
-| `CLOUDFLARE_API_TOKEN` | Cloudflare API Token |
+| `CLOUDFLARE_API_TOKEN` | Cloudflare API Token (scoped — no Email Routing perms) |
+| `CF_GLOBAL_API_KEY` | Cloudflare Global API Key (full access — use for Email Routing) |
+| `CF_AUTH_EMAIL` | Cloudflare account email (`mecduino@gmail.com`) — paired with `CF_GLOBAL_API_KEY` |
 | `GOOGLE_SERVICES_JSON` | `google-services.json` for Firebase Android SDK |
 | `ZYNTA_FCM_SERVICE_ACCOUNT_JSON` | Firebase Admin SDK service account (FCM v1 push notifications) |
 | `ZYNTA_FCM_VAPID_PUBLIC_KEY` | VAPID public key for Web Push |
