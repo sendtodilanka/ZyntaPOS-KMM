@@ -225,15 +225,24 @@ mail.zyntapos.com {
 	# uncompressed, causing HTTP/2 stream resets on slow connections.
 	encode zstd gzip
 
-	reverse_proxy stalwart:8080 {
-		# Stalwart redirects /.well-known/jmap → admin UI (307), which Caddy
-		# treats as unhealthy. Use root path instead — returns 200 (admin HTML).
-		health_uri /
-		health_interval 30s
-		health_timeout 10s
-		# Buffer full response before sending to client — prevents HTTP/2
-		# stream closures on large WASM transfers (TODO-008a fix).
-		flush_interval -1
+	# Email relay endpoint — CF Worker POSTs raw email here for local SMTP delivery.
+	# Required because VPS port 25 is blocked from external access (Contabo).
+	handle /relay/* {
+		reverse_proxy email-relay:8025
+	}
+
+	# Stalwart admin console + JMAP API (default handler)
+	handle {
+		reverse_proxy stalwart:8080 {
+			# Stalwart redirects /.well-known/jmap → admin UI (307), which Caddy
+			# treats as unhealthy. Use root path instead — returns 200 (admin HTML).
+			health_uri /
+			health_interval 30s
+			health_timeout 10s
+			# Buffer full response before sending to client — prevents HTTP/2
+			# stream closures on large WASM transfers (TODO-008a fix).
+			flush_interval -1
+		}
 	}
 }
 
