@@ -13,20 +13,29 @@ compatibility_flags = ["nodejs_compat"]
 # when an email arrives at @zyntapos.com — no HTTP trigger needed.
 
 # ── Email trigger ──────────────────────────────────────────────────────────────
-# Configure in Cloudflare Dashboard → Email Routing → Routes:
+# CF Email Routing rules (configured via cf-email-fix.yml workflow):
 #   support@zyntapos.com  → Send to Worker: email-inbound-handler
 #   billing@zyntapos.com  → Send to Worker: email-inbound-handler
 #   bugs@zyntapos.com     → Send to Worker: email-inbound-handler
 #   alerts@zyntapos.com   → Send to Worker: email-inbound-handler
-#   *@zyntapos.com        → Forward to: smtp://mail.zyntapos.com:25 (Stalwart)
+#   *@zyntapos.com        → Send to Worker: email-inbound-handler (catch-all)
+#
+# The Worker handles routing internally:
+#   - Support inboxes → POST to ZyntaPOS API (ticket creation)
+#   - Staff mailboxes → Deliver to Stalwart via JMAP API
 
 # ── Required Secrets ───────────────────────────────────────────────────────────
-# Set via: wrangler secret put INBOUND_HMAC_SECRET
-#          wrangler secret put ZYNTA_API_ENDPOINT
+# Set via cf-email-fix.yml workflow (full-fix action) or manually:
+#   wrangler secret put INBOUND_HMAC_SECRET
+#   wrangler secret put ZYNTA_API_ENDPOINT
+#   wrangler secret put STALWART_JMAP_URL
+#   wrangler secret put STALWART_ADMIN_PASSWORD
 #
-# INBOUND_HMAC_SECRET  — must match INBOUND_EMAIL_HMAC_SECRET on VPS
-#                        Generate: openssl rand -base64 32
-# ZYNTA_API_ENDPOINT   — "https://api.zyntapos.com"
+# INBOUND_HMAC_SECRET      — must match INBOUND_EMAIL_HMAC_SECRET on VPS
+#                             Generate: openssl rand -base64 32
+# ZYNTA_API_ENDPOINT       — "https://api.zyntapos.com"
+# STALWART_JMAP_URL        — "https://mail.zyntapos.com"
+# STALWART_ADMIN_PASSWORD  — Stalwart admin password (same as VPS env)
 #
 # Secrets are NOT stored in this file. Set them once via wrangler CLI.
 # View current secret names (not values): wrangler secret list
