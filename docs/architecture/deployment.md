@@ -125,6 +125,8 @@ docker image prune -f
 | `postgres` | `postgres:16-alpine` | 5432 (internal) | Primary database |
 | `redis` | `redis:7-alpine` | 6379 (internal) | Cache + pub/sub |
 | `canary` | `nginx:1-alpine` | 80 (internal) | Placeholder for Phase 3 subdomains |
+| `stalwart` | `stalwartlabs/stalwart:latest` | 25, 143, 465, 587, 993, 8080 (internal) | Mail server (SMTP/IMAP/JMAP) |
+| `email-relay` | Built from `backend/email-relay/` | 8025 (internal) | HTTP-to-SMTP bridge (CF Worker → Stalwart) |
 
 All backend services run with:
 - `read_only: true` + `tmpfs: /tmp`

@@ -2,28 +2,32 @@
 
 **Phase:** 2 — Growth
 **Priority:** P1 (HIGH — required before enterprise customer onboarding)
-**Status:** 🟡 ~95% COMPLETE — All backend code implemented. Manual external steps remaining (DNS, Stalwart first-run, Chatwoot first-run, CF Worker deployment). Verified 2026-03-14.
+**Status:** 🟢 ~98% COMPLETE — All backend code, infrastructure, and DNS records deployed and verified. Inbound and outbound email working end-to-end. Updated 2026-03-17.
 - ✅ `InboundEmailProcessor` — HMAC verification, deduplication, ticket threading, auto-reply
 - ✅ `POST /internal/email/inbound` route — HMAC-signed, outside JWT auth
 - ✅ `ChatwootService` — Chatwoot REST API client for conversation creation
 - ✅ `PlayIntegrityService` + `POST /v1/integrity/verify` — Android attestation (soft enforcement)
 - ✅ V18 Flyway migration — `email_threads` table with ticket FK, message threading, Chatwoot conversation ID
 - ✅ `EmailThreads` Exposed table object in `db/Tables.kt`
-- ✅ CF Email Worker — `cf-workers/email-inbound-handler/` (TypeScript, HMAC-signed, MIME parsing)
-- ✅ Stalwart + Chatwoot Docker services added to `docker-compose.yml`
+- ✅ CF Email Worker — `cf-workers/email-inbound-handler/` (TypeScript, HMAC-signed, MIME parsing, HTTP relay delivery)
+- ✅ Stalwart + Chatwoot + email-relay Docker services in `docker-compose.yml`
 - ✅ `stalwart/config/config.toml` — Stalwart mail server configuration
+- ✅ `backend/email-relay/relay.py` — HTTP-to-SMTP bridge (bypasses VPS port 25 block)
 - ✅ `backend/postgres/init-databases.sh` — `zyntapos_chatwoot` database created
-- ✅ `Caddyfile` — `mail.zyntapos.com` + `support.zyntapos.com` reverse proxy entries
+- ✅ `Caddyfile` — `mail.zyntapos.com` + `support.zyntapos.com` reverse proxy + `/relay/*` endpoint
 - ✅ `AppConfig.kt` — HMAC secret + Chatwoot + Play Integrity env vars added
 - ✅ `di/AppModule.kt` — `PlayIntegrityService`, `ChatwootService`, `InboundEmailProcessor` registered
-- ⏳ DNS records (MX, SPF, DKIM, DMARC, PTR) — requires Cloudflare dashboard (see manual steps)
-- ⏳ Stalwart first-run setup — requires VPS deploy + wizard (see manual steps)
+- ✅ DNS records — MX, SPF (`-all`), DKIM (RSA `202603r` + Ed25519 `202603e`), DMARC (`quarantine`) all published
+- ✅ Stalwart deployed — accounts created, domains configured, IMAP/SMTP working
+- ✅ CF Worker deployed — `email-inbound-handler` with `deliverViaRelay()` + `EMAIL_RELAY_SECRET`
+- ✅ Inbound email verified — Gmail → dilanka@zyntapos.com ✓
+- ✅ Outbound email verified — zyntapos.com → Gmail (inbox, not spam) ✓
 - ⏳ Chatwoot first-run — requires `support.zyntapos.com` setup + API token retrieval (see manual steps)
-- ⏳ CF Worker deployment — requires `wrangler secret put` + `wrangler deploy` (see manual steps)
+- ⏳ Admin panel email delivery log UI (`admin-panel/src/routes/settings/email.tsx`)
 **Effort:** ~7 working days (1 developer)
 **Related:** TODO-007f (admin panel + HELPDESK role + ticket system), TODO-009 (Ktor security hardening), TODO-010 (security monitoring)
 **Owner:** Zynta Solutions Pvt Ltd
-**Last updated:** 2026-03-14
+**Last updated:** 2026-03-17
 
 ---
 
