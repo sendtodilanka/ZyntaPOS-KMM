@@ -24,7 +24,7 @@ name: "FTS Step 6: Full Verification"
 #     10. All config files present
 #     11. Secrets files valid (DB pass, RS256 keys, TLS)
 #     12. .env variables set
-#     13. All 7 containers running + healthy
+#     13. All 9 containers running + healthy (core 7 + stalwart + email-relay)
 #     14. Database connectivity (PostgreSQL)
 #     15. Redis connectivity
 #     16. HTTP health endpoints (API, License, Sync, Caddy)
@@ -234,6 +234,8 @@ jobs:
             [ -f .env ] && check_pass ".env present" || check_fail ".env MISSING"
             grep -q "REDIS_PASSWORD" .env 2>/dev/null && check_pass "REDIS_PASSWORD set" || check_fail "REDIS_PASSWORD missing"
             grep -q "ZYNTAPOS_DB_PASSWORD" .env 2>/dev/null && check_pass "ZYNTAPOS_DB_PASSWORD set" || check_fail "ZYNTAPOS_DB_PASSWORD missing"
+            grep -q "EMAIL_RELAY_SECRET" .env 2>/dev/null && check_pass "EMAIL_RELAY_SECRET set" || check_fail "EMAIL_RELAY_SECRET missing"
+            grep -q "STALWART_ADMIN_PASSWORD" .env 2>/dev/null && check_pass "STALWART_ADMIN_PASSWORD set" || check_fail "STALWART_ADMIN_PASSWORD missing"
 
             # ━━━ CONTAINERS ━━━
             echo ""
@@ -241,7 +243,7 @@ jobs:
             docker compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
             echo ""
 
-            for svc in postgres redis caddy canary api license sync; do
+            for svc in postgres redis caddy canary api license sync stalwart email_relay; do
               CONTAINER="zyntapos_$svc"
               STATUS=$(docker inspect --format='{{.State.Status}}' "$CONTAINER" 2>/dev/null || echo "not_found")
               HEALTH=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' "$CONTAINER" 2>/dev/null || echo "unknown")
@@ -359,7 +361,7 @@ jobs:
             echo "Summary:"
             echo "  • Security: UFW + Fail2Ban + SSH hardened + auto-updates"
             echo "  • Performance: Swap + kernel tuned + Docker optimized"
-            echo "  • Services: 7 containers running and healthy"
+            echo "  • Services: 9 containers running and healthy (incl. stalwart + email-relay)"
             echo "  • Database: PostgreSQL + Redis connected"
             echo "  • TLS: Certificate installed"
             echo ""

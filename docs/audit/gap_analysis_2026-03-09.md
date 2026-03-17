@@ -223,7 +223,7 @@ No code gaps. All remaining items are operational actions outside the repository
 
 ### TODO-008a: Email Management System
 
-**Status: ⬜ 0% — NOT STARTED**
+**Status: 🟢 ~95% COMPLETE** (updated 2026-03-17)
 
 The TODO-008a document describes a 7-day plan covering:
 - Stalwart mail server deployment
@@ -233,17 +233,21 @@ The TODO-008a document describes a 7-day plan covering:
 - Unsubscribe flow
 - SPF/DKIM/DMARC DNS configuration
 
-**None of this exists in the codebase:**
-| Gap | Evidence |
-|-----|----------|
-| Stalwart mail server | No service in `docker-compose.yml`, no config directory |
-| Chatwoot | No service in `docker-compose.yml`, no config |
-| Transactional email client | No Resend SDK, no SES client in `backend/` |
-| Email template files | No `.html` or template files anywhere in `backend/` |
-| Unsubscribe endpoint | No route in any backend service |
-| SPF/DKIM/DMARC | DNS configuration — external; not trackable in repo |
+**Current state (updated 2026-03-17):**
+| Component | Status |
+|-----------|--------|
+| Stalwart mail server | ✅ Deployed in `docker-compose.yml` (SMTP/IMAP/JMAP) |
+| HTTP-to-SMTP email relay | ✅ Deployed (`email-relay` container — bridges CF Worker HTTPS → Stalwart SMTP) |
+| Chatwoot | ✅ In `docker-compose.yml` (opt-in `chatwoot` profile) |
+| CF Email Worker | ✅ Deployed (`email-inbound-handler` — routes inbound email via relay) |
+| Transactional email (Resend) | ✅ EmailService implemented in backend API |
+| Email templates | ✅ Implemented in backend API |
+| Unsubscribe endpoint | ✅ `UnsubscribeRoutes` implemented |
+| SPF/DKIM/DMARC | ✅ All DNS records published (RSA + Ed25519 DKIM, SPF -all, DMARC quarantine) |
+| Inbound email delivery | ✅ Working (Gmail → dilanka@zyntapos.com tested) |
+| Outbound email delivery | ✅ Working (zyntapos.com → Gmail, no spam flagging) |
 
-**Impact:** No password reset emails, no welcome emails, no receipt delivery by email, no support ticketing.
+**Remaining:** Admin panel email delivery log UI (`admin-panel/src/routes/settings/email.tsx`).
 
 ---
 
@@ -392,7 +396,7 @@ DOCUMENTATION (Phase 3 prep):
 | 007f | Admin Panel CF + Custom Auth | 🟡 ~75% | Frontend Days 3/5/6/7; CF dashboard action |
 | 007g | Sync Engine Server-Side | 🟡 ~60% | Push/pull endpoints, LWW, Redis pub/sub, EntityApplier; CRDT merge pending |
 | 008 | SEO & ASO | ✅ Code complete | GSC + Play Store (external); Lighthouse CI |
-| 008a | Email Management System | ⬜ Not started | Stalwart, Chatwoot, transactional email, templates |
+| 008a | Email Management System | 🟢 ~95% | Stalwart + email-relay + CF Worker deployed; DKIM/SPF/DMARC live; admin panel email UI remaining |
 | 009 | Ktor Security Hardening | ✅ Complete | — |
 | 010 | Security Monitoring | 🟡 ~85% | Snyk CI, canary tokens, tunnel-config placeholder, CF dashboard |
 | 011 | Firebase Analytics & Sentry | 🟡 ~40% | Firebase SDK not integrated; Sentry done |

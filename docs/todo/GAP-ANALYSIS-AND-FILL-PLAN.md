@@ -27,7 +27,7 @@
 | 007e | API Documentation Site | **100%** ✅ | Phase 2 |
 | 007f | Admin Panel CF + Custom Auth | **~99%** ✅ | Phase 2 |
 | 008 | SEO & ASO | **~90%** 🟡 | Phase 2 |
-| 008a | Email Management System | **~85%** 🟡 | Phase 2 |
+| 008a | Email Management System | **~95%** ✅ | Phase 2 |
 | 009 | Ktor Security Hardening | **100%** ✅ | Phase 2 |
 | 010 | Security Monitoring & Auto-Response | **~80%** 🟡 | Phase 2 |
 | 011 | Firebase Analytics + Sentry | **~95%** ✅ | Phase 1/2 |
@@ -120,14 +120,14 @@ A comprehensive 17-step audit-and-fill session was completed. Key changes:
 
 ### LOW Priority — TODO-008a: Email System Completion
 
-**Current state:** EmailService (Resend), password reset, ticket notifications, unsubscribe all implemented. HTML escaping added to all templates.
+**Current state (updated 2026-03-17):** EmailService (Resend), password reset, ticket notifications, unsubscribe all implemented. HTML escaping added to all templates. Stalwart mail server + HTTP-to-SMTP relay + CF Worker deployed. DKIM/SPF/DMARC DNS records published. Inbound and outbound email working end-to-end.
 
 | Gap | What's Needed | Effort |
 |-----|--------------|--------|
 | Admin panel email UI | `admin-panel/src/routes/settings/email.tsx` — delivery log viewer | 2-3 hrs |
 | API hooks | `admin-panel/src/api/email.ts` — TanStack Query hooks for delivery log | 1 hr |
-| Stalwart mail server | Phase 3 — Docker container for self-hosted SMTP | Deferred |
-| Chatwoot integration | Phase 3 — helpdesk chat widget | Deferred |
+| ~~Stalwart mail server~~ | ✅ Deployed (stalwart + email-relay containers) | Done |
+| ~~Chatwoot integration~~ | ✅ In docker-compose.yml (opt-in `chatwoot` profile) | Done |
 
 ---
 

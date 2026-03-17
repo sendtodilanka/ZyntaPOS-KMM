@@ -135,11 +135,24 @@ curl -s -X POST -H "Authorization: token $PAT" \
 # Actions: debug (read-only), setup-rules, deploy-worker, full-fix
 ```
 
-**Email architecture:**
+**Email architecture (inbound):**
 - MX records → Cloudflare Email Routing (`route{1,2,3}.mx.cloudflare.net`)
-- Support inboxes (support@, billing@, bugs@, alerts@) → CF Worker → POST to API
-- Staff mailboxes (*@zyntapos.com catch-all) → CF Worker → Stalwart JMAP API
+- Support inboxes (support@, billing@, bugs@, alerts@) → CF Worker → POST to API (HMAC-signed)
+- Staff mailboxes (*@zyntapos.com catch-all) → CF Worker → HTTP-to-SMTP relay → Stalwart
+- VPS port 25 is **blocked externally** (Contabo firewall) — direct SMTP delivery is impossible
+- HTTP-to-SMTP relay (`email-relay` container) bridges HTTPS → local SMTP on the Docker network:
+  ```
+  CF Worker → HTTPS POST mail.zyntapos.com/relay/email
+    → Caddy → email-relay:8025 → SMTP stalwart:25 (Docker internal)
+  ```
+- Relay authenticates via shared secret (`EMAIL_RELAY_SECRET` in .env + CF Worker secret)
 - Stalwart handles IMAP/SMTP for staff (iOS Mail, Outlook, etc.)
+
+**Email architecture (outbound):**
+- Stalwart sends via SMTP (port 465/587)
+- DKIM signed (RSA selector `202603r`, Ed25519 selector `202603e`)
+- SPF: `v=spf1 include:_spf.mx.cloudflare.net a:mail.zyntapos.com -all`
+- DMARC: `v=DMARC1; p=quarantine; rua=mailto:dmarc@zyntapos.com`
 
 ---
 

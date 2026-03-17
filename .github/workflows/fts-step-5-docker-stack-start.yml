@@ -16,11 +16,13 @@ name: "FTS Step 5: Docker Stack Start"
 # Verification:
 #   ✅ GHCR authenticated
 #   ✅ docker-compose.yml valid
-#   ✅ All 7 containers running
+#   ✅ All 9 containers running (core 7 + stalwart + email-relay)
 #   ✅ PostgreSQL healthy
 #   ✅ Redis healthy
 #   ✅ Caddy healthy
 #   ✅ API/License/Sync containers running
+#   ✅ Stalwart mail server healthy
+#   ✅ Email relay healthy
 #
 # Next: Run "FTS Step 6" after this turns green.
 # ─────────────────────────────────────────────────────────────────────────────
@@ -114,7 +116,7 @@ jobs:
               HEALTHY=0
               TOTAL=0
 
-              for svc in postgres redis caddy api license sync; do
+              for svc in postgres redis caddy api license sync stalwart email_relay; do
                 CONTAINER="zyntapos_$svc"
                 TOTAL=$((TOTAL+1))
                 STATUS=$(docker inspect --format='{{.State.Status}}' "$CONTAINER" 2>/dev/null || echo "not_found")
@@ -159,7 +161,7 @@ jobs:
             echo ""
 
             # Check each container
-            for svc in postgres redis caddy canary api license sync; do
+            for svc in postgres redis caddy canary api license sync stalwart email_relay; do
               CONTAINER="zyntapos_$svc"
               STATUS=$(docker inspect --format='{{.State.Status}}' "$CONTAINER" 2>/dev/null || echo "not_found")
               HEALTH=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' "$CONTAINER" 2>/dev/null || echo "unknown")
