@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       action:
-        description: 'Action: setup-rules, deploy-worker, full-fix, debug'
+        description: 'Action: setup-rules, deploy-worker, full-fix, debug, fix-dns'
         required: true
         default: 'full-fix'
 
@@ -197,3 +197,128 @@ jobs:
           CF_AUTH_EMAIL: ${{ secrets.CF_AUTH_EMAIL }}
           CF_GLOBAL_API_KEY: ${{ secrets.CF_GLOBAL_API_KEY }}
           CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      # ── Step 5: Fix DNS records (DKIM + SPF) for email deliverability ────
+      - name: Fix DNS Records (DKIM + SPF)
+        if: github.event.inputs.action == 'fix-dns' || github.event.inputs.action == 'full-fix'
+        env:
+          CF_AUTH_EMAIL: ${{ secrets.CF_AUTH_EMAIL }}
+          CF_GLOBAL_API_KEY: ${{ secrets.CF_GLOBAL_API_KEY }}
+        run: |
+          set -e
+          AUTH=(-H "X-Auth-Email: $CF_AUTH_EMAIL" -H "X-Auth-Key: $CF_GLOBAL_API_KEY")
+
+          # Get zone ID
+          ZONE_ID=$(curl -s "${AUTH[@]}" \
+            "https://api.cloudflare.com/client/v4/zones?name=zyntapos.com" \
+            | python3 -c "import sys,json; print(json.load(sys.stdin)['result'][0]['id'])")
+          echo "Zone ID: $ZONE_ID"
+
+          # ── DKIM RSA record (selector: 202603r) ──
+          RSA_NAME="202603r._domainkey"
+          RSA_VALUE="v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAu8tG6U5ekB91AKSiwABIhf6payZOe61IDTKfpTbQXjup3pj6KQXXosrSdFXcUrDMENWUgzxNENogrZ5VKhW7EnRkSSW6PH7gAZcvfnRL6keIUawWxB4CBZv7Mcz3nlxlHq3NqeDLp0lGVDQeUz0KB4J36PFAU0ReZxYKOYDEqJIrBT6G+D/zW9URjx5NYhxmaOthjaWkhZF9p6SdJA9JGuYJv3ifHHSgyllcqnB1yyoujpJEn08cGQjqj3xF0b/I1jg27Yq8XeKM60q77062E8QRbxu7hKliJug0DtL9T2WUra4wEqMvN4K6OqX8Q8bl9EeOIDuH+YN1WnNxEV0SIwIDAQAB"
+
+          echo "=== Creating RSA DKIM record ==="
+          EXISTING=$(curl -s "${AUTH[@]}" \
+            "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?name=202603r._domainkey.zyntapos.com&type=TXT" \
+            | python3 -c "import sys,json; r=json.load(sys.stdin)['result']; print(r[0]['id'] if r else 'none')")
+
+          if [[ "$EXISTING" != "none" ]]; then
+            echo "  Updating existing record $EXISTING"
+            curl -s -X PUT "${AUTH[@]}" \
+              -H "Content-Type: application/json" \
+              "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records/$EXISTING" \
+              -d "{\"type\":\"TXT\",\"name\":\"$RSA_NAME\",\"content\":\"$RSA_VALUE\",\"ttl\":3600}" \
+              | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'  RSA DKIM updated: {d.get(\"success\",False)}')"
+          else
+            echo "  Creating new record"
+            curl -s -X POST "${AUTH[@]}" \
+              -H "Content-Type: application/json" \
+              "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" \
+              -d "{\"type\":\"TXT\",\"name\":\"$RSA_NAME\",\"content\":\"$RSA_VALUE\",\"ttl\":3600}" \
+              | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'  RSA DKIM created: {d.get(\"success\",False)}')"
+          fi
+
+          # ── DKIM Ed25519 record (selector: 202603e) ──
+          ED_NAME="202603e._domainkey"
+          ED_VALUE="v=DKIM1; k=ed25519; p=v+M7rsYAoLrHSubDxYZINNtVjfJaWolwfUOkonP8Vq4="
+
+          echo "=== Creating Ed25519 DKIM record ==="
+          EXISTING=$(curl -s "${AUTH[@]}" \
+            "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?name=202603e._domainkey.zyntapos.com&type=TXT" \
+            | python3 -c "import sys,json; r=json.load(sys.stdin)['result']; print(r[0]['id'] if r else 'none')")
+
+          if [[ "$EXISTING" != "none" ]]; then
+            echo "  Updating existing record $EXISTING"
+            curl -s -X PUT "${AUTH[@]}" \
+              -H "Content-Type: application/json" \
+              "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records/$EXISTING" \
+              -d "{\"type\":\"TXT\",\"name\":\"$ED_NAME\",\"content\":\"$ED_VALUE\",\"ttl\":3600}" \
+              | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'  Ed25519 DKIM updated: {d.get(\"success\",False)}')"
+          else
+            echo "  Creating new record"
+            curl -s -X POST "${AUTH[@]}" \
+              -H "Content-Type: application/json" \
+              "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" \
+              -d "{\"type\":\"TXT\",\"name\":\"$ED_NAME\",\"content\":\"$ED_VALUE\",\"ttl\":3600}" \
+              | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'  Ed25519 DKIM created: {d.get(\"success\",False)}')"
+          fi
+
+          # ── Tighten SPF from ~all to -all ──
+          echo ""
+          echo "=== Updating SPF record ==="
+          # Use python3 to handle the update in one shot to avoid shell quoting issues
+          python3 << 'PYEOF'
+          import json, subprocess, os
+          AUTH_EMAIL = os.environ["CF_AUTH_EMAIL"]
+          AUTH_KEY = os.environ["CF_GLOBAL_API_KEY"]
+          headers = {"X-Auth-Email": AUTH_EMAIL, "X-Auth-Key": AUTH_KEY, "Content-Type": "application/json"}
+
+          import urllib.request
+          def cf_api(method, path, data=None):
+              url = f"https://api.cloudflare.com/client/v4/{path}"
+              body = json.dumps(data).encode() if data else None
+              req = urllib.request.Request(url, data=body, headers=headers, method=method)
+              with urllib.request.urlopen(req) as resp:
+                  return json.load(resp)
+
+          ZONE_ID = os.environ.get("ZONE_ID_CACHE", "")
+          if not ZONE_ID:
+              zones = cf_api("GET", "zones?name=zyntapos.com")
+              ZONE_ID = zones["result"][0]["id"]
+
+          # Find SPF record
+          records = cf_api("GET", f"zones/{ZONE_ID}/dns_records?name=zyntapos.com&type=TXT")
+          spf_rec = None
+          for r in records["result"]:
+              if "v=spf1" in r.get("content", ""):
+                  spf_rec = r
+                  break
+
+          if spf_rec:
+              old_content = spf_rec["content"]
+              print(f"  Current SPF: {old_content}")
+              new_content = old_content.replace("~all", "-all")
+              print(f"  New SPF: {new_content}")
+              result = cf_api("PUT", f"zones/{ZONE_ID}/dns_records/{spf_rec['id']}", {
+                  "type": "TXT",
+                  "name": "zyntapos.com",
+                  "content": new_content,
+                  "ttl": 3600
+              })
+              print(f"  SPF updated: {result.get('success', False)}")
+          else:
+              print("  No SPF record found")
+          PYEOF
+
+          # ── Verify all DNS records ──
+          echo ""
+          echo "=== All TXT records for zyntapos.com ==="
+          curl -s "${AUTH[@]}" \
+            "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?type=TXT" \
+            | python3 -c "
+          import sys,json
+          records=json.load(sys.stdin)['result']
+          for r in sorted(records, key=lambda x: x['name']):
+            print(f'  {r[\"name\"]:50s} -> {r[\"content\"][:100]}')
+          "
