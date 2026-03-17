@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       action:
-        description: 'Action: setup-rules, deploy-worker, full-fix, debug, fix-dns'
+        description: 'Action: setup-rules, deploy-worker, full-fix, debug, fix-dns, setup-mail-mx'
         required: true
         default: 'full-fix'
 
@@ -322,3 +322,123 @@ jobs:
           for r in sorted(records, key=lambda x: x['name']):
             print(f'  {r[\"name\"]:50s} -> {r[\"content\"][:100]}')
           "
+
+      # ── Step 6: Add MX record for mail.zyntapos.com (SMTP delivery target) ──
+      - name: Setup mail.zyntapos.com MX record
+        if: github.event.inputs.action == 'setup-mail-mx' || github.event.inputs.action == 'full-fix'
+        env:
+          CF_AUTH_EMAIL: ${{ secrets.CF_AUTH_EMAIL }}
+          CF_GLOBAL_API_KEY: ${{ secrets.CF_GLOBAL_API_KEY }}
+        run: |
+          set -e
+          AUTH=(-H "X-Auth-Email: $CF_AUTH_EMAIL" -H "X-Auth-Key: $CF_GLOBAL_API_KEY")
+
+          ZONE_ID=$(curl -s "${AUTH[@]}" \
+            "https://api.cloudflare.com/client/v4/zones?name=zyntapos.com" \
+            | python3 -c "import sys,json; print(json.load(sys.stdin)['result'][0]['id'])")
+          echo "Zone ID: $ZONE_ID"
+
+          # Check if MX record already exists for mail.zyntapos.com
+          echo "=== Checking MX records for mail.zyntapos.com ==="
+          EXISTING_MX=$(curl -s "${AUTH[@]}" \
+            "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?name=mail.zyntapos.com&type=MX" \
+            | python3 -c "import sys,json; r=json.load(sys.stdin)['result']; print(r[0]['id'] if r else 'none')")
+
+          if [[ "$EXISTING_MX" != "none" ]]; then
+            echo "  MX record already exists ($EXISTING_MX) — updating"
+            curl -s -X PUT "${AUTH[@]}" \
+              -H "Content-Type: application/json" \
+              "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records/$EXISTING_MX" \
+              -d '{"type":"MX","name":"mail","content":"mail.zyntapos.com","priority":10,"ttl":3600}' \
+              | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'  MX updated: {d.get(\"success\",False)}')"
+          else
+            echo "  Creating new MX record: mail.zyntapos.com → mail.zyntapos.com (priority 10)"
+            curl -s -X POST "${AUTH[@]}" \
+              -H "Content-Type: application/json" \
+              "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" \
+              -d '{"type":"MX","name":"mail","content":"mail.zyntapos.com","priority":10,"ttl":3600}' \
+              | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'  MX created: {d.get(\"success\",False)}')"
+          fi
+
+          # Verify the A record for mail.zyntapos.com exists (should point to VPS)
+          echo ""
+          echo "=== Verifying mail.zyntapos.com DNS records ==="
+          curl -s "${AUTH[@]}" \
+            "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?name=mail.zyntapos.com" \
+            | python3 -c "
+          import sys,json
+          records=json.load(sys.stdin)['result']
+          for r in sorted(records, key=lambda x: x['type']):
+            proxied = ' (proxied)' if r.get('proxied') else ' (DNS-only)'
+            print(f'  {r[\"type\"]:5s} {r[\"name\"]:30s} -> {r[\"content\"]}{proxied}')
+          if not records:
+            print('  WARNING: No records found for mail.zyntapos.com!')
+          "
+
+      # ── Step 7: Configure Stalwart to accept mail.zyntapos.com domain ────
+      - name: Configure Stalwart Domain
+        if: github.event.inputs.action == 'setup-mail-mx' || github.event.inputs.action == 'full-fix'
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.VPS_USER_KEY }}
+          script: |
+            set -e
+            STALWART_PASS=$(docker exec zyntapos_stalwart printenv STALWART_ADMIN_PASSWORD)
+            AUTH="admin:$STALWART_PASS"
+            STALWART_URL="http://172.18.0.2:8080"
+
+            echo "=== Current Stalwart domains ==="
+            curl -s -u "$AUTH" "$STALWART_URL/api/domain" | python3 -m json.tool || echo "(no domains endpoint)"
+
+            # Add mail.zyntapos.com as an accepted domain
+            echo ""
+            echo "=== Adding mail.zyntapos.com domain ==="
+            curl -s -u "$AUTH" -X POST \
+              -H "Content-Type: application/json" \
+              "$STALWART_URL/api/domain/mail.zyntapos.com" \
+              -d '{}' || echo "Domain creation returned non-zero"
+            echo ""
+
+            # Check dilanka's email addresses — add mail.zyntapos.com alias
+            echo "=== Current dilanka config ==="
+            curl -s -u "$AUTH" "$STALWART_URL/api/principal/dilanka" | python3 -m json.tool
+
+            # Add dilanka@mail.zyntapos.com as an email alias
+            echo ""
+            echo "=== Adding dilanka@mail.zyntapos.com alias ==="
+            CURRENT_EMAILS=$(curl -s -u "$AUTH" "$STALWART_URL/api/principal/dilanka" \
+              | python3 -c "import sys,json; emails=json.load(sys.stdin).get('data',{}).get('emails',[]); print(json.dumps(emails))")
+            echo "  Current emails: $CURRENT_EMAILS"
+
+            # Add the mail.zyntapos.com alias if not already present
+            NEW_EMAILS=$(python3 -c "
+            import json
+            emails = json.loads('$CURRENT_EMAILS')
+            alias = 'dilanka@mail.zyntapos.com'
+            if alias not in emails:
+                emails.append(alias)
+                print(json.dumps(emails))
+            else:
+                print(json.dumps(emails))
+            ")
+            echo "  New emails: $NEW_EMAILS"
+
+            curl -s -u "$AUTH" -X PATCH \
+              -H "Content-Type: application/json" \
+              "$STALWART_URL/api/principal/dilanka" \
+              -d "{\"emails\": $NEW_EMAILS}" \
+              | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'  Updated: {d}')" 2>/dev/null || echo "  PATCH completed"
+
+            # Verify
+            echo ""
+            echo "=== Updated dilanka config ==="
+            curl -s -u "$AUTH" "$STALWART_URL/api/principal/dilanka" | python3 -m json.tool
+
+            # Also whitelist Docker network IPs from spam filtering
+            # Emails forwarded by CF come from external IPs, but we trust them
+            echo ""
+            echo "=== Stalwart version ==="
+            docker exec zyntapos_stalwart stalwart-mail --version 2>/dev/null || echo "Version check not available"
