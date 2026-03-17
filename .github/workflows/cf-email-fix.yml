@@ -376,6 +376,10 @@ jobs:
           "
 
       # ── Step 7: Configure Stalwart to accept mail.zyntapos.com domain ────
+      # Stalwart v0.15.x API reference:
+      #   - Create domain:  POST /api/principal  {"type":"domain","name":"mail.zyntapos.com"}
+      #   - Add email alias: PATCH /api/principal/{name}  [{"action":"addItem","field":"emails","value":"user@domain"}]
+      #   - List domains:   GET /api/principal?types=domain&limit=100
       - name: Configure Stalwart Domain
         if: github.event.inputs.action == 'setup-mail-mx' || github.event.inputs.action == 'full-fix'
         uses: appleboy/ssh-action@v1
@@ -391,54 +395,53 @@ jobs:
             STALWART_URL="http://172.18.0.2:8080"
 
             echo "=== Current Stalwart domains ==="
-            curl -s -u "$AUTH" "$STALWART_URL/api/domain" | python3 -m json.tool || echo "(no domains endpoint)"
+            curl -s -u "$AUTH" "$STALWART_URL/api/principal?types=domain&limit=100" \
+              | python3 -c "import sys,json; d=json.load(sys.stdin); [print(f'  {i[\"name\"]}') for i in d.get('data',{}).get('items',[])]"
 
-            # Add mail.zyntapos.com as an accepted domain
+            # Create mail.zyntapos.com domain principal (idempotent — returns 409 if exists)
             echo ""
-            echo "=== Adding mail.zyntapos.com domain ==="
-            curl -s -u "$AUTH" -X POST \
+            echo "=== Creating mail.zyntapos.com domain ==="
+            RESP=$(curl -s -o /dev/null -w "%{http_code}" -u "$AUTH" -X POST \
               -H "Content-Type: application/json" \
-              "$STALWART_URL/api/domain/mail.zyntapos.com" \
-              -d '{}' || echo "Domain creation returned non-zero"
+              "$STALWART_URL/api/principal" \
+              -d '{"type":"domain","name":"mail.zyntapos.com"}')
+            if [ "$RESP" = "200" ] || [ "$RESP" = "201" ]; then
+              echo "  Domain created successfully"
+            elif [ "$RESP" = "409" ]; then
+              echo "  Domain already exists"
+            else
+              echo "  Domain creation returned HTTP $RESP"
+            fi
+
+            # Add mail.zyntapos.com email alias to all staff accounts
+            # Currently only dilanka, but this pattern works for any user
             echo ""
+            echo "=== Configuring staff email aliases ==="
+            for USER in dilanka; do
+              EMAILS=$(curl -s -u "$AUTH" "$STALWART_URL/api/principal/$USER" \
+                | python3 -c "import sys,json; print(' '.join(json.load(sys.stdin).get('data',{}).get('emails',[])))")
+              echo "  $USER current: $EMAILS"
 
-            # Check dilanka's email addresses — add mail.zyntapos.com alias
-            echo "=== Current dilanka config ==="
-            curl -s -u "$AUTH" "$STALWART_URL/api/principal/dilanka" | python3 -m json.tool
+              ALIAS="${USER}@mail.zyntapos.com"
+              if echo "$EMAILS" | grep -q "$ALIAS"; then
+                echo "  $USER already has $ALIAS"
+              else
+                echo "  Adding $ALIAS to $USER..."
+                RESP=$(curl -s -u "$AUTH" -X PATCH \
+                  -H "Content-Type: application/json" \
+                  "$STALWART_URL/api/principal/$USER" \
+                  -d "[{\"action\":\"addItem\",\"field\":\"emails\",\"value\":\"$ALIAS\"}]")
+                echo "  Response: $RESP"
+              fi
+            done
 
-            # Add dilanka@mail.zyntapos.com as an email alias
+            # Verify final state
             echo ""
-            echo "=== Adding dilanka@mail.zyntapos.com alias ==="
-            CURRENT_EMAILS=$(curl -s -u "$AUTH" "$STALWART_URL/api/principal/dilanka" \
-              | python3 -c "import sys,json; emails=json.load(sys.stdin).get('data',{}).get('emails',[]); print(json.dumps(emails))")
-            echo "  Current emails: $CURRENT_EMAILS"
+            echo "=== Final domain list ==="
+            curl -s -u "$AUTH" "$STALWART_URL/api/principal?types=domain&limit=100" \
+              | python3 -c "import sys,json; d=json.load(sys.stdin); [print(f'  {i[\"name\"]} ({i.get(\"members\",0)} members)') for i in d.get('data',{}).get('items',[])]"
 
-            # Add the mail.zyntapos.com alias if not already present
-            NEW_EMAILS=$(python3 -c "
-            import json
-            emails = json.loads('$CURRENT_EMAILS')
-            alias = 'dilanka@mail.zyntapos.com'
-            if alias not in emails:
-                emails.append(alias)
-                print(json.dumps(emails))
-            else:
-                print(json.dumps(emails))
-            ")
-            echo "  New emails: $NEW_EMAILS"
-
-            curl -s -u "$AUTH" -X PATCH \
-              -H "Content-Type: application/json" \
-              "$STALWART_URL/api/principal/dilanka" \
-              -d "{\"emails\": $NEW_EMAILS}" \
-              | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'  Updated: {d}')" 2>/dev/null || echo "  PATCH completed"
-
-            # Verify
             echo ""
-            echo "=== Updated dilanka config ==="
-            curl -s -u "$AUTH" "$STALWART_URL/api/principal/dilanka" | python3 -m json.tool
-
-            # Also whitelist Docker network IPs from spam filtering
-            # Emails forwarded by CF come from external IPs, but we trust them
-            echo ""
-            echo "=== Stalwart version ==="
-            docker exec zyntapos_stalwart stalwart-mail --version 2>/dev/null || echo "Version check not available"
+            echo "=== Final dilanka config ==="
+            curl -s -u "$AUTH" "$STALWART_URL/api/principal/dilanka" \
+              | python3 -c "import sys,json; d=json.load(sys.stdin).get('data',{}); print(f'  emails: {d.get(\"emails\",[])}'); print(f'  permissions: {d.get(\"enabledPermissions\",[])}'); print(f'  quota used: {d.get(\"usedQuota\",0)}')"
