@@ -449,7 +449,9 @@ services:
       - ./backend/caddy/certs/mail.zyntapos.com.pem:/opt/stalwart/certs/mail.zyntapos.com.pem:ro
       - ./backend/caddy/certs/mail.zyntapos.com.key:/opt/stalwart/certs/mail.zyntapos.com.key:ro
     networks:
-      - zyntapos_net
+      zyntapos_net:
+        aliases:
+          - mail.zyntapos.com
     healthcheck:
       # Stalwart image has no curl/wget — use bash /dev/tcp to probe port 8080
       # CMD-SHELL uses /bin/sh (dash) which lacks /dev/tcp; call bash explicitly.
@@ -523,7 +525,7 @@ services:
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/1
       - FRONTEND_URL=https://support.zyntapos.com
       - MAILER_SENDER_EMAIL=support@zyntapos.com
-      - SMTP_ADDRESS=stalwart
+      - SMTP_ADDRESS=mail.zyntapos.com
       - SMTP_PORT=587
       - SMTP_USERNAME=support@zyntapos.com
       - SMTP_PASSWORD=${CHATWOOT_SMTP_PASS}
@@ -567,7 +569,7 @@ services:
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/1
       - FRONTEND_URL=https://support.zyntapos.com
       - MAILER_SENDER_EMAIL=support@zyntapos.com
-      - SMTP_ADDRESS=stalwart
+      - SMTP_ADDRESS=mail.zyntapos.com
       - SMTP_PORT=587
       - SMTP_USERNAME=support@zyntapos.com
       - SMTP_PASSWORD=${CHATWOOT_SMTP_PASS}

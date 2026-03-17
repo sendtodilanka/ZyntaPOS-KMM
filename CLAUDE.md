@@ -765,7 +765,7 @@ Copy `local.properties.template` and fill in values before first build.
 > `ZYNTA_FCM_SERVER_KEY` is replaced by `ZYNTA_FCM_SERVICE_ACCOUNT_JSON` (GitHub Secret — too large for `local.properties`).
 > Backend services use `firebase-admin` SDK with the service account JSON for FCM v1 HTTP API.
 
-**All GitHub Secrets** (26 configured — stored in repository, not `local.properties`):
+**All GitHub Secrets** (28 configured — stored in repository, not `local.properties`):
 
 | Secret | Purpose |
 |--------|---------|
@@ -795,6 +795,8 @@ Copy `local.properties.template` and fill in values before first build.
 | `SENTRY_DSN_SYNC` | Sentry DSN for `zyntapos-sync` |
 | `SLACK_WEBHOOK_URL` | Slack webhook for Falco security alerts |
 | `NVD_API_KEY` | OWASP Dependency Check NVD API key |
+| `CHATWOOT_API_TOKEN` | Chatwoot API user access token (API-based integrations) |
+| `CHATWOOT_ACCOUNT_ID` | Chatwoot account ID (`1`) |
 
 See `docs/architecture/deployment.md` → "GitHub Secrets required" for full details and generation instructions.
 
@@ -831,6 +833,8 @@ All 26 secrets are configured. See "Secrets & Local Configuration" section above
 | `CLOUDFLARE_TUNNEL_TOKEN` | Cloudflare Tunnel token for Zero Trust access (optional) | FTS Step 4, Step 5 |
 | `SLACK_WEBHOOK_URL` | Slack webhook for Falco security alerts (optional) | FTS Step 4 |
 | `ZYNTA_FCM_SERVICE_ACCOUNT_JSON` | Firebase Admin SDK service account — FCM v1 push notifications | backend services |
+| `CHATWOOT_API_TOKEN` | Chatwoot API user access token | Chatwoot API integrations |
+| `CHATWOOT_ACCOUNT_ID` | Chatwoot account ID (`1`) | Chatwoot API integrations |
 
 ---
 
