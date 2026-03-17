@@ -98,7 +98,8 @@ async function deliverToStalwartFromBuffer(
   const username = toAddress.split("@")[0]
   const authHeader = `Basic ${btoa(`admin:${env.STALWART_ADMIN_PASSWORD}`)}`
 
-  // Step 1: Look up the recipient's account ID in Stalwart
+  // Step 1: Look up the recipient's account in Stalwart
+  // Verify the account exists via the admin API
   const userResp = await fetch(`${env.STALWART_JMAP_URL}/api/principal/${username}`, {
     headers: { Authorization: authHeader },
   })
@@ -106,7 +107,10 @@ async function deliverToStalwartFromBuffer(
     throw new Error(`Stalwart user lookup failed for '${username}': HTTP ${userResp.status}`)
   }
   const userData = (await userResp.json()) as StalwartPrincipalResponse
-  const accountId = String(userData.data.id)
+  // Use the account name (e.g. "dilanka") as the JMAP accountId — NOT the
+  // numeric principal ID. Stalwart's JMAP Email/import resolves account names
+  // but returns "Account not found" (id=4294967295) for numeric IDs.
+  const accountId = userData.data.name
 
   // Step 2: Upload the raw RFC 5322 email blob
   const uploadResp = await fetch(`${env.STALWART_JMAP_URL}/jmap/upload/${accountId}`, {
