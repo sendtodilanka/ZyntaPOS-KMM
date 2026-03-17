@@ -139,41 +139,9 @@ jobs:
             npx wrangler deploy --name email-inbound-handler
           }
 
-      # ── Step 3: Set Worker secrets for Stalwart JMAP delivery ─────────────
+      # ── Step 3: Set Worker secrets (EMAIL_RELAY_SECRET + legacy) ─────────
       - name: Set Worker Secrets
         if: contains(github.event.inputs.action, 'worker') || github.event.inputs.action == 'full-fix'
-        env:
-          CF_AUTH_EMAIL: ${{ secrets.CF_AUTH_EMAIL }}
-          CF_GLOBAL_API_KEY: ${{ secrets.CF_GLOBAL_API_KEY }}
-          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          set -e
-
-          # Get the Stalwart admin password from VPS .env (via SSH)
-          # For now, set the JMAP URL and note that STALWART_ADMIN_PASSWORD
-          # must be set manually via: wrangler secret put STALWART_ADMIN_PASSWORD
-
-          echo "Worker secrets must be set via wrangler CLI:"
-          echo "  cd cf-workers/email-inbound-handler"
-          echo "  wrangler secret put STALWART_JMAP_URL    → https://mail.zyntapos.com"
-          echo "  wrangler secret put STALWART_ADMIN_PASSWORD → (VPS STALWART_ADMIN_PASSWORD)"
-          echo ""
-          echo "Or via Cloudflare API:"
-
-          # Use API to set STALWART_JMAP_URL secret
-          AUTH=(-H "X-Auth-Email: $CF_AUTH_EMAIL" -H "X-Auth-Key: $CF_GLOBAL_API_KEY")
-
-          # Get script settings
-          echo "Setting STALWART_JMAP_URL..."
-          curl -s -X PUT "${AUTH[@]}" \
-            -H "Content-Type: application/json" \
-            "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/workers/scripts/email-inbound-handler/secrets" \
-            -d "{\"name\": \"STALWART_JMAP_URL\", \"text\": \"https://mail.zyntapos.com\", \"type\": \"secret_text\"}" \
-            | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'  Success: {d.get(\"success\",False)}')"
-
-      # ── Step 4: Set Stalwart admin password as Worker secret via VPS ──────
-      - name: Set Stalwart Password Secret
-        if: github.event.inputs.action == 'full-fix'
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -182,17 +150,29 @@ jobs:
           key: ${{ secrets.VPS_USER_KEY }}
           envs: CF_AUTH_EMAIL,CF_GLOBAL_API_KEY,CF_ACCOUNT_ID
           script: |
-            STALWART_PASS=$(docker exec zyntapos_stalwart printenv STALWART_ADMIN_PASSWORD)
-            echo "Stalwart admin password retrieved (length: ${#STALWART_PASS})"
+            # Read EMAIL_RELAY_SECRET from VPS .env file
+            RELAY_SECRET=$(grep -oP 'EMAIL_RELAY_SECRET=\K.*' /opt/zyntapos/.env 2>/dev/null || echo "")
+            if [ -z "$RELAY_SECRET" ]; then
+              # Generate and persist a new relay secret
+              RELAY_SECRET=$(openssl rand -hex 32)
+              echo "EMAIL_RELAY_SECRET=$RELAY_SECRET" >> /opt/zyntapos/.env
+              echo "Generated new EMAIL_RELAY_SECRET"
+            else
+              echo "Using existing EMAIL_RELAY_SECRET (length: ${#RELAY_SECRET})"
+            fi
 
-            # Set it as a Worker secret via Cloudflare API
+            # Set EMAIL_RELAY_SECRET as CF Worker secret
             curl -s -X PUT \
               -H "X-Auth-Email: $CF_AUTH_EMAIL" \
               -H "X-Auth-Key: $CF_GLOBAL_API_KEY" \
               -H "Content-Type: application/json" \
               "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/workers/scripts/email-inbound-handler/secrets" \
-              -d "{\"name\": \"STALWART_ADMIN_PASSWORD\", \"text\": \"$STALWART_PASS\", \"type\": \"secret_text\"}" \
-              | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'STALWART_ADMIN_PASSWORD set: {d.get(\"success\",False)}')"
+              -d "{\"name\": \"EMAIL_RELAY_SECRET\", \"text\": \"$RELAY_SECRET\", \"type\": \"secret_text\"}" \
+              | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'EMAIL_RELAY_SECRET set: {d.get(\"success\",False)}')"
+
+            # Restart email-relay container to pick up the secret
+            cd /opt/zyntapos
+            docker compose up -d email-relay 2>/dev/null || echo "email-relay not yet deployed"
         env:
           CF_AUTH_EMAIL: ${{ secrets.CF_AUTH_EMAIL }}
           CF_GLOBAL_API_KEY: ${{ secrets.CF_GLOBAL_API_KEY }}

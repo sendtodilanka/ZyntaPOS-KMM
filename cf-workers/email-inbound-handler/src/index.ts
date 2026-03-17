@@ -3,35 +3,36 @@
  *
  * Routes inbound @zyntapos.com emails:
  *   - support@, billing@, bugs@, alerts@ → parse + HMAC-sign → POST /internal/email/inbound
- *   - *@zyntapos.com (staff)             → forward to Stalwart via SMTP (mail.zyntapos.com)
+ *   - *@zyntapos.com (staff)             → deliver to Stalwart via HTTP relay
  *
- * Deploy via: Cloudflare Dashboard → Email Routing → Email Workers
+ * Deploy via: cf-email-fix.yml workflow (action: deploy-worker or full-fix)
  *
  * Required Worker Secrets (set via: wrangler secret put <NAME>):
  *   INBOUND_HMAC_SECRET       — matches INBOUND_EMAIL_HMAC_SECRET env var on VPS backend
  *   ZYNTA_API_ENDPOINT        — "https://api.zyntapos.com"
+ *   EMAIL_RELAY_SECRET        — shared secret for HTTP relay auth (matches EMAIL_RELAY_SECRET on VPS)
  *
- * Staff email delivery uses message.forward() to route emails to Stalwart's SMTP
- * port (25) via the mail.zyntapos.com subdomain, which has a direct A record to the VPS.
- * This avoids the JMAP Email/import limitations with Stalwart's admin auth model.
+ * Staff email delivery uses an HTTP-to-SMTP relay on the VPS because:
+ *   - Stalwart's JMAP Email/import fails with admin auth (serverUnavailable)
+ *   - VPS port 25 is blocked from external access (Contabo firewall)
+ *   - The relay accepts email via HTTPS (port 443, Caddy) and delivers via local SMTP
  */
 
 export interface Env {
   INBOUND_HMAC_SECRET: string
   ZYNTA_API_ENDPOINT: string
-  /** @deprecated No longer used — staff delivery now uses message.forward() via SMTP */
+  EMAIL_RELAY_SECRET: string
+  /** @deprecated No longer used for delivery */
   STALWART_JMAP_URL?: string
-  /** @deprecated No longer used — staff delivery now uses message.forward() via SMTP */
+  /** @deprecated No longer used for delivery */
   STALWART_ADMIN_PASSWORD?: string
 }
 
 /**
- * The mail delivery subdomain. mail.zyntapos.com has:
- * - A record → VPS IP (DNS-only / grey cloud in Cloudflare)
- * - MX record → mail.zyntapos.com (self-referencing for SMTP delivery)
- * - Stalwart listens on port 25 and accepts mail for this domain
+ * HTTP relay endpoint on the VPS, accessible via Caddy (HTTPS, port 443).
+ * Caddy routes /relay/* to the email-relay container (port 8025).
  */
-const MAIL_DELIVERY_DOMAIN = "mail.zyntapos.com"
+const EMAIL_RELAY_URL = "https://mail.zyntapos.com/relay/email"
 
 /** Addresses that trigger ticket creation in the ZyntaPOS API. */
 const SUPPORT_INBOXES = [
@@ -47,7 +48,6 @@ export default {
 
     if (SUPPORT_INBOXES.includes(to)) {
       // ── Support inbox → parse + POST to ZyntaPOS API ─────────────────────
-      // Read raw email once; keep ArrayBuffer for potential Stalwart fallback
       const rawEmailBuf = await new Response(message.raw).arrayBuffer()
       const rawBody = new TextDecoder().decode(rawEmailBuf)
 
@@ -77,22 +77,49 @@ export default {
       })
 
       if (!resp.ok) {
-        // On API failure: forward to Stalwart via SMTP so email is never silently dropped
-        console.error(`[email-inbound-handler] API returned ${resp.status} for ${to} — forwarding to Stalwart`)
-        const username = to.split("@")[0]
-        await message.forward(`${username}@${MAIL_DELIVERY_DOMAIN}`)
-        // Still throw so CF marks the Worker invocation as failed (visible in analytics)
+        // On API failure: deliver to Stalwart via relay so email is never silently dropped
+        console.error(`[email-inbound-handler] API returned ${resp.status} for ${to} — relaying to Stalwart`)
+        await deliverViaRelay(rawEmailBuf, to, message.from, env)
         throw new Error(`ZyntaPOS API returned ${resp.status}: ${await resp.text()}`)
       }
 
       console.log(`[email-inbound-handler] Processed inbound email to ${to} from ${message.from}`)
     } else {
-      // ── Staff mailbox (name@zyntapos.com) → forward to Stalwart via SMTP ──
-      const username = to.split("@")[0]
-      await message.forward(`${username}@${MAIL_DELIVERY_DOMAIN}`)
-      console.log(`[email-inbound-handler] Forwarded email to Stalwart: ${username}@${MAIL_DELIVERY_DOMAIN} from ${message.from}`)
+      // ── Staff mailbox (name@zyntapos.com) → deliver via HTTP relay to Stalwart ──
+      const rawEmailBuf = await new Response(message.raw).arrayBuffer()
+      await deliverViaRelay(rawEmailBuf, to, message.from, env)
+      console.log(`[email-inbound-handler] Relayed email to Stalwart: ${to} from ${message.from}`)
     }
   },
+}
+
+// ── HTTP relay delivery ─────────────────────────────────────────────────────
+
+/**
+ * Delivers raw email to Stalwart via the HTTP-to-SMTP relay on the VPS.
+ * POST https://mail.zyntapos.com/relay/email with raw RFC5322 body.
+ */
+async function deliverViaRelay(
+  rawEmail: ArrayBuffer,
+  recipient: string,
+  sender: string,
+  env: Env,
+): Promise<void> {
+  const resp = await fetch(EMAIL_RELAY_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "message/rfc822",
+      "X-Relay-Secret": env.EMAIL_RELAY_SECRET,
+      "X-Recipient": recipient,
+      "X-Sender": sender,
+    },
+    body: rawEmail,
+  })
+
+  if (!resp.ok) {
+    const body = await resp.text()
+    throw new Error(`Email relay failed (${resp.status}): ${body}`)
+  }
 }
 
 // ── Types ──────────────────────────────────────────────────────────────────────
