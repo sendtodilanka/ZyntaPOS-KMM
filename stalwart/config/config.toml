@@ -26,9 +26,13 @@ hostname = "mail.zyntapos.com"
 # ── TLS certificate (Let's Encrypt — renewed by cert-renew-mail.yml) ──
 # Cert files are bind-mounted from the VPS host into the container.
 # Same cert used by Caddy for mail.zyntapos.com HTTPS admin UI.
+# IMPORTANT: Use %{file:...}% macro syntax — bare paths don't work in
+# Stalwart 0.7+ and cause "No TLS certificates available" fallback to
+# self-signed rcgen cert. Macros only work in local config (config.toml),
+# NOT in database-stored settings.
 [certificate."default"]
-cert = "/opt/stalwart/certs/mail.zyntapos.com.pem"
-private-key = "/opt/stalwart/certs/mail.zyntapos.com.key"
+cert = "%{file:/opt/stalwart/certs/mail.zyntapos.com.pem}%"
+private-key = "%{file:/opt/stalwart/certs/mail.zyntapos.com.key}%"
 default = true
 
 # ── SMTP (inbound from internet) ────────────────────────────────────
