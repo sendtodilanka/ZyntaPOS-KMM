@@ -35,7 +35,9 @@ export default {
 
     if (SUPPORT_INBOXES.includes(to)) {
       // ── Support inbox → parse + POST to ZyntaPOS API ─────────────────────
-      const rawBody = await new Response(message.raw).text()
+      // Read raw email once and keep the ArrayBuffer for potential Stalwart fallback
+      const rawEmailBuf = await new Response(message.raw).arrayBuffer()
+      const rawBody = new TextDecoder().decode(rawEmailBuf)
 
       const payload: InboundEmailPayload = {
         messageId: extractHeader(rawBody, "Message-ID"),
@@ -65,14 +67,15 @@ export default {
       if (!resp.ok) {
         // On API failure: deliver to Stalwart so email is never silently dropped
         console.error(`[email-inbound-handler] API returned ${resp.status} for ${to} — delivering to Stalwart`)
-        await deliverToStalwart(message, to, env)
+        await deliverToStalwartFromBuffer(rawEmailBuf, to, env)
         throw new Error(`ZyntaPOS API returned ${resp.status}: ${await resp.text()}`)
       }
 
       console.log(`[email-inbound-handler] Processed inbound email to ${to} from ${message.from}`)
     } else {
       // ── Staff mailbox (name@zyntapos.com) → deliver to Stalwart via JMAP ──
-      await deliverToStalwart(message, to, env)
+      const rawEmailBuf = await new Response(message.raw).arrayBuffer()
+      await deliverToStalwartFromBuffer(rawEmailBuf, to, env)
       console.log(`[email-inbound-handler] Delivered email to Stalwart: ${to} from ${message.from}`)
     }
   },
@@ -81,14 +84,14 @@ export default {
 // ── Stalwart JMAP delivery ──────────────────────────────────────────────────
 
 /**
- * Delivers an email to Stalwart via the JMAP API.
+ * Delivers an email to Stalwart via the JMAP API using a pre-read raw email buffer.
  * 1. Look up the recipient's Stalwart account ID
  * 2. Upload the raw email blob
  * 3. Query for the Inbox mailbox ID
  * 4. Import the email into the Inbox
  */
-async function deliverToStalwart(
-  message: ForwardableEmailMessage,
+async function deliverToStalwartFromBuffer(
+  rawEmail: ArrayBuffer,
   toAddress: string,
   env: Env,
 ): Promise<void> {
@@ -106,7 +109,6 @@ async function deliverToStalwart(
   const accountId = String(userData.data.id)
 
   // Step 2: Upload the raw RFC 5322 email blob
-  const rawEmail = await new Response(message.raw).arrayBuffer()
   const uploadResp = await fetch(`${env.STALWART_JMAP_URL}/jmap/upload/${accountId}`, {
     method: "POST",
     headers: {
@@ -121,7 +123,32 @@ async function deliverToStalwart(
   const uploadData = (await uploadResp.json()) as JmapUploadResponse
   const blobId = uploadData.blobId
 
-  // Step 3+4: Query Inbox mailbox ID + Import email (single JMAP request)
+  // Step 3: Query the Inbox mailbox ID
+  const queryResp = await fetch(`${env.STALWART_JMAP_URL}/jmap`, {
+    method: "POST",
+    headers: {
+      Authorization: authHeader,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      using: ["urn:ietf:params:jmap:core", "urn:ietf:params:jmap:mail"],
+      methodCalls: [["Mailbox/query", { accountId, filter: { role: "inbox" } }, "0"]],
+    }),
+  })
+  if (!queryResp.ok) {
+    throw new Error(`Stalwart JMAP Mailbox/query failed: HTTP ${queryResp.status}`)
+  }
+  const queryData = (await queryResp.json()) as JmapResponse
+  const queryResult = queryData.methodResponses[0]
+  if (queryResult[0] === "error") {
+    throw new Error(`JMAP Mailbox/query error: ${JSON.stringify(queryResult[1])}`)
+  }
+  const inboxId = (queryResult[1] as Record<string, unknown>).ids as string[]
+  if (!inboxId || inboxId.length === 0) {
+    throw new Error(`No Inbox mailbox found for account ${accountId}`)
+  }
+
+  // Step 4: Import the email into the Inbox
   const importResp = await fetch(`${env.STALWART_JMAP_URL}/jmap`, {
     method: "POST",
     headers: {
@@ -131,9 +158,6 @@ async function deliverToStalwart(
     body: JSON.stringify({
       using: ["urn:ietf:params:jmap:core", "urn:ietf:params:jmap:mail"],
       methodCalls: [
-        // First: find the Inbox mailbox ID
-        ["Mailbox/query", { accountId, filter: { role: "inbox" } }, "findInbox"],
-        // Then: import the email into that mailbox using back-reference
         [
           "Email/import",
           {
@@ -141,27 +165,22 @@ async function deliverToStalwart(
             emails: {
               email1: {
                 blobId,
-                mailboxIds: { "#findInbox": true },
+                mailboxIds: { [inboxId[0]]: true },
                 keywords: {},
               },
             },
           },
-          "importEmail",
+          "0",
         ],
       ],
     }),
   })
-
   if (!importResp.ok) {
-    throw new Error(`Stalwart JMAP import request failed: HTTP ${importResp.status}`)
+    throw new Error(`Stalwart JMAP Email/import failed: HTTP ${importResp.status}`)
   }
-
   const importData = (await importResp.json()) as JmapResponse
-  // Check for errors in method responses
-  for (const [method, result] of importData.methodResponses) {
-    if (method === "error") {
-      throw new Error(`JMAP error: ${JSON.stringify(result)}`)
-    }
+  if (importData.methodResponses[0][0] === "error") {
+    throw new Error(`JMAP Email/import error: ${JSON.stringify(importData.methodResponses[0][1])}`)
   }
 }
 
