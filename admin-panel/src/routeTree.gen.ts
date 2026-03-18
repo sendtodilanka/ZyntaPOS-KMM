@@ -30,6 +30,7 @@ import { Route as SettingsMfaRouteImport } from './routes/settings/mfa'
 import { Route as SettingsEmailRouteImport } from './routes/settings/email'
 import { Route as LicensesLicenseKeyRouteImport } from './routes/licenses/$licenseKey'
 import { Route as HealthStoreIdRouteImport } from './routes/health/$storeId'
+import { Route as TicketStatusTokenRouteImport } from './routes/ticket-status/$token'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -136,6 +137,11 @@ const HealthStoreIdRoute = HealthStoreIdRouteImport.update({
   path: '/health/$storeId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TicketStatusTokenRoute = TicketStatusTokenRouteImport.update({
+  id: '/ticket-status/$token',
+  path: '/ticket-status/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -147,6 +153,7 @@ export interface FileRoutesByFullPath {
   '/settings/profile': typeof SettingsProfileRoute
   '/stores/$storeId': typeof StoresStoreIdRoute
   '/tickets/$ticketId': typeof TicketsTicketIdRoute
+  '/ticket-status/$token': typeof TicketStatusTokenRoute
   '/alerts/': typeof AlertsIndexRoute
   '/audit/': typeof AuditIndexRoute
   '/config/': typeof ConfigIndexRoute
@@ -170,6 +177,7 @@ export interface FileRoutesByTo {
   '/settings/profile': typeof SettingsProfileRoute
   '/stores/$storeId': typeof StoresStoreIdRoute
   '/tickets/$ticketId': typeof TicketsTicketIdRoute
+  '/ticket-status/$token': typeof TicketStatusTokenRoute
   '/alerts': typeof AlertsIndexRoute
   '/audit': typeof AuditIndexRoute
   '/config': typeof ConfigIndexRoute
@@ -194,6 +202,7 @@ export interface FileRoutesById {
   '/settings/profile': typeof SettingsProfileRoute
   '/stores/$storeId': typeof StoresStoreIdRoute
   '/tickets/$ticketId': typeof TicketsTicketIdRoute
+  '/ticket-status/$token': typeof TicketStatusTokenRoute
   '/alerts/': typeof AlertsIndexRoute
   '/audit/': typeof AuditIndexRoute
   '/config/': typeof ConfigIndexRoute
@@ -219,6 +228,7 @@ export interface FileRouteTypes {
     | '/settings/profile'
     | '/stores/$storeId'
     | '/tickets/$ticketId'
+    | '/ticket-status/$token'
     | '/alerts/'
     | '/audit/'
     | '/config/'
@@ -265,6 +275,7 @@ export interface FileRouteTypes {
     | '/settings/profile'
     | '/stores/$storeId'
     | '/tickets/$ticketId'
+    | '/ticket-status/$token'
     | '/alerts/'
     | '/audit/'
     | '/config/'
@@ -289,6 +300,7 @@ export interface RootRouteChildren {
   SettingsProfileRoute: typeof SettingsProfileRoute
   StoresStoreIdRoute: typeof StoresStoreIdRoute
   TicketsTicketIdRoute: typeof TicketsTicketIdRoute
+  TicketStatusTokenRoute: typeof TicketStatusTokenRoute
   AlertsIndexRoute: typeof AlertsIndexRoute
   AuditIndexRoute: typeof AuditIndexRoute
   ConfigIndexRoute: typeof ConfigIndexRoute
@@ -452,6 +464,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HealthStoreIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ticket-status/$token': {
+      id: '/ticket-status/$token'
+      path: '/ticket-status/$token'
+      fullPath: '/ticket-status/$token'
+      preLoaderRoute: typeof TicketStatusTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -465,6 +484,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsProfileRoute: SettingsProfileRoute,
   StoresStoreIdRoute: StoresStoreIdRoute,
   TicketsTicketIdRoute: TicketsTicketIdRoute,
+  TicketStatusTokenRoute: TicketStatusTokenRoute,
   AlertsIndexRoute: AlertsIndexRoute,
   AuditIndexRoute: AuditIndexRoute,
   ConfigIndexRoute: ConfigIndexRoute,

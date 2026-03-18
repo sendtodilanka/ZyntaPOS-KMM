@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Lock, MessageSquare } from 'lucide-react';
+import { Lock, MessageSquare, Mail } from 'lucide-react';
 import { useTicketComments, useAddComment } from '@/api/tickets';
 import { useTimezone } from '@/hooks/use-timezone';
 import { useAuth } from '@/hooks/use-auth';
@@ -7,15 +7,17 @@ import { cn } from '@/lib/utils';
 
 interface TicketCommentThreadProps {
   ticketId: string;
+  customerEmail?: string | null;
 }
 
-export function TicketCommentThread({ ticketId }: TicketCommentThreadProps) {
+export function TicketCommentThread({ ticketId, customerEmail }: TicketCommentThreadProps) {
   const { data: comments = [], isLoading } = useTicketComments(ticketId);
   const addComment = useAddComment();
   const { formatDateTime } = useTimezone();
   const { hasPermission } = useAuth();
   const [body, setBody] = useState('');
   const [isInternal, setIsInternal] = useState(false);
+  const [replyToCustomer, setReplyToCustomer] = useState(false);
 
   const canMarkInternal = hasPermission('tickets:resolve'); // ADMIN, OPERATOR only (not AUDITOR, not HELPDESK)
 
@@ -23,8 +25,8 @@ export function TicketCommentThread({ ticketId }: TicketCommentThreadProps) {
     e.preventDefault();
     if (!body.trim()) return;
     addComment.mutate(
-      { ticketId, body: { body: body.trim(), isInternal } },
-      { onSuccess: () => { setBody(''); setIsInternal(false); } },
+      { ticketId, body: { body: body.trim(), isInternal, replyToCustomer: replyToCustomer && !isInternal } },
+      { onSuccess: () => { setBody(''); setIsInternal(false); setReplyToCustomer(false); } },
     );
   };
 
@@ -89,17 +91,36 @@ export function TicketCommentThread({ ticketId }: TicketCommentThreadProps) {
             className="w-full bg-surface-elevated border border-surface-border rounded-lg px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
           />
           <div className="flex items-center justify-between">
-            {canMarkInternal && (
-              <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isInternal}
-                  onChange={(e) => setIsInternal(e.target.checked)}
-                  className="rounded border-surface-border bg-surface-elevated"
-                />
-                <Lock className="w-3 h-3" />
-                Internal only
-              </label>
+            <div className="flex items-center gap-4">
+              {canMarkInternal && (
+                <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isInternal}
+                    onChange={(e) => { setIsInternal(e.target.checked); if (e.target.checked) setReplyToCustomer(false); }}
+                    className="rounded border-surface-border bg-surface-elevated"
+                  />
+                  <Lock className="w-3 h-3" />
+                  Internal only
+                </label>
+              )}
+              {customerEmail && !isInternal && (
+                <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={replyToCustomer}
+                    onChange={(e) => setReplyToCustomer(e.target.checked)}
+                    className="rounded border-surface-border bg-surface-elevated"
+                  />
+                  <Mail className="w-3 h-3" />
+                  Reply to customer
+                </label>
+              )}
+            </div>
+            {replyToCustomer && customerEmail && !isInternal && (
+              <p className="text-xs text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded px-2 py-1">
+                This message will be sent to {customerEmail}
+              </p>
             )}
             <button
               type="submit"

@@ -7,6 +7,8 @@ import com.zyntasolutions.zyntapos.api.repository.AdminStoresRepository
 import com.zyntasolutions.zyntapos.api.repository.AdminStoresRepositoryImpl
 import com.zyntasolutions.zyntapos.api.repository.AdminTicketRepository
 import com.zyntasolutions.zyntapos.api.repository.AdminTicketRepositoryImpl
+import com.zyntasolutions.zyntapos.api.repository.EmailThreadRepository
+import com.zyntasolutions.zyntapos.api.repository.EmailThreadRepositoryImpl
 import com.zyntasolutions.zyntapos.api.repository.AdminUserRepository
 import com.zyntasolutions.zyntapos.api.repository.AdminUserRepositoryImpl
 import com.zyntasolutions.zyntapos.api.repository.TicketCommentRepository
@@ -94,6 +96,7 @@ val appModule = module {
     single<AdminStoresRepository> { AdminStoresRepositoryImpl() }
     single<AdminTicketRepository> { AdminTicketRepositoryImpl() }
     single<TicketCommentRepository> { TicketCommentRepositoryImpl() }
+    single<EmailThreadRepository> { EmailThreadRepositoryImpl() }
     single<AdminUserRepository> { AdminUserRepositoryImpl() }
     single<PosUserRepository> { PosUserRepositoryImpl() }
     single<ProductRepository> { ProductRepositoryImpl() }
@@ -132,6 +135,7 @@ val appModule = module {
         ticketRepo = get(),
         emailService = get(),
         chatwootService = get(),
+        ticketService = get(),
     ) }
     single { DiagnosticSessionService(get()) }
     single { LicenseValidationClient() }
@@ -144,7 +148,7 @@ val appModule = module {
     single { AdminAlertsService() }
     single { AdminMetricsService() }
     single { MfaService() }
-    single { AdminTicketService(ticketRepo = get(), commentRepo = get()) }
-    single { AlertGenerationJob(get()) }
+    single { AdminTicketService(ticketRepo = get(), commentRepo = get(), emailThreadRepo = get(), emailService = get()) }
+    single { AlertGenerationJob(alertsService = get(), ticketService = get()) }
     single { ForceSyncNotifier(redisPool = get()) }
 }

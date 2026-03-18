@@ -15,7 +15,10 @@ import org.slf4j.LoggerFactory
  * Background job that evaluates alert rules every N seconds.
  * Started once on application startup via [start].
  */
-class AlertGenerationJob(private val alertsService: AdminAlertsService) {
+class AlertGenerationJob(
+    private val alertsService: AdminAlertsService,
+    private val ticketService: AdminTicketService? = null,
+) {
 
     private val logger = LoggerFactory.getLogger(AlertGenerationJob::class.java)
     private val scope  = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -35,6 +38,13 @@ class AlertGenerationJob(private val alertsService: AdminAlertsService) {
     }
 
     private suspend fun evaluate() {
+        // Check SLA breaches and send email notifications
+        runCatching {
+            ticketService?.checkSlaBreaches()
+        }.onFailure { e ->
+            logger.warn("SLA breach check failed: ${e.message}")
+        }
+
         // Gather current pending op counts per store
         val pendingByStore = newSuspendedTransaction {
             SyncQueue.selectAll()

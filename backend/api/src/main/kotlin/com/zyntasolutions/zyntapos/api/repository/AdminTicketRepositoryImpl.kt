@@ -4,6 +4,7 @@ import com.zyntasolutions.zyntapos.api.db.AdminUsers
 import com.zyntasolutions.zyntapos.api.db.SupportTickets
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.greaterEq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.lessEq
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.util.UUID
@@ -34,6 +35,7 @@ class AdminTicketRepositoryImpl : AdminTicketRepository {
             it[timeSpentMin]   = null
             it[slaDueAt]       = input.slaDueAt
             it[slaBreached]    = false
+            it[customerAccessToken] = UUID.randomUUID()
             it[createdAt]      = input.createdAt
             it[updatedAt]      = input.createdAt
         }
@@ -61,7 +63,21 @@ class AdminTicketRepositoryImpl : AdminTicketRepository {
                 }
             }
             filter.search?.takeIf { it.isNotBlank() }?.let { q ->
-                query = query.andWhere { SupportTickets.title.lowerCase() like "%${q.lowercase()}%" }
+                val pattern = "%${q.lowercase()}%"
+                if (filter.searchBody) {
+                    query = query.andWhere {
+                        (SupportTickets.title.lowerCase() like pattern) or
+                        (SupportTickets.description.lowerCase() like pattern)
+                    }
+                } else {
+                    query = query.andWhere { SupportTickets.title.lowerCase() like pattern }
+                }
+            }
+            filter.createdAfter?.let { ts ->
+                query = query.andWhere { SupportTickets.createdAt greaterEq ts }
+            }
+            filter.createdBefore?.let { ts ->
+                query = query.andWhere { SupportTickets.createdAt lessEq ts }
             }
 
             val total = query.count().toInt()
@@ -133,6 +149,20 @@ class AdminTicketRepositoryImpl : AdminTicketRepository {
         }
     }
 
+    override suspend fun findRecentlyBreached(now: Long, windowMs: Long): List<TicketRow> =
+        newSuspendedTransaction {
+            SupportTickets.selectAll()
+                .where {
+                    (SupportTickets.slaBreached eq true) and
+                    (SupportTickets.slaDueAt.isNotNull()) and
+                    (SupportTickets.slaDueAt greaterEq (now - windowMs)) and
+                    (SupportTickets.slaDueAt lessEq now) and
+                    (SupportTickets.status neq "RESOLVED") and
+                    (SupportTickets.status neq "CLOSED")
+                }
+                .map { it.toRow() }
+        }
+
     override suspend fun nextTicketNumber(year: Int): String = newSuspendedTransaction {
         val seqVal = exec("SELECT nextval('ticket_seq')") { rs ->
             rs.next(); rs.getLong(1)
@@ -146,6 +176,48 @@ class AdminTicketRepositoryImpl : AdminTicketRepository {
             else AdminUsers.selectAll()
                 .where { AdminUsers.id inList ids }
                 .associate { it[AdminUsers.id] to it[AdminUsers.name] }
+        }
+
+    override suspend fun findByCustomerToken(token: UUID): TicketRow? = newSuspendedTransaction {
+        SupportTickets.selectAll()
+            .where { SupportTickets.customerAccessToken eq token }
+            .singleOrNull()
+            ?.toRow()
+    }
+
+    override suspend fun getMetrics(): TicketMetricsData = newSuspendedTransaction {
+        val allRows = SupportTickets.selectAll().toList()
+
+        val byStatus = allRows.groupBy { it[SupportTickets.status] }
+        val openStatuses = setOf("OPEN", "ASSIGNED", "IN_PROGRESS", "PENDING_CUSTOMER")
+        val openRows = allRows.filter { it[SupportTickets.status] in openStatuses }
+
+        val resolvedRows = byStatus["RESOLVED"].orEmpty() + byStatus["CLOSED"].orEmpty()
+        val avgResTime = if (resolvedRows.isNotEmpty()) {
+            resolvedRows
+                .mapNotNull { it[SupportTickets.timeSpentMin] }
+                .takeIf { it.isNotEmpty() }
+                ?.average()?.toInt() ?: 0
+        } else 0
+
+        TicketMetricsData(
+            totalOpen     = openRows.size,
+            totalAssigned = byStatus["ASSIGNED"]?.size ?: 0,
+            totalResolved = byStatus["RESOLVED"]?.size ?: 0,
+            totalClosed   = byStatus["CLOSED"]?.size ?: 0,
+            slaBreached   = allRows.count { it[SupportTickets.slaBreached] && it[SupportTickets.status] in openStatuses },
+            avgResolutionTimeMin = avgResTime,
+            openByPriority = openRows.groupBy { it[SupportTickets.priority] }.mapValues { it.value.size },
+            openByCategory = openRows.groupBy { it[SupportTickets.category] }.mapValues { it.value.size },
+        )
+    }
+
+    override suspend fun findUserEmails(ids: List<UUID>): Map<UUID, String> =
+        newSuspendedTransaction {
+            if (ids.isEmpty()) emptyMap()
+            else AdminUsers.selectAll()
+                .where { AdminUsers.id inList ids }
+                .associate { it[AdminUsers.id] to it[AdminUsers.email] }
         }
 
     // ── Mapping helper ────────────────────────────────────────────────────────
@@ -172,6 +244,7 @@ class AdminTicketRepositoryImpl : AdminTicketRepository {
         timeSpentMin   = this[SupportTickets.timeSpentMin],
         slaDueAt       = this[SupportTickets.slaDueAt],
         slaBreached    = this[SupportTickets.slaBreached],
+        customerAccessToken = this[SupportTickets.customerAccessToken],
         createdAt      = this[SupportTickets.createdAt],
         updatedAt      = this[SupportTickets.updatedAt],
     )
