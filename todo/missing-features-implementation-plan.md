@@ -8,9 +8,10 @@
 
 ## Overview
 
-This document lists ALL missing and partially implemented features across the ZyntaPOS-KMM codebase,
-organized by priority and phase. Each item includes current status, what's missing, affected modules,
-key files, and implementation steps.
+මෙම ලේඛනයේ ZyntaPOS-KMM codebase එකේ missing සහ partially implemented features සියල්ල
+ඇතුළත් වේ. Multi-store enterprise features (6 categories) සම්පූර්ණයෙන් cover කරයි.
+එක් එක් item එකට current codebase state, missing items, affected modules, key files,
+සහ implementation steps ඇතුළත්ය.
 
 ---
 
@@ -35,7 +36,7 @@ key files, and implementation steps.
 
 **Priority:** P0-CRITICAL
 **Impact:** Offline-first sync pipeline non-functional; client data sits in `sync_queue` unprocessed
-**Modules:** `:shared:data`, `backend/api`
+**Modules:** `:shared:data`, `backend/api`, `backend/sync`
 
 **What EXISTS:**
 - `sync_operations`, `sync_cursors`, `entity_snapshots`, `sync_conflict_log`, `sync_dead_letters` tables (V4)
@@ -45,16 +46,16 @@ key files, and implementation steps.
 - `ServerConflictResolver.kt` — LWW (Last-Write-Wins) resolution
 - `SyncRoutes.kt` — REST `/sync/push` and `/sync/pull` endpoints
 - WebSocket endpoints in `backend/sync` service
+- KMM client: `sync_queue.sq` (outbox), `sync_state.sq` (cursor), `version_vectors.sq` (CRDT metadata)
+- KMM client: `ConflictResolver.kt` — LWW with field-level merge for PRODUCT
 
 **What's MISSING:**
-- [ ] `EntityApplier` — extend to handle ALL entity types (ORDER, CUSTOMER, CATEGORY, SUPPLIER, STOCK_ADJUSTMENT, CASH_REGISTER, REGISTER_SESSION, etc.)
-- [ ] `ConflictResolver` client-side in `:shared:data` (CRDT merge logic — Phase 2 backlog)
-- [ ] `version_vectors` table management (table exists, never written to)
+- [ ] `EntityApplier` — extend to handle ALL entity types (ORDER, CUSTOMER, CATEGORY, SUPPLIER, STOCK_ADJUSTMENT, CASH_REGISTER, REGISTER_SESSION, AUDIT_ENTRY, etc.)
 - [ ] Multi-store data isolation enforcement on sync endpoints (validate `store_id` matches JWT claims)
 - [ ] WebSocket push notifications to clients after server processes sync ops
 - [ ] JWT validation on WebSocket upgrade in `backend/sync`
 - [ ] Sync payload field-level validation (missing fields, invalid types)
-- [ ] POS token revocation check during JWT validation
+- [ ] POS token revocation check during JWT validation (`revoked_tokens` table exists, not checked)
 - [ ] Heartbeat replay protection
 
 **Key Files:**
@@ -62,9 +63,9 @@ key files, and implementation steps.
 - `backend/api/src/main/kotlin/.../sync/DeltaEngine.kt`
 - `backend/api/src/main/kotlin/.../sync/EntityApplier.kt`
 - `backend/api/src/main/kotlin/.../sync/ServerConflictResolver.kt`
-- `backend/api/src/main/kotlin/.../routes/SyncRoutes.kt`
 - `backend/sync/src/main/kotlin/.../hub/WebSocketHub.kt`
-- `shared/data/src/commonMain/kotlin/.../sync/SyncEngine.kt`
+- `shared/data/src/commonMain/kotlin/.../sync/ConflictResolver.kt`
+- `shared/data/src/commonMain/sqldelight/.../sync_queue.sq`
 
 **Implementation Steps:**
 1. Extend `EntityApplier` with handlers for all 10+ entity types
@@ -95,18 +96,11 @@ key files, and implementation steps.
 - Backend routes: `AdminEmailRoutes.kt`
 
 **What's MISSING:**
-- [ ] Admin panel email delivery log UI page (`admin-panel/src/routes/settings/email.tsx` — file missing)
-- [ ] Email template editor in admin panel (CRUD for template slugs)
+- [ ] Admin panel email delivery log UI page (`admin-panel/src/routes/settings/email.tsx`)
+- [ ] Email template editor in admin panel
 - [ ] Email preference management UI for customers
 - [ ] Bounce/complaint webhook handler from Resend
 - [ ] Email retry logic for QUEUED → SENDING failures
-
-**Key Files:**
-- `backend/api/src/main/kotlin/.../service/EmailService.kt`
-- `backend/api/src/main/kotlin/.../routes/AdminEmailRoutes.kt`
-- `backend/api/src/main/kotlin/.../service/InboundEmailProcessor.kt`
-- `admin-panel/src/api/email.ts`
-- `admin-panel/src/routes/settings/email.tsx` (MISSING — needs creation)
 
 **Implementation Steps:**
 1. Create `admin-panel/src/routes/settings/email.tsx` with delivery log table
@@ -123,138 +117,86 @@ key files, and implementation steps.
 **Impact:** Enterprise support cannot remotely diagnose customer POS issues
 
 **What EXISTS:**
-- `diagnostic_sessions` table (V8, extended V15, V19) with columns for:
-  - `visit_type` (REMOTE/ON_SITE)
-  - `site_visit_token_hash`
-  - `hardware_scope` (comma-separated)
-  - `data_scope` (READ_ONLY_DIAGNOSTICS / FULL_READ_ONLY)
-  - consent tracking, expiry, revocation
+- `diagnostic_sessions` table (V8, V15, V19) with visit_type, hardware_scope, data_scope, consent tracking
 - Feature flag `remote_diagnostic` (disabled, PROFESSIONAL/ENTERPRISE editions)
-- `DiagnosticRelay.kt` in sync service (WebSocket relay scaffold)
-- `DiagnosticWebSocketRoutes.kt` in sync service
+- `DiagnosticRelay.kt` + `DiagnosticWebSocketRoutes.kt` in sync service (scaffold)
 
 **What's MISSING (entire module):**
 - [ ] `:composeApp:feature:diagnostic` module — not in `settings.gradle.kts`
 - [ ] `DiagnosticSession` domain model in `:shared:domain/model/`
-- [ ] `DiagnosticRepository` interface in `:shared:domain/repository/`
-- [ ] `DiagnosticRepositoryImpl` in `:shared:data`
+- [ ] `DiagnosticRepository` interface + impl
 - [ ] `DiagnosticTokenValidator` in `:shared:security`
-- [ ] `DiagnosticSessionService.kt` in backend API
-- [ ] `AdminDiagnosticRoutes.kt` in backend API
+- [ ] `DiagnosticSessionService.kt` + `AdminDiagnosticRoutes.kt` in backend
 - [ ] Customer consent flow UI (KMM app)
 - [ ] Technician session viewer UI (admin panel)
 - [ ] JIT token generation (15-min TTL, TOTP-based)
-- [ ] 3-layer data isolation (read-only, diagnostic ops, transaction-restricted)
-- [ ] Session audit trail integration
-- [ ] Remote session revocation mechanism
-- [ ] Hardware scope enforcement (printer, scanner, cash drawer)
-- [ ] On-site token validation flow (V19 schema exists, no endpoint)
-
-**Key Files:**
-- `backend/api/src/main/resources/db/migration/V8__diagnostic_sessions.sql`
-- `backend/api/src/main/resources/db/migration/V15__diagnostic_visit_type.sql`
-- `backend/api/src/main/resources/db/migration/V19__diagnostic_hardware_scope.sql`
-- `backend/sync/src/main/kotlin/.../routes/DiagnosticWebSocketRoutes.kt`
-- `backend/sync/src/main/kotlin/.../hub/DiagnosticRelay.kt`
+- [ ] 3-layer data isolation + hardware scope enforcement
+- [ ] Session audit trail integration + remote revocation
 
 **Implementation Steps:**
-1. Add `:composeApp:feature:diagnostic` module to `settings.gradle.kts`
-2. Create `DiagnosticSession` domain model and repository interface
-3. Implement `DiagnosticTokenValidator` (TOTP, 15-min TTL)
-4. Build `DiagnosticSessionService` + `AdminDiagnosticRoutes` in backend
-5. Implement customer consent flow UI in KMM app
-6. Build technician session viewer in admin panel
-7. Wire WebSocket relay for live diagnostic data streaming
-8. Add hardware scope enforcement and data isolation
-9. Integration tests for consent → token → session → revocation flow
+1. Add module to `settings.gradle.kts`
+2. Create domain model + repository interface
+3. Implement token validator (TOTP, 15-min TTL)
+4. Build backend service + routes
+5. Build consent flow UI (KMM) + technician viewer (admin panel)
+6. Wire WebSocket relay for live diagnostic streaming
+7. Integration tests for full flow
 
 ---
 
 ### A4. API Documentation Site (TODO-007e) — 0% Complete
 
 **Priority:** P1-HIGH
-**Impact:** External developers cannot integrate; partner API adoption blocked
-
-**What EXISTS:**
-- `docs/api/` directory with README and `.gitkeep` only
 
 **What's MISSING:**
-- [ ] OpenAPI 3.0 spec for API service (all REST endpoints)
-- [ ] OpenAPI 3.0 spec for License service endpoints
-- [ ] OpenAPI 3.0 spec for Sync service WebSocket protocol
+- [ ] OpenAPI 3.0 spec for all 3 backend services
 - [ ] Swagger UI or Redoc hosting
 - [ ] Deployment workflow to docs subdomain
-- [ ] Code samples (Kotlin KMM client, TypeScript admin)
-- [ ] Authentication flow documentation
-- [ ] Sync protocol documentation (push/pull/cursor/conflict)
-
-**Implementation Steps:**
-1. Auto-generate OpenAPI spec from Ktor route definitions (ktor-openapi plugin)
-2. Add Redoc static site generation to CI
-3. Deploy to `docs.zyntapos.com` via Caddy
-4. Write authentication and sync protocol guides
-5. Add code samples for common integrations
+- [ ] Code samples + authentication docs
+- [ ] Sync protocol documentation
 
 ---
 
 ### A5. Firebase Analytics & Sentry Integration (TODO-011) — ~40% Complete
 
 **Priority:** P1-HIGH
-**Impact:** Product telemetry unavailable; growth metrics invisible
 
-**What EXISTS:**
-- Sentry DSN secrets configured (3 services: API, License, Sync)
-- `SENTRY_AUTH_TOKEN` configured
-- `GOOGLE_SERVICES_JSON` secret exists
-- `GA4_MEASUREMENT_ID` secret exists
+**What EXISTS:** Sentry DSN secrets configured, `GOOGLE_SERVICES_JSON` + `GA4_MEASUREMENT_ID` secrets exist
 
 **What's MISSING:**
-- [ ] Firebase Android SDK dependency in `androidApp/build.gradle.kts`
-- [ ] `google-services.json` injection step in CI workflows
+- [ ] Firebase Android SDK in `androidApp/build.gradle.kts`
+- [ ] `google-services.json` injection in CI
 - [ ] `FirebaseAnalytics` initialization in `ZyntaApplication.kt`
-- [ ] Custom event tracking in feature modules (screen views, actions)
-- [ ] GA4 user properties (role, edition, store_size)
-- [ ] Sentry SDK initialization in backend services
-- [ ] Sentry source maps for admin panel
-- [ ] Error boundary → Sentry reporting in admin panel React
-
-**Implementation Steps:**
-1. Add Firebase SDK deps to `androidApp/build.gradle.kts`
-2. Add `google-services.json` decode step in CI
-3. Initialize Firebase in `ZyntaApplication.kt`
-4. Create `AnalyticsTracker` interface in `:shared:core`
-5. Add screen view events in each feature module
-6. Initialize Sentry in all 3 backend services
-7. Add Sentry error boundary to admin panel
+- [ ] `AnalyticsTracker` interface in `:shared:core`
+- [ ] Screen view events in all feature modules
+- [ ] Sentry initialization in 3 backend services
+- [ ] Sentry error boundary in admin panel
 
 ---
 
-### A6. Security Monitoring & Automated Response (TODO-010) — ~85% Complete
+### A6. Security Monitoring (TODO-010) — ~85% Complete
 
 **Priority:** P1-HIGH
-**Impact:** Runtime security blind spots; breach detection incomplete
-
-**What EXISTS:**
-- Falcosidekick container deployed
-- Canary service deployed
-- `NVD_API_KEY` configured for OWASP dependency check
-- Cloudflare Origin Certificate configured
 
 **What's MISSING:**
 - [ ] Snyk Monitor step in `ci-gate.yml`
-- [ ] Canary tokens embedded in source files (placeholder values)
-- [ ] `config/cloudflare/tunnel-config.yml` — `<TUNNEL_ID>` placeholder not replaced
-- [ ] Falcosidekick → Slack webhook wiring (placeholder value)
-- [ ] CF Zero Trust access policies (Cloudflare dashboard action)
-- [ ] Bot Fight Mode + WAF rules (Cloudflare dashboard action)
-- [ ] OWASP dependency check step in CI pipeline
+- [ ] Falcosidekick → Slack webhook wiring
+- [ ] Cloudflare tunnel config placeholder replacement
+- [ ] OWASP dependency check in CI pipeline
+- [ ] CF Zero Trust + WAF rules (dashboard action)
 
-**Implementation Steps:**
-1. Add Snyk CLI step to `ci-gate.yml`
-2. Replace Falcosidekick Slack webhook placeholder
-3. Replace Cloudflare tunnel config placeholder
-4. Add OWASP dependency-check Gradle plugin
-5. Configure CF dashboard policies (manual, document steps)
+---
+
+### A7. Admin JWT Security Gap
+
+**Priority:** P1-HIGH
+**Issue:** Admin panel uses HS256 (symmetric) while POS uses RS256 (asymmetric)
+
+**Fix:**
+- [ ] Migrate admin auth to RS256
+- [ ] Update `AdminAuthService.kt` token generation
+- [ ] Update License service admin JWT validation
+- [ ] Rotate existing admin sessions
 
 ---
 
@@ -262,247 +204,755 @@ key files, and implementation steps.
 
 ---
 
-### B1. Admin Panel Enhancements (TODO-007a) — ~98% Complete
+### B1. Admin Panel Enhancements (TODO-007a) — ~98%
 
-**Priority:** P2-MEDIUM
+- [ ] Security dashboard page
+- [ ] OTA update management page
+- [ ] Playwright E2E tests
+- [ ] VPS deployment via GitHub Actions
 
-**What's MISSING:**
-- [ ] Security dashboard page (intrusion alerts, audit summary)
-- [ ] OTA update management page (app version distribution)
-- [ ] E2E tests with Playwright (`playwright.config.ts` scaffold exists)
-- [ ] Admin panel VPS deployment via GitHub Actions
+### B2. Admin Panel Custom Auth (TODO-007f) — ~75%
 
-**Implementation Steps:**
-1. Build security dashboard component
-2. Build OTA update page with version tracking
-3. Write Playwright E2E tests for critical flows
-4. Add admin panel build + deploy to `cd-deploy.yml`
-
----
-
-### B2. Admin Panel Custom Auth (TODO-007f) — ~75% Complete
-
-**Priority:** P2-MEDIUM
-
-**What EXISTS:**
-- BCrypt login, HS256 JWT, MFA (TOTP + backup codes)
-- Session management (single-use refresh tokens)
-- Account lockout (5 failures → 15 min)
-- Password reset flow
-
-**What's MISSING:**
-- [ ] Session management UI in admin panel (view active sessions, revoke)
-- [ ] Security audit log page (detailed event viewer with filtering)
-- [ ] IP allowlisting for admin access
+- [ ] Session management UI (view/revoke active sessions)
+- [ ] Security audit log page
+- [ ] IP allowlisting middleware
 - [ ] Login notification emails
 - [ ] Forced password rotation policy
 
-**Implementation Steps:**
-1. Build session list component with revoke action
-2. Build audit log viewer with category/date/user filters
-3. Add IP allowlist middleware to admin auth routes
-4. Trigger email on new admin login
-5. Add password age check to login flow
+### B3. Monitoring — Uptime Kuma (TODO-007c) — ~70%
 
----
-
-### B3. Monitoring Setup — Uptime Kuma (TODO-007c) — ~70% Complete
-
-**Priority:** P2-MEDIUM
-
-**What EXISTS:**
-- Uptime Kuma container deployed and accessible
-
-**What's MISSING:**
-- [ ] Monitor configurations for all 7 subdomains (api, admin, sync, license, docs, status, mail)
+- [ ] Monitors for all 7 subdomains
 - [ ] Slack/email alert channels
-- [ ] Status page branding and public URL
-- [ ] Docker container health monitors
-- [ ] PostgreSQL + Redis connectivity monitors
+- [ ] Status page branding
+- [ ] Docker + DB health monitors
 
-**Implementation Steps:**
-1. Script Uptime Kuma monitor setup via API
-2. Configure Slack webhook notification channel
-3. Set up branded status page at `status.zyntapos.com`
-4. Add Docker container health checks
-5. Add database/Redis ping monitors
+### B4. Backend Test Coverage — ~25% vs 80% target
 
----
+- [ ] Testcontainers setup (PostgreSQL + Redis)
+- [ ] `SyncProcessor`, `DeltaEngine`, `EntityApplier` tests
+- [ ] `AdminAuthService`, `LicenseService` tests
+- [ ] Coverage reporting in CI pipeline
 
-### B4. Backend Test Coverage — ~25% Actual vs 80% Target
+### B5. Mixed Timestamp Formats
 
-**Priority:** P2-MEDIUM
-**Impact:** 52 files need test coverage improvements
+- [ ] Standardize on `Instant` (kotlinx-datetime) across all services
+- [ ] Add timestamp format validation in sync
+- [ ] Document timestamp contract
+
+### B6. Ticket System Enhancements (TODO-012) — COMPLETED (merged from main 2026-03-18)
+
+**Priority:** P2-MEDIUM (HIGH per docs/todo)
+**Status:** COMPLETED — All 8 tasks implemented and merged into main
+**Ref:** `docs/todo/012-ticket-system-enhancements.md`
 
 **What EXISTS:**
-- Some unit tests for API service
-- Mockative 3 + Kotlin Test framework configured
-- Turbine for Flow testing
+- `AdminTicketRoutes.kt` — CRUD + assign/resolve/close + comments
+- `AdminTicketService.kt` — SLA deadline logic, `checkSlaBreaches()`
+- `InboundEmailProcessor.kt` — HMAC-signed inbound email, dedup, thread linking
+- `EmailService.kt` — Resend API, ticket_created/updated templates
+- `ChatwootService.kt` — auto-creates conversations from inbound email
+- `AlertGenerationJob.kt` — 60s interval background job
+- DB: V5 (tickets, comments, attachments), V18 (email_threads), V20 (email_delivery_log)
+- Frontend: `TicketTable`, `TicketCreateModal`, `TicketAssignModal`, `TicketResolveModal`, `TicketCommentThread`
 
-**What's MISSING:**
-- [ ] API service integration tests with Testcontainers (PostgreSQL + Redis)
-- [ ] License service tests (<1% coverage)
-- [ ] Sync service tests (~15% coverage)
-- [ ] Common module tests (0% coverage)
-- [ ] `AdminAuthService` tests (bcrypt, MFA, lockout)
-- [ ] `SyncProcessor` tests (push validation, conflict detection)
-- [ ] `DeltaEngine` tests (cursor pagination, filtering)
-- [ ] `EntityApplier` tests (all entity types)
-- [ ] `LicenseService` tests (activation, heartbeat, device limits)
+**What's MISSING (8 tasks):**
+- [ ] **TASK 1:** Email thread viewing + reply-to-reply chain tracking (V21 migration: `parent_thread_id`)
+- [ ] **TASK 2:** Bulk ticket operations (assign, resolve, CSV export)
+- [ ] **TASK 3:** SLA breach email notifications (extend `checkSlaBreaches()`)
+- [ ] **TASK 4:** Advanced ticket filtering (date range, full-text search on body)
+- [ ] **TASK 5:** Ticket metrics/analytics endpoint (totalOpen, avgResolutionTime, etc.)
+- [ ] **TASK 6:** Agent reply by email (outbound from ticket comment)
+- [ ] **TASK 7:** Customer portal — public ticket status check via token URL (V22 migration)
+- [ ] **BUG FIX:** InboundEmailProcessor hardcoded SLA (always MEDIUM/48h) — should use `inferPriorityFromEmail()`
 
-**Implementation Steps:**
-1. Set up Testcontainers config for PostgreSQL + Redis
-2. Write `SyncProcessor` integration tests (push flow)
-3. Write `DeltaEngine` integration tests (pull flow)
-4. Write `EntityApplier` unit tests for each entity type
-5. Write `AdminAuthService` tests (login, MFA, lockout, reset)
-6. Write `LicenseService` tests (activate, heartbeat, device max)
-7. Write `ServerConflictResolver` tests (LWW, tiebreak)
-8. Add test coverage reporting to CI pipeline
+**Implementation Order:** BUG FIX → TASK 1 → TASK 3 → TASK 4 → TASK 5 → TASK 2 → TASK 6 → TASK 7
+
+**Key Files:**
+- `backend/api/src/main/kotlin/.../routes/AdminTicketRoutes.kt`
+- `backend/api/src/main/kotlin/.../service/AdminTicketService.kt`
+- `backend/api/src/main/kotlin/.../service/InboundEmailProcessor.kt`
+- `backend/api/src/main/kotlin/.../service/EmailService.kt`
+- `admin-panel/src/components/tickets/` (multiple new + modified files)
+- `backend/api/src/main/resources/db/migration/V21__email_thread_chain.sql` (NEW)
+- `backend/api/src/main/resources/db/migration/V22__ticket_customer_token.sql` (NEW)
 
 ---
 
-## SECTION C: PHASE 2 FEATURES (Growth)
+## SECTION C: MULTI-STORE ENTERPRISE FEATURES (6 Categories)
+
+> මෙම section එක ඔබ ලබා දුන් multi-store features 6 categories සම්පූර්ණයෙන් ආවරණය කරයි.
+> එක් එක් feature එක codebase එකේ actual state එකත් සමඟ map කර ඇත.
 
 ---
 
-### C1. Multi-Store Dashboard & Management
+### ═══════════════════════════════════════════════════════
+### CATEGORY 1: මධ්‍යගත තොග කළමනාකරණය (Centralized Inventory Management)
+### ═══════════════════════════════════════════════════════
+
+---
+
+### C1.1 Global Product Catalog (පොදු භාණ්ඩ නාමාවලිය)
 
 **Priority:** PHASE-2
-**Feature Flag:** `multi_store` (disabled, ENTERPRISE edition)
+**Status:** NOT IMPLEMENTED
 
-**What EXISTS:**
-- `stores` table with all 18 store-aware FK tables
-- `AdminStoresRoutes.kt` — store list/health/config endpoints
-- `AdminStoresService.kt` — health scoring
-- Admin panel store list/detail/health pages
-- 5 API hooks for store management
+**Codebase State:**
+- `Product` model has `storeId: String` — products are per-store, no global catalog concept
+- `products.sq` has `store_id TEXT NOT NULL` — every product belongs to one store
+- Backend `products` table (V1) also has `store_id TEXT NOT NULL REFERENCES stores(id)`
+- No `master_product` or `global_product` concept exists anywhere
 
 **What's MISSING:**
-- [ ] Cross-store product transfer workflow
-- [ ] Inter-store stock movement endpoints + tables
-- [ ] Consolidated multi-store reporting (aggregated KPIs)
-- [ ] Store-level pricing rules (different prices per store)
-- [ ] Stock rebalancing across stores
-- [ ] Multi-store dashboard in KMM app (`:composeApp:feature:multistore` is scaffold)
+- [ ] `MasterProduct` domain model — template for products shared across stores
+- [ ] `master_products` SQLDelight table (id, sku, barcode, name, description, base_price, category_id, image_url)
+- [ ] `store_products` junction table (master_product_id, store_id, local_price, local_stock_qty, is_active)
+- [ ] `MasterProductRepository` interface in `:shared:domain`
+- [ ] `MasterProductRepositoryImpl` in `:shared:data`
+- [ ] Backend migration: `master_products` + `store_products` tables
+- [ ] Backend `MasterProductRoutes.kt` — CRUD for global catalog
+- [ ] Admin panel: Global product catalog management UI
+- [ ] KMM app: Store-local product override UI (price, stock)
+- [ ] Sync: Master product changes propagate to all stores
 
-**Implementation Steps:**
-1. Design inter-store transfer schema (new table: `store_transfers`)
-2. Build transfer request/approve/ship/receive workflow
-3. Implement consolidated report aggregation endpoints
-4. Build multi-store dashboard UI in KMM app
-5. Enable `multi_store` feature flag for ENTERPRISE editions
+**Key Files to Modify:**
+- `shared/domain/src/commonMain/.../model/Product.kt`
+- `shared/data/src/commonMain/sqldelight/.../products.sq`
+- `backend/api/src/main/resources/db/migration/` (new V21)
+- `:composeApp:feature:inventory` screens
 
 ---
 
-### C2. CRDT ConflictResolver (Client-Side)
+### C1.2 Store-Specific Inventory Levels (ශාඛා අනුව තොග)
 
 **Priority:** PHASE-2
-**Feature Flag:** `crdt_sync` (disabled, ENTERPRISE edition)
+**Status:** PARTIALLY EXISTS — global stock_qty only, no per-warehouse tracking
 
-**What EXISTS:**
-- Server-side LWW conflict resolution (`ServerConflictResolver.kt`)
-- `sync_conflict_log` table for audit trail
-- `version_vectors` column on `sync_queue` (unused)
+**Codebase State:**
+- `Product.stockQty` is **global** (single number) — NOT per-warehouse or per-store
+- `warehouses.sq` EXISTS — warehouse registry per store (`store_id` FK)
+- `warehouse_racks.sq` EXISTS — rack shelving with capacity tracking
+- `rack_products.sq` EXISTS — rack-level product location mapping (bin_location)
+- `WarehouseRepositoryImpl.kt` — FULLY implemented (253 lines) with atomic two-phase commits
+- `WarehouseRackRepository` + impl — FULLY implemented (120 lines)
+- `WarehouseRack` use cases: Get, Save, Delete — all implemented
+- `min_stock_qty` column exists on `products.sq` — reorder threshold
+- **Reports exist:** `warehouseInventory` query (racks → products), `stockReorderAlerts` query
+- **Comment in code:** "per-warehouse tracking is Phase 3" (WarehouseRepositoryImpl line 173)
 
 **What's MISSING:**
-- [ ] `ConflictResolver` interface in `:shared:data`
-- [ ] CRDT merge implementations (G-Counter, LWW-Register, OR-Set)
-- [ ] Vector clock management (increment, compare, merge)
-- [ ] Field-level merge strategies (not just entity-level LWW)
-- [ ] Conflict UI in POS app (show conflicts, allow manual resolution)
-- [ ] Client-side conflict log display
+- [ ] Per-warehouse stock levels (product.stock_qty is global — need warehouse_stock junction table)
+- [ ] `warehouse_stock` table (warehouse_id, product_id, quantity) — replace global stock_qty
+- [ ] Stock level aggregation API across stores (total stock for a product globally)
+- [ ] Low-stock alerts per warehouse (currently per product globally)
+- [ ] Admin panel: Cross-store/warehouse stock level comparison view
+- [ ] Backend: `GET /admin/inventory/global?productId=X` endpoint
+- [ ] Rack-product CRUD UI (schema exists in `rack_products.sq`, no management screens)
 
-**Implementation Steps:**
-1. Define `ConflictResolver` interface in `:shared:data`
-2. Implement LWW-Register for simple fields
-3. Implement G-Counter for stock quantities
-4. Implement OR-Set for order items
-5. Build vector clock utility in `:shared:core`
-6. Add conflict review UI in POS app settings
+**Key Files:**
+- `shared/data/src/commonMain/sqldelight/.../products.sq` (global stock_qty)
+- `shared/data/src/commonMain/sqldelight/.../warehouses.sq`
+- `shared/data/src/commonMain/sqldelight/.../warehouse_racks.sq`
+- `shared/data/src/commonMain/sqldelight/.../rack_products.sq`
+- `shared/data/src/commonMain/.../repository/WarehouseRepositoryImpl.kt` (253 lines)
+- `shared/data/src/commonMain/.../repository/WarehouseRackRepositoryImpl.kt` (120 lines)
+- `composeApp/feature/multistore/.../WarehouseListScreen.kt`
+- `composeApp/feature/multistore/.../WarehouseRackListScreen.kt`
 
 ---
 
-### C3. CashDrawerController (HAL)
+### C1.3 Inter-Store Stock Transfer / IST (ශාඛා අතර තොග හුවමාරුව)
 
 **Priority:** PHASE-2
+**Status:** WAREHOUSE-LEVEL IMPLEMENTED, STORE-LEVEL MISSING
 
-**What EXISTS:**
-- HAL interfaces defined (`PrinterPort`, `BarcodeScanner`)
-- Platform-specific printer/scanner implementations
+**Codebase State:**
+- `stock_transfers.sq` — FULLY IMPLEMENTED table (source_warehouse_id, dest_warehouse_id, product_id, quantity, status)
+- `StockTransfer` domain model — status: PENDING → COMMITTED / CANCELLED (two-phase commit)
+- `WarehouseRepositoryImpl.commitTransfer()` — atomic validation + stock adjustment + audit trail (TRANSFER_OUT/TRANSFER_IN)
+- `CommitStockTransferUseCase.kt` — validates transfer exists and is PENDING
+- `purchase_orders.sq` — SCHEMA ONLY (tables exist, no domain model/repo/UI)
+- `NewStockTransferScreen.kt` + `StockTransferListScreen.kt` — UI screens exist
+- `WarehouseViewModel.kt` (407 lines) — manages warehouses, transfers, racks
+- Report: `interStoreTransfers` SQL query in `reports.sq` — committed transfers by date range
 
-**What's MISSING:**
-- [ ] `CashDrawerPort` interface in `:shared:hal`
-- [ ] Android USB implementation
-- [ ] JVM serial port implementation (jSerialComm)
-- [ ] ESC/POS kick command integration
-- [ ] Auto-open on payment completion
-
-**Implementation Steps:**
-1. Define `CashDrawerPort` interface (open, status, close)
-2. Implement Android USB HID driver
-3. Implement JVM serial driver via jSerialComm
-4. Wire to `RegisterViewModel` payment completion flow
-5. Add cash drawer test in debug console
+**What's MISSING (store-to-store level, beyond warehouse-to-warehouse):**
+- [ ] Extend transfer workflow: PENDING → APPROVED → DISPATCHED → IN_TRANSIT → RECEIVED (currently only PENDING → COMMITTED)
+- [ ] Multi-step approval workflow (currently auto-commit, no manager approval)
+- [ ] Store-level transfer view (group warehouse transfers by source/dest store)
+- [ ] Backend migration: Add store-level transfer tracking
+- [ ] Backend: `POST /admin/transfers`, `PUT /admin/transfers/{id}/approve`
+- [ ] Admin panel: Transfer management dashboard with store grouping
+- [ ] Push notification when transfer arrives at destination store
+- [ ] Purchase Order domain model + repository + UI (schema exists in `purchase_orders.sq`)
+- [ ] `PurchaseOrder` domain model in `:shared:domain`
+- [ ] `PurchaseOrderRepository` interface + impl
 
 ---
 
-### C4. Coupon & Promotion Rule Engine
+### C1.4 Stock In-Transit Tracking (මාර්ගයේ තොග නිරීක්ෂණය)
 
 **Priority:** PHASE-2
-**Module:** `:composeApp:feature:coupons` (scaffold only)
+**Status:** SCHEMA EXISTS, NO LOGIC
 
-**What EXISTS:**
-- Feature module scaffold registered in `settings.gradle.kts`
-- `coupons` table in SQLDelight schema
-- Basic Coupon domain model
+**Codebase State:**
+- `StockTransfer` model has `IN_TRANSIT` status enum value
+- `stock_transfers.sq` has `status TEXT NOT NULL DEFAULT 'REQUESTED'`
+- No tracking of physical transit progress
 
 **What's MISSING:**
-- [ ] Promotion rule engine (BOGO, %, threshold, combo)
-- [ ] Coupon validation logic (expiry, usage limits, min order)
-- [ ] Coupon application in cart/checkout flow
-- [ ] Coupon CRUD UI screens
-- [ ] Coupon reporting (redemption rates, revenue impact)
+- [ ] `TransitTracking` domain model (transfer_id, current_location, estimated_arrival, tracking_notes)
+- [ ] `transit_tracking` SQLDelight table (transfer_id FK, status_update, timestamp, note)
+- [ ] Real-time transit status updates via sync engine
+- [ ] KMM UI: Transit tracker screen with status timeline
+- [ ] Dashboard widget: "In-Transit Items" count per store
+- [ ] Stock accounting: Products in transit deducted from source, not yet added to destination
+- [ ] Backend: Transit status update endpoint
 
 ---
 
-### C5. Customer Loyalty & CRM
+### C1.5 Warehouse-to-Store Replenishment (ස්වයංක්‍රීය නැවත ඇණවුම්)
 
 **Priority:** PHASE-2
-**Module:** `:composeApp:feature:customers` (scaffold only)
+**Status:** REPORT EXISTS, NO AUTO-LOGIC
 
-**What EXISTS:**
-- `customers` table with `loyalty_points` column (INT)
-- Customer domain model
-- Customer list/detail screens (basic)
+**Codebase State:**
+- `products.sq` has `min_stock_qty REAL` — reorder threshold exists
+- `purchase_orders.sq` EXISTS — schema for PO with items, status, supplier FK (SCHEMA ONLY — no domain model/repo/UI)
+- `purchase_order_items` table — quantity_ordered, quantity_received, unit_cost, line_total
+- `reports.sq` → `stockReorderAlerts` query — products WHERE stock_qty <= min_stock_qty with suggested reorder qty
+- `ReportRepositoryImpl.getStockReorderAlerts()` — IMPLEMENTED
+- `GenerateStockReorderReportUseCase` — IMPLEMENTED
+- `StockReorderData` model — productId, productName, currentStock, reorderPoint, suggestedReorderQty
+- **No automated PO generation** — alerts are informational only
 
 **What's MISSING:**
-- [ ] Points accumulation rules (per-purchase, per-amount)
-- [ ] Points redemption flow at checkout
-- [ ] Loyalty tier system (Bronze/Silver/Gold)
-- [ ] GDPR customer data export (backend route exists, KMM UI missing)
-- [ ] Customer purchase history view
-- [ ] Customer analytics (lifetime value, frequency)
+- [ ] `PurchaseOrder` domain model in `:shared:domain`
+- [ ] `PurchaseOrderRepository` interface + impl
+- [ ] PO CRUD UI screens (create PO from reorder alert)
+- [ ] `ReplenishmentRule` domain model (product_id, warehouse_id, reorder_point, reorder_qty, auto_approve)
+- [ ] `replenishment_rules` SQLDelight table
+- [ ] `AutoReplenishmentUseCase` — check stock vs reorder_point, auto-create transfer/PO
+- [ ] Background job: Periodic stock check (daily or on stock change)
+- [ ] KMM UI: Replenishment rules config + reorder alert → auto-PO generation
+- [ ] Admin panel: Replenishment dashboard (pending auto-orders)
+- [ ] Backend: `POST /admin/replenishment/rules`, `GET /admin/replenishment/suggestions`
 
 ---
 
-### C6. Advanced Reporting
+### ═══════════════════════════════════════════════════════
+### CATEGORY 2: මිල ගණන් සහ බදු කළමනාකරණය (Multi-Store Pricing & Taxation)
+### ═══════════════════════════════════════════════════════
+
+---
+
+### C2.1 Region-Based Pricing (ප්‍රදේශ අනුව මිල)
 
 **Priority:** PHASE-2
+**Status:** NOT IMPLEMENTED
 
-**What EXISTS:**
-- `ReportRepositoryImpl.kt` — partial implementation
-- `FinancialStatementRepositoryImpl.kt` — placeholder
-- Report module UI scaffold
+**Codebase State:**
+- `Product.kt` has single `price: Double` — no regional override
+- `products.sq` has single `price REAL` column
+- `CartItem.kt` has `unitPrice: Double` — snapshot at time of cart add
+- Backend `ProductDto` has single `price: Double`
+- No `PricingRule`, `regional_price`, or `price_override` concept anywhere
 
 **What's MISSING:**
-- [ ] Full P&L statement calculation
-- [ ] Balance sheet generation
-- [ ] Cash flow analysis
-- [ ] Sales by category/product/time period reports
-- [ ] CSV/PDF export from KMM app
-- [ ] Supplier purchases aggregation
-- [ ] Store-level report filtering
+- [ ] `PricingRule` domain model (id, product_id, store_id, region, price, valid_from, valid_to, priority)
+- [ ] `pricing_rules` SQLDelight table
+- [ ] `PricingRuleRepository` interface + impl
+- [ ] `GetStorePriceUseCase` — resolve product price by store/region with fallback to base price
+- [ ] Integrate into `PosViewModel` — use store-aware price at cart add time
+- [ ] Backend migration: `pricing_rules` table
+- [ ] Backend: `POST /admin/pricing-rules`, `GET /admin/pricing-rules?storeId=X`
+- [ ] Admin panel: Price management UI (override per store, bulk update)
+- [ ] KMM settings: Store pricing configuration screen
+
+**Key Files to Modify:**
+- `shared/domain/src/commonMain/.../model/Product.kt` (add `storePrice: Double?`)
+- `shared/domain/src/commonMain/.../usecase/pos/CalculateOrderTotalsUseCase.kt`
+- `composeApp/feature/pos/src/commonMain/.../PosViewModel.kt`
+
+---
+
+### C2.2 Multi-Currency Support (බහු මුදල් ඒකක)
+
+**Priority:** PHASE-2
+**Status:** PARTIAL — formatter exists, no conversion
+
+**Codebase State:**
+- `CurrencyFormatter.kt` — supports 9 currencies (LKR, USD, EUR, GBP, INR, JPY, AUD, CAD, SGD)
+- `stores.sq` has `currency TEXT NOT NULL DEFAULT 'LKR'` — per-store currency
+- `AppConfig.kt` has `DEFAULT_CURRENCY_CODE = "LKR"`, `CURRENCY_DECIMAL_PLACES = 2`
+- `orders.sq` stores totals as `REAL` — no currency column on orders
+- `CartItem.kt` has no currency field
+- No exchange rate table or conversion logic
+
+**What's MISSING:**
+- [ ] `ExchangeRate` domain model (source_currency, target_currency, rate, effective_date)
+- [ ] `exchange_rates` SQLDelight table
+- [ ] `ExchangeRateRepository` interface + impl
+- [ ] `ConvertCurrencyUseCase` — convert amount between currencies
+- [ ] Add `currency TEXT` column to `orders.sq` (store currency at time of sale)
+- [ ] `Store` domain model in `:shared:domain` (currently NO Store model — only table/DTO)
+- [ ] `StoreRepository` interface in `:shared:domain` — expose store settings to business logic
+- [ ] Backend migration: `exchange_rates` table + `currency` column on orders
+- [ ] Backend: `GET /admin/exchange-rates`, `PUT /admin/exchange-rates`
+- [ ] Admin panel: Exchange rate management UI
+- [ ] KMM: Currency display using store's configured currency, not hardcoded LKR
+
+**Key Files:**
+- `shared/core/src/commonMain/.../utils/CurrencyFormatter.kt`
+- `shared/core/src/commonMain/.../config/AppConfig.kt`
+- `shared/data/src/commonMain/sqldelight/.../stores.sq`
+- `shared/data/src/commonMain/sqldelight/.../orders.sq`
+
+---
+
+### C2.3 Localized Tax Configurations (ප්‍රදේශ අනුව බදු)
+
+**Priority:** PHASE-2
+**Status:** PARTIAL — single-region tax exists, no multi-region
+
+**Codebase State:**
+- `TaxGroup.kt` — model with `rate`, `isInclusive`, `isActive` (fully implemented)
+- `tax_groups.sq` — table with CRUD queries (fully implemented)
+- `CalculateOrderTotalsUseCase.kt` — 6 tax calculation scenarios (exclusive, inclusive, with discounts)
+- `CartItem.taxRate` — snapshot per item (correct pattern)
+- `TaxSettingsScreen.kt` — tax group CRUD UI in settings
+- Backend `tax_rates` table (V3) — system-wide, not per-store
+- Product → TaxGroup assignment via `taxGroupId` field
+
+**What's MISSING:**
+- [ ] `RegionalTax` domain model (store_id, tax_group_id, effective_rate, jurisdiction_code, valid_from, valid_to)
+- [ ] `regional_tax_overrides` SQLDelight table — per-store tax rate overrides
+- [ ] Tax group → region/store mapping logic
+- [ ] Auto-select tax rate based on store's jurisdiction at checkout
+- [ ] Support for compound taxes (VAT + service charge + local surcharge stacked)
+- [ ] Tax registration number per store (legal requirement in many jurisdictions)
+- [ ] Backend migration: `regional_tax_overrides` table, `tax_registration_number` on stores
+- [ ] Backend: `GET /admin/taxes/by-store/{storeId}`
+- [ ] KMM settings: Per-store tax override configuration
+
+**Key Files:**
+- `shared/domain/src/commonMain/.../model/TaxGroup.kt`
+- `shared/domain/src/commonMain/.../usecase/pos/CalculateOrderTotalsUseCase.kt`
+- `shared/data/src/commonMain/sqldelight/.../tax_groups.sq`
+- `composeApp/feature/settings/src/commonMain/.../TaxSettingsScreen.kt`
+
+---
+
+### C2.4 Store-Specific Discounts & Promotions (ශාඛා අනුව වට්ටම්)
+
+**Priority:** PHASE-2
+**Status:** PARTIAL — global promotions exist, no store scoping
+
+**Codebase State:**
+- `Coupon.kt` — model with scope (CART/PRODUCT/CATEGORY/CUSTOMER), discount types (FIXED/PERCENT/BOGO)
+- `Promotion.kt` — model with types (BUY_X_GET_Y, BUNDLE, FLASH_SALE, SCHEDULED), priority-based
+- `coupons.sq` — coupons + promotions tables with `scope_ids` JSON array
+- `CalculateCouponDiscountUseCase.kt`, `ValidateCouponUseCase.kt` — validation + calculation
+- `ApplyItemDiscountUseCase.kt`, `ApplyOrderDiscountUseCase.kt` — role-gated discounts
+- **NO `store_id` FK** on coupons or promotions tables
+
+**What's MISSING:**
+- [ ] Add `store_id TEXT` (nullable) to `coupons.sq` — null = global, non-null = store-specific
+- [ ] Add `store_ids TEXT` (JSON array) to `promotions` table — target specific stores
+- [ ] `GetStorePromotionsUseCase` — filter active promotions by current store
+- [ ] Store-specific discount limits (e.g., max 20% at store A, max 30% at store B)
+- [ ] Promotion conflict resolution when multiple match (BOGO + coupon both applicable)
+- [ ] `PromotionConfig` sealed class to replace untyped JSON `config` field
+- [ ] Backend: `GET /admin/promotions?storeId=X`
+- [ ] Admin panel: Store-scoped promotion management
+- [ ] KMM: Auto-apply store promotions at checkout
+
+**Key Files:**
+- `shared/domain/src/commonMain/.../model/Coupon.kt`
+- `shared/domain/src/commonMain/.../model/Promotion.kt`
+- `shared/data/src/commonMain/sqldelight/.../coupons.sq`
+- `shared/domain/src/commonMain/.../usecase/coupons/`
+
+---
+
+### ═══════════════════════════════════════════════════════
+### CATEGORY 3: පරිශීලක ප්‍රවේශ සීමාවන් (User Access Control & Permissions)
+### ═══════════════════════════════════════════════════════
+
+---
+
+### C3.1 Role-Based Access Control — RBAC
+
+**Priority:** PHASE-2
+**Status:** IMPLEMENTED (Phase 1 complete)
+
+**Codebase State:**
+- `Role.kt` — 5 roles: ADMIN, STORE_MANAGER, CASHIER, ACCOUNTANT, STOCK_MANAGER
+- `Permission.kt` — 40+ granular permissions for all POS operations
+- `CustomRole.kt` — custom role creation with explicit permission sets
+- `RbacEngine.kt` in `:shared:security` — stateless permission checker
+- Navigation RBAC gating in `ZyntaNavGraph.kt`
+- Admin panel: 5 roles (ADMIN, OPERATOR, FINANCE, AUDITOR, HELPDESK) with 39 permissions
+
+**COMPLETE — no action needed**
+
+---
+
+### C3.2 Store-Level Permissions (ශාඛා මට්ටමේ ප්‍රවේශ)
+
+**Priority:** PHASE-2
+**Status:** NOT IMPLEMENTED
+
+**Codebase State:**
+- `users.sq` has `store_id TEXT NOT NULL` — each user belongs to ONE store only
+- `employees.sq` has `store_id TEXT NOT NULL` — same limitation
+- Backend `users` table: `UNIQUE (store_id, username)` — username scoped per store
+- No `user_allowed_stores` junction table
+- No mechanism for a user to access data from a different store
+
+**What's MISSING:**
+- [ ] `user_store_access` junction table (user_id, store_id, role, granted_at, granted_by)
+- [ ] `UserStoreAccess` domain model
+- [ ] `UserStoreAccessRepository` interface + impl
+- [ ] Modify `RbacEngine` to accept `storeId` parameter for permission checks
+- [ ] Backend migration: `user_store_access` table
+- [ ] Backend: Middleware to validate user has access to requested store data
+- [ ] Admin panel: User → store assignment management UI
+- [ ] KMM: Store selector for users with multi-store access
+
+---
+
+### C3.3 Global Admin Dashboard (ප්‍රධාන පාලක පුවරුව)
+
+**Priority:** PHASE-2
+**Status:** PARTIALLY EXISTS
+
+**Codebase State:**
+- Admin panel dashboard: `/admin/metrics/dashboard` — totalStores, activeLicenses, revenueToday, syncHealth
+- `AdminStoresRoutes.kt` — store list, health, config endpoints
+- `AdminMetricsService.kt` — `getDashboardKPIs()`, `getStoreComparison()`, `getSalesChart()`
+- KMM `:composeApp:feature:multistore` — scaffold only
+
+**What's MISSING:**
+- [ ] KMM app: Multi-store dashboard screen (see all store KPIs from a single view)
+- [ ] KMM app: Store switcher (select which store to operate as)
+- [ ] Real-time WebSocket updates for dashboard KPIs (currently REST polling)
+- [ ] Cross-store notifications (e.g., "Store B low on Product X")
+
+---
+
+### C3.4 Employee Roaming (සේවක බහු-ශාඛා ප්‍රවේශය)
+
+**Priority:** PHASE-2
+**Status:** NOT IMPLEMENTED
+
+**Codebase State:**
+- Employees tied 1:1 to store via `employees.store_id NOT NULL`
+- `attendance_records.sq` — clock in/out per employee (no cross-store tracking)
+- `shift_schedules.sq` — shifts scoped by `store_id` (no cross-store shifts)
+
+**What's MISSING:**
+- [ ] `employee_store_assignments` table (employee_id, store_id, start_date, end_date, is_temporary)
+- [ ] `EmployeeStoreAssignment` domain model
+- [ ] Modify `attendance_records.sq` — add `store_id TEXT` for where they clocked in
+- [ ] Modify `shift_schedules.sq` — allow shifts across different stores for same employee
+- [ ] `AssignEmployeeToStoreUseCase`, `GetEmployeeStoresUseCase`
+- [ ] KMM UI: Employee store assignment management
+- [ ] KMM UI: Store selector on clock-in screen (if employee has multi-store access)
+- [ ] Backend migration: `employee_store_assignments` table
+- [ ] Cross-store attendance reports
+
+---
+
+### ═══════════════════════════════════════════════════════
+### CATEGORY 4: විකුණුම් සහ පාරිභෝගික කළමනාකරණය (Sales & Customer Management)
+### ═══════════════════════════════════════════════════════
+
+---
+
+### C4.1 Cross-Store Returns (බහු-ශාඛා ප්‍රතිලාභ)
+
+**Priority:** PHASE-2
+**Status:** NOT IMPLEMENTED
+
+**Codebase State:**
+- `OrderType.REFUND` exists — refund orders can be created
+- `orders.sq` has `store_id TEXT NOT NULL` — each order/refund tied to one store
+- Permission `PROCESS_REFUND` exists in RBAC
+- No concept of "original store" for a refund
+
+**What's MISSING:**
+- [ ] Add `original_store_id TEXT` to orders table (for refunds initiated at different store)
+- [ ] Add `original_order_id TEXT` to orders table (link refund to original sale)
+- [ ] `ProcessCrossStoreRefundUseCase` — validate original order exists, process return
+- [ ] Cross-store inventory adjustment (return stock to original or current store?)
+- [ ] Business rule: Configurable policy — stock goes to return store vs original store
+- [ ] KMM POS: Lookup order by ID/receipt from any store for return processing
+- [ ] Backend: Cross-store order lookup endpoint
+- [ ] Sync: Refund propagation to original store for accounting
+
+---
+
+### C4.2 Universal Loyalty Program (සර්වත්‍ර පක්ෂපාතිත්ව වැඩසටහන)
+
+**Priority:** PHASE-2
+**Status:** PARTIAL — points exist, no cross-store/redemption logic
+
+**Codebase State:**
+- `customers.sq` has `loyalty_points INTEGER` (aggregate field)
+- `reward_points.sq` EXISTS — points ledger table with per-customer tracking
+- `RewardPoints.kt` domain model exists
+- `LoyaltyTier.kt` — tier definitions with discount multiplier (Bronze/Silver/Gold/Platinum)
+- `loyalty_tiers` SQLDelight table exists
+- No store scoping on loyalty — points are inherently global to customer
+
+**What's MISSING:**
+- [ ] `EarnPointsUseCase` — calculate points earned per purchase (configurable rate per store?)
+- [ ] `RedeemPointsUseCase` — apply points as discount at checkout
+- [ ] Points redemption flow integration into POS checkout
+- [ ] Cross-store points earning/spending (ensure universal acceptance)
+- [ ] Loyalty tier progression logic (auto-upgrade/downgrade based on spend)
+- [ ] Points expiry policy (e.g., expire after 12 months inactive)
+- [ ] KMM POS: "Apply Loyalty Points" button at checkout
+- [ ] KMM: Customer loyalty summary screen
+- [ ] Backend: `GET /admin/loyalty/summary`, `POST /admin/loyalty/rules`
+
+**Key Files:**
+- `shared/data/src/commonMain/sqldelight/.../reward_points.sq`
+- `shared/domain/src/commonMain/.../model/RewardPoints.kt`
+- `shared/domain/src/commonMain/.../model/LoyaltyTier.kt`
+
+---
+
+### C4.3 Centralized Customer Profiles (මධ්‍යගත පාරිභෝගික දත්ත)
+
+**Priority:** PHASE-2
+**Status:** AMBIGUOUS — nullable store_id exists
+
+**Codebase State:**
+- `customers.sq` has `store_id TEXT` (nullable) — customers CAN be global
+- `Customer.kt` model has `storeId: String` but customer table allows NULL
+- Backend `customers` table (V12) has `store_id TEXT NOT NULL` — inconsistency with KMM
+- GDPR export endpoint exists in backend (`ExportRoutes.kt`)
+- No clear strategy for global vs per-store customer profiles
+
+**What's MISSING:**
+- [ ] Resolve store_id ambiguity: Make customers truly global (remove NOT NULL on backend)
+- [ ] Customer merge utility — merge duplicate profiles across stores
+- [ ] Global customer search — find customer from any store
+- [ ] `CustomerMergeUseCase` — merge two customer records (combine points, order history)
+- [ ] GDPR export UI in KMM app (backend route exists)
+- [ ] Customer purchase history spanning all stores
+- [ ] Backend: `GET /admin/customers/global?search=X` (cross-store search)
+- [ ] Admin panel: Global customer directory with store filter
+
+---
+
+### C4.4 Click & Collect / BOPIS (අන්තර්ජාල ඇණවුම් + ශාඛා භාරගැනීම)
+
+**Priority:** PHASE-3
+**Status:** NOT IMPLEMENTED
+
+**Codebase State:**
+- `OrderType` enum has `SALE, REFUND, HOLD` — no `CLICK_AND_COLLECT`
+- `OrderStatus` has `IN_PROGRESS, COMPLETED, VOIDED, HELD` — no fulfillment statuses
+- No pickup location, fulfillment workflow, or online ordering system
+- Zero references to "pickup", "bopis", "fulfillment" in codebase
+
+**What's MISSING:**
+- [ ] Add `CLICK_AND_COLLECT` to `OrderType` enum
+- [ ] Add fulfillment statuses: `RECEIVED, PREPARING, READY_FOR_PICKUP, PICKED_UP, EXPIRED`
+- [ ] `fulfillment_orders` SQLDelight table (order_id, pickup_store_id, pickup_date, status, customer_notified)
+- [ ] Online ordering API (or integration with external ordering platform)
+- [ ] Push notification to customer: "Your order is ready for pickup"
+- [ ] Push notification to store: "New pickup order received"
+- [ ] `FulfillmentRepository` interface + impl
+- [ ] KMM POS: Fulfillment queue screen (list of pending pickups)
+- [ ] KMM POS: Mark order as ready/picked-up
+- [ ] Backend: Fulfillment endpoints
+- [ ] Timeout: Auto-cancel if not picked up within X hours
+
+---
+
+### ═══════════════════════════════════════════════════════
+### CATEGORY 5: වාර්තා සහ විශ්ලේෂණ (Reporting & Analytics)
+### ═══════════════════════════════════════════════════════
+
+---
+
+### C5.1 Consolidated Financial Reports (ඒකාබද්ධ මූල්‍ය වාර්තා)
+
+**Priority:** PHASE-2
+**Status:** PARTIAL — single-store P&L exists, no multi-store consolidation
+
+**Codebase State:**
+- `FinancialStatement.kt` — full models: P&L, BalanceSheet, TrialBalance, CashFlow
+- `FinancialStatementRepository.kt` — contracts for all 4 statement types (all accept `storeId`)
+- `FinancialStatementsViewModel.kt` — 4-tab UI (P&L, Balance Sheet, Trial Balance, Cash Flow)
+- `FinancialStatementRepositoryImpl.kt` — **PLACEHOLDER** (Phase 2 reference)
+- Backend `AdminMetricsService.kt` — `getDashboardKPIs()` has `revenueToday` aggregate
+- 49 report use cases exist in `:shared:domain`
+- `GenerateMultiStoreComparisonReportUseCase.kt` — **STUB returning empty list**
+
+**What's MISSING:**
+- [ ] Implement `FinancialStatementRepositoryImpl.kt` — actual queries against `journal_entries`, `account_balances`
+- [ ] `ConsolidatedFinancialReportUseCase` — aggregate P&L across all stores
+- [ ] Backend: `GET /admin/reports/consolidated-pnl?from=X&to=Y`
+- [ ] Backend: `GET /admin/reports/consolidated-balance-sheet?asOf=X`
+- [ ] Multi-currency consolidation (convert all store revenues to base currency)
+- [ ] Inter-store transaction elimination (remove internal transfers from consolidated reports)
+- [ ] Admin panel: Consolidated financial report pages
+- [ ] CSV/PDF export for consolidated reports
+
+**Key Files:**
+- `shared/domain/src/commonMain/.../model/FinancialStatement.kt`
+- `shared/domain/src/commonMain/.../repository/FinancialStatementRepository.kt`
+- `shared/data/src/commonMain/.../repository/FinancialStatementRepositoryImpl.kt`
+- `composeApp/feature/accounting/src/commonMain/.../FinancialStatementsViewModel.kt`
+
+---
+
+### C5.2 Store Comparison Analytics (ශාඛා සංසන්දන විශ්ලේෂණ)
+
+**Priority:** PHASE-2
+**Status:** PARTIAL — backend endpoint exists, KMM stub
+
+**Codebase State:**
+- Backend: `GET /admin/metrics/stores?period={period}` → `List<StoreComparisonData>` (revenue, orders, growth)
+- Backend: `GET /admin/metrics/sales?period=X&storeId=Y` → `List<SalesChartData>` (date, revenue, orders, AOV)
+- KMM: `GenerateMultiStoreComparisonReportUseCase.kt` — stub returning empty list
+- KMM: `StoreSalesData` model (storeId, storeName, totalRevenue, orderCount, averageOrderValue)
+- Admin panel: Store health pages exist but no side-by-side comparison charts
+
+**What's MISSING:**
+- [ ] Implement `GenerateMultiStoreComparisonReportUseCase` — call backend API
+- [ ] KMM UI: Store comparison chart screen (bar chart: revenue per store)
+- [ ] KMM UI: Rankings screen (top-performing stores by revenue, orders, margin)
+- [ ] Backend: `GET /admin/reports/store-ranking?metric=revenue&period=monthly`
+- [ ] Backend: Profit/margin comparison (not just revenue/orders)
+- [ ] Admin panel: Interactive comparison dashboard with filters
+- [ ] Trend analysis: Growth % per store over time
+
+---
+
+### C5.3 Individual Store Audit Logs (ශාඛා අනුව විගණන ලොග්)
+
+**Priority:** PHASE-2
+**Status:** EXISTS — fully implemented
+
+**Codebase State:**
+- `audit_entries` table (V14) — per-store audit log with `store_id` FK
+- `admin_audit_log` table (V3) — admin actions with optional `store_id`
+- `audit_log` SQLDelight table — client-side audit with `store_id`
+- Audit events: hash-chained for tamper detection
+- Fields: event_type, user_id, entity_type, entity_id, previous_value, new_value
+
+**COMPLETE — minor enhancements only:**
+- [ ] KMM UI: Dedicated audit log viewer screen (currently debug console only)
+- [ ] Admin panel: Store-filtered audit log page (exists but could add export)
+
+---
+
+### C5.4 Real-time Dashboard (සජීවී පාලක පුවරුව)
+
+**Priority:** PHASE-2
+**Status:** PARTIAL — REST polling, no WebSocket push
+
+**Codebase State:**
+- `DashboardViewModel.kt` — loads KPIs (revenue, orders, AOV, hourly sparkline, weekly chart)
+- Backend: `GET /admin/metrics/dashboard`, `GET /admin/metrics/sales`
+- Backend sync: `WebSocketHub.kt` — per-store WebSocket connections exist for sync
+- Backend: `SyncMetrics.kt` — real-time counters (ops accepted/rejected, P95 latency)
+- No WebSocket channel for dashboard KPI streaming
+
+**What's MISSING:**
+- [ ] WebSocket channel: `ws://sync/dashboard/{storeId}` — push KPI updates on new orders
+- [ ] Backend: Publish dashboard events to Redis when order completes
+- [ ] `RedisPubSubListener` — subscribe to `dashboard:update:{storeId}` topic
+- [ ] KMM: `DashboardViewModel` connect to WebSocket for live updates
+- [ ] Admin panel: WebSocket connection for live store metrics
+- [ ] SLA alerting: Notify admin when revenue drops below expected or sync queue grows
+
+---
+
+### ═══════════════════════════════════════════════════════
+### CATEGORY 6: සමගාමී දත්ත සහ නොබැඳි සහාය (Synchronisation & Offline Support)
+### ═══════════════════════════════════════════════════════
+
+---
+
+### C6.1 Multi-Node Data Sync (ශාඛා අතර දත්ත සමගාමීකරණය)
+
+**Priority:** PHASE-2
+**Status:** PARTIAL — LWW sync exists, CRDT deferred
+
+**Codebase State:**
+- KMM client: `sync_queue.sq` (outbox pattern), `sync_state.sq` (cursor), `version_vectors.sq` (CRDT metadata)
+- KMM client: `ConflictResolver.kt` — LWW with field-level merge for PRODUCT
+- Backend: `SyncProcessor.kt` (push), `DeltaEngine.kt` (pull), `ServerConflictResolver.kt` (LWW)
+- Backend: `sync_operations` table with `server_seq BIGSERIAL` monotonic ordering
+- WebSocket: `WebSocketHub` per-store broadcast, `RedisPubSubListener` pub/sub
+- Feature flag: `crdt_sync` (disabled, ENTERPRISE)
+
+**What's MISSING:**
+- [ ] CRDT merge implementations (G-Counter for stock, LWW-Register for fields, OR-Set for collections)
+- [ ] Vector clock management utility in `:shared:core`
+- [ ] Multi-store sync isolation (ensure store A data never leaks to store B)
+- [ ] Sync priority: Critical data (orders, payments) synced before low-priority (reports, settings)
+- [ ] Bandwidth optimization: Delta compression for large payloads
+- [ ] Offline queue size management (purge stale sync ops after X days)
+- [ ] Conflict UI in KMM app (show conflicts, allow manual resolution)
+
+**Key Files:**
+- `shared/data/src/commonMain/kotlin/.../sync/ConflictResolver.kt`
+- `shared/data/src/commonMain/sqldelight/.../sync_queue.sq`
+- `shared/data/src/commonMain/sqldelight/.../version_vectors.sq`
+- `backend/api/src/main/kotlin/.../sync/SyncProcessor.kt`
+- `backend/sync/src/main/kotlin/.../hub/WebSocketHub.kt`
+
+---
+
+### C6.2 Offline-First Capability (නොබැඳි හැකියාව)
+
+**Priority:** PHASE-2
+**Status:** PARTIAL — sync engine exists, end-to-end not complete
+
+**Codebase State:**
+- All data written to local SQLite immediately (offline-first by design)
+- `sync_queue.sq` — outbox pattern for pending operations
+- `sync_state.sq` — cursor tracking for incremental pulls
+- `SyncEngine.kt` in `:shared:data` — coordinates push/pull cycles
+- Backend: Push/pull endpoints exist and work
+
+**What's MISSING:**
+- [ ] Complete `EntityApplier` for all entity types (see A1)
+- [ ] Background sync worker (periodic sync when online) — Android WorkManager / JVM coroutine scheduler
+- [ ] Network connectivity detection → auto-trigger sync
+- [ ] Sync progress indicator in KMM UI (syncing X of Y operations)
+- [ ] Conflict notification to user (toast when sync conflict detected)
+- [ ] Offline indicator in status bar (show when device is offline)
+- [ ] Data integrity check: Verify local DB consistency on app startup
+
+---
+
+### C6.3 Timezone Management (වේලා කලාප කළමනාකරණය)
+
+**Priority:** PHASE-2
+**Status:** MOSTLY IMPLEMENTED
+
+**Codebase State:**
+- `AppTimezone.kt` — singleton with `set(tzId)`, `current: TimeZone` (default: Asia/Colombo)
+- `DateTimeUtils.kt` — `nowLocal(tz)`, `startOfDay(epochMs, tz)`, `endOfDay(epochMs, tz)`, `formatForDisplay(epochMs, tz)`
+- `stores.sq` has `timezone TEXT NOT NULL DEFAULT 'Asia/Colombo'`
+- Admin panel: `use-timezone.ts` hook + `timezone-store.ts` Zustand store
+- Backend: `OffsetDateTime.now(UTC)` — server always in UTC
+
+**What's MISSING:**
+- [ ] Load store timezone on app startup → call `AppTimezone.set(store.timezone)`
+- [ ] Multi-store timezone handling: When admin views reports from different timezones
+- [ ] Report date range conversion: User selects "Today" → convert to store's timezone for query
+- [ ] Receipt timestamp: Print in store's local timezone, not UTC
+- [ ] Sync timestamp normalization: All sync operations use UTC, display converts to local
+- [ ] DST (Daylight Saving Time) handling for stores in affected regions
 
 ---
 
@@ -515,17 +965,11 @@ key files, and implementation steps.
 **Priority:** PHASE-3
 **Module:** `:composeApp:feature:accounting`
 
-**What EXISTS:**
-- `EInvoiceRepositoryImpl.kt` — scaffold
-- `e_invoices` table in SQLDelight
-- IRD secret placeholders in `local.properties.template`
+**EXISTS:** `EInvoiceRepositoryImpl.kt` (scaffold), `e_invoices` SQLDelight table, IRD secret placeholders
 
-**What's MISSING:**
-- [ ] IRD (Sri Lanka Inland Revenue Dept) API client
-- [ ] Digital signature with `.p12` certificate
-- [ ] E-invoice XML/JSON generation per IRD spec
-- [ ] Submission pipeline with retry and error handling
-- [ ] Invoice status tracking (SUBMITTED → ACCEPTED → REJECTED)
+**MISSING:**
+- [ ] IRD API client, digital signature (.p12), XML/JSON generation
+- [ ] Submission pipeline with retry, status tracking (SUBMITTED → ACCEPTED → REJECTED)
 - [ ] Tax calculation alignment with IRD rules
 
 ---
@@ -533,135 +977,120 @@ key files, and implementation steps.
 ### D2. Staff, Shifts & Payroll
 
 **Priority:** PHASE-3
-**Module:** `:composeApp:feature:staff` (scaffold only)
+**Module:** `:composeApp:feature:staff`
 
-**What's MISSING:**
-- [ ] Employee profiles CRUD
-- [ ] Shift scheduling (calendar view)
-- [ ] Attendance tracking (clock in/out)
-- [ ] Leave management (allotments, requests, approval)
-- [ ] Payroll calculation engine
-- [ ] Payroll reports
-- [ ] Staff role assignment and permissions
+**EXISTS:** `attendance_records.sq`, `shift_schedules.sq`, `leave_records` (SQLDelight), `employees.sq`, `payroll_records` table
+
+**MISSING:**
+- [ ] Payroll calculation engine (salary, overtime, deductions)
+- [ ] Leave management workflow (request → approve → track)
+- [ ] KMM UI: Staff module screens (currently scaffold)
+- [ ] Cross-store attendance/shifts (see C3.4)
 
 ---
 
 ### D3. Expense Tracking & Accounting
 
 **Priority:** PHASE-3
-**Module:** `:composeApp:feature:expenses` (scaffold only)
+**Module:** `:composeApp:feature:expenses`
 
-**What's MISSING:**
-- [ ] Expense log CRUD
-- [ ] Expense categories
+**EXISTS:** `expenses` SQLDelight table, `journal_entries` + `chart_of_accounts` tables
+
+**MISSING:**
+- [ ] Expense log CRUD UI
 - [ ] Receipt image attachment
-- [ ] P&L integration
-- [ ] Cash flow view
-- [ ] Budget tracking
+- [ ] P&L integration (connect expenses to financial statements)
+- [ ] Budget tracking per store/category
 
 ---
 
-### D4. Multi-Warehouse Tracking
+### D4. CashDrawerController (HAL)
 
-**Priority:** PHASE-3
+**Priority:** PHASE-2
 
-**What EXISTS:**
-- `WarehouseRepositoryImpl.kt` — partial implementation
-
-**What's MISSING:**
-- [ ] Per-warehouse stock levels
-- [ ] Inter-warehouse transfer workflow
-- [ ] Warehouse location management
-- [ ] Stock reorder point automation
-- [ ] Warehouse-level reporting
+**MISSING:**
+- [ ] `CashDrawerPort` interface in `:shared:hal`
+- [ ] Android USB + JVM serial implementations
+- [ ] ESC/POS kick command, auto-open on payment
 
 ---
 
-## SECTION E: BACKEND ARCHITECTURAL GAPS
+## SECTION E: CI/CD & INFRASTRUCTURE GAPS
 
 ---
 
-### E1. EntityApplier — Only Handles PRODUCT
+### E1. CI Pipeline Enhancements
 
-**Priority:** P0-CRITICAL (blocks sync for all other entity types)
+- [ ] OWASP dependency-check Gradle plugin
+- [ ] Snyk security scan
+- [ ] Test coverage threshold (fail if < 60%)
+- [ ] Playwright E2E tests for admin panel
+- [ ] `google-services.json` decode step
 
-**Current State:** `EntityApplier.kt` only maps PRODUCT sync payloads to the `products` table.
-All other entity types (ORDER, CUSTOMER, CATEGORY, SUPPLIER, etc.) are silently ignored.
+### E2. Deployment Enhancements
 
-**Fix:**
-- [ ] Add handler for CATEGORY → `categories` table
-- [ ] Add handler for CUSTOMER → `customers` table
-- [ ] Add handler for SUPPLIER → `suppliers` table
-- [ ] Add handler for ORDER → `orders` + `order_items` tables
-- [ ] Add handler for STOCK_ADJUSTMENT → `products.stock_qty` update
-- [ ] Add handler for CASH_REGISTER → (create table if missing)
-- [ ] Add handler for REGISTER_SESSION → (create table if missing)
-- [ ] Add handler for AUDIT_ENTRY → `audit_entries` table
-
----
-
-### E2. Mixed Timestamp Formats
-
-**Priority:** P2-MEDIUM
-
-**Issue:** Backend mixes epoch-ms, `Instant.now()`, and `OffsetDateTime` across services.
-
-**Fix:**
-- [ ] Standardize on `Instant` (kotlinx-datetime) across all services
-- [ ] Add timestamp format validation in sync payload processing
-- [ ] Document timestamp contract in API spec
-
----
-
-### E3. Admin JWT Security Gap
-
-**Priority:** P1-HIGH
-
-**Issue:** Admin panel uses HS256 (symmetric shared secret) while POS uses RS256 (asymmetric).
-A compromised admin server leaks the signing secret.
-
-**Fix:**
-- [ ] Migrate admin auth to RS256 (same key pair as POS, or separate)
-- [ ] Update `AdminAuthService.kt` token generation
-- [ ] Update License service admin JWT validation
-- [ ] Rotate existing admin sessions after migration
-
----
-
-## SECTION F: CI/CD & INFRASTRUCTURE GAPS
-
----
-
-### F1. CI Pipeline Enhancements
-
-- [ ] Add OWASP dependency-check Gradle plugin to `ci-gate.yml`
-- [ ] Add Snyk security scan step
-- [ ] Add test coverage threshold enforcement (fail if < 60%)
-- [ ] Add Playwright E2E tests for admin panel
-- [ ] Add `google-services.json` decode step for Android builds
-
-### F2. Deployment Enhancements
-
-- [ ] Admin panel build + static deploy to Caddy
-- [ ] API documentation site deployment
-- [ ] Database migration dry-run step before deploy
-- [ ] Blue-green deployment support (currently hard-reset)
-- [ ] Automated database backup before deploy
+- [ ] Admin panel static deploy to Caddy
+- [ ] API docs site deployment
+- [ ] DB migration dry-run before deploy
+- [ ] Blue-green deployment
+- [ ] Automated backup before deploy
 
 ---
 
 ## IMPLEMENTATION TIMELINE (Suggested)
 
-| Sprint | Focus | Items |
-|--------|-------|-------|
-| Sprint 1 (Week 1-2) | Sync Engine Completion | A1, E1 |
-| Sprint 2 (Week 3) | Email + Security | A2, A6, E3 |
-| Sprint 3 (Week 4-5) | Remote Diagnostics | A3 |
-| Sprint 4 (Week 6) | Analytics + Docs | A4, A5 |
-| Sprint 5 (Week 7-8) | Test Coverage | B4 |
-| Sprint 6 (Week 9-10) | Admin Polish | B1, B2, B3 |
-| Phase 2 Sprints | Growth Features | C1-C6 |
-| Phase 3 Sprints | Enterprise Features | D1-D4 |
+| Sprint | Focus | Items | Duration |
+|--------|-------|-------|----------|
+| Sprint 1 | Sync Engine Completion | A1, C6.1, C6.2 | 2 weeks |
+| Sprint 2 | Email + Security | A2, A6, A7 | 1 week |
+| Sprint 3 | Remote Diagnostics | A3 | 2 weeks |
+| Sprint 4 | Analytics + Docs | A4, A5 | 1 week |
+| Sprint 5 | Test Coverage + Tickets | B4, B6 | 2 weeks |
+| Sprint 6 | Admin Polish | B1, B2, B3 | 2 weeks |
+| Sprint 7 | Centralized Inventory | C1.1, C1.2, C1.3, C1.4, C1.5 | 3 weeks |
+| Sprint 8 | Pricing & Tax | C2.1, C2.2, C2.3, C2.4 | 2 weeks |
+| Sprint 9 | Access Control | C3.2, C3.3, C3.4 | 2 weeks |
+| Sprint 10 | Sales & Customer | C4.1, C4.2, C4.3 | 2 weeks |
+| Sprint 11 | Reporting & Analytics | C5.1, C5.2, C5.4 | 2 weeks |
+| Sprint 12 | Timezone + Sync Polish | C6.3, C5.3 | 1 week |
+| Phase 3 | Enterprise Features | D1, D2, D3, C4.4 | 6+ weeks |
+
+---
+
+## FEATURE COVERAGE MATRIX
+
+| ඔබේ Feature | Plan Item | Status |
+|-------------|-----------|--------|
+| **1. Centralized Inventory** | | |
+| Global Product Catalog | C1.1 | NOT IMPLEMENTED |
+| Store-Specific Inventory | C1.2 | PARTIAL (global stock_qty, warehouse+rack infra complete) |
+| Inter-Store Stock Transfer | C1.3 | WAREHOUSE-LEVEL COMPLETE (two-phase commit + UI), store-level missing |
+| Stock In-Transit Tracking | C1.4 | NOT IMPLEMENTED (no intermediate transit state) |
+| Warehouse Replenishment | C1.5 | REPORTS EXIST (reorder alerts), no auto-PO logic |
+| **2. Pricing & Taxation** | | |
+| Region-Based Pricing | C2.1 | NOT IMPLEMENTED |
+| Multi-Currency | C2.2 | PARTIAL (formatter only) |
+| Localized Tax | C2.3 | PARTIAL (single-region) |
+| Store-Specific Discounts | C2.4 | PARTIAL (no store scoping) |
+| **3. Access Control** | | |
+| RBAC | C3.1 | COMPLETE |
+| Store-Level Permissions | C3.2 | NOT IMPLEMENTED |
+| Global Admin Dashboard | C3.3 | PARTIAL |
+| Employee Roaming | C3.4 | NOT IMPLEMENTED |
+| **4. Sales & Customer** | | |
+| Cross-Store Returns | C4.1 | NOT IMPLEMENTED |
+| Universal Loyalty | C4.2 | PARTIAL (no redemption) |
+| Centralized Customers | C4.3 | AMBIGUOUS |
+| Click & Collect (BOPIS) | C4.4 | NOT IMPLEMENTED |
+| **5. Reporting & Analytics** | | |
+| Consolidated Financial | C5.1 | PARTIAL (models, no impl) |
+| Store Comparison | C5.2 | PARTIAL (backend only) |
+| Store Audit Logs | C5.3 | COMPLETE |
+| Real-time Dashboard | C5.4 | PARTIAL (REST only) |
+| **6. Sync & Offline** | | |
+| Multi-node Sync | C6.1 | PARTIAL (LWW only) |
+| Offline-First | C6.2 | PARTIAL |
+| Timezone Management | C6.3 | MOSTLY COMPLETE |
 
 ---
 
@@ -670,7 +1099,7 @@ A compromised admin server leaks the signing secret.
 1. Pick items from the highest priority section first (A → B → C → D)
 2. Each item has checkboxes `[ ]` — mark as `[x]` when complete
 3. Update the `Last Updated` date at the top after changes
-4. Reference specific items in commit messages (e.g., `feat(sync): implement ORDER handler [A1/E1]`)
+4. Reference specific items in commit messages (e.g., `feat(inventory): implement IST workflow [C1.3]`)
 5. Move completed sections to an `## COMPLETED` section at the bottom
 
 ---
