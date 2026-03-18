@@ -325,9 +325,17 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 - [x] `SyncProcessor`, `DeltaEngine`, `EntityApplier` tests — EXIST (basic coverage, need expansion)
 - [x] `AdminAuthService` tests — EXIST (`AdminAuthServiceTest.kt` 272L + `AdminAuthServiceExtendedTest.kt` 519L)
 - [x] Expand sync test coverage (edge cases, error paths, conflict resolution, field merge, metrics)
-- [ ] Repository integration tests (`ProductRepository`, `PosUserRepository`, `AdminUserRepository`)
+- [x] Repository integration tests (`ProductRepository`, `PosUserRepository`, `AdminUserRepository`) — DONE (2026-03-18)
+  - `AbstractIntegrationTest` base class + `TestFixtures` factory (shared test infrastructure)
+  - `ProductRepositoryTest` — 14 tests: CRUD, store scoping, pagination, updatedSince filter, nullable fields
+  - `PosUserRepositoryTest` — 18 tests: store lookup, user queries, mutations, lockout, POS sessions, uniqueness
+  - `AdminUserRepositoryTest` — 22 tests: CRUD, roles, lockout, sessions, password reset tokens
+  - All use Testcontainers PostgreSQL + Flyway migrations (requires Docker — CI only)
 - [ ] `LicenseService` tests (backend/license) — basic tests exist, need expansion
-- [ ] Coverage reporting in CI pipeline (JaCoCo/Kover + threshold)
+- [x] Coverage reporting in CI pipeline (Kover + threshold) — DONE (2026-03-18)
+  - Kover `koverVerify { rule { minBound(60) } }` added to api, license, sync build.gradle.kts
+  - `koverXmlReport` task + artifact upload added to ci-gate.yml test-backend job
+  - JUnit 5 (`junit-jupiter-api:5.11.4`) added to api build for `@Nested`/`@BeforeEach` support
 
 **Test Files (updated 2026-03-18):**
 | File | Tests | Coverage |

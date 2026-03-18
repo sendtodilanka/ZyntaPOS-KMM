@@ -160,12 +160,28 @@ jobs:
             -Dorg.gradle.jvmargs="-Xmx2g -Xms512m"
         continue-on-error: false
 
+      - name: Generate Kover coverage report — ${{ matrix.service }}
+        if: always()
+        run: |
+          ./gradlew koverXmlReport --no-daemon \
+            -Dorg.gradle.jvmargs="-Xmx2g -Xms512m"
+        continue-on-error: true
+
       - name: Upload test reports — ${{ matrix.service }}
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: backend-test-reports-${{ matrix.service }}-${{ github.run_id }}
           path: backend/${{ matrix.service }}/build/reports/tests/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Upload coverage report — ${{ matrix.service }}
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage-${{ matrix.service }}-${{ github.run_id }}
+          path: backend/${{ matrix.service }}/build/reports/kover/report.xml
           retention-days: 7
           if-no-files-found: ignore
 
