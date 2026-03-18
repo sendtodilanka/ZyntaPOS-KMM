@@ -56,8 +56,8 @@ ZyntaPOS is a fully offline-capable, multi-store POS system built with Kotlin Mu
 | `:shared:core` | Pure Kotlin utilities, MVI base classes, `Result<T>`, `CurrencyUtils`, `DateTimeUtils`, `ValidationUtils`, Koin `coreModule` |
 | `:shared:domain` | Domain models (`Order`, `Product`, `Payment`, …), repository interfaces, all use-case classes, business-rule validators |
 | `:shared:data` | SQLDelight schema + DAOs, Ktor HTTP client, repository implementations, offline sync engine, `ConflictResolver` |
-| `:shared:hal` | `PrinterManager`, `BarcodeScanner`, `CashDrawerController` interfaces + `expect/actual` platform drivers, `EscPosEncoder` |
-| `:shared:security` | `SecureKeyStorage` (Keystore/JCE), `CryptoManager` (AES-256-GCM), `PinHasher` (PBKDF2), `TokenManager`, `RbacEngine`, `SessionManager` |
+| `:shared:hal` | `PrinterManager`, `BarcodeScanner`, `CashDrawerTrigger` + `expect/actual` platform drivers, `EscPosEncoder` |
+| `:shared:security` | `DatabaseKeyManager`/`EncryptionManager` (AES-256-GCM, Keystore/JCE), `PinManager` (SHA-256 + salt), `JwtManager` + `TokenStorage` interface, `RbacEngine` |
 | `:shared:seed` | **Debug-only.** `SeedRunner` populates the local DB with realistic sample data (8 categories, 5 suppliers, 25 products, 15 customers) for UI/UX testing. Include only as `debugImplementation`. |
 | `:composeApp:designsystem` | `ZyntaTheme`, Material 3 tokens, `ZyntaButton/Card/TextField`, `NumericKeypad`, `ReceiptPreview`, responsive breakpoints |
 | `:composeApp:navigation` | Type-safe `NavRoute` sealed hierarchy, `ZyntaNavHost`, adaptive nav shell (Rail vs Bottom Bar), RBAC route gating |
@@ -76,6 +76,7 @@ ZyntaPOS is a fully offline-capable, multi-store POS system built with Kotlin Mu
 | `:composeApp:feature:multistore` | Store selector, central KPI dashboard, inter-store transfers |
 | `:composeApp:feature:admin` | System health, audit-log viewer, DB maintenance, backup management |
 | `:composeApp:feature:media` | Product image picker, crop, compression pipeline |
+| `:composeApp:feature:accounting` | E-Invoice creation, chart of accounts, general ledger, IRD (Sri Lanka) submission pipeline |
 
 ---
 
@@ -87,23 +88,25 @@ ZyntaPOS is a fully offline-capable, multi-store POS system built with Kotlin Mu
 | Multiplatform | Kotlin Multiplatform + Compose Multiplatform 1.10.0 |
 | UI | Compose Multiplatform · Material 3 |
 | State | MVI (StateFlow / SharedFlow / Coroutines) |
-| DI | Koin 4.0+ |
-| Local DB | SQLDelight 2.0+ on SQLite (encrypted via SQLCipher 4.5) |
-| Networking | Ktor 3.0+ |
-| Serialization | kotlinx.serialization 1.8 |
-| Date/Time | kotlinx-datetime 0.6+ |
-| Image Loading | Coil 3.0+ |
-| Logging | Kermit 2.0 |
-| Testing | Kotlin Test · Mockative 3 · Turbine · Koin-test |
-| Secrets | Secrets Gradle Plugin 2.0 |
+| DI | Koin 4.1.1 |
+| Local DB | SQLDelight 2.0.2 on SQLite (encrypted via SQLCipher 4.5, AES-256) |
+| Networking | Ktor 3.4.1 |
+| Serialization | kotlinx.serialization 1.8.0 |
+| Date/Time | kotlinx-datetime 0.7.1 (pinned — required by CMP 1.10.0) |
+| Image Loading | Coil 3.0.4 |
+| Logging | Kermit 2.1.0 |
+| Static Analysis | Detekt 1.23.8 |
+| Testing | Kotlin Test · Mockative 3.0.1 · Turbine · Koin-test |
+| Secrets | Secrets Gradle Plugin 2.0.1 |
 | Build | Gradle 8.x · Version Catalog (`libs.versions.toml`) |
+| Android | AGP 8.13.2 · minSdk 24 · compileSdk/targetSdk 36 |
 
 ---
 
 ## Setup Guide
 
 ### Prerequisites
-- **JDK 17+** (required for Gradle and JVM desktop target)
+- **JDK 21+** (required for Gradle and JVM desktop target; CI runs on JDK 21 Temurin)
 - **Android Studio Meerkat+** (recommended) or IntelliJ IDEA 2025+
 - **Android SDK** installed with API 36 build tools
 - **Gradle** — the wrapper (`./gradlew`) downloads the correct version automatically
@@ -132,9 +135,10 @@ Open `local.properties` and fill in the required values:
 | `ZYNTA_API_CLIENT_ID` | OAuth2 client ID |
 | `ZYNTA_API_CLIENT_SECRET` | OAuth2 client secret |
 | `ZYNTA_DB_PASSPHRASE` | AES-256 passphrase for SQLCipher (64 hex chars) |
-| `ZYNTA_FCM_SERVER_KEY` | Firebase Cloud Messaging server key (Android) |
-| `ZYNTA_MAPS_API_KEY` | Google Maps API key (optional) |
-| `ZYNTA_SENTRY_DSN` | Sentry crash reporting DSN |
+| `ZYNTA_FCM_VAPID_PUBLIC_KEY` | FCM v1 VAPID public key (Web Push) |
+| `ZYNTA_FCM_VAPID_PRIVATE_KEY` | FCM v1 VAPID private key (Web Push) |
+| `ZYNTA_SENTRY_DSN` | Sentry crash reporting DSN (Android) |
+| `ZYNTA_LICENSE_BASE_URL` | License service base URL |
 | `ZYNTA_IRD_API_ENDPOINT` | IRD e-invoice API endpoint (Sri Lanka) |
 | `ZYNTA_IRD_CLIENT_CERTIFICATE_PATH` | Absolute path to IRD mutual-TLS `.p12` certificate |
 | `ZYNTA_IRD_CERTIFICATE_PASSWORD` | Password for the IRD `.p12` certificate |
@@ -143,6 +147,8 @@ Generate a secure DB passphrase:
 ```bash
 openssl rand -hex 32
 ```
+
+> **FCM note:** `ZYNTA_FCM_SERVICE_ACCOUNT_JSON` (Firebase Admin SDK service account) is stored as a GitHub Secret — it is too large for `local.properties`. The old `ZYNTA_FCM_SERVER_KEY` (Firebase Legacy Server Key) was permanently disabled by Google in June 2024.
 
 ### 3. Build & Run
 
@@ -217,7 +223,7 @@ openssl rand -hex 32
 
 1. Branch from `main` — follow the naming convention `feature/M##-short-description`.
 2. All new public APIs must include KDoc comments.
-3. Unit test coverage must stay above **85 %** for `:shared:*` modules.
+3. Unit test coverage targets: **95 %** for use cases, **80 %** for repositories and ViewModels.
 4. Run `./gradlew detekt` (once configured in Phase 1 CI) before opening a PR.
 
 ---
@@ -231,7 +237,7 @@ openssl rand -hex 32
 | Phase 2 (Growth) | Months 7–12 | ✅ ~95% implemented | Multi-store, CRM, promotions, CRDT sync (CRDT ConflictResolver gap) |
 | Phase 3 (Enterprise) | Months 13–18 | 🟡 ~80% implemented | Staff/HR, admin, e-invoicing (IRD), analytics (IRD mTLS API, advanced charts, i18n pending) |
 
-> **Last status update:** 2026-02-25. See `docs/ai_workflows/execution_log.md` Phase 2 and Phase 3 sections for the full implementation summary and known gaps.
+> **Last status update:** 2026-03-18. See `docs/ai_workflows/execution_log.md` Phase 2 and Phase 3 sections for the full implementation summary and known gaps.
 
 See `docs/ai_workflows/execution_log.md` for the granular task checklist.
 
