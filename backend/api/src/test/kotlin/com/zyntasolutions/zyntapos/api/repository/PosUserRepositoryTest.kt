@@ -20,14 +20,8 @@ class PosUserRepositoryTest : AbstractIntegrationTest() {
 
     private val repo: PosUserRepository = PosUserRepositoryImpl()
 
-    /**
-     * Helper to run suspend functions in test context with the shared DB connection.
-     */
     private fun runTest(block: suspend () -> Unit) {
-        kotlinx.coroutines.test.runTest {
-            org.jetbrains.exposed.sql.transactions.TransactionManager.defaultDatabase = database
-            block()
-        }
+        kotlinx.coroutines.test.runTest { block() }
     }
 
     @Nested

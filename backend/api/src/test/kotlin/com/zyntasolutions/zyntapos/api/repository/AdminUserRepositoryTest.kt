@@ -22,10 +22,7 @@ class AdminUserRepositoryTest : AbstractIntegrationTest() {
     private val repo: AdminUserRepository = AdminUserRepositoryImpl()
 
     private fun runTest(block: suspend () -> Unit) {
-        kotlinx.coroutines.test.runTest {
-            org.jetbrains.exposed.sql.transactions.TransactionManager.defaultDatabase = database
-            block()
-        }
+        kotlinx.coroutines.test.runTest { block() }
     }
 
     @Nested

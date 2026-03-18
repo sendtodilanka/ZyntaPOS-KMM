@@ -246,14 +246,7 @@ class ProductRepositoryTest : AbstractIntegrationTest() {
         }
     }
 
-    /**
-     * Helper to run suspend functions in test context with the shared DB connection.
-     */
     private fun runTest(block: suspend () -> Unit) {
-        kotlinx.coroutines.test.runTest {
-            // Ensure Exposed uses our test database
-            org.jetbrains.exposed.sql.transactions.TransactionManager.defaultDatabase = database
-            block()
-        }
+        kotlinx.coroutines.test.runTest { block() }
     }
 }
