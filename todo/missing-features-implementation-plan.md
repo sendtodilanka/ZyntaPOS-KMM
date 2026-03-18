@@ -1098,23 +1098,32 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 **Priority:** PHASE-3
 **Module:** `:composeApp:feature:accounting`
 
-> **2026-03-18 audit:** `:composeApp:feature:accounting` is **fully implemented** (10+ source files) —
-> not just a scaffold. ViewModels, Screens, and GL infrastructure all exist.
-> IRD *submission pipeline* (network call, signing, retry) remains the missing piece.
+> **2026-03-18 audit (corrected):** `:composeApp:feature:accounting` has **27 Kotlin source files** and
+> the full IRD submission pipeline is also implemented — including mTLS, status state machine, and payload
+> serialization. This section is substantially complete. The original description was wrong.
 
-**EXISTS (fully implemented):**
-- `EInvoiceViewModel.kt`, `EInvoiceListScreen.kt`, `EInvoiceState.kt`
-- `ChartOfAccountsViewModel.kt`, `ChartOfAccountsScreen.kt`
-- `JournalEntryListViewModel.kt`, `JournalEntryDetailScreen.kt`
-- `GeneralLedgerScreen.kt` + supporting screens
-- `e_invoices` SQLDelight table, `EInvoiceRepositoryImpl.kt`
-- IRD secret placeholders in `local.properties.template`
+**FULLY IMPLEMENTED (verified 2026-03-18):**
+- **27 UI source files** in `composeApp/feature/accounting/`:
+  `AccountingViewModel/State/Intent/Effect`, `AccountingLedgerScreen`, `AccountDetailScreen/ViewModel`,
+  `AccountManagementDetailScreen`, `ChartOfAccountsScreen/ViewModel`, `EInvoiceListScreen/DetailScreen`,
+  `EInvoiceViewModel/State/Intent/Effect`, `FinancialStatementsScreen/ViewModel`,
+  `GeneralLedgerScreen/ViewModel`, `JournalEntryListScreen/DetailScreen/ViewModel` + DI module + 2 test files
+- **`IrdApiClient`** (`expect/actual`) — full mTLS implementation:
+  - Android: Ktor + OkHttp engine, PKCS12 loaded via `KeyStore`, `SSLContext` with `KeyManagerFactory`
+  - JVM: Ktor + CIO engine, PKCS12 loaded, `SSLContext.setDefault()` for CIO transport
+- **`EInvoiceRepositoryImpl.submitToIrd()`** — full submission pipeline:
+  optimistic status update (DRAFT → SUBMITTED), `irdApiClient.submitInvoice()` call,
+  final update (→ ACCEPTED on success, → REJECTED on failure) with IRD reference number storage
+- **Status state machine**: `EInvoiceStatus.DRAFT / SUBMITTED / ACCEPTED / REJECTED`
+- **`SubmitEInvoiceToIrdUseCase`**, `CancelEInvoiceUseCase`, `CreateEInvoiceUseCase`, `GetEInvoicesUseCase`
+- **`IrdInvoicePayload` / `IrdApiResponse`** — serializable models matching IRD API schema
+- **`e_invoices` SQLDelight table** with `accepted_at`, `ird_reference`, `status` columns
 
-**MISSING (submission pipeline only):**
-- [ ] IRD API HTTP client (mTLS with `.p12` certificate)
-- [ ] XML/JSON invoice payload generation per IRD schema
-- [ ] Submission pipeline with retry + status tracking (SUBMITTED → ACCEPTED → REJECTED)
-- [ ] Tax calculation alignment with IRD rules
+**REMAINING GAPS (minor, Phase 3):**
+- [ ] IRD-specific XML invoice format (currently JSON — needs verification against actual IRD spec)
+- [ ] Submission retry on transient network failure (the repository currently makes one attempt; no retry loop)
+- [ ] Tax calculation verification against IRD official tax rules (requires IRD sandbox testing)
+- [ ] E-Invoice UI: no IRD submission button visible in `EInvoiceDetailScreen` (wiring to use case pending)
 
 ---
 
@@ -1152,19 +1161,27 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 
 **Priority:** PHASE-2
 
-> **2026-03-18 audit:** `CashDrawerTrigger` enum (`ALL_PAYMENTS` / `CASH_ONLY` / `NEVER`) IS implemented
-> in `:shared:hal` and integrated into `EscPosReceiptBuilder` via `PrinterConfig.cashDrawerTrigger`.
-> The full hardware-controller class (`CashDrawerPort` + `actual` platform drivers) is still missing.
+> **2026-03-18 audit (corrected):** HAL infrastructure is **100% complete**. The original D4 description
+> (claiming the interface and platform drivers were missing) was inaccurate. All platform ports implement
+> `openCashDrawer()`. The ONLY gap is the **call site** — the POS payment completion flow does not yet
+> call `printerManager.openCashDrawer()` or evaluate `cashDrawerTrigger`. No reference to
+> `openCashDrawer` or `cashDrawerTrigger` exists anywhere in `:composeApp`.
 
-**IMPLEMENTED:**
-- [x] `CashDrawerTrigger` enum — controls when drawer kick is sent (ALL_PAYMENTS / CASH_ONLY / NEVER)
-- [x] ESC/POS kick command wired through `EscPosReceiptBuilder` respecting `PrinterConfig.cashDrawerTrigger`
+**FULLY IMPLEMENTED (HAL layer — verified 2026-03-18):**
+- [x] `CashDrawerTrigger` enum — `ALL_PAYMENTS` / `CASH_ONLY` / `NEVER` (`:shared:hal/printer/`)
+- [x] `PrinterConfig.cashDrawerTrigger` field — stored in config, default `ALL_PAYMENTS`
+- [x] `PrinterPort.openCashDrawer()` — interface contract (`:shared:hal`)
+- [x] `PrinterManager.openCashDrawer()` — retry wrapper, delegates to port
+- [x] `AndroidUsbPrinterPort.openCashDrawer()` — Android USB driver
+- [x] `AndroidBluetoothPrinterPort.openCashDrawer()` — Android Bluetooth driver
+- [x] `DesktopTcpPrinterPort.openCashDrawer()` — JVM TCP/IP driver
+- [x] `DesktopUsbPrinterPort.openCashDrawer()` — JVM USB driver
+- [x] `DesktopSerialPrinterPort.openCashDrawer()` — JVM serial (jSerialComm) driver
 
-**STILL MISSING:**
-- [ ] Dedicated `CashDrawerPort` interface in `:shared:hal` (separate from printer path)
-- [ ] Android USB implementation
-- [ ] JVM serial (jSerialComm) implementation
-- [ ] Independent open/close without printing (manual drawer button in register UI)
+**STILL MISSING (call-site wiring only):**
+- [ ] POS payment completion use case: evaluate `config.cashDrawerTrigger` and call
+  `printerManager.openCashDrawer()` conditionally (CASH_ONLY → check payment method; NEVER → skip)
+- [ ] Register UI: manual "Open Drawer" button that calls `printerManager.openCashDrawer()` directly
 
 ---
 
