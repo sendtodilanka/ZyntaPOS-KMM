@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.media
 
 import androidx.lifecycle.viewModelScope
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.core.utils.IdGenerator
 import com.zyntasolutions.zyntapos.domain.model.MediaFile
@@ -42,6 +43,7 @@ class MediaViewModel(
     private val saveMediaFileUseCase: SaveMediaFileUseCase,
     private val deleteMediaFileUseCase: DeleteMediaFileUseCase,
     private val mediaRepository: MediaRepository,
+    private val analytics: AnalyticsTracker,
 ) : BaseViewModel<MediaState, MediaIntent, MediaEffect>(MediaState()) {
 
     private var currentUserId: String = "unknown"
@@ -50,6 +52,7 @@ class MediaViewModel(
     private val _entityScope = MutableStateFlow("" to "")
 
     init {
+        analytics.logScreenView("Media", "MediaViewModel")
         viewModelScope.launch {
             currentUserId = authRepository.getSession().first()?.id ?: "unknown"
         }

@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.feature.accounting
 
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetPeriodSummaryUseCase
@@ -23,12 +24,14 @@ import kotlinx.datetime.toLocalDateTime
 class AccountingViewModel(
     private val getPeriodSummaryUseCase: GetPeriodSummaryUseCase,
     private val authRepository: AuthRepository,
+    private val analytics: AnalyticsTracker,
 ) : BaseViewModel<AccountingState, AccountingIntent, AccountingEffect>(
     AccountingState(period = currentFiscalPeriod())
 ) {
     private var storeId: String = "default"
 
     init {
+        analytics.logScreenView("Accounting", "AccountingViewModel")
         // Resolve the store ID from the active session without blocking the main thread.
         viewModelScope.launch {
             storeId = authRepository.getSession().first()?.storeId ?: "default"

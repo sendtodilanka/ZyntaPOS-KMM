@@ -44,6 +44,7 @@ val customersModule = module {
             saveGroupUseCase   = get(),
             walletTopUpUseCase = get(),
             authRepository     = get(),
+            analytics          = get(),
         )
     }
 }

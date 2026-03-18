@@ -9,6 +9,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.accounting.SeedDefaultChartOfA
 import com.zyntasolutions.zyntapos.feature.onboarding.mvi.OnboardingEffect
 import com.zyntasolutions.zyntapos.feature.onboarding.mvi.OnboardingIntent
 import com.zyntasolutions.zyntapos.feature.onboarding.mvi.OnboardingState
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlin.time.Clock
 
@@ -37,7 +38,12 @@ class OnboardingViewModel(
     private val userRepository: UserRepository,
     private val settingsRepository: SettingsRepository,
     private val seedChartOfAccountsUseCase: SeedDefaultChartOfAccountsUseCase,
+    private val analytics: AnalyticsTracker,
 ) : BaseViewModel<OnboardingState, OnboardingIntent, OnboardingEffect>(OnboardingState()) {
+
+    init {
+        analytics.logScreenView("Onboarding", "OnboardingViewModel")
+    }
 
     override suspend fun handleIntent(intent: OnboardingIntent) {
         when (intent) {

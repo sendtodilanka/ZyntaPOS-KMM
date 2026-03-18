@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.admin
 
 import androidx.lifecycle.viewModelScope
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.core.utils.IdGenerator
 import com.zyntasolutions.zyntapos.domain.repository.AuditRepository
@@ -43,11 +44,13 @@ class AdminViewModel(
     private val verifyAuditIntegrityUseCase: VerifyAuditIntegrityUseCase,
     private val auditLogger: SecurityAuditLogger,
     private val authRepository: AuthRepository,
+    private val analytics: AnalyticsTracker,
 ) : BaseViewModel<AdminState, AdminIntent, AdminEffect>(AdminState()) {
 
     private var currentUserId: String = "unknown"
 
     init {
+        analytics.logScreenView("Admin", "AdminViewModel")
         viewModelScope.launch {
             currentUserId = authRepository.getSession().first()?.id ?: "unknown"
         }

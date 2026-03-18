@@ -118,6 +118,7 @@ val staffModule = module {
             getPayrollHistoryUseCase = get(),
             getAttendanceSummaryUseCase = get(),
             getLeaveHistoryUseCase = get(),
+            analytics = get(),
         )
     }
 }

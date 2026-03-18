@@ -66,6 +66,7 @@ val registerModule = module {
             printA4ZReportUseCase       = get(),
             authRepository              = get(),
             auditLogger                 = get(),
+            analytics                   = get(),
         )
     }
 }

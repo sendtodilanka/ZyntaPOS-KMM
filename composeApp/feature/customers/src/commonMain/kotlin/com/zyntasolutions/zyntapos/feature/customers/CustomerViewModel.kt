@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.feature.customers
 
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import com.zyntasolutions.zyntapos.core.utils.IdGenerator
@@ -57,6 +58,7 @@ class CustomerViewModel(
     private val saveGroupUseCase: SaveCustomerGroupUseCase,
     private val walletTopUpUseCase: WalletTopUpUseCase,
     private val authRepository: AuthRepository,
+    private val analytics: AnalyticsTracker,
 ) : BaseViewModel<CustomerState, CustomerIntent, CustomerEffect>(CustomerState()) {
 
     private var currentUserId: String = "unknown"
@@ -65,6 +67,7 @@ class CustomerViewModel(
     private val _selectedGroupId = MutableStateFlow<String?>(null)
 
     init {
+        analytics.logScreenView("Customers", "CustomerViewModel")
         viewModelScope.launch {
             currentUserId = authRepository.getSession().first()?.id ?: "unknown"
         }
