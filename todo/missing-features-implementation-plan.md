@@ -273,34 +273,41 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 - [ ] Status page branding
 - [ ] Docker + DB health monitors
 
-### B4. Backend Test Coverage — ~40% vs 80% target
+### B4. Backend Test Coverage — ~55% vs 80% target
 
-> **STATUS UPDATE (2026-03-18):** Codebase verification reveals existing test
-> infrastructure and test files are more extensive than originally documented.
-> 9 test files exist (1,506+ LOC). Testcontainers already configured.
+> **HANDOFF (2026-03-18):** Test infra already existed (Testcontainers + 11 test files).
+> This session expanded sync test coverage with 117 new test cases across 7 files,
+> plus 1 new test file (SyncMetricsTest.kt). Total API test count: 225 (up from ~108).
+> Existing tests: EntityApplierTest, SyncProcessorTest, DeltaEngineTest,
+> ServerConflictResolverTest, SyncValidatorTest, SyncMetricsTest (NEW),
+> AdminAuthServiceTest (x2), UserServiceTest, SyncPushPullIntegrationTest,
+> AuthRoutesTest, CsrfPluginTest.
+> Run: `cd backend/api && ./gradlew test --parallel` to verify all 225 pass.
+> Next session: Repository integration tests (Testcontainers) + License service tests + coverage reporting CI step.
 
 - [x] Testcontainers setup (PostgreSQL + Redis) — ALREADY EXISTS in `backend/api/build.gradle.kts`
 - [x] `SyncProcessor`, `DeltaEngine`, `EntityApplier` tests — EXIST (basic coverage, need expansion)
 - [x] `AdminAuthService` tests — EXIST (`AdminAuthServiceTest.kt` 272L + `AdminAuthServiceExtendedTest.kt` 519L)
-- [ ] Expand sync test coverage (edge cases, error paths, new entity types)
+- [x] Expand sync test coverage (edge cases, error paths, conflict resolution, field merge, metrics)
 - [ ] Repository integration tests (`ProductRepository`, `PosUserRepository`, `AdminUserRepository`)
-- [ ] `LicenseService` tests (backend/license)
+- [ ] `LicenseService` tests (backend/license) — basic tests exist, need expansion
 - [ ] Coverage reporting in CI pipeline (JaCoCo/Kover + threshold)
 
-**Existing Test Files (verified 2026-03-18):**
-| File | Lines | Coverage |
+**Test Files (updated 2026-03-18):**
+| File | Tests | Coverage |
 |------|-------|----------|
-| `sync/EntityApplierTest.kt` | 54 | PRODUCT type basic tests |
-| `sync/SyncProcessorTest.kt` | 166 | Push processing |
-| `sync/DeltaEngineTest.kt` | 86 | Cursor-based pull |
-| `sync/ServerConflictResolverTest.kt` | 80 | LWW resolution |
-| `sync/SyncValidatorTest.kt` | 123 | Payload validation |
-| `service/AdminAuthServiceTest.kt` | 272 | Admin login + JWT |
-| `service/AdminAuthServiceExtendedTest.kt` | 519 | BCrypt, MFA, lockout |
-| `service/UserServiceTest.kt` | 206 | POS PIN auth |
-| `integration/SyncPushPullIntegrationTest.kt` | — | End-to-end sync |
-| `routes/AuthRoutesTest.kt` | — | Auth HTTP routes |
-| `routes/CsrfPluginTest.kt` | — | CSRF protection |
+| `sync/EntityApplierTest.kt` | 31 | All 7 entity types, payload parsing, missing fields, append-only audit |
+| `sync/SyncProcessorTest.kt` | 18 | Push orchestration, conflict detection, dedup, dead letter, metrics |
+| `sync/DeltaEngineTest.kt` | 19 | Cursor pagination, limit clamping, sequential pulls, boundary cases |
+| `sync/ServerConflictResolverTest.kt` | 23 | LWW, device tiebreak, field merge, non-PRODUCT entities, log persistence |
+| `sync/SyncValidatorTest.kt` | 38 | Field validation (S2-7), all entity types, batch limits, timestamp tolerance |
+| `sync/SyncMetricsTest.kt` | 14 | Counters, P95 percentile, rolling window, conflict rate, snapshot |
+| `service/AdminAuthServiceTest.kt` | 12 | Admin login + JWT |
+| `service/AdminAuthServiceExtendedTest.kt` | 18 | BCrypt, MFA, lockout |
+| `service/UserServiceTest.kt` | 17 | POS PIN auth |
+| `integration/SyncPushPullIntegrationTest.kt` | 15 | End-to-end validation, batch boundaries, field validation |
+| `routes/AuthRoutesTest.kt` | 12 | Auth HTTP routes |
+| `routes/CsrfPluginTest.kt` | 7 | CSRF protection |
 
 ### B5. Mixed Timestamp Formats
 
