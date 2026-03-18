@@ -325,53 +325,67 @@
 ### C1.2 Store-Specific Inventory Levels (ශාඛා අනුව තොග)
 
 **Priority:** PHASE-2
-**Status:** PARTIALLY EXISTS
+**Status:** PARTIALLY EXISTS — global stock_qty only, no per-warehouse tracking
 
 **Codebase State:**
-- Products have `stock_qty` per product per store (via `store_id` FK)
-- `stock_transfers.sq` EXISTS in SQLDelight — inter-warehouse transfers partially implemented
-- `warehouses.sq` EXISTS — warehouse table with store_id FK
-- `WarehouseRepositoryImpl.kt` — partial implementation
-- `min_stock_qty` column exists on `products.sq` — reorder point data present
-- Backend `products` table has `stock_qty NUMERIC(12,4)` per store
+- `Product.stockQty` is **global** (single number) — NOT per-warehouse or per-store
+- `warehouses.sq` EXISTS — warehouse registry per store (`store_id` FK)
+- `warehouse_racks.sq` EXISTS — rack shelving with capacity tracking
+- `rack_products.sq` EXISTS — rack-level product location mapping (bin_location)
+- `WarehouseRepositoryImpl.kt` — FULLY implemented (253 lines) with atomic two-phase commits
+- `WarehouseRackRepository` + impl — FULLY implemented (120 lines)
+- `WarehouseRack` use cases: Get, Save, Delete — all implemented
+- `min_stock_qty` column exists on `products.sq` — reorder threshold
+- **Reports exist:** `warehouseInventory` query (racks → products), `stockReorderAlerts` query
+- **Comment in code:** "per-warehouse tracking is Phase 3" (WarehouseRepositoryImpl line 173)
 
 **What's MISSING:**
-- [ ] Per-warehouse stock levels within a store (currently product-level only)
+- [ ] Per-warehouse stock levels (product.stock_qty is global — need warehouse_stock junction table)
+- [ ] `warehouse_stock` table (warehouse_id, product_id, quantity) — replace global stock_qty
 - [ ] Stock level aggregation API across stores (total stock for a product globally)
-- [ ] Low-stock alerts per store (KMM dashboard shows alerts but single-store only)
-- [ ] Admin panel: Cross-store stock level comparison view
+- [ ] Low-stock alerts per warehouse (currently per product globally)
+- [ ] Admin panel: Cross-store/warehouse stock level comparison view
 - [ ] Backend: `GET /admin/inventory/global?productId=X` endpoint
+- [ ] Rack-product CRUD UI (schema exists in `rack_products.sq`, no management screens)
 
 **Key Files:**
-- `shared/data/src/commonMain/sqldelight/.../products.sq` (stock_qty column)
+- `shared/data/src/commonMain/sqldelight/.../products.sq` (global stock_qty)
 - `shared/data/src/commonMain/sqldelight/.../warehouses.sq`
-- `shared/data/src/commonMain/.../repository/WarehouseRepositoryImpl.kt`
+- `shared/data/src/commonMain/sqldelight/.../warehouse_racks.sq`
+- `shared/data/src/commonMain/sqldelight/.../rack_products.sq`
+- `shared/data/src/commonMain/.../repository/WarehouseRepositoryImpl.kt` (253 lines)
+- `shared/data/src/commonMain/.../repository/WarehouseRackRepositoryImpl.kt` (120 lines)
+- `composeApp/feature/multistore/.../WarehouseListScreen.kt`
+- `composeApp/feature/multistore/.../WarehouseRackListScreen.kt`
 
 ---
 
 ### C1.3 Inter-Store Stock Transfer / IST (ශාඛා අතර තොග හුවමාරුව)
 
 **Priority:** PHASE-2
-**Status:** PARTIALLY EXISTS (warehouse-level, not store-level)
+**Status:** WAREHOUSE-LEVEL IMPLEMENTED, STORE-LEVEL MISSING
 
 **Codebase State:**
-- `stock_transfers.sq` EXISTS — transfer table with source/destination warehouse
-- `StockTransfer` domain model EXISTS — status enum (REQUESTED, APPROVED, IN_TRANSIT, RECEIVED, CANCELLED)
-- `purchase_orders.sq` EXISTS — PO system for supplier orders
-- Backend: NO inter-store transfer endpoint or table
+- `stock_transfers.sq` — FULLY IMPLEMENTED table (source_warehouse_id, dest_warehouse_id, product_id, quantity, status)
+- `StockTransfer` domain model — status: PENDING → COMMITTED / CANCELLED (two-phase commit)
+- `WarehouseRepositoryImpl.commitTransfer()` — atomic validation + stock adjustment + audit trail (TRANSFER_OUT/TRANSFER_IN)
+- `CommitStockTransferUseCase.kt` — validates transfer exists and is PENDING
+- `purchase_orders.sq` — SCHEMA ONLY (tables exist, no domain model/repo/UI)
+- `NewStockTransferScreen.kt` + `StockTransferListScreen.kt` — UI screens exist
+- `WarehouseViewModel.kt` (407 lines) — manages warehouses, transfers, racks
+- Report: `interStoreTransfers` SQL query in `reports.sq` — committed transfers by date range
 
-**What's MISSING:**
-- [ ] `InterStoreTransfer` domain model (source_store_id, dest_store_id, items, status, requested_by, approved_by)
-- [ ] `inter_store_transfers` SQLDelight table + `transfer_items` junction table
-- [ ] Backend migration: `inter_store_transfers` PostgreSQL table
-- [ ] Transfer workflow: REQUEST → APPROVE → DISPATCH → IN_TRANSIT → RECEIVE
-- [ ] `InterStoreTransferRepository` interface + impl
-- [ ] `RequestTransferUseCase`, `ApproveTransferUseCase`, `DispatchTransferUseCase`, `ReceiveTransferUseCase`
-- [ ] KMM UI: Transfer request screen (select products, quantities, destination store)
-- [ ] KMM UI: Transfer approval screen (manager role)
-- [ ] Backend: `POST /admin/transfers`, `PUT /admin/transfers/{id}/approve`, etc.
-- [ ] Admin panel: Transfer management dashboard
-- [ ] Notification: Push notification when transfer arrives at destination store
+**What's MISSING (store-to-store level, beyond warehouse-to-warehouse):**
+- [ ] Extend transfer workflow: PENDING → APPROVED → DISPATCHED → IN_TRANSIT → RECEIVED (currently only PENDING → COMMITTED)
+- [ ] Multi-step approval workflow (currently auto-commit, no manager approval)
+- [ ] Store-level transfer view (group warehouse transfers by source/dest store)
+- [ ] Backend migration: Add store-level transfer tracking
+- [ ] Backend: `POST /admin/transfers`, `PUT /admin/transfers/{id}/approve`
+- [ ] Admin panel: Transfer management dashboard with store grouping
+- [ ] Push notification when transfer arrives at destination store
+- [ ] Purchase Order domain model + repository + UI (schema exists in `purchase_orders.sq`)
+- [ ] `PurchaseOrder` domain model in `:shared:domain`
+- [ ] `PurchaseOrderRepository` interface + impl
 
 ---
 
@@ -399,22 +413,28 @@
 ### C1.5 Warehouse-to-Store Replenishment (ස්වයංක්‍රීය නැවත ඇණවුම්)
 
 **Priority:** PHASE-2
-**Status:** DATA EXISTS, NO AUTO-LOGIC
+**Status:** REPORT EXISTS, NO AUTO-LOGIC
 
 **Codebase State:**
 - `products.sq` has `min_stock_qty REAL` — reorder threshold exists
-- `purchase_orders.sq` EXISTS — manual PO creation
-- `warehouses.sq` EXISTS — warehouse registry per store
-- `WarehouseRepositoryImpl.kt` — partial implementation (Phase 3 references)
-- No automated replenishment logic
+- `purchase_orders.sq` EXISTS — schema for PO with items, status, supplier FK (SCHEMA ONLY — no domain model/repo/UI)
+- `purchase_order_items` table — quantity_ordered, quantity_received, unit_cost, line_total
+- `reports.sq` → `stockReorderAlerts` query — products WHERE stock_qty <= min_stock_qty with suggested reorder qty
+- `ReportRepositoryImpl.getStockReorderAlerts()` — IMPLEMENTED
+- `GenerateStockReorderReportUseCase` — IMPLEMENTED
+- `StockReorderData` model — productId, productName, currentStock, reorderPoint, suggestedReorderQty
+- **No automated PO generation** — alerts are informational only
 
 **What's MISSING:**
-- [ ] `ReplenishmentRule` domain model (product_id, warehouse_id, store_id, reorder_point, reorder_qty, auto_approve)
+- [ ] `PurchaseOrder` domain model in `:shared:domain`
+- [ ] `PurchaseOrderRepository` interface + impl
+- [ ] PO CRUD UI screens (create PO from reorder alert)
+- [ ] `ReplenishmentRule` domain model (product_id, warehouse_id, reorder_point, reorder_qty, auto_approve)
 - [ ] `replenishment_rules` SQLDelight table
 - [ ] `AutoReplenishmentUseCase` — check stock vs reorder_point, auto-create transfer/PO
-- [ ] Background job: Periodic stock level check (e.g., daily or on stock change)
-- [ ] KMM UI: Replenishment rules configuration screen
-- [ ] Admin panel: Replenishment dashboard (pending auto-orders, approval queue)
+- [ ] Background job: Periodic stock check (daily or on stock change)
+- [ ] KMM UI: Replenishment rules config + reorder alert → auto-PO generation
+- [ ] Admin panel: Replenishment dashboard (pending auto-orders)
 - [ ] Backend: `POST /admin/replenishment/rules`, `GET /admin/replenishment/suggestions`
 
 ---
@@ -1043,10 +1063,10 @@
 |-------------|-----------|--------|
 | **1. Centralized Inventory** | | |
 | Global Product Catalog | C1.1 | NOT IMPLEMENTED |
-| Store-Specific Inventory | C1.2 | PARTIAL |
-| Inter-Store Stock Transfer | C1.3 | PARTIAL (warehouse level) |
-| Stock In-Transit Tracking | C1.4 | SCHEMA ONLY |
-| Warehouse Replenishment | C1.5 | DATA ONLY |
+| Store-Specific Inventory | C1.2 | PARTIAL (global stock_qty, warehouse+rack infra complete) |
+| Inter-Store Stock Transfer | C1.3 | WAREHOUSE-LEVEL COMPLETE (two-phase commit + UI), store-level missing |
+| Stock In-Transit Tracking | C1.4 | NOT IMPLEMENTED (no intermediate transit state) |
+| Warehouse Replenishment | C1.5 | REPORTS EXIST (reorder alerts), no auto-PO logic |
 | **2. Pricing & Taxation** | | |
 | Region-Based Pricing | C2.1 | NOT IMPLEMENTED |
 | Multi-Currency | C2.2 | PARTIAL (formatter only) |
