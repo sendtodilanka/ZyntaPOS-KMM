@@ -21,7 +21,7 @@ class SyncValidator {
         val VALID_ENTITY_TYPES = setOf(
             "PRODUCT", "CATEGORY", "CUSTOMER", "ORDER", "ORDER_ITEM",
             "SUPPLIER", "TAX_GROUP", "STOCK", "STOCK_ADJUSTMENT",
-            "SETTINGS", "REGISTER_SESSION", "CASH_MOVEMENT",
+            "SETTINGS", "CASH_REGISTER", "REGISTER_SESSION", "CASH_MOVEMENT",
             "PAYMENT_SPLIT", "COUPON", "EXPENSE", "EMPLOYEE",
             "SHIFT", "ATTENDANCE", "MEDIA_FILE", "E_INVOICE",
             "ACCOUNTING_ENTRY", "CUSTOMER_GROUP", "UNIT_OF_MEASURE",
@@ -128,8 +128,76 @@ class SyncValidator {
                     if (name.isNullOrBlank()) errors.add("CATEGORY.name must not be blank")
                 }
                 "ORDER" -> {
-                    val total = obj.dbl("total")
-                    if (total < 0) errors.add("ORDER.total must be non-negative")
+                    val grandTotal = obj.dbl("grand_total")
+                    if (grandTotal < 0) errors.add("ORDER.grand_total must be non-negative")
+                }
+                "SUPPLIER" -> {
+                    val name = obj.str("name")
+                    if (name.isNullOrBlank()) errors.add("SUPPLIER.name must not be blank")
+                }
+                "TAX_GROUP" -> {
+                    val name = obj.str("name")
+                    if (name.isNullOrBlank()) errors.add("TAX_GROUP.name must not be blank")
+                    val rate = obj.dbl("rate")
+                    if (rate < 0 || rate > 100) errors.add("TAX_GROUP.rate must be 0-100")
+                }
+                "UNIT_OF_MEASURE" -> {
+                    val name = obj.str("name")
+                    if (name.isNullOrBlank()) errors.add("UNIT_OF_MEASURE.name must not be blank")
+                    val conversionRate = obj.dbl("conversion_rate")
+                    if (conversionRate < 0) errors.add("UNIT_OF_MEASURE.conversion_rate must be non-negative")
+                }
+                "STOCK_ADJUSTMENT" -> {
+                    val productId = obj.str("product_id")
+                    if (productId.isNullOrBlank()) errors.add("STOCK_ADJUSTMENT.product_id must not be blank")
+                    val type = obj.str("type")
+                    if (type != null && type !in setOf("INCREASE", "DECREASE", "TRANSFER")) {
+                        errors.add("STOCK_ADJUSTMENT.type must be INCREASE, DECREASE, or TRANSFER")
+                    }
+                    val qty = obj.dbl("quantity")
+                    if (qty < 0) errors.add("STOCK_ADJUSTMENT.quantity must be non-negative")
+                }
+                "CASH_REGISTER" -> {
+                    val name = obj.str("name")
+                    if (name.isNullOrBlank()) errors.add("CASH_REGISTER.name must not be blank")
+                }
+                "REGISTER_SESSION" -> {
+                    val registerId = obj.str("register_id")
+                    if (registerId.isNullOrBlank()) errors.add("REGISTER_SESSION.register_id must not be blank")
+                    val openedBy = obj.str("opened_by")
+                    if (openedBy.isNullOrBlank()) errors.add("REGISTER_SESSION.opened_by must not be blank")
+                }
+                "CASH_MOVEMENT" -> {
+                    val sessionId = obj.str("session_id")
+                    if (sessionId.isNullOrBlank()) errors.add("CASH_MOVEMENT.session_id must not be blank")
+                    val amount = obj.dbl("amount")
+                    if (amount < 0) errors.add("CASH_MOVEMENT.amount must be non-negative")
+                    val type = obj.str("type")
+                    if (type != null && type !in setOf("IN", "OUT")) {
+                        errors.add("CASH_MOVEMENT.type must be IN or OUT")
+                    }
+                }
+                "COUPON" -> {
+                    val code = obj.str("code")
+                    if (code.isNullOrBlank()) errors.add("COUPON.code must not be blank")
+                    val name = obj.str("name")
+                    if (name.isNullOrBlank()) errors.add("COUPON.name must not be blank")
+                    val discountValue = obj.dbl("discount_value")
+                    if (discountValue < 0) errors.add("COUPON.discount_value must be non-negative")
+                }
+                "EXPENSE" -> {
+                    val amount = obj.dbl("amount")
+                    if (amount < 0) errors.add("EXPENSE.amount must be non-negative")
+                }
+                "PAYMENT_SPLIT" -> {
+                    val orderId = obj.str("order_id")
+                    if (orderId.isNullOrBlank()) errors.add("PAYMENT_SPLIT.order_id must not be blank")
+                    val amount = obj.dbl("amount")
+                    if (amount < 0) errors.add("PAYMENT_SPLIT.amount must be non-negative")
+                }
+                "SETTINGS" -> {
+                    val key = obj.str("key")
+                    if (key.isNullOrBlank()) errors.add("SETTINGS.key must not be blank")
                 }
                 // Other entity types: structural JSON validation only (already done above)
             }
