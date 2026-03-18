@@ -1838,26 +1838,104 @@ After EVERY commit+push, the 7-step pipeline must pass:
 
 ---
 
+## 🔴 CRITICAL: MULTI-SESSION AWARENESS
+
+> **මෙම repository එකේ GitHub Copilot Workspace / Claude Code sessions කිහිපයක්
+> එකවර ක්‍රියාත්මක වේ.** එක් එක් session එක වෙනම branch එකක වැඩ කරයි,
+> නමුත් සියල්ල `main` branch එකට merge වේ. මෙය ඇති කරන ප්‍රශ්න:
+
+### Why This Matters
+
+1. **Main moves fast:** අනෙක් sessions PR merge කරද්දී `main` එක update වෙනවා.
+   ඔබේ branch එක sync නැතිනම්, PR එකේ conflict ඇති වෙනවා.
+
+2. **Same files, different sessions:** කිහිප session එකකින් එකම file edit කරනවනම්
+   (e.g., `ZyntaRoute.kt`, `build.gradle.kts`, `.sq` files), merge conflicts inevitable.
+
+3. **Pipeline blocking:** Dirty PR එකක් auto-merge pipeline එක block කරනවා.
+   එක session එකක stuck PR එකින් අනෙක් sessions වල PRs ද delay වෙනවා.
+
+### Mandatory Multi-Session Safety Rules
+
+1. **ALWAYS sync before EVERY commit** — not just once at session start:
+   ```bash
+   git fetch origin main
+   git log HEAD..origin/main --oneline   # check if main moved
+   git merge origin/main --no-edit       # merge if needed, resolve conflicts
+   # THEN commit your changes
+   ```
+
+2. **ALWAYS check PR status after push** — confirm no conflicts:
+   ```bash
+   REPO="sendtodilanka/ZyntaPOS-KMM"
+   BRANCH=$(git branch --show-current)
+   curl -s -H "Authorization: token $PAT" \
+     "https://api.github.com/repos/$REPO/pulls?head=sendtodilanka:$BRANCH&state=open" \
+     | python3 -c "
+   import sys,json
+   prs=json.load(sys.stdin)
+   if not prs: print('No open PR yet — wait for Step[2]')
+   for pr in prs:
+     print(f'PR #{pr[\"number\"]}: mergeable={pr.get(\"mergeable\")} state={pr.get(\"mergeable_state\")}')
+   "
+   ```
+
+3. **If PR shows `mergeable=false` or `mergeable_state=dirty`** — FIX IMMEDIATELY:
+   ```bash
+   git fetch origin main
+   git merge origin/main --no-edit
+   # resolve any conflicts manually
+   git add <resolved-files>
+   git commit -m "merge: resolve conflicts with main"
+   git push -u origin $(git branch --show-current)
+   # re-monitor pipeline from Step[1]
+   ```
+
+4. **NEVER force-push** — other sessions may have triggered pipeline runs referencing your commits.
+
+5. **NEVER manually create PRs** — Step[2] auto-creates them. Manual PRs break the dispatch chain.
+
+6. **If pipeline fails** — read the failure log FIRST, don't just push more commits hoping it fixes itself.
+
+---
+
 ## IMPLEMENTATION SESSION CHECKLIST
 
 > Copy-paste this checklist at the start of every implementation session.
+> Steps marked ♻️ are repeated for EVERY item in the session.
 
 ```
-□ 1. Read CLAUDE.md (full codebase context)
-□ 2. Read all ADRs in docs/adr/ (architecture decisions)
-□ 3. Read docs/architecture/ (diagrams, module deps)
-□ 4. Read this plan file (features + gaps + priorities)
-□ 5. Run `echo $PAT` to confirm GitHub token available
-□ 6. Run `git fetch origin main && git merge origin/main --no-edit` to sync
-□ 7. Pick highest priority unchecked item from Section A → B → C → D → G
-□ 8. Implement following all compliance rules above
-□ 9. Write tests (use case 95%, repo 80%, VM 80%)
-□ 10. Run `./gradlew :shared:core:test :shared:domain:test --parallel` locally
-□ 11. Commit with conventional commit format referencing plan item ID
-□ 12. Push and monitor pipeline until green
-□ 13. Mark item as [x] in this file
-□ 14. Repeat from step 7 until session ends
-□ 15. Final push before session end (mandatory per CLAUDE.md)
+═══ SESSION START (once) ═══════════════════════════════════════
+□ 1.  Read CLAUDE.md (full codebase context)
+□ 2.  Read all ADRs in docs/adr/ (architecture decisions)
+□ 3.  Read docs/architecture/ (diagrams, module deps)
+□ 4.  Read this plan file (features + gaps + priorities)
+□ 5.  Run `echo $PAT` to confirm GitHub token available
+□ 6.  Sync: `git fetch origin main && git merge origin/main --no-edit`
+
+═══ PER-ITEM LOOP (repeat for each feature/fix) ♻️ ════════════
+□ 7.  Pick highest priority unchecked item from Section A → B → C → D → G
+□ 8.  Search codebase FIRST (DRY rule — SEARCH → EVALUATE → VERIFY)
+□ 9.  Implement following all compliance rules above
+□ 10. Write tests (use case 95%, repo 80%, VM 80%)
+□ 11. Run `./gradlew :shared:core:test :shared:domain:test --parallel` locally
+□ 12. PRE-COMMIT SYNC (MANDATORY — main may have moved since last commit):
+      `git fetch origin main && git merge origin/main --no-edit`
+□ 13. Commit with conventional commit format referencing plan item ID
+□ 14. Push: `git push -u origin $(git branch --show-current)`
+□ 15. Monitor pipeline Step[1] → Step[2] until green
+□ 16. Check PR for conflicts:
+      - mergeable=true → proceed
+      - mergeable=false → sync main, resolve conflicts, push, re-monitor
+□ 17. Monitor pipeline Step[3+4] CI Gate until green
+□ 18. Mark item as [x] in this file
+□ 19. ♻️ Go to step 7 for next item
+
+═══ SESSION END (once) ═════════════════════════════════════════
+□ 20. Final sync: `git fetch origin main && git merge origin/main --no-edit`
+□ 21. Final push: `git push -u origin $(git branch --show-current)`
+□ 22. Verify PR is green and auto-merge is enabled
+□ 23. Update `Last Updated` date at top of this file
 ```
 
 ---
