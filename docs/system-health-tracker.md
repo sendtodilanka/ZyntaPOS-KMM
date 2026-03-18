@@ -1,5 +1,7 @@
 # System Health Tracker
 
+**Last updated:** 2026-03-18
+
 ## Overview
 
 The System Health Tracker provides real-time diagnostics for ZyntaPOS, monitoring memory usage, disk storage, database health, and runtime metrics. It is accessible from **Settings > Support > System Health**.
