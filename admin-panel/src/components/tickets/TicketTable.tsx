@@ -111,7 +111,7 @@ export function TicketTable({ data, isLoading, page, totalPages, total, onPageCh
   const columns: Column<Ticket>[] = [
     {
       key: 'select',
-      header: '',
+      header: 'Select',
       cell: (row) => (
         <input
           type="checkbox"
