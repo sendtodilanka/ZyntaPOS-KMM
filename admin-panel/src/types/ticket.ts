@@ -253,6 +253,48 @@ export interface ResolveTicketRequest {
 export interface AddCommentRequest {
   body: string;
   isInternal: boolean;
+  replyToCustomer?: boolean;
+}
+
+export interface EmailThread {
+  id: string;
+  ticketId: string | null;
+  messageId: string | null;
+  inReplyTo: string | null;
+  parentThreadId: string | null;
+  fromAddress: string;
+  fromName: string | null;
+  toAddress: string;
+  subject: string;
+  bodyText: string | null;
+  receivedAt: string;
+  createdAt: string;
+}
+
+export interface BulkOperationResult {
+  updated: number;
+  failed: string[];
+}
+
+export interface BulkAssignRequest {
+  ticketIds: string[];
+  assigneeId: string;
+}
+
+export interface BulkResolveRequest {
+  ticketIds: string[];
+  resolutionNote: string;
+}
+
+export interface TicketMetrics {
+  totalOpen: number;
+  totalAssigned: number;
+  totalResolved: number;
+  totalClosed: number;
+  slaBreached: number;
+  avgResolutionTimeMin: number;
+  openByPriority: Record<string, number>;
+  openByCategory: Record<string, number>;
 }
 
 export interface TicketFilter {
@@ -262,6 +304,9 @@ export interface TicketFilter {
   assignedTo?: string;
   storeId?: string;
   search?: string;
+  searchBody?: boolean;
+  createdAfter?: number;
+  createdBefore?: number;
   page?: number;
   size?: number;
 }

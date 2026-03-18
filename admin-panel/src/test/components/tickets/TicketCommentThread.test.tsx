@@ -81,7 +81,7 @@ describe('TicketCommentThread', () => {
       expect(mockAddCommentMutate).toHaveBeenCalledWith(
         {
           ticketId: 'ticket-1',
-          body: { body: 'This is a new comment', isInternal: false },
+          body: { body: 'This is a new comment', isInternal: false, replyToCustomer: false },
         },
         expect.any(Object),
       );

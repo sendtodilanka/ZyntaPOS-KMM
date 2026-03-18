@@ -19,12 +19,35 @@ interface AdminTicketRepository {
     suspend fun assignTo(id: UUID, assigneeId: UUID, newStatus: String, now: Long): Boolean
     suspend fun checkSlaBreaches(now: Long): Int
 
+    /** Finds tickets that were breached within the last [windowMs] milliseconds (for email alerts). */
+    suspend fun findRecentlyBreached(now: Long, windowMs: Long): List<TicketRow>
+
     /** Runs the `SELECT nextval('ticket_seq')` sequence call. */
     suspend fun nextTicketNumber(year: Int): String
 
     /** Lookup admin_users names for a set of UUIDs in a single query. */
     suspend fun findUserNames(ids: List<UUID>): Map<UUID, String>
+
+    /** Lookup admin_users emails for a set of UUIDs in a single query. */
+    suspend fun findUserEmails(ids: List<UUID>): Map<UUID, String>
+
+    /** Find ticket by customer access token (public, no auth required). */
+    suspend fun findByCustomerToken(token: UUID): TicketRow?
+
+    /** Aggregate ticket metrics for dashboard. */
+    suspend fun getMetrics(): TicketMetricsData
 }
+
+data class TicketMetricsData(
+    val totalOpen: Int,
+    val totalAssigned: Int,
+    val totalResolved: Int,
+    val totalClosed: Int,
+    val slaBreached: Int,
+    val avgResolutionTimeMin: Int,
+    val openByPriority: Map<String, Int>,
+    val openByCategory: Map<String, Int>,
+)
 
 // ── Row / filter types ────────────────────────────────────────────────────────
 
@@ -50,6 +73,7 @@ data class TicketRow(
     val timeSpentMin:   Int?,
     val slaDueAt:       Long?,
     val slaBreached:    Boolean,
+    val customerAccessToken: UUID,
     val createdAt:      Long,
     val updatedAt:      Long,
 )
@@ -80,12 +104,15 @@ data class TicketPatch(
 )
 
 data class TicketFilter(
-    val status:     String?,
-    val priority:   String?,
-    val category:   String?,
-    val assignedTo: String?,
-    val storeId:    String?,
-    val search:     String?,
+    val status:        String?,
+    val priority:      String?,
+    val category:      String?,
+    val assignedTo:    String?,
+    val storeId:       String?,
+    val search:        String?,
+    val searchBody:    Boolean = false,
+    val createdAfter:  Long? = null,
+    val createdBefore: Long? = null,
 )
 
 data class TicketPage(

@@ -3,6 +3,8 @@ package com.zyntasolutions.zyntapos.api.service
 import com.zyntasolutions.zyntapos.api.models.AdminPagedResponse
 import com.zyntasolutions.zyntapos.api.repository.AdminTicketRepository
 import com.zyntasolutions.zyntapos.api.repository.CommentCreateInput
+import com.zyntasolutions.zyntapos.api.repository.EmailThreadRepository
+import com.zyntasolutions.zyntapos.api.repository.EmailThreadRow
 import com.zyntasolutions.zyntapos.api.repository.TicketCommentRepository
 import com.zyntasolutions.zyntapos.api.repository.TicketCreateInput
 import com.zyntasolutions.zyntapos.api.repository.TicketFilter
@@ -41,6 +43,7 @@ data class TicketResponse(
     val timeSpentMin: Int?,
     val slaDueAt: Long?,
     val slaBreached: Boolean,
+    val customerAccessToken: String? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val comments: List<TicketCommentResponse> = emptyList(),
@@ -90,6 +93,38 @@ data class ResolveTicketRequest(
 data class AddCommentRequest(
     val body: String,
     val isInternal: Boolean = false,
+    val replyToCustomer: Boolean = false,
+)
+
+@Serializable
+data class BulkAssignRequest(
+    val ticketIds: List<String>,
+    val assigneeId: String,
+)
+
+@Serializable
+data class BulkResolveRequest(
+    val ticketIds: List<String>,
+    val resolutionNote: String,
+)
+
+@Serializable
+data class BulkOperationResult(
+    val updated: Int,
+    val failed: List<String>,
+)
+
+/** Limited public view — no internal notes, assignee details, or PII beyond ticket info. */
+@Serializable
+data class PublicTicketView(
+    val ticketNumber: String,
+    val status: String,
+    val priority: String,
+    val title: String,
+    val category: String,
+    val slaBreached: Boolean,
+    val createdAt: Long,
+    val updatedAt: Long,
 )
 
 // ── Service ───────────────────────────────────────────────────────────────────
@@ -108,7 +143,10 @@ data class AddCommentRequest(
 class AdminTicketService(
     private val ticketRepo: AdminTicketRepository,
     private val commentRepo: TicketCommentRepository,
+    private val emailThreadRepo: EmailThreadRepository? = null,
+    private val emailService: EmailService? = null,
 ) {
+    private val log = org.slf4j.LoggerFactory.getLogger(AdminTicketService::class.java)
 
     private val validCategories = setOf("HARDWARE", "SOFTWARE", "SYNC", "BILLING", "OTHER")
     private val validPriorities  = setOf("LOW", "MEDIUM", "HIGH", "CRITICAL")
@@ -156,17 +194,20 @@ class AdminTicketService(
     }
 
     suspend fun listTickets(
-        status:     String?,
-        priority:   String?,
-        category:   String?,
-        assignedTo: String?,
-        storeId:    String?,
-        search:     String?,
-        page:       Int,
-        size:       Int,
+        status:        String?,
+        priority:      String?,
+        category:      String?,
+        assignedTo:    String?,
+        storeId:       String?,
+        search:        String?,
+        searchBody:    Boolean = false,
+        createdAfter:  Long? = null,
+        createdBefore: Long? = null,
+        page:          Int,
+        size:          Int,
     ): AdminPagedResponse<TicketResponse> {
         val page_ = ticketRepo.list(
-            filter = TicketFilter(status, priority, category, assignedTo, storeId, search),
+            filter = TicketFilter(status, priority, category, assignedTo, storeId, search, searchBody, createdAfter, createdBefore),
             page   = page,
             size   = size,
         )
@@ -265,8 +306,7 @@ class AdminTicketService(
 
     suspend fun addComment(ticketId: String, req: AddCommentRequest, authorId: UUID): TicketCommentResponse? {
         val uuid = runCatching { UUID.fromString(ticketId) }.getOrNull() ?: return null
-        val exists = ticketRepo.findById(uuid) != null
-        if (!exists) return null
+        val ticket = ticketRepo.findById(uuid) ?: return null
 
         val now = Instant.now().toEpochMilli()
         val newId = UUID.randomUUID()
@@ -284,6 +324,24 @@ class AdminTicketService(
         ticketRepo.update(uuid, TicketPatch(null, null, null, null, now))
 
         val authorName = commentRepo.findAuthorNames(listOf(authorId))[authorId] ?: "Unknown"
+
+        // Send email reply to customer if requested
+        if (req.replyToCustomer && !req.isInternal) {
+            ticket.customerEmail?.takeIf { it.isNotBlank() }?.let { customerEmail ->
+                runCatching {
+                    emailService?.sendTicketReply(
+                        toEmail      = customerEmail,
+                        customerName = ticket.customerName,
+                        ticketNumber = ticket.ticketNumber,
+                        agentName    = authorName,
+                        messageBody  = req.body,
+                    )
+                }.onFailure { e ->
+                    log.warn("Failed to send ticket reply email for ${ticket.ticketNumber}: ${e.message}")
+                }
+            }
+        }
+
         return TicketCommentResponse(
             id         = row.id.toString(),
             ticketId   = ticketId,
@@ -316,8 +374,117 @@ class AdminTicketService(
         }
     }
 
-    suspend fun checkSlaBreaches() {
-        ticketRepo.checkSlaBreaches(Instant.now().toEpochMilli())
+    suspend fun checkSlaBreaches(): Int {
+        val now = Instant.now().toEpochMilli()
+        val breachedCount = ticketRepo.checkSlaBreaches(now)
+
+        // Send email alerts for recently breached tickets (within the last 65s window)
+        if (breachedCount > 0 && emailService != null) {
+            val recentlyBreached = ticketRepo.findRecentlyBreached(now, windowMs = 65_000L)
+            for (ticket in recentlyBreached) {
+                val assigneeEmail = ticket.assignedTo?.let { assigneeId ->
+                    ticketRepo.findUserNames(listOf(assigneeId))[assigneeId]
+                }
+                // Send to assignee if available; the email might be their admin email (name here)
+                // For SLA breach, we look up the actual email from admin_users
+                ticket.assignedTo?.let { assigneeId ->
+                    val emails = ticketRepo.findUserEmails(listOf(assigneeId))
+                    emails[assigneeId]?.let { email ->
+                        runCatching {
+                            emailService.sendSlaBreachAlert(
+                                toEmail = email,
+                                ticketNumber = ticket.ticketNumber,
+                                title = ticket.title,
+                                priority = ticket.priority,
+                            )
+                        }.onFailure { e ->
+                            log.warn("Failed to send SLA breach alert for ${ticket.ticketNumber}: ${e.message}")
+                        }
+                    }
+                }
+            }
+        }
+        return breachedCount
+    }
+
+    suspend fun bulkAssign(ticketIds: List<String>, assigneeId: UUID): BulkOperationResult {
+        var updated = 0
+        val failed = mutableListOf<String>()
+        for (idStr in ticketIds) {
+            val result = runCatching { assignTicket(idStr, assigneeId) }
+            if (result.isSuccess && result.getOrNull() != null) updated++
+            else failed.add(idStr)
+        }
+        return BulkOperationResult(updated, failed)
+    }
+
+    suspend fun bulkResolve(ticketIds: List<String>, resolutionNote: String, resolvedBy: UUID): BulkOperationResult {
+        var updated = 0
+        val failed = mutableListOf<String>()
+        val req = ResolveTicketRequest(resolutionNote = resolutionNote, timeSpentMin = 0)
+        for (idStr in ticketIds) {
+            val result = runCatching { resolveTicket(idStr, req, resolvedBy) }
+            if (result.isSuccess && result.getOrNull() != null) updated++
+            else failed.add(idStr)
+        }
+        return BulkOperationResult(updated, failed)
+    }
+
+    suspend fun exportTicketsCsv(
+        status: String?, priority: String?, category: String?,
+        assignedTo: String?, storeId: String?, search: String?,
+    ): String {
+        val page = ticketRepo.list(
+            filter = TicketFilter(status, priority, category, assignedTo, storeId, search),
+            page = 0, size = 10_000,
+        )
+        val sb = StringBuilder()
+        sb.appendLine("ticket_number,status,priority,category,customer_email,title,created_at,resolved_at,time_spent_min,sla_breached")
+        for (row in page.data) {
+            sb.appendLine(listOf(
+                row.ticketNumber,
+                row.status,
+                row.priority,
+                row.category,
+                (row.customerEmail ?: "").csvEscape(),
+                row.title.csvEscape(),
+                row.createdAt.toString(),
+                (row.resolvedAt?.toString() ?: ""),
+                (row.timeSpentMin?.toString() ?: ""),
+                row.slaBreached.toString(),
+            ).joinToString(","))
+        }
+        return sb.toString()
+    }
+
+    private fun String.csvEscape(): String {
+        return if (this.contains(',') || this.contains('"') || this.contains('\n')) {
+            "\"${this.replace("\"", "\"\"")}\""
+        } else this
+    }
+
+    suspend fun getMetrics() = ticketRepo.getMetrics()
+
+    /** Public ticket status lookup via customer access token. Returns limited public view. */
+    suspend fun getByCustomerToken(token: String): PublicTicketView? {
+        val uuid = runCatching { UUID.fromString(token) }.getOrNull() ?: return null
+        val row = ticketRepo.findByCustomerToken(uuid) ?: return null
+        return PublicTicketView(
+            ticketNumber = row.ticketNumber,
+            status       = row.status,
+            priority     = row.priority,
+            title        = row.title,
+            category     = row.category,
+            slaBreached  = row.slaBreached,
+            createdAt    = row.createdAt,
+            updatedAt    = row.updatedAt,
+        )
+    }
+
+    suspend fun getEmailThreads(ticketId: String): List<EmailThreadRow>? {
+        val uuid = runCatching { UUID.fromString(ticketId) }.getOrNull() ?: return null
+        if (ticketRepo.findById(uuid) == null) return null
+        return emailThreadRepo?.findByTicketId(uuid) ?: emptyList()
     }
 
     // ── Mapping helper ────────────────────────────────────────────────────────
@@ -349,6 +516,7 @@ class AdminTicketService(
         timeSpentMin    = timeSpentMin,
         slaDueAt        = slaDueAt,
         slaBreached     = slaBreached,
+        customerAccessToken = customerAccessToken.toString(),
         createdAt       = createdAt,
         updatedAt       = updatedAt,
         comments        = comments,

@@ -5,6 +5,7 @@ import { TicketStatusBadge, TicketPriorityBadge } from '@/components/tickets/Tic
 import { TicketAssignModal } from '@/components/tickets/TicketAssignModal';
 import { TicketResolveModal } from '@/components/tickets/TicketResolveModal';
 import { TicketCommentThread } from '@/components/tickets/TicketCommentThread';
+import { TicketEmailThreadPanel } from '@/components/tickets/TicketEmailThreadPanel';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { PageLoader } from '@/components/shared/LoadingState';
 import { useTicket, useCloseTicket } from '@/api/tickets';
@@ -148,9 +149,14 @@ function TicketDetailPage() {
             </div>
           )}
 
+          {/* Email History */}
+          <div className="bg-surface-card border border-surface-border rounded-xl p-5">
+            <TicketEmailThreadPanel ticketId={ticket.id} />
+          </div>
+
           {/* Comments */}
           <div className="bg-surface-card border border-surface-border rounded-xl p-5">
-            <TicketCommentThread ticketId={ticket.id} />
+            <TicketCommentThread ticketId={ticket.id} customerEmail={ticket.customerEmail} />
           </div>
         </div>
 

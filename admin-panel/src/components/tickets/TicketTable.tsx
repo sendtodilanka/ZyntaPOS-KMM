@@ -1,10 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { AlertTriangle, Clock } from 'lucide-react';
+import { AlertTriangle, Clock, Download, UserPlus, CheckCircle2 } from 'lucide-react';
 import { DataTable, type Column } from '@/components/shared/DataTable';
 import { TicketStatusBadge, TicketPriorityBadge } from './TicketStatusBadge';
+import { BulkAssignModal } from './BulkAssignModal';
+import { BulkResolveModal } from './BulkResolveModal';
 import { useTimezone } from '@/hooks/use-timezone';
-import type { Ticket } from '@/types/ticket';
+import { useAuth } from '@/hooks/use-auth';
+import { API_BASE_URL } from '@/lib/constants';
+import type { Ticket, TicketFilter } from '@/types/ticket';
+import { buildQueryString } from '@/lib/utils';
 
 interface TicketTableProps {
   data: Ticket[];
@@ -13,6 +18,7 @@ interface TicketTableProps {
   totalPages: number;
   total: number;
   onPageChange: (page: number) => void;
+  filter?: TicketFilter;
 }
 
 function SlaIndicator({ slaDueAt, slaBreached, status, now }: { slaDueAt: number | null; slaBreached: boolean; status: string; now: number }) {
@@ -48,16 +54,76 @@ function SlaIndicator({ slaDueAt, slaBreached, status, now }: { slaDueAt: number
   );
 }
 
-export function TicketTable({ data, isLoading, page, totalPages, total, onPageChange }: TicketTableProps) {
+export function TicketTable({ data, isLoading, page, totalPages, total, onPageChange, filter }: TicketTableProps) {
   const navigate = useNavigate();
   const { formatRelative } = useTimezone();
+  const { hasPermission } = useAuth();
   const [now, setNow] = useState(Date.now);
+  const [selectedMap, setSelectedMap] = useState<Record<string, boolean>>({});
+  const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
+  const [bulkResolveOpen, setBulkResolveOpen] = useState(false);
+
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 60_000);
     return () => clearInterval(id);
   }, []);
 
+  // Derive valid selection from current data IDs — automatically clears on page/data change
+  const dataIds = useMemo(() => new Set(data.map((t) => t.id)), [data]);
+  const selected = useMemo(() => {
+    const valid = new Set<string>();
+    for (const id of Object.keys(selectedMap)) {
+      if (selectedMap[id] && dataIds.has(id)) valid.add(id);
+    }
+    return valid;
+  }, [selectedMap, dataIds]);
+
+  const toggleSelect = (id: string) => {
+    setSelectedMap((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const toggleAll = () => {
+    if (selected.size === data.length) {
+      setSelectedMap({});
+    } else {
+      const next: Record<string, boolean> = {};
+      for (const t of data) next[t.id] = true;
+      setSelectedMap(next);
+    }
+  };
+
+  const selectedIds = Array.from(selected);
+  const canAssign = hasPermission('tickets:assign');
+  const canResolve = hasPermission('tickets:resolve');
+
+  const handleExport = () => {
+    const qs = buildQueryString({
+      status: filter?.status,
+      priority: filter?.priority,
+      category: filter?.category,
+      assignedTo: filter?.assignedTo,
+      storeId: filter?.storeId,
+      search: filter?.search,
+    });
+    window.open(`${API_BASE_URL}/admin/tickets/export${qs ? `?${qs}` : ''}`, '_blank');
+  };
+
   const columns: Column<Ticket>[] = [
+    {
+      key: 'select',
+      header: '',
+      cell: (row) => (
+        <input
+          type="checkbox"
+          checked={selected.has(row.id)}
+          onChange={(e) => { e.stopPropagation(); toggleSelect(row.id); }}
+          onClick={(e) => e.stopPropagation()}
+          className="rounded border-surface-border bg-surface-elevated"
+          aria-label={`Select ${row.ticketNumber}`}
+        />
+      ),
+      headerClassName: 'w-10',
+    },
     {
       key: 'number',
       header: 'Ticket #',
@@ -112,18 +178,60 @@ export function TicketTable({ data, isLoading, page, totalPages, total, onPageCh
   ];
 
   return (
-    <DataTable
-      columns={columns}
-      data={data}
-      isLoading={isLoading}
-      page={page}
-      totalPages={totalPages}
-      total={total}
-      onPageChange={onPageChange}
-      rowKey={(r) => r.id}
-      onRowClick={(row) => navigate({ to: '/tickets/$ticketId', params: { ticketId: row.id } })}
-      emptyTitle="No tickets found"
-      emptyDescription="No support tickets match your current filters."
-    />
+    <div className="space-y-3">
+      {/* Bulk action toolbar */}
+      {selected.size > 0 && (
+        <div className="flex items-center gap-3 px-4 py-2.5 bg-brand-500/10 border border-brand-500/20 rounded-lg">
+          <span className="text-sm text-brand-400 font-medium">{selected.size} selected</span>
+          <button
+            onClick={toggleAll}
+            className="text-xs text-slate-400 hover:text-slate-200 transition-colors"
+          >
+            {selected.size === data.length ? 'Deselect all' : 'Select all'}
+          </button>
+          <div className="flex items-center gap-2 ml-auto">
+            {canAssign && (
+              <button
+                onClick={() => setBulkAssignOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-300 border border-surface-border rounded-lg hover:bg-surface-elevated transition-colors"
+              >
+                <UserPlus className="w-3.5 h-3.5" /> Assign
+              </button>
+            )}
+            {canResolve && (
+              <button
+                onClick={() => setBulkResolveOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-400 border border-emerald-500/30 rounded-lg hover:bg-emerald-500/10 transition-colors"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" /> Resolve
+              </button>
+            )}
+            <button
+              onClick={handleExport}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-300 border border-surface-border rounded-lg hover:bg-surface-elevated transition-colors"
+            >
+              <Download className="w-3.5 h-3.5" /> Export CSV
+            </button>
+          </div>
+        </div>
+      )}
+
+      <DataTable
+        columns={columns}
+        data={data}
+        isLoading={isLoading}
+        page={page}
+        totalPages={totalPages}
+        total={total}
+        onPageChange={onPageChange}
+        rowKey={(r) => r.id}
+        onRowClick={(row) => navigate({ to: '/tickets/$ticketId', params: { ticketId: row.id } })}
+        emptyTitle="No tickets found"
+        emptyDescription="No support tickets match your current filters."
+      />
+
+      <BulkAssignModal ticketIds={selectedIds} open={bulkAssignOpen} onClose={() => { setBulkAssignOpen(false); setSelectedMap({}); }} />
+      <BulkResolveModal ticketIds={selectedIds} open={bulkResolveOpen} onClose={() => { setBulkResolveOpen(false); setSelectedMap({}); }} />
+    </div>
   );
 }

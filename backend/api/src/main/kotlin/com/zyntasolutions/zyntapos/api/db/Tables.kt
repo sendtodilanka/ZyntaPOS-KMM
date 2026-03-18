@@ -175,6 +175,7 @@ object SupportTickets : Table("support_tickets") {
     val timeSpentMin   = integer("time_spent_min").nullable()
     val slaDueAt       = long("sla_due_at").nullable()
     val slaBreached    = bool("sla_breached")
+    val customerAccessToken = uuid("customer_access_token")  // V22: public ticket status
     val createdAt      = long("created_at")
     val updatedAt      = long("updated_at")
     override val primaryKey = PrimaryKey(id)
@@ -205,6 +206,7 @@ object EmailThreads : Table("email_threads") {
     val bodyText              = text("body_text").nullable()
     val bodyHtml              = text("body_html").nullable()
     val chatwootConversationId = integer("chatwoot_conversation_id").nullable()
+    val parentThreadId        = uuid("parent_thread_id").nullable()  // V21: reply chain
     val receivedAt            = timestampWithTimeZone("received_at")
     val createdAt             = timestampWithTimeZone("created_at")
     override val primaryKey   = PrimaryKey(id)
