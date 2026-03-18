@@ -38,11 +38,11 @@ implementation, this abstraction was absorbed directly into the `crypto/` classe
 - **`EncryptionManager.android.kt`** — Calls `KeyStore.getInstance("AndroidKeyStore")`
   directly; creates/retrieves AES-256 key under a named alias. Fully implemented.
 - **`EncryptionManager.jvm.kt`** — Creates/loads a PKCS12 KeyStore at
-  `~/.zentapos/.zyntapos.p12` with a machine-derived password. Fully implemented.
+  `~/.zyntapos/.zyntapos.p12` with a machine-derived password. Fully implemented.
 - **`DatabaseKeyManager.android.kt`** — Envelope encryption: KEK in Android Keystore
   wraps a random DEK stored in SharedPreferences. Fully implemented.
 - **`DatabaseKeyManager.jvm.kt`** — 32-byte AES DEK stored in PKCS12 KeyStore at
-  `~/.zentapos/.db_keystore.p12`. Fully implemented.
+  `~/.zyntapos/.db_keystore.p12`. Fully implemented.
 
 A separate `KeystoreProvider` would add a layer of indirection with no benefit —
 each `EncryptionManager` / `DatabaseKeyManager` actual already contains the minimum
