@@ -528,11 +528,20 @@ class EntityApplierTest {
     }
 
     @Test
-    fun `CATEGORY with invalid JSON is a no-op`() {
-        applier.applyInTransaction(
-            "store-1",
-            op(entityType = "CATEGORY", payload = "{{bad")
-        )
+    fun `CATEGORY with null parentId is accepted (no circular check needed)`() {
+        // Null parent means root category — no circular ref check passes.
+        // Upsert fails (no active DB transaction), proving we reached the DB layer
+        // without the circular-ref guard blocking.
+        assertFailsWith<IllegalStateException> {
+            applier.applyInTransaction(
+                "store-1",
+                op(
+                    entityType = "CATEGORY",
+                    entityId = "cat-2",
+                    payload = """{"name":"Root Category","sort_order":0,"is_active":true}"""
+                )
+            )
+        }
     }
 
     @Test

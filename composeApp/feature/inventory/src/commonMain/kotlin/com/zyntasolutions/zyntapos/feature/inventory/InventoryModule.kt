@@ -124,6 +124,7 @@ val inventoryModule = module {
             adjustStockUseCase      = get(),
             authRepository          = get(),
             auditLogger             = get(),
+            analytics               = get(),
         )
     }
 }

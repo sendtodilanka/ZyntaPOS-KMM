@@ -16,6 +16,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.inventory.AdjustStockUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.CreateProductUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.SearchProductsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.UpdateProductUseCase
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -69,6 +70,13 @@ class InventoryViewModelTest {
         override suspend fun getRecentLoginFailureCount(userId: String, sinceEpochMillis: Long): Long = 0L
     }
     private val testAuditLogger = SecurityAuditLogger(noOpAuditRepository, "test-device")
+
+    private val noOpAnalytics = object : AnalyticsTracker {
+        override fun logEvent(name: String, params: Map<String, String>) = Unit
+        override fun logScreenView(screenName: String, screenClass: String) = Unit
+        override fun setUserId(userId: String?) = Unit
+        override fun setUserProperty(name: String, value: String) = Unit
+    }
 
     private val fakeAuthRepository = object : AuthRepository {
         private val _session = MutableStateFlow<User?>(
@@ -283,6 +291,7 @@ class InventoryViewModelTest {
             taxGroupRepository = fakeTaxGroupRepository,
             unitGroupRepository = fakeUnitGroupRepository,
             auditLogger = testAuditLogger,
+            analytics = noOpAnalytics,
         )
     }
 
