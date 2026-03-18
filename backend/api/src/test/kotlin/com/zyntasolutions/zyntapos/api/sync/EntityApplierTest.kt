@@ -331,20 +331,7 @@ class EntityApplierTest {
         )
     }
 
-    // ── All new entity types with DELETE for unknown entities ─────────────
-
-    @Test
-    fun `all new entity types handle DELETE without throwing`() {
-        val newTypes = listOf(
-            "STOCK_ADJUSTMENT", "CASH_REGISTER", "REGISTER_SESSION",
-            "CASH_MOVEMENT", "TAX_GROUP", "UNIT_OF_MEASURE",
-            "PAYMENT_SPLIT", "COUPON", "EXPENSE", "SETTINGS"
-        )
-        for (entityType in newTypes) {
-            applier.applyInTransaction(
-                "store-1",
-                op(entityType = entityType, operation = "DELETE", payload = """{}""")
-            )
-        }
-    }
+    // ── DELETE operations for known entity types require a DB transaction ──
+    // Full DELETE integration tests are in SyncPushPullIntegrationTest
+    // (they need a live PostgreSQL + Exposed transaction context).
 }
