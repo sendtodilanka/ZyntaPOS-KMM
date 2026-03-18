@@ -396,6 +396,89 @@ class EntityApplierTest {
         )
     }
 
+    // ── EMPLOYEE ────────────────────────────────────────────────────────
+
+    @Test
+    fun `EMPLOYEE with invalid JSON is a no-op`() {
+        applier.applyInTransaction("store-1", op(entityType = "EMPLOYEE", payload = "{{bad"))
+    }
+
+    @Test
+    fun `EMPLOYEE missing name returns early`() {
+        applier.applyInTransaction(
+            "store-1",
+            op(entityType = "EMPLOYEE", payload = """{"email":"alice@test.com","role":"MANAGER"}""")
+        )
+    }
+
+    // ── EXPENSE_CATEGORY ───────────────────────────────────────────────
+
+    @Test
+    fun `EXPENSE_CATEGORY with invalid JSON is a no-op`() {
+        applier.applyInTransaction("store-1", op(entityType = "EXPENSE_CATEGORY", payload = "{{bad"))
+    }
+
+    @Test
+    fun `EXPENSE_CATEGORY missing name returns early`() {
+        applier.applyInTransaction(
+            "store-1",
+            op(entityType = "EXPENSE_CATEGORY", payload = """{"sort_order":1}""")
+        )
+    }
+
+    // ── COUPON_USAGE ───────────────────────────────────────────────────
+
+    @Test
+    fun `COUPON_USAGE with invalid JSON is a no-op`() {
+        applier.applyInTransaction("store-1", op(entityType = "COUPON_USAGE", payload = "{{bad"))
+    }
+
+    @Test
+    fun `COUPON_USAGE missing coupon_id returns early`() {
+        applier.applyInTransaction(
+            "store-1",
+            op(entityType = "COUPON_USAGE", payload = """{"order_id":"ord-1","discount_amount":5.0}""")
+        )
+    }
+
+    @Test
+    fun `COUPON_USAGE missing order_id returns early`() {
+        applier.applyInTransaction(
+            "store-1",
+            op(entityType = "COUPON_USAGE", payload = """{"coupon_id":"cpn-1","discount_amount":5.0}""")
+        )
+    }
+
+    // ── PROMOTION ──────────────────────────────────────────────────────
+
+    @Test
+    fun `PROMOTION with invalid JSON is a no-op`() {
+        applier.applyInTransaction("store-1", op(entityType = "PROMOTION", payload = "{{bad"))
+    }
+
+    @Test
+    fun `PROMOTION missing name returns early`() {
+        applier.applyInTransaction(
+            "store-1",
+            op(entityType = "PROMOTION", payload = """{"type":"PERCENTAGE","value":10.0}""")
+        )
+    }
+
+    // ── CUSTOMER_GROUP ─────────────────────────────────────────────────
+
+    @Test
+    fun `CUSTOMER_GROUP with invalid JSON is a no-op`() {
+        applier.applyInTransaction("store-1", op(entityType = "CUSTOMER_GROUP", payload = "{{bad"))
+    }
+
+    @Test
+    fun `CUSTOMER_GROUP missing name returns early`() {
+        applier.applyInTransaction(
+            "store-1",
+            op(entityType = "CUSTOMER_GROUP", payload = """{"discount_rate":5.0}""")
+        )
+    }
+
     // ── All supported entity types route correctly ───────────────────────
 
     @Test
@@ -403,7 +486,8 @@ class EntityApplierTest {
         val types = listOf(
             "PRODUCT", "CATEGORY", "CUSTOMER", "SUPPLIER", "ORDER", "ORDER_ITEM", "AUDIT_ENTRY",
             "STOCK_ADJUSTMENT", "CASH_REGISTER", "REGISTER_SESSION", "CASH_MOVEMENT",
-            "TAX_GROUP", "UNIT_OF_MEASURE", "PAYMENT_SPLIT", "COUPON", "EXPENSE", "SETTINGS"
+            "TAX_GROUP", "UNIT_OF_MEASURE", "PAYMENT_SPLIT", "COUPON", "EXPENSE", "SETTINGS",
+            "EMPLOYEE", "EXPENSE_CATEGORY", "COUPON_USAGE", "PROMOTION", "CUSTOMER_GROUP"
         )
         for (type in types) {
             applier.applyInTransaction("store-1", op(entityType = type, payload = "invalid"))
