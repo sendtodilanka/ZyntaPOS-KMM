@@ -382,11 +382,6 @@ class AdminTicketService(
         if (breachedCount > 0 && emailService != null) {
             val recentlyBreached = ticketRepo.findRecentlyBreached(now, windowMs = 65_000L)
             for (ticket in recentlyBreached) {
-                val assigneeEmail = ticket.assignedTo?.let { assigneeId ->
-                    ticketRepo.findUserNames(listOf(assigneeId))[assigneeId]
-                }
-                // Send to assignee if available; the email might be their admin email (name here)
-                // For SLA breach, we look up the actual email from admin_users
                 ticket.assignedTo?.let { assigneeId ->
                     val emails = ticketRepo.findUserEmails(listOf(assigneeId))
                     emails[assigneeId]?.let { email ->
