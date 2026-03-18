@@ -33,6 +33,7 @@ kotlin {
             api(libs.compose.foundation)
             api(libs.compose.material3)
             api(libs.compose.ui)
+            implementation(libs.coil.compose)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
         }

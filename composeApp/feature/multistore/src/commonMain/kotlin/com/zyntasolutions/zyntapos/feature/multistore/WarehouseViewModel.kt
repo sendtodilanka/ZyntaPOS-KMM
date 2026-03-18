@@ -3,16 +3,20 @@ package com.zyntasolutions.zyntapos.feature.multistore
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import com.zyntasolutions.zyntapos.core.utils.IdGenerator
+import com.zyntasolutions.zyntapos.domain.model.Product
 import com.zyntasolutions.zyntapos.domain.model.StockTransfer
 import com.zyntasolutions.zyntapos.domain.model.Warehouse
 import com.zyntasolutions.zyntapos.domain.model.WarehouseRack
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
+import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseRepository
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.CommitStockTransferUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rack.DeleteWarehouseRackUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rack.GetWarehouseRacksUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rack.SaveWarehouseRackUseCase
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -34,6 +38,7 @@ import kotlin.time.Clock
  */
 class WarehouseViewModel(
     private val warehouseRepository: WarehouseRepository,
+    private val productRepository: ProductRepository,
     private val commitTransferUseCase: CommitStockTransferUseCase,
     private val getWarehouseRacksUseCase: GetWarehouseRacksUseCase,
     private val saveWarehouseRackUseCase: SaveWarehouseRackUseCase,
@@ -43,6 +48,7 @@ class WarehouseViewModel(
 
     private var currentStoreId: String = "default"
     private var currentUserId: String = "unknown"
+    private var productSearchJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -83,6 +89,8 @@ class WarehouseViewModel(
 
             is WarehouseIntent.InitTransferForm -> onInitTransferForm(intent.sourceWarehouseId)
             is WarehouseIntent.UpdateTransferField -> onUpdateTransferField(intent.field, intent.value)
+            is WarehouseIntent.SearchProducts -> onSearchProducts(intent.query)
+            is WarehouseIntent.SelectTransferProduct -> onSelectTransferProduct(intent.product)
             is WarehouseIntent.SubmitTransfer -> onSubmitTransfer()
 
             is WarehouseIntent.CommitTransfer -> onCommitTransfer(intent.transferId)
@@ -387,6 +395,37 @@ class WarehouseViewModel(
                 sendEffect(WarehouseEffect.ShowError(result.exception.message ?: "Delete failed"))
             }
             is Result.Loading -> {}
+        }
+    }
+
+    // ── Product Search (MS-1) ────────────────────────────────────────────
+
+    private fun onSearchProducts(query: String) {
+        updateState { copy(productSearchQuery = query) }
+        productSearchJob?.cancel()
+        if (query.isBlank()) {
+            updateState { copy(productSearchResults = emptyList()) }
+            return
+        }
+        productSearchJob = viewModelScope.launch {
+            delay(300L) // debounce
+            productRepository.search(query).first().let { results ->
+                updateState { copy(productSearchResults = results.take(10)) }
+            }
+        }
+    }
+
+    private fun onSelectTransferProduct(product: Product) {
+        updateState {
+            copy(
+                transferForm = transferForm.copy(
+                    productId = product.id,
+                    productName = product.name,
+                    validationErrors = transferForm.validationErrors - "productId",
+                ),
+                productSearchQuery = product.name,
+                productSearchResults = emptyList(),
+            )
         }
     }
 

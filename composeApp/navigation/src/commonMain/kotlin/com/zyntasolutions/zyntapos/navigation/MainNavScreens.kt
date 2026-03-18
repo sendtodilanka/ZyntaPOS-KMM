@@ -57,9 +57,21 @@ data class MainNavScreens(
 
     val categoryList: @Composable (
         onNavigateUp: () -> Unit,
+        onNavigateToDetail: (categoryId: String?) -> Unit,
+    ) -> Unit,
+
+    val categoryDetail: @Composable (
+        categoryId: String?,
+        onNavigateUp: () -> Unit,
     ) -> Unit,
 
     val supplierList: @Composable (
+        onNavigateUp: () -> Unit,
+        onNavigateToDetail: (supplierId: String?) -> Unit,
+    ) -> Unit,
+
+    val supplierDetail: @Composable (
+        supplierId: String?,
         onNavigateUp: () -> Unit,
     ) -> Unit,
 

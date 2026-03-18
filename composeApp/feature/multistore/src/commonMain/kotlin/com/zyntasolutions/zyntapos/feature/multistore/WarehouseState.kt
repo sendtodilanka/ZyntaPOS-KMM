@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.feature.multistore
 
+import com.zyntasolutions.zyntapos.domain.model.Product
 import com.zyntasolutions.zyntapos.domain.model.StockTransfer
 import com.zyntasolutions.zyntapos.domain.model.Warehouse
 import com.zyntasolutions.zyntapos.domain.model.WarehouseRack
@@ -23,6 +24,8 @@ data class WarehouseState(
 
     // ── New Transfer ──────────────────────────────────────────────────────
     val transferForm: TransferFormState = TransferFormState(),
+    val productSearchQuery: String = "",
+    val productSearchResults: List<Product> = emptyList(),
 
     // ── Rack Management ───────────────────────────────────────────────────
     val racks: List<WarehouseRack> = emptyList(),

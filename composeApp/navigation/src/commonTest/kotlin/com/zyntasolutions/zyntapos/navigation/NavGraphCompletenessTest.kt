@@ -36,7 +36,9 @@ class NavGraphCompletenessTest {
         "productList",
         "productDetail",
         "categoryList",
+        "categoryDetail",
         "supplierList",
+        "supplierDetail",
         "barcodeLabelPrint",
         "stocktake",
 

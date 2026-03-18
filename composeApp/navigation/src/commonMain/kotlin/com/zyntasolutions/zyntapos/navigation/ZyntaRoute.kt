@@ -149,6 +149,22 @@ sealed class ZyntaRoute {
     data object SupplierList : ZyntaRoute()
 
     /**
+     * Category detail / edit screen.
+     *
+     * @param categoryId Existing category ID for edit; `null` for create.
+     */
+    @Serializable
+    data class CategoryDetail(val categoryId: String? = null) : ZyntaRoute()
+
+    /**
+     * Supplier detail / edit screen.
+     *
+     * @param supplierId Existing supplier ID for edit; `null` for create.
+     */
+    @Serializable
+    data class SupplierDetail(val supplierId: String? = null) : ZyntaRoute()
+
+    /**
      * Barcode label batch-print screen — accessible from the product list.
      *
      * @param initialProductId Optional product ID to pre-load into the queue on open.

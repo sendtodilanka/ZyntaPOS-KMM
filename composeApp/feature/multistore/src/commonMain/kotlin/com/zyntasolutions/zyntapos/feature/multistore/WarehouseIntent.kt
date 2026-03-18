@@ -21,6 +21,10 @@ sealed interface WarehouseIntent {
     // ── New Transfer ───────────────────────────────────────────────────────
     data class InitTransferForm(val sourceWarehouseId: String?) : WarehouseIntent
     data class UpdateTransferField(val field: String, val value: String) : WarehouseIntent
+    /** Search products by name/SKU for the transfer product selector. */
+    data class SearchProducts(val query: String) : WarehouseIntent
+    /** Select a product from search results for the transfer. */
+    data class SelectTransferProduct(val product: com.zyntasolutions.zyntapos.domain.model.Product) : WarehouseIntent
     data object SubmitTransfer : WarehouseIntent
 
     // ── Transfer Actions ───────────────────────────────────────────────────
