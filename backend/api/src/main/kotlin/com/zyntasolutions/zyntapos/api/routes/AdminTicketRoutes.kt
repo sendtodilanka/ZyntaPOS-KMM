@@ -8,6 +8,8 @@ import com.zyntasolutions.zyntapos.api.service.AdminTicketService
 import com.zyntasolutions.zyntapos.api.service.EmailService
 import com.zyntasolutions.zyntapos.api.service.AddCommentRequest
 import com.zyntasolutions.zyntapos.api.service.AssignTicketRequest
+import com.zyntasolutions.zyntapos.api.service.BulkAssignRequest
+import com.zyntasolutions.zyntapos.api.service.BulkResolveRequest
 import com.zyntasolutions.zyntapos.api.service.CreateTicketRequest
 import com.zyntasolutions.zyntapos.api.service.ResolveTicketRequest
 import com.zyntasolutions.zyntapos.api.service.UpdateTicketRequest
@@ -44,9 +46,80 @@ fun Route.adminTicketRoutes() {
             val assignedTo = call.request.queryParameters["assignedTo"]
             val storeId  = call.request.queryParameters["storeId"]
             val search   = call.request.queryParameters["search"]
+            val searchBody    = call.request.queryParameters["searchBody"] == "true"
+            val createdAfter  = call.request.queryParameters["createdAfter"]?.toLongOrNull()
+            val createdBefore = call.request.queryParameters["createdBefore"]?.toLongOrNull()
 
-            val result = ticketService.listTickets(status, priority, category, assignedTo, storeId, search, page, size)
+            val result = ticketService.listTickets(status, priority, category, assignedTo, storeId, search, searchBody, createdAfter, createdBefore, page, size)
             call.respond(HttpStatusCode.OK, result)
+        }
+
+        // GET /admin/tickets/metrics — aggregate ticket metrics
+        get("/metrics") {
+            val admin = resolveAdminUser(call, authService) ?: return@get
+            if (!AdminPermissions.check(admin.role, "tickets:read")) {
+                call.respond(HttpStatusCode.Forbidden, ErrorResponse("FORBIDDEN", "Insufficient permissions"))
+                return@get
+            }
+            val metrics = ticketService.getMetrics()
+            call.respond(HttpStatusCode.OK, metrics)
+        }
+
+        // POST /admin/tickets/bulk-assign — bulk assign tickets
+        post("/bulk-assign") {
+            val admin = resolveAdminUser(call, authService) ?: return@post
+            if (!AdminPermissions.check(admin.role, "tickets:assign")) {
+                call.respond(HttpStatusCode.Forbidden, ErrorResponse("FORBIDDEN", "Insufficient permissions"))
+                return@post
+            }
+            val body = call.receive<BulkAssignRequest>()
+            val assigneeId = runCatching { UUID.fromString(body.assigneeId) }.getOrNull()
+                ?: return@post call.respond(HttpStatusCode.BadRequest, ErrorResponse("INVALID_ID", "Invalid assignee ID"))
+            if (body.ticketIds.isEmpty() || body.ticketIds.size > 100) {
+                call.respond(HttpStatusCode.BadRequest, ErrorResponse("INVALID_COUNT", "Select 1-100 tickets"))
+                return@post
+            }
+            val result = ticketService.bulkAssign(body.ticketIds, assigneeId)
+            call.respond(HttpStatusCode.OK, result)
+        }
+
+        // POST /admin/tickets/bulk-resolve — bulk resolve tickets
+        post("/bulk-resolve") {
+            val admin = resolveAdminUser(call, authService) ?: return@post
+            if (!AdminPermissions.check(admin.role, "tickets:resolve")) {
+                call.respond(HttpStatusCode.Forbidden, ErrorResponse("FORBIDDEN", "Insufficient permissions"))
+                return@post
+            }
+            val body = call.receive<BulkResolveRequest>()
+            if (body.ticketIds.isEmpty() || body.ticketIds.size > 100) {
+                call.respond(HttpStatusCode.BadRequest, ErrorResponse("INVALID_COUNT", "Select 1-100 tickets"))
+                return@post
+            }
+            if (body.resolutionNote.isBlank()) {
+                call.respond(HttpStatusCode.UnprocessableEntity, ErrorResponse("VALIDATION_ERROR", "Resolution note is required"))
+                return@post
+            }
+            val result = ticketService.bulkResolve(body.ticketIds, body.resolutionNote, admin.id)
+            call.respond(HttpStatusCode.OK, result)
+        }
+
+        // GET /admin/tickets/export — export tickets as CSV
+        get("/export") {
+            val admin = resolveAdminUser(call, authService) ?: return@get
+            if (!AdminPermissions.check(admin.role, "tickets:read")) {
+                call.respond(HttpStatusCode.Forbidden, ErrorResponse("FORBIDDEN", "Insufficient permissions"))
+                return@get
+            }
+            val status   = call.request.queryParameters["status"]
+            val priority = call.request.queryParameters["priority"]
+            val category = call.request.queryParameters["category"]
+            val assignedTo = call.request.queryParameters["assignedTo"]
+            val storeId  = call.request.queryParameters["storeId"]
+            val search   = call.request.queryParameters["search"]
+
+            val csv = ticketService.exportTicketsCsv(status, priority, category, assignedTo, storeId, search)
+            call.response.header("Content-Disposition", "attachment; filename=tickets.csv")
+            call.respondText(csv, ContentType.Text.CSV, HttpStatusCode.OK)
         }
 
         // POST /admin/tickets — create a new ticket
@@ -80,7 +153,7 @@ fun Route.adminTicketRoutes() {
             val ticket = ticketService.createTicket(body, admin.id)
 
             body.customerEmail?.takeIf { it.isNotBlank() }?.let {
-                emailService.sendTicketCreated(it, ticket.ticketNumber, ticket.title)
+                emailService.sendTicketCreated(it, ticket.ticketNumber, ticket.title, ticket.customerAccessToken)
             }
 
             auditService.log(
@@ -215,6 +288,21 @@ fun Route.adminTicketRoutes() {
             } ?: return@post call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Ticket not found"))
 
             call.respond(HttpStatusCode.OK, ticket)
+        }
+
+        // GET /admin/tickets/{id}/email-threads — list email threads for a ticket
+        get("/{id}/email-threads") {
+            val admin = resolveAdminUser(call, authService) ?: return@get
+            if (!AdminPermissions.check(admin.role, "tickets:read")) {
+                call.respond(HttpStatusCode.Forbidden, ErrorResponse("FORBIDDEN", "Insufficient permissions"))
+                return@get
+            }
+
+            val id = call.parameters["id"] ?: return@get call.respond(
+                HttpStatusCode.BadRequest, ErrorResponse("MISSING_ID", "Ticket ID required"))
+            val threads = ticketService.getEmailThreads(id)
+                ?: return@get call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Ticket not found"))
+            call.respond(HttpStatusCode.OK, threads)
         }
 
         // GET /admin/tickets/{id}/comments — list ticket comments

@@ -71,11 +71,11 @@ class EmailService(private val config: AppConfig) {
             templateSlug = "welcome_admin",
         )
 
-    suspend fun sendTicketCreated(toEmail: String, ticketNumber: String, title: String) =
+    suspend fun sendTicketCreated(toEmail: String, ticketNumber: String, title: String, customerAccessToken: String? = null) =
         send(
             to = toEmail,
             subject = "Support Ticket Created: #$ticketNumber",
-            html = ticketCreatedHtml(ticketNumber, title),
+            html = ticketCreatedHtml(ticketNumber, title, customerAccessToken),
             templateSlug = "ticket_created",
         )
 
@@ -85,6 +85,22 @@ class EmailService(private val config: AppConfig) {
             subject = "Ticket #$ticketNumber status updated: $newStatus",
             html = ticketUpdatedHtml(ticketNumber, newStatus),
             templateSlug = "ticket_updated",
+        )
+
+    suspend fun sendSlaBreachAlert(toEmail: String, ticketNumber: String, title: String, priority: String) =
+        send(
+            to = toEmail,
+            subject = "SLA Breach: $ticketNumber [$priority]",
+            html = slaBreachHtml(ticketNumber, title, priority),
+            templateSlug = "sla_breach",
+        )
+
+    suspend fun sendTicketReply(toEmail: String, customerName: String?, ticketNumber: String, agentName: String, messageBody: String) =
+        send(
+            to = toEmail,
+            subject = "Re: [$ticketNumber] Your support request",
+            html = ticketReplyHtml(ticketNumber, customerName, agentName, messageBody),
+            templateSlug = "ticket_reply",
         )
 
     // ── Private helpers ────────────────────────────────────────────────────────
@@ -176,12 +192,16 @@ class EmailService(private val config: AppConfig) {
         </body></html>
     """.trimIndent()
 
-    private fun ticketCreatedHtml(ticketNumber: String, title: String) = """
+    private fun ticketCreatedHtml(ticketNumber: String, title: String, customerAccessToken: String?) = """
         <!DOCTYPE html><html><body style="font-family:sans-serif;max-width:600px;margin:0 auto">
         <h2>Support Ticket Created: #${ticketNumber.htmlEscape()}</h2>
         <p>Your support ticket has been received and will be addressed shortly.</p>
         <p><strong>Title:</strong> ${title.htmlEscape()}</p>
+        ${if (customerAccessToken != null) """
+        <p>Track your ticket status: <a href="${config.adminPanelUrl}/ticket-status/${customerAccessToken.htmlEscape()}" style="color:#1976d2">View Ticket Status</a></p>
+        """ else """
         <p>You can track the status of your ticket in the ZyntaPOS Admin Panel.</p>
+        """}
         <p style="color:#666;font-size:12px">ZyntaPOS &mdash; Enterprise Point of Sale</p>
         </body></html>
     """.trimIndent()
@@ -191,6 +211,27 @@ class EmailService(private val config: AppConfig) {
         <h2>Ticket #${ticketNumber.htmlEscape()} Updated</h2>
         <p>The status of your support ticket has been updated to: <strong>${newStatus.htmlEscape()}</strong></p>
         <p>Log in to the ZyntaPOS Admin Panel for more details.</p>
+        <p style="color:#666;font-size:12px">ZyntaPOS &mdash; Enterprise Point of Sale</p>
+        </body></html>
+    """.trimIndent()
+
+    private fun slaBreachHtml(ticketNumber: String, title: String, priority: String) = """
+        <!DOCTYPE html><html><body style="font-family:sans-serif;max-width:600px;margin:0 auto">
+        <h2 style="color:#dc2626">SLA Breach Alert</h2>
+        <p>Ticket <strong>#${ticketNumber.htmlEscape()}</strong> has breached its SLA deadline.</p>
+        <p><strong>Title:</strong> ${title.htmlEscape()}</p>
+        <p><strong>Priority:</strong> ${priority.htmlEscape()}</p>
+        <p style="color:#dc2626;font-weight:600">Please take immediate action to resolve this ticket.</p>
+        <p style="color:#666;font-size:12px">ZyntaPOS &mdash; Enterprise Point of Sale</p>
+        </body></html>
+    """.trimIndent()
+
+    private fun ticketReplyHtml(ticketNumber: String, customerName: String?, agentName: String, messageBody: String) = """
+        <!DOCTYPE html><html><body style="font-family:sans-serif;max-width:600px;margin:0 auto">
+        <p>Dear ${(customerName ?: "Customer").htmlEscape()},</p>
+        <p>${messageBody.htmlEscape().replace("\n", "<br/>")}</p>
+        <hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0"/>
+        <p style="color:#666;font-size:12px">Replied by ${agentName.htmlEscape()} &mdash; Ticket #${ticketNumber.htmlEscape()}</p>
         <p style="color:#666;font-size:12px">ZyntaPOS &mdash; Enterprise Point of Sale</p>
         </body></html>
     """.trimIndent()

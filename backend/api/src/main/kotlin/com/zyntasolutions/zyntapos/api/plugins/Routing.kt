@@ -11,6 +11,7 @@ import com.zyntasolutions.zyntapos.api.routes.adminMetricsRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminStoresRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminSyncRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminTicketRoutes
+import com.zyntasolutions.zyntapos.api.routes.customerTicketRoutes
 import com.zyntasolutions.zyntapos.api.routes.authRoutes
 import com.zyntasolutions.zyntapos.api.routes.diagnosticConsentRoutes
 import com.zyntasolutions.zyntapos.api.routes.exportRoutes
@@ -35,6 +36,11 @@ fun Application.configureRouting() {
 
         // Email unsubscribe — public, no auth required
         unsubscribeRoutes()
+
+        // Customer ticket status check — public, token-based auth
+        rateLimit(RateLimitName("api")) {
+            customerTicketRoutes()
+        }
 
         // Inbound email from CF Email Worker — HMAC-signed, NOT JWT auth
         // Rate-limited to prevent spam but NOT behind CSRF (Worker can't send CSRF tokens)

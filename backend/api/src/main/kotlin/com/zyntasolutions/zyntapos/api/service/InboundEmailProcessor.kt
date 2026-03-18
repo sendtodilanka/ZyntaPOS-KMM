@@ -3,7 +3,7 @@ package com.zyntasolutions.zyntapos.api.service
 import com.zyntasolutions.zyntapos.api.config.AppConfig
 import com.zyntasolutions.zyntapos.api.db.EmailThreads
 import com.zyntasolutions.zyntapos.api.repository.AdminTicketRepository
-import com.zyntasolutions.zyntapos.api.repository.TicketCreateInput
+import com.zyntasolutions.zyntapos.api.repository.TicketRow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -13,9 +13,7 @@ import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.update
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.slf4j.LoggerFactory
-import java.time.Instant
 import java.time.OffsetDateTime
-import java.time.Year
 import java.time.ZoneOffset
 import java.security.MessageDigest
 import java.util.Base64
@@ -42,6 +40,7 @@ class InboundEmailProcessor(
     private val ticketRepo: AdminTicketRepository,
     private val emailService: EmailService,
     private val chatwootService: ChatwootService,
+    private val ticketService: AdminTicketService,
 ) {
     private val log = LoggerFactory.getLogger(InboundEmailProcessor::class.java)
 
@@ -85,7 +84,17 @@ class InboundEmailProcessor(
         // 2. Find or create ticket
         val ticket = resolveTicket(payload)
 
-        // 3. Persist email thread row
+        // 3. Resolve parent thread for reply chain tracking (V21)
+        val parentThreadId: UUID? = payload.inReplyTo?.let { replyTo ->
+            newSuspendedTransaction {
+                EmailThreads.selectAll()
+                    .where { EmailThreads.messageId eq replyTo }
+                    .firstOrNull()
+                    ?.get(EmailThreads.id)
+            }
+        }
+
+        // 4. Persist email thread row
         val threadId = UUID.randomUUID()
         newSuspendedTransaction {
             EmailThreads.insert {
@@ -100,13 +109,14 @@ class InboundEmailProcessor(
                 it[subject]     = payload.subject
                 it[bodyText]    = payload.bodyText?.take(65_535)
                 it[bodyHtml]    = payload.bodyHtml?.take(65_535)
+                it[EmailThreads.parentThreadId] = parentThreadId
                 it[receivedAt]  = OffsetDateTime.parse(payload.receivedAt)
                 it[createdAt]   = OffsetDateTime.now(ZoneOffset.UTC)
             }
         }
         log.info("Inbound email stored — threadId=$threadId ticketId=${ticket.id} from=${payload.fromAddress}")
 
-        // 4. Create Chatwoot conversation (best-effort)
+        // 5. Create Chatwoot conversation (best-effort)
         runCatching {
             val conversationId = chatwootService.createConversation(
                 fromEmail = payload.fromAddress,
@@ -124,12 +134,13 @@ class InboundEmailProcessor(
             }
         }.onFailure { e -> log.warn("Chatwoot conversation creation failed: ${e.message}") }
 
-        // 5. Auto-reply to sender (best-effort)
+        // 6. Auto-reply to sender (best-effort)
         runCatching {
             emailService.sendTicketCreated(
-                toEmail      = payload.fromAddress,
-                ticketNumber = ticket.ticketNumber,
-                title        = ticket.title,
+                toEmail              = payload.fromAddress,
+                ticketNumber         = ticket.ticketNumber,
+                title                = ticket.title,
+                customerAccessToken  = ticket.customerAccessToken.toString(),
             )
         }.onFailure { e -> log.warn("Auto-reply email failed: ${e.message}") }
     }
@@ -141,49 +152,61 @@ class InboundEmailProcessor(
             EmailThreads.selectAll().where { EmailThreads.messageId eq messageId }.count() > 0
         }
 
-    private suspend fun resolveTicket(payload: InboundEmailPayload) = newSuspendedTransaction {
+    private suspend fun resolveTicket(payload: InboundEmailPayload): TicketRow {
         // Try to link to existing ticket via In-Reply-To thread
-        val existingTicketId: UUID? = payload.inReplyTo?.let { replyTo ->
-            EmailThreads
-                .selectAll().where { EmailThreads.messageId eq replyTo }
-                .limit(1)
-                .firstOrNull()
-                ?.get(EmailThreads.ticketId)
+        val existingTicketId: UUID? = newSuspendedTransaction {
+            payload.inReplyTo?.let { replyTo ->
+                EmailThreads
+                    .selectAll().where { EmailThreads.messageId eq replyTo }
+                    .limit(1)
+                    .firstOrNull()
+                    ?.get(EmailThreads.ticketId)
+            }
         }
 
         if (existingTicketId != null) {
             val existing = ticketRepo.findById(existingTicketId)
             if (existing != null) {
                 log.info("Linked inbound email to existing ticket #${existing.ticketNumber}")
-                return@newSuspendedTransaction existing
+                return existing
             }
         }
 
-        // No existing thread — create a new ticket
-        val now = Instant.now().toEpochMilli()
-        val ticketNumber = ticketRepo.nextTicketNumber(Year.now().value)
+        // No existing thread — create via AdminTicketService (single source of truth for SLA)
         val systemCreatorId = UUID.fromString("00000000-0000-0000-0000-000000000001")
+        val priority = inferPriorityFromEmail(payload.subject, payload.bodyText)
 
-        val input = TicketCreateInput(
-            id            = UUID.randomUUID(),
-            ticketNumber  = ticketNumber,
-            storeId       = null,
-            licenseId     = null,
-            createdBy     = systemCreatorId,
+        val request = CreateTicketRequest(
             customerName  = payload.fromName ?: payload.fromAddress,
             customerEmail = payload.fromAddress,
-            customerPhone = null,
             title         = payload.subject.take(200),
             description   = buildTicketDescription(payload),
             category      = categoriseByInbox(payload.toAddress),
-            priority      = "MEDIUM",
-            slaDueAt      = now + (48 * 3600 * 1000L),
-            createdAt     = now,
+            priority      = priority,
         )
-        val ticket = ticketRepo.create(input)
-        log.info("Created ticket #$ticketNumber from inbound email — from=${payload.fromAddress}")
-        ticket
+        val response = ticketService.createTicket(request, systemCreatorId)
+        val ticketId = UUID.fromString(response.id)
+        val ticket = ticketRepo.findById(ticketId)
+            ?: error("Ticket created but not found: ${response.id}")
+        log.info("Created ticket #${ticket.ticketNumber} (priority=$priority) from inbound email — from=${payload.fromAddress}")
+        return ticket
     }
+
+    /**
+     * Keyword-based priority inference for inbound emails.
+     * Returns CRITICAL/HIGH/MEDIUM/LOW based on subject + body content.
+     */
+    private fun inferPriorityFromEmail(subject: String, body: String?): String {
+        val text = "$subject ${body ?: ""}".lowercase()
+        return when {
+            text.containsAny("urgent", "critical", "down", "broken", "emergency", "outage") -> "CRITICAL"
+            text.containsAny("billing", "payment", "invoice", "security", "breach", "locked") -> "HIGH"
+            text.containsAny("feature", "suggestion", "how to", "question", "training") -> "LOW"
+            else -> "MEDIUM"
+        }
+    }
+
+    private fun String.containsAny(vararg keywords: String) = keywords.any { this.contains(it) }
 
     private fun buildTicketDescription(payload: InboundEmailPayload): String {
         val body = payload.bodyText?.take(2000) ?: payload.bodyHtml?.take(2000) ?: "(no body)"
