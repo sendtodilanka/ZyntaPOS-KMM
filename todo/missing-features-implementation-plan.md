@@ -1673,12 +1673,100 @@ Only after completing Steps 1-3, begin implementing items from this plan.
    - Side effects (navigation, toasts) ONLY via `sendEffect()` — never from composable
    - Single entry point: `override suspend fun handleIntent(intent: I)` — all user actions flow through here
 
-3. **DRY Principle:**
-   - Reuse existing `Zynta*` design system components (27+ exist) — do NOT create duplicates
-   - Reuse existing use cases — check `:shared:domain` before writing new ones
-   - Reuse existing repository methods — check interfaces in `:shared:domain/repository/`
-   - Reuse existing utilities from `:shared:core` (`CurrencyUtils`, `DateTimeUtils`, `ValidationUtils`)
-   - Common UI patterns (search bar, empty state, loading) already exist in designsystem
+3. **DRY Principle — Codebase-First Development (CRITICAL):**
+
+   > **RULE: NEVER write new code without first searching the codebase for existing implementations.**
+   > This is the single most important rule. The codebase has 26 modules, 31 domain models,
+   > 36 SQLDelight schemas, 27+ design system components, and dozens of use cases/repositories.
+   > Duplicating ANY of these is a bug.
+
+   **MANDATORY search-before-coding process (for EVERY new function/class/component):**
+
+   ```
+   Step 1: SEARCH — Before writing ANY new code, search the codebase:
+     • Grep for similar function names, class names, or keywords
+     • Glob for files in related modules that might already solve the problem
+     • Read existing ViewModel/UseCase/Repository in the same feature module
+     • Check `:shared:core` utilities (CurrencyUtils, DateTimeUtils, ValidationUtils, etc.)
+     • Check `:composeApp:designsystem` for existing UI components (27+ Zynta* components)
+
+   Step 2: EVALUATE — If something similar exists:
+     • Can you reuse it directly? → USE IT
+     • Can you extend it with a parameter? → EXTEND IT
+     • Is it 80% what you need? → MODIFY IT (don't create a parallel version)
+     • Only if NOTHING exists → CREATE NEW (and document why in the commit message)
+
+   Step 3: VERIFY — After implementation, search again:
+     • Confirm you didn't create a duplicate of something that already exists
+     • Confirm your new code follows the same patterns as existing code in that module
+   ```
+
+   **Specific search locations by layer:**
+
+   | Before creating... | Search these locations FIRST |
+   |--------------------|------------------------------|
+   | A new UI component | `composeApp/designsystem/src/commonMain/` — 27+ `Zynta*` components |
+   | A new ViewModel | Same feature's existing ViewModel — can you add an Intent instead? |
+   | A new UseCase | `shared/domain/src/commonMain/.../usecase/` — 20+ existing use cases |
+   | A new Repository method | `shared/domain/src/commonMain/.../repository/` — existing interfaces |
+   | A new domain model | `shared/domain/src/commonMain/.../model/` — 31 existing models |
+   | A new SQLDelight query | `shared/data/src/commonMain/sqldelight/` — 36 existing `.sq` files |
+   | A utility function | `shared/core/src/commonMain/` — CurrencyUtils, DateTimeUtils, ValidationUtils |
+   | A new Koin module | `<feature>/di/` — existing module may just need new bindings |
+   | A new navigation route | `composeApp/navigation/.../ZyntaRoute.kt` — 58 existing routes |
+   | An error handling pattern | Check how existing VMs handle errors (sendEffect → ShowError) |
+   | A reactive pipeline | Check `InventoryViewModel` search pipeline as canonical reference |
+
+   **Examples of WRONG vs RIGHT:**
+
+   ```kotlin
+   // ❌ WRONG — Created new currency formatter without checking :shared:core
+   fun formatPrice(amount: Double): String = "$${String.format("%.2f", amount)}"
+
+   // ✅ RIGHT — Reused existing CurrencyUtils from :shared:core
+   import com.zyntasolutions.zyntapos.core.util.CurrencyUtils
+   val formatted = CurrencyUtils.format(amount, currencyCode)
+
+   // ❌ WRONG — Created new empty state composable
+   @Composable fun EmptyProductList() { Column { Text("No products") } }
+
+   // ✅ RIGHT — Reused existing ZyntaEmptyState from designsystem
+   ZyntaEmptyState(
+       icon = Icons.Default.Inventory,
+       title = "No products found",
+       actionLabel = "Add Product",
+       onAction = { /* navigate */ }
+   )
+
+   // ❌ WRONG — Created separate validation in ViewModel
+   private fun validateName(name: String): Boolean = name.isNotBlank()
+
+   // ✅ RIGHT — Used existing ValidationUtils
+   import com.zyntasolutions.zyntapos.core.util.ValidationUtils
+   ValidationUtils.validateRequired(name, "Product name")
+   ```
+
+   **Codebase exploration commands (run before implementing any feature):**
+
+   ```bash
+   # Find all existing components in design system
+   grep -r "^fun Zynta" composeApp/designsystem/src/commonMain/ --include="*.kt" -l
+
+   # Find all existing use cases
+   find shared/domain/src/commonMain -name "*UseCase.kt" | sort
+
+   # Find all existing repository interfaces
+   find shared/domain/src/commonMain -name "*Repository.kt" | sort
+
+   # Find all existing domain models
+   find shared/domain/src/commonMain -name "*.kt" -path "*/model/*" | sort
+
+   # Find all SQLDelight schemas
+   find shared/data/src/commonMain/sqldelight -name "*.sq" | sort
+
+   # Search for existing similar functionality
+   grep -r "yourKeyword" shared/ composeApp/ --include="*.kt" -l
+   ```
 
 ### Naming Conventions (enforced by code review)
 
