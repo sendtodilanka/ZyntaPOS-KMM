@@ -7,8 +7,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Test
+import kotlin.test.AfterTest
+import kotlin.test.Test
 import com.zyntasolutions.zyntapos.sync.models.SyncNotification
 
 /**
@@ -18,14 +18,14 @@ import com.zyntasolutions.zyntapos.sync.models.SyncNotification
  * `sync:delta:{storeId}` channel, [WebSocketHub.broadcast] is called for
  * the correct storeId with the expected message content and excludeDeviceId.
  *
- * Extends [AbstractRedisIntegrationTest] which starts a singleton Redis 7 container.
+ * Extends [AbstractRedisIntegrationTest] which lazily starts a singleton Redis 7 container.
  */
 class RedisPubSubIntegrationTest : AbstractRedisIntegrationTest() {
 
     private val json = Json { ignoreUnknownKeys = true }
     private var listener: RedisPubSubListener? = null
 
-    @AfterEach
+    @AfterTest
     fun stopListener() {
         listener?.stop()
         listener = null
@@ -89,7 +89,7 @@ class RedisPubSubIntegrationTest : AbstractRedisIntegrationTest() {
     }
 
     @Test
-    fun `delta message to unknown store is still broadcast (hub handles unknown store)`() = runTest {
+    fun `delta message to unknown store is still broadcast to hub`() = runTest {
         val hub = mockk<WebSocketHub>(relaxed = true)
         val unknownStore = "store-unknown-${System.nanoTime()}"
 

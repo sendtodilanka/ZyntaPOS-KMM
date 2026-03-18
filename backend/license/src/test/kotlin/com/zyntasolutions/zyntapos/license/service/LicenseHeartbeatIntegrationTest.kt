@@ -12,64 +12,38 @@ import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transaction
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
 import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 import java.security.KeyPairGenerator
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.UUID
+import kotlin.test.BeforeTest
+import kotlin.test.Test
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 /**
  * A1.1 — Integration tests for [LicenseService.heartbeat] with a real PostgreSQL container.
  *
+ * Uses a singleton Testcontainers PostgreSQL container started lazily via companion object.
  * Tests cover:
  * - Fresh heartbeat with unique nonce returns a response (nonce recorded)
  * - Duplicate nonce within TTL is rejected (replay protection)
  * - Stale clientTimestamp (>60s old) is rejected
  * - Null nonce/timestamp is accepted (backward compatibility)
  */
-@Testcontainers
 class LicenseHeartbeatIntegrationTest {
 
     companion object {
-        @Container
-        @JvmStatic
-        val postgres: PostgreSQLContainer<*> = PostgreSQLContainer("postgres:16-alpine")
-            .withDatabaseName("zyntapos_license_test")
-            .withUsername("test")
-            .withPassword("test")
+        private val postgres: PostgreSQLContainer<*> by lazy {
+            PostgreSQLContainer("postgres:16-alpine")
+                .withDatabaseName("zyntapos_license_test")
+                .withUsername("test")
+                .withPassword("test")
+                .also { it.start() }
+        }
 
-        @Volatile
-        private var initialized = false
-
-        @Volatile
-        private lateinit var sharedDatabase: Database
-
-        private val testRsaPublicKey = KeyPairGenerator.getInstance("RSA")
-            .apply { initialize(2048) }
-            .generateKeyPair()
-            .public
-
-        private val testConfig = LicenseConfig(
-            jwtIssuer = "test-issuer",
-            jwtAudience = "test-audience",
-            jwtPublicKey = testRsaPublicKey,
-            gracePeriodDays = 7,
-            maxDevicesPerLicense = 100,
-            heartbeatIntervalMinutes = 60,
-        )
-
-        @BeforeAll
-        @JvmStatic
-        fun initDatabase() {
-            if (initialized) return
-
+        private val sharedDatabase: Database by lazy {
             Flyway.configure()
                 .dataSource(postgres.jdbcUrl, postgres.username, postgres.password)
                 .locations("classpath:db/migration")
@@ -88,12 +62,31 @@ class LicenseHeartbeatIntegrationTest {
                 transactionIsolation = "TRANSACTION_READ_COMMITTED"
                 validate()
             }
-            sharedDatabase = Database.connect(HikariDataSource(hikariConfig))
-            initialized = true
+            Database.connect(HikariDataSource(hikariConfig))
+        }
+
+        private val testRsaPublicKey = KeyPairGenerator.getInstance("RSA")
+            .apply { initialize(2048) }
+            .generateKeyPair()
+            .public
+
+        val testConfig = LicenseConfig(
+            jwtIssuer = "test-issuer",
+            jwtAudience = "test-audience",
+            jwtPublicKey = testRsaPublicKey,
+            gracePeriodDays = 7,
+            maxDevicesPerLicense = 100,
+            heartbeatIntervalMinutes = 60,
+        )
+
+        init {
+            Runtime.getRuntime().addShutdownHook(Thread {
+                try { postgres.stop() } catch (_: Exception) {}
+            })
         }
     }
 
-    @BeforeEach
+    @BeforeTest
     fun resetDatabase() {
         TransactionManager.defaultDatabase = sharedDatabase
         transaction(sharedDatabase) {
@@ -118,11 +111,11 @@ class LicenseHeartbeatIntegrationTest {
                 it[Licenses.forceSyncRequested] = false
             }
             DeviceRegistrations.insert {
-                it[DeviceRegistrations.id]         = UUID.randomUUID().toString()
-                it[DeviceRegistrations.licenseKey] = licenseKey
-                it[DeviceRegistrations.deviceId]   = deviceId
-                it[DeviceRegistrations.appVersion] = "1.0.0"
-                it[DeviceRegistrations.lastSeenAt] = OffsetDateTime.now(ZoneOffset.UTC).minusMinutes(30)
+                it[DeviceRegistrations.id]           = UUID.randomUUID().toString()
+                it[DeviceRegistrations.licenseKey]   = licenseKey
+                it[DeviceRegistrations.deviceId]     = deviceId
+                it[DeviceRegistrations.appVersion]   = "1.0.0"
+                it[DeviceRegistrations.lastSeenAt]   = OffsetDateTime.now(ZoneOffset.UTC).minusMinutes(30)
                 it[DeviceRegistrations.registeredAt] = OffsetDateTime.now(ZoneOffset.UTC).minusDays(1)
             }
         }
@@ -194,13 +187,14 @@ class LicenseHeartbeatIntegrationTest {
         )
         assertNotNull(resp1, "First heartbeat with fresh nonce must succeed")
 
-        // Second heartbeat with the SAME nonce — replay detected
+        // Re-seed because the device lastSeenAt was updated and second call needs a new device entry
+        // Actually the nonce rejection happens BEFORE the DB query, so we don't need to re-seed
         val resp2 = service.heartbeat(
             HeartbeatRequest(
                 licenseKey = licenseKey,
                 deviceId = deviceId,
                 appVersion = "1.0.0",
-                nonce = nonce,
+                nonce = nonce, // SAME nonce — replay
                 clientTimestamp = System.currentTimeMillis(),
             )
         )
@@ -221,7 +215,7 @@ class LicenseHeartbeatIntegrationTest {
                 licenseKey = licenseKey,
                 deviceId = deviceId,
                 appVersion = "1.0.0",
-                nonce = UUID.randomUUID().toString(), // unique nonce — not a replay
+                nonce = UUID.randomUUID().toString(), // unique — not a replay
                 clientTimestamp = System.currentTimeMillis() - 70_000L, // 70s old — stale
             )
         )
