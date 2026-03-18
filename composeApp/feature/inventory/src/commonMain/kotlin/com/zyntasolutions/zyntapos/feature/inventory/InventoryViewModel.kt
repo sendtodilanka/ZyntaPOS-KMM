@@ -25,6 +25,9 @@ import com.zyntasolutions.zyntapos.domain.usecase.inventory.AdjustStockUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.CreateProductUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.SearchProductsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.UpdateProductUseCase
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsEvents
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsParams
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -77,6 +80,7 @@ class InventoryViewModel(
     private val adjustStockUseCase: AdjustStockUseCase,
     private val authRepository: AuthRepository,
     private val auditLogger: SecurityAuditLogger,
+    private val analytics: AnalyticsTracker,
 ) : BaseViewModel<InventoryState, InventoryIntent, InventoryEffect>(InventoryState()) {
 
     private var currentUserId: String = "unknown"
@@ -87,6 +91,7 @@ class InventoryViewModel(
     private val _selectedCategoryId = MutableStateFlow<String?>(null)
 
     init {
+        analytics.logScreenView("Inventory", "InventoryViewModel")
         viewModelScope.launch {
             currentUserId = authRepository.getSession().first()?.id ?: "unknown"
         }
@@ -204,6 +209,11 @@ class InventoryViewModel(
     private fun onSearchQueryChanged(query: String) {
         updateState { copy(searchQuery = query) }
         _searchQuery.value = query
+        if (query.isNotBlank()) {
+            analytics.logEvent(AnalyticsEvents.PRODUCT_SEARCHED, mapOf(
+                AnalyticsParams.SEARCH_TERM to query,
+            ))
+        }
     }
 
     private fun onSelectCategory(categoryId: String?) {
@@ -486,6 +496,9 @@ class InventoryViewModel(
         when (result) {
             is Result.Success -> {
                 auditLogger.logStockAdjusted(currentUserId, target.id, quantity, reason)
+                analytics.logEvent(AnalyticsEvents.STOCK_ADJUSTED, mapOf(
+                    AnalyticsParams.ITEM_COUNT to quantity.toString(),
+                ))
                 sendEffect(InventoryEffect.ShowSuccess("Stock adjusted for '${target.name}'."))
             }
             is Result.Error -> sendEffect(InventoryEffect.ShowError(result.exception.message ?: "Adjustment failed"))
