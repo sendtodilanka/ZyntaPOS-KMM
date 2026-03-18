@@ -1,13 +1,13 @@
 # Backend Database Schemas
 
-**Last updated:** 2026-03-14 (S3-11 indexes, Phase 3 Block 6 site-visit token)
+**Last updated:** 2026-03-18 (V17–V26: Google SSO removal, email threads, extended normalized tables)
 
 This document catalogs all PostgreSQL tables across the two backend databases.
 For the KMM client-side SQLDelight schema, see `shared/data/src/commonMain/sqldelight/`.
 
 ---
 
-## Database: `zyntapos_api` (16 Migrations)
+## Database: `zyntapos_api` (26 Migrations)
 
 ### V1 — Initial Schema
 
@@ -130,6 +130,80 @@ Performance indexes added to `sync_operations` (the highest-traffic table):
 | `idx_sync_ops_store_entity` | `(store_id, entity_type, entity_id)` | — | EntityApplier lookup; covers the full join predicate used by `SyncProcessor` |
 | `idx_sync_ops_pending` | `(store_id, created_at DESC)` | `WHERE status = 'PENDING'` | Partial index; skips APPLIED/FAILED rows entirely on `SyncProcessor`'s batch-fetch query |
 
+### V17 — Remove Google SSO
+
+Removed `google_sub` column from `admin_users`. Admin authentication is email/password + TOTP MFA only; Google OAuth has been removed entirely.
+
+### V18 — Email Threads
+
+| Table | Key Columns | Notes |
+|-------|------------|-------|
+| **email_threads** | id, ticket_id (FK), message_id (UNIQUE), in_reply_to, email_references, from_address, to_address, subject, body_text, body_html, chatwoot_conversation_id, received_at | Inbound email storage from CF Email Worker; RFC 2822 threading headers for thread linking |
+
+### V19 — Site Visit Extended Columns
+
+Added to `diagnostic_sessions`:
+- `hardware_scope TEXT` — comma-separated hardware component identifiers the technician may access (e.g. `PRINTER,SCANNER,CASH_DRAWER`); NULL for REMOTE sessions.
+- `site_visit_presented_at BIGINT` — epoch-ms when the technician presented the physical site visit token on-site; NULL until validated.
+- `idx_diag_sessions_visit_type` composite index on `(visit_type, status)`.
+
+### V20 — Email Delivery Log
+
+| Table | Key Columns | Notes |
+|-------|------------|-------|
+| **email_delivery_log** | id, to_address, from_address, subject, template_slug, status (QUEUED/SENDING/SENT/DELIVERED/BOUNCED/FAILED), error_message, sent_at | Outbound transactional email audit trail; admin panel reads via `GET /admin/email/delivery-logs` |
+
+### V21 — Email Thread Chain
+
+Added `parent_thread_id UUID` self-referencing FK to `email_threads` for nested reply-to-reply conversation rendering in the admin panel.
+
+### V22 — Ticket Customer Token
+
+Added `customer_access_token UUID DEFAULT gen_random_uuid()` to `support_tickets`. Allows customers to check ticket status via a unique URL token without admin-panel authentication.
+
+### V23 — Extended Normalized Entity Tables
+
+Ten additional server-side tables for entity types flowing through the sync pipeline:
+
+| Table | Key Columns | Notes |
+|-------|------------|-------|
+| **stock_adjustments** | id, store_id, product_id, type (INCREASE/DECREASE/TRANSFER), quantity, reason, adjusted_by | Stock adjustment events |
+| **cash_registers** | id, store_id, name, current_session_id, is_active | Register hardware registry |
+| **register_sessions** | id, store_id, register_id, opened_by, closed_by, opening_balance, closing_balance, status (OPEN/CLOSED) | Cash session open/close |
+| **cash_movements** | id, store_id, session_id, type (IN/OUT), amount, reason, recorded_by | Cash in/out movements |
+| **tax_groups** | id, store_id, name, rate, is_inclusive | Store-level tax group definitions |
+| **units_of_measure** | id, store_id, name, abbreviation, is_base_unit, conversion_rate | UoM catalog |
+| **payment_splits** | id, store_id, order_id, method, amount, reference | Split-payment records per order |
+| **coupons** | id, store_id, code, name, discount_type, discount_value, usage_limit, usage_count, scope | Coupon catalog |
+| **expenses** | id, store_id, category, amount, description, recorded_by | Expense log entries |
+| **settings** | id, store_id, key, value | Per-store key-value settings (UNIQUE on store_id, key) |
+
+### V24 — Employee, Expense Category, Coupon Usage, Promotion, Customer Group Tables
+
+Five additional normalized entity tables:
+
+| Table | Key Columns | Notes |
+|-------|------------|-------|
+| **employees** | id, store_id, name, email, phone, role, department, hire_date, hourly_rate | Staff profiles synced from POS |
+| **expense_categories** | id, store_id, name, description, parent_id, sort_order | Hierarchical expense category tree |
+| **coupon_usages** | id, store_id, coupon_id, order_id, customer_id, discount_amount, redeemed_by | Coupon redemption log |
+| **promotions** | id, store_id, name, type, value, minimum_purchase, scope, valid_from, valid_to, priority, is_stackable | Promotion rules |
+| **customer_groups** | id, store_id, name, description, discount_rate | Customer group segmentation |
+
+### V25 — Email Retry, Templates, Preferences Enhancements
+
+Added to `email_delivery_log`: `retry_count INTEGER`, `next_retry_at TIMESTAMPTZ`, `html_body TEXT`. Partial index `idx_email_delivery_log_retry` filters FAILED rows where retry is pending.
+
+| Table | Key Columns | Notes |
+|-------|------------|-------|
+| **email_templates** | id, slug (UNIQUE), name, subject, html_body, updated_at | Admin-editable email templates; seeded with 6 default slugs (password_reset, welcome_admin, ticket_created, ticket_updated, sla_breach, ticket_reply) |
+
+Added to `email_preferences`: `sla_breach_notifications BOOLEAN`, `daily_digest BOOLEAN`.
+
+### V26 — Admin Password Rotation
+
+Added `password_changed_at BIGINT` to `admin_users`. Epoch-ms timestamp of last password change; used by the `ADMIN_PASSWORD_MAX_AGE_DAYS` policy (0 = disabled). Backfilled from `created_at` for existing users.
+
 ---
 
 ## Database: `zyntapos_license` (4 Migrations)
@@ -161,9 +235,9 @@ Updated edition CHECK constraint: `STARTER` renamed to `COMMUNITY`.
 
 | Metric | Count |
 |--------|-------|
-| API tables | 24 |
+| API tables | 51 |
 | License tables | 3 |
-| Total indexes | 60+ |
+| Total indexes | 80+ |
 | Triggers | 1 (entity snapshot) |
 | Sequences | 1 (ticket numbering) |
 
