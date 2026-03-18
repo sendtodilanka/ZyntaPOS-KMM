@@ -32,6 +32,7 @@ import com.zyntasolutions.zyntapos.api.service.AdminTicketService
 import com.zyntasolutions.zyntapos.api.service.AlertGenerationJob
 import com.zyntasolutions.zyntapos.api.service.DiagnosticSessionService
 import com.zyntasolutions.zyntapos.api.service.ChatwootService
+import com.zyntasolutions.zyntapos.api.service.EmailRetryJob
 import com.zyntasolutions.zyntapos.api.service.EmailService
 import com.zyntasolutions.zyntapos.api.service.InboundEmailProcessor
 import com.zyntasolutions.zyntapos.api.service.PlayIntegrityService
@@ -128,6 +129,7 @@ val appModule = module {
 
     // ── Services ──────────────────────────────────────────────────────────────
     single { EmailService(get()) }
+    single { EmailRetryJob(get()) }
     single { PlayIntegrityService(get()) }          // Play Integrity API verification (TODO-008)
     single { ChatwootService(get()) }               // Chatwoot support inbox (TODO-008a)
     single { InboundEmailProcessor(                 // CF Worker → ticket pipeline (TODO-008a)

@@ -132,8 +132,8 @@ class EmailService(private val config: AppConfig) {
                 }
                 log.info("Email sent to $to (subject: $subject)")
             }
-            // Log delivery to email_delivery_log table
-            logDelivery(to, fromAddress, subject, templateSlug, result)
+            // Log delivery to email_delivery_log table (store html for retry on failure)
+            logDelivery(to, fromAddress, subject, templateSlug, result, html)
         }
     }
 
@@ -143,6 +143,7 @@ class EmailService(private val config: AppConfig) {
         subject: String,
         templateSlug: String?,
         result: Result<Unit>,
+        html: String? = null,
     ) {
         runCatching {
             val now = OffsetDateTime.now(ZoneOffset.UTC)
@@ -157,6 +158,12 @@ class EmailService(private val config: AppConfig) {
                     it[errorMessage] = result.exceptionOrNull()?.message
                     it[sentAt]       = if (result.isSuccess) now else null
                     it[createdAt]    = now
+                    // Store HTML body for retry on failure
+                    if (result.isFailure && html != null) {
+                        it[htmlBody] = html
+                        it[retryCount] = 0
+                        it[nextRetryAt] = now.plusSeconds(120) // first retry at +2min
+                    }
                 }
             }
         }.onFailure { e ->
