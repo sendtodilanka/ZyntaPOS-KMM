@@ -15,8 +15,9 @@ data class AppConfig(
     val jwtPrivateKey: PrivateKey,
     val accessTokenTtlMs: Long,
     val refreshTokenTtlMs: Long,
-    // Admin panel JWT (HS256 — separate from POS app RS256 tokens)
-    val adminJwtSecret: String,
+    // Admin panel JWT (RS256 — uses same RSA keypair as POS tokens)
+    val adminJwtPublicKey: PublicKey,
+    val adminJwtPrivateKey: PrivateKey,
     val adminJwtIssuer: String,
     val adminAccessTokenTtlMs: Long,
     val adminRefreshTokenTtlDays: Long,
@@ -57,10 +58,6 @@ data class AppConfig(
                 PKCS8EncodedKeySpec(Base64.getDecoder().decode(JwtDefaults.stripPemHeaders(privateKeyPem)))
             )
 
-            val adminSecret = JwtDefaults.readSecret("ADMIN_JWT_SECRET_FILE")
-                ?: System.getenv("ADMIN_JWT_SECRET")
-                ?: error("ADMIN_JWT_SECRET_FILE or ADMIN_JWT_SECRET must be set")
-
             return AppConfig(
                 jwtIssuer = issuer,
                 jwtAudience = audience,
@@ -70,7 +67,9 @@ data class AppConfig(
                     ?: JwtDefaults.POS_ACCESS_TOKEN_TTL_MINUTES) * 60_000L,
                 refreshTokenTtlMs = (System.getenv("REFRESH_TOKEN_TTL_DAYS")?.toLongOrNull()
                     ?: JwtDefaults.POS_REFRESH_TOKEN_TTL_DAYS) * 86_400_000L,
-                adminJwtSecret = adminSecret,
+                // Admin panel reuses same RSA keypair as POS (HS256→RS256 migration, A7)
+                adminJwtPublicKey = publicKey,
+                adminJwtPrivateKey = privateKey,
                 adminJwtIssuer = System.getenv("ADMIN_JWT_ISSUER") ?: JwtDefaults.ADMIN_ISSUER,
                 adminAccessTokenTtlMs = (System.getenv("ADMIN_ACCESS_TOKEN_TTL_MINUTES")?.toLongOrNull()
                     ?: JwtDefaults.ADMIN_ACCESS_TOKEN_TTL_MINUTES) * 60_000L,

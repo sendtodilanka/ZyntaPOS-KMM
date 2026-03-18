@@ -2,21 +2,24 @@ package com.zyntasolutions.zyntapos.license.auth
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
+import com.zyntasolutions.zyntapos.common.JwtDefaults
 import org.slf4j.LoggerFactory
+import java.security.PublicKey
+import java.security.interfaces.RSAPublicKey
 import java.util.UUID
 
 /**
- * Validates admin panel HS256 JWTs issued by the API service.
- * The license service shares the same ADMIN_JWT_SECRET so it can protect
- * admin-only license management endpoints without duplicating the admin user DB.
+ * Validates admin panel RS256 JWTs issued by the API service.
+ * Uses the same RSA public key as POS token validation — no shared secret needed.
+ * Migrated from HS256 to RS256 (A7) for consistent asymmetric auth across all services.
  */
-class AdminJwtValidator(private val secret: String, private val issuer: String) {
+class AdminJwtValidator(private val publicKey: PublicKey, private val issuer: String) {
 
     private val logger = LoggerFactory.getLogger(AdminJwtValidator::class.java)
 
     /** Returns the admin user UUID if the token is valid, null otherwise. */
     fun verify(token: String): UUID? = try {
-        val algorithm = Algorithm.HMAC256(secret)
+        val algorithm = Algorithm.RSA256(publicKey as RSAPublicKey, null)
         val decoded = JWT.require(algorithm)
             .withIssuer(issuer)
             .withClaim("type", "admin_access")
@@ -33,7 +36,7 @@ class AdminJwtValidator(private val secret: String, private val issuer: String) 
      * Role claim is optional; falls back to empty string when absent.
      */
     fun verifyWithRole(token: String): Pair<UUID, String>? = try {
-        val algorithm = Algorithm.HMAC256(secret)
+        val algorithm = Algorithm.RSA256(publicKey as RSAPublicKey, null)
         val decoded = JWT.require(algorithm)
             .withIssuer(issuer)
             .withClaim("type", "admin_access")
@@ -49,16 +52,12 @@ class AdminJwtValidator(private val secret: String, private val issuer: String) 
 
     companion object {
         fun fromEnvironment(): AdminJwtValidator {
-            val secret = readSecret("ADMIN_JWT_SECRET_FILE")
-                ?: System.getenv("ADMIN_JWT_SECRET")
-                ?: error("ADMIN_JWT_SECRET_FILE or ADMIN_JWT_SECRET must be set")
-            val issuer = System.getenv("ADMIN_JWT_ISSUER") ?: "https://panel.zyntapos.com"
-            return AdminJwtValidator(secret, issuer)
-        }
-
-        private fun readSecret(envVar: String): String? {
-            val path = System.getenv(envVar) ?: return null
-            return try { java.io.File(path).readText().trim() } catch (_: Exception) { null }
+            val publicKeyPem = JwtDefaults.readKeyFile("RS256_PUBLIC_KEY_PATH")
+                ?: System.getenv("RS256_PUBLIC_KEY")
+                ?: error("RS256_PUBLIC_KEY_PATH or RS256_PUBLIC_KEY must be set")
+            val publicKey = JwtDefaults.parseRsaPublicKey(publicKeyPem)
+            val issuer = System.getenv("ADMIN_JWT_ISSUER") ?: JwtDefaults.ADMIN_ISSUER
+            return AdminJwtValidator(publicKey, issuer)
         }
     }
 }

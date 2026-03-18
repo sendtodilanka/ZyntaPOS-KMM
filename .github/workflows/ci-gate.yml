@@ -463,6 +463,62 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  # ── Security Scanning: OWASP Dependency Check (A6) ───────────────────────
+  # Runs OWASP dependency-check on all 3 backend services in parallel.
+  # Reports vulnerabilities from the NVD (National Vulnerability Database).
+  # Report-only in CI (OWASP_FAIL_CVSS=11 disables build failure); local dev
+  # uses the default threshold (7.0) from each service's build.gradle.kts.
+  security-scan-backend:
+    name: "Security Scan (${{ matrix.service }})"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: true  # Advisory — don't block merges for known vulns
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [api, license, sync]
+    defaults:
+      run:
+        working-directory: backend/${{ matrix.service }}
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "temurin"
+
+      - name: Cache Gradle + NVD data
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ~/.gradle/dependency-check-data
+          key: owasp-${{ runner.os }}-${{ matrix.service }}-${{ hashFiles(format('backend/{0}/**/*.gradle.kts', matrix.service)) }}
+          restore-keys: owasp-${{ runner.os }}-${{ matrix.service }}-
+
+      - name: OWASP Dependency Check — ${{ matrix.service }}
+        run: |
+          chmod +x ./gradlew
+          ./gradlew dependencyCheckAnalyze --no-daemon \
+            -Dorg.gradle.jvmargs="-Xmx2g -Xms512m"
+        env:
+          OWASP_FAIL_CVSS: "11"  # Report-only in CI (never fail)
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+
+      - name: Upload OWASP report — ${{ matrix.service }}
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owasp-report-${{ matrix.service }}-${{ github.run_id }}
+          path: backend/${{ matrix.service }}/build/reports/dependency-check-report.html
+          retention-days: 14
+          if-no-files-found: ignore
+
   # ── Trigger Deploy (push-to-main only) ───────────────────────────────────
   # Uses repository_dispatch to chain to cd-deploy.yml.
   # Only fires on push events (not PRs) and only when ALL builds succeed.

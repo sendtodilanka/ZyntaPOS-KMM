@@ -235,29 +235,29 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 
 ---
 
-### A6. Security Monitoring (TODO-010) — ~85% Complete
+### A6. Security Monitoring (TODO-010) — ~95% Complete
 
 **Priority:** P1-HIGH
 
 **What's MISSING:**
-- [ ] Snyk Monitor step in `ci-gate.yml`
-- [ ] Falcosidekick → Slack webhook wiring
-- [ ] Cloudflare tunnel config placeholder replacement
-- [ ] OWASP dependency check in CI pipeline
-- [ ] CF Zero Trust + WAF rules (dashboard action)
+- [x] Snyk Monitor step — already in `sec-backend-scan.yml` (weekly + on-demand)
+- [x] Falcosidekick → Slack webhook wiring — already configured in docker-compose + falcosidekick.yaml
+- [ ] Cloudflare tunnel config placeholder replacement (dashboard action — out of scope for code)
+- [x] OWASP dependency check in CI pipeline — added to `ci-gate.yml` as `security-scan-backend` job
+- [ ] CF Zero Trust + WAF rules (dashboard action — out of scope for code)
 
 ---
 
-### A7. Admin JWT Security Gap
+### A7. Admin JWT Security Gap — ✅ COMPLETE
 
 **Priority:** P1-HIGH
 **Issue:** Admin panel uses HS256 (symmetric) while POS uses RS256 (asymmetric)
 
 **Fix:**
-- [ ] Migrate admin auth to RS256
-- [ ] Update `AdminAuthService.kt` token generation
-- [ ] Update License service admin JWT validation
-- [ ] Rotate existing admin sessions
+- [x] Migrate admin auth to RS256
+- [x] Update `AdminAuthService.kt` token generation
+- [x] Update License service admin JWT validation (`AdminJwtValidator.kt` now uses RS256 public key)
+- [x] Rotate existing admin sessions (HS256 tokens rejected post-migration — re-login required)
 
 ---
 
