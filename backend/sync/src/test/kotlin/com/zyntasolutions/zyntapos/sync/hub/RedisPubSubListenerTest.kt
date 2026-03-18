@@ -3,6 +3,7 @@ package com.zyntasolutions.zyntapos.sync.hub
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.decodeFromString
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -167,5 +168,25 @@ class RedisPubSubListenerTest {
         val attempt = 10 // beyond list
         val backoff = BACKOFF_MS.getOrElse(attempt) { 60_000L }
         assertEquals(60_000L, backoff)
+    }
+
+    // ── SyncNotification with entityTypes ─────────────────────────────────
+
+    @Test
+    fun `SyncNotification JSON with entityTypes is parseable`() {
+        val message = """{"storeId":"store-1","senderDeviceId":"dev-1","operationCount":3,"latestSeq":42,"entityTypes":["PRODUCT","ORDER","CUSTOMER"]}"""
+        val json = Json { ignoreUnknownKeys = true }
+        val notification = json.decodeFromString<com.zyntasolutions.zyntapos.sync.models.SyncNotification>(message)
+        assertEquals("store-1", notification.storeId)
+        assertEquals(3, notification.operationCount)
+        assertEquals(listOf("PRODUCT", "ORDER", "CUSTOMER"), notification.entityTypes)
+    }
+
+    @Test
+    fun `SyncNotification JSON without entityTypes uses empty list`() {
+        val message = """{"storeId":"store-1","senderDeviceId":"dev-1","operationCount":1,"latestSeq":10}"""
+        val json = Json { ignoreUnknownKeys = true }
+        val notification = json.decodeFromString<com.zyntasolutions.zyntapos.sync.models.SyncNotification>(message)
+        assertTrue(notification.entityTypes.isEmpty())
     }
 }

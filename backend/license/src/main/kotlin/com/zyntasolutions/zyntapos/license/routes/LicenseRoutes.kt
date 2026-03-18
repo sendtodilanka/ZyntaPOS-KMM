@@ -60,6 +60,7 @@ fun Route.licenseRoutes() {
                 requireNonNegative("syncQueueDepth", request.syncQueueDepth)
                 requireNonNegative("lastErrorCount", request.lastErrorCount)
                 requireNonNegative("uptimeHours", request.uptimeHours)
+                if (request.nonce != null) requireMaxLength("nonce", request.nonce, 128)
             }) return@post
 
             val result = licenseService.heartbeat(request)
