@@ -19,6 +19,8 @@ import com.zyntasolutions.zyntapos.designsystem.util.FilePickerMode
 import com.zyntasolutions.zyntapos.designsystem.util.PlatformFilePicker
 import com.zyntasolutions.zyntapos.designsystem.util.WindowSize
 import com.zyntasolutions.zyntapos.designsystem.util.currentWindowSize
+import androidx.compose.ui.layout.ContentScale
+import coil3.compose.AsyncImage
 import com.zyntasolutions.zyntapos.domain.model.Category
 import com.zyntasolutions.zyntapos.domain.model.ProductVariant
 import com.zyntasolutions.zyntapos.domain.model.TaxGroup
@@ -399,11 +401,11 @@ private fun ImageSection(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center,
                     ) {
-                        coil3.compose.AsyncImage(
+                        AsyncImage(
                             model = form.imageUrl,
                             contentDescription = "Product image preview",
                             modifier = Modifier.fillMaxSize(),
-                            contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                            contentScale = ContentScale.Fit,
                         )
                     }
                 }
