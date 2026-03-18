@@ -71,7 +71,7 @@ services:
       - JWT_AUDIENCE=zyntapos-app
       - RS256_PRIVATE_KEY_PATH=/run/secrets/rs256_private_key
       - RS256_PUBLIC_KEY_PATH=/run/secrets/rs256_public_key
-      - ADMIN_JWT_SECRET_FILE=/run/secrets/admin_jwt_secret
+      # Admin JWT now uses RS256 (same keypair as POS) — no separate secret needed (A7)
       - ACCESS_TOKEN_TTL_MINUTES=60
       - REFRESH_TOKEN_TTL_DAYS=30
       - ADMIN_PANEL_URL=${ADMIN_PANEL_URL:-https://panel.zyntapos.com}
@@ -110,7 +110,7 @@ services:
     volumes:
       - ./secrets/rs256_private_key.pem:/run/secrets/rs256_private_key:ro
       - ./secrets/rs256_public_key.pem:/run/secrets/rs256_public_key:ro
-      - ./secrets/admin_jwt_secret.txt:/run/secrets/admin_jwt_secret:ro
+      # admin_jwt_secret removed — admin JWT now uses RS256 keypair (A7)
     # ── TODO-009 Level 3: Container hardening ─────────────────────────
     read_only: true
     tmpfs:
@@ -140,6 +140,7 @@ services:
       - JWT_ISSUER=https://api.zyntapos.com
       - JWT_AUDIENCE=zyntapos-app
       - RS256_PUBLIC_KEY_PATH=/run/secrets/rs256_public_key
+      - ADMIN_JWT_ISSUER=https://panel.zyntapos.com
       - SENTRY_DSN=${SENTRY_DSN_LICENSE}
       - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
       # S3-14: HikariCP pool tuning — License handles heartbeats + activations

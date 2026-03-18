@@ -3,6 +3,8 @@ package com.zyntasolutions.zyntapos.api.service
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.zyntasolutions.zyntapos.api.config.AppConfig
+import java.security.interfaces.RSAPrivateKey
+import java.security.interfaces.RSAPublicKey
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -299,7 +301,7 @@ class DiagnosticSessionService(private val config: AppConfig) {
         scope: String,
         expiresAtMs: Long,
     ): String {
-        val algorithm = Algorithm.HMAC256(config.adminJwtSecret)
+        val algorithm = Algorithm.RSA256(config.adminJwtPublicKey as RSAPublicKey, config.adminJwtPrivateKey as RSAPrivateKey)
         return JWT.create()
             .withIssuer(config.adminJwtIssuer)
             .withClaim("session_id",    sessionId.toString())
@@ -331,7 +333,7 @@ class DiagnosticSessionService(private val config: AppConfig) {
         val randomHex = random.joinToString("") { "%02x".format(it) }
         val payload = "svt|$sessionId|$hardwareScope|$randomHex"
         val mac = javax.crypto.Mac.getInstance("HmacSHA256").apply {
-            init(javax.crypto.spec.SecretKeySpec(config.adminJwtSecret.toByteArray(), "HmacSHA256"))
+            init(javax.crypto.spec.SecretKeySpec(config.adminJwtPrivateKey.encoded, "HmacSHA256"))
         }
         return mac.doFinal(payload.toByteArray(Charsets.UTF_8))
             .joinToString("") { "%02x".format(it) }
