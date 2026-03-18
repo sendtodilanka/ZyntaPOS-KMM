@@ -49,7 +49,7 @@ class SyncPushPullIntegrationTest {
         val ops = listOf(
             makeOp("good-1"),
             makeOp("bad-1", operation = "PATCH"),
-            makeOp("good-2", entityType = "ORDER", payload = """{"total":10.0}"""),
+            makeOp("good-2", entityType = "ORDER", payload = """{"grand_total":10.0}"""),
             makeOp("bad-2", payload = "not-json"),
         )
         val result = validator.validateBatch(ops)
@@ -61,16 +61,25 @@ class SyncPushPullIntegrationTest {
         assertTrue(result.invalid.any { it.id == "bad-2" })
     }
 
+    /**
+     * Provides a valid minimal payload for each entity type that passes
+     * field-level validation. Types without specific validation rules
+     * use the generic payload.
+     */
+    private fun validPayloadFor(entityType: String, id: String): String = when (entityType) {
+        "STOCK_ADJUSTMENT" -> """{"product_id":"p-1","type":"INCREASE","quantity":5,"name":"adj-$id"}"""
+        "REGISTER_SESSION" -> """{"register_id":"r-1","opened_by":"u-1","name":"session-$id"}"""
+        "CASH_MOVEMENT" -> """{"session_id":"s-1","type":"IN","amount":100,"name":"mv-$id"}"""
+        "COUPON" -> """{"code":"CODE-$id","name":"Coupon $id","discount_value":10}"""
+        "PAYMENT_SPLIT" -> """{"order_id":"o-1","method":"CASH","amount":50,"name":"split-$id"}"""
+        "SETTINGS" -> """{"key":"setting-$id","value":"val-$id","name":"setting-$id"}"""
+        else -> """{"id":"entity-$id","name":"Product $id"}"""
+    }
+
     @Test
     fun `all valid entity types accepted`() {
         val ops = SyncValidator.VALID_ENTITY_TYPES.mapIndexed { i, entityType ->
-            val payload = when (entityType) {
-                "PRODUCT" -> """{"id":"e-$i","name":"Product $i","price":1.0}"""
-                "CUSTOMER", "CATEGORY" -> """{"id":"e-$i","name":"Name $i"}"""
-                "ORDER" -> """{"id":"e-$i","total":0}"""
-                else -> """{"id":"e-$i"}"""
-            }
-            makeOp("op-$i", entityType = entityType, payload = payload)
+            makeOp("op-$i", entityType = entityType, payload = validPayloadFor(entityType, "op-$i"))
         }.toList()
 
         // Process in batches of 50
@@ -140,8 +149,8 @@ class SyncPushPullIntegrationTest {
             makeOp("p1", entityType = "PRODUCT", payload = """{"name":"Widget","price":10.0}"""),
             makeOp("c1", entityType = "CATEGORY", payload = """{"name":"Electronics"}"""),
             makeOp("cu1", entityType = "CUSTOMER", payload = """{"name":"Jane Doe"}"""),
-            makeOp("s1", entityType = "SUPPLIER", payload = """{"id":"s1"}"""),
-            makeOp("o1", entityType = "ORDER", payload = """{"total":100.0}"""),
+            makeOp("s1", entityType = "SUPPLIER", payload = """{"name":"Acme Corp"}"""),
+            makeOp("o1", entityType = "ORDER", payload = """{"grand_total":100.0}"""),
             makeOp("oi1", entityType = "ORDER_ITEM", payload = """{"id":"oi1"}"""),
         )
         val result = validator.validateBatch(ops)
