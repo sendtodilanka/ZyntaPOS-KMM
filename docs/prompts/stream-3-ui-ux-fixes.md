@@ -5,6 +5,16 @@
 **Conflict Risk:** LOW — touches KMM feature module UI files only
 **Dependencies:** None — all items are independent
 
+> **NOTE:** This stream maps to the plan's "Stream 4" (G1-G21, INV-*, MS-*).
+> The prompt numbering differs from the plan's stream numbering for practical grouping.
+>
+> **Deferred items (out of scope for this session):**
+> - INV-1 (Barcode Scanner HAL) — requires platform `actual` implementations, too complex for UI batch
+> - INV-2 (Variant Persistence) — needs use case + repository changes, not just UI
+> - INV-5, INV-6, INV-7 (Supplier history, Bulk import, Batch select) — lower priority
+> - INV-10 (TaxGroupScreen + UnitManagementScreen) — needs new screens from scratch, larger scope
+> - G18 TaxGroup + UnitManagement routes — deferred because INV-10 screens don't exist yet
+
 ---
 
 ## Pre-Implementation (MANDATORY — do not skip)
@@ -223,12 +233,13 @@ git push -u origin $(git branch --show-current)
 ```bash
 git fetch origin main && git merge origin/main --no-edit
 git add composeApp/feature/dashboard/ composeApp/feature/settings/ todo/missing-features-implementation-plan.md
-git commit -m "feat(dashboard): render hourly sparkline and timezone UTC offset [G21]
+git commit -m "feat(dashboard): render hourly sparkline and timezone UTC offset [G21 partial]
 
 - Dashboard sparkline chart using pre-calculated hourly revenue data
 - Timezone dropdown now shows UTC offset (e.g., Asia/Colombo UTC+5:30)
+- G21 remaining: printer test button, Remember Me, employee badge (deferred)
 
-Plan file updated: G21 Phase 1.5 items marked complete"
+Plan file updated: G21 2 of 5 quick wins done"
 git push -u origin $(git branch --show-current)
 # Monitor pipeline until green
 ```
@@ -269,9 +280,43 @@ git push -u origin $(git branch --show-current)
 3. Update G21 Phase 1.5 Quick Wins checklist
 4. Update FEATURE COVERAGE MATRIX at bottom
 
-### Update `CLAUDE.md` if:
-- Route count changed → update "58 registered" in Navigation Routes section
-- New design system components created → update component count
+### Update `CLAUDE.md`: **DO NOT update CLAUDE.md** — Stream 2 owns CLAUDE.md updates to avoid merge conflicts.
+
+If route count changed or new design system components were created, leave a note in
+your plan file HANDOFF section. Stream 2 or a follow-up session will consolidate.
+
+---
+
+## ⚠️ Plan File Merge Conflict Warning
+
+All 4 parallel streams update `todo/missing-features-implementation-plan.md`.
+**Merge conflicts on this file are expected and normal.**
+
+After EVERY push, check PR status:
+```bash
+REPO="sendtodilanka/ZyntaPOS-KMM"
+BRANCH=$(git branch --show-current)
+curl -s -H "Authorization: token $PAT" \
+  "https://api.github.com/repos/$REPO/pulls?head=sendtodilanka:$BRANCH&state=open" \
+  | python3 -c "
+import sys,json
+prs=json.load(sys.stdin)
+if not prs: print('No open PR yet')
+for pr in prs:
+  print(f'PR #{pr[\"number\"]}: mergeable={pr.get(\"mergeable\")} state={pr.get(\"mergeable_state\")}')
+"
+```
+
+**If `mergeable=false` or `mergeable_state=dirty`:**
+```bash
+git fetch origin main
+git merge origin/main --no-edit
+# If plan file conflicts: keep BOTH your changes AND main's changes
+# (they modify different sections of the same file)
+git add todo/missing-features-implementation-plan.md
+git commit -m "merge: resolve plan file conflict with main"
+git push -u origin $(git branch --show-current)
+```
 
 ---
 

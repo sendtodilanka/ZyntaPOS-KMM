@@ -5,6 +5,9 @@
 **Conflict Risk:** LOW — touches `backend/api/src/.../sync/` only
 **Dependencies:** None — start immediately
 
+> **NOTE:** Stream 4 (Backend Tests) runs in parallel and tests `EntityApplier.kt`.
+> Your changes land first via PR merge; Stream 4 will adapt its tests accordingly.
+
 ---
 
 ## Pre-Implementation (MANDATORY — do not skip)
@@ -204,8 +207,39 @@ Multi-node Sync | C6.1 | PARTIAL (LWW only) → PARTIAL (LWW + 6 entity types)
 Offline-First   | C6.2 | PARTIAL → PARTIAL (EntityApplier covers core types)
 ```
 
-### 2. Update `CLAUDE.md` if needed:
-- If EntityApplier now handles all major types, update the "What EXISTS" description in relevant sections
+### 2. Update `CLAUDE.md`: **DO NOT update CLAUDE.md** — Stream 2 owns CLAUDE.md updates to avoid merge conflicts.
+
+---
+
+## ⚠️ Plan File Merge Conflict Warning
+
+All 4 parallel streams update `todo/missing-features-implementation-plan.md`.
+**Merge conflicts on this file are expected and normal.**
+
+After EVERY push, check PR status:
+```bash
+REPO="sendtodilanka/ZyntaPOS-KMM"
+BRANCH=$(git branch --show-current)
+curl -s -H "Authorization: token $PAT" \
+  "https://api.github.com/repos/$REPO/pulls?head=sendtodilanka:$BRANCH&state=open" \
+  | python3 -c "
+import sys,json
+prs=json.load(sys.stdin)
+if not prs: print('No open PR yet')
+for pr in prs:
+  print(f'PR #{pr[\"number\"]}: mergeable={pr.get(\"mergeable\")} state={pr.get(\"mergeable_state\")}')
+"
+```
+
+**If `mergeable=false` or `mergeable_state=dirty`:**
+```bash
+git fetch origin main
+git merge origin/main --no-edit
+# If plan file conflicts: keep BOTH your changes AND main's changes
+git add todo/missing-features-implementation-plan.md
+git commit -m "merge: resolve plan file conflict with main"
+git push -u origin $(git branch --show-current)
+```
 
 ---
 
@@ -275,5 +309,5 @@ curl -s -H "Authorization: token $PAT" \
 - Follow the EXACT pattern of the existing PRODUCT handler — do not invent new patterns
 - Reuse existing repository methods — EntityApplier should delegate to repositories
 - NEVER modify production KMM client code in this stream (backend only)
-- If a table schema doesn't match what you expect, read the migration files (V1-V14)
+- Read ALL migration files: `ls backend/api/src/main/resources/db/migration/` (V1-V22+, not just V14)
 - If you need a new migration, use the next version number (check what V-number is latest)

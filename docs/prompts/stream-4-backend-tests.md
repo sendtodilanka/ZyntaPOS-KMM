@@ -1,9 +1,12 @@
 # Stream 4: Backend Test Coverage — Item B4
 
 **Master Plan:** `todo/missing-features-implementation-plan.md` (Section B4)
-**Size:** XL (3-4 sessions) — this session targets Phases 1-2 only
-**Conflict Risk:** LOW — creates NEW test files only, no production code changes
+**Size:** XL (3-4 sessions) — this session targets gap analysis + expanding existing tests
+**Conflict Risk:** LOW — modifies test files only, no production code changes
 **Dependencies:** None — safe to start immediately (parallel with A1)
+
+> **NOTE:** This stream maps to the plan's "Stream 3" (B1-B5). The prompt numbering
+> differs from the plan's stream numbering for practical grouping reasons.
 
 ---
 
@@ -19,248 +22,187 @@
    - IMPLEMENTATION COMPLIANCE RULES section
    - ERROR RECOVERY GUIDE section (test failure handling)
    - ITEM DEPENDENCY GRAPH (B4 has no blockers — safe to start immediately)
-   - SESSION SCOPE GUIDANCE (B4 = XL = 3-4 sessions, plan Phases 1-2 only)
+   - SESSION SCOPE GUIDANCE (B4 = XL = 3-4 sessions, plan accordingly)
 5. Run `echo $PAT` to confirm GitHub token is available
 6. Sync: `git fetch origin main && git merge origin/main --no-edit`
+
+---
+
+## ⚠️ CRITICAL: Existing Test Files — DO NOT OVERWRITE
+
+**Test infrastructure and test files ALREADY EXIST in the codebase.** Your job is to
+**EXTEND** them with additional test cases, NOT create from scratch.
+
+### Existing Test Files (as of 2026-03-18)
+
+| File | Lines | What It Covers |
+|------|-------|----------------|
+| `backend/api/src/test/.../sync/EntityApplierTest.kt` | 54 | PRODUCT type only (basic) |
+| `backend/api/src/test/.../sync/SyncProcessorTest.kt` | 166 | Push processing |
+| `backend/api/src/test/.../sync/DeltaEngineTest.kt` | 86 | Cursor-based pull |
+| `backend/api/src/test/.../sync/ServerConflictResolverTest.kt` | 80 | LWW resolution |
+| `backend/api/src/test/.../sync/SyncValidatorTest.kt` | 123 | Payload validation |
+| `backend/api/src/test/.../service/AdminAuthServiceTest.kt` | 272 | Admin login + JWT |
+| `backend/api/src/test/.../service/AdminAuthServiceExtendedTest.kt` | 519 | BCrypt, MFA, lockout |
+| `backend/api/src/test/.../service/UserServiceTest.kt` | 206 | POS PIN auth |
+| `backend/api/src/test/.../integration/SyncPushPullIntegrationTest.kt` | — | End-to-end sync |
+| `backend/api/src/test/.../routes/AuthRoutesTest.kt` | — | Auth HTTP routes |
+| `backend/api/src/test/.../routes/CsrfPluginTest.kt` | — | CSRF protection |
+
+### Existing Test Dependencies (already in `backend/api/build.gradle.kts`)
+
+```kotlin
+testImplementation("org.testcontainers:testcontainers:1.20.4")
+testImplementation("org.testcontainers:postgresql:1.20.4")
+testImplementation("org.testcontainers:junit-jupiter:1.20.4")
+testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
+```
+
+**DO NOT add these dependencies again — they are already present.**
 
 ---
 
 ## Codebase Exploration (BEFORE writing any test code)
 
 ```bash
-# === Understand existing test landscape ===
+# === STEP 1: Read ALL existing test files FIRST ===
+# You MUST understand what's already tested before adding anything
 find backend/ -name "*Test.kt" -o -name "*Spec.kt" | sort
-find backend/ -name "*TestFactory*" -o -name "*TestFixture*" -o -name "*TestHelper*" | sort
+for f in $(find backend/api/src/test -name "*Test.kt" | sort); do
+  echo "=== $f ==="
+  cat "$f"
+  echo ""
+done
 
-# === Check existing test dependencies ===
-grep -r "testcontainers\|junit\|mockk\|assertk\|kotest" backend/ --include="*.kts" --include="*.toml"
-cat backend/api/build.gradle.kts
-cat gradle/libs.versions.toml | grep -i "test\|junit\|mock\|assert"
+# === STEP 2: Check Stream 1 progress (EntityApplier may have been extended) ===
+# Stream 1 runs in parallel and extends EntityApplier with new entity types.
+# Check if their PR has merged to main before writing tests.
+git fetch origin main
+git log origin/main --oneline -10  # Look for "feat(sync): extend EntityApplier" commits
 
-# === Check existing test directory structure ===
-ls -R backend/api/src/test/ 2>/dev/null || echo "No test dir"
-ls -R backend/license/src/test/ 2>/dev/null || echo "No test dir"
-ls -R backend/sync/src/test/ 2>/dev/null || echo "No test dir"
-
-# === Read the source files you will be testing ===
-# Sync engine (PRIMARY test targets)
+# === STEP 3: Read the production code being tested ===
 find backend/api/ -name "EntityApplier.kt" -exec cat {} \;
 find backend/api/ -name "SyncProcessor.kt" -exec cat {} \;
 find backend/api/ -name "DeltaEngine.kt" -exec cat {} \;
 find backend/api/ -name "ServerConflictResolver.kt" -exec cat {} \;
-
-# Auth services (SECONDARY test targets)
 find backend/api/ -name "AdminAuthService.kt" -exec cat {} \;
 find backend/api/ -name "UserService.kt" -exec cat {} \;
 
-# Koin DI module (need to override bindings in tests)
-find backend/api/ -name "AppModule.kt" -exec cat {} \;
+# === STEP 4: Read existing test infrastructure ===
+find backend/ -name "*Abstract*Test*" -o -name "*BaseTest*" -o -name "*TestHelper*" | sort
+find backend/ -name "TestFixture*" -o -name "*TestFactory*" | sort
+grep -r "testcontainers\|@Container\|PostgreSQLContainer" backend/ --include="*.kt" -l
 
-# DB migrations (understand table schemas for test assertions)
+# === STEP 5: Check test deps and build config ===
+grep "testImplementation\|testRuntimeOnly" backend/api/build.gradle.kts
+
+# === STEP 6: Understand DB schemas (for assertion queries) ===
 ls backend/api/src/main/resources/db/migration/
-cat backend/api/src/main/resources/db/migration/V1__*.sql
-cat backend/api/src/main/resources/db/migration/V4__*.sql
 
-# Exposed table definitions (for test queries)
-grep -r "object.*: Table\|: IntIdTable\|: LongIdTable\|: UUIDTable" backend/api/src/main/kotlin/ --include="*.kt"
+# === STEP 7: Check existing Koin test module setup ===
+grep -r "koin\|Koin\|startKoin\|loadModules" backend/api/src/test/ --include="*.kt" -l
 
-# Repository implementations (reuse patterns in tests)
-find backend/api/ -name "*Repository*.kt" | sort
+# === STEP 8: Run existing tests to establish baseline ===
+cd backend && ./gradlew :api:test --parallel --continue 2>&1 | tail -30
 ```
 
-Read EVERY source file THOROUGHLY before writing its test. Understand actual method
-signatures, dependencies, error handling patterns, and edge cases.
+**Read EVERY existing test file before writing new code.** Understand what's covered
+and what's missing. Your value is in filling GAPS, not duplicating.
 
 ---
 
-## Implementation Plan (4 phases — target Phases 1-2 this session)
+## Implementation Plan (3 phases this session)
 
-### Phase 1: Test Infrastructure Setup (do FIRST — everything depends on this)
+### Phase 1: Gap Analysis + Test Infrastructure Improvements
 
-#### 1. Add test dependencies to `backend/api/build.gradle.kts`
+**Goal:** Identify exactly what's missing, improve shared test infra if needed.
 
-Use version catalog (`gradle/libs.versions.toml`) for ALL versions — NEVER hardcode.
+1. **Run existing tests** and record pass/fail counts:
+   ```bash
+   cd backend && ./gradlew :api:test --info 2>&1 | grep -E "tests|PASSED|FAILED|SKIPPED"
+   ```
 
-Dependencies needed:
-- `org.testcontainers:postgresql` — PostgreSQL container for integration tests
-- `org.testcontainers:junit-jupiter` — JUnit 5 lifecycle integration
-- `io.mockk:mockk` — Kotlin mocking (if not already present)
-- `org.jetbrains.kotlin:kotlin-test-junit5` — JUnit 5 + Kotlin Test
-- `org.assertj:assertj-core` or `io.kotest:kotest-assertions` — assertion library (check what's already used)
+2. **Catalog coverage gaps** by reading each test file:
+   - Which test methods exist? Which edge cases are missing?
+   - Are there `@Disabled` or TODO tests that need implementation?
+   - Which production methods have ZERO test coverage?
 
-**Search first:**
-```bash
-# Check if any test deps already exist
-grep -A 5 "testImplementation\|testRuntimeOnly" backend/api/build.gradle.kts
-```
+3. **Improve test infrastructure (if gaps found):**
+   - If no `AbstractIntegrationTest` base class exists → create one
+   - If no `TestFixtures` factory object exists → create one
+   - If existing test helpers are incomplete → extend them
+   - **If infrastructure is already adequate → SKIP this step**
 
-#### 2. Create `AbstractIntegrationTest.kt`
+4. **Check if Stream 1 has extended EntityApplier:**
+   ```bash
+   git fetch origin main
+   git log origin/main --oneline -10 | grep -i "entity\|sync\|applier"
+   ```
+   - If YES (new entity types added): write tests for the NEW types
+   - If NO (still PRODUCT-only): write deeper PRODUCT tests + note handoff for new types
 
-Location: `backend/api/src/test/kotlin/com/zyntasolutions/zyntapos/api/AbstractIntegrationTest.kt`
-
-```kotlin
-// Provides:
-// - PostgreSQL Testcontainer (start before class, stop after)
-// - Flyway auto-migration on test database (runs all V1-V14+ migrations)
-// - Koin test module setup (overrides production DataSource with test DB)
-// - Transaction rollback after each test (clean state)
-// - Helper: fun getTestDataSource(): DataSource
-```
-
-Key considerations:
-- Container reuse across test classes (singleton pattern for speed)
-- Flyway should run ALL migrations in order — validates migration chain
-- Koin: start test modules in `@BeforeAll`, stop in `@AfterAll`
-- Transaction rollback: use `@Transactional` or manual `connection.rollback()`
-
-#### 3. Create `TestFixtures.kt`
-
-Location: `backend/api/src/test/kotlin/com/zyntasolutions/zyntapos/api/TestFixtures.kt`
-
-Factory methods with sensible defaults + override params:
-```kotlin
-object TestFixtures {
-    fun createProduct(
-        id: String = UUID.randomUUID().toString(),
-        name: String = "Test Product",
-        price: Double = 100.0,
-        storeId: String = "store-1",
-        categoryId: String? = null,
-        stockQty: Double = 50.0,
-        // ... other fields with defaults
-    ): ProductDto { ... }
-
-    fun createOrder(...): OrderDto { ... }
-    fun createCustomer(...): CustomerDto { ... }
-    fun createCategory(...): CategoryDto { ... }
-    fun createSupplier(...): SupplierDto { ... }
-    fun createSyncOperation(
-        entityType: String,
-        payload: String, // JSON
-        storeId: String = "store-1",
-        clientId: String = "client-1",
-        timestamp: Instant = Clock.System.now()
-    ): SyncOperationDto { ... }
-
-    // JWT token factories
-    fun createPosToken(userId: String, storeId: String, role: String = "CASHIER"): String { ... }
-    fun createAdminToken(userId: String, role: String = "ADMIN"): String { ... }
-}
-```
-
-#### 4. Verify infrastructure works
-
-```bash
-cd backend && ./gradlew :api:test --info 2>&1 | tail -20
-```
-
-**Commit after Phase 1:**
+**Commit after Phase 1 (if infrastructure changes made):**
 ```bash
 git fetch origin main && git merge origin/main --no-edit
-git add backend/api/build.gradle.kts gradle/libs.versions.toml
 git add backend/api/src/test/
 git add todo/missing-features-implementation-plan.md
-git commit -m "test(backend): add Testcontainers infrastructure and test fixtures [B4]
+git commit -m "test(backend): improve test infrastructure and gap analysis [B4]
 
-- AbstractIntegrationTest base class with PostgreSQL container + Flyway
-- TestFixtures factory methods for all major entity types + JWT tokens
-- Koin test module overrides for integration testing
-- Verified: container starts, migrations run, Koin initializes
+- [describe specific infrastructure improvements]
+- Documented coverage gaps for targeted expansion
 
 Plan file updated: B4 Phase 1 complete"
 git push -u origin $(git branch --show-current)
-# WAIT for pipeline green before proceeding to Phase 2
+# Monitor pipeline until green before Phase 2
 ```
 
 ---
 
-### Phase 2: Sync Logic Tests (highest business value — after Phase 1 pipeline green)
+### Phase 2: Expand Sync Logic Test Coverage (highest value)
 
-#### 5. `EntityApplierTest.kt`
+**Goal:** Add missing test cases to EXISTING sync test files.
 
-Location: `backend/api/src/test/kotlin/com/zyntasolutions/zyntapos/api/sync/EntityApplierTest.kt`
+#### 2a. Extend `EntityApplierTest.kt` (currently 54 lines — thin coverage)
 
-```kotlin
-class EntityApplierTest : AbstractIntegrationTest() {
+Read the existing tests first, then ADD these missing scenarios:
+- Valid product with all optional fields populated → correct DB state
+- Product with invalid category_id FK → graceful error handling
+- Product with NULL optional fields → inserts correctly
+- Product with max-length field values → no truncation errors
+- **If Stream 1 has added new entity types:** Test each new type (ORDER, CUSTOMER, etc.)
+- Concurrent apply of same entity → idempotent behavior
 
-    @Nested
-    inner class ProductType {
-        @Test fun apply_validProduct_insertsToDatabase() { ... }
-        @Test fun apply_existingProduct_updatesExisting() { ... }
-        @Test fun apply_missingRequiredFields_returnsError() { ... }
-        @Test fun apply_invalidCategoryId_handlesGracefully() { ... }
-        @Test fun apply_nullOptionalFields_insertsWithNull() { ... }
-        @Test fun apply_maxLengthFields_handlesCorrectly() { ... }
-    }
+#### 2b. Extend `SyncProcessorTest.kt` (currently 166 lines)
 
-    // Add @Nested classes for each entity type as they exist in EntityApplier
-    // If only PRODUCT exists now, test PRODUCT thoroughly
-}
-```
+Read existing tests, then ADD:
+- Push with duplicate operation IDs → idempotent (no double-apply)
+- Push with empty batch → no-op, no error
+- Push with mixed valid/invalid operations → partial success handling
+- Push with very large batch (100+ ops) → performance doesn't degrade
+- Push with store_id mismatch vs JWT → rejection (if validation exists)
 
-Test patterns:
-- **Arrange:** Create test data via `TestFixtures`, insert prerequisite rows (store, category)
-- **Act:** Call `entityApplier.apply(syncOperation)` with crafted payload
-- **Assert:** Query database directly to verify correct state
+#### 2c. Extend `DeltaEngineTest.kt` (currently 86 lines)
 
-#### 6. `SyncProcessorTest.kt`
+Read existing tests, then ADD:
+- Pull with store_id filter → only that store's data
+- Pull with cursor at head (no new data) → empty delta
+- Pull cursor monotonicity validation
+- Pull with multiple entity types → correct ordering
 
-Location: `backend/api/src/test/kotlin/com/zyntasolutions/zyntapos/api/sync/SyncProcessorTest.kt`
+#### 2d. Extend `ServerConflictResolverTest.kt` (currently 80 lines)
 
-```kotlin
-class SyncProcessorTest : AbstractIntegrationTest() {
+Read existing tests, then ADD:
+- Field-level merge scenario (price changed on A, name changed on B → merge both)
+- Identical timestamps → deterministic tiebreaker
+- Conflict entry written to `sync_conflict_log`
 
-    @Test fun push_validBatch_allOperationsApplied() { ... }
-    @Test fun push_batchWithInvalidOp_partialSuccess() { ... }
-    @Test fun push_conflictingTimestamps_lwwResolution() { ... }
-    @Test fun push_emptyBatch_noOpNoError() { ... }
-    @Test fun push_duplicateOperationIds_idempotent() { ... }
-    @Test fun push_invalidJwt_returns401() { ... }
-    @Test fun push_expiredJwt_returns401() { ... }
-    @Test fun push_cursorAdvanced_afterSuccessfulPush() { ... }
-}
-```
-
-#### 7. `DeltaEngineTest.kt`
-
-Location: `backend/api/src/test/kotlin/com/zyntasolutions/zyntapos/api/sync/DeltaEngineTest.kt`
-
-```kotlin
-class DeltaEngineTest : AbstractIntegrationTest() {
-
-    @Test fun pull_withCursor_returnsOnlyNewerOperations() { ... }
-    @Test fun pull_zeroCursor_returnsFullSnapshot() { ... }
-    @Test fun pull_withStoreIdFilter_returnsOnlyStoreData() { ... }
-    @Test fun pull_noNewData_returnsEmptyDelta() { ... }
-    @Test fun pull_cursorOrdering_monotonicallyIncreasing() { ... }
-    @Test fun pull_multiplePagesOfData_paginatesCorrectly() { ... }
-}
-```
-
-#### 8. `ServerConflictResolverTest.kt`
-
-Location: `backend/api/src/test/kotlin/com/zyntasolutions/zyntapos/api/sync/ServerConflictResolverTest.kt`
-
-```kotlin
-class ServerConflictResolverTest {
-
-    @Test fun resolve_clearTimestampWinner_newerVersionKept() { ... }
-    @Test fun resolve_identicalTimestamps_deterministicTiebreaker() { ... }
-    @Test fun resolve_fieldLevelMerge_bothFieldsKept() { ... }
-    @Test fun resolve_conflictLogged_entryWrittenToLog() { ... }
-}
-```
-
-**Running tests locally:**
+**Running tests:**
 ```bash
 # All sync tests
 cd backend && ./gradlew :api:test --tests "*.sync.*" --info
 
-# Specific test class
+# Specific class
 cd backend && ./gradlew :api:test --tests "*.EntityApplierTest" --info
-
-# All backend tests
-cd backend && ./gradlew test --parallel --continue
 ```
 
 **Commit after Phase 2:**
@@ -268,33 +210,75 @@ cd backend && ./gradlew test --parallel --continue
 git fetch origin main && git merge origin/main --no-edit
 git add backend/api/src/test/
 git add todo/missing-features-implementation-plan.md
-git commit -m "test(sync): add EntityApplier, SyncProcessor, DeltaEngine, ConflictResolver tests [B4]
+git commit -m "test(sync): expand EntityApplier, SyncProcessor, DeltaEngine test coverage [B4]
 
-- EntityApplierTest: 6 tests covering PRODUCT type (insert, upsert, validation, error handling)
-- SyncProcessorTest: 8 tests covering push batch processing, conflict, idempotency, auth
-- DeltaEngineTest: 6 tests covering pull/delta, cursor, store filtering, pagination
-- ServerConflictResolverTest: 4 tests covering LWW, tiebreaker, field merge, logging
+- EntityApplier: added N test cases (FK validation, nulls, idempotency)
+- SyncProcessor: added N test cases (empty batch, duplicates, large batch)
+- DeltaEngine: added N test cases (store filter, empty delta, ordering)
+- ConflictResolver: added N test cases (field merge, tiebreaker, logging)
+
+Plan file updated: B4 sync test coverage expanded"
+git push -u origin $(git branch --show-current)
+# Monitor pipeline until green before Phase 3
+```
+
+---
+
+### Phase 3: Repository Integration Tests (NEW test files)
+
+**Goal:** Add repository-layer integration tests that currently don't exist.
+
+These are genuinely NEW files — no existing tests for repositories:
+
+1. **`ProductRepositoryTest.kt`** (NEW):
+   - CRUD operations with real PostgreSQL via Testcontainers
+   - FTS5 search (if backed by PostgreSQL full-text search)
+   - Store-scoped queries (product belongs to store_id)
+   - Pagination and sorting
+
+2. **`PosUserRepositoryTest.kt`** (NEW):
+   - User creation with store scoping
+   - Username uniqueness per store
+   - User lookup by various fields
+
+3. **`AdminUserRepositoryTest.kt`** (NEW):
+   - Admin CRUD operations
+   - Role assignment and permission checks
+   - Account lockout state persistence
+
+```bash
+# Verify these test files don't exist yet
+find backend/ -name "ProductRepositoryTest.kt" -o -name "PosUserRepositoryTest.kt" -o -name "AdminUserRepositoryTest.kt"
+```
+
+**Commit after Phase 3:**
+```bash
+git fetch origin main && git merge origin/main --no-edit
+git add backend/api/src/test/
+git add todo/missing-features-implementation-plan.md
+git commit -m "test(repository): add Product, PosUser, AdminUser repository integration tests [B4]
+
+- ProductRepositoryTest: CRUD, search, store scoping, pagination
+- PosUserRepositoryTest: creation, uniqueness, lookup
+- AdminUserRepositoryTest: CRUD, roles, lockout persistence
 - All tests use Testcontainers PostgreSQL with real Flyway migrations
 
-Plan file updated: B4 Phase 2 complete, coverage estimate ~25% → ~45%"
+Plan file updated: B4 repository tests added, coverage ~25% → ~50%"
 git push -u origin $(git branch --show-current)
 # Monitor pipeline until green
 ```
 
 ---
 
-### Phases 3-4 (NEXT SESSION — leave handoff note in plan file)
+### Phases 4-5 (NEXT SESSION — leave handoff note in plan file)
 
-**Phase 3: Auth & Service Tests**
-- `AdminAuthServiceTest.kt` — BCrypt login, RS256 JWT, MFA, lockout, failed attempts
-- `UserServiceTest.kt` — PIN verification (SHA-256+salt), brute-force lockout, token refresh
-- `LicenseServiceTest.kt` — activation, heartbeat, expiry, device management
+**Phase 4:** License service tests (`backend/license/src/test/`)
+- Activation, heartbeat, expiry, device management
 
-**Phase 4: Repository Integration Tests**
-- `ProductRepositoryTest.kt` — CRUD with real PostgreSQL
-- `PosUserRepositoryTest.kt` — user creation, lookup, store scoping
-- `AdminUserRepositoryTest.kt` — admin CRUD, role assignment
-- Coverage reporting CI step
+**Phase 5:** Coverage reporting in CI
+- Add JaCoCo or Kover plugin
+- Add coverage threshold check in `ci-gate.yml`
+- Fail build if coverage drops below threshold
 
 ---
 
@@ -304,32 +288,66 @@ git push -u origin $(git branch --show-current)
 
 1. Mark completed checkboxes in B4 section:
 ```
-- [x] Testcontainers setup (PostgreSQL + Redis)
-- [x] `SyncProcessor`, `DeltaEngine`, `EntityApplier` tests
-- [ ] `AdminAuthService`, `LicenseService` tests          <- next session
-- [ ] Coverage reporting in CI pipeline                    <- next session
+- [x] Testcontainers setup (PostgreSQL + Redis) — ALREADY EXISTED (verified 2026-03-18)
+- [x] `SyncProcessor`, `DeltaEngine`, `EntityApplier` tests — EXTENDED with N new cases
+- [ ] `AdminAuthService`, `LicenseService` tests — AdminAuth exists, License next session
+- [ ] Coverage reporting in CI pipeline — next session
 ```
 
-2. Update B4 status: `~25% vs 80% target` → `~45% vs 80% target` (or actual estimate)
+2. Update B4 status with ACCURATE estimate based on gap analysis:
+   - Run: `cd backend && ./gradlew :api:test --info | grep -c "PASSED\|FAILED"`
+   - Count total test methods vs estimated needed
+   - Update: `~25% vs 80% target` → actual estimate
 
 3. Add HANDOFF note at top of B4 section:
 ```
-> **HANDOFF (2026-03-18):** Testcontainers infra + sync test suite complete.
-> 24 tests: EntityApplierTest(6), SyncProcessorTest(8), DeltaEngineTest(6),
-> ServerConflictResolverTest(4).
-> Run `cd backend && ./gradlew :api:test --tests "*.sync.*" --info` to verify.
-> Next session: Phase 3 (auth/service tests) + Phase 4 (repository tests).
-> Branch: claude/<branch-name>. PR #NNN.
+> **HANDOFF (2026-03-18):** Test infra already existed (Testcontainers + 9 test files).
+> This session expanded sync test coverage (N new test cases) and added
+> repository integration tests (3 new files).
+> Existing tests: EntityApplierTest, SyncProcessorTest, DeltaEngineTest,
+> ServerConflictResolverTest, SyncValidatorTest, AdminAuthServiceTest (x2),
+> UserServiceTest, SyncPushPullIntegrationTest, AuthRoutesTest, CsrfPluginTest.
+> NEW tests: ProductRepositoryTest, PosUserRepositoryTest, AdminUserRepositoryTest.
+> Run: `cd backend && ./gradlew :api:test --info` to verify.
+> Next session: License service tests + coverage reporting CI step.
 ```
 
-4. Update FEATURE COVERAGE MATRIX at bottom:
-```
-Backend Test Coverage — ~25% → PARTIAL (~45%, Testcontainers infra + sync tests done)
+4. Update FEATURE COVERAGE MATRIX at bottom
+
+### Update `CLAUDE.md`: **DO NOT update CLAUDE.md** — Stream 2 owns CLAUDE.md updates to avoid conflicts.
+
+---
+
+## ⚠️ Plan File Merge Conflict Warning
+
+All 4 parallel streams update `todo/missing-features-implementation-plan.md`.
+**Merge conflicts on this file are expected and normal.**
+
+After EVERY push, check PR status:
+```bash
+REPO="sendtodilanka/ZyntaPOS-KMM"
+BRANCH=$(git branch --show-current)
+curl -s -H "Authorization: token $PAT" \
+  "https://api.github.com/repos/$REPO/pulls?head=sendtodilanka:$BRANCH&state=open" \
+  | python3 -c "
+import sys,json
+prs=json.load(sys.stdin)
+if not prs: print('No open PR yet')
+for pr in prs:
+  print(f'PR #{pr[\"number\"]}: mergeable={pr.get(\"mergeable\")} state={pr.get(\"mergeable_state\")}')
+"
 ```
 
-### Update `CLAUDE.md` if:
-- New test dependencies added to version catalog → update Technology Stack table
-- New testing patterns established (Testcontainers base class) → note in Testing Standards
+**If `mergeable=false` or `mergeable_state=dirty`:**
+```bash
+git fetch origin main
+git merge origin/main --no-edit
+# If plan file conflicts: keep BOTH your changes AND main's changes
+# (they modify different sections of the same file)
+git add todo/missing-features-implementation-plan.md
+git commit -m "merge: resolve plan file conflict with main"
+git push -u origin $(git branch --show-current)
+```
 
 ---
 
@@ -358,25 +376,22 @@ curl -s -H "Authorization: token $PAT" \
   | python3 -c "import sys,json; [print(f'[{r[\"status\"]:10}][{(r[\"conclusion\"] or \"pending\"):10}] {r[\"name\"]}') for r in json.load(sys.stdin).get('check_runs',[])]"
 ```
 
-**Do NOT start Phase 2 until Phase 1 pipeline is green.**
+**Do NOT start next phase until current phase's pipeline is green.**
 **Do NOT end session without final push + pipeline green verification.**
 
 ---
 
 ## Important Notes
 
-- **This stream creates ONLY test files — NEVER modify production code.**
-  Production changes happen in Stream 1 (sync engine). If you find a bug while
-  writing tests, document it as a comment in the test but do NOT fix production code.
+- **This stream modifies ONLY test files — NEVER modify production code.**
+  If you find a bug while testing, document it as a `// BUG:` comment in the test
+  but do NOT fix production code (that's Stream 1's responsibility).
+
+- **Stream 1 runs in parallel extending EntityApplier.** Before writing sync tests,
+  always check if Stream 1 has merged: `git log origin/main --oneline -5 | grep sync`.
+  If new entity types are in main, test those too.
 
 - **Backend tests run in CI Gate (Step[3+4])** — verify they pass in CI, not just locally.
-  CI runner may have different Docker/Java configuration.
-
-- **If Testcontainers Docker not available in CI runner:**
-  Check CI runner capabilities. Fallback options:
-  - `zonky.test.db.postgres:embedded-postgres` (embedded, no Docker needed)
-  - H2 in PostgreSQL compatibility mode (less accurate but no Docker)
-  Add a CI-detection flag: `val isCI = System.getenv("CI") != null`
 
 - **Test file structure mirrors main source:**
   ```
@@ -390,7 +405,9 @@ curl -s -H "Authorization: token $PAT" \
   @Test fun push_emptyBatch_noOpNoError() { ... }
   ```
 
-- **Use JUnit 5 `@Nested`** classes to group related tests within a test class.
+- **Use JUnit 5 `@Nested`** classes to group related tests.
 
-- **B4 is a Phase 2 BLOCKER** (Blocker 3 in plan file). Higher test coverage
-  protects against regressions when Stream 1 extends the sync engine.
+- **DO NOT add dependencies to `build.gradle.kts`** — Testcontainers, JUnit 5,
+  and coroutines-test are already present. Only add if a genuinely new library is needed.
+
+- **DO NOT update `CLAUDE.md`** — Stream 2 owns that file to prevent merge conflicts.
