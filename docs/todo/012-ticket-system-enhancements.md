@@ -25,19 +25,23 @@ The support ticket system backend and frontend are largely implemented. This tas
 
 ### What is MISSING (to implement in this task)
 
-1. **TASK 1 — Email Thread Viewing on Ticket Detail Page**
+1. **TASK 1 — Email Thread Viewing + Reply-to-Reply Chain Tracking**
 2. **TASK 2 — Bulk Ticket Operations (assign, resolve, export)**
 3. **TASK 3 — SLA Breach Email Notifications**
 4. **TASK 4 — Advanced Ticket Filtering (date range, full-text search)**
 5. **TASK 5 — Ticket Metrics / Analytics Endpoint**
 6. **TASK 6 — Agent Reply by Email (outbound email from ticket)**
+7. **TASK 7 — Customer Portal (direct ticket status check)**
+8. **BUG FIX — InboundEmailProcessor SLA Hardcode (MEDIUM 48h always)**
 
 ---
 
-## TASK 1 — Email Thread Viewing on Ticket Detail Page
+## TASK 1 — Email Thread Viewing + Reply-to-Reply Chain Tracking
 
 ### Goal
 Show all inbound emails linked to a ticket on the ticket detail page. Email threads table (`email_threads`) already has `ticket_id` FK — just need an API + UI to surface it.
+
+Additionally, track **reply-to-reply chains**: when a customer replies to an agent's email, link it to the parent message using `In-Reply-To` / `References` headers so the thread renders as a nested conversation, not a flat list.
 
 ### Backend Steps
 
@@ -90,6 +94,38 @@ suspend fun getEmailThreads(ticketId: String): List<EmailThreadRow>? {
 ```
 
 Constructor injection: add `private val emailThreadRepo: EmailThreadRepository`
+
+**Step 3b: Reply-to-Reply Chain Tracking in `EmailThreadRepositoryImpl`**
+
+When `InboundEmailProcessor` stores a new email, resolve its parent in the chain:
+
+```kotlin
+// Find parent by matching inReplyTo → messageId
+val parentId: UUID? = inReplyTo?.let {
+    transaction {
+        EmailThreads
+            .select { EmailThreads.messageId eq it }
+            .map { it[EmailThreads.id] }
+            .firstOrNull()
+    }
+}
+// Store parentId in email_threads.parent_thread_id (new nullable FK column)
+```
+
+**DB Migration: Add `parent_thread_id` column**
+
+New migration file: `backend/api/src/main/resources/db/migration/V21__email_thread_chain.sql`
+
+```sql
+ALTER TABLE email_threads
+    ADD COLUMN parent_thread_id UUID REFERENCES email_threads(id) ON DELETE SET NULL;
+
+CREATE INDEX idx_email_threads_parent ON email_threads(parent_thread_id);
+```
+
+Update `EmailThreadRow` to include `parentThreadId: UUID?`.
+
+Frontend renders chain as nested indented cards — child replies indented under their parent.
 
 **Step 4: Add route `GET /admin/tickets/{id}/email-threads`**
 
@@ -388,6 +424,157 @@ Body: agent message + separator + previous thread context (optional)
 
 ---
 
+## TASK 7 — Customer Portal (Direct Ticket Status Check)
+
+### Goal
+Allow customers to check the status of their own support ticket without logging into the admin panel. Accessed via a unique token URL sent in the ticket confirmation email.
+
+### Backend Steps
+
+**Step 1: Add `customer_access_token` column to `support_tickets`**
+
+New migration: `backend/api/src/main/resources/db/migration/V22__ticket_customer_token.sql`
+
+```sql
+ALTER TABLE support_tickets
+    ADD COLUMN customer_access_token UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE;
+
+CREATE INDEX idx_support_tickets_customer_token ON support_tickets(customer_access_token);
+```
+
+**Step 2: Add public (unauthenticated) route `GET /tickets/status/{token}`**
+
+File: `backend/api/src/main/kotlin/com/zyntasolutions/zyntapos/api/routes/CustomerTicketRoutes.kt`
+
+- No auth required — token IS the credential
+- Returns limited public view: `ticketNumber`, `status`, `priority`, `title`, `createdAt`, `updatedAt`, `slaBreached`
+- Does NOT return internal notes, assignee details, or customer PII beyond their own email
+
+```kotlin
+get("/tickets/status/{token}") {
+    val token = call.parameters["token"]
+        ?: return@get call.respond(HttpStatusCode.BadRequest)
+    val ticket = ticketService.getByCustomerToken(token)
+        ?: return@get call.respond(HttpStatusCode.NotFound)
+    call.respond(ticket.toPublicView())
+}
+```
+
+**Step 3: Include portal link in `ticket_created` email template**
+
+In `EmailService.sendTicketCreatedEmail()`, append:
+
+```
+Track your ticket status: https://admin.zyntapos.com/ticket-status/{customerAccessToken}
+```
+
+**Step 4: Add `getByCustomerToken()` to `AdminTicketService` + repository**
+
+```kotlin
+suspend fun getByCustomerToken(token: String): SupportTicket? {
+    val uuid = runCatching { UUID.fromString(token) }.getOrNull() ?: return null
+    return ticketRepo.findByCustomerToken(uuid)
+}
+```
+
+### Frontend Steps (Admin Panel or separate public page)
+
+**Option A — Admin Panel public route (recommended)**
+
+Add unauthenticated route: `admin-panel/src/routes/ticket-status/$token.tsx`
+
+- Calls `GET /tickets/status/{token}`
+- Shows: status badge, priority, title, creation date, last updated, SLA status
+- No login required (public route, excluded from auth guard)
+- Simple read-only card layout
+
+---
+
+## BUG FIX — InboundEmailProcessor SLA Hardcode
+
+### Bug
+
+`InboundEmailProcessor.kt` creates tickets with hardcoded `priority = "MEDIUM"` and `slaDeadlineMs = 48h` always — regardless of email content or subject keywords.
+
+When an admin later updates the ticket priority to `HIGH` via the PATCH endpoint, `slaDeadlineMs()` correctly recalculates. But the **initial creation is always wrong** because the SLA is set before priority is determined.
+
+Additionally, `InboundEmailProcessor` duplicates ticket creation logic that already exists in `AdminTicketService.createTicket()` — two code paths for the same operation.
+
+### Fix
+
+**Step 1: Inject `AdminTicketService` into `InboundEmailProcessor`**
+
+Current: `InboundEmailProcessor` directly inserts into the DB / calls repository.
+Fix: Replace direct DB calls with `adminTicketService.createTicket(request)`.
+
+```kotlin
+// BEFORE (wrong — duplicate logic, hardcoded SLA)
+val ticket = SupportTickets.insert {
+    it[priority] = "MEDIUM"
+    it[slaDeadlineAt] = System.currentTimeMillis() + 48 * 60 * 60 * 1000L
+    ...
+}
+
+// AFTER (correct — uses AdminTicketService which calls slaDeadlineMs())
+val createRequest = CreateTicketRequest(
+    title = subject,
+    description = bodyText,
+    customerEmail = fromAddress,
+    customerName = fromName,
+    priority = inferPriorityFromEmail(subject, bodyText),  // see Step 2
+    category = "GENERAL",
+    source = "EMAIL",
+)
+adminTicketService.createTicket(createRequest)
+```
+
+**Step 2: Add `inferPriorityFromEmail()` helper**
+
+Simple keyword-based priority inference (can be improved later):
+
+```kotlin
+private fun inferPriorityFromEmail(subject: String, body: String?): String {
+    val text = "${subject} ${body ?: ""}".lowercase()
+    return when {
+        text.containsAny("urgent", "critical", "down", "broken", "emergency") -> "HIGH"
+        text.containsAny("billing", "payment", "invoice") -> "HIGH"
+        text.containsAny("feature", "suggestion", "how to") -> "LOW"
+        else -> "MEDIUM"
+    }
+}
+
+private fun String.containsAny(vararg keywords: String) = keywords.any { this.contains(it) }
+```
+
+**Step 3: Remove duplicate SLA/insert logic from `InboundEmailProcessor`**
+
+After Step 1, delete the direct `SupportTickets.insert {}` block and any duplicate `slaDeadlineMs` calculation from `InboundEmailProcessor`. Single source of truth = `AdminTicketService.createTicket()`.
+
+**Step 4: Update DI — inject `AdminTicketService` into `InboundEmailProcessor`**
+
+File: `backend/api/src/main/kotlin/com/zyntasolutions/zyntapos/api/di/AppModule.kt`
+
+```kotlin
+single { InboundEmailProcessor(get(), get(), get()) }
+// Add AdminTicketService to constructor params
+```
+
+### Verification
+
+```bash
+# Send test inbound email with "URGENT" in subject
+# Verify ticket created with priority=HIGH and correct SLA (4h, not 48h)
+curl -X POST http://localhost:8081/inbound/email \
+  -H "X-HMAC-Signature: ..." \
+  -d '{"subject":"URGENT: System down","from":"customer@test.com","bodyText":"Help!"}'
+
+# Check created ticket
+curl -H "Authorization: Bearer $TOKEN" \
+  http://localhost:8081/admin/tickets?search=URGENT | python3 -m json.tool
+```
+
+---
+
 ## File Reference
 
 | File | Action |
@@ -408,17 +595,24 @@ Body: agent message + separator + previous thread context (optional)
 | `admin-panel/src/components/tickets/TicketTable.tsx` | MODIFY (add checkboxes, bulk toolbar) |
 | `admin-panel/src/routes/tickets/$ticketId.tsx` | MODIFY (add email thread panel) |
 | `admin-panel/src/routes/tickets/index.tsx` | MODIFY (add metrics cards, date filter) |
+| `backend/api/.../routes/CustomerTicketRoutes.kt` | CREATE |
+| `backend/api/src/main/resources/db/migration/V21__email_thread_chain.sql` | CREATE |
+| `backend/api/src/main/resources/db/migration/V22__ticket_customer_token.sql` | CREATE |
+| `backend/api/.../service/InboundEmailProcessor.kt` | MODIFY (inject AdminTicketService, remove duplicate SLA logic) |
+| `admin-panel/src/routes/ticket-status/$token.tsx` | CREATE |
 
 ---
 
 ## Implementation Order
 
-1. **TASK 1** (Email Thread View) — no DB migration needed, just query existing `email_threads`
+0. **BUG FIX** (InboundEmailProcessor SLA hardcode) — fix first, unblocks correct SLA on all new tickets
+1. **TASK 1** (Email Thread View + Chain) — V21 migration + query `email_threads` + chain tracking
 2. **TASK 3** (SLA Breach Alerts) — extend existing `checkSlaBreaches()` + `AlertGenerationJob`
 3. **TASK 4** (Advanced Filtering) — extend existing filter params
 4. **TASK 5** (Metrics Endpoint) — read-only aggregate query, no schema change
 5. **TASK 2** (Bulk Operations) — new endpoints + frontend selection UI
 6. **TASK 6** (Agent Email Reply) — extend comment endpoint + new email template
+7. **TASK 7** (Customer Portal) — V22 migration + public route + public frontend page
 
 ---
 
