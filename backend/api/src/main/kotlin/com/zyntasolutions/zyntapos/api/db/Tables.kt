@@ -224,5 +224,19 @@ object EmailDeliveryLogs : Table("email_delivery_log") {
     val errorMessage = text("error_message").nullable()
     val sentAt       = timestampWithTimeZone("sent_at").nullable()
     val createdAt    = timestampWithTimeZone("created_at")
+    val retryCount   = integer("retry_count").default(0)
+    val nextRetryAt  = timestampWithTimeZone("next_retry_at").nullable()
+    val htmlBody     = text("html_body").nullable()
+    override val primaryKey = PrimaryKey(id)
+}
+
+object EmailTemplates : Table("email_templates") {
+    val id        = uuid("id")
+    val slug      = varchar("slug", 100)
+    val name      = text("name")
+    val subject   = text("subject")
+    val htmlBody  = text("html_body")
+    val updatedAt = timestampWithTimeZone("updated_at")
+    val createdAt = timestampWithTimeZone("created_at")
     override val primaryKey = PrimaryKey(id)
 }

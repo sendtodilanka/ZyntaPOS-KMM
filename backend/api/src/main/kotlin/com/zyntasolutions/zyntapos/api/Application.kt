@@ -4,6 +4,7 @@ import io.sentry.Sentry
 import com.zyntasolutions.zyntapos.api.db.DatabaseFactory
 import com.zyntasolutions.zyntapos.api.di.appModule
 import com.zyntasolutions.zyntapos.api.service.AlertGenerationJob
+import com.zyntasolutions.zyntapos.api.service.EmailRetryJob
 import com.zyntasolutions.zyntapos.api.plugins.configureAuthentication
 import com.zyntasolutions.zyntapos.api.plugins.configureCors
 import com.zyntasolutions.zyntapos.api.plugins.configureMonitoring
@@ -77,6 +78,9 @@ fun Application.module() {
     // Start background jobs
     val alertJob: AlertGenerationJob by inject()
     alertJob.start(intervalSeconds = 60L)
+
+    val emailRetryJob: EmailRetryJob by inject()
+    emailRetryJob.start(intervalSeconds = 60L)
 
     // S4-2: Request correlation ID for cross-service tracing
     install(com.zyntasolutions.zyntapos.common.CorrelationId)

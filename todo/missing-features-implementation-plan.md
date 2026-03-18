@@ -136,39 +136,41 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 
 ---
 
-### A2. Email Management System (TODO-008a) — ~98% Complete
+### A2. Email Management System (TODO-008a) — ✅ COMPLETE
 
 **Priority:** P1-HIGH
-**Impact:** Email logs cannot be viewed by admins; templates not editable
+**Status:** COMPLETE — All features implemented (2026-03-18)
 
 **What EXISTS:**
 - Stalwart mail server deployed (SMTP/IMAP)
 - Cloudflare Email Worker → HTTP relay → Stalwart pipeline working
-- `EmailService.kt` — Resend API transactional email sending
+- `EmailService.kt` — Resend API transactional email sending with retry support
 - `email_threads` table (V18) — inbound email storage
-- `email_delivery_log` table (V20) — outbound email audit trail
+- `email_delivery_log` table (V20, V25) — outbound email audit trail with retry columns
+- `email_templates` table (V25) — admin-editable email templates with {{variable}} placeholders
+- `email_preferences` enhancements (V25) — sla_breach_notifications, daily_digest columns
 - `InboundEmailProcessor.kt` — CF Worker → ticket creation
 - `ChatwootService.kt` — Chatwoot conversation sync
-- Admin panel API file: `admin-panel/src/api/email.ts` (email API functions exist; `useEmailLogs()` / `useEmailPreferences()` hooks do NOT exist yet — need to be created)
-- Backend routes: `AdminEmailRoutes.kt`
-- Admin panel email page: `admin-panel/src/routes/settings/email.tsx` (119 lines — basic page EXISTS)
+- Admin panel: 3-tab email management page (Delivery Logs, Templates, Preferences)
+- Backend routes: `AdminEmailRoutes.kt`, `AdminEmailTemplateRoutes.kt`, `AdminEmailPreferencesRoutes.kt`
+- `EmailRetryJob.kt` — background retry with exponential backoff (2m, 8m, 32m; max 3 retries)
 
-**What's MISSING:**
-- [x] Admin panel email delivery log UI page — `admin-panel/src/routes/settings/email.tsx` EXISTS (enhanced with filters)
-- [x] `useEmailDeliveryLogs()` TanStack Query hook with status/date filters (in `admin-panel/src/api/email.ts`)
+**All Items Complete:**
+- [x] Admin panel email delivery log UI page with status/date filters and pagination
+- [x] `useEmailDeliveryLogs()` TanStack Query hook with status/date filters
 - [x] Email delivery log table enhancement (status filters, date range filter, pagination)
-- [ ] Email template editor in admin panel (deferred — Phase 2)
-- [ ] Email preference management UI for customers (deferred — Phase 2)
+- [x] Email template editor in admin panel (`GET/PUT /admin/email/templates/{slug}`)
+- [x] Email preference management UI (`GET/PUT /admin/email/preferences`)
 - [x] Bounce/complaint webhook handler from Resend (`POST /webhooks/resend`)
-- [ ] Email retry logic for QUEUED → SENDING failures (deferred — Phase 2)
+- [x] Email retry logic for FAILED deliveries (EmailRetryJob — exponential backoff, max 3 retries)
 
-**Implementation Steps:**
-1. ~~Create `useEmailLogs()` hook in `admin-panel/src/api/email.ts`~~ ✅ Done (with filters)
-2. ~~Enhance existing `admin-panel/src/routes/settings/email.tsx` with delivery log table~~ ✅ Done (status + date filters)
-3. Add email template CRUD endpoints in backend API (Phase 2)
-4. Build template editor component in admin panel (Phase 2)
-5. ~~Implement Resend bounce/complaint webhook endpoint~~ ✅ Done (`WebhookRoutes.kt`)
-6. Add retry queue worker for failed email deliveries (Phase 2)
+**Key Files:**
+- `backend/api/src/main/kotlin/.../service/EmailRetryJob.kt` — retry background job
+- `backend/api/src/main/kotlin/.../routes/AdminEmailTemplateRoutes.kt` — template CRUD
+- `backend/api/src/main/kotlin/.../routes/AdminEmailPreferencesRoutes.kt` — preferences API
+- `admin-panel/src/routes/settings/email.tsx` — 3-tab email management page
+- `admin-panel/src/api/email.ts` — all email API hooks
+- `backend/api/src/main/resources/db/migration/V25__email_retry_templates_preferences.sql`
 
 ---
 
