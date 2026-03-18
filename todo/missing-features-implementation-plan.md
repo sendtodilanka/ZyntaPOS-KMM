@@ -28,6 +28,48 @@
 
 ---
 
+## 🔴 PHASE 2 TOP 3 BLOCKERS
+
+> මේ 3 items resolve නොකර Phase 2 (Multi-Store Growth) start කරන්න බැහැ.
+> Implementation sessions වලදී මේවා පළමු priority ලෙස සලකන්න.
+
+### Blocker 1: Sync Engine Server-Side (A1) — ~60% Complete | P0-CRITICAL
+
+**ලොකුම blocker එක.** `EntityApplier` එකේ PRODUCT type එක විතරයි handle වෙන්නේ — ORDER,
+CUSTOMER, CATEGORY, SUPPLIER, STOCK_ADJUSTMENT වගේ 10+ entity types handle වෙන්නේ නැහැ.
+Phase 2 multi-store sync එකට මේක complete වෙන්නම ඕන.
+
+- `EntityApplier` — extend to ALL entity types (currently PRODUCT only)
+- Multi-store data isolation (`store_id` JWT validation) — 0%
+- WebSocket push notifications after sync — not wired
+- JWT validation on WebSocket upgrade — missing
+
+**Impact:** Offline-first data sync මුළුමනින්ම non-functional. Client data `sync_queue` table එකේ unprocessed ඉඳලා යයි.
+
+### Blocker 2: Multi-Store Data Architecture (C6.1 + C1.1–C1.5) — 0% Backend
+
+Phase 2 core feature එක multi-store. නමුත්:
+
+- **Global Product Catalog** (`global_products` table) — build කරන්න ඕන
+- **Store-Specific Inventory** backend support — `store_id` column products/stock tables වලට add කරන්න ඕන
+- **Inter-Store Transfer (IST)** backend pipeline — 0% (UI exists: `NewStockTransferScreen`, `StockTransferListScreen` — but backend routes, approval workflow, tracking tables නැහැ)
+- **Cross-Store Sync** (multi-node CRDT) — conflict resolution multi-store context එකේ design කරන්න ඕන
+
+**Impact:** Multi-store features UI level එකේ scaffold එකයි ඇත්තේ — backend support නැතුව dead screens.
+
+### Blocker 3: Backend Test Coverage (B4) — ~25% vs 80% Target
+
+Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන් ~25%:
+
+- `SyncProcessor`, `EntityApplier`, `DeltaEngine` — critical sync logic untested
+- `AdminAuthService` (BCrypt, MFA, lockout) — partial tests only
+- Repository layer — no integration tests with Testcontainers
+- Multi-store operations — zero test coverage
+
+**Impact:** Sync engine extend කරද්දී regression risk ඉහළයි. Phase 2 features add කරන කොට existing functionality break වෙන risk untested code නිසා ඉහළයි.
+
+---
+
 ## SECTION A: CRITICAL / HIGH PRIORITY (P0–P1)
 
 ---
@@ -1043,6 +1085,11 @@
 > onboarding සහ admin panel සියල්ල audit කර ඇත. එක් එක් screen එකේ
 > MVI compliance, responsive design, error/loading/empty states, accessibility,
 > සහ multi-store readiness check කර ඇත.
+>
+> **Deep audit completed:** Multistore (G16, 6 screens, 2,158 LOC, score 9/10) සහ
+> Inventory (G17, 10+ screens, 4,200+ LOC, score 8/10) modules screen-by-screen
+> audit කර ඇත. Gap IDs: MS-1 to MS-6, INV-1 to INV-10 — total 16 actionable gaps.
+> Navigation route gaps: G18 (6 missing routes identified).
 
 ---
 
@@ -1278,7 +1325,158 @@
 
 ---
 
-### G16. Navigation & Deep-Linking Gaps
+### G16. Multistore Module UI/UX Audit (`:composeApp:feature:multistore` — 11 files, 2,158 LOC)
+
+> **Audited:** 2026-03-18 | **Overall Score:** 9/10 | **MVI Compliance:** 100%
+> **ViewModel:** `WarehouseViewModel` (407 lines) — manages warehouses, transfers, racks
+> **State:** `WarehouseState` (38 properties) | **Intents:** 20 | **Effects:** 6
+
+**Screens Audited (6):**
+
+| # | Screen | Lines | Status | Key Issues |
+|---|--------|-------|--------|------------|
+| 1 | `WarehouseListScreen` | 70 | ✅ Complete | FAB, badge count, card list — no error snackbar on list |
+| 2 | `WarehouseDetailScreen` | 126 | ✅ Complete | Name/address/isDefault form — no image/logo field |
+| 3 | `StockTransferListScreen` | 186 | ✅ Complete | Confirm dialogs for commit/cancel — **shows raw warehouse IDs instead of names** |
+| 4 | `NewStockTransferScreen` | 143 | ⚠️ Functional | **No product selector/autocomplete — user must enter product ID manually** |
+| 5 | `WarehouseRackListScreen` | 181 | ✅ Complete | Expand/collapse, delete dialog — rack routes not in ZyntaRoute.kt |
+| 6 | `WarehouseRackDetailScreen` | 102 | ⚠️ Functional | Name/desc/capacity form — **no back button or navigation scaffold** |
+
+**Compliance Checklist:**
+
+| Aspect | Status |
+|--------|--------|
+| MVI Pattern | ✅ 100% — all 6 screens dispatch intents, observe state |
+| Loading States | ✅ All screens |
+| Empty States | ✅ All screens with "No X found" messages |
+| Form Validation | ✅ Name required, capacity validation |
+| Confirmation Dialogs | ✅ Delete/commit/cancel operations |
+| Responsive Design | ✅ Card-based layouts scale to all breakpoints |
+| Material 3 | ✅ TopAppBar, FAB, Cards, Chips |
+| Accessibility | ✅ contentDescription on icons |
+
+**Critical Gaps (for implementation session):**
+
+| Gap ID | Issue | Severity | Fix Required |
+|--------|-------|----------|-------------|
+| MS-1 | **No Product Selection UI** — NewStockTransferScreen requires manual product ID entry; should have autocomplete or dropdown backed by `ProductRepository.search()` | HIGH | Add `ExposedDropdownMenuBox` or search-as-you-type field with product results |
+| MS-2 | **No Warehouse Name Display** — StockTransferCard shows raw `sourceWarehouseId`/`destWarehouseId` UUIDs; users see meaningless IDs | HIGH | Resolve warehouse names from `WarehouseState.warehouses` list or add `warehouseName` to `StockTransfer` model |
+| MS-3 | **Rack Screen Navigation Missing** — `WarehouseRackListScreen` and `WarehouseRackDetailScreen` have no routes in `ZyntaRoute.kt`; parent handles nav locally | MEDIUM | Add `WarehouseRackList(warehouseId)` and `WarehouseRackDetail(warehouseId, rackId?)` to `ZyntaRoute` sealed class |
+| MS-4 | **RackDetailScreen No Back Button** — No TopAppBar with back icon; assumes parent composable provides scaffold | MEDIUM | Add `TopAppBar` with navigationIcon back arrow |
+| MS-5 | **No Warehouse Metadata** — No image/logo field for visual identity; warehouse cards look plain | LOW | Add optional `imageUrl` field to `Warehouse` domain model + `AsyncImage` in card |
+| MS-6 | **No Rack Capacity Enforcement** — UI validates capacity but doesn't prevent overstocking against capacity limits | LOW | Add stock-vs-capacity check in `WarehouseRepositoryImpl.commitTransfer()` |
+
+**Key Files:**
+- `composeApp/feature/multistore/src/commonMain/.../WarehouseListScreen.kt`
+- `composeApp/feature/multistore/src/commonMain/.../WarehouseDetailScreen.kt`
+- `composeApp/feature/multistore/src/commonMain/.../StockTransferListScreen.kt`
+- `composeApp/feature/multistore/src/commonMain/.../NewStockTransferScreen.kt`
+- `composeApp/feature/multistore/src/commonMain/.../WarehouseRackListScreen.kt`
+- `composeApp/feature/multistore/src/commonMain/.../WarehouseRackDetailScreen.kt`
+- `composeApp/feature/multistore/src/commonMain/.../WarehouseViewModel.kt`
+- `composeApp/feature/multistore/src/commonMain/.../di/MultistoreModule.kt`
+
+---
+
+### G17. Inventory Module UI/UX Audit (`:composeApp:feature:inventory` — 32 files, 4,200+ LOC)
+
+> **Audited:** 2026-03-18 | **Overall Score:** 8/10 | **MVI Compliance:** 100%
+> **ViewModels:** `InventoryViewModel` (737 lines) + `StocktakeViewModel`
+> **State:** `InventoryState` (107 properties) | **Intents:** 50+ | **Effects:** 6
+
+**Screens Audited (10 of 18+):**
+
+| # | Screen | Lines | Status | Key Issues |
+|---|--------|-------|--------|------------|
+| 1 | `ProductListScreen` | 471 | ✅ Excellent | FTS5 search, category/stock filters, list/grid toggle, responsive columns — no result count |
+| 2 | `ProductDetailScreen` | 649 | ⚠️ Functional | 5-tab form (ID, Pricing, Stock, Variants, Images) — **barcode scanner TODO**, no image preview, variants not persisted |
+| 3 | `CategoryListScreen` | 332 | ✅ Complete | Animated tree view with expand/collapse, loading skeleton — 2-level depth limit |
+| 4 | `CategoryDetailScreen` | 275 | ✅ Complete | Parent dropdown (excludes self+children), display order, image URL — no route in ZyntaRoute.kt |
+| 5 | `SupplierListScreen` | 275 | ✅ Complete | Responsive table/card view, sortable columns — no purchase history |
+| 6 | `StockAdjustmentDialog` | 293 | ✅ Excellent | NumericPad, type selector (increase/decrease/transfer), real-time preview with color-coded risk |
+| 7 | `StocktakeScreen` | 623 | ✅ Excellent | Session lifecycle, scanner toggle, variance calc, snackbar feedback — well-designed for tablet |
+| 8 | `BulkImportDialog` | — | ⚠️ Not Reviewed | State has fileName, parsedRows, columnMapping, importProgress — dialog composable not audited |
+| 9 | `BarcodeGeneratorDialog` | — | ⚠️ Not Reviewed | Referenced in state — dialog composable not audited |
+| 10 | `BarcodeLabelPrintScreen` | — | ⚠️ Not Reviewed | Referenced in routes — screen composable not audited |
+
+**Compliance Checklist:**
+
+| Aspect | Status |
+|--------|--------|
+| MVI Pattern | ✅ 100% — all screens dispatch intents, observe state |
+| Loading States | ✅ CircularProgressIndicator on async operations |
+| Empty States | ✅ ZyntaEmptyState with CTA buttons |
+| Form Validation | ✅ Per-field error tracking via Map<String, String> |
+| Responsive Design | ✅ WindowSizeClass-based columns (2/3/5 grid) |
+| Material 3 | ✅ TopAppBar, FAB, Cards, Tabs, Chips, ExposedDropdown |
+| Accessibility | ✅ contentDescription, semantic labels |
+| Audit Logging | ✅ `auditLogger.logProductCreated/Updated/Deleted` |
+| Reactive Search | ✅ 300ms debounce + `flatMapLatest` (cancels previous) |
+
+**Critical Gaps (for implementation session):**
+
+| Gap ID | Issue | Severity | Fix Required |
+|--------|-------|----------|-------------|
+| INV-1 | **Barcode Scanner Not Integrated** — `ProductDetailScreen` has QR icon with TODO comment; `StocktakeScreen` has scanner toggle but handler may be stubbed | HIGH | Wire HAL `BarcodeScanner` interface; implement `actual` for Android (ML Kit) and JVM (HID keyboard) |
+| INV-2 | **Variant Persistence Not Implemented** — `ProductVariants` added/edited in form state but never saved to domain; `CreateProductUseCase`/`UpdateProductUseCase` ignore variants | HIGH | Add variant list to `CreateProductUseCase.Params`, persist via `product_variants.sq` table |
+| INV-3 | **Missing Screen Route Definitions** — `CategoryDetail`, `SupplierDetail`, `TaxGroupScreen`, `UnitManagementScreen` not in `ZyntaRoute.kt` | HIGH | Add `@Serializable` route classes + NavHost entries |
+| INV-4 | **Product Image Preview Missing** — `ProductDetailScreen` accepts image URL but doesn't show preview; just a text field | MEDIUM | Add Coil `AsyncImage` with placeholder/error states |
+| INV-5 | **Supplier Purchase History Empty** — `supplierPurchaseHistory` state property exists but never populated | MEDIUM | Load purchase orders from `purchase_orders.sq` in supplier detail |
+| INV-6 | **Bulk Import Dialog Unaudited** — Column mapping UX unclear; may have usability issues | MEDIUM | Audit and refine `BulkImportDialog.kt` composable |
+| INV-7 | **No Batch Product Selection** — ProductListScreen has no multi-select for bulk operations (delete, price adjust) | MEDIUM | Add checkbox column + batch action toolbar |
+| INV-8 | **No Search Result Count** — ProductListScreen doesn't show "X products found" after search | LOW | Add result count chip/text below search bar |
+| INV-9 | **No Unsaved Changes Warning** — ProductDetailScreen doesn't warn on back if form has unsaved edits | LOW | Track form dirty state; show confirmation dialog on back press |
+| INV-10 | **Tax Group / Unit Management Screens Missing** — Referenced in InventoryIntent but screen files not found | MEDIUM | Implement `TaxGroupScreen.kt` and `UnitManagementScreen.kt` |
+
+**Key Files:**
+- `composeApp/feature/inventory/src/commonMain/.../ProductListScreen.kt`
+- `composeApp/feature/inventory/src/commonMain/.../ProductDetailScreen.kt`
+- `composeApp/feature/inventory/src/commonMain/.../CategoryListScreen.kt`
+- `composeApp/feature/inventory/src/commonMain/.../CategoryDetailScreen.kt`
+- `composeApp/feature/inventory/src/commonMain/.../SupplierListScreen.kt`
+- `composeApp/feature/inventory/src/commonMain/.../StockAdjustmentDialog.kt`
+- `composeApp/feature/inventory/src/commonMain/.../stocktake/StocktakeScreen.kt`
+- `composeApp/feature/inventory/src/commonMain/.../stocktake/StocktakeViewModel.kt`
+- `composeApp/feature/inventory/src/commonMain/.../InventoryViewModel.kt`
+- `composeApp/feature/inventory/src/commonMain/.../di/InventoryModule.kt`
+
+**Reactive Pipeline (canonical pattern — reference for other modules):**
+```kotlin
+// ProductListScreen search pipeline — InventoryViewModel
+combine(_searchQuery.debounce(300L), _selectedCategoryId)
+    .distinctUntilChanged()
+    .flatMapLatest { (query, categoryId) ->
+        productRepository.search(query, categoryId)
+    }
+    .onEach { products -> updateState { copy(products = products) } }
+    .launchIn(viewModelScope)
+```
+
+---
+
+### G18. Navigation Route Gaps — Multistore & Inventory
+
+**Missing routes in `ZyntaRoute.kt`** (discovered during G16/G17 audit):
+
+| Missing Route | Referenced By | Fix |
+|---------------|---------------|-----|
+| `WarehouseRackList(warehouseId: String)` | `WarehouseDetailScreen` → navigate to racks | Add `@Serializable data class` in ZyntaRoute |
+| `WarehouseRackDetail(warehouseId: String, rackId: String?)` | `WarehouseRackListScreen` → navigate to rack detail | Add `@Serializable data class` in ZyntaRoute |
+| `CategoryDetail(categoryId: String?)` | `CategoryListScreen` → navigate to edit category | Add `@Serializable data class` in ZyntaRoute |
+| `SupplierDetail(supplierId: String?)` | `SupplierListScreen` → navigate to edit supplier | Add `@Serializable data class` in ZyntaRoute |
+| `TaxGroupList` / `TaxGroupDetail` | `InventoryIntent.OpenTaxGroupDetail` | Add routes + implement screens |
+| `UnitManagementList` / `UnitDetail` | `InventoryIntent.OpenUnitManagement` | Add routes + implement screens |
+
+**Existing routes confirmed working:**
+- `WarehouseList`, `WarehouseDetail(warehouseId?)`, `StockTransferList`, `NewStockTransfer(sourceWarehouseId?)`
+- `ProductList`, `ProductDetail(productId?)`, `CategoryList`, `SupplierList`
+- `BarcodeLabelPrint(initialProductId?)`, `Stocktake`, `StocktakeDetail(sessionId)`
+
+**Key File:** `composeApp/navigation/src/commonMain/.../ZyntaRoute.kt`
+
+---
+
+### G19. Navigation & Deep-Linking Gaps (General)
 
 **Routes:** 58 registered across 11 graph groups, RBAC gating 100% compliant
 
@@ -1290,7 +1488,7 @@
 
 ---
 
-### G17. Cross-Module UI/UX Issues
+### G20. Cross-Module UI/UX Issues
 
 | Issue | Affected Modules | Severity |
 |-------|-----------------|----------|
@@ -1303,7 +1501,7 @@
 
 ---
 
-### G18. UI/UX Implementation Priority Matrix
+### G21. UI/UX Implementation Priority Matrix
 
 **Phase 1.5 Quick Wins (< 1 day each):**
 - [ ] Render hourly sparkline in Dashboard (data already calculated)
@@ -1326,6 +1524,14 @@
 - [ ] Add date picker dialogs (replace manual text entry)
 - [ ] Add transfer status badge to stock transfer list
 - [ ] Add store-specific discount assignment to coupons
+- [ ] **[MS-1]** Add product selector/autocomplete to NewStockTransferScreen
+- [ ] **[MS-2]** Display warehouse names instead of IDs in StockTransferCard
+- [ ] **[MS-3]** Add WarehouseRackList/Detail routes to ZyntaRoute.kt
+- [ ] **[INV-1]** Wire barcode scanner HAL integration (ProductDetail + Stocktake)
+- [ ] **[INV-2]** Implement variant persistence in CreateProduct/UpdateProduct use cases
+- [ ] **[INV-3]** Add missing CategoryDetail, SupplierDetail routes to ZyntaRoute.kt
+- [ ] **[INV-4]** Add Coil image preview in ProductDetailScreen
+- [ ] **[INV-10]** Implement TaxGroupScreen + UnitManagementScreen
 
 **Phase 3 Nice-to-Have:**
 - [ ] 3-pane responsive layout for warehouse tablet UI
