@@ -16,6 +16,42 @@ import org.jetbrains.exposed.sql.upsert
 import org.slf4j.LoggerFactory
 import java.time.OffsetDateTime
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
+
+/**
+ * In-memory nonce cache for heartbeat replay protection.
+ * Nonces are kept for [NONCE_TTL_MS] (5 minutes) then evicted.
+ * A duplicate nonce within the TTL window indicates a replayed request.
+ */
+private object HeartbeatNonceCache {
+    private const val NONCE_TTL_MS = 5 * 60 * 1000L // 5 minutes
+    private const val MAX_HEARTBEAT_AGE_MS = 60 * 1000L // 60 seconds
+
+    // nonce → insertedAtMs
+    private val nonces = ConcurrentHashMap<String, Long>()
+
+    /**
+     * Returns true if this nonce has been seen before (replay).
+     * Returns false and records the nonce if it's fresh.
+     */
+    fun checkAndRecord(nonce: String): Boolean {
+        evictStale()
+        val previous = nonces.putIfAbsent(nonce, System.currentTimeMillis())
+        return previous != null // non-null means duplicate
+    }
+
+    /** Reject heartbeats with client timestamp older than [MAX_HEARTBEAT_AGE_MS]. */
+    fun isTimestampTooStale(clientTimestamp: Long): Boolean {
+        return System.currentTimeMillis() - clientTimestamp > MAX_HEARTBEAT_AGE_MS
+    }
+
+    private fun evictStale() {
+        if (nonces.size > 10_000) {
+            val cutoff = System.currentTimeMillis() - NONCE_TTL_MS
+            nonces.entries.removeIf { it.value < cutoff }
+        }
+    }
+}
 
 class LicenseService(private val config: LicenseConfig) {
     private val logger = LoggerFactory.getLogger(LicenseService::class.java)
@@ -107,7 +143,24 @@ class LicenseService(private val config: LicenseConfig) {
         )
     }
 
-    suspend fun heartbeat(request: HeartbeatRequest): HeartbeatResponse? = newSuspendedTransaction {
+    suspend fun heartbeat(request: HeartbeatRequest): HeartbeatResponse? {
+        // Nonce-based replay protection: reject duplicate nonces
+        if (request.nonce != null) {
+            if (HeartbeatNonceCache.checkAndRecord(request.nonce)) {
+                logger.warn("Heartbeat replay detected (duplicate nonce): device=${request.deviceId} nonce=${request.nonce}")
+                return null
+            }
+        }
+
+        // Timestamp-based replay protection: reject stale heartbeats (>60s old)
+        if (request.clientTimestamp != null) {
+            if (HeartbeatNonceCache.isTimestampTooStale(request.clientTimestamp)) {
+                logger.warn("Heartbeat rejected (stale timestamp): device=${request.deviceId} age=${System.currentTimeMillis() - request.clientTimestamp}ms")
+                return null
+            }
+        }
+
+        return newSuspendedTransaction {
         logger.info("Heartbeat: key=****${request.licenseKey.takeLast(4)} device=${request.deviceId}")
 
         val license = Licenses.selectAll().where { Licenses.key eq request.licenseKey }.singleOrNull()
@@ -170,6 +223,7 @@ class LicenseService(private val config: LicenseConfig) {
             serverTimestamp = java.time.Instant.now().toEpochMilli(),
             forceSync = forceSyncRequested
         )
+        }
     }
 
     suspend fun getStatus(key: String): LicenseStatusResponse? = newSuspendedTransaction {

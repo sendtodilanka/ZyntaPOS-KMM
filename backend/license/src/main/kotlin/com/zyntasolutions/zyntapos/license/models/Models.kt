@@ -113,7 +113,9 @@ data class HeartbeatRequest(
     val dbSizeBytes: Long = 0L,
     val syncQueueDepth: Int = 0,
     val lastErrorCount: Int = 0,
-    val uptimeHours: Double = 0.0
+    val uptimeHours: Double = 0.0,
+    val nonce: String? = null,       // unique per-heartbeat, replay protection
+    val clientTimestamp: Long? = null // epoch ms, reject if too stale
 )
 
 @Serializable

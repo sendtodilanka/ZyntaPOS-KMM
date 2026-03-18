@@ -33,17 +33,19 @@
 > මේ 3 items resolve නොකර Phase 2 (Multi-Store Growth) start කරන්න බැහැ.
 > Implementation sessions වලදී මේවා පළමු priority ලෙස සලකන්න.
 
-### Blocker 1: Sync Engine Server-Side (A1) — ~80% Complete | P0-CRITICAL
+### Blocker 1: Sync Engine Server-Side (A1) — ~95% Complete | P0-CRITICAL
 
-**ලොකුම blocker එක.** `EntityApplier` එකේ entity types 17ක් handle කරනවා (PRODUCT, CATEGORY,
-CUSTOMER, SUPPLIER, ORDER, ORDER_ITEM, AUDIT_ENTRY + new: STOCK_ADJUSTMENT, CASH_REGISTER,
-REGISTER_SESSION, CASH_MOVEMENT, TAX_GROUP, UNIT_OF_MEASURE, PAYMENT_SPLIT, COUPON, EXPENSE, SETTINGS).
-Phase 2 multi-store sync එකට remaining items complete වෙන්නම ඕන.
+**ලොකුම blocker එක.** `EntityApplier` එකේ entity types 17ක් handle කරනවා. WebSocket push,
+JWT validation, token revocation, heartbeat replay protection, circular parent detection
+all implemented (2026-03-18 session 2).
 
 - `EntityApplier` — ✅ extended to 17 entity types (2026-03-18)
 - Multi-store data isolation (`store_id` JWT validation) — ✅ already existed (S2-10)
-- WebSocket push notifications after sync — not wired
-- JWT validation on WebSocket upgrade — missing
+- WebSocket push notifications after sync — ✅ SyncProcessor publishes entityTypes to Redis
+- JWT validation on WebSocket upgrade — ✅ already existed (authenticate wraps WS routes)
+- Token revocation — ✅ in-memory + Redis cache, admin endpoint
+- Heartbeat replay protection — ✅ nonce + timestamp validation
+- Category circular parent ref detection — ✅ ancestor chain walk (max 10 levels)
 
 **Impact:** Offline-first data sync මුළුමනින්ම non-functional. Client data `sync_queue` table එකේ unprocessed ඉඳලා යයි.
 
@@ -76,15 +78,18 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 
 ---
 
-### A1. Sync Engine Server-Side (TODO-007g) — ~80% Complete
+### A1. Sync Engine Server-Side (TODO-007g) — ~95% Complete
 
-> **HANDOFF (2026-03-18):** EntityApplier extended with STOCK_ADJUSTMENT, CASH_REGISTER,
-> REGISTER_SESSION, CASH_MOVEMENT, TAX_GROUP, UNIT_OF_MEASURE, PAYMENT_SPLIT, COUPON,
-> EXPENSE, SETTINGS handlers (10 new entity types). V23 migration creates normalized tables.
-> SyncValidator updated with CASH_REGISTER entity type and field-level validation for all
-> new entity types. Tests in EntityApplierTest.kt + SyncValidatorTest.kt — run before modifying.
-> Next session: WebSocket push notifications, JWT on WS upgrade, token revocation check.
-> Branch: claude/sync-engine-entity-applier-GDfIt.
+> **HANDOFF (2026-03-18, session 2):** All remaining A1 items implemented:
+> - WebSocket push notifications enhanced with entityTypes in SyncNotification
+> - JWT validation on WebSocket upgrade already existed (authenticate("jwt-rs256") wraps WS routes)
+> - Token revocation: in-memory cache in API service, Redis-backed cache in sync service,
+>   admin endpoint POST /admin/sync/tokens/revoke added
+> - Heartbeat nonce + timestamp replay protection added to license service
+> - Category circular parent reference detection added to EntityApplier
+> - Tests: TokenRevocationCacheTest, SyncTokenRevocationCacheTest, HeartbeatReplayProtectionTest,
+>   EntityApplierTest (category tests), SyncProcessorTest (entityTypes), RedisPubSubListenerTest (entityTypes)
+> Branch: claude/sync-websocket-jwt-q1NZG.
 
 **Priority:** P0-CRITICAL
 **Impact:** Offline-first sync pipeline non-functional; client data sits in `sync_queue` unprocessed
@@ -92,47 +97,52 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 
 **What EXISTS:**
 - `sync_operations`, `sync_cursors`, `entity_snapshots`, `sync_conflict_log`, `sync_dead_letters` tables (V4)
-- `SyncProcessor.kt` — push processing with batch validation
+- `SyncProcessor.kt` — push processing with batch validation, Redis publish with entityTypes
 - `DeltaEngine.kt` — cursor-based pull with delta computation
-- `EntityApplier.kt` — JSONB → normalized tables (handles 17 entity types: PRODUCT, CATEGORY, CUSTOMER, SUPPLIER, ORDER, ORDER_ITEM, AUDIT_ENTRY, STOCK_ADJUSTMENT, CASH_REGISTER, REGISTER_SESSION, CASH_MOVEMENT, TAX_GROUP, UNIT_OF_MEASURE, PAYMENT_SPLIT, COUPON, EXPENSE, SETTINGS)
+- `EntityApplier.kt` — JSONB → normalized tables (handles 17+ entity types), circular parent ref detection
 - `ServerConflictResolver.kt` — LWW (Last-Write-Wins) resolution
 - `SyncRoutes.kt` — REST `/sync/push` and `/sync/pull` endpoints with store_id JWT validation (S2-10)
 - `SyncValidator.kt` — batch + field-level validation for all major entity types
-- WebSocket endpoints in `backend/sync` service
+- WebSocket endpoints in `backend/sync` with JWT auth + token revocation check
 - KMM client: `sync_queue.sq` (outbox), `sync_state.sq` (cursor), `version_vectors.sq` (CRDT metadata)
 - KMM client: `ConflictResolver.kt` — LWW with field-level merge for PRODUCT
-- V23 migration — normalized entity tables for stock_adjustments, cash_registers, register_sessions, cash_movements, tax_groups, units_of_measure, payment_splits, coupons, expenses, settings
+- V23 migration — normalized entity tables for all entity types
 
 **What's DONE:**
-- [x] `EntityApplier` — extended to handle 17 entity types (PRODUCT, CATEGORY, CUSTOMER, SUPPLIER, ORDER, ORDER_ITEM, AUDIT_ENTRY, STOCK_ADJUSTMENT, CASH_REGISTER, REGISTER_SESSION, CASH_MOVEMENT, TAX_GROUP, UNIT_OF_MEASURE, PAYMENT_SPLIT, COUPON, EXPENSE, SETTINGS)
-- [x] Multi-store data isolation enforcement on sync endpoints (store_id JWT validation already existed — S2-10)
-- [x] Sync payload field-level validation for all major entity types (SyncValidator extended)
+- [x] `EntityApplier` — extended to handle 17+ entity types
+- [x] Multi-store data isolation enforcement on sync endpoints
+- [x] Sync payload field-level validation for all major entity types
 - [x] STOCK_ADJUSTMENT handler with stock_qty side-effect on products table
+- [x] WebSocket push notifications — SyncProcessor publishes entityTypes to Redis, RedisPubSubListener broadcasts via WebSocketHub
+- [x] JWT validation on WebSocket upgrade — `authenticate("jwt-rs256")` wraps WS routes in sync service
+- [x] POS token revocation check — API: in-memory cache (5min TTL) + DB fallback; Sync: Redis set `revoked_jtis` + in-memory cache
+- [x] Admin token revocation endpoint — `POST /admin/sync/tokens/revoke` with audit trail
+- [x] Heartbeat replay protection — nonce-based (ConcurrentHashMap, 5min TTL) + timestamp validation (60s max age)
+- [x] Category circular parent reference detection — walks ancestor chain up to 10 levels
 
-**What's MISSING:**
-- [ ] WebSocket push notifications to clients after server processes sync ops
-- [ ] JWT validation on WebSocket upgrade in `backend/sync`
-- [ ] POS token revocation check during JWT validation (`revoked_tokens` table exists, not checked)
-- [ ] Heartbeat replay protection
+**What's REMAINING (minor):**
+- [ ] Integration tests with Testcontainers (PostgreSQL + Redis) for full end-to-end sync flow
+- [ ] Client-side nonce generation for heartbeat requests (KMM app update)
 
 **Key Files:**
 - `backend/api/src/main/kotlin/.../sync/SyncProcessor.kt`
-- `backend/api/src/main/kotlin/.../sync/DeltaEngine.kt`
 - `backend/api/src/main/kotlin/.../sync/EntityApplier.kt`
-- `backend/api/src/main/kotlin/.../sync/ServerConflictResolver.kt`
+- `backend/api/src/main/kotlin/.../plugins/Authentication.kt` (TokenRevocationCache)
+- `backend/api/src/main/kotlin/.../routes/AdminSyncRoutes.kt` (token revocation endpoint)
+- `backend/sync/src/main/kotlin/.../plugins/Authentication.kt` (SyncTokenRevocationCache)
 - `backend/sync/src/main/kotlin/.../hub/WebSocketHub.kt`
-- `shared/data/src/commonMain/kotlin/.../sync/ConflictResolver.kt`
-- `shared/data/src/commonMain/sqldelight/.../sync_queue.sq`
+- `backend/sync/src/main/kotlin/.../hub/RedisPubSubListener.kt`
+- `backend/license/src/main/kotlin/.../service/LicenseService.kt` (HeartbeatNonceCache)
 
 **Implementation Steps:**
-1. Extend `EntityApplier` with handlers for all 10+ entity types
-2. Add `store_id` validation middleware to sync routes
-3. Implement WebSocket JWT validation in sync service
-4. Wire WebSocket push after `SyncProcessor` commits operations
-5. Add field-level payload validation in `SyncProcessor`
-6. Implement `revoked_tokens` check in JWT validation pipeline
-7. Add heartbeat replay detection (timestamp + nonce)
-8. Write integration tests with Testcontainers (PostgreSQL + Redis)
+1. ~~Extend `EntityApplier` with handlers for all 10+ entity types~~ DONE
+2. ~~Add `store_id` validation middleware to sync routes~~ DONE
+3. ~~Implement WebSocket JWT validation in sync service~~ DONE (already existed)
+4. ~~Wire WebSocket push after `SyncProcessor` commits operations~~ DONE (enhanced with entityTypes)
+5. ~~Add field-level payload validation in `SyncProcessor`~~ DONE
+6. ~~Implement `revoked_tokens` check in JWT validation pipeline~~ DONE (API + Sync service)
+7. ~~Add heartbeat replay detection (timestamp + nonce)~~ DONE
+8. Write integration tests with Testcontainers (PostgreSQL + Redis) — future session
 
 ---
 

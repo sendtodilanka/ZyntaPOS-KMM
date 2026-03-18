@@ -102,12 +102,14 @@ class RedisPubSubListener(
                     storeId        = storeId,
                     operationCount = notification.operationCount,
                     latestSeq      = notification.latestSeq,
+                    entityTypes    = notification.entityTypes,
                 ))
             } else {
                 json.encodeToString(WsNotify(
-                    storeId   = storeId,
-                    message   = "sync_available",
-                    latestSeq = notification.latestSeq,
+                    storeId     = storeId,
+                    message     = "sync_available",
+                    latestSeq   = notification.latestSeq,
+                    entityTypes = notification.entityTypes,
                 ))
             }
             hub.broadcast(storeId, wsMessage, excludeDeviceId = notification.senderDeviceId)

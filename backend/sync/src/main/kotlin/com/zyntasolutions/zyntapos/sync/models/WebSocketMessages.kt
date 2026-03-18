@@ -36,6 +36,7 @@ data class WsDelta(
     val storeId: String,
     val operationCount: Int,
     val latestSeq: Long,
+    val entityTypes: List<String> = emptyList(),
 ) : WsMessage()
 
 /**
@@ -49,6 +50,7 @@ data class WsNotify(
     val storeId: String,
     val message: String = "sync_available",
     val latestSeq: Long,
+    val entityTypes: List<String> = emptyList(),
 ) : WsMessage()
 
 /**
@@ -120,4 +122,5 @@ data class SyncNotification(
     val senderDeviceId: String,
     val operationCount: Int,
     val latestSeq: Long,
+    val entityTypes: List<String> = emptyList(),
 )

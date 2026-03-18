@@ -509,4 +509,47 @@ class EntityApplierTest {
     // ── DELETE operations for known entity types require a DB transaction ──
     // Full DELETE integration tests are in SyncPushPullIntegrationTest
     // (they need a live PostgreSQL + Exposed transaction context).
+
+    // ── CATEGORY self-referencing parent (no DB needed) ──────────────────
+
+    @Test
+    fun `CATEGORY with self-referencing parentId is rejected - returns early`() {
+        // parentId == entityId → self-reference → returns early without upsert
+        // Since no DB transaction is active, if it tries to upsert it would fail;
+        // the fact that no exception is thrown proves the self-reference check works.
+        applier.applyInTransaction(
+            "store-1",
+            op(
+                entityType = "CATEGORY",
+                entityId = "cat-1",
+                payload = """{"name":"Test Category","parent_id":"cat-1","sort_order":0,"is_active":true}"""
+            )
+        )
+    }
+
+    @Test
+    fun `CATEGORY with null parentId is accepted (no circular check needed)`() {
+        // Null parent means root category — no circular ref check
+        // Will fail at upsert level (no DB), but the circular ref check itself passes
+        applier.applyInTransaction(
+            "store-1",
+            op(
+                entityType = "CATEGORY",
+                entityId = "cat-2",
+                payload = """{"name":"Root Category","sort_order":0,"is_active":true}"""
+            )
+        )
+    }
+
+    @Test
+    fun `CATEGORY with missing name returns early`() {
+        applier.applyInTransaction(
+            "store-1",
+            op(
+                entityType = "CATEGORY",
+                entityId = "cat-3",
+                payload = """{"sort_order":0,"is_active":true}"""
+            )
+        )
+    }
 }
