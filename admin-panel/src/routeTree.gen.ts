@@ -217,6 +217,7 @@ export interface FileRoutesById {
   '/health/': typeof HealthIndexRoute
   '/licenses/': typeof LicensesIndexRoute
   '/reports/': typeof ReportsIndexRoute
+  '/security/': typeof SecurityIndexRoute
   '/settings/': typeof SettingsIndexRoute
   '/setup/': typeof SetupIndexRoute
   '/stores/': typeof StoresIndexRoute
@@ -243,6 +244,7 @@ export interface FileRouteTypes {
     | '/health/'
     | '/licenses/'
     | '/reports/'
+    | '/security/'
     | '/settings/'
     | '/setup/'
     | '/stores/'
@@ -266,6 +268,7 @@ export interface FileRouteTypes {
     | '/health'
     | '/licenses'
     | '/reports'
+    | '/security'
     | '/settings'
     | '/setup'
     | '/stores'
@@ -290,6 +293,7 @@ export interface FileRouteTypes {
     | '/health/'
     | '/licenses/'
     | '/reports/'
+    | '/security/'
     | '/settings/'
     | '/setup/'
     | '/stores/'
@@ -315,6 +319,7 @@ export interface RootRouteChildren {
   HealthIndexRoute: typeof HealthIndexRoute
   LicensesIndexRoute: typeof LicensesIndexRoute
   ReportsIndexRoute: typeof ReportsIndexRoute
+  SecurityIndexRoute: typeof SecurityIndexRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
   SetupIndexRoute: typeof SetupIndexRoute
   StoresIndexRoute: typeof StoresIndexRoute
@@ -416,6 +421,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuditIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/security/': {
+      id: '/security/'
+      path: '/security'
+      fullPath: '/security/'
+      preLoaderRoute: typeof SecurityIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/alerts/': {
       id: '/alerts/'
       path: '/alerts'
@@ -499,6 +511,7 @@ const rootRouteChildren: RootRouteChildren = {
   HealthIndexRoute: HealthIndexRoute,
   LicensesIndexRoute: LicensesIndexRoute,
   ReportsIndexRoute: ReportsIndexRoute,
+  SecurityIndexRoute: SecurityIndexRoute,
   SettingsIndexRoute: SettingsIndexRoute,
   SetupIndexRoute: SetupIndexRoute,
   StoresIndexRoute: StoresIndexRoute,
