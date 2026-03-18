@@ -73,6 +73,7 @@ object AdminUsers : Table("admin_users") {
     val lockedUntil    = long("locked_until").nullable()   // epoch-ms
     val lastLoginAt    = long("last_login_at").nullable()  // epoch-ms
     val lastLoginIp    = text("last_login_ip").nullable()
+    val passwordChangedAt = long("password_changed_at").nullable()  // epoch-ms (B2 rotation policy)
     val isActive       = bool("is_active")
     val createdAt      = long("created_at")
     override val primaryKey = PrimaryKey(id)

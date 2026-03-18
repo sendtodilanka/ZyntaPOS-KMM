@@ -33,7 +33,8 @@ data class AdminUserResponse(
 data class AdminLoginResponse(
     val user: AdminUserResponse,
     val expiresIn: Long,          // access token TTL in seconds
-    val mfaRequired: Boolean = false
+    val mfaRequired: Boolean = false,
+    val passwordExpired: Boolean = false,  // B2: forced password rotation
 )
 
 @Serializable

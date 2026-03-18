@@ -25,6 +25,10 @@ interface AdminUserRepository {
 
     suspend fun getFailedAttempts(id: UUID): Int
 
+    suspend fun getLastLoginIp(id: UUID): String?
+
+    suspend fun getPasswordChangedAt(id: UUID): Long?
+
     // ── Mutations ───────────────────────────────────────────────────────────
 
     suspend fun createUser(email: String, name: String, role: AdminRole, passwordHash: String): AdminUserRow

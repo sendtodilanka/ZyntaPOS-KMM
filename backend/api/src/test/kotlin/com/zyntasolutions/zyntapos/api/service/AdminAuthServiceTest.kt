@@ -83,6 +83,8 @@ class AdminAuthServiceTest {
             override suspend fun count() = throw NotImplementedError()
             override suspend fun getLockedUntil(id: UUID) = throw NotImplementedError()
             override suspend fun getFailedAttempts(id: UUID) = throw NotImplementedError()
+            override suspend fun getLastLoginIp(id: UUID): String? = throw NotImplementedError()
+            override suspend fun getPasswordChangedAt(id: UUID): Long? = throw NotImplementedError()
             override suspend fun createUser(email: String, name: String, role: AdminRole, passwordHash: String) = throw NotImplementedError()
             override suspend fun updateLoginSuccess(id: UUID, timestampMs: Long, ip: String?) = throw NotImplementedError()
             override suspend fun updateFailedAttempts(id: UUID, count: Int, lockedUntilMs: Long?) = throw NotImplementedError()
@@ -127,6 +129,8 @@ class AdminAuthServiceTest {
             ) { /* no-op */ }
         }
 
+        private val noOpEmailService = EmailService(testConfig())
+
         private fun testUser(mfaEnabled: Boolean = false) = AdminUserRow(
             id           = UUID.randomUUID(),
             email        = "admin@test.local",
@@ -162,7 +166,7 @@ class AdminAuthServiceTest {
 
     @Test
     fun `issueMfaPendingToken produces valid RS256 JWT with type=admin_mfa_pending`() {
-        val service = AdminAuthService(testConfig(), noOpAudit, noOpRepo)
+        val service = AdminAuthService(testConfig(), noOpAudit, noOpRepo, noOpEmailService)
         val user = testUser(mfaEnabled = true)
 
         val token = service.issueMfaPendingToken(user)
@@ -180,7 +184,7 @@ class AdminAuthServiceTest {
 
     @Test
     fun `issueMfaPendingToken expires in roughly 2 minutes`() {
-        val service = AdminAuthService(testConfig(), noOpAudit, noOpRepo)
+        val service = AdminAuthService(testConfig(), noOpAudit, noOpRepo, noOpEmailService)
         val token = service.issueMfaPendingToken(testUser())
 
         val decoded = JWT.require(Algorithm.RSA256(testKeyPair.first as RSAPublicKey, null))
@@ -196,7 +200,7 @@ class AdminAuthServiceTest {
 
     @Test
     fun `verifyMfaPendingToken returns userId for valid token`() {
-        val service = AdminAuthService(testConfig(), noOpAudit, noOpRepo)
+        val service = AdminAuthService(testConfig(), noOpAudit, noOpRepo, noOpEmailService)
         val user = testUser()
         val token = service.issueMfaPendingToken(user)
 
@@ -205,7 +209,7 @@ class AdminAuthServiceTest {
 
     @Test
     fun `verifyMfaPendingToken returns null for access-type token (type segregation)`() {
-        val service = AdminAuthService(testConfig(), noOpAudit, noOpRepo)
+        val service = AdminAuthService(testConfig(), noOpAudit, noOpRepo, noOpEmailService)
         val (pub, priv) = testKeyPair
 
         val accessTyped = JWT.create()
@@ -222,7 +226,7 @@ class AdminAuthServiceTest {
 
     @Test
     fun `verifyMfaPendingToken returns null for expired token`() {
-        val service = AdminAuthService(testConfig(), noOpAudit, noOpRepo)
+        val service = AdminAuthService(testConfig(), noOpAudit, noOpRepo, noOpEmailService)
         val (pub, priv) = testKeyPair
 
         val expired = JWT.create()
@@ -240,7 +244,7 @@ class AdminAuthServiceTest {
 
     @Test
     fun `verifyAccessToken returns null for MFA pending token (type segregation)`() {
-        val service = AdminAuthService(testConfig(), noOpAudit, noOpRepo)
+        val service = AdminAuthService(testConfig(), noOpAudit, noOpRepo, noOpEmailService)
         val pendingToken = service.issueMfaPendingToken(testUser())
 
         assertNull(service.verifyAccessToken(pendingToken),
@@ -249,7 +253,7 @@ class AdminAuthServiceTest {
 
     @Test
     fun `verifyAccessToken returns null for tampered JWT`() {
-        val service = AdminAuthService(testConfig(), noOpAudit, noOpRepo)
+        val service = AdminAuthService(testConfig(), noOpAudit, noOpRepo, noOpEmailService)
         val tampered = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhdHRhY2tlciIsInR5cGUiOiJhZG1pbl9hY2Nlc3MifQ.fakesig"
 
         assertNull(service.verifyAccessToken(tampered))
@@ -257,13 +261,13 @@ class AdminAuthServiceTest {
 
     @Test
     fun `verifyAccessToken returns null for blank string`() {
-        val service = AdminAuthService(testConfig(), noOpAudit, noOpRepo)
+        val service = AdminAuthService(testConfig(), noOpAudit, noOpRepo, noOpEmailService)
         assertNull(service.verifyAccessToken(""))
     }
 
     @Test
     fun `verifyAccessToken returns null for token signed with wrong key`() {
-        val service = AdminAuthService(testConfig(), noOpAudit, noOpRepo)
+        val service = AdminAuthService(testConfig(), noOpAudit, noOpRepo, noOpEmailService)
         // Generate a different RSA keypair
         val wrongKeyPair = generateTestRsaKeyPair()
 
@@ -280,7 +284,7 @@ class AdminAuthServiceTest {
 
     @Test
     fun `verifyAccessToken rejects old HS256 token after RS256 migration`() {
-        val service = AdminAuthService(testConfig(), noOpAudit, noOpRepo)
+        val service = AdminAuthService(testConfig(), noOpAudit, noOpRepo, noOpEmailService)
 
         val hs256Token = JWT.create()
             .withIssuer(TEST_ISSUER)
