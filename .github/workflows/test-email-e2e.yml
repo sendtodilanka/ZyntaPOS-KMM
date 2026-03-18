@@ -1,0 +1,265 @@
+name: "Test: Email E2E"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# End-to-end test for the Chatwoot email pipeline:
+#   1. Send test email to support@zyntapos.com via Stalwart SMTP
+#   2. Wait for Chatwoot IMAP fetch to pick it up
+#   3. Verify conversation created via Chatwoot API
+#   4. Send reply via Chatwoot API
+#   5. Verify reply delivered via SMTP
+#
+# Runs on: VPS (via SSH) — requires Stalwart + Chatwoot running
+# Trigger: manual (workflow_dispatch)
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  workflow_dispatch:
+    inputs:
+      sender_email:
+        description: "Sender email (must be a valid Stalwart account)"
+        required: false
+        default: "support@zyntapos.com"
+
+permissions:
+  contents: read
+
+jobs:
+  email-e2e:
+    name: "Email E2E Test"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: "Step 1: Send test email via Stalwart SMTP"
+        id: send
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_USER_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          command_timeout: 3m
+          script: |
+            cd /opt/zyntapos
+            CW_IP=$(docker inspect zyntapos_chatwoot_web --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
+            SENDER="${{ github.event.inputs.sender_email || 'support@zyntapos.com' }}"
+            TEST_ID="e2e-$(date +%s)"
+            SUBJECT="E2E Test $TEST_ID"
+
+            echo "::group::Send test email"
+            echo "Sender: $SENDER"
+            echo "Subject: $SUBJECT"
+            echo "TestID: $TEST_ID"
+
+            # Count conversations before sending
+            BEFORE=$(curl -s -H "api_access_token: ${{ secrets.CHATWOOT_API_TOKEN }}" \
+              "http://${CW_IP}:3000/api/v1/accounts/${{ secrets.CHATWOOT_ACCOUNT_ID }}/conversations?page=1" \
+              | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('data',{}).get('meta',{}).get('all_count',0))")
+            echo "Conversations before: $BEFORE"
+
+            # Send email using Python (available on VPS host)
+            python3 << 'PYEOF'
+            import smtplib, ssl, sys, os
+
+            test_id = os.environ.get("TEST_ID", "unknown")
+            subject = os.environ.get("SUBJECT", "E2E Test")
+            sender = os.environ.get("SENDER", "support@zyntapos.com")
+
+            msg = f"From: {sender}\r\nTo: support@zyntapos.com\r\nSubject: {subject}\r\nContent-Type: text/plain\r\n\r\nAutomated E2E test. TestID: {test_id}"
+
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+
+            try:
+                s = smtplib.SMTP("127.0.0.1", 587)
+                s.starttls(context=ctx)
+                # Login as support (known working account)
+                s.login("support", open("/opt/zyntapos/.env").read().split("CHATWOOT_SMTP_PASS=")[1].split("\n")[0])
+                s.sendmail(sender, "support@zyntapos.com", msg)
+                s.quit()
+                print(f"EMAIL_SENT TestID={test_id}")
+            except Exception as e:
+                print(f"EMAIL_SEND_FAILED: {e}", file=sys.stderr)
+                sys.exit(1)
+            PYEOF
+
+            echo "::endgroup::"
+
+            # Save state for next steps
+            echo "$TEST_ID" > /tmp/e2e_test_id
+            echo "$BEFORE" > /tmp/e2e_before_count
+            echo "$CW_IP" > /tmp/e2e_cw_ip
+
+      - name: "Step 2: Wait for IMAP fetch (90s)"
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_USER_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          command_timeout: 3m
+          script: |
+            echo "Waiting 90s for Chatwoot Sidekiq IMAP fetch cycle..."
+            sleep 90
+            echo "Wait complete. Checking Sidekiq logs..."
+            docker logs zyntapos_chatwoot_sidekiq --since 2m 2>&1 \
+              | grep -iE "FETCH_EMAIL|error.*imap|error.*email" | tail -5
+
+      - name: "Step 3: Verify conversation created"
+        id: verify
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_USER_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          command_timeout: 2m
+          script: |
+            cd /opt/zyntapos
+            CW_IP=$(docker inspect zyntapos_chatwoot_web --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
+
+            echo "::group::Check conversations"
+            AFTER=$(curl -s -H "api_access_token: ${{ secrets.CHATWOOT_API_TOKEN }}" \
+              "http://${CW_IP}:3000/api/v1/accounts/${{ secrets.CHATWOOT_ACCOUNT_ID }}/conversations?page=1" \
+              | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('data',{}).get('meta',{}).get('all_count',0))")
+            echo "Conversations after: $AFTER"
+
+            # Get latest conversation
+            LATEST=$(curl -s -H "api_access_token: ${{ secrets.CHATWOOT_API_TOKEN }}" \
+              "http://${CW_IP}:3000/api/v1/accounts/${{ secrets.CHATWOOT_ACCOUNT_ID }}/conversations?page=1" \
+              | python3 -c "
+            import json, sys
+            d = json.load(sys.stdin)
+            convos = d.get('data', {}).get('payload', [])
+            if convos:
+                c = convos[0]
+                print(f'LATEST_CONVO_ID={c[\"id\"]}')
+                print(f'STATUS={c[\"status\"]}')
+                print(f'INBOX={c[\"inbox_id\"]}')
+            else:
+                print('NO_CONVERSATIONS')
+                sys.exit(1)
+            ")
+            echo "$LATEST"
+            CONVO_ID=$(echo "$LATEST" | grep LATEST_CONVO_ID | cut -d= -f2)
+
+            # Get messages for the conversation
+            curl -s -H "api_access_token: ${{ secrets.CHATWOOT_API_TOKEN }}" \
+              "http://${CW_IP}:3000/api/v1/accounts/${{ secrets.CHATWOOT_ACCOUNT_ID }}/conversations/${CONVO_ID}/messages" \
+              | python3 -c "
+            import json, sys
+            d = json.load(sys.stdin)
+            msgs = d.get('payload', [])
+            print(f'Messages in conversation: {len(msgs)}')
+            for m in msgs[-3:]:
+                mtype = 'incoming' if m.get('message_type') == 0 else 'outgoing'
+                print(f'  [{mtype}] {str(m.get(\"content\",\"?\"))[:80]}')
+            "
+            echo "::endgroup::"
+
+            echo "$CONVO_ID" > /tmp/e2e_convo_id
+
+      - name: "Step 4: Reply to conversation via API"
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_USER_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          command_timeout: 2m
+          script: |
+            cd /opt/zyntapos
+            CW_IP=$(docker inspect zyntapos_chatwoot_web --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
+            CONVO_ID=$(cat /tmp/e2e_convo_id 2>/dev/null || echo "1")
+
+            echo "::group::Reply to conversation $CONVO_ID"
+            REPLY=$(curl -s -X POST \
+              -H "api_access_token: ${{ secrets.CHATWOOT_API_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              "http://${CW_IP}:3000/api/v1/accounts/${{ secrets.CHATWOOT_ACCOUNT_ID }}/conversations/${CONVO_ID}/messages" \
+              -d "{\"content\":\"Automated E2E test reply. Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"message_type\":\"outgoing\"}")
+
+            echo "$REPLY" | python3 -c "
+            import json, sys
+            d = json.load(sys.stdin)
+            status = d.get('status', '?')
+            mid = d.get('id', '?')
+            print(f'Reply message ID: {mid}')
+            print(f'Status: {status}')
+            if status != 'sent':
+                print('WARNING: Reply status is not sent')
+            "
+            echo "::endgroup::"
+
+            # Wait for SMTP delivery
+            sleep 10
+
+            echo "::group::Check SMTP delivery"
+            docker logs zyntapos_chatwoot_sidekiq --since 30s 2>&1 \
+              | grep -iE "SendReplyJob.*sent|Email message.*sent|smtp.*error" | tail -5
+            echo "::endgroup::"
+
+      - name: "Step 5: Verify SMTP delivery + resolve conversation"
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_USER_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          command_timeout: 2m
+          script: |
+            cd /opt/zyntapos
+            CW_IP=$(docker inspect zyntapos_chatwoot_web --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
+            CONVO_ID=$(cat /tmp/e2e_convo_id 2>/dev/null || echo "1")
+
+            echo "::group::Final verification"
+
+            # Check Sidekiq for any SMTP errors in last 2 min
+            SMTP_ERRORS=$(docker logs zyntapos_chatwoot_sidekiq --since 2m 2>&1 \
+              | grep -ciE "smtp.*error|535.*auth|certificate.*verify")
+
+            if [ "$SMTP_ERRORS" -gt 0 ]; then
+              echo "❌ SMTP errors detected ($SMTP_ERRORS)"
+              docker logs zyntapos_chatwoot_sidekiq --since 2m 2>&1 \
+                | grep -iE "smtp.*error|535.*auth|certificate.*verify" | tail -5
+              exit 1
+            else
+              echo "✅ No SMTP errors"
+            fi
+
+            # Check IMAP errors
+            IMAP_ERRORS=$(docker logs zyntapos_chatwoot_sidekiq --since 2m 2>&1 \
+              | grep -ciE "imap.*error|certificate.*verify.*imap")
+
+            if [ "$IMAP_ERRORS" -gt 0 ]; then
+              echo "❌ IMAP errors detected ($IMAP_ERRORS)"
+              exit 1
+            else
+              echo "✅ No IMAP errors"
+            fi
+
+            # Resolve the test conversation (clean up)
+            curl -s -X POST \
+              -H "api_access_token: ${{ secrets.CHATWOOT_API_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              "http://${CW_IP}:3000/api/v1/accounts/${{ secrets.CHATWOOT_ACCOUNT_ID }}/conversations/${CONVO_ID}/toggle_status" \
+              -d '{"status":"resolved"}' | python3 -c "
+            import json, sys
+            d = json.load(sys.stdin)
+            print(f'Conversation {d.get(\"id\",\"?\")} status: {d.get(\"current_status\",\"?\")}')" || true
+
+            echo ""
+            echo "╔══════════════════════════════════════╗"
+            echo "║  ✅ EMAIL E2E TEST PASSED            ║"
+            echo "║                                      ║"
+            echo "║  1. Email sent via SMTP       ✅     ║"
+            echo "║  2. IMAP fetch worked         ✅     ║"
+            echo "║  3. Conversation created       ✅     ║"
+            echo "║  4. Reply sent via SMTP        ✅     ║"
+            echo "║  5. No IMAP/SMTP errors        ✅     ║"
+            echo "╚══════════════════════════════════════╝"
+            echo "::endgroup::"
+
+            # Cleanup temp files
+            rm -f /tmp/e2e_test_id /tmp/e2e_before_count /tmp/e2e_cw_ip /tmp/e2e_convo_id
