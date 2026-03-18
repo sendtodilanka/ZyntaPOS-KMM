@@ -1919,24 +1919,85 @@ After EVERY commit+push, the 7-step pipeline must pass:
 □ 9.  Implement following all compliance rules above
 □ 10. Write tests (use case 95%, repo 80%, VM 80%)
 □ 11. Run `./gradlew :shared:core:test :shared:domain:test --parallel` locally
-□ 12. PRE-COMMIT SYNC (MANDATORY — main may have moved since last commit):
+
+── POST-IMPLEMENTATION: UPDATE ALL DOCS (MANDATORY) ──────────
+□ 12. Update THIS plan file to reflect actual state:
+      a. Mark checkbox `[x]` for the completed item
+      b. Change "What's MISSING" entry to "What's DONE" or delete it
+      c. Update status line (e.g., "~60% Complete" → "~80% Complete")
+      d. Update FEATURE COVERAGE MATRIX at bottom of this file
+         (e.g., "NOT IMPLEMENTED" → "COMPLETE" or "PARTIAL (xyz done)")
+      e. If ALL sub-items of a section are done, move entire section
+         to `## COMPLETED` section at bottom
+□ 13. Update CLAUDE.md if implementation changed any of these:
+      - Module count (new module added) → update "Module Map (26 Modules)"
+      - Domain model count (new model) → update "Domain models (31 files)"
+      - SQLDelight schema count → update "36 .sq schema files"
+      - New Koin module → update "Koin Module Loading Order"
+      - New navigation route → update "Navigation Routes" section
+      - New design system component → update Zynta* component count
+      - New ADR created → update "Architecture Decision Records" table
+      - New GitHub Secret → update secrets table
+      - Technology version changed → update "Technology Stack" table
+□ 14. Update docs/adr/ if implementation:
+      - Introduced a new architectural pattern → create new ADR
+      - Changed an existing ADR decision → update status to SUPERSEDED
+      - Contradicted an ADR → STOP and discuss before proceeding
+□ 15. Update docs/architecture/ if implementation:
+      - Added new module → update module dependency diagram
+      - Changed dependency direction → update layer diagram
+      - Added new service → update service topology diagram
+
+── PRE-COMMIT SYNC + COMMIT + PUSH ───────────────────────────
+□ 16. PRE-COMMIT SYNC (MANDATORY — main may have moved since last commit):
       `git fetch origin main && git merge origin/main --no-edit`
-□ 13. Commit with conventional commit format referencing plan item ID
-□ 14. Push: `git push -u origin $(git branch --show-current)`
-□ 15. Monitor pipeline Step[1] → Step[2] until green
-□ 16. Check PR for conflicts:
+□ 17. Stage ALL changed files (code + docs + plan file):
+      `git add <implementation-files> <updated-docs> todo/missing-features-implementation-plan.md`
+□ 18. Commit with conventional commit format referencing plan item ID
+      Include "docs updated" in commit body if docs were changed
+□ 19. Push: `git push -u origin $(git branch --show-current)`
+
+── POST-PUSH: MONITOR PIPELINE + PR ──────────────────────────
+□ 20. Monitor pipeline Step[1] → Step[2] until green
+□ 21. Check PR for conflicts:
       - mergeable=true → proceed
       - mergeable=false → sync main, resolve conflicts, push, re-monitor
-□ 17. Monitor pipeline Step[3+4] CI Gate until green
-□ 18. Mark item as [x] in this file
-□ 19. ♻️ Go to step 7 for next item
+□ 22. Monitor pipeline Step[3+4] CI Gate until green
+□ 23. ♻️ Go to step 7 for next item
 
 ═══ SESSION END (once) ═════════════════════════════════════════
-□ 20. Final sync: `git fetch origin main && git merge origin/main --no-edit`
-□ 21. Final push: `git push -u origin $(git branch --show-current)`
-□ 22. Verify PR is green and auto-merge is enabled
-□ 23. Update `Last Updated` date at top of this file
+□ 24. Final sync: `git fetch origin main && git merge origin/main --no-edit`
+□ 25. Final push: `git push -u origin $(git branch --show-current)`
+□ 26. Verify PR is green and auto-merge is enabled
+□ 27. Update `Last Updated` date at top of this file
 ```
+
+---
+
+## 🔴 WARNING: STALE DATA CAUSES RE-IMPLEMENTATION
+
+> **If you implement a feature but do NOT update this file + CLAUDE.md + docs/**,
+> the next Claude Code session will read outdated information and **re-implement
+> the same feature from scratch**, wasting an entire session.
+>
+> **Real example of what goes wrong:**
+> - Session A implements `CategoryDetail` screen and route (INV-3)
+> - Session A forgets to update FEATURE COVERAGE MATRIX
+> - Matrix still shows `CategoryDetail` as "NOT IMPLEMENTED"
+> - Session B reads this file, sees "NOT IMPLEMENTED", builds it AGAIN
+> - PR conflict → pipeline blocked → manual resolution needed
+>
+> **Prevention:** Steps 12-15 in the checklist above are NOT optional.
+> Every implementation MUST be accompanied by doc updates IN THE SAME COMMIT.
+
+---
+
+## COMPLETED
+
+> Move fully completed sections here. Include completion date and PR number.
+> Format: `### [DONE 2026-MM-DD PR #NNN] <original section header>`
+
+_(No completed items yet)_
 
 ---
 
