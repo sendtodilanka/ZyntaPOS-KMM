@@ -1567,6 +1567,259 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 
 ---
 
+## 🔴 ITEM DEPENDENCY GRAPH (MUST FOLLOW ORDER)
+
+> Items have dependencies — implementing them out of order produces broken code.
+> **ALWAYS check this graph before picking the next item.**
+
+### Critical Path (must follow this order)
+
+```
+A1 (Sync Engine 60%) ──────────────────────────────────────────┐
+  │                                                             │
+  ├──→ C6.1 (Multi-Node Sync) — BLOCKED until A1 is ≥90%      │
+  ├──→ C6.2 (Offline-First) — BLOCKED until A1 entity types   │
+  └──→ C1.1 (Global Product Catalog) — needs sync for replication
+         │
+         ├──→ C1.2 (Store-Specific Inventory) — needs global catalog base
+         │      │
+         │      ├──→ C1.3 store-level IST — needs per-store inventory
+         │      └──→ C1.5 (Replenishment) — needs per-store stock levels
+         │
+         └──→ C2.1 (Region-Based Pricing) — needs global product → price override
+                │
+                └──→ C2.4 (Store-Specific Discounts) — needs pricing rules infra
+```
+
+### Dependency Table (all items)
+
+| Item | Depends On | Can Start When |
+|------|-----------|----------------|
+| **A1** Sync Engine | _(none — start here)_ | Immediately |
+| **A2** Email System | _(none)_ | Immediately |
+| **A3** Remote Diagnostics | _(none)_ | Immediately |
+| **A4** API Docs | _(none)_ | Immediately |
+| **A5** Analytics/Sentry | _(none)_ | Immediately |
+| **A6** Security Monitoring | _(none)_ | Immediately |
+| **A7** Admin JWT Gap | _(none)_ | Immediately |
+| **B1** Admin Panel Polish | _(none)_ | Immediately |
+| **B2** Admin Custom Auth | A7 (JWT fix) | After A7 |
+| **B3** Uptime Kuma | _(none)_ | Immediately |
+| **B4** Backend Test Coverage | _(none — but helps validate A1)_ | Immediately (parallel with A1) |
+| **B5** Timestamp Formats | _(none)_ | Immediately |
+| **C1.1** Global Product Catalog | **A1** (sync engine for replication) | After A1 ≥80% |
+| **C1.2** Store-Specific Inventory | **C1.1** (global catalog) | After C1.1 |
+| **C1.3** Store-Level IST | **C1.2** (per-store inventory) | After C1.2 |
+| **C1.4** Stock In-Transit | **C1.3** (IST workflow) | After C1.3 |
+| **C1.5** Replenishment | **C1.2** (per-store stock levels) | After C1.2 |
+| **C2.1** Region-Based Pricing | **C1.1** (global product base) | After C1.1 |
+| **C2.2** Multi-Currency | _(none — formatter exists)_ | Immediately |
+| **C2.3** Localized Tax | **C1.1** (store context) | After C1.1 |
+| **C2.4** Store-Specific Discounts | **C2.1** (pricing rules infra) | After C2.1 |
+| **C3.1** RBAC | _(COMPLETE — already done)_ | N/A |
+| **C3.2** Store-Level Permissions | **C1.1** (store concept) | After C1.1 |
+| **C3.3** Global Admin Dashboard | **C3.2** (store-level data) | After C3.2 |
+| **C3.4** Employee Roaming | **C3.2** (store-level perms) | After C3.2 |
+| **C4.1** Cross-Store Returns | **C1.2** (per-store inventory) | After C1.2 |
+| **C4.2** Universal Loyalty | _(none — partial exists)_ | Immediately |
+| **C4.3** Centralized Customers | **C1.1** (store context) | After C1.1 |
+| **C4.4** Click & Collect | **C4.1** + **C1.3** | After C4.1 + C1.3 |
+| **C5.1** Consolidated Reports | **C1.2** (multi-store data) | After C1.2 |
+| **C5.2** Store Comparison | **C5.1** (consolidated data) | After C5.1 |
+| **C5.3** Store Audit Logs | _(COMPLETE)_ | N/A |
+| **C5.4** Real-time Dashboard | **A1** (WebSocket push) | After A1 |
+| **C6.1** Multi-Node Sync | **A1** (sync engine ≥90%) | After A1 ≥90% |
+| **C6.2** Offline-First | **A1** (entity types in EntityApplier) | After A1 entity types |
+| **C6.3** Timezone Mgmt | _(MOSTLY COMPLETE)_ | Immediately |
+| **G1-G21** UI/UX Gaps | _(mostly independent)_ | Immediately (unless noted) |
+| **G16** MS-1 to MS-6 | _(none — UI fixes)_ | Immediately |
+| **G17** INV-1 (Scanner) | _(HAL interface exists)_ | Immediately |
+| **G17** INV-2 (Variants) | _(domain model exists)_ | Immediately |
+| **G17** INV-3 (Routes) | _(navigation module exists)_ | Immediately |
+| **D1** E-Invoice | _(Phase 3)_ | After Phase 2 complete |
+| **D2** Staff/Payroll | _(Phase 3)_ | After Phase 2 complete |
+| **D3** Expense/Accounting | _(Phase 3)_ | After Phase 2 complete |
+
+### Parallel Work Streams (safe to run in separate sessions simultaneously)
+
+```
+Stream 1: A1 → C6.1 → C6.2           (Sync engine — critical path)
+Stream 2: A2, A3, A4, A5, A6, A7     (Infra/security — independent)
+Stream 3: B1, B2, B3, B4, B5         (Admin/quality — independent)
+Stream 4: G1-G21, INV-*, MS-*        (UI/UX fixes — independent)
+Stream 5: C2.2, C4.2, C6.3           (No dependencies — can start now)
+```
+
+> **RULE:** Before starting any C-section item, check its "Depends On" column above.
+> If the dependency isn't complete yet, pick a different item from Section A, B, or G instead.
+
+---
+
+## 🔴 SESSION SCOPE GUIDANCE
+
+> Not all items fit in a single Claude Code session. Use this guide to
+> estimate scope and handle partial completions.
+
+### Item Size Estimates
+
+| Size | Approx Scope | Examples |
+|------|-------------|----------|
+| **S (Small)** | 1 session, < 5 files changed | G-series UI fixes (INV-8 search count, MS-4 back button), B5 timestamp format |
+| **M (Medium)** | 1 session, 5-15 files changed | A2 email UI, A7 JWT fix, INV-3 missing routes, MS-1 product selector |
+| **L (Large)** | 2-3 sessions, 15-30 files changed | A3 remote diagnostics, B4 test coverage, C2.2 multi-currency |
+| **XL (Extra Large)** | 3-5+ sessions, 30+ files changed | A1 sync engine, C1.1 global product catalog, C1.3 store-level IST |
+
+### Per-Item Size Tags
+
+| Item | Size | Est. Sessions |
+|------|------|---------------|
+| A1 Sync Engine | **XL** | 4-5 sessions |
+| A2 Email System | **S** | 1 session |
+| A3 Remote Diagnostics | **L** | 2-3 sessions |
+| A4 API Docs | **M** | 1 session |
+| A5 Analytics | **M** | 1 session |
+| A6 Security Monitoring | **S** | 1 session |
+| A7 Admin JWT | **M** | 1 session |
+| B1-B3 Admin/Monitoring | **S** each | 1 session each |
+| B4 Test Coverage | **XL** | 3-4 sessions |
+| C1.1 Global Catalog | **XL** | 3-4 sessions |
+| C1.2 Store Inventory | **L** | 2 sessions |
+| C1.3 IST Store-Level | **L** | 2 sessions |
+| C2.1-C2.4 Pricing | **M-L** each | 1-2 sessions each |
+| C3.2-C3.4 Permissions | **M** each | 1 session each |
+| G-series UI fixes | **S-M** each | 1 session each |
+| INV-1 to INV-10 | **S-M** each | 1 session each |
+| MS-1 to MS-6 | **S** each | 1 session each |
+
+### Handling Partial Progress (for L/XL items)
+
+When a session cannot finish an item, it MUST:
+
+1. **Mark partial progress in the item's checkbox list:**
+   ```
+   - [x] EntityApplier — handle ORDER type (done in session 2026-03-18)
+   - [x] EntityApplier — handle CUSTOMER type (done in session 2026-03-18)
+   - [ ] EntityApplier — handle CATEGORY type
+   - [ ] EntityApplier — handle SUPPLIER type
+   ```
+
+2. **Update the item's status line:**
+   ```
+   ### A1. Sync Engine Server-Side — ~60% Complete  →  ~75% Complete
+   ```
+
+3. **Add a handoff note at the TOP of the item section:**
+   ```
+   > **HANDOFF (2026-03-18):** EntityApplier extended with ORDER and CUSTOMER types.
+   > Next session should continue with CATEGORY, SUPPLIER, and remaining types.
+   > Tests added in `EntityApplierTest.kt` — run before modifying.
+   > PR #NNN merged. Branch clean.
+   ```
+
+4. **Commit and push all progress** — even partial work must be on `main` via PR.
+
+### Session Planning Rule
+
+```
+At session start, after reading this file:
+1. Check your assigned item's SIZE estimate above
+2. If XL: plan to implement 2-3 sub-items only (not the whole thing)
+3. If L: plan to implement the core + tests, defer edge cases
+4. If S/M: plan to complete fully in this session
+5. ALWAYS leave 15 min at session end for docs + push + pipeline monitoring
+```
+
+---
+
+## 🔴 ERROR RECOVERY GUIDE
+
+> Common failures encountered during implementation and how to fix them.
+> Check this section BEFORE asking for help or pushing more commits.
+
+### Build Failures
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `NoSuchMethodError` on datetime screens | `kotlinx-datetime` downgraded below 0.7.1 | Check `gradle/libs.versions.toml` — must be `0.7.1`. Root `build.gradle.kts` has `resolutionStrategy` pin. |
+| `Unresolved reference: BaseViewModel` | Wrong import or module dependency missing | Import from `com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel`. Ensure module depends on `:composeApp:core`. |
+| `Duplicate class` / `already defined` | New file duplicates existing class | Search codebase for the class name — delete your duplicate, use existing one. |
+| `Cannot access 'xxx': it is internal` | Accessing internal API from wrong module | Check module boundaries. `:shared:domain` is public API — use it. |
+| `Koin: No definition found for class` | Missing Koin binding or wrong module load order | Add binding in `<feature>/di/<Feature>Module.kt`. Check Koin load order in CLAUDE.md. |
+| `SQLDelight: No such table` | New `.sq` file but `generateSqlDelightInterface` not run | Run `./gradlew generateSqlDelightInterface` after any `.sq` changes. |
+| `Compose: @Composable invocations can only happen...` | Calling composable from non-composable scope | Move call inside `@Composable` function or use `LaunchedEffect`/`rememberCoroutineScope`. |
+
+### Test Failures
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `Mockative: mock<X>()` compile error | KSP version mismatch with Kotlin | KSP must be `2.3.4` for Kotlin `2.3.0`. Check `libs.versions.toml`. |
+| Turbine `No value produced` | Flow never emitted or test didn't wait | Use `awaitItem()` with timeout. Check that ViewModel actually calls `updateState`. |
+| `Expected <X> but was <Y>` on state | Wrong initial state or missing state update | Check `BaseViewModel` initialState. Verify `handleIntent` triggers the right state copy. |
+
+### Pipeline Failures
+
+| Step | Common Failure | Fix |
+|------|---------------|-----|
+| Step[1] Branch Validate | Build error (compile, resource) | Read error log: `curl -s -H "Authorization: token $PAT" "https://api.github.com/repos/sendtodilanka/ZyntaPOS-KMM/actions/runs/<run-id>/jobs" \| python3 -c "import sys,json; [print(j['name'],j['conclusion']) for j in json.load(sys.stdin)['jobs']]"` |
+| Step[2] Auto PR | PR already exists (ok) or PAT issue | Check existing PR. If no PR created, check PAT_TOKEN secret. |
+| Step[3+4] CI Gate | Detekt violation | Run `./gradlew detekt` locally, fix violations. Common: unused import, magic number, long method. |
+| Step[3+4] CI Gate | Android Lint error | Run `./gradlew lint` locally. Common: missing `contentDescription`, hardcoded string. |
+| Step[3+4] CI Gate | Test failure | Run `./gradlew allTests` locally. Fix failing test before pushing. |
+| PR `mergeable=false` | Conflict with main | `git fetch origin main && git merge origin/main --no-edit`, resolve conflicts, push. |
+
+### Recovery Workflow
+
+```bash
+# 1. Pipeline failed — get the failure details
+RUN_ID=<from monitoring output>
+curl -s -H "Authorization: token $PAT" \
+  "https://api.github.com/repos/sendtodilanka/ZyntaPOS-KMM/actions/runs/$RUN_ID/jobs" \
+  | python3 -c "
+import sys,json
+for j in json.load(sys.stdin)['jobs']:
+  print(f'[{j[\"conclusion\"]:10}] {j[\"name\"]}')
+  for s in j.get('steps',[]):
+    if s.get('conclusion') == 'failure':
+      print(f'  FAILED: {s[\"name\"]}')
+"
+
+# 2. Read the full failure log
+curl -s -H "Authorization: token $PAT" \
+  -H "Accept: application/vnd.github.v3+json" \
+  "https://api.github.com/repos/sendtodilanka/ZyntaPOS-KMM/actions/runs/$RUN_ID/jobs" \
+  | python3 -c "
+import sys,json
+for j in json.load(sys.stdin)['jobs']:
+  if j['conclusion'] == 'failure':
+    print(f'Failed job: {j[\"name\"]} — URL: {j[\"html_url\"]}')
+"
+
+# 3. Fix locally, test locally, THEN push
+./gradlew clean test lint detekt --parallel --continue --stacktrace
+
+# 4. Sync before committing fix
+git fetch origin main && git merge origin/main --no-edit
+
+# 5. Commit fix referencing the failure
+git commit -m "fix(module): resolve CI failure — [describe fix]"
+
+# 6. Push and re-monitor from Step[1]
+git push -u origin $(git branch --show-current)
+```
+
+### Known Pitfalls (from CLAUDE.md — quick reference)
+
+1. `kotlinx-datetime` MUST be `0.7.1` — never downgrade
+2. `loadKoinModules(global=true)` is banned — use `koin.loadModules()`
+3. `*Entity` suffix banned in `:shared:domain` — use plain names (ADR-002)
+4. `:shared:domain` can ONLY depend on `:shared:core`
+5. `gradle` bare command is wrong — always `./gradlew`
+6. `git rebase` is banned for conflict resolution — use `git merge`
+7. Never manually create PRs — Step[2] auto-creates them
+8. Never skip pre-commit sync — main moves fast with multiple sessions
+
+---
+
 ## FEATURE COVERAGE MATRIX
 
 | ඔබේ Feature | Plan Item | Status |
