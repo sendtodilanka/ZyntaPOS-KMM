@@ -34,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.domain.model.StockTransfer
+import com.zyntasolutions.zyntapos.domain.model.Warehouse
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -68,6 +69,9 @@ fun StockTransferListScreen(
             }
         },
     ) { padding ->
+        // MS-2: Build warehouse lookup for name resolution
+        val warehouseMap = remember(state.warehouses) { state.warehouses.associateBy { it.id } }
+
         if (state.transfers.isEmpty() && !state.isLoading) {
             Column(
                 modifier = Modifier.fillMaxSize().padding(padding),
@@ -88,6 +92,7 @@ fun StockTransferListScreen(
                 items(state.transfers, key = { it.id }) { transfer ->
                     StockTransferCard(
                         transfer = transfer,
+                        warehouseMap = warehouseMap,
                         onCommit = { pendingCommitId = transfer.id },
                         onCancel = { pendingCancelId = transfer.id },
                     )
@@ -137,9 +142,16 @@ fun StockTransferListScreen(
 @Composable
 private fun StockTransferCard(
     transfer: StockTransfer,
+    warehouseMap: Map<String, Warehouse> = emptyMap(),
     onCommit: () -> Unit,
     onCancel: () -> Unit,
 ) {
+    // MS-2: Resolve warehouse names, fall back to truncated ID
+    val sourceName = warehouseMap[transfer.sourceWarehouseId]?.name
+        ?: transfer.sourceWarehouseId.take(8) + "..."
+    val destName = warehouseMap[transfer.destWarehouseId]?.name
+        ?: transfer.destWarehouseId.take(8) + "..."
+
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -162,7 +174,7 @@ private fun StockTransferCard(
                 )
             }
             Text(
-                text = "${transfer.sourceWarehouseId} → ${transfer.destWarehouseId}",
+                text = "$sourceName → $destName",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

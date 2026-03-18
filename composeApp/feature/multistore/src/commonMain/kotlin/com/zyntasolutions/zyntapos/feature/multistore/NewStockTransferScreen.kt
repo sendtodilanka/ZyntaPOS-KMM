@@ -10,9 +10,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -22,6 +27,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -30,6 +38,9 @@ import org.koin.compose.viewmodel.koinViewModel
 
 /**
  * Screen for creating a new [StockTransfer].
+ *
+ * MS-1: Product selector uses search-as-you-type dropdown instead of raw ID input.
+ * Warehouse source/dest use dropdown selectors showing warehouse names.
  *
  * @param sourceWarehouseId Pre-fills the source warehouse field when navigated
  *   from a specific warehouse context.
@@ -80,34 +91,35 @@ fun NewStockTransferScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            OutlinedTextField(
-                value = form.sourceWarehouseId,
-                onValueChange = { viewModel.dispatch(WarehouseIntent.UpdateTransferField("sourceWarehouseId", it)) },
-                label = { Text("Source Warehouse ID *") },
+            // ── Source Warehouse Dropdown ─────────────────────────────────
+            WarehouseDropdown(
+                label = "Source Warehouse *",
+                warehouses = state.warehouses,
+                selectedId = form.sourceWarehouseId,
+                onSelect = { viewModel.dispatch(WarehouseIntent.UpdateTransferField("sourceWarehouseId", it)) },
                 isError = form.validationErrors.containsKey("sourceWarehouseId"),
-                supportingText = form.validationErrors["sourceWarehouseId"]?.let { { Text(it) } },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
+                errorText = form.validationErrors["sourceWarehouseId"],
             )
 
-            OutlinedTextField(
-                value = form.destWarehouseId,
-                onValueChange = { viewModel.dispatch(WarehouseIntent.UpdateTransferField("destWarehouseId", it)) },
-                label = { Text("Destination Warehouse ID *") },
+            // ── Destination Warehouse Dropdown ───────────────────────────
+            WarehouseDropdown(
+                label = "Destination Warehouse *",
+                warehouses = state.warehouses,
+                selectedId = form.destWarehouseId,
+                onSelect = { viewModel.dispatch(WarehouseIntent.UpdateTransferField("destWarehouseId", it)) },
                 isError = form.validationErrors.containsKey("destWarehouseId"),
-                supportingText = form.validationErrors["destWarehouseId"]?.let { { Text(it) } },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
+                errorText = form.validationErrors["destWarehouseId"],
             )
 
-            OutlinedTextField(
-                value = form.productId,
-                onValueChange = { viewModel.dispatch(WarehouseIntent.UpdateTransferField("productId", it)) },
-                label = { Text("Product ID *") },
+            // ── Product Search Dropdown (MS-1) ──────────────────────────
+            ProductSearchDropdown(
+                query = state.productSearchQuery,
+                selectedProductName = form.productName,
+                searchResults = state.productSearchResults,
+                onQueryChange = { viewModel.dispatch(WarehouseIntent.SearchProducts(it)) },
+                onSelect = { viewModel.dispatch(WarehouseIntent.SelectTransferProduct(it)) },
                 isError = form.validationErrors.containsKey("productId"),
-                supportingText = form.validationErrors["productId"]?.let { { Text(it) } },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
+                errorText = form.validationErrors["productId"],
             )
 
             OutlinedTextField(
@@ -138,6 +150,125 @@ fun NewStockTransferScreen(
                 modifier = Modifier.fillMaxWidth(),
                 isLoading = state.isLoading,
             )
+        }
+    }
+}
+
+/**
+ * Warehouse selection dropdown using [ExposedDropdownMenuBox].
+ * Shows warehouse names instead of raw UUIDs.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun WarehouseDropdown(
+    label: String,
+    warehouses: List<com.zyntasolutions.zyntapos.domain.model.Warehouse>,
+    selectedId: String,
+    onSelect: (String) -> Unit,
+    isError: Boolean = false,
+    errorText: String? = null,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val selectedName = warehouses.find { it.id == selectedId }?.name ?: ""
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+    ) {
+        OutlinedTextField(
+            value = selectedName,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(label) },
+            isError = isError,
+            supportingText = errorText?.let { { Text(it) } },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+            singleLine = true,
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            warehouses.forEach { wh ->
+                DropdownMenuItem(
+                    text = {
+                        Column {
+                            Text(wh.name, style = MaterialTheme.typography.bodyMedium)
+                            wh.address?.let {
+                                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    },
+                    onClick = {
+                        onSelect(wh.id)
+                        expanded = false
+                    },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Product search-as-you-type dropdown (MS-1).
+ * Displays product name + SKU + stock info in results.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ProductSearchDropdown(
+    query: String,
+    selectedProductName: String,
+    searchResults: List<com.zyntasolutions.zyntapos.domain.model.Product>,
+    onQueryChange: (String) -> Unit,
+    onSelect: (com.zyntasolutions.zyntapos.domain.model.Product) -> Unit,
+    isError: Boolean = false,
+    errorText: String? = null,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    // Show selected product name or search query
+    val displayText = if (selectedProductName.isNotBlank()) selectedProductName else query
+
+    ExposedDropdownMenuBox(
+        expanded = expanded && searchResults.isNotEmpty(),
+        onExpandedChange = { expanded = it },
+    ) {
+        OutlinedTextField(
+            value = displayText,
+            onValueChange = { newValue ->
+                onQueryChange(newValue)
+                expanded = true
+            },
+            label = { Text("Product *") },
+            placeholder = { Text("Search by name or SKU...") },
+            isError = isError,
+            supportingText = errorText?.let { { Text(it) } },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable),
+            singleLine = true,
+        )
+        ExposedDropdownMenu(
+            expanded = expanded && searchResults.isNotEmpty(),
+            onDismissRequest = { expanded = false },
+        ) {
+            searchResults.forEach { product ->
+                DropdownMenuItem(
+                    text = {
+                        Column {
+                            Text(product.name, style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                buildString {
+                                    product.sku?.let { append("SKU: $it") }
+                                    append(" | Stock: ${product.stockQty.toInt()}")
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    },
+                    onClick = {
+                        onSelect(product)
+                        expanded = false
+                    },
+                )
+            }
         }
     }
 }

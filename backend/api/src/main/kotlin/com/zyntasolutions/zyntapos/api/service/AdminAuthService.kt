@@ -18,6 +18,8 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import org.slf4j.LoggerFactory
 import java.security.MessageDigest
 import java.security.SecureRandom
+import java.security.interfaces.RSAPrivateKey
+import java.security.interfaces.RSAPublicKey
 import java.time.Instant
 import java.util.*
 
@@ -265,7 +267,7 @@ class AdminAuthService(
     }
 
     fun issueMfaPendingToken(user: AdminUserRow): String {
-        val algorithm = Algorithm.HMAC256(config.adminJwtSecret)
+        val algorithm = Algorithm.RSA256(config.adminJwtPublicKey as RSAPublicKey, config.adminJwtPrivateKey as RSAPrivateKey)
         val now = Instant.now().toEpochMilli()
         return JWT.create()
             .withIssuer(config.adminJwtIssuer)
@@ -278,7 +280,7 @@ class AdminAuthService(
 
     fun verifyMfaPendingToken(token: String): UUID? {
         return try {
-            val algorithm = Algorithm.HMAC256(config.adminJwtSecret)
+            val algorithm = Algorithm.RSA256(config.adminJwtPublicKey as RSAPublicKey, null)
             val verifier = JWT.require(algorithm)
                 .withIssuer(config.adminJwtIssuer)
                 .withClaim("type", "admin_mfa_pending")
@@ -295,7 +297,7 @@ class AdminAuthService(
 
     fun verifyAccessToken(token: String): UUID? {
         return try {
-            val algorithm = Algorithm.HMAC256(config.adminJwtSecret)
+            val algorithm = Algorithm.RSA256(config.adminJwtPublicKey as RSAPublicKey, null)
             val verifier = JWT.require(algorithm)
                 .withIssuer(config.adminJwtIssuer)
                 .withClaim("type", "admin_access")
@@ -311,7 +313,7 @@ class AdminAuthService(
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     private suspend fun issueTokens(user: AdminUserRow, ip: String?, userAgent: String?): Pair<String, String> {
-        val algorithm = Algorithm.HMAC256(config.adminJwtSecret)
+        val algorithm = Algorithm.RSA256(config.adminJwtPublicKey as RSAPublicKey, config.adminJwtPrivateKey as RSAPrivateKey)
         val now = Instant.now().toEpochMilli()
 
         val accessToken = JWT.create()

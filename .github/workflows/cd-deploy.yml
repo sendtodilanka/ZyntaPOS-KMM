@@ -114,8 +114,7 @@ jobs:
             # Ensure secret files are world-readable so container non-root users can read them.
             # rs256_private_key.pem is created with 600 by default (ssh-keygen / openssl),
             # but the zyntapos container user (Alpine system UID) is not the file owner.
-            chmod 644 secrets/rs256_private_key.pem secrets/rs256_public_key.pem \
-                       secrets/admin_jwt_secret.txt 2>/dev/null || true
+            chmod 644 secrets/rs256_private_key.pem secrets/rs256_public_key.pem 2>/dev/null || true
 
             # Ensure mail.zyntapos.com cert files exist so Caddy can start.
             # The real LE cert is issued by cert-renew-mail.yml (DNS-01);

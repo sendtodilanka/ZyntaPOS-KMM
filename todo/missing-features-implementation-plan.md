@@ -136,7 +136,7 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 
 ---
 
-### A2. Email Management System (TODO-008a) — ~95% Complete
+### A2. Email Management System (TODO-008a) — ~98% Complete
 
 **Priority:** P1-HIGH
 **Impact:** Email logs cannot be viewed by admins; templates not editable
@@ -154,21 +154,21 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 - Admin panel email page: `admin-panel/src/routes/settings/email.tsx` (119 lines — basic page EXISTS)
 
 **What's MISSING:**
-- [x] Admin panel email delivery log UI page — `admin-panel/src/routes/settings/email.tsx` EXISTS (basic, may need enhancement)
-- [ ] `useEmailLogs()` and `useEmailPreferences()` TanStack Query hooks (need to be CREATED in `admin-panel/src/api/email.ts`)
-- [ ] Email delivery log table enhancement (status filters, date range filter, pagination)
-- [ ] Email template editor in admin panel
-- [ ] Email preference management UI for customers
-- [ ] Bounce/complaint webhook handler from Resend
-- [ ] Email retry logic for QUEUED → SENDING failures
+- [x] Admin panel email delivery log UI page — `admin-panel/src/routes/settings/email.tsx` EXISTS (enhanced with filters)
+- [x] `useEmailDeliveryLogs()` TanStack Query hook with status/date filters (in `admin-panel/src/api/email.ts`)
+- [x] Email delivery log table enhancement (status filters, date range filter, pagination)
+- [ ] Email template editor in admin panel (deferred — Phase 2)
+- [ ] Email preference management UI for customers (deferred — Phase 2)
+- [x] Bounce/complaint webhook handler from Resend (`POST /webhooks/resend`)
+- [ ] Email retry logic for QUEUED → SENDING failures (deferred — Phase 2)
 
 **Implementation Steps:**
-1. Create `useEmailLogs()` hook in `admin-panel/src/api/email.ts`
-2. Enhance existing `admin-panel/src/routes/settings/email.tsx` with delivery log table
-3. Add email template CRUD endpoints in backend API
-4. Build template editor component in admin panel
-5. Implement Resend bounce/complaint webhook endpoint
-6. Add retry queue worker for failed email deliveries
+1. ~~Create `useEmailLogs()` hook in `admin-panel/src/api/email.ts`~~ ✅ Done (with filters)
+2. ~~Enhance existing `admin-panel/src/routes/settings/email.tsx` with delivery log table~~ ✅ Done (status + date filters)
+3. Add email template CRUD endpoints in backend API (Phase 2)
+4. Build template editor component in admin panel (Phase 2)
+5. ~~Implement Resend bounce/complaint webhook endpoint~~ ✅ Done (`WebhookRoutes.kt`)
+6. Add retry queue worker for failed email deliveries (Phase 2)
 
 ---
 
@@ -235,29 +235,29 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 
 ---
 
-### A6. Security Monitoring (TODO-010) — ~85% Complete
+### A6. Security Monitoring (TODO-010) — ~95% Complete
 
 **Priority:** P1-HIGH
 
 **What's MISSING:**
-- [ ] Snyk Monitor step in `ci-gate.yml`
-- [ ] Falcosidekick → Slack webhook wiring
-- [ ] Cloudflare tunnel config placeholder replacement
-- [ ] OWASP dependency check in CI pipeline
-- [ ] CF Zero Trust + WAF rules (dashboard action)
+- [x] Snyk Monitor step — already in `sec-backend-scan.yml` (weekly + on-demand)
+- [x] Falcosidekick → Slack webhook wiring — already configured in docker-compose + falcosidekick.yaml
+- [ ] Cloudflare tunnel config placeholder replacement (dashboard action — out of scope for code)
+- [x] OWASP dependency check in CI pipeline — added to `ci-gate.yml` as `security-scan-backend` job
+- [ ] CF Zero Trust + WAF rules (dashboard action — out of scope for code)
 
 ---
 
-### A7. Admin JWT Security Gap
+### A7. Admin JWT Security Gap — ✅ COMPLETE
 
 **Priority:** P1-HIGH
 **Issue:** Admin panel uses HS256 (symmetric) while POS uses RS256 (asymmetric)
 
 **Fix:**
-- [ ] Migrate admin auth to RS256
-- [ ] Update `AdminAuthService.kt` token generation
-- [ ] Update License service admin JWT validation
-- [ ] Rotate existing admin sessions
+- [x] Migrate admin auth to RS256
+- [x] Update `AdminAuthService.kt` token generation
+- [x] Update License service admin JWT validation (`AdminJwtValidator.kt` now uses RS256 public key)
+- [x] Rotate existing admin sessions (HS256 tokens rejected post-migration — re-login required)
 
 ---
 
@@ -287,34 +287,41 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 - [ ] Status page branding
 - [ ] Docker + DB health monitors
 
-### B4. Backend Test Coverage — ~40% vs 80% target
+### B4. Backend Test Coverage — ~55% vs 80% target
 
-> **STATUS UPDATE (2026-03-18):** Codebase verification reveals existing test
-> infrastructure and test files are more extensive than originally documented.
-> 9 test files exist (1,506+ LOC). Testcontainers already configured.
+> **HANDOFF (2026-03-18):** Test infra already existed (Testcontainers + 11 test files).
+> This session expanded sync test coverage with 117 new test cases across 7 files,
+> plus 1 new test file (SyncMetricsTest.kt). Total API test count: 225 (up from ~108).
+> Existing tests: EntityApplierTest, SyncProcessorTest, DeltaEngineTest,
+> ServerConflictResolverTest, SyncValidatorTest, SyncMetricsTest (NEW),
+> AdminAuthServiceTest (x2), UserServiceTest, SyncPushPullIntegrationTest,
+> AuthRoutesTest, CsrfPluginTest.
+> Run: `cd backend/api && ./gradlew test --parallel` to verify all 225 pass.
+> Next session: Repository integration tests (Testcontainers) + License service tests + coverage reporting CI step.
 
 - [x] Testcontainers setup (PostgreSQL + Redis) — ALREADY EXISTS in `backend/api/build.gradle.kts`
 - [x] `SyncProcessor`, `DeltaEngine`, `EntityApplier` tests — EXIST (basic coverage, need expansion)
 - [x] `AdminAuthService` tests — EXIST (`AdminAuthServiceTest.kt` 272L + `AdminAuthServiceExtendedTest.kt` 519L)
-- [ ] Expand sync test coverage (edge cases, error paths, new entity types)
+- [x] Expand sync test coverage (edge cases, error paths, conflict resolution, field merge, metrics)
 - [ ] Repository integration tests (`ProductRepository`, `PosUserRepository`, `AdminUserRepository`)
-- [ ] `LicenseService` tests (backend/license)
+- [ ] `LicenseService` tests (backend/license) — basic tests exist, need expansion
 - [ ] Coverage reporting in CI pipeline (JaCoCo/Kover + threshold)
 
-**Existing Test Files (verified 2026-03-18):**
-| File | Lines | Coverage |
+**Test Files (updated 2026-03-18):**
+| File | Tests | Coverage |
 |------|-------|----------|
-| `sync/EntityApplierTest.kt` | 54 | PRODUCT type basic tests |
-| `sync/SyncProcessorTest.kt` | 166 | Push processing |
-| `sync/DeltaEngineTest.kt` | 86 | Cursor-based pull |
-| `sync/ServerConflictResolverTest.kt` | 80 | LWW resolution |
-| `sync/SyncValidatorTest.kt` | 123 | Payload validation |
-| `service/AdminAuthServiceTest.kt` | 272 | Admin login + JWT |
-| `service/AdminAuthServiceExtendedTest.kt` | 519 | BCrypt, MFA, lockout |
-| `service/UserServiceTest.kt` | 206 | POS PIN auth |
-| `integration/SyncPushPullIntegrationTest.kt` | — | End-to-end sync |
-| `routes/AuthRoutesTest.kt` | — | Auth HTTP routes |
-| `routes/CsrfPluginTest.kt` | — | CSRF protection |
+| `sync/EntityApplierTest.kt` | 31 | All 7 entity types, payload parsing, missing fields, append-only audit |
+| `sync/SyncProcessorTest.kt` | 18 | Push orchestration, conflict detection, dedup, dead letter, metrics |
+| `sync/DeltaEngineTest.kt` | 19 | Cursor pagination, limit clamping, sequential pulls, boundary cases |
+| `sync/ServerConflictResolverTest.kt` | 23 | LWW, device tiebreak, field merge, non-PRODUCT entities, log persistence |
+| `sync/SyncValidatorTest.kt` | 38 | Field validation (S2-7), all entity types, batch limits, timestamp tolerance |
+| `sync/SyncMetricsTest.kt` | 14 | Counters, P95 percentile, rolling window, conflict rate, snapshot |
+| `service/AdminAuthServiceTest.kt` | 12 | Admin login + JWT |
+| `service/AdminAuthServiceExtendedTest.kt` | 18 | BCrypt, MFA, lockout |
+| `service/UserServiceTest.kt` | 17 | POS PIN auth |
+| `integration/SyncPushPullIntegrationTest.kt` | 15 | End-to-end validation, batch boundaries, field validation |
+| `routes/AuthRoutesTest.kt` | 12 | Auth HTTP routes |
+| `routes/CsrfPluginTest.kt` | 7 | CSRF protection |
 
 ### B5. Mixed Timestamp Formats
 

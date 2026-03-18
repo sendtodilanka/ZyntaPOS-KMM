@@ -23,10 +23,13 @@ import com.zyntasolutions.zyntapos.feature.auth.screen.PinLockScreen
 import com.zyntasolutions.zyntapos.feature.dashboard.screen.DashboardScreen
 import com.zyntasolutions.zyntapos.feature.onboarding.OnboardingViewModel
 import com.zyntasolutions.zyntapos.feature.onboarding.screen.OnboardingScreen
+import com.zyntasolutions.zyntapos.feature.inventory.CategoryDetailScreen
 import com.zyntasolutions.zyntapos.feature.inventory.CategoryListScreen
+import com.zyntasolutions.zyntapos.feature.inventory.InventoryIntent
 import com.zyntasolutions.zyntapos.feature.inventory.InventoryViewModel
 import com.zyntasolutions.zyntapos.feature.inventory.ProductDetailScreen
 import com.zyntasolutions.zyntapos.feature.inventory.ProductListScreen
+import com.zyntasolutions.zyntapos.feature.inventory.SupplierDetailScreen
 import com.zyntasolutions.zyntapos.feature.inventory.SupplierListScreen
 import com.zyntasolutions.zyntapos.feature.inventory.label.BarcodeLabelPrintScreen
 import com.zyntasolutions.zyntapos.feature.inventory.label.BarcodeLabelPrintViewModel
@@ -279,25 +282,65 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
     },
 
     // ── Inventory: Category List ────────────────────────────────────────────
-    categoryList = { _ ->
+    categoryList = { _, onNavigateToDetail ->
         val vm: InventoryViewModel = koinViewModel()
         val state by vm.state.collectAsState()
         CategoryListScreen(
             categories = state.categories,
             isLoading = state.isLoading,
-            onNavigateToDetail = { },
-            onDeleteCategory = { },
+            onNavigateToDetail = onNavigateToDetail,
+            onDeleteCategory = { vm.dispatch(InventoryIntent.DeleteCategory(it)) },
+        )
+    },
+
+    // ── Inventory: Category Detail ───────────────────────────────────────────
+    categoryDetail = { categoryId, onNavigateUp ->
+        val vm: InventoryViewModel = koinViewModel()
+        val state by vm.state.collectAsState()
+        androidx.compose.runtime.LaunchedEffect(categoryId) {
+            if (categoryId != null) vm.dispatch(InventoryIntent.OpenCategoryDetail(categoryId))
+        }
+        CategoryDetailScreen(
+            existingCategory = state.selectedCategory,
+            allCategories = state.categories,
+            isLoading = state.isLoading,
+            errorMessage = state.error,
+            onConfirm = { category ->
+                vm.dispatch(InventoryIntent.SaveCategory(category))
+                onNavigateUp()
+            },
+            onNavigateBack = onNavigateUp,
         )
     },
 
     // ── Inventory: Supplier List ────────────────────────────────────────────
-    supplierList = { _ ->
+    supplierList = { _, onNavigateToDetail ->
         val vm: InventoryViewModel = koinViewModel()
         val state by vm.state.collectAsState()
         SupplierListScreen(
             suppliers = state.suppliers,
             isLoading = state.isLoading,
-            onNavigateToDetail = { },
+            onNavigateToDetail = onNavigateToDetail,
+        )
+    },
+
+    // ── Inventory: Supplier Detail ───────────────────────────────────────────
+    supplierDetail = { supplierId, onNavigateUp ->
+        val vm: InventoryViewModel = koinViewModel()
+        val state by vm.state.collectAsState()
+        androidx.compose.runtime.LaunchedEffect(supplierId) {
+            if (supplierId != null) vm.dispatch(InventoryIntent.OpenSupplierDetail(supplierId))
+        }
+        SupplierDetailScreen(
+            existingSupplier = state.selectedSupplier,
+            purchaseHistory = state.supplierPurchaseHistory,
+            isLoading = state.isLoading,
+            errorMessage = state.error,
+            onConfirm = { supplier ->
+                vm.dispatch(InventoryIntent.SaveSupplier(supplier))
+                onNavigateUp()
+            },
+            onNavigateBack = onNavigateUp,
         )
     },
 
@@ -622,12 +665,13 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
         )
     },
 
-    warehouseRackDetail = { _, warehouseId, _ ->
+    warehouseRackDetail = { _, warehouseId, onNavigateUp ->
         val vm: WarehouseViewModel = koinViewModel()
         val state by vm.state.collectAsState()
         WarehouseRackDetailScreen(
             state = state,
             onIntent = vm::dispatch,
+            onBack = onNavigateUp,
         )
     },
 

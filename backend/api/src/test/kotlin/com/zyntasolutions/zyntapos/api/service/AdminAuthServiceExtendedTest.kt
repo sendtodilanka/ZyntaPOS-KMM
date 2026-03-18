@@ -14,6 +14,7 @@ import com.zyntasolutions.zyntapos.api.repository.AuditPage
 import com.zyntasolutions.zyntapos.api.repository.ResetTokenRow
 import com.zyntasolutions.zyntapos.api.repository.SessionRow
 import kotlinx.coroutines.runBlocking
+import java.security.interfaces.RSAPublicKey
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -33,7 +34,6 @@ import kotlin.test.assertTrue
 class AdminAuthServiceExtendedTest {
 
     companion object {
-        private const val TEST_SECRET = "test-secret-must-be-long-enough-for-hmac256-at-least-32-chars!"
         private const val TEST_ISSUER = "https://panel.test.local"
 
         private fun generateTestRsaKeyPair(): Pair<java.security.PublicKey, java.security.PrivateKey> {
@@ -43,8 +43,11 @@ class AdminAuthServiceExtendedTest {
             return kp.public to kp.private
         }
 
+        // Shared test keypair so tests can verify tokens outside the service
+        private val testKeyPair = generateTestRsaKeyPair()
+
         private fun testConfig(): AppConfig {
-            val (pub, priv) = generateTestRsaKeyPair()
+            val (pub, priv) = testKeyPair
             return AppConfig(
                 jwtIssuer = TEST_ISSUER,
                 jwtAudience = "test",
@@ -52,7 +55,8 @@ class AdminAuthServiceExtendedTest {
                 jwtPrivateKey = priv,
                 accessTokenTtlMs = 3_600_000L,
                 refreshTokenTtlMs = 86_400_000L,
-                adminJwtSecret = TEST_SECRET,
+                adminJwtPublicKey = pub,
+                adminJwtPrivateKey = priv,
                 adminJwtIssuer = TEST_ISSUER,
                 adminAccessTokenTtlMs = 900_000L,
                 adminRefreshTokenTtlDays = 7L,
@@ -505,7 +509,7 @@ class AdminAuthServiceExtendedTest {
 
         val result = service.login("admin@test.local", TEST_PASSWORD, null, null) as AdminAuthResult.Success
 
-        val decoded = JWT.require(Algorithm.HMAC256(TEST_SECRET))
+        val decoded = JWT.require(Algorithm.RSA256(testKeyPair.first as RSAPublicKey, null))
             .withIssuer(TEST_ISSUER)
             .withClaim("type", "admin_access")
             .build()

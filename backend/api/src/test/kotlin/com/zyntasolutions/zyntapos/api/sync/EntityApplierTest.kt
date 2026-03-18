@@ -36,12 +36,12 @@ class EntityApplierTest {
     // ── Unknown entity type ──────────────────────────────────────────────
 
     @Test
-    fun `unknown entity type is a no-op — does not throw`() {
+    fun `unknown entity type is a no-op - does not throw`() {
         applier.applyInTransaction("store-1", op(entityType = "UNKNOWN_ENTITY"))
     }
 
     @Test
-    fun `invalid JSON payload does not throw — returns early`() {
+    fun `invalid JSON payload does not throw - returns early`() {
         applier.applyInTransaction("store-1", op(entityType = "UNKNOWN_ENTITY", payload = "bad-json"))
     }
 
@@ -53,6 +53,53 @@ class EntityApplierTest {
     @Test
     fun `DELETE for unknown entity type is a no-op`() {
         applier.applyInTransaction("store-1", op(entityType = "UNKNOWN_ENTITY", operation = "DELETE"))
+    }
+
+    // ── Entity type routing (no DB - only unknown types are safe) ─────────
+
+    @Test
+    fun `UPDATE for unknown entity type is a no-op`() {
+        applier.applyInTransaction("store-1", op(entityType = "TOTALLY_FAKE", operation = "UPDATE"))
+    }
+
+    @Test
+    fun `empty string entity type is a no-op`() {
+        applier.applyInTransaction("store-1", op(entityType = ""))
+    }
+
+    @Test
+    fun `case-sensitive entity type - lowercase product is unknown`() {
+        // "product" != "PRODUCT" - should be treated as unknown, not routed to applyProduct
+        applier.applyInTransaction("store-1", op(entityType = "product"))
+    }
+
+    // ── Payload parsing edge cases ───────────────────────────────────────
+
+    @Test
+    fun `empty JSON object payload does not throw for unknown type`() {
+        applier.applyInTransaction("store-1", op(entityType = "UNKNOWN_ENTITY", payload = "{}"))
+    }
+
+    @Test
+    fun `JSON array payload does not throw for unknown type`() {
+        applier.applyInTransaction("store-1", op(entityType = "UNKNOWN_ENTITY", payload = "[]"))
+    }
+
+    @Test
+    fun `null-like payload string does not throw for unknown type`() {
+        applier.applyInTransaction("store-1", op(entityType = "UNKNOWN_ENTITY", payload = "null"))
+    }
+
+    @Test
+    fun `deeply nested JSON payload is accepted for unknown type`() {
+        val nested = """{"a":{"b":{"c":{"d":"deep"}}}}"""
+        applier.applyInTransaction("store-1", op(entityType = "UNKNOWN_ENTITY", payload = nested))
+    }
+
+    @Test
+    fun `unicode in payload does not throw for unknown type`() {
+        val unicode = """{"name":"商品テスト","description":"价格 €100"}"""
+        applier.applyInTransaction("store-1", op(entityType = "UNKNOWN_ENTITY", payload = unicode))
     }
 
     // ── STOCK_ADJUSTMENT (no DB — tests payload parsing logic) ───────────
@@ -246,6 +293,14 @@ class EntityApplierTest {
     }
 
     @Test
+    fun `PRODUCT payload with null name returns early - no DB exception`() {
+        applier.applyInTransaction(
+            "store-1",
+            op(entityType = "PRODUCT", payload = """{"name":null,"price":10.0}"""),
+        )
+    }
+
+    @Test
     fun `CATEGORY with invalid JSON is a no-op`() {
         applier.applyInTransaction("store-1", op(entityType = "CATEGORY", payload = "{{bad"))
     }
@@ -303,12 +358,22 @@ class EntityApplierTest {
     }
 
     @Test
+    fun `ORDER_ITEM payload with null order_id returns early`() {
+        applier.applyInTransaction(
+            "store-1",
+            op(entityType = "ORDER_ITEM", payload = """{"order_id":null,"product_id":"p1"}"""),
+        )
+    }
+
+    @Test
     fun `AUDIT_ENTRY with invalid JSON is a no-op`() {
         applier.applyInTransaction("store-1", op(entityType = "AUDIT_ENTRY", payload = "{{bad"))
     }
 
+    // ── AUDIT_ENTRY special behavior ─────────────────────────────────────
+
     @Test
-    fun `AUDIT_ENTRY UPDATE is ignored — append-only`() {
+    fun `AUDIT_ENTRY UPDATE is ignored - append-only`() {
         applier.applyInTransaction(
             "store-1",
             op(
@@ -320,7 +385,7 @@ class EntityApplierTest {
     }
 
     @Test
-    fun `AUDIT_ENTRY DELETE is ignored — append-only`() {
+    fun `AUDIT_ENTRY DELETE is ignored - append-only`() {
         applier.applyInTransaction(
             "store-1",
             op(
@@ -329,6 +394,32 @@ class EntityApplierTest {
                 payload = """{"event_type":"LOGIN","user_id":"u-1","details":"{}","hash":"h","previous_hash":"ph"}"""
             )
         )
+    }
+
+    // ── All supported entity types route correctly ───────────────────────
+
+    @Test
+    fun `all supported entity types with bad JSON return early without exception`() {
+        val types = listOf(
+            "PRODUCT", "CATEGORY", "CUSTOMER", "SUPPLIER", "ORDER", "ORDER_ITEM", "AUDIT_ENTRY",
+            "STOCK_ADJUSTMENT", "CASH_REGISTER", "REGISTER_SESSION", "CASH_MOVEMENT",
+            "TAX_GROUP", "UNIT_OF_MEASURE", "PAYMENT_SPLIT", "COUPON", "EXPENSE", "SETTINGS"
+        )
+        for (type in types) {
+            applier.applyInTransaction("store-1", op(entityType = type, payload = "invalid"))
+        }
+    }
+
+    // ── Operation types ──────────────────────────────────────────────────
+
+    @Test
+    fun `unrecognized operation type for unknown entity is a no-op`() {
+        applier.applyInTransaction("store-1", op(entityType = "UNKNOWN_ENTITY", operation = "MERGE"))
+    }
+
+    @Test
+    fun `empty operation string for unknown entity is a no-op`() {
+        applier.applyInTransaction("store-1", op(entityType = "UNKNOWN_ENTITY", operation = ""))
     }
 
     // ── DELETE operations for known entity types require a DB transaction ──
