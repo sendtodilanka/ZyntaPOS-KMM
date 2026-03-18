@@ -116,6 +116,20 @@ fun Route.adminAuthRoutes() {
                 is AdminAuthResult.MfaRequired -> {
                     call.respond(HttpStatusCode.OK, MfaPendingResponse(pendingToken = result.pendingToken))
                 }
+                is AdminAuthResult.PasswordExpired -> {
+                    // B2: Issue tokens but signal the client that a password change is required
+                    val accessTtlSec  = config.adminAccessTokenTtlMs / 1000
+                    val refreshTtlSec = config.adminRefreshTokenTtlDays * 86_400L
+                    setAuthCookies(call, result.accessToken, result.refreshToken, accessTtlSec, refreshTtlSec)
+                    call.respond(
+                        HttpStatusCode.OK,
+                        AdminLoginResponse(
+                            user      = result.user.toResponse(),
+                            expiresIn = accessTtlSec,
+                            passwordExpired = true,
+                        )
+                    )
+                }
                 is AdminAuthResult.Success -> {
                     auditService.log(
                         adminId    = result.user.id,

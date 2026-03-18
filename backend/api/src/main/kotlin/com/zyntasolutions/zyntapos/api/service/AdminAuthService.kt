@@ -54,6 +54,8 @@ data class AdminSessionRow(
 sealed class AdminAuthResult {
     data class Success(val user: AdminUserRow, val accessToken: String, val refreshToken: String) : AdminAuthResult()
     data class MfaRequired(val user: AdminUserRow, val pendingToken: String) : AdminAuthResult()
+    /** Password has expired per ADMIN_PASSWORD_MAX_AGE_DAYS policy. Client must call change-password. */
+    data class PasswordExpired(val user: AdminUserRow, val accessToken: String, val refreshToken: String) : AdminAuthResult()
     data object InvalidCredentials : AdminAuthResult()
     data object AccountLocked : AdminAuthResult()
     data object AccountInactive : AdminAuthResult()
@@ -65,6 +67,7 @@ class AdminAuthService(
     private val config: AppConfig,
     private val auditService: AdminAuditService,
     private val adminUserRepo: AdminUserRepository,
+    private val emailService: EmailService,
 ) {
 
     private val bcryptVerifier = BCrypt.verifyer()
@@ -102,6 +105,17 @@ class AdminAuthService(
 
         // Reset lockout state on successful login
         val now = Instant.now().toEpochMilli()
+
+        // B2: Notify admin via email when login occurs from an unrecognized IP
+        val previousIp = adminUserRepo.getLastLoginIp(row.id)
+        if (ip != null && previousIp != null && ip != previousIp) {
+            try {
+                emailService.sendLoginAlert(row.email, row.name, ip, userAgent)
+            } catch (e: Exception) {
+                logger.warn("Failed to send login alert email to ${row.email}: ${e.message}")
+            }
+        }
+
         adminUserRepo.updateLoginSuccess(row.id, now, ip)
 
         // G3: Audit successful login
@@ -122,6 +136,19 @@ class AdminAuthService(
         }
 
         val (accessToken, refreshToken) = issueTokens(row, ip, userAgent)
+
+        // B2: Password rotation policy — return PasswordExpired if password is stale
+        if (PASSWORD_MAX_AGE_DAYS > 0) {
+            val changedAt = adminUserRepo.getPasswordChangedAt(row.id)
+            if (changedAt != null) {
+                val ageMs = Instant.now().toEpochMilli() - changedAt
+                val maxAgeMs = PASSWORD_MAX_AGE_DAYS * 86_400_000L
+                if (ageMs > maxAgeMs) {
+                    return AdminAuthResult.PasswordExpired(row, accessToken, refreshToken)
+                }
+            }
+        }
+
         return AdminAuthResult.Success(row, accessToken, refreshToken)
     }
 
@@ -427,6 +454,13 @@ class AdminAuthService(
 
         /** G2: bcrypt silently truncates at 72 bytes — reject anything over 128 chars to prevent DoS. */
         const val MAX_PASSWORD_LENGTH = 128
+
+        /**
+         * B2: Configurable password rotation policy.
+         * ADMIN_PASSWORD_MAX_AGE_DAYS env var (0 = disabled, default 0).
+         * When > 0, login returns [AdminAuthResult.PasswordExpired] if password is older.
+         */
+        val PASSWORD_MAX_AGE_DAYS: Long = System.getenv("ADMIN_PASSWORD_MAX_AGE_DAYS")?.toLongOrNull() ?: 0L
 
         // Constant-time dummy hash to prevent timing attacks on unknown emails
         private val DUMMY_HASH = BCrypt.withDefaults().hashToChar(12, "dummy-prevent-timing-attack".toCharArray())

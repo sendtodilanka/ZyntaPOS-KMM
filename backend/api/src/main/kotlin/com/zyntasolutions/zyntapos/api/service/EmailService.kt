@@ -171,6 +171,14 @@ class EmailService(private val config: AppConfig) {
         }
     }
 
+    suspend fun sendLoginAlert(toEmail: String, name: String, ip: String?, userAgent: String?) =
+        send(
+            to = toEmail,
+            subject = "New login to your ZyntaPOS Admin account",
+            html = loginAlertHtml(name, ip, userAgent),
+            templateSlug = "login_alert",
+        )
+
     /** Closes the HTTP client. Call during application shutdown (§3.4). */
     fun close() {
         client.close()
@@ -239,6 +247,21 @@ class EmailService(private val config: AppConfig) {
         <p>${messageBody.htmlEscape().replace("\n", "<br/>")}</p>
         <hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0"/>
         <p style="color:#666;font-size:12px">Replied by ${agentName.htmlEscape()} &mdash; Ticket #${ticketNumber.htmlEscape()}</p>
+        <p style="color:#666;font-size:12px">ZyntaPOS &mdash; Enterprise Point of Sale</p>
+        </body></html>
+    """.trimIndent()
+
+    private fun loginAlertHtml(name: String, ip: String?, userAgent: String?) = """
+        <!DOCTYPE html><html><body style="font-family:sans-serif;max-width:600px;margin:0 auto">
+        <h2>New Login Detected</h2>
+        <p>Hi ${name.htmlEscape()},</p>
+        <p>A new login to your ZyntaPOS Admin Panel account was detected from an unrecognized IP address.</p>
+        <table style="border-collapse:collapse;margin:16px 0">
+        <tr><td style="padding:4px 12px 4px 0;color:#666">IP Address:</td><td style="padding:4px 0">${(ip ?: "Unknown").htmlEscape()}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:#666">Browser:</td><td style="padding:4px 0">${(userAgent ?: "Unknown").htmlEscape()}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:#666">Time:</td><td style="padding:4px 0">${java.time.OffsetDateTime.now(ZoneOffset.UTC)}</td></tr>
+        </table>
+        <p>If this was you, no action is needed. If you don't recognize this login, please change your password immediately and enable MFA.</p>
         <p style="color:#666;font-size:12px">ZyntaPOS &mdash; Enterprise Point of Sale</p>
         </body></html>
     """.trimIndent()

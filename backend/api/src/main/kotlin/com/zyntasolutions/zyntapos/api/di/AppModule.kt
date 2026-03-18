@@ -143,7 +143,7 @@ val appModule = module {
     single { LicenseValidationClient() }
     single { UserService(posUserRepo = get()) }
     single { ProductService(productRepo = get()) }
-    single { AdminAuthService(config = get(), auditService = get(), adminUserRepo = get()) }
+    single { AdminAuthService(config = get(), auditService = get(), adminUserRepo = get(), emailService = get()) }
     single { AdminAuditService(auditRepo = get()) }
     single { AdminStoresService(storesRepo = get()) }
     single { AdminConfigService() }

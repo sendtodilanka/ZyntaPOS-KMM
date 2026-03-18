@@ -62,15 +62,17 @@ fun Application.configureRouting() {
             wellKnownRoutes()
         }
 
-        // Admin panel auth routes — strict rate limit + CSRF protection
+        // Admin panel auth routes — strict rate limit + CSRF protection + IP allowlist
         rateLimit(RateLimitName("auth")) {
+            install(IpAllowlistPlugin)
             withCsrfProtection {
                 adminAuthRoutes()
             }
         }
 
-        // Admin panel data routes — standard API rate limit + CSRF protection
+        // Admin panel data routes — standard API rate limit + CSRF protection + IP allowlist
         rateLimit(RateLimitName("api")) {
+            install(IpAllowlistPlugin)
             withCsrfProtection {
                 adminStoresRoutes()
                 adminHealthRoutes()
