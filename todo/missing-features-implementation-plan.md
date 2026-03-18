@@ -2,7 +2,7 @@
 
 **Created:** 2026-03-18
 **Last Updated:** 2026-03-18
-**Status:** Draft — Awaiting Approval
+**Status:** Approved — Verified against codebase 2026-03-18
 
 ---
 
@@ -57,14 +57,15 @@ Phase 2 core feature එක multi-store. නමුත්:
 
 **Impact:** Multi-store features UI level එකේ scaffold එකයි ඇත්තේ — backend support නැතුව dead screens.
 
-### Blocker 3: Backend Test Coverage (B4) — ~25% vs 80% Target
+### Blocker 3: Backend Test Coverage (B4) — ~40% vs 80% Target
 
-Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන් ~25%:
+Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන් ~40%:
 
-- `SyncProcessor`, `EntityApplier`, `DeltaEngine` — critical sync logic untested
-- `AdminAuthService` (BCrypt, MFA, lockout) — partial tests only
-- Repository layer — no integration tests with Testcontainers
+- `SyncProcessor`, `EntityApplier`, `DeltaEngine` — basic tests EXIST but need edge case expansion
+- `AdminAuthService` (BCrypt, MFA, lockout) — substantial tests exist (791 LOC across 2 files)
+- Repository layer — no integration tests with Testcontainers (infra exists, tests don't)
 - Multi-store operations — zero test coverage
+- License service — no tests
 
 **Impact:** Sync engine extend කරද්දී regression risk ඉහළයි. Phase 2 features add කරන කොට existing functionality break වෙන risk untested code නිසා ඉහළයි.
 
@@ -134,22 +135,26 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 - `email_delivery_log` table (V20) — outbound email audit trail
 - `InboundEmailProcessor.kt` — CF Worker → ticket creation
 - `ChatwootService.kt` — Chatwoot conversation sync
-- Admin panel API hooks: `useEmailLogs()`, `useEmailPreferences()`
+- Admin panel API file: `admin-panel/src/api/email.ts` (email API functions exist; `useEmailLogs()` / `useEmailPreferences()` hooks do NOT exist yet — need to be created)
 - Backend routes: `AdminEmailRoutes.kt`
+- Admin panel email page: `admin-panel/src/routes/settings/email.tsx` (119 lines — basic page EXISTS)
 
 **What's MISSING:**
-- [ ] Admin panel email delivery log UI page (`admin-panel/src/routes/settings/email.tsx`)
+- [x] Admin panel email delivery log UI page — `admin-panel/src/routes/settings/email.tsx` EXISTS (basic, may need enhancement)
+- [ ] `useEmailLogs()` and `useEmailPreferences()` TanStack Query hooks (need to be CREATED in `admin-panel/src/api/email.ts`)
+- [ ] Email delivery log table enhancement (status filters, date range filter, pagination)
 - [ ] Email template editor in admin panel
 - [ ] Email preference management UI for customers
 - [ ] Bounce/complaint webhook handler from Resend
 - [ ] Email retry logic for QUEUED → SENDING failures
 
 **Implementation Steps:**
-1. Create `admin-panel/src/routes/settings/email.tsx` with delivery log table
-2. Add email template CRUD endpoints in backend API
-3. Build template editor component in admin panel
-4. Implement Resend bounce/complaint webhook endpoint
-5. Add retry queue worker for failed email deliveries
+1. Create `useEmailLogs()` hook in `admin-panel/src/api/email.ts`
+2. Enhance existing `admin-panel/src/routes/settings/email.tsx` with delivery log table
+3. Add email template CRUD endpoints in backend API
+4. Build template editor component in admin panel
+5. Implement Resend bounce/complaint webhook endpoint
+6. Add retry queue worker for failed email deliveries
 
 ---
 
@@ -268,12 +273,34 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 - [ ] Status page branding
 - [ ] Docker + DB health monitors
 
-### B4. Backend Test Coverage — ~25% vs 80% target
+### B4. Backend Test Coverage — ~40% vs 80% target
 
-- [ ] Testcontainers setup (PostgreSQL + Redis)
-- [ ] `SyncProcessor`, `DeltaEngine`, `EntityApplier` tests
-- [ ] `AdminAuthService`, `LicenseService` tests
-- [ ] Coverage reporting in CI pipeline
+> **STATUS UPDATE (2026-03-18):** Codebase verification reveals existing test
+> infrastructure and test files are more extensive than originally documented.
+> 9 test files exist (1,506+ LOC). Testcontainers already configured.
+
+- [x] Testcontainers setup (PostgreSQL + Redis) — ALREADY EXISTS in `backend/api/build.gradle.kts`
+- [x] `SyncProcessor`, `DeltaEngine`, `EntityApplier` tests — EXIST (basic coverage, need expansion)
+- [x] `AdminAuthService` tests — EXIST (`AdminAuthServiceTest.kt` 272L + `AdminAuthServiceExtendedTest.kt` 519L)
+- [ ] Expand sync test coverage (edge cases, error paths, new entity types)
+- [ ] Repository integration tests (`ProductRepository`, `PosUserRepository`, `AdminUserRepository`)
+- [ ] `LicenseService` tests (backend/license)
+- [ ] Coverage reporting in CI pipeline (JaCoCo/Kover + threshold)
+
+**Existing Test Files (verified 2026-03-18):**
+| File | Lines | Coverage |
+|------|-------|----------|
+| `sync/EntityApplierTest.kt` | 54 | PRODUCT type basic tests |
+| `sync/SyncProcessorTest.kt` | 166 | Push processing |
+| `sync/DeltaEngineTest.kt` | 86 | Cursor-based pull |
+| `sync/ServerConflictResolverTest.kt` | 80 | LWW resolution |
+| `sync/SyncValidatorTest.kt` | 123 | Payload validation |
+| `service/AdminAuthServiceTest.kt` | 272 | Admin login + JWT |
+| `service/AdminAuthServiceExtendedTest.kt` | 519 | BCrypt, MFA, lockout |
+| `service/UserServiceTest.kt` | 206 | POS PIN auth |
+| `integration/SyncPushPullIntegrationTest.kt` | — | End-to-end sync |
+| `routes/AuthRoutesTest.kt` | — | Auth HTTP routes |
+| `routes/CsrfPluginTest.kt` | — | CSRF protection |
 
 ### B5. Mixed Timestamp Formats
 
@@ -297,15 +324,15 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 - DB: V5 (tickets, comments, attachments), V18 (email_threads), V20 (email_delivery_log)
 - Frontend: `TicketTable`, `TicketCreateModal`, `TicketAssignModal`, `TicketResolveModal`, `TicketCommentThread`
 
-**What's MISSING (8 tasks):**
-- [ ] **TASK 1:** Email thread viewing + reply-to-reply chain tracking (V21 migration: `parent_thread_id`)
-- [ ] **TASK 2:** Bulk ticket operations (assign, resolve, CSV export)
-- [ ] **TASK 3:** SLA breach email notifications (extend `checkSlaBreaches()`)
-- [ ] **TASK 4:** Advanced ticket filtering (date range, full-text search on body)
-- [ ] **TASK 5:** Ticket metrics/analytics endpoint (totalOpen, avgResolutionTime, etc.)
-- [ ] **TASK 6:** Agent reply by email (outbound from ticket comment)
-- [ ] **TASK 7:** Customer portal — public ticket status check via token URL (V22 migration)
-- [ ] **BUG FIX:** InboundEmailProcessor hardcoded SLA (always MEDIUM/48h) — should use `inferPriorityFromEmail()`
+**What WAS MISSING (8 tasks — ALL COMPLETED):**
+- [x] **TASK 1:** Email thread viewing + reply-to-reply chain tracking (V21 migration: `parent_thread_id`)
+- [x] **TASK 2:** Bulk ticket operations (assign, resolve, CSV export)
+- [x] **TASK 3:** SLA breach email notifications (extend `checkSlaBreaches()`)
+- [x] **TASK 4:** Advanced ticket filtering (date range, full-text search on body)
+- [x] **TASK 5:** Ticket metrics/analytics endpoint (totalOpen, avgResolutionTime, etc.)
+- [x] **TASK 6:** Agent reply by email (outbound from ticket comment)
+- [x] **TASK 7:** Customer portal — public ticket status check via token URL (V22 migration)
+- [x] **BUG FIX:** InboundEmailProcessor hardcoded SLA (always MEDIUM/48h) — should use `inferPriorityFromEmail()`
 
 **Implementation Order:** BUG FIX → TASK 1 → TASK 3 → TASK 4 → TASK 5 → TASK 2 → TASK 6 → TASK 7
 
