@@ -168,12 +168,12 @@ test.describe('Settings navigation', () => {
     await page.goto('/settings/profile');
     await page.waitForLoadState('networkidle');
     await page.locator('main').first().waitFor({ state: 'visible', timeout: 15_000 });
-    await expect(page.getByRole('heading', { name: /profile/i })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('heading', { name: /profile/i }).first()).toBeVisible({ timeout: 15_000 });
 
     await page.goto('/settings/mfa');
     await page.waitForLoadState('networkidle');
     await page.locator('main').first().waitFor({ state: 'visible', timeout: 15_000 });
-    await expect(page.getByRole('heading', { name: /mfa|two.factor|authenticat/i })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('heading', { name: /mfa|two.factor|authenticat/i }).first()).toBeVisible({ timeout: 15_000 });
   });
 });
 
