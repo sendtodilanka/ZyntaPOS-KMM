@@ -1,337 +1,138 @@
-# Stream 2: Infra & Security — Items A7, A6, A2
+# Stream 2: Infra & Security — REMAINING ITEMS ONLY
 
-**Master Plan:** `todo/missing-features-implementation-plan.md` (Sections A2, A6, A7)
-**Size:** L (A7=M + A6=S + A2=S, with 3 separate commit+pipeline cycles — tight session)
-**Conflict Risk:** LOW — touches CI yml, admin panel, backend auth only
-**Dependencies:** A7 first (for safety when testing admin endpoints in A6/A2), then A6, then A2
-**CLAUDE.md ownership:** This stream is the ONLY one that updates `CLAUDE.md` (to prevent merge conflicts with other streams)
+**Master Plan:** `todo/missing-features-implementation-plan.md` (Sections A2, A5, A6, A7, B1, B2, B3)
+**Size:** M (1-2 sessions) — all original A7/A6/A2 items are DONE; remaining items are from adjacent sections
+**Conflict Risk:** LOW
+**CLAUDE.md ownership:** This stream is the ONLY one that updates `CLAUDE.md`
 
-> **NOTE:** This stream maps to a subset of the plan's "Stream 2" (A2-A7).
-> Items A3, A4, A5 are deferred to a follow-up session.
-> If session time runs short, A2 can be deferred — A7 and A6 are higher priority.
-
----
-
-## Pre-Implementation (MANDATORY — do not skip)
-
-1. Read `CLAUDE.md` fully (codebase context, module map, tech stack, conventions)
-2. Read ALL files in `docs/adr/` (ADR-001 through ADR-008) — especially:
-   - ADR-008 (RS256 key distribution — relevant to A7 JWT migration)
-   - ADR-007 (database-per-service — relevant to License service auth)
-3. Read `docs/architecture/` (module dependency diagrams)
-4. Read `todo/missing-features-implementation-plan.md` FULLY — especially:
-   - Section A7 (Admin JWT Security Gap — your FIRST item)
-   - Section A6 (Security Monitoring — your SECOND item)
-   - Section A2 (Email Management System — your THIRD item)
-   - IMPLEMENTATION COMPLIANCE RULES section
-   - ERROR RECOVERY GUIDE section
-   - ITEM DEPENDENCY GRAPH (A7 has no blockers; B2 depends on A7)
-   - SESSION SCOPE GUIDANCE (A7=M, A6=S, A2=S)
-5. Run `echo $PAT` to confirm GitHub token is available
-6. Sync: `git fetch origin main && git merge origin/main --no-edit`
+> **STATUS (2026-03-18):** All 3 original items (A7, A6, A2) are VERIFIED COMPLETE.
+> - A7: Admin JWT migrated to RS256. Zero HS256 remnants. License service validates with RS256 public key.
+> - A6: OWASP in all 3 build.gradle.kts, Snyk in sec-backend-scan.yml, Falcosidekick→Slack configured.
+> - A2: Email delivery log UI, useEmailDeliveryLogs() hook, WebhookRoutes.kt bounce handler — all done.
+>
+> This session focuses on remaining incomplete items from the broader infra/security scope.
 
 ---
 
-## Codebase Exploration (BEFORE writing any code)
+## ✅ COMPLETED (do NOT re-implement)
 
-```bash
-# === A7: Admin JWT ===
-# Read current admin auth (HS256)
-find backend/ -name "AdminAuthService.kt" -exec cat {} \;
+### A7 — Admin JWT HS256→RS256 Migration — ✅ 100% DONE
+- [x] `AdminAuthService.kt` line 270: `Algorithm.RSA256(publicKey, privateKey)`
+- [x] `AdminJwtValidator.kt` (License service) line 22: RS256 public key verification
+- [x] Zero HS256/HMAC256 references in entire backend
+- [x] AppConfig.kt lines 70-71: Admin reuses POS RSA keypair
+- [x] Token type claim `"type": "admin_access"` present
 
-# Read POS auth (RS256 — the target pattern)
-find backend/ -name "UserService.kt" -exec cat {} \;
+### A6 — Security Monitoring — ✅ 100% DONE
+- [x] OWASP dependency-check v12.2.0 in api/license/sync build.gradle.kts (line 6 each)
+- [x] Snyk container scanning in `sec-backend-scan.yml` lines 288-332
+- [x] Trivy container scanning in `sec-backend-scan.yml` lines 227-286
+- [x] Falcosidekick SLACK_WEBHOOKURL configured in docker-compose.yml line 403
+- [x] Custom Falco rules in `config/falco/zyntapos_rules.yaml`
 
-# Read JWT configuration
-grep -r "HS256\|RS256\|jwt\|JWT\|JwtConfig\|jwtSecret" backend/ --include="*.kt" -l
-
-# Read License service admin validation
-find backend/license/ -name "*.kt" | xargs grep -l "jwt\|JWT\|admin\|Admin\|verify\|token" 2>/dev/null
-
-# Read ADR-008 for RS256 key distribution
-cat docs/adr/ADR-008-*
-
-# Read existing key management
-grep -r "publicKey\|privateKey\|keyPair\|well-known" backend/ --include="*.kt" -l
-
-# === A6: Security Monitoring ===
-# Read current CI Gate workflow
-cat .github/workflows/ci-gate.yml
-
-# Check existing security scanning
-grep -r "snyk\|owasp\|dependency-check\|falco" .github/ --include="*.yml" -l
-
-# Check Slack webhook secret
-grep -r "SLACK_WEBHOOK" .github/ --include="*.yml"
-
-# === A2: Email System ===
-# Read existing admin panel routes
-ls admin-panel/src/routes/settings/ 2>/dev/null
-
-# Read existing email hooks
-grep -r "useEmail\|email" admin-panel/src/ --include="*.ts" --include="*.tsx" -l
-
-# Read backend email routes
-find backend/ -name "*Email*" -o -name "*email*" | grep -v node_modules | sort
-
-# Read existing email service
-find backend/ -name "EmailService.kt" -exec cat {} \;
-find backend/ -name "AdminEmailRoutes.kt" -exec cat {} \;
-```
+### A2 — Email Management System — ✅ 100% DONE
+- [x] `admin-panel/src/routes/settings/email.tsx` — delivery log table with status/date filters + pagination
+- [x] `admin-panel/src/api/email.ts` — `useEmailDeliveryLogs()` hook with query params
+- [x] `AdminEmailRoutes.kt` — `GET /admin/email/delivery-logs` with RBAC gating
+- [x] `WebhookRoutes.kt` — `POST /webhooks/resend` bounce/complaint handler
+- [x] `EmailService.kt` — 6 email templates with HTML escaping
 
 ---
 
-## Item 1: A7 — Admin JWT Security Gap (do FIRST)
+## What's STILL MISSING (implement these)
 
-### Problem
-Admin panel uses HS256 (symmetric shared secret) while POS uses RS256 (asymmetric).
-HS256 means the secret must be shared with License service — security risk.
+### 1. A5 — Firebase Analytics & Sentry KMP Integration (P1-HIGH)
 
-### Implementation Steps
+**Status:** ~40% Complete — secrets configured, SDKs not wired
 
-1. **Read current admin token generation** in `AdminAuthService.kt`
-   - Understand current HS256 flow: secret shared between API and License service
-   - Note all JWT claims (userId, role, permissions, exp, iat)
+**What EXISTS:**
+- `GOOGLE_SERVICES_JSON`, `GA4_MEASUREMENT_ID`, `SENTRY_DSN_*` secrets in GitHub
+- Backend Sentry integration partial
 
-2. **Modify `AdminAuthService.kt`** to use RS256:
-   - Import existing RS256 private key (same key POS auth uses — check `JwtConfig`)
-   - Change token signing from `Algorithm.HMAC256(secret)` to `Algorithm.RSA256(publicKey, privateKey)`
-   - Keep all existing claims unchanged
-   - Add `typ: "admin"` claim to distinguish from POS tokens (if not already present)
+**What's MISSING:**
+- [ ] Firebase Android SDK dependency in `androidApp/build.gradle.kts`
+- [ ] `google-services.json` decode step in CI (base64 → file)
+- [ ] `FirebaseAnalytics` initialization in Android `ZyntaApplication.kt`
+- [ ] `AnalyticsTracker` expect/actual interface in `:shared:core`
+  - `expect`: `fun trackScreen(name: String)`, `fun trackEvent(name: String, params: Map<String, String>)`
+  - `actual` Android: Firebase Analytics SDK
+  - `actual` JVM: GA4 Measurement Protocol HTTP POST (or no-op stub)
+- [ ] Screen view events in feature module ViewModels (POS, Auth, Dashboard, Inventory)
+- [ ] Sentry initialization in all 3 backend services (api, license, sync)
+- [ ] Sentry error boundary in admin panel (`ErrorBoundary` component)
 
-3. **Update License service admin JWT validation:**
-   - Change verification from HS256 to RS256
-   - Use public key only (no private key needed for verification)
-   - Follow ADR-008: load key from `/.well-known/public-key` endpoint or bundled default
+**Key Files:**
+- `androidApp/build.gradle.kts`
+- `shared/core/src/commonMain/.../analytics/AnalyticsTracker.kt` (NEW)
+- `shared/core/src/androidMain/.../analytics/AnalyticsTracker.kt` (NEW)
+- `shared/core/src/jvmMain/.../analytics/AnalyticsTracker.kt` (NEW)
 
-4. **Session rotation:**
-   - Existing HS256 tokens will fail RS256 validation — this is expected
-   - Add graceful handling: if RS256 validation fails, return 401 with "Session expired, please re-login"
-   - Do NOT add backwards-compatible HS256 fallback (clean migration)
+### 2. B1 — Admin Panel Remaining Items (~98% → 100%)
 
-5. **Remove HS256 secret** from configuration where no longer needed
+- [ ] Security dashboard page (threat overview, recent alerts, vuln scan results)
+- [ ] OTA update management page (device firmware versions, push updates)
+- [ ] Playwright E2E test scaffold (basic login + navigation smoke test)
+- [ ] VPS deployment via GitHub Actions (Caddy static site config for panel)
 
-6. **Write tests:**
-   - `AdminAuthServiceTest.kt` — token generation produces valid RS256 JWT
-   - `AdminAuthServiceTest.kt` — RS256 token validates correctly with public key
-   - `AdminAuthServiceTest.kt` — old HS256 token is rejected
+### 3. B2 — Admin Panel Custom Auth Remaining (~75% → 100%)
 
-### Commit after A7:
-```bash
-git fetch origin main && git merge origin/main --no-edit
-git add backend/ todo/missing-features-implementation-plan.md
-git commit -m "fix(security): migrate admin JWT from HS256 to RS256 [A7]
+- [ ] Session management UI (view/revoke active admin sessions)
+- [ ] Security audit log page in admin panel
+- [ ] IP allowlisting middleware (`X-Forwarded-For` check against allowed list)
+- [ ] Login notification emails (email admin on new login from unknown IP)
+- [ ] Forced password rotation policy (configurable days until password expires)
 
-- AdminAuthService now signs admin tokens with RS256 (same keypair as POS)
-- License service validates admin tokens with RS256 public key
-- Removed shared HS256 secret dependency between services
-- Existing admin sessions will require re-login (expected)
+### 4. B3 — Monitoring Uptime Kuma Remaining (~70% → 100%)
 
-Plan file updated: A7 marked complete"
-git push -u origin $(git branch --show-current)
-# Monitor pipeline until green before proceeding to A6
-```
+- [ ] Add monitors for all 7 subdomains (api, license, sync, panel, docs, status, www)
+- [ ] Slack/email alert channels configured in Uptime Kuma
+- [ ] Status page branding (zyntapos.com logo, colors)
+- [ ] Docker container health monitors + DB connection monitors
+
+### 5. B5 — Mixed Timestamp Formats
+
+- [ ] Standardize on `Instant` (kotlinx-datetime) across all backend services
+- [ ] Add timestamp format validation in sync pipeline (reject non-ISO-8601)
+- [ ] Document timestamp contract in API docs
+
+### 6. E1 — CI Pipeline Enhancements (partial)
+
+- [ ] Test coverage threshold in CI (fail if < 60%) — Kover installed but not enforced
+- [ ] `google-services.json` decode step in CI workflows
+- [ ] Playwright E2E tests for admin panel in CI
 
 ---
 
-## Item 2: A6 — Security Monitoring (after A7 pipeline is green)
+## Deferred Items (Phase 2 — do NOT implement now)
 
-### What's Missing (~85% complete)
-- Snyk Monitor step in CI
-- OWASP dependency check
-- Falcosidekick → Slack wiring
+These were in the original plan but explicitly deferred:
+- Email template editor in admin panel
+- Email preference management UI for customers
+- Email retry logic for QUEUED→SENDING failures (Resend handles retries)
+- CF Zero Trust + WAF rules (Cloudflare dashboard actions, not code)
 
-### Implementation Steps
+---
 
-1. **Add OWASP dependency-check** to `build.gradle.kts`:
-   - Add plugin: `org.owasp.dependencycheck` (use version catalog)
-   - Configure: NVD API key from `NVD_API_KEY` secret
-   - Add Gradle task `dependencyCheckAnalyze`
+## Pre-Implementation (MANDATORY)
 
-2. **Add Snyk Monitor step** to `.github/workflows/ci-gate.yml`:
-   - After test step, before artifact upload
-   - Use `snyk/actions/gradle@master` or CLI-based approach
-   - Continue on error (don't block builds for advisory-level vulns)
+1. Read `CLAUDE.md` fully
+2. Run `echo $PAT` to confirm GitHub token
+3. Sync: `git fetch origin main && git merge origin/main --no-edit`
 
-3. **Wire Falcosidekick → Slack:**
-   - Check if Falco is deployed on VPS (read `docker-compose.yml`)
-   - If Falcosidekick config exists, add `SLACK_WEBHOOK_URL` output
-   - If not deployed, create config placeholder in `docker-compose.yml`
+---
 
-4. **Add OWASP check to CI Gate workflow:**
-   - New job or step in `ci-gate.yml`
-   - Upload report as artifact
+## Commit + Push
 
-### Commit after A6:
 ```bash
 git fetch origin main && git merge origin/main --no-edit
-git add .github/ build.gradle.kts gradle/libs.versions.toml docker-compose.yml todo/missing-features-implementation-plan.md
-git commit -m "feat(ci): add OWASP dependency check and Snyk security scanning [A6]
+git add -A
+git commit -m "feat(analytics): add Firebase Analytics + Sentry KMP integration [A5]
 
-- OWASP dependencyCheckAnalyze Gradle plugin added
-- Snyk monitor step in ci-gate.yml
-- Falcosidekick Slack webhook configuration
+- AnalyticsTracker expect/actual interface in :shared:core
+- Firebase SDK wiring in androidApp
+- Screen view events in POS, Auth, Dashboard ViewModels
+- Sentry initialization in backend services
 
-Plan file updated: A6 status ~85% → ~95%"
-git push -u origin $(git branch --show-current)
-# Monitor pipeline until green before proceeding to A2
-```
-
----
-
-## Item 3: A2 — Email Management System (after A6 pipeline is green)
-
-### What's Missing (~95% complete)
-- Admin panel email delivery log UI page
-- Bounce/complaint webhook handler
-
-### ⚠️ EXISTING FILES — DO NOT OVERWRITE
-
-- `admin-panel/src/routes/settings/email.tsx` — **ALREADY EXISTS** (119 lines)
-- `admin-panel/src/api/email.ts` — **ALREADY EXISTS** (email API functions)
-
-**Read these files FIRST** before modifying anything.
-
-### Implementation Steps
-
-1. **Read existing email files:**
-   ```bash
-   cat admin-panel/src/routes/settings/email.tsx
-   cat admin-panel/src/api/email.ts
-   grep -r "email\|Email" admin-panel/src/ --include="*.ts" --include="*.tsx" -l
-   ls admin-panel/src/routes/settings/
-   ```
-
-2. **Enhance existing `admin-panel/src/routes/settings/email.tsx`:**
-   - Read the current implementation — identify what's missing
-   - Add email delivery log table if not present (date, recipient, subject, status)
-   - **NOTE:** `useEmailLogs()` hook does NOT exist — you need to create it in
-     `admin-panel/src/api/email.ts` or wire to existing API function in that file
-   - Add filter by status (SENT/FAILED/BOUNCED/QUEUED)
-   - Add filter by date range
-   - Follow existing admin panel page patterns (check other settings pages)
-
-3. **Add Resend bounce/complaint webhook endpoint:**
-   - Location: `backend/api/src/main/kotlin/.../routes/WebhookRoutes.kt` (or add to existing)
-   - `POST /webhooks/resend` — receives bounce/complaint events
-   - Update `email_delivery_log` status to BOUNCED or COMPLAINED
-   - Validate Resend webhook signature (if available)
-
-4. **Add email retry logic:**
-   - For QUEUED → SENDING failures, add retry with exponential backoff
-   - Max 3 retries, then mark as FAILED
-   - Can be a simple coroutine-based retry in `EmailService.kt`
-
-### Commit after A2:
-```bash
-git fetch origin main && git merge origin/main --no-edit
-git add admin-panel/ backend/ todo/missing-features-implementation-plan.md
-git commit -m "feat(email): add delivery log UI and bounce webhook handler [A2]
-
-- Admin panel email delivery log page at /settings/email
-- Resend bounce/complaint webhook endpoint
-- Email retry logic for failed deliveries
-
-Plan file updated: A2 status ~95% → ~100%"
-git push -u origin $(git branch --show-current)
-# Monitor pipeline until green
-```
-
----
-
-## Post-Implementation Updates (MANDATORY — per item, in SAME commit)
-
-### Update `todo/missing-features-implementation-plan.md` after EACH item:
-
-**A7:**
-- Mark all A7 checkboxes `[x]`
-- Update FEATURE COVERAGE MATRIX: remove A7 from "missing" or mark COMPLETE
-
-**A6:**
-- Mark completed A6 checkboxes `[x]`
-- Update status: `~85% Complete` → `~95% Complete` (or 100% if all done)
-- Note: CF Zero Trust + WAF rules are dashboard actions, not code — mark as out of scope
-
-**A2:**
-- Mark completed A2 checkboxes `[x]`
-- Update status: `~95% Complete` → `~100% Complete` (or note remaining items)
-- Update FEATURE COVERAGE MATRIX
-
-### Update `CLAUDE.md` (this stream OWNS CLAUDE.md — other streams skip it):
-- If new CI workflow steps added → update CI/CD section
-- If new webhook endpoint added → note in Backend section
-- If new GitHub Actions secrets referenced → update secrets table
-
----
-
-## ⚠️ Plan File Merge Conflict Warning
-
-All 4 parallel streams update `todo/missing-features-implementation-plan.md`.
-**Merge conflicts on this file are expected and normal.**
-
-After EVERY push, check PR status:
-```bash
-REPO="sendtodilanka/ZyntaPOS-KMM"
-BRANCH=$(git branch --show-current)
-curl -s -H "Authorization: token $PAT" \
-  "https://api.github.com/repos/$REPO/pulls?head=sendtodilanka:$BRANCH&state=open" \
-  | python3 -c "
-import sys,json
-prs=json.load(sys.stdin)
-if not prs: print('No open PR yet')
-for pr in prs:
-  print(f'PR #{pr[\"number\"]}: mergeable={pr.get(\"mergeable\")} state={pr.get(\"mergeable_state\")}')
-"
-```
-
-**If `mergeable=false` or `mergeable_state=dirty`:**
-```bash
-git fetch origin main
-git merge origin/main --no-edit
-# If plan file conflicts: keep BOTH your changes AND main's changes
-# (they modify different sections of the same file)
-git add todo/missing-features-implementation-plan.md
-git commit -m "merge: resolve plan file conflict with main"
+Plan file updated: A5 status ~40% → ~80%"
 git push -u origin $(git branch --show-current)
 ```
-
----
-
-## Pipeline Monitoring (after EVERY push)
-
-```bash
-REPO="sendtodilanka/ZyntaPOS-KMM"
-BRANCH=$(git branch --show-current)
-
-# Step[1] — Watch Branch Validate
-curl -s -H "Authorization: token $PAT" \
-  "https://api.github.com/repos/$REPO/actions/runs?branch=$BRANCH&per_page=5" \
-  | python3 -c "import sys,json; [print(f'[{r[\"status\"]:10}][{(r[\"conclusion\"] or \"pending\"):10}] {r[\"name\"]}') for r in json.load(sys.stdin).get('workflow_runs',[])]"
-
-# Step[2] — Confirm PR auto-created
-curl -s -H "Authorization: token $PAT" \
-  "https://api.github.com/repos/$REPO/pulls?head=sendtodilanka:$BRANCH&state=open" \
-  | python3 -c "import sys,json; prs=json.load(sys.stdin); print('PR #'+str(prs[0]['number']) if prs else 'No PR yet')"
-
-# Step[3+4] — CI Gate
-PR=<number>
-SHA=$(curl -s -H "Authorization: token $PAT" \
-  "https://api.github.com/repos/$REPO/pulls/$PR" | python3 -c "import sys,json; print(json.load(sys.stdin)['head']['sha'])")
-curl -s -H "Authorization: token $PAT" \
-  "https://api.github.com/repos/$REPO/commits/$SHA/check-runs" \
-  | python3 -c "import sys,json; [print(f'[{r[\"status\"]:10}][{(r[\"conclusion\"] or \"pending\"):10}] {r[\"name\"]}') for r in json.load(sys.stdin).get('check_runs',[])]"
-```
-
-**CRITICAL:** Do NOT start next item until current item's pipeline is green.
-For CI workflow changes (.yml files), be extra careful — syntax errors break ALL pipelines.
-
----
-
-## Important Notes
-
-- A7 should be completed first for safety when testing admin endpoints in A6 and A2
-- These items do NOT touch `:shared:domain`, `:shared:data`, or KMM feature modules
-  (minimal conflict risk with Stream 1, 3, 4)
-- For `.yml` workflow changes: validate YAML syntax before committing
-- For admin panel changes: check `admin-panel/package.json` for build/lint commands
-- If Resend webhook signature validation docs are needed, check https://resend.com/docs/webhooks

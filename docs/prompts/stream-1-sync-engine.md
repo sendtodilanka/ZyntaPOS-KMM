@@ -1,274 +1,147 @@
-# Stream 1: Sync Engine (Critical Path) — Item A1
+# Stream 1: Sync Engine (Critical Path) — Item A1 — REMAINING ITEMS ONLY
 
 **Master Plan:** `todo/missing-features-implementation-plan.md` (Section A1)
-**Size:** XL (4-5 sessions) — this session targets EntityApplier entity type expansion
-**Conflict Risk:** LOW — touches `backend/api/src/.../sync/` only
+**Size:** M (1-2 sessions) — remaining items after previous sessions completed EntityApplier expansion
+**Conflict Risk:** LOW-MEDIUM — touches `backend/sync/` and `backend/api/` sync files
 **Dependencies:** None — start immediately
 
-> **NOTE:** Stream 4 (Backend Tests) runs in parallel and tests `EntityApplier.kt`.
-> Your changes land first via PR merge; Stream 4 will adapt its tests accordingly.
+> **STATUS (2026-03-18):** EntityApplier entity type expansion is COMPLETE (17 types).
+> SyncValidator field-level validation is COMPLETE (15 entity types, 30+ rules).
+> store_id JWT validation middleware is COMPLETE on push + pull routes.
+> This session focuses on the 4 remaining A1 items: WebSocket, JWT on WS, token revocation, heartbeat replay.
 
 ---
 
-## Pre-Implementation (MANDATORY — do not skip)
+## ✅ COMPLETED (do NOT re-implement)
 
-1. Read `CLAUDE.md` fully (codebase context, module map, tech stack, conventions)
-2. Read ALL files in `docs/adr/` (ADR-001 through ADR-008)
-3. Read `docs/architecture/` (module dependency diagrams)
-4. Read `todo/missing-features-implementation-plan.md` FULLY — especially:
-   - Section A1 (Sync Engine Server-Side — your primary item)
-   - BLOCKER 1 at the top (why this is the #1 critical path item)
-   - IMPLEMENTATION COMPLIANCE RULES section
-   - ERROR RECOVERY GUIDE section
-   - ITEM DEPENDENCY GRAPH (A1 has no blockers, but C6.1, C6.2, C1.1 all DEPEND on A1)
-   - SESSION SCOPE GUIDANCE (A1 = XL = 4-5 sessions total)
-5. Run `echo $PAT` to confirm GitHub token is available
-6. Sync: `git fetch origin main && git merge origin/main --no-edit`
+The following items are VERIFIED as implemented in the codebase:
+
+- [x] `EntityApplier` — 17 entity types: PRODUCT, CATEGORY, CUSTOMER, SUPPLIER, ORDER, ORDER_ITEM, AUDIT_ENTRY, STOCK_ADJUSTMENT, CASH_REGISTER, REGISTER_SESSION, CASH_MOVEMENT, TAX_GROUP, UNIT_OF_MEASURE, PAYMENT_SPLIT, COUPON, EXPENSE, SETTINGS
+- [x] STOCK_ADJUSTMENT handler with `products.stock_qty` side-effect (lines 537-553)
+- [x] AUDIT_ENTRY append-only enforcement (`insertIgnore()`, DELETE/UPDATE ignored)
+- [x] `SyncValidator.kt` — field-level validation for 15 entity types (30+ rules)
+- [x] `SyncRoutes.kt` — store_id extracted from JWT + `verifyStoreExists()` on push + pull
+- [x] `ServerConflictResolver.kt` — generic LWW + PRODUCT field-level merge
+- [x] `SyncProcessor.kt` — batch processing, conflict detection, deduplication, dead letter queue
 
 ---
 
-## Codebase Exploration (BEFORE writing any code)
+## What's STILL MISSING (implement these)
 
-Run these searches to understand the sync architecture:
+### 1. WebSocket Push Notifications After Sync (HIGH)
 
-```bash
-# Read the existing EntityApplier (PRODUCT-only handler)
-# This is the PRIMARY file you'll extend
-find backend/ -name "EntityApplier.kt" -exec cat {} \;
+**Problem:** After `SyncProcessor` commits operations, connected clients on the same store are NOT notified. They must manually pull to discover new data.
 
-# Read SyncProcessor (calls EntityApplier)
-find backend/ -name "SyncProcessor.kt" -exec cat {} \;
+**Implementation:**
+1. Read `backend/sync/src/main/kotlin/.../hub/WebSocketHub.kt` — understand per-store broadcast
+2. Read `backend/api/src/main/kotlin/.../sync/SyncProcessor.kt` — find where ops are committed
+3. After `entityApplier.applyInTransaction()` succeeds, publish to Redis `sync:delta:{storeId}`
+4. `RedisPubSubListener` in sync service already subscribes — verify it broadcasts to WebSocket clients
+5. Message format: `{"type":"sync_update","storeId":"X","entityTypes":["ORDER","CUSTOMER"],"count":5}`
 
-# Read DeltaEngine (pull logic)
-find backend/ -name "DeltaEngine.kt" -exec cat {} \;
+**Key Files:**
+- `backend/api/src/main/kotlin/.../sync/SyncProcessor.kt` (modify — add Redis publish after commit)
+- `backend/sync/src/main/kotlin/.../hub/WebSocketHub.kt` (read — understand broadcast)
+- `backend/sync/src/main/kotlin/.../hub/RedisPubSubListener.kt` (read — verify subscription)
 
-# Read ServerConflictResolver (LWW resolution)
-find backend/ -name "ServerConflictResolver.kt" -exec cat {} \;
+### 2. JWT Validation on WebSocket Upgrade (HIGH)
 
-# Understand ALL entity types that need handling
-grep -r "entity_type\|EntityType\|entityType" backend/ --include="*.kt" -l
+**Problem:** WebSocket connections in `backend/sync` may not validate JWT on the upgrade handshake. Unauthenticated clients could connect.
 
-# Read DB migrations to understand table schemas for each entity
-ls backend/api/src/main/resources/db/migration/
+**Implementation:**
+1. Read `backend/sync/src/main/kotlin/.../routes/` — find WebSocket route registration
+2. Check if `authenticate("jwt-rs256")` wraps the WebSocket route
+3. If not: add JWT validation on WebSocket upgrade request (extract Bearer token from `Sec-WebSocket-Protocol` header or query param)
+4. Extract `storeId` from JWT claims — only allow subscription to matching store channel
+5. Reject upgrade with 401 if token invalid/expired
 
-# Read KMM client sync schemas (what the client sends)
-find shared/data/src/commonMain/sqldelight -name "sync*" -exec cat {} \;
+**Key Files:**
+- `backend/sync/src/main/kotlin/.../routes/SyncWebSocketRoutes.kt` (or similar)
+- `backend/sync/src/main/kotlin/.../plugins/Security.kt` (JWT config)
 
-# Check existing repository methods you can reuse
-grep -r "Repository" backend/api/src/main/kotlin/ --include="*.kt" -l
+### 3. POS Token Revocation Check (MEDIUM)
 
-# Check SyncRoutes for endpoint structure
-find backend/ -name "SyncRoutes.kt" -exec cat {} \;
-```
+**Problem:** `revoked_tokens` table exists in the database but JWT validation pipeline does NOT check it. A revoked token remains valid until expiry.
 
-Read each file THOROUGHLY before writing code. Understand the PRODUCT handler
-pattern in EntityApplier — you will replicate this exact pattern for all new types.
+**Implementation:**
+1. Find `revoked_tokens` table — check which migration created it
+2. Read current JWT validation in `backend/api` — find where RS256 token is verified
+3. After signature verification passes, query `revoked_tokens` table for the token's `jti` claim
+4. If found → return 401 "Token revoked"
+5. Add cache layer (in-memory set with TTL) to avoid DB hit on every request
+6. Expose `POST /admin/tokens/revoke` endpoint for admin to revoke specific tokens
 
----
+**Key Files:**
+- `backend/api/src/main/kotlin/.../plugins/Security.kt` (JWT validation pipeline)
+- `backend/api/src/main/resources/db/migration/` (find `revoked_tokens` migration)
 
-## What to Implement
+### 4. Heartbeat Replay Protection (LOW)
 
-The `EntityApplier` currently handles ONLY the PRODUCT entity type.
-Extend it to handle ALL entity types that flow through the sync pipeline.
+**Problem:** License heartbeat requests could be replayed by an attacker to keep a device active.
 
-### This Session — implement these entity type handlers:
-
-1. **ORDER + ORDER_ITEM** (with nested line items)
-   - Apply order header to `orders` table
-   - Apply each order item to `order_items` table
-   - Handle status transitions (IN_PROGRESS → COMPLETED → VOIDED)
-   - Validate: customer_id FK (if non-null), store_id matches JWT
-
-2. **CUSTOMER** (with loyalty points)
-   - Apply to `customers` table
-   - Handle loyalty_points field (additive merge? or LWW?)
-   - Validate: store_id scope (nullable = global customer)
-
-3. **CATEGORY** (with parent-child hierarchy)
-   - Apply to `categories` table
-   - Handle `parent_id` self-referential FK
-   - Validate: no circular parent references
-
-4. **SUPPLIER**
-   - Apply to `suppliers` table
-   - Straightforward CRUD entity
-
-5. **STOCK_ADJUSTMENT** (with stock quantity side-effect)
-   - Apply to `stock_adjustments` table
-   - Side-effect: Update `products.stock_qty` based on adjustment type
-   - Types: INCREASE, DECREASE, TRANSFER
-   - Validate: stock doesn't go negative (configurable?)
-
-### If time permits, also implement:
-
-6. **CASH_REGISTER + REGISTER_SESSION**
-   - Apply register to `cash_registers` table
-   - Apply session to `register_sessions` table (FK to register)
-
-7. **AUDIT_ENTRY**
-   - Apply to `audit_entries` table
-   - Write-only (never updated via sync — append-only log)
-
-8. **Add `store_id` validation middleware to sync routes**
-   - Extract `store_id` from JWT claims
-   - Validate every sync operation's `store_id` matches JWT
-   - Reject operations targeting a different store
-
-9. **Add field-level payload validation in `SyncProcessor`**
-   - Validate required fields present per entity type
-   - Validate field types (string, number, timestamp)
-   - Return descriptive error for invalid payloads
-
-### Key Files
-
-| File | Purpose | Action |
-|------|---------|--------|
-| `backend/api/src/main/kotlin/.../sync/EntityApplier.kt` | JSONB → normalized tables | EXTEND (primary) |
-| `backend/api/src/main/kotlin/.../sync/SyncProcessor.kt` | Push batch processing | MODIFY (add validation) |
-| `backend/api/src/main/kotlin/.../sync/DeltaEngine.kt` | Pull delta computation | READ ONLY (understand) |
-| `backend/api/src/main/kotlin/.../sync/ServerConflictResolver.kt` | LWW resolution | READ ONLY (may extend for new types) |
-| `backend/api/src/main/kotlin/.../routes/SyncRoutes.kt` | REST endpoints | MODIFY (add store_id middleware) |
-| `backend/api/src/main/resources/db/migration/V*.sql` | Table schemas | READ ONLY (understand schema) |
-| `shared/data/src/commonMain/sqldelight/.../sync_queue.sq` | Client outbox format | READ ONLY (understand payload format) |
+**Implementation:**
+1. Read `backend/license/src/main/kotlin/.../routes/` — find heartbeat endpoint
+2. Add nonce parameter to heartbeat request (client generates unique nonce per heartbeat)
+3. Store nonce in DB/Redis with short TTL (5 min)
+4. Reject heartbeat if nonce already seen (replay detected)
+5. Add timestamp validation: reject heartbeats with timestamp > 60s old
 
 ---
 
-## Search Before Coding (DRY Rule)
+## Minor Implementation Gaps (found during deep verification)
 
-Before writing any new handler:
+### 5. CATEGORY Circular Parent Reference Detection (LOW)
 
-```bash
-# Find existing repository methods for each entity type
-grep -r "fun insert\|fun upsert\|fun update" backend/api/src/main/kotlin/.../repository/ --include="*.kt"
+**Problem:** `EntityApplier.applyCategory()` stores `parentId` without validating circular hierarchies. A→B→C→A chains are not prevented.
 
-# Check if entity-specific validation already exists
-grep -r "validate\|Validation" backend/api/src/main/kotlin/ --include="*.kt" -l
+**Implementation:**
+1. In `EntityApplier.kt` `applyCategory()` method (around line 354-372)
+2. Before upserting, if `parentId` is not null:
+   - Walk the parent chain: query category's parent, then grandparent, etc.
+   - If any ancestor's ID matches the current category's ID → reject with error
+   - Limit depth to 10 levels to prevent infinite loop on corrupted data
+3. Return descriptive error: "Circular parent reference detected"
 
-# Check existing Exposed table definitions
-grep -r "object.*Table\|: Table()" backend/api/src/main/kotlin/ --include="*.kt" -l
+### 6. ORDER → ORDER_ITEM Cascade Consideration (INFO — not a bug)
 
-# Reuse existing repository methods — do NOT duplicate DB logic
-# EntityApplier should call existing repositories, not raw SQL
-```
+**Note:** ORDER and ORDER_ITEM are handled as separate sync operations (not nested). This is by design — the client pushes them independently. However, there is no cascade delete of ORDER_ITEMs when an ORDER is deleted via sync. If this becomes a problem, add cascade logic in `applyOrder()` for DELETE operations.
 
 ---
 
 ## Testing Requirements
 
-Write tests for each new entity type handler:
+Write tests for each new item:
 
-- **File:** `backend/api/src/test/kotlin/.../sync/EntityApplierTest.kt`
-- Test per entity type:
-  - Valid payload → correct DB state (insert)
-  - Duplicate ID → upsert (update existing)
-  - Missing required fields → descriptive error
-  - Invalid FK reference → error handling
-- For STOCK_ADJUSTMENT: verify stock_qty side-effect
-- For ORDER: verify nested ORDER_ITEM application
-- For CATEGORY: verify parent-child FK integrity
-
-```bash
-# Run tests locally
-cd backend && ./gradlew :api:test --tests "*.EntityApplierTest" --info
-```
+- `WebSocketHub` test: verify broadcast after sync commit
+- JWT on WS upgrade: test unauthorized upgrade rejected with 401
+- Token revocation: test revoked token returns 401, valid token passes
+- Heartbeat replay: test duplicate nonce rejected, fresh nonce accepted
+- Category circular ref: test A→B→A detected, valid parent accepted
 
 ---
 
-## Post-Implementation (MANDATORY — in SAME commit as code)
+## Pre-Implementation (MANDATORY)
 
-### 1. Update `todo/missing-features-implementation-plan.md`:
-
-a. Mark completed checkboxes in A1 section:
-```
-- [x] EntityApplier — extend to handle ORDER + ORDER_ITEM
-- [x] EntityApplier — extend to handle CUSTOMER
-- [x] EntityApplier — extend to handle CATEGORY
-- [x] EntityApplier — extend to handle SUPPLIER
-- [x] EntityApplier — extend to handle STOCK_ADJUSTMENT
-- [ ] Multi-store data isolation enforcement (store_id validation)  ← if not done
-- [ ] WebSocket push notifications after sync                       ← next session
-- [ ] JWT validation on WebSocket upgrade                           ← next session
-```
-
-b. Update A1 status line: `~60% Complete` → new percentage (e.g., `~80% Complete`)
-
-c. Add HANDOFF note at top of A1 section:
-```
-> **HANDOFF (2026-03-18):** EntityApplier extended with ORDER, ORDER_ITEM,
-> CUSTOMER, CATEGORY, SUPPLIER, STOCK_ADJUSTMENT handlers.
-> Tests in EntityApplierTest.kt — run before modifying.
-> Next session: store_id validation, WebSocket push, JWT on WS upgrade.
-> Branch: claude/sync-engine-XXX. PR #NNN.
-```
-
-d. Update FEATURE COVERAGE MATRIX at bottom:
-```
-Multi-node Sync | C6.1 | PARTIAL (LWW only) → PARTIAL (LWW + 6 entity types)
-Offline-First   | C6.2 | PARTIAL → PARTIAL (EntityApplier covers core types)
-```
-
-### 2. Update `CLAUDE.md`: **DO NOT update CLAUDE.md** — Stream 2 owns CLAUDE.md updates to avoid merge conflicts.
+1. Read `CLAUDE.md` fully
+2. Read `docs/adr/ADR-008-*` (RS256 key distribution — relevant to JWT on WS)
+3. Run `echo $PAT` to confirm GitHub token
+4. Sync: `git fetch origin main && git merge origin/main --no-edit`
 
 ---
 
-## ⚠️ Plan File Merge Conflict Warning
-
-All 4 parallel streams update `todo/missing-features-implementation-plan.md`.
-**Merge conflicts on this file are expected and normal.**
-
-After EVERY push, check PR status:
-```bash
-REPO="sendtodilanka/ZyntaPOS-KMM"
-BRANCH=$(git branch --show-current)
-curl -s -H "Authorization: token $PAT" \
-  "https://api.github.com/repos/$REPO/pulls?head=sendtodilanka:$BRANCH&state=open" \
-  | python3 -c "
-import sys,json
-prs=json.load(sys.stdin)
-if not prs: print('No open PR yet')
-for pr in prs:
-  print(f'PR #{pr[\"number\"]}: mergeable={pr.get(\"mergeable\")} state={pr.get(\"mergeable_state\")}')
-"
-```
-
-**If `mergeable=false` or `mergeable_state=dirty`:**
-```bash
-git fetch origin main
-git merge origin/main --no-edit
-# If plan file conflicts: keep BOTH your changes AND main's changes
-git add todo/missing-features-implementation-plan.md
-git commit -m "merge: resolve plan file conflict with main"
-git push -u origin $(git branch --show-current)
-```
-
----
-
-## Pre-Commit Sync + Commit + Push
+## Commit + Push (per item or batch)
 
 ```bash
-# 1. MANDATORY pre-commit sync
 git fetch origin main && git merge origin/main --no-edit
+git add backend/ todo/missing-features-implementation-plan.md
+git commit -m "feat(sync): add WebSocket push notifications and JWT on WS upgrade [A1]
 
-# 2. Stage all changes (code + tests + docs)
-git add backend/api/src/main/kotlin/.../sync/EntityApplier.kt
-git add backend/api/src/main/kotlin/.../sync/SyncProcessor.kt
-git add backend/api/src/main/kotlin/.../routes/SyncRoutes.kt
-git add backend/api/src/test/kotlin/.../sync/EntityApplierTest.kt
-git add todo/missing-features-implementation-plan.md
+- Publish sync updates to Redis after SyncProcessor commit
+- JWT validation on WebSocket upgrade handshake
+- Token revocation check in JWT validation pipeline
+- Heartbeat replay protection with nonce + timestamp
 
-# 3. Commit
-git commit -m "feat(sync): extend EntityApplier with ORDER, CUSTOMER, CATEGORY, SUPPLIER, STOCK_ADJUSTMENT types [A1]
-
-- ORDER handler with nested ORDER_ITEM application
-- CUSTOMER handler with loyalty points sync
-- CATEGORY handler with parent-child hierarchy validation
-- SUPPLIER handler (CRUD entity)
-- STOCK_ADJUSTMENT handler with stock_qty side-effect
-- Integration tests for all new entity type handlers
-
-Plan file updated: A1 status ~60% → ~80%"
-
-# 4. Push
+Plan file updated: A1 status ~80% → ~95%"
 git push -u origin $(git branch --show-current)
 ```
 
@@ -280,34 +153,7 @@ git push -u origin $(git branch --show-current)
 REPO="sendtodilanka/ZyntaPOS-KMM"
 BRANCH=$(git branch --show-current)
 
-# Step[1] — Watch Branch Validate
 curl -s -H "Authorization: token $PAT" \
   "https://api.github.com/repos/$REPO/actions/runs?branch=$BRANCH&per_page=5" \
   | python3 -c "import sys,json; [print(f'[{r[\"status\"]:10}][{(r[\"conclusion\"] or \"pending\"):10}] {r[\"name\"]}') for r in json.load(sys.stdin).get('workflow_runs',[])]"
-
-# Step[2] — Confirm PR auto-created (do NOT create manually)
-curl -s -H "Authorization: token $PAT" \
-  "https://api.github.com/repos/$REPO/pulls?head=sendtodilanka:$BRANCH&state=open" \
-  | python3 -c "import sys,json; prs=json.load(sys.stdin); print('PR #'+str(prs[0]['number']) if prs else 'No PR yet')"
-
-# Step[3+4] — CI Gate checks on PR
-PR=<number from above>
-SHA=$(curl -s -H "Authorization: token $PAT" \
-  "https://api.github.com/repos/$REPO/pulls/$PR" | python3 -c "import sys,json; print(json.load(sys.stdin)['head']['sha'])")
-curl -s -H "Authorization: token $PAT" \
-  "https://api.github.com/repos/$REPO/commits/$SHA/check-runs" \
-  | python3 -c "import sys,json; [print(f'[{r[\"status\"]:10}][{(r[\"conclusion\"] or \"pending\"):10}] {r[\"name\"]}') for r in json.load(sys.stdin).get('check_runs',[])]"
 ```
-
-**Do NOT end session without final push + pipeline green verification.**
-
----
-
-## Important Notes
-
-- This is the **#1 critical path blocker** — C6.1, C6.2, C1.1, C5.4 all depend on A1
-- Follow the EXACT pattern of the existing PRODUCT handler — do not invent new patterns
-- Reuse existing repository methods — EntityApplier should delegate to repositories
-- NEVER modify production KMM client code in this stream (backend only)
-- Read ALL migration files: `ls backend/api/src/main/resources/db/migration/` (V1-V22+, not just V14)
-- If you need a new migration, use the next version number (check what V-number is latest)
