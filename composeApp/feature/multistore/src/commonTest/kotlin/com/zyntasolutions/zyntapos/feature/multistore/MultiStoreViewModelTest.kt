@@ -35,6 +35,7 @@ import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
 import com.zyntasolutions.zyntapos.domain.model.User
 import com.zyntasolutions.zyntapos.domain.model.Role
 import kotlinx.coroutines.flow.flowOf
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import kotlinx.datetime.Instant
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -49,6 +50,13 @@ class MultiStoreViewModelTest {
 
     private val storeId = "store-001"
     private val userId = "user-001"
+
+    private val noOpAnalytics = object : AnalyticsTracker {
+        override fun logEvent(name: String, params: Map<String, String>) = Unit
+        override fun logScreenView(screenName: String, screenClass: String) = Unit
+        override fun setUserId(userId: String?) = Unit
+        override fun setUserProperty(name: String, value: String) = Unit
+    }
 
     private val fakeProductRepository = object : ProductRepository {
         override fun getAll(): Flow<List<Product>> = flowOf(emptyList())
@@ -262,6 +270,7 @@ class MultiStoreViewModelTest {
             saveWarehouseRackUseCase = saveWarehouseRackUseCase,
             deleteWarehouseRackUseCase = deleteWarehouseRackUseCase,
             authRepository = fakeAuthRepository,
+            analytics = noOpAnalytics,
         )
     }
 

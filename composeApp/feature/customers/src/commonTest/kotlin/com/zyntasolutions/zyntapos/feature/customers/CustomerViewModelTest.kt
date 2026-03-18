@@ -36,6 +36,7 @@ import kotlin.test.assertTrue
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.model.User
 import com.zyntasolutions.zyntapos.domain.model.Role
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import kotlinx.datetime.Instant
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -48,6 +49,13 @@ class CustomerViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private val currentUserId = "user-001"
+
+    private val noOpAnalytics = object : AnalyticsTracker {
+        override fun logEvent(name: String, params: Map<String, String>) = Unit
+        override fun logScreenView(screenName: String, screenClass: String) = Unit
+        override fun setUserId(userId: String?) = Unit
+        override fun setUserProperty(name: String, value: String) = Unit
+    }
 
     private val fakeAuthRepository = object : AuthRepository {
         private val _session = MutableStateFlow<User?>(
@@ -226,6 +234,7 @@ class CustomerViewModelTest {
             saveGroupUseCase = saveGroupUseCase,
             walletTopUpUseCase = walletTopUpUseCase,
             authRepository = fakeAuthRepository,
+            analytics = noOpAnalytics,
         )
     }
 

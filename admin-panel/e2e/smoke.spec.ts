@@ -125,8 +125,8 @@ test.describe('Smoke tests', () => {
     // Submit the form
     await page.getByRole('button', { name: /sign in/i }).click();
 
-    // Verify error message appears
-    await expect(page.locator('text=Invalid email or password')).toBeVisible({ timeout: 10_000 });
+    // Verify error message appears (login page shows "Invalid email or password." on 401)
+    await expect(page.getByText(/invalid email or password/i)).toBeVisible({ timeout: 10_000 });
   });
 
   test('unauthenticated user is redirected to login', async ({ page }) => {

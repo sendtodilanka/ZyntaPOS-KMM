@@ -42,6 +42,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import kotlin.time.Clock
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -179,6 +180,13 @@ class RegisterViewModelTest {
             else Result.Success(Unit)
     }
 
+    private val noOpAnalytics = object : AnalyticsTracker {
+        override fun logEvent(name: String, params: Map<String, String>) = Unit
+        override fun logScreenView(screenName: String, screenClass: String) = Unit
+        override fun setUserId(userId: String?) = Unit
+        override fun setUserProperty(name: String, value: String) = Unit
+    }
+
     private val openRegisterSessionUseCase = OpenRegisterSessionUseCase(fakeRegisterRepository)
     private val closeRegisterSessionUseCase = CloseRegisterSessionUseCase(fakeRegisterRepository)
     private val recordCashMovementUseCase = RecordCashMovementUseCase(fakeRegisterRepository)
@@ -216,6 +224,7 @@ class RegisterViewModelTest {
             printA4ZReportUseCase = printA4ZReportUseCase,
             authRepository = fakeAuthRepository,
             auditLogger = testAuditLogger,
+            analytics = noOpAnalytics,
         )
     }
 
