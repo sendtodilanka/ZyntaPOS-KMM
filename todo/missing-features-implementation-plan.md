@@ -136,7 +136,7 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 
 ---
 
-### A2. Email Management System (TODO-008a) — ~95% Complete
+### A2. Email Management System (TODO-008a) — ~98% Complete
 
 **Priority:** P1-HIGH
 **Impact:** Email logs cannot be viewed by admins; templates not editable
@@ -154,21 +154,21 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 - Admin panel email page: `admin-panel/src/routes/settings/email.tsx` (119 lines — basic page EXISTS)
 
 **What's MISSING:**
-- [x] Admin panel email delivery log UI page — `admin-panel/src/routes/settings/email.tsx` EXISTS (basic, may need enhancement)
-- [ ] `useEmailLogs()` and `useEmailPreferences()` TanStack Query hooks (need to be CREATED in `admin-panel/src/api/email.ts`)
-- [ ] Email delivery log table enhancement (status filters, date range filter, pagination)
-- [ ] Email template editor in admin panel
-- [ ] Email preference management UI for customers
-- [ ] Bounce/complaint webhook handler from Resend
-- [ ] Email retry logic for QUEUED → SENDING failures
+- [x] Admin panel email delivery log UI page — `admin-panel/src/routes/settings/email.tsx` EXISTS (enhanced with filters)
+- [x] `useEmailDeliveryLogs()` TanStack Query hook with status/date filters (in `admin-panel/src/api/email.ts`)
+- [x] Email delivery log table enhancement (status filters, date range filter, pagination)
+- [ ] Email template editor in admin panel (deferred — Phase 2)
+- [ ] Email preference management UI for customers (deferred — Phase 2)
+- [x] Bounce/complaint webhook handler from Resend (`POST /webhooks/resend`)
+- [ ] Email retry logic for QUEUED → SENDING failures (deferred — Phase 2)
 
 **Implementation Steps:**
-1. Create `useEmailLogs()` hook in `admin-panel/src/api/email.ts`
-2. Enhance existing `admin-panel/src/routes/settings/email.tsx` with delivery log table
-3. Add email template CRUD endpoints in backend API
-4. Build template editor component in admin panel
-5. Implement Resend bounce/complaint webhook endpoint
-6. Add retry queue worker for failed email deliveries
+1. ~~Create `useEmailLogs()` hook in `admin-panel/src/api/email.ts`~~ ✅ Done (with filters)
+2. ~~Enhance existing `admin-panel/src/routes/settings/email.tsx` with delivery log table~~ ✅ Done (status + date filters)
+3. Add email template CRUD endpoints in backend API (Phase 2)
+4. Build template editor component in admin panel (Phase 2)
+5. ~~Implement Resend bounce/complaint webhook endpoint~~ ✅ Done (`WebhookRoutes.kt`)
+6. Add retry queue worker for failed email deliveries (Phase 2)
 
 ---
 
