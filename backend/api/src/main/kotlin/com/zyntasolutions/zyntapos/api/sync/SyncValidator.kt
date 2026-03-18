@@ -88,6 +88,9 @@ class SyncValidator {
             if (op.createdAt > now + 60_000) {
                 errors.add("created_at is in the future (clock skew > 60s)")
             }
+            if (op.createdAt < 0) {
+                errors.add("created_at must be a non-negative epoch-ms timestamp")
+            }
 
             // S2-7: Field-level validation for known entity types (CREATE/UPDATE only)
             if (errors.isEmpty() && op.operation in setOf("CREATE", "INSERT", "UPDATE")) {

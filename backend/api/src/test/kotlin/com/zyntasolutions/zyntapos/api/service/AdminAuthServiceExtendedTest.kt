@@ -103,6 +103,8 @@ class AdminAuthServiceExtendedTest {
             ) { /* no-op */ }
         }
 
+        private val noOpEmailService = EmailService(testConfig())
+
         private const val TEST_PASSWORD = "SecureP@ssw0rd!"
         private val TEST_BCRYPT_HASH = BCrypt.withDefaults().hashToString(4, TEST_PASSWORD.toCharArray())
     }
@@ -128,6 +130,14 @@ class AdminAuthServiceExtendedTest {
         override suspend fun getLockedUntil(id: UUID): Long? = lockedUntilByUser[id]
 
         override suspend fun getFailedAttempts(id: UUID): Int = failedAttemptsByUser[id] ?: 0
+
+        // B2: Track last login IP for new-IP login notifications
+        private val lastLoginIpByUser = mutableMapOf<UUID, String?>()
+        override suspend fun getLastLoginIp(id: UUID): String? = lastLoginIpByUser[id]
+
+        // B2: Password rotation policy
+        override suspend fun getPasswordChangedAt(id: UUID): Long? =
+            java.time.Instant.now().toEpochMilli() // always "just changed" for tests
 
         override suspend fun createUser(email: String, name: String, role: AdminRole, passwordHash: String): AdminUserRow {
             val now = java.time.Instant.now().toEpochMilli()
@@ -262,7 +272,7 @@ class AdminAuthServiceExtendedTest {
     fun `login succeeds with correct email and password`() { runBlocking {
         val repo = FakeAdminUserRepo()
         repo.addTestUser()
-        val service = AdminAuthService(testConfig(), noOpAudit, repo)
+        val service = AdminAuthService(testConfig(), noOpAudit, repo, noOpEmailService)
 
         val result = service.login("admin@test.local", TEST_PASSWORD, "127.0.0.1", "TestAgent")
 
@@ -276,7 +286,7 @@ class AdminAuthServiceExtendedTest {
     fun `login returns InvalidCredentials for wrong password`() { runBlocking {
         val repo = FakeAdminUserRepo()
         repo.addTestUser()
-        val service = AdminAuthService(testConfig(), noOpAudit, repo)
+        val service = AdminAuthService(testConfig(), noOpAudit, repo, noOpEmailService)
 
         val result = service.login("admin@test.local", "wrong-password", null, null)
 
@@ -286,7 +296,7 @@ class AdminAuthServiceExtendedTest {
     @Test
     fun `login returns InvalidCredentials for non-existent email`() { runBlocking {
         val repo = FakeAdminUserRepo()
-        val service = AdminAuthService(testConfig(), noOpAudit, repo)
+        val service = AdminAuthService(testConfig(), noOpAudit, repo, noOpEmailService)
 
         val result = service.login("nobody@test.local", TEST_PASSWORD, null, null)
 
@@ -297,7 +307,7 @@ class AdminAuthServiceExtendedTest {
     fun `login returns AccountInactive for disabled user`() { runBlocking {
         val repo = FakeAdminUserRepo()
         repo.addTestUser(isActive = false)
-        val service = AdminAuthService(testConfig(), noOpAudit, repo)
+        val service = AdminAuthService(testConfig(), noOpAudit, repo, noOpEmailService)
 
         val result = service.login("admin@test.local", TEST_PASSWORD, null, null)
 
@@ -310,7 +320,7 @@ class AdminAuthServiceExtendedTest {
     fun `account locks after 5 failed attempts`() { runBlocking {
         val repo = FakeAdminUserRepo()
         repo.addTestUser()
-        val service = AdminAuthService(testConfig(), noOpAudit, repo)
+        val service = AdminAuthService(testConfig(), noOpAudit, repo, noOpEmailService)
 
         // Fail 5 times
         repeat(5) {
@@ -326,7 +336,7 @@ class AdminAuthServiceExtendedTest {
     fun `successful login resets failed attempt counter`() { runBlocking {
         val repo = FakeAdminUserRepo()
         val user = repo.addTestUser()
-        val service = AdminAuthService(testConfig(), noOpAudit, repo)
+        val service = AdminAuthService(testConfig(), noOpAudit, repo, noOpEmailService)
 
         // Fail 3 times (below lockout threshold)
         repeat(3) {
@@ -347,7 +357,7 @@ class AdminAuthServiceExtendedTest {
     fun `login returns MfaRequired when MFA is enabled`() { runBlocking {
         val repo = FakeAdminUserRepo()
         repo.addTestUser(mfaEnabled = true)
-        val service = AdminAuthService(testConfig(), noOpAudit, repo)
+        val service = AdminAuthService(testConfig(), noOpAudit, repo, noOpEmailService)
 
         val result = service.login("admin@test.local", TEST_PASSWORD, null, null)
 
@@ -359,7 +369,7 @@ class AdminAuthServiceExtendedTest {
     fun `completeMfaLogin issues full tokens from valid pending token`() { runBlocking {
         val repo = FakeAdminUserRepo()
         repo.addTestUser(mfaEnabled = true)
-        val service = AdminAuthService(testConfig(), noOpAudit, repo)
+        val service = AdminAuthService(testConfig(), noOpAudit, repo, noOpEmailService)
 
         val loginResult = service.login("admin@test.local", TEST_PASSWORD, null, null)
         assertIs<AdminAuthResult.MfaRequired>(loginResult)
@@ -374,7 +384,7 @@ class AdminAuthServiceExtendedTest {
     fun `completeMfaLogin returns null for invalid pending token`() { runBlocking {
         val repo = FakeAdminUserRepo()
         repo.addTestUser(mfaEnabled = true)
-        val service = AdminAuthService(testConfig(), noOpAudit, repo)
+        val service = AdminAuthService(testConfig(), noOpAudit, repo, noOpEmailService)
 
         val result = service.completeMfaLogin("invalid-token", null, null)
         assertNull(result)
@@ -386,7 +396,7 @@ class AdminAuthServiceExtendedTest {
     fun `generatePasswordResetToken returns token for existing user`() { runBlocking {
         val repo = FakeAdminUserRepo()
         repo.addTestUser()
-        val service = AdminAuthService(testConfig(), noOpAudit, repo)
+        val service = AdminAuthService(testConfig(), noOpAudit, repo, noOpEmailService)
 
         val token = service.generatePasswordResetToken("admin@test.local")
         assertNotNull(token)
@@ -396,7 +406,7 @@ class AdminAuthServiceExtendedTest {
     @Test
     fun `generatePasswordResetToken returns null for non-existent email`() { runBlocking {
         val repo = FakeAdminUserRepo()
-        val service = AdminAuthService(testConfig(), noOpAudit, repo)
+        val service = AdminAuthService(testConfig(), noOpAudit, repo, noOpEmailService)
 
         val token = service.generatePasswordResetToken("nobody@test.local")
         assertNull(token)
@@ -406,7 +416,7 @@ class AdminAuthServiceExtendedTest {
     fun `resetPassword succeeds with valid token`() { runBlocking {
         val repo = FakeAdminUserRepo()
         repo.addTestUser()
-        val service = AdminAuthService(testConfig(), noOpAudit, repo)
+        val service = AdminAuthService(testConfig(), noOpAudit, repo, noOpEmailService)
 
         val token = service.generatePasswordResetToken("admin@test.local")!!
         val result = service.resetPassword(token, "NewP@ssw0rd!")
@@ -417,7 +427,7 @@ class AdminAuthServiceExtendedTest {
     fun `resetPassword fails with invalid token`() { runBlocking {
         val repo = FakeAdminUserRepo()
         repo.addTestUser()
-        val service = AdminAuthService(testConfig(), noOpAudit, repo)
+        val service = AdminAuthService(testConfig(), noOpAudit, repo, noOpEmailService)
 
         val result = service.resetPassword("invalid-token", "NewP@ssw0rd!")
         assertTrue(!result)
@@ -427,7 +437,7 @@ class AdminAuthServiceExtendedTest {
     fun `resetPassword revokes all active sessions`() { runBlocking {
         val repo = FakeAdminUserRepo()
         val user = repo.addTestUser()
-        val service = AdminAuthService(testConfig(), noOpAudit, repo)
+        val service = AdminAuthService(testConfig(), noOpAudit, repo, noOpEmailService)
 
         // Login to create a session
         service.login("admin@test.local", TEST_PASSWORD, "127.0.0.1", "TestAgent")
@@ -447,7 +457,7 @@ class AdminAuthServiceExtendedTest {
     fun `revokeAllSessions marks all sessions as revoked`() { runBlocking {
         val repo = FakeAdminUserRepo()
         val user = repo.addTestUser()
-        val service = AdminAuthService(testConfig(), noOpAudit, repo)
+        val service = AdminAuthService(testConfig(), noOpAudit, repo, noOpEmailService)
 
         // Login twice to create sessions
         service.login("admin@test.local", TEST_PASSWORD, "127.0.0.1", "Agent1")
@@ -463,7 +473,7 @@ class AdminAuthServiceExtendedTest {
     @Test
     fun `bootstrap creates first admin user`() { runBlocking {
         val repo = FakeAdminUserRepo()
-        val service = AdminAuthService(testConfig(), noOpAudit, repo)
+        val service = AdminAuthService(testConfig(), noOpAudit, repo, noOpEmailService)
 
         assertTrue(service.needsBootstrap())
 
@@ -479,7 +489,7 @@ class AdminAuthServiceExtendedTest {
     fun `bootstrap returns null when admin already exists`() { runBlocking {
         val repo = FakeAdminUserRepo()
         repo.addTestUser()
-        val service = AdminAuthService(testConfig(), noOpAudit, repo)
+        val service = AdminAuthService(testConfig(), noOpAudit, repo, noOpEmailService)
 
         val result = service.bootstrap("another@admin.com", "Another", TEST_PASSWORD)
         assertNull(result)
@@ -491,7 +501,7 @@ class AdminAuthServiceExtendedTest {
     fun `login rejects password longer than MAX_PASSWORD_LENGTH`() { runBlocking {
         val repo = FakeAdminUserRepo()
         repo.addTestUser()
-        val service = AdminAuthService(testConfig(), noOpAudit, repo)
+        val service = AdminAuthService(testConfig(), noOpAudit, repo, noOpEmailService)
 
         val longPassword = "a".repeat(AdminAuthService.MAX_PASSWORD_LENGTH + 1)
         val result = service.login("admin@test.local", longPassword, null, null)
@@ -505,7 +515,7 @@ class AdminAuthServiceExtendedTest {
     fun `login success produces JWT with correct claims`() { runBlocking {
         val repo = FakeAdminUserRepo()
         val user = repo.addTestUser(role = AdminRole.OPERATOR)
-        val service = AdminAuthService(testConfig(), noOpAudit, repo)
+        val service = AdminAuthService(testConfig(), noOpAudit, repo, noOpEmailService)
 
         val result = service.login("admin@test.local", TEST_PASSWORD, null, null) as AdminAuthResult.Success
 

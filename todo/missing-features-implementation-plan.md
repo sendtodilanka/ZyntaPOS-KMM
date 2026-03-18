@@ -294,13 +294,14 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 - [ ] Playwright E2E tests
 - [ ] VPS deployment via GitHub Actions
 
-### B2. Admin Panel Custom Auth (TODO-007f) — ~75%
+### B2. Admin Panel Custom Auth (TODO-007f) — ✅ ~95% Complete
 
-- [ ] Session management UI (view/revoke active sessions)
-- [ ] Security audit log page
-- [ ] IP allowlisting middleware
-- [ ] Login notification emails
-- [ ] Forced password rotation policy
+- [x] Session management UI (view/revoke active sessions) — `settings/profile.tsx`
+- [x] Security audit log page — `audit/index.tsx` with filters + CSV export
+- [x] IP allowlisting middleware — `IpAllowlistPlugin` via `ADMIN_IP_ALLOWLIST` env var
+- [x] Login notification emails — `sendLoginAlert()` in EmailService, triggered on new IP
+- [x] Forced password rotation policy — `ADMIN_PASSWORD_MAX_AGE_DAYS` env var + `password_changed_at` column (V26 migration)
+- [ ] Login notification from unknown device (user-agent fingerprint — deferred)
 
 ### B3. Monitoring — Uptime Kuma (TODO-007c) — ~70%
 

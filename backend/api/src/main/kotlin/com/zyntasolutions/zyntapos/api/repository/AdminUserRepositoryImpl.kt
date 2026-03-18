@@ -47,6 +47,18 @@ class AdminUserRepositoryImpl : AdminUserRepository {
             .single()[AdminUsers.failedAttempts]
     }
 
+    override suspend fun getLastLoginIp(id: UUID): String? = newSuspendedTransaction {
+        AdminUsers.selectAll()
+            .where { AdminUsers.id eq id }
+            .singleOrNull()?.get(AdminUsers.lastLoginIp)
+    }
+
+    override suspend fun getPasswordChangedAt(id: UUID): Long? = newSuspendedTransaction {
+        AdminUsers.selectAll()
+            .where { AdminUsers.id eq id }
+            .singleOrNull()?.get(AdminUsers.passwordChangedAt)
+    }
+
     // ── Mutations ───────────────────────────────────────────────────────────
 
     override suspend fun createUser(email: String, name: String, role: AdminRole, passwordHash: String): AdminUserRow =
@@ -91,6 +103,7 @@ class AdminUserRepositoryImpl : AdminUserRepository {
         newSuspendedTransaction {
             AdminUsers.update({ AdminUsers.id eq id }) {
                 it[AdminUsers.passwordHash] = passwordHash
+                it[AdminUsers.passwordChangedAt] = java.time.Instant.now().toEpochMilli()
             }
         }
     }
