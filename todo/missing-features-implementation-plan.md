@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-18
+**Last Updated:** 2026-03-18 (README audit pass)
 **Status:** Approved — Verified against codebase 2026-03-18
 
 ---
@@ -209,8 +209,8 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 - Feature flag `remote_diagnostic` (disabled, PROFESSIONAL/ENTERPRISE editions)
 - `DiagnosticRelay.kt` + `DiagnosticWebSocketRoutes.kt` in sync service (scaffold)
 
-**What's MISSING (entire module):**
-- [ ] `:composeApp:feature:diagnostic` module — not in `settings.gradle.kts`
+**What's MISSING (partially scaffolded):**
+- [x] `:composeApp:feature:diagnostic` module — **IS registered in `settings.gradle.kts`** (2026-03-18 audit)
 - [ ] `DiagnosticSession` domain model in `:shared:domain/model/`
 - [ ] `DiagnosticRepository` interface + impl
 - [ ] `DiagnosticTokenValidator` in `:shared:security`
@@ -1098,11 +1098,22 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 **Priority:** PHASE-3
 **Module:** `:composeApp:feature:accounting`
 
-**EXISTS:** `EInvoiceRepositoryImpl.kt` (scaffold), `e_invoices` SQLDelight table, IRD secret placeholders
+> **2026-03-18 audit:** `:composeApp:feature:accounting` is **fully implemented** (10+ source files) —
+> not just a scaffold. ViewModels, Screens, and GL infrastructure all exist.
+> IRD *submission pipeline* (network call, signing, retry) remains the missing piece.
 
-**MISSING:**
-- [ ] IRD API client, digital signature (.p12), XML/JSON generation
-- [ ] Submission pipeline with retry, status tracking (SUBMITTED → ACCEPTED → REJECTED)
+**EXISTS (fully implemented):**
+- `EInvoiceViewModel.kt`, `EInvoiceListScreen.kt`, `EInvoiceState.kt`
+- `ChartOfAccountsViewModel.kt`, `ChartOfAccountsScreen.kt`
+- `JournalEntryListViewModel.kt`, `JournalEntryDetailScreen.kt`
+- `GeneralLedgerScreen.kt` + supporting screens
+- `e_invoices` SQLDelight table, `EInvoiceRepositoryImpl.kt`
+- IRD secret placeholders in `local.properties.template`
+
+**MISSING (submission pipeline only):**
+- [ ] IRD API HTTP client (mTLS with `.p12` certificate)
+- [ ] XML/JSON invoice payload generation per IRD schema
+- [ ] Submission pipeline with retry + status tracking (SUBMITTED → ACCEPTED → REJECTED)
 - [ ] Tax calculation alignment with IRD rules
 
 ---
@@ -1141,10 +1152,19 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 
 **Priority:** PHASE-2
 
-**MISSING:**
-- [ ] `CashDrawerPort` interface in `:shared:hal`
-- [ ] Android USB + JVM serial implementations
-- [ ] ESC/POS kick command, auto-open on payment
+> **2026-03-18 audit:** `CashDrawerTrigger` enum (`ALL_PAYMENTS` / `CASH_ONLY` / `NEVER`) IS implemented
+> in `:shared:hal` and integrated into `EscPosReceiptBuilder` via `PrinterConfig.cashDrawerTrigger`.
+> The full hardware-controller class (`CashDrawerPort` + `actual` platform drivers) is still missing.
+
+**IMPLEMENTED:**
+- [x] `CashDrawerTrigger` enum — controls when drawer kick is sent (ALL_PAYMENTS / CASH_ONLY / NEVER)
+- [x] ESC/POS kick command wired through `EscPosReceiptBuilder` respecting `PrinterConfig.cashDrawerTrigger`
+
+**STILL MISSING:**
+- [ ] Dedicated `CashDrawerPort` interface in `:shared:hal` (separate from printer path)
+- [ ] Android USB implementation
+- [ ] JVM serial (jSerialComm) implementation
+- [ ] Independent open/close without printing (manual drawer button in register UI)
 
 ---
 
@@ -1172,7 +1192,7 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 
 ## SECTION G: UI/UX GAP AUDIT (Comprehensive — All Feature Modules)
 
-> 2026-03-18 දින codebase scan කරලා features 16ක්, design system, navigation,
+> 2026-03-18 දින codebase scan කරලා features 17ක් (accounting module audit confirm කෙරිණි), design system, navigation,
 > onboarding සහ admin panel සියල්ල audit කර ඇත. එක් එක් screen එකේ
 > MVI compliance, responsive design, error/loading/empty states, accessibility,
 > සහ multi-store readiness check කර ඇත.
