@@ -122,6 +122,17 @@ dependencies {
     detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.8")
 }
 
+// ── Kover Coverage — B4: Enforce minimum test coverage ─────────────────────
+kover {
+    reports {
+        verify {
+            rule {
+                minBound(60)
+            }
+        }
+    }
+}
+
 tasks.shadowJar {
     archiveBaseName.set("zyntapos-sync")
     archiveVersion.set("")
