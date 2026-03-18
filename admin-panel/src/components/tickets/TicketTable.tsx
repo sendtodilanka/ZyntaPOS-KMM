@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { AlertTriangle, Clock, Download, UserPlus, CheckCircle2 } from 'lucide-react';
 import { DataTable, type Column } from '@/components/shared/DataTable';
@@ -59,7 +59,7 @@ export function TicketTable({ data, isLoading, page, totalPages, total, onPageCh
   const { formatRelative } = useTimezone();
   const { hasPermission } = useAuth();
   const [now, setNow] = useState(Date.now);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selectedMap, setSelectedMap] = useState<Record<string, boolean>>({});
   const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
   const [bulkResolveOpen, setBulkResolveOpen] = useState(false);
 
@@ -68,27 +68,28 @@ export function TicketTable({ data, isLoading, page, totalPages, total, onPageCh
     return () => clearInterval(id);
   }, []);
 
-  // Clear selection on page/data change — using ref to avoid effect setState
-  const prevPageRef = React.useRef(page);
-  const prevDataRef = React.useRef(data);
-  if (prevPageRef.current !== page || prevDataRef.current !== data) {
-    prevPageRef.current = page;
-    prevDataRef.current = data;
-    if (selected.size > 0) setSelected(new Set());
-  }
+  // Derive valid selection from current data IDs — automatically clears on page/data change
+  const dataIds = useMemo(() => new Set(data.map((t) => t.id)), [data]);
+  const selected = useMemo(() => {
+    const valid = new Set<string>();
+    for (const id of Object.keys(selectedMap)) {
+      if (selectedMap[id] && dataIds.has(id)) valid.add(id);
+    }
+    return valid;
+  }, [selectedMap, dataIds]);
 
   const toggleSelect = (id: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+    setSelectedMap((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   const toggleAll = () => {
-    if (selected.size === data.length) setSelected(new Set());
-    else setSelected(new Set(data.map((t) => t.id)));
+    if (selected.size === data.length) {
+      setSelectedMap({});
+    } else {
+      const next: Record<string, boolean> = {};
+      for (const t of data) next[t.id] = true;
+      setSelectedMap(next);
+    }
   };
 
   const selectedIds = Array.from(selected);
@@ -231,8 +232,8 @@ export function TicketTable({ data, isLoading, page, totalPages, total, onPageCh
         emptyDescription="No support tickets match your current filters."
       />
 
-      <BulkAssignModal ticketIds={selectedIds} open={bulkAssignOpen} onClose={() => { setBulkAssignOpen(false); setSelected(new Set()); }} />
-      <BulkResolveModal ticketIds={selectedIds} open={bulkResolveOpen} onClose={() => { setBulkResolveOpen(false); setSelected(new Set()); }} />
+      <BulkAssignModal ticketIds={selectedIds} open={bulkAssignOpen} onClose={() => { setBulkAssignOpen(false); setSelectedMap({}); }} />
+      <BulkResolveModal ticketIds={selectedIds} open={bulkResolveOpen} onClose={() => { setBulkResolveOpen(false); setSelectedMap({}); }} />
     </div>
   );
 }
