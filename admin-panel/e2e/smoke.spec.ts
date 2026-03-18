@@ -191,7 +191,7 @@ test.describe('Route headings', () => {
       await page.goto(path);
       await page.waitForLoadState('networkidle');
       await page.locator('main').first().waitFor({ state: 'visible', timeout: 15_000 });
-      await expect(page.getByRole('heading', { name: heading })).toBeVisible({ timeout: 15_000 });
+      await expect(page.getByRole('heading', { name: heading }).first()).toBeVisible({ timeout: 15_000 });
     });
   }
 });
