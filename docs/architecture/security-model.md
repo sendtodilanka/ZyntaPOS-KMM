@@ -1,7 +1,7 @@
 # Security Model — ZyntaPOS
 
 **Status:** Phase 1 implementation documented. Known gaps explicitly called out.
-**Last updated:** 2026-02-25
+**Last updated:** 2026-03-18
 **Sources:** `shared/security/src/commonMain/`, `androidMain/`, `jvmMain/`, `composeApp/feature/auth/session/`
 
 ---
@@ -261,9 +261,10 @@ Sensitive configuration is injected via the Gradle Secrets Plugin at build time:
 `SecurityAuditLogger` records security-relevant events (`LOGIN_ATTEMPT`, `LOGOUT`,
 `PERMISSION_DENIED`, `ORDER_VOID`, `STOCK_ADJUSTMENT`, etc.) as `AuditEntry` domain objects.
 
-**Known gap:** `AuditRepositoryImpl` has 3 `TODO` stubs — `insert()`, `observeAll()`, and
-`observeByUserId()` — all blocked on the `audit_log` SQLDelight schema generation (tracked as
-MERGED-D2). Audit entries are currently lost on app restart and are not persisted to the database.
+`SecurityAuditLogger` records security-relevant events as `AuditEntry` domain objects.
+`AuditRepositoryImpl` is fully implemented — `insert()`, `observeAll()`, and `observeByUserId()`
+all have complete SQLDelight-backed implementations. Audit entries are persisted to the local
+`audit_log` SQLite table and synced to the server via `audit_entries` (V14 migration).
 
 ---
 
@@ -271,9 +272,7 @@ MERGED-D2). Audit entries are currently lost on app restart and are not persiste
 
 | Gap | Severity | Status |
 |-----|----------|--------|
-| `AuditRepositoryImpl.insert()` is a `TODO` — audit entries not persisted | High | MERGED-D2 pending |
-| `AuditRepositoryImpl.observeAll()` is a `TODO` — audit log viewer returns no data | High | MERGED-D2 pending |
-| `CashDrawerController` HAL interface not implemented — no drawer open audit events | Medium | Phase 2 backlog |
+| Cash drawer audit event not emitted — `PrinterManager.openCashDrawer()` exists (full HAL stack implemented) but POS payment flow does not yet call it; drawer open events are not logged | Medium | Phase 2 backlog — wire call-site in POS payment use case |
 | JWT signature not verified client-side | By design | Server validates on every call |
 | Desktop PKCS12 password is machine-fingerprint (deterministic) | Accepted risk | Desktop deployment assumes physical security |
 | PIN is SHA-256, not bcrypt | Accepted risk | Application-level lockout (5 attempts) mitigates |

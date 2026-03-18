@@ -3,7 +3,7 @@
 > **Audience:** Engineers and QA testers who need to run the full app **without** a live backend API,
 > Firebase, Sentry DSN, or IRD certificate.
 > **Scope:** Android (emulator/device) and Desktop JVM.
-> **Branch this guide was last updated on:** `claude/kmp-zynta-pos-setup-QVcJ9`
+> **Last updated:** 2026-03-18
 
 ---
 
@@ -28,7 +28,7 @@
 
 | Requirement | Minimum | Recommended |
 |-------------|---------|-------------|
-| JDK | 17 | 21 (Temurin) |
+| JDK | 21 | 21 (Temurin) |
 | IDE | IntelliJ IDEA 2024+ | Android Studio Meerkat+ |
 | Android SDK | API 24 (build tools 36) | API 36 |
 | Gradle | via wrapper only — `./gradlew` | — |
@@ -347,7 +347,7 @@ The Debug Console is compiled into all builds but its Koin bindings are only loa
 
 ## 7. Feature Testing Checklist
 
-After seeding, use this checklist to exercise all 16 feature modules manually.
+After seeding, use this checklist to exercise all 17 feature modules manually.
 
 ### Auth
 - [ ] Log in with ADMIN credentials created during Onboarding or via Seeds tab
@@ -453,8 +453,13 @@ After seeding, use this checklist to exercise all 16 feature modules manually.
 
 ### Accounting
 - [ ] Create an e-invoice for a completed order
-- [ ] Review submission status — verify it remains in "Pending" (IRD endpoint is stubbed)
+- [ ] Review submission status — verify it remains in "Pending" (IRD endpoint is stubbed in dev)
 - [ ] Verify no crash when attempting submission
+
+### Diagnostic
+- [ ] Open the Diagnostic screen (requires ADMIN or MANAGER role)
+- [ ] View active diagnostic sessions list
+- [ ] Verify no crash when requesting a remote session token
 
 ---
 
@@ -600,4 +605,4 @@ After seeding, use this checklist to exercise all 16 feature modules manually.
 
 ---
 
-*Last updated: 2026-02-26 · Branch: `claude/kmp-zynta-pos-setup-QVcJ9`*
+*Last updated: 2026-03-18*

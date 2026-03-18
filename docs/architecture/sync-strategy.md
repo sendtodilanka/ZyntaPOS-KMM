@@ -1,7 +1,7 @@
 # Sync Strategy — ZyntaPOS Offline-First Architecture
 
 **Status:** Phase 1 implementation documented. Phase 2 CRDT gaps explicitly called out.
-**Last updated:** 2026-03-14
+**Last updated:** 2026-03-18
 **Sources:** `shared/data/src/commonMain/kotlin/.../sync/SyncEngine.kt`, `SyncRepositoryImpl.kt`, `SyncEnqueuer.kt`, SQLDelight `.sq` files
 
 ---
@@ -122,48 +122,55 @@ a no-op.
 
 ---
 
-## 4. Delta Application — Phase 1 Stub (KNOWN GAP)
+## 4. Delta Application — Implemented
 
-**File:** `SyncEngine.kt`, method `applyDeltaOperations` (line 266)
+**File:** `SyncEngine.kt`, method `applyDeltaOperations`
+
+`applyDeltaOperations` is fully implemented. It dispatches each delta operation by `entityType`
+to the appropriate `RepositoryImpl.upsertFromSync()` or `.delete()`:
 
 ```kotlin
-private fun applyDeltaOperations(ops: List<SyncOperationDto>) {
+private suspend fun applyDeltaOperations(ops: List<SyncOperationDto>) {
     for (op in ops) {
-        log.d("Applying delta: ${op.operation} on ${op.entityType}(${op.entityId})")
-        // TODO Sprint 7: route by entityType → appropriate RepositoryImpl.upsertFromSync(op.payload)
+        when (op.operation) {
+            "DELETE" -> when (op.entityType) {
+                PRODUCT  -> productRepository.delete(op.entityId)
+                ORDER    -> orderRepository.void(op.entityId, "server-sync")
+                CUSTOMER -> customerRepository.delete(op.entityId)
+                CATEGORY -> categoryRepository.delete(op.entityId)
+                else     -> log.w("Unhandled DELETE for entityType: ${op.entityType}")
+            }
+            else -> when (op.entityType) { // "CREATE" | "UPDATE" — server snapshot wins
+                PRODUCT          -> productRepository.upsertFromSync(op.payload)
+                ORDER            -> orderRepository.upsertFromSync(op.payload)
+                CUSTOMER         -> customerRepository.upsertFromSync(op.payload)
+                CATEGORY         -> categoryRepository.upsertFromSync(op.payload)
+                SUPPLIER         -> supplierRepository.upsertFromSync(op.payload)
+                STOCK_ADJUSTMENT -> stockRepository.upsertFromSync(op.payload)
+                USER             -> { /* read-only from device — managed via auth */ }
+                else             -> log.w("Unknown entityType for delta op: ${op.entityType}")
+            }
+        }
     }
 }
 ```
 
-**Current behaviour:** Delta operations from the server are received and logged but are NOT
-applied to the local database. The dispatcher that routes by `entityType` to the correct
-`RepositoryImpl.upsertFromSync()` is a Sprint 7 TODO.
-
-**Impact:** Pull sync is effectively a no-op in Phase 1. Devices will not receive server-side
-changes (e.g., product catalog updates from a back-office system) until Sprint 7 is implemented.
+**Note:** Unknown entity types are logged as warnings and skipped; they do not cause the sync cycle to fail.
 
 ---
 
-## 5. Network Layer Stub in SyncRepositoryImpl (KNOWN GAP)
+## 5. Network Layer — SyncRepositoryImpl
 
-**File:** `SyncRepositoryImpl.kt`, lines 155–171
+**File:** `SyncRepositoryImpl.kt`
 
-```kotlin
-override suspend fun pushToServer(ops: List<SyncOperation>): Result<Unit> {
-    // TODO(Sprint6-Step3.4): wire Ktor ApiService here
-    return if (ops.isEmpty()) Result.Success(Unit)
-    else markSynced(ops.map { it.id })
-}
+`SyncRepositoryImpl` is fully implemented. `pushToServer` calls `ApiService.pushOperations(dtos)`
+(POST `/api/v1/sync/push`) and handles accepted/rejected acknowledgements. `pullFromServer` calls
+`ApiService.pullOperations(lastSyncTimestamp)` (GET `/api/v1/sync/pull`) and maps returned delta
+operations to local `SyncOperation` domain objects. Errors are caught and wrapped in `Result.Error`
+with structured logging.
 
-override suspend fun pullFromServer(lastSyncTimestamp: Long): Result<List<SyncOperation>> =
-    Result.Success(emptyList())
-```
-
-`SyncRepositoryImpl` is a Phase 1 stub that marks operations as locally SYNCED without making
-any HTTP call. The actual Ktor `ApiService` wiring is planned for Sprint 6, Step 3.4.
-
-**Note:** `SyncEngine` does call `ApiService` directly (bypassing `SyncRepositoryImpl`). The
-`SyncRepositoryImpl` stub is retained for the `SyncRepository` interface contract tests.
+`SyncEngine` calls `ApiService` directly for performance; `SyncRepositoryImpl` implements the
+`SyncRepository` interface and is used in integration/contract tests.
 
 ---
 
@@ -257,9 +264,7 @@ The backend `api` service handles the server side of the outbox push/pull protoc
 
 | Gap | Ticket | Phase |
 |-----|--------|-------|
-| `applyDeltaOperations` dispatcher (route by `entityType` → `RepositoryImpl`) | Sprint 7 | Phase 1 |
-| Ktor `ApiService` wiring in `SyncRepositoryImpl` | Sprint 6 Step 3.4 | Phase 1 |
 | `ConflictResolver` implementation | CRDT backlog | Phase 2 |
 | Version vector increment on every write | CRDT backlog | Phase 2 |
 | Conflict log population | CRDT backlog | Phase 2 |
-| `CashDrawerController` HAL interface | Phase 2 backlog | Phase 2 |
+| Cash drawer open event not emitted after payment — `PrinterManager.openCashDrawer()` exists but POS payment flow does not call it | Phase 2 backlog | Phase 2 |
