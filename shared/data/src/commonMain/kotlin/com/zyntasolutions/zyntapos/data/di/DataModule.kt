@@ -22,6 +22,7 @@ import com.zyntasolutions.zyntapos.data.repository.LoyaltyRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.NotificationRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.OrderRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.ProductRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.ProductVariantRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.RegisterRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.SettingsRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.StockRepositoryImpl
@@ -78,6 +79,7 @@ import com.zyntasolutions.zyntapos.domain.repository.LoyaltyRepository
 import com.zyntasolutions.zyntapos.domain.repository.NotificationRepository
 import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
 import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
+import com.zyntasolutions.zyntapos.domain.repository.ProductVariantRepository
 import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
 import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.domain.repository.StockRepository
@@ -199,6 +201,9 @@ val dataModule = module {
     single<ProductRepository> { ProductRepositoryImpl(db = get(), syncEnqueuer = get()) }
     // Concrete binding for SyncEngine delta routing
     single { get<ProductRepository>() as ProductRepositoryImpl }
+
+    // Product variants: size, colour, per-SKU variations
+    single<ProductVariantRepository> { ProductVariantRepositoryImpl(db = get(), syncEnqueuer = get()) }
 
     // Category tree (recursive CTE)
     single<CategoryRepository> { CategoryRepositoryImpl(db = get(), syncEnqueuer = get()) }

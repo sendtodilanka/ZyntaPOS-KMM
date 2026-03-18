@@ -68,6 +68,10 @@ data class InventoryState(
     val bulkImportState: BulkImportState = BulkImportState(),
     val barcodeGeneratorTarget: Product? = null,
 
+    // ── Barcode Scanner ──────────────────────────────────────────────────
+    /** True while the HAL barcode scanner is actively listening. */
+    val isScannerActive: Boolean = false,
+
     // ── Global ────────────────────────────────────────────────────────────
     val isLoading: Boolean = false,
     val error: String? = null,

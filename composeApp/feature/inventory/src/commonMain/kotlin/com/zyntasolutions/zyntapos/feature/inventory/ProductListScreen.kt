@@ -93,7 +93,14 @@ fun ProductListScreen(
                 query = state.searchQuery,
                 onQueryChange = { onIntent(InventoryIntent.SearchQueryChanged(it)) },
                 onClear = { onIntent(InventoryIntent.SearchQueryChanged("")) },
-                onScanToggle = { /* Scanner toggle — handled by HAL */ },
+                onScanToggle = {
+                    if (state.isScannerActive) {
+                        onIntent(InventoryIntent.StopBarcodeScanner)
+                    } else {
+                        onIntent(InventoryIntent.StartBarcodeScanner)
+                    }
+                },
+                isScanActive = state.isScannerActive,
                 placeholder = "Search products by name, barcode, SKU…",
             )
 

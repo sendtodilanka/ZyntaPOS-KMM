@@ -41,10 +41,14 @@ import com.zyntasolutions.zyntapos.domain.model.TaxGroup
 import com.zyntasolutions.zyntapos.domain.model.UnitOfMeasure
 import com.zyntasolutions.zyntapos.domain.model.User
 import com.zyntasolutions.zyntapos.domain.model.Supplier
+import com.zyntasolutions.zyntapos.domain.model.ProductVariant
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
+import com.zyntasolutions.zyntapos.domain.repository.ProductVariantRepository
 import com.zyntasolutions.zyntapos.domain.repository.SupplierRepository
 import com.zyntasolutions.zyntapos.domain.repository.TaxGroupRepository
 import com.zyntasolutions.zyntapos.domain.repository.UnitGroupRepository
+import com.zyntasolutions.zyntapos.hal.scanner.BarcodeScanner
+import com.zyntasolutions.zyntapos.hal.scanner.ScanResult
 import kotlinx.coroutines.flow.flowOf
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -260,6 +264,23 @@ class InventoryViewModelTest {
             }
     }
 
+    private val fakeVariantRepository = object : ProductVariantRepository {
+        override fun getByProductId(productId: String): Flow<List<ProductVariant>> = flowOf(emptyList())
+        override suspend fun getById(id: String): Result<ProductVariant> = Result.Error(DatabaseException("Not found"))
+        override suspend fun getByBarcode(barcode: String): Result<ProductVariant> = Result.Error(DatabaseException("Not found"))
+        override suspend fun insert(variant: ProductVariant): Result<Unit> = Result.Success(Unit)
+        override suspend fun update(variant: ProductVariant): Result<Unit> = Result.Success(Unit)
+        override suspend fun delete(id: String): Result<Unit> = Result.Success(Unit)
+        override suspend fun deleteByProductId(productId: String): Result<Unit> = Result.Success(Unit)
+        override suspend fun replaceAll(productId: String, variants: List<ProductVariant>): Result<Unit> = Result.Success(Unit)
+    }
+
+    private val fakeBarcodeScanner = object : BarcodeScanner {
+        override val scanEvents: Flow<ScanResult> = flowOf()
+        override suspend fun startListening(): kotlin.Result<Unit> = kotlin.Result.success(Unit)
+        override suspend fun stopListening() {}
+    }
+
     // ── Use cases wired to fakes ──────────────────────────────────────────────
 
     private val searchProductsUseCase = SearchProductsUseCase(fakeProductRepository)
@@ -283,6 +304,8 @@ class InventoryViewModelTest {
             productRepository = fakeProductRepository,
             categoryRepository = fakeCategoryRepository,
             supplierRepository = fakeSupplierRepository,
+            variantRepository = fakeVariantRepository,
+            barcodeScanner = fakeBarcodeScanner,
             _searchProductsUseCase = searchProductsUseCase,
             createProductUseCase = createProductUseCase,
             updateProductUseCase = updateProductUseCase,
