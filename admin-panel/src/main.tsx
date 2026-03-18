@@ -1,11 +1,22 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import * as Sentry from '@sentry/react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { RouterProvider, createRouter } from '@tanstack/react-router';
 import { routeTree } from './routeTree.gen';
 import { queryClient } from './lib/query-client';
 import './globals.css';
+
+// Sentry error tracking — DSN injected via VITE_SENTRY_DSN env var.
+// No-ops gracefully when DSN is empty (local dev).
+Sentry.init({
+  dsn: import.meta.env.VITE_SENTRY_DSN || '',
+  environment: import.meta.env.MODE,
+  release: `zyntapos-admin@${import.meta.env.VITE_APP_VERSION || '1.0.0'}`,
+  tracesSampleRate: import.meta.env.PROD ? 0.1 : 0,
+  enabled: !!import.meta.env.VITE_SENTRY_DSN,
+});
 
 const router = createRouter({
   routeTree,

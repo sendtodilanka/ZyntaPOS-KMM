@@ -220,20 +220,30 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 
 ---
 
-### A5. Firebase Analytics & Sentry Integration (TODO-011) — ~40% Complete
+### A5. Firebase Analytics & Sentry Integration (TODO-011) — ✅ ~95% Complete
 
 **Priority:** P1-HIGH
 
-**What EXISTS:** Sentry DSN secrets configured, `GOOGLE_SERVICES_JSON` + `GA4_MEASUREMENT_ID` secrets exist
+**What EXISTS:** Full stack analytics and crash reporting wired end-to-end.
 
-**What's MISSING:**
-- [ ] Firebase Android SDK in `androidApp/build.gradle.kts`
-- [ ] `google-services.json` injection in CI
-- [ ] `FirebaseAnalytics` initialization in `ZyntaApplication.kt`
-- [ ] `AnalyticsTracker` interface in `:shared:core`
-- [ ] Screen view events in all feature modules
-- [ ] Sentry initialization in 3 backend services
-- [ ] Sentry error boundary in admin panel
+**Completed:**
+- [x] Firebase Android SDK in `androidApp/build.gradle.kts` (firebase-bom, analytics-ktx, crashlytics-ktx)
+- [x] `google-services.json` injection in CI (`_reusable-build-test.yml` step)
+- [x] `FirebaseAnalytics` initialization in `ZyntaApplication.kt` (line 83)
+- [x] `AnalyticsTracker` interface in `:shared:core` (4 methods + event/param constants)
+- [x] `AnalyticsService` expect/actual in `:shared:data` (Android: Firebase SDK, JVM: GA4 Measurement Protocol)
+- [x] Koin binding `AnalyticsTracker` in both `androidDataModule` and `desktopDataModule`
+- [x] Sentry initialization in Android app (`ZyntaApplication.kt` line 89)
+- [x] Sentry initialization in backend API service (`Application.kt`)
+- [x] Sentry initialization in backend License service (`Application.kt`)
+- [x] Sentry initialization in backend Sync service (`Application.kt`)
+- [x] Screen view events in Auth, POS, Dashboard, Inventory ViewModels
+- [x] Analytics events: login, sale_completed, cart_updated, payment_processed, stock_adjusted, product_searched
+- [x] Sentry `@sentry/react` SDK in admin panel with `Sentry.init()` in `main.tsx`
+- [x] ErrorBoundary reports errors to Sentry via `Sentry.captureException()`
+
+**Remaining (P3-LOW):**
+- [ ] Screen view events in remaining 12 feature ViewModels (register, reports, settings, etc.)
 
 ---
 
