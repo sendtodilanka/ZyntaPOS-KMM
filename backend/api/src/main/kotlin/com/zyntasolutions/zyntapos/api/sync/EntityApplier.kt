@@ -269,6 +269,88 @@ object Settings : Table("settings") {
     override val primaryKey = PrimaryKey(id)
 }
 
+// ── V24 normalized entity tables ──────────────────────────────────────────
+
+object Employees : Table("employees") {
+    val id          = text("id")
+    val storeId     = text("store_id")
+    val name        = text("name")
+    val email       = text("email").nullable()
+    val phone       = text("phone").nullable()
+    val role        = text("role")
+    val department  = text("department").nullable()
+    val hireDate    = long("hire_date").nullable()
+    val hourlyRate  = decimal("hourly_rate", 12, 4)
+    val notes       = text("notes").nullable()
+    val isActive    = bool("is_active")
+    val syncVersion = long("sync_version")
+    val createdAt   = timestampWithTimeZone("created_at").nullable()
+    val updatedAt   = timestampWithTimeZone("updated_at")
+    override val primaryKey = PrimaryKey(id)
+}
+
+object ExpenseCategories : Table("expense_categories") {
+    val id          = text("id")
+    val storeId     = text("store_id")
+    val name        = text("name")
+    val description = text("description").nullable()
+    val parentId    = text("parent_id").nullable()
+    val sortOrder   = integer("sort_order")
+    val isActive    = bool("is_active")
+    val syncVersion = long("sync_version")
+    val createdAt   = timestampWithTimeZone("created_at").nullable()
+    val updatedAt   = timestampWithTimeZone("updated_at")
+    override val primaryKey = PrimaryKey(id)
+}
+
+object CouponUsages : Table("coupon_usages") {
+    val id              = text("id")
+    val storeId         = text("store_id")
+    val couponId        = text("coupon_id")
+    val orderId         = text("order_id")
+    val customerId      = text("customer_id").nullable()
+    val discountAmount  = decimal("discount_amount", 12, 4)
+    val redeemedBy      = text("redeemed_by").nullable()
+    val isActive        = bool("is_active")
+    val syncVersion     = long("sync_version")
+    val createdAt       = timestampWithTimeZone("created_at").nullable()
+    override val primaryKey = PrimaryKey(id)
+}
+
+object Promotions : Table("promotions") {
+    val id              = text("id")
+    val storeId         = text("store_id")
+    val name            = text("name")
+    val description     = text("description").nullable()
+    val type            = text("type")
+    val value           = decimal("value", 12, 4)
+    val minimumPurchase = decimal("minimum_purchase", 12, 4)
+    val scope           = text("scope")
+    val scopeIds        = text("scope_ids").nullable()
+    val validFrom       = long("valid_from").nullable()
+    val validTo         = long("valid_to").nullable()
+    val priority        = integer("priority")
+    val isStackable     = bool("is_stackable")
+    val isActive        = bool("is_active")
+    val syncVersion     = long("sync_version")
+    val createdAt       = timestampWithTimeZone("created_at").nullable()
+    val updatedAt       = timestampWithTimeZone("updated_at")
+    override val primaryKey = PrimaryKey(id)
+}
+
+object CustomerGroups : Table("customer_groups") {
+    val id           = text("id")
+    val storeId      = text("store_id")
+    val name         = text("name")
+    val description  = text("description").nullable()
+    val discountRate = decimal("discount_rate", 6, 3)
+    val isActive     = bool("is_active")
+    val syncVersion  = long("sync_version")
+    val createdAt    = timestampWithTimeZone("created_at").nullable()
+    val updatedAt    = timestampWithTimeZone("updated_at")
+    override val primaryKey = PrimaryKey(id)
+}
+
 /**
  * Applies accepted sync operations to the normalized entity tables
  * so that server-side queries see up-to-date data.
@@ -310,6 +392,11 @@ class EntityApplier {
                 "COUPON"           -> applyCoupon(storeId, op)
                 "EXPENSE"          -> applyExpense(storeId, op)
                 "SETTINGS"         -> applySettings(storeId, op)
+                "EMPLOYEE"         -> applyEmployee(storeId, op)
+                "EXPENSE_CATEGORY" -> applyExpenseCategory(storeId, op)
+                "COUPON_USAGE"     -> applyCouponUsage(storeId, op)
+                "PROMOTION"        -> applyPromotion(storeId, op)
+                "CUSTOMER_GROUP"   -> applyCustomerGroup(storeId, op)
                 else -> { /* entity_snapshots trigger handles any remaining types */ }
             }
         } catch (e: Exception) {
@@ -786,6 +873,150 @@ class EntityApplier {
                 }
             }
             "DELETE" -> softDelete(Settings, Settings.id, Settings.isActive, Settings.syncVersion, Settings.updatedAt, op)
+        }
+    }
+
+    // ── Employee ──────────────────────────────────────────────────────────
+
+    private fun applyEmployee(storeId: String, op: SyncOperation) {
+        val payload = parsePayload(op) ?: return
+        when (op.operation) {
+            "INSERT", "CREATE", "UPDATE" -> {
+                val name = payload.str("name") ?: return
+                Employees.upsert(Employees.id) {
+                    it[Employees.id]          = op.entityId
+                    it[Employees.storeId]     = storeId
+                    it[Employees.name]        = name
+                    it[Employees.email]       = payload.str("email")
+                    it[Employees.phone]       = payload.str("phone")
+                    it[Employees.role]        = payload.str("role") ?: "STAFF"
+                    it[Employees.department]  = payload.str("department")
+                    it[Employees.hireDate]    = payload.str("hire_date")?.toLongOrNull()
+                    it[Employees.hourlyRate]  = payload.dbl("hourly_rate").toBigDecimal()
+                    it[Employees.notes]       = payload.str("notes")
+                    it[Employees.isActive]    = payload.bool("is_active")
+                    it[Employees.syncVersion] = op.createdAt
+                    it[Employees.updatedAt]   = OffsetDateTime.now(ZoneOffset.UTC)
+                }
+            }
+            "DELETE" -> softDelete(Employees, Employees.id, Employees.isActive, Employees.syncVersion, Employees.updatedAt, op)
+        }
+    }
+
+    // ── Expense Category ──────────────────────────────────────────────────
+
+    private fun applyExpenseCategory(storeId: String, op: SyncOperation) {
+        val payload = parsePayload(op) ?: return
+        when (op.operation) {
+            "INSERT", "CREATE", "UPDATE" -> {
+                val name = payload.str("name") ?: return
+                ExpenseCategories.upsert(ExpenseCategories.id) {
+                    it[ExpenseCategories.id]          = op.entityId
+                    it[ExpenseCategories.storeId]     = storeId
+                    it[ExpenseCategories.name]        = name
+                    it[ExpenseCategories.description] = payload.str("description")
+                    it[ExpenseCategories.parentId]    = payload.str("parent_id")
+                    it[ExpenseCategories.sortOrder]   = payload.int("sort_order")
+                    it[ExpenseCategories.isActive]    = payload.bool("is_active")
+                    it[ExpenseCategories.syncVersion] = op.createdAt
+                    it[ExpenseCategories.updatedAt]   = OffsetDateTime.now(ZoneOffset.UTC)
+                }
+            }
+            "DELETE" -> softDelete(ExpenseCategories, ExpenseCategories.id, ExpenseCategories.isActive, ExpenseCategories.syncVersion, ExpenseCategories.updatedAt, op)
+        }
+    }
+
+    // ── Coupon Usage ──────────────────────────────────────────────────────
+
+    private fun applyCouponUsage(storeId: String, op: SyncOperation) {
+        val payload = parsePayload(op) ?: return
+        when (op.operation) {
+            "INSERT", "CREATE" -> {
+                val couponId = payload.str("coupon_id") ?: return
+                val orderId = payload.str("order_id") ?: return
+                CouponUsages.insertIgnore {
+                    it[CouponUsages.id]             = op.entityId
+                    it[CouponUsages.storeId]        = storeId
+                    it[CouponUsages.couponId]       = couponId
+                    it[CouponUsages.orderId]        = orderId
+                    it[CouponUsages.customerId]     = payload.str("customer_id")
+                    it[CouponUsages.discountAmount] = payload.dbl("discount_amount").toBigDecimal()
+                    it[CouponUsages.redeemedBy]     = payload.str("redeemed_by")
+                    it[CouponUsages.isActive]       = payload.bool("is_active")
+                    it[CouponUsages.syncVersion]    = op.createdAt
+                }
+            }
+            "UPDATE" -> {
+                val couponId = payload.str("coupon_id") ?: return
+                val orderId = payload.str("order_id") ?: return
+                CouponUsages.upsert(CouponUsages.id) {
+                    it[CouponUsages.id]             = op.entityId
+                    it[CouponUsages.storeId]        = storeId
+                    it[CouponUsages.couponId]       = couponId
+                    it[CouponUsages.orderId]        = orderId
+                    it[CouponUsages.customerId]     = payload.str("customer_id")
+                    it[CouponUsages.discountAmount] = payload.dbl("discount_amount").toBigDecimal()
+                    it[CouponUsages.redeemedBy]     = payload.str("redeemed_by")
+                    it[CouponUsages.isActive]       = payload.bool("is_active")
+                    it[CouponUsages.syncVersion]    = op.createdAt
+                }
+            }
+            "DELETE" -> {
+                // Coupon usages are transaction records — hard delete
+                CouponUsages.deleteWhere { CouponUsages.id eq op.entityId }
+            }
+        }
+    }
+
+    // ── Promotion ─────────────────────────────────────────────────────────
+
+    private fun applyPromotion(storeId: String, op: SyncOperation) {
+        val payload = parsePayload(op) ?: return
+        when (op.operation) {
+            "INSERT", "CREATE", "UPDATE" -> {
+                val name = payload.str("name") ?: return
+                Promotions.upsert(Promotions.id) {
+                    it[Promotions.id]              = op.entityId
+                    it[Promotions.storeId]         = storeId
+                    it[Promotions.name]            = name
+                    it[Promotions.description]     = payload.str("description")
+                    it[Promotions.type]            = payload.str("type") ?: "PERCENTAGE"
+                    it[Promotions.value]           = payload.dbl("value").toBigDecimal()
+                    it[Promotions.minimumPurchase] = payload.dbl("minimum_purchase").toBigDecimal()
+                    it[Promotions.scope]           = payload.str("scope") ?: "CART"
+                    it[Promotions.scopeIds]        = payload.str("scope_ids")
+                    it[Promotions.validFrom]       = payload.str("valid_from")?.toLongOrNull()
+                    it[Promotions.validTo]         = payload.str("valid_to")?.toLongOrNull()
+                    it[Promotions.priority]        = payload.int("priority")
+                    it[Promotions.isStackable]     = payload.bool("is_stackable", default = false)
+                    it[Promotions.isActive]        = payload.bool("is_active")
+                    it[Promotions.syncVersion]     = op.createdAt
+                    it[Promotions.updatedAt]       = OffsetDateTime.now(ZoneOffset.UTC)
+                }
+            }
+            "DELETE" -> softDelete(Promotions, Promotions.id, Promotions.isActive, Promotions.syncVersion, Promotions.updatedAt, op)
+        }
+    }
+
+    // ── Customer Group ────────────────────────────────────────────────────
+
+    private fun applyCustomerGroup(storeId: String, op: SyncOperation) {
+        val payload = parsePayload(op) ?: return
+        when (op.operation) {
+            "INSERT", "CREATE", "UPDATE" -> {
+                val name = payload.str("name") ?: return
+                CustomerGroups.upsert(CustomerGroups.id) {
+                    it[CustomerGroups.id]           = op.entityId
+                    it[CustomerGroups.storeId]      = storeId
+                    it[CustomerGroups.name]         = name
+                    it[CustomerGroups.description]  = payload.str("description")
+                    it[CustomerGroups.discountRate] = payload.dbl("discount_rate").toBigDecimal()
+                    it[CustomerGroups.isActive]     = payload.bool("is_active")
+                    it[CustomerGroups.syncVersion]  = op.createdAt
+                    it[CustomerGroups.updatedAt]    = OffsetDateTime.now(ZoneOffset.UTC)
+                }
+            }
+            "DELETE" -> softDelete(CustomerGroups, CustomerGroups.id, CustomerGroups.isActive, CustomerGroups.syncVersion, CustomerGroups.updatedAt, op)
         }
     }
 
