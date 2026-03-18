@@ -3,11 +3,12 @@ import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle, CheckCircle2, Clock, Ticket } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { TicketStatusBadge, TicketPriorityBadge } from '@/components/tickets/TicketStatusBadge';
+import type { TicketStatus, TicketPriority } from '@/types/ticket';
 
 interface PublicTicketView {
   ticketNumber: string;
-  status: string;
-  priority: string;
+  status: TicketStatus;
+  priority: TicketPriority;
   title: string;
   category: string;
   slaBreached: boolean;

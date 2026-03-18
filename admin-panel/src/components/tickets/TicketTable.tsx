@@ -111,15 +111,7 @@ export function TicketTable({ data, isLoading, page, totalPages, total, onPageCh
   const columns: Column<Ticket>[] = [
     {
       key: 'select',
-      header: () => (
-        <input
-          type="checkbox"
-          checked={data.length > 0 && selected.size === data.length}
-          onChange={toggleAll}
-          className="rounded border-surface-border bg-surface-elevated"
-          aria-label="Select all"
-        />
-      ),
+      header: '',
       cell: (row) => (
         <input
           type="checkbox"

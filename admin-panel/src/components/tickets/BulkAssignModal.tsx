@@ -12,8 +12,8 @@ interface BulkAssignModalProps {
 export function BulkAssignModal({ ticketIds, open, onClose }: BulkAssignModalProps) {
   const [assigneeId, setAssigneeId] = useState('');
   const bulkAssign = useBulkAssignTickets();
-  const { data: users = [] } = useAdminUsers();
-  const operators = users.filter((u) => u.isActive && (u.role === 'ADMIN' || u.role === 'OPERATOR'));
+  const { data: usersPage } = useAdminUsers({ size: 100 });
+  const operators = (usersPage?.data ?? []).filter((u: { isActive: boolean; role: string }) => u.isActive && (u.role === 'ADMIN' || u.role === 'OPERATOR'));
 
   if (!open) return null;
 
@@ -47,7 +47,7 @@ export function BulkAssignModal({ ticketIds, open, onClose }: BulkAssignModalPro
               required
             >
               <option value="">Select operator…</option>
-              {operators.map((u) => (
+              {operators.map((u: { id: string; name: string; role: string }) => (
                 <option key={u.id} value={u.id}>
                   {u.name} ({u.role})
                 </option>
