@@ -183,6 +183,12 @@ export function TicketTable({ data, isLoading, page, totalPages, total, onPageCh
       {selected.size > 0 && (
         <div className="flex items-center gap-3 px-4 py-2.5 bg-brand-500/10 border border-brand-500/20 rounded-lg">
           <span className="text-sm text-brand-400 font-medium">{selected.size} selected</span>
+          <button
+            onClick={toggleAll}
+            className="text-xs text-slate-400 hover:text-slate-200 transition-colors"
+          >
+            {selected.size === data.length ? 'Deselect all' : 'Select all'}
+          </button>
           <div className="flex items-center gap-2 ml-auto">
             {canAssign && (
               <button
