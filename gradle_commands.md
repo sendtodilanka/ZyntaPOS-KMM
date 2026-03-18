@@ -1,7 +1,7 @@
 # ZyntaPOS — Gradle Command Reference
-> **Project Root:** `/Users/dilanka/Developer/StudioProjects/ZyntaPOS/`  
-> **Wrapper:** Always use `./gradlew` (never bare `gradle`) to ensure the correct Gradle version.  
-> **Last Updated:** 2026-02-22
+> **Project Root:** `ZyntaPOS-KMM/` (run all commands from repository root)
+> **Wrapper:** Always use `./gradlew` (never bare `gradle`) to ensure the correct Gradle version.
+> **Last Updated:** 2026-03-18
 
 ---
 
@@ -88,8 +88,10 @@
 ./gradlew :composeApp:designsystem:assemble
 ./gradlew :composeApp:navigation:assemble
 
-# Feature modules
+# Feature modules (17 total)
 ./gradlew :composeApp:feature:auth:assemble
+./gradlew :composeApp:feature:dashboard:assemble
+./gradlew :composeApp:feature:onboarding:assemble
 ./gradlew :composeApp:feature:pos:assemble
 ./gradlew :composeApp:feature:inventory:assemble
 ./gradlew :composeApp:feature:register:assemble
@@ -102,6 +104,8 @@
 ./gradlew :composeApp:feature:expenses:assemble
 ./gradlew :composeApp:feature:media:assemble
 ./gradlew :composeApp:feature:multistore:assemble
+./gradlew :composeApp:feature:accounting:assemble
+./gradlew :composeApp:feature:diagnostic:assemble
 ```
 
 ### Compile Only (faster — no packaging)
@@ -263,15 +267,27 @@
 
 # Multi-store
 ./gradlew :composeApp:feature:multistore:test
+
+# Accounting
+./gradlew :composeApp:feature:accounting:test
+
+# Dashboard
+./gradlew :composeApp:feature:dashboard:test
+
+# Onboarding
+./gradlew :composeApp:feature:onboarding:test
+
+# Diagnostic
+./gradlew :composeApp:feature:diagnostic:test
 ```
 
 ### Run a Single Test Class
 ```bash
 # Pattern: ./gradlew :<module>:test --tests "<fully.qualified.TestClass>"
 
-./gradlew :shared:domain:test --tests "com.zentapos.domain.usecase.CalculateOrderTotalsUseCaseTest"
-./gradlew :shared:data:jvmTest --tests "com.zentapos.data.repository.ProductRepositoryTest"
-./gradlew :composeApp:feature:pos:test --tests "com.zentapos.pos.viewmodel.PosViewModelTest"
+./gradlew :shared:domain:test --tests "com.zyntasolutions.zyntapos.domain.usecase.CalculateOrderTotalsUseCaseTest"
+./gradlew :shared:data:jvmTest --tests "com.zyntasolutions.zyntapos.data.repository.ProductRepositoryTest"
+./gradlew :composeApp:feature:pos:test --tests "com.zyntasolutions.zyntapos.feature.pos.viewmodel.PosViewModelTest"
 ```
 
 ### Run a Single Test Method
@@ -568,25 +584,32 @@ These are the recommended command sequences for CI/CD and pre-commit validation.
 | `:shared:core` | KMP Library | Constants, extensions, Result type, logging |
 | `:shared:domain` | KMP Library | Entities, use cases, repo interfaces |
 | `:shared:data` | KMP Library | SQLDelight, Ktor, repository impls |
-| `:shared:hal` | KMP Library | Hardware abstraction (printer, scanner) |
-| `:shared:security` | KMP Library | Encryption, JWT, key storage |
+| `:shared:hal` | KMP Library | Hardware abstraction (printer, scanner, image) |
+| `:shared:security` | KMP Library | Encryption, JWT, PIN hashing, RBAC |
+| `:shared:seed` | KMP Library | Debug-only seed data (debugImplementation) |
 | `:composeApp` | KMP App | Root app module (Android + Desktop) |
-| `:composeApp:core` | KMP Library | App-level core utilities |
-| `:composeApp:designsystem` | KMP Library | ZentaTheme, components, tokens |
-| `:composeApp:navigation` | KMP Library | NavGraph, type-safe routes |
+| `:composeApp:core` | KMP Library | BaseViewModel MVI base class |
+| `:composeApp:designsystem` | KMP Library | ZyntaTheme, Zynta* components, tokens |
+| `:composeApp:navigation` | KMP Library | NavGraph, type-safe routes, RBAC gating |
 | `:composeApp:feature:auth` | KMP Library | Login, session, PIN lock, RBAC |
+| `:composeApp:feature:dashboard` | KMP Library | Home KPI, charts, low-stock alerts |
+| `:composeApp:feature:onboarding` | KMP Library | First-run wizard |
 | `:composeApp:feature:pos` | KMP Library | POS screen, cart, barcode, payment |
 | `:composeApp:feature:inventory` | KMP Library | Product CRUD, categories, stock |
 | `:composeApp:feature:register` | KMP Library | Shift open/close, cash drawer |
 | `:composeApp:feature:reports` | KMP Library | Sales, stock, CSV/PDF export |
 | `:composeApp:feature:settings` | KMP Library | Store config, printer, tax, users |
-| `:composeApp:feature:customers` | KMP Library | Customer management |
+| `:composeApp:feature:customers` | KMP Library | Customer management, loyalty, GDPR |
 | `:composeApp:feature:staff` | KMP Library | Staff & role management |
-| `:composeApp:feature:admin` | KMP Library | Admin panel |
+| `:composeApp:feature:admin` | KMP Library | System health, audit log, DB maintenance |
 | `:composeApp:feature:coupons` | KMP Library | Coupon & discount engine |
 | `:composeApp:feature:expenses` | KMP Library | Expense tracking |
 | `:composeApp:feature:media` | KMP Library | Image/media management |
 | `:composeApp:feature:multistore` | KMP Library | Multi-store sync & switching |
+| `:composeApp:feature:accounting` | KMP Library | E-Invoice, GL, chart of accounts, IRD |
+| `:composeApp:feature:diagnostic` | KMP Library | Remote diagnostic session (scaffold) |
+| `:androidApp` | Android App | Android application shell (AGP 9.0+ required) |
+| `:tools:debug` | KMP Library | 6-tab in-app debug console |
 
 ---
 

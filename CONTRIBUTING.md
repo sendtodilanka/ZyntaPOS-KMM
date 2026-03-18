@@ -11,12 +11,14 @@ ZyntaPOS follows **Clean Architecture** with strict layer separation:
 
 ```
 composeApp/          ← UI shells (Android APK + Desktop JVM)
-  feature/           ← Feature modules (pos, inventory, auth, …)
+  feature/           ← Feature modules (pos, inventory, auth, accounting, …)
 shared/
   domain/            ← Pure business logic. No framework dependencies.
-  data/              ← Repositories, SQLDelight, network adapters.
-  core/              ← Cross-cutting utilities (logging, extensions).
-  hal/               ← Hardware Abstraction Layer (printer, scanner).
+  data/              ← Repositories, SQLDelight, Ktor network adapters, IRD API client.
+  core/              ← Cross-cutting utilities (logging, CurrencyUtils, extensions).
+  hal/               ← Hardware Abstraction Layer (printer, scanner, image).
+  security/          ← Encryption, Keystore, JWT, PIN hashing, RBAC engine.
+  seed/              ← Debug-only. Seed data for UI/UX testing. debugImplementation only.
 ```
 
 Dependencies flow **inward only**: `feature → domain ← data`.
@@ -100,10 +102,10 @@ sealed class ProductListIntent { data object LoadProducts : ProductListIntent() 
 
 | Layer | Coverage Target | Tool |
 |-------|----------------|------|
-| Use Cases | 95% | JUnit + Mockative |
-| Repositories | 80% | JUnit + Mockative |
-| ViewModels | 80% | Kotlin Test |
-| Compose UI | Critical flows | Compose UI Test |
+| Use Cases | 95% | Kotlin Test + Mockative 3 |
+| Repositories | 80% | Kotlin Test + Mockative 3 |
+| ViewModels | 80% | Kotlin Test + Turbine (Flow assertions) |
+| Compose UI | Critical flows | Compose UI Test (Phase 2) |
 
 ---
 
@@ -115,6 +117,12 @@ All significant architectural decisions are documented in `docs/adr/`.
 |-----|-------|--------|
 | [ADR-001](docs/adr/ADR-001-ViewModelBaseClass.md) | ViewModel Base Class Policy | ACCEPTED |
 | [ADR-002](docs/adr/ADR-002-DomainModelNaming.md) | Domain Model Naming Convention | ACCEPTED |
+| [ADR-003](docs/adr/ADR-003-SecurePreferences-Consolidation.md) | SecurePreferences Interface Consolidation | ACCEPTED |
+| [ADR-004](docs/adr/ADR-004-keystore-token-scaffold-removal.md) | Keystore/Token Scaffold Directory Removal | ACCEPTED |
+| [ADR-005](docs/adr/ADR-005-single-admin-account-management.md) | Single Admin Account Management | ACCEPTED |
+| [ADR-006](docs/adr/ADR-006-backend-docker-build-in-ci.md) | Backend Docker Images Built in CI — Not on VPS | ACCEPTED |
+| [ADR-007](docs/adr/ADR-007-database-per-service.md) | Database-Per-Service for Backend Microservices | ACCEPTED |
+| [ADR-008](docs/adr/ADR-008-RS256-Key-Distribution.md) | RS256 Public Key Distribution — Bundle Default + Cache | ACCEPTED |
 
 Before making a structural change (new module, new convention, tech adoption),
 create a new ADR in `docs/adr/ADR-NNN-ShortTitle.md` and get it reviewed.
@@ -134,4 +142,4 @@ refactor(data): rename ProductEntity mapper to align with ADR-002
 
 ---
 
-*Last updated: 2026-02-21*
+*Last updated: 2026-03-18*
