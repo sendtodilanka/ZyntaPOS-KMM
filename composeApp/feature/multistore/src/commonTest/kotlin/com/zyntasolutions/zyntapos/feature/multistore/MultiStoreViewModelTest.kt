@@ -29,9 +29,12 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import com.zyntasolutions.zyntapos.domain.model.Product
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
+import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
 import com.zyntasolutions.zyntapos.domain.model.User
 import com.zyntasolutions.zyntapos.domain.model.Role
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.datetime.Instant
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -46,6 +49,17 @@ class MultiStoreViewModelTest {
 
     private val storeId = "store-001"
     private val userId = "user-001"
+
+    private val fakeProductRepository = object : ProductRepository {
+        override fun getAll(): Flow<List<Product>> = flowOf(emptyList())
+        override suspend fun getById(id: String): Result<Product> = Result.Error(DatabaseException("Not found"))
+        override fun search(query: String, categoryId: String?): Flow<List<Product>> = flowOf(emptyList())
+        override suspend fun getByBarcode(barcode: String): Result<Product> = Result.Error(DatabaseException("Not found"))
+        override suspend fun insert(product: Product): Result<Unit> = Result.Success(Unit)
+        override suspend fun update(product: Product): Result<Unit> = Result.Success(Unit)
+        override suspend fun delete(id: String): Result<Unit> = Result.Success(Unit)
+        override suspend fun getCount(): Int = 0
+    }
 
     private val fakeAuthRepository = object : AuthRepository {
         private val _session = MutableStateFlow<User?>(
@@ -242,6 +256,7 @@ class MultiStoreViewModelTest {
 
         viewModel = WarehouseViewModel(
             warehouseRepository = fakeWarehouseRepository,
+            productRepository = fakeProductRepository,
             commitTransferUseCase = commitTransferUseCase,
             getWarehouseRacksUseCase = getWarehouseRacksUseCase,
             saveWarehouseRackUseCase = saveWarehouseRackUseCase,

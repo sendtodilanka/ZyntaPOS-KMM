@@ -143,12 +143,30 @@ fun NavGraphBuilder.mainNavGraph(
             composable<ZyntaRoute.CategoryList> {
                 screens.categoryList(
                     { navigationController.navigateUp(ZyntaRoute.ProductList) },
+                    { categoryId -> navigationController.navigate(ZyntaRoute.CategoryDetail(categoryId)) },
+                )
+            }
+
+            composable<ZyntaRoute.CategoryDetail> { entry ->
+                val route = entry.toRoute<ZyntaRoute.CategoryDetail>()
+                screens.categoryDetail(
+                    route.categoryId,
+                    { navigationController.navigateUp(ZyntaRoute.CategoryList) },
                 )
             }
 
             composable<ZyntaRoute.SupplierList> {
                 screens.supplierList(
                     { navigationController.navigateUp(ZyntaRoute.ProductList) },
+                    { supplierId -> navigationController.navigate(ZyntaRoute.SupplierDetail(supplierId)) },
+                )
+            }
+
+            composable<ZyntaRoute.SupplierDetail> { entry ->
+                val route = entry.toRoute<ZyntaRoute.SupplierDetail>()
+                screens.supplierDetail(
+                    route.supplierId,
+                    { navigationController.navigateUp(ZyntaRoute.SupplierList) },
                 )
             }
 
@@ -746,7 +764,9 @@ private fun MainScaffoldShell(
         is ZyntaRoute.ProductList,
         is ZyntaRoute.ProductDetail,
         is ZyntaRoute.CategoryList,
+        is ZyntaRoute.CategoryDetail,
         is ZyntaRoute.SupplierList,
+        is ZyntaRoute.SupplierDetail,
         is ZyntaRoute.Stocktake -> item.route is ZyntaRoute.ProductList
 
         // Register sub-graph

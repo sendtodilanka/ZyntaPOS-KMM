@@ -344,10 +344,11 @@ private fun ExpandedDashboard(
             }
             StaggeredEntrance(modifier = Modifier.weight(1f), delayMs = 50) {
                 ZyntaStatCard(
-                    icon = Icons.Default.Receipt, label = "Total Orders",
+                    icon = Icons.Default.Receipt, label = "Today's Sales",
                     value = state.totalOrders.toString(),
                     accentColor = MaterialTheme.colorScheme.tertiary,
-                    subtitle = "Completed today", modifier = Modifier.fillMaxWidth(),
+                    subtitle = "Hourly trend", modifier = Modifier.fillMaxWidth(),
+                    sparklineData = state.todaySparkline,
                     rawValue = state.totalOrders.toFloat(),
                     rawValueDelayMs = 0,
                 )
@@ -511,10 +512,11 @@ private fun MediumDashboard(
                     horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
                 ) {
                     ZyntaStatCard(
-                        Icons.Default.Receipt, "Total Orders",
+                        Icons.Default.Receipt, "Today's Sales",
                         state.totalOrders.toString(),
                         MaterialTheme.colorScheme.tertiary,
                         modifier = Modifier.weight(1f),
+                        sparklineData = state.todaySparkline,
                         rawValue = state.totalOrders.toFloat(),
                         rawValueDelayMs = 0,
                     )
