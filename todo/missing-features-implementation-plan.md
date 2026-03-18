@@ -248,16 +248,16 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 
 ---
 
-### A7. Admin JWT Security Gap
+### A7. Admin JWT Security Gap — ✅ COMPLETE
 
 **Priority:** P1-HIGH
 **Issue:** Admin panel uses HS256 (symmetric) while POS uses RS256 (asymmetric)
 
 **Fix:**
-- [ ] Migrate admin auth to RS256
-- [ ] Update `AdminAuthService.kt` token generation
-- [ ] Update License service admin JWT validation
-- [ ] Rotate existing admin sessions
+- [x] Migrate admin auth to RS256
+- [x] Update `AdminAuthService.kt` token generation
+- [x] Update License service admin JWT validation (`AdminJwtValidator.kt` now uses RS256 public key)
+- [x] Rotate existing admin sessions (HS256 tokens rejected post-migration — re-login required)
 
 ---
 
