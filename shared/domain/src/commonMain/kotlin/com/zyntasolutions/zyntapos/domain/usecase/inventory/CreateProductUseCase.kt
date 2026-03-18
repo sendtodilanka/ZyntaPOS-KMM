@@ -3,7 +3,9 @@ package com.zyntasolutions.zyntapos.domain.usecase.inventory
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.core.result.ValidationException
 import com.zyntasolutions.zyntapos.domain.model.Product
+import com.zyntasolutions.zyntapos.domain.model.ProductVariant
 import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
+import com.zyntasolutions.zyntapos.domain.repository.ProductVariantRepository
 import com.zyntasolutions.zyntapos.domain.repository.SyncRepository
 import com.zyntasolutions.zyntapos.domain.validation.StockValidator
 
@@ -23,12 +25,17 @@ import com.zyntasolutions.zyntapos.domain.validation.StockValidator
  */
 class CreateProductUseCase(
     private val productRepository: ProductRepository,
+    private val variantRepository: ProductVariantRepository? = null,
 ) {
     /**
      * @param product The fully populated [Product] to persist.
+     * @param variants Optional list of [ProductVariant] to persist alongside the product.
      * @return [Result.Success] with [Unit] on success, or [Result.Error] on violation.
      */
-    suspend operator fun invoke(product: Product): Result<Unit> {
+    suspend operator fun invoke(
+        product: Product,
+        variants: List<ProductVariant> = emptyList(),
+    ): Result<Unit> {
         if (product.name.isBlank()) {
             return Result.Error(
                 ValidationException("Product name must not be blank.", field = "name", rule = "REQUIRED"),
@@ -70,6 +77,14 @@ class CreateProductUseCase(
         val stockValidation = StockValidator.validateInitialStock(product.stockQty)
         if (stockValidation is Result.Error) return stockValidation
 
-        return productRepository.insert(product)
+        val insertResult = productRepository.insert(product)
+        if (insertResult is Result.Error) return insertResult
+
+        if (variants.isNotEmpty() && variantRepository != null) {
+            val variantResult = variantRepository.replaceAll(product.id, variants)
+            if (variantResult is Result.Error) return variantResult
+        }
+
+        return Result.Success(Unit)
     }
 }

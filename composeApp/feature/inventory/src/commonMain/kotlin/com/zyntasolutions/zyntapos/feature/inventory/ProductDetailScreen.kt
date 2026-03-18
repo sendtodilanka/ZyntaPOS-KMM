@@ -209,10 +209,20 @@ private fun CoreFieldsSection(
                     modifier = Modifier.weight(1f),
                 )
                 IconButton(
-                    onClick = { /* TODO: trigger barcode scanner via HAL */ },
+                    onClick = {
+                        if (state.isScannerActive) {
+                            onIntent(InventoryIntent.StopBarcodeScanner)
+                        } else {
+                            onIntent(InventoryIntent.StartBarcodeScanner)
+                        }
+                    },
                     modifier = Modifier.align(Alignment.CenterVertically),
                 ) {
-                    Icon(Icons.Default.QrCodeScanner, contentDescription = "Scan barcode")
+                    Icon(
+                        Icons.Default.QrCodeScanner,
+                        contentDescription = if (state.isScannerActive) "Stop scanner" else "Scan barcode",
+                        tint = if (state.isScannerActive) MaterialTheme.colorScheme.primary else LocalContentColor.current,
+                    )
                 }
             }
 

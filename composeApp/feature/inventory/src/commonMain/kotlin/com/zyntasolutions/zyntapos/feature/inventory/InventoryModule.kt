@@ -69,8 +69,8 @@ val inventoryModule = module {
 
     // ── Sprint 18: Product use cases ──────────────────────────────────────────
     factoryOf(::SearchProductsUseCase)
-    factoryOf(::CreateProductUseCase)
-    factoryOf(::UpdateProductUseCase)
+    factory { CreateProductUseCase(productRepository = get(), variantRepository = get()) }
+    factory { UpdateProductUseCase(productRepository = get(), variantRepository = get()) }
     factoryOf(::AdjustStockUseCase)
 
     // ── Sprint 19: Category use cases ─────────────────────────────────────────
@@ -98,7 +98,16 @@ val inventoryModule = module {
     factoryOf(::SeedDefaultLabelTemplatesUseCase)
 
     // ── ViewModels ────────────────────────────────────────────────────────────
-    viewModelOf(::StocktakeViewModel)
+    viewModel {
+        StocktakeViewModel(
+            startStocktakeUseCase   = get(),
+            scanStocktakeItemUseCase = get(),
+            completeStocktakeUseCase = get(),
+            stocktakeRepository     = get(),
+            authRepository          = get(),
+            barcodeScanner          = get(),
+        )
+    }
 
     viewModel {
         BarcodeLabelPrintViewModel(
@@ -118,6 +127,8 @@ val inventoryModule = module {
             supplierRepository      = get(),
             taxGroupRepository      = get(),
             unitGroupRepository     = get(),
+            variantRepository       = get(),
+            barcodeScanner          = get(),
             _searchProductsUseCase  = get(),
             createProductUseCase    = get(),
             updateProductUseCase    = get(),

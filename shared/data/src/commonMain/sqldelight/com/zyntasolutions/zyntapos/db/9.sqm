@@ -1,0 +1,22 @@
+-- Migration 9: Product Variants table (INV-2)
+-- Phase 1 | Sprint 20
+--
+-- Adds the product_variants table for per-SKU variations (size, colour, etc.)
+-- of a parent product. Each variant has its own barcode, price override, and stock level.
+
+CREATE TABLE IF NOT EXISTS product_variants (
+    id          TEXT    NOT NULL PRIMARY KEY,
+    product_id  TEXT    NOT NULL,
+    name        TEXT    NOT NULL,
+    attributes  TEXT    NOT NULL DEFAULT '{}',
+    price       REAL,
+    stock       REAL    NOT NULL DEFAULT 0.0,
+    barcode     TEXT,
+    created_at  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL,
+    sync_status TEXT    NOT NULL DEFAULT 'PENDING',
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_product_variants_product ON product_variants(product_id);
+CREATE INDEX IF NOT EXISTS idx_product_variants_barcode ON product_variants(barcode);
