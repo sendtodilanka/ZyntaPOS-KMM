@@ -97,7 +97,7 @@ class LicenseHeartbeatIntegrationTest {
     private fun seedLicenseAndDevice(
         licenseKey: String,
         deviceId: String,
-        edition: String = "STARTER",
+        edition: String = "COMMUNITY",
         maxDevices: Int = 5,
         status: String = "ACTIVE",
     ) {
