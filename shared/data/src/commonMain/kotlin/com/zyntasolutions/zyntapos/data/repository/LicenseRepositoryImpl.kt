@@ -8,6 +8,7 @@ import com.zyntasolutions.zyntapos.domain.model.Edition
 import com.zyntasolutions.zyntapos.domain.model.License
 import com.zyntasolutions.zyntapos.domain.model.LicenseStatus
 import com.zyntasolutions.zyntapos.domain.repository.LicenseRepository
+import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -70,6 +71,7 @@ class LicenseRepositoryImpl(
         }
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     override suspend fun sendHeartbeat(
         licenseKey: String,
         deviceId: String,
