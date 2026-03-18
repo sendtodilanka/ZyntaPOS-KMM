@@ -125,6 +125,20 @@ sealed interface InventoryIntent {
     /** Closes the bulk import dialog. */
     data object DismissBulkImport : InventoryIntent
 
+    // ─── Barcode Scanner ──────────────────────────────────────────────────
+
+    /** Starts the HAL barcode scanner and begins collecting scan events. */
+    data object StartBarcodeScanner : InventoryIntent
+
+    /** Stops the HAL barcode scanner. */
+    data object StopBarcodeScanner : InventoryIntent
+
+    /**
+     * A barcode was scanned by the HAL scanner.
+     * Fills the barcode form field on the product detail screen.
+     */
+    data class BarcodeScanResult(val barcode: String) : InventoryIntent
+
     // ─── UI Feedback ───────────────────────────────────────────────────────
 
     /** Dismisses the current error message. */

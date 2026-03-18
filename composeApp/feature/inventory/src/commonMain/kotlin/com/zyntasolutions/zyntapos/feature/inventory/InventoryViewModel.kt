@@ -10,9 +10,12 @@ import com.zyntasolutions.zyntapos.domain.model.StockAdjustment
 import com.zyntasolutions.zyntapos.domain.model.Supplier
 import com.zyntasolutions.zyntapos.domain.model.TaxGroup
 import com.zyntasolutions.zyntapos.domain.model.UnitOfMeasure
+import com.zyntasolutions.zyntapos.hal.scanner.BarcodeScanner
+import com.zyntasolutions.zyntapos.hal.scanner.ScanResult
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.CategoryRepository
 import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
+import com.zyntasolutions.zyntapos.domain.repository.ProductVariantRepository
 import com.zyntasolutions.zyntapos.domain.repository.SupplierRepository
 import com.zyntasolutions.zyntapos.domain.repository.TaxGroupRepository
 import com.zyntasolutions.zyntapos.domain.repository.UnitGroupRepository
@@ -69,6 +72,8 @@ class InventoryViewModel(
     private val supplierRepository: SupplierRepository,
     private val taxGroupRepository: TaxGroupRepository,
     private val unitGroupRepository: UnitGroupRepository,
+    private val variantRepository: ProductVariantRepository,
+    private val barcodeScanner: BarcodeScanner,
     private val _searchProductsUseCase: SearchProductsUseCase,
     private val createProductUseCase: CreateProductUseCase,
     private val updateProductUseCase: UpdateProductUseCase,
@@ -162,6 +167,9 @@ class InventoryViewModel(
             is InventoryIntent.SetColumnMapping -> onSetColumnMapping(intent.csvColumn, intent.productField)
             is InventoryIntent.ConfirmBulkImport -> onConfirmBulkImport()
             is InventoryIntent.DismissBulkImport -> updateState { copy(bulkImportState = BulkImportState()) }
+            is InventoryIntent.StartBarcodeScanner -> onStartBarcodeScanner()
+            is InventoryIntent.StopBarcodeScanner -> onStopBarcodeScanner()
+            is InventoryIntent.BarcodeScanResult -> onBarcodeScanResult(intent.barcode)
             is InventoryIntent.DismissError -> updateState { copy(error = null) }
             is InventoryIntent.DismissSuccess -> updateState { copy(successMessage = null) }
             // ── Category Management ─────────────────────────────────────────
@@ -256,10 +264,14 @@ class InventoryViewModel(
                     copy(
                         selectedProduct = product,
                         editFormState = product.toFormState(),
-                        productVariants = emptyList(), // Variants loaded separately in Phase 2
+                        productVariants = emptyList(),
                         isLoading = false,
                     )
                 }
+                // Load variants for the selected product
+                variantRepository.getByProductId(productId)
+                    .onEach { variants -> updateState { copy(productVariants = variants) } }
+                    .launchIn(viewModelScope)
                 sendEffect(InventoryEffect.NavigateToDetail(productId))
             }
             is Result.Error -> {
@@ -342,10 +354,12 @@ class InventoryViewModel(
             updatedAt = now,
         )
 
+        // Ensure all variants have the correct productId
+        val variants = currentState.productVariants.map { it.copy(productId = product.id) }
         val result = if (form.id != null) {
-            updateProductUseCase(product)
+            updateProductUseCase(product, variants)
         } else {
-            createProductUseCase(product)
+            createProductUseCase(product, variants)
         }
 
         updateState { copy(isLoading = false) }
@@ -417,6 +431,47 @@ class InventoryViewModel(
             else -> v
         }
         updateState { copy(productVariants = variants) }
+    }
+
+    // ── Barcode Scanner ─────────────────────────────────────────────────
+
+    private var scannerJob: kotlinx.coroutines.Job? = null
+
+    private fun onStartBarcodeScanner() {
+        if (currentState.isScannerActive) return
+        viewModelScope.launch {
+            val result = barcodeScanner.startListening()
+            if (result.isSuccess) {
+                updateState { copy(isScannerActive = true) }
+                scannerJob = barcodeScanner.scanEvents
+                    .onEach { scanResult ->
+                        when (scanResult) {
+                            is ScanResult.Barcode -> dispatch(InventoryIntent.BarcodeScanResult(scanResult.value))
+                            is ScanResult.Error -> sendEffect(InventoryEffect.ShowError("Scan error: ${scanResult.message}"))
+                        }
+                    }
+                    .launchIn(viewModelScope)
+            } else {
+                sendEffect(InventoryEffect.ShowError("Failed to start scanner"))
+            }
+        }
+    }
+
+    private fun onStopBarcodeScanner() {
+        scannerJob?.cancel()
+        scannerJob = null
+        viewModelScope.launch { barcodeScanner.stopListening() }
+        updateState { copy(isScannerActive = false) }
+    }
+
+    private fun onBarcodeScanResult(barcode: String) {
+        // Fill the barcode form field on the product detail screen
+        val form = currentState.editFormState
+        val updated = form.copy(barcode = barcode)
+        val errors = updated.validationErrors.toMutableMap().apply { remove("barcode") }
+        updateState { copy(editFormState = updated.copy(validationErrors = errors)) }
+        // Stop scanner after successful scan
+        onStopBarcodeScanner()
     }
 
     // ── Stock Adjustment ──────────────────────────────────────────────────

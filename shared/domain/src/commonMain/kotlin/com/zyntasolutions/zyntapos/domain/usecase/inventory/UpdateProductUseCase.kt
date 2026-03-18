@@ -3,7 +3,9 @@ package com.zyntasolutions.zyntapos.domain.usecase.inventory
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.core.result.ValidationException
 import com.zyntasolutions.zyntapos.domain.model.Product
+import com.zyntasolutions.zyntapos.domain.model.ProductVariant
 import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
+import com.zyntasolutions.zyntapos.domain.repository.ProductVariantRepository
 
 /**
  * Updates an existing product's details.
@@ -21,12 +23,18 @@ import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
  */
 class UpdateProductUseCase(
     private val productRepository: ProductRepository,
+    private val variantRepository: ProductVariantRepository? = null,
 ) {
     /**
      * @param product Updated [Product] with the same [Product.id] as the existing record.
+     * @param variants Optional list of [ProductVariant] to replace existing variants.
+     *                 Pass `null` to leave variants unchanged; pass empty list to remove all.
      * @return [Result.Success] with [Unit], or [Result.Error] on validation failure.
      */
-    suspend operator fun invoke(product: Product): Result<Unit> {
+    suspend operator fun invoke(
+        product: Product,
+        variants: List<ProductVariant>? = null,
+    ): Result<Unit> {
         if (product.name.isBlank()) {
             return Result.Error(
                 ValidationException("Product name must not be blank.", field = "name", rule = "REQUIRED"),
@@ -73,6 +81,14 @@ class UpdateProductUseCase(
             }
         }
 
-        return productRepository.update(product)
+        val updateResult = productRepository.update(product)
+        if (updateResult is Result.Error) return updateResult
+
+        if (variants != null && variantRepository != null) {
+            val variantResult = variantRepository.replaceAll(product.id, variants)
+            if (variantResult is Result.Error) return variantResult
+        }
+
+        return Result.Success(Unit)
     }
 }

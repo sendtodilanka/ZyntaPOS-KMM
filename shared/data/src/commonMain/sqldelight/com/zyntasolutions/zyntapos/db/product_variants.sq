@@ -1,0 +1,46 @@
+-- Product variants: size, colour, and other per-SKU variations of a parent product.
+CREATE TABLE product_variants (
+    id          TEXT    NOT NULL PRIMARY KEY,
+    product_id  TEXT    NOT NULL,
+    name        TEXT    NOT NULL,
+    attributes  TEXT    NOT NULL DEFAULT '{}',
+    price       REAL,
+    stock       REAL    NOT NULL DEFAULT 0.0,
+    barcode     TEXT,
+    created_at  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL,
+    sync_status TEXT    NOT NULL DEFAULT 'PENDING',
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_product_variants_product ON product_variants(product_id);
+CREATE INDEX idx_product_variants_barcode ON product_variants(barcode);
+
+-- ── Read queries ────────────────────────────────────────────────────────────
+
+getVariantsByProductId:
+SELECT * FROM product_variants WHERE product_id = ? ORDER BY name ASC;
+
+getVariantById:
+SELECT * FROM product_variants WHERE id = ?;
+
+getVariantByBarcode:
+SELECT * FROM product_variants WHERE barcode = ? LIMIT 1;
+
+-- ── Write queries ───────────────────────────────────────────────────────────
+
+insertVariant:
+INSERT OR REPLACE INTO product_variants(id, product_id, name, attributes, price, stock, barcode, created_at, updated_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateVariant:
+UPDATE product_variants SET
+    name = ?, attributes = ?, price = ?, stock = ?, barcode = ?,
+    updated_at = ?, sync_status = ?
+WHERE id = ?;
+
+deleteVariant:
+DELETE FROM product_variants WHERE id = ?;
+
+deleteVariantsByProductId:
+DELETE FROM product_variants WHERE product_id = ?;

@@ -8,8 +8,13 @@ import com.zyntasolutions.zyntapos.domain.repository.StocktakeRepository
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.CompleteStocktakeUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.ScanStocktakeItemUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.StartStocktakeUseCase
+import com.zyntasolutions.zyntapos.hal.scanner.BarcodeScanner
+import com.zyntasolutions.zyntapos.hal.scanner.ScanResult
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
 
@@ -25,9 +30,11 @@ class StocktakeViewModel(
     private val completeStocktakeUseCase: CompleteStocktakeUseCase,
     private val stocktakeRepository: StocktakeRepository,
     private val authRepository: AuthRepository,
+    private val barcodeScanner: BarcodeScanner,
 ) : BaseViewModel<StocktakeState, StocktakeIntent, StocktakeEffect>(StocktakeState()) {
 
     private var currentUserId: String = "unknown"
+    private var scannerJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -41,10 +48,34 @@ class StocktakeViewModel(
             is StocktakeIntent.ScanItem             -> onScanItem(intent.barcode)
             is StocktakeIntent.ManualAdjustCount    -> onManualAdjustCount(intent.productId, intent.qty)
             is StocktakeIntent.RemoveCount          -> onRemoveCount(intent.productId)
-            is StocktakeIntent.SetScannerActive     -> updateState { copy(isScanning = intent.active) }
+            is StocktakeIntent.SetScannerActive     -> onSetScannerActive(intent.active)
             is StocktakeIntent.CompleteStocktake    -> onCompleteStocktake()
             is StocktakeIntent.CancelStocktake      -> onCancelStocktake()
             is StocktakeIntent.DismissError         -> updateState { copy(error = null) }
+        }
+    }
+
+    private fun onSetScannerActive(active: Boolean) {
+        if (active && !currentState.isScanning) {
+            viewModelScope.launch {
+                val result = barcodeScanner.startListening()
+                if (result.isSuccess) {
+                    updateState { copy(isScanning = true) }
+                    scannerJob = barcodeScanner.scanEvents
+                        .onEach { scanResult ->
+                            when (scanResult) {
+                                is ScanResult.Barcode -> dispatch(StocktakeIntent.ScanItem(scanResult.value))
+                                is ScanResult.Error -> sendEffect(StocktakeEffect.ScanNotFound(scanResult.message))
+                            }
+                        }
+                        .launchIn(viewModelScope)
+                }
+            }
+        } else if (!active && currentState.isScanning) {
+            scannerJob?.cancel()
+            scannerJob = null
+            viewModelScope.launch { barcodeScanner.stopListening() }
+            updateState { copy(isScanning = false) }
         }
     }
 
@@ -95,6 +126,7 @@ class StocktakeViewModel(
     }
 
     private suspend fun onCompleteStocktake() {
+        onSetScannerActive(false)
         val sessionId = currentState.session?.id ?: return
         updateState { copy(isCompleting = true) }
         when (val result = completeStocktakeUseCase.execute(sessionId, currentUserId)) {
@@ -113,6 +145,7 @@ class StocktakeViewModel(
     }
 
     private suspend fun onCancelStocktake() {
+        onSetScannerActive(false)
         updateState { copy(session = null, counts = emptyList(), error = null) }
         sendEffect(StocktakeEffect.SessionCancelled)
     }
