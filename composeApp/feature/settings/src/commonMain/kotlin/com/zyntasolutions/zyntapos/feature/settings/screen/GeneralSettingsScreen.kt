@@ -49,6 +49,7 @@ import com.zyntasolutions.zyntapos.feature.settings.SettingsEffect
 import com.zyntasolutions.zyntapos.feature.settings.SettingsIntent
 import com.zyntasolutions.zyntapos.feature.settings.SettingsState
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.datetime.toLocalDateTime
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GeneralSettingsScreen — Tab-based enterprise layout
@@ -56,11 +57,43 @@ import kotlinx.coroutines.flow.collectLatest
 // Sprint 23 — Step 13.1.2
 // ─────────────────────────────────────────────────────────────────────────────
 
-private val TIMEZONES = listOf(
+private val TIMEZONE_IDS = listOf(
     "Asia/Colombo", "Asia/Kolkata", "Asia/Dubai", "Asia/Singapore",
     "Europe/London", "Europe/Paris", "America/New_York", "America/Los_Angeles",
     "Pacific/Auckland",
 )
+
+/**
+ * Formats timezone IDs with UTC offset for display.
+ * E.g. "Asia/Colombo (UTC+05:30)"
+ *
+ * Computes offset by comparing local time to UTC at the current instant.
+ */
+private fun formatTimezoneWithOffset(tzId: String): String {
+    return try {
+        val tz = kotlinx.datetime.TimeZone.of(tzId)
+        val now = kotlin.time.Clock.System.now()
+        val localDt = now.toLocalDateTime(tz)
+        val utcDt = now.toLocalDateTime(kotlinx.datetime.TimeZone.UTC)
+        // Compute offset in minutes (local - UTC)
+        val localMinutes = localDt.hour * 60 + localDt.minute
+        val utcMinutes = utcDt.hour * 60 + utcDt.minute
+        // Handle day boundary (e.g. UTC 23:00 → local next day 04:30)
+        var diffMinutes = localMinutes - utcMinutes
+        if (localDt.date > utcDt.date) diffMinutes += 24 * 60
+        else if (localDt.date < utcDt.date) diffMinutes -= 24 * 60
+        val sign = if (diffMinutes >= 0) "+" else "-"
+        val absMins = kotlin.math.abs(diffMinutes)
+        val hours = absMins / 60
+        val minutes = absMins % 60
+        val offsetStr = "$sign${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}"
+        "$tzId (UTC$offsetStr)"
+    } catch (_: Exception) {
+        tzId
+    }
+}
+
+private val TIMEZONES = TIMEZONE_IDS.map { formatTimezoneWithOffset(it) }
 
 private val DATE_FORMATS = listOf("dd/MM/yyyy", "MM/dd/yyyy", "yyyy-MM-dd", "d MMM yyyy")
 
@@ -294,8 +327,8 @@ fun GeneralSettingsScreen(
                                     DropdownField(
                                         label = "Timezone",
                                         options = TIMEZONES,
-                                        selectedIndex = TIMEZONES.indexOf(state.timezone).coerceAtLeast(0),
-                                        onSelect = { onIntent(SettingsIntent.UpdateTimezone(TIMEZONES[it])) },
+                                        selectedIndex = TIMEZONE_IDS.indexOf(state.timezone).coerceAtLeast(0),
+                                        onSelect = { onIntent(SettingsIntent.UpdateTimezone(TIMEZONE_IDS[it])) },
                                     )
                                     Text(
                                         "All timestamps on receipts, reports, and audit logs use this timezone.",

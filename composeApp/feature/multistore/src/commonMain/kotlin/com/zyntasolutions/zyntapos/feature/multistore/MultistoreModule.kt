@@ -36,6 +36,7 @@ val multistoreModule = module {
     viewModel {
         WarehouseViewModel(
             warehouseRepository = get(),
+            productRepository = get(),
             commitTransferUseCase = get(),
             getWarehouseRacksUseCase = get(),
             saveWarehouseRackUseCase = get(),
