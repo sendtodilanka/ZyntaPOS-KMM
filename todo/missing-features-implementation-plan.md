@@ -33,14 +33,15 @@
 > මේ 3 items resolve නොකර Phase 2 (Multi-Store Growth) start කරන්න බැහැ.
 > Implementation sessions වලදී මේවා පළමු priority ලෙස සලකන්න.
 
-### Blocker 1: Sync Engine Server-Side (A1) — ~60% Complete | P0-CRITICAL
+### Blocker 1: Sync Engine Server-Side (A1) — ~80% Complete | P0-CRITICAL
 
-**ලොකුම blocker එක.** `EntityApplier` එකේ PRODUCT type එක විතරයි handle වෙන්නේ — ORDER,
-CUSTOMER, CATEGORY, SUPPLIER, STOCK_ADJUSTMENT වගේ 10+ entity types handle වෙන්නේ නැහැ.
-Phase 2 multi-store sync එකට මේක complete වෙන්නම ඕන.
+**ලොකුම blocker එක.** `EntityApplier` එකේ entity types 17ක් handle කරනවා (PRODUCT, CATEGORY,
+CUSTOMER, SUPPLIER, ORDER, ORDER_ITEM, AUDIT_ENTRY + new: STOCK_ADJUSTMENT, CASH_REGISTER,
+REGISTER_SESSION, CASH_MOVEMENT, TAX_GROUP, UNIT_OF_MEASURE, PAYMENT_SPLIT, COUPON, EXPENSE, SETTINGS).
+Phase 2 multi-store sync එකට remaining items complete වෙන්නම ඕන.
 
-- `EntityApplier` — extend to ALL entity types (currently PRODUCT only)
-- Multi-store data isolation (`store_id` JWT validation) — 0%
+- `EntityApplier` — ✅ extended to 17 entity types (2026-03-18)
+- Multi-store data isolation (`store_id` JWT validation) — ✅ already existed (S2-10)
 - WebSocket push notifications after sync — not wired
 - JWT validation on WebSocket upgrade — missing
 
@@ -75,7 +76,15 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 
 ---
 
-### A1. Sync Engine Server-Side (TODO-007g) — ~60% Complete
+### A1. Sync Engine Server-Side (TODO-007g) — ~80% Complete
+
+> **HANDOFF (2026-03-18):** EntityApplier extended with STOCK_ADJUSTMENT, CASH_REGISTER,
+> REGISTER_SESSION, CASH_MOVEMENT, TAX_GROUP, UNIT_OF_MEASURE, PAYMENT_SPLIT, COUPON,
+> EXPENSE, SETTINGS handlers (10 new entity types). V23 migration creates normalized tables.
+> SyncValidator updated with CASH_REGISTER entity type and field-level validation for all
+> new entity types. Tests in EntityApplierTest.kt + SyncValidatorTest.kt — run before modifying.
+> Next session: WebSocket push notifications, JWT on WS upgrade, token revocation check.
+> Branch: claude/sync-engine-entity-applier-GDfIt.
 
 **Priority:** P0-CRITICAL
 **Impact:** Offline-first sync pipeline non-functional; client data sits in `sync_queue` unprocessed
@@ -85,19 +94,24 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 - `sync_operations`, `sync_cursors`, `entity_snapshots`, `sync_conflict_log`, `sync_dead_letters` tables (V4)
 - `SyncProcessor.kt` — push processing with batch validation
 - `DeltaEngine.kt` — cursor-based pull with delta computation
-- `EntityApplier.kt` — JSONB → normalized tables (ONLY handles PRODUCT type)
+- `EntityApplier.kt` — JSONB → normalized tables (handles 17 entity types: PRODUCT, CATEGORY, CUSTOMER, SUPPLIER, ORDER, ORDER_ITEM, AUDIT_ENTRY, STOCK_ADJUSTMENT, CASH_REGISTER, REGISTER_SESSION, CASH_MOVEMENT, TAX_GROUP, UNIT_OF_MEASURE, PAYMENT_SPLIT, COUPON, EXPENSE, SETTINGS)
 - `ServerConflictResolver.kt` — LWW (Last-Write-Wins) resolution
-- `SyncRoutes.kt` — REST `/sync/push` and `/sync/pull` endpoints
+- `SyncRoutes.kt` — REST `/sync/push` and `/sync/pull` endpoints with store_id JWT validation (S2-10)
+- `SyncValidator.kt` — batch + field-level validation for all major entity types
 - WebSocket endpoints in `backend/sync` service
 - KMM client: `sync_queue.sq` (outbox), `sync_state.sq` (cursor), `version_vectors.sq` (CRDT metadata)
 - KMM client: `ConflictResolver.kt` — LWW with field-level merge for PRODUCT
+- V23 migration — normalized entity tables for stock_adjustments, cash_registers, register_sessions, cash_movements, tax_groups, units_of_measure, payment_splits, coupons, expenses, settings
+
+**What's DONE:**
+- [x] `EntityApplier` — extended to handle 17 entity types (PRODUCT, CATEGORY, CUSTOMER, SUPPLIER, ORDER, ORDER_ITEM, AUDIT_ENTRY, STOCK_ADJUSTMENT, CASH_REGISTER, REGISTER_SESSION, CASH_MOVEMENT, TAX_GROUP, UNIT_OF_MEASURE, PAYMENT_SPLIT, COUPON, EXPENSE, SETTINGS)
+- [x] Multi-store data isolation enforcement on sync endpoints (store_id JWT validation already existed — S2-10)
+- [x] Sync payload field-level validation for all major entity types (SyncValidator extended)
+- [x] STOCK_ADJUSTMENT handler with stock_qty side-effect on products table
 
 **What's MISSING:**
-- [ ] `EntityApplier` — extend to handle ALL entity types (ORDER, CUSTOMER, CATEGORY, SUPPLIER, STOCK_ADJUSTMENT, CASH_REGISTER, REGISTER_SESSION, AUDIT_ENTRY, etc.)
-- [ ] Multi-store data isolation enforcement on sync endpoints (validate `store_id` matches JWT claims)
 - [ ] WebSocket push notifications to clients after server processes sync ops
 - [ ] JWT validation on WebSocket upgrade in `backend/sync`
-- [ ] Sync payload field-level validation (missing fields, invalid types)
 - [ ] POS token revocation check during JWT validation (`revoked_tokens` table exists, not checked)
 - [ ] Heartbeat replay protection
 
@@ -1878,8 +1892,8 @@ git push -u origin $(git branch --show-current)
 | Store Audit Logs | C5.3 | COMPLETE |
 | Real-time Dashboard | C5.4 | PARTIAL (REST only) |
 | **6. Sync & Offline** | | |
-| Multi-node Sync | C6.1 | PARTIAL (LWW only) |
-| Offline-First | C6.2 | PARTIAL |
+| Multi-node Sync | C6.1 | PARTIAL (LWW + 17 entity types in EntityApplier) |
+| Offline-First | C6.2 | PARTIAL (EntityApplier covers all core POS types) |
 | Timezone Management | C6.3 | MOSTLY COMPLETE |
 
 ---
