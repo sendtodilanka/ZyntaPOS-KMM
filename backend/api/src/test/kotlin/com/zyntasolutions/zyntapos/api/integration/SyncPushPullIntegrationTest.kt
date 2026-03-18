@@ -24,7 +24,7 @@ class SyncPushPullIntegrationTest {
         entityType: String = "PRODUCT",
         entityId: String = "entity-$id",
         operation: String = "INSERT",
-        payload: String = """{"id":"entity-$id","name":"Product $id"}""",
+        payload: String = """{"id":"entity-$id","name":"Product $id","price":10.0}""",
         clientTimestamp: Long = System.currentTimeMillis() - 100,
     ) = SyncOperation(id, entityType, entityId, operation, payload, clientTimestamp)
 
@@ -49,7 +49,7 @@ class SyncPushPullIntegrationTest {
         val ops = listOf(
             makeOp("good-1"),
             makeOp("bad-1", operation = "PATCH"),
-            makeOp("good-2", entityType = "ORDER"),
+            makeOp("good-2", entityType = "ORDER", payload = """{"grand_total":10.0}"""),
             makeOp("bad-2", payload = "not-json"),
         )
         val result = validator.validateBatch(ops)
@@ -111,5 +111,93 @@ class SyncPushPullIntegrationTest {
         val result = validator.validateBatch(listOf(op))
         assertEquals(1, result.invalid.size)
         assertTrue(result.invalid.first().reason.contains("future"))
+    }
+
+    // ── New integration test cases ──────────────────────────────────────
+
+    @Test
+    fun `batch of all DELETE ops is valid`() {
+        val ops = (1..10).map { makeOp("del-$it", operation = "DELETE", payload = """{"id":"e-$it"}""") }
+        val result = validator.validateBatch(ops)
+        assertEquals(10, result.valid.size)
+    }
+
+    @Test
+    fun `batch of all UPDATE ops with valid payloads passes`() {
+        val ops = (1..10).map {
+            makeOp("upd-$it", operation = "UPDATE", payload = """{"name":"Updated $it","price":${it * 10.0}}""")
+        }
+        val result = validator.validateBatch(ops)
+        assertEquals(10, result.valid.size)
+    }
+
+    @Test
+    fun `batch mixing CREATE UPDATE DELETE all accepted`() {
+        val ops = listOf(
+            makeOp("c1", operation = "CREATE", payload = """{"name":"New","price":5.0}"""),
+            makeOp("u1", operation = "UPDATE", entityId = "e-1", payload = """{"name":"Updated","price":6.0}"""),
+            makeOp("d1", operation = "DELETE", entityId = "e-2", payload = """{"id":"e-2"}"""),
+        )
+        val result = validator.validateBatch(ops)
+        assertEquals(3, result.valid.size)
+        assertTrue(result.invalid.isEmpty())
+    }
+
+    @Test
+    fun `multiple entity types in single batch with proper payloads`() {
+        val ops = listOf(
+            makeOp("p1", entityType = "PRODUCT", payload = """{"name":"Widget","price":10.0}"""),
+            makeOp("c1", entityType = "CATEGORY", payload = """{"name":"Electronics"}"""),
+            makeOp("cu1", entityType = "CUSTOMER", payload = """{"name":"Jane Doe"}"""),
+            makeOp("s1", entityType = "SUPPLIER", payload = """{"name":"Acme Corp"}"""),
+            makeOp("o1", entityType = "ORDER", payload = """{"grand_total":100.0}"""),
+            makeOp("oi1", entityType = "ORDER_ITEM", payload = """{"id":"oi1"}"""),
+        )
+        val result = validator.validateBatch(ops)
+        assertEquals(6, result.valid.size)
+        assertTrue(result.invalid.isEmpty())
+    }
+
+    @Test
+    fun `field validation catches multiple invalid products in batch`() {
+        val ops = listOf(
+            makeOp("ok", payload = """{"name":"Good","price":10.0}"""),
+            makeOp("bad-name", payload = """{"name":"","price":10.0}"""),
+            makeOp("bad-price", payload = """{"name":"Widget","price":-5.0}"""),
+            makeOp("bad-stock", payload = """{"name":"Widget","price":1.0,"stock_qty":-10}"""),
+        )
+        val result = validator.validateBatch(ops)
+        assertEquals(1, result.valid.size)
+        assertEquals("ok", result.valid.first().id)
+        assertEquals(3, result.invalid.size)
+    }
+
+    @Test
+    fun `exact batch size boundary - 49 ops accepted, 50 accepted, 51 rejected`() {
+        val ops49 = (1..49).map { makeOp("op-$it") }
+        assertEquals(49, validator.validateBatch(ops49).valid.size)
+
+        val ops50 = (1..50).map { makeOp("op-$it") }
+        assertEquals(50, validator.validateBatch(ops50).valid.size)
+
+        val ops51 = (1..51).map { makeOp("op-$it") }
+        assertTrue(validator.validateBatch(ops51).valid.isEmpty())
+    }
+
+    @Test
+    fun `simultaneous invalid operation and entity type errors`() {
+        val op = makeOp("bad", entityType = "FAKE", operation = "MERGE", payload = "not-json")
+        val result = validator.validateBatch(listOf(op))
+        assertEquals(1, result.invalid.size)
+        // Should contain multiple errors separated by semicolons
+        val reason = result.invalid.first().reason
+        assertTrue(reason.contains(";"), "Expected multiple errors: $reason")
+    }
+
+    @Test
+    fun `whitespace-only id is treated as blank`() {
+        val op = SyncOperation("   ", "PRODUCT", "e-1", "INSERT", """{"name":"Test","price":1.0}""", System.currentTimeMillis() - 100)
+        val result = validator.validateBatch(listOf(op))
+        assertEquals(1, result.invalid.size)
     }
 }
