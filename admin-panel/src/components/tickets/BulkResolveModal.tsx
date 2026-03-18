@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useBulkResolveTickets } from '@/api/tickets';
-import { toast } from 'sonner';
+import { toast } from '@/stores/ui-store';
 
 interface BulkResolveModalProps {
   ticketIds: string[];
@@ -21,7 +21,7 @@ export function BulkResolveModal({ ticketIds, open, onClose }: BulkResolveModalP
       { ticketIds, resolutionNote: resolutionNote.trim() },
       {
         onSuccess: (result) => {
-          toast.success(`${result.updated} tickets resolved${result.failed.length > 0 ? `, ${result.failed.length} failed` : ''}`);
+          toast.success(`${result.updated} tickets resolved`, result.failed.length > 0 ? `${result.failed.length} failed` : undefined);
           setResolutionNote('');
           onClose();
         },

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { AlertTriangle, Clock, Download, UserPlus, CheckCircle2 } from 'lucide-react';
 import { DataTable, type Column } from '@/components/shared/DataTable';
@@ -68,10 +68,14 @@ export function TicketTable({ data, isLoading, page, totalPages, total, onPageCh
     return () => clearInterval(id);
   }, []);
 
-  // Clear selection on page/data change
-  useEffect(() => {
-    setSelected(new Set());
-  }, [page, data]);
+  // Clear selection on page/data change — using ref to avoid effect setState
+  const prevPageRef = React.useRef(page);
+  const prevDataRef = React.useRef(data);
+  if (prevPageRef.current !== page || prevDataRef.current !== data) {
+    prevPageRef.current = page;
+    prevDataRef.current = data;
+    if (selected.size > 0) setSelected(new Set());
+  }
 
   const toggleSelect = (id: string) => {
     setSelected((prev) => {

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useBulkAssignTickets } from '@/api/tickets';
 import { useAdminUsers } from '@/api/users';
-import { toast } from 'sonner';
+import { toast } from '@/stores/ui-store';
 
 interface BulkAssignModalProps {
   ticketIds: string[];
@@ -24,7 +24,7 @@ export function BulkAssignModal({ ticketIds, open, onClose }: BulkAssignModalPro
       { ticketIds, assigneeId },
       {
         onSuccess: (result) => {
-          toast.success(`${result.updated} tickets assigned${result.failed.length > 0 ? `, ${result.failed.length} failed` : ''}`);
+          toast.success(`${result.updated} tickets assigned`, result.failed.length > 0 ? `${result.failed.length} failed` : undefined);
           onClose();
         },
       },
