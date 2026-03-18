@@ -1614,4 +1614,164 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 
 ---
 
+## 🔴 MANDATORY: PRE-IMPLEMENTATION READING ORDER
+
+> **BEFORE writing ANY code**, the implementation session MUST read and internalize
+> these documents in this exact order. Skipping this step will produce code that
+> violates architectural constraints, naming conventions, or security patterns.
+
+### Step 1: Architecture Foundation (READ FIRST — ~10 min)
+
+```
+docs/adr/ADR-001-*.md   → ViewModel base class policy (BaseViewModel<S,I,E> mandatory)
+docs/adr/ADR-002-*.md   → Domain model naming (no *Entity suffix in :shared:domain)
+docs/adr/ADR-003-*.md   → SecurePreferences consolidation (canonical in :shared:security only)
+docs/adr/ADR-004-*.md   → Keystore token scaffold removal (use TokenStorage interface)
+docs/adr/ADR-005-*.md   → Single admin account management
+docs/adr/ADR-006-*.md   → Backend Docker build in CI
+docs/adr/ADR-007-*.md   → Database-per-service (zyntapos_api, zyntapos_license)
+docs/adr/ADR-008-*.md   → RS256 key distribution (TOFU + well-known)
+```
+
+### Step 2: Architecture Diagrams & Module Dependencies (~5 min)
+
+```
+docs/architecture/       → Module dependency graphs, layer diagrams
+CLAUDE.md                → Full codebase context (module map, tech stack, Koin order, security)
+CONTRIBUTING.md          → Code review rules, architectural conventions
+```
+
+### Step 3: Existing Audit Reports (~5 min)
+
+```
+docs/audit/              → Phase 1-4 audit reports, backend modules audit
+```
+
+### Step 4: This Plan File
+
+Only after completing Steps 1-3, begin implementing items from this plan.
+
+---
+
+## 🔴 MANDATORY: IMPLEMENTATION COMPLIANCE RULES
+
+> These rules apply to EVERY line of code written during implementation.
+> Violations will be caught by CI (Detekt + Android Lint) or break the pipeline.
+
+### Architecture Compliance
+
+1. **Clean Architecture (strict layering):**
+   - `Presentation → Domain → Data/Infrastructure` — NEVER reverse the dependency
+   - `:shared:domain` ONLY depends on `:shared:core` — no imports from `:shared:data`, `:shared:hal`, `:shared:security`
+   - Feature modules depend on `:composeApp:navigation`, `:composeApp:designsystem`, `:composeApp:core` — NEVER on each other
+   - Repository interfaces live in `:shared:domain` — implementations in `:shared:data`
+
+2. **MVI Pattern (mandatory for ALL screens):**
+   - Every screen has: `State` (immutable data class), `Intent` (sealed class of user actions), `Effect` (one-shot side effects)
+   - Every ViewModel MUST extend `BaseViewModel<State, Intent, Effect>` from `:composeApp:core` (ADR-001)
+   - State mutations ONLY via `updateState { }` — never modify state directly
+   - Side effects (navigation, toasts) ONLY via `sendEffect()` — never from composable
+   - Single entry point: `override suspend fun handleIntent(intent: I)` — all user actions flow through here
+
+3. **DRY Principle:**
+   - Reuse existing `Zynta*` design system components (27+ exist) — do NOT create duplicates
+   - Reuse existing use cases — check `:shared:domain` before writing new ones
+   - Reuse existing repository methods — check interfaces in `:shared:domain/repository/`
+   - Reuse existing utilities from `:shared:core` (`CurrencyUtils`, `DateTimeUtils`, `ValidationUtils`)
+   - Common UI patterns (search bar, empty state, loading) already exist in designsystem
+
+### Naming Conventions (enforced by code review)
+
+| What | Convention | Example |
+|------|-----------|---------|
+| Domain models | Plain names, NO `*Entity` suffix (ADR-002) | `Product`, `Order`, `Customer` |
+| ViewModels | `<Feature>ViewModel` extending `BaseViewModel` | `InventoryViewModel` |
+| Use cases | `<Verb><Noun>UseCase` | `GetProductsUseCase`, `CalculateOrderTotalsUseCase` |
+| Repository interfaces | `<Noun>Repository` | `ProductRepository` |
+| Repository implementations | `<Noun>RepositoryImpl` | `ProductRepositoryImpl` |
+| Koin DI modules | `<feature>Module` in `<feature>/di/` package | `inventoryModule` in `inventory/di/InventoryModule.kt` |
+| Design system components | `Zynta*` prefix | `ZyntaButton`, `ZyntaCard`, `ZyntaSearchBar` |
+| Routes | Sealed class members in `ZyntaRoute` | `data class ProductDetail(val productId: String?)` |
+| Commits | Conventional Commits with module scope | `feat(pos): add hold order use case` |
+
+### Security Requirements
+
+1. **Database:** All SQLite access through SQLDelight — never raw SQL strings with user input
+2. **Encryption:** DB passphrase from Keystore/JCE only — never hardcoded or in plaintext
+3. **PIN:** SHA-256 + 16-byte salt via `PinManager` — constant-time compare
+4. **JWT:** Use `JwtManager` — never decode tokens manually
+5. **RBAC:** Route gating via `RbacEngine` — never bypass permission checks
+6. **Secrets:** Via `local.properties` → Gradle Secrets Plugin → `BuildConfig` — never commit secrets
+7. **Input validation:** At system boundaries (user input, API responses) — use `ValidationUtils`
+8. **No OWASP Top 10:** No command injection, XSS, SQL injection in any code path
+
+### Performance Requirements
+
+1. **Search:** Use `debounce(300L)` on search queries — never fire on every keystroke
+2. **Flow operators:** Use `flatMapLatest` for search (cancels previous) — never `flatMapMerge`
+3. **State updates:** Atomic via `updateState { }` — never multiple sequential state emissions
+4. **Image loading:** Use Coil with `AsyncImage` — never load bitmaps on main thread
+5. **Database:** Use SQLDelight generated queries — never `rawQuery` with string interpolation
+6. **Coroutines:** IO operations on `IO_DISPATCHER` — never block main thread
+7. **Lists:** Use `LazyColumn`/`LazyVerticalGrid` — never `Column` with `forEach` for large lists
+
+### Kotlin/KMP Specific
+
+1. **100% Kotlin — NO Java files**
+2. **Version catalog:** All deps via `gradle/libs.versions.toml` — never hardcode versions
+3. **kotlinx-datetime:** Pinned at **0.7.1** — never downgrade (breaks CMP 1.10.0)
+4. **Koin DI:** Use `koin.loadModules()` — never `loadKoinModules(global=true)` or `GlobalContext.get()`
+5. **Platform code:** Use `expect/actual` in `:shared:hal` — never import platform APIs directly in shared code
+6. **Gradle wrapper:** Always `./gradlew` — never bare `gradle`
+
+### Testing Requirements
+
+| Layer | Coverage Target | Framework |
+|-------|----------------|-----------|
+| Use Cases | 95% | Kotlin Test + Mockative 3 |
+| Repositories | 80% | Kotlin Test + Mockative 3 |
+| ViewModels | 80% | Kotlin Test + Turbine |
+| New features | Tests MUST accompany implementation | All of above |
+
+- Write tests in `src/commonTest/` (shared) or `src/jvmTest/` (integration)
+- Mock via `mock<Interface>` (Mockative 3) — no hand-written fakes unless testing boundary contracts
+- Flow assertions via Turbine — `awaitItem()`, `awaitError()`, `ensureAllEventsConsumed()`
+- Run `./gradlew :shared:core:test :shared:domain:test :shared:security:test --parallel` before committing
+
+### CI Pipeline Compliance
+
+After EVERY commit+push, the 7-step pipeline must pass:
+1. Step[1] Branch Validate — build shared + Android APK + Desktop JAR
+2. Step[2] Auto PR — creates PR targeting main
+3. Step[3+4] CI Gate — full build + Lint + Detekt + allTests
+4. Steps 5-7 — Deploy + Smoke + Verify (after merge to main)
+
+**Do NOT proceed to next item until pipeline is green.**
+
+---
+
+## IMPLEMENTATION SESSION CHECKLIST
+
+> Copy-paste this checklist at the start of every implementation session.
+
+```
+□ 1. Read CLAUDE.md (full codebase context)
+□ 2. Read all ADRs in docs/adr/ (architecture decisions)
+□ 3. Read docs/architecture/ (diagrams, module deps)
+□ 4. Read this plan file (features + gaps + priorities)
+□ 5. Run `echo $PAT` to confirm GitHub token available
+□ 6. Run `git fetch origin main && git merge origin/main --no-edit` to sync
+□ 7. Pick highest priority unchecked item from Section A → B → C → D → G
+□ 8. Implement following all compliance rules above
+□ 9. Write tests (use case 95%, repo 80%, VM 80%)
+□ 10. Run `./gradlew :shared:core:test :shared:domain:test --parallel` locally
+□ 11. Commit with conventional commit format referencing plan item ID
+□ 12. Push and monitor pipeline until green
+□ 13. Mark item as [x] in this file
+□ 14. Repeat from step 7 until session ends
+□ 15. Final push before session end (mandatory per CLAUDE.md)
+```
+
+---
+
 *End of document*
