@@ -1,24 +1,34 @@
 package com.zyntasolutions.zyntapos.api.routes
 
 import com.zyntasolutions.zyntapos.api.models.*
+import com.zyntasolutions.zyntapos.api.plugins.TokenRevocationCache
 import com.zyntasolutions.zyntapos.api.repository.ConflictLogRepository
 import com.zyntasolutions.zyntapos.api.repository.DeadLetterRepository
+import com.zyntasolutions.zyntapos.api.service.AdminAuditService
 import com.zyntasolutions.zyntapos.api.service.AdminAuthService
 import com.zyntasolutions.zyntapos.api.service.AdminStoresService
 import com.zyntasolutions.zyntapos.api.service.ForceSyncNotifier
+import com.zyntasolutions.zyntapos.api.auth.AdminPermissions
+import com.zyntasolutions.zyntapos.api.db.RevokedTokens
 import com.zyntasolutions.zyntapos.api.db.Stores
 import com.zyntasolutions.zyntapos.api.db.SyncQueue
+import com.zyntasolutions.zyntapos.common.validation.validateOr422
 import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.lettuce.core.api.StatefulRedisConnection
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
+import org.apache.commons.pool2.impl.GenericObjectPool
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.javatime.timestampWithTimeZone
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.koin.ktor.ext.inject
+import org.slf4j.LoggerFactory
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.UUID
@@ -238,5 +248,112 @@ fun Route.adminSyncRoutes() {
             deadLetterRepo.delete(id)
             call.respond(HttpStatusCode.OK, mapOf("id" to id, "status" to "discarded"))
         }
+
+        // ── POS Token Revocation ──────────────────────────────────────────────
+        tokenRevocationRoutes(authService)
+    }
+}
+
+@Serializable
+private data class RevokeTokenRequest(
+    val jti: String,
+    val reason: String? = null,
+)
+
+@Serializable
+private data class RevokeTokenResponse(
+    val jti: String,
+    val status: String,
+)
+
+private val tokenRevokeLogger = LoggerFactory.getLogger("TokenRevocation")
+
+/**
+ * Admin endpoint to revoke POS JWT access tokens.
+ * Inserts the JTI into `revoked_tokens` table and publishes to Redis `revoked_jtis` set
+ * so the sync service can also reject the token without DB access.
+ */
+private fun Route.tokenRevocationRoutes(authService: AdminAuthService) {
+    val redisPool: GenericObjectPool<StatefulRedisConnection<String, String>>? by inject()
+    val auditService: AdminAuditService by inject()
+
+    route("/tokens") {
+        // POST /admin/sync/tokens/revoke — revoke a specific POS JWT by JTI
+        post("/revoke") {
+            val admin = resolveAdminUser(call, authService) ?: return@post
+            AdminPermissions.requirePermission(admin.role, "users:sessions:revoke")
+
+            val body = call.receive<RevokeTokenRequest>()
+            if (!call.validateOr422 {
+                requireNotBlank("jti", body.jti)
+                requireMaxLength("jti", body.jti, 256)
+            }) return@post
+
+            // Insert into revoked_tokens table (idempotent — ignore if already exists)
+            val inserted = newSuspendedTransaction {
+                val existing = RevokedTokens.selectAll()
+                    .where { RevokedTokens.jti eq body.jti }
+                    .count()
+                if (existing > 0L) return@newSuspendedTransaction false
+
+                RevokedTokens.insert {
+                    it[id] = UUID.randomUUID()
+                    it[jti] = body.jti
+                    it[reason] = body.reason
+                    it[revokedAt] = OffsetDateTime.now(ZoneOffset.UTC)
+                }
+                true
+            }
+
+            // Update in-memory cache immediately
+            TokenRevocationCache.markRevoked(body.jti)
+
+            // Publish to Redis set so sync service can check revocation
+            publishRevocationToRedis(redisPool, body.jti)
+
+            // Audit trail
+            auditService.log(
+                adminId    = admin.id,
+                adminName  = admin.name,
+                eventType  = "POS_TOKEN_REVOKED",
+                category   = "AUTH",
+                entityType = "pos_token",
+                entityId   = body.jti,
+                ipAddress  = call.request.headers["X-Forwarded-For"]?.split(",")?.firstOrNull()?.trim()
+                              ?: call.request.local.remoteHost,
+                success    = true,
+                newValues  = mapOf("reason" to (body.reason ?: "admin_revocation")),
+            )
+
+            tokenRevokeLogger.info("POS token revoked: jti=${body.jti} by=${admin.email} reason=${body.reason}")
+
+            call.respond(
+                if (inserted) HttpStatusCode.Created else HttpStatusCode.OK,
+                RevokeTokenResponse(jti = body.jti, status = if (inserted) "revoked" else "already_revoked")
+            )
+        }
+    }
+}
+
+private const val REVOKED_JTIS_REDIS_KEY = "revoked_jtis"
+private const val REVOKED_JTI_TTL_SECONDS = 86400L // 24 hours — tokens expire before this
+
+private fun publishRevocationToRedis(
+    redisPool: GenericObjectPool<StatefulRedisConnection<String, String>>?,
+    jti: String,
+) {
+    if (redisPool == null) return
+    try {
+        val conn = redisPool.borrowObject()
+        try {
+            // Add to Redis set with TTL so it self-cleans
+            conn.sync().sadd(REVOKED_JTIS_REDIS_KEY, jti)
+            // Refresh TTL on the set (covers all entries)
+            conn.sync().expire(REVOKED_JTIS_REDIS_KEY, REVOKED_JTI_TTL_SECONDS)
+        } finally {
+            redisPool.returnObject(conn)
+        }
+    } catch (e: Exception) {
+        tokenRevokeLogger.warn("Failed to publish token revocation to Redis: ${e.message}")
     }
 }

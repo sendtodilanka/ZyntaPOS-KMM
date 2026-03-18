@@ -443,11 +443,25 @@ class EntityApplier {
         when (op.operation) {
             "INSERT", "CREATE", "UPDATE" -> {
                 val name = payload.str("name") ?: return
+                val parentId = payload.str("parent_id")
+
+                // Circular parent reference detection — walk the ancestor chain
+                if (parentId != null) {
+                    if (parentId == op.entityId) {
+                        logger.warn("Category ${op.entityId}: self-referencing parentId rejected")
+                        return
+                    }
+                    if (detectCircularParent(storeId, op.entityId, parentId)) {
+                        logger.warn("Category ${op.entityId}: circular parent reference detected via $parentId — rejected")
+                        return
+                    }
+                }
+
                 Categories.upsert(Categories.id) {
                     it[Categories.id]          = op.entityId
                     it[Categories.storeId]     = storeId
                     it[Categories.name]        = name
-                    it[Categories.parentId]    = payload.str("parent_id")
+                    it[Categories.parentId]    = parentId
                     it[Categories.sortOrder]   = payload.int("sort_order")
                     it[Categories.imageUrl]    = payload.str("image_url")
                     it[Categories.isActive]    = payload.bool("is_active")
@@ -457,6 +471,29 @@ class EntityApplier {
             }
             "DELETE" -> softDelete(Categories, Categories.id, Categories.isActive, Categories.syncVersion, Categories.updatedAt, op)
         }
+    }
+
+    /**
+     * Walks the parent chain from [parentId] up to [MAX_CATEGORY_DEPTH] levels.
+     * Returns true if [categoryId] is found in the ancestor chain (circular reference).
+     */
+    private fun detectCircularParent(storeId: String, categoryId: String, parentId: String): Boolean {
+        var currentId: String? = parentId
+        var depth = 0
+        while (currentId != null && depth < MAX_CATEGORY_DEPTH) {
+            if (currentId == categoryId) return true
+            val parent = Categories.selectAll().where {
+                (Categories.id eq currentId!!) and (Categories.storeId eq storeId)
+            }.singleOrNull() ?: break
+            currentId = parent[Categories.parentId]
+            depth++
+        }
+        return false
+    }
+
+    companion object {
+        /** Maximum category hierarchy depth to prevent infinite loops on corrupted data. */
+        private const val MAX_CATEGORY_DEPTH = 10
     }
 
     // ── Customer ──────────────────────────────────────────────────────────

@@ -414,4 +414,31 @@ class SyncProcessorTest {
 
         assertTrue(metrics.conflictsTotal.get() > initialConflicts)
     }
+
+    // ── SyncNotification entityTypes ─────────────────────────────────────
+
+    @Test
+    fun `SyncNotification includes entityTypes field`() {
+        val notification = SyncProcessor.SyncNotification(
+            storeId = "store-1",
+            senderDeviceId = "dev-1",
+            operationCount = 3,
+            latestSeq = 42L,
+            entityTypes = listOf("PRODUCT", "CATEGORY", "ORDER"),
+        )
+        assertEquals(3, notification.entityTypes.size)
+        assertTrue("PRODUCT" in notification.entityTypes)
+        assertTrue("ORDER" in notification.entityTypes)
+    }
+
+    @Test
+    fun `SyncNotification entityTypes defaults to empty list`() {
+        val notification = SyncProcessor.SyncNotification(
+            storeId = "store-1",
+            senderDeviceId = "dev-1",
+            operationCount = 0,
+            latestSeq = 0L,
+        )
+        assertTrue(notification.entityTypes.isEmpty())
+    }
 }

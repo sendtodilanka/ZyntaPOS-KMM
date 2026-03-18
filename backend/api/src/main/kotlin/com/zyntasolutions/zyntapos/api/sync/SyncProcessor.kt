@@ -43,6 +43,7 @@ class SyncProcessor(
         val senderDeviceId: String,
         val operationCount: Int,
         val latestSeq: Long,
+        val entityTypes: List<String> = emptyList(),
     )
 
     suspend fun processPush(storeId: String, request: PushRequest): PushResponse {
@@ -129,7 +130,11 @@ class SyncProcessor(
 
             // Step 4: Publish to Redis for WebSocket fan-out
             val latestSeq = syncOpRepo.getLatestSeq(storeId)
-            publishToRedis(storeId, request.deviceId, accepted.size + conflicts.size, latestSeq)
+            val affectedEntityTypes = newOps
+                .filter { it.id in accepted || it.id in conflicts }
+                .map { it.entityType }
+                .distinct()
+            publishToRedis(storeId, request.deviceId, accepted.size + conflicts.size, latestSeq, affectedEntityTypes)
 
             // Update metrics
             metrics.opsAccepted.addAndGet(accepted.size.toLong())
@@ -156,7 +161,7 @@ class SyncProcessor(
         }
     }
 
-    private fun publishToRedis(storeId: String, senderDeviceId: String, opCount: Int, latestSeq: Long) {
+    private fun publishToRedis(storeId: String, senderDeviceId: String, opCount: Int, latestSeq: Long, entityTypes: List<String> = emptyList()) {
         if (redisPool == null) return
         try {
             val notification = SyncNotification(
@@ -164,6 +169,7 @@ class SyncProcessor(
                 senderDeviceId  = senderDeviceId,
                 operationCount  = opCount,
                 latestSeq       = latestSeq,
+                entityTypes     = entityTypes,
             )
             val payload = json.encodeToString(notification)
             val conn = redisPool.borrowObject()
