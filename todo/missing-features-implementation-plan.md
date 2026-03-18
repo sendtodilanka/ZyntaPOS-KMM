@@ -235,16 +235,16 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 
 ---
 
-### A6. Security Monitoring (TODO-010) — ~85% Complete
+### A6. Security Monitoring (TODO-010) — ~95% Complete
 
 **Priority:** P1-HIGH
 
 **What's MISSING:**
-- [ ] Snyk Monitor step in `ci-gate.yml`
-- [ ] Falcosidekick → Slack webhook wiring
-- [ ] Cloudflare tunnel config placeholder replacement
-- [ ] OWASP dependency check in CI pipeline
-- [ ] CF Zero Trust + WAF rules (dashboard action)
+- [x] Snyk Monitor step — already in `sec-backend-scan.yml` (weekly + on-demand)
+- [x] Falcosidekick → Slack webhook wiring — already configured in docker-compose + falcosidekick.yaml
+- [ ] Cloudflare tunnel config placeholder replacement (dashboard action — out of scope for code)
+- [x] OWASP dependency check in CI pipeline — added to `ci-gate.yml` as `security-scan-backend` job
+- [ ] CF Zero Trust + WAF rules (dashboard action — out of scope for code)
 
 ---
 
