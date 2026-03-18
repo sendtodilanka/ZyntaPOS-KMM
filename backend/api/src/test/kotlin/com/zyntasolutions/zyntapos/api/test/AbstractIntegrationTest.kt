@@ -1,7 +1,10 @@
 package com.zyntasolutions.zyntapos.api.test
 
+import com.zaxxer.hikari.HikariConfig
+import com.zaxxer.hikari.HikariDataSource
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
@@ -27,29 +30,43 @@ abstract class AbstractIntegrationTest {
             .withPassword("test")
 
         @Volatile
-        private var migrated = false
+        private var initialized = false
+
+        @Volatile
+        private lateinit var sharedDatabase: Database
     }
 
-    protected lateinit var database: Database
+    protected val database: Database get() = sharedDatabase
 
     @BeforeEach
     fun baseSetup() {
-        database = Database.connect(
-            url = postgres.jdbcUrl,
-            driver = "org.postgresql.Driver",
-            user = postgres.username,
-            password = postgres.password,
-        )
-
-        if (!migrated) {
+        if (!initialized) {
+            // Run Flyway migrations first
             Flyway.configure()
                 .dataSource(postgres.jdbcUrl, postgres.username, postgres.password)
                 .locations("classpath:db/migration")
                 .baselineOnMigrate(true)
                 .load()
                 .migrate()
-            migrated = true
+
+            // Connect Exposed via HikariCP (matches production DatabaseFactory pattern)
+            val hikariConfig = HikariConfig().apply {
+                jdbcUrl = postgres.jdbcUrl
+                username = postgres.username
+                password = postgres.password
+                driverClassName = "org.postgresql.Driver"
+                maximumPoolSize = 5
+                minimumIdle = 1
+                isAutoCommit = false
+                transactionIsolation = "TRANSACTION_READ_COMMITTED"
+                validate()
+            }
+            sharedDatabase = Database.connect(HikariDataSource(hikariConfig))
+            initialized = true
         }
+
+        // Ensure Exposed uses our test database for newSuspendedTransaction calls
+        TransactionManager.defaultDatabase = sharedDatabase
 
         cleanTables()
     }
@@ -59,7 +76,7 @@ abstract class AbstractIntegrationTest {
      * Uses CASCADE to handle FK constraints.
      */
     private fun cleanTables() {
-        transaction(database) {
+        transaction(sharedDatabase) {
             exec(
                 """
                 TRUNCATE TABLE
