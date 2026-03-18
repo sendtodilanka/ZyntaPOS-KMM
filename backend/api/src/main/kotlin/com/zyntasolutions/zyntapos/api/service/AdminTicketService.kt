@@ -386,7 +386,7 @@ class AdminTicketService(
                     val emails = ticketRepo.findUserEmails(listOf(assigneeId))
                     emails[assigneeId]?.let { email ->
                         runCatching {
-                            emailService.sendSlaBreachAlert(
+                            emailService?.sendSlaBreachAlert(
                                 toEmail = email,
                                 ticketNumber = ticket.ticketNumber,
                                 title = ticket.title,
