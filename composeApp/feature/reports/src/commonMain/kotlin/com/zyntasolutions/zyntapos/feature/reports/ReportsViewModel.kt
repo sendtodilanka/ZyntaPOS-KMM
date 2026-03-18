@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.feature.reports
 
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateCustomerReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateExpenseReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateSalesReportUseCase
@@ -45,7 +46,12 @@ class ReportsViewModel(
     private val generateExpenseReport: GenerateExpenseReportUseCase,
     private val printReport: PrintReportUseCase,
     private val reportExporter: ReportExporter,
+    private val analytics: AnalyticsTracker,
 ) : BaseViewModel<ReportsState, ReportsIntent, ReportsEffect>(ReportsState()) {
+
+    init {
+        analytics.logScreenView("Reports", "ReportsViewModel")
+    }
 
     private var salesJob: Job? = null
     private var stockJob: Job? = null

@@ -48,6 +48,7 @@ class AuthViewModel(
 ) : BaseViewModel<AuthState, AuthIntent, AuthEffect>(AuthState()) {
 
     init {
+        analytics.logScreenView("Auth", "AuthViewModel")
         // Observe session changes driven by external events (token expiry, forced logout).
         // Handled separately — the UI navigation is driven by effects, not state.
         observeSession()

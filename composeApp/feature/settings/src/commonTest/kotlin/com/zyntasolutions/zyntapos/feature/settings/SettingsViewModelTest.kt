@@ -53,6 +53,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import kotlin.time.Clock
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -65,6 +66,13 @@ import kotlin.time.Clock
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SettingsViewModelTest {
+
+    private val noOpAnalytics = object : AnalyticsTracker {
+        override fun logEvent(name: String, params: Map<String, String>) = Unit
+        override fun logScreenView(screenName: String, screenClass: String) = Unit
+        override fun setUserId(userId: String?) = Unit
+        override fun setUserProperty(name: String, value: String) = Unit
+    }
 
     // ── Fake collaborators ────────────────────────────────────────────────────
 
@@ -279,6 +287,7 @@ class SettingsViewModelTest {
             deletePrinterProfileUseCase  = DeletePrinterProfileUseCase(fakePrinterProfileRepository),
             auditLogger                  = testAuditLogger,
             authRepository               = fakeAuthRepository,
+            analytics                    = noOpAnalytics,
         )
     }
 

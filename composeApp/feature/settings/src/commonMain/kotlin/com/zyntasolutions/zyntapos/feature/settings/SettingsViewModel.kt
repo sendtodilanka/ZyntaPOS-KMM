@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.settings
 
 import androidx.lifecycle.viewModelScope
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import com.zyntasolutions.zyntapos.core.utils.IdGenerator
 import com.zyntasolutions.zyntapos.core.result.onError
 import com.zyntasolutions.zyntapos.core.result.onSuccess
@@ -82,12 +83,14 @@ class SettingsViewModel(
     private val deletePrinterProfileUseCase: DeletePrinterProfileUseCase,
     private val auditLogger: SecurityAuditLogger,
     private val authRepository: AuthRepository,
+    private val analytics: AnalyticsTracker,
 ) : BaseViewModel<SettingsState, SettingsIntent, SettingsEffect>(SettingsState()) {
 
     private var currentUserId: String = "unknown"
     private var taxGroupJob: Job? = null
 
     init {
+        analytics.logScreenView("Settings", "SettingsViewModel")
         viewModelScope.launch {
             currentUserId = authRepository.getSession().first()?.id ?: "unknown"
         }

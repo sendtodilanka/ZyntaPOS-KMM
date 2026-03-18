@@ -25,6 +25,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import kotlin.test.assertTrue
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -36,6 +37,13 @@ import kotlin.test.assertTrue
 class CouponViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
+
+    private val noOpAnalytics = object : AnalyticsTracker {
+        override fun logEvent(name: String, params: Map<String, String>) = Unit
+        override fun logScreenView(screenName: String, screenClass: String) = Unit
+        override fun setUserId(userId: String?) = Unit
+        override fun setUserProperty(name: String, value: String) = Unit
+    }
 
     // ── Fake CouponRepository ─────────────────────────────────────────────────
 
@@ -150,6 +158,7 @@ class CouponViewModelTest {
         viewModel = CouponViewModel(
             couponRepository = fakeCouponRepository,
             saveCouponUseCase = saveCouponUseCase,
+            analytics = noOpAnalytics,
         )
     }
 

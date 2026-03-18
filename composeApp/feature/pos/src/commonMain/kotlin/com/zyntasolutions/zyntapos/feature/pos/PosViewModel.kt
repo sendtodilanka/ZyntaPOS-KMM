@@ -162,6 +162,7 @@ class PosViewModel(
     // ── Reactive product pipeline ─────────────────────────────────────────────
 
     init {
+        analytics.logScreenView("POS", "PosViewModel")
         viewModelScope.launch {
             val session = authRepository.getSession().first()
             cashierId = session?.id ?: "unknown"

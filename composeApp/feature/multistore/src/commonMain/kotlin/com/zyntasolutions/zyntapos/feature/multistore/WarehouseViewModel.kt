@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.feature.multistore
 
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import com.zyntasolutions.zyntapos.core.utils.IdGenerator
@@ -44,6 +45,7 @@ class WarehouseViewModel(
     private val saveWarehouseRackUseCase: SaveWarehouseRackUseCase,
     private val deleteWarehouseRackUseCase: DeleteWarehouseRackUseCase,
     private val authRepository: AuthRepository,
+    private val analytics: AnalyticsTracker,
 ) : BaseViewModel<WarehouseState, WarehouseIntent, WarehouseEffect>(WarehouseState()) {
 
     private var currentStoreId: String = "default"
@@ -51,6 +53,7 @@ class WarehouseViewModel(
     private var productSearchJob: Job? = null
 
     init {
+        analytics.logScreenView("Warehouse", "WarehouseViewModel")
         viewModelScope.launch {
             val session = authRepository.getSession().first()
             currentStoreId = session?.storeId ?: "default"

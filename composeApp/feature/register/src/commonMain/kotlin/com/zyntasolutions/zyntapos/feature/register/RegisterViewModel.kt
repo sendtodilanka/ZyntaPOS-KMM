@@ -13,6 +13,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.register.OpenRegisterSessionUs
 import com.zyntasolutions.zyntapos.domain.usecase.register.PrintA4ZReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.PrintZReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.RecordCashMovementUseCase
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlin.time.Clock
@@ -55,11 +56,13 @@ class RegisterViewModel(
     private val printA4ZReportUseCase: PrintA4ZReportUseCase,
     private val authRepository: AuthRepository,
     private val auditLogger: SecurityAuditLogger,
+    private val analytics: AnalyticsTracker,
 ) : BaseViewModel<RegisterState, RegisterIntent, RegisterEffect>(RegisterState()) {
 
     private var currentUserId: String = "unknown"
 
     init {
+        analytics.logScreenView("Register", "RegisterViewModel")
         viewModelScope.launch {
             currentUserId = authRepository.getSession().first()?.id ?: "unknown"
         }

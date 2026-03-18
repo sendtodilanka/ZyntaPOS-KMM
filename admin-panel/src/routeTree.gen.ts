@@ -22,6 +22,7 @@ import { Route as LicensesIndexRouteImport } from './routes/licenses/index'
 import { Route as HealthIndexRouteImport } from './routes/health/index'
 import { Route as ConfigIndexRouteImport } from './routes/config/index'
 import { Route as AuditIndexRouteImport } from './routes/audit/index'
+import { Route as SecurityIndexRouteImport } from './routes/security/index'
 import { Route as AlertsIndexRouteImport } from './routes/alerts/index'
 import { Route as TicketsTicketIdRouteImport } from './routes/tickets/$ticketId'
 import { Route as StoresStoreIdRouteImport } from './routes/stores/$storeId'
@@ -97,6 +98,11 @@ const AuditIndexRoute = AuditIndexRouteImport.update({
   path: '/audit/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SecurityIndexRoute = SecurityIndexRouteImport.update({
+  id: '/security/',
+  path: '/security/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AlertsIndexRoute = AlertsIndexRouteImport.update({
   id: '/alerts/',
   path: '/alerts/',
@@ -160,6 +166,7 @@ export interface FileRoutesByFullPath {
   '/health/': typeof HealthIndexRoute
   '/licenses/': typeof LicensesIndexRoute
   '/reports/': typeof ReportsIndexRoute
+  '/security/': typeof SecurityIndexRoute
   '/settings/': typeof SettingsIndexRoute
   '/setup/': typeof SetupIndexRoute
   '/stores/': typeof StoresIndexRoute
@@ -184,6 +191,7 @@ export interface FileRoutesByTo {
   '/health': typeof HealthIndexRoute
   '/licenses': typeof LicensesIndexRoute
   '/reports': typeof ReportsIndexRoute
+  '/security': typeof SecurityIndexRoute
   '/settings': typeof SettingsIndexRoute
   '/setup': typeof SetupIndexRoute
   '/stores': typeof StoresIndexRoute
@@ -209,6 +217,7 @@ export interface FileRoutesById {
   '/health/': typeof HealthIndexRoute
   '/licenses/': typeof LicensesIndexRoute
   '/reports/': typeof ReportsIndexRoute
+  '/security/': typeof SecurityIndexRoute
   '/settings/': typeof SettingsIndexRoute
   '/setup/': typeof SetupIndexRoute
   '/stores/': typeof StoresIndexRoute
@@ -235,6 +244,7 @@ export interface FileRouteTypes {
     | '/health/'
     | '/licenses/'
     | '/reports/'
+    | '/security/'
     | '/settings/'
     | '/setup/'
     | '/stores/'
@@ -258,6 +268,7 @@ export interface FileRouteTypes {
     | '/health'
     | '/licenses'
     | '/reports'
+    | '/security'
     | '/settings'
     | '/setup'
     | '/stores'
@@ -282,6 +293,7 @@ export interface FileRouteTypes {
     | '/health/'
     | '/licenses/'
     | '/reports/'
+    | '/security/'
     | '/settings/'
     | '/setup/'
     | '/stores/'
@@ -307,6 +319,7 @@ export interface RootRouteChildren {
   HealthIndexRoute: typeof HealthIndexRoute
   LicensesIndexRoute: typeof LicensesIndexRoute
   ReportsIndexRoute: typeof ReportsIndexRoute
+  SecurityIndexRoute: typeof SecurityIndexRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
   SetupIndexRoute: typeof SetupIndexRoute
   StoresIndexRoute: typeof StoresIndexRoute
@@ -408,6 +421,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuditIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/security/': {
+      id: '/security/'
+      path: '/security'
+      fullPath: '/security/'
+      preLoaderRoute: typeof SecurityIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/alerts/': {
       id: '/alerts/'
       path: '/alerts'
@@ -491,6 +511,7 @@ const rootRouteChildren: RootRouteChildren = {
   HealthIndexRoute: HealthIndexRoute,
   LicensesIndexRoute: LicensesIndexRoute,
   ReportsIndexRoute: ReportsIndexRoute,
+  SecurityIndexRoute: SecurityIndexRoute,
   SettingsIndexRoute: SettingsIndexRoute,
   SetupIndexRoute: SetupIndexRoute,
   StoresIndexRoute: StoresIndexRoute,

@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.staff
 
 import androidx.lifecycle.viewModelScope
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.core.result.ValidationException
 import com.zyntasolutions.zyntapos.core.utils.IdGenerator
@@ -86,6 +87,7 @@ class StaffViewModel(
     private val getPayrollHistoryUseCase: GetPayrollHistoryUseCase,
     private val getAttendanceSummaryUseCase: GetAttendanceSummaryUseCase,
     private val getLeaveHistoryUseCase: GetLeaveHistoryUseCase,
+    private val analytics: AnalyticsTracker,
 ) : BaseViewModel<StaffState, StaffIntent, StaffEffect>(StaffState()) {
 
     private var storeId: String = ""
@@ -98,6 +100,7 @@ class StaffViewModel(
     private val _historyEmployeeId = MutableStateFlow<String?>(null)
 
     init {
+        analytics.logScreenView("Staff", "StaffViewModel")
         viewModelScope.launch {
             val session = authRepository.getSession().first()
             storeId = session?.storeId ?: ""

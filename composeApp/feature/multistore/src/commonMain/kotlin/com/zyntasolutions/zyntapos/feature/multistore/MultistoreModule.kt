@@ -42,6 +42,7 @@ val multistoreModule = module {
             saveWarehouseRackUseCase = get(),
             deleteWarehouseRackUseCase = get(),
             authRepository = get(),
+            analytics = get(),
         )
     }
 }

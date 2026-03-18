@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.feature.expenses
 
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
@@ -43,12 +44,14 @@ class ExpenseViewModel(
     private val authRepository: AuthRepository,
     private val postExpenseJournalEntryUseCase: PostExpenseJournalEntryUseCase,
     private val auditLogger: SecurityAuditLogger,
+    private val analytics: AnalyticsTracker,
 ) : BaseViewModel<ExpenseState, ExpenseIntent, ExpenseEffect>(ExpenseState()) {
 
     private var currentUserId: String = "unknown"
     private var storeId: String = ""
 
     init {
+        analytics.logScreenView("Expenses", "ExpenseViewModel")
         viewModelScope.launch {
             val session = authRepository.getSession().first()
             currentUserId = session?.id ?: "unknown"

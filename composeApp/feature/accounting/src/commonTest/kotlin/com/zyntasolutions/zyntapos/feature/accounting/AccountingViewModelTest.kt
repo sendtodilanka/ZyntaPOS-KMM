@@ -28,6 +28,7 @@ import com.zyntasolutions.zyntapos.domain.model.User
 import com.zyntasolutions.zyntapos.domain.model.Role
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import kotlinx.datetime.Instant
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -40,6 +41,13 @@ class AccountingViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private val storeId = "store-001"
+
+    private val noOpAnalytics = object : AnalyticsTracker {
+        override fun logEvent(name: String, params: Map<String, String>) = Unit
+        override fun logScreenView(screenName: String, screenClass: String) = Unit
+        override fun setUserId(userId: String?) = Unit
+        override fun setUserProperty(name: String, value: String) = Unit
+    }
 
     private val fakeAuthRepository = object : AuthRepository {
         private val _session = MutableStateFlow<User?>(
@@ -105,6 +113,7 @@ class AccountingViewModelTest {
         viewModel = AccountingViewModel(
             getPeriodSummaryUseCase = getPeriodSummaryUseCase,
             authRepository = fakeAuthRepository,
+            analytics = noOpAnalytics,
         )
     }
 
@@ -191,6 +200,7 @@ class AccountingViewModelTest {
         val vmWithSlowRepo = AccountingViewModel(
             getPeriodSummaryUseCase = GetPeriodSummaryUseCase(slowRepository),
             authRepository = fakeAuthRepository,
+            analytics = noOpAnalytics,
         )
         vmRef = vmWithSlowRepo
 

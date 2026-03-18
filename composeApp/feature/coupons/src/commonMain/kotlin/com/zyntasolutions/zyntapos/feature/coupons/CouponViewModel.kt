@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.feature.coupons
 
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import com.zyntasolutions.zyntapos.core.utils.IdGenerator
@@ -28,9 +29,11 @@ import kotlin.time.Clock
 class CouponViewModel(
     private val couponRepository: CouponRepository,
     private val saveCouponUseCase: SaveCouponUseCase,
+    private val analytics: AnalyticsTracker,
 ) : BaseViewModel<CouponState, CouponIntent, CouponEffect>(CouponState()) {
 
     init {
+        analytics.logScreenView("Coupons", "CouponViewModel")
         observeCoupons()
     }
 

@@ -33,6 +33,7 @@ val mediaModule = module {
             saveMediaFileUseCase = get(),
             deleteMediaFileUseCase = get(),
             mediaRepository = get(),
+            analytics = get(),
         )
     }
 }

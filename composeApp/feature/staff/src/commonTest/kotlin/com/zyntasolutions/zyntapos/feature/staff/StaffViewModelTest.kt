@@ -70,6 +70,7 @@ import com.zyntasolutions.zyntapos.domain.repository.AccountRepository
 import com.zyntasolutions.zyntapos.domain.repository.AccountingPeriodRepository
 import com.zyntasolutions.zyntapos.domain.repository.JournalRepository
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.PostPayrollJournalEntryUseCase
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import kotlinx.datetime.Instant
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -85,6 +86,13 @@ class StaffViewModelTest {
 
     private val storeId = "store-001"
     private val currentUserId = "user-001"
+
+    private val noOpAnalytics = object : AnalyticsTracker {
+        override fun logEvent(name: String, params: Map<String, String>) = Unit
+        override fun logScreenView(screenName: String, screenClass: String) = Unit
+        override fun setUserId(userId: String?) = Unit
+        override fun setUserProperty(name: String, value: String) = Unit
+    }
 
     private val fakeAuthRepository = object : AuthRepository {
         private val _session = MutableStateFlow<User?>(
@@ -533,6 +541,7 @@ class StaffViewModelTest {
             getPayrollHistoryUseCase = getPayrollHistoryUseCase,
             getAttendanceSummaryUseCase = getAttendanceSummaryUseCase,
             getLeaveHistoryUseCase = getLeaveHistoryUseCase,
+            analytics = noOpAnalytics,
         )
     }
 

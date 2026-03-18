@@ -42,6 +42,7 @@ import com.zyntasolutions.zyntapos.domain.model.JournalReferenceType
 import com.zyntasolutions.zyntapos.domain.repository.AccountRepository
 import com.zyntasolutions.zyntapos.domain.repository.AccountingPeriodRepository
 import com.zyntasolutions.zyntapos.domain.repository.JournalRepository
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.PostExpenseJournalEntryUseCase
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -54,6 +55,13 @@ class ExpenseViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private val currentUserId = "user-001"
+
+    private val noOpAnalytics = object : AnalyticsTracker {
+        override fun logEvent(name: String, params: Map<String, String>) = Unit
+        override fun logScreenView(screenName: String, screenClass: String) = Unit
+        override fun setUserId(userId: String?) = Unit
+        override fun setUserProperty(name: String, value: String) = Unit
+    }
 
     // ── No-op AuditRepository + SecurityAuditLogger ───────────────────────────
 
@@ -282,6 +290,7 @@ class ExpenseViewModelTest {
             authRepository = fakeAuthRepository,
             postExpenseJournalEntryUseCase = postExpenseJournalEntryUseCase,
             auditLogger = testAuditLogger,
+            analytics = noOpAnalytics,
         )
     }
 

@@ -134,6 +134,7 @@ val accountingModule = module {
         AccountingViewModel(
             getPeriodSummaryUseCase = get(),
             authRepository          = get(),
+            analytics               = get(),
         )
     }
 
