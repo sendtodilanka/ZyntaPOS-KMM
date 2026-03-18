@@ -11,15 +11,19 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.route
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.sql.SortOrder
+import org.jetbrains.exposed.sql.andWhere
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.koin.ktor.ext.inject
+import java.time.LocalDate
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 
 /**
  * Admin email management routes (TODO-008a).
  *
  * ## Routes
- * - `GET /admin/email/delivery-logs` — paginated delivery log (email:logs permission)
+ * - `GET /admin/email/delivery-logs` — paginated delivery log with optional filters (email:logs permission)
  */
 fun Route.adminEmailRoutes() {
     val authService: AdminAuthService by inject()
@@ -37,10 +41,30 @@ fun Route.adminEmailRoutes() {
             val pageSize = call.request.queryParameters["pageSize"]?.toIntOrNull()?.coerceIn(1, 100) ?: 20
             val offset = ((page - 1) * pageSize).toLong()
 
+            // Optional filters
+            val statusFilter = call.request.queryParameters["status"]
+            val startDate = call.request.queryParameters["startDate"]?.runCatching {
+                LocalDate.parse(this).atStartOfDay().atOffset(ZoneOffset.UTC)
+            }?.getOrNull()
+            val endDate = call.request.queryParameters["endDate"]?.runCatching {
+                LocalDate.parse(this).plusDays(1).atStartOfDay().atOffset(ZoneOffset.UTC)
+            }?.getOrNull()
+
             val (logs, total) = newSuspendedTransaction {
-                val total = EmailDeliveryLogs.selectAll().count()
-                val rows = EmailDeliveryLogs
-                    .selectAll()
+                val query = EmailDeliveryLogs.selectAll().apply {
+                    if (!statusFilter.isNullOrBlank()) {
+                        andWhere { EmailDeliveryLogs.status eq statusFilter }
+                    }
+                    if (startDate != null) {
+                        andWhere { EmailDeliveryLogs.createdAt greaterEq startDate }
+                    }
+                    if (endDate != null) {
+                        andWhere { EmailDeliveryLogs.createdAt less endDate }
+                    }
+                }
+
+                val total = query.count()
+                val rows = query
                     .orderBy(EmailDeliveryLogs.createdAt, SortOrder.DESC)
                     .limit(pageSize)
                     .offset(offset)

@@ -21,6 +21,7 @@ import com.zyntasolutions.zyntapos.api.routes.syncRoutes
 import com.zyntasolutions.zyntapos.api.routes.unsubscribeRoutes
 import com.zyntasolutions.zyntapos.api.routes.inboundEmailRoutes
 import com.zyntasolutions.zyntapos.api.routes.integrityRoutes
+import com.zyntasolutions.zyntapos.api.routes.webhookRoutes
 import com.zyntasolutions.zyntapos.api.routes.wellKnownRoutes
 import io.ktor.server.application.Application
 import io.ktor.server.auth.authenticate
@@ -46,6 +47,12 @@ fun Application.configureRouting() {
         // Rate-limited to prevent spam but NOT behind CSRF (Worker can't send CSRF tokens)
         rateLimit(RateLimitName("api")) {
             inboundEmailRoutes()
+        }
+
+        // Webhooks from third-party services (Resend bounce/complaint events)
+        // No auth or CSRF — external services cannot provide these
+        rateLimit(RateLimitName("api")) {
+            webhookRoutes()
         }
 
         // RFC 5785 well-known — public key for offline JWT verification (ADR-008)

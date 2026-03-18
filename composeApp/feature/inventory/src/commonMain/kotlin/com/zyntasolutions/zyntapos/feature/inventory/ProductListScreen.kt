@@ -113,6 +113,16 @@ fun ProductListScreen(
                 onStocktake = onNavigateToStocktake,
             )
 
+            // INV-8: Search result count
+            if (state.searchQuery.isNotBlank() || state.selectedCategoryId != null || state.stockFilter != StockFilter.ALL) {
+                Text(
+                    text = "${state.products.size} product${if (state.products.size != 1) "s" else ""} found",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = ZyntaSpacing.xs),
+                )
+            }
+
             Spacer(Modifier.height(ZyntaSpacing.sm))
 
             // ── Product List / Grid ─────────────────────────────────────

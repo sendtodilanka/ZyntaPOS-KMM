@@ -136,7 +136,7 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 
 ---
 
-### A2. Email Management System (TODO-008a) — ~95% Complete
+### A2. Email Management System (TODO-008a) — ~98% Complete
 
 **Priority:** P1-HIGH
 **Impact:** Email logs cannot be viewed by admins; templates not editable
@@ -154,21 +154,21 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 - Admin panel email page: `admin-panel/src/routes/settings/email.tsx` (119 lines — basic page EXISTS)
 
 **What's MISSING:**
-- [x] Admin panel email delivery log UI page — `admin-panel/src/routes/settings/email.tsx` EXISTS (basic, may need enhancement)
-- [ ] `useEmailLogs()` and `useEmailPreferences()` TanStack Query hooks (need to be CREATED in `admin-panel/src/api/email.ts`)
-- [ ] Email delivery log table enhancement (status filters, date range filter, pagination)
-- [ ] Email template editor in admin panel
-- [ ] Email preference management UI for customers
-- [ ] Bounce/complaint webhook handler from Resend
-- [ ] Email retry logic for QUEUED → SENDING failures
+- [x] Admin panel email delivery log UI page — `admin-panel/src/routes/settings/email.tsx` EXISTS (enhanced with filters)
+- [x] `useEmailDeliveryLogs()` TanStack Query hook with status/date filters (in `admin-panel/src/api/email.ts`)
+- [x] Email delivery log table enhancement (status filters, date range filter, pagination)
+- [ ] Email template editor in admin panel (deferred — Phase 2)
+- [ ] Email preference management UI for customers (deferred — Phase 2)
+- [x] Bounce/complaint webhook handler from Resend (`POST /webhooks/resend`)
+- [ ] Email retry logic for QUEUED → SENDING failures (deferred — Phase 2)
 
 **Implementation Steps:**
-1. Create `useEmailLogs()` hook in `admin-panel/src/api/email.ts`
-2. Enhance existing `admin-panel/src/routes/settings/email.tsx` with delivery log table
-3. Add email template CRUD endpoints in backend API
-4. Build template editor component in admin panel
-5. Implement Resend bounce/complaint webhook endpoint
-6. Add retry queue worker for failed email deliveries
+1. ~~Create `useEmailLogs()` hook in `admin-panel/src/api/email.ts`~~ ✅ Done (with filters)
+2. ~~Enhance existing `admin-panel/src/routes/settings/email.tsx` with delivery log table~~ ✅ Done (status + date filters)
+3. Add email template CRUD endpoints in backend API (Phase 2)
+4. Build template editor component in admin panel (Phase 2)
+5. ~~Implement Resend bounce/complaint webhook endpoint~~ ✅ Done (`WebhookRoutes.kt`)
+6. Add retry queue worker for failed email deliveries (Phase 2)
 
 ---
 
@@ -235,29 +235,29 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 
 ---
 
-### A6. Security Monitoring (TODO-010) — ~85% Complete
+### A6. Security Monitoring (TODO-010) — ~95% Complete
 
 **Priority:** P1-HIGH
 
 **What's MISSING:**
-- [ ] Snyk Monitor step in `ci-gate.yml`
-- [ ] Falcosidekick → Slack webhook wiring
-- [ ] Cloudflare tunnel config placeholder replacement
-- [ ] OWASP dependency check in CI pipeline
-- [ ] CF Zero Trust + WAF rules (dashboard action)
+- [x] Snyk Monitor step — already in `sec-backend-scan.yml` (weekly + on-demand)
+- [x] Falcosidekick → Slack webhook wiring — already configured in docker-compose + falcosidekick.yaml
+- [ ] Cloudflare tunnel config placeholder replacement (dashboard action — out of scope for code)
+- [x] OWASP dependency check in CI pipeline — added to `ci-gate.yml` as `security-scan-backend` job
+- [ ] CF Zero Trust + WAF rules (dashboard action — out of scope for code)
 
 ---
 
-### A7. Admin JWT Security Gap
+### A7. Admin JWT Security Gap — ✅ COMPLETE
 
 **Priority:** P1-HIGH
 **Issue:** Admin panel uses HS256 (symmetric) while POS uses RS256 (asymmetric)
 
 **Fix:**
-- [ ] Migrate admin auth to RS256
-- [ ] Update `AdminAuthService.kt` token generation
-- [ ] Update License service admin JWT validation
-- [ ] Rotate existing admin sessions
+- [x] Migrate admin auth to RS256
+- [x] Update `AdminAuthService.kt` token generation
+- [x] Update License service admin JWT validation (`AdminJwtValidator.kt` now uses RS256 public key)
+- [x] Rotate existing admin sessions (HS256 tokens rejected post-migration — re-login required)
 
 ---
 

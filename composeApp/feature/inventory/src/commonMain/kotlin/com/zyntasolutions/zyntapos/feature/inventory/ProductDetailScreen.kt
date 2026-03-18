@@ -19,6 +19,8 @@ import com.zyntasolutions.zyntapos.designsystem.util.FilePickerMode
 import com.zyntasolutions.zyntapos.designsystem.util.PlatformFilePicker
 import com.zyntasolutions.zyntapos.designsystem.util.WindowSize
 import com.zyntasolutions.zyntapos.designsystem.util.currentWindowSize
+import androidx.compose.ui.layout.ContentScale
+import coil3.compose.AsyncImage
 import com.zyntasolutions.zyntapos.domain.model.Category
 import com.zyntasolutions.zyntapos.domain.model.ProductVariant
 import com.zyntasolutions.zyntapos.domain.model.TaxGroup
@@ -56,10 +58,37 @@ fun ProductDetailScreen(
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabTitles = listOf("Identification", "Pricing", "Stock", "Variants", "Images")
 
+    // INV-9: Track initial form state to detect unsaved changes
+    val initialForm = remember(state.selectedProduct) { form }
+    val isDirty = form != initialForm
+    var showDiscardDialog by remember { mutableStateOf(false) }
+
+    if (showDiscardDialog) {
+        AlertDialog(
+            onDismissRequest = { showDiscardDialog = false },
+            title = { Text("Discard changes?") },
+            text = { Text("You have unsaved changes. Are you sure you want to go back?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDiscardDialog = false
+                        onBack()
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                ) { Text("Discard") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDiscardDialog = false }) { Text("Keep editing") }
+            },
+        )
+    }
+
     ZyntaPageScaffold(
         title = if (isNew) "New Product" else "Edit Product",
         modifier = modifier,
-        onNavigateBack = onBack,
+        onNavigateBack = {
+            if (isDirty) showDiscardDialog = true else onBack()
+        },
         actions = {
             FilledTonalButton(
                 onClick = { onIntent(InventoryIntent.SaveProduct) },
@@ -322,7 +351,7 @@ private fun StockSection(
 }
 
 /**
- * Image picker section — URL input + platform-native file picker.
+ * Image picker section — URL input + platform-native file picker + Coil preview (INV-4).
  * Users can either enter a URL directly or browse for a local image file.
  */
 @Composable
@@ -359,6 +388,28 @@ private fun ImageSection(
                 label = "Image URL or file path",
                 modifier = Modifier.fillMaxWidth(),
             )
+
+            // INV-4: Coil AsyncImage preview
+            if (!form.imageUrl.isNullOrBlank()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth().height(200.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    ),
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        AsyncImage(
+                            model = form.imageUrl,
+                            contentDescription = "Product image preview",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Fit,
+                        )
+                    }
+                }
+            }
 
             ZyntaButton(
                 text = "Browse Image",
