@@ -35,6 +35,8 @@ data class LicenseHeartbeatRequestDto(
     @SerialName("syncQueueDepth") val syncQueueDepth: Int = 0,
     @SerialName("lastErrorCount") val lastErrorCount: Int = 0,
     @SerialName("uptimeHours") val uptimeHours: Double = 0.0,
+    @SerialName("nonce") val nonce: String? = null,
+    @SerialName("clientTimestamp") val clientTimestamp: Long? = null,
 )
 
 @Serializable

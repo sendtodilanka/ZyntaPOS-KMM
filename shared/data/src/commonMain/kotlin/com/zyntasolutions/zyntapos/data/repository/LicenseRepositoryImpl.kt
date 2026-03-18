@@ -8,6 +8,7 @@ import com.zyntasolutions.zyntapos.domain.model.Edition
 import com.zyntasolutions.zyntapos.domain.model.License
 import com.zyntasolutions.zyntapos.domain.model.LicenseStatus
 import com.zyntasolutions.zyntapos.domain.repository.LicenseRepository
+import kotlin.uuid.Uuid
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.time.Clock
@@ -79,6 +80,8 @@ class LicenseRepositoryImpl(
         uptimeHours: Double,
     ): Result<License> = withContext(Dispatchers.IO) {
         runCatching {
+            val nonce = Uuid.random().toString()
+            val clientTimestamp = Clock.System.now().toEpochMilliseconds()
             val response = apiService.licenseHeartbeat(
                 LicenseHeartbeatRequestDto(
                     licenseKey = licenseKey,
@@ -88,6 +91,8 @@ class LicenseRepositoryImpl(
                     syncQueueDepth = syncQueueDepth,
                     lastErrorCount = lastErrorCount,
                     uptimeHours = uptimeHours,
+                    nonce = nonce,
+                    clientTimestamp = clientTimestamp,
                 )
             )
 

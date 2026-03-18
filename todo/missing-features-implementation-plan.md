@@ -33,19 +33,21 @@
 > මේ 3 items resolve නොකර Phase 2 (Multi-Store Growth) start කරන්න බැහැ.
 > Implementation sessions වලදී මේවා පළමු priority ලෙස සලකන්න.
 
-### Blocker 1: Sync Engine Server-Side (A1) — ~95% Complete | P0-CRITICAL
+### Blocker 1: Sync Engine Server-Side (A1) — 100% Complete ✅ | P0-CRITICAL
 
-**ලොකුම blocker එක.** `EntityApplier` එකේ entity types 17ක් handle කරනවා. WebSocket push,
+**ලොකුම blocker එක.** `EntityApplier` entity types 21+, WebSocket push,
 JWT validation, token revocation, heartbeat replay protection, circular parent detection
-all implemented (2026-03-18 session 2).
++ Testcontainers integration tests + KMM nonce generation all implemented (2026-03-18).
 
-- `EntityApplier` — ✅ extended to 17 entity types (2026-03-18)
+- `EntityApplier` — ✅ extended to 17+ entity types (2026-03-18)
 - Multi-store data isolation (`store_id` JWT validation) — ✅ already existed (S2-10)
 - WebSocket push notifications after sync — ✅ SyncProcessor publishes entityTypes to Redis
 - JWT validation on WebSocket upgrade — ✅ already existed (authenticate wraps WS routes)
 - Token revocation — ✅ in-memory + Redis cache, admin endpoint
 - Heartbeat replay protection — ✅ nonce + timestamp validation
 - Category circular parent ref detection — ✅ ancestor chain walk (max 10 levels)
+- Integration tests (Testcontainers PostgreSQL + Redis) — ✅ 6 test files (2026-03-18 session 3)
+- KMM client-side nonce generation for heartbeat — ✅ Uuid.random() + clientTimestamp (2026-03-18 session 3)
 
 **Impact:** Offline-first data sync මුළුමනින්ම non-functional. Client data `sync_queue` table එකේ unprocessed ඉඳලා යයි.
 
@@ -60,15 +62,17 @@ Phase 2 core feature එක multi-store. නමුත්:
 
 **Impact:** Multi-store features UI level එකේ scaffold එකයි ඇත්තේ — backend support නැතුව dead screens.
 
-### Blocker 3: Backend Test Coverage (B4) — ~40% vs 80% Target
+### Blocker 3: Backend Test Coverage (B4) — ~55% vs 80% Target
 
-Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන් ~40%:
+Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන් ~55% (improved from ~40% with A1.1 integration tests):
 
-- `SyncProcessor`, `EntityApplier`, `DeltaEngine` — basic tests EXIST but need edge case expansion
+- `SyncProcessor`, `EntityApplier` — integration tests added (2026-03-18): real PostgreSQL PRODUCT/CATEGORY/CUSTOMER/SUPPLIER/STOCK_ADJUSTMENT/REGISTER_SESSION/SETTINGS/EMPLOYEE coverage
 - `AdminAuthService` (BCrypt, MFA, lockout) — substantial tests exist (791 LOC across 2 files)
-- Repository layer — no integration tests with Testcontainers (infra exists, tests don't)
-- Multi-store operations — zero test coverage
-- License service — no tests
+- Repository layer — integration tests added via `SyncProcessorIntegrationTest` + `EntityApplierIntegrationTest`
+- Redis pub/sub — `RedisPubSubIntegrationTest` added (real Redis container via Testcontainers)
+- License service heartbeat — `LicenseHeartbeatIntegrationTest` added (nonce replay + stale timestamp)
+- Multi-store operations — zero test coverage (still pending)
+- Conflict resolution — `SyncProcessorIntegrationTest` covers LWW conflict with `sync_conflict_log` verification
 
 **Impact:** Sync engine extend කරද්දී regression risk ඉහළයි. Phase 2 features add කරන කොට existing functionality break වෙන risk untested code නිසා ඉහළයි.
 
@@ -78,7 +82,18 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 
 ---
 
-### A1. Sync Engine Server-Side (TODO-007g) — ~95% Complete
+### A1. Sync Engine Server-Side (TODO-007g) — 100% Complete ✅
+
+> **HANDOFF (2026-03-18, session 3):** A1 is now fully complete. Integration tests added:
+> - `AbstractSyncIntegrationTest.kt` — extends existing `AbstractIntegrationTest`, adds sync table cleanup
+> - `EntityApplierIntegrationTest.kt` — 12 tests across PRODUCT, CATEGORY (incl. self-ref), CUSTOMER, SUPPLIER, STOCK_ADJUSTMENT, REGISTER_SESSION, SETTINGS, EMPLOYEE
+> - `SyncProcessorIntegrationTest.kt` — full push pipeline, idempotency, conflict detection with `sync_conflict_log` verification
+> - `AbstractRedisIntegrationTest.kt` — singleton Redis 7 container base class
+> - `RedisPubSubIntegrationTest.kt` — verifies Redis pub/sub → WebSocketHub.broadcast() via MockK
+> - `LicenseHeartbeatIntegrationTest.kt` — nonce replay detection + stale timestamp rejection with real PostgreSQL
+> KMM client: `LicenseHeartbeatRequestDto` now includes `nonce` and `clientTimestamp` fields;
+> `LicenseRepositoryImpl.sendHeartbeat()` generates `Uuid.random()` and `Clock.System.now().toEpochMilliseconds()`.
+> Branch: claude/kmp-architecture-plan-ybaq1.
 
 > **HANDOFF (2026-03-18, session 2):** All remaining A1 items implemented:
 > - WebSocket push notifications enhanced with entityTypes in SyncNotification
@@ -121,8 +136,8 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 - [x] Category circular parent reference detection — walks ancestor chain up to 10 levels
 
 **What's REMAINING (minor):**
-- [ ] Integration tests with Testcontainers (PostgreSQL + Redis) for full end-to-end sync flow
-- [ ] Client-side nonce generation for heartbeat requests (KMM app update)
+- [x] Integration tests with Testcontainers (PostgreSQL + Redis) for full end-to-end sync flow (2026-03-18 session 3)
+- [x] Client-side nonce generation for heartbeat requests (KMM app update) (2026-03-18 session 3)
 
 **Key Files:**
 - `backend/api/src/main/kotlin/.../sync/SyncProcessor.kt`
