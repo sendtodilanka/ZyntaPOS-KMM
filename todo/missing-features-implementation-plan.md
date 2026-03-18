@@ -1037,6 +1037,307 @@
 
 ---
 
+## SECTION G: UI/UX GAP AUDIT (Comprehensive — All Feature Modules)
+
+> 2026-03-18 දින codebase scan කරලා features 16ක්, design system, navigation,
+> onboarding සහ admin panel සියල්ල audit කර ඇත. එක් එක් screen එකේ
+> MVI compliance, responsive design, error/loading/empty states, accessibility,
+> සහ multi-store readiness check කර ඇත.
+
+---
+
+### G1. Design System Missing Components (`:composeApp:designsystem`)
+
+**Current:** 27 Zynta* components exist (Button, TextField, CurrencyText, ProductCard, NumericPad, etc.)
+
+**MISSING components needed for Phase 2+:**
+
+| Component | Purpose | Priority | Blocks |
+|-----------|---------|----------|--------|
+| `ZyntaStoreSelector` | Active store picker in drawer footer + toolbar | **CRITICAL** | All multi-store features |
+| `ZyntaCurrencyPicker` | Currency selection dropdown (9 currencies supported) | **CRITICAL** | C2.2 Multi-currency |
+| `ZyntaTimezonePicker` | Timezone selection with UTC offset display | **HIGH** | C6.3 Timezone |
+| `ZyntaTransferStatusBadge` | Pending/Approved/Shipped/Received/Cancelled states | **HIGH** | C1.3 IST |
+| `ZyntaLoyaltyBadge` | Customer loyalty tier indicator (Bronze/Silver/Gold) | **MEDIUM** | C4.2 Loyalty |
+| `ZyntaDateRangeSelector` | Two-date picker for report filters | **MEDIUM** | C5.1 Reports |
+| `ZyntaWarehouseDropdown` | Warehouse context switcher | **MEDIUM** | C1.2 Inventory |
+| `ZyntaConflictResolutionUI` | CRDT merge conflict presentation | **LOW** | C6.1 Sync |
+
+---
+
+### G2. Onboarding Gaps (`:composeApp:feature:onboarding`)
+
+**Current:** 2-step wizard (Business Name → Admin Account)
+
+**MISSING steps needed for correct store setup:**
+- [ ] **Step 3: Currency & Timezone** — Select store currency + timezone (currently defaults to LKR + Asia/Colombo)
+- [ ] **Step 4: Basic Tax Setup** — Optional tax group configuration (can defer to Settings)
+- [ ] **Step 5: Receipt Format** — Optional printer/receipt configuration
+- [ ] Multi-store setup flow (Phase 2 — additional store creation)
+
+---
+
+### G3. POS Module UI/UX Gaps (`:composeApp:feature:pos` — 32 files, ~3200 LOC)
+
+**Production-ready:** Full cart → payment → receipt flow with adaptive layouts
+
+| Gap | Severity | Phase |
+|-----|----------|-------|
+| **No store switcher** — POS assumes single store | CRITICAL | Phase 2 |
+| **No loyalty points redemption at checkout** — Balance shown but no "Spend Points" UI | HIGH | Phase 2 |
+| **No cross-store return processing** — No UI to scan/identify items from other stores | HIGH | Phase 2 |
+| **Gift card lookup returns "Phase 2" stub** | MEDIUM | Phase 2 |
+| **No card terminal integration UI** — No EMV reader connection status | HIGH | Phase 2 |
+| **No wallet payment choice dialog** — Amount combined in total, unclear if applied | MEDIUM | Phase 2 |
+| **No employee badge/name on POS screen header** | LOW | Phase 2 |
+| **No multi-currency display** at checkout | MEDIUM | Phase 2 |
+| **No coupon barcode scanning preview** | LOW | Phase 2 |
+
+---
+
+### G4. Auth Module UI/UX Gaps (`:composeApp:feature:auth` — 13 files, ~600 LOC)
+
+**Production-ready:** Email/password login + PIN lock with adaptive layouts
+
+| Gap | Severity | Phase |
+|-----|----------|-------|
+| **No store selector at login** — Multi-store users can't pick location | CRITICAL | Phase 2 |
+| **No employee quick-switch** — Full logout required to change user | HIGH | Phase 2 |
+| **Password reset is stub** ("contact admin") | MEDIUM | Phase 2 |
+| **No biometric fallback** on PIN lock (fingerprint/Face ID) | LOW | Phase 2 |
+| **Remember Me checkbox collected but not persisted** | LOW | Phase 1.5 |
+| **No PIN lockout timer countdown** — User doesn't know wait time | MEDIUM | Phase 2 |
+| **No session timeout warning** — Auto-lock without countdown | LOW | Phase 2 |
+
+---
+
+### G5. Register Module UI/UX Gaps (`:composeApp:feature:register` — 13 files, ~1400 LOC)
+
+**Production-ready:** Open/close register with cash discrepancy detection
+
+| Gap | Severity | Phase |
+|-----|----------|-------|
+| **No multi-store cash consolidation** — Single register view | HIGH | Phase 2 |
+| **No discrepancy approval workflow** — Warning shown, no manager sign-off | MEDIUM | Phase 2 |
+| **No shift handoff flow** — No cashier takeover process | MEDIUM | Phase 2 |
+| **No cash removal authorization** — Large cash-outs bypass oversight | MEDIUM | Phase 2 |
+| **No float tracking** — Register float vs sales cash not separated | MEDIUM | Phase 2 |
+| **No register location label** (e.g., "Front Counter", "Lane 3") | LOW | Phase 2 |
+
+---
+
+### G6. Reports Module UI/UX Gaps (`:composeApp:feature:reports` — 13 files)
+
+**Production-ready:** Sales, Stock, Customer, Expense reports with CSV export
+
+| Gap | Severity | Phase |
+|-----|----------|-------|
+| **No real-time WebSocket updates** — Reports load once, never auto-refresh | CRITICAL | Phase 2 |
+| **No multi-store consolidation** — All reports single-store only | CRITICAL | Phase 2 |
+| **No store comparison charts** — No side-by-side performance | HIGH | Phase 2 |
+| **PDF export buttons present but may be stubbed** | HIGH | Phase 2 |
+| **No drill-down** — Clicking chart points doesn't navigate to transactions | MEDIUM | Phase 2 |
+| **No report scheduling/email** — Can't schedule daily/weekly reports | LOW | Phase 3 |
+| **No pagination for large datasets** — May crash with 10K+ products | MEDIUM | Phase 2 |
+| **Date formatting doesn't respect GeneralSettings preference** | MEDIUM | Phase 2 |
+
+---
+
+### G7. Dashboard Module UI/UX Gaps (`:composeApp:feature:dashboard` — 6 files, 869 LOC)
+
+**Production-ready:** Single-store KPIs with adaptive 3-variant layout
+
+| Gap | Severity | Phase |
+|-----|----------|-------|
+| **No real-time updates** — Loads once on screen open, never refreshes | CRITICAL | Phase 2 |
+| **No multi-store KPI consolidation** | CRITICAL | Phase 2 |
+| **Daily sales target hardcoded** ("LKR 50,000") not configurable | MEDIUM | Phase 2 |
+| **Hourly sparkline data calculated but never rendered** | LOW | Phase 1.5 |
+| **No comparison to previous period** (yesterday, last week) | MEDIUM | Phase 2 |
+| **Notifications menu item exists but not implemented** | LOW | Phase 2 |
+
+---
+
+### G8. Settings Module UI/UX Gaps (`:composeApp:feature:settings` — 27 files)
+
+**Production-ready:** Store identity, tax, printer, user mgmt, RBAC, backup, appearance
+
+| Gap | Severity | Phase |
+|-----|----------|-------|
+| **No multi-region tax support** — Single tax group globally, no per-store override | HIGH | Phase 2 |
+| **No multi-currency management** — Single global currency selector | HIGH | Phase 2 |
+| **Timezone dropdown hardcoded** — Static list, no auto-detect or UTC offset shown | MEDIUM | Phase 2 |
+| **No receipt template visual editor** | LOW | Phase 3 |
+| **No printer connection test button visible in UI** | LOW | Phase 1.5 |
+| **No settings sync to backend** — Local only | MEDIUM | Phase 2 |
+| **Language selector disabled** — No i18n infrastructure | LOW | Phase 3 |
+
+---
+
+### G9. Accounting Module UI/UX Gaps (`:composeApp:feature:accounting` — 25 files)
+
+**UI shell exists:** P&L, Balance Sheet, Trial Balance, Cash Flow tabs + Chart of Accounts + E-Invoices
+
+| Gap | Severity | Phase |
+|-----|----------|-------|
+| **Financial statements are UI shells** — No real data population from GL | CRITICAL | Phase 2 |
+| **No date picker dialog** — Manual text entry required (YYYY-MM-DD) | HIGH | Phase 2 |
+| **No multi-store P&L consolidation** | HIGH | Phase 2 |
+| **No export buttons** on any financial statement | HIGH | Phase 2 |
+| **No account reconciliation workflow** | MEDIUM | Phase 3 |
+| **E-invoice list exists but no IRD submission flow** | MEDIUM | Phase 3 |
+| **Trial Balance "UNBALANCED" error has no remediation path** | LOW | Phase 2 |
+
+---
+
+### G10. Customers Module UI/UX Gaps (`:composeApp:feature:customers` — 9 files, 453 LOC VM)
+
+**Production-ready:** Customer CRUD, groups, wallet, credit management
+
+| Gap | Severity | Phase |
+|-----|----------|-------|
+| **No GDPR Export button** — Backend supports, UI missing | HIGH | Phase 2 |
+| **No cross-store customer profile view** | MEDIUM | Phase 2 |
+| **No loyalty tier display** — Raw points only, no Bronze/Silver/Gold badge | MEDIUM | Phase 2 |
+| **No bulk customer import** (CSV) | LOW | Phase 3 |
+| **No advanced customer segmentation/filtering** | LOW | Phase 3 |
+
+---
+
+### G11. Staff Module UI/UX Gaps (`:composeApp:feature:staff` — 12 files, 673 LOC VM)
+
+**Well-implemented (95%):** Employee CRUD, attendance, leave, shifts, payroll
+
+| Gap | Severity | Phase |
+|-----|----------|-------|
+| **No roaming/multi-store dashboard** — Single store TabRow only | HIGH | Phase 2 |
+| **No leave balance tracking display** (annual remaining/used) | MEDIUM | Phase 2 |
+| **No shift conflict detection** — Overlapping shifts allowed | MEDIUM | Phase 2 |
+| **No attendance report export** (CSV/PDF) | MEDIUM | Phase 2 |
+| **No bulk payroll generation** ("Generate All" button) | LOW | Phase 2 |
+| **No shift swap/request workflow** for employees | LOW | Phase 3 |
+
+---
+
+### G12. Coupons Module UI/UX Gaps (`:composeApp:feature:coupons` — 7 files, 234 LOC VM)
+
+**Basic (70%):** Coupon CRUD with FIXED/PERCENT discounts
+
+| Gap | Severity | Phase |
+|-----|----------|-------|
+| **No BOGO UI** — Domain has `DiscountType.BOGO` but form only shows FIXED/PERCENT | HIGH | Phase 2 |
+| **No category-based promotion targeting** | HIGH | Phase 2 |
+| **No store-specific discount assignment** | HIGH | Phase 2 |
+| **No coupon code auto-generation** | MEDIUM | Phase 2 |
+| **No minimum purchase threshold UI** | MEDIUM | Phase 2 |
+| **No coupon analytics/redemption stats** | LOW | Phase 2 |
+| **No date picker for validity period** — Epoch ms manual entry | MEDIUM | Phase 2 |
+
+---
+
+### G13. Expenses Module UI/UX Gaps (`:composeApp:feature:expenses` — ~8 files)
+
+**Moderate (65%):** Expense CRUD with status workflow + journal integration
+
+| Gap | Severity | Phase |
+|-----|----------|-------|
+| **Receipt attachment incomplete** — URL text field only, no file picker/camera | HIGH | Phase 2 |
+| **No receipt image preview** | MEDIUM | Phase 2 |
+| **No budget tracking per category** | MEDIUM | Phase 2 |
+| **No approval amount thresholds** — All expenses same workflow | MEDIUM | Phase 2 |
+| **No vendor/supplier field** in expense form | LOW | Phase 2 |
+| **No recurring expense support** | LOW | Phase 3 |
+
+---
+
+### G14. Admin Module UI/UX Gaps (`:composeApp:feature:admin` — ~9 files)
+
+**Comprehensive (90%):** System health, backups, audit log
+
+| Gap | Severity | Phase |
+|-----|----------|-------|
+| **Data integrity check button missing** — State has `integrityReport` but no trigger UI | MEDIUM | Phase 2 |
+| **No backup scheduling** — Manual only | MEDIUM | Phase 2 |
+| **No audit log CSV/JSON export** | MEDIUM | Phase 2 |
+| **No license info display** | LOW | Phase 2 |
+| **No crash log/Sentry viewer** | LOW | Phase 3 |
+
+---
+
+### G15. Media Module UI/UX Gaps (`:composeApp:feature:media`)
+
+**Functional (80%):** Media grid with primary image marking
+
+| Gap | Severity | Phase |
+|-----|----------|-------|
+| **No native file picker** — Manual path entry only | HIGH | Phase 2 |
+| **No camera capture** ("Take Photo" option) | HIGH | Phase 2 |
+| **No image crop/compress UI** | MEDIUM | Phase 2 |
+| **No batch upload** | LOW | Phase 3 |
+| **No full-screen image preview** | LOW | Phase 2 |
+
+---
+
+### G16. Navigation & Deep-Linking Gaps
+
+**Routes:** 58 registered across 11 graph groups, RBAC gating 100% compliant
+
+| Gap | Severity | Phase |
+|-----|----------|-------|
+| **Deep-linking not wired** — `zyntapos://` scheme declared but not in AndroidManifest | MEDIUM | Phase 2 |
+| **EditionManagementScreen is placeholder** — Feature toggle panel needed | MEDIUM | Phase 2 |
+| **No 3-pane layout** for tablet warehouse management | LOW | Phase 3 |
+
+---
+
+### G17. Cross-Module UI/UX Issues
+
+| Issue | Affected Modules | Severity |
+|-------|-----------------|----------|
+| **No auto-refresh/WebSocket** — All screens load once | Dashboard, Reports, POS, Accounting | CRITICAL |
+| **Date format not from GeneralSettings** — Hardcoded formats | Reports, Accounting, Staff | MEDIUM |
+| **No timezone label on timestamps** | All screens with timestamps | MEDIUM |
+| **Color-only status indicators** — No icon pairing for color-blind | Stock, E-Invoice, Transfer | MEDIUM |
+| **Canvas chart colors may fail in dark mode** | Dashboard, Reports | LOW |
+| **No loading skeletons** — Abrupt blank → rendered transition | Dashboard, Reports | LOW |
+
+---
+
+### G18. UI/UX Implementation Priority Matrix
+
+**Phase 1.5 Quick Wins (< 1 day each):**
+- [ ] Render hourly sparkline in Dashboard (data already calculated)
+- [ ] Add printer test button to PrinterSettingsScreen
+- [ ] Persist "Remember Me" checkbox in auth
+- [ ] Show UTC offset in timezone dropdown (e.g., "Asia/Colombo (UTC+5:30)")
+- [ ] Add employee name/badge to POS screen header
+
+**Phase 2 Must-Have (before multi-store launch):**
+- [ ] Create `ZyntaStoreSelector` component + wire to drawer footer
+- [ ] Create `ZyntaCurrencyPicker` + `ZyntaTimezonePicker` components
+- [ ] Add store selector to login screen
+- [ ] Add onboarding steps for currency + timezone
+- [ ] Implement loyalty points redemption at POS checkout
+- [ ] Implement WebSocket auto-refresh for Dashboard + Reports
+- [ ] Populate financial statements with real GL data
+- [ ] Add BOGO + category rules to coupon detail form
+- [ ] Add native file picker to Media module
+- [ ] Add GDPR Export button to customer detail
+- [ ] Add date picker dialogs (replace manual text entry)
+- [ ] Add transfer status badge to stock transfer list
+- [ ] Add store-specific discount assignment to coupons
+
+**Phase 3 Nice-to-Have:**
+- [ ] 3-pane responsive layout for warehouse tablet UI
+- [ ] High-contrast accessibility theme
+- [ ] i18n/locale infrastructure
+- [ ] Receipt template visual editor
+- [ ] Conflict resolution UI for CRDT merges
+- [ ] Customer segmentation/advanced filtering
+- [ ] Shift swap/request workflow
+
+---
+
 ## IMPLEMENTATION TIMELINE (Suggested)
 
 | Sprint | Focus | Items | Duration |
@@ -1047,13 +1348,16 @@
 | Sprint 4 | Analytics + Docs | A4, A5 | 1 week |
 | Sprint 5 | Test Coverage + Tickets | B4, B6 | 2 weeks |
 | Sprint 6 | Admin Polish | B1, B2, B3 | 2 weeks |
-| Sprint 7 | Centralized Inventory | C1.1, C1.2, C1.3, C1.4, C1.5 | 3 weeks |
-| Sprint 8 | Pricing & Tax | C2.1, C2.2, C2.3, C2.4 | 2 weeks |
-| Sprint 9 | Access Control | C3.2, C3.3, C3.4 | 2 weeks |
-| Sprint 10 | Sales & Customer | C4.1, C4.2, C4.3 | 2 weeks |
-| Sprint 11 | Reporting & Analytics | C5.1, C5.2, C5.4 | 2 weeks |
-| Sprint 12 | Timezone + Sync Polish | C6.3, C5.3 | 1 week |
-| Phase 3 | Enterprise Features | D1, D2, D3, C4.4 | 6+ weeks |
+| Sprint 6.5 | UI/UX Quick Wins | G18 Phase 1.5 items | 1 week |
+| Sprint 7 | Design System + Onboarding | G1, G2 (new components + onboarding steps) | 1 week |
+| Sprint 8 | Centralized Inventory | C1.1, C1.2, C1.3, C1.4, C1.5 | 3 weeks |
+| Sprint 9 | Pricing & Tax | C2.1, C2.2, C2.3, C2.4 | 2 weeks |
+| Sprint 10 | Access Control + Auth UI | C3.2, C3.3, C3.4, G4 | 2 weeks |
+| Sprint 11 | Sales & Customer + POS UI | C4.1, C4.2, C4.3, G3, G10 | 2 weeks |
+| Sprint 12 | Reporting + Dashboard UI | C5.1, C5.2, C5.4, G6, G7 | 2 weeks |
+| Sprint 13 | Accounting + Coupons UI | G9, G12, G13 | 2 weeks |
+| Sprint 14 | Timezone + Sync + Media | C6.3, C5.3, G15 | 1 week |
+| Phase 3 | Enterprise Features | D1, D2, D3, C4.4, G18 Phase 3 | 6+ weeks |
 
 ---
 
