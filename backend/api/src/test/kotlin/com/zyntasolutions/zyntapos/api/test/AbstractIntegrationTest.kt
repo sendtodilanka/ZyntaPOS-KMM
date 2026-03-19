@@ -7,27 +7,34 @@ import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 import org.junit.jupiter.api.BeforeEach
 
 /**
  * Base class for repository integration tests that need a real PostgreSQL
  * database with Flyway migrations applied.
  *
- * Uses Testcontainers to spin up a single shared PostgreSQL instance.
- * Each test gets a clean database state via table truncation.
+ * Uses a lazy singleton Testcontainers instance started once per JVM session.
+ * The @Testcontainers/@Container annotation pattern is intentionally avoided:
+ * it stops and restarts the container after each test class, changing the
+ * dynamic port mapping. The initialized flag was never reset, so subsequent
+ * classes kept a stale HikariCP pool pointing to the dead old port, causing
+ * ConnectException on every test after the first class.
+ *
+ * Each test gets a clean database state via table truncation in cleanTables().
  */
-@Testcontainers
 abstract class AbstractIntegrationTest {
 
     companion object {
-        @Container
-        @JvmStatic
-        val postgres: PostgreSQLContainer<*> = PostgreSQLContainer("postgres:16-alpine")
-            .withDatabaseName("zyntapos_api_test")
-            .withUsername("test")
-            .withPassword("test")
+        val postgres: PostgreSQLContainer<*> by lazy {
+            PostgreSQLContainer<Nothing>("postgres:16-alpine")
+                .withDatabaseName("zyntapos_api_test")
+                .withUsername("test")
+                .withPassword("test")
+                .also { container ->
+                    container.start()
+                    Runtime.getRuntime().addShutdownHook(Thread { container.stop() })
+                }
+        }
 
         @Volatile
         private var initialized = false

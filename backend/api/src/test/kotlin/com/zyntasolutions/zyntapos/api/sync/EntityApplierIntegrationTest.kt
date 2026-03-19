@@ -60,7 +60,7 @@ class EntityApplierIntegrationTest : AbstractSyncIntegrationTest() {
             Products.selectAll().where { Products.id eq entityId }.singleOrNull()
         }
         assertNotNull(row)
-        assertEquals("Widget", row!![Products.name])
+        assertEquals("Widget", row[Products.name])
         assertTrue(row[Products.isActive])
     }
 
@@ -76,7 +76,7 @@ class EntityApplierIntegrationTest : AbstractSyncIntegrationTest() {
             Products.selectAll().where { Products.id eq entityId }.singleOrNull()
         }
         assertNotNull(row)
-        assertEquals("Renamed", row!![Products.name])
+        assertEquals("Renamed", row[Products.name])
     }
 
     @Test
@@ -91,7 +91,7 @@ class EntityApplierIntegrationTest : AbstractSyncIntegrationTest() {
             Products.selectAll().where { Products.id eq entityId }.singleOrNull()
         }
         assertNotNull(row, "Row should still exist after soft delete")
-        assertEquals(false, row!![Products.isActive])
+        assertEquals(false, row[Products.isActive])
     }
 
     @Test
@@ -122,7 +122,7 @@ class EntityApplierIntegrationTest : AbstractSyncIntegrationTest() {
             Categories.selectAll().where { Categories.id eq entityId }.singleOrNull()
         }
         assertNotNull(row)
-        assertEquals("Electronics", row!![Categories.name])
+        assertEquals("Electronics", row[Categories.name])
     }
 
     @Test
@@ -139,7 +139,7 @@ class EntityApplierIntegrationTest : AbstractSyncIntegrationTest() {
             Categories.selectAll().where { Categories.id eq childId }.singleOrNull()
         }
         assertNotNull(childRow)
-        assertEquals(parentId, childRow!![Categories.parentId])
+        assertEquals(parentId, childRow[Categories.parentId])
     }
 
     @Test
@@ -170,7 +170,7 @@ class EntityApplierIntegrationTest : AbstractSyncIntegrationTest() {
             Customers.selectAll().where { Customers.id eq entityId }.singleOrNull()
         }
         assertNotNull(row)
-        assertEquals("Alice", row!![Customers.name])
+        assertEquals("Alice", row[Customers.name])
         assertEquals("alice@test.com", row[Customers.email])
     }
 
@@ -187,7 +187,7 @@ class EntityApplierIntegrationTest : AbstractSyncIntegrationTest() {
             Suppliers.selectAll().where { Suppliers.id eq entityId }.singleOrNull()
         }
         assertNotNull(row)
-        assertEquals("Acme Corp", row!![Suppliers.name])
+        assertEquals("Acme Corp", row[Suppliers.name])
     }
 
     // ── STOCK_ADJUSTMENT ────────────────────────────────────────────────────
@@ -203,7 +203,7 @@ class EntityApplierIntegrationTest : AbstractSyncIntegrationTest() {
             StockAdjustments.selectAll().where { StockAdjustments.id eq entityId }.singleOrNull()
         }
         assertNotNull(row)
-        assertEquals("INCREASE", row!![StockAdjustments.type])
+        assertEquals("INCREASE", row[StockAdjustments.type])
     }
 
     // ── REGISTER_SESSION ────────────────────────────────────────────────────
@@ -219,7 +219,7 @@ class EntityApplierIntegrationTest : AbstractSyncIntegrationTest() {
             RegisterSessions.selectAll().where { RegisterSessions.id eq entityId }.singleOrNull()
         }
         assertNotNull(row)
-        assertEquals("OPEN", row!![RegisterSessions.status])
+        assertEquals("OPEN", row[RegisterSessions.status])
     }
 
     // ── SETTINGS ────────────────────────────────────────────────────────────
@@ -235,7 +235,7 @@ class EntityApplierIntegrationTest : AbstractSyncIntegrationTest() {
             Settings.selectAll().where { Settings.id eq entityId }.singleOrNull()
         }
         assertNotNull(row)
-        assertEquals("currency", row!![Settings.key])
+        assertEquals("currency", row[Settings.key])
         assertEquals("LKR", row[Settings.value])
     }
 
@@ -252,7 +252,7 @@ class EntityApplierIntegrationTest : AbstractSyncIntegrationTest() {
             Employees.selectAll().where { Employees.id eq entityId }.singleOrNull()
         }
         assertNotNull(row)
-        assertEquals("Charlie", row!![Employees.name])
+        assertEquals("Charlie", row[Employees.name])
         assertEquals("CASHIER", row[Employees.role])
     }
 
