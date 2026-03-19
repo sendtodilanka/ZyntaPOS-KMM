@@ -451,7 +451,7 @@ ZyntaPOS-KMM/
 |--------|---------|
 | `:shared:core` | Pure Kotlin utilities, MVI base classes, `Result<T>`, `CurrencyUtils`, `DateTimeUtils`, `ValidationUtils`, Koin `coreModule` |
 | `:shared:domain` | Domain models (31), repository interfaces, use-case classes, business-rule validators — **no framework deps** |
-| `:shared:data` | SQLDelight schema + DAOs, Ktor HTTP client, repository implementations, offline sync engine. `ConflictResolver` — NOT YET IMPLEMENTED (CRDT merge logic is Phase 2 backlog) |
+| `:shared:data` | SQLDelight schema + DAOs, Ktor HTTP client, repository implementations, offline sync engine. `ConflictResolver` (LWW + deviceId tiebreak + PRODUCT field-level merge) integrated into `SyncEngine` with `ConflictLogRepositoryImpl` audit trail and version vector tracking (C6.1 — implemented 2026-03-19) |
 | `:shared:hal` | `PrinterManager`, `BarcodeScanner` — `expect/actual` platform drivers, `EscPosEncoder`. `CashDrawerController` — NOT YET IMPLEMENTED (Phase 2 backlog) |
 | `:shared:security` | `DatabaseKeyManager`/`EncryptionManager` (AES-256-GCM, Keystore/JCE), `PinManager` (SHA-256 + salt), `JwtManager` + `TokenStorage` interface, `RbacEngine` |
 | `:shared:seed` | **Debug-only.** `SeedRunner` + JSON fixtures (8 categories, 5 suppliers, 25 products, 15 customers). Use as `debugImplementation` only. |

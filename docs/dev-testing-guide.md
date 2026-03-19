@@ -582,7 +582,7 @@ After seeding, use this checklist to exercise all 17 feature modules manually.
 | Barcode scanner (physical) | Use keyboard-wedge simulation: focus the barcode input field, type the barcode string (see seed data), and press Enter. |
 | Admin DB vacuum | `VacuumDatabaseUseCase` exists in domain + data but is not yet wired into `AdminModule.kt` or `AdminViewModel`. Tapping "Vacuum" in Admin may have no effect. |
 | Register session guard | `AuthViewModel` has a `TODO (Sprint 20)` for checking open register session on login. The guard is not enforced yet. |
-| CRDT conflict resolution | `ConflictResolver` is not implemented (Phase 2 backlog). The sync infrastructure is scaffolded but actual merge logic is missing. |
+| CRDT conflict resolution | `ConflictResolver` is fully integrated into `SyncEngine` (C6.1). LWW with deviceId tiebreak + PRODUCT field-level merge. Conflicts are auto-resolved and logged to `conflict_log` table. See `ConflictResolverTest` for 10 unit tests. |
 | `./gradlew test` failures | Some fake repository classes in `commonTest` have known type-signature mismatches documented in `execution_log.md` under "Doing". Run `./gradlew :shared:domain:test` to test the most stable module. |
 
 ---
