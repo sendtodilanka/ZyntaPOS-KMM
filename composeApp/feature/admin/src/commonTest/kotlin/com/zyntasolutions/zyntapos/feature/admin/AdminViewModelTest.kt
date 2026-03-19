@@ -21,6 +21,11 @@ import com.zyntasolutions.zyntapos.domain.usecase.admin.GetDatabaseStatsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.GetSystemHealthUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.RestoreBackupUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.VerifyAuditIntegrityUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.admin.GetUnresolvedConflictsUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.admin.ResolveConflictUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.admin.GetConflictCountUseCase
+import com.zyntasolutions.zyntapos.domain.repository.ConflictLogRepository
+import com.zyntasolutions.zyntapos.domain.model.SyncConflict
 import com.zyntasolutions.zyntapos.domain.model.Role
 import com.zyntasolutions.zyntapos.domain.model.User
 import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
@@ -177,10 +182,24 @@ class AdminViewModelTest {
         override suspend fun validatePin(userId: String, pin: String): Result<Boolean> = Result.Success(true)
     }
 
+    // ── Fake ConflictLogRepository ─────────────────────────────────────────────
+
+    private val fakeConflictLogRepository = object : ConflictLogRepository {
+        override fun getUnresolved(): Flow<List<SyncConflict>> = MutableStateFlow(emptyList())
+        override fun getByEntity(entityType: String, entityId: String): Flow<List<SyncConflict>> = MutableStateFlow(emptyList())
+        override suspend fun getUnresolvedCount(): Result<Int> = Result.Success(0)
+        override suspend fun insert(conflict: SyncConflict): Result<Unit> = Result.Success(Unit)
+        override suspend fun resolve(id: String, resolvedBy: SyncConflict.Resolution, resolution: String, resolvedAt: Long): Result<Unit> = Result.Success(Unit)
+        override suspend fun pruneOld(beforeEpochMillis: Long): Result<Unit> = Result.Success(Unit)
+    }
+
     // ── Use cases wired to fakes ──────────────────────────────────────────────
 
     private val verifyAuditIntegrityUseCase = VerifyAuditIntegrityUseCase(fakeAuditRepository, SecurityAuditLogger::computeExpectedHash)
     private val testAuditLogger = SecurityAuditLogger(fakeAuditRepository, "test-device")
+    private val getUnresolvedConflictsUseCase = GetUnresolvedConflictsUseCase(fakeConflictLogRepository)
+    private val resolveConflictUseCase = ResolveConflictUseCase(fakeConflictLogRepository)
+    private val getConflictCountUseCase = GetConflictCountUseCase(fakeConflictLogRepository)
 
     private val getSystemHealthUseCase = GetSystemHealthUseCase(fakeSystemRepository)
     private val getDatabaseStatsUseCase = GetDatabaseStatsUseCase(fakeSystemRepository)
@@ -214,6 +233,9 @@ class AdminViewModelTest {
             auditLogger = testAuditLogger,
             authRepository = fakeAuthRepository,
             analytics = noOpAnalytics,
+            getUnresolvedConflictsUseCase = getUnresolvedConflictsUseCase,
+            resolveConflictUseCase = resolveConflictUseCase,
+            getConflictCountUseCase = getConflictCountUseCase,
         )
     }
 
