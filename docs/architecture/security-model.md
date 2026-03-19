@@ -260,8 +260,6 @@ Sensitive configuration is injected via the Gradle Secrets Plugin at build time:
 
 `SecurityAuditLogger` records security-relevant events (`LOGIN_ATTEMPT`, `LOGOUT`,
 `PERMISSION_DENIED`, `ORDER_VOID`, `STOCK_ADJUSTMENT`, etc.) as `AuditEntry` domain objects.
-
-`SecurityAuditLogger` records security-relevant events as `AuditEntry` domain objects.
 `AuditRepositoryImpl` is fully implemented — `insert()`, `observeAll()`, and `observeByUserId()`
 all have complete SQLDelight-backed implementations. Audit entries are persisted to the local
 `audit_log` SQLite table and synced to the server via `audit_entries` (V14 migration).
