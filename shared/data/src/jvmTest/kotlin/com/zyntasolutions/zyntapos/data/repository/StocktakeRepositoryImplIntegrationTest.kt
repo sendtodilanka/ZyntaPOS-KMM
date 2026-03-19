@@ -41,6 +41,7 @@ class StocktakeRepositoryImplIntegrationTest {
             created_at    = now,
             updated_at    = now,
             sync_status   = "PENDING",
+            master_product_id = null,
         )
     }
 

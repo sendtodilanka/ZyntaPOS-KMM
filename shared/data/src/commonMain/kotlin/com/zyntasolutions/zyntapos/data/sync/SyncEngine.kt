@@ -13,7 +13,9 @@ import com.zyntasolutions.zyntapos.data.repository.CategoryRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.CustomerRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.OrderRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.ProductRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.MasterProductRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.StockRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.StoreProductOverrideRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.SupplierRepositoryImpl
 import com.zyntasolutions.zyntapos.db.Pending_operations
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
@@ -68,6 +70,9 @@ class SyncEngine(
     private val categoryRepository: CategoryRepositoryImpl,
     private val supplierRepository: SupplierRepositoryImpl,
     private val stockRepository: StockRepositoryImpl,
+    // Global Product Catalog (C1.1)
+    private val masterProductRepository: MasterProductRepositoryImpl,
+    private val storeProductOverrideRepository: StoreProductOverrideRepositoryImpl,
     // CRDT conflict resolution (C6.1)
     private val conflictResolver: ConflictResolver,
     private val conflictLogRepository: ConflictLogRepository,
@@ -398,6 +403,8 @@ class SyncEngine(
             SyncOperation.EntityType.CATEGORY         -> categoryRepository.upsertFromSync(payload)
             SyncOperation.EntityType.SUPPLIER         -> supplierRepository.upsertFromSync(payload)
             SyncOperation.EntityType.STOCK_ADJUSTMENT -> stockRepository.upsertFromSync(payload)
+            SyncOperation.EntityType.MASTER_PRODUCT   -> masterProductRepository.upsertFromSyncPayload(payload)
+            SyncOperation.EntityType.STORE_PRODUCT    -> storeProductOverrideRepository.upsertFromSyncPayload(payload)
             SyncOperation.EntityType.USER             -> { /* read-only from device — managed via auth */ }
             else -> log.w("Unknown entityType for delta op: $entityType")
         }

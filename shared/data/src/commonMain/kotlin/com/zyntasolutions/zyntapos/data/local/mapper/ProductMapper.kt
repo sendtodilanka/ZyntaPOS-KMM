@@ -31,6 +31,7 @@ object ProductMapper {
         isActive     = row.is_active == 1L,
         createdAt    = Instant.fromEpochMilliseconds(row.created_at),
         updatedAt    = Instant.fromEpochMilliseconds(row.updated_at),
+        masterProductId = row.master_product_id,
     )
 
     /** Returns all parameters needed for `insertProduct` / `updateProduct` in order. */
@@ -52,6 +53,7 @@ object ProductMapper {
         createdAt   = p.createdAt.toEpochMilliseconds(),
         updatedAt   = p.updatedAt.toEpochMilliseconds(),
         syncStatus  = syncStatus,
+        masterProductId = p.masterProductId,
     )
 
     data class InsertParams(
@@ -72,5 +74,6 @@ object ProductMapper {
         val createdAt: Long,
         val updatedAt: Long,
         val syncStatus: String,
+        val masterProductId: String? = null,
     )
 }

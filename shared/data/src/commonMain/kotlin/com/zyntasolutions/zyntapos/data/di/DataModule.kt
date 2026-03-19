@@ -21,8 +21,10 @@ import com.zyntasolutions.zyntapos.data.repository.ExpenseRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.InstallmentRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.LoyaltyRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.NotificationRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.MasterProductRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.OrderRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.ProductRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.StoreProductOverrideRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.ProductVariantRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.RegisterRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.SettingsRepositoryImpl
@@ -80,7 +82,9 @@ import com.zyntasolutions.zyntapos.domain.repository.InstallmentRepository
 import com.zyntasolutions.zyntapos.domain.repository.LoyaltyRepository
 import com.zyntasolutions.zyntapos.domain.repository.NotificationRepository
 import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
+import com.zyntasolutions.zyntapos.domain.repository.MasterProductRepository
 import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
+import com.zyntasolutions.zyntapos.domain.repository.StoreProductOverrideRepository
 import com.zyntasolutions.zyntapos.domain.repository.ProductVariantRepository
 import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
 import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
@@ -203,6 +207,14 @@ val dataModule = module {
     single<ProductRepository> { ProductRepositoryImpl(db = get(), syncEnqueuer = get()) }
     // Concrete binding for SyncEngine delta routing
     single { get<ProductRepository>() as ProductRepositoryImpl }
+
+    // Master product catalog (global, read-only on devices)
+    single<MasterProductRepository> { MasterProductRepositoryImpl(db = get()) }
+    single { get<MasterProductRepository>() as MasterProductRepositoryImpl }
+
+    // Store product overrides (per-store price/stock)
+    single<StoreProductOverrideRepository> { StoreProductOverrideRepositoryImpl(db = get(), syncEnqueuer = get()) }
+    single { get<StoreProductOverrideRepository>() as StoreProductOverrideRepositoryImpl }
 
     // Product variants: size, colour, per-SKU variations
     single<ProductVariantRepository> { ProductVariantRepositoryImpl(db = get(), syncEnqueuer = get()) }
@@ -403,6 +415,8 @@ val dataModule = module {
             categoryRepository    = get(),
             supplierRepository    = get(),
             stockRepository       = get(),
+            masterProductRepository       = get(),
+            storeProductOverrideRepository = get(),
             conflictResolver      = get(),
             conflictLogRepository = get(),
         )
