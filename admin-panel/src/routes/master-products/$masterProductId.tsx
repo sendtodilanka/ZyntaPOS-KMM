@@ -3,10 +3,8 @@ import { useState } from 'react';
 import {
   useMasterProduct,
   useMasterProductStores,
-  useUpdateMasterProduct,
   useAssignToStore,
   useRemoveFromStore,
-  useUpdateStoreOverride,
 } from '@/api/master-products';
 import { useStores } from '@/api/stores';
 import type { StoreProductAssignment, AssignToStoreRequest } from '@/types/master-product';
@@ -19,17 +17,11 @@ function MasterProductDetailPage() {
   const { masterProductId } = Route.useParams();
   const { data: product, isLoading } = useMasterProduct(masterProductId);
   const { data: assignments } = useMasterProductStores(masterProductId);
-  const updateMutation = useUpdateMasterProduct();
   const assignMutation = useAssignToStore();
   const removeMutation = useRemoveFromStore();
-  const overrideMutation = useUpdateStoreOverride();
   const { data: allStores } = useStores({ size: 100 });
 
   const [showAssign, setShowAssign] = useState(false);
-  const [editingName, setEditingName] = useState(false);
-  const [name, setName] = useState('');
-  const [editingPrice, setEditingPrice] = useState(false);
-  const [basePrice, setBasePrice] = useState('');
 
   if (isLoading) return <div className="text-center py-12 text-slate-400">Loading…</div>;
   if (!product) return <div className="text-center py-12 text-slate-400">Product not found.</div>;
