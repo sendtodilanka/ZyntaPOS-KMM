@@ -100,7 +100,7 @@ class StockRepositoryImpl(
      * @return The recomputed net quantity.
      */
     suspend fun recomputeStockQty(productId: String): Double = withContext(Dispatchers.IO) {
-        val netQty = aq.computeNetStockQty(productId).executeAsOne().net_qty
+        val netQty = aq.computeNetStockQty(productId).executeAsOne()
         pq.updateStockQty(netQty, kotlin.time.Clock.System.now().toEpochMilliseconds(), productId)
         netQty
     }

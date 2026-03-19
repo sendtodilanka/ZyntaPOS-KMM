@@ -391,7 +391,7 @@ class SyncEngineIntegrationTest {
         eng.runOnce()
 
         // Local op should still be in queue (PENDING after rejection + conflict resolution kept it)
-        val pending = db.sync_queueQueries.getPendingByEntity("product", "p-conflict").executeAsOneOrNull()
+        val pending = db.sync_queueQueries.getPendingByEntity("product", "p-conflict", "", "").executeAsOneOrNull()
         assertTrue(pending != null, "Local winning op should remain PENDING in queue")
         assertEquals("local-newer", pending.id)
 

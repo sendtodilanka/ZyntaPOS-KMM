@@ -44,7 +44,12 @@ VALUES (?, ?, ?, ?, ?, ?, ?);
 -- Returns eligible operations for the given store, ordered by sync priority then FIFO.
 -- Pass '' (empty string) for store_id to match all stores (backward compat / single-store mode).
 getEligibleOperations:
-SELECT *,
+SELECT *
+FROM pending_operations
+WHERE status = 'PENDING'
+  AND retry_count < 5
+  AND (store_id = :store_id OR :store_id = '')
+ORDER BY
   CASE entity_type
     WHEN 'order'            THEN 0
     WHEN 'cash_movement'    THEN 0
@@ -56,12 +61,7 @@ SELECT *,
     WHEN 'supplier'         THEN 2
     WHEN 'user'             THEN 2
     ELSE 3
-  END AS priority
-FROM pending_operations
-WHERE status = 'PENDING'
-  AND retry_count < 5
-  AND (store_id = :store_id OR :store_id = '')
-ORDER BY priority ASC, created_at ASC
+  END ASC, created_at ASC
 LIMIT :batch_size;
 
 getByEntityId:
