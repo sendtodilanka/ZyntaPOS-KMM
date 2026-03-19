@@ -118,7 +118,7 @@ data class AssignToStoreRequest(
 )
 
 @Serializable
-data class BulkAssignRequest(
+data class BulkStoreAssignRequest(
     @SerialName("store_ids") val storeIds: List<String>,
     @SerialName("local_price") val localPrice: Double? = null,
     @SerialName("local_cost_price") val localCostPrice: Double? = null,
@@ -167,7 +167,7 @@ class MasterProductService {
             request.taxGroupId?.let { v -> it[taxGroupId] = v }
             request.imageUrl?.let { v -> it[imageUrl] = v }
             request.isActive?.let { v -> it[isActive] = v }
-            it[syncVersion] = MasterProducts.syncVersion + 1
+            it[syncVersion] = MasterProducts.syncVersion + 1L
             it[updatedAt] = now
         }
         if (updated > 0) {
@@ -180,7 +180,7 @@ class MasterProductService {
         val now = OffsetDateTime.now(ZoneOffset.UTC)
         val updated = MasterProducts.update({ MasterProducts.id eq id }) {
             it[isActive] = false
-            it[syncVersion] = MasterProducts.syncVersion + 1
+            it[syncVersion] = MasterProducts.syncVersion + 1L
             it[updatedAt] = now
         }
         if (updated > 0) logger.info("Soft-deleted master product: id=$id")
@@ -254,7 +254,7 @@ class MasterProductService {
             it[localCostPrice] = request.localCostPrice?.toBigDecimal()
             it[localStockQty]  = request.localStockQty
             it[minStockQty]    = request.minStockQty
-            it[syncVersion]    = StoreProducts.syncVersion + 1
+            it[syncVersion]    = StoreProducts.syncVersion + 1L
             it[updatedAt]      = now
         }
         if (updated > 0) logger.info("Updated store override: master=$masterProductId store=$storeId")
@@ -278,7 +278,7 @@ class MasterProductService {
             }
     }
 
-    suspend fun bulkAssign(masterProductId: String, request: BulkAssignRequest): Int = newSuspendedTransaction {
+    suspend fun bulkAssign(masterProductId: String, request: BulkStoreAssignRequest): Int = newSuspendedTransaction {
         val exists = MasterProducts.selectAll().where { MasterProducts.id eq masterProductId }.count() > 0
         if (!exists) return@newSuspendedTransaction 0
         var count = 0

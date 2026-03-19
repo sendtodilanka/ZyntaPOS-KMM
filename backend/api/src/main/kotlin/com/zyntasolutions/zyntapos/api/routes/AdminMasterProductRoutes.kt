@@ -1,7 +1,7 @@
 package com.zyntasolutions.zyntapos.api.routes
 
 import com.zyntasolutions.zyntapos.api.service.AssignToStoreRequest
-import com.zyntasolutions.zyntapos.api.service.BulkAssignRequest
+import com.zyntasolutions.zyntapos.api.service.BulkStoreAssignRequest
 import com.zyntasolutions.zyntapos.api.service.CreateMasterProductRequest
 import com.zyntasolutions.zyntapos.api.service.MasterProductService
 import com.zyntasolutions.zyntapos.api.service.UpdateMasterProductRequest
@@ -95,7 +95,7 @@ fun Route.adminMasterProductRoutes() {
             val storeId = call.parameters["storeId"] ?: return@post call.respond(
                 HttpStatusCode.BadRequest, ErrorResponse("MISSING_ID", "Store ID required")
             )
-            val body = call.receiveOrNull<AssignToStoreRequest>() ?: AssignToStoreRequest()
+            val body = runCatching { call.receive<AssignToStoreRequest>() }.getOrNull() ?: AssignToStoreRequest()
             val assigned = service.assignToStore(id, storeId, body)
             if (!assigned) return@post call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Master product not found"))
             call.respond(HttpStatusCode.Created, mapOf("assigned" to true))
@@ -136,7 +136,7 @@ fun Route.adminMasterProductRoutes() {
             val id = call.parameters["id"] ?: return@post call.respond(
                 HttpStatusCode.BadRequest, ErrorResponse("MISSING_ID", "Product ID required")
             )
-            val body = call.receive<BulkAssignRequest>()
+            val body = call.receive<BulkStoreAssignRequest>()
             if (body.storeIds.isEmpty()) {
                 return@post call.respond(
                     HttpStatusCode.BadRequest,

@@ -9,6 +9,8 @@ import com.zyntasolutions.zyntapos.data.repository.CustomerRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.OrderRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.ProductRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.StockRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.MasterProductRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.StoreProductOverrideRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.SupplierRepositoryImpl
 import com.zyntasolutions.zyntapos.domain.port.SecureStorageKeys
 import com.zyntasolutions.zyntapos.domain.port.SecureStoragePort
@@ -155,6 +157,8 @@ class SyncEngineIntegrationTest {
             categoryRepository    = CategoryRepositoryImpl(db, syncEnqueuer),
             supplierRepository    = SupplierRepositoryImpl(db, syncEnqueuer),
             stockRepository       = StockRepositoryImpl(db, syncEnqueuer),
+            masterProductRepository = MasterProductRepositoryImpl(db),
+            storeProductOverrideRepository = StoreProductOverrideRepositoryImpl(db, syncEnqueuer),
             conflictResolver      = ConflictResolver(localDeviceId = testDeviceId),
             conflictLogRepository = ConflictLogRepositoryImpl(db = db),
         )
