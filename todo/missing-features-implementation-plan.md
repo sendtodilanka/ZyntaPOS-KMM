@@ -51,11 +51,11 @@ JWT validation, token revocation, heartbeat replay protection, circular parent d
 
 **Impact:** Offline-first data sync මුළුමනින්ම non-functional. Client data `sync_queue` table එකේ unprocessed ඉඳලා යයි.
 
-### Blocker 2: Multi-Store Data Architecture (C6.1 + C1.1–C1.5) — 0% Backend
+### Blocker 2: Multi-Store Data Architecture (C6.1 + C1.1–C1.5) — C1.1 DONE, rest 0% Backend
 
-Phase 2 core feature එක multi-store. නමුත්:
+Phase 2 core feature එක multi-store. C1.1 Global Product Catalog implemented (2026-03-19):
 
-- **Global Product Catalog** (`global_products` table) — build කරන්න ඕන
+- **Global Product Catalog** (`master_products` + `store_products` tables) — ✅ DONE (C1.1, 2026-03-19)
 - **Store-Specific Inventory** backend support — `store_id` column products/stock tables වලට add කරන්න ඕන
 - **Inter-Store Transfer (IST)** backend pipeline — 0% (UI exists: `NewStockTransferScreen`, `StockTransferListScreen` — but backend routes, approval workflow, tracking tables නැහැ)
 - **Cross-Store Sync** (multi-node CRDT) — ✅ Single-store conflict resolution done (C6.1, 2026-03-19); multi-store context still needs design
@@ -426,34 +426,71 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 
 ---
 
-### C1.1 Global Product Catalog (පොදු භාණ්ඩ නාමාවලිය)
+### C1.1 Global Product Catalog (පොදු භාණ්ඩ නාමාවලිය) — ✅ IMPLEMENTED
+
+> **HANDOFF (2026-03-19):** C1.1 is now fully implemented. Two-tier product architecture:
+> master products (global, admin-panel-only writes) + store products (per-store overrides).
+> Branch: claude/plan-c1-1-features-Kksgc.
 
 **Priority:** PHASE-2
-**Status:** NOT IMPLEMENTED
+**Status:** IMPLEMENTED (2026-03-19)
 
-**Codebase State:**
-- `Product` model has `storeId: String` — products are per-store, no global catalog concept
-- `products.sq` has `store_id TEXT NOT NULL` — every product belongs to one store
-- Backend `products` table (V1) also has `store_id TEXT NOT NULL REFERENCES stores(id)`
-- No `master_product` or `global_product` concept exists anywhere
+**Architecture:**
+- Master products are read-only on POS devices (synced via pull)
+- Backward-compatible: `Product.masterProductId` is nullable — existing products unaffected
+- Effective price resolution: `localPrice` (store override) > `basePrice` (master) > `price` (legacy)
 
-**What's MISSING:**
-- [ ] `MasterProduct` domain model — template for products shared across stores
-- [ ] `master_products` SQLDelight table (id, sku, barcode, name, description, base_price, category_id, image_url)
-- [ ] `store_products` junction table (master_product_id, store_id, local_price, local_stock_qty, is_active)
-- [ ] `MasterProductRepository` interface in `:shared:domain`
-- [ ] `MasterProductRepositoryImpl` in `:shared:data`
-- [ ] Backend migration: `master_products` + `store_products` tables
-- [ ] Backend `MasterProductRoutes.kt` — CRUD for global catalog
-- [ ] Admin panel: Global product catalog management UI
-- [ ] KMM app: Store-local product override UI (price, stock)
-- [ ] Sync: Master product changes propagate to all stores
+**What's DONE:**
+- [x] `MasterProduct` domain model — `shared/domain/src/commonMain/.../model/MasterProduct.kt`
+- [x] `StoreProductOverride` domain model — `shared/domain/src/commonMain/.../model/StoreProductOverride.kt`
+- [x] `Product.masterProductId: String?` added to existing Product model
+- [x] `master_products` SQLDelight table with FTS5 search — `shared/data/src/commonMain/sqldelight/.../master_products.sq`
+- [x] `store_products` SQLDelight table — `shared/data/src/commonMain/sqldelight/.../store_products.sq`
+- [x] SQLDelight migration 10.sqm — adds tables + `master_product_id` column to products
+- [x] `MasterProductRepository` interface in `:shared:domain`
+- [x] `StoreProductOverrideRepository` interface in `:shared:domain`
+- [x] `MasterProductRepositoryImpl` in `:shared:data` (read-only, FTS5 search, sync upsert)
+- [x] `StoreProductOverrideRepositoryImpl` in `:shared:data` (writable, SyncEnqueuer integration)
+- [x] `GetEffectiveProductPriceUseCase` — price resolution logic
+- [x] `GetMasterProductCatalogUseCase` — catalog browser
+- [x] Backend migration V27 — `master_products` + `store_products` + `products.master_product_id`
+- [x] Backend `MasterProductService` — CRUD, store assignment, bulk assign
+- [x] Backend `AdminMasterProductRoutes.kt` — 10 REST endpoints
+- [x] Backend `EntityApplier` — MASTER_PRODUCT + STORE_PRODUCT handlers
+- [x] Backend Koin DI — `MasterProductService` binding
+- [x] Admin panel: types (`master-product.ts`), API hooks (`master-products.ts`)
+- [x] Admin panel: list page + detail page with store assignments
+- [x] KMM MVI: `MasterProductOverrideViewModel/State/Intent/Effect`
+- [x] KMM SyncEngine — routes MASTER_PRODUCT + STORE_PRODUCT entity types
+- [x] KMM DataModule — Koin bindings for all new repositories
+- [x] `SyncOperation.EntityType.MASTER_PRODUCT` + `STORE_PRODUCT` constants
+- [x] `ProductMapper` + `ProductDto` updated with `masterProductId`
 
-**Key Files to Modify:**
-- `shared/domain/src/commonMain/.../model/Product.kt`
-- `shared/data/src/commonMain/sqldelight/.../products.sq`
-- `backend/api/src/main/resources/db/migration/` (new V21)
-- `:composeApp:feature:inventory` screens
+**Key Files:**
+- `shared/domain/src/commonMain/.../model/MasterProduct.kt`
+- `shared/domain/src/commonMain/.../model/StoreProductOverride.kt`
+- `shared/domain/src/commonMain/.../model/Product.kt` (added masterProductId)
+- `shared/domain/src/commonMain/.../repository/MasterProductRepository.kt`
+- `shared/domain/src/commonMain/.../repository/StoreProductOverrideRepository.kt`
+- `shared/domain/src/commonMain/.../usecase/inventory/GetEffectiveProductPriceUseCase.kt`
+- `shared/data/src/commonMain/sqldelight/.../master_products.sq`
+- `shared/data/src/commonMain/sqldelight/.../store_products.sq`
+- `shared/data/src/commonMain/sqldelight/.../10.sqm`
+- `shared/data/src/commonMain/.../repository/MasterProductRepositoryImpl.kt`
+- `shared/data/src/commonMain/.../repository/StoreProductOverrideRepositoryImpl.kt`
+- `shared/data/src/commonMain/.../di/DataModule.kt`
+- `shared/data/src/commonMain/.../sync/SyncEngine.kt`
+- `backend/api/src/main/resources/db/migration/V27__master_products.sql`
+- `backend/api/src/main/kotlin/.../service/MasterProductService.kt`
+- `backend/api/src/main/kotlin/.../routes/AdminMasterProductRoutes.kt`
+- `backend/api/src/main/kotlin/.../sync/EntityApplier.kt`
+- `backend/api/src/main/kotlin/.../plugins/Routing.kt`
+- `backend/api/src/main/kotlin/.../di/AppModule.kt`
+- `admin-panel/src/types/master-product.ts`
+- `admin-panel/src/api/master-products.ts`
+- `admin-panel/src/routes/master-products/index.tsx`
+- `admin-panel/src/routes/master-products/$masterProductId.tsx`
+- `composeApp/feature/inventory/.../masterproduct/MasterProductOverrideViewModel.kt`
 
 ---
 

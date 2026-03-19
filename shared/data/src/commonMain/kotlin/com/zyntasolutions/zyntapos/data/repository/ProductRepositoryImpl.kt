@@ -109,6 +109,7 @@ class ProductRepositoryImpl(
                     image_url = p.imageUrl, description = p.description,
                     is_active = p.isActive, created_at = p.createdAt,
                     updated_at = p.updatedAt, sync_status = p.syncStatus,
+                    master_product_id = p.masterProductId,
                 )
                 syncEnqueuer.enqueue(SyncOperation.EntityType.PRODUCT, p.id, SyncOperation.Operation.INSERT)
             }
@@ -172,6 +173,7 @@ class ProductRepositoryImpl(
                 image_url = dto.imageUrl, description = dto.description,
                 is_active = isActive, created_at = dto.createdAt,
                 updated_at = dto.updatedAt, sync_status = "SYNCED",
+                master_product_id = dto.masterProductId,
             )
         }
     }
