@@ -1,11 +1,11 @@
 -- ============================================================
--- stock_transfers.sq — Inter-warehouse stock transfer records
+-- stock_transfers.sq — Inter-warehouse / inter-store stock transfer records
 -- ============================================================
--- Two-phase commit pattern:
---   1. Create record with status PENDING
---   2. Decrement source warehouse stock
---   3. Increment dest warehouse stock
---   4. Update record status to COMMITTED
+-- Multi-step IST workflow (C1.3):
+--   PENDING → APPROVED → IN_TRANSIT → RECEIVED
+-- Legacy two-phase commit (warehouse-level, backward-compatible):
+--   PENDING → COMMITTED | CANCELLED
+-- Status values: PENDING | APPROVED | IN_TRANSIT | RECEIVED | COMMITTED | CANCELLED
 
 CREATE TABLE stock_transfers (
     id                   TEXT    NOT NULL PRIMARY KEY,
@@ -13,18 +13,28 @@ CREATE TABLE stock_transfers (
     dest_warehouse_id    TEXT    NOT NULL REFERENCES warehouses(id),
     product_id           TEXT    NOT NULL,
     quantity             REAL    NOT NULL,
-    status               TEXT    NOT NULL DEFAULT 'PENDING',  -- 'PENDING' | 'COMMITTED' | 'CANCELLED'
+    status               TEXT    NOT NULL DEFAULT 'PENDING',
     notes                TEXT,
+    -- Legacy commit fields (warehouse-level two-phase commit)
     transferred_by       TEXT,
     transferred_at       INTEGER,
+    -- IST multi-step workflow fields (C1.3)
+    created_by           TEXT,
+    approved_by          TEXT,
+    approved_at          INTEGER,
+    dispatched_by        TEXT,
+    dispatched_at        INTEGER,
+    received_by          TEXT,
+    received_at          INTEGER,
     created_at           INTEGER NOT NULL,
     updated_at           INTEGER NOT NULL,
     sync_status          TEXT    NOT NULL DEFAULT 'PENDING'
 );
 
-CREATE INDEX idx_stock_transfers_source ON stock_transfers(source_warehouse_id, status);
-CREATE INDEX idx_stock_transfers_dest   ON stock_transfers(dest_warehouse_id, status);
+CREATE INDEX idx_stock_transfers_source  ON stock_transfers(source_warehouse_id, status);
+CREATE INDEX idx_stock_transfers_dest    ON stock_transfers(dest_warehouse_id, status);
 CREATE INDEX idx_stock_transfers_product ON stock_transfers(product_id);
+CREATE INDEX idx_stock_transfers_status  ON stock_transfers(status);
 
 -- ── Read queries ─────────────────────────────────────────────────────────────
 
@@ -36,18 +46,31 @@ ORDER BY created_at DESC;
 getPendingTransfers:
 SELECT * FROM stock_transfers WHERE status = 'PENDING' ORDER BY created_at ASC;
 
+getApprovedTransfers:
+SELECT * FROM stock_transfers WHERE status = 'APPROVED' ORDER BY approved_at ASC;
+
+getInTransitTransfers:
+SELECT * FROM stock_transfers WHERE status = 'IN_TRANSIT' ORDER BY dispatched_at ASC;
+
 getTransferById:
 SELECT * FROM stock_transfers WHERE id = ?;
 
 getTransfersByProduct:
 SELECT * FROM stock_transfers WHERE product_id = ? ORDER BY created_at DESC;
 
+getTransfersByStatus:
+SELECT * FROM stock_transfers WHERE status = ? ORDER BY updated_at DESC;
+
 -- ── Write queries ────────────────────────────────────────────────────────────
 
 insertStockTransfer:
-INSERT INTO stock_transfers(id, source_warehouse_id, dest_warehouse_id, product_id, quantity, status, notes, transferred_by, created_at, updated_at, sync_status)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO stock_transfers(
+    id, source_warehouse_id, dest_warehouse_id, product_id, quantity,
+    status, notes, transferred_by, created_by, created_at, updated_at, sync_status
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
+-- Legacy two-phase commit (warehouse-level)
 commitTransfer:
 UPDATE stock_transfers SET
     status = 'COMMITTED', transferred_at = ?, updated_at = ?, sync_status = 'PENDING'
@@ -56,4 +79,20 @@ WHERE id = ?;
 cancelTransfer:
 UPDATE stock_transfers SET
     status = 'CANCELLED', updated_at = ?, sync_status = 'PENDING'
+WHERE id = ?;
+
+-- IST multi-step workflow transitions (C1.3)
+approveTransfer:
+UPDATE stock_transfers SET
+    status = 'APPROVED', approved_by = ?, approved_at = ?, updated_at = ?, sync_status = 'PENDING'
+WHERE id = ?;
+
+dispatchTransfer:
+UPDATE stock_transfers SET
+    status = 'IN_TRANSIT', dispatched_by = ?, dispatched_at = ?, updated_at = ?, sync_status = 'PENDING'
+WHERE id = ?;
+
+receiveTransfer:
+UPDATE stock_transfers SET
+    status = 'RECEIVED', received_by = ?, received_at = ?, updated_at = ?, sync_status = 'PENDING'
 WHERE id = ?;

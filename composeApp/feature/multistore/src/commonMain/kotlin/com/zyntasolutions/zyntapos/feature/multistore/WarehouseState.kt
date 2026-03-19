@@ -18,6 +18,11 @@ data class WarehouseState(
     val transfers: List<StockTransfer> = emptyList(),
     val pendingTransfers: List<StockTransfer> = emptyList(),
 
+    // ── IST Multi-step workflow state (C1.3) ──────────────────────────────
+    val approvedTransfers: List<StockTransfer> = emptyList(),
+    val inTransitTransfers: List<StockTransfer> = emptyList(),
+    val selectedTransfer: StockTransfer? = null,
+
     // ── Warehouse Detail / Edit ───────────────────────────────────────────
     val selectedWarehouse: Warehouse? = null,
     val warehouseForm: WarehouseFormState = WarehouseFormState(),

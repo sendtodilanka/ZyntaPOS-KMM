@@ -81,3 +81,15 @@ updatePurchaseOrderStatus:
 UPDATE purchase_orders
 SET status = ?, received_date = ?, updated_at = ?, sync_status = 'PENDING'
 WHERE id = ?;
+
+updatePurchaseOrderItemReceived:
+UPDATE purchase_order_items
+SET quantity_received = ?
+WHERE id = ?;
+
+getPendingPurchaseOrders:
+SELECT po.*, s.name AS supplier_name
+FROM purchase_orders po
+JOIN suppliers s ON s.id = po.supplier_id
+WHERE po.status IN ('PENDING', 'PARTIAL')
+ORDER BY po.order_date ASC;

@@ -137,6 +137,7 @@ class WarehouseRepositoryImpl(
                 status = StockTransfer.Status.PENDING.name,
                 notes = transfer.notes,
                 transferred_by = transfer.transferredBy,
+                created_by = transfer.createdBy,
                 created_at = now, updated_at = now, sync_status = "PENDING",
             )
             syncEnqueuer.enqueue(SyncOperation.EntityType.STOCK_TRANSFER, transfer.id, SyncOperation.Operation.INSERT)
@@ -215,7 +216,9 @@ class WarehouseRepositoryImpl(
             val transfer = tq.getTransferById(transferId).executeAsOneOrNull()
                 ?: return@withContext Result.Error(DatabaseException("Transfer not found: $transferId"))
 
-            if (transfer.status != StockTransfer.Status.PENDING.name) {
+            val status = runCatching { StockTransfer.Status.valueOf(transfer.status) }
+                .getOrDefault(StockTransfer.Status.PENDING)
+            if (!status.isCancellable) {
                 return@withContext Result.Error(
                     ValidationException("Transfer $transferId is already ${transfer.status} — cannot cancel")
                 )
@@ -229,6 +232,150 @@ class WarehouseRepositoryImpl(
             onFailure = { t -> Result.Error(DatabaseException(t.message ?: "Cancel failed", cause = t)) },
         )
     }
+
+    // ── IST Multi-step workflow (C1.3) ────────────────────────────────────────
+
+    override suspend fun approveTransfer(transferId: String, approvedBy: String): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val transfer = tq.getTransferById(transferId).executeAsOneOrNull()
+                    ?: return@withContext Result.Error(DatabaseException("Transfer not found: $transferId"))
+
+                if (transfer.status != StockTransfer.Status.PENDING.name) {
+                    return@withContext Result.Error(
+                        ValidationException("Transfer $transferId must be PENDING to approve (current: ${transfer.status})")
+                    )
+                }
+
+                val now = Clock.System.now().toEpochMilliseconds()
+                tq.approveTransfer(
+                    approved_by = approvedBy,
+                    approved_at = now,
+                    updated_at = now,
+                    id = transferId,
+                )
+                syncEnqueuer.enqueue(SyncOperation.EntityType.STOCK_TRANSFER, transferId, SyncOperation.Operation.UPDATE)
+            }.fold(
+                onSuccess = { Result.Success(Unit) },
+                onFailure = { t -> Result.Error(DatabaseException(t.message ?: "Approve failed", cause = t)) },
+            )
+        }
+
+    override suspend fun dispatchTransfer(transferId: String, dispatchedBy: String): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val transfer = tq.getTransferById(transferId).executeAsOneOrNull()
+                    ?: return@withContext Result.Error(DatabaseException("Transfer not found: $transferId"))
+
+                if (transfer.status != StockTransfer.Status.APPROVED.name) {
+                    return@withContext Result.Error(
+                        ValidationException("Transfer $transferId must be APPROVED to dispatch (current: ${transfer.status})")
+                    )
+                }
+
+                val product = pq.getProductById(transfer.product_id).executeAsOneOrNull()
+                    ?: return@withContext Result.Error(DatabaseException("Product not found: ${transfer.product_id}"))
+
+                if (product.stock_qty < transfer.quantity) {
+                    return@withContext Result.Error(
+                        ValidationException(
+                            "Insufficient stock: available ${product.stock_qty}, requested ${transfer.quantity}"
+                        )
+                    )
+                }
+
+                val now = Clock.System.now().toEpochMilliseconds()
+                db.transaction {
+                    tq.dispatchTransfer(
+                        dispatched_by = dispatchedBy,
+                        dispatched_at = now,
+                        updated_at = now,
+                        id = transferId,
+                    )
+                    // TRANSFER_OUT at dispatch: stock leaves source
+                    sq.insertAdjustment(
+                        id = IdGenerator.newId(),
+                        product_id = transfer.product_id,
+                        type = "TRANSFER_OUT",
+                        quantity = -transfer.quantity,
+                        reason = "IST dispatch: transfer $transferId to warehouse ${transfer.dest_warehouse_id}",
+                        adjusted_by = dispatchedBy,
+                        reference_id = transferId,
+                        timestamp = now,
+                        sync_status = "PENDING",
+                    )
+                    // Decrement global stock while goods are in transit
+                    pq.updateStockQty(
+                        stock_qty = product.stock_qty - transfer.quantity,
+                        updated_at = now,
+                        id = transfer.product_id,
+                    )
+                    syncEnqueuer.enqueue(SyncOperation.EntityType.STOCK_TRANSFER, transferId, SyncOperation.Operation.UPDATE)
+                }
+            }.fold(
+                onSuccess = { Result.Success(Unit) },
+                onFailure = { t -> Result.Error(DatabaseException(t.message ?: "Dispatch failed", cause = t)) },
+            )
+        }
+
+    override suspend fun receiveTransfer(transferId: String, receivedBy: String): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val transfer = tq.getTransferById(transferId).executeAsOneOrNull()
+                    ?: return@withContext Result.Error(DatabaseException("Transfer not found: $transferId"))
+
+                if (transfer.status != StockTransfer.Status.IN_TRANSIT.name) {
+                    return@withContext Result.Error(
+                        ValidationException("Transfer $transferId must be IN_TRANSIT to receive (current: ${transfer.status})")
+                    )
+                }
+
+                val product = pq.getProductById(transfer.product_id).executeAsOneOrNull()
+                    ?: return@withContext Result.Error(DatabaseException("Product not found: ${transfer.product_id}"))
+
+                val now = Clock.System.now().toEpochMilliseconds()
+                db.transaction {
+                    tq.receiveTransfer(
+                        received_by = receivedBy,
+                        received_at = now,
+                        updated_at = now,
+                        id = transferId,
+                    )
+                    // TRANSFER_IN at receipt: stock arrives at destination
+                    sq.insertAdjustment(
+                        id = IdGenerator.newId(),
+                        product_id = transfer.product_id,
+                        type = "TRANSFER_IN",
+                        quantity = transfer.quantity,
+                        reason = "IST receipt: transfer $transferId from warehouse ${transfer.source_warehouse_id}",
+                        adjusted_by = receivedBy,
+                        reference_id = transferId,
+                        timestamp = now,
+                        sync_status = "PENDING",
+                    )
+                    // Restore global stock at destination
+                    pq.updateStockQty(
+                        stock_qty = product.stock_qty + transfer.quantity,
+                        updated_at = now,
+                        id = transfer.product_id,
+                    )
+                    syncEnqueuer.enqueue(SyncOperation.EntityType.STOCK_TRANSFER, transferId, SyncOperation.Operation.UPDATE)
+                }
+            }.fold(
+                onSuccess = { Result.Success(Unit) },
+                onFailure = { t -> Result.Error(DatabaseException(t.message ?: "Receive failed", cause = t)) },
+            )
+        }
+
+    override suspend fun getTransfersByStatus(status: StockTransfer.Status): Result<List<StockTransfer>> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                tq.getTransfersByStatus(status.name).executeAsList().map(::toTransferDomain)
+            }.fold(
+                onSuccess = { Result.Success(it) },
+                onFailure = { t -> Result.Error(DatabaseException(t.message ?: "DB error", cause = t)) },
+            )
+        }
 
     private fun toWarehouseDomain(row: Warehouses) = Warehouse(
         id = row.id, storeId = row.store_id, name = row.name,
@@ -246,6 +393,13 @@ class WarehouseRepositoryImpl(
         quantity = row.quantity,
         status = runCatching { StockTransfer.Status.valueOf(row.status) }.getOrDefault(StockTransfer.Status.PENDING),
         notes = row.notes,
+        createdBy = row.created_by,
+        approvedBy = row.approved_by,
+        approvedAt = row.approved_at,
+        dispatchedBy = row.dispatched_by,
+        dispatchedAt = row.dispatched_at,
+        receivedBy = row.received_by,
+        receivedAt = row.received_at,
         transferredBy = row.transferred_by,
         transferredAt = row.transferred_at,
     )

@@ -39,6 +39,7 @@ import com.zyntasolutions.zyntapos.api.service.PlayIntegrityService
 import com.zyntasolutions.zyntapos.api.service.ForceSyncNotifier
 import com.zyntasolutions.zyntapos.api.service.LicenseValidationClient
 import com.zyntasolutions.zyntapos.api.service.MfaService
+import com.zyntasolutions.zyntapos.api.service.AdminTransferService
 import com.zyntasolutions.zyntapos.api.service.MasterProductService
 import com.zyntasolutions.zyntapos.api.service.ProductService
 import com.zyntasolutions.zyntapos.api.service.UserService
@@ -145,6 +146,7 @@ val appModule = module {
     single { UserService(posUserRepo = get()) }
     single { ProductService(productRepo = get()) }
     single { MasterProductService() }
+    single { AdminTransferService() }
     single { AdminAuthService(config = get(), auditService = get(), adminUserRepo = get(), emailService = get()) }
     single { AdminAuditService(auditRepo = get()) }
     single { AdminStoresService(storesRepo = get()) }
