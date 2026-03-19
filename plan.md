@@ -1,5 +1,11 @@
 # C6.1 — CRDT Merge Integration into SyncEngine
 
+## Status: IMPLEMENTED
+
+All 7 steps completed. See implementation details below.
+
+---
+
 ## Current State Analysis
 
 **What EXISTS (already implemented):**
@@ -245,6 +251,23 @@ Add test cases:
 ## Dependency Direction (verified)
 
 All changes stay within `:shared:data` → `:shared:domain` → `:shared:core`. No architecture violations.
+
+## Implementation Summary
+
+All 7 steps have been implemented:
+
+### Files Created
+- `shared/data/src/commonMain/kotlin/.../repository/ConflictLogRepositoryImpl.kt` — Maps SyncConflict ↔ conflict_log table
+- `shared/data/src/commonTest/kotlin/.../sync/ConflictResolverTest.kt` — 10 unit tests
+
+### Files Modified
+- `shared/data/src/commonMain/sqldelight/.../sync_queue.sq` — Added `getPendingByEntity` query
+- `shared/data/src/commonMain/kotlin/.../sync/SyncEngine.kt` — Added ConflictResolver/ConflictLogRepository params, conflict detection in `applyDeltaOperations()`, helper methods
+- `shared/data/src/commonMain/kotlin/.../di/DataModule.kt` — Registered ConflictLogRepository, updated SyncEngine + SyncEnqueuer bindings
+- `shared/data/src/commonMain/kotlin/.../local/SyncEnqueuer.kt` — Added localDeviceId param, version vector increment
+- `shared/data/src/jvmTest/kotlin/.../sync/SyncEngineIntegrationTest.kt` — 5 new conflict tests (G-J)
+
+---
 
 ## Risk Assessment
 

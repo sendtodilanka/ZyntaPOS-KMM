@@ -11,6 +11,7 @@ import com.zyntasolutions.zyntapos.data.repository.RoleRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.AuditRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.AuthRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.CategoryRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.ConflictLogRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.CouponRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.DiagnosticConsentRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.CustomerGroupRepositoryImpl
@@ -64,6 +65,7 @@ import com.zyntasolutions.zyntapos.data.sync.NetworkMonitor
 import com.zyntasolutions.zyntapos.data.sync.SyncEngine
 import com.zyntasolutions.zyntapos.domain.port.SecureStoragePort
 import com.zyntasolutions.zyntapos.domain.repository.AuditRepository
+import com.zyntasolutions.zyntapos.domain.repository.ConflictLogRepository
 import com.zyntasolutions.zyntapos.domain.repository.OperationalLogRepository
 import org.koin.core.qualifier.named
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
@@ -189,7 +191,7 @@ val dataModule = module {
     // ── Sync Enqueuer (shared write-path utility) ─────────────────────
     // Lightweight helper that writes a pending_operations row after every
     // local mutation. Injected into all write-path repository impls.
-    single { SyncEnqueuer(db = get()) }
+    single { SyncEnqueuer(db = get(), localDeviceId = get(named("deviceId"))) }
 
     // ─────────────────────────────────────────────────────────────────
     // ── Repositories (Step 3.3)  ──────────────────────────────────────
@@ -308,6 +310,9 @@ val dataModule = module {
         )
     }
 
+    // CRDT conflict log: audit trail for all resolved sync conflicts (C6.1)
+    single<ConflictLogRepository> { ConflictLogRepositoryImpl(db = get()) }
+
     // ─────────────────────────────────────────────────────────────────────────
     // ── Phase 2 CRM Repositories ─────────────────────────────────────────────
     // ─────────────────────────────────────────────────────────────────────────
@@ -388,16 +393,18 @@ val dataModule = module {
      */
     single {
         SyncEngine(
-            db                  = get(),
-            api                 = get(),
-            prefs               = get(),
-            networkMonitor      = get(),
-            productRepository   = get(),
-            orderRepository     = get(),
-            customerRepository  = get(),
-            categoryRepository  = get(),
-            supplierRepository  = get(),
-            stockRepository     = get(),
+            db                    = get(),
+            api                   = get(),
+            prefs                 = get(),
+            networkMonitor        = get(),
+            productRepository     = get(),
+            orderRepository       = get(),
+            customerRepository    = get(),
+            categoryRepository    = get(),
+            supplierRepository    = get(),
+            stockRepository       = get(),
+            conflictResolver      = get(),
+            conflictLogRepository = get(),
         )
     }
 
