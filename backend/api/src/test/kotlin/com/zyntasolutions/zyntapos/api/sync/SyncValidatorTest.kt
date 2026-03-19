@@ -317,9 +317,10 @@ class SyncValidatorTest {
     }
 
     @Test
-    fun `negative timestamp is accepted - no minimum check`() {
+    fun `negative timestamp is rejected - must be non-negative`() {
         val result = validator.validateBatch(listOf(op(createdAt = -1000L)))
-        assertEquals(1, result.valid.size)
+        assertEquals(0, result.valid.size)
+        assertEquals(1, result.invalid.size)
     }
 
     // ── JSON edge cases ─────────────────────────────────────────────────

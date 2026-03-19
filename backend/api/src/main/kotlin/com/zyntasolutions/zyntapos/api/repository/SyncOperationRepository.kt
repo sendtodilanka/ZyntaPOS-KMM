@@ -27,7 +27,7 @@ open class SyncOperationRepository {
                 it[SyncOperations.deviceId]        = deviceId
                 it[SyncOperations.entityType]      = op.entityType
                 it[SyncOperations.entityId]        = op.entityId
-                it[SyncOperations.operation]       = op.operation
+                it[SyncOperations.operation]       = if (op.operation == "CREATE") "INSERT" else op.operation
                 it[SyncOperations.payload]         = op.payload
                 it[SyncOperations.clientTimestamp] = op.createdAt
                 it[SyncOperations.serverTimestamp] = OffsetDateTime.now(ZoneOffset.UTC)
