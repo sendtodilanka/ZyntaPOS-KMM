@@ -63,6 +63,112 @@ If nothing new was committed, a push is still safe (it will be a no-op). There i
 
 ---
 
+## Session Start Protocol — Local Environment Setup (MANDATORY)
+
+**At the start of every Claude Code session, run these checks before touching any code.**
+
+### Step 1 — Verify PAT Token
+
+```bash
+echo $PAT   # Must print github_pat_... — if empty, pipeline monitoring is impossible
+```
+
+### Step 2 — Verify JDK Version
+
+```bash
+java -version   # Must be JDK 21 (Temurin recommended)
+```
+
+If wrong version: set `JAVA_HOME` to a JDK 21 installation before running any Gradle command.
+
+### Step 3 — Verify Android SDK
+
+```bash
+echo $ANDROID_HOME   # Must point to a valid SDK directory
+ls $ANDROID_HOME/platforms | grep android-36   # compileSdk 36 must be installed
+```
+
+If missing, install via Android Studio SDK Manager: API 36, Build Tools 35+.
+
+### Step 4 — Verify `local.properties` Exists
+
+```bash
+ls local.properties   # Must exist — copy from template if missing
+```
+
+If missing:
+```bash
+cp local.properties.template local.properties
+# Fill in at minimum: sdk.dir, ZYNTA_API_BASE_URL, ZYNTA_DB_PASSPHRASE
+```
+
+`local.properties` is git-ignored — **never commit it.**
+
+### Step 5 — Verify Gradle Wrapper
+
+```bash
+./gradlew --version   # Must succeed — confirms wrapper JAR is intact
+```
+
+If it fails, re-download:
+```bash
+./gradlew wrapper --gradle-version 8.9
+```
+
+### Step 6 — Confirm Current Branch
+
+```bash
+git branch --show-current   # Should be claude/<task-id>
+git status                  # Should be clean or show only intended changes
+```
+
+Create branch if not yet on the correct one:
+```bash
+git checkout -b claude/<task-id>
+```
+
+---
+
+### What Runs Locally vs. CI-Only
+
+| Step | Locally? | Command |
+|------|----------|---------|
+| Shared module tests | ✅ Yes | `./gradlew :shared:core:test :shared:domain:test :shared:security:test --parallel` |
+| Full test suite | ✅ Yes | `./gradlew test --parallel --continue` |
+| Android debug APK build | ✅ Yes | `./gradlew :composeApp:assembleDebug` |
+| Desktop JAR build | ✅ Yes | `./gradlew :composeApp:packageUberJarForCurrentOS` |
+| Detekt static analysis | ✅ Yes | `./gradlew detekt` |
+| Android Lint | ✅ Yes | `./gradlew lint` |
+| SQLDelight code generation | ✅ Yes | `./gradlew generateSqlDelightInterface` |
+| Backend Docker services | ❌ CI/VPS only | Images built by `ci-gate.yml`, run on VPS |
+| Deploy / Smoke / Verify | ❌ CI/VPS only | Triggered via GitHub Actions after merge |
+
+### Recommended Local Pipeline Run (mirrors Step[1] Branch Validate)
+
+Run this before the first commit of any session to confirm the branch is buildable:
+
+```bash
+# Fast pre-commit check (~2 min) — shared module tests only
+./gradlew :shared:core:test \
+          :shared:domain:test \
+          :shared:security:test \
+          --parallel --continue
+
+# Full local CI mirror (~15 min) — run before pushing if you made structural changes
+./gradlew clean \
+          test \
+          testDebugUnitTest \
+          jvmTest \
+          lint \
+          assembleDebug \
+          :composeApp:packageUberJarForCurrentOS \
+          --parallel --continue --stacktrace
+```
+
+> **Rule:** If `./gradlew :shared:core:test :shared:domain:test :shared:security:test` fails locally, **do not push**. Fix the failure first. A broken local build will fail Step[1] and stall the entire pipeline.
+
+---
+
 ## 🔴 RED ALERT: CI/CD Pipeline Monitoring (MANDATORY)
 
 **After EVERY commit and push, Claude MUST actively monitor the CI/CD pipeline end-to-end BEFORE making any further commits.**
