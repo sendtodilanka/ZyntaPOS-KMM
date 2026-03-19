@@ -22,7 +22,7 @@ For the KMM client-side SQLDelight schema, see `shared/data/src/commonMain/sqlde
 
 | Table | Key Columns | Notes |
 |-------|------------|-------|
-| **admin_users** | id, email (UNIQUE), name, role, password_hash, google_sub, mfa_secret, mfa_enabled, failed_attempts, locked_until | Admin panel users; BCrypt + Google SSO |
+| **admin_users** | id, email (UNIQUE), name, role, password_hash, mfa_secret, mfa_enabled, failed_attempts, locked_until | Admin panel users; BCrypt + TOTP MFA (google_sub removed in V17) |
 | **admin_sessions** | id, user_id, token_hash (UNIQUE), user_agent, ip_address, expires_at, revoked_at | Refresh token store; single-use rotation |
 | **admin_mfa_backup_codes** | id, user_id, code_hash, used_at | One-time TOTP backup codes |
 
@@ -244,7 +244,7 @@ Updated edition CHECK constraint: `STARTER` renamed to `COMMUNITY`.
 ### Key Design Patterns
 
 1. **Sync**: Outbox pattern + cursor-based pull (V4); LWW conflict resolution
-2. **Auth**: 2-tier — POS (SHA-256 + salt) and Admin (BCrypt + Google SSO); separate session stores
+2. **Auth**: 2-tier — POS (SHA-256 + salt) and Admin (BCrypt + TOTP MFA; Google SSO removed in V17); separate session stores
 3. **Audit**: Immutable logs with hash-chain tamper detection (V3, V14)
 4. **Isolation**: Separate databases per service (ADR-007); no cross-DB foreign keys
 5. **Normalization**: EntityApplier writes to V12 tables from sync operations for efficient admin queries
