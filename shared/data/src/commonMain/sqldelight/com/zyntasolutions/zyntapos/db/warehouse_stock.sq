@@ -6,6 +6,24 @@
 -- Migration 10.sqm creates this table.
 -- ============================================================
 
+-- ── Schema ───────────────────────────────────────────────────────────────────
+
+CREATE TABLE warehouse_stock (
+    id              TEXT    NOT NULL PRIMARY KEY,
+    warehouse_id    TEXT    NOT NULL,
+    product_id      TEXT    NOT NULL,
+    quantity        REAL    NOT NULL DEFAULT 0.0,
+    min_quantity    REAL    NOT NULL DEFAULT 0.0,
+    sync_status     TEXT    NOT NULL DEFAULT 'PENDING',
+    created_at      INTEGER NOT NULL,
+    updated_at      INTEGER NOT NULL,
+    UNIQUE(warehouse_id, product_id)
+);
+
+CREATE INDEX idx_ws_warehouse ON warehouse_stock(warehouse_id);
+CREATE INDEX idx_ws_product   ON warehouse_stock(product_id);
+CREATE INDEX idx_ws_low_stock ON warehouse_stock(warehouse_id, quantity, min_quantity);
+
 -- ── Read queries ─────────────────────────────────────────────────────────────
 
 -- All stock entries for a warehouse, joined with product info for display.
