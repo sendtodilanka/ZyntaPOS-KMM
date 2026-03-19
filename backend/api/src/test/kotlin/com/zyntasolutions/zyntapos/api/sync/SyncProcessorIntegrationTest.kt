@@ -81,7 +81,7 @@ class SyncProcessorIntegrationTest : AbstractSyncIntegrationTest() {
             Products.selectAll().where { Products.id eq entityId }.singleOrNull()
         }
         assertNotNull(row, "Product row should exist in normalized table after push")
-        assertEquals("PushWidget", row!![Products.name])
+        assertEquals("PushWidget", row[Products.name])
     }
 
     @Test
