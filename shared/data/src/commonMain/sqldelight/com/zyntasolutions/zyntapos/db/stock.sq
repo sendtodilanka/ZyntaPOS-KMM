@@ -29,6 +29,16 @@ CREATE UNIQUE INDEX idx_alerts_product ON stock_alerts(product_id);
 getAdjustmentsByProduct:
 SELECT * FROM stock_adjustments WHERE product_id = ? ORDER BY timestamp DESC;
 
+-- Computes net stock quantity from the adjustment ledger (G-Counter pattern).
+-- INCREASE adds, DECREASE/TRANSFER subtracts. Used to recompute authoritative stock_qty.
+computeNetStockQty:
+SELECT COALESCE(
+    SUM(CASE WHEN type = 'INCREASE' THEN quantity ELSE -quantity END),
+    0.0
+) AS net_qty
+FROM stock_adjustments
+WHERE product_id = ?;
+
 -- ── Write queries ───────────────────────────────────────────────────────────
 
 insertAdjustment:

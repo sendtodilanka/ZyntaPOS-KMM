@@ -84,7 +84,7 @@ class SyncRepositoryImpl(
         val staleCutoff = Clock.System.now().toEpochMilliseconds() - STALE_SYNCING_THRESHOLD_MS
         // Reset stale in-flight rows so they're retried on next cycle
         q.resetStaleSync(staleCutoff)
-        q.getEligibleOperations(BATCH_SIZE)
+        q.getEligibleOperations(store_id = "", batch_size = BATCH_SIZE)
             .executeAsList()
             .map(SyncOperationMapper::toDomain)
     }

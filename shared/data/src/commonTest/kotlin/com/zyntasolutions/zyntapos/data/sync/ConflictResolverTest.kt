@@ -172,4 +172,24 @@ class ConflictResolverTest {
         // loser.extra added since not in winner
         assertTrue(merged.contains("extra"))
     }
+
+    // ── 11. CrdtStrategy routes PRODUCT to FIELD_MERGE ────────────────
+
+    @Test
+    fun crdtStrategy_productUsesFieldMerge() {
+        assertEquals(
+            CrdtStrategy.FIELD_MERGE,
+            CrdtStrategy.forEntityType(SyncOperation.EntityType.PRODUCT),
+        )
+    }
+
+    // ── 12. CrdtStrategy routes STOCK_ADJUSTMENT to APPEND_ONLY ───────
+
+    @Test
+    fun crdtStrategy_stockAdjustmentUsesAppendOnly() {
+        assertEquals(
+            CrdtStrategy.APPEND_ONLY,
+            CrdtStrategy.forEntityType(SyncOperation.EntityType.STOCK_ADJUSTMENT),
+        )
+    }
 }

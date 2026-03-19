@@ -1055,9 +1055,9 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 ### C6.1 Multi-Node Data Sync (ශාඛා අතර දත්ත සමගාමීකරණය)
 
 **Priority:** PHASE-2
-**Status:** MOSTLY COMPLETE — LWW CRDT integrated end-to-end (2026-03-19)
+**Status:** COMPLETE — All 6 sub-items implemented (2026-03-19)
 
-**✅ COMPLETED (C6.1 — 2026-03-19):**
+**✅ COMPLETED (C6.1 Core — 2026-03-19):**
 - [x] `ConflictResolver` (LWW + deviceId tiebreak + PRODUCT field-level merge) integrated into `SyncEngine`
 - [x] `ConflictLogRepositoryImpl` — persists conflict audit trail to `conflict_log` SQLite table
 - [x] Conflict detection in `SyncEngine.applyDeltaOperations()` — checks PENDING local ops before applying server deltas
@@ -1067,33 +1067,46 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 - [x] 10 unit tests (`ConflictResolverTest`) + 5 integration tests (`SyncEngineIntegrationTest`)
 - [x] Server-side: `ServerConflictResolver` + `SyncProcessor` integration (already complete)
 
+**✅ COMPLETED (C6.1 Items 1-6 — 2026-03-19):**
+- [x] **Item 1: Advanced CRDT types** — `CrdtStrategy` enum (LWW/FIELD_MERGE/APPEND_ONLY); STOCK_ADJUSTMENT uses APPEND_ONLY (G-Counter pattern — both ops always accepted); `recomputeStockQty()` derives stock from adjustment ledger; OR-Set deferred to Phase 3
+- [x] **Item 2: Multi-store sync isolation** — `store_id` column added to `pending_operations` (migration 10.sqm); `SyncEnqueuer`, `SyncEngine`, all queries filter by `store_id`; backend already scoped by `storeId`
+- [x] **Item 3: Sync priority** — SQL CASE expression in `getEligibleOperations` (CRITICAL=0: order/cash_movement/register_session, HIGH=1: product/stock/customer, NORMAL=2: category/supplier/user, LOW=3: everything else); `SyncPriority` object for reference
+- [x] **Item 4: Bandwidth optimization** — Ktor `ContentEncoding` plugin with GZIP compression; transparent compress/decompress at HTTP layer; `ktor-client-encoding` added to version catalog
+- [x] **Item 5: Offline queue management** — `SyncQueueMaintenance` class: prunes SYNCED (7d), FAILED (30d), deduplicates PENDING; runs every 10th successful sync cycle; `pruneFailed` query added
+- [x] **Item 6: Conflict UI** — 4th "Conflicts" tab in Admin screen; `ConflictListScreen` with entity type filter chips, conflict cards, detail dialog (Keep Local / Accept Server); `GetUnresolvedConflictsUseCase`, `ResolveConflictUseCase`, `GetConflictCountUseCase`
+
 **Codebase State:**
-- KMM client: `sync_queue.sq` (outbox pattern), `sync_state.sq` (cursor), `version_vectors.sq` (CRDT metadata — now written to)
-- KMM client: `ConflictResolver.kt` — LWW with field-level merge for PRODUCT, wired into `SyncEngine`
+- KMM client: `sync_queue.sq` (outbox with `store_id` + priority ordering), `sync_state.sq` (cursor), `version_vectors.sq` (CRDT metadata — incremented on writes)
+- KMM client: `ConflictResolver.kt` — LWW with field-level merge for PRODUCT, APPEND_ONLY for STOCK_ADJUSTMENT
+- KMM client: `CrdtStrategy.kt` — entity type → CRDT strategy routing
+- KMM client: `SyncQueueMaintenance.kt` — periodic queue pruning + dedup
+- KMM client: `SyncPriority.kt` — priority tier definitions
 - KMM client: `ConflictLogRepositoryImpl.kt` — `conflict_log` table reads/writes
+- KMM client: `ConflictListScreen.kt` — Admin tab 4, conflict resolution UI
 - Backend: `SyncProcessor.kt` (push), `DeltaEngine.kt` (pull), `ServerConflictResolver.kt` (LWW)
 - Backend: `sync_operations` table with `server_seq BIGSERIAL` monotonic ordering
 - WebSocket: `WebSocketHub` per-store broadcast, `RedisPubSubListener` pub/sub
 - Feature flag: `crdt_sync` (disabled, ENTERPRISE)
 
-**What's REMAINING (Phase 2+):**
-- [ ] Advanced CRDT types (G-Counter for stock, OR-Set for collections) — current LWW sufficient for Phase 1
-- [ ] Multi-store sync isolation (ensure store A data never leaks to store B)
-- [ ] Sync priority: Critical data (orders, payments) synced before low-priority (reports, settings)
-- [ ] Bandwidth optimization: Delta compression for large payloads
-- [ ] Offline queue size management (purge stale sync ops after X days)
-- [ ] Conflict UI in KMM app (show conflicts, allow manual resolution)
+**What's REMAINING (Phase 3):**
+- [ ] OR-Set CRDT for collection-type fields (order items, coupon assignments)
+- [ ] Custom merge value input in Conflict UI (currently Keep Local / Accept Server only)
 
 **Key Files:**
 - `shared/data/src/commonMain/kotlin/.../sync/ConflictResolver.kt` — LWW resolver (346 lines)
-- `shared/data/src/commonMain/kotlin/.../sync/SyncEngine.kt` — push/pull with conflict detection
+- `shared/data/src/commonMain/kotlin/.../sync/CrdtStrategy.kt` — entity type → CRDT strategy
+- `shared/data/src/commonMain/kotlin/.../sync/SyncEngine.kt` — push/pull with conflict detection + store isolation
+- `shared/data/src/commonMain/kotlin/.../sync/SyncQueueMaintenance.kt` — periodic queue pruning
+- `shared/data/src/commonMain/kotlin/.../sync/SyncPriority.kt` — priority tier definitions
 - `shared/data/src/commonMain/kotlin/.../repository/ConflictLogRepositoryImpl.kt` — audit persistence
-- `shared/data/src/commonMain/kotlin/.../local/SyncEnqueuer.kt` — version vector increment
-- `shared/data/src/commonMain/sqldelight/.../sync_queue.sq` — incl. `getPendingByEntity`
-- `shared/data/src/commonMain/sqldelight/.../version_vectors.sq`
-- `shared/data/src/commonMain/sqldelight/.../conflict_log.sq`
+- `shared/data/src/commonMain/kotlin/.../repository/StockRepositoryImpl.kt` — `recomputeStockQty()`
+- `shared/data/src/commonMain/kotlin/.../local/SyncEnqueuer.kt` — version vector + store_id
+- `shared/data/src/commonMain/kotlin/.../remote/api/ApiClient.kt` — GZIP content encoding
+- `shared/data/src/commonMain/sqldelight/.../sync_queue.sq` — priority + store_id + pruneFailed
+- `shared/domain/src/commonMain/kotlin/.../usecase/admin/GetUnresolvedConflictsUseCase.kt`
+- `shared/domain/src/commonMain/kotlin/.../usecase/admin/ResolveConflictUseCase.kt`
+- `composeApp/feature/admin/src/commonMain/kotlin/.../ConflictListScreen.kt` — Conflict resolution UI
 - `backend/api/src/main/kotlin/.../sync/SyncProcessor.kt`
-- `backend/sync/src/main/kotlin/.../hub/WebSocketHub.kt`
 
 ---
 
@@ -1289,7 +1302,7 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 | `ZyntaLoyaltyBadge` | Customer loyalty tier indicator (Bronze/Silver/Gold) | **MEDIUM** | C4.2 Loyalty |
 | `ZyntaDateRangeSelector` | Two-date picker for report filters | **MEDIUM** | C5.1 Reports |
 | `ZyntaWarehouseDropdown` | Warehouse context switcher | **MEDIUM** | C1.2 Inventory |
-| `ZyntaConflictResolutionUI` | CRDT merge conflict presentation | **LOW** | C6.1 Sync |
+| ~~`ZyntaConflictResolutionUI`~~ | ~~CRDT merge conflict presentation~~ | ~~**LOW**~~ | ✅ DONE — `ConflictListScreen` + `ConflictDetailDialog` in Admin tab 4 (C6.1 Item 6) |
 
 ---
 
@@ -1719,7 +1732,7 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 - [ ] High-contrast accessibility theme
 - [ ] i18n/locale infrastructure
 - [ ] Receipt template visual editor
-- [ ] Conflict resolution UI for CRDT merges
+- [x] Conflict resolution UI for CRDT merges — ✅ ConflictListScreen in Admin tab 4 (C6.1 Item 6, 2026-03-19)
 - [ ] Customer segmentation/advanced filtering
 - [ ] Shift swap/request workflow
 
@@ -2032,7 +2045,7 @@ git push -u origin $(git branch --show-current)
 | Store Audit Logs | C5.3 | COMPLETE |
 | Real-time Dashboard | C5.4 | PARTIAL (REST only) |
 | **6. Sync & Offline** | | |
-| Multi-node Sync | C6.1 | MOSTLY COMPLETE (LWW CRDT integrated end-to-end: ConflictResolver → SyncEngine → ConflictLogRepo + version vectors; 17 entity types in EntityApplier) |
+| Multi-node Sync | C6.1 | COMPLETE (LWW CRDT + APPEND_ONLY for stock, priority sync, multi-store isolation, GZIP compression, queue maintenance, conflict resolution UI — all 6 items done 2026-03-19) |
 | Offline-First | C6.2 | PARTIAL (EntityApplier covers all core POS types) |
 | Timezone Management | C6.3 | MOSTLY COMPLETE |
 
