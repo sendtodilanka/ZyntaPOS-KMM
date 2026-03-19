@@ -26,14 +26,15 @@ abstract class AbstractIntegrationTest {
 
     companion object {
         val postgres: PostgreSQLContainer<*> by lazy {
-            PostgreSQLContainer<Nothing>("postgres:16-alpine")
+            PostgreSQLContainer("postgres:16-alpine")
                 .withDatabaseName("zyntapos_api_test")
                 .withUsername("test")
                 .withPassword("test")
-                .also { container ->
-                    container.start()
-                    Runtime.getRuntime().addShutdownHook(Thread { container.stop() })
-                }
+                .also { it.start() }
+        }
+
+        init {
+            Runtime.getRuntime().addShutdownHook(Thread { postgres.stop() })
         }
 
         @Volatile
