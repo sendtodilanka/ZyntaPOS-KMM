@@ -3,14 +3,24 @@ package com.zyntasolutions.zyntapos.feature.multistore
 import app.cash.turbine.test
 import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
+import com.zyntasolutions.zyntapos.domain.model.RackProduct
 import com.zyntasolutions.zyntapos.domain.model.StockTransfer
 import com.zyntasolutions.zyntapos.domain.model.Warehouse
 import com.zyntasolutions.zyntapos.domain.model.WarehouseRack
+import com.zyntasolutions.zyntapos.domain.model.WarehouseStock
+import com.zyntasolutions.zyntapos.domain.repository.RackProductRepository
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseRackRepository
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseRepository
+import com.zyntasolutions.zyntapos.domain.repository.WarehouseStockRepository
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.CommitStockTransferUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.multistore.GetLowStockByWarehouseUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.multistore.GetWarehouseStockUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.multistore.SetWarehouseStockUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.rack.DeleteRackProductUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rack.DeleteWarehouseRackUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.rack.GetRackProductsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rack.GetWarehouseRacksUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.rack.SaveRackProductUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rack.SaveWarehouseRackUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -240,12 +250,70 @@ class MultiStoreViewModelTest {
         }
     }
 
+    // ── Fake WarehouseStockRepository ─────────────────────────────────────────
+
+    private val stockFlow = MutableStateFlow<List<WarehouseStock>>(emptyList())
+
+    private val fakeWarehouseStockRepository = object : WarehouseStockRepository {
+        override fun getByWarehouse(warehouseId: String): Flow<List<WarehouseStock>> =
+            stockFlow.map { list -> list.filter { it.warehouseId == warehouseId } }
+        override fun getByProduct(productId: String): Flow<List<WarehouseStock>> =
+            stockFlow.map { list -> list.filter { it.productId == productId } }
+        override suspend fun getEntry(warehouseId: String, productId: String): Result<WarehouseStock?> =
+            Result.Success(stockFlow.value.firstOrNull { it.warehouseId == warehouseId && it.productId == productId })
+        override suspend fun getTotalStock(productId: String): Result<Double> =
+            Result.Success(stockFlow.value.filter { it.productId == productId }.sumOf { it.quantity })
+        override fun getLowStockByWarehouse(warehouseId: String): Flow<List<WarehouseStock>> =
+            stockFlow.map { list -> list.filter { it.warehouseId == warehouseId && it.quantity <= it.minQuantity && it.minQuantity > 0.0 } }
+        override fun getAllLowStock(): Flow<List<WarehouseStock>> =
+            stockFlow.map { list -> list.filter { it.quantity <= it.minQuantity && it.minQuantity > 0.0 } }
+        override suspend fun upsert(stock: WarehouseStock): Result<Unit> {
+            val idx = stockFlow.value.indexOfFirst { it.warehouseId == stock.warehouseId && it.productId == stock.productId }
+            stockFlow.value = if (idx == -1) stockFlow.value + stock
+            else stockFlow.value.toMutableList().also { it[idx] = stock }
+            return Result.Success(Unit)
+        }
+        override suspend fun adjustStock(warehouseId: String, productId: String, delta: Double): Result<Unit> =
+            Result.Success(Unit)
+        override suspend fun transferStock(sourceWarehouseId: String, destWarehouseId: String, productId: String, quantity: Double): Result<Unit> =
+            Result.Success(Unit)
+        override suspend fun deleteEntry(warehouseId: String, productId: String): Result<Unit> {
+            stockFlow.value = stockFlow.value.filter { !(it.warehouseId == warehouseId && it.productId == productId) }
+            return Result.Success(Unit)
+        }
+    }
+
+    // ── Fake RackProductRepository ────────────────────────────────────────────
+
+    private val rackProductsFlow = MutableStateFlow<List<RackProduct>>(emptyList())
+
+    private val fakeRackProductRepository = object : RackProductRepository {
+        override fun getByRack(rackId: String): Flow<List<RackProduct>> =
+            rackProductsFlow.map { list -> list.filter { it.rackId == rackId } }
+        override suspend fun upsert(rackProduct: RackProduct): Result<Unit> {
+            val idx = rackProductsFlow.value.indexOfFirst { it.rackId == rackProduct.rackId && it.productId == rackProduct.productId }
+            rackProductsFlow.value = if (idx == -1) rackProductsFlow.value + rackProduct
+            else rackProductsFlow.value.toMutableList().also { it[idx] = rackProduct }
+            return Result.Success(Unit)
+        }
+        override suspend fun delete(rackId: String, productId: String): Result<Unit> {
+            rackProductsFlow.value = rackProductsFlow.value.filter { !(it.rackId == rackId && it.productId == productId) }
+            return Result.Success(Unit)
+        }
+    }
+
     // ── Use cases wired to fakes ──────────────────────────────────────────────
 
     private val commitTransferUseCase = CommitStockTransferUseCase(fakeWarehouseRepository)
     private val getWarehouseRacksUseCase = GetWarehouseRacksUseCase(fakeWarehouseRackRepository)
     private val saveWarehouseRackUseCase = SaveWarehouseRackUseCase(fakeWarehouseRackRepository)
     private val deleteWarehouseRackUseCase = DeleteWarehouseRackUseCase(fakeWarehouseRackRepository)
+    private val getWarehouseStockUseCase = GetWarehouseStockUseCase(fakeWarehouseStockRepository)
+    private val setWarehouseStockUseCase = SetWarehouseStockUseCase(fakeWarehouseStockRepository)
+    private val getLowStockByWarehouseUseCase = GetLowStockByWarehouseUseCase(fakeWarehouseStockRepository)
+    private val getRackProductsUseCase = GetRackProductsUseCase(fakeRackProductRepository)
+    private val saveRackProductUseCase = SaveRackProductUseCase(fakeRackProductRepository)
+    private val deleteRackProductUseCase = DeleteRackProductUseCase(fakeRackProductRepository)
 
     private lateinit var viewModel: WarehouseViewModel
 
@@ -255,6 +323,8 @@ class MultiStoreViewModelTest {
         warehousesFlow.value = emptyList()
         transfersFlow.value = emptyList()
         racksFlow.value = emptyList()
+        stockFlow.value = emptyList()
+        rackProductsFlow.value = emptyList()
         shouldFailInsertWarehouse = false
         shouldFailUpdateWarehouse = false
         shouldFailCreateTransfer = false
@@ -269,6 +339,12 @@ class MultiStoreViewModelTest {
             getWarehouseRacksUseCase = getWarehouseRacksUseCase,
             saveWarehouseRackUseCase = saveWarehouseRackUseCase,
             deleteWarehouseRackUseCase = deleteWarehouseRackUseCase,
+            getWarehouseStockUseCase = getWarehouseStockUseCase,
+            setWarehouseStockUseCase = setWarehouseStockUseCase,
+            getLowStockByWarehouseUseCase = getLowStockByWarehouseUseCase,
+            getRackProductsUseCase = getRackProductsUseCase,
+            saveRackProductUseCase = saveRackProductUseCase,
+            deleteRackProductUseCase = deleteRackProductUseCase,
             authRepository = fakeAuthRepository,
             analytics = noOpAnalytics,
         )
