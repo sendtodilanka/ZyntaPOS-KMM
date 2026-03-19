@@ -1,11 +1,35 @@
 package com.zyntasolutions.zyntapos.api.repository
 
+import org.jetbrains.exposed.sql.Column
+import org.jetbrains.exposed.sql.ColumnType
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.javatime.timestampWithTimeZone
+import org.postgresql.util.PGobject
 
 /**
  * Exposed table definitions for all sync engine tables (V4 migration).
  */
+
+/**
+ * Custom JSONB column type for Exposed.
+ *
+ * PostgreSQL requires JSONB values to be sent as PGobject(type="jsonb") via JDBC.
+ * Using text() sends VARCHAR which PostgreSQL rejects with:
+ *   "column is of type jsonb but expression is of type character varying"
+ */
+private class JsonbColumnType : ColumnType<String>() {
+    override fun sqlType(): String = "JSONB"
+    override fun valueFromDB(value: Any): String = when (value) {
+        is PGobject -> value.value ?: ""
+        else -> value.toString()
+    }
+    override fun notNullValueToDB(value: String): Any = PGobject().also {
+        it.type = "jsonb"
+        it.value = value
+    }
+}
+
+private fun Table.jsonb(name: String): Column<String> = registerColumn(name, JsonbColumnType())
 
 object SyncOperations : Table("sync_operations") {
     val id              = text("id")
@@ -14,7 +38,7 @@ object SyncOperations : Table("sync_operations") {
     val entityType      = text("entity_type")
     val entityId        = text("entity_id")
     val operation       = text("operation")
-    val payload         = text("payload")   // stored as JSONB, Exposed reads as text
+    val payload         = jsonb("payload")
     val clientTimestamp = long("client_timestamp")
     val serverSeq       = long("server_seq").autoIncrement()
     val serverTimestamp = timestampWithTimeZone("server_timestamp")
@@ -46,9 +70,9 @@ object SyncConflictLog : Table("sync_conflict_log") {
     val localTimestamp   = long("local_timestamp")
     val serverTs         = long("server_ts")
     val resolution       = text("resolution")
-    val localPayload     = text("local_payload").nullable()
-    val serverPayload    = text("server_payload").nullable()
-    val mergedPayload    = text("merged_payload").nullable()
+    val localPayload     = jsonb("local_payload").nullable()
+    val serverPayload    = jsonb("server_payload").nullable()
+    val mergedPayload    = jsonb("merged_payload").nullable()
     val createdAt        = timestampWithTimeZone("created_at")
 
     override val primaryKey = PrimaryKey(id)
@@ -61,7 +85,7 @@ object SyncDeadLetters : Table("sync_dead_letters") {
     val entityType       = text("entity_type")
     val entityId         = text("entity_id")
     val operation        = text("operation")
-    val payload          = text("payload")
+    val payload          = jsonb("payload")
     val clientTimestamp  = long("client_timestamp")
     val errorReason      = text("error_reason")
     val retryCount       = integer("retry_count").default(0)
@@ -76,7 +100,7 @@ object EntitySnapshots : Table("entity_snapshots") {
     val storeId      = text("store_id")
     val entityType   = text("entity_type")
     val entityId     = text("entity_id")
-    val payload      = text("payload")
+    val payload      = jsonb("payload")
     val lastOpId     = text("last_op_id")
     val lastSeq      = long("last_seq")
     val lastDeviceId = text("last_device_id")
