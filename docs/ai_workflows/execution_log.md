@@ -1510,7 +1510,7 @@ settings.gradle.kts                                                           �
 ## ═══════════════════════════════════════════
 > **Goal:** Multi-store, CRM, promotions, financial tools, CRDT sync
 > **Status:** ✅ IMPLEMENTED — Commit `5672a9a` (2026-02-24) — feat(phase2): Sprints 19-22 complete
-> **Coverage:** ~95% — CRDT ConflictResolver merge logic and Ktor ApiService wiring (line 156 TODO) remain as Phase 2 backlog items
+> **Coverage:** ~98% — CRDT ConflictResolver fully integrated into SyncEngine (C6.1, 2026-03-19). Ktor ApiService wiring (line 156 TODO) remains as backlog
 
 ### Phase 2 Implementation Summary
 

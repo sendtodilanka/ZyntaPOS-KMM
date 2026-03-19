@@ -698,18 +698,19 @@ License service `build.gradle.kts` uses `kotlinx-datetime:0.6.1`. The KMM root p
 
 ## 5. Documentation vs Implementation Gaps
 
-### 5.1 CRITICAL: Sync Engine Documentation Claims CRDT — Implementation is LWW
+### 5.1 ~~CRITICAL~~ RESOLVED: Sync Engine CRDT — Now Fully Implemented (C6.1)
 
-**Documentation** (`docs/architecture/sync-strategy.md`):
-> "CRDT merge logic — Phase 2 backlog"
+**Previous gap:** Documentation claimed "CRDT merge logic — Phase 2 backlog" and `version_vectors` were never written to.
 
-**Actual implementation:**
-- `ServerConflictResolver` uses Last-Write-Wins (LWW) with device-ID tiebreak
-- Field-level merge only for PRODUCT entities (fills nulls from loser)
-- No version vectors, no CRDT data structures
-- `version_vectors` table exists in schema but is never written to
+**Resolved (2026-03-19, C6.1):**
+- Client-side `ConflictResolver` (LWW + deviceId tiebreak + PRODUCT field-level merge) integrated into `SyncEngine`
+- `ConflictLogRepositoryImpl` persists audit trail to `conflict_log` table
+- `SyncEnqueuer` now increments `version_vectors` on every local write
+- `SyncEngine.applyDeltaOperations()` detects conflicts with pending local ops before applying server deltas
+- 10 unit tests + 5 integration tests cover the full conflict resolution pipeline
+- Server-side `ServerConflictResolver` was already complete — now both client and server are aligned
 
-**Status:** The documentation correctly notes CRDT is Phase 2, but the gap analysis should track this as a known limitation.
+**Status:** RESOLVED — documentation updated to reflect implementation.
 
 ---
 
