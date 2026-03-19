@@ -58,7 +58,7 @@ Phase 2 core feature එක multi-store. නමුත්:
 - **Global Product Catalog** (`global_products` table) — build කරන්න ඕන
 - **Store-Specific Inventory** backend support — `store_id` column products/stock tables වලට add කරන්න ඕන
 - **Inter-Store Transfer (IST)** backend pipeline — 0% (UI exists: `NewStockTransferScreen`, `StockTransferListScreen` — but backend routes, approval workflow, tracking tables නැහැ)
-- **Cross-Store Sync** (multi-node CRDT) — conflict resolution multi-store context එකේ design කරන්න ඕන
+- **Cross-Store Sync** (multi-node CRDT) — ✅ Single-store conflict resolution done (C6.1, 2026-03-19); multi-store context still needs design
 
 **Impact:** Multi-store features UI level එකේ scaffold එකයි ඇත්තේ — backend support නැතුව dead screens.
 
@@ -120,7 +120,9 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 - `SyncValidator.kt` — batch + field-level validation for all major entity types
 - WebSocket endpoints in `backend/sync` with JWT auth + token revocation check
 - KMM client: `sync_queue.sq` (outbox), `sync_state.sq` (cursor), `version_vectors.sq` (CRDT metadata)
-- KMM client: `ConflictResolver.kt` — LWW with field-level merge for PRODUCT
+- KMM client: `ConflictResolver.kt` — LWW with field-level merge for PRODUCT, integrated into `SyncEngine` (C6.1, 2026-03-19)
+- KMM client: `ConflictLogRepositoryImpl.kt` — persists audit trail to `conflict_log` table (C6.1)
+- KMM client: `SyncEnqueuer` — increments `version_vectors` on every local write (C6.1)
 - V23 migration — normalized entity tables for all entity types
 
 **What's DONE:**
@@ -1016,19 +1018,29 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 ### C6.1 Multi-Node Data Sync (ශාඛා අතර දත්ත සමගාමීකරණය)
 
 **Priority:** PHASE-2
-**Status:** PARTIAL — LWW sync exists, CRDT deferred
+**Status:** MOSTLY COMPLETE — LWW CRDT integrated end-to-end (2026-03-19)
+
+**✅ COMPLETED (C6.1 — 2026-03-19):**
+- [x] `ConflictResolver` (LWW + deviceId tiebreak + PRODUCT field-level merge) integrated into `SyncEngine`
+- [x] `ConflictLogRepositoryImpl` — persists conflict audit trail to `conflict_log` SQLite table
+- [x] Conflict detection in `SyncEngine.applyDeltaOperations()` — checks PENDING local ops before applying server deltas
+- [x] Version vector increment on every local write (`SyncEnqueuer` → `version_vectors` table)
+- [x] `SyncResult.Success.conflictCount` tracking
+- [x] `getPendingByEntity` query in `sync_queue.sq` for conflict detection
+- [x] 10 unit tests (`ConflictResolverTest`) + 5 integration tests (`SyncEngineIntegrationTest`)
+- [x] Server-side: `ServerConflictResolver` + `SyncProcessor` integration (already complete)
 
 **Codebase State:**
-- KMM client: `sync_queue.sq` (outbox pattern), `sync_state.sq` (cursor), `version_vectors.sq` (CRDT metadata)
-- KMM client: `ConflictResolver.kt` — LWW with field-level merge for PRODUCT
+- KMM client: `sync_queue.sq` (outbox pattern), `sync_state.sq` (cursor), `version_vectors.sq` (CRDT metadata — now written to)
+- KMM client: `ConflictResolver.kt` — LWW with field-level merge for PRODUCT, wired into `SyncEngine`
+- KMM client: `ConflictLogRepositoryImpl.kt` — `conflict_log` table reads/writes
 - Backend: `SyncProcessor.kt` (push), `DeltaEngine.kt` (pull), `ServerConflictResolver.kt` (LWW)
 - Backend: `sync_operations` table with `server_seq BIGSERIAL` monotonic ordering
 - WebSocket: `WebSocketHub` per-store broadcast, `RedisPubSubListener` pub/sub
 - Feature flag: `crdt_sync` (disabled, ENTERPRISE)
 
-**What's MISSING:**
-- [ ] CRDT merge implementations (G-Counter for stock, LWW-Register for fields, OR-Set for collections)
-- [ ] Vector clock management utility in `:shared:core`
+**What's REMAINING (Phase 2+):**
+- [ ] Advanced CRDT types (G-Counter for stock, OR-Set for collections) — current LWW sufficient for Phase 1
 - [ ] Multi-store sync isolation (ensure store A data never leaks to store B)
 - [ ] Sync priority: Critical data (orders, payments) synced before low-priority (reports, settings)
 - [ ] Bandwidth optimization: Delta compression for large payloads
@@ -1036,9 +1048,13 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 - [ ] Conflict UI in KMM app (show conflicts, allow manual resolution)
 
 **Key Files:**
-- `shared/data/src/commonMain/kotlin/.../sync/ConflictResolver.kt`
-- `shared/data/src/commonMain/sqldelight/.../sync_queue.sq`
+- `shared/data/src/commonMain/kotlin/.../sync/ConflictResolver.kt` — LWW resolver (346 lines)
+- `shared/data/src/commonMain/kotlin/.../sync/SyncEngine.kt` — push/pull with conflict detection
+- `shared/data/src/commonMain/kotlin/.../repository/ConflictLogRepositoryImpl.kt` — audit persistence
+- `shared/data/src/commonMain/kotlin/.../local/SyncEnqueuer.kt` — version vector increment
+- `shared/data/src/commonMain/sqldelight/.../sync_queue.sq` — incl. `getPendingByEntity`
 - `shared/data/src/commonMain/sqldelight/.../version_vectors.sq`
+- `shared/data/src/commonMain/sqldelight/.../conflict_log.sq`
 - `backend/api/src/main/kotlin/.../sync/SyncProcessor.kt`
 - `backend/sync/src/main/kotlin/.../hub/WebSocketHub.kt`
 
@@ -1979,7 +1995,7 @@ git push -u origin $(git branch --show-current)
 | Store Audit Logs | C5.3 | COMPLETE |
 | Real-time Dashboard | C5.4 | PARTIAL (REST only) |
 | **6. Sync & Offline** | | |
-| Multi-node Sync | C6.1 | PARTIAL (LWW + 17 entity types in EntityApplier) |
+| Multi-node Sync | C6.1 | MOSTLY COMPLETE (LWW CRDT integrated end-to-end: ConflictResolver → SyncEngine → ConflictLogRepo + version vectors; 17 entity types in EntityApplier) |
 | Offline-First | C6.2 | PARTIAL (EntityApplier covers all core POS types) |
 | Timezone Management | C6.3 | MOSTLY COMPLETE |
 
