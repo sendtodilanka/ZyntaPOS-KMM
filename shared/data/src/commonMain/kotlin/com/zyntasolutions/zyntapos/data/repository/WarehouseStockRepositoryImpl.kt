@@ -99,7 +99,7 @@ class WarehouseStockRepositoryImpl(
     override suspend fun getTotalStock(productId: String): Result<Double> =
         withContext(Dispatchers.IO) {
             runCatching {
-                q.getTotalStockForProduct(productId).executeAsOne().total_quantity
+                q.getTotalStockForProduct(productId).executeAsOne()
             }.fold(
                 onSuccess = { Result.Success(it) },
                 onFailure = { t -> Result.Error(DatabaseException(t.message ?: "DB error", cause = t)) },
