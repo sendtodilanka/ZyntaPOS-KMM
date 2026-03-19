@@ -164,7 +164,6 @@ jobs:
         run: |
           ./gradlew koverVerify --no-daemon \
             -Dorg.gradle.jvmargs="-Xmx2g -Xms512m"
-        continue-on-error: true
 
       - name: Generate Kover coverage report — ${{ matrix.service }}
         if: always()
