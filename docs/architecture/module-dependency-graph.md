@@ -1,7 +1,7 @@
 # Module Dependency Graph — ZyntaPOS KMM
 
-**Status:** Derived from actual `build.gradle.kts` files as of 2026-02-25.
-**Module count:** 28 registered in `settings.gradle.kts` (26 production + 2 platform app/tools)
+**Status:** Derived from actual `build.gradle.kts` files as of 2026-03-18.
+**Module count:** 29 registered in `settings.gradle.kts` (17 feature modules + 6 shared + 4 composeApp infra + 2 platform/tools)
 
 ---
 
@@ -20,7 +20,7 @@
            ┌────────────────────┼────────────────────────┐
            ▼                    ▼                         ▼
   :composeApp:core    :composeApp:navigation      :composeApp:feature:*
-  (BaseViewModel)     (ZyntaNavGraph, routes)     (16 feature modules)
+  (BaseViewModel)     (ZyntaNavGraph, routes)     (17 feature modules)
            │                    │                         │
            │            ┌───────┘                         │
            │            ▼                                 │
@@ -71,7 +71,7 @@ Each row shows which modules a given module directly depends on (from `build.gra
 | `:composeApp:core` | _(none — pure KMP BaseViewModel, no project deps)_ |
 | `:composeApp:designsystem` | `:shared:core` (api) |
 | `:composeApp:navigation` | `:composeApp:designsystem` (api), `:shared:domain` (api), `:shared:security` (api) |
-| `:composeApp` | `:shared:core`, `:shared:domain`, `:shared:data`, `:shared:security`, `:shared:hal`, `:shared:seed` (debug), `:composeApp:core`, `:composeApp:navigation`, all 16 feature modules, `:tools:debug` |
+| `:composeApp` | `:shared:core`, `:shared:domain`, `:shared:data`, `:shared:security`, `:shared:hal`, `:shared:seed` (debug), `:composeApp:core`, `:composeApp:navigation`, all 17 feature modules, `:tools:debug` |
 
 ### Feature Modules
 
@@ -96,12 +96,13 @@ the `auth` session are noted separately.
 | `:composeApp:feature:admin` | `:composeApp:core`, `:composeApp:designsystem`, `:shared:core`, `:shared:domain` |
 | `:composeApp:feature:media` | `:composeApp:core`, `:composeApp:designsystem`, `:shared:core`, `:shared:domain` |
 | `:composeApp:feature:accounting` | `:composeApp:core`, `:composeApp:designsystem`, `:shared:core`, `:shared:domain` |
+| `:composeApp:feature:diagnostic` | `:composeApp:core`, `:composeApp:designsystem`, `:shared:core`, `:shared:domain`, `:shared:security` |
 
 ### Platform Apps / Tools
 
 | Module | Direct Dependencies |
 |--------|---------------------|
-| `:androidApp` | `:composeApp`, `:shared:core`, `:shared:domain`, `:shared:data`, `:shared:security`, `:shared:hal`, `:shared:seed`, `:composeApp:navigation`, all 16 feature modules, `:tools:debug` |
+| `:androidApp` | `:composeApp`, `:shared:core`, `:shared:domain`, `:shared:data`, `:shared:security`, `:shared:hal`, `:shared:seed`, `:composeApp:navigation`, all 17 feature modules, `:tools:debug` |
 | `:tools:debug` | `:composeApp:core`, `:composeApp:designsystem`, `:shared:core`, `:shared:domain`, `:shared:seed`, `:shared:data` |
 
 ---
@@ -148,7 +149,7 @@ A manual review of all `build.gradle.kts` files against the guardrails above fou
 Notable clean boundaries confirmed:
 - `:shared:domain` only depends on `:shared:core` (via `api`). No imports from data/security/hal.
 - `:shared:data` imports `:shared:domain` but not `:shared:security` directly. It uses `SecureStoragePort` (domain interface) after the MERGED-F3 refactor (2026-02-22).
-- All 16 feature modules depend only on `:composeApp:core`, `:composeApp:designsystem`, `:shared:core`, `:shared:domain` (and optionally `:shared:hal` or `:composeApp:feature:auth`). None import `:shared:data` or `:shared:security` directly.
+- All 17 feature modules depend only on `:composeApp:core`, `:composeApp:designsystem`, `:shared:core`, `:shared:domain` (and optionally `:shared:hal` or `:composeApp:feature:auth`). None import `:shared:data` or `:shared:security` directly.
 - `:composeApp:navigation` imports `:shared:security` for the `RbacEngine` Koin binding but this is a presentation-layer module, not a domain module — this is permitted.
 
 ---

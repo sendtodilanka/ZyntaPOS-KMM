@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-18
+**Last Updated:** 2026-03-18 (README audit pass)
 **Status:** Approved — Verified against codebase 2026-03-18
 
 ---
@@ -209,8 +209,8 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 - Feature flag `remote_diagnostic` (disabled, PROFESSIONAL/ENTERPRISE editions)
 - `DiagnosticRelay.kt` + `DiagnosticWebSocketRoutes.kt` in sync service (scaffold)
 
-**What's MISSING (entire module):**
-- [ ] `:composeApp:feature:diagnostic` module — not in `settings.gradle.kts`
+**What's MISSING (partially scaffolded):**
+- [x] `:composeApp:feature:diagnostic` module — **IS registered in `settings.gradle.kts`** (2026-03-18 audit)
 - [ ] `DiagnosticSession` domain model in `:shared:domain/model/`
 - [ ] `DiagnosticRepository` interface + impl
 - [ ] `DiagnosticTokenValidator` in `:shared:security`
@@ -1098,12 +1098,32 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 **Priority:** PHASE-3
 **Module:** `:composeApp:feature:accounting`
 
-**EXISTS:** `EInvoiceRepositoryImpl.kt` (scaffold), `e_invoices` SQLDelight table, IRD secret placeholders
+> **2026-03-18 audit (corrected):** `:composeApp:feature:accounting` has **27 Kotlin source files** and
+> the full IRD submission pipeline is also implemented — including mTLS, status state machine, and payload
+> serialization. This section is substantially complete. The original description was wrong.
 
-**MISSING:**
-- [ ] IRD API client, digital signature (.p12), XML/JSON generation
-- [ ] Submission pipeline with retry, status tracking (SUBMITTED → ACCEPTED → REJECTED)
-- [ ] Tax calculation alignment with IRD rules
+**FULLY IMPLEMENTED (verified 2026-03-18):**
+- **27 UI source files** in `composeApp/feature/accounting/`:
+  `AccountingViewModel/State/Intent/Effect`, `AccountingLedgerScreen`, `AccountDetailScreen/ViewModel`,
+  `AccountManagementDetailScreen`, `ChartOfAccountsScreen/ViewModel`, `EInvoiceListScreen/DetailScreen`,
+  `EInvoiceViewModel/State/Intent/Effect`, `FinancialStatementsScreen/ViewModel`,
+  `GeneralLedgerScreen/ViewModel`, `JournalEntryListScreen/DetailScreen/ViewModel` + DI module + 2 test files
+- **`IrdApiClient`** (`expect/actual`) — full mTLS implementation:
+  - Android: Ktor + OkHttp engine, PKCS12 loaded via `KeyStore`, `SSLContext` with `KeyManagerFactory`
+  - JVM: Ktor + CIO engine, PKCS12 loaded, `SSLContext.setDefault()` for CIO transport
+- **`EInvoiceRepositoryImpl.submitToIrd()`** — full submission pipeline:
+  optimistic status update (DRAFT → SUBMITTED), `irdApiClient.submitInvoice()` call,
+  final update (→ ACCEPTED on success, → REJECTED on failure) with IRD reference number storage
+- **Status state machine**: `EInvoiceStatus.DRAFT / SUBMITTED / ACCEPTED / REJECTED`
+- **`SubmitEInvoiceToIrdUseCase`**, `CancelEInvoiceUseCase`, `CreateEInvoiceUseCase`, `GetEInvoicesUseCase`
+- **`IrdInvoicePayload` / `IrdApiResponse`** — serializable models matching IRD API schema
+- **`e_invoices` SQLDelight table** with `accepted_at`, `ird_reference`, `status` columns
+
+**REMAINING GAPS (minor, Phase 3):**
+- [ ] IRD-specific XML invoice format (currently JSON — needs verification against actual IRD spec)
+- [ ] Submission retry on transient network failure (the repository currently makes one attempt; no retry loop)
+- [ ] Tax calculation verification against IRD official tax rules (requires IRD sandbox testing)
+- [ ] E-Invoice UI: no IRD submission button visible in `EInvoiceDetailScreen` (wiring to use case pending)
 
 ---
 
@@ -1141,10 +1161,27 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 
 **Priority:** PHASE-2
 
-**MISSING:**
-- [ ] `CashDrawerPort` interface in `:shared:hal`
-- [ ] Android USB + JVM serial implementations
-- [ ] ESC/POS kick command, auto-open on payment
+> **2026-03-18 audit (corrected):** HAL infrastructure is **100% complete**. The original D4 description
+> (claiming the interface and platform drivers were missing) was inaccurate. All platform ports implement
+> `openCashDrawer()`. The ONLY gap is the **call site** — the POS payment completion flow does not yet
+> call `printerManager.openCashDrawer()` or evaluate `cashDrawerTrigger`. No reference to
+> `openCashDrawer` or `cashDrawerTrigger` exists anywhere in `:composeApp`.
+
+**FULLY IMPLEMENTED (HAL layer — verified 2026-03-18):**
+- [x] `CashDrawerTrigger` enum — `ALL_PAYMENTS` / `CASH_ONLY` / `NEVER` (`:shared:hal/printer/`)
+- [x] `PrinterConfig.cashDrawerTrigger` field — stored in config, default `ALL_PAYMENTS`
+- [x] `PrinterPort.openCashDrawer()` — interface contract (`:shared:hal`)
+- [x] `PrinterManager.openCashDrawer()` — retry wrapper, delegates to port
+- [x] `AndroidUsbPrinterPort.openCashDrawer()` — Android USB driver
+- [x] `AndroidBluetoothPrinterPort.openCashDrawer()` — Android Bluetooth driver
+- [x] `DesktopTcpPrinterPort.openCashDrawer()` — JVM TCP/IP driver
+- [x] `DesktopUsbPrinterPort.openCashDrawer()` — JVM USB driver
+- [x] `DesktopSerialPrinterPort.openCashDrawer()` — JVM serial (jSerialComm) driver
+
+**STILL MISSING (call-site wiring only):**
+- [ ] POS payment completion use case: evaluate `config.cashDrawerTrigger` and call
+  `printerManager.openCashDrawer()` conditionally (CASH_ONLY → check payment method; NEVER → skip)
+- [ ] Register UI: manual "Open Drawer" button that calls `printerManager.openCashDrawer()` directly
 
 ---
 
@@ -1172,7 +1209,7 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 
 ## SECTION G: UI/UX GAP AUDIT (Comprehensive — All Feature Modules)
 
-> 2026-03-18 දින codebase scan කරලා features 16ක්, design system, navigation,
+> 2026-03-18 දින codebase scan කරලා features 17ක් (accounting module audit confirm කෙරිණි), design system, navigation,
 > onboarding සහ admin panel සියල්ල audit කර ඇත. එක් එක් screen එකේ
 > MVI compliance, responsive design, error/loading/empty states, accessibility,
 > සහ multi-store readiness check කර ඇත.

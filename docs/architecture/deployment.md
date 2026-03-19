@@ -1,6 +1,6 @@
 # ZyntaPOS — Deployment Architecture
 
-**Last updated:** 2026-03-08 (Session 6 — Secrets audit & FCM v1 migration)
+**Last updated:** 2026-03-18
 **ADR:** [ADR-006](../adr/ADR-006-backend-docker-build-in-ci.md)
 
 ---
@@ -122,11 +122,19 @@ docker image prune -f
 | `api` | `ghcr.io/sendtodilanka/zyntapos-api:latest` | 8080 (internal) | REST API |
 | `license` | `ghcr.io/sendtodilanka/zyntapos-license:latest` | 8083 (internal) | License server |
 | `sync` | `ghcr.io/sendtodilanka/zyntapos-sync:latest` | 8082 (internal) | WebSocket sync |
-| `postgres` | `postgres:16-alpine` | 5432 (internal) | Primary database |
+| `postgres` | `pgvector/pgvector:pg16` | 5432 (internal) | Primary database (pgvector extension included) |
 | `redis` | `redis:7-alpine` | 6379 (internal) | Cache + pub/sub |
-| `canary` | `nginx:1-alpine` | 80 (internal) | Placeholder for Phase 3 subdomains |
+| `website` | `ghcr.io/sendtodilanka/zyntapos-website:latest` | internal | Marketing website |
+| `admin-panel` | `ghcr.io/sendtodilanka/zyntapos-kmm/admin-panel:latest` | internal | Admin panel SPA |
+| `canary` | `nginx:1-alpine` | internal | Placeholder for Phase 3 subdomains |
+| `docs` | Built from `./zyntapos-docs/Dockerfile` | 3001 (internal) | Documentation site |
+| `uptime-kuma` | `louislam/uptime-kuma:2` | internal | Uptime monitoring UI |
+| `falcosidekick` | `falcosecurity/falcosidekick:latest` | 2801 | Falco security event forwarder (Slack webhook) |
 | `stalwart` | `stalwartlabs/stalwart:latest` | 25, 143, 465, 587, 993, 8080 (internal) | Mail server (SMTP/IMAP/JMAP) |
 | `email-relay` | Built from `backend/email-relay/` | 8025 (internal) | HTTP-to-SMTP bridge (CF Worker → Stalwart) |
+| `chatwoot-web` | `chatwoot/chatwoot:latest` | internal | Customer support platform (web) |
+| `chatwoot-sidekiq` | `chatwoot/chatwoot:latest` | — | Chatwoot background job worker |
+| `cloudflared` | `cloudflare/cloudflared:latest` | — | Cloudflare Tunnel daemon (Zero Trust, optional profile) |
 
 All backend services run with:
 - `read_only: true` + `tmpfs: /tmp`

@@ -2,6 +2,7 @@
 
 **Status:** Pending
 **Priority:** HIGH
+**Last Updated:** 2026-03-18
 **Branch:** `claude/kmp-vps-qa-guide-isrFg`
 
 ---
