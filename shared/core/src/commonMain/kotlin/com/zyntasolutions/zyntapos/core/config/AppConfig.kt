@@ -66,6 +66,15 @@ object AppConfig {
     /** Maximum retry attempts for a single failed sync operation before it is marked FAILED. */
     const val SYNC_MAX_RETRIES: Int = 5
 
+    /** Number of successful sync cycles between queue maintenance runs. */
+    const val SYNC_MAINTENANCE_INTERVAL_CYCLES: Int = 10
+
+    /** Days to retain SYNCED operations before pruning. */
+    const val SYNC_QUEUE_RETENTION_DAYS: Int = 7
+
+    /** Days to retain permanently FAILED operations before pruning. */
+    const val SYNC_FAILED_RETENTION_DAYS: Int = 30
+
     // ── Session & Security ────────────────────────────────────────────────────
 
     /**

@@ -161,6 +161,8 @@ class SyncEngineIntegrationTest {
             storeProductOverrideRepository = StoreProductOverrideRepositoryImpl(db, syncEnqueuer),
             conflictResolver      = ConflictResolver(localDeviceId = testDeviceId),
             conflictLogRepository = ConflictLogRepositoryImpl(db = db),
+            queueMaintenance      = SyncQueueMaintenance(db = db),
+            storeId               = "",
         )
     }
 
@@ -172,6 +174,7 @@ class SyncEngineIntegrationTest {
             operation   = "CREATE",
             payload     = """{"id":"entity-$id"}""",
             created_at  = now,
+            store_id    = "",
         )
     }
 
@@ -215,7 +218,7 @@ class SyncEngineIntegrationTest {
         assertEquals(1, api.pushCallCount)
         assertEquals(2, api.lastPushedOps.size)
 
-        val remaining = db.sync_queueQueries.getEligibleOperations(10).executeAsList()
+        val remaining = db.sync_queueQueries.getEligibleOperations(store_id = "", batch_size = 10).executeAsList()
         assertEquals(0, remaining.size, "All ops should be SYNCED after full acceptance")
 
         assertTrue(eng.lastSyncResult.value is SyncResult.Success)
@@ -244,7 +247,7 @@ class SyncEngineIntegrationTest {
         eng.runOnce()
 
         // After 5th rejection the engine calls markPermanentlyFailed → retry_count = 5
-        val eligible = db.sync_queueQueries.getEligibleOperations(10).executeAsList()
+        val eligible = db.sync_queueQueries.getEligibleOperations(store_id = "", batch_size = 10).executeAsList()
         assertEquals(0, eligible.size, "Permanently failed op should no longer be eligible")
 
         val failedCount = db.sync_queueQueries.getFailedCount().executeAsOne()
@@ -263,7 +266,7 @@ class SyncEngineIntegrationTest {
         assertTrue(eng.lastSyncResult.value is SyncResult.Failure)
 
         // Queue must still contain the operation (either PENDING or SYNCING/FAILED)
-        val totalInQueue = db.sync_queueQueries.getEligibleOperations(10).executeAsList().size +
+        val totalInQueue = db.sync_queueQueries.getEligibleOperations(store_id = "", batch_size = 10).executeAsList().size +
             db.sync_queueQueries.getFailedCount().executeAsOne()
         assertTrue(totalInQueue >= 1L, "Queue should still contain op-1 after a network failure")
     }
@@ -362,6 +365,7 @@ class SyncEngineIntegrationTest {
             operation = "UPDATE",
             payload = """{"id":"p-conflict","name":"LocalNewer"}""",
             created_at = now + 10000, // very recent
+            store_id = "",
         )
 
         // Server sends an older delta for the same entity
@@ -428,11 +432,11 @@ class SyncEngineIntegrationTest {
         // Two local pending ops for different entities
         db.sync_queueQueries.enqueueOperation(
             id = "local-a", entity_type = "product", entity_id = "p-a",
-            operation = "UPDATE", payload = """{"id":"p-a"}""", created_at = now,
+            operation = "UPDATE", payload = """{"id":"p-a"}""", created_at = now, store_id = "",
         )
         db.sync_queueQueries.enqueueOperation(
             id = "local-b", entity_type = "category", entity_id = "c-b",
-            operation = "UPDATE", payload = """{"id":"c-b"}""", created_at = now,
+            operation = "UPDATE", payload = """{"id":"c-b"}""", created_at = now, store_id = "",
         )
 
         // Server sends conflicting deltas for both

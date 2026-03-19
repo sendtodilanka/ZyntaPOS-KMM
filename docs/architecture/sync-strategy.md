@@ -234,11 +234,25 @@ A `conflict_log` table stores every conflict detected during sync with resolutio
 | `ConflictResolver` class | ✅ Implemented (LWW + tiebreak + PRODUCT merge) |
 | `applyDeltaOperations` dispatcher | ✅ Implemented (routes to `applyDelete` / `applyCreateOrUpdate`) |
 | `SyncResult.conflictCount` tracking | ✅ Implemented |
-| Unit tests (`ConflictResolverTest`) | ✅ 10 tests |
+| Unit tests (`ConflictResolverTest`) | ✅ 12 tests |
 | Integration tests (`SyncEngineIntegrationTest`) | ✅ 5 conflict tests |
+| `CrdtStrategy` enum (LWW/FIELD_MERGE/APPEND_ONLY) | ✅ Implemented |
+| APPEND_ONLY for STOCK_ADJUSTMENT (G-Counter) | ✅ Implemented |
+| `recomputeStockQty()` from adjustment ledger | ✅ Implemented |
+| `CrdtStrategyTest` | ✅ 8 tests |
+| Multi-store sync isolation (`store_id` column) | ✅ Implemented |
+| Sync priority (CASE-based SQL ordering) | ✅ Implemented |
+| `SyncPriority` object + `SyncPriorityTest` | ✅ 5 tests |
+| GZIP bandwidth optimization (`ContentEncoding`) | ✅ Implemented |
+| `SyncQueueMaintenance` (prune + dedup) | ✅ Implemented |
+| `SyncQueueMaintenanceTest` | ✅ 4 tests |
+| Conflict resolution UI (Admin tab 4) | ✅ Implemented |
+| `ConflictListScreen` + `ConflictDetailDialog` | ✅ Implemented |
+| `GetUnresolvedConflictsUseCase` / `ResolveConflictUseCase` | ✅ Implemented |
 
 **Conflict strategy:** LWW with CRDT-style conflict detection and audit logging. Server deltas
 are no longer blindly applied — pending local operations are checked and resolved first.
+APPEND_ONLY entities (stock adjustments, accounting) skip conflict detection entirely.
 
 ---
 

@@ -175,7 +175,7 @@ class ProductRepositoryImplTest {
     fun insert_enqueues_pending_sync_operation() = runTest {
         repo.insert(sampleProduct())
 
-        val pending = db.sync_queueQueries.getEligibleOperations(10L).executeAsList()
+        val pending = db.sync_queueQueries.getEligibleOperations(store_id = "", batch_size = 10L).executeAsList()
         assertEquals(1, pending.size)
         assertEquals("product", pending[0].entity_type)  // SyncOperation.EntityType.PRODUCT = "product"
         assertEquals("p-1",    pending[0].entity_id)
@@ -192,12 +192,12 @@ class ProductRepositoryImplTest {
 
         // Drain first queue entry so update produces a clean entry
         db.sync_queueQueries.markSynced(
-            db.sync_queueQueries.getEligibleOperations(1L).executeAsOne().id
+            db.sync_queueQueries.getEligibleOperations(store_id = "", batch_size = 1L).executeAsOne().id
         )
 
         repo.update(product.copy(name = "Updated"))
 
-        val pending = db.sync_queueQueries.getEligibleOperations(10L).executeAsList()
+        val pending = db.sync_queueQueries.getEligibleOperations(store_id = "", batch_size = 10L).executeAsList()
         assertTrue(pending.any { it.operation == "UPDATE" && it.entity_id == "p-1" })
     }
 
@@ -209,12 +209,12 @@ class ProductRepositoryImplTest {
 
         // Drain first queue entry
         db.sync_queueQueries.markSynced(
-            db.sync_queueQueries.getEligibleOperations(1L).executeAsOne().id
+            db.sync_queueQueries.getEligibleOperations(store_id = "", batch_size = 1L).executeAsOne().id
         )
 
         repo.delete("p-1")
 
-        val pending = db.sync_queueQueries.getEligibleOperations(10L).executeAsList()
+        val pending = db.sync_queueQueries.getEligibleOperations(store_id = "", batch_size = 10L).executeAsList()
         assertTrue(pending.any { it.operation == "DELETE" && it.entity_id == "p-1" })
     }
 

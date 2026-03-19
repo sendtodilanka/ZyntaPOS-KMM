@@ -17,6 +17,7 @@ import kotlin.time.Clock
 class SyncEnqueuer(
     private val db: ZyntaDatabase,
     private val localDeviceId: String = "",
+    private val storeId: String = "",
 ) {
 
     /**
@@ -45,6 +46,7 @@ class SyncEnqueuer(
             operation   = operation.toSqlString(),
             payload     = payload,
             created_at  = now,
+            store_id    = storeId,
         )
 
         // Increment version vector for CRDT causal ordering (C6.1)

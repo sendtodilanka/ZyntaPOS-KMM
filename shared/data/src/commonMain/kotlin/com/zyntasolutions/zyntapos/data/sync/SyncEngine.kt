@@ -76,6 +76,10 @@ class SyncEngine(
     // CRDT conflict resolution (C6.1)
     private val conflictResolver: ConflictResolver,
     private val conflictLogRepository: ConflictLogRepository,
+    // Queue maintenance (C6.1 Item 5)
+    private val queueMaintenance: SyncQueueMaintenance,
+    // Multi-store sync isolation (C6.1 Item 2) — empty string = all stores
+    private val storeId: String = "",
 ) {
     private val log = ZyntaLogger.forModule("SyncEngine")
 
@@ -148,6 +152,9 @@ class SyncEngine(
     /** Tracks conflicts detected across the entire sync cycle. */
     private var cycleConflictCount = 0
 
+    /** Counts successful sync cycles for queue maintenance scheduling. */
+    private var successfulCycleCount = 0
+
     private suspend fun executeSyncCycle() {
         log.d("=== Sync cycle START ===")
         val cycleStart = Clock.System.now().toEpochMilliseconds()
@@ -162,6 +169,16 @@ class SyncEngine(
 
             // 3. Persist new server timestamp
             prefs.put(SecureStorageKeys.KEY_LAST_SYNC_TS, Clock.System.now().toEpochMilliseconds().toString())
+
+            // 4. Queue maintenance (every N successful cycles)
+            successfulCycleCount++
+            if (successfulCycleCount % AppConfig.SYNC_MAINTENANCE_INTERVAL_CYCLES == 0) {
+                try {
+                    queueMaintenance.run()
+                } catch (e: Exception) {
+                    log.w("Queue maintenance failed (non-fatal): ${e.message}")
+                }
+            }
 
             val durationMs = Clock.System.now().toEpochMilliseconds() - cycleStart
             log.i("=== Sync cycle DONE — pushed=$pushed pulled=$pulled conflicts=$cycleConflictCount duration=${durationMs}ms ===")
@@ -195,7 +212,7 @@ class SyncEngine(
      */
     private suspend fun pushPendingOperations(): Int {
         val pending = db.sync_queueQueries
-            .getEligibleOperations(BATCH_SIZE)
+            .getEligibleOperations(store_id = storeId, batch_size = BATCH_SIZE)
             .executeAsList()
 
         if (pending.isEmpty()) {
@@ -361,9 +378,16 @@ class SyncEngine(
      * [ConflictResolver.resolve] and persists a [SyncConflict] audit record.
      */
     private suspend fun applyCreateOrUpdate(op: SyncOperationDto) {
+        // APPEND_ONLY entities (stock adjustments, accounting) never conflict —
+        // both local and remote ops are valid independent writes. Always apply.
+        if (CrdtStrategy.forEntityType(op.entityType) == CrdtStrategy.APPEND_ONLY) {
+            applyUpsert(op.entityType, op.payload)
+            return
+        }
+
         // Check for pending local operation targeting the same entity
         val localPending = db.sync_queueQueries
-            .getPendingByEntity(op.entityType, op.entityId)
+            .getPendingByEntity(op.entityType, op.entityId, storeId, storeId)
             .executeAsOneOrNull()
 
         if (localPending != null) {

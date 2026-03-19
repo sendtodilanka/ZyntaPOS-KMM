@@ -124,9 +124,9 @@ class ConflictResolver(
             }
         }
 
-        // Entity-type specific post-processing
-        val finalWinner = when (local.entityType) {
-            SyncOperation.EntityType.PRODUCT -> mergeProductFields(winner, loser)
+        // Entity-type specific post-processing based on CRDT strategy
+        val finalWinner = when (CrdtStrategy.forEntityType(local.entityType)) {
+            CrdtStrategy.FIELD_MERGE -> mergeProductFields(winner, loser)
             else -> winner
         }
 

@@ -3,8 +3,11 @@ package com.zyntasolutions.zyntapos.feature.admin
 import com.zyntasolutions.zyntapos.domain.usecase.admin.CreateBackupUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.DeleteBackupUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.GetBackupsUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.admin.GetConflictCountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.GetDatabaseStatsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.GetSystemHealthUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.admin.GetUnresolvedConflictsUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.admin.ResolveConflictUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.PurgeExpiredDataUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.RestoreBackupUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.VacuumDatabaseUseCase
@@ -47,6 +50,11 @@ val adminModule = module {
     // ── Sprint 15: Audit integrity ────────────────────────────────────────
     factory { VerifyAuditIntegrityUseCase(get(), SecurityAuditLogger::computeExpectedHash) }
 
+    // ── C6.1 Item 6: Conflict resolution ────────────────────────────────
+    factoryOf(::GetUnresolvedConflictsUseCase)
+    factoryOf(::ResolveConflictUseCase)
+    factoryOf(::GetConflictCountUseCase)
+
     // ── AdminViewModel ────────────────────────────────────────────────────
     viewModel {
         AdminViewModel(
@@ -62,6 +70,9 @@ val adminModule = module {
             auditLogger = get(),
             authRepository = get(),
             analytics = get(),
+            getUnresolvedConflictsUseCase = get(),
+            resolveConflictUseCase = get(),
+            getConflictCountUseCase = get(),
         )
     }
 

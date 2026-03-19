@@ -52,6 +52,7 @@ class SyncRepositoryIntegrationTest {
             operation   = "CREATE",
             payload     = """{"id":"$entityId"}""",
             created_at  = now,
+            store_id    = "",
         )
     }
 
@@ -61,7 +62,7 @@ class SyncRepositoryIntegrationTest {
     fun enqueue_inserts_with_pending_status() {
         enqueue("op-1")
 
-        val rows = db.sync_queueQueries.getEligibleOperations(10).executeAsList()
+        val rows = db.sync_queueQueries.getEligibleOperations(store_id = "", batch_size = 10).executeAsList()
         assertEquals(1, rows.size)
         assertEquals("op-1",   rows[0].id)
         assertEquals("PENDING", rows[0].status)
@@ -74,7 +75,7 @@ class SyncRepositoryIntegrationTest {
     fun getEligibleOperations_respects_batch_limit() {
         repeat(5) { i -> enqueue("op-$i") }
 
-        val rows = db.sync_queueQueries.getEligibleOperations(3).executeAsList()
+        val rows = db.sync_queueQueries.getEligibleOperations(store_id = "", batch_size = 3).executeAsList()
         assertEquals(3, rows.size)
     }
 
@@ -87,7 +88,7 @@ class SyncRepositoryIntegrationTest {
 
         db.sync_queueQueries.markSynced("op-1")
 
-        val eligible = db.sync_queueQueries.getEligibleOperations(10).executeAsList()
+        val eligible = db.sync_queueQueries.getEligibleOperations(store_id = "", batch_size = 10).executeAsList()
         assertEquals(1, eligible.size)
         assertEquals("op-2", eligible[0].id)
     }
@@ -100,13 +101,13 @@ class SyncRepositoryIntegrationTest {
 
         // First 4 failures — still eligible
         repeat(4) { db.sync_queueQueries.markFailed(now, "op-1") }
-        val afterFour = db.sync_queueQueries.getEligibleOperations(10).executeAsList()
+        val afterFour = db.sync_queueQueries.getEligibleOperations(store_id = "", batch_size = 10).executeAsList()
         assertEquals(1, afterFour.size, "Should still be eligible with retry_count=4")
         assertEquals(4, afterFour[0].retry_count)
 
         // 5th failure — retry_count = 5 → no longer eligible (5 < 5 fails)
         db.sync_queueQueries.markFailed(now, "op-1")
-        val afterFive = db.sync_queueQueries.getEligibleOperations(10).executeAsList()
+        val afterFive = db.sync_queueQueries.getEligibleOperations(store_id = "", batch_size = 10).executeAsList()
         assertEquals(0, afterFive.size, "retry_count=5 should be excluded from eligible ops")
     }
 
@@ -118,7 +119,7 @@ class SyncRepositoryIntegrationTest {
 
         db.sync_queueQueries.markPermanentlyFailed("op-1")
 
-        val eligible = db.sync_queueQueries.getEligibleOperations(10).executeAsList()
+        val eligible = db.sync_queueQueries.getEligibleOperations(store_id = "", batch_size = 10).executeAsList()
         assertEquals(0, eligible.size)
     }
 
@@ -135,7 +136,7 @@ class SyncRepositoryIntegrationTest {
         val cutoff = now + 1
         db.sync_queueQueries.pruneSynced(cutoff)
 
-        val pending = db.sync_queueQueries.getEligibleOperations(10).executeAsList()
+        val pending = db.sync_queueQueries.getEligibleOperations(store_id = "", batch_size = 10).executeAsList()
         assertEquals(1, pending.size)
         assertEquals("op-pending", pending[0].id)
 
@@ -152,17 +153,17 @@ class SyncRepositoryIntegrationTest {
         db.sync_queueQueries.enqueueOperation(
             id = "op-old", entity_type = "PRODUCT", entity_id = "prod-1",
             operation = "UPDATE", payload = """{"name":"v1"}""",
-            created_at = now - 1000,
+            created_at = now - 1000, store_id = "",
         )
         db.sync_queueQueries.enqueueOperation(
             id = "op-new", entity_type = "PRODUCT", entity_id = "prod-1",
             operation = "UPDATE", payload = """{"name":"v2"}""",
-            created_at = now,
+            created_at = now, store_id = "",
         )
 
         db.sync_queueQueries.deduplicatePending()
 
-        val remaining = db.sync_queueQueries.getEligibleOperations(10).executeAsList()
+        val remaining = db.sync_queueQueries.getEligibleOperations(store_id = "", batch_size = 10).executeAsList()
         assertEquals(1, remaining.size, "Only one PENDING row should survive deduplication")
         assertEquals("op-new", remaining[0].id, "Latest (op-new) should be kept")
     }
@@ -197,14 +198,14 @@ class SyncRepositoryIntegrationTest {
         db.sync_queueQueries.markSyncing(staleCutoff - 1, "op-1")
 
         // Confirm it's now SYNCING (not in eligible ops)
-        val beforeReset = db.sync_queueQueries.getEligibleOperations(10).executeAsList()
+        val beforeReset = db.sync_queueQueries.getEligibleOperations(store_id = "", batch_size = 10).executeAsList()
         assertEquals(0, beforeReset.size)
 
         // Reset stale SYNCING rows
         db.sync_queueQueries.resetStaleSync(staleCutoff)
 
         // Should be PENDING again
-        val afterReset = db.sync_queueQueries.getEligibleOperations(10).executeAsList()
+        val afterReset = db.sync_queueQueries.getEligibleOperations(store_id = "", batch_size = 10).executeAsList()
         assertEquals(1, afterReset.size)
         assertEquals("PENDING", afterReset[0].status)
     }

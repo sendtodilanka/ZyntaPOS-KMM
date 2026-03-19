@@ -65,6 +65,7 @@ import com.zyntasolutions.zyntapos.data.logging.KermitSqliteAdapter
 import com.zyntasolutions.zyntapos.data.sync.ConflictResolver
 import com.zyntasolutions.zyntapos.data.sync.NetworkMonitor
 import com.zyntasolutions.zyntapos.data.sync.SyncEngine
+import com.zyntasolutions.zyntapos.data.sync.SyncQueueMaintenance
 import com.zyntasolutions.zyntapos.domain.port.SecureStoragePort
 import com.zyntasolutions.zyntapos.domain.repository.AuditRepository
 import com.zyntasolutions.zyntapos.domain.repository.ConflictLogRepository
@@ -195,7 +196,7 @@ val dataModule = module {
     // ── Sync Enqueuer (shared write-path utility) ─────────────────────
     // Lightweight helper that writes a pending_operations row after every
     // local mutation. Injected into all write-path repository impls.
-    single { SyncEnqueuer(db = get(), localDeviceId = get(named("deviceId"))) }
+    single { SyncEnqueuer(db = get(), localDeviceId = get(named("deviceId")), storeId = get(named("storeId"))) }
 
     // ─────────────────────────────────────────────────────────────────
     // ── Repositories (Step 3.3)  ──────────────────────────────────────
@@ -325,6 +326,9 @@ val dataModule = module {
     // CRDT conflict log: audit trail for all resolved sync conflicts (C6.1)
     single<ConflictLogRepository> { ConflictLogRepositoryImpl(db = get()) }
 
+    // Sync queue maintenance: prune stale ops + deduplicate (C6.1 Item 5)
+    single { SyncQueueMaintenance(db = get()) }
+
     // ─────────────────────────────────────────────────────────────────────────
     // ── Phase 2 CRM Repositories ─────────────────────────────────────────────
     // ─────────────────────────────────────────────────────────────────────────
@@ -419,6 +423,8 @@ val dataModule = module {
             storeProductOverrideRepository = get(),
             conflictResolver      = get(),
             conflictLogRepository = get(),
+            queueMaintenance      = get(),
+            storeId               = get(named("storeId")),
         )
     }
 

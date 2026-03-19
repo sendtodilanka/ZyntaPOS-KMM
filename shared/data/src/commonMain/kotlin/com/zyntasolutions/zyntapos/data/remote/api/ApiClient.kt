@@ -91,6 +91,14 @@ fun buildApiClient(
         }
     }
 
+    // ── Content Encoding (GZIP) ─────────────────────────────────────
+    // Enables transparent GZIP compression for request/response bodies.
+    // Caddy (reverse proxy) already supports gzip; this reduces sync payload
+    // bandwidth by ~60-80% for large product catalogs. (C6.1 Item 4)
+    install(io.ktor.client.plugins.compression.ContentEncoding) {
+        gzip()
+    }
+
     // ── Timeouts ───────────────────────────────────────────────────────
     install(HttpTimeout) {
         connectTimeoutMillis = 10_000L

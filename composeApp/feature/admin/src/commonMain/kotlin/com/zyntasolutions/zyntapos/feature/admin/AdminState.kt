@@ -7,11 +7,12 @@ import com.zyntasolutions.zyntapos.domain.model.IntegrityReport
 import com.zyntasolutions.zyntapos.domain.model.DatabaseStats
 import com.zyntasolutions.zyntapos.domain.model.PurgeResult
 import com.zyntasolutions.zyntapos.domain.model.Role
+import com.zyntasolutions.zyntapos.domain.model.SyncConflict
 import com.zyntasolutions.zyntapos.domain.model.SystemHealth
 import kotlinx.datetime.Instant
 
 /** Active section in the Admin feature tab bar. */
-enum class AdminTab { SYSTEM_HEALTH, BACKUPS, AUDIT_LOG }
+enum class AdminTab { SYSTEM_HEALTH, BACKUPS, AUDIT_LOG, CONFLICTS }
 
 /**
  * Immutable UI state for the Admin feature (Sprints 13–15).
@@ -54,6 +55,12 @@ data class AdminState(
     val auditTotalPages: Int = 1,
     val integrityReport: IntegrityReport? = null,
     val isVerifyingIntegrity: Boolean = false,
+
+    // ── Conflicts (C6.1 Item 6) ──────────────────────────────────────────
+    val conflicts: List<SyncConflict> = emptyList(),
+    val conflictEntityTypeFilter: String? = null,
+    val selectedConflict: SyncConflict? = null,
+    val unresolvedConflictCount: Int = 0,
 
     // ── Global ────────────────────────────────────────────────────────────
     val isLoading: Boolean = false,

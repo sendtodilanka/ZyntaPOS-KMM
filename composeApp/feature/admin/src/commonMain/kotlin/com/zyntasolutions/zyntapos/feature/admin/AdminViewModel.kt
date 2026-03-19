@@ -10,9 +10,13 @@ import com.zyntasolutions.zyntapos.domain.usecase.admin.CreateBackupUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.DeleteBackupUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.GetBackupsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.GetDatabaseStatsUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.admin.GetConflictCountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.GetSystemHealthUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.admin.GetUnresolvedConflictsUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.admin.ResolveConflictUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.RestoreBackupUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.VerifyAuditIntegrityUseCase
+import com.zyntasolutions.zyntapos.domain.model.SyncConflict
 import com.zyntasolutions.zyntapos.domain.repository.SystemRepository
 import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
@@ -45,6 +49,10 @@ class AdminViewModel(
     private val auditLogger: SecurityAuditLogger,
     private val authRepository: AuthRepository,
     private val analytics: AnalyticsTracker,
+    // Conflict resolution (C6.1 Item 6)
+    private val getUnresolvedConflictsUseCase: GetUnresolvedConflictsUseCase,
+    private val resolveConflictUseCase: ResolveConflictUseCase,
+    private val getConflictCountUseCase: GetConflictCountUseCase,
 ) : BaseViewModel<AdminState, AdminIntent, AdminEffect>(AdminState()) {
 
     private var currentUserId: String = "unknown"
@@ -56,6 +64,7 @@ class AdminViewModel(
         }
         observeBackups()
         observeAuditLog()
+        observeConflicts()
         // Auto-load health on start
         viewModelScope.let {
             dispatch(AdminIntent.RefreshSystemHealth)
@@ -115,6 +124,15 @@ class AdminViewModel(
             AdminIntent.VerifyIntegrity -> verifyIntegrity()
             AdminIntent.NextAuditPage -> updateState { copy(auditPage = (auditPage + 1).coerceAtMost(auditTotalPages - 1)) }
             AdminIntent.PrevAuditPage -> updateState { copy(auditPage = (auditPage - 1).coerceAtLeast(0)) }
+
+            // Conflicts
+            AdminIntent.RefreshConflicts -> Unit // reactive — driven by observeConflicts()
+            is AdminIntent.FilterConflictsByEntityType -> updateState { copy(conflictEntityTypeFilter = intent.entityType) }
+            is AdminIntent.SelectConflict -> updateState { copy(selectedConflict = intent.conflict) }
+            AdminIntent.DismissConflictDetail -> updateState { copy(selectedConflict = null) }
+            is AdminIntent.ResolveConflictKeepLocal -> resolveConflict(intent.conflictId, SyncConflict.Resolution.LOCAL)
+            is AdminIntent.ResolveConflictAcceptServer -> resolveConflict(intent.conflictId, SyncConflict.Resolution.SERVER)
+            is AdminIntent.ResolveConflictManual -> resolveConflictManual(intent.conflictId, intent.value)
 
             // UI
             AdminIntent.DismissError -> updateState { copy(error = null) }
@@ -278,6 +296,42 @@ class AdminViewModel(
         when (val result = deleteBackupUseCase(backup.id)) {
             is Result.Success -> updateState { copy(isLoading = false, successMessage = "Backup deleted.") }
             is Result.Error -> updateState { copy(isLoading = false, error = result.exception.message) }
+            is Result.Loading -> Unit
+        }
+    }
+
+    // ── Conflicts (C6.1 Item 6) ──────────────────────────────────────────
+
+    private fun observeConflicts() {
+        getUnresolvedConflictsUseCase()
+            .onEach { conflicts ->
+                updateState { copy(conflicts = conflicts, unresolvedConflictCount = conflicts.size) }
+            }
+            .launchIn(viewModelScope)
+    }
+
+    private suspend fun resolveConflict(conflictId: String, resolution: SyncConflict.Resolution) {
+        val conflict = state.value.selectedConflict ?: return
+        val value = when (resolution) {
+            SyncConflict.Resolution.LOCAL -> conflict.localValue ?: ""
+            SyncConflict.Resolution.SERVER -> conflict.serverValue ?: ""
+            else -> ""
+        }
+        when (val result = resolveConflictUseCase(conflictId, resolution, value)) {
+            is Result.Success -> updateState {
+                copy(selectedConflict = null, successMessage = "Conflict resolved (${resolution.name})")
+            }
+            is Result.Error -> updateState { copy(error = result.exception.message) }
+            is Result.Loading -> Unit
+        }
+    }
+
+    private suspend fun resolveConflictManual(conflictId: String, value: String) {
+        when (val result = resolveConflictUseCase(conflictId, SyncConflict.Resolution.MANUAL, value)) {
+            is Result.Success -> updateState {
+                copy(selectedConflict = null, successMessage = "Conflict resolved (MANUAL)")
+            }
+            is Result.Error -> updateState { copy(error = result.exception.message) }
             is Result.Loading -> Unit
         }
     }

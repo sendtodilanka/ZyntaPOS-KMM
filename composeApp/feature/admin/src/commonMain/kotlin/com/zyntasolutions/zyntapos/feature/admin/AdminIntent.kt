@@ -58,6 +58,16 @@ sealed interface AdminIntent {
     data object NextAuditPage : AdminIntent
     data object PrevAuditPage : AdminIntent
 
+    // ── Conflicts (C6.1 Item 6) ────────────────────────────────────────────
+    data object RefreshConflicts : AdminIntent
+    /** Null = show all entity types. */
+    data class FilterConflictsByEntityType(val entityType: String?) : AdminIntent
+    data class SelectConflict(val conflict: com.zyntasolutions.zyntapos.domain.model.SyncConflict) : AdminIntent
+    data object DismissConflictDetail : AdminIntent
+    data class ResolveConflictKeepLocal(val conflictId: String) : AdminIntent
+    data class ResolveConflictAcceptServer(val conflictId: String) : AdminIntent
+    data class ResolveConflictManual(val conflictId: String, val value: String) : AdminIntent
+
     // ── UI Feedback ────────────────────────────────────────────────────────
     data object DismissError : AdminIntent
     data object DismissSuccess : AdminIntent

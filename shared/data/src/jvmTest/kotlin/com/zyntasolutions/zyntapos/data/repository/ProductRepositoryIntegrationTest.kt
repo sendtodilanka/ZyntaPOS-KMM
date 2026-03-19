@@ -168,7 +168,7 @@ class ProductRepositoryIntegrationTest {
         val pendingCount = db.sync_queueQueries.getPendingCount().executeAsOne()
         assertEquals(1L, pendingCount)
 
-        val rows = db.sync_queueQueries.getEligibleOperations(10).executeAsList()
+        val rows = db.sync_queueQueries.getEligibleOperations(store_id = "", batch_size = 10).executeAsList()
         assertEquals(1,           rows.size)
         assertEquals("product",   rows[0].entity_type)
         assertEquals("prod-1",    rows[0].entity_id)
