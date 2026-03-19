@@ -1,0 +1,65 @@
+-- Migration 10: Global Product Catalog (C1.1)
+-- Adds master_products and store_products tables, plus master_product_id FK on products.
+
+CREATE TABLE IF NOT EXISTS master_products (
+    id            TEXT    NOT NULL PRIMARY KEY,
+    sku           TEXT,
+    barcode       TEXT,
+    name          TEXT    NOT NULL,
+    description   TEXT,
+    base_price    REAL    NOT NULL DEFAULT 0.0,
+    cost_price    REAL    NOT NULL DEFAULT 0.0,
+    category_id   TEXT,
+    unit_id       TEXT,
+    tax_group_id  TEXT,
+    image_url     TEXT,
+    is_active     INTEGER NOT NULL DEFAULT 1,
+    created_at    INTEGER NOT NULL,
+    updated_at    INTEGER NOT NULL,
+    sync_status   TEXT    NOT NULL DEFAULT 'SYNCED'
+);
+
+CREATE INDEX IF NOT EXISTS idx_master_products_barcode ON master_products(barcode);
+CREATE INDEX IF NOT EXISTS idx_master_products_sku     ON master_products(sku);
+CREATE INDEX IF NOT EXISTS idx_master_products_active  ON master_products(is_active);
+
+CREATE VIRTUAL TABLE IF NOT EXISTS master_products_fts USING fts5(
+    product_id UNINDEXED,
+    name,
+    barcode,
+    sku
+);
+
+CREATE TRIGGER IF NOT EXISTS master_products_fts_insert AFTER INSERT ON master_products BEGIN
+    INSERT INTO master_products_fts(product_id, name, barcode, sku)
+    VALUES (new.id, new.name, COALESCE(new.barcode, ''), COALESCE(new.sku, ''));
+END;
+
+CREATE TRIGGER IF NOT EXISTS master_products_fts_delete AFTER DELETE ON master_products BEGIN
+    DELETE FROM master_products_fts WHERE product_id = old.id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS master_products_fts_update AFTER UPDATE ON master_products BEGIN
+    DELETE FROM master_products_fts WHERE product_id = old.id;
+    INSERT INTO master_products_fts(product_id, name, barcode, sku)
+    VALUES (new.id, new.name, COALESCE(new.barcode, ''), COALESCE(new.sku, ''));
+END;
+
+CREATE TABLE IF NOT EXISTS store_products (
+    id                  TEXT    NOT NULL PRIMARY KEY,
+    master_product_id   TEXT    NOT NULL,
+    store_id            TEXT    NOT NULL,
+    local_price         REAL,
+    local_cost_price    REAL,
+    local_stock_qty     REAL    NOT NULL DEFAULT 0.0,
+    min_stock_qty       REAL    NOT NULL DEFAULT 0.0,
+    is_active           INTEGER NOT NULL DEFAULT 1,
+    created_at          INTEGER NOT NULL,
+    updated_at          INTEGER NOT NULL,
+    sync_status         TEXT    NOT NULL DEFAULT 'SYNCED'
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_store_products_unique ON store_products(master_product_id, store_id);
+CREATE INDEX IF NOT EXISTS idx_store_products_store ON store_products(store_id);
+
+ALTER TABLE products ADD COLUMN master_product_id TEXT;

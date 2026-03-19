@@ -22,6 +22,7 @@ data class ProductDto(
     @SerialName("created_at")    val createdAt: Long,
     @SerialName("updated_at")    val updatedAt: Long,
     @SerialName("sync_status")   val syncStatus: String = "SYNCED",
+    @SerialName("master_product_id") val masterProductId: String? = null,
 )
 
 @Serializable

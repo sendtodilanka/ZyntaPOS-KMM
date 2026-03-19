@@ -1,7 +1,9 @@
 package com.zyntasolutions.zyntapos.api.sync
 
 import com.zyntasolutions.zyntapos.api.models.SyncOperation
+import com.zyntasolutions.zyntapos.api.service.MasterProducts
 import com.zyntasolutions.zyntapos.api.service.Products
+import com.zyntasolutions.zyntapos.api.service.StoreProducts
 import kotlinx.serialization.json.*
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -397,6 +399,8 @@ class EntityApplier {
                 "COUPON_USAGE"     -> applyCouponUsage(storeId, op)
                 "PROMOTION"        -> applyPromotion(storeId, op)
                 "CUSTOMER_GROUP"   -> applyCustomerGroup(storeId, op)
+                "MASTER_PRODUCT"   -> applyMasterProduct(op)
+                "STORE_PRODUCT"    -> applyStoreProduct(storeId, op)
                 else -> { /* entity_snapshots trigger handles any remaining types */ }
             }
         } catch (e: Exception) {
@@ -433,6 +437,62 @@ class EntityApplier {
                 }
             }
             "DELETE" -> softDelete(Products, Products.id, Products.isActive, Products.syncVersion, Products.updatedAt, op)
+        }
+    }
+
+    // ── Master Product (global catalog — no storeId) ──────────────────────
+
+    private fun applyMasterProduct(op: SyncOperation) {
+        val payload = parsePayload(op) ?: return
+        when (op.operation) {
+            "INSERT", "CREATE", "UPDATE" -> {
+                val productName = payload.str("name") ?: return
+                MasterProducts.upsert(MasterProducts.id) {
+                    it[MasterProducts.id]          = op.entityId
+                    it[MasterProducts.name]        = productName
+                    it[MasterProducts.sku]         = payload.str("sku")
+                    it[MasterProducts.barcode]     = payload.str("barcode")
+                    it[MasterProducts.basePrice]   = payload.dbl("base_price").toBigDecimal()
+                    it[MasterProducts.costPrice]   = payload.dbl("cost_price").toBigDecimal()
+                    it[MasterProducts.categoryId]  = payload.str("category_id")
+                    it[MasterProducts.unitId]      = payload.str("unit_id")
+                    it[MasterProducts.taxGroupId]  = payload.str("tax_group_id")
+                    it[MasterProducts.imageUrl]    = payload.str("image_url")
+                    it[MasterProducts.description] = payload.str("description")
+                    it[MasterProducts.isActive]    = payload.bool("is_active")
+                    it[MasterProducts.syncVersion] = op.createdAt
+                    it[MasterProducts.updatedAt]   = OffsetDateTime.now(ZoneOffset.UTC)
+                }
+            }
+            "DELETE" -> softDelete(MasterProducts, MasterProducts.id, MasterProducts.isActive, MasterProducts.syncVersion, MasterProducts.updatedAt, op)
+        }
+    }
+
+    // ── Store Product (per-store overrides) ─────────────────────────────────
+
+    private fun applyStoreProduct(storeId: String, op: SyncOperation) {
+        val payload = parsePayload(op) ?: return
+        when (op.operation) {
+            "INSERT", "CREATE", "UPDATE" -> {
+                val masterProductId = payload.str("master_product_id") ?: return
+                StoreProducts.upsert(StoreProducts.masterProductId, StoreProducts.storeId) {
+                    it[StoreProducts.id]              = op.entityId
+                    it[StoreProducts.masterProductId] = masterProductId
+                    it[StoreProducts.storeId]         = storeId
+                    it[StoreProducts.localPrice]      = payload.str("local_price")?.toDoubleOrNull()?.toBigDecimal()
+                    it[StoreProducts.localCostPrice]  = payload.str("local_cost_price")?.toDoubleOrNull()?.toBigDecimal()
+                    it[StoreProducts.localStockQty]   = payload.dbl("local_stock_qty").toInt()
+                    it[StoreProducts.minStockQty]     = payload.dbl("min_stock_qty").toInt()
+                    it[StoreProducts.isActive]        = payload.bool("is_active")
+                    it[StoreProducts.syncVersion]     = op.createdAt
+                    it[StoreProducts.updatedAt]       = OffsetDateTime.now(ZoneOffset.UTC)
+                }
+            }
+            "DELETE" -> {
+                StoreProducts.deleteWhere {
+                    (StoreProducts.id eq op.entityId)
+                }
+            }
         }
     }
 

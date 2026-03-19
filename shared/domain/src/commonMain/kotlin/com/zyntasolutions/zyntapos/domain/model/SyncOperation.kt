@@ -71,7 +71,9 @@ data class SyncOperation(
         const val REGISTER_SESSION = "register_session"
         const val CASH_MOVEMENT = "cash_movement"
         const val SETTINGS = "settings"
-        // Phase 2 entity types
+        // Phase 2 entity types — Global Product Catalog (C1.1)
+        const val MASTER_PRODUCT = "master_product"
+        const val STORE_PRODUCT = "store_product"
         const val CUSTOMER_GROUP = "customer_group"
         const val CUSTOMER_WALLET = "customer_wallet"
         const val WALLET_TRANSACTION = "wallet_transaction"

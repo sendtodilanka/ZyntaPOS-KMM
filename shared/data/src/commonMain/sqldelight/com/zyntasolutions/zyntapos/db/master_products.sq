@@ -1,0 +1,72 @@
+-- Master Products: centrally-managed global product catalog (C1.1)
+-- Read-only on POS devices — synced from backend via pull
+
+CREATE TABLE master_products (
+    id            TEXT    NOT NULL PRIMARY KEY,
+    sku           TEXT,
+    barcode       TEXT,
+    name          TEXT    NOT NULL,
+    description   TEXT,
+    base_price    REAL    NOT NULL DEFAULT 0.0,
+    cost_price    REAL    NOT NULL DEFAULT 0.0,
+    category_id   TEXT,
+    unit_id       TEXT,
+    tax_group_id  TEXT,
+    image_url     TEXT,
+    is_active     INTEGER NOT NULL DEFAULT 1,
+    created_at    INTEGER NOT NULL,
+    updated_at    INTEGER NOT NULL,
+    sync_status   TEXT    NOT NULL DEFAULT 'SYNCED'
+);
+
+CREATE INDEX idx_master_products_barcode ON master_products(barcode);
+CREATE INDEX idx_master_products_sku     ON master_products(sku);
+CREATE INDEX idx_master_products_active  ON master_products(is_active);
+
+-- ── FTS5 full-text search index ─────────────────────────────────────────────
+CREATE VIRTUAL TABLE master_products_fts USING fts5(
+    product_id UNINDEXED,
+    name,
+    barcode,
+    sku
+);
+
+CREATE TRIGGER master_products_fts_insert AFTER INSERT ON master_products BEGIN
+    INSERT INTO master_products_fts(product_id, name, barcode, sku)
+    VALUES (new.id, new.name, COALESCE(new.barcode, ''), COALESCE(new.sku, ''));
+END;
+
+CREATE TRIGGER master_products_fts_delete AFTER DELETE ON master_products BEGIN
+    DELETE FROM master_products_fts WHERE product_id = old.id;
+END;
+
+CREATE TRIGGER master_products_fts_update AFTER UPDATE ON master_products BEGIN
+    DELETE FROM master_products_fts WHERE product_id = old.id;
+    INSERT INTO master_products_fts(product_id, name, barcode, sku)
+    VALUES (new.id, new.name, COALESCE(new.barcode, ''), COALESCE(new.sku, ''));
+END;
+
+-- ── Read queries ────────────────────────────────────────────────────────────
+
+getAllMasterProducts:
+SELECT * FROM master_products WHERE is_active = 1 ORDER BY name ASC;
+
+getMasterProductById:
+SELECT * FROM master_products WHERE id = ?;
+
+getMasterProductByBarcode:
+SELECT * FROM master_products WHERE barcode = ? AND is_active = 1 LIMIT 1;
+
+countMasterProducts:
+SELECT COUNT(*) FROM master_products WHERE is_active = 1;
+
+searchMasterProducts:
+SELECT mp.* FROM master_products mp
+INNER JOIN master_products_fts fts ON fts.product_id = mp.id
+WHERE master_products_fts MATCH :query AND mp.is_active = 1;
+
+-- ── Write queries (sync-only on device) ─────────────────────────────────────
+
+upsertMasterProduct:
+INSERT OR REPLACE INTO master_products(id, sku, barcode, name, description, base_price, cost_price, category_id, unit_id, tax_group_id, image_url, is_active, created_at, updated_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
