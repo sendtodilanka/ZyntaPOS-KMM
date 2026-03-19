@@ -12,8 +12,14 @@ import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseRepository
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.CommitStockTransferUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.multistore.GetLowStockByWarehouseUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.multistore.GetWarehouseStockUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.multistore.SetWarehouseStockUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.rack.DeleteRackProductUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rack.DeleteWarehouseRackUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.rack.GetRackProductsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rack.GetWarehouseRacksUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.rack.SaveRackProductUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rack.SaveWarehouseRackUseCase
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Job
@@ -25,17 +31,23 @@ import kotlinx.coroutines.launch
 import kotlin.time.Clock
 
 /**
- * ViewModel for the Multi-store / Warehouse feature — Sprints 14–16 + 18.
+ * ViewModel for the Multi-store / Warehouse feature — Sprints 14–16 + 18 + C1.2.
  *
- * Manages warehouse list, warehouse CRUD, stock transfers, and warehouse
- * rack management (Sprint 18).
+ * Manages warehouse list, warehouse CRUD, stock transfers, warehouse rack
+ * management (Sprint 18), and per-warehouse stock levels (C1.2).
  *
- * @param warehouseRepository      Warehouse and stock transfer CRUD.
- * @param commitTransferUseCase    Validates and commits a pending transfer.
- * @param getWarehouseRacksUseCase Reactive rack list for a warehouse.
- * @param saveWarehouseRackUseCase Insert or update a rack record.
+ * @param warehouseRepository        Warehouse and stock transfer CRUD.
+ * @param commitTransferUseCase      Validates and commits a pending transfer.
+ * @param getWarehouseRacksUseCase   Reactive rack list for a warehouse.
+ * @param saveWarehouseRackUseCase   Insert or update a rack record.
  * @param deleteWarehouseRackUseCase Soft-delete a rack record.
- * @param authRepository           Provides the active auth session for resolving storeId and userId.
+ * @param getWarehouseStockUseCase      Live stock list per warehouse (C1.2).
+ * @param setWarehouseStockUseCase      Set absolute stock quantity (C1.2).
+ * @param getLowStockByWarehouseUseCase Low-stock alerts per warehouse (C1.2).
+ * @param getRackProductsUseCase        Products in a specific rack bin (C1.2).
+ * @param saveRackProductUseCase        Assign/update product at rack bin (C1.2).
+ * @param deleteRackProductUseCase      Remove product from rack bin (C1.2).
+ * @param authRepository                Provides the active auth session for storeId and userId.
  */
 class WarehouseViewModel(
     private val warehouseRepository: WarehouseRepository,
@@ -44,6 +56,12 @@ class WarehouseViewModel(
     private val getWarehouseRacksUseCase: GetWarehouseRacksUseCase,
     private val saveWarehouseRackUseCase: SaveWarehouseRackUseCase,
     private val deleteWarehouseRackUseCase: DeleteWarehouseRackUseCase,
+    private val getWarehouseStockUseCase: GetWarehouseStockUseCase,
+    private val setWarehouseStockUseCase: SetWarehouseStockUseCase,
+    private val getLowStockByWarehouseUseCase: GetLowStockByWarehouseUseCase,
+    private val getRackProductsUseCase: GetRackProductsUseCase,
+    private val saveRackProductUseCase: SaveRackProductUseCase,
+    private val deleteRackProductUseCase: DeleteRackProductUseCase,
     private val authRepository: AuthRepository,
     private val analytics: AnalyticsTracker,
 ) : BaseViewModel<WarehouseState, WarehouseIntent, WarehouseEffect>(WarehouseState()) {
@@ -106,6 +124,32 @@ class WarehouseViewModel(
             is WarehouseIntent.RequestDeleteRack -> updateState { copy(showDeleteRackConfirm = intent.rack) }
             is WarehouseIntent.ConfirmDeleteRack -> onConfirmDeleteRack()
             is WarehouseIntent.CancelDeleteRack -> updateState { copy(showDeleteRackConfirm = null) }
+
+            // ── Rack Products / C1.2 ───────────────────────────────────────────
+            is WarehouseIntent.LoadRackProducts -> onLoadRackProducts(intent.rackId)
+            is WarehouseIntent.OpenRackProductEntry -> onOpenRackProductEntry(intent.rackId, intent.productId)
+            is WarehouseIntent.UpdateRackProductField -> onUpdateRackProductField(intent.field, intent.value)
+            is WarehouseIntent.SaveRackProduct -> onSaveRackProduct()
+            is WarehouseIntent.CancelRackProductEntry -> updateState {
+                copy(rackProductForm = RackProductFormState())
+            }
+            is WarehouseIntent.RequestDeleteRackProduct -> updateState {
+                copy(showDeleteRackProductConfirm = intent.entry)
+            }
+            is WarehouseIntent.ConfirmDeleteRackProduct -> onConfirmDeleteRackProduct()
+            is WarehouseIntent.CancelDeleteRackProduct -> updateState {
+                copy(showDeleteRackProductConfirm = null)
+            }
+
+            // ── Warehouse Stock / C1.2 ─────────────────────────────────────────
+            is WarehouseIntent.LoadWarehouseStock -> onLoadWarehouseStock(intent.warehouseId)
+            is WarehouseIntent.SearchStock -> onSearchStock(intent.query)
+            is WarehouseIntent.OpenStockEntry -> onOpenStockEntry(intent.warehouseId, intent.productId)
+            is WarehouseIntent.UpdateStockField -> onUpdateStockField(intent.field, intent.value)
+            is WarehouseIntent.SaveStockEntry -> onSaveStockEntry()
+            is WarehouseIntent.CancelStockEntry -> updateState {
+                copy(stockEntryForm = StockEntryFormState())
+            }
 
             is WarehouseIntent.DismissMessage -> updateState { copy(error = null, successMessage = null) }
         }
@@ -429,6 +473,224 @@ class WarehouseViewModel(
                 productSearchQuery = product.name,
                 productSearchResults = emptyList(),
             )
+        }
+    }
+
+    // ── Rack Products / C1.2 ─────────────────────────────────────────────
+
+    private fun onLoadRackProducts(rackId: String) {
+        getRackProductsUseCase(rackId)
+            .onEach { products -> updateState { copy(rackProducts = products) } }
+            .launchIn(viewModelScope)
+    }
+
+    private fun onOpenRackProductEntry(rackId: String, productId: String?) {
+        if (productId == null) {
+            updateState {
+                copy(rackProductForm = RackProductFormState(rackId = rackId))
+            }
+            sendEffect(WarehouseEffect.NavigateToRackProductDetail(rackId, null))
+            return
+        }
+        val existing = currentState.rackProducts.find { it.productId == productId }
+        updateState {
+            copy(
+                rackProductForm = RackProductFormState(
+                    rackId = rackId,
+                    productId = productId,
+                    productName = existing?.productName ?: "",
+                    quantity = existing?.quantity?.let {
+                        if (it == it.toLong().toDouble()) it.toLong().toString() else it.toString()
+                    } ?: "0",
+                    binLocation = existing?.binLocation ?: "",
+                    isEditing = existing != null,
+                ),
+            )
+        }
+        sendEffect(WarehouseEffect.NavigateToRackProductDetail(rackId, productId))
+    }
+
+    private fun onUpdateRackProductField(field: String, value: String) {
+        updateState {
+            copy(
+                rackProductForm = when (field) {
+                    "productId" -> rackProductForm.copy(
+                        productId = value,
+                        validationErrors = rackProductForm.validationErrors - "productId",
+                    )
+                    "productName" -> rackProductForm.copy(productName = value)
+                    "quantity" -> rackProductForm.copy(
+                        quantity = value,
+                        validationErrors = rackProductForm.validationErrors - "quantity",
+                    )
+                    "binLocation" -> rackProductForm.copy(binLocation = value)
+                    else -> rackProductForm
+                },
+            )
+        }
+    }
+
+    private suspend fun onSaveRackProduct() {
+        val form = currentState.rackProductForm
+        val errors = mutableMapOf<String, String>()
+        if (form.rackId.isBlank()) errors["rackId"] = "Rack required"
+        if (form.productId.isBlank()) errors["productId"] = "Product required"
+        val qty = form.quantity.toDoubleOrNull()
+        if (qty == null || qty < 0) errors["quantity"] = "Quantity must be 0 or more"
+
+        if (errors.isNotEmpty()) {
+            updateState { copy(rackProductForm = rackProductForm.copy(validationErrors = errors)) }
+            return
+        }
+
+        updateState { copy(isLoading = true) }
+        when (val result = saveRackProductUseCase(
+            rackId = form.rackId,
+            productId = form.productId,
+            quantity = qty!!,
+            binLocation = form.binLocation.takeIf { it.isNotBlank() },
+        )) {
+            is Result.Success -> {
+                val msg = if (form.isEditing) "Bin location updated" else "Product assigned to rack"
+                updateState {
+                    copy(isLoading = false, successMessage = msg, rackProductForm = RackProductFormState())
+                }
+                sendEffect(WarehouseEffect.ShowSuccess(msg))
+            }
+            is Result.Error -> {
+                updateState { copy(isLoading = false) }
+                sendEffect(WarehouseEffect.ShowError(result.exception.message ?: "Save failed"))
+            }
+            is Result.Loading -> {}
+        }
+    }
+
+    private suspend fun onConfirmDeleteRackProduct() {
+        val entry = currentState.showDeleteRackProductConfirm ?: return
+        updateState { copy(showDeleteRackProductConfirm = null, isLoading = true) }
+        when (val result = deleteRackProductUseCase(entry.rackId, entry.productId)) {
+            is Result.Success -> {
+                updateState { copy(isLoading = false) }
+                sendEffect(WarehouseEffect.ShowSuccess("Product removed from rack"))
+            }
+            is Result.Error -> {
+                updateState { copy(isLoading = false) }
+                sendEffect(WarehouseEffect.ShowError(result.exception.message ?: "Delete failed"))
+            }
+            is Result.Loading -> {}
+        }
+    }
+
+    // ── Warehouse Stock / C1.2 ────────────────────────────────────────────
+
+    private fun onLoadWarehouseStock(warehouseId: String) {
+        getWarehouseStockUseCase(warehouseId)
+            .onEach { stock ->
+                val query = currentState.stockSearchQuery
+                val filtered = if (query.isBlank()) stock
+                else stock.filter { entry ->
+                    entry.productName?.contains(query, ignoreCase = true) == true ||
+                        entry.productSku?.contains(query, ignoreCase = true) == true ||
+                        entry.productBarcode?.contains(query, ignoreCase = true) == true
+                }
+                updateState { copy(warehouseStock = filtered) }
+            }
+            .launchIn(viewModelScope)
+
+        getLowStockByWarehouseUseCase(warehouseId)
+            .onEach { lowStock -> updateState { copy(lowStockItems = lowStock) } }
+            .launchIn(viewModelScope)
+    }
+
+    private fun onSearchStock(query: String) {
+        updateState { copy(stockSearchQuery = query) }
+    }
+
+    private fun onOpenStockEntry(warehouseId: String, productId: String?) {
+        if (productId == null) {
+            updateState {
+                copy(stockEntryForm = StockEntryFormState(warehouseId = warehouseId))
+            }
+            sendEffect(WarehouseEffect.NavigateToStockEntry(warehouseId, null))
+            return
+        }
+        val existing = currentState.warehouseStock.find { it.productId == productId }
+        updateState {
+            copy(
+                stockEntryForm = StockEntryFormState(
+                    warehouseId = warehouseId,
+                    productId = productId,
+                    productName = existing?.productName ?: "",
+                    quantity = existing?.quantity?.let {
+                        if (it == it.toLong().toDouble()) it.toLong().toString() else it.toString()
+                    } ?: "0",
+                    minQuantity = existing?.minQuantity?.let {
+                        if (it == it.toLong().toDouble()) it.toLong().toString() else it.toString()
+                    } ?: "0",
+                    isEditing = existing != null,
+                ),
+            )
+        }
+        sendEffect(WarehouseEffect.NavigateToStockEntry(warehouseId, productId))
+    }
+
+    private fun onUpdateStockField(field: String, value: String) {
+        updateState {
+            copy(
+                stockEntryForm = when (field) {
+                    "productId" -> stockEntryForm.copy(
+                        productId = value,
+                        validationErrors = stockEntryForm.validationErrors - "productId",
+                    )
+                    "productName" -> stockEntryForm.copy(productName = value)
+                    "quantity" -> stockEntryForm.copy(
+                        quantity = value,
+                        validationErrors = stockEntryForm.validationErrors - "quantity",
+                    )
+                    "minQuantity" -> stockEntryForm.copy(
+                        minQuantity = value,
+                        validationErrors = stockEntryForm.validationErrors - "minQuantity",
+                    )
+                    else -> stockEntryForm
+                },
+            )
+        }
+    }
+
+    private suspend fun onSaveStockEntry() {
+        val form = currentState.stockEntryForm
+        val errors = mutableMapOf<String, String>()
+        if (form.warehouseId.isBlank()) errors["warehouseId"] = "Warehouse required"
+        if (form.productId.isBlank()) errors["productId"] = "Product required"
+        val qty = form.quantity.toDoubleOrNull()
+        if (qty == null || qty < 0) errors["quantity"] = "Quantity must be 0 or more"
+        val minQty = form.minQuantity.toDoubleOrNull() ?: 0.0
+        if (minQty < 0) errors["minQuantity"] = "Min quantity must be 0 or more"
+
+        if (errors.isNotEmpty()) {
+            updateState { copy(stockEntryForm = stockEntryForm.copy(validationErrors = errors)) }
+            return
+        }
+
+        updateState { copy(isLoading = true) }
+        when (val result = setWarehouseStockUseCase(
+            warehouseId = form.warehouseId,
+            productId = form.productId,
+            quantity = qty!!,
+            minQuantity = minQty,
+        )) {
+            is Result.Success -> {
+                val msg = if (form.isEditing) "Stock level updated" else "Stock level set"
+                updateState {
+                    copy(isLoading = false, successMessage = msg, stockEntryForm = StockEntryFormState())
+                }
+                sendEffect(WarehouseEffect.ShowSuccess(msg))
+            }
+            is Result.Error -> {
+                updateState { copy(isLoading = false) }
+                sendEffect(WarehouseEffect.ShowError(result.exception.message ?: "Save failed"))
+            }
+            is Result.Loading -> {}
         }
     }
 

@@ -13,6 +13,14 @@ sealed interface WarehouseEffect {
     data class NavigateToRackDetail(val rackId: String?, val warehouseId: String) : WarehouseEffect
     data object NavigateToRackList : WarehouseEffect
 
+    // Warehouse stock navigation (C1.2)
+    data class NavigateToWarehouseStock(val warehouseId: String) : WarehouseEffect
+    data class NavigateToStockEntry(val warehouseId: String, val productId: String?) : WarehouseEffect
+
+    // Rack product navigation (C1.2)
+    data class NavigateToRackProductList(val rackId: String) : WarehouseEffect
+    data class NavigateToRackProductDetail(val rackId: String, val productId: String?) : WarehouseEffect
+
     data class ShowError(val message: String) : WarehouseEffect
     data class ShowSuccess(val message: String) : WarehouseEffect
 }

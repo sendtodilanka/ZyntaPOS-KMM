@@ -1,16 +1,19 @@
 package com.zyntasolutions.zyntapos.feature.multistore
 
 import com.zyntasolutions.zyntapos.domain.model.Product
+import com.zyntasolutions.zyntapos.domain.model.RackProduct
 import com.zyntasolutions.zyntapos.domain.model.StockTransfer
 import com.zyntasolutions.zyntapos.domain.model.Warehouse
 import com.zyntasolutions.zyntapos.domain.model.WarehouseRack
+import com.zyntasolutions.zyntapos.domain.model.WarehouseStock
 
 /**
  * Immutable UI state for the Multi-store / Warehouse screens.
  *
  * Consumed by [WarehouseListScreen], [WarehouseDetailScreen],
  * [StockTransferListScreen], [NewStockTransferScreen],
- * [WarehouseRackListScreen], and [WarehouseRackDetailScreen].
+ * [WarehouseRackListScreen], [WarehouseRackDetailScreen],
+ * and [WarehouseStockScreen] (C1.2).
  */
 data class WarehouseState(
     // ── Warehouse List ────────────────────────────────────────────────────
@@ -32,6 +35,17 @@ data class WarehouseState(
     val selectedRack: WarehouseRack? = null,
     val rackForm: RackFormState = RackFormState(),
     val showDeleteRackConfirm: WarehouseRack? = null,
+
+    // ── Warehouse Stock / C1.2 ────────────────────────────────────────────
+    val warehouseStock: List<WarehouseStock> = emptyList(),
+    val lowStockItems: List<WarehouseStock> = emptyList(),
+    val stockSearchQuery: String = "",
+    val stockEntryForm: StockEntryFormState = StockEntryFormState(),
+
+    // ── Rack Products / C1.2 ──────────────────────────────────────────────
+    val rackProducts: List<RackProduct> = emptyList(),
+    val rackProductForm: RackProductFormState = RackProductFormState(),
+    val showDeleteRackProductConfirm: RackProduct? = null,
 
     // ── Global ────────────────────────────────────────────────────────────
     val isLoading: Boolean = false,
@@ -67,6 +81,28 @@ data class RackFormState(
     val name: String = "",
     val description: String = "",
     val capacity: String = "",
+    val isEditing: Boolean = false,
+    val validationErrors: Map<String, String> = emptyMap(),
+)
+
+/** Mutable form fields for setting per-warehouse stock levels (C1.2). */
+data class StockEntryFormState(
+    val warehouseId: String = "",
+    val productId: String = "",
+    val productName: String = "",
+    val quantity: String = "",
+    val minQuantity: String = "",
+    val isEditing: Boolean = false,
+    val validationErrors: Map<String, String> = emptyMap(),
+)
+
+/** Mutable form fields for assigning a product to a rack bin (C1.2). */
+data class RackProductFormState(
+    val rackId: String = "",
+    val productId: String = "",
+    val productName: String = "",
+    val quantity: String = "0",
+    val binLocation: String = "",
     val isEditing: Boolean = false,
     val validationErrors: Map<String, String> = emptyMap(),
 )
