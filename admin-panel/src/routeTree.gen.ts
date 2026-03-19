@@ -31,6 +31,8 @@ import { Route as SettingsMfaRouteImport } from './routes/settings/mfa'
 import { Route as SettingsEmailRouteImport } from './routes/settings/email'
 import { Route as LicensesLicenseKeyRouteImport } from './routes/licenses/$licenseKey'
 import { Route as HealthStoreIdRouteImport } from './routes/health/$storeId'
+import { Route as MasterProductsIndexRouteImport } from './routes/master-products/index'
+import { Route as MasterProductsMasterProductIdRouteImport } from './routes/master-products/$masterProductId'
 import { Route as TicketStatusTokenRouteImport } from './routes/ticket-status/$token'
 
 const LoginRoute = LoginRouteImport.update({
@@ -108,6 +110,16 @@ const AlertsIndexRoute = AlertsIndexRouteImport.update({
   path: '/alerts/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MasterProductsIndexRoute = MasterProductsIndexRouteImport.update({
+  id: '/master-products/',
+  path: '/master-products/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MasterProductsMasterProductIdRoute = MasterProductsMasterProductIdRouteImport.update({
+  id: '/master-products/$masterProductId',
+  path: '/master-products/$masterProductId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TicketsTicketIdRoute = TicketsTicketIdRouteImport.update({
   id: '/tickets/$ticketId',
   path: '/tickets/$ticketId',
@@ -154,6 +166,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/health/$storeId': typeof HealthStoreIdRoute
   '/licenses/$licenseKey': typeof LicensesLicenseKeyRoute
+  '/master-products/$masterProductId': typeof MasterProductsMasterProductIdRoute
   '/settings/email': typeof SettingsEmailRoute
   '/settings/mfa': typeof SettingsMfaRoute
   '/settings/profile': typeof SettingsProfileRoute
@@ -165,6 +178,7 @@ export interface FileRoutesByFullPath {
   '/config/': typeof ConfigIndexRoute
   '/health/': typeof HealthIndexRoute
   '/licenses/': typeof LicensesIndexRoute
+  '/master-products/': typeof MasterProductsIndexRoute
   '/reports/': typeof ReportsIndexRoute
   '/security/': typeof SecurityIndexRoute
   '/settings/': typeof SettingsIndexRoute
@@ -179,6 +193,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/health/$storeId': typeof HealthStoreIdRoute
   '/licenses/$licenseKey': typeof LicensesLicenseKeyRoute
+  '/master-products/$masterProductId': typeof MasterProductsMasterProductIdRoute
   '/settings/email': typeof SettingsEmailRoute
   '/settings/mfa': typeof SettingsMfaRoute
   '/settings/profile': typeof SettingsProfileRoute
@@ -190,6 +205,7 @@ export interface FileRoutesByTo {
   '/config': typeof ConfigIndexRoute
   '/health': typeof HealthIndexRoute
   '/licenses': typeof LicensesIndexRoute
+  '/master-products': typeof MasterProductsIndexRoute
   '/reports': typeof ReportsIndexRoute
   '/security': typeof SecurityIndexRoute
   '/settings': typeof SettingsIndexRoute
@@ -205,6 +221,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/health/$storeId': typeof HealthStoreIdRoute
   '/licenses/$licenseKey': typeof LicensesLicenseKeyRoute
+  '/master-products/$masterProductId': typeof MasterProductsMasterProductIdRoute
   '/settings/email': typeof SettingsEmailRoute
   '/settings/mfa': typeof SettingsMfaRoute
   '/settings/profile': typeof SettingsProfileRoute
@@ -216,6 +233,7 @@ export interface FileRoutesById {
   '/config/': typeof ConfigIndexRoute
   '/health/': typeof HealthIndexRoute
   '/licenses/': typeof LicensesIndexRoute
+  '/master-products/': typeof MasterProductsIndexRoute
   '/reports/': typeof ReportsIndexRoute
   '/security/': typeof SecurityIndexRoute
   '/settings/': typeof SettingsIndexRoute
@@ -232,6 +250,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/health/$storeId'
     | '/licenses/$licenseKey'
+    | '/master-products/$masterProductId'
     | '/settings/email'
     | '/settings/mfa'
     | '/settings/profile'
@@ -243,6 +262,7 @@ export interface FileRouteTypes {
     | '/config/'
     | '/health/'
     | '/licenses/'
+    | '/master-products/'
     | '/reports/'
     | '/security/'
     | '/settings/'
@@ -257,6 +277,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/health/$storeId'
     | '/licenses/$licenseKey'
+    | '/master-products/$masterProductId'
     | '/settings/email'
     | '/settings/mfa'
     | '/settings/profile'
@@ -267,6 +288,7 @@ export interface FileRouteTypes {
     | '/config'
     | '/health'
     | '/licenses'
+    | '/master-products'
     | '/reports'
     | '/security'
     | '/settings'
@@ -281,6 +303,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/health/$storeId'
     | '/licenses/$licenseKey'
+    | '/master-products/$masterProductId'
     | '/settings/email'
     | '/settings/mfa'
     | '/settings/profile'
@@ -292,6 +315,7 @@ export interface FileRouteTypes {
     | '/config/'
     | '/health/'
     | '/licenses/'
+    | '/master-products/'
     | '/reports/'
     | '/security/'
     | '/settings/'
@@ -307,6 +331,8 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   HealthStoreIdRoute: typeof HealthStoreIdRoute
   LicensesLicenseKeyRoute: typeof LicensesLicenseKeyRoute
+  MasterProductsMasterProductIdRoute: typeof MasterProductsMasterProductIdRoute
+  MasterProductsIndexRoute: typeof MasterProductsIndexRoute
   SettingsEmailRoute: typeof SettingsEmailRoute
   SettingsMfaRoute: typeof SettingsMfaRoute
   SettingsProfileRoute: typeof SettingsProfileRoute
@@ -435,6 +461,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AlertsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/master-products/': {
+      id: '/master-products/'
+      path: '/master-products'
+      fullPath: '/master-products/'
+      preLoaderRoute: typeof MasterProductsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/master-products/$masterProductId': {
+      id: '/master-products/$masterProductId'
+      path: '/master-products/$masterProductId'
+      fullPath: '/master-products/$masterProductId'
+      preLoaderRoute: typeof MasterProductsMasterProductIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tickets/$ticketId': {
       id: '/tickets/$ticketId'
       path: '/tickets/$ticketId'
@@ -499,6 +539,8 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   HealthStoreIdRoute: HealthStoreIdRoute,
   LicensesLicenseKeyRoute: LicensesLicenseKeyRoute,
+  MasterProductsMasterProductIdRoute: MasterProductsMasterProductIdRoute,
+  MasterProductsIndexRoute: MasterProductsIndexRoute,
   SettingsEmailRoute: SettingsEmailRoute,
   SettingsMfaRoute: SettingsMfaRoute,
   SettingsProfileRoute: SettingsProfileRoute,
