@@ -167,9 +167,12 @@ private fun StockTransferCard(
                     text = transfer.status.name,
                     style = MaterialTheme.typography.labelMedium,
                     color = when (transfer.status) {
-                        StockTransfer.Status.PENDING -> MaterialTheme.colorScheme.tertiary
-                        StockTransfer.Status.COMMITTED -> MaterialTheme.colorScheme.primary
-                        StockTransfer.Status.CANCELLED -> MaterialTheme.colorScheme.onSurfaceVariant
+                        StockTransfer.Status.PENDING    -> MaterialTheme.colorScheme.tertiary
+                        StockTransfer.Status.APPROVED   -> MaterialTheme.colorScheme.secondary
+                        StockTransfer.Status.IN_TRANSIT -> MaterialTheme.colorScheme.primary
+                        StockTransfer.Status.RECEIVED   -> MaterialTheme.colorScheme.primary
+                        StockTransfer.Status.COMMITTED  -> MaterialTheme.colorScheme.primary
+                        StockTransfer.Status.CANCELLED  -> MaterialTheme.colorScheme.onSurfaceVariant
                     },
                 )
             }
