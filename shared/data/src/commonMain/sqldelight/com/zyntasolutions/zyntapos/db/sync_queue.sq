@@ -92,6 +92,17 @@ SET status = 'PENDING'
 WHERE status = 'SYNCING'
   AND last_tried < ?;
 
+-- ── Conflict detection ─────────────────────────────────────────
+
+-- Returns the most recent PENDING operation for a given entity.
+-- Used by SyncEngine to detect conflicts during delta application.
+getPendingByEntity:
+SELECT *
+FROM pending_operations
+WHERE entity_type = ? AND entity_id = ? AND status = 'PENDING'
+ORDER BY created_at DESC
+LIMIT 1;
+
 -- ── Maintenance ─────────────────────────────────────────────────
 
 -- Removes SYNCED rows older than the given epoch-millis cutoff.

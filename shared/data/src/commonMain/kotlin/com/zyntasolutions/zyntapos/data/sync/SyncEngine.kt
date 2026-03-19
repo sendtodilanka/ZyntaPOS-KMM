@@ -15,7 +15,10 @@ import com.zyntasolutions.zyntapos.data.repository.OrderRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.ProductRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.StockRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.SupplierRepositoryImpl
+import com.zyntasolutions.zyntapos.db.Pending_operations
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
+import com.zyntasolutions.zyntapos.domain.model.SyncConflict
+import com.zyntasolutions.zyntapos.domain.repository.ConflictLogRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -65,6 +68,9 @@ class SyncEngine(
     private val categoryRepository: CategoryRepositoryImpl,
     private val supplierRepository: SupplierRepositoryImpl,
     private val stockRepository: StockRepositoryImpl,
+    // CRDT conflict resolution (C6.1)
+    private val conflictResolver: ConflictResolver,
+    private val conflictLogRepository: ConflictLogRepository,
 ) {
     private val log = ZyntaLogger.forModule("SyncEngine")
 
@@ -134,9 +140,13 @@ class SyncEngine(
 
     // ── Core Sync Cycle ────────────────────────────────────────────────────────
 
+    /** Tracks conflicts detected across the entire sync cycle. */
+    private var cycleConflictCount = 0
+
     private suspend fun executeSyncCycle() {
         log.d("=== Sync cycle START ===")
         val cycleStart = Clock.System.now().toEpochMilliseconds()
+        cycleConflictCount = 0
 
         try {
             // 1. Push pending operations
@@ -149,11 +159,12 @@ class SyncEngine(
             prefs.put(SecureStorageKeys.KEY_LAST_SYNC_TS, Clock.System.now().toEpochMilliseconds().toString())
 
             val durationMs = Clock.System.now().toEpochMilliseconds() - cycleStart
-            log.i("=== Sync cycle DONE — pushed=$pushed pulled=$pulled duration=${durationMs}ms ===")
+            log.i("=== Sync cycle DONE — pushed=$pushed pulled=$pulled conflicts=$cycleConflictCount duration=${durationMs}ms ===")
             _lastSyncResult.value = SyncResult.Success(
-                pushedCount = pushed,
-                pulledCount = pulled,
-                durationMs  = durationMs,
+                pushedCount   = pushed,
+                pulledCount   = pulled,
+                conflictCount = cycleConflictCount,
+                durationMs    = durationMs,
             )
         } catch (e: Exception) {
             log.e("Sync cycle FAILED", throwable = e)
@@ -297,8 +308,13 @@ class SyncEngine(
      * Applies a list of server-authoritative [SyncOperationDto]s to the local database.
      *
      * Routes each operation to the appropriate [RepositoryImpl.upsertFromSync] method.
-     * DELETE operations call the repository's soft-delete; CREATE/UPDATE both call upsertFromSync
-     * (last-write-wins, server is authoritative). Unknown entity types are logged and skipped.
+     * DELETE operations call the repository's soft-delete; CREATE/UPDATE both call upsertFromSync.
+     *
+     * **Conflict detection (C6.1):** Before applying a CREATE/UPDATE delta, checks for a
+     * PENDING local operation targeting the same entity. If found, delegates to
+     * [ConflictResolver.resolve] to determine the winner:
+     * - **Remote wins** → apply remote payload, mark local pending op as SYNCED.
+     * - **Local wins** → skip remote delta, keep local op in the queue for the next push.
      *
      * No [SyncEnqueuer.enqueue] is called here — server-originated data must not be
      * re-queued for push (would create an infinite sync loop).
@@ -308,39 +324,146 @@ class SyncEngine(
             try {
                 log.d("Applying delta: ${op.operation} on ${op.entityType}(${op.entityId})")
                 when (op.operation) {
-                    "DELETE" -> {
-                        val result: Result<Unit>? = when (op.entityType) {
-                            SyncOperation.EntityType.PRODUCT  -> productRepository.delete(op.entityId)
-                            SyncOperation.EntityType.ORDER    -> orderRepository.void(op.entityId, "server-sync")
-                            SyncOperation.EntityType.CUSTOMER -> customerRepository.delete(op.entityId)
-                            SyncOperation.EntityType.CATEGORY -> categoryRepository.delete(op.entityId)
-                            else -> {
-                                log.w("Unhandled DELETE for entityType: ${op.entityType}")
-                                null
-                            }
-                        }
-                        if (result is Result.Error) {
-                            log.w("Delta DELETE failed for ${op.entityType}(${op.entityId}): ${result.exception.message}")
-                        }
-                    }
-                    else -> { // "CREATE" | "UPDATE" — server snapshot wins
-                        when (op.entityType) {
-                            SyncOperation.EntityType.PRODUCT          -> productRepository.upsertFromSync(op.payload)
-                            SyncOperation.EntityType.ORDER            -> orderRepository.upsertFromSync(op.payload)
-                            SyncOperation.EntityType.CUSTOMER         -> customerRepository.upsertFromSync(op.payload)
-                            SyncOperation.EntityType.CATEGORY         -> categoryRepository.upsertFromSync(op.payload)
-                            SyncOperation.EntityType.SUPPLIER         -> supplierRepository.upsertFromSync(op.payload)
-                            SyncOperation.EntityType.STOCK_ADJUSTMENT -> stockRepository.upsertFromSync(op.payload)
-                            SyncOperation.EntityType.USER             -> { /* read-only from device — managed via auth */ }
-                            else -> log.w("Unknown entityType for delta op: ${op.entityType}")
-                        }
-                    }
+                    "DELETE" -> applyDelete(op)
+                    else -> applyCreateOrUpdate(op)
                 }
             } catch (e: Exception) {
                 log.e("Failed to apply delta for ${op.entityType}(${op.entityId})", throwable = e)
             }
         }
     }
+
+    private suspend fun applyDelete(op: SyncOperationDto) {
+        val result: Result<Unit>? = when (op.entityType) {
+            SyncOperation.EntityType.PRODUCT  -> productRepository.delete(op.entityId)
+            SyncOperation.EntityType.ORDER    -> orderRepository.void(op.entityId, "server-sync")
+            SyncOperation.EntityType.CUSTOMER -> customerRepository.delete(op.entityId)
+            SyncOperation.EntityType.CATEGORY -> categoryRepository.delete(op.entityId)
+            else -> {
+                log.w("Unhandled DELETE for entityType: ${op.entityType}")
+                null
+            }
+        }
+        if (result is Result.Error) {
+            log.w("Delta DELETE failed for ${op.entityType}(${op.entityId}): ${result.exception.message}")
+        }
+    }
+
+    /**
+     * Applies a CREATE/UPDATE delta with CRDT conflict detection.
+     *
+     * If there is a PENDING local operation for the same entity, runs
+     * [ConflictResolver.resolve] and persists a [SyncConflict] audit record.
+     */
+    private suspend fun applyCreateOrUpdate(op: SyncOperationDto) {
+        // Check for pending local operation targeting the same entity
+        val localPending = db.sync_queueQueries
+            .getPendingByEntity(op.entityType, op.entityId)
+            .executeAsOneOrNull()
+
+        if (localPending != null) {
+            // ── CONFLICT DETECTED ──────────────────────────────────────
+            val localSyncOp = localPending.toSyncOperation()
+            val remoteSyncOp = op.toSyncOperation()
+            val resolution = conflictResolver.resolve(localSyncOp, remoteSyncOp)
+
+            // Persist conflict audit log
+            persistConflictLog(resolution.conflictLog, localPending, op)
+            cycleConflictCount++
+
+            val remoteWon = resolution.winner.id == remoteSyncOp.id
+            if (remoteWon) {
+                log.d("Conflict: remote wins for ${op.entityType}/${op.entityId} — applying remote, discarding local")
+                applyUpsert(op.entityType, resolution.winner.payload)
+                db.sync_queueQueries.markSynced(localPending.id)
+            } else {
+                log.d("Conflict: local wins for ${op.entityType}/${op.entityId} — skipping remote delta")
+                // If field merge produced a merged payload, apply it locally
+                if (resolution.winner.payload != localSyncOp.payload) {
+                    applyUpsert(op.entityType, resolution.winner.payload)
+                }
+            }
+        } else {
+            // ── No conflict — apply as-is ──────────────────────────────
+            applyUpsert(op.entityType, op.payload)
+        }
+    }
+
+    /** Routes an upsert payload to the correct repository. */
+    private suspend fun applyUpsert(entityType: String, payload: String) {
+        when (entityType) {
+            SyncOperation.EntityType.PRODUCT          -> productRepository.upsertFromSync(payload)
+            SyncOperation.EntityType.ORDER            -> orderRepository.upsertFromSync(payload)
+            SyncOperation.EntityType.CUSTOMER         -> customerRepository.upsertFromSync(payload)
+            SyncOperation.EntityType.CATEGORY         -> categoryRepository.upsertFromSync(payload)
+            SyncOperation.EntityType.SUPPLIER         -> supplierRepository.upsertFromSync(payload)
+            SyncOperation.EntityType.STOCK_ADJUSTMENT -> stockRepository.upsertFromSync(payload)
+            SyncOperation.EntityType.USER             -> { /* read-only from device — managed via auth */ }
+            else -> log.w("Unknown entityType for delta op: $entityType")
+        }
+    }
+
+    /** Persists a [ConflictLog] as a [SyncConflict] in the conflict_log table. */
+    private suspend fun persistConflictLog(
+        conflictLog: ConflictLog,
+        localRow: Pending_operations,
+        remoteOp: SyncOperationDto,
+    ) {
+        try {
+            val conflict = SyncConflict(
+                id          = "",
+                entityType  = conflictLog.entityType,
+                entityId    = conflictLog.entityId,
+                fieldName   = conflictLog.strategy.name,
+                localValue  = localRow.payload,
+                serverValue = remoteOp.payload,
+                resolvedBy  = when {
+                    conflictLog.winnerDeviceId.startsWith("remote:") -> SyncConflict.Resolution.SERVER
+                    else -> SyncConflict.Resolution.LOCAL
+                },
+                resolution  = conflictLog.strategy.name,
+                resolvedAt  = conflictLog.resolvedAt,
+                createdAt   = conflictLog.resolvedAt,
+            )
+            conflictLogRepository.insert(conflict)
+        } catch (e: Exception) {
+            log.w("Failed to persist conflict log: ${e.message}")
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // DTO / Row → SyncOperation converters
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private fun Pending_operations.toSyncOperation(): SyncOperation = SyncOperation(
+        id         = id,
+        entityType = entity_type,
+        entityId   = entity_id,
+        operation  = when (operation) {
+            "CREATE" -> SyncOperation.Operation.INSERT
+            "UPDATE" -> SyncOperation.Operation.UPDATE
+            "DELETE" -> SyncOperation.Operation.DELETE
+            else     -> SyncOperation.Operation.UPDATE
+        },
+        payload    = payload,
+        createdAt  = kotlinx.datetime.Instant.fromEpochMilliseconds(created_at),
+        retryCount = retry_count.toInt(),
+    )
+
+    private fun SyncOperationDto.toSyncOperation(): SyncOperation = SyncOperation(
+        id         = id,
+        entityType = entityType,
+        entityId   = entityId,
+        operation  = when (operation) {
+            "CREATE" -> SyncOperation.Operation.INSERT
+            "UPDATE" -> SyncOperation.Operation.UPDATE
+            "DELETE" -> SyncOperation.Operation.DELETE
+            else     -> SyncOperation.Operation.UPDATE
+        },
+        payload    = payload,
+        createdAt  = kotlinx.datetime.Instant.fromEpochMilliseconds(createdAt),
+        retryCount = retryCount,
+    )
 
     companion object {
         /**
@@ -363,6 +486,7 @@ sealed class SyncResult {
     data class Success(
         val pushedCount: Int,
         val pulledCount: Int,
+        val conflictCount: Int = 0,
         val durationMs: Long,
     ) : SyncResult()
     data class Failure(val error: String) : SyncResult()

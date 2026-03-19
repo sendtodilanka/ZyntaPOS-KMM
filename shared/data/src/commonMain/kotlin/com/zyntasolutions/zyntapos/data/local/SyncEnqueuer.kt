@@ -14,10 +14,14 @@ import kotlin.time.Clock
  *
  * @param db The encrypted [ZyntaDatabase] instance.
  */
-class SyncEnqueuer(private val db: ZyntaDatabase) {
+class SyncEnqueuer(
+    private val db: ZyntaDatabase,
+    private val localDeviceId: String = "",
+) {
 
     /**
-     * Inserts a row into `pending_operations`.
+     * Inserts a row into `pending_operations` and increments the version vector
+     * for the affected entity on this device (C6.1 CRDT support).
      *
      * This method is idempotent via `INSERT OR IGNORE` — duplicate entity+operation
      * combinations within the same millisecond are silently ignored.
@@ -33,14 +37,32 @@ class SyncEnqueuer(private val db: ZyntaDatabase) {
         operation: SyncOperation.Operation,
         payload: String = "{}",
     ) {
+        val now = Clock.System.now().toEpochMilliseconds()
         db.sync_queueQueries.enqueueOperation(
             id          = IdGenerator.newId(),
             entity_type = entityType,
             entity_id   = entityId,
             operation   = operation.toSqlString(),
             payload     = payload,
-            created_at  = Clock.System.now().toEpochMilliseconds(),
+            created_at  = now,
         )
+
+        // Increment version vector for CRDT causal ordering (C6.1)
+        if (localDeviceId.isNotBlank()) {
+            db.version_vectorsQueries.upsert(
+                entity_type = entityType,
+                entity_id   = entityId,
+                device_id   = localDeviceId,
+                version     = 1,
+                updated_at  = now,
+            )
+            db.version_vectorsQueries.incrementVersion(
+                updated_at  = now,
+                entity_type = entityType,
+                entity_id   = entityId,
+                device_id   = localDeviceId,
+            )
+        }
     }
 
     private fun SyncOperation.Operation.toSqlString(): String = when (this) {

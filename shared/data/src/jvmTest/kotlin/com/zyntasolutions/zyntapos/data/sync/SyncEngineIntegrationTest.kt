@@ -4,6 +4,7 @@ import com.zyntasolutions.zyntapos.core.result.NetworkException
 import com.zyntasolutions.zyntapos.data.createTestDatabase
 import com.zyntasolutions.zyntapos.data.local.SyncEnqueuer
 import com.zyntasolutions.zyntapos.data.repository.CategoryRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.ConflictLogRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.CustomerRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.OrderRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.ProductRepositoryImpl
@@ -139,19 +140,23 @@ class SyncEngineIntegrationTest {
         prefs = InMemorySecurePreferences()
     }
 
+    private val testDeviceId = "test-device-001"
+
     private fun engine(api: ApiService): SyncEngine {
         val syncEnqueuer = SyncEnqueuer(db)
         return SyncEngine(
-            db                 = db,
-            api                = api,
-            prefs              = prefs,
-            networkMonitor     = networkMonitor,
-            productRepository  = ProductRepositoryImpl(db, syncEnqueuer),
-            orderRepository    = OrderRepositoryImpl(db, syncEnqueuer),
-            customerRepository = CustomerRepositoryImpl(db, syncEnqueuer),
-            categoryRepository = CategoryRepositoryImpl(db, syncEnqueuer),
-            supplierRepository = SupplierRepositoryImpl(db, syncEnqueuer),
-            stockRepository    = StockRepositoryImpl(db, syncEnqueuer),
+            db                    = db,
+            api                   = api,
+            prefs                 = prefs,
+            networkMonitor        = networkMonitor,
+            productRepository     = ProductRepositoryImpl(db, syncEnqueuer),
+            orderRepository       = OrderRepositoryImpl(db, syncEnqueuer),
+            customerRepository    = CustomerRepositoryImpl(db, syncEnqueuer),
+            categoryRepository    = CategoryRepositoryImpl(db, syncEnqueuer),
+            supplierRepository    = SupplierRepositoryImpl(db, syncEnqueuer),
+            stockRepository       = StockRepositoryImpl(db, syncEnqueuer),
+            conflictResolver      = ConflictResolver(localDeviceId = testDeviceId),
+            conflictLogRepository = ConflictLogRepositoryImpl(db = db),
         )
     }
 
@@ -302,5 +307,144 @@ class SyncEngineIntegrationTest {
         val result = eng.lastSyncResult.value
         assertTrue(result is SyncResult.Success)
         assertEquals(2, (result as SyncResult.Success).pulledCount)
+    }
+
+    // ── G. Pull conflict: remote wins → local discarded ───────────────
+
+    @Test
+    fun runOnce_pullConflict_remoteWins_localDiscarded() = runTest {
+        // Enqueue a local PENDING op for product p-1
+        enqueue("local-op-1", entityType = "product")
+
+        // Server sends a newer delta for the same entity
+        val serverOps = listOf(
+            SyncOperationDto(
+                id = "remote-op-1", entityType = "product", entityId = "entity-local-op-1",
+                operation = "UPDATE",
+                payload = """{"id":"entity-local-op-1","name":"ServerName"}""",
+                createdAt = now + 5000, // 5s newer than local
+            ),
+        )
+        val api = FakeApiService(
+            pushResponse = {
+                SyncResponseDto(accepted = listOf("local-op-1"), serverTimestamp = now)
+            },
+            pullResponse = { SyncPullResponseDto(operations = serverOps, serverTimestamp = now + 5001) },
+        )
+        val eng = engine(api)
+        eng.runOnce()
+
+        val result = eng.lastSyncResult.value
+        assertTrue(result is SyncResult.Success)
+        assertEquals(1, (result as SyncResult.Success).conflictCount)
+
+        // Conflict log should have one entry
+        val conflicts = db.conflict_logQueries.getUnresolvedCount().executeAsOne()
+        // It's resolved (not unresolved), so unresolved count stays 0
+        // The conflict was auto-resolved
+    }
+
+    // ── H. Pull conflict: local wins → remote skipped ─────────────────
+
+    @Test
+    fun runOnce_pullConflict_localWins_remoteSkipped() = runTest {
+        // Enqueue a local PENDING op with a future timestamp
+        db.sync_queueQueries.enqueueOperation(
+            id = "local-newer",
+            entity_type = "product",
+            entity_id = "p-conflict",
+            operation = "UPDATE",
+            payload = """{"id":"p-conflict","name":"LocalNewer"}""",
+            created_at = now + 10000, // very recent
+        )
+
+        // Server sends an older delta for the same entity
+        val serverOps = listOf(
+            SyncOperationDto(
+                id = "remote-older", entityType = "product", entityId = "p-conflict",
+                operation = "UPDATE",
+                payload = """{"id":"p-conflict","name":"RemoteOlder"}""",
+                createdAt = now - 5000, // older than local
+            ),
+        )
+        val api = FakeApiService(
+            pushResponse = { SyncResponseDto(accepted = emptyList(), serverTimestamp = now) },
+            pullResponse = { SyncPullResponseDto(operations = serverOps, serverTimestamp = now + 1) },
+        )
+        val eng = engine(api)
+        eng.runOnce()
+
+        // Local op should still be PENDING (not marked SYNCED)
+        val pending = db.sync_queueQueries.getPendingByEntity("product", "p-conflict").executeAsOneOrNull()
+        assertTrue(pending != null, "Local winning op should remain PENDING in queue")
+        assertEquals("local-newer", pending!!.id)
+
+        val result = eng.lastSyncResult.value
+        assertTrue(result is SyncResult.Success)
+        assertEquals(1, (result as SyncResult.Success).conflictCount)
+    }
+
+    // ── I. No conflict → applied normally (regression guard) ──────────
+
+    @Test
+    fun runOnce_pullNoConflict_appliedNormally() = runTest {
+        // No local pending ops — server delta should be applied without conflict
+        val serverOps = listOf(
+            SyncOperationDto(
+                id = "srv-clean", entityType = "PRODUCT", entityId = "p-clean",
+                operation = "UPDATE", payload = """{"id":"p-clean","name":"Clean"}""",
+                createdAt = now,
+            ),
+        )
+        val api = FakeApiService(
+            pushResponse = { SyncResponseDto(accepted = emptyList(), serverTimestamp = now) },
+            pullResponse = { SyncPullResponseDto(operations = serverOps, serverTimestamp = now + 1) },
+        )
+        val eng = engine(api)
+        eng.runOnce()
+
+        val result = eng.lastSyncResult.value
+        assertTrue(result is SyncResult.Success)
+        assertEquals(0, (result as SyncResult.Success).conflictCount)
+        assertEquals(1, result.pulledCount)
+    }
+
+    // ── J. conflictCount tracking across multiple conflicts ───────────
+
+    @Test
+    fun runOnce_conflictCount_tracked() = runTest {
+        // Two local pending ops for different entities
+        db.sync_queueQueries.enqueueOperation(
+            id = "local-a", entity_type = "product", entity_id = "p-a",
+            operation = "UPDATE", payload = """{"id":"p-a"}""", created_at = now,
+        )
+        db.sync_queueQueries.enqueueOperation(
+            id = "local-b", entity_type = "category", entity_id = "c-b",
+            operation = "UPDATE", payload = """{"id":"c-b"}""", created_at = now,
+        )
+
+        // Server sends conflicting deltas for both
+        val serverOps = listOf(
+            SyncOperationDto(
+                id = "remote-a", entityType = "product", entityId = "p-a",
+                operation = "UPDATE", payload = """{"id":"p-a","name":"Server"}""",
+                createdAt = now + 1000,
+            ),
+            SyncOperationDto(
+                id = "remote-b", entityType = "category", entityId = "c-b",
+                operation = "UPDATE", payload = """{"id":"c-b","name":"ServerCat"}""",
+                createdAt = now + 1000,
+            ),
+        )
+        val api = FakeApiService(
+            pushResponse = { SyncResponseDto(accepted = emptyList(), serverTimestamp = now) },
+            pullResponse = { SyncPullResponseDto(operations = serverOps, serverTimestamp = now + 1001) },
+        )
+        val eng = engine(api)
+        eng.runOnce()
+
+        val result = eng.lastSyncResult.value
+        assertTrue(result is SyncResult.Success)
+        assertEquals(2, (result as SyncResult.Success).conflictCount)
     }
 }
