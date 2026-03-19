@@ -130,7 +130,7 @@ function MasterProductsPage() {
                 Page {page + 1} of {Math.ceil(data.total / 20)}
               </span>
               <button
-                disabled={!data.hasMore}
+                disabled={(page + 1) >= data.totalPages}
                 onClick={() => setPage(p => p + 1)}
                 className="btn btn-secondary"
               >
