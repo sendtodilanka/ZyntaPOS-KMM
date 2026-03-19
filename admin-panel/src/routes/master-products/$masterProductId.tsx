@@ -32,7 +32,7 @@ function MasterProductDetailPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2 text-sm text-slate-400">
-        <Link to="/master-products/" className="hover:text-brand-400">Product Catalog</Link>
+        <Link to="/master-products" className="hover:text-brand-400">Product Catalog</Link>
         <span>/</span>
         <span className="text-white">{product.name}</span>
       </div>
