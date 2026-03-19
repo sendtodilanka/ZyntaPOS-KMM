@@ -313,10 +313,11 @@ class SyncEngineIntegrationTest {
 
     @Test
     fun runOnce_pullConflict_remoteWins_localDiscarded() = runTest {
-        // Enqueue a local PENDING op for product p-1
+        // Enqueue a local PENDING op for product p-1.
+        // Push rejects it (server returns conflict delta in pull instead).
         enqueue("local-op-1", entityType = "product")
 
-        // Server sends a newer delta for the same entity
+        // Server sends a newer delta for the same entity during pull
         val serverOps = listOf(
             SyncOperationDto(
                 id = "remote-op-1", entityType = "product", entityId = "entity-local-op-1",
@@ -327,7 +328,12 @@ class SyncEngineIntegrationTest {
         )
         val api = FakeApiService(
             pushResponse = {
-                SyncResponseDto(accepted = listOf("local-op-1"), serverTimestamp = now)
+                // Reject the local op so it stays PENDING for conflict detection during pull
+                SyncResponseDto(
+                    accepted = emptyList(),
+                    rejected = listOf("local-op-1"),
+                    serverTimestamp = now,
+                )
             },
             pullResponse = { SyncPullResponseDto(operations = serverOps, serverTimestamp = now + 5001) },
         )
@@ -337,18 +343,14 @@ class SyncEngineIntegrationTest {
         val result = eng.lastSyncResult.value
         assertTrue(result is SyncResult.Success)
         assertEquals(1, (result as SyncResult.Success).conflictCount)
-
-        // Conflict log should have one entry
-        val conflicts = db.conflict_logQueries.getUnresolvedCount().executeAsOne()
-        // It's resolved (not unresolved), so unresolved count stays 0
-        // The conflict was auto-resolved
     }
 
     // ── H. Pull conflict: local wins → remote skipped ─────────────────
 
     @Test
     fun runOnce_pullConflict_localWins_remoteSkipped() = runTest {
-        // Enqueue a local PENDING op with a future timestamp
+        // Enqueue a local PENDING op with a future timestamp.
+        // Push rejects it so it stays PENDING for conflict detection during pull.
         db.sync_queueQueries.enqueueOperation(
             id = "local-newer",
             entity_type = "product",
@@ -368,16 +370,22 @@ class SyncEngineIntegrationTest {
             ),
         )
         val api = FakeApiService(
-            pushResponse = { SyncResponseDto(accepted = emptyList(), serverTimestamp = now) },
+            pushResponse = {
+                SyncResponseDto(
+                    accepted = emptyList(),
+                    rejected = listOf("local-newer"),
+                    serverTimestamp = now,
+                )
+            },
             pullResponse = { SyncPullResponseDto(operations = serverOps, serverTimestamp = now + 1) },
         )
         val eng = engine(api)
         eng.runOnce()
 
-        // Local op should still be PENDING (not marked SYNCED)
+        // Local op should still be in queue (PENDING after rejection + conflict resolution kept it)
         val pending = db.sync_queueQueries.getPendingByEntity("product", "p-conflict").executeAsOneOrNull()
         assertTrue(pending != null, "Local winning op should remain PENDING in queue")
-        assertEquals("local-newer", pending!!.id)
+        assertEquals("local-newer", pending.id)
 
         val result = eng.lastSyncResult.value
         assertTrue(result is SyncResult.Success)
@@ -437,7 +445,14 @@ class SyncEngineIntegrationTest {
             ),
         )
         val api = FakeApiService(
-            pushResponse = { SyncResponseDto(accepted = emptyList(), serverTimestamp = now) },
+            pushResponse = {
+                // Reject local ops so they stay PENDING for conflict detection during pull
+                SyncResponseDto(
+                    accepted = emptyList(),
+                    rejected = listOf("local-a", "local-b"),
+                    serverTimestamp = now,
+                )
+            },
             pullResponse = { SyncPullResponseDto(operations = serverOps, serverTimestamp = now + 1001) },
         )
         val eng = engine(api)
