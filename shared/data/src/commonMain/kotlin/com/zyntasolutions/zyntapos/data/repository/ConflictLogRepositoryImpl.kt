@@ -2,6 +2,7 @@ package com.zyntasolutions.zyntapos.data.repository
 
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
+import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.core.utils.IdGenerator
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
@@ -38,7 +39,7 @@ class ConflictLogRepositoryImpl(
         val count = db.conflict_logQueries.getUnresolvedCount().executeAsOne()
         Result.Success(count.toInt())
     } catch (e: Exception) {
-        Result.Error(e)
+        Result.Error(DatabaseException(e.message ?: "getUnresolvedCount failed", "SELECT conflict_log", e))
     }
 
     override suspend fun insert(conflict: SyncConflict): Result<Unit> = try {
@@ -53,7 +54,7 @@ class ConflictLogRepositoryImpl(
         )
         Result.Success(Unit)
     } catch (e: Exception) {
-        Result.Error(e)
+        Result.Error(DatabaseException(e.message ?: "insert conflict_log failed", "INSERT conflict_log", e))
     }
 
     override suspend fun resolve(
@@ -70,14 +71,14 @@ class ConflictLogRepositoryImpl(
         )
         Result.Success(Unit)
     } catch (e: Exception) {
-        Result.Error(e)
+        Result.Error(DatabaseException(e.message ?: "resolve conflict_log failed", "UPDATE conflict_log", e))
     }
 
     override suspend fun pruneOld(beforeEpochMillis: Long): Result<Unit> = try {
         db.conflict_logQueries.pruneOldResolved(beforeEpochMillis)
         Result.Success(Unit)
     } catch (e: Exception) {
-        Result.Error(e)
+        Result.Error(DatabaseException(e.message ?: "pruneOld conflict_log failed", "DELETE conflict_log", e))
     }
 }
 
