@@ -53,6 +53,7 @@ class MasterProductOverrideViewModel(
                 updateState { copy(isLoading = false, error = "Failed to load product") }
                 sendEffect(MasterProductOverrideEffect.ShowError("Failed to load master product"))
             }
+            is Result.Loading -> { /* no-op — loading state already set above */ }
         }
     }
 
