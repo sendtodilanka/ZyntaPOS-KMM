@@ -104,5 +104,7 @@ data class SyncOperation(
         const val PURCHASE_ORDER = "purchase_order"
         // C1.4 In-transit tracking events
         const val TRANSIT_EVENT = "transit_event"
+        // C1.5 Warehouse-to-store replenishment rules
+        const val REPLENISHMENT_RULE = "replenishment_rule"
     }
 }

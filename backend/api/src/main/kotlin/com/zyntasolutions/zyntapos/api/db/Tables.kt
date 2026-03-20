@@ -255,3 +255,19 @@ object WarehouseStock : Table("warehouse_stock") {
     val updatedAt   = timestampWithTimeZone("updated_at")
     override val primaryKey = PrimaryKey(id)
 }
+
+/** Replenishment rules: per-product auto-PO thresholds (C1.5 — V31). */
+object ReplenishmentRules : Table("replenishment_rules") {
+    val id           = text("id")
+    val productId    = text("product_id")
+    val warehouseId  = text("warehouse_id")
+    val supplierId   = text("supplier_id")
+    val reorderPoint = decimal("reorder_point", precision = 14, scale = 4)
+    val reorderQty   = decimal("reorder_qty", precision = 14, scale = 4)
+    val autoApprove  = bool("auto_approve")
+    val isActive     = bool("is_active")
+    val createdBy    = text("created_by").nullable()
+    val createdAt    = timestampWithTimeZone("created_at")
+    val updatedAt    = timestampWithTimeZone("updated_at")
+    override val primaryKey = PrimaryKey(id)
+}

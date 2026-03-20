@@ -65,8 +65,9 @@ object AdminPermissions {
         "email:settings"            to setOf(ADMIN),
         "email:logs"                to setOf(ADMIN, OPERATOR),
 
-        // ── Inventory (C1.2) ───────────────────────────────────────────────────
+        // ── Inventory (C1.2 / C1.5) ──────────────────────────────────────────────
         "inventory:read"            to setOf(ADMIN, OPERATOR, FINANCE),
+        "inventory:write"           to setOf(ADMIN, OPERATOR),
 
         // ── System ─────────────────────────────────────────────────────────────
         "system:settings"           to setOf(ADMIN),
