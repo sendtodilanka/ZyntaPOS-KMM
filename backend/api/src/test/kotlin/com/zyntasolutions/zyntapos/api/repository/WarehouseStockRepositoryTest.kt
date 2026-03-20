@@ -167,6 +167,7 @@ class WarehouseStockRepositoryTest : AbstractIntegrationTest() {
 
         @Test
         fun `upsert_insertsNewRow`() = runTest {
+            TestFixtures.insertStore(id = "s1")
             val row = WarehouseStockRow(
                 id = "ws-new",
                 warehouseId = "wh-1",
