@@ -120,7 +120,7 @@ class NotificationViewModelTest {
 
     @Test
     fun `initial state has empty notifications and no error`() {
-        val state = viewModel.currentState
+        val state = viewModel.state.value
         assertFalse(state.isLoading)
         assertNull(state.error)
         assertFalse(state.showUnreadOnly)
@@ -131,14 +131,14 @@ class NotificationViewModelTest {
     @Test
     fun `notifications are loaded from repository after init`() = runTest {
         testDispatcher.scheduler.advanceUntilIdle()
-        val state = viewModel.currentState
+        val state = viewModel.state.value
         assertEquals(2, state.notifications.size)
     }
 
     @Test
     fun `unreadCount reflects number of unread notifications`() = runTest {
         testDispatcher.scheduler.advanceUntilIdle()
-        assertEquals(1, viewModel.currentState.unreadCount)
+        assertEquals(1, viewModel.state.value.unreadCount)
     }
 
     // ── ToggleUnreadFilter ─────────────────────────────────────────────────────
@@ -146,7 +146,7 @@ class NotificationViewModelTest {
     @Test
     fun `ToggleUnreadFilter switches showUnreadOnly flag`() = runTest {
         testDispatcher.scheduler.advanceUntilIdle()
-        assertFalse(viewModel.currentState.showUnreadOnly)
+        assertFalse(viewModel.state.value.showUnreadOnly)
 
         viewModel.state.test {
             awaitItem() // current
