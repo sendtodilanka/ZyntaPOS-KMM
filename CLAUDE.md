@@ -1234,7 +1234,7 @@ Or use the "VPS Full Fix" workflow with `reset_db=yes`.
 |-------|-----------|
 | Framework | Ktor 3.4.1 (CIO transport) |
 | ORM | Exposed 0.61.0 |
-| Migrations | Flyway (API: 28 migrations, License: 4 migrations) |
+| Migrations | Flyway (API: 29 migrations, License: 4 migrations) |
 | DI | Koin 4.1.1 |
 | Auth (POS) | RS256 JWT (asymmetric) — API signs, all services verify |
 | Auth (Admin) | HS256 JWT (symmetric) — shared secret between API and License |
@@ -1261,7 +1261,7 @@ Or use the "VPS Full Fix" workflow with `reset_db=yes`.
 | Conflict resolver (LWW) | `backend/api/src/main/kotlin/.../sync/ServerConflictResolver.kt` |
 | GDPR customer data export | `backend/api/src/main/kotlin/.../routes/ExportRoutes.kt` |
 | Audit trail service | `backend/api/src/main/kotlin/.../service/AdminAuditService.kt` |
-| API Flyway migrations | `backend/api/src/main/resources/db/migration/V1-V28` |
+| API Flyway migrations | `backend/api/src/main/resources/db/migration/V1-V29` |
 | Admin inventory routes | `backend/api/src/main/kotlin/.../routes/AdminInventoryRoutes.kt` |
 | Warehouse stock repository | `backend/api/src/main/kotlin/.../repository/WarehouseStockRepository.kt` |
 | License service entry | `backend/license/src/main/kotlin/.../Application.kt` |
