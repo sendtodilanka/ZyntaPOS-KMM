@@ -2,7 +2,7 @@
 > **Doc ID:** ZENTA-EXEC-LOG-v1.1
 > **Architecture:** KMP — Desktop (JVM) + Android
 > **Strategy:** Clean Architecture · MVI · Koin · SQLDelight · Compose Multiplatform
-> **Log Created:** 2026-02-20 | **Last Updated:** 2026-03-20 (C6.1 CRDT sync engine completion)
+> **Log Created:** 2026-02-20 | **Last Updated:** 2026-03-20 (C1.5 replenishment complete; Blocker 2 fully resolved)
 > **Reference Plan:** `docs/plans/PLAN_PHASE1.md`
 > **Status:** ✅ PHASE 3 IN PROGRESS — Phase 1 and Phase 2 fully implemented; Phase 3 ~80% complete
 > **Last Synced with Codebase:** 2026-03-20
@@ -15,6 +15,100 @@
 > **📌 SESSION NOTE (FIX-14.02):**
 > `composeHotReload = "1.0.0"` is present in `libs.versions.toml` as an undocumented
 > addition (not in the original plan). It is retained for desktop hot-reload DX support.
+
+---
+
+## ✅ C1.5 — Warehouse-to-Store Replenishment (2026-03-20)
+
+> **Scope:** Auto-replenishment rules, PO creation from reorder alerts, 3-tab KMM UI, backend REST + tests.
+> **Commits:** `1c57d35`, `fe2105e`, `a47fb07`, `f0cec30`
+
+### New Files Created
+
+- [x] `shared/domain/.../model/ReplenishmentRule.kt` — domain model with reorderPoint, reorderQty, autoApprove, isActive | 2026-03-20
+- [x] `shared/domain/.../repository/ReplenishmentRuleRepository.kt` — 6-method interface | 2026-03-20
+- [x] `shared/domain/.../usecase/inventory/AutoReplenishmentUseCase.kt` — evaluates rules vs warehouse stock, auto-creates POs | 2026-03-20
+- [x] `shared/domain/.../usecase/inventory/CreatePurchaseOrderUseCase.kt` — validates + creates PENDING PO | 2026-03-20
+- [x] `shared/data/.../sqldelight/replenishment_rules.sq` — table + 7 queries with JOIN denormalization | 2026-03-20
+- [x] `shared/data/.../repository/ReplenishmentRuleRepositoryImpl.kt` — SQLDelight-backed with SyncEnqueuer | 2026-03-20
+- [x] `composeApp/feature/inventory/.../replenishment/ReplenishmentScreen.kt` — 3-tab UI (Alerts/POs/Rules) | 2026-03-20
+- [x] `composeApp/feature/inventory/.../replenishment/ReplenishmentViewModel.kt` — full MVI handling | 2026-03-20
+- [x] `composeApp/feature/inventory/.../replenishment/ReplenishmentState.kt` — 3-tab state model | 2026-03-20
+- [x] `composeApp/feature/inventory/.../replenishment/ReplenishmentIntent.kt` — 20+ intents | 2026-03-20
+- [x] `composeApp/feature/inventory/.../replenishment/ReplenishmentEffect.kt` — 4 effects | 2026-03-20
+- [x] `backend/api/.../resources/db/migration/V31__replenishment_rules.sql` — PostgreSQL table | 2026-03-20
+- [x] `backend/api/.../repository/ReplenishmentRepository.kt` — CRUD + getSuggestions JOIN | 2026-03-20
+- [x] `backend/api/.../routes/AdminReplenishmentRoutes.kt` — 4 REST endpoints | 2026-03-20
+- [x] `backend/api/src/test/.../repository/ReplenishmentRepositoryTest.kt` — 14 integration tests | 2026-03-20
+
+### Files Modified
+
+- [x] `shared/domain/.../model/SyncOperation.kt` — added `REPLENISHMENT_RULE` EntityType constant
+- [x] `shared/data/.../di/DataModule.kt` — registered `ReplenishmentRuleRepository` binding
+- [x] `composeApp/feature/inventory/.../InventoryModule.kt` — registered use cases + ViewModel
+- [x] `backend/api/.../db/Tables.kt` — added `ReplenishmentRules` Exposed table
+- [x] `backend/api/.../auth/AdminPermissions.kt` — added `inventory:write` permission
+- [x] `backend/api/.../plugins/Routing.kt` — registered `adminReplenishmentRoutes()`
+- [x] `backend/api/.../di/AppModule.kt` — registered `ReplenishmentRepository` singleton
+- [x] `backend/api/src/test/.../test/AbstractIntegrationTest.kt` — TRUNCATE replenishment_rules per test
+- [x] `backend/api/src/test/.../test/TestFixtures.kt` — `insertReplenishmentRule()` helper
+
+### Impact
+
+**Blocker 2 (Multi-Store Data Architecture) is now fully resolved.** All 5 centralized inventory management features (C1.1–C1.5) are implemented end-to-end.
+
+---
+
+## ✅ C1.4 — Stock In-Transit Tracking (2026-03-20)
+
+> **Scope:** Transit event domain model, 4 use cases, TransitTrackerScreen, auto-log at IST workflow transitions.
+> **Commit:** `c7f5a20`
+
+### New Files Created
+
+- [x] `shared/domain/.../model/TransitEvent.kt` — 5 event types (DISPATCHED/CHECKPOINT/DELAY_ALERT/LOCATION_UPDATE/RECEIVED) | 2026-03-20
+- [x] `shared/domain/.../repository/TransitTrackingRepository.kt` — reactive Flow-based reads + addEvent | 2026-03-20
+- [x] `shared/domain/.../usecase/inventory/AddTransitEventUseCase.kt` — validates manual events | 2026-03-20
+- [x] `shared/domain/.../usecase/inventory/GetTransitHistoryUseCase.kt` — reactive timeline | 2026-03-20
+- [x] `shared/domain/.../usecase/inventory/GetInTransitCountUseCase.kt` — dashboard count | 2026-03-20
+- [x] `shared/domain/.../usecase/inventory/LogWorkflowTransitEventUseCase.kt` — auto-logs DISPATCHED/RECEIVED | 2026-03-20
+- [x] `shared/data/.../sqldelight/transit_tracking.sq` — table with FK + 2 indexes | 2026-03-20
+- [x] `shared/data/.../repository/TransitTrackingRepositoryImpl.kt` — Flow reads + SyncEnqueuer | 2026-03-20
+- [x] `composeApp/feature/multistore/.../TransitTrackerScreen.kt` — timeline view with inline form | 2026-03-20
+
+### Files Modified
+
+- [x] `shared/domain/.../model/SyncOperation.kt` — added `TRANSIT_EVENT` EntityType constant
+- [x] `composeApp/feature/multistore/.../WarehouseState.kt` — added transitHistory, inTransitCount, transitEventForm
+- [x] `composeApp/feature/multistore/.../WarehouseIntent.kt` — 6 new transit intents
+- [x] `composeApp/feature/multistore/.../WarehouseViewModel.kt` — onDispatchTransfer + onReceiveTransfer auto-log events
+
+---
+
+## ✅ C1.3 Deferred — Admin Panel Transfer Dashboard + Store-Level View (2026-03-20)
+
+> **Scope:** Previously deferred C1.3 items: admin panel transfer management, store-level transfer grouping.
+> **Commit:** `fef86b7`
+
+### New Files Created
+
+- [x] `admin-panel/src/types/transfer.ts` — TypeScript DTOs (TransferStatus, StockTransfer, request/response types) | 2026-03-20
+- [x] `admin-panel/src/api/transfers.ts` — 6 TanStack Query hooks (useTransfers, useApprove/Dispatch/Receive/Cancel) | 2026-03-20
+- [x] `admin-panel/src/routes/transfers/index.tsx` — DataTable with status filters, inline actions, ConfirmDialog | 2026-03-20
+- [x] `composeApp/feature/multistore/.../StoreTransferDashboardScreen.kt` — store-pair grouping with status counts | 2026-03-20
+
+### Files Modified
+
+- [x] `admin-panel/src/routeTree.gen.ts` — `/transfers/` route registered
+- [x] `admin-panel/src/components/layout/Sidebar.tsx` — "Transfers" nav item added to Monitoring group
+
+---
+
+## ✅ C1.2 Deferred — Backend + Admin Panel Warehouse Stock (2026-03-20)
+
+> **Scope:** Backend warehouse_stock table + admin cross-store inventory view.
+> **Commit:** `c28e9fa`
+> (Entry added for completeness; detailed log already in execution_log below.)
 
 ---
 

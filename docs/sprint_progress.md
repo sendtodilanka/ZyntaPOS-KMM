@@ -15,7 +15,7 @@
 |--------|--------|-------|-------|
 | `:shared:core` | ✅ IMPLEMENTED | 1 | Utils, extensions, base models, SystemHealthTracker |
 | `:shared:domain` | ✅ IMPLEMENTED | 1 | Use cases, repository interfaces, 77 domain models |
-| `:shared:data` | ✅ IMPLEMENTED | 1 | SQLDelight (36 .sq files), Ktor, repository impls, sync engine |
+| `:shared:data` | ✅ IMPLEMENTED | 1 | SQLDelight (61 .sq files), Ktor, repository impls, sync engine |
 | `:shared:hal` | ✅ IMPLEMENTED | 1 | Printer/Scanner/CashDrawer HAL interfaces + all platform drivers |
 | `:shared:security` | ✅ IMPLEMENTED | 1 | JWT, RBAC, AES-256-GCM, SQLCipher, PinManager, SecurePreferences |
 | `:shared:seed` | ✅ IMPLEMENTED | 1 | Debug-only SeedRunner (8 categories, 5 suppliers, 25 products, 15 customers) |
@@ -71,7 +71,7 @@
 |-------|--------|-------|
 | Phase 0 — Foundation | ✅ Complete | Build system, module scaffold, secrets, CI skeleton |
 | Phase 1 — MVP | ✅ Complete | Single-store POS, offline sync, core features (auth, pos, inventory, register, reports, settings, dashboard, onboarding) |
-| Phase 2 — Growth | ✅ ~98% implemented | Multi-store, CRM, promotions, expenses, CRDT sync (C6.1 complete 2026-03-19) |
+| Phase 2 — Growth | ✅ ~99% implemented | Multi-store (C1.1–C1.5 complete 2026-03-20), CRM, promotions, expenses, CRDT sync (C6.1 complete 2026-03-19), centralized inventory complete |
 | Phase 3 — Enterprise | 🔄 ~80% implemented | Staff/HR, admin, e-invoicing (IRD), accounting, diagnostic (IRD mTLS API, advanced charts, i18n pending) |
 
 ---
@@ -80,7 +80,11 @@
 
 | Gap | Module | Severity |
 |-----|--------|----------|
-| C1.1 Global Product Catalog admin panel routes registered | `:admin-panel` | ✅ Done (2026-03-19) |
+| C1.1 Global Product Catalog | `:shared:domain`, `:shared:data`, `:admin-panel` | ✅ Done (2026-03-19) |
+| C1.2 Store-Specific Inventory | `:shared:data`, `:feature:multistore`, `backend/api` | ✅ Done (2026-03-20) |
+| C1.3 Inter-Store Transfer (IST) | `:shared:data`, `:feature:multistore`, `backend/api`, `:admin-panel` | ✅ Done (2026-03-20) |
+| C1.4 Stock In-Transit Tracking | `:shared:data`, `:feature:multistore` | ✅ Done (2026-03-20) |
+| C1.5 Warehouse Replenishment | `:shared:domain`, `:shared:data`, `:feature:inventory`, `backend/api` | ✅ Done (2026-03-20) |
 | ~~CRDT `ConflictResolver` not implemented~~ | `:shared:data` | ✅ DONE (C6.1, 2026-03-19) |
 | Cash drawer open event not wired in POS payment flow | `:feature:pos` | Low |
 | IRD e-invoice submission: format/sandbox validation pending | `:feature:accounting` | Medium |
