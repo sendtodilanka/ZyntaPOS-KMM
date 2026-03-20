@@ -509,7 +509,7 @@ fun NavGraphBuilder.mainNavGraph(
                 ) {
                     screens.warehouseList(
                         { warehouseId -> navigationController.navigate(ZyntaRoute.WarehouseDetail(warehouseId)) },
-                        { navigationController.navigate(ZyntaRoute.StockTransferList) },
+                        { navigationController.navigate(ZyntaRoute.StoreTransferDashboard) },
                     )
                 }
             }
@@ -522,10 +522,17 @@ fun NavGraphBuilder.mainNavGraph(
                 )
             }
 
+            composable<ZyntaRoute.StoreTransferDashboard> {
+                screens.storeTransferDashboard(
+                    { srcId -> navigationController.navigate(ZyntaRoute.NewStockTransfer(srcId)) },
+                    { navigationController.navigateUp(ZyntaRoute.WarehouseList) },
+                )
+            }
+
             composable<ZyntaRoute.StockTransferList> {
                 screens.stockTransferList(
                     { srcId -> navigationController.navigate(ZyntaRoute.NewStockTransfer(srcId)) },
-                    { navigationController.navigateUp(ZyntaRoute.WarehouseList) },
+                    { navigationController.navigateUp(ZyntaRoute.StoreTransferDashboard) },
                 )
             }
 
@@ -535,7 +542,7 @@ fun NavGraphBuilder.mainNavGraph(
                     route.sourceWarehouseId,
                     {
                         navigationController.navController.popBackStack(
-                            route = ZyntaRoute.StockTransferList,
+                            route = ZyntaRoute.StoreTransferDashboard,
                             inclusive = false,
                         )
                     },
@@ -813,6 +820,7 @@ private fun MainScaffoldShell(
         // Multi-store sub-graph
         is ZyntaRoute.WarehouseList,
         is ZyntaRoute.WarehouseDetail,
+        is ZyntaRoute.StoreTransferDashboard,
         is ZyntaRoute.StockTransferList,
         is ZyntaRoute.NewStockTransfer,
         is ZyntaRoute.WarehouseRackList,

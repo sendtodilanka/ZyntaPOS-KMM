@@ -382,6 +382,13 @@ sealed class ZyntaRoute {
     data object StockTransferList : ZyntaRoute()
 
     /**
+     * Store-level transfer dashboard — all warehouse transfers for the current
+     * store grouped by source/destination store pair (C1.3).
+     */
+    @Serializable
+    data object StoreTransferDashboard : ZyntaRoute()
+
+    /**
      * New stock transfer creation screen.
      *
      * @param sourceWarehouseId Pre-selected source warehouse, if any.
