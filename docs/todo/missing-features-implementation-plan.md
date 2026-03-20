@@ -729,9 +729,9 @@ Backend Tests:
 - `backend/api/src/test/kotlin/.../repository/ReplenishmentRepositoryTest.kt`
 
 **Deferred to Phase 2 polish / Phase 3:**
-- [ ] Admin panel: Replenishment sidebar nav item + React dashboard (backend endpoints ready at `/admin/replenishment/*`)
+- [x] Admin panel: Replenishment sidebar nav item + React dashboard (backend endpoints ready at `/admin/replenishment/*`)
 - [ ] Backend: Scheduled auto-replenishment job (cron/Quartz) — currently manual trigger only via KMM UI
-- [ ] Backend: `EntityApplier` + `SyncValidator` handlers for REPLENISHMENT_RULE entity type (bi-directional sync)
+- [x] Backend: `EntityApplier` + `SyncValidator` handlers for REPLENISHMENT_RULE entity type (bi-directional sync)
 
 ---
 
