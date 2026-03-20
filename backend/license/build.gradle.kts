@@ -130,12 +130,12 @@ dependencies {
 }
 
 // ── Kover Coverage — B4: Enforce minimum test coverage ─────────────────────
-// Threshold set to measured baseline (12%). Raise incrementally as tests are added.
+// Target: 95%+ line coverage. CI Gate blocks PRs below this threshold.
 kover {
     reports {
         verify {
             rule {
-                minBound(10)
+                minBound(95)
             }
         }
     }
