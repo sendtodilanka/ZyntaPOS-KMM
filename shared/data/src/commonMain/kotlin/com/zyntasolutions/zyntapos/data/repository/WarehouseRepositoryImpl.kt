@@ -159,23 +159,74 @@ class WarehouseRepositoryImpl(
                     )
                 }
 
-                val product = pq.getProductById(transfer.product_id).executeAsOneOrNull()
+                val wsq = db.warehouse_stockQueries
+                val now = Clock.System.now().toEpochMilliseconds()
+
+                // Check per-warehouse stock first; fall back to global product stock for
+                // backwards compatibility with data seeded before C1.2 migration.
+                val sourceWarehouseStock = wsq.getStockEntry(
+                    warehouseId = transfer.source_warehouse_id,
+                    productId = transfer.product_id,
+                ).executeAsOneOrNull()
+
+                val availableQty = sourceWarehouseStock?.quantity
+                    ?: pq.getProductById(transfer.product_id).executeAsOneOrNull()?.stock_qty
                     ?: return@withContext Result.Error(DatabaseException("Product not found: ${transfer.product_id}"))
 
-                if (product.stock_qty < transfer.quantity) {
+                if (availableQty < transfer.quantity) {
                     return@withContext Result.Error(
                         ValidationException(
-                            "Insufficient stock: available ${product.stock_qty}, requested ${transfer.quantity}"
+                            "Insufficient stock at source warehouse: available $availableQty, requested ${transfer.quantity}"
                         )
                     )
                 }
 
-                val now = Clock.System.now().toEpochMilliseconds()
-                val newQty = product.stock_qty  // net-zero inter-warehouse move; per-warehouse tracking is Phase 3
-
                 db.transaction {
                     // Mark transfer committed with confirmedBy timestamp
                     tq.commitTransfer(transferred_at = now, updated_at = now, id = transferId)
+
+                    // Update per-warehouse stock levels (C1.2)
+                    if (sourceWarehouseStock != null) {
+                        // Deduct from source warehouse
+                        wsq.adjustStock(
+                            delta = -transfer.quantity,
+                            updatedAt = now,
+                            warehouseId = transfer.source_warehouse_id,
+                            productId = transfer.product_id,
+                        )
+                        // Add to destination warehouse — ensure row exists first
+                        val destEntry = wsq.getStockEntry(
+                            warehouseId = transfer.dest_warehouse_id,
+                            productId = transfer.product_id,
+                        ).executeAsOneOrNull()
+                        if (destEntry == null) {
+                            wsq.upsertStock(
+                                id = IdGenerator.newId(),
+                                warehouseId = transfer.dest_warehouse_id,
+                                productId = transfer.product_id,
+                                quantity = 0.0,
+                                minQuantity = 0.0,
+                                createdAt = now,
+                                updatedAt = now,
+                            )
+                        }
+                        wsq.adjustStock(
+                            delta = transfer.quantity,
+                            updatedAt = now,
+                            warehouseId = transfer.dest_warehouse_id,
+                            productId = transfer.product_id,
+                        )
+                    } else {
+                        // Legacy path: global stock_qty unchanged (net-zero inter-warehouse move)
+                        val product = pq.getProductById(transfer.product_id).executeAsOneOrNull()
+                        if (product != null) {
+                            pq.updateStockQty(
+                                stock_qty = product.stock_qty,
+                                updated_at = now,
+                                id = transfer.product_id,
+                            )
+                        }
+                    }
 
                     // Record audit trail adjustments for traceability
                     sq.insertAdjustment(
@@ -201,8 +252,6 @@ class WarehouseRepositoryImpl(
                         sync_status = "PENDING",
                     )
 
-                    // Global stock is unchanged (same product, different location)
-                    pq.updateStockQty(stock_qty = newQty, updated_at = now, id = transfer.product_id)
                     syncEnqueuer.enqueue(SyncOperation.EntityType.STOCK_TRANSFER, transferId, SyncOperation.Operation.UPDATE)
                 }
             }.fold(

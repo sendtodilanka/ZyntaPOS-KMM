@@ -55,6 +55,29 @@ sealed interface WarehouseIntent {
     data object ConfirmDeleteRack : WarehouseIntent
     data object CancelDeleteRack : WarehouseIntent
 
+    // ── Rack Products / C1.2 ──────────────────────────────────────────────
+    /** Load all products in [rackId]. */
+    data class LoadRackProducts(val rackId: String) : WarehouseIntent
+    /** Open rack-product form. [productId] null → pick product first. */
+    data class OpenRackProductEntry(val rackId: String, val productId: String?) : WarehouseIntent
+    data class UpdateRackProductField(val field: String, val value: String) : WarehouseIntent
+    data object SaveRackProduct : WarehouseIntent
+    data object CancelRackProductEntry : WarehouseIntent
+    data class RequestDeleteRackProduct(val entry: com.zyntasolutions.zyntapos.domain.model.RackProduct) : WarehouseIntent
+    data object ConfirmDeleteRackProduct : WarehouseIntent
+    data object CancelDeleteRackProduct : WarehouseIntent
+
+    // ── Warehouse Stock / C1.2 ─────────────────────────────────────────────
+    /** Load per-warehouse stock list and low-stock items for [warehouseId]. */
+    data class LoadWarehouseStock(val warehouseId: String) : WarehouseIntent
+    /** Filter the stock list by product name/SKU. */
+    data class SearchStock(val query: String) : WarehouseIntent
+    /** Open set-stock form. [productId] null → pick product first. */
+    data class OpenStockEntry(val warehouseId: String, val productId: String?) : WarehouseIntent
+    data class UpdateStockField(val field: String, val value: String) : WarehouseIntent
+    data object SaveStockEntry : WarehouseIntent
+    data object CancelStockEntry : WarehouseIntent
+
     // ── Global ─────────────────────────────────────────────────────────────
     data object DismissMessage : WarehouseIntent
 }

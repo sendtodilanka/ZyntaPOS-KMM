@@ -1,8 +1,8 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-18 (README audit pass)
-**Status:** Approved — Verified against codebase 2026-03-18
+**Last Updated:** 2026-03-19 (C1.1 admin panel route tree fix)
+**Status:** Approved — Verified against codebase 2026-03-19
 
 ---
 
@@ -430,6 +430,8 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 
 > **HANDOFF (2026-03-19):** C1.1 is now fully implemented. Two-tier product architecture:
 > master products (global, admin-panel-only writes) + store products (per-store overrides).
+> Admin panel route tree (`routeTree.gen.ts`) updated to register `/master-products/` and
+> `/master-products/$masterProductId` routes. Pagination `hasMore` → `totalPages` fixed.
 > Branch: claude/plan-c1-1-features-Kksgc.
 
 **Priority:** PHASE-2
@@ -460,6 +462,8 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 - [x] Backend Koin DI — `MasterProductService` binding
 - [x] Admin panel: types (`master-product.ts`), API hooks (`master-products.ts`)
 - [x] Admin panel: list page + detail page with store assignments
+- [x] Admin panel: TanStack Router route tree registration (`routeTree.gen.ts`) — fixed 2026-03-19
+- [x] Admin panel: `hasMore` → `totalPages` pagination fix + breadcrumb link path — fixed 2026-03-19
 - [x] KMM MVI: `MasterProductOverrideViewModel/State/Intent/Effect`
 - [x] KMM SyncEngine — routes MASTER_PRODUCT + STORE_PRODUCT entity types
 - [x] KMM DataModule — Koin bindings for all new repositories
@@ -497,38 +501,33 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 ### C1.2 Store-Specific Inventory Levels (ශාඛා අනුව තොග)
 
 **Priority:** PHASE-2
-**Status:** PARTIALLY EXISTS — global stock_qty only, no per-warehouse tracking
+**Status:** ✅ KMM APP IMPLEMENTED (2026-03-19) | Backend/Admin panel deferred
+**Branch:** `claude/plan-c1-2-features-osMp7`
 
-**Codebase State:**
-- `Product.stockQty` is **global** (single number) — NOT per-warehouse or per-store
-- `warehouses.sq` EXISTS — warehouse registry per store (`store_id` FK)
-- `warehouse_racks.sq` EXISTS — rack shelving with capacity tracking
-- `rack_products.sq` EXISTS — rack-level product location mapping (bin_location)
-- `WarehouseRepositoryImpl.kt` — FULLY implemented (253 lines) with atomic two-phase commits
-- `WarehouseRackRepository` + impl — FULLY implemented (120 lines)
-- `WarehouseRack` use cases: Get, Save, Delete — all implemented
-- `min_stock_qty` column exists on `products.sq` — reorder threshold
-- **Reports exist:** `warehouseInventory` query (racks → products), `stockReorderAlerts` query
-- **Comment in code:** "per-warehouse tracking is Phase 3" (WarehouseRepositoryImpl line 173)
+**What was implemented:**
+- [x] `warehouse_stock.sq` — new junction table (warehouse_id, product_id, quantity, min_quantity)
+- [x] `10.sqm` — migration creates `warehouse_stock` with composite unique + 3 indexes
+- [x] `WarehouseStock` domain model (`shared/domain/.../model/WarehouseStock.kt`)
+- [x] `WarehouseStockRepository` interface (getByWarehouse, getByProduct, upsert, adjustStock, transferStock, getLowStock*)
+- [x] `WarehouseStockRepositoryImpl` — SQLDelight-backed with sync enqueue
+- [x] Use cases: `GetWarehouseStockUseCase`, `SetWarehouseStockUseCase`, `AdjustWarehouseStockUseCase`, `GetLowStockByWarehouseUseCase`, `GetStockByProductUseCase`
+- [x] `WarehouseRepositoryImpl.commitTransfer()` updated: uses per-warehouse stock levels (C1.2 path); falls back to global stock_qty for pre-migration data
+- [x] `reports.sq` — added `warehouseStockReorderAlerts` + `crossWarehouseStockSnapshot` queries
+- [x] `WarehouseStockScreen.kt` — two-tab UI (All Stock / Low Stock) with live search + low-stock badge
+- [x] `WarehouseStockEntryScreen.kt` — set absolute quantity + reorder threshold
+- [x] `RackProduct` domain model + `RackProductRepository` + `RackProductRepositoryImpl`
+- [x] Use cases: `GetRackProductsUseCase`, `SaveRackProductUseCase`, `DeleteRackProductUseCase`
+- [x] `RackProductListScreen.kt` + `RackProductDetailScreen.kt` — bin location CRUD UI
+- [x] `WarehouseState` / `WarehouseIntent` / `WarehouseEffect` / `WarehouseViewModel` updated
+- [x] `MultistoreModule.kt` DI updated with all new use cases
+- [x] `DataModule.kt` DI updated with `WarehouseStockRepositoryImpl` + `RackProductRepositoryImpl`
+- [x] `SyncOperation.EntityType.WAREHOUSE_STOCK` constant added
+- [x] Tests: `WarehouseStockUseCasesTest.kt` (8 test cases), `FakeWarehouseStockRepository.kt`
 
-**What's MISSING:**
-- [ ] Per-warehouse stock levels (product.stock_qty is global — need warehouse_stock junction table)
-- [ ] `warehouse_stock` table (warehouse_id, product_id, quantity) — replace global stock_qty
-- [ ] Stock level aggregation API across stores (total stock for a product globally)
-- [ ] Low-stock alerts per warehouse (currently per product globally)
+**What's STILL MISSING (deferred):**
 - [ ] Admin panel: Cross-store/warehouse stock level comparison view
 - [ ] Backend: `GET /admin/inventory/global?productId=X` endpoint
-- [ ] Rack-product CRUD UI (schema exists in `rack_products.sq`, no management screens)
-
-**Key Files:**
-- `shared/data/src/commonMain/sqldelight/.../products.sq` (global stock_qty)
-- `shared/data/src/commonMain/sqldelight/.../warehouses.sq`
-- `shared/data/src/commonMain/sqldelight/.../warehouse_racks.sq`
-- `shared/data/src/commonMain/sqldelight/.../rack_products.sq`
-- `shared/data/src/commonMain/.../repository/WarehouseRepositoryImpl.kt` (253 lines)
-- `shared/data/src/commonMain/.../repository/WarehouseRackRepositoryImpl.kt` (120 lines)
-- `composeApp/feature/multistore/.../WarehouseListScreen.kt`
-- `composeApp/feature/multistore/.../WarehouseRackListScreen.kt`
+- [ ] Backend migration for `warehouse_stock` server-side table
 
 ---
 

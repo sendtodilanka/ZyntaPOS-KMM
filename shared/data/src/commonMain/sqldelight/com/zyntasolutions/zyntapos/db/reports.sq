@@ -657,3 +657,40 @@ WHERE ex.status = 'APPROVED'
   AND ex.expense_date >= ? AND ex.expense_date < ?
 GROUP BY department
 ORDER BY total_amount DESC;
+
+-- ── C1.2: Per-warehouse stock reorder alerts ──────────────────────────────────
+-- Low-stock items per warehouse using the new warehouse_stock table.
+-- Returns rows where quantity <= min_quantity AND min_quantity > 0.
+-- Ordered by shortfall descending (most critical items first).
+-- :warehouseId — filter to a single warehouse; use '' to get all warehouses.
+warehouseStockReorderAlerts:
+SELECT
+    ws.warehouse_id,
+    w.name                                    AS warehouse_name,
+    ws.product_id,
+    p.name                                    AS product_name,
+    CAST(ws.quantity AS INTEGER)              AS current_stock,
+    CAST(ws.min_quantity AS INTEGER)          AS reorder_point
+FROM warehouse_stock ws
+JOIN warehouses w ON w.id = ws.warehouse_id AND w.is_active = 1
+JOIN products   p ON p.id = ws.product_id   AND p.is_active = 1
+WHERE ws.min_quantity > 0.0
+  AND ws.quantity <= ws.min_quantity
+  AND (ws.warehouse_id = :warehouseId OR :warehouseId = '')
+ORDER BY (ws.min_quantity - ws.quantity) DESC;
+
+-- ── C1.2: Cross-warehouse stock snapshot for a product ────────────────────────
+-- Total and per-warehouse breakdown for a specific product.
+crossWarehouseStockSnapshot:
+SELECT
+    ws.warehouse_id,
+    w.name                        AS warehouse_name,
+    ws.product_id,
+    p.name                        AS product_name,
+    ws.quantity,
+    ws.min_quantity
+FROM warehouse_stock ws
+JOIN warehouses w ON w.id = ws.warehouse_id AND w.is_active = 1
+JOIN products   p ON p.id = ws.product_id
+WHERE ws.product_id = :productId
+ORDER BY w.name ASC;

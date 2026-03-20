@@ -2,12 +2,12 @@ package com.zyntasolutions.zyntapos.api.service
 
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.sql.SortOrder
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.javatime.timestampWithTimeZone
 import org.jetbrains.exposed.sql.or
-import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.update
@@ -139,24 +139,25 @@ class AdminTransferService {
         page: Int = 0,
         size: Int = 20,
     ): TransferListResponse = newSuspendedTransaction {
-        val query = StockTransfers.selectAll()
+        var query = StockTransfers.selectAll()
         if (storeId != null) {
-            query.andWhere { (StockTransfers.sourceStoreId eq storeId) or (StockTransfers.destStoreId eq storeId) }
+            query = query.adjustWhere { (StockTransfers.sourceStoreId eq storeId) or (StockTransfers.destStoreId eq storeId) }
         }
         if (status != null && status in validStatuses) {
-            query.andWhere { StockTransfers.status eq status }
+            query = query.adjustWhere { StockTransfers.status eq status }
         }
         val total = query.count().toInt()
         val rows = query
             .orderBy(StockTransfers.createdAt, SortOrder.DESC)
-            .limit(size, offset = (page * size).toLong())
+            .limit(size)
+            .offset((page * size).toLong())
             .map(::toDto)
         TransferListResponse(transfers = rows, total = total)
     }
 
     /** Returns a single transfer by ID, or null if not found. */
     suspend fun getById(id: String): StockTransferDto? = newSuspendedTransaction {
-        StockTransfers.select { StockTransfers.id eq id }.singleOrNull()?.let(::toDto)
+        StockTransfers.selectAll().where { StockTransfers.id eq id }.singleOrNull()?.let(::toDto)
     }
 
     /** Creates a new transfer in PENDING status. */
@@ -178,12 +179,12 @@ class AdminTransferService {
             it[StockTransfers.updatedAt]         = now
         }
         log.info("IST created: id=$id by=$createdBy src=${request.sourceWarehouseId} dst=${request.destWarehouseId}")
-        StockTransfers.select { StockTransfers.id eq id }.single().let(::toDto)
+        StockTransfers.selectAll().where { StockTransfers.id eq id }.single().let(::toDto)
     }
 
     /** Approves a PENDING transfer (PENDING → APPROVED). */
     suspend fun approve(id: String, approvedBy: String): StockTransferDto? = newSuspendedTransaction {
-        val row = StockTransfers.select { StockTransfers.id eq id }.singleOrNull() ?: return@newSuspendedTransaction null
+        val row = StockTransfers.selectAll().where { StockTransfers.id eq id }.singleOrNull() ?: return@newSuspendedTransaction null
         if (row[StockTransfers.status] != "PENDING") return@newSuspendedTransaction null
         val now = OffsetDateTime.now(ZoneOffset.UTC)
         StockTransfers.update({ StockTransfers.id eq id }) {
@@ -193,12 +194,12 @@ class AdminTransferService {
             it[updatedAt]  = now
         }
         log.info("IST approved: id=$id by=$approvedBy")
-        StockTransfers.select { StockTransfers.id eq id }.single().let(::toDto)
+        StockTransfers.selectAll().where { StockTransfers.id eq id }.single().let(::toDto)
     }
 
     /** Dispatches an APPROVED transfer (APPROVED → IN_TRANSIT). */
     suspend fun dispatch(id: String, dispatchedBy: String): StockTransferDto? = newSuspendedTransaction {
-        val row = StockTransfers.select { StockTransfers.id eq id }.singleOrNull() ?: return@newSuspendedTransaction null
+        val row = StockTransfers.selectAll().where { StockTransfers.id eq id }.singleOrNull() ?: return@newSuspendedTransaction null
         if (row[StockTransfers.status] != "APPROVED") return@newSuspendedTransaction null
         val now = OffsetDateTime.now(ZoneOffset.UTC)
         StockTransfers.update({ StockTransfers.id eq id }) {
@@ -208,12 +209,12 @@ class AdminTransferService {
             it[updatedAt]                    = now
         }
         log.info("IST dispatched: id=$id by=$dispatchedBy")
-        StockTransfers.select { StockTransfers.id eq id }.single().let(::toDto)
+        StockTransfers.selectAll().where { StockTransfers.id eq id }.single().let(::toDto)
     }
 
     /** Receives an IN_TRANSIT transfer (IN_TRANSIT → RECEIVED). */
     suspend fun receive(id: String, receivedBy: String): StockTransferDto? = newSuspendedTransaction {
-        val row = StockTransfers.select { StockTransfers.id eq id }.singleOrNull() ?: return@newSuspendedTransaction null
+        val row = StockTransfers.selectAll().where { StockTransfers.id eq id }.singleOrNull() ?: return@newSuspendedTransaction null
         if (row[StockTransfers.status] != "IN_TRANSIT") return@newSuspendedTransaction null
         val now = OffsetDateTime.now(ZoneOffset.UTC)
         StockTransfers.update({ StockTransfers.id eq id }) {
@@ -223,12 +224,12 @@ class AdminTransferService {
             it[updatedAt]                   = now
         }
         log.info("IST received: id=$id by=$receivedBy")
-        StockTransfers.select { StockTransfers.id eq id }.single().let(::toDto)
+        StockTransfers.selectAll().where { StockTransfers.id eq id }.single().let(::toDto)
     }
 
     /** Cancels a PENDING or APPROVED transfer (no stock movement). */
     suspend fun cancel(id: String, cancelledBy: String): StockTransferDto? = newSuspendedTransaction {
-        val row = StockTransfers.select { StockTransfers.id eq id }.singleOrNull() ?: return@newSuspendedTransaction null
+        val row = StockTransfers.selectAll().where { StockTransfers.id eq id }.singleOrNull() ?: return@newSuspendedTransaction null
         val currentStatus = row[StockTransfers.status]
         if (currentStatus != "PENDING" && currentStatus != "APPROVED") return@newSuspendedTransaction null
         val now = OffsetDateTime.now(ZoneOffset.UTC)
@@ -237,7 +238,7 @@ class AdminTransferService {
             it[updatedAt] = now
         }
         log.info("IST cancelled: id=$id by=$cancelledBy (was $currentStatus)")
-        StockTransfers.select { StockTransfers.id eq id }.single().let(::toDto)
+        StockTransfers.selectAll().where { StockTransfers.id eq id }.single().let(::toDto)
     }
 
     // ── Mapper ──────────────────────────────────────────────────────────────

@@ -1,38 +1,49 @@
 -- ═══════════════════════════════════════════════════════════════════
 -- V28: Inter-Store Stock Transfer (IST) Workflow (C1.3)
--- Extends stock_transfers table with multi-step approval workflow:
+-- Creates the stock_transfers table for backend-side IST management
+-- with multi-step approval workflow:
 --   PENDING → APPROVED → IN_TRANSIT → RECEIVED
--- Also adds store_transfers view for store-level grouping.
+-- Also creates purchase_orders and purchase_order_items tables.
 -- ═══════════════════════════════════════════════════════════════════
 
--- ── Add IST workflow columns to stock_transfers ──────────────────────────────
+-- ── Stock transfers table ─────────────────────────────────────────────────────
+-- This table is new in the PostgreSQL backend (was SQLite-only before C1.3).
+-- source_warehouse_id / dest_warehouse_id are opaque IDs (no FK — warehouses
+-- are managed client-side in the KMM SQLite layer).
 
-ALTER TABLE stock_transfers ADD COLUMN IF NOT EXISTS created_by     TEXT;
-ALTER TABLE stock_transfers ADD COLUMN IF NOT EXISTS approved_by    TEXT;
-ALTER TABLE stock_transfers ADD COLUMN IF NOT EXISTS approved_at    TIMESTAMPTZ;
-ALTER TABLE stock_transfers ADD COLUMN IF NOT EXISTS dispatched_by  TEXT;
-ALTER TABLE stock_transfers ADD COLUMN IF NOT EXISTS dispatched_at  TIMESTAMPTZ;
-ALTER TABLE stock_transfers ADD COLUMN IF NOT EXISTS received_by    TEXT;
-ALTER TABLE stock_transfers ADD COLUMN IF NOT EXISTS received_at    TIMESTAMPTZ;
+CREATE TABLE IF NOT EXISTS stock_transfers (
+    id                  TEXT            PRIMARY KEY,
+    source_warehouse_id TEXT            NOT NULL,
+    dest_warehouse_id   TEXT            NOT NULL,
+    source_store_id     TEXT            REFERENCES stores(id),
+    dest_store_id       TEXT            REFERENCES stores(id),
+    product_id          TEXT            NOT NULL,
+    quantity            NUMERIC(12,4)   NOT NULL,
+    status              TEXT            NOT NULL DEFAULT 'PENDING'
+                        CHECK (status IN ('PENDING', 'APPROVED', 'IN_TRANSIT', 'RECEIVED', 'COMMITTED', 'CANCELLED')),
+    notes               TEXT,
+    -- Legacy commit fields (backward compat with warehouse-level two-phase commit)
+    transferred_by      TEXT,
+    transferred_at      TIMESTAMPTZ,
+    -- IST multi-step workflow fields
+    created_by          TEXT,
+    approved_by         TEXT,
+    approved_at         TIMESTAMPTZ,
+    dispatched_by       TEXT,
+    dispatched_at       TIMESTAMPTZ,
+    received_by         TEXT,
+    received_at         TIMESTAMPTZ,
+    created_at          TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ     NOT NULL DEFAULT NOW()
+);
 
--- Extend status CHECK constraint to allow new IST statuses
--- (PostgreSQL requires dropping and re-adding constraint)
-ALTER TABLE stock_transfers DROP CONSTRAINT IF EXISTS stock_transfers_status_check;
-ALTER TABLE stock_transfers ADD CONSTRAINT stock_transfers_status_check
-    CHECK (status IN ('PENDING', 'APPROVED', 'IN_TRANSIT', 'RECEIVED', 'COMMITTED', 'CANCELLED'));
-
--- ── Add index for status-based queries ───────────────────────────────────────
-
-CREATE INDEX IF NOT EXISTS idx_stock_transfers_status ON stock_transfers(status);
-CREATE INDEX IF NOT EXISTS idx_stock_transfers_store_source ON stock_transfers(source_store_id)
+CREATE INDEX IF NOT EXISTS idx_stock_transfers_status       ON stock_transfers(status);
+CREATE INDEX IF NOT EXISTS idx_stock_transfers_source_store ON stock_transfers(source_store_id)
     WHERE source_store_id IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_stock_transfers_store_dest ON stock_transfers(dest_store_id)
+CREATE INDEX IF NOT EXISTS idx_stock_transfers_dest_store   ON stock_transfers(dest_store_id)
     WHERE dest_store_id IS NOT NULL;
-
--- ── Add store-level columns (store grouping for multi-store IST) ──────────────
-
-ALTER TABLE stock_transfers ADD COLUMN IF NOT EXISTS source_store_id TEXT REFERENCES stores(id);
-ALTER TABLE stock_transfers ADD COLUMN IF NOT EXISTS dest_store_id   TEXT REFERENCES stores(id);
+CREATE INDEX IF NOT EXISTS idx_stock_transfers_product      ON stock_transfers(product_id);
+CREATE INDEX IF NOT EXISTS idx_stock_transfers_created_at   ON stock_transfers(created_at DESC);
 
 -- ── Purchase orders table (C1.3 / C1.5) ─────────────────────────────────────
 
