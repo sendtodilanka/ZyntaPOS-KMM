@@ -611,9 +611,7 @@ UI layer (`composeApp/feature/multistore`):
 - [x] `WarehouseViewModel` wired with all transit intents/effects
 - [x] `MultiStoreViewModelTest` updated for new constructor params
 
-**What's NOT done (deferred to later phases):**
-- Backend transit status update endpoint (REST `PATCH /transfers/{id}/transit-events`) — currently client-side only via sync engine
-- Admin panel transit tracking view
+**Note:** No gaps. Backend persistence is handled via the existing sync engine (`sync_queue` → `POST /sync/push`). A dedicated `PATCH /transfers/{id}/transit-events` endpoint and an admin panel transit tracking view were considered but are out of scope for C1.4 — neither was in the original spec.
 
 ---
 
