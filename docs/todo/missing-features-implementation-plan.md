@@ -71,9 +71,9 @@ Phase 2 core feature එක multi-store. C1.1–C1.5 all implemented (2026-03-19
 - ✅ Admin panel replenishment dashboard — `/replenishment` route with Reorder Alerts + Rules tabs, sidebar nav item, TanStack Query hooks, delete action with confirmation
 - Push notification on transfer arrival (FCM) — deferred to Phase 3.
 
-### Blocker 3: Backend Test Coverage (B4) — ~55% vs 80% Target
+### Blocker 3: Backend Test Coverage (B4) — ~55% vs 95%+ Target
 
-Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන් ~55% (improved from ~40% with A1.1 integration tests):
+Phase 2 stable release එකකට backend test coverage **95%+** ඕන. දැන් ~55% (improved from ~40% with A1.1 integration tests). Kover coverage 95%+ line coverage maintain කරන්න ඕන — CI Gate මගින් enforce වෙනවා, 95% ට පහළ PRs block වෙනවා:
 
 - `SyncProcessor`, `EntityApplier` — integration tests added (2026-03-18): real PostgreSQL PRODUCT/CATEGORY/CUSTOMER/SUPPLIER/STOCK_ADJUSTMENT/REGISTER_SESSION/SETTINGS/EMPLOYEE coverage
 - `AdminAuthService` (BCrypt, MFA, lockout) — substantial tests exist (791 LOC across 2 files)
@@ -83,7 +83,7 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 - Multi-store operations — zero test coverage (still pending)
 - Conflict resolution — `SyncProcessorIntegrationTest` covers LWW conflict with `sync_conflict_log` verification
 
-**Impact:** Sync engine extend කරද්දී regression risk ඉහළයි. Phase 2 features add කරන කොට existing functionality break වෙන risk untested code නිසා ඉහළයි.
+**Impact:** Sync engine extend කරද්දී regression risk ඉහළයි. Phase 2 features add කරන කොට existing functionality break වෙන risk untested code නිසා ඉහළයි. 95%+ coverage target එක hit නොකර PR merge කරන්න බෑ.
 
 ---
 
