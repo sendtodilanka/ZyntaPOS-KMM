@@ -33,6 +33,7 @@ import { Route as LicensesLicenseKeyRouteImport } from './routes/licenses/$licen
 import { Route as HealthStoreIdRouteImport } from './routes/health/$storeId'
 import { Route as InventoryIndexRouteImport } from './routes/inventory/index'
 import { Route as TransfersIndexRouteImport } from './routes/transfers/index'
+import { Route as ReplenishmentIndexRouteImport } from './routes/replenishment/index'
 import { Route as MasterProductsIndexRouteImport } from './routes/master-products/index'
 import { Route as MasterProductsMasterProductIdRouteImport } from './routes/master-products/$masterProductId'
 import { Route as TicketStatusTokenRouteImport } from './routes/ticket-status/$token'
@@ -122,6 +123,11 @@ const TransfersIndexRoute = TransfersIndexRouteImport.update({
   path: '/transfers/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReplenishmentIndexRoute = ReplenishmentIndexRouteImport.update({
+  id: '/replenishment/',
+  path: '/replenishment/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MasterProductsIndexRoute = MasterProductsIndexRouteImport.update({
   id: '/master-products/',
   path: '/master-products/',
@@ -192,6 +198,7 @@ export interface FileRoutesByFullPath {
   '/licenses/': typeof LicensesIndexRoute
   '/inventory/': typeof InventoryIndexRoute
   '/transfers/': typeof TransfersIndexRoute
+  '/replenishment/': typeof ReplenishmentIndexRoute
   '/master-products/': typeof MasterProductsIndexRoute
   '/reports/': typeof ReportsIndexRoute
   '/security/': typeof SecurityIndexRoute
@@ -221,6 +228,7 @@ export interface FileRoutesByTo {
   '/licenses': typeof LicensesIndexRoute
   '/inventory': typeof InventoryIndexRoute
   '/transfers': typeof TransfersIndexRoute
+  '/replenishment': typeof ReplenishmentIndexRoute
   '/master-products': typeof MasterProductsIndexRoute
   '/reports': typeof ReportsIndexRoute
   '/security': typeof SecurityIndexRoute
@@ -251,6 +259,7 @@ export interface FileRoutesById {
   '/licenses/': typeof LicensesIndexRoute
   '/inventory/': typeof InventoryIndexRoute
   '/transfers/': typeof TransfersIndexRoute
+  '/replenishment/': typeof ReplenishmentIndexRoute
   '/master-products/': typeof MasterProductsIndexRoute
   '/reports/': typeof ReportsIndexRoute
   '/security/': typeof SecurityIndexRoute
@@ -281,6 +290,7 @@ export interface FileRouteTypes {
     | '/health/'
     | '/inventory/'
     | '/transfers/'
+    | '/replenishment/'
     | '/licenses/'
     | '/master-products/'
     | '/reports/'
@@ -309,6 +319,7 @@ export interface FileRouteTypes {
     | '/health'
     | '/inventory'
     | '/transfers'
+    | '/replenishment'
     | '/licenses'
     | '/master-products'
     | '/reports'
@@ -338,6 +349,7 @@ export interface FileRouteTypes {
     | '/health/'
     | '/inventory/'
     | '/transfers/'
+    | '/replenishment/'
     | '/licenses/'
     | '/master-products/'
     | '/reports/'
@@ -356,6 +368,7 @@ export interface RootRouteChildren {
   HealthStoreIdRoute: typeof HealthStoreIdRoute
   InventoryIndexRoute: typeof InventoryIndexRoute
   TransfersIndexRoute: typeof TransfersIndexRoute
+  ReplenishmentIndexRoute: typeof ReplenishmentIndexRoute
   LicensesLicenseKeyRoute: typeof LicensesLicenseKeyRoute
   MasterProductsMasterProductIdRoute: typeof MasterProductsMasterProductIdRoute
   MasterProductsIndexRoute: typeof MasterProductsIndexRoute
@@ -501,6 +514,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TransfersIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/replenishment/': {
+      id: '/replenishment/'
+      path: '/replenishment'
+      fullPath: '/replenishment/'
+      preLoaderRoute: typeof ReplenishmentIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/master-products/': {
       id: '/master-products/'
       path: '/master-products'
@@ -580,6 +600,7 @@ const rootRouteChildren: RootRouteChildren = {
   HealthStoreIdRoute: HealthStoreIdRoute,
   InventoryIndexRoute: InventoryIndexRoute,
   TransfersIndexRoute: TransfersIndexRoute,
+  ReplenishmentIndexRoute: ReplenishmentIndexRoute,
   LicensesLicenseKeyRoute: LicensesLicenseKeyRoute,
   MasterProductsMasterProductIdRoute: MasterProductsMasterProductIdRoute,
   MasterProductsIndexRoute: MasterProductsIndexRoute,

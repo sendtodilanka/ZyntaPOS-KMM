@@ -71,7 +71,7 @@
 |-------|--------|-------|
 | Phase 0 — Foundation | ✅ Complete | Build system, module scaffold, secrets, CI skeleton |
 | Phase 1 — MVP | ✅ Complete | Single-store POS, offline sync, core features (auth, pos, inventory, register, reports, settings, dashboard, onboarding) |
-| Phase 2 — Growth | ✅ ~99% implemented | Multi-store (C1.1–C1.5 complete 2026-03-20), CRM, promotions, expenses, CRDT sync (C6.1 complete 2026-03-19), centralized inventory complete |
+| Phase 2 — Growth | ✅ 100% Complete | Multi-store (C1.1–C1.5 complete), CRM, promotions, expenses, CRDT sync (C6.1), centralized inventory, sync pipeline fully integrated (SyncValidator + EntityApplier + SyncEngine + admin panel replenishment dashboard) |
 | Phase 3 — Enterprise | 🔄 ~80% implemented | Staff/HR, admin, e-invoicing (IRD), accounting, diagnostic (IRD mTLS API, advanced charts, i18n pending) |
 
 ---

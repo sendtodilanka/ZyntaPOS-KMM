@@ -16,7 +16,7 @@ const PERMISSIONS: Record<AdminRole, string[]> = {
     'users:read', 'users:write', 'users:deactivate', 'users:sessions:revoke',
     'system:settings', 'system:health', 'system:backup',
     'email:settings', 'email:logs',
-    'inventory:read', 'transfers:read',
+    'inventory:read', 'inventory:write', 'transfers:read',
   ],
   OPERATOR: [
     'dashboard:ops', 'dashboard:support',

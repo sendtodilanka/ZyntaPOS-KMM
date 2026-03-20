@@ -2,7 +2,7 @@
 > **Doc ID:** ZENTA-EXEC-LOG-v1.1
 > **Architecture:** KMP — Desktop (JVM) + Android
 > **Strategy:** Clean Architecture · MVI · Koin · SQLDelight · Compose Multiplatform
-> **Log Created:** 2026-02-20 | **Last Updated:** 2026-03-20 (C1.5 replenishment complete; Blocker 2 fully resolved)
+> **Log Created:** 2026-02-20 | **Last Updated:** 2026-03-20 (Phase 2 100% — sync pipeline + admin panel replenishment fully integrated)
 > **Reference Plan:** `docs/plans/PLAN_PHASE1.md`
 > **Status:** ✅ PHASE 3 IN PROGRESS — Phase 1 and Phase 2 fully implemented; Phase 3 ~80% complete
 > **Last Synced with Codebase:** 2026-03-20
@@ -15,6 +15,32 @@
 > **📌 SESSION NOTE (FIX-14.02):**
 > `composeHotReload = "1.0.0"` is present in `libs.versions.toml` as an undocumented
 > addition (not in the original plan). It is retained for desktop hot-reload DX support.
+
+---
+
+## ✅ Phase 2 Sync Pipeline Integration + Admin Panel Replenishment (2026-03-20)
+
+> **Scope:** Close remaining sync pipeline gaps for Phase 2 entity types; admin panel replenishment dashboard.
+> **Result:** Phase 2 at 100% completion.
+
+### Modified Files
+
+- [x] `backend/api/.../sync/SyncValidator.kt` — added 7 Phase 2 entity types (both UPPERCASE + lowercase aliases) to `VALID_ENTITY_TYPES`; added field-level validation for `REPLENISHMENT_RULE`, `PURCHASE_ORDER`, `TRANSIT_EVENT`, `WAREHOUSE_STOCK` | 2026-03-20
+- [x] `backend/api/.../sync/EntityApplier.kt` — added lowercase aliases to all 25 existing `when` branches; added 4 new branches + 3 handler methods (`applyReplenishmentRule`, `applyStockTransfer`, `applyPurchaseOrder`); TRANSIT_EVENT routed to entity_snapshots catch-all | 2026-03-20
+- [x] `shared/data/.../sync/SyncEngine.kt` — added `applyUpsert()` routes for all Phase 2 entity types (WAREHOUSE_STOCK, STOCK_TRANSFER, PURCHASE_ORDER, TRANSIT_EVENT, REPLENISHMENT_RULE, WAREHOUSE, COUPON, EXPENSE, EMPLOYEE) | 2026-03-20
+
+### New Files Created
+
+- [x] `admin-panel/src/types/replenishment.ts` — TypeScript DTOs for replenishment rules and suggestions | 2026-03-20
+- [x] `admin-panel/src/api/replenishment.ts` — TanStack Query hooks for replenishment CRUD (rules + suggestions) | 2026-03-20
+- [x] `admin-panel/src/routes/replenishment/index.tsx` — Replenishment dashboard with Reorder Alerts + Rules tabs, DataTable, delete confirm dialog | 2026-03-20
+
+### Additional Changes
+
+- [x] `admin-panel/src/components/layout/Sidebar.tsx` — added Replenishment nav item (RotateCcw icon, `inventory:read` permission) | 2026-03-20
+- [x] `admin-panel/src/routeTree.gen.ts` — registered `/replenishment/` route | 2026-03-20
+- [x] `admin-panel/src/hooks/use-auth.ts` — added `inventory:write` permission for ADMIN role | 2026-03-20
+- [x] `CLAUDE.md`, `README.md`, `docs/sprint_progress.md`, `docs/todo/missing-features-implementation-plan.md` — Phase 2 status updated to 100% | 2026-03-20
 
 ---
 
