@@ -1300,9 +1300,9 @@ A comprehensive audit was completed on 2026-03-12. See `docs/audit/backend-modul
 | Phase | Status | Scope |
 |-------|--------|-------|
 | Phase 0 — Foundation | Complete | Build system, module scaffold, secrets, CI skeleton |
-| Phase 1 — MVP | In Progress | Single-store POS, offline sync, core features |
-| Phase 2 — Growth | Planned | Multi-store, CRM, promotions, CRDT sync |
-| Phase 3 — Enterprise | Planned | Staff/HR, admin, e-invoicing (IRD), analytics |
+| Phase 1 — MVP | Complete | Single-store POS, offline sync, core features |
+| Phase 2 — Growth | ~98% Complete | Multi-store, CRM, promotions, CRDT sync (C6.1 complete) |
+| Phase 3 — Enterprise | ~80% In Progress | Staff/HR, admin, e-invoicing (IRD), analytics |
 
 See `docs/ai_workflows/execution_log.md` for the granular task checklist.
 
