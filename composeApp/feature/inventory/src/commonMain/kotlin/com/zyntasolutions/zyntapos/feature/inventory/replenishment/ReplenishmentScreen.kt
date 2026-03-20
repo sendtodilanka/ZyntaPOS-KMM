@@ -113,9 +113,9 @@ fun ReplenishmentScreen(
         })
     }
 
-    if (state.isCreatingPo || state.isSavingRule || state.isRunningAutoReplenishment) {
-        ZyntaLoadingOverlay()
-    }
+    ZyntaLoadingOverlay(
+        isLoading = state.isCreatingPo || state.isSavingRule || state.isRunningAutoReplenishment,
+    )
 }
 
 private fun ReplenishmentTab.label(): String = when (this) {
