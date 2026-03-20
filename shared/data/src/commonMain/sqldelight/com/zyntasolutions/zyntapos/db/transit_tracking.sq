@@ -1,0 +1,51 @@
+-- ============================================================
+-- transit_tracking.sq — Stock transfer in-transit event log (C1.4)
+-- ============================================================
+-- Each row records a single tracking event for an IN_TRANSIT stock transfer.
+-- Events form a chronological timeline from dispatch to receipt.
+-- Event types: DISPATCHED | CHECKPOINT | DELAY_ALERT | LOCATION_UPDATE | RECEIVED
+--
+-- DISPATCHED and RECEIVED rows are auto-inserted by the IST workflow (C1.3)
+-- when dispatchTransfer() and receiveTransfer() are called.
+-- All other event types are manually logged by staff via AddTransitEventUseCase.
+
+CREATE TABLE transit_tracking (
+    id           TEXT    NOT NULL PRIMARY KEY,
+    transfer_id  TEXT    NOT NULL REFERENCES stock_transfers(id) ON DELETE CASCADE,
+    event_type   TEXT    NOT NULL,  -- EventType enum value
+    location     TEXT,              -- Optional human-readable location
+    note         TEXT,              -- Optional free-text note
+    recorded_by  TEXT    NOT NULL,  -- User ID of the staff who logged this event
+    recorded_at  INTEGER NOT NULL,  -- Epoch millis
+    sync_status  TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE INDEX idx_transit_tracking_transfer ON transit_tracking(transfer_id, recorded_at);
+CREATE INDEX idx_transit_tracking_type     ON transit_tracking(event_type);
+
+-- ── Read queries ──────────────────────────────────────────────────────────────
+
+getEventsForTransfer:
+SELECT * FROM transit_tracking
+WHERE transfer_id = ?
+ORDER BY recorded_at ASC;
+
+getLatestEventForTransfer:
+SELECT * FROM transit_tracking
+WHERE transfer_id = ?
+ORDER BY recorded_at DESC
+LIMIT 1;
+
+getInTransitCount:
+SELECT COUNT(DISTINCT st.id)
+FROM stock_transfers st
+WHERE st.status = 'IN_TRANSIT';
+
+-- ── Write queries ─────────────────────────────────────────────────────────────
+
+insertTransitEvent:
+INSERT INTO transit_tracking(id, transfer_id, event_type, location, note, recorded_by, recorded_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+deleteEventsForTransfer:
+DELETE FROM transit_tracking WHERE transfer_id = ?;

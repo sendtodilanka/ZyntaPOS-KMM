@@ -3,6 +3,7 @@ package com.zyntasolutions.zyntapos.feature.multistore
 import com.zyntasolutions.zyntapos.domain.model.Product
 import com.zyntasolutions.zyntapos.domain.model.RackProduct
 import com.zyntasolutions.zyntapos.domain.model.StockTransfer
+import com.zyntasolutions.zyntapos.domain.model.TransitEvent
 import com.zyntasolutions.zyntapos.domain.model.Warehouse
 import com.zyntasolutions.zyntapos.domain.model.WarehouseRack
 import com.zyntasolutions.zyntapos.domain.model.WarehouseStock
@@ -25,6 +26,11 @@ data class WarehouseState(
     val approvedTransfers: List<StockTransfer> = emptyList(),
     val inTransitTransfers: List<StockTransfer> = emptyList(),
     val selectedTransfer: StockTransfer? = null,
+
+    // ── Transit Tracking (C1.4) ───────────────────────────────────────────
+    val transitHistory: List<TransitEvent> = emptyList(),
+    val inTransitCount: Int = 0,
+    val transitEventForm: TransitEventFormState = TransitEventFormState(),
 
     // ── Warehouse Detail / Edit ───────────────────────────────────────────
     val selectedWarehouse: Warehouse? = null,
@@ -109,5 +115,15 @@ data class RackProductFormState(
     val quantity: String = "0",
     val binLocation: String = "",
     val isEditing: Boolean = false,
+    val validationErrors: Map<String, String> = emptyMap(),
+)
+
+/** Mutable form fields for logging a manual transit tracking event (C1.4). */
+data class TransitEventFormState(
+    val transferId: String = "",
+    val eventType: TransitEvent.EventType = TransitEvent.EventType.LOCATION_UPDATE,
+    val location: String = "",
+    val note: String = "",
+    val isExpanded: Boolean = false,
     val validationErrors: Map<String, String> = emptyMap(),
 )

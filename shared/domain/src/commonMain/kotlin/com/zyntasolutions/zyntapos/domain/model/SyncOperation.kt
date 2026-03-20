@@ -102,5 +102,7 @@ data class SyncOperation(
         const val E_INVOICE = "e_invoice"
         // C1.3 IST workflow
         const val PURCHASE_ORDER = "purchase_order"
+        // C1.4 In-transit tracking events
+        const val TRANSIT_EVENT = "transit_event"
     }
 }

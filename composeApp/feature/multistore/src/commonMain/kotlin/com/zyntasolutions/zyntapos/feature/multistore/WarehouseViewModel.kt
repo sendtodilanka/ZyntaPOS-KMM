@@ -11,10 +11,15 @@ import com.zyntasolutions.zyntapos.domain.model.WarehouseRack
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseRepository
+import com.zyntasolutions.zyntapos.domain.model.TransitEvent
+import com.zyntasolutions.zyntapos.domain.usecase.multistore.AddTransitEventUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.ApproveStockTransferUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.CommitStockTransferUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.DispatchStockTransferUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.multistore.GetInTransitCountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.GetLowStockByWarehouseUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.multistore.GetTransitHistoryUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.multistore.LogWorkflowTransitEventUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.GetWarehouseStockUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.ReceiveStockTransferUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.SetWarehouseStockUseCase
@@ -68,6 +73,10 @@ class WarehouseViewModel(
     private val getRackProductsUseCase: GetRackProductsUseCase,
     private val saveRackProductUseCase: SaveRackProductUseCase,
     private val deleteRackProductUseCase: DeleteRackProductUseCase,
+    private val getTransitHistoryUseCase: GetTransitHistoryUseCase,
+    private val addTransitEventUseCase: AddTransitEventUseCase,
+    private val getInTransitCountUseCase: GetInTransitCountUseCase,
+    private val logWorkflowTransitEventUseCase: LogWorkflowTransitEventUseCase,
     private val authRepository: AuthRepository,
     private val analytics: AnalyticsTracker,
 ) : BaseViewModel<WarehouseState, WarehouseIntent, WarehouseEffect>(WarehouseState()) {
@@ -86,6 +95,7 @@ class WarehouseViewModel(
             loadPendingTransfers()
             loadApprovedTransfers()
             loadInTransitTransfers()
+            loadInTransitCount()
         }
     }
 
@@ -165,6 +175,16 @@ class WarehouseViewModel(
             is WarehouseIntent.CancelStockEntry -> updateState {
                 copy(stockEntryForm = StockEntryFormState())
             }
+
+            // ── Transit Tracking / C1.4 ────────────────────────────────────────
+            is WarehouseIntent.LoadTransitHistory -> onLoadTransitHistory(intent.transferId)
+            is WarehouseIntent.OpenTransitEventForm -> onOpenTransitEventForm(intent.transferId)
+            is WarehouseIntent.UpdateTransitEventField -> onUpdateTransitEventField(intent.field, intent.value)
+            is WarehouseIntent.SubmitTransitEvent -> onSubmitTransitEvent()
+            is WarehouseIntent.DismissTransitEventForm -> updateState {
+                copy(transitEventForm = TransitEventFormState())
+            }
+            is WarehouseIntent.LoadInTransitCount -> loadInTransitCount()
 
             is WarehouseIntent.DismissMessage -> updateState { copy(error = null, successMessage = null) }
         }
@@ -388,6 +408,14 @@ class WarehouseViewModel(
         updateState { copy(isLoading = true) }
         when (val result = dispatchTransferUseCase(transferId, currentUserId)) {
             is Result.Success -> {
+                // C1.4: Auto-log DISPATCHED transit event
+                logWorkflowTransitEventUseCase(
+                    transferId = transferId,
+                    eventType = TransitEvent.EventType.DISPATCHED,
+                    recordedBy = currentUserId,
+                    note = "Transfer dispatched from source warehouse",
+                )
+                loadInTransitCount()
                 updateState { copy(isLoading = false) }
                 loadApprovedTransfers()
                 loadInTransitTransfers()
@@ -406,6 +434,14 @@ class WarehouseViewModel(
         updateState { copy(isLoading = true) }
         when (val result = receiveTransferUseCase(transferId, currentUserId)) {
             is Result.Success -> {
+                // C1.4: Auto-log RECEIVED transit event
+                logWorkflowTransitEventUseCase(
+                    transferId = transferId,
+                    eventType = TransitEvent.EventType.RECEIVED,
+                    recordedBy = currentUserId,
+                    note = "Transfer received at destination warehouse",
+                )
+                loadInTransitCount()
                 updateState { copy(isLoading = false) }
                 loadInTransitTransfers()
                 sendEffect(WarehouseEffect.ShowSuccess("Transfer received — stock updated"))
@@ -807,6 +843,88 @@ class WarehouseViewModel(
                 sendEffect(WarehouseEffect.ShowError(result.exception.message ?: "Save failed"))
             }
             is Result.Loading -> {}
+        }
+    }
+
+    // ── Transit Tracking / C1.4 ───────────────────────────────────────────
+
+    private fun onLoadTransitHistory(transferId: String) {
+        getTransitHistoryUseCase(transferId)
+            .onEach { events -> updateState { copy(transitHistory = events) } }
+            .launchIn(viewModelScope)
+        updateState { copy(transitEventForm = TransitEventFormState(transferId = transferId)) }
+        sendEffect(WarehouseEffect.NavigateToTransitTracker(transferId))
+    }
+
+    private fun onOpenTransitEventForm(transferId: String) {
+        updateState {
+            copy(transitEventForm = TransitEventFormState(transferId = transferId, isExpanded = true))
+        }
+    }
+
+    private fun onUpdateTransitEventField(field: String, value: String) {
+        updateState {
+            copy(
+                transitEventForm = when (field) {
+                    "eventType" -> transitEventForm.copy(
+                        eventType = runCatching { TransitEvent.EventType.valueOf(value) }
+                            .getOrDefault(TransitEvent.EventType.LOCATION_UPDATE),
+                        validationErrors = transitEventForm.validationErrors - "eventType",
+                    )
+                    "location" -> transitEventForm.copy(location = value)
+                    "note" -> transitEventForm.copy(
+                        note = value,
+                        validationErrors = transitEventForm.validationErrors - "note",
+                    )
+                    else -> transitEventForm
+                },
+            )
+        }
+    }
+
+    private suspend fun onSubmitTransitEvent() {
+        val form = currentState.transitEventForm
+        val errors = mutableMapOf<String, String>()
+        if (form.transferId.isBlank()) errors["transferId"] = "Transfer ID required"
+        if (form.location.isBlank() && form.note.isBlank()) {
+            errors["note"] = "Provide a location or note"
+        }
+        if (errors.isNotEmpty()) {
+            updateState { copy(transitEventForm = transitEventForm.copy(validationErrors = errors)) }
+            return
+        }
+
+        updateState { copy(isLoading = true) }
+        when (val result = addTransitEventUseCase(
+            transferId = form.transferId,
+            eventType = form.eventType,
+            recordedBy = currentUserId,
+            location = form.location.ifBlank { null },
+            note = form.note.ifBlank { null },
+        )) {
+            is Result.Success -> {
+                updateState {
+                    copy(
+                        isLoading = false,
+                        transitEventForm = TransitEventFormState(transferId = form.transferId),
+                    )
+                }
+                sendEffect(WarehouseEffect.TransitEventAdded)
+                sendEffect(WarehouseEffect.ShowSuccess("Transit event logged"))
+            }
+            is Result.Error -> {
+                updateState { copy(isLoading = false) }
+                sendEffect(WarehouseEffect.ShowError(result.exception.message ?: "Failed to log transit event"))
+            }
+            is Result.Loading -> {}
+        }
+    }
+
+    private suspend fun loadInTransitCount() {
+        when (val result = getInTransitCountUseCase()) {
+            is Result.Success -> updateState { copy(inTransitCount = result.data) }
+            is Result.Error -> Unit  // Non-critical — count shows 0
+            is Result.Loading -> Unit
         }
     }
 

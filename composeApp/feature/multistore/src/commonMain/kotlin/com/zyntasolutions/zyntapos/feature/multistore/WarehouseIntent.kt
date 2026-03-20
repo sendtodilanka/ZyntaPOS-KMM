@@ -78,6 +78,20 @@ sealed interface WarehouseIntent {
     data object SaveStockEntry : WarehouseIntent
     data object CancelStockEntry : WarehouseIntent
 
+    // ── Transit Tracking / C1.4 ────────────────────────────────────────────
+    /** Load and observe the tracking event timeline for [transferId]. */
+    data class LoadTransitHistory(val transferId: String) : WarehouseIntent
+    /** Open the transit event logging form for [transferId]. */
+    data class OpenTransitEventForm(val transferId: String) : WarehouseIntent
+    /** Update a field in the transit event form. */
+    data class UpdateTransitEventField(val field: String, val value: String) : WarehouseIntent
+    /** Submit the transit event form — logs a new event. */
+    data object SubmitTransitEvent : WarehouseIntent
+    /** Dismiss the transit event form without submitting. */
+    data object DismissTransitEventForm : WarehouseIntent
+    /** Load the dashboard "In-Transit Items" count. */
+    data object LoadInTransitCount : WarehouseIntent
+
     // ── Global ─────────────────────────────────────────────────────────────
     data object DismissMessage : WarehouseIntent
 }
