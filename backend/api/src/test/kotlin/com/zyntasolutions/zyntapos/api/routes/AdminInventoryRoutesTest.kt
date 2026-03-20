@@ -39,13 +39,13 @@ class AdminInventoryRoutesTest {
     // ── RBAC permission requirements ─────────────────────────────────────────────
 
     @Test
-    fun `inventory:read permission is required`() {
+    fun `inventory-read permission is required`() {
         val requiredPermission = "inventory:read"
         assertTrue(requiredPermission.startsWith("inventory:"))
     }
 
     @Test
-    fun `ADMIN role has inventory:read permission`() {
+    fun `ADMIN role has inventory-read permission`() {
         // Mirrors AdminPermissions.PERMISSIONS map
         val adminPermissions = setOf(
             "users:read", "users:write", "users:delete",
@@ -58,7 +58,7 @@ class AdminInventoryRoutesTest {
     }
 
     @Test
-    fun `OPERATOR role has inventory:read permission`() {
+    fun `OPERATOR role has inventory-read permission`() {
         val operatorPermissions = setOf(
             "users:read",
             "inventory:read", "inventory:write",
@@ -70,7 +70,7 @@ class AdminInventoryRoutesTest {
     }
 
     @Test
-    fun `FINANCE role has inventory:read permission`() {
+    fun `FINANCE role has inventory-read permission`() {
         val financePermissions = setOf(
             "orders:read",
             "reports:read",
@@ -81,7 +81,7 @@ class AdminInventoryRoutesTest {
     }
 
     @Test
-    fun `AUDITOR role does not have inventory:read permission`() {
+    fun `AUDITOR role does not have inventory-read permission`() {
         val auditorPermissions = setOf(
             "audit:read",
             "reports:read",
@@ -90,7 +90,7 @@ class AdminInventoryRoutesTest {
     }
 
     @Test
-    fun `HELPDESK role does not have inventory:read permission`() {
+    fun `HELPDESK role does not have inventory-read permission`() {
         val helpdeskPermissions = setOf(
             "tickets:read", "tickets:write",
             "users:read",
