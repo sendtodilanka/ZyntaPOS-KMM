@@ -57,6 +57,7 @@ import com.zyntasolutions.zyntapos.data.repository.OperationalLogRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.StocktakeRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.ShiftRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.SystemRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.PurchaseOrderRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.RackProductRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.WarehouseRackRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.WarehouseRepositoryImpl
@@ -117,6 +118,7 @@ import com.zyntasolutions.zyntapos.domain.repository.ReportRepository
 import com.zyntasolutions.zyntapos.domain.repository.StocktakeRepository
 import com.zyntasolutions.zyntapos.domain.repository.ShiftRepository
 import com.zyntasolutions.zyntapos.domain.repository.SystemRepository
+import com.zyntasolutions.zyntapos.domain.repository.PurchaseOrderRepository
 import com.zyntasolutions.zyntapos.domain.repository.RackProductRepository
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseRackRepository
 import com.zyntasolutions.zyntapos.domain.repository.RoleRepository
@@ -367,8 +369,11 @@ val dataModule = module {
     // ── Phase 2 Multi-Store / Warehouses ─────────────────────────────────────
     // ─────────────────────────────────────────────────────────────────────────
 
-    // Warehouses: locations per store, default warehouse, two-phase stock transfers
+    // Warehouses: locations per store, default warehouse, IST multi-step transfers (C1.3)
     single<WarehouseRepository> { WarehouseRepositoryImpl(db = get(), syncEnqueuer = get()) }
+
+    // Purchase orders: supplier replenishment workflow (C1.3 / C1.5)
+    single<PurchaseOrderRepository> { PurchaseOrderRepositoryImpl(db = get(), syncEnqueuer = get()) }
 
     // Warehouse stock: per-warehouse product quantity tracking (C1.2)
     single<WarehouseStockRepository> { WarehouseStockRepositoryImpl(db = get(), syncEnqueuer = get()) }

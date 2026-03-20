@@ -28,8 +28,21 @@ sealed interface WarehouseIntent {
     data object SubmitTransfer : WarehouseIntent
 
     // ── Transfer Actions ───────────────────────────────────────────────────
+    /** Legacy warehouse-level two-phase commit. */
     data class CommitTransfer(val transferId: String) : WarehouseIntent
     data class CancelTransfer(val transferId: String) : WarehouseIntent
+
+    // ── IST Multi-step workflow actions (C1.3) ─────────────────────────────
+    /** Manager approves a PENDING transfer. Transitions PENDING → APPROVED. */
+    data class ApproveTransfer(val transferId: String) : WarehouseIntent
+    /** Staff dispatches an APPROVED transfer. Transitions APPROVED → IN_TRANSIT. */
+    data class DispatchTransfer(val transferId: String) : WarehouseIntent
+    /** Staff receives an IN_TRANSIT transfer. Transitions IN_TRANSIT → RECEIVED. */
+    data class ReceiveTransfer(val transferId: String) : WarehouseIntent
+    /** Load all transfers matching a specific status filter. */
+    data class LoadTransfersByStatus(val status: com.zyntasolutions.zyntapos.domain.model.StockTransfer.Status) : WarehouseIntent
+    /** Select a transfer to view its detail. */
+    data class SelectTransfer(val transferId: String?) : WarehouseIntent
 
     // ── Rack Management ────────────────────────────────────────────────────
     /** Start observing racks for [warehouseId]. */

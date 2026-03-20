@@ -45,14 +45,39 @@ interface WarehouseRepository {
     suspend fun createTransfer(transfer: StockTransfer): Result<Unit>
 
     /**
-     * Commits a pending transfer:
-     * 1. Decrements source warehouse stock
-     * 2. Increments dest warehouse stock
+     * Commits a pending transfer (legacy warehouse-level two-phase commit):
+     * 1. Validates status = PENDING and sufficient stock
+     * 2. Records TRANSFER_OUT and TRANSFER_IN audit adjustments
      * 3. Sets transfer status = COMMITTED
      * All steps are atomic.
      */
     suspend fun commitTransfer(transferId: String, confirmedBy: String): Result<Unit>
 
-    /** Cancels a pending transfer without adjusting stock. */
+    /** Cancels a PENDING or APPROVED transfer without adjusting stock. */
     suspend fun cancelTransfer(transferId: String): Result<Unit>
+
+    // ── IST Multi-step workflow (C1.3) ────────────────────────────────────────
+
+    /**
+     * Approves a PENDING transfer (manager sign-off).
+     * Transitions: PENDING → APPROVED
+     */
+    suspend fun approveTransfer(transferId: String, approvedBy: String): Result<Unit>
+
+    /**
+     * Dispatches an APPROVED transfer (goods leave source warehouse).
+     * Transitions: APPROVED → IN_TRANSIT
+     * Records a TRANSFER_OUT stock adjustment at the source warehouse.
+     */
+    suspend fun dispatchTransfer(transferId: String, dispatchedBy: String): Result<Unit>
+
+    /**
+     * Marks an IN_TRANSIT transfer as received (goods arrive at destination).
+     * Transitions: IN_TRANSIT → RECEIVED
+     * Records a TRANSFER_IN stock adjustment at the destination warehouse.
+     */
+    suspend fun receiveTransfer(transferId: String, receivedBy: String): Result<Unit>
+
+    /** Returns all transfers matching the given [status]. */
+    suspend fun getTransfersByStatus(status: StockTransfer.Status): Result<List<StockTransfer>>
 }

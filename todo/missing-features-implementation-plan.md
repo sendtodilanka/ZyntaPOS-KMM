@@ -534,29 +534,35 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 ### C1.3 Inter-Store Stock Transfer / IST (ශාඛා අතර තොග හුවමාරුව)
 
 **Priority:** PHASE-2
-**Status:** WAREHOUSE-LEVEL IMPLEMENTED, STORE-LEVEL MISSING
+**Status:** SUBSTANTIALLY IMPLEMENTED (2026-03-19)
 
-**Codebase State:**
-- `stock_transfers.sq` — FULLY IMPLEMENTED table (source_warehouse_id, dest_warehouse_id, product_id, quantity, status)
-- `StockTransfer` domain model — status: PENDING → COMMITTED / CANCELLED (two-phase commit)
-- `WarehouseRepositoryImpl.commitTransfer()` — atomic validation + stock adjustment + audit trail (TRANSFER_OUT/TRANSFER_IN)
-- `CommitStockTransferUseCase.kt` — validates transfer exists and is PENDING
-- `purchase_orders.sq` — SCHEMA ONLY (tables exist, no domain model/repo/UI)
-- `NewStockTransferScreen.kt` + `StockTransferListScreen.kt` — UI screens exist
-- `WarehouseViewModel.kt` (407 lines) — manages warehouses, transfers, racks
-- Report: `interStoreTransfers` SQL query in `reports.sq` — committed transfers by date range
+**Codebase State (after C1.3 implementation session):**
+- `stock_transfers.sq` — Extended with IST workflow columns: `created_by`, `approved_by/at`, `dispatched_by/at`, `received_by/at`. New queries: `approveTransfer`, `dispatchTransfer`, `receiveTransfer`, `getTransfersByStatus`, `getApprovedTransfers`, `getInTransitTransfers`
+- `StockTransfer` domain model — Extended status enum: PENDING → APPROVED → IN_TRANSIT → RECEIVED (+ legacy COMMITTED / CANCELLED). New fields for multi-step audit trail
+- `ApproveStockTransferUseCase.kt` — validates PENDING before approving
+- `DispatchStockTransferUseCase.kt` — validates APPROVED, records TRANSFER_OUT, decrements stock
+- `ReceiveStockTransferUseCase.kt` — validates IN_TRANSIT, records TRANSFER_IN, restores stock
+- `WarehouseRepository` interface — 4 new methods: `approveTransfer`, `dispatchTransfer`, `receiveTransfer`, `getTransfersByStatus`
+- `WarehouseRepositoryImpl` — All 4 methods implemented with atomic transactions + audit trail
+- `PurchaseOrder` domain model + `PurchaseOrderItem` — in `:shared:domain`
+- `PurchaseOrderRepository` interface — full CRUD: create, getById, getByDateRange, getBySupplierId, getByStatus, receiveItems, cancel
+- `PurchaseOrderRepositoryImpl` — SQLDelight-backed implementation in `:shared:data`
+- `purchase_orders.sq` — Added `updatePurchaseOrderItemReceived` + `getPendingPurchaseOrders` queries
+- `WarehouseIntent` — Added: `ApproveTransfer`, `DispatchTransfer`, `ReceiveTransfer`, `LoadTransfersByStatus`, `SelectTransfer`
+- `WarehouseState` — Added: `approvedTransfers`, `inTransitTransfers`, `selectedTransfer`
+- `WarehouseEffect` — Added: `NavigateToTransferDetail`, `TransferApproved`, `TransferDispatched`, `TransferReceived`
+- `WarehouseViewModel` — Handlers for all new IST intents + init loading of approved/in-transit lists
+- `MultistoreModule.kt` (Koin DI) — New use cases registered; ViewModel constructor updated
+- `DataModule.kt` (Koin DI) — `PurchaseOrderRepository` binding registered
+- Backend: `V28__ist_workflow.sql` — PostgreSQL migration adding IST columns + purchase_orders tables
+- Backend: `AdminTransferService.kt` — list, create, approve, dispatch, receive, cancel
+- Backend: `AdminTransferRoutes.kt` — 7 REST endpoints under `/admin/transfers`
+- Backend: `Routing.kt` + `AppModule.kt` — routes registered, service bound to Koin
 
-**What's MISSING (store-to-store level, beyond warehouse-to-warehouse):**
-- [ ] Extend transfer workflow: PENDING → APPROVED → DISPATCHED → IN_TRANSIT → RECEIVED (currently only PENDING → COMMITTED)
-- [ ] Multi-step approval workflow (currently auto-commit, no manager approval)
-- [ ] Store-level transfer view (group warehouse transfers by source/dest store)
-- [ ] Backend migration: Add store-level transfer tracking
-- [ ] Backend: `POST /admin/transfers`, `PUT /admin/transfers/{id}/approve`
-- [ ] Admin panel: Transfer management dashboard with store grouping
-- [ ] Push notification when transfer arrives at destination store
-- [ ] Purchase Order domain model + repository + UI (schema exists in `purchase_orders.sq`)
-- [ ] `PurchaseOrder` domain model in `:shared:domain`
-- [ ] `PurchaseOrderRepository` interface + impl
+**What's STILL MISSING (deferred):**
+- [ ] Admin panel UI: Transfer management dashboard with store grouping (React/Next.js panel)
+- [ ] Push notification when transfer arrives at destination store (FCM integration)
+- [ ] Store-level transfer view UI in KMM app (group warehouse transfers by source/dest store)
 
 ---
 

@@ -11,9 +11,12 @@ import com.zyntasolutions.zyntapos.domain.model.WarehouseRack
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseRepository
+import com.zyntasolutions.zyntapos.domain.usecase.multistore.ApproveStockTransferUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.CommitStockTransferUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.multistore.DispatchStockTransferUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.GetLowStockByWarehouseUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.GetWarehouseStockUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.multistore.ReceiveStockTransferUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.SetWarehouseStockUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rack.DeleteRackProductUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rack.DeleteWarehouseRackUseCase
@@ -53,6 +56,9 @@ class WarehouseViewModel(
     private val warehouseRepository: WarehouseRepository,
     private val productRepository: ProductRepository,
     private val commitTransferUseCase: CommitStockTransferUseCase,
+    private val approveTransferUseCase: ApproveStockTransferUseCase,
+    private val dispatchTransferUseCase: DispatchStockTransferUseCase,
+    private val receiveTransferUseCase: ReceiveStockTransferUseCase,
     private val getWarehouseRacksUseCase: GetWarehouseRacksUseCase,
     private val saveWarehouseRackUseCase: SaveWarehouseRackUseCase,
     private val deleteWarehouseRackUseCase: DeleteWarehouseRackUseCase,
@@ -78,6 +84,8 @@ class WarehouseViewModel(
             currentUserId = session?.id ?: "unknown"
             observeWarehouses()
             loadPendingTransfers()
+            loadApprovedTransfers()
+            loadInTransitTransfers()
         }
     }
 
@@ -116,6 +124,13 @@ class WarehouseViewModel(
 
             is WarehouseIntent.CommitTransfer -> onCommitTransfer(intent.transferId)
             is WarehouseIntent.CancelTransfer -> onCancelTransfer(intent.transferId)
+
+            // IST multi-step workflow (C1.3)
+            is WarehouseIntent.ApproveTransfer -> onApproveTransfer(intent.transferId)
+            is WarehouseIntent.DispatchTransfer -> onDispatchTransfer(intent.transferId)
+            is WarehouseIntent.ReceiveTransfer -> onReceiveTransfer(intent.transferId)
+            is WarehouseIntent.LoadTransfersByStatus -> onLoadTransfersByStatus(intent.status)
+            is WarehouseIntent.SelectTransfer -> onSelectTransfer(intent.transferId)
 
             is WarehouseIntent.LoadRacks -> onLoadRacks(intent.warehouseId)
             is WarehouseIntent.SelectRack -> onSelectRack(intent.rackId, intent.warehouseId)
@@ -329,6 +344,107 @@ class WarehouseViewModel(
                 updateState { copy(isLoading = false) }
                 sendEffect(WarehouseEffect.ShowError(result.exception.message ?: "Cancel failed"))
             }
+            is Result.Loading -> {}
+        }
+    }
+
+    // ── IST Multi-step workflow handlers (C1.3) ───────────────────────────
+
+    private suspend fun loadApprovedTransfers() {
+        when (val result = warehouseRepository.getTransfersByStatus(com.zyntasolutions.zyntapos.domain.model.StockTransfer.Status.APPROVED)) {
+            is Result.Success -> updateState { copy(approvedTransfers = result.data) }
+            is Result.Error -> Unit // non-critical — don't surface on init
+            is Result.Loading -> Unit
+        }
+    }
+
+    private suspend fun loadInTransitTransfers() {
+        when (val result = warehouseRepository.getTransfersByStatus(com.zyntasolutions.zyntapos.domain.model.StockTransfer.Status.IN_TRANSIT)) {
+            is Result.Success -> updateState { copy(inTransitTransfers = result.data) }
+            is Result.Error -> Unit
+            is Result.Loading -> Unit
+        }
+    }
+
+    private suspend fun onApproveTransfer(transferId: String) {
+        updateState { copy(isLoading = true) }
+        when (val result = approveTransferUseCase(transferId, currentUserId)) {
+            is Result.Success -> {
+                updateState { copy(isLoading = false) }
+                loadPendingTransfers()
+                loadApprovedTransfers()
+                sendEffect(WarehouseEffect.ShowSuccess("Transfer approved"))
+                sendEffect(WarehouseEffect.TransferApproved)
+            }
+            is Result.Error -> {
+                updateState { copy(isLoading = false) }
+                sendEffect(WarehouseEffect.ShowError(result.exception.message ?: "Approve failed"))
+            }
+            is Result.Loading -> {}
+        }
+    }
+
+    private suspend fun onDispatchTransfer(transferId: String) {
+        updateState { copy(isLoading = true) }
+        when (val result = dispatchTransferUseCase(transferId, currentUserId)) {
+            is Result.Success -> {
+                updateState { copy(isLoading = false) }
+                loadApprovedTransfers()
+                loadInTransitTransfers()
+                sendEffect(WarehouseEffect.ShowSuccess("Transfer dispatched — now in transit"))
+                sendEffect(WarehouseEffect.TransferDispatched)
+            }
+            is Result.Error -> {
+                updateState { copy(isLoading = false) }
+                sendEffect(WarehouseEffect.ShowError(result.exception.message ?: "Dispatch failed"))
+            }
+            is Result.Loading -> {}
+        }
+    }
+
+    private suspend fun onReceiveTransfer(transferId: String) {
+        updateState { copy(isLoading = true) }
+        when (val result = receiveTransferUseCase(transferId, currentUserId)) {
+            is Result.Success -> {
+                updateState { copy(isLoading = false) }
+                loadInTransitTransfers()
+                sendEffect(WarehouseEffect.ShowSuccess("Transfer received — stock updated"))
+                sendEffect(WarehouseEffect.TransferReceived)
+            }
+            is Result.Error -> {
+                updateState { copy(isLoading = false) }
+                sendEffect(WarehouseEffect.ShowError(result.exception.message ?: "Receive failed"))
+            }
+            is Result.Loading -> {}
+        }
+    }
+
+    private suspend fun onLoadTransfersByStatus(status: com.zyntasolutions.zyntapos.domain.model.StockTransfer.Status) {
+        when (val result = warehouseRepository.getTransfersByStatus(status)) {
+            is Result.Success -> updateState {
+                when (status) {
+                    com.zyntasolutions.zyntapos.domain.model.StockTransfer.Status.APPROVED -> copy(approvedTransfers = result.data)
+                    com.zyntasolutions.zyntapos.domain.model.StockTransfer.Status.IN_TRANSIT -> copy(inTransitTransfers = result.data)
+                    com.zyntasolutions.zyntapos.domain.model.StockTransfer.Status.PENDING -> copy(pendingTransfers = result.data)
+                    else -> copy(transfers = result.data)
+                }
+            }
+            is Result.Error -> sendEffect(WarehouseEffect.ShowError(result.exception.message ?: "Failed to load transfers"))
+            is Result.Loading -> {}
+        }
+    }
+
+    private suspend fun onSelectTransfer(transferId: String?) {
+        if (transferId == null) {
+            updateState { copy(selectedTransfer = null) }
+            return
+        }
+        when (val result = warehouseRepository.getTransferById(transferId)) {
+            is Result.Success -> {
+                updateState { copy(selectedTransfer = result.data) }
+                sendEffect(WarehouseEffect.NavigateToTransferDetail(transferId))
+            }
+            is Result.Error -> sendEffect(WarehouseEffect.ShowError(result.exception.message ?: "Transfer not found"))
             is Result.Loading -> {}
         }
     }

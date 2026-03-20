@@ -100,5 +100,7 @@ data class SyncOperation(
         const val WAREHOUSE_RACK = "warehouse_rack"
         const val ACCOUNTING_ENTRY = "accounting_entry"
         const val E_INVOICE = "e_invoice"
+        // C1.3 IST workflow
+        const val PURCHASE_ORDER = "purchase_order"
     }
 }
