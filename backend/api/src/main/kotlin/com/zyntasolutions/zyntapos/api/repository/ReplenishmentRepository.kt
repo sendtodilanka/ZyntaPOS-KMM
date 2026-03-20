@@ -82,7 +82,19 @@ class ReplenishmentRepository {
      */
     suspend fun getSuggestions(warehouseId: String? = null): List<ReplenishmentSuggestionRow> =
         newSuspendedTransaction {
-            val query = (ReplenishmentRules innerJoin WarehouseStock)
+            // Use explicit join condition because ReplenishmentRules and WarehouseStock share
+            // column names (product_id, warehouse_id) and have no FK relationship — Exposed's
+            // auto-join inference would fail with IllegalStateException without additionalConstraint.
+            val join = ReplenishmentRules.join(
+                WarehouseStock,
+                JoinType.INNER,
+                additionalConstraint = {
+                    (ReplenishmentRules.productId eq WarehouseStock.productId) and
+                    (ReplenishmentRules.warehouseId eq WarehouseStock.warehouseId)
+                },
+            )
+
+            val query = join
                 .select(
                     ReplenishmentRules.id,
                     ReplenishmentRules.productId,
@@ -94,9 +106,7 @@ class ReplenishmentRepository {
                     WarehouseStock.quantity,
                 )
                 .where {
-                    ReplenishmentRules.isActive eq true and
-                    (WarehouseStock.productId eq ReplenishmentRules.productId) and
-                    (WarehouseStock.warehouseId eq ReplenishmentRules.warehouseId) and
+                    (ReplenishmentRules.isActive eq true) and
                     (WarehouseStock.quantity.lessEq(ReplenishmentRules.reorderPoint))
                 }
 

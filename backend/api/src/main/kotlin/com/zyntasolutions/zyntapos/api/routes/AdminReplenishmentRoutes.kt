@@ -101,7 +101,7 @@ fun Route.adminReplenishmentRoutes() {
                     reorderQty   = body.reorderQty,
                     autoApprove  = body.autoApprove,
                     isActive     = body.isActive,
-                    createdBy    = user.id,
+                    createdBy    = user.id.toString(),
                     updatedAt    = System.currentTimeMillis(),
                 )
             )
