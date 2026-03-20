@@ -53,7 +53,7 @@ class WarehouseStockRepository {
                 WarehouseStock.selectAll().where { WarehouseStock.productId eq productId }
             else
                 WarehouseStock.selectAll()
-            q.orderBy(WarehouseStock.storeId, WarehouseStock.warehouseId).map { it.toRow() }
+            q.orderBy(WarehouseStock.storeId to SortOrder.ASC, WarehouseStock.warehouseId to SortOrder.ASC).map { it.toRow() }
         }
 
     /** Upsert a stock row (ON CONFLICT on id — replace fully). */
