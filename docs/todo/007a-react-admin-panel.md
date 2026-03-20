@@ -2,11 +2,11 @@
 
 **Phase:** 2 — Growth
 **Priority:** P0 (HIGH)
-**Status:** ✅ ~98% IMPLEMENTED — All frontend modules complete: auth (email/password + TOTP MFA; Google SSO removed 2026-03-14), dashboard, licenses, stores, users, audit, sync (with Conflicts + Dead Letters tabs), health, config, reports, alerts, settings, tickets (full CRUD + comments + SLA + 6 components + 2 routes), keyboard shortcuts, expanded test suite (TicketStatusBadge + ConfirmDialog tests), Playwright E2E scaffold. Remaining: VPS deployment, CF Access bypass (external/infrastructure)
+**Status:** ✅ ~98% IMPLEMENTED — All frontend modules complete: auth (email/password + TOTP MFA; Google SSO removed 2026-03-14), dashboard, licenses, stores, users, audit, sync (with Conflicts + Dead Letters tabs), health, config, reports, alerts, settings, tickets (full CRUD + comments + SLA + 6 components + 2 routes), **master-products** (global product catalog list + detail with store assignments, registered in routeTree.gen.ts — 2026-03-19), keyboard shortcuts, expanded test suite (TicketStatusBadge + ConfirmDialog tests), Playwright E2E scaffold. Remaining: VPS deployment, CF Access bypass (external/infrastructure)
 **Effort:** ~15 working days (3 weeks, 1 developer)
 **Related:** TODO-007 (infrastructure), TODO-006 (remote diagnostics), TODO-010 (security monitoring), TODO-007f (CF + Custom Auth)
 **Owner:** Zynta Solutions Pvt Ltd
-**Last updated:** 2026-03-14
+**Last updated:** 2026-03-19
 
 ---
 
@@ -120,6 +120,7 @@ admin-panel/
 │   │   ├── config.ts                  # RemoteConfig, FeatureFlag, TaxRate types ✅
 │   │   ├── alert.ts                   # Alert, AlertRule, NotificationChannel types ✅
 │   │   ├── api.ts                     # PagedResponse<T>, ErrorResponse, etc. ✅
+│   │   ├── master-product.ts          # MasterProduct, StoreProductAssignment, CreateMasterProductRequest types ✅
 │   │   └── ticket.ts                  # Ticket, TicketComment, TicketStatus types — ⬜ NOT IMPLEMENTED
 │   ├── api/                           # TanStack Query hooks per domain
 │   │   ├── auth.ts                    # useCurrentUser, useAdminLogin, useAdminMfaVerify, useAdminMfaSetup, useChangePassword, useListSessions ✅
@@ -131,6 +132,7 @@ admin-panel/
 │   │   ├── metrics.ts                 # useDashboardKPIs, useSalesChart, etc.
 │   │   ├── config.ts                  # useRemoteConfig, usePushConfig, etc.
 │   │   ├── alerts.ts                  # useAlerts, useAlertRules, etc.
+│   │   ├── master-products.ts         # useMasterProducts, useMasterProduct, useCreateMasterProduct, useDeleteMasterProduct, useAssignToStore, useRemoveFromStore ✅
 │   │   └── health.ts                  # useSystemHealth, useServiceStatus, etc.
 │   ├── components/
 │   │   ├── ui/                        # shadcn/ui primitives (button, card, dialog, etc.)
@@ -217,6 +219,9 @@ admin-panel/
 │   │   ├── tickets/                   # ⬜ NOT IMPLEMENTED — no files exist
 │   │   │   ├── index.tsx              # Support ticket list (/tickets) ⬜
 │   │   │   └── $ticketId.tsx          # Ticket detail (/tickets/:id) ⬜
+│   │   ├── master-products/
+│   │   │   ├── index.tsx              # Global product catalog list (/master-products) ✅
+│   │   │   └── $masterProductId.tsx   # Product detail + store assignments (/master-products/:id) ✅
 │   │   ├── audit/
 │   │   │   └── index.tsx              # Audit log (/audit) ✅
 │   │   ├── sync/

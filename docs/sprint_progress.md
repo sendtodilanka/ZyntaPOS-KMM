@@ -80,6 +80,7 @@
 
 | Gap | Module | Severity |
 |-----|--------|----------|
+| C1.1 Global Product Catalog admin panel routes registered | `:admin-panel` | ✅ Done (2026-03-19) |
 | ~~CRDT `ConflictResolver` not implemented~~ | `:shared:data` | ✅ DONE (C6.1, 2026-03-19) |
 | Cash drawer open event not wired in POS payment flow | `:feature:pos` | Low |
 | IRD e-invoice submission: format/sandbox validation pending | `:feature:accounting` | Medium |

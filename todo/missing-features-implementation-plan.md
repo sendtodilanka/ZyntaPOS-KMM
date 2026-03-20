@@ -1,8 +1,8 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-18 (README audit pass)
-**Status:** Approved — Verified against codebase 2026-03-18
+**Last Updated:** 2026-03-19 (C1.1 admin panel route tree fix)
+**Status:** Approved — Verified against codebase 2026-03-19
 
 ---
 
@@ -430,6 +430,8 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 
 > **HANDOFF (2026-03-19):** C1.1 is now fully implemented. Two-tier product architecture:
 > master products (global, admin-panel-only writes) + store products (per-store overrides).
+> Admin panel route tree (`routeTree.gen.ts`) updated to register `/master-products/` and
+> `/master-products/$masterProductId` routes. Pagination `hasMore` → `totalPages` fixed.
 > Branch: claude/plan-c1-1-features-Kksgc.
 
 **Priority:** PHASE-2
@@ -460,6 +462,8 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 - [x] Backend Koin DI — `MasterProductService` binding
 - [x] Admin panel: types (`master-product.ts`), API hooks (`master-products.ts`)
 - [x] Admin panel: list page + detail page with store assignments
+- [x] Admin panel: TanStack Router route tree registration (`routeTree.gen.ts`) — fixed 2026-03-19
+- [x] Admin panel: `hasMore` → `totalPages` pagination fix + breadcrumb link path — fixed 2026-03-19
 - [x] KMM MVI: `MasterProductOverrideViewModel/State/Intent/Effect`
 - [x] KMM SyncEngine — routes MASTER_PRODUCT + STORE_PRODUCT entity types
 - [x] KMM DataModule — Koin bindings for all new repositories

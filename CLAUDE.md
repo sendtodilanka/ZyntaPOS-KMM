@@ -1333,7 +1333,7 @@ See `docs/ai_workflows/execution_log.md` for the granular task checklist.
 | **Admin panel permission map (37 permissions)** | `admin-panel/src/hooks/use-auth.ts` — `PERMISSIONS` record |
 | **Admin panel auth store** | `admin-panel/src/stores/auth-store.ts` — Zustand store for `AdminUser \| null` |
 | **Admin panel API hooks** | `admin-panel/src/api/auth.ts`, `users.ts` — TanStack Query mutations |
-| **Admin panel routes** | `admin-panel/src/routes/` — login, users, tickets, settings/profile, settings/mfa |
+| **Admin panel routes** | `admin-panel/src/routes/` — login, users, tickets, master-products, settings/profile, settings/mfa |
 
 ---
 
