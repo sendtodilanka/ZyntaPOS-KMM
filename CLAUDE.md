@@ -1234,7 +1234,7 @@ Or use the "VPS Full Fix" workflow with `reset_db=yes`.
 |-------|-----------|
 | Framework | Ktor 3.4.1 (CIO transport) |
 | ORM | Exposed 0.61.0 |
-| Migrations | Flyway (API: 14 migrations, License: 4 migrations) |
+| Migrations | Flyway (API: 29 migrations, License: 4 migrations) |
 | DI | Koin 4.1.1 |
 | Auth (POS) | RS256 JWT (asymmetric) — API signs, all services verify |
 | Auth (Admin) | HS256 JWT (symmetric) — shared secret between API and License |
@@ -1261,7 +1261,9 @@ Or use the "VPS Full Fix" workflow with `reset_db=yes`.
 | Conflict resolver (LWW) | `backend/api/src/main/kotlin/.../sync/ServerConflictResolver.kt` |
 | GDPR customer data export | `backend/api/src/main/kotlin/.../routes/ExportRoutes.kt` |
 | Audit trail service | `backend/api/src/main/kotlin/.../service/AdminAuditService.kt` |
-| API Flyway migrations | `backend/api/src/main/resources/db/migration/V1-V14` |
+| API Flyway migrations | `backend/api/src/main/resources/db/migration/V1-V29` |
+| Admin inventory routes | `backend/api/src/main/kotlin/.../routes/AdminInventoryRoutes.kt` |
+| Warehouse stock repository | `backend/api/src/main/kotlin/.../repository/WarehouseStockRepository.kt` |
 | License service entry | `backend/license/src/main/kotlin/.../Application.kt` |
 | License Flyway migrations | `backend/license/src/main/resources/db/migration/V1-V4` |
 | Sync WebSocket hub | `backend/sync/src/main/kotlin/.../hub/WebSocketHub.kt` |
@@ -1300,9 +1302,9 @@ A comprehensive audit was completed on 2026-03-12. See `docs/audit/backend-modul
 | Phase | Status | Scope |
 |-------|--------|-------|
 | Phase 0 — Foundation | Complete | Build system, module scaffold, secrets, CI skeleton |
-| Phase 1 — MVP | In Progress | Single-store POS, offline sync, core features |
-| Phase 2 — Growth | Planned | Multi-store, CRM, promotions, CRDT sync |
-| Phase 3 — Enterprise | Planned | Staff/HR, admin, e-invoicing (IRD), analytics |
+| Phase 1 — MVP | Complete | Single-store POS, offline sync, core features |
+| Phase 2 — Growth | ~98% Complete | Multi-store, CRM, promotions, CRDT sync (C6.1 complete) |
+| Phase 3 — Enterprise | ~80% In Progress | Staff/HR, admin, e-invoicing (IRD), analytics |
 
 See `docs/ai_workflows/execution_log.md` for the granular task checklist.
 
@@ -1330,10 +1332,11 @@ See `docs/ai_workflows/execution_log.md` for the granular task checklist.
 | Architecture decisions | `docs/adr/ADR-NNN-*.md` |
 | Version catalog | `gradle/libs.versions.toml` |
 | **Admin panel role definitions** | `admin-panel/src/types/user.ts` — `AdminRole` type (ADMIN/OPERATOR/FINANCE/AUDITOR/HELPDESK) |
-| **Admin panel permission map (37 permissions)** | `admin-panel/src/hooks/use-auth.ts` — `PERMISSIONS` record |
+| **Admin panel permission map (40 permissions)** | `admin-panel/src/hooks/use-auth.ts` — `PERMISSIONS` record (incl. `inventory:read`) |
+| **Admin panel inventory view** | `admin-panel/src/routes/inventory/index.tsx` — cross-store/warehouse stock comparison (C1.2) |
 | **Admin panel auth store** | `admin-panel/src/stores/auth-store.ts` — Zustand store for `AdminUser \| null` |
 | **Admin panel API hooks** | `admin-panel/src/api/auth.ts`, `users.ts` — TanStack Query mutations |
-| **Admin panel routes** | `admin-panel/src/routes/` — login, users, tickets, settings/profile, settings/mfa |
+| **Admin panel routes** | `admin-panel/src/routes/` — login, users, tickets, master-products, settings/profile, settings/mfa |
 
 ---
 

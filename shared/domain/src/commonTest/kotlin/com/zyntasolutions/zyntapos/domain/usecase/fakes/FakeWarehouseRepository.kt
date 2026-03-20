@@ -124,11 +124,43 @@ class FakeWarehouseRepository : WarehouseRepository {
         val idx = transfers.indexOfFirst { it.id == transferId }
         if (idx < 0) return Result.Error(DatabaseException("Transfer not found: $transferId"))
         val t = transfers[idx]
-        if (t.status != StockTransfer.Status.PENDING) {
+        if (!t.status.isCancellable) {
             return Result.Error(ValidationException("Transfer is already ${t.status}"))
         }
         transfers[idx] = t.copy(status = StockTransfer.Status.CANCELLED)
         _transfersFlow.value = transfers.toList()
         return Result.Success(Unit)
+    }
+
+    override suspend fun approveTransfer(transferId: String, approvedBy: String): Result<Unit> {
+        if (shouldFail) return Result.Error(DatabaseException("DB error"))
+        val idx = transfers.indexOfFirst { it.id == transferId }
+        if (idx < 0) return Result.Error(DatabaseException("Transfer not found: $transferId"))
+        transfers[idx] = transfers[idx].copy(status = StockTransfer.Status.APPROVED, approvedBy = approvedBy)
+        _transfersFlow.value = transfers.toList()
+        return Result.Success(Unit)
+    }
+
+    override suspend fun dispatchTransfer(transferId: String, dispatchedBy: String): Result<Unit> {
+        if (shouldFail) return Result.Error(DatabaseException("DB error"))
+        val idx = transfers.indexOfFirst { it.id == transferId }
+        if (idx < 0) return Result.Error(DatabaseException("Transfer not found: $transferId"))
+        transfers[idx] = transfers[idx].copy(status = StockTransfer.Status.IN_TRANSIT, dispatchedBy = dispatchedBy)
+        _transfersFlow.value = transfers.toList()
+        return Result.Success(Unit)
+    }
+
+    override suspend fun receiveTransfer(transferId: String, receivedBy: String): Result<Unit> {
+        if (shouldFail) return Result.Error(DatabaseException("DB error"))
+        val idx = transfers.indexOfFirst { it.id == transferId }
+        if (idx < 0) return Result.Error(DatabaseException("Transfer not found: $transferId"))
+        transfers[idx] = transfers[idx].copy(status = StockTransfer.Status.RECEIVED, receivedBy = receivedBy)
+        _transfersFlow.value = transfers.toList()
+        return Result.Success(Unit)
+    }
+
+    override suspend fun getTransfersByStatus(status: StockTransfer.Status): Result<List<StockTransfer>> {
+        if (shouldFail) return Result.Error(DatabaseException("DB error"))
+        return Result.Success(transfers.filter { it.status == status })
     }
 }

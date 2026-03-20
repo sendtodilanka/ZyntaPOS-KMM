@@ -12,8 +12,11 @@ import com.zyntasolutions.zyntapos.domain.repository.RackProductRepository
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseRackRepository
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseRepository
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseStockRepository
+import com.zyntasolutions.zyntapos.domain.usecase.multistore.ApproveStockTransferUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.CommitStockTransferUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.multistore.DispatchStockTransferUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.GetLowStockByWarehouseUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.multistore.ReceiveStockTransferUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.GetWarehouseStockUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.SetWarehouseStockUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rack.DeleteRackProductUseCase
@@ -214,6 +217,36 @@ class MultiStoreViewModelTest {
             transfersFlow.value = updated
             return Result.Success(Unit)
         }
+
+        override suspend fun approveTransfer(transferId: String, approvedBy: String): Result<Unit> {
+            val idx = transfersFlow.value.indexOfFirst { it.id == transferId }
+            if (idx == -1) return Result.Error(DatabaseException("Transfer not found"))
+            val updated = transfersFlow.value.toMutableList()
+            updated[idx] = updated[idx].copy(status = StockTransfer.Status.APPROVED, approvedBy = approvedBy)
+            transfersFlow.value = updated
+            return Result.Success(Unit)
+        }
+
+        override suspend fun dispatchTransfer(transferId: String, dispatchedBy: String): Result<Unit> {
+            val idx = transfersFlow.value.indexOfFirst { it.id == transferId }
+            if (idx == -1) return Result.Error(DatabaseException("Transfer not found"))
+            val updated = transfersFlow.value.toMutableList()
+            updated[idx] = updated[idx].copy(status = StockTransfer.Status.IN_TRANSIT, dispatchedBy = dispatchedBy)
+            transfersFlow.value = updated
+            return Result.Success(Unit)
+        }
+
+        override suspend fun receiveTransfer(transferId: String, receivedBy: String): Result<Unit> {
+            val idx = transfersFlow.value.indexOfFirst { it.id == transferId }
+            if (idx == -1) return Result.Error(DatabaseException("Transfer not found"))
+            val updated = transfersFlow.value.toMutableList()
+            updated[idx] = updated[idx].copy(status = StockTransfer.Status.RECEIVED, receivedBy = receivedBy)
+            transfersFlow.value = updated
+            return Result.Success(Unit)
+        }
+
+        override suspend fun getTransfersByStatus(status: StockTransfer.Status): Result<List<StockTransfer>> =
+            Result.Success(transfersFlow.value.filter { it.status == status })
     }
 
     // ── Fake WarehouseRackRepository ──────────────────────────────────────────
@@ -305,6 +338,9 @@ class MultiStoreViewModelTest {
     // ── Use cases wired to fakes ──────────────────────────────────────────────
 
     private val commitTransferUseCase = CommitStockTransferUseCase(fakeWarehouseRepository)
+    private val approveTransferUseCase = ApproveStockTransferUseCase(fakeWarehouseRepository)
+    private val dispatchTransferUseCase = DispatchStockTransferUseCase(fakeWarehouseRepository)
+    private val receiveTransferUseCase = ReceiveStockTransferUseCase(fakeWarehouseRepository)
     private val getWarehouseRacksUseCase = GetWarehouseRacksUseCase(fakeWarehouseRackRepository)
     private val saveWarehouseRackUseCase = SaveWarehouseRackUseCase(fakeWarehouseRackRepository)
     private val deleteWarehouseRackUseCase = DeleteWarehouseRackUseCase(fakeWarehouseRackRepository)
@@ -336,6 +372,9 @@ class MultiStoreViewModelTest {
             warehouseRepository = fakeWarehouseRepository,
             productRepository = fakeProductRepository,
             commitTransferUseCase = commitTransferUseCase,
+            approveTransferUseCase = approveTransferUseCase,
+            dispatchTransferUseCase = dispatchTransferUseCase,
+            receiveTransferUseCase = receiveTransferUseCase,
             getWarehouseRacksUseCase = getWarehouseRacksUseCase,
             saveWarehouseRackUseCase = saveWarehouseRackUseCase,
             deleteWarehouseRackUseCase = deleteWarehouseRackUseCase,

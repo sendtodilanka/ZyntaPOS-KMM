@@ -4,6 +4,7 @@ import com.zyntasolutions.zyntapos.api.auth.AdminRole
 import com.zyntasolutions.zyntapos.api.db.AdminUsers
 import com.zyntasolutions.zyntapos.api.db.Stores
 import com.zyntasolutions.zyntapos.api.db.Users
+import com.zyntasolutions.zyntapos.api.db.WarehouseStock
 import com.zyntasolutions.zyntapos.api.service.Products
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -113,6 +114,30 @@ object TestFixtures {
                 it[Users.lockedUntil] = lockedUntil
                 it[Users.createdAt] = OffsetDateTime.now(ZoneOffset.UTC)
                 it[Users.updatedAt] = OffsetDateTime.now(ZoneOffset.UTC)
+            }
+        }
+        return id
+    }
+
+    fun insertWarehouseStock(
+        id: String = "ws-${UUID.randomUUID().toString().take(8)}",
+        warehouseId: String,
+        productId: String,
+        storeId: String,
+        quantity: BigDecimal = BigDecimal("10.0000"),
+        minQuantity: BigDecimal = BigDecimal("0.0000"),
+        syncVersion: Long = 1L,
+    ): String {
+        transaction {
+            WarehouseStock.insert {
+                it[WarehouseStock.id]          = id
+                it[WarehouseStock.warehouseId] = warehouseId
+                it[WarehouseStock.productId]   = productId
+                it[WarehouseStock.storeId]     = storeId
+                it[WarehouseStock.quantity]    = quantity
+                it[WarehouseStock.minQuantity] = minQuantity
+                it[WarehouseStock.syncVersion] = syncVersion
+                it[WarehouseStock.updatedAt]   = OffsetDateTime.now(ZoneOffset.UTC)
             }
         }
         return id

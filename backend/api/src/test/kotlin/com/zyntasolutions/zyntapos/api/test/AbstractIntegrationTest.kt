@@ -93,6 +93,7 @@ abstract class AbstractIntegrationTest {
                     admin_audit_log,
                     pos_sessions,
                     sync_queue,
+                    warehouse_stock,
                     products,
                     users,
                     admin_users,

@@ -15,6 +15,7 @@ import com.zyntasolutions.zyntapos.api.repository.TicketCommentRepository
 import com.zyntasolutions.zyntapos.api.repository.TicketCommentRepositoryImpl
 import com.zyntasolutions.zyntapos.api.repository.ConflictLogRepository
 import com.zyntasolutions.zyntapos.api.repository.DeadLetterRepository
+import com.zyntasolutions.zyntapos.api.repository.WarehouseStockRepository
 import com.zyntasolutions.zyntapos.api.repository.EntitySnapshotRepository
 import com.zyntasolutions.zyntapos.api.repository.PosUserRepository
 import com.zyntasolutions.zyntapos.api.repository.PosUserRepositoryImpl
@@ -39,6 +40,7 @@ import com.zyntasolutions.zyntapos.api.service.PlayIntegrityService
 import com.zyntasolutions.zyntapos.api.service.ForceSyncNotifier
 import com.zyntasolutions.zyntapos.api.service.LicenseValidationClient
 import com.zyntasolutions.zyntapos.api.service.MfaService
+import com.zyntasolutions.zyntapos.api.service.AdminTransferService
 import com.zyntasolutions.zyntapos.api.service.MasterProductService
 import com.zyntasolutions.zyntapos.api.service.ProductService
 import com.zyntasolutions.zyntapos.api.service.UserService
@@ -103,6 +105,8 @@ val appModule = module {
     single<PosUserRepository> { PosUserRepositoryImpl() }
     single<ProductRepository> { ProductRepositoryImpl() }
 
+    single { WarehouseStockRepository() }
+
     // ── Sync engine repositories ──────────────────────────────────────────────
     single { SyncOperationRepository() }
     single { SyncCursorRepository() }
@@ -145,6 +149,7 @@ val appModule = module {
     single { UserService(posUserRepo = get()) }
     single { ProductService(productRepo = get()) }
     single { MasterProductService() }
+    single { AdminTransferService() }
     single { AdminAuthService(config = get(), auditService = get(), adminUserRepo = get(), emailService = get()) }
     single { AdminAuditService(auditRepo = get()) }
     single { AdminStoresService(storesRepo = get()) }

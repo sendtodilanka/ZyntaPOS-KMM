@@ -4,7 +4,7 @@
 > A module is considered IMPLEMENTED only when it has: ViewModel, Screen composable(s),
 > and a Koin DI binding — all wired into the app's navigation graph.
 >
-> **Last Updated:** 2026-03-18
+> **Last Updated:** 2026-03-20
 > **Legend:** ✅ Done | 🔄 In Progress | 🔲 Not Started
 
 ---
@@ -71,7 +71,7 @@
 |-------|--------|-------|
 | Phase 0 — Foundation | ✅ Complete | Build system, module scaffold, secrets, CI skeleton |
 | Phase 1 — MVP | ✅ Complete | Single-store POS, offline sync, core features (auth, pos, inventory, register, reports, settings, dashboard, onboarding) |
-| Phase 2 — Growth | ✅ ~95% implemented | Multi-store, CRM, promotions, expenses (CRDT ConflictResolver gap remains) |
+| Phase 2 — Growth | ✅ ~98% implemented | Multi-store, CRM, promotions, expenses, CRDT sync (C6.1 complete 2026-03-19) |
 | Phase 3 — Enterprise | 🔄 ~80% implemented | Staff/HR, admin, e-invoicing (IRD), accounting, diagnostic (IRD mTLS API, advanced charts, i18n pending) |
 
 ---
@@ -80,7 +80,8 @@
 
 | Gap | Module | Severity |
 |-----|--------|----------|
-| CRDT `ConflictResolver` not implemented | `:shared:data` | Medium |
+| C1.1 Global Product Catalog admin panel routes registered | `:admin-panel` | ✅ Done (2026-03-19) |
+| ~~CRDT `ConflictResolver` not implemented~~ | `:shared:data` | ✅ DONE (C6.1, 2026-03-19) |
 | Cash drawer open event not wired in POS payment flow | `:feature:pos` | Low |
 | IRD e-invoice submission: format/sandbox validation pending | `:feature:accounting` | Medium |
 | RS256 public key fetch not called after login (`AuthRepositoryImpl`) | `:shared:data` | Low |

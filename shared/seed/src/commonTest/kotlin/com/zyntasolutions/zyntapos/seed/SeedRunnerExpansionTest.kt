@@ -339,6 +339,10 @@ class SeedRunnerExpansionTest {
         override suspend fun createTransfer(transfer: StockTransfer) = Result.Success(Unit)
         override suspend fun commitTransfer(transferId: String, confirmedBy: String) = Result.Success(Unit)
         override suspend fun cancelTransfer(transferId: String) = Result.Success(Unit)
+        override suspend fun approveTransfer(transferId: String, approvedBy: String) = Result.Success(Unit)
+        override suspend fun dispatchTransfer(transferId: String, dispatchedBy: String) = Result.Success(Unit)
+        override suspend fun receiveTransfer(transferId: String, receivedBy: String) = Result.Success(Unit)
+        override suspend fun getTransfersByStatus(status: StockTransfer.Status) = Result.Success(emptyList<StockTransfer>())
     }
 
     private val existingAccountIds = mutableSetOf<String>()
