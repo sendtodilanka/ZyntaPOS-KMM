@@ -58,6 +58,7 @@ import com.zyntasolutions.zyntapos.data.repository.StocktakeRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.ShiftRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.SystemRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.PurchaseOrderRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.ReplenishmentRuleRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.RackProductRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.WarehouseRackRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.WarehouseRepositoryImpl
@@ -119,6 +120,7 @@ import com.zyntasolutions.zyntapos.domain.repository.StocktakeRepository
 import com.zyntasolutions.zyntapos.domain.repository.ShiftRepository
 import com.zyntasolutions.zyntapos.domain.repository.SystemRepository
 import com.zyntasolutions.zyntapos.domain.repository.PurchaseOrderRepository
+import com.zyntasolutions.zyntapos.domain.repository.ReplenishmentRuleRepository
 import com.zyntasolutions.zyntapos.domain.repository.RackProductRepository
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseRackRepository
 import com.zyntasolutions.zyntapos.domain.repository.RoleRepository
@@ -379,6 +381,9 @@ val dataModule = module {
 
     // Purchase orders: supplier replenishment workflow (C1.3 / C1.5)
     single<PurchaseOrderRepository> { PurchaseOrderRepositoryImpl(db = get(), syncEnqueuer = get()) }
+
+    // Replenishment rules: per-product auto-PO configuration (C1.5)
+    single<ReplenishmentRuleRepository> { ReplenishmentRuleRepositoryImpl(db = get(), syncEnqueuer = get()) }
 
     // Warehouse stock: per-warehouse product quantity tracking (C1.2)
     single<WarehouseStockRepository> { WarehouseStockRepositoryImpl(db = get(), syncEnqueuer = get()) }

@@ -1,6 +1,10 @@
 package com.zyntasolutions.zyntapos.feature.inventory
 
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.AdjustStockUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.inventory.AutoReplenishmentUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.inventory.CreatePurchaseOrderUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.reports.enterprise.GenerateStockReorderReportUseCase
+import com.zyntasolutions.zyntapos.feature.inventory.replenishment.ReplenishmentViewModel
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.CompleteStocktakeUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.CreateProductUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.DeleteCategoryUseCase
@@ -86,6 +90,15 @@ val inventoryModule = module {
     // ── Sprint 19: Unit Group use cases ───────────────────────────────────────
     factoryOf(::ManageUnitGroupUseCase)
 
+    // ── C1.5 Replenishment use cases ──────────────────────────────────────────
+    factoryOf(::GenerateStockReorderReportUseCase)
+    factory { CreatePurchaseOrderUseCase(purchaseOrderRepository = get(), supplierRepository = get()) }
+    factory { AutoReplenishmentUseCase(
+        replenishmentRuleRepository = get(),
+        warehouseStockRepository    = get(),
+        createPurchaseOrderUseCase  = get(),
+    )}
+
     // ── Stocktake use cases ───────────────────────────────────────────────────
     factoryOf(::StartStocktakeUseCase)
     factoryOf(::ScanStocktakeItemUseCase)
@@ -117,6 +130,19 @@ val inventoryModule = module {
             deleteLabelTemplateUseCase     = get(),
             seedDefaultLabelTemplatesUseCase = get(),
             labelPdfRenderer               = get(),
+        )
+    }
+
+    viewModel {
+        ReplenishmentViewModel(
+            authRepository                  = get(),
+            supplierRepository              = get(),
+            warehouseRepository             = get(),
+            purchaseOrderRepository         = get(),
+            replenishmentRuleRepository     = get(),
+            generateStockReorderReportUseCase = get(),
+            createPurchaseOrderUseCase      = get(),
+            autoReplenishmentUseCase        = get(),
         )
     }
 

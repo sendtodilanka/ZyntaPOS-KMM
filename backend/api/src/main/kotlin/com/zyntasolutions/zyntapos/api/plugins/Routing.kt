@@ -4,6 +4,7 @@ import com.zyntasolutions.zyntapos.api.routes.adminAlertsRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminDiagnosticRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminAuditRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminInventoryRoutes
+import com.zyntasolutions.zyntapos.api.routes.adminReplenishmentRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminAuthRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminConfigRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminEmailRoutes
@@ -92,6 +93,7 @@ fun Application.configureRouting() {
                 adminMasterProductRoutes()
                 adminTransferRoutes()
                 adminInventoryRoutes()
+                adminReplenishmentRoutes()
             }
         }
 
