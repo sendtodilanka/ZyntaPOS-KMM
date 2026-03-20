@@ -451,7 +451,7 @@ ZyntaPOS-KMM/
 |--------|---------|
 | `:shared:core` | Pure Kotlin utilities, MVI base classes, `Result<T>`, `CurrencyUtils`, `DateTimeUtils`, `ValidationUtils`, Koin `coreModule` |
 | `:shared:domain` | Domain models (31), repository interfaces, use-case classes, business-rule validators — **no framework deps** |
-| `:shared:data` | SQLDelight schema + DAOs, Ktor HTTP client, repository implementations, offline sync engine. `ConflictResolver` (LWW + deviceId tiebreak + PRODUCT field-level merge) integrated into `SyncEngine` with `ConflictLogRepositoryImpl` audit trail and version vector tracking (C6.1 — implemented 2026-03-19) |
+| `:shared:data` | SQLDelight schema + DAOs, Ktor HTTP client (GZIP), repository implementations, offline sync engine. Full C6.1 sync stack: `ConflictResolver` (LWW/FIELD_MERGE/APPEND_ONLY via `CrdtStrategy`), `SyncEngine` (priority push, store isolation, conflict detection), `SyncQueueMaintenance` (prune + dedup), `ConflictLogRepositoryImpl` audit trail, version vectors. Multi-store isolation via `store_id` column. |
 | `:shared:hal` | `PrinterManager`, `BarcodeScanner` — `expect/actual` platform drivers, `EscPosEncoder`. `CashDrawerController` — NOT YET IMPLEMENTED (Phase 2 backlog) |
 | `:shared:security` | `DatabaseKeyManager`/`EncryptionManager` (AES-256-GCM, Keystore/JCE), `PinManager` (SHA-256 + salt), `JwtManager` + `TokenStorage` interface, `RbacEngine` |
 | `:shared:seed` | **Debug-only.** `SeedRunner` + JSON fixtures (8 categories, 5 suppliers, 25 products, 15 customers). Use as `debugImplementation` only. |
@@ -1300,9 +1300,9 @@ A comprehensive audit was completed on 2026-03-12. See `docs/audit/backend-modul
 | Phase | Status | Scope |
 |-------|--------|-------|
 | Phase 0 — Foundation | Complete | Build system, module scaffold, secrets, CI skeleton |
-| Phase 1 — MVP | In Progress | Single-store POS, offline sync, core features |
-| Phase 2 — Growth | Planned | Multi-store, CRM, promotions, CRDT sync |
-| Phase 3 — Enterprise | Planned | Staff/HR, admin, e-invoicing (IRD), analytics |
+| Phase 1 — MVP | Complete | Single-store POS, offline sync, core features |
+| Phase 2 — Growth | ~98% Complete | Multi-store, CRM, promotions, CRDT sync (C6.1 complete) |
+| Phase 3 — Enterprise | ~80% In Progress | Staff/HR, admin, e-invoicing (IRD), analytics |
 
 See `docs/ai_workflows/execution_log.md` for the granular task checklist.
 

@@ -88,6 +88,23 @@ class StockRepositoryImpl(
         }
     }
 
+    /**
+     * Recomputes `products.stock_qty` from the adjustment ledger (G-Counter pattern).
+     *
+     * Stock adjustments are append-only — each device inserts its own adjustments independently.
+     * This method sums all adjustments (INCREASE adds, DECREASE/TRANSFER subtracts) to derive
+     * the authoritative stock quantity. Called after sync to reconcile concurrent adjustments
+     * from multiple devices.
+     *
+     * @param productId The product to recompute.
+     * @return The recomputed net quantity.
+     */
+    suspend fun recomputeStockQty(productId: String): Double = withContext(Dispatchers.IO) {
+        val netQty = aq.computeNetStockQty(productId).executeAsOne()
+        pq.updateStockQty(netQty, kotlin.time.Clock.System.now().toEpochMilliseconds(), productId)
+        netQty
+    }
+
     override suspend fun adjustStock(adjustment: StockAdjustment): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
             val product = pq.getProductById(adjustment.productId).executeAsOneOrNull()

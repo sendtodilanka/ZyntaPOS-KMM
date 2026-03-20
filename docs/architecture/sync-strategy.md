@@ -1,7 +1,7 @@
 # Sync Strategy — ZyntaPOS Offline-First Architecture
 
-**Status:** Phase 1 implementation documented. Phase 2 CRDT gaps explicitly called out.
-**Last updated:** 2026-03-18
+**Status:** Phase 1 + C6.1 CRDT implementation documented. All sync components implemented.
+**Last updated:** 2026-03-20
 **Sources:** `shared/data/src/commonMain/kotlin/.../sync/SyncEngine.kt`, `SyncRepositoryImpl.kt`, `SyncEnqueuer.kt`, SQLDelight `.sq` files
 
 ---
@@ -234,11 +234,25 @@ A `conflict_log` table stores every conflict detected during sync with resolutio
 | `ConflictResolver` class | ✅ Implemented (LWW + tiebreak + PRODUCT merge) |
 | `applyDeltaOperations` dispatcher | ✅ Implemented (routes to `applyDelete` / `applyCreateOrUpdate`) |
 | `SyncResult.conflictCount` tracking | ✅ Implemented |
-| Unit tests (`ConflictResolverTest`) | ✅ 10 tests |
+| Unit tests (`ConflictResolverTest`) | ✅ 12 tests |
 | Integration tests (`SyncEngineIntegrationTest`) | ✅ 5 conflict tests |
+| `CrdtStrategy` enum (LWW/FIELD_MERGE/APPEND_ONLY) | ✅ Implemented |
+| APPEND_ONLY for STOCK_ADJUSTMENT (G-Counter) | ✅ Implemented |
+| `recomputeStockQty()` from adjustment ledger | ✅ Implemented |
+| `CrdtStrategyTest` | ✅ 8 tests |
+| Multi-store sync isolation (`store_id` column) | ✅ Implemented |
+| Sync priority (CASE-based SQL ordering) | ✅ Implemented |
+| `SyncPriority` object + `SyncPriorityTest` | ✅ 5 tests |
+| GZIP bandwidth optimization (`ContentEncoding`) | ✅ Implemented |
+| `SyncQueueMaintenance` (prune + dedup) | ✅ Implemented |
+| `SyncQueueMaintenanceTest` | ✅ 4 tests |
+| Conflict resolution UI (Admin tab 4) | ✅ Implemented |
+| `ConflictListScreen` + `ConflictDetailDialog` | ✅ Implemented |
+| `GetUnresolvedConflictsUseCase` / `ResolveConflictUseCase` | ✅ Implemented |
 
 **Conflict strategy:** LWW with CRDT-style conflict detection and audit logging. Server deltas
 are no longer blindly applied — pending local operations are checked and resolved first.
+APPEND_ONLY entities (stock adjustments, accounting) skip conflict detection entirely.
 
 ---
 
@@ -282,9 +296,15 @@ The backend `api` service handles the server side of the outbox push/pull protoc
 
 ## 9. Known Gaps Summary
 
-| Gap | Ticket | Phase |
-|-----|--------|-------|
-| `ConflictResolver` implementation | CRDT backlog | Phase 2 |
-| Version vector increment on every write | CRDT backlog | Phase 2 |
-| Conflict log population | CRDT backlog | Phase 2 |
-| Cash drawer open event not emitted after payment — `PrinterManager.openCashDrawer()` exists but POS payment flow does not call it | Phase 2 backlog | Phase 2 |
+| Gap | Ticket | Phase | Status |
+|-----|--------|-------|--------|
+| ~~`ConflictResolver` implementation~~ | CRDT backlog | Phase 2 | ✅ DONE (C6.1, 2026-03-19) — LWW + field merge + APPEND_ONLY |
+| ~~Version vector increment on every write~~ | CRDT backlog | Phase 2 | ✅ DONE (C6.1) — `SyncEnqueuer` increments on each write |
+| ~~Conflict log population~~ | CRDT backlog | Phase 2 | ✅ DONE (C6.1) — `ConflictLogRepositoryImpl` + Admin UI |
+| ~~Conflict resolution UI~~ | CRDT backlog | Phase 2 | ✅ DONE (C6.1 Item 6) — `ConflictListScreen` in Admin tab 4 |
+| ~~CRDT strategy routing~~ | CRDT backlog | Phase 2 | ✅ DONE — `CrdtStrategy` enum (LWW/FIELD_MERGE/APPEND_ONLY) |
+| ~~Sync priority ordering~~ | CRDT backlog | Phase 2 | ✅ DONE — `SyncPriority` CASE-based SQL ordering |
+| ~~Sync queue maintenance~~ | CRDT backlog | Phase 2 | ✅ DONE — `SyncQueueMaintenance` prune + dedup |
+| ~~GZIP bandwidth optimization~~ | CRDT backlog | Phase 2 | ✅ DONE — `ContentEncoding` in ApiClient |
+| OR-Set CRDT for collection fields (order items, coupon assignments) | CRDT backlog | Phase 3 | Pending |
+| Cash drawer open event not emitted after payment — `PrinterManager.openCashDrawer()` exists but POS payment flow does not call it | Phase 2 backlog | Phase 2 | Pending |

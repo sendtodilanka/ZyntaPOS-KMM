@@ -17,7 +17,8 @@ CREATE TABLE pending_operations (
     status      TEXT    NOT NULL DEFAULT 'PENDING',  -- PENDING | SYNCING | SYNCED | FAILED
     retry_count INTEGER NOT NULL DEFAULT 0,
     created_at  INTEGER NOT NULL,                -- epoch millis
-    last_tried  INTEGER NOT NULL DEFAULT 0       -- epoch millis
+    last_tried  INTEGER NOT NULL DEFAULT 0,      -- epoch millis
+    store_id    TEXT    NOT NULL DEFAULT ''       -- multi-store isolation (C6.1 Item 2)
 );
 
 CREATE INDEX idx_pending_ops_status_retry
@@ -26,21 +27,42 @@ CREATE INDEX idx_pending_ops_status_retry
 CREATE INDEX idx_pending_ops_entity
     ON pending_operations(entity_type, entity_id, status);
 
+CREATE INDEX idx_pending_ops_store
+    ON pending_operations(store_id, status);
+
 -- ── Enqueue ─────────────────────────────────────────────────────
 
 enqueueOperation:
-INSERT OR IGNORE INTO pending_operations(id, entity_type, entity_id, operation, payload, created_at)
-VALUES (?, ?, ?, ?, ?, ?);
+INSERT OR IGNORE INTO pending_operations(id, entity_type, entity_id, operation, payload, created_at, store_id)
+VALUES (?, ?, ?, ?, ?, ?, ?);
 
 -- ── Read ────────────────────────────────────────────────────────
 
+-- Returns eligible operations ordered by sync priority (critical first) then FIFO.
+-- Priority tiers: 0=CRITICAL (orders, cash), 1=HIGH (products, stock, customers),
+-- 2=NORMAL (categories, suppliers), 3=LOW (everything else).
+-- Returns eligible operations for the given store, ordered by sync priority then FIFO.
+-- Pass '' (empty string) for store_id to match all stores (backward compat / single-store mode).
 getEligibleOperations:
 SELECT *
 FROM pending_operations
 WHERE status = 'PENDING'
   AND retry_count < 5
-ORDER BY created_at ASC
-LIMIT ?;
+  AND (store_id = :store_id OR :store_id = '')
+ORDER BY
+  CASE entity_type
+    WHEN 'order'            THEN 0
+    WHEN 'cash_movement'    THEN 0
+    WHEN 'register_session' THEN 0
+    WHEN 'product'          THEN 1
+    WHEN 'stock_adjustment' THEN 1
+    WHEN 'customer'         THEN 1
+    WHEN 'category'         THEN 2
+    WHEN 'supplier'         THEN 2
+    WHEN 'user'             THEN 2
+    ELSE 3
+  END ASC, created_at ASC
+LIMIT :batch_size;
 
 getByEntityId:
 SELECT *
@@ -100,6 +122,7 @@ getPendingByEntity:
 SELECT *
 FROM pending_operations
 WHERE entity_type = ? AND entity_id = ? AND status = 'PENDING'
+  AND (store_id = ? OR ? = '')
 ORDER BY created_at DESC
 LIMIT 1;
 
@@ -109,6 +132,12 @@ LIMIT 1;
 pruneSynced:
 DELETE FROM pending_operations
 WHERE status = 'SYNCED'
+  AND created_at < ?;
+
+-- Removes permanently FAILED rows older than the given epoch-millis cutoff.
+pruneFailed:
+DELETE FROM pending_operations
+WHERE status = 'FAILED'
   AND created_at < ?;
 
 -- Keeps only the latest PENDING operation per (entity_type, entity_id).

@@ -702,15 +702,21 @@ License service `build.gradle.kts` uses `kotlinx-datetime:0.6.1`. The KMM root p
 
 **Previous gap:** Documentation claimed "CRDT merge logic — Phase 2 backlog" and `version_vectors` were never written to.
 
-**Resolved (2026-03-19, C6.1):**
+**Resolved (2026-03-19, C6.1 — all 6 items):**
 - Client-side `ConflictResolver` (LWW + deviceId tiebreak + PRODUCT field-level merge) integrated into `SyncEngine`
+- `CrdtStrategy` enum routes entity types to LWW / FIELD_MERGE / APPEND_ONLY strategies
+- STOCK_ADJUSTMENT uses APPEND_ONLY (G-Counter pattern — both ops always accepted)
 - `ConflictLogRepositoryImpl` persists audit trail to `conflict_log` table
-- `SyncEnqueuer` now increments `version_vectors` on every local write
-- `SyncEngine.applyDeltaOperations()` detects conflicts with pending local ops before applying server deltas
-- 10 unit tests + 5 integration tests cover the full conflict resolution pipeline
+- `SyncEnqueuer` increments `version_vectors` on every local write + passes `store_id`
+- Multi-store sync isolation: `store_id` column in `pending_operations`, all queries filtered
+- Sync priority: CASE-based SQL ordering (CRITICAL → HIGH → NORMAL → LOW)
+- GZIP bandwidth compression via Ktor `ContentEncoding` plugin
+- `SyncQueueMaintenance` prunes SYNCED (7d) + FAILED (30d) + deduplicates PENDING
+- Conflict resolution UI: Admin tab 4 with `ConflictListScreen` + `ConflictDetailDialog`
+- 34 total tests: ConflictResolver (12), CrdtStrategy (8), SyncPriority (5), QueueMaintenance (4), SyncEngine conflict (5)
 - Server-side `ServerConflictResolver` was already complete — now both client and server are aligned
 
-**Status:** RESOLVED — documentation updated to reflect implementation.
+**Status:** RESOLVED — all documentation updated to reflect full C6.1 implementation.
 
 ---
 

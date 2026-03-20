@@ -2,10 +2,10 @@
 > **Doc ID:** ZENTA-EXEC-LOG-v1.1
 > **Architecture:** KMP — Desktop (JVM) + Android
 > **Strategy:** Clean Architecture · MVI · Koin · SQLDelight · Compose Multiplatform
-> **Log Created:** 2026-02-20 | **Last Updated:** 2026-02-25 (Phase 2 + Phase 3 codebase sync by audit session)
+> **Log Created:** 2026-02-20 | **Last Updated:** 2026-03-20 (C6.1 CRDT sync engine completion)
 > **Reference Plan:** `docs/plans/PLAN_PHASE1.md`
 > **Status:** ✅ PHASE 3 IN PROGRESS — Phase 1 and Phase 2 fully implemented; Phase 3 ~80% complete
-> **Last Synced with Codebase:** 2026-02-25
+> **Last Synced with Codebase:** 2026-03-20
 >
 > ---
 > **📌 CANONICAL NAMESPACE (FIX-14.01):**
@@ -15,6 +15,56 @@
 > **📌 SESSION NOTE (FIX-14.02):**
 > `composeHotReload = "1.0.0"` is present in `libs.versions.toml` as an undocumented
 > addition (not in the original plan). It is retained for desktop hot-reload DX support.
+
+---
+
+## ✅ C6.1 — CRDT Sync Engine Completion (2026-03-19 → 2026-03-20)
+
+> **Scope:** Complete CRDT conflict resolution stack — from domain use cases through sync engine to Admin UI.
+> **Branch:** `claude/plan-chat-session-msHDi`
+
+### New Files Created
+
+- [x] `shared/data/.../sync/CrdtStrategy.kt` — Entity type → CRDT strategy routing (LWW / FIELD_MERGE / APPEND_ONLY) | 2026-03-19
+- [x] `shared/data/.../sync/SyncPriority.kt` — CASE-based SQL ordering for sync queue priority (PAYMENT > ORDER > PRODUCT > ...) | 2026-03-19
+- [x] `shared/data/.../sync/SyncQueueMaintenance.kt` — Scheduled prune (SYNCED > 7d) + dedup (latest per entity) | 2026-03-19
+- [x] `shared/domain/.../usecase/admin/GetConflictCountUseCase.kt` — Returns count of unresolved conflicts | 2026-03-19
+- [x] `shared/domain/.../usecase/admin/GetUnresolvedConflictsUseCase.kt` — Returns Flow of unresolved SyncConflict list | 2026-03-19
+- [x] `shared/domain/.../usecase/admin/ResolveConflictUseCase.kt` — Marks conflict resolved + applies chosen side | 2026-03-19
+- [x] `composeApp/feature/admin/ConflictListScreen.kt` — Admin tab 4: conflict list + detail dialog | 2026-03-19
+
+### Modified Files
+
+- [x] `shared/data/.../sync/ConflictResolver.kt` — Added CrdtStrategy awareness, APPEND_ONLY skip logic | 2026-03-19
+- [x] `shared/data/.../sync/SyncEngine.kt` — Integrated ConflictResolver into applyDeltaOperations, priority sync ordering | 2026-03-19
+- [x] `shared/data/.../repository/StockRepositoryImpl.kt` — Added `recomputeStockQty()` for G-Counter stock derivation | 2026-03-19
+- [x] `shared/data/src/commonMain/sqldelight/.../sync_queue.sq` — Added `store_id` column, priority ordering queries, prune/dedup queries | 2026-03-19
+- [x] `shared/data/src/commonMain/sqldelight/.../stock.sq` — Added `sumAdjustments` query for G-Counter | 2026-03-19
+- [x] `shared/data/.../remote/api/ApiClient.kt` — Added GZIP ContentEncoding for bandwidth optimization | 2026-03-19
+- [x] `composeApp/feature/admin/AdminViewModel.kt` — Added conflict resolution intents (LoadConflicts, ResolveConflict) | 2026-03-19
+- [x] `composeApp/feature/admin/AdminState.kt` — Added conflicts list and conflictCount fields | 2026-03-19
+- [x] `composeApp/feature/admin/AdminIntent.kt` — Added conflict-related intents | 2026-03-19
+- [x] `composeApp/feature/admin/AdminModule.kt` — Registered conflict use cases in Koin | 2026-03-19
+
+### Tests Added
+
+- [x] `CrdtStrategyTest.kt` — 8 tests: strategy routing per entity type | 2026-03-19
+- [x] `SyncPriorityTest.kt` — 5 tests: SQL ordering correctness | 2026-03-19
+- [x] `SyncQueueMaintenanceTest.kt` — 4 tests: prune/dedup logic | 2026-03-19
+- [x] `AdminViewModelTest.kt` — Updated with conflict use case params | 2026-03-20
+
+### C6.1 Implementation Summary
+
+| Item | Description | Status |
+|------|-------------|--------|
+| Item 1 | Advanced CRDT types (`CrdtStrategy`: LWW/FIELD_MERGE/APPEND_ONLY) | ✅ |
+| Item 2 | Multi-store sync isolation (`store_id` column in sync_queue) | ✅ |
+| Item 3 | Sync priority ordering (CASE-based SQL) | ✅ |
+| Item 4 | GZIP bandwidth optimization (`ContentEncoding`) | ✅ |
+| Item 5 | Sync queue maintenance (prune + dedup) | ✅ |
+| Item 6 | Conflict resolution Admin UI (`ConflictListScreen`) | ✅ |
+
+> **Section status: ✅ C6.1 COMPLETE — all 6 items implemented + 17 new tests**
 
 ---
 
@@ -1510,7 +1560,7 @@ settings.gradle.kts                                                           �
 ## ═══════════════════════════════════════════
 > **Goal:** Multi-store, CRM, promotions, financial tools, CRDT sync
 > **Status:** ✅ IMPLEMENTED — Commit `5672a9a` (2026-02-24) — feat(phase2): Sprints 19-22 complete
-> **Coverage:** ~98% — CRDT ConflictResolver fully integrated into SyncEngine (C6.1, 2026-03-19). Ktor ApiService wiring (line 156 TODO) remains as backlog
+> **Coverage:** ~99% — C6.1 fully complete (2026-03-19): CRDT ConflictResolver + CrdtStrategy (LWW/FIELD_MERGE/APPEND_ONLY), multi-store sync isolation (store_id), priority sync, GZIP compression, queue maintenance, conflict resolution UI (Admin tab 4). Ktor ApiService wiring (line 156 TODO) remains as backlog
 
 ### Phase 2 Implementation Summary
 

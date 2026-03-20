@@ -6,6 +6,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.EventNote
 import androidx.compose.material.icons.filled.MonitorHeart
+import androidx.compose.material.icons.filled.SyncProblem
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -57,6 +58,11 @@ fun AdminScreen(
                 onIntent = onIntent,
                 modifier = Modifier.fillMaxSize(),
             )
+            AdminTab.CONFLICTS -> ConflictListScreen(
+                state = state,
+                onIntent = onIntent,
+                modifier = Modifier.fillMaxSize(),
+            )
         }
     }
 
@@ -76,4 +82,5 @@ private enum class AdminTabItem(
     SYSTEM_HEALTH(AdminTab.SYSTEM_HEALTH, "Health", Icons.Default.MonitorHeart),
     BACKUPS(AdminTab.BACKUPS, "Backups", Icons.Default.Backup),
     AUDIT_LOG(AdminTab.AUDIT_LOG, "Audit", Icons.Default.EventNote),
+    CONFLICTS(AdminTab.CONFLICTS, "Conflicts", Icons.Default.SyncProblem),
 }

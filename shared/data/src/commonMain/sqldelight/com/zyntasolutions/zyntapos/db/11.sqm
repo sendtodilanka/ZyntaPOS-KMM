@@ -1,0 +1,18 @@
+-- Migration 11: Per-Warehouse Stock Levels (C1.2)
+-- Adds warehouse_stock junction table for tracking stock per warehouse per product.
+
+CREATE TABLE IF NOT EXISTS warehouse_stock (
+    id              TEXT    NOT NULL PRIMARY KEY,
+    warehouse_id    TEXT    NOT NULL,
+    product_id      TEXT    NOT NULL,
+    quantity        REAL    NOT NULL DEFAULT 0.0,
+    min_quantity    REAL    NOT NULL DEFAULT 0.0,
+    sync_status     TEXT    NOT NULL DEFAULT 'PENDING',
+    created_at      INTEGER NOT NULL,
+    updated_at      INTEGER NOT NULL,
+    UNIQUE(warehouse_id, product_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_ws_warehouse ON warehouse_stock(warehouse_id);
+CREATE INDEX IF NOT EXISTS idx_ws_product   ON warehouse_stock(product_id);
+CREATE INDEX IF NOT EXISTS idx_ws_low_stock ON warehouse_stock(warehouse_id, quantity, min_quantity);
