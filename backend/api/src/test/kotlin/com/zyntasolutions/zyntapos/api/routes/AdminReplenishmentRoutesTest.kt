@@ -153,27 +153,27 @@ class AdminReplenishmentRoutesTest {
     // ── RBAC permissions ────────────────────────────────────────────────────────
 
     @Test
-    fun `list rules requires inventory:read`() {
+    fun `list rules requires inventory-read`() {
         val required = "inventory:read"
         assertTrue(required.startsWith("inventory:"))
         assertEquals("inventory:read", required)
     }
 
     @Test
-    fun `upsert rule requires inventory:write`() {
+    fun `upsert rule requires inventory-write`() {
         val required = "inventory:write"
         assertTrue(required.startsWith("inventory:"))
         assertEquals("inventory:write", required)
     }
 
     @Test
-    fun `delete rule requires inventory:write`() {
+    fun `delete rule requires inventory-write`() {
         val required = "inventory:write"
         assertEquals("inventory:write", required)
     }
 
     @Test
-    fun `suggestions endpoint requires inventory:read`() {
+    fun `suggestions endpoint requires inventory-read`() {
         val required = "inventory:read"
         assertEquals("inventory:read", required)
     }
