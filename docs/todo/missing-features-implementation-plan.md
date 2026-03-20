@@ -51,16 +51,18 @@ JWT validation, token revocation, heartbeat replay protection, circular parent d
 
 **Impact:** Offline-first data sync මුළුමනින්ම non-functional. Client data `sync_queue` table එකේ unprocessed ඉඳලා යයි.
 
-### Blocker 2: Multi-Store Data Architecture (C6.1 + C1.1–C1.5) — C1.1 DONE, rest 0% Backend
+### Blocker 2: Multi-Store Data Architecture (C6.1 + C1.1–C1.5) — C1.1–C1.4 DONE, C1.5 remaining
 
-Phase 2 core feature එක multi-store. C1.1 Global Product Catalog implemented (2026-03-19):
+Phase 2 core feature එක multi-store. C1.1–C1.4 implemented (2026-03-19/20):
 
 - **Global Product Catalog** (`master_products` + `store_products` tables) — ✅ DONE (C1.1, 2026-03-19)
-- **Store-Specific Inventory** backend support — `store_id` column products/stock tables වලට add කරන්න ඕන
-- **Inter-Store Transfer (IST)** backend pipeline — 0% (UI exists: `NewStockTransferScreen`, `StockTransferListScreen` — but backend routes, approval workflow, tracking tables නැහැ)
-- **Cross-Store Sync** (multi-node CRDT) — ✅ Single-store conflict resolution done (C6.1, 2026-03-19); multi-store context still needs design
+- **Store-Specific Inventory** backend + admin panel cross-store stock view — ✅ DONE (C1.2, 2026-03-19; `warehouse_stock` table + `WarehouseStockRepository`, admin `/inventory` route)
+- **Inter-Store Transfer (IST)** backend pipeline — ✅ DONE (C1.3, 2026-03-19/20; `stock_transfers` backend routes, approval workflow `REQUESTED→APPROVED→IN_TRANSIT→RECEIVED`, admin panel transfer dashboard, store-level transfer view)
+- **Stock In-Transit Tracking** — ✅ DONE (C1.4, 2026-03-20; `transit_tracking.sq`, `TransitTrackingRepositoryImpl`, 4 use cases, `TransitTrackerScreen`, auto-log DISPATCHED/RECEIVED at IST workflow transitions)
+- **Cross-Store Sync** (multi-node CRDT) — ✅ Single-store conflict resolution done (C6.1, 2026-03-19); `TRANSIT_EVENT` entity type added to sync engine
+- **Warehouse-to-Store Replenishment** (auto-PO) — ❌ 0% (C1.5, still pending)
 
-**Impact:** Multi-store features UI level එකේ scaffold එකයි ඇත්තේ — backend support නැතුව dead screens.
+**Impact:** C1.1–C1.4 fully live. Only C1.5 auto-replenishment logic remains before multi-store blocker is fully resolved.
 
 ### Blocker 3: Backend Test Coverage (B4) — ~55% vs 80% Target
 
@@ -567,24 +569,51 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 
 ---
 
-### C1.4 Stock In-Transit Tracking (මාර්ගයේ තොග නිරීක්ෂණය)
+### C1.4 Stock In-Transit Tracking (මාර්ගයේ තොග නිරීක්ෂණය) — ✅ IMPLEMENTED (2026-03-20)
 
 **Priority:** PHASE-2
-**Status:** SCHEMA EXISTS, NO LOGIC
+**Status:** ✅ FULLY IMPLEMENTED
 
-**Codebase State:**
-- `StockTransfer` model has `IN_TRANSIT` status enum value
-- `stock_transfers.sq` has `status TEXT NOT NULL DEFAULT 'REQUESTED'`
-- No tracking of physical transit progress
+> **HANDOFF (2026-03-20):** C1.4 fully implemented. Commits: `8de2cda` (implementation), `6f7c537` (test fix).
 
-**What's MISSING:**
-- [ ] `TransitTracking` domain model (transfer_id, current_location, estimated_arrival, tracking_notes)
-- [ ] `transit_tracking` SQLDelight table (transfer_id FK, status_update, timestamp, note)
-- [ ] Real-time transit status updates via sync engine
-- [ ] KMM UI: Transit tracker screen with status timeline
-- [ ] Dashboard widget: "In-Transit Items" count per store
-- [ ] Stock accounting: Products in transit deducted from source, not yet added to destination
-- [ ] Backend: Transit status update endpoint
+**What was implemented:**
+
+Domain layer (`shared/domain`):
+- `TransitEvent` model — `id`, `transferId`, `eventType` (DISPATCHED / CHECKPOINT / DELAY_ALERT / LOCATION_UPDATE / RECEIVED), `location?`, `note?`, `recordedAt`, `recordedBy`
+- `TransitTrackingRepository` interface — `getEventsForTransfer(transferId): Flow<List<TransitEvent>>`, `addEvent(event): Result<Unit>`, `getInTransitCount(storeId): Flow<Int>`
+- `SyncOperation.EntityType.TRANSIT_EVENT` constant added for offline-first sync
+
+Data layer (`shared/data`):
+- `transit_tracking.sq` — SQLDelight schema with FK to `stock_transfers`, indexed by `(transfer_id, recorded_at)` and `event_type`
+- `TransitTrackingRepositoryImpl` — reactive `Flow`-based reads; `SyncEnqueuer` called on every `addEvent()` for offline sync
+
+Use cases (`shared/domain`):
+- `AddTransitEventUseCase` — validates + logs manual events (blocks auto-generated DISPATCHED/RECEIVED)
+- `GetTransitHistoryUseCase` — reactive `Flow` timeline (oldest → newest)
+- `GetInTransitCountUseCase` — dashboard "In-Transit Items" count per store
+- `LogWorkflowTransitEventUseCase` — auto-logs DISPATCHED/RECEIVED at IST workflow transitions (called by ViewModel)
+
+UI layer (`composeApp/feature/multistore`):
+- `TransitTrackerScreen` — timeline view with event-type icon column, location + note display, timestamp formatting, inline log-event form
+- `InTransitCountBanner` — dashboard widget embedded in tracker screen
+- `WarehouseState`: `transitHistory`, `inTransitCount`, `transitEventForm` added
+- `WarehouseIntent`: 6 new transit intents (`LoadTransitHistory`, `LogTransitEvent`, `UpdateTransitLocation`, `UpdateTransitNote`, `SubmitTransitEvent`, `NavigateToTransitTracker`)
+- `WarehouseEffect`: `NavigateToTransitTracker`, `TransitEventAdded`
+- `WarehouseViewModel`: `onDispatchTransfer` + `onReceiveTransfer` auto-log DISPATCHED/RECEIVED; full transit form handlers
+
+**What's DONE:**
+- [x] `TransitEvent` domain model + `TransitTrackingRepository` interface
+- [x] `transit_tracking.sq` SQLDelight schema
+- [x] `TransitTrackingRepositoryImpl` with sync integration
+- [x] 4 use cases (Add, GetHistory, GetCount, LogWorkflow)
+- [x] `TransitTrackerScreen` UI with event timeline
+- [x] `InTransitCountBanner` dashboard widget
+- [x] `WarehouseViewModel` wired with all transit intents/effects
+- [x] `MultiStoreViewModelTest` updated for new constructor params
+
+**What's NOT done (deferred to later phases):**
+- Backend transit status update endpoint (REST `PATCH /transfers/{id}/transit-events`) — currently client-side only via sync engine
+- Admin panel transit tracking view
 
 ---
 
