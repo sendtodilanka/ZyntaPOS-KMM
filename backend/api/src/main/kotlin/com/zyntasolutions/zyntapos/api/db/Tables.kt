@@ -241,3 +241,17 @@ object EmailTemplates : Table("email_templates") {
     val createdAt = timestampWithTimeZone("created_at")
     override val primaryKey = PrimaryKey(id)
 }
+
+// ── V28: Warehouse stock levels (C1.2) ────────────────────────────────────────
+
+object WarehouseStock : Table("warehouse_stock") {
+    val id          = text("id")
+    val warehouseId = text("warehouse_id")
+    val productId   = text("product_id")
+    val storeId     = text("store_id")
+    val quantity    = decimal("quantity", precision = 14, scale = 4)
+    val minQuantity = decimal("min_quantity", precision = 14, scale = 4)
+    val syncVersion = long("sync_version")
+    val updatedAt   = timestampWithTimeZone("updated_at")
+    override val primaryKey = PrimaryKey(id)
+}

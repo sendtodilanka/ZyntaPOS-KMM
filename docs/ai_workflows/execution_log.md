@@ -3977,3 +3977,36 @@ Backend — Service update:
 | Step[5] | Deploy to VPS | #169 | ✅ |
 | Step[6] | Smoke Test | #161 | ✅ (`/ping` ✅ `/health db=ok` ✅) |
 | Step[7] | Verify Endpoints | #315 | ✅ |
+
+---
+
+## C1.2 Deferred Items — Backend + Admin Panel (2026-03-20)
+
+**Branch:** `claude/c1-2-backend-warehouse-stock-osMp7`
+**Status:** In Progress
+
+### What was deferred from C1.2 (KMM session)
+
+Three items were out of scope for the KMM-only C1.2 task and are now implemented:
+
+### 1. Backend migration for `warehouse_stock` server-side table
+
+- [x] `V28__warehouse_stock.sql` — `warehouse_stock` table with `UNIQUE(warehouse_id, product_id)` + 4 indexes
+- [x] `db/Tables.kt` — `WarehouseStock` Exposed table object added
+- [x] `repository/WarehouseStockRepository.kt` — `getByWarehouse`, `getByProduct`, `getByStore`, `getGlobal`, `upsert`
+- [x] `di/AppModule.kt` — `single { WarehouseStockRepository() }` registered
+- [x] `sync/EntityApplier.kt` — `"WAREHOUSE_STOCK"` branch added to `applyInTransaction()` dispatcher; `applyWarehouseStock()` uses `WarehouseStock.upsert()` / `deleteWhere`
+
+### 2. Backend: `GET /admin/inventory/global?productId=X&storeId=Y`
+
+- [x] `auth/AdminPermissions.kt` — `"inventory:read"` permission added: `setOf(ADMIN, OPERATOR, FINANCE)`
+- [x] `routes/AdminInventoryRoutes.kt` — new route; enforces `inventory:read`; returns `GlobalInventoryResponse` (total, lowStock count, items list)
+- [x] `plugins/Routing.kt` — `adminInventoryRoutes()` registered inside admin CSRF+IP block
+
+### 3. Admin panel: Cross-store/warehouse stock level comparison view
+
+- [x] `admin-panel/src/hooks/use-auth.ts` — `inventory:read` added to ADMIN, OPERATOR, FINANCE permission lists
+- [x] `admin-panel/src/api/inventory.ts` — `useGlobalInventory(filters)` TanStack Query hook
+- [x] `admin-panel/src/routes/inventory/index.tsx` — table view with product/store ID filters and low-stock toggle; `inventory:read` gated via sidebar permission
+- [x] `admin-panel/src/routeTree.gen.ts` — `/inventory/` route registered in generated route tree
+- [x] `admin-panel/src/components/layout/Sidebar.tsx` — "Inventory" nav item added to Management group
