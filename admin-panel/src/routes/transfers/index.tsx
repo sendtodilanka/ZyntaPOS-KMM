@@ -146,7 +146,7 @@ function TransfersPage() {
     dispatch: { title: 'Dispatch transfer', description: 'Mark this transfer as IN_TRANSIT? This confirms goods have left the source warehouse.', confirmLabel: 'Dispatch', variant: 'default' },
     receive:  { title: 'Receive transfer',  description: 'Mark goods as RECEIVED? This completes the inter-store transfer.',       confirmLabel: 'Receive',  variant: 'default'      },
     cancel:   { title: 'Cancel transfer',   description: 'Cancel this transfer? No stock will be moved.',                         confirmLabel: 'Cancel',   variant: 'destructive'  },
-  }[pendingAction.type] as const) : null;
+  }[pendingAction.type]) : null;
 
   return (
     <div className="space-y-6">
