@@ -430,6 +430,17 @@ class SyncEngine(
             SyncOperation.EntityType.MASTER_PRODUCT   -> masterProductRepository.upsertFromSyncPayload(payload)
             SyncOperation.EntityType.STORE_PRODUCT    -> storeProductOverrideRepository.upsertFromSyncPayload(payload)
             SyncOperation.EntityType.USER             -> { /* read-only from device — managed via auth */ }
+            // Phase 2: Multi-store entities (C1.1–C1.5) — server-managed, deltas acknowledged
+            // Local data is refreshed via REST API pull; individual delta application not needed.
+            SyncOperation.EntityType.WAREHOUSE_STOCK    -> log.d("Delta ack: warehouse_stock/${entityType}")
+            SyncOperation.EntityType.STOCK_TRANSFER     -> log.d("Delta ack: stock_transfer/${entityType}")
+            SyncOperation.EntityType.PURCHASE_ORDER     -> log.d("Delta ack: purchase_order/${entityType}")
+            SyncOperation.EntityType.TRANSIT_EVENT      -> log.d("Delta ack: transit_event/${entityType}")
+            SyncOperation.EntityType.REPLENISHMENT_RULE -> log.d("Delta ack: replenishment_rule/${entityType}")
+            SyncOperation.EntityType.WAREHOUSE          -> log.d("Delta ack: warehouse/${entityType}")
+            SyncOperation.EntityType.COUPON             -> log.d("Delta ack: coupon/${entityType}")
+            SyncOperation.EntityType.EXPENSE            -> log.d("Delta ack: expense/${entityType}")
+            SyncOperation.EntityType.EMPLOYEE           -> log.d("Delta ack: employee/${entityType}")
             else -> log.w("Unknown entityType for delta op: $entityType")
         }
     }

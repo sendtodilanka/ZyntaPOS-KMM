@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-20 (C1.5 replenishment fully implemented; Blocker 2 resolved)
+**Last Updated:** 2026-03-20 (Phase 2 sync pipeline + admin panel fully integrated; Blocker 1 & 2 resolved)
 **Status:** Approved — Verified against codebase 2026-03-20
 
 ---
@@ -64,9 +64,11 @@ Phase 2 core feature එක multi-store. C1.1–C1.5 all implemented (2026-03-19
 
 **Impact:** Blocker 2 is fully resolved. All 5 centralized inventory management features are implemented end-to-end (KMM + backend + admin panel for C1.1–C1.3, KMM + backend for C1.4–C1.5).
 
-**Remaining minor sync integration gaps (non-blocking):**
-- `PURCHASE_ORDER`, `REPLENISHMENT_RULE`, `TRANSIT_EVENT` entity type constants are defined in `SyncOperation.EntityType` and KMM repos enqueue sync operations correctly, but backend `SyncValidator.VALID_ENTITY_TYPES` and `EntityApplier` do not yet include handlers for these 3 types. Client-side changes sync via REST admin APIs; bi-directional sync for these entities is a Phase 2 polish item.
-- Admin panel replenishment dashboard (sidebar nav item + React UI) not yet created — backend REST endpoints at `/admin/replenishment/rules` and `/admin/replenishment/suggestions` are ready for integration.
+**All sync integration gaps resolved (2026-03-20):**
+- ✅ `SyncValidator.VALID_ENTITY_TYPES` — all Phase 2 entity types added (both UPPERCASE and lowercase aliases) + field-level validation for `REPLENISHMENT_RULE`, `PURCHASE_ORDER`, `TRANSIT_EVENT`, `WAREHOUSE_STOCK`
+- ✅ `EntityApplier` — handlers added for `REPLENISHMENT_RULE`, `STOCK_TRANSFER`, `PURCHASE_ORDER` (normalized table upsert/delete) + `TRANSIT_EVENT` (append-only via entity_snapshots) + lowercase aliases on all 25 existing when branches
+- ✅ `SyncEngine.applyUpsert()` — all Phase 2 entity types acknowledged (server-managed; local data refreshed via REST API pull)
+- ✅ Admin panel replenishment dashboard — `/replenishment` route with Reorder Alerts + Rules tabs, sidebar nav item, TanStack Query hooks, delete action with confirmation
 - Push notification on transfer arrival (FCM) — deferred to Phase 3.
 
 ### Blocker 3: Backend Test Coverage (B4) — ~55% vs 80% Target
@@ -727,9 +729,9 @@ Backend Tests:
 - `backend/api/src/test/kotlin/.../repository/ReplenishmentRepositoryTest.kt`
 
 **Deferred to Phase 2 polish / Phase 3:**
-- [ ] Admin panel: Replenishment sidebar nav item + React dashboard (backend endpoints ready at `/admin/replenishment/*`)
+- [x] Admin panel: Replenishment sidebar nav item + React dashboard (backend endpoints ready at `/admin/replenishment/*`)
 - [ ] Backend: Scheduled auto-replenishment job (cron/Quartz) — currently manual trigger only via KMM UI
-- [ ] Backend: `EntityApplier` + `SyncValidator` handlers for REPLENISHMENT_RULE entity type (bi-directional sync)
+- [x] Backend: `EntityApplier` + `SyncValidator` handlers for REPLENISHMENT_RULE entity type (bi-directional sync)
 
 ---
 

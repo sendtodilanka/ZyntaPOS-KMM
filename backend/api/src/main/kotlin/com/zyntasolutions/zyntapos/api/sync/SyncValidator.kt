@@ -26,6 +26,21 @@ class SyncValidator {
             "SHIFT", "ATTENDANCE", "MEDIA_FILE", "E_INVOICE",
             "ACCOUNTING_ENTRY", "CUSTOMER_GROUP", "UNIT_OF_MEASURE",
             "WAREHOUSE", "INSTALLMENT", "LEAVE_RECORD", "PAYROLL",
+            // Phase 2: Multi-store (C1.1–C1.5)
+            "MASTER_PRODUCT", "STORE_PRODUCT", "WAREHOUSE_STOCK",
+            "STOCK_TRANSFER", "PURCHASE_ORDER", "TRANSIT_EVENT",
+            "REPLENISHMENT_RULE",
+            // Lowercase aliases — KMM client sends lowercase EntityType constants
+            "product", "category", "customer", "order", "order_item",
+            "supplier", "tax_group", "stock", "stock_adjustment",
+            "settings", "cash_register", "register_session", "cash_movement",
+            "payment_split", "coupon", "expense", "employee",
+            "shift", "attendance", "media_file", "e_invoice",
+            "accounting_entry", "customer_group", "unit_of_measure",
+            "warehouse", "installment", "leave_record", "payroll",
+            "master_product", "store_product", "warehouse_stock",
+            "stock_transfer", "purchase_order", "transit_event",
+            "replenishment_rule",
         )
         private val json = Json { ignoreUnknownKeys = true }
     }
@@ -201,6 +216,32 @@ class SyncValidator {
                 "SETTINGS" -> {
                     val key = obj.str("key")
                     if (key.isNullOrBlank()) errors.add("SETTINGS.key must not be blank")
+                }
+                "REPLENISHMENT_RULE", "replenishment_rule" -> {
+                    val productId = obj.str("product_id")
+                    if (productId.isNullOrBlank()) errors.add("REPLENISHMENT_RULE.product_id must not be blank")
+                    val warehouseId = obj.str("warehouse_id")
+                    if (warehouseId.isNullOrBlank()) errors.add("REPLENISHMENT_RULE.warehouse_id must not be blank")
+                    val reorderPoint = obj.dbl("reorder_point")
+                    if (reorderPoint < 0) errors.add("REPLENISHMENT_RULE.reorder_point must be non-negative")
+                    val reorderQty = obj.dbl("reorder_qty")
+                    if (reorderQty < 0) errors.add("REPLENISHMENT_RULE.reorder_qty must be non-negative")
+                }
+                "PURCHASE_ORDER", "purchase_order" -> {
+                    val supplierId = obj.str("supplier_id")
+                    if (supplierId.isNullOrBlank()) errors.add("PURCHASE_ORDER.supplier_id must not be blank")
+                }
+                "TRANSIT_EVENT", "transit_event" -> {
+                    val transferId = obj.str("transfer_id")
+                    if (transferId.isNullOrBlank()) errors.add("TRANSIT_EVENT.transfer_id must not be blank")
+                    val eventType = obj.str("event_type")
+                    if (eventType.isNullOrBlank()) errors.add("TRANSIT_EVENT.event_type must not be blank")
+                }
+                "WAREHOUSE_STOCK", "warehouse_stock" -> {
+                    val warehouseId = obj.str("warehouse_id")
+                    if (warehouseId.isNullOrBlank()) errors.add("WAREHOUSE_STOCK.warehouse_id must not be blank")
+                    val productId = obj.str("product_id")
+                    if (productId.isNullOrBlank()) errors.add("WAREHOUSE_STOCK.product_id must not be blank")
                 }
                 // Other entity types: structural JSON validation only (already done above)
             }
