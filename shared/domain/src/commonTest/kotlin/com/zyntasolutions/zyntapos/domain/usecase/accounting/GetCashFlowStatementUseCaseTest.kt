@@ -169,4 +169,64 @@ class GetCashFlowStatementUseCaseTest {
         assertEquals(0.0, data.netChange, absoluteTolerance = 0.005)
         assertEquals(2_000.0, data.closingCash, absoluteTolerance = 0.005)
     }
+
+    /**
+     * Financing section: loan drawdown inflow 20 000, repayment outflow 5 000
+     * → netFinancing = 15 000.
+     */
+    @Test
+    fun test_financing_activities_sum_correctly() = runTest {
+        val cf = cashFlow(
+            financingLines = listOf(
+                line("Loan drawdown", inflow = 20_000.0, outflow = 0.0),
+                line("Loan repayment", inflow = 0.0, outflow = 5_000.0),
+            ),
+        )
+        val result = useCase(cf).execute("store-1", "2026-01-01", "2026-01-31")
+
+        assertIs<Result.Success<FinancialStatement.CashFlow>>(result)
+        assertEquals(15_000.0, result.data.netFinancing, absoluteTolerance = 0.005)
+        assertEquals(2, result.data.financingLines.size)
+    }
+
+    /**
+     * When net outflows exceed inflows across all sections, netChange is negative
+     * and closingCash is less than openingCash.
+     */
+    @Test
+    fun test_negative_net_change_reduces_closing_cash() = runTest {
+        val cf = cashFlow(
+            operatingLines = listOf(line("Sales receipts", inflow = 1_000.0, outflow = 0.0)),
+            investingLines = listOf(line("Equipment purchase", inflow = 0.0, outflow = 8_000.0)),
+            openingCash = 5_000.0,
+        )
+        val result = useCase(cf).execute("store-1", "2026-01-01", "2026-01-31")
+
+        assertIs<Result.Success<FinancialStatement.CashFlow>>(result)
+        val data = result.data
+        assertTrue(data.netChange < 0.0)
+        assertEquals(5_000.0 + data.netChange, data.closingCash, absoluteTolerance = 0.005)
+    }
+
+    /**
+     * Repository error is propagated as [Result.Error].
+     */
+    @Test
+    fun test_repository_error_propagated() = runTest {
+        val errorRepo = FakeCashFlowRepo(Result.Error(RuntimeException("DB offline")))
+        val useCase = GetCashFlowStatementUseCase(errorRepo)
+
+        val result = useCase.execute("store-1", "2026-01-01", "2026-01-31")
+
+        assertIs<Result.Error>(result)
+    }
+
+    /**
+     * Individual line net values equal inflow − outflow.
+     */
+    @Test
+    fun test_individual_line_net_equals_inflow_minus_outflow() = runTest {
+        val l = line("Test line", inflow = 3_000.0, outflow = 1_200.0)
+        assertEquals(1_800.0, l.net, absoluteTolerance = 0.005)
+    }
 }

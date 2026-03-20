@@ -10,7 +10,6 @@ import kotlinx.datetime.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -80,6 +79,69 @@ class SaveCustomRoleUseCaseTest {
 
         assertIs<Result.Success<Unit>>(result)
         assertEquals(listOf(updated), repo.updatedRoles)
+        assertTrue(repo.createdRoles.isEmpty())
+    }
+
+    // ── Repository failure propagation ────────────────────────────────────────
+
+    @Test
+    fun `create with repository failure propagates Result Error`() = runTest {
+        val repo = FakeRoleRepository().also { it.shouldFail = true }
+        val result = SaveCustomRoleUseCase(repo)(makeRole(), isUpdate = false)
+
+        assertIs<Result.Error>(result)
+        assertTrue(repo.createdRoles.isEmpty())
+    }
+
+    @Test
+    fun `update with repository failure propagates Result Error`() = runTest {
+        val repo = FakeRoleRepository().also { it.shouldFail = true }
+        val result = SaveCustomRoleUseCase(repo)(makeRole(), isUpdate = true)
+
+        assertIs<Result.Error>(result)
+        assertTrue(repo.updatedRoles.isEmpty())
+    }
+
+    // ── Permission set ────────────────────────────────────────────────────────
+
+    @Test
+    fun `role with multiple permissions is persisted with all permissions`() = runTest {
+        val repo = FakeRoleRepository()
+        val role = makeRole().copy(
+            permissions = setOf(
+                Permission.MANAGE_PRODUCTS,
+                Permission.VIEW_REPORTS,
+                Permission.PROCESS_REFUND,
+            )
+        )
+        val result = SaveCustomRoleUseCase(repo)(role, isUpdate = false)
+
+        assertIs<Result.Success<Unit>>(result)
+        assertEquals(3, repo.createdRoles.first().permissions.size)
+        assertTrue(Permission.VIEW_REPORTS in repo.createdRoles.first().permissions)
+    }
+
+    @Test
+    fun `role with empty permissions is allowed and persisted`() = runTest {
+        val repo = FakeRoleRepository()
+        val role = makeRole().copy(permissions = emptySet())
+        val result = SaveCustomRoleUseCase(repo)(role, isUpdate = false)
+
+        assertIs<Result.Success<Unit>>(result)
+        assertTrue(repo.createdRoles.first().permissions.isEmpty())
+    }
+
+    // ── Whitespace edge cases ─────────────────────────────────────────────────
+
+    @Test
+    fun `tab-only role name returns ValidationException`() = runTest {
+        val repo   = FakeRoleRepository()
+        val result = SaveCustomRoleUseCase(repo)(makeRole(name = "\t\t"), isUpdate = false)
+
+        assertIs<Result.Error>(result)
+        val ex = (result as Result.Error).exception as ValidationException
+        assertEquals("name", ex.field)
+        assertEquals("REQUIRED", ex.rule)
         assertTrue(repo.createdRoles.isEmpty())
     }
 }
