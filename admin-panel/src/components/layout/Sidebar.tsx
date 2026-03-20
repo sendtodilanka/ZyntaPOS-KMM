@@ -2,7 +2,7 @@ import { Link, useRouterState } from '@tanstack/react-router';
 import {
   LayoutDashboard, Key, Store, Users, ClipboardList,
   RefreshCw, Settings2, BarChart3, Activity, Bell,
-  ChevronLeft, ChevronRight, X, SlidersHorizontal, Ticket, Mail,
+  ChevronLeft, ChevronRight, X, SlidersHorizontal, Ticket, Mail, Package,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUiStore } from '@/stores/ui-store';
@@ -35,6 +35,7 @@ const NAV_GROUPS: NavGroup[] = [
       { label: 'Stores', icon: Store, href: '/stores', permission: 'store:read' },
       { label: 'Users', icon: Users, href: '/users', permission: 'users:read' },
       { label: 'Tickets', icon: Ticket, href: '/tickets', permission: 'tickets:read' },
+      { label: 'Inventory', icon: Package, href: '/inventory', permission: 'inventory:read' },
     ],
   },
   {

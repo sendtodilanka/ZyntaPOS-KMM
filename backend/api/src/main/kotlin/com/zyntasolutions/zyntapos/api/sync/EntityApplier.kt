@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.api.sync
 
+import com.zyntasolutions.zyntapos.api.db.WarehouseStock
 import com.zyntasolutions.zyntapos.api.models.SyncOperation
 import com.zyntasolutions.zyntapos.api.service.MasterProducts
 import com.zyntasolutions.zyntapos.api.service.Products
@@ -401,6 +402,7 @@ class EntityApplier {
                 "CUSTOMER_GROUP"   -> applyCustomerGroup(storeId, op)
                 "MASTER_PRODUCT"   -> applyMasterProduct(op)
                 "STORE_PRODUCT"    -> applyStoreProduct(storeId, op)
+                "WAREHOUSE_STOCK"  -> applyWarehouseStock(storeId, op)
                 else -> { /* entity_snapshots trigger handles any remaining types */ }
             }
         } catch (e: Exception) {
@@ -1114,6 +1116,29 @@ class EntityApplier {
                 }
             }
             "DELETE" -> softDelete(CustomerGroups, CustomerGroups.id, CustomerGroups.isActive, CustomerGroups.syncVersion, CustomerGroups.updatedAt, op)
+        }
+    }
+
+    // ── Warehouse Stock (C1.2) ────────────────────────────────────────────
+
+    private fun applyWarehouseStock(storeId: String, op: SyncOperation) {
+        val payload = parsePayload(op) ?: return
+        when (op.operation) {
+            "INSERT", "CREATE", "UPDATE" -> {
+                val warehouseId = payload.str("warehouse_id") ?: return
+                val productId   = payload.str("product_id") ?: return
+                WarehouseStock.upsert(WarehouseStock.id) {
+                    it[WarehouseStock.id]          = op.entityId
+                    it[WarehouseStock.warehouseId] = warehouseId
+                    it[WarehouseStock.productId]   = productId
+                    it[WarehouseStock.storeId]     = storeId
+                    it[WarehouseStock.quantity]    = payload.dbl("quantity").toBigDecimal()
+                    it[WarehouseStock.minQuantity] = payload.dbl("min_quantity").toBigDecimal()
+                    it[WarehouseStock.syncVersion] = op.createdAt
+                    it[WarehouseStock.updatedAt]   = OffsetDateTime.now(ZoneOffset.UTC)
+                }
+            }
+            "DELETE" -> WarehouseStock.deleteWhere { WarehouseStock.id eq op.entityId }
         }
     }
 

@@ -15,6 +15,7 @@ import com.zyntasolutions.zyntapos.api.repository.TicketCommentRepository
 import com.zyntasolutions.zyntapos.api.repository.TicketCommentRepositoryImpl
 import com.zyntasolutions.zyntapos.api.repository.ConflictLogRepository
 import com.zyntasolutions.zyntapos.api.repository.DeadLetterRepository
+import com.zyntasolutions.zyntapos.api.repository.WarehouseStockRepository
 import com.zyntasolutions.zyntapos.api.repository.EntitySnapshotRepository
 import com.zyntasolutions.zyntapos.api.repository.PosUserRepository
 import com.zyntasolutions.zyntapos.api.repository.PosUserRepositoryImpl
@@ -103,6 +104,8 @@ val appModule = module {
     single<AdminUserRepository> { AdminUserRepositoryImpl() }
     single<PosUserRepository> { PosUserRepositoryImpl() }
     single<ProductRepository> { ProductRepositoryImpl() }
+
+    single { WarehouseStockRepository() }
 
     // ── Sync engine repositories ──────────────────────────────────────────────
     single { SyncOperationRepository() }
