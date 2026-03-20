@@ -1,0 +1,84 @@
+-- ============================================================
+-- replenishment_rules.sq — Per-product warehouse replenishment thresholds.
+-- Auto-PO generation rules (C1.5).
+-- ============================================================
+
+CREATE TABLE replenishment_rules (
+    id              TEXT    NOT NULL PRIMARY KEY,
+    product_id      TEXT    NOT NULL REFERENCES products(id),
+    warehouse_id    TEXT    NOT NULL REFERENCES warehouses(id),
+    supplier_id     TEXT    NOT NULL REFERENCES suppliers(id),
+    reorder_point   REAL    NOT NULL DEFAULT 0.0,
+    reorder_qty     REAL    NOT NULL DEFAULT 1.0,
+    auto_approve    INTEGER NOT NULL DEFAULT 0,  -- 0 = manual, 1 = auto-create PO
+    is_active       INTEGER NOT NULL DEFAULT 1,
+    created_at      INTEGER NOT NULL,
+    updated_at      INTEGER NOT NULL,
+    sync_status     TEXT    NOT NULL DEFAULT 'PENDING',
+    UNIQUE(product_id, warehouse_id)
+);
+
+CREATE INDEX idx_rr_product   ON replenishment_rules(product_id);
+CREATE INDEX idx_rr_warehouse ON replenishment_rules(warehouse_id);
+CREATE INDEX idx_rr_supplier  ON replenishment_rules(supplier_id);
+CREATE INDEX idx_rr_active    ON replenishment_rules(is_active);
+
+-- ── Read queries ─────────────────────────────────────────────────────────────
+
+getAllRules:
+SELECT rr.*, p.name AS product_name, w.name AS warehouse_name, s.name AS supplier_name
+FROM replenishment_rules rr
+JOIN products p   ON p.id = rr.product_id
+JOIN warehouses w ON w.id = rr.warehouse_id
+JOIN suppliers s  ON s.id = rr.supplier_id
+ORDER BY p.name ASC;
+
+getRulesByWarehouse:
+SELECT rr.*, p.name AS product_name, w.name AS warehouse_name, s.name AS supplier_name
+FROM replenishment_rules rr
+JOIN products p   ON p.id = rr.product_id
+JOIN warehouses w ON w.id = rr.warehouse_id
+JOIN suppliers s  ON s.id = rr.supplier_id
+WHERE rr.warehouse_id = ? AND rr.is_active = 1
+ORDER BY p.name ASC;
+
+getAutoApproveRules:
+SELECT rr.*, p.name AS product_name, w.name AS warehouse_name, s.name AS supplier_name
+FROM replenishment_rules rr
+JOIN products p   ON p.id = rr.product_id
+JOIN warehouses w ON w.id = rr.warehouse_id
+JOIN suppliers s  ON s.id = rr.supplier_id
+WHERE rr.is_active = 1 AND rr.auto_approve = 1
+ORDER BY p.name ASC;
+
+getRuleByProductAndWarehouse:
+SELECT rr.*, p.name AS product_name, w.name AS warehouse_name, s.name AS supplier_name
+FROM replenishment_rules rr
+JOIN products p   ON p.id = rr.product_id
+JOIN warehouses w ON w.id = rr.warehouse_id
+JOIN suppliers s  ON s.id = rr.supplier_id
+WHERE rr.product_id = ? AND rr.warehouse_id = ?
+LIMIT 1;
+
+-- ── Write queries ────────────────────────────────────────────────────────────
+
+insertRule:
+INSERT INTO replenishment_rules(
+    id, product_id, warehouse_id, supplier_id,
+    reorder_point, reorder_qty, auto_approve, is_active,
+    created_at, updated_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING');
+
+updateRule:
+UPDATE replenishment_rules
+SET supplier_id   = ?,
+    reorder_point = ?,
+    reorder_qty   = ?,
+    auto_approve  = ?,
+    is_active     = ?,
+    updated_at    = ?,
+    sync_status   = 'PENDING'
+WHERE id = ?;
+
+deleteRule:
+DELETE FROM replenishment_rules WHERE id = ?;
