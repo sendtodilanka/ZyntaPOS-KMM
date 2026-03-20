@@ -813,10 +813,12 @@ gradle <task>      # wrong — may use wrong version
 
 | Layer | Coverage Target   | Tools |
 |-------|-------------------|-------|
-| Use Cases | 95%               | Kotlin Test + Mockative 3 |
-| Repositories | 80%               | Kotlin Test + Mockative 3 |
-| ViewModels | 80%               | Kotlin Test + Turbine (for Flows) |
+| Use Cases | 95%+              | Kotlin Test + Mockative 3 |
+| Repositories | 95%+              | Kotlin Test + Mockative 3 |
+| ViewModels | 95%+              | Kotlin Test + Turbine (for Flows) |
 | Compose UI | Need for all flow | Compose UI Test (Phase 2) |
+
+**Kover coverage:** All modules must maintain **95%+ line coverage** as reported by Kover. CI Gate enforces this threshold — PRs dropping below 95% will be blocked.
 
 **Test organization:**
 - `src/commonTest/` — shared cross-platform tests (domain logic, use cases)
