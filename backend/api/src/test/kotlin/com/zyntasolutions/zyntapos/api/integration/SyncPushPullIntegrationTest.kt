@@ -73,6 +73,10 @@ class SyncPushPullIntegrationTest {
         "COUPON" -> """{"code":"CODE-$id","name":"Coupon $id","discount_value":10}"""
         "PAYMENT_SPLIT" -> """{"order_id":"o-1","method":"CASH","amount":50,"name":"split-$id"}"""
         "SETTINGS" -> """{"key":"setting-$id","value":"val-$id","name":"setting-$id"}"""
+        "REPLENISHMENT_RULE" -> """{"product_id":"p-1","warehouse_id":"w-1","reorder_point":10,"reorder_qty":50}"""
+        "PURCHASE_ORDER" -> """{"supplier_id":"s-1","order_number":"PO-$id","total_amount":100}"""
+        "TRANSIT_EVENT" -> """{"transfer_id":"t-1","event_type":"DISPATCHED"}"""
+        "WAREHOUSE_STOCK" -> """{"warehouse_id":"w-1","product_id":"p-1","quantity":100}"""
         else -> """{"id":"entity-$id","name":"Product $id"}"""
     }
 
