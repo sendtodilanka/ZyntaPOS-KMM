@@ -39,6 +39,7 @@ class AutoReplenishmentUseCase(
         val rules = when (val result = replenishmentRuleRepository.getAutoApproveRules()) {
             is Result.Success -> result.data
             is Result.Error   -> return ReplenishmentResult(errors = listOf(result.exception.message ?: "Failed to load rules"))
+            is Result.Loading -> return ReplenishmentResult(errors = listOf("Unexpected loading state when fetching rules"))
         }
 
         var created = 0
@@ -51,6 +52,11 @@ class AutoReplenishmentUseCase(
                 is Result.Error   -> {
                     skipped++
                     errors.add("${rule.productName ?: rule.productId}: could not read stock — ${result.exception.message}")
+                    continue
+                }
+                is Result.Loading -> {
+                    skipped++
+                    errors.add("${rule.productName ?: rule.productId}: unexpected loading state reading stock")
                     continue
                 }
             }
@@ -89,6 +95,10 @@ class AutoReplenishmentUseCase(
                 is Result.Error   -> {
                     skipped++
                     errors.add("${rule.productName ?: rule.productId}: ${createResult.exception.message}")
+                }
+                is Result.Loading -> {
+                    skipped++
+                    errors.add("${rule.productName ?: rule.productId}: unexpected loading state creating PO")
                 }
             }
         }

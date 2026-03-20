@@ -105,6 +105,7 @@ class CreatePurchaseOrderUseCase(
         return when (val result = purchaseOrderRepository.create(order)) {
             is Result.Success -> Result.Success(order.id)
             is Result.Error   -> result
+            is Result.Loading -> Result.Error(ValidationException("Unexpected loading state", field = "create", rule = "INTERNAL"))
         }
     }
 }
