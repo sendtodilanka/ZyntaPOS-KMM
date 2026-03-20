@@ -2,6 +2,7 @@ package com.zyntasolutions.zyntapos.api.test
 
 import com.zyntasolutions.zyntapos.api.auth.AdminRole
 import com.zyntasolutions.zyntapos.api.db.AdminUsers
+import com.zyntasolutions.zyntapos.api.db.ReplenishmentRules
 import com.zyntasolutions.zyntapos.api.db.Stores
 import com.zyntasolutions.zyntapos.api.db.Users
 import com.zyntasolutions.zyntapos.api.db.WarehouseStock
@@ -153,6 +154,35 @@ object TestFixtures {
                 it[WarehouseStock.minQuantity] = minQuantity
                 it[WarehouseStock.syncVersion] = syncVersion
                 it[WarehouseStock.updatedAt]   = OffsetDateTime.now(ZoneOffset.UTC)
+            }
+        }
+        return id
+    }
+
+    fun insertReplenishmentRule(
+        id: String = "rr-${UUID.randomUUID().toString().take(8)}",
+        productId: String = "prod-${UUID.randomUUID().toString().take(8)}",
+        warehouseId: String = "wh-${UUID.randomUUID().toString().take(8)}",
+        supplierId: String = "sup-${UUID.randomUUID().toString().take(8)}",
+        reorderPoint: BigDecimal = BigDecimal("10.0000"),
+        reorderQty: BigDecimal = BigDecimal("50.0000"),
+        autoApprove: Boolean = false,
+        isActive: Boolean = true,
+        createdBy: String? = null,
+    ): String {
+        transaction {
+            ReplenishmentRules.insert {
+                it[ReplenishmentRules.id]           = id
+                it[ReplenishmentRules.productId]    = productId
+                it[ReplenishmentRules.warehouseId]  = warehouseId
+                it[ReplenishmentRules.supplierId]   = supplierId
+                it[ReplenishmentRules.reorderPoint] = reorderPoint
+                it[ReplenishmentRules.reorderQty]   = reorderQty
+                it[ReplenishmentRules.autoApprove]  = autoApprove
+                it[ReplenishmentRules.isActive]     = isActive
+                it[ReplenishmentRules.createdBy]    = createdBy
+                it[ReplenishmentRules.createdAt]    = OffsetDateTime.now(ZoneOffset.UTC)
+                it[ReplenishmentRules.updatedAt]    = OffsetDateTime.now(ZoneOffset.UTC)
             }
         }
         return id
