@@ -1,0 +1,442 @@
+package com.zyntasolutions.zyntapos.feature.accounting
+
+import app.cash.turbine.test
+import com.zyntasolutions.zyntapos.core.result.Result
+import com.zyntasolutions.zyntapos.domain.model.AccountBalance
+import com.zyntasolutions.zyntapos.domain.model.FinancialStatement
+import com.zyntasolutions.zyntapos.domain.model.GeneralLedgerEntry
+import com.zyntasolutions.zyntapos.domain.repository.FinancialStatementRepository
+import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetBalanceSheetUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetCashFlowStatementUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetProfitAndLossUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetTrialBalanceUseCase
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
+
+/**
+ * Unit tests for [FinancialStatementsViewModel].
+ */
+@OptIn(ExperimentalCoroutinesApi::class)
+class FinancialStatementsViewModelTest {
+
+    private val testDispatcher = StandardTestDispatcher()
+
+    private val mockPandL = FinancialStatement.PAndL(
+        dateFrom = "2026-03-01",
+        dateTo = "2026-03-31",
+        revenueLines = emptyList(),
+        cogsLines = emptyList(),
+        expenseLines = emptyList(),
+        totalRevenue = 50_000.0,
+        totalCogs = 20_000.0,
+        grossProfit = 30_000.0,
+        grossMarginPct = 60.0,
+        totalExpenses = 10_000.0,
+        netProfit = 20_000.0,
+    )
+
+    private val mockBalanceSheet = FinancialStatement.BalanceSheet(
+        asOfDate = "2026-03-31",
+        assetLines = emptyList(),
+        liabilityLines = emptyList(),
+        equityLines = emptyList(),
+        totalAssets = 100_000.0,
+        totalLiabilities = 40_000.0,
+        totalEquity = 60_000.0,
+        retainedEarnings = 20_000.0,
+    )
+
+    private val mockTrialBalance = FinancialStatement.TrialBalance(
+        asOfDate = "2026-03-31",
+        lines = emptyList(),
+        totalDebits = 150_000.0,
+        totalCredits = 150_000.0,
+        isBalanced = true,
+    )
+
+    private val mockCashFlow = FinancialStatement.CashFlow(
+        dateFrom = "2026-03-01",
+        dateTo = "2026-03-31",
+        operatingLines = emptyList(),
+        investingLines = emptyList(),
+        financingLines = emptyList(),
+        netOperating = 15_000.0,
+        netInvesting = -5_000.0,
+        netFinancing = 0.0,
+        netChange = 10_000.0,
+        openingCash = 5_000.0,
+        closingCash = 15_000.0,
+    )
+
+    private var pandlResult: Result<FinancialStatement.PAndL> = Result.Success(mockPandL)
+    private var balanceSheetResult: Result<FinancialStatement.BalanceSheet> = Result.Success(mockBalanceSheet)
+    private var trialBalanceResult: Result<FinancialStatement.TrialBalance> = Result.Success(mockTrialBalance)
+    private var cashFlowResult: Result<FinancialStatement.CashFlow> = Result.Success(mockCashFlow)
+
+    private val fakeStatementRepo = object : FinancialStatementRepository {
+        override suspend fun getProfitAndLoss(
+            storeId: String, fromDate: String, toDate: String
+        ): Result<FinancialStatement.PAndL> = pandlResult
+
+        override suspend fun getBalanceSheet(
+            storeId: String, asOfDate: String
+        ): Result<FinancialStatement.BalanceSheet> = balanceSheetResult
+
+        override suspend fun getTrialBalance(
+            storeId: String, asOfDate: String
+        ): Result<FinancialStatement.TrialBalance> = trialBalanceResult
+
+        override suspend fun getCashFlowStatement(
+            storeId: String, fromDate: String, toDate: String
+        ): Result<FinancialStatement.CashFlow> = cashFlowResult
+
+        override suspend fun getGeneralLedger(
+            storeId: String, accountId: String, fromDate: String, toDate: String
+        ): Result<List<GeneralLedgerEntry>> = Result.Success(emptyList())
+
+        override suspend fun upsertBalance(balance: AccountBalance): Result<Unit> = Result.Success(Unit)
+        override suspend fun rebuildAllBalances(storeId: String, periodId: String): Result<Unit> = Result.Success(Unit)
+    }
+
+    private lateinit var viewModel: FinancialStatementsViewModel
+
+    @BeforeTest
+    fun setup() {
+        Dispatchers.setMain(testDispatcher)
+        viewModel = FinancialStatementsViewModel(
+            getProfitAndLossUseCase = GetProfitAndLossUseCase(fakeStatementRepo),
+            getBalanceSheetUseCase = GetBalanceSheetUseCase(fakeStatementRepo),
+            getTrialBalanceUseCase = GetTrialBalanceUseCase(fakeStatementRepo),
+            getCashFlowStatementUseCase = GetCashFlowStatementUseCase(fakeStatementRepo),
+        )
+    }
+
+    @AfterTest
+    fun teardown() {
+        Dispatchers.resetMain()
+    }
+
+    // ── Initial state ──────────────────────────────────────────────────────────
+
+    @Test
+    fun `initial state has PROFIT_LOSS as active tab`() {
+        assertEquals(FinancialStatementTab.PROFIT_LOSS, viewModel.currentState.activeTab)
+    }
+
+    @Test
+    fun `initial state has default dates set`() {
+        val state = viewModel.currentState
+        assertTrue(state.fromDate.isNotBlank())
+        assertTrue(state.toDate.isNotBlank())
+        assertTrue(state.asOfDate.isNotBlank())
+    }
+
+    @Test
+    fun `initial state has no loaded statements`() {
+        val state = viewModel.currentState
+        assertNull(state.pAndL)
+        assertNull(state.balanceSheet)
+        assertNull(state.trialBalance)
+        assertNull(state.cashFlow)
+        assertNull(state.error)
+        assertFalse(state.isLoading)
+    }
+
+    // ── LoadPandL ──────────────────────────────────────────────────────────────
+
+    @Test
+    fun `LoadPandL sets pAndL in state on success`() = runTest {
+        viewModel.handleIntentForTest(
+            FinancialStatementsIntent.LoadPandL("store-001", "2026-03-01", "2026-03-31")
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNotNull(viewModel.currentState.pAndL)
+        assertEquals(50_000.0, viewModel.currentState.pAndL!!.totalRevenue)
+    }
+
+    @Test
+    fun `LoadPandL updates storeId and dates in state`() = runTest {
+        viewModel.handleIntentForTest(
+            FinancialStatementsIntent.LoadPandL("store-001", "2026-03-01", "2026-03-31")
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("store-001", viewModel.currentState.storeId)
+        assertEquals("2026-03-01", viewModel.currentState.fromDate)
+        assertEquals("2026-03-31", viewModel.currentState.toDate)
+    }
+
+    @Test
+    fun `LoadPandL clears isLoading after success`() = runTest {
+        viewModel.handleIntentForTest(
+            FinancialStatementsIntent.LoadPandL("store-001", "2026-03-01", "2026-03-31")
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.currentState.isLoading)
+    }
+
+    @Test
+    fun `LoadPandL failure emits ShowError effect`() = runTest {
+        pandlResult = Result.Error(Exception("P&L computation failed"))
+
+        viewModel.effects.test {
+            viewModel.handleIntentForTest(
+                FinancialStatementsIntent.LoadPandL("store-001", "2026-03-01", "2026-03-31")
+            )
+            testDispatcher.scheduler.advanceUntilIdle()
+            val effect = awaitItem()
+            assertTrue(effect is FinancialStatementsEffect.ShowError)
+            assertTrue((effect as FinancialStatementsEffect.ShowError).message.contains("P&L computation"))
+        }
+    }
+
+    @Test
+    fun `LoadPandL failure sets error in state`() = runTest {
+        pandlResult = Result.Error(Exception("P&L computation failed"))
+        viewModel.handleIntentForTest(
+            FinancialStatementsIntent.LoadPandL("store-001", "2026-03-01", "2026-03-31")
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNotNull(viewModel.currentState.error)
+    }
+
+    // ── LoadBalanceSheet ───────────────────────────────────────────────────────
+
+    @Test
+    fun `LoadBalanceSheet sets balanceSheet in state on success`() = runTest {
+        viewModel.handleIntentForTest(
+            FinancialStatementsIntent.LoadBalanceSheet("store-001", "2026-03-31")
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNotNull(viewModel.currentState.balanceSheet)
+        assertEquals(100_000.0, viewModel.currentState.balanceSheet!!.totalAssets)
+    }
+
+    @Test
+    fun `LoadBalanceSheet updates asOfDate in state`() = runTest {
+        viewModel.handleIntentForTest(
+            FinancialStatementsIntent.LoadBalanceSheet("store-001", "2026-03-31")
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("2026-03-31", viewModel.currentState.asOfDate)
+    }
+
+    @Test
+    fun `LoadBalanceSheet failure emits ShowError effect`() = runTest {
+        balanceSheetResult = Result.Error(Exception("Balance sheet computation failed"))
+
+        viewModel.effects.test {
+            viewModel.handleIntentForTest(
+                FinancialStatementsIntent.LoadBalanceSheet("store-001", "2026-03-31")
+            )
+            testDispatcher.scheduler.advanceUntilIdle()
+            val effect = awaitItem()
+            assertTrue(effect is FinancialStatementsEffect.ShowError)
+        }
+    }
+
+    // ── LoadTrialBalance ───────────────────────────────────────────────────────
+
+    @Test
+    fun `LoadTrialBalance sets trialBalance in state on success`() = runTest {
+        viewModel.handleIntentForTest(
+            FinancialStatementsIntent.LoadTrialBalance("store-001", "2026-03-31")
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNotNull(viewModel.currentState.trialBalance)
+        assertTrue(viewModel.currentState.trialBalance!!.isBalanced)
+    }
+
+    @Test
+    fun `LoadTrialBalance failure emits ShowError effect`() = runTest {
+        trialBalanceResult = Result.Error(Exception("Trial balance computation failed"))
+
+        viewModel.effects.test {
+            viewModel.handleIntentForTest(
+                FinancialStatementsIntent.LoadTrialBalance("store-001", "2026-03-31")
+            )
+            testDispatcher.scheduler.advanceUntilIdle()
+            val effect = awaitItem()
+            assertTrue(effect is FinancialStatementsEffect.ShowError)
+        }
+    }
+
+    // ── LoadCashFlow ───────────────────────────────────────────────────────────
+
+    @Test
+    fun `LoadCashFlow sets cashFlow in state on success`() = runTest {
+        viewModel.handleIntentForTest(
+            FinancialStatementsIntent.LoadCashFlow("store-001", "2026-03-01", "2026-03-31")
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNotNull(viewModel.currentState.cashFlow)
+        assertEquals(15_000.0, viewModel.currentState.cashFlow!!.closingCash)
+    }
+
+    @Test
+    fun `LoadCashFlow failure emits ShowError effect`() = runTest {
+        cashFlowResult = Result.Error(Exception("Cash flow computation failed"))
+
+        viewModel.effects.test {
+            viewModel.handleIntentForTest(
+                FinancialStatementsIntent.LoadCashFlow("store-001", "2026-03-01", "2026-03-31")
+            )
+            testDispatcher.scheduler.advanceUntilIdle()
+            val effect = awaitItem()
+            assertTrue(effect is FinancialStatementsEffect.ShowError)
+        }
+    }
+
+    // ── SwitchTab ──────────────────────────────────────────────────────────────
+
+    @Test
+    fun `SwitchTab updates activeTab in state`() = runTest {
+        viewModel.state.test {
+            awaitItem()
+            viewModel.handleIntentForTest(FinancialStatementsIntent.SwitchTab(FinancialStatementTab.BALANCE_SHEET))
+            val updated = awaitItem()
+            assertEquals(FinancialStatementTab.BALANCE_SHEET, updated.activeTab)
+        }
+    }
+
+    @Test
+    fun `SwitchTab to BALANCE_SHEET triggers lazy load`() = runTest {
+        // Load pAndL first to set storeId
+        viewModel.handleIntentForTest(
+            FinancialStatementsIntent.LoadPandL("store-001", "2026-03-01", "2026-03-31")
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // Switch to balance sheet tab — should lazily load it
+        viewModel.handleIntentForTest(FinancialStatementsIntent.SwitchTab(FinancialStatementTab.BALANCE_SHEET))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNotNull(viewModel.currentState.balanceSheet)
+    }
+
+    @Test
+    fun `SwitchTab to already-loaded tab does not re-fetch`() = runTest {
+        // Load pAndL
+        viewModel.handleIntentForTest(
+            FinancialStatementsIntent.LoadPandL("store-001", "2026-03-01", "2026-03-31")
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+        val firstPandL = viewModel.currentState.pAndL
+
+        // Switch away and back to PROFIT_LOSS — pAndL is already cached, should not re-fetch
+        viewModel.handleIntentForTest(FinancialStatementsIntent.SwitchTab(FinancialStatementTab.BALANCE_SHEET))
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.handleIntentForTest(FinancialStatementsIntent.SwitchTab(FinancialStatementTab.PROFIT_LOSS))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // pAndL should still be the same (not null)
+        assertNotNull(viewModel.currentState.pAndL)
+        assertEquals(firstPandL!!.totalRevenue, viewModel.currentState.pAndL!!.totalRevenue)
+    }
+
+    // ── SetDateRange ───────────────────────────────────────────────────────────
+
+    @Test
+    fun `SetDateRange updates fromDate and toDate`() = runTest {
+        viewModel.state.test {
+            awaitItem()
+            viewModel.handleIntentForTest(FinancialStatementsIntent.SetDateRange("2026-02-01", "2026-02-28"))
+            val updated = awaitItem()
+            assertEquals("2026-02-01", updated.fromDate)
+            assertEquals("2026-02-28", updated.toDate)
+        }
+    }
+
+    @Test
+    fun `SetDateRange invalidates pAndL cache`() = runTest {
+        // Load P&L first
+        viewModel.handleIntentForTest(
+            FinancialStatementsIntent.LoadPandL("store-001", "2026-03-01", "2026-03-31")
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertNotNull(viewModel.currentState.pAndL)
+
+        // Change date range — pAndL should be cleared then re-fetched
+        viewModel.handleIntentForTest(FinancialStatementsIntent.SetDateRange("2026-02-01", "2026-02-28"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // After advanceUntilIdle, pAndL is re-fetched and set again
+        assertNotNull(viewModel.currentState.pAndL)
+        assertEquals("2026-02-01", viewModel.currentState.fromDate)
+    }
+
+    // ── SetAsOfDate ────────────────────────────────────────────────────────────
+
+    @Test
+    fun `SetAsOfDate updates asOfDate`() = runTest {
+        viewModel.state.test {
+            awaitItem()
+            viewModel.handleIntentForTest(FinancialStatementsIntent.SetAsOfDate("2026-02-28"))
+            val updated = awaitItem()
+            assertEquals("2026-02-28", updated.asOfDate)
+        }
+    }
+
+    @Test
+    fun `SetAsOfDate invalidates balanceSheet and trialBalance caches`() = runTest {
+        // Load balance sheet first
+        viewModel.handleIntentForTest(
+            FinancialStatementsIntent.LoadBalanceSheet("store-001", "2026-03-31")
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertNotNull(viewModel.currentState.balanceSheet)
+
+        // Verify that SetAsOfDate clears the balanceSheet (pAndL tab is active, so re-fetch is skipped)
+        viewModel.state.test {
+            awaitItem() // current state
+            viewModel.handleIntentForTest(FinancialStatementsIntent.SetAsOfDate("2026-02-28"))
+            val cleared = awaitItem()
+            assertNull(cleared.balanceSheet)
+            assertNull(cleared.trialBalance)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    // ── Error cleared on success ───────────────────────────────────────────────
+
+    @Test
+    fun `LoadPandL clears error on success`() = runTest {
+        pandlResult = Result.Error(Exception("error"))
+        viewModel.handleIntentForTest(
+            FinancialStatementsIntent.LoadPandL("store-001", "2026-03-01", "2026-03-31")
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertNotNull(viewModel.currentState.error)
+
+        pandlResult = Result.Success(mockPandL)
+        viewModel.handleIntentForTest(
+            FinancialStatementsIntent.LoadPandL("store-001", "2026-03-01", "2026-03-31")
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertNull(viewModel.currentState.error)
+    }
+}
+
+// ─── Extension to expose handleIntent for testing ────────────────────────────
+
+private suspend fun FinancialStatementsViewModel.handleIntentForTest(intent: FinancialStatementsIntent) =
+    handleIntent(intent)
