@@ -1,0 +1,156 @@
+-- ============================================================
+-- warehouse_stock.sq — Per-warehouse product stock levels (C1.2)
+-- ============================================================
+-- Junction table: (warehouse_id, product_id) → quantity.
+-- Phase 2 | C1.2 Store-Specific Inventory Levels.
+-- Migration 10.sqm creates this table.
+-- ============================================================
+
+-- ── Schema ───────────────────────────────────────────────────────────────────
+
+CREATE TABLE warehouse_stock (
+    id              TEXT    NOT NULL PRIMARY KEY,
+    warehouse_id    TEXT    NOT NULL,
+    product_id      TEXT    NOT NULL,
+    quantity        REAL    NOT NULL DEFAULT 0.0,
+    min_quantity    REAL    NOT NULL DEFAULT 0.0,
+    sync_status     TEXT    NOT NULL DEFAULT 'PENDING',
+    created_at      INTEGER NOT NULL,
+    updated_at      INTEGER NOT NULL,
+    UNIQUE(warehouse_id, product_id)
+);
+
+CREATE INDEX idx_ws_warehouse ON warehouse_stock(warehouse_id);
+CREATE INDEX idx_ws_product   ON warehouse_stock(product_id);
+CREATE INDEX idx_ws_low_stock ON warehouse_stock(warehouse_id, quantity, min_quantity);
+
+-- ── Read queries ─────────────────────────────────────────────────────────────
+
+-- All stock entries for a warehouse, joined with product info for display.
+getStockByWarehouse:
+SELECT
+    ws.id,
+    ws.warehouse_id,
+    ws.product_id,
+    ws.quantity,
+    ws.min_quantity,
+    ws.updated_at,
+    ws.sync_status,
+    p.name         AS product_name,
+    p.sku          AS product_sku,
+    p.barcode      AS product_barcode,
+    p.image_url    AS product_image_url
+FROM warehouse_stock ws
+JOIN products p ON p.id = ws.product_id AND p.is_active = 1
+WHERE ws.warehouse_id = :warehouseId
+ORDER BY p.name ASC;
+
+-- All warehouses that hold a specific product.
+getStockByProduct:
+SELECT
+    ws.id,
+    ws.warehouse_id,
+    ws.product_id,
+    ws.quantity,
+    ws.min_quantity,
+    ws.updated_at,
+    ws.sync_status,
+    w.name         AS warehouse_name
+FROM warehouse_stock ws
+JOIN warehouses w ON w.id = ws.warehouse_id AND w.is_active = 1
+WHERE ws.product_id = :productId
+ORDER BY w.name ASC;
+
+-- Single entry by (warehouse_id, product_id) pair.
+getStockEntry:
+SELECT * FROM warehouse_stock
+WHERE warehouse_id = :warehouseId AND product_id = :productId
+LIMIT 1;
+
+-- Aggregate: total stock across all warehouses for a product.
+getTotalStockForProduct:
+SELECT COALESCE(SUM(quantity), 0.0) AS total_quantity
+FROM warehouse_stock
+WHERE product_id = :productId;
+
+-- Low-stock items per warehouse (quantity <= min_quantity and min_quantity > 0).
+getLowStockByWarehouse:
+SELECT
+    ws.id,
+    ws.warehouse_id,
+    ws.product_id,
+    ws.quantity,
+    ws.min_quantity,
+    ws.updated_at,
+    ws.sync_status,
+    p.name         AS product_name,
+    p.sku          AS product_sku,
+    p.barcode      AS product_barcode,
+    p.image_url    AS product_image_url
+FROM warehouse_stock ws
+JOIN products p ON p.id = ws.product_id AND p.is_active = 1
+WHERE ws.warehouse_id = :warehouseId
+  AND ws.min_quantity > 0.0
+  AND ws.quantity <= ws.min_quantity
+ORDER BY (ws.min_quantity - ws.quantity) DESC;
+
+-- Low-stock items across all warehouses (for global alert dashboard).
+getAllLowStock:
+SELECT
+    ws.id,
+    ws.warehouse_id,
+    ws.product_id,
+    ws.quantity,
+    ws.min_quantity,
+    ws.updated_at,
+    ws.sync_status,
+    p.name         AS product_name,
+    p.sku          AS product_sku,
+    p.barcode      AS product_barcode,
+    p.image_url    AS product_image_url,
+    w.name         AS warehouse_name
+FROM warehouse_stock ws
+JOIN products p ON p.id = ws.product_id AND p.is_active = 1
+JOIN warehouses w ON w.id = ws.warehouse_id AND w.is_active = 1
+WHERE ws.min_quantity > 0.0
+  AND ws.quantity <= ws.min_quantity
+ORDER BY (ws.min_quantity - ws.quantity) DESC;
+
+-- Count warehouses that have stock of a product.
+countWarehousesWithStock:
+SELECT COUNT(*) FROM warehouse_stock
+WHERE product_id = :productId AND quantity > 0.0;
+
+-- All sync-pending entries (for offline sync queue).
+getPendingSync:
+SELECT * FROM warehouse_stock WHERE sync_status = 'PENDING' LIMIT 100;
+
+-- ── Write queries ────────────────────────────────────────────────────────────
+
+-- Upsert: insert or update quantity for a (warehouse, product) pair.
+upsertStock:
+INSERT INTO warehouse_stock(id, warehouse_id, product_id, quantity, min_quantity, created_at, updated_at, sync_status)
+VALUES (:id, :warehouseId, :productId, :quantity, :minQuantity, :createdAt, :updatedAt, 'PENDING')
+ON CONFLICT(warehouse_id, product_id) DO UPDATE SET
+    quantity    = excluded.quantity,
+    min_quantity = excluded.min_quantity,
+    updated_at  = excluded.updated_at,
+    sync_status = 'PENDING';
+
+-- Adjust quantity by a delta (positive = add, negative = subtract).
+adjustStock:
+UPDATE warehouse_stock
+SET quantity    = quantity + :delta,
+    updated_at  = :updatedAt,
+    sync_status = 'PENDING'
+WHERE warehouse_id = :warehouseId AND product_id = :productId;
+
+-- Update sync_status after successful sync.
+markSynced:
+UPDATE warehouse_stock
+SET sync_status = 'SYNCED'
+WHERE id = :id;
+
+-- Delete entry (hard delete — only for cleanup / data reset).
+deleteEntry:
+DELETE FROM warehouse_stock WHERE warehouse_id = :warehouseId AND product_id = :productId;

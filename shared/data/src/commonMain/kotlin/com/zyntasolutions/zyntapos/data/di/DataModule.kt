@@ -57,8 +57,10 @@ import com.zyntasolutions.zyntapos.data.repository.OperationalLogRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.StocktakeRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.ShiftRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.SystemRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.RackProductRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.WarehouseRackRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.WarehouseRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.WarehouseStockRepositoryImpl
 import com.zyntasolutions.zyntapos.data.job.AuditIntegrityJob
 import com.zyntasolutions.zyntapos.data.job.LogRetentionJob
 import com.zyntasolutions.zyntapos.data.logging.KermitSqliteAdapter
@@ -115,9 +117,11 @@ import com.zyntasolutions.zyntapos.domain.repository.ReportRepository
 import com.zyntasolutions.zyntapos.domain.repository.StocktakeRepository
 import com.zyntasolutions.zyntapos.domain.repository.ShiftRepository
 import com.zyntasolutions.zyntapos.domain.repository.SystemRepository
+import com.zyntasolutions.zyntapos.domain.repository.RackProductRepository
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseRackRepository
 import com.zyntasolutions.zyntapos.domain.repository.RoleRepository
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseRepository
+import com.zyntasolutions.zyntapos.domain.repository.WarehouseStockRepository
 import com.zyntasolutions.zyntapos.data.repository.LicenseRepositoryImpl
 import com.zyntasolutions.zyntapos.domain.repository.LicenseRepository
 import org.koin.dsl.module
@@ -366,6 +370,9 @@ val dataModule = module {
     // Warehouses: locations per store, default warehouse, two-phase stock transfers
     single<WarehouseRepository> { WarehouseRepositoryImpl(db = get(), syncEnqueuer = get()) }
 
+    // Warehouse stock: per-warehouse product quantity tracking (C1.2)
+    single<WarehouseStockRepository> { WarehouseStockRepositoryImpl(db = get(), syncEnqueuer = get()) }
+
     // ─────────────────────────────────────────────────────────────────────────
     // ── Phase 2 Notifications ────────────────────────────────────────────────
     // ─────────────────────────────────────────────────────────────────────────
@@ -460,6 +467,9 @@ val dataModule = module {
 
     // Warehouse racks: physical shelf locations per warehouse
     single<WarehouseRackRepository> { WarehouseRackRepositoryImpl(db = get(), syncEnqueuer = get()) }
+
+    // Rack products: product-to-rack bin location mappings (C1.2)
+    single<RackProductRepository> { RackProductRepositoryImpl(db = get()) }
 
     // Accounting ledger: double-entry insert with DEBIT==CREDIT validation (legacy entries)
     single<AccountingRepository> { AccountingRepositoryImpl(db = get(), syncEnqueuer = get()) }
