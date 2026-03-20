@@ -287,9 +287,15 @@ class SyncValidatorTest {
 
     @Test
     fun `lowercase entity types are normalized to uppercase and accepted`() {
-        val lowercaseTypes = listOf("product", "category", "customer", "order", "settings")
-        for (entityType in lowercaseTypes) {
-            val result = validator.validateBatch(listOf(op(entityType = entityType)))
+        val lowercasePayloads = mapOf(
+            "product" to """{"name":"P","price":1.0}""",
+            "category" to """{"name":"C"}""",
+            "customer" to """{"name":"N"}""",
+            "order" to """{"grand_total":0}""",
+            "settings" to """{"key":"k","value":"v"}""",
+        )
+        for ((entityType, payload) in lowercasePayloads) {
+            val result = validator.validateBatch(listOf(op(entityType = entityType, payload = payload)))
             assertTrue(result.valid.isNotEmpty(), "Expected lowercase '$entityType' to be accepted")
         }
     }
