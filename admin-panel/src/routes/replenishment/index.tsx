@@ -43,17 +43,17 @@ function ReplenishmentPage() {
   // ── Suggestion columns ───────────────────────────────────────────────────
 
   const suggestionColumns: Column<ReplenishmentSuggestion>[] = [
-    { key: 'productId',    header: 'Product ID',    render: (r) => <span className="font-mono text-xs">{r.productId.slice(0, 8)}</span> },
-    { key: 'warehouseId',  header: 'Warehouse ID',  render: (r) => <span className="font-mono text-xs">{r.warehouseId.slice(0, 8)}</span> },
-    { key: 'currentStock', header: 'Current Stock',  render: (r) => (
+    { key: 'productId',    header: 'Product ID',    cell: (r) => <span className="font-mono text-xs">{r.productId.slice(0, 8)}</span> },
+    { key: 'warehouseId',  header: 'Warehouse ID',  cell: (r) => <span className="font-mono text-xs">{r.warehouseId.slice(0, 8)}</span> },
+    { key: 'currentStock', header: 'Current Stock',  cell: (r) => (
       <span className={cn('font-medium', r.currentStock <= r.reorderPoint ? 'text-red-400' : 'text-slate-300')}>
         {r.currentStock.toFixed(1)}
       </span>
     )},
-    { key: 'reorderPoint', header: 'Reorder Point', render: (r) => r.reorderPoint.toFixed(1) },
-    { key: 'reorderQty',   header: 'Reorder Qty',   render: (r) => r.reorderQty.toFixed(1) },
-    { key: 'supplierId',   header: 'Supplier ID',   render: (r) => <span className="font-mono text-xs">{r.supplierId.slice(0, 8)}</span> },
-    { key: 'autoApprove',  header: 'Auto-approve',  render: (r) =>
+    { key: 'reorderPoint', header: 'Reorder Point', cell: (r) => r.reorderPoint.toFixed(1) },
+    { key: 'reorderQty',   header: 'Reorder Qty',   cell: (r) => r.reorderQty.toFixed(1) },
+    { key: 'supplierId',   header: 'Supplier ID',   cell: (r) => <span className="font-mono text-xs">{r.supplierId.slice(0, 8)}</span> },
+    { key: 'autoApprove',  header: 'Auto-approve',  cell: (r) =>
       r.autoApprove
         ? <CheckCircle2 className="w-4 h-4 text-green-400" />
         : <XCircle className="w-4 h-4 text-slate-500" />
@@ -63,27 +63,27 @@ function ReplenishmentPage() {
   // ── Rule columns ─────────────────────────────────────────────────────────
 
   const ruleColumns: Column<ReplenishmentRule>[] = [
-    { key: 'id',           header: 'Rule ID',       render: (r) => <span className="font-mono text-xs">{r.id.slice(0, 8)}</span> },
-    { key: 'productId',    header: 'Product ID',    render: (r) => <span className="font-mono text-xs">{r.productId.slice(0, 8)}</span> },
-    { key: 'warehouseId',  header: 'Warehouse ID',  render: (r) => <span className="font-mono text-xs">{r.warehouseId.slice(0, 8)}</span> },
-    { key: 'supplierId',   header: 'Supplier ID',   render: (r) => <span className="font-mono text-xs">{r.supplierId.slice(0, 8)}</span> },
-    { key: 'reorderPoint', header: 'Reorder Point', render: (r) => r.reorderPoint.toFixed(1) },
-    { key: 'reorderQty',   header: 'Reorder Qty',   render: (r) => r.reorderQty.toFixed(1) },
-    { key: 'autoApprove',  header: 'Auto-approve',  render: (r) =>
+    { key: 'id',           header: 'Rule ID',       cell: (r) => <span className="font-mono text-xs">{r.id.slice(0, 8)}</span> },
+    { key: 'productId',    header: 'Product ID',    cell: (r) => <span className="font-mono text-xs">{r.productId.slice(0, 8)}</span> },
+    { key: 'warehouseId',  header: 'Warehouse ID',  cell: (r) => <span className="font-mono text-xs">{r.warehouseId.slice(0, 8)}</span> },
+    { key: 'supplierId',   header: 'Supplier ID',   cell: (r) => <span className="font-mono text-xs">{r.supplierId.slice(0, 8)}</span> },
+    { key: 'reorderPoint', header: 'Reorder Point', cell: (r) => r.reorderPoint.toFixed(1) },
+    { key: 'reorderQty',   header: 'Reorder Qty',   cell: (r) => r.reorderQty.toFixed(1) },
+    { key: 'autoApprove',  header: 'Auto-approve',  cell: (r) =>
       r.autoApprove
         ? <CheckCircle2 className="w-4 h-4 text-green-400" />
         : <XCircle className="w-4 h-4 text-slate-500" />
     },
-    { key: 'isActive',     header: 'Active',        render: (r) =>
+    { key: 'isActive',     header: 'Active',        cell: (r) =>
       r.isActive
         ? <span className="text-green-400 text-xs font-medium">Active</span>
         : <span className="text-slate-500 text-xs">Inactive</span>
     },
-    { key: 'updatedAt',    header: 'Updated',       render: (r) => formatEpoch(r.updatedAt) },
+    { key: 'updatedAt',    header: 'Updated',       cell: (r) => formatEpoch(r.updatedAt) },
     ...(canWrite ? [{
-      key: 'actions' as keyof ReplenishmentRule,
+      key: 'actions',
       header: '',
-      render: (r: ReplenishmentRule) => (
+      cell: (r: ReplenishmentRule) => (
         <button
           onClick={() => setDeleteTarget(r)}
           className="p-1.5 rounded text-slate-400 hover:text-red-400 hover:bg-red-400/10 transition-colors"
@@ -157,7 +157,7 @@ function ReplenishmentPage() {
             <DataTable
               columns={suggestionColumns}
               data={suggestionsQuery.data?.suggestions ?? []}
-              keyExtractor={(r) => r.ruleId}
+              rowKey={(r) => r.ruleId}
             />
           )}
         </div>
@@ -179,7 +179,7 @@ function ReplenishmentPage() {
             <DataTable
               columns={ruleColumns}
               data={rulesQuery.data?.rules ?? []}
-              keyExtractor={(r) => r.id}
+              rowKey={(r) => r.id}
             />
           )}
         </div>
@@ -192,7 +192,7 @@ function ReplenishmentPage() {
         description={`Are you sure you want to delete the rule for product ${deleteTarget?.productId.slice(0, 8)}...? This action cannot be undone.`}
         confirmLabel="Delete"
         variant="destructive"
-        loading={deleteMutation.isPending}
+        isLoading={deleteMutation.isPending}
         onConfirm={() => {
           if (deleteTarget) {
             deleteMutation.mutate(deleteTarget.id, {
@@ -200,7 +200,7 @@ function ReplenishmentPage() {
             });
           }
         }}
-        onCancel={() => setDeleteTarget(null)}
+        onClose={() => setDeleteTarget(null)}
       />
     </div>
   );
