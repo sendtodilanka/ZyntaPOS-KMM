@@ -578,6 +578,13 @@ sealed interface CouponsEffect {
 
 ### Sprints 14–16: `:composeApp:feature:multistore`
 
+> **C1.2 Backend completion (2026-03-20, branch `claude/c1-2-backend-warehouse-stock-osMp7`):**
+> - ✅ `V28__warehouse_stock.sql` — server-side `warehouse_stock` table (UNIQUE warehouse_id+product_id)
+> - ✅ `WarehouseStockRepository` — `getByWarehouse`, `getByProduct`, `getGlobal`, `upsert`
+> - ✅ `EntityApplier` — `WAREHOUSE_STOCK` entity type handled
+> - ✅ `GET /admin/inventory/global?productId=X&storeId=Y` — cross-store comparison endpoint (inventory:read)
+> - ✅ Admin panel `/inventory` route — warehouse stock comparison view (ADMIN, OPERATOR, FINANCE)
+
 **MVI Contract:**
 
 ```kotlin

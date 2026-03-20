@@ -31,6 +31,7 @@ import { Route as SettingsMfaRouteImport } from './routes/settings/mfa'
 import { Route as SettingsEmailRouteImport } from './routes/settings/email'
 import { Route as LicensesLicenseKeyRouteImport } from './routes/licenses/$licenseKey'
 import { Route as HealthStoreIdRouteImport } from './routes/health/$storeId'
+import { Route as InventoryIndexRouteImport } from './routes/inventory/index'
 import { Route as MasterProductsIndexRouteImport } from './routes/master-products/index'
 import { Route as MasterProductsMasterProductIdRouteImport } from './routes/master-products/$masterProductId'
 import { Route as TicketStatusTokenRouteImport } from './routes/ticket-status/$token'
@@ -110,6 +111,11 @@ const AlertsIndexRoute = AlertsIndexRouteImport.update({
   path: '/alerts/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InventoryIndexRoute = InventoryIndexRouteImport.update({
+  id: '/inventory/',
+  path: '/inventory/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MasterProductsIndexRoute = MasterProductsIndexRouteImport.update({
   id: '/master-products/',
   path: '/master-products/',
@@ -178,6 +184,7 @@ export interface FileRoutesByFullPath {
   '/config/': typeof ConfigIndexRoute
   '/health/': typeof HealthIndexRoute
   '/licenses/': typeof LicensesIndexRoute
+  '/inventory/': typeof InventoryIndexRoute
   '/master-products/': typeof MasterProductsIndexRoute
   '/reports/': typeof ReportsIndexRoute
   '/security/': typeof SecurityIndexRoute
@@ -205,6 +212,7 @@ export interface FileRoutesByTo {
   '/config': typeof ConfigIndexRoute
   '/health': typeof HealthIndexRoute
   '/licenses': typeof LicensesIndexRoute
+  '/inventory': typeof InventoryIndexRoute
   '/master-products': typeof MasterProductsIndexRoute
   '/reports': typeof ReportsIndexRoute
   '/security': typeof SecurityIndexRoute
@@ -233,6 +241,7 @@ export interface FileRoutesById {
   '/config/': typeof ConfigIndexRoute
   '/health/': typeof HealthIndexRoute
   '/licenses/': typeof LicensesIndexRoute
+  '/inventory/': typeof InventoryIndexRoute
   '/master-products/': typeof MasterProductsIndexRoute
   '/reports/': typeof ReportsIndexRoute
   '/security/': typeof SecurityIndexRoute
@@ -261,6 +270,7 @@ export interface FileRouteTypes {
     | '/audit/'
     | '/config/'
     | '/health/'
+    | '/inventory/'
     | '/licenses/'
     | '/master-products/'
     | '/reports/'
@@ -287,6 +297,7 @@ export interface FileRouteTypes {
     | '/audit'
     | '/config'
     | '/health'
+    | '/inventory'
     | '/licenses'
     | '/master-products'
     | '/reports'
@@ -314,6 +325,7 @@ export interface FileRouteTypes {
     | '/audit/'
     | '/config/'
     | '/health/'
+    | '/inventory/'
     | '/licenses/'
     | '/master-products/'
     | '/reports/'
@@ -330,6 +342,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
   HealthStoreIdRoute: typeof HealthStoreIdRoute
+  InventoryIndexRoute: typeof InventoryIndexRoute
   LicensesLicenseKeyRoute: typeof LicensesLicenseKeyRoute
   MasterProductsMasterProductIdRoute: typeof MasterProductsMasterProductIdRoute
   MasterProductsIndexRoute: typeof MasterProductsIndexRoute
@@ -461,6 +474,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AlertsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/inventory/': {
+      id: '/inventory/'
+      path: '/inventory'
+      fullPath: '/inventory/'
+      preLoaderRoute: typeof InventoryIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/master-products/': {
       id: '/master-products/'
       path: '/master-products'
@@ -538,6 +558,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   HealthStoreIdRoute: HealthStoreIdRoute,
+  InventoryIndexRoute: InventoryIndexRoute,
   LicensesLicenseKeyRoute: LicensesLicenseKeyRoute,
   MasterProductsMasterProductIdRoute: MasterProductsMasterProductIdRoute,
   MasterProductsIndexRoute: MasterProductsIndexRoute,

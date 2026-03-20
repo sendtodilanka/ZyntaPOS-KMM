@@ -217,6 +217,11 @@ data class MainNavScreens(
         onNavigateUp: () -> Unit,
     ) -> Unit,
 
+    val storeTransferDashboard: @Composable (
+        onNavigateToNewTransfer: (sourceWarehouseId: String?) -> Unit,
+        onNavigateUp: () -> Unit,
+    ) -> Unit,
+
     val stockTransferList: @Composable (
         onNavigateToNewTransfer: (sourceWarehouseId: String?) -> Unit,
         onNavigateUp: () -> Unit,

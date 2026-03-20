@@ -55,6 +55,7 @@ import com.zyntasolutions.zyntapos.feature.expenses.ExpenseDetailScreen
 import com.zyntasolutions.zyntapos.feature.expenses.ExpenseListScreen
 import com.zyntasolutions.zyntapos.feature.multistore.NewStockTransferScreen
 import com.zyntasolutions.zyntapos.feature.multistore.StockTransferListScreen
+import com.zyntasolutions.zyntapos.feature.multistore.StoreTransferDashboardScreen
 import com.zyntasolutions.zyntapos.feature.multistore.WarehouseDetailScreen
 import com.zyntasolutions.zyntapos.feature.multistore.WarehouseListScreen
 import com.zyntasolutions.zyntapos.feature.multistore.WarehouseRackListScreen
@@ -609,6 +610,13 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
 
     warehouseDetail = { warehouseId, onNavigateUp ->
         WarehouseDetailScreen(warehouseId = warehouseId, onNavigateUp = onNavigateUp)
+    },
+
+    storeTransferDashboard = { onNavigateToNewTransfer, onNavigateUp ->
+        StoreTransferDashboardScreen(
+            onNavigateToNewTransfer = onNavigateToNewTransfer,
+            onNavigateUp = onNavigateUp,
+        )
     },
 
     stockTransferList = { onNavigateToNewTransfer, onNavigateUp ->

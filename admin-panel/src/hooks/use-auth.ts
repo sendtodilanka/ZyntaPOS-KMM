@@ -16,6 +16,7 @@ const PERMISSIONS: Record<AdminRole, string[]> = {
     'users:read', 'users:write', 'users:deactivate', 'users:sessions:revoke',
     'system:settings', 'system:health', 'system:backup',
     'email:settings', 'email:logs',
+    'inventory:read', 'transfers:read',
   ],
   OPERATOR: [
     'dashboard:ops', 'dashboard:support',
@@ -28,11 +29,13 @@ const PERMISSIONS: Record<AdminRole, string[]> = {
     'tickets:resolve', 'tickets:close', 'tickets:comment',
     'system:health',
     'email:logs',
+    'inventory:read', 'transfers:read',
   ],
   FINANCE: [
     'dashboard:financial',
     'license:read', 'license:export',
     'reports:financial', 'reports:read', 'reports:export',
+    'inventory:read',
   ],
   AUDITOR: [
     'license:read',

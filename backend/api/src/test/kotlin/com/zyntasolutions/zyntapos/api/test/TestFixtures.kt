@@ -4,8 +4,11 @@ import com.zyntasolutions.zyntapos.api.auth.AdminRole
 import com.zyntasolutions.zyntapos.api.db.AdminUsers
 import com.zyntasolutions.zyntapos.api.db.Stores
 import com.zyntasolutions.zyntapos.api.db.Users
+import com.zyntasolutions.zyntapos.api.db.WarehouseStock
 import com.zyntasolutions.zyntapos.api.service.Products
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.math.BigDecimal
 import java.time.OffsetDateTime
@@ -113,6 +116,43 @@ object TestFixtures {
                 it[Users.lockedUntil] = lockedUntil
                 it[Users.createdAt] = OffsetDateTime.now(ZoneOffset.UTC)
                 it[Users.updatedAt] = OffsetDateTime.now(ZoneOffset.UTC)
+            }
+        }
+        return id
+    }
+
+    fun insertWarehouseStock(
+        id: String = "ws-${UUID.randomUUID().toString().take(8)}",
+        warehouseId: String,
+        productId: String,
+        storeId: String,
+        quantity: BigDecimal = BigDecimal("10.0000"),
+        minQuantity: BigDecimal = BigDecimal("0.0000"),
+        syncVersion: Long = 1L,
+    ): String {
+        transaction {
+            // Ensure parent store exists to satisfy the FK constraint on warehouse_stock.store_id
+            if (Stores.selectAll().where { Stores.id eq storeId }.empty()) {
+                Stores.insert {
+                    it[Stores.id]         = storeId
+                    it[Stores.name]       = "Test Store"
+                    it[Stores.licenseKey] = "LK-test-$storeId"
+                    it[Stores.timezone]   = "Asia/Colombo"
+                    it[Stores.currency]   = "LKR"
+                    it[Stores.isActive]   = true
+                    it[Stores.createdAt]  = OffsetDateTime.now(ZoneOffset.UTC)
+                    it[Stores.updatedAt]  = OffsetDateTime.now(ZoneOffset.UTC)
+                }
+            }
+            WarehouseStock.insert {
+                it[WarehouseStock.id]          = id
+                it[WarehouseStock.warehouseId] = warehouseId
+                it[WarehouseStock.productId]   = productId
+                it[WarehouseStock.storeId]     = storeId
+                it[WarehouseStock.quantity]    = quantity
+                it[WarehouseStock.minQuantity] = minQuantity
+                it[WarehouseStock.syncVersion] = syncVersion
+                it[WarehouseStock.updatedAt]   = OffsetDateTime.now(ZoneOffset.UTC)
             }
         }
         return id

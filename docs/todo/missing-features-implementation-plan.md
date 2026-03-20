@@ -501,8 +501,9 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 ### C1.2 Store-Specific Inventory Levels (ශාඛා අනුව තොග)
 
 **Priority:** PHASE-2
-**Status:** ✅ KMM APP IMPLEMENTED (2026-03-19) | Backend/Admin panel deferred
-**Branch:** `claude/plan-c1-2-features-osMp7`
+**Status:** ✅ FULLY IMPLEMENTED (2026-03-20) — KMM + Backend + Admin panel complete
+**Branch (KMM):** `claude/plan-c1-2-features-osMp7`
+**Branch (Backend + Admin):** `claude/c1-2-backend-warehouse-stock-osMp7`
 
 **What was implemented:**
 - [x] `warehouse_stock.sq` — new junction table (warehouse_id, product_id, quantity, min_quantity)
@@ -524,10 +525,10 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 - [x] `SyncOperation.EntityType.WAREHOUSE_STOCK` constant added
 - [x] Tests: `WarehouseStockUseCasesTest.kt` (8 test cases), `FakeWarehouseStockRepository.kt`
 
-**What's STILL MISSING (deferred):**
-- [ ] Admin panel: Cross-store/warehouse stock level comparison view
-- [ ] Backend: `GET /admin/inventory/global?productId=X` endpoint
-- [ ] Backend migration for `warehouse_stock` server-side table
+**Backend + Admin panel (implemented 2026-03-20):**
+- [x] Admin panel: Cross-store/warehouse stock level comparison view (`admin-panel/src/routes/inventory/index.tsx`)
+- [x] Backend: `GET /admin/inventory/global?productId=X&storeId=Y` endpoint (`AdminInventoryRoutes.kt`)
+- [x] Backend migration for `warehouse_stock` server-side table (V29__warehouse_stock.sql)
 
 ---
 

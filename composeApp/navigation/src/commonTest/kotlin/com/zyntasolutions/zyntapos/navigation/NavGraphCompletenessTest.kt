@@ -89,6 +89,7 @@ class NavGraphCompletenessTest {
         // Multi-store sub-graph
         "warehouseList",
         "warehouseDetail",
+        "storeTransferDashboard",
         "stockTransferList",
         "newStockTransfer",
         "warehouseRackList",
