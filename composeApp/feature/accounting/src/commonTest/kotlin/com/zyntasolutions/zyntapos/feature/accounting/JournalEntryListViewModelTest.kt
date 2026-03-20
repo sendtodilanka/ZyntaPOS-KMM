@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.accounting
 
 import app.cash.turbine.test
+import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.JournalEntry
 import com.zyntasolutions.zyntapos.domain.model.JournalReferenceType
@@ -108,7 +109,7 @@ class JournalEntryListViewModelTest {
 
     @Test
     fun `initial state has empty entries and no error`() {
-        val state = viewModel.currentState
+        val state = viewModel.state.value
         assertTrue(state.entries.isEmpty())
         assertFalse(state.isLoading)
         assertNull(state.error)
@@ -124,7 +125,7 @@ class JournalEntryListViewModelTest {
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
-        val state = viewModel.currentState
+        val state = viewModel.state.value
         assertEquals("store-001", state.storeId)
         assertEquals("2026-01-01", state.fromDate)
         assertEquals("2026-03-31", state.toDate)
@@ -137,7 +138,7 @@ class JournalEntryListViewModelTest {
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals(2, viewModel.currentState.entries.size)
+        assertEquals(2, viewModel.state.value.entries.size)
     }
 
     @Test
@@ -145,7 +146,7 @@ class JournalEntryListViewModelTest {
         // First set showUnpostedOnly via LoadUnposted
         viewModel.handleIntentForTest(JournalEntryListIntent.LoadUnposted("store-001"))
         testDispatcher.scheduler.advanceUntilIdle()
-        assertTrue(viewModel.currentState.showUnpostedOnly)
+        assertTrue(viewModel.state.value.showUnpostedOnly)
 
         // Load with date range resets it
         viewModel.handleIntentForTest(
@@ -153,7 +154,7 @@ class JournalEntryListViewModelTest {
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertFalse(viewModel.currentState.showUnpostedOnly)
+        assertFalse(viewModel.state.value.showUnpostedOnly)
     }
 
     // ── LoadUnposted ───────────────────────────────────────────────────────────
@@ -163,7 +164,7 @@ class JournalEntryListViewModelTest {
         viewModel.handleIntentForTest(JournalEntryListIntent.LoadUnposted("store-001"))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertTrue(viewModel.currentState.showUnpostedOnly)
+        assertTrue(viewModel.state.value.showUnpostedOnly)
     }
 
     @Test
@@ -171,8 +172,8 @@ class JournalEntryListViewModelTest {
         viewModel.handleIntentForTest(JournalEntryListIntent.LoadUnposted("store-001"))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals(1, viewModel.currentState.entries.size)
-        assertFalse(viewModel.currentState.entries.first().isPosted)
+        assertEquals(1, viewModel.state.value.entries.size)
+        assertFalse(viewModel.state.value.entries.first().isPosted)
     }
 
     // ── SetDateRange ───────────────────────────────────────────────────────────
@@ -251,12 +252,12 @@ class JournalEntryListViewModelTest {
         deleteResult = Result.Success(Unit)
         viewModel.handleIntentForTest(JournalEntryListIntent.DeleteDraft("je-001"))
         testDispatcher.scheduler.advanceUntilIdle()
-        assertFalse(viewModel.currentState.isLoading)
+        assertFalse(viewModel.state.value.isLoading)
     }
 
     @Test
     fun `DeleteDraft failure emits ShowError effect`() = runTest {
-        deleteResult = Result.Error(Exception("DB constraint violation"))
+        deleteResult = Result.Error(DatabaseException("DB constraint violation"))
 
         viewModel.effects.test {
             viewModel.handleIntentForTest(JournalEntryListIntent.DeleteDraft("je-001"))
@@ -270,5 +271,5 @@ class JournalEntryListViewModelTest {
 
 // ─── Extension to expose handleIntent for testing ────────────────────────────
 
-private suspend fun JournalEntryListViewModel.handleIntentForTest(intent: JournalEntryListIntent) =
-    handleIntent(intent)
+private fun JournalEntryListViewModel.handleIntentForTest(intent: JournalEntryListIntent) =
+    dispatch(intent)

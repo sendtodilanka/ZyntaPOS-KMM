@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.accounting
 
 import app.cash.turbine.test
+import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.Account
 import com.zyntasolutions.zyntapos.domain.model.AccountBalance
@@ -119,7 +120,7 @@ class GeneralLedgerViewModelTest {
 
     @Test
     fun `initial state has empty accounts and no selection`() {
-        val state = viewModel.currentState
+        val state = viewModel.state.value
         assertTrue(state.accounts.isEmpty())
         assertNull(state.selectedAccountId)
         assertTrue(state.entries.isEmpty())
@@ -133,8 +134,8 @@ class GeneralLedgerViewModelTest {
         viewModel.handleIntentForTest(GeneralLedgerIntent.LoadAccounts("store-001"))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals(1, viewModel.currentState.accounts.size)
-        assertEquals("Cash", viewModel.currentState.accounts.first().accountName)
+        assertEquals(1, viewModel.state.value.accounts.size)
+        assertEquals("Cash", viewModel.state.value.accounts.first().accountName)
     }
 
     @Test
@@ -142,7 +143,7 @@ class GeneralLedgerViewModelTest {
         viewModel.handleIntentForTest(GeneralLedgerIntent.LoadAccounts("store-001"))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals("store-001", viewModel.currentState.storeId)
+        assertEquals("store-001", viewModel.state.value.storeId)
     }
 
     @Test
@@ -151,8 +152,8 @@ class GeneralLedgerViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         // Default dates should be set to current month
-        assertTrue(viewModel.currentState.fromDate.isNotBlank())
-        assertTrue(viewModel.currentState.toDate.isNotBlank())
+        assertTrue(viewModel.state.value.fromDate.isNotBlank())
+        assertTrue(viewModel.state.value.toDate.isNotBlank())
     }
 
     // ── SelectAccount ──────────────────────────────────────────────────────────
@@ -165,7 +166,7 @@ class GeneralLedgerViewModelTest {
         viewModel.handleIntentForTest(GeneralLedgerIntent.SelectAccount("acct-001"))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals("acct-001", viewModel.currentState.selectedAccountId)
+        assertEquals("acct-001", viewModel.state.value.selectedAccountId)
     }
 
     @Test
@@ -176,7 +177,7 @@ class GeneralLedgerViewModelTest {
         viewModel.handleIntentForTest(GeneralLedgerIntent.SelectAccount("acct-001"))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals(1, viewModel.currentState.entries.size)
+        assertEquals(1, viewModel.state.value.entries.size)
     }
 
     @Test
@@ -196,7 +197,7 @@ class GeneralLedgerViewModelTest {
 
     @Test
     fun `SelectAccount ledger failure emits ShowError effect`() = runTest {
-        ledgerResult = Result.Error(Exception("Ledger computation failed"))
+        ledgerResult = Result.Error(DatabaseException("Ledger computation failed"))
         viewModel.handleIntentForTest(GeneralLedgerIntent.LoadAccounts("store-001"))
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -233,9 +234,9 @@ class GeneralLedgerViewModelTest {
         viewModel.handleIntentForTest(GeneralLedgerIntent.SetDateRange("2026-02-01", "2026-02-28"))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals("2026-02-01", viewModel.currentState.fromDate)
-        assertEquals("2026-02-28", viewModel.currentState.toDate)
-        assertEquals(1, viewModel.currentState.entries.size) // fetched again
+        assertEquals("2026-02-01", viewModel.state.value.fromDate)
+        assertEquals("2026-02-28", viewModel.state.value.toDate)
+        assertEquals(1, viewModel.state.value.entries.size) // fetched again
     }
 
     // ── Refresh ────────────────────────────────────────────────────────────────
@@ -250,35 +251,35 @@ class GeneralLedgerViewModelTest {
         viewModel.handleIntentForTest(GeneralLedgerIntent.Refresh)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals(1, viewModel.currentState.entries.size)
+        assertEquals(1, viewModel.state.value.entries.size)
     }
 
     @Test
     fun `Refresh without selected account is a no-op`() = runTest {
         viewModel.handleIntentForTest(GeneralLedgerIntent.Refresh)
         testDispatcher.scheduler.advanceUntilIdle()
-        assertTrue(viewModel.currentState.entries.isEmpty())
+        assertTrue(viewModel.state.value.entries.isEmpty())
     }
 
     // ── Error state cleared on success ────────────────────────────────────────
 
     @Test
     fun `SelectAccount clears error on success`() = runTest {
-        ledgerResult = Result.Error(Exception("error"))
+        ledgerResult = Result.Error(DatabaseException("error"))
         viewModel.handleIntentForTest(GeneralLedgerIntent.LoadAccounts("store-001"))
         testDispatcher.scheduler.advanceUntilIdle()
         viewModel.handleIntentForTest(GeneralLedgerIntent.SelectAccount("acct-001"))
         testDispatcher.scheduler.advanceUntilIdle()
-        assertNotNull(viewModel.currentState.error)
+        assertNotNull(viewModel.state.value.error)
 
         ledgerResult = Result.Success(listOf(mockLedgerEntry))
         viewModel.handleIntentForTest(GeneralLedgerIntent.SelectAccount("acct-001"))
         testDispatcher.scheduler.advanceUntilIdle()
-        assertNull(viewModel.currentState.error)
+        assertNull(viewModel.state.value.error)
     }
 }
 
 // ─── Extension to expose handleIntent for testing ────────────────────────────
 
-private suspend fun GeneralLedgerViewModel.handleIntentForTest(intent: GeneralLedgerIntent) =
-    handleIntent(intent)
+private fun GeneralLedgerViewModel.handleIntentForTest(intent: GeneralLedgerIntent) =
+    dispatch(intent)

@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.accounting
 
 import app.cash.turbine.test
+import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.Account
 import com.zyntasolutions.zyntapos.domain.model.AccountBalance
@@ -111,7 +112,7 @@ class ChartOfAccountsViewModelTest {
 
     @Test
     fun `initial state has empty search and no filter`() {
-        val state = viewModel.currentState
+        val state = viewModel.state.value
         assertEquals("", state.searchQuery)
         assertNull(state.selectedType)
         assertNull(state.error)
@@ -123,7 +124,7 @@ class ChartOfAccountsViewModelTest {
     @Test
     fun `accounts are loaded reactively on init`() = runTest {
         testDispatcher.scheduler.advanceUntilIdle()
-        assertEquals(2, viewModel.currentState.accounts.size)
+        assertEquals(2, viewModel.state.value.accounts.size)
     }
 
     @Test
@@ -159,7 +160,7 @@ class ChartOfAccountsViewModelTest {
         viewModel.handleIntentForTest(ChartOfAccountsIntent.SearchAccounts("Cash"))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        val accounts = viewModel.currentState.accounts
+        val accounts = viewModel.state.value.accounts
         assertTrue(accounts.all { it.accountName.contains("Cash", ignoreCase = true) })
     }
 
@@ -169,7 +170,7 @@ class ChartOfAccountsViewModelTest {
         viewModel.handleIntentForTest(ChartOfAccountsIntent.SearchAccounts("4010"))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        val accounts = viewModel.currentState.accounts
+        val accounts = viewModel.state.value.accounts
         assertTrue(accounts.any { it.accountCode == "4010" })
         assertEquals(1, accounts.size)
     }
@@ -182,7 +183,7 @@ class ChartOfAccountsViewModelTest {
         viewModel.handleIntentForTest(ChartOfAccountsIntent.SearchAccounts(""))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals(2, viewModel.currentState.accounts.size)
+        assertEquals(2, viewModel.state.value.accounts.size)
     }
 
     // ── FilterByType ───────────────────────────────────────────────────────────
@@ -205,8 +206,8 @@ class ChartOfAccountsViewModelTest {
         viewModel.handleIntentForTest(ChartOfAccountsIntent.FilterByType(null))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertNull(viewModel.currentState.selectedType)
-        assertEquals(2, viewModel.currentState.accounts.size)
+        assertNull(viewModel.state.value.selectedType)
+        assertEquals(2, viewModel.state.value.accounts.size)
     }
 
     // ── DeactivateAccount ──────────────────────────────────────────────────────
@@ -246,7 +247,7 @@ class ChartOfAccountsViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
         viewModel.handleIntentForTest(ChartOfAccountsIntent.SeedDefaultAccounts)
         testDispatcher.scheduler.advanceUntilIdle()
-        assertFalse(viewModel.currentState.isLoading)
+        assertFalse(viewModel.state.value.isLoading)
     }
 
     @Test
@@ -264,7 +265,7 @@ class ChartOfAccountsViewModelTest {
 
     @Test
     fun `SeedDefaultAccounts failure emits ShowError effect`() = runTest {
-        seedResult = Result.Error(Exception("DB error"))
+        seedResult = Result.Error(DatabaseException("DB error"))
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.effects.test {
@@ -279,5 +280,5 @@ class ChartOfAccountsViewModelTest {
 
 // ─── Extension to expose handleIntent for testing ────────────────────────────
 
-private suspend fun ChartOfAccountsViewModel.handleIntentForTest(intent: ChartOfAccountsIntent) =
-    handleIntent(intent)
+private fun ChartOfAccountsViewModel.handleIntentForTest(intent: ChartOfAccountsIntent) =
+    dispatch(intent)

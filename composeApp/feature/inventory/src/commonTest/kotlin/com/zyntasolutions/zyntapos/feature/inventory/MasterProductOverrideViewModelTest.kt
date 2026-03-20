@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.inventory
 
 import app.cash.turbine.test
+import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.MasterProduct
 import com.zyntasolutions.zyntapos.domain.model.StoreProductOverride
@@ -104,7 +105,7 @@ class MasterProductOverrideViewModelTest {
 
     @Test
     fun `initial state is empty`() {
-        val state = viewModel.currentState
+        val state = viewModel.state.value
         assertNull(state.masterProduct)
         assertFalse(state.isLoading)
         assertFalse(state.isSaving)
@@ -119,7 +120,7 @@ class MasterProductOverrideViewModelTest {
         viewModel.handleIntentForTest(MasterProductOverrideIntent.Load("mp-001"))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        val state = viewModel.currentState
+        val state = viewModel.state.value
         assertNotNull(state.masterProduct)
         assertEquals("Espresso Blend", state.masterProduct!!.name)
     }
@@ -129,16 +130,16 @@ class MasterProductOverrideViewModelTest {
         viewModel.handleIntentForTest(MasterProductOverrideIntent.Load("mp-001"))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals(1250.0, viewModel.currentState.effectivePrice)
+        assertEquals(1250.0, viewModel.state.value.effectivePrice)
     }
 
     @Test
     fun `Load uses basePrice when no override exists`() = runTest {
-        overrideResult = Result.Error(Exception("Not found"))
+        overrideResult = Result.Error(DatabaseException("Not found"))
         viewModel.handleIntentForTest(MasterProductOverrideIntent.Load("mp-001"))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals(1200.0, viewModel.currentState.effectivePrice)
+        assertEquals(1200.0, viewModel.state.value.effectivePrice)
     }
 
     @Test
@@ -146,12 +147,12 @@ class MasterProductOverrideViewModelTest {
         viewModel.handleIntentForTest(MasterProductOverrideIntent.Load("mp-001"))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertFalse(viewModel.currentState.isLoading)
+        assertFalse(viewModel.state.value.isLoading)
     }
 
     @Test
     fun `Load failure sets error and emits ShowError effect`() = runTest {
-        masterProductResult = Result.Error(Exception("Product not found"))
+        masterProductResult = Result.Error(DatabaseException("Product not found"))
 
         viewModel.effects.test {
             viewModel.handleIntentForTest(MasterProductOverrideIntent.Load("mp-999"))
@@ -160,7 +161,7 @@ class MasterProductOverrideViewModelTest {
             assertTrue(effect is MasterProductOverrideEffect.ShowError)
         }
 
-        assertNotNull(viewModel.currentState.error)
+        assertNotNull(viewModel.state.value.error)
     }
 
     // ── UpdateLocalPrice ───────────────────────────────────────────────────────
@@ -206,7 +207,7 @@ class MasterProductOverrideViewModelTest {
 
     @Test
     fun `Save emits ShowError when price update fails`() = runTest {
-        updatePriceResult = Result.Error(Exception("Price update failed"))
+        updatePriceResult = Result.Error(DatabaseException("Price update failed"))
         updateStockResult = Result.Success(Unit)
         viewModel.handleIntentForTest(MasterProductOverrideIntent.Load("mp-001"))
         testDispatcher.scheduler.advanceUntilIdle()
@@ -244,5 +245,5 @@ class MasterProductOverrideViewModelTest {
 
 // ─── Extension to expose handleIntent for testing ────────────────────────────
 
-private suspend fun MasterProductOverrideViewModel.handleIntentForTest(intent: MasterProductOverrideIntent) =
-    handleIntent(intent)
+private fun MasterProductOverrideViewModel.handleIntentForTest(intent: MasterProductOverrideIntent) =
+    dispatch(intent)

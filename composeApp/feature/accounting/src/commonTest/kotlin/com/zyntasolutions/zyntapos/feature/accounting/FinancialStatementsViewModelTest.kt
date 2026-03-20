@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.accounting
 
 import app.cash.turbine.test
+import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.AccountBalance
 import com.zyntasolutions.zyntapos.domain.model.FinancialStatement
@@ -132,12 +133,12 @@ class FinancialStatementsViewModelTest {
 
     @Test
     fun `initial state has PROFIT_LOSS as active tab`() {
-        assertEquals(FinancialStatementTab.PROFIT_LOSS, viewModel.currentState.activeTab)
+        assertEquals(FinancialStatementTab.PROFIT_LOSS, viewModel.state.value.activeTab)
     }
 
     @Test
     fun `initial state has default dates set`() {
-        val state = viewModel.currentState
+        val state = viewModel.state.value
         assertTrue(state.fromDate.isNotBlank())
         assertTrue(state.toDate.isNotBlank())
         assertTrue(state.asOfDate.isNotBlank())
@@ -145,7 +146,7 @@ class FinancialStatementsViewModelTest {
 
     @Test
     fun `initial state has no loaded statements`() {
-        val state = viewModel.currentState
+        val state = viewModel.state.value
         assertNull(state.pAndL)
         assertNull(state.balanceSheet)
         assertNull(state.trialBalance)
@@ -163,8 +164,8 @@ class FinancialStatementsViewModelTest {
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertNotNull(viewModel.currentState.pAndL)
-        assertEquals(50_000.0, viewModel.currentState.pAndL!!.totalRevenue)
+        assertNotNull(viewModel.state.value.pAndL)
+        assertEquals(50_000.0, viewModel.state.value.pAndL!!.totalRevenue)
     }
 
     @Test
@@ -174,9 +175,9 @@ class FinancialStatementsViewModelTest {
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals("store-001", viewModel.currentState.storeId)
-        assertEquals("2026-03-01", viewModel.currentState.fromDate)
-        assertEquals("2026-03-31", viewModel.currentState.toDate)
+        assertEquals("store-001", viewModel.state.value.storeId)
+        assertEquals("2026-03-01", viewModel.state.value.fromDate)
+        assertEquals("2026-03-31", viewModel.state.value.toDate)
     }
 
     @Test
@@ -186,12 +187,12 @@ class FinancialStatementsViewModelTest {
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertFalse(viewModel.currentState.isLoading)
+        assertFalse(viewModel.state.value.isLoading)
     }
 
     @Test
     fun `LoadPandL failure emits ShowError effect`() = runTest {
-        pandlResult = Result.Error(Exception("P&L computation failed"))
+        pandlResult = Result.Error(DatabaseException("P&L computation failed"))
 
         viewModel.effects.test {
             viewModel.handleIntentForTest(
@@ -206,13 +207,13 @@ class FinancialStatementsViewModelTest {
 
     @Test
     fun `LoadPandL failure sets error in state`() = runTest {
-        pandlResult = Result.Error(Exception("P&L computation failed"))
+        pandlResult = Result.Error(DatabaseException("P&L computation failed"))
         viewModel.handleIntentForTest(
             FinancialStatementsIntent.LoadPandL("store-001", "2026-03-01", "2026-03-31")
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertNotNull(viewModel.currentState.error)
+        assertNotNull(viewModel.state.value.error)
     }
 
     // ── LoadBalanceSheet ───────────────────────────────────────────────────────
@@ -224,8 +225,8 @@ class FinancialStatementsViewModelTest {
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertNotNull(viewModel.currentState.balanceSheet)
-        assertEquals(100_000.0, viewModel.currentState.balanceSheet!!.totalAssets)
+        assertNotNull(viewModel.state.value.balanceSheet)
+        assertEquals(100_000.0, viewModel.state.value.balanceSheet!!.totalAssets)
     }
 
     @Test
@@ -235,12 +236,12 @@ class FinancialStatementsViewModelTest {
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals("2026-03-31", viewModel.currentState.asOfDate)
+        assertEquals("2026-03-31", viewModel.state.value.asOfDate)
     }
 
     @Test
     fun `LoadBalanceSheet failure emits ShowError effect`() = runTest {
-        balanceSheetResult = Result.Error(Exception("Balance sheet computation failed"))
+        balanceSheetResult = Result.Error(DatabaseException("Balance sheet computation failed"))
 
         viewModel.effects.test {
             viewModel.handleIntentForTest(
@@ -261,13 +262,13 @@ class FinancialStatementsViewModelTest {
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertNotNull(viewModel.currentState.trialBalance)
-        assertTrue(viewModel.currentState.trialBalance!!.isBalanced)
+        assertNotNull(viewModel.state.value.trialBalance)
+        assertTrue(viewModel.state.value.trialBalance!!.isBalanced)
     }
 
     @Test
     fun `LoadTrialBalance failure emits ShowError effect`() = runTest {
-        trialBalanceResult = Result.Error(Exception("Trial balance computation failed"))
+        trialBalanceResult = Result.Error(DatabaseException("Trial balance computation failed"))
 
         viewModel.effects.test {
             viewModel.handleIntentForTest(
@@ -288,13 +289,13 @@ class FinancialStatementsViewModelTest {
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertNotNull(viewModel.currentState.cashFlow)
-        assertEquals(15_000.0, viewModel.currentState.cashFlow!!.closingCash)
+        assertNotNull(viewModel.state.value.cashFlow)
+        assertEquals(15_000.0, viewModel.state.value.cashFlow!!.closingCash)
     }
 
     @Test
     fun `LoadCashFlow failure emits ShowError effect`() = runTest {
-        cashFlowResult = Result.Error(Exception("Cash flow computation failed"))
+        cashFlowResult = Result.Error(DatabaseException("Cash flow computation failed"))
 
         viewModel.effects.test {
             viewModel.handleIntentForTest(
@@ -330,7 +331,7 @@ class FinancialStatementsViewModelTest {
         viewModel.handleIntentForTest(FinancialStatementsIntent.SwitchTab(FinancialStatementTab.BALANCE_SHEET))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertNotNull(viewModel.currentState.balanceSheet)
+        assertNotNull(viewModel.state.value.balanceSheet)
     }
 
     @Test
@@ -340,7 +341,7 @@ class FinancialStatementsViewModelTest {
             FinancialStatementsIntent.LoadPandL("store-001", "2026-03-01", "2026-03-31")
         )
         testDispatcher.scheduler.advanceUntilIdle()
-        val firstPandL = viewModel.currentState.pAndL
+        val firstPandL = viewModel.state.value.pAndL
 
         // Switch away and back to PROFIT_LOSS — pAndL is already cached, should not re-fetch
         viewModel.handleIntentForTest(FinancialStatementsIntent.SwitchTab(FinancialStatementTab.BALANCE_SHEET))
@@ -349,8 +350,8 @@ class FinancialStatementsViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         // pAndL should still be the same (not null)
-        assertNotNull(viewModel.currentState.pAndL)
-        assertEquals(firstPandL!!.totalRevenue, viewModel.currentState.pAndL!!.totalRevenue)
+        assertNotNull(viewModel.state.value.pAndL)
+        assertEquals(firstPandL!!.totalRevenue, viewModel.state.value.pAndL!!.totalRevenue)
     }
 
     // ── SetDateRange ───────────────────────────────────────────────────────────
@@ -373,15 +374,15 @@ class FinancialStatementsViewModelTest {
             FinancialStatementsIntent.LoadPandL("store-001", "2026-03-01", "2026-03-31")
         )
         testDispatcher.scheduler.advanceUntilIdle()
-        assertNotNull(viewModel.currentState.pAndL)
+        assertNotNull(viewModel.state.value.pAndL)
 
         // Change date range — pAndL should be cleared then re-fetched
         viewModel.handleIntentForTest(FinancialStatementsIntent.SetDateRange("2026-02-01", "2026-02-28"))
         testDispatcher.scheduler.advanceUntilIdle()
 
         // After advanceUntilIdle, pAndL is re-fetched and set again
-        assertNotNull(viewModel.currentState.pAndL)
-        assertEquals("2026-02-01", viewModel.currentState.fromDate)
+        assertNotNull(viewModel.state.value.pAndL)
+        assertEquals("2026-02-01", viewModel.state.value.fromDate)
     }
 
     // ── SetAsOfDate ────────────────────────────────────────────────────────────
@@ -403,7 +404,7 @@ class FinancialStatementsViewModelTest {
             FinancialStatementsIntent.LoadBalanceSheet("store-001", "2026-03-31")
         )
         testDispatcher.scheduler.advanceUntilIdle()
-        assertNotNull(viewModel.currentState.balanceSheet)
+        assertNotNull(viewModel.state.value.balanceSheet)
 
         // Verify that SetAsOfDate clears the balanceSheet (pAndL tab is active, so re-fetch is skipped)
         viewModel.state.test {
@@ -420,23 +421,23 @@ class FinancialStatementsViewModelTest {
 
     @Test
     fun `LoadPandL clears error on success`() = runTest {
-        pandlResult = Result.Error(Exception("error"))
+        pandlResult = Result.Error(DatabaseException("error"))
         viewModel.handleIntentForTest(
             FinancialStatementsIntent.LoadPandL("store-001", "2026-03-01", "2026-03-31")
         )
         testDispatcher.scheduler.advanceUntilIdle()
-        assertNotNull(viewModel.currentState.error)
+        assertNotNull(viewModel.state.value.error)
 
         pandlResult = Result.Success(mockPandL)
         viewModel.handleIntentForTest(
             FinancialStatementsIntent.LoadPandL("store-001", "2026-03-01", "2026-03-31")
         )
         testDispatcher.scheduler.advanceUntilIdle()
-        assertNull(viewModel.currentState.error)
+        assertNull(viewModel.state.value.error)
     }
 }
 
 // ─── Extension to expose handleIntent for testing ────────────────────────────
 
-private suspend fun FinancialStatementsViewModel.handleIntentForTest(intent: FinancialStatementsIntent) =
-    handleIntent(intent)
+private fun FinancialStatementsViewModel.handleIntentForTest(intent: FinancialStatementsIntent) =
+    dispatch(intent)

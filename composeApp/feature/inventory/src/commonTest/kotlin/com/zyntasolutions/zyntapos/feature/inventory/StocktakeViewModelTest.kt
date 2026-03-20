@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.inventory
 
 import app.cash.turbine.test
+import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.Permission
 import com.zyntasolutions.zyntapos.domain.model.Product
@@ -165,7 +166,7 @@ class StocktakeViewModelTest {
 
     @Test
     fun `initial state is empty`() {
-        val state = viewModel.currentState
+        val state = viewModel.state.value
         assertNull(state.session)
         assertTrue(state.counts.isEmpty())
         assertFalse(state.isScanning)
@@ -183,8 +184,8 @@ class StocktakeViewModelTest {
         viewModel.handleIntentForTest(StocktakeIntent.StartSession)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertNotNull(viewModel.currentState.session)
-        assertEquals("session-001", viewModel.currentState.session!!.id)
+        assertNotNull(viewModel.state.value.session)
+        assertEquals("session-001", viewModel.state.value.session!!.id)
     }
 
     @Test
@@ -194,19 +195,19 @@ class StocktakeViewModelTest {
         viewModel.handleIntentForTest(StocktakeIntent.StartSession)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertFalse(viewModel.currentState.isStarting)
+        assertFalse(viewModel.state.value.isStarting)
     }
 
     @Test
     fun `StartSession failure sets error in state`() = runTest {
         testDispatcher.scheduler.advanceUntilIdle()
-        startSessionResult = Result.Error(Exception("Session already in progress"))
+        startSessionResult = Result.Error(DatabaseException("Session already in progress"))
 
         viewModel.handleIntentForTest(StocktakeIntent.StartSession)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertNotNull(viewModel.currentState.error)
-        assertNull(viewModel.currentState.session)
+        assertNotNull(viewModel.state.value.error)
+        assertNull(viewModel.state.value.session)
     }
 
     // ── ScanItem ───────────────────────────────────────────────────────────────
@@ -235,7 +236,7 @@ class StocktakeViewModelTest {
         viewModel.handleIntentForTest(StocktakeIntent.ScanItem("1234567890123"))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals(1, viewModel.currentState.counts.size)
+        assertEquals(1, viewModel.state.value.counts.size)
     }
 
     @Test
@@ -253,7 +254,7 @@ class StocktakeViewModelTest {
     @Test
     fun `ScanItem failure emits ScanNotFound effect`() = runTest {
         testDispatcher.scheduler.advanceUntilIdle()
-        scanItemResult = Result.Error(Exception("Product not found"))
+        scanItemResult = Result.Error(DatabaseException("Product not found"))
         viewModel.handleIntentForTest(StocktakeIntent.StartSession)
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -274,11 +275,11 @@ class StocktakeViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
         viewModel.handleIntentForTest(StocktakeIntent.ScanItem("1234567890123"))
         testDispatcher.scheduler.advanceUntilIdle()
-        assertEquals(1, viewModel.currentState.counts.size)
+        assertEquals(1, viewModel.state.value.counts.size)
 
         viewModel.handleIntentForTest(StocktakeIntent.RemoveCount("prod-001"))
         testDispatcher.scheduler.advanceUntilIdle()
-        assertTrue(viewModel.currentState.counts.isEmpty())
+        assertTrue(viewModel.state.value.counts.isEmpty())
     }
 
     // ── CancelStocktake ────────────────────────────────────────────────────────
@@ -304,8 +305,8 @@ class StocktakeViewModelTest {
         viewModel.handleIntentForTest(StocktakeIntent.CancelStocktake)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertNull(viewModel.currentState.session)
-        assertTrue(viewModel.currentState.counts.isEmpty())
+        assertNull(viewModel.state.value.session)
+        assertTrue(viewModel.state.value.counts.isEmpty())
     }
 
     // ── CompleteStocktake ──────────────────────────────────────────────────────
@@ -336,14 +337,14 @@ class StocktakeViewModelTest {
         viewModel.handleIntentForTest(StocktakeIntent.CompleteStocktake)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertNull(viewModel.currentState.session)
-        assertTrue(viewModel.currentState.counts.isEmpty())
+        assertNull(viewModel.state.value.session)
+        assertTrue(viewModel.state.value.counts.isEmpty())
     }
 
     @Test
     fun `CompleteStocktake failure sets error`() = runTest {
         testDispatcher.scheduler.advanceUntilIdle()
-        completeResult = Result.Error(Exception("Session not found"))
+        completeResult = Result.Error(DatabaseException("Session not found"))
 
         viewModel.handleIntentForTest(StocktakeIntent.StartSession)
         testDispatcher.scheduler.advanceUntilIdle()
@@ -351,7 +352,7 @@ class StocktakeViewModelTest {
         viewModel.handleIntentForTest(StocktakeIntent.CompleteStocktake)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertNotNull(viewModel.currentState.error)
+        assertNotNull(viewModel.state.value.error)
     }
 
     // ── DismissError ───────────────────────────────────────────────────────────
@@ -359,19 +360,19 @@ class StocktakeViewModelTest {
     @Test
     fun `DismissError clears error in state`() = runTest {
         testDispatcher.scheduler.advanceUntilIdle()
-        startSessionResult = Result.Error(Exception("error"))
+        startSessionResult = Result.Error(DatabaseException("error"))
 
         viewModel.handleIntentForTest(StocktakeIntent.StartSession)
         testDispatcher.scheduler.advanceUntilIdle()
-        assertNotNull(viewModel.currentState.error)
+        assertNotNull(viewModel.state.value.error)
 
         viewModel.handleIntentForTest(StocktakeIntent.DismissError)
         testDispatcher.scheduler.advanceUntilIdle()
-        assertNull(viewModel.currentState.error)
+        assertNull(viewModel.state.value.error)
     }
 }
 
 // ─── Extension to expose handleIntent for testing ────────────────────────────
 
-private suspend fun StocktakeViewModel.handleIntentForTest(intent: StocktakeIntent) =
-    handleIntent(intent)
+private fun StocktakeViewModel.handleIntentForTest(intent: StocktakeIntent) =
+    dispatch(intent)

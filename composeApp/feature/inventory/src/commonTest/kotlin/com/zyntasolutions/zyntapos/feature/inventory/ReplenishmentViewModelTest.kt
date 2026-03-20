@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.inventory
 
 import app.cash.turbine.test
+import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.PurchaseOrder
 import com.zyntasolutions.zyntapos.domain.model.PurchaseOrderItem
@@ -168,13 +169,13 @@ class ReplenishmentViewModelTest {
         override fun getByStore(storeId: String): Flow<List<Warehouse>> = MutableStateFlow(emptyList())
         override suspend fun getDefault(storeId: String): Result<Warehouse?> = Result.Success(null)
         override suspend fun getById(id: String): Result<Warehouse> =
-            Result.Error(Exception("Not found"))
+            Result.Error(DatabaseException("Not found"))
         override suspend fun insert(warehouse: Warehouse): Result<Unit> = Result.Success(Unit)
         override suspend fun update(warehouse: Warehouse): Result<Unit> = Result.Success(Unit)
         override fun getTransfersByWarehouse(warehouseId: String): Flow<List<StockTransfer>> =
             MutableStateFlow(emptyList())
         override suspend fun getTransferById(id: String): Result<StockTransfer> =
-            Result.Error(Exception("Not found"))
+            Result.Error(DatabaseException("Not found"))
         override suspend fun getPendingTransfers(): Result<List<StockTransfer>> = Result.Success(emptyList())
         override suspend fun createTransfer(transfer: StockTransfer): Result<Unit> = Result.Success(Unit)
         override suspend fun commitTransfer(transferId: String, confirmedBy: String): Result<Unit> = Result.Success(Unit)
@@ -316,7 +317,7 @@ class ReplenishmentViewModelTest {
 
     @Test
     fun `initial state has REORDER_ALERTS tab and empty forms`() {
-        val state = viewModel.currentState
+        val state = viewModel.state.value
         assertEquals(ReplenishmentTab.REORDER_ALERTS, state.activeTab)
         assertFalse(state.showCreatePoDialog)
         assertFalse(state.showRuleDialog)
@@ -365,7 +366,7 @@ class ReplenishmentViewModelTest {
     fun `DismissOrderDetail clears selectedOrder`() = runTest {
         viewModel.handleIntentForTest(ReplenishmentIntent.SelectOrder(mockOrder))
         testDispatcher.scheduler.advanceUntilIdle()
-        assertNotNull(viewModel.currentState.selectedOrder)
+        assertNotNull(viewModel.state.value.selectedOrder)
 
         viewModel.state.test {
             awaitItem()
@@ -392,7 +393,7 @@ class ReplenishmentViewModelTest {
     fun `DismissCreatePoDialog hides dialog`() = runTest {
         viewModel.handleIntentForTest(ReplenishmentIntent.OpenCreatePoDialog)
         testDispatcher.scheduler.advanceUntilIdle()
-        assertTrue(viewModel.currentState.showCreatePoDialog)
+        assertTrue(viewModel.state.value.showCreatePoDialog)
 
         viewModel.state.test {
             awaitItem()
@@ -504,7 +505,7 @@ class ReplenishmentViewModelTest {
     fun `DismissRuleDialog closes dialog and clears selectedRule`() = runTest {
         viewModel.handleIntentForTest(ReplenishmentIntent.OpenRuleDialog(mockRule))
         testDispatcher.scheduler.advanceUntilIdle()
-        assertTrue(viewModel.currentState.showRuleDialog)
+        assertTrue(viewModel.state.value.showRuleDialog)
 
         viewModel.state.test {
             awaitItem()
@@ -646,12 +647,12 @@ class ReplenishmentViewModelTest {
     @Test
     fun `CancelOrder failure sets error in state`() = runTest {
         testDispatcher.scheduler.advanceUntilIdle()
-        cancelOrderResult = Result.Error(Exception("Order not cancellable"))
+        cancelOrderResult = Result.Error(DatabaseException("Order not cancellable"))
 
         viewModel.handleIntentForTest(ReplenishmentIntent.CancelOrder("po-001"))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertNotNull(viewModel.currentState.error)
+        assertNotNull(viewModel.state.value.error)
     }
 
     // ── DeleteRule ────────────────────────────────────────────────────────────
@@ -672,12 +673,12 @@ class ReplenishmentViewModelTest {
     @Test
     fun `DeleteRule failure sets error in state`() = runTest {
         testDispatcher.scheduler.advanceUntilIdle()
-        deleteRuleResult = Result.Error(Exception("Rule not found"))
+        deleteRuleResult = Result.Error(DatabaseException("Rule not found"))
 
         viewModel.handleIntentForTest(ReplenishmentIntent.DeleteRule("rule-001"))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertNotNull(viewModel.currentState.error)
+        assertNotNull(viewModel.state.value.error)
     }
 
     // ── RunAutoReplenishment ──────────────────────────────────────────────────
@@ -689,8 +690,8 @@ class ReplenishmentViewModelTest {
         viewModel.handleIntentForTest(ReplenishmentIntent.RunAutoReplenishment)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertNotNull(viewModel.currentState.lastAutoReplenishmentResult)
-        assertFalse(viewModel.currentState.isRunningAutoReplenishment)
+        assertNotNull(viewModel.state.value.lastAutoReplenishmentResult)
+        assertFalse(viewModel.state.value.isRunningAutoReplenishment)
     }
 
     @Test
@@ -698,7 +699,7 @@ class ReplenishmentViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
         viewModel.handleIntentForTest(ReplenishmentIntent.RunAutoReplenishment)
         testDispatcher.scheduler.advanceUntilIdle()
-        assertNotNull(viewModel.currentState.lastAutoReplenishmentResult)
+        assertNotNull(viewModel.state.value.lastAutoReplenishmentResult)
 
         viewModel.state.test {
             awaitItem()
@@ -713,14 +714,14 @@ class ReplenishmentViewModelTest {
     @Test
     fun `DismissError clears error`() = runTest {
         testDispatcher.scheduler.advanceUntilIdle()
-        cancelOrderResult = Result.Error(Exception("error"))
+        cancelOrderResult = Result.Error(DatabaseException("error"))
         viewModel.handleIntentForTest(ReplenishmentIntent.CancelOrder("po-001"))
         testDispatcher.scheduler.advanceUntilIdle()
-        assertNotNull(viewModel.currentState.error)
+        assertNotNull(viewModel.state.value.error)
 
         viewModel.handleIntentForTest(ReplenishmentIntent.DismissError)
         testDispatcher.scheduler.advanceUntilIdle()
-        assertNull(viewModel.currentState.error)
+        assertNull(viewModel.state.value.error)
     }
 
     @Test
@@ -732,11 +733,11 @@ class ReplenishmentViewModelTest {
         // Instead just verify DismissSuccess doesn't crash and keeps error null
         viewModel.handleIntentForTest(ReplenishmentIntent.DismissSuccess)
         testDispatcher.scheduler.advanceUntilIdle()
-        assertNull(viewModel.currentState.successMessage)
+        assertNull(viewModel.state.value.successMessage)
     }
 }
 
 // ─── Extension to expose handleIntent for testing ────────────────────────────
 
-private suspend fun ReplenishmentViewModel.handleIntentForTest(intent: ReplenishmentIntent) =
-    handleIntent(intent)
+private fun ReplenishmentViewModel.handleIntentForTest(intent: ReplenishmentIntent) =
+    dispatch(intent)

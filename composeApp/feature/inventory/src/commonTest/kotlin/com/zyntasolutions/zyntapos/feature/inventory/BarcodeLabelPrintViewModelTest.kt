@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.inventory
 
 import app.cash.turbine.test
+import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.LabelTemplate
 import com.zyntasolutions.zyntapos.domain.model.Product
@@ -130,7 +131,7 @@ class BarcodeLabelPrintViewModelTest {
 
     @Test
     fun `initial state has empty queue and no error`() {
-        val state = viewModel.currentState
+        val state = viewModel.state.value
         assertTrue(state.queue.isEmpty())
         assertFalse(state.isPrinting)
         assertFalse(state.isTemplateEditorOpen)
@@ -142,15 +143,15 @@ class BarcodeLabelPrintViewModelTest {
     fun `templates are loaded from repository on init`() = runTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals(1, viewModel.currentState.templates.size)
-        assertNotNull(viewModel.currentState.selectedTemplate)
+        assertEquals(1, viewModel.state.value.templates.size)
+        assertNotNull(viewModel.state.value.selectedTemplate)
     }
 
     @Test
     fun `default template is selected on init`() = runTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals("tmpl-001", viewModel.currentState.selectedTemplate?.id)
+        assertEquals("tmpl-001", viewModel.state.value.selectedTemplate?.id)
     }
 
     // ── Queue operations ───────────────────────────────────────────────────────
@@ -162,8 +163,8 @@ class BarcodeLabelPrintViewModelTest {
         viewModel.handleIntentForTest(BarcodeLabelPrintIntent.AddToQueue(mockProduct))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals(1, viewModel.currentState.queue.size)
-        assertEquals("prod-001", viewModel.currentState.queue.first().productId)
+        assertEquals(1, viewModel.state.value.queue.size)
+        assertEquals("prod-001", viewModel.state.value.queue.first().productId)
     }
 
     @Test
@@ -174,8 +175,8 @@ class BarcodeLabelPrintViewModelTest {
         viewModel.handleIntentForTest(BarcodeLabelPrintIntent.AddToQueue(mockProduct))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals(1, viewModel.currentState.queue.size) // same product, not two items
-        assertEquals(2, viewModel.currentState.queue.first().quantity)
+        assertEquals(1, viewModel.state.value.queue.size) // same product, not two items
+        assertEquals(2, viewModel.state.value.queue.first().quantity)
     }
 
     @Test
@@ -184,12 +185,12 @@ class BarcodeLabelPrintViewModelTest {
 
         viewModel.handleIntentForTest(BarcodeLabelPrintIntent.AddToQueue(mockProduct))
         testDispatcher.scheduler.advanceUntilIdle()
-        val itemId = viewModel.currentState.queue.first().id
+        val itemId = viewModel.state.value.queue.first().id
 
         viewModel.handleIntentForTest(BarcodeLabelPrintIntent.RemoveFromQueue(itemId))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertTrue(viewModel.currentState.queue.isEmpty())
+        assertTrue(viewModel.state.value.queue.isEmpty())
     }
 
     @Test
@@ -198,12 +199,12 @@ class BarcodeLabelPrintViewModelTest {
 
         viewModel.handleIntentForTest(BarcodeLabelPrintIntent.AddToQueue(mockProduct))
         testDispatcher.scheduler.advanceUntilIdle()
-        val itemId = viewModel.currentState.queue.first().id
+        val itemId = viewModel.state.value.queue.first().id
 
         viewModel.handleIntentForTest(BarcodeLabelPrintIntent.SetQuantity(itemId, 5))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals(5, viewModel.currentState.queue.first().quantity)
+        assertEquals(5, viewModel.state.value.queue.first().quantity)
     }
 
     @Test
@@ -212,12 +213,12 @@ class BarcodeLabelPrintViewModelTest {
 
         viewModel.handleIntentForTest(BarcodeLabelPrintIntent.AddToQueue(mockProduct))
         testDispatcher.scheduler.advanceUntilIdle()
-        val itemId = viewModel.currentState.queue.first().id
+        val itemId = viewModel.state.value.queue.first().id
 
         viewModel.handleIntentForTest(BarcodeLabelPrintIntent.SetQuantity(itemId, 0))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertTrue(viewModel.currentState.queue.isEmpty())
+        assertTrue(viewModel.state.value.queue.isEmpty())
     }
 
     @Test
@@ -226,12 +227,12 @@ class BarcodeLabelPrintViewModelTest {
 
         viewModel.handleIntentForTest(BarcodeLabelPrintIntent.AddToQueue(mockProduct))
         testDispatcher.scheduler.advanceUntilIdle()
-        assertEquals(1, viewModel.currentState.queue.size)
+        assertEquals(1, viewModel.state.value.queue.size)
 
         viewModel.handleIntentForTest(BarcodeLabelPrintIntent.ClearQueue)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertTrue(viewModel.currentState.queue.isEmpty())
+        assertTrue(viewModel.state.value.queue.isEmpty())
     }
 
     // ── Template selection ─────────────────────────────────────────────────────
@@ -277,7 +278,7 @@ class BarcodeLabelPrintViewModelTest {
     fun `DismissTemplateEditor closes editor and clears editingTemplate`() = runTest {
         viewModel.handleIntentForTest(BarcodeLabelPrintIntent.OpenNewTemplateEditor)
         testDispatcher.scheduler.advanceUntilIdle()
-        assertTrue(viewModel.currentState.isTemplateEditorOpen)
+        assertTrue(viewModel.state.value.isTemplateEditorOpen)
 
         viewModel.state.test {
             awaitItem()
@@ -301,14 +302,14 @@ class BarcodeLabelPrintViewModelTest {
         viewModel.handleIntentForTest(BarcodeLabelPrintIntent.SaveTemplate(mockTemplate))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertFalse(viewModel.currentState.isTemplateEditorOpen)
-        assertNull(viewModel.currentState.editingTemplate)
+        assertFalse(viewModel.state.value.isTemplateEditorOpen)
+        assertNull(viewModel.state.value.editingTemplate)
     }
 
     @Test
     fun `DeleteTemplate failure emits ShowError effect`() = runTest {
         testDispatcher.scheduler.advanceUntilIdle()
-        deleteTemplateResult = Result.Error(Exception("Cannot delete default template"))
+        deleteTemplateResult = Result.Error(DatabaseException("Cannot delete default template"))
 
         viewModel.effects.test {
             viewModel.handleIntentForTest(BarcodeLabelPrintIntent.DeleteTemplate("tmpl-001"))
@@ -339,18 +340,18 @@ class BarcodeLabelPrintViewModelTest {
     @Test
     fun `DismissError clears error in state`() = runTest {
         testDispatcher.scheduler.advanceUntilIdle()
-        deleteTemplateResult = Result.Error(Exception("error"))
+        deleteTemplateResult = Result.Error(DatabaseException("error"))
 
         viewModel.handleIntentForTest(BarcodeLabelPrintIntent.DeleteTemplate("tmpl-001"))
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.handleIntentForTest(BarcodeLabelPrintIntent.DismissError)
         testDispatcher.scheduler.advanceUntilIdle()
-        assertNull(viewModel.currentState.error)
+        assertNull(viewModel.state.value.error)
     }
 }
 
 // ─── Extension to expose handleIntent for testing ────────────────────────────
 
-private suspend fun BarcodeLabelPrintViewModel.handleIntentForTest(intent: BarcodeLabelPrintIntent) =
-    handleIntent(intent)
+private fun BarcodeLabelPrintViewModel.handleIntentForTest(intent: BarcodeLabelPrintIntent) =
+    dispatch(intent)

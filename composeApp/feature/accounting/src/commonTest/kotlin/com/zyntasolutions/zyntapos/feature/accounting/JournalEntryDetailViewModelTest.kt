@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.accounting
 
 import app.cash.turbine.test
+import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.JournalEntry
 import com.zyntasolutions.zyntapos.domain.model.JournalEntryLine
@@ -131,7 +132,7 @@ class JournalEntryDetailViewModelTest {
 
     @Test
     fun `initial state is blank`() {
-        val state = viewModel.currentState
+        val state = viewModel.state.value
         assertNull(state.entry)
         assertFalse(state.isLoading)
         assertFalse(state.isSaving)
@@ -149,7 +150,7 @@ class JournalEntryDetailViewModelTest {
         viewModel.handleIntentForTest(JournalEntryDetailIntent.Load("je-001"))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        val state = viewModel.currentState
+        val state = viewModel.state.value
         assertNotNull(state.entry)
         assertEquals("Opening cash entry", state.description)
         assertEquals("2026-03-01", state.entryDate)
@@ -162,7 +163,7 @@ class JournalEntryDetailViewModelTest {
         viewModel.handleIntentForTest(JournalEntryDetailIntent.Load("je-001"))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals(2, viewModel.currentState.lines.size)
+        assertEquals(2, viewModel.state.value.lines.size)
     }
 
     @Test
@@ -170,7 +171,7 @@ class JournalEntryDetailViewModelTest {
         viewModel.handleIntentForTest(JournalEntryDetailIntent.Load("je-001"))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertTrue(viewModel.currentState.isBalanced)
+        assertTrue(viewModel.state.value.isBalanced)
     }
 
     @Test
@@ -178,7 +179,7 @@ class JournalEntryDetailViewModelTest {
         viewModel.handleIntentForTest(JournalEntryDetailIntent.Load("je-001"))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertFalse(viewModel.currentState.isLoading)
+        assertFalse(viewModel.state.value.isLoading)
     }
 
     @Test
@@ -187,7 +188,7 @@ class JournalEntryDetailViewModelTest {
         viewModel.handleIntentForTest(JournalEntryDetailIntent.Load("je-999"))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertNotNull(viewModel.currentState.error)
+        assertNotNull(viewModel.state.value.error)
     }
 
     @Test
@@ -204,7 +205,7 @@ class JournalEntryDetailViewModelTest {
 
     @Test
     fun `Load emits ShowError on repository error`() = runTest {
-        getByIdResult = Result.Error(Exception("DB error"))
+        getByIdResult = Result.Error(DatabaseException("DB error"))
 
         viewModel.effects.test {
             viewModel.handleIntentForTest(JournalEntryDetailIntent.Load("je-001"))
@@ -226,7 +227,7 @@ class JournalEntryDetailViewModelTest {
         viewModel.handleIntentForTest(JournalEntryDetailIntent.NewEntry("store-002", "user-002"))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        val state = viewModel.currentState
+        val state = viewModel.state.value
         assertNull(state.entry)
         assertEquals("store-002", state.storeId)
         assertEquals("user-002", state.createdBy)
@@ -239,7 +240,7 @@ class JournalEntryDetailViewModelTest {
         viewModel.handleIntentForTest(JournalEntryDetailIntent.NewEntry("store-001", "user-001"))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertTrue(viewModel.currentState.entryDate.isNotBlank())
+        assertTrue(viewModel.state.value.entryDate.isNotBlank())
     }
 
     // ── Field update intents ───────────────────────────────────────────────────
@@ -293,11 +294,11 @@ class JournalEntryDetailViewModelTest {
     fun `AddLine updates isBalanced when debit and credit match`() = runTest {
         viewModel.handleIntentForTest(JournalEntryDetailIntent.AddLine(debitLine))
         testDispatcher.scheduler.advanceUntilIdle()
-        assertFalse(viewModel.currentState.isBalanced) // Only one side
+        assertFalse(viewModel.state.value.isBalanced) // Only one side
 
         viewModel.handleIntentForTest(JournalEntryDetailIntent.AddLine(creditLine))
         testDispatcher.scheduler.advanceUntilIdle()
-        assertTrue(viewModel.currentState.isBalanced) // Now balanced
+        assertTrue(viewModel.state.value.isBalanced) // Now balanced
     }
 
     @Test
@@ -305,12 +306,12 @@ class JournalEntryDetailViewModelTest {
         viewModel.handleIntentForTest(JournalEntryDetailIntent.AddLine(debitLine))
         viewModel.handleIntentForTest(JournalEntryDetailIntent.AddLine(creditLine))
         testDispatcher.scheduler.advanceUntilIdle()
-        assertEquals(2, viewModel.currentState.lines.size)
+        assertEquals(2, viewModel.state.value.lines.size)
 
         viewModel.handleIntentForTest(JournalEntryDetailIntent.RemoveLine("line-001"))
         testDispatcher.scheduler.advanceUntilIdle()
-        assertEquals(1, viewModel.currentState.lines.size)
-        assertEquals("line-002", viewModel.currentState.lines.first().id)
+        assertEquals(1, viewModel.state.value.lines.size)
+        assertEquals("line-002", viewModel.state.value.lines.first().id)
     }
 
     @Test
@@ -318,11 +319,11 @@ class JournalEntryDetailViewModelTest {
         viewModel.handleIntentForTest(JournalEntryDetailIntent.AddLine(debitLine))
         viewModel.handleIntentForTest(JournalEntryDetailIntent.AddLine(creditLine))
         testDispatcher.scheduler.advanceUntilIdle()
-        assertTrue(viewModel.currentState.isBalanced)
+        assertTrue(viewModel.state.value.isBalanced)
 
         viewModel.handleIntentForTest(JournalEntryDetailIntent.RemoveLine("line-002"))
         testDispatcher.scheduler.advanceUntilIdle()
-        assertFalse(viewModel.currentState.isBalanced)
+        assertFalse(viewModel.state.value.isBalanced)
     }
 
     // ── Save ───────────────────────────────────────────────────────────────────
@@ -342,7 +343,7 @@ class JournalEntryDetailViewModelTest {
 
     @Test
     fun `Save failure emits ShowError effect`() = runTest {
-        saveDraftResult = Result.Error(Exception("DB constraint violation"))
+        saveDraftResult = Result.Error(DatabaseException("DB constraint violation"))
 
         viewModel.effects.test {
             viewModel.handleIntentForTest(JournalEntryDetailIntent.Save)
@@ -357,7 +358,7 @@ class JournalEntryDetailViewModelTest {
     fun `Save clears isSaving after completion`() = runTest {
         viewModel.handleIntentForTest(JournalEntryDetailIntent.Save)
         testDispatcher.scheduler.advanceUntilIdle()
-        assertFalse(viewModel.currentState.isSaving)
+        assertFalse(viewModel.state.value.isSaving)
     }
 
     // ── Post ───────────────────────────────────────────────────────────────────
@@ -378,7 +379,7 @@ class JournalEntryDetailViewModelTest {
 
     @Test
     fun `Post failure emits ShowError effect`() = runTest {
-        postResult = Result.Error(Exception("Entry is not balanced"))
+        postResult = Result.Error(DatabaseException("Entry is not balanced"))
 
         viewModel.effects.test {
             viewModel.handleIntentForTest(JournalEntryDetailIntent.Post("je-001"))
@@ -393,7 +394,7 @@ class JournalEntryDetailViewModelTest {
     fun `Post clears isPosting after success`() = runTest {
         viewModel.handleIntentForTest(JournalEntryDetailIntent.Post("je-001"))
         testDispatcher.scheduler.advanceUntilIdle()
-        assertFalse(viewModel.currentState.isPosting)
+        assertFalse(viewModel.state.value.isPosting)
     }
 
     // ── Reverse ────────────────────────────────────────────────────────────────
@@ -417,7 +418,7 @@ class JournalEntryDetailViewModelTest {
 
     @Test
     fun `Reverse failure emits ShowError effect`() = runTest {
-        reverseResult = Result.Error(Exception("Entry is not posted"))
+        reverseResult = Result.Error(DatabaseException("Entry is not posted"))
 
         viewModel.effects.test {
             viewModel.handleIntentForTest(
@@ -435,11 +436,11 @@ class JournalEntryDetailViewModelTest {
             JournalEntryDetailIntent.Reverse("je-001", "2026-04-01")
         )
         testDispatcher.scheduler.advanceUntilIdle()
-        assertFalse(viewModel.currentState.isReversing)
+        assertFalse(viewModel.state.value.isReversing)
     }
 }
 
 // ─── Extension to expose handleIntent for testing ────────────────────────────
 
-private suspend fun JournalEntryDetailViewModel.handleIntentForTest(intent: JournalEntryDetailIntent) =
-    handleIntent(intent)
+private fun JournalEntryDetailViewModel.handleIntentForTest(intent: JournalEntryDetailIntent) =
+    dispatch(intent)
