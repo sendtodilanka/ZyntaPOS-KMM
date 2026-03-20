@@ -52,8 +52,6 @@ class EditionManagementViewModelTest {
         override suspend fun setEnabled(feature: ZyntaFeature, enabled: Boolean, updatedAt: Long, expiresAt: Long?): Result<Unit> =
             toggleResult
         override suspend fun initDefaults(now: Long): Result<Unit> = Result.Success(Unit)
-        override suspend fun upsert(config: FeatureConfig): Result<Unit> = Result.Success(Unit)
-        override suspend fun upsertAll(configs: List<FeatureConfig>): Result<Unit> = Result.Success(Unit)
     }
 
     private fun makeConfig(feature: ZyntaFeature, enabled: Boolean) = FeatureConfig(
@@ -94,7 +92,7 @@ class EditionManagementViewModelTest {
     fun `feature configs loaded from repository on init`() = runTest {
         val configs = listOf(
             makeConfig(ZyntaFeature.POS_CORE, true),
-            makeConfig(ZyntaFeature.INVENTORY_MANAGEMENT, true),
+            makeConfig(ZyntaFeature.INVENTORY_ADVANCED, true),
         )
         configsFlow.value = configs
 
@@ -131,7 +129,7 @@ class EditionManagementViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         vm.effects.test {
-            vm.dispatch(EditionManagementIntent.ToggleFeature(ZyntaFeature.MULTI_STORE, true))
+            vm.dispatch(EditionManagementIntent.ToggleFeature(ZyntaFeature.MULTISTORE, true))
             testDispatcher.scheduler.advanceUntilIdle()
 
             val effect = awaitItem()
@@ -149,7 +147,7 @@ class EditionManagementViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         vm.effects.test {
-            vm.dispatch(EditionManagementIntent.ToggleFeature(ZyntaFeature.MULTI_STORE, false))
+            vm.dispatch(EditionManagementIntent.ToggleFeature(ZyntaFeature.MULTISTORE, false))
             testDispatcher.scheduler.advanceUntilIdle()
 
             val effect = awaitItem()
@@ -189,8 +187,8 @@ class EditionManagementViewModelTest {
 
         configsFlow.value = listOf(
             makeConfig(ZyntaFeature.POS_CORE, true),
-            makeConfig(ZyntaFeature.INVENTORY_MANAGEMENT, true),
-            makeConfig(ZyntaFeature.MULTI_STORE, false),
+            makeConfig(ZyntaFeature.INVENTORY_ADVANCED, true),
+            makeConfig(ZyntaFeature.MULTISTORE, false),
         )
         vm.dispatch(EditionManagementIntent.Load)
         testDispatcher.scheduler.advanceUntilIdle()

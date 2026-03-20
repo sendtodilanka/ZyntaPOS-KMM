@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.accounting
 
 import app.cash.turbine.test
+import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.Account
 import com.zyntasolutions.zyntapos.domain.model.AccountBalance
@@ -91,7 +92,7 @@ class AccountDetailViewModelTest {
 
     @Test
     fun `initial state is blank`() {
-        val state = viewModel.currentState
+        val state = viewModel.state.value
         assertNull(state.account)
         assertFalse(state.isLoading)
         assertFalse(state.isSaving)
@@ -107,7 +108,7 @@ class AccountDetailViewModelTest {
         viewModel.handleIntentForTest(AccountDetailIntent.Load("acct-001"))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        val state = viewModel.currentState
+        val state = viewModel.state.value
         assertEquals("1010", state.accountCode)
         assertEquals("Cash", state.accountName)
         assertEquals(AccountType.ASSET, state.accountType)
@@ -119,7 +120,7 @@ class AccountDetailViewModelTest {
     fun `Load clears isLoading after success`() = runTest {
         viewModel.handleIntentForTest(AccountDetailIntent.Load("acct-001"))
         testDispatcher.scheduler.advanceUntilIdle()
-        assertFalse(viewModel.currentState.isLoading)
+        assertFalse(viewModel.state.value.isLoading)
     }
 
     @Test
@@ -128,7 +129,7 @@ class AccountDetailViewModelTest {
         viewModel.handleIntentForTest(AccountDetailIntent.Load("acct-999"))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertNotNull(viewModel.currentState.error)
+        assertNotNull(viewModel.state.value.error)
     }
 
     @Test
@@ -145,7 +146,7 @@ class AccountDetailViewModelTest {
 
     @Test
     fun `Load emits ShowError on repository error`() = runTest {
-        getByIdResult = Result.Error(Exception("DB error"))
+        getByIdResult = Result.Error(DatabaseException("DB error"))
 
         viewModel.effects.test {
             viewModel.handleIntentForTest(AccountDetailIntent.Load("acct-001"))
@@ -167,7 +168,7 @@ class AccountDetailViewModelTest {
         viewModel.handleIntentForTest(AccountDetailIntent.StartNew("store-001"))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        val state = viewModel.currentState
+        val state = viewModel.state.value
         assertNull(state.account)
         assertEquals("", state.accountCode)
         assertEquals("", state.accountName)
@@ -287,11 +288,11 @@ class AccountDetailViewModelTest {
         viewModel.handleIntentForTest(AccountDetailIntent.Save("store-001"))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertFalse(viewModel.currentState.isSaving)
+        assertFalse(viewModel.state.value.isSaving)
     }
 }
 
 // ─── Extension to expose handleIntent for testing ────────────────────────────
 
-private suspend fun AccountDetailViewModel.handleIntentForTest(intent: AccountDetailIntent) =
-    handleIntent(intent)
+private fun AccountDetailViewModel.handleIntentForTest(intent: AccountDetailIntent) =
+    dispatch(intent)

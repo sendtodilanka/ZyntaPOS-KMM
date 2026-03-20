@@ -1,7 +1,10 @@
 package com.zyntasolutions.zyntapos.feature.auth.license
 
 import app.cash.turbine.test
+import com.zyntasolutions.zyntapos.core.result.DatabaseException
+import com.zyntasolutions.zyntapos.core.result.NetworkException
 import com.zyntasolutions.zyntapos.core.result.Result
+import com.zyntasolutions.zyntapos.core.result.ZyntaException
 import com.zyntasolutions.zyntapos.domain.model.Edition
 import com.zyntasolutions.zyntapos.domain.model.License
 import com.zyntasolutions.zyntapos.domain.model.LicenseStatus
@@ -49,7 +52,7 @@ class LicenseViewModelTest {
 
     // Hand-rolled fake repository
     private var shouldActivateSucceed = true
-    private var activateError: Exception = Exception("Activation failed")
+    private var activateError: ZyntaException = NetworkException("Activation failed")
 
     private val fakeLicenseRepo = object : LicenseRepository {
         override suspend fun activate(
@@ -101,7 +104,7 @@ class LicenseViewModelTest {
 
     @Test
     fun `initial state has empty license key and no error`() {
-        val state = viewModel.currentState
+        val state = viewModel.state.value
         assertEquals("", state.licenseKey)
         assertFalse(state.isLoading)
         assertNull(state.error)
@@ -141,7 +144,7 @@ class LicenseViewModelTest {
         viewModel.handleIntentForTest(LicenseIntent.ActivateClicked)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        val state = viewModel.currentState
+        val state = viewModel.state.value
         assertNotNull(state.error)
         assertTrue(state.error!!.contains("required", ignoreCase = true))
         assertFalse(state.isLoading)
@@ -153,7 +156,7 @@ class LicenseViewModelTest {
         viewModel.handleIntentForTest(LicenseIntent.ActivateClicked)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertNotNull(viewModel.currentState.error)
+        assertNotNull(viewModel.state.value.error)
     }
 
     // ── ActivateClicked — invalid format ──────────────────────────────────────
@@ -164,7 +167,7 @@ class LicenseViewModelTest {
         viewModel.handleIntentForTest(LicenseIntent.ActivateClicked)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        val error = viewModel.currentState.error
+        val error = viewModel.state.value.error
         assertNotNull(error)
         assertTrue(error!!.contains("format", ignoreCase = true) || error.contains("XXXX", ignoreCase = true))
     }
@@ -175,7 +178,7 @@ class LicenseViewModelTest {
         viewModel.handleIntentForTest(LicenseIntent.ActivateClicked)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertNotNull(viewModel.currentState.error)
+        assertNotNull(viewModel.state.value.error)
     }
 
     @Test
@@ -184,7 +187,7 @@ class LicenseViewModelTest {
         viewModel.handleIntentForTest(LicenseIntent.ActivateClicked)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertNotNull(viewModel.currentState.error)
+        assertNotNull(viewModel.state.value.error)
     }
 
     // ── ActivateClicked — success ──────────────────────────────────────────────
@@ -208,7 +211,7 @@ class LicenseViewModelTest {
         viewModel.handleIntentForTest(LicenseIntent.LicenseKeyChanged("ABCD-EFGH-IJKL-MNOP"))
         viewModel.handleIntentForTest(LicenseIntent.ActivateClicked)
         testDispatcher.scheduler.advanceUntilIdle()
-        assertFalse(viewModel.currentState.isLoading)
+        assertFalse(viewModel.state.value.isLoading)
     }
 
     // ── ActivateClicked — failure ──────────────────────────────────────────────
@@ -216,13 +219,13 @@ class LicenseViewModelTest {
     @Test
     fun `ActivateClicked sets error when activation fails`() = runTest {
         shouldActivateSucceed = false
-        activateError = Exception("License expired")
+        activateError = NetworkException("License expired")
 
         viewModel.handleIntentForTest(LicenseIntent.LicenseKeyChanged("ABCD-EFGH-IJKL-MNOP"))
         viewModel.handleIntentForTest(LicenseIntent.ActivateClicked)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        val state = viewModel.currentState
+        val state = viewModel.state.value
         assertNotNull(state.error)
         assertTrue(state.error!!.contains("expired", ignoreCase = true))
         assertFalse(state.isLoading)
@@ -231,13 +234,13 @@ class LicenseViewModelTest {
     @Test
     fun `ActivateClicked uses fallback message when exception has no message`() = runTest {
         shouldActivateSucceed = false
-        activateError = Exception()
+        activateError = NetworkException("unknown")
 
         viewModel.handleIntentForTest(LicenseIntent.LicenseKeyChanged("ABCD-EFGH-IJKL-MNOP"))
         viewModel.handleIntentForTest(LicenseIntent.ActivateClicked)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        val state = viewModel.currentState
+        val state = viewModel.state.value
         assertNotNull(state.error)
         assertTrue(state.error!!.isNotBlank())
     }
@@ -262,11 +265,11 @@ class LicenseViewModelTest {
     fun `DismissError when no error is a no-op`() = runTest {
         viewModel.handleIntentForTest(LicenseIntent.DismissError)
         testDispatcher.scheduler.advanceUntilIdle()
-        assertNull(viewModel.currentState.error)
+        assertNull(viewModel.state.value.error)
     }
 }
 
 // ─── Extension to expose handleIntent for testing ────────────────────────────
 
-private suspend fun LicenseViewModel.handleIntentForTest(intent: LicenseIntent) =
-    handleIntent(intent)
+private fun LicenseViewModel.handleIntentForTest(intent: LicenseIntent) =
+    dispatch(intent)

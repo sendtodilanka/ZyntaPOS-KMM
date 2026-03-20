@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.diagnostic
 
 import app.cash.turbine.test
+import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.DiagnosticDataScope
 import com.zyntasolutions.zyntapos.domain.model.DiagnosticSession
@@ -36,7 +37,7 @@ class DiagnosticViewModelTest {
     // ── Fake token validator ──────────────────────────────────────────────────
 
     private var tokenResult: Result<DiagnosticClaims> = Result.Error(
-        Exception("token not set"),
+        DatabaseException("token not set"),
     )
 
     private val fakeTokenValidator = object : DiagnosticTokenValidator() {
@@ -115,7 +116,7 @@ class DiagnosticViewModelTest {
 
     @Test
     fun `loadToken with invalid token sets errorMessage`() = runTest {
-        tokenResult = Result.Error(Exception("Token expired"))
+        tokenResult = Result.Error(DatabaseException("Token expired"))
         val vm = makeViewModel()
 
         vm.state.test {
@@ -137,7 +138,7 @@ class DiagnosticViewModelTest {
 
     @Test
     fun `loadToken with invalid token sends ShowError effect`() = runTest {
-        tokenResult = Result.Error(Exception("Token expired"))
+        tokenResult = Result.Error(DatabaseException("Token expired"))
         val vm = makeViewModel()
 
         vm.effects.test {
@@ -263,7 +264,7 @@ class DiagnosticViewModelTest {
 
     @Test
     fun `DismissError clears errorMessage`() = runTest {
-        tokenResult = Result.Error(Exception("Something went wrong"))
+        tokenResult = Result.Error(DatabaseException("Something went wrong"))
         val vm = makeViewModel()
 
         vm.loadToken("bad.token")

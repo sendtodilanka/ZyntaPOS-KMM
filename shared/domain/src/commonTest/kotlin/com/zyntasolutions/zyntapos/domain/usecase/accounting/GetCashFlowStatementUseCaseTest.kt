@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.domain.usecase.accounting
 
+import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.AccountBalance
 import com.zyntasolutions.zyntapos.domain.model.CashFlowLine
@@ -213,7 +214,7 @@ class GetCashFlowStatementUseCaseTest {
      */
     @Test
     fun test_repository_error_propagated() = runTest {
-        val errorRepo = FakeCashFlowRepo(Result.Error(RuntimeException("DB offline")))
+        val errorRepo = FakeCashFlowRepo(Result.Error(DatabaseException("DB offline")))
         val useCase = GetCashFlowStatementUseCase(errorRepo)
 
         val result = useCase.execute("store-1", "2026-01-01", "2026-01-31")
