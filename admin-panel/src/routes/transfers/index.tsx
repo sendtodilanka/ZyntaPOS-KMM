@@ -4,12 +4,10 @@ import {
   ArrowRightLeft, ChevronDown, Check, Send, PackageCheck, X,
 } from 'lucide-react';
 import { DataTable, type Column } from '@/components/shared/DataTable';
-import { SearchInput } from '@/components/shared/SearchInput';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { useTransfers, useApproveTransfer, useDispatchTransfer, useReceiveTransfer, useCancelTransfer } from '@/api/transfers';
 import { useAuth } from '@/hooks/use-auth';
-import { useDebounce } from '@/hooks/use-debounce';
 import { cn } from '@/lib/utils';
 import type { StockTransfer, TransferStatus } from '@/types/transfer';
 
