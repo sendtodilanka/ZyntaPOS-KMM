@@ -450,7 +450,7 @@ ZyntaPOS-KMM/
 | Module | Purpose |
 |--------|---------|
 | `:shared:core` | Pure Kotlin utilities, MVI base classes, `Result<T>`, `CurrencyUtils`, `DateTimeUtils`, `ValidationUtils`, Koin `coreModule` |
-| `:shared:domain` | Domain models (31), repository interfaces, use-case classes, business-rule validators — **no framework deps** |
+| `:shared:domain` | Domain models (38+), repository interfaces, use-case classes, business-rule validators — **no framework deps** |
 | `:shared:data` | SQLDelight schema + DAOs, Ktor HTTP client (GZIP), repository implementations, offline sync engine. Full C6.1 sync stack: `ConflictResolver` (LWW/FIELD_MERGE/APPEND_ONLY via `CrdtStrategy`), `SyncEngine` (priority push, store isolation, conflict detection), `SyncQueueMaintenance` (prune + dedup), `ConflictLogRepositoryImpl` audit trail, version vectors. Multi-store isolation via `store_id` column. |
 | `:shared:hal` | `PrinterManager`, `BarcodeScanner` — `expect/actual` platform drivers, `EscPosEncoder`. `CashDrawerController` — NOT YET IMPLEMENTED (Phase 2 backlog) |
 | `:shared:security` | `DatabaseKeyManager`/`EncryptionManager` (AES-256-GCM, Keystore/JCE), `PinManager` (SHA-256 + salt), `JwtManager` + `TokenStorage` interface, `RbacEngine` |
@@ -637,7 +637,7 @@ data class ProductEntity(...)
 
 **Code review rule:** If you see `*Entity` in `shared/domain/model/`, request a rename citing ADR-002.
 
-**Domain models (31 files):** `Product`, `Order`, `OrderItem`, `Customer`, `Category`, `User`, `Role`, `Permission`, `CashRegister`, `RegisterSession`, `CashMovement`, `PaymentMethod`, `PaymentSplit`, `Supplier`, `TaxGroup`, `UnitOfMeasure`, `StockAdjustment`, `SyncOperation`, `SyncStatus`, `OrderStatus`, `OrderType`, `DiscountType`, `CartItem`, `OrderTotals`, `ProductVariant`, `AuditEntry`, `Edition`, `Heartbeat`, `IntegrityReport`, `License`, `LicenseStatus`
+**Domain models (38+ files):** `Product`, `Order`, `OrderItem`, `Customer`, `Category`, `User`, `Role`, `Permission`, `CashRegister`, `RegisterSession`, `CashMovement`, `PaymentMethod`, `PaymentSplit`, `Supplier`, `TaxGroup`, `UnitOfMeasure`, `StockAdjustment`, `SyncOperation`, `SyncStatus`, `OrderStatus`, `OrderType`, `DiscountType`, `CartItem`, `OrderTotals`, `ProductVariant`, `AuditEntry`, `Edition`, `Heartbeat`, `IntegrityReport`, `License`, `LicenseStatus`, `MasterProduct`, `StoreProductOverride`, `WarehouseStock`, `TransitEvent`, `ReplenishmentRule`, `PurchaseOrder`, `PurchaseOrderItem`
 
 ### ADR-001: ViewModel Base Class (ACCEPTED)
 
@@ -678,7 +678,7 @@ class MyFeatureViewModel(...) : ViewModel() { ... }
 
 **SQLDelight 2.0.2 on SQLite, encrypted with SQLCipher 4.5 (AES-256)**
 
-**36 `.sq` schema files** as of Phase 1 (actual count via `find shared/data/src/commonMain/sqldelight -name "*.sq" | wc -l`). Core tables include: `products`, `orders`, `order_items`, `categories`, `customers`, `suppliers`, `registers`, `settings`, `stock`, `audit_log`, `sync_queue` (outbox), `sync_state`, `version_vectors`, `conflict_log`, `e_invoices`, `employees`, `expenses`, `coupons`, `accounting_entries`, and more.
+**61 `.sq` schema files** as of Phase 2 (actual count via `find shared/data/src/commonMain/sqldelight -name "*.sq" | wc -l`). Core tables include: `products`, `orders`, `order_items`, `categories`, `customers`, `suppliers`, `registers`, `settings`, `stock`, `audit_log`, `sync_queue` (outbox), `sync_state`, `version_vectors`, `conflict_log`, `e_invoices`, `employees`, `expenses`, `coupons`, `accounting_entries`, `master_products`, `store_products`, `warehouse_stock`, `stock_transfers`, `transit_tracking`, `replenishment_rules`, `purchase_orders`, and more.
 
 **Key patterns:**
 - Products table has `products_fts` (FTS5) with `AFTER INSERT/UPDATE/DELETE` triggers for full-text search
@@ -688,7 +688,7 @@ class MyFeatureViewModel(...) : ViewModel() { ... }
 
 **Code generation:** Run `./gradlew generateSqlDelightInterface` after modifying `.sq` files.
 
-**Schema files:** `shared/data/src/commonMain/sqldelight/` — 36 `.sq` files (actual count; earlier documentation cited 13, which was Phase 0 baseline)
+**Schema files:** `shared/data/src/commonMain/sqldelight/` — 61 `.sq` files (actual count; grew from 36 in Phase 1 to 61 in Phase 2 with multi-store features)
 
 ---
 
@@ -1234,7 +1234,7 @@ Or use the "VPS Full Fix" workflow with `reset_db=yes`.
 |-------|-----------|
 | Framework | Ktor 3.4.1 (CIO transport) |
 | ORM | Exposed 0.61.0 |
-| Migrations | Flyway (API: 29 migrations, License: 4 migrations) |
+| Migrations | Flyway (API: 31 migrations, License: 4 migrations) |
 | DI | Koin 4.1.1 |
 | Auth (POS) | RS256 JWT (asymmetric) — API signs, all services verify |
 | Auth (Admin) | HS256 JWT (symmetric) — shared secret between API and License |
@@ -1261,9 +1261,12 @@ Or use the "VPS Full Fix" workflow with `reset_db=yes`.
 | Conflict resolver (LWW) | `backend/api/src/main/kotlin/.../sync/ServerConflictResolver.kt` |
 | GDPR customer data export | `backend/api/src/main/kotlin/.../routes/ExportRoutes.kt` |
 | Audit trail service | `backend/api/src/main/kotlin/.../service/AdminAuditService.kt` |
-| API Flyway migrations | `backend/api/src/main/resources/db/migration/V1-V29` |
+| API Flyway migrations | `backend/api/src/main/resources/db/migration/V1-V31` |
 | Admin inventory routes | `backend/api/src/main/kotlin/.../routes/AdminInventoryRoutes.kt` |
+| Admin transfer routes (IST) | `backend/api/src/main/kotlin/.../routes/AdminTransferRoutes.kt` |
+| Admin replenishment routes | `backend/api/src/main/kotlin/.../routes/AdminReplenishmentRoutes.kt` |
 | Warehouse stock repository | `backend/api/src/main/kotlin/.../repository/WarehouseStockRepository.kt` |
+| Replenishment repository | `backend/api/src/main/kotlin/.../repository/ReplenishmentRepository.kt` |
 | License service entry | `backend/license/src/main/kotlin/.../Application.kt` |
 | License Flyway migrations | `backend/license/src/main/resources/db/migration/V1-V4` |
 | Sync WebSocket hub | `backend/sync/src/main/kotlin/.../hub/WebSocketHub.kt` |
@@ -1303,7 +1306,7 @@ A comprehensive audit was completed on 2026-03-12. See `docs/audit/backend-modul
 |-------|--------|-------|
 | Phase 0 — Foundation | Complete | Build system, module scaffold, secrets, CI skeleton |
 | Phase 1 — MVP | Complete | Single-store POS, offline sync, core features |
-| Phase 2 — Growth | ~98% Complete | Multi-store, CRM, promotions, CRDT sync (C6.1 complete) |
+| Phase 2 — Growth | ~99% Complete | Multi-store (C1.1–C1.5 all done), CRM, promotions, CRDT sync (C6.1 complete), centralized inventory complete |
 | Phase 3 — Enterprise | ~80% In Progress | Staff/HR, admin, e-invoicing (IRD), analytics |
 
 See `docs/ai_workflows/execution_log.md` for the granular task checklist.

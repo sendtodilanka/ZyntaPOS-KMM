@@ -1,8 +1,8 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-19 (C1.1 admin panel route tree fix)
-**Status:** Approved — Verified against codebase 2026-03-19
+**Last Updated:** 2026-03-20 (C1.5 replenishment fully implemented; Blocker 2 resolved)
+**Status:** Approved — Verified against codebase 2026-03-20
 
 ---
 
@@ -51,18 +51,23 @@ JWT validation, token revocation, heartbeat replay protection, circular parent d
 
 **Impact:** Offline-first data sync මුළුමනින්ම non-functional. Client data `sync_queue` table එකේ unprocessed ඉඳලා යයි.
 
-### Blocker 2: Multi-Store Data Architecture (C6.1 + C1.1–C1.5) — C1.1–C1.4 DONE, C1.5 remaining
+### Blocker 2: Multi-Store Data Architecture (C6.1 + C1.1–C1.5) — ✅ 100% Complete
 
-Phase 2 core feature එක multi-store. C1.1–C1.4 implemented (2026-03-19/20):
+Phase 2 core feature එක multi-store. C1.1–C1.5 all implemented (2026-03-19/20):
 
 - **Global Product Catalog** (`master_products` + `store_products` tables) — ✅ DONE (C1.1, 2026-03-19)
 - **Store-Specific Inventory** backend + admin panel cross-store stock view — ✅ DONE (C1.2, 2026-03-19; `warehouse_stock` table + `WarehouseStockRepository`, admin `/inventory` route)
-- **Inter-Store Transfer (IST)** backend pipeline — ✅ DONE (C1.3, 2026-03-19/20; `stock_transfers` backend routes, approval workflow `REQUESTED→APPROVED→IN_TRANSIT→RECEIVED`, admin panel transfer dashboard, store-level transfer view)
+- **Inter-Store Transfer (IST)** backend pipeline + admin panel dashboard — ✅ DONE (C1.3, 2026-03-19/20; `stock_transfers` backend 7-endpoint REST API, approval workflow `PENDING→APPROVED→IN_TRANSIT→RECEIVED`, admin panel transfer dashboard with status filters + inline actions, KMM `StoreTransferDashboardScreen`)
 - **Stock In-Transit Tracking** — ✅ DONE (C1.4, 2026-03-20; `transit_tracking.sq`, `TransitTrackingRepositoryImpl`, 4 use cases, `TransitTrackerScreen`, auto-log DISPATCHED/RECEIVED at IST workflow transitions)
-- **Cross-Store Sync** (multi-node CRDT) — ✅ Single-store conflict resolution done (C6.1, 2026-03-19); `TRANSIT_EVENT` entity type added to sync engine
-- **Warehouse-to-Store Replenishment** (auto-PO) — ❌ 0% (C1.5, still pending)
+- **Cross-Store Sync** (multi-node CRDT) — ✅ DONE (C6.1, 2026-03-19); `TRANSIT_EVENT` + `REPLENISHMENT_RULE` entity type constants in SyncOperation
+- **Warehouse-to-Store Replenishment** (auto-PO) — ✅ DONE (C1.5, 2026-03-20; `ReplenishmentRule` domain model, `AutoReplenishmentUseCase`, `CreatePurchaseOrderUseCase`, `ReplenishmentScreen` 3-tab UI, backend `V31__replenishment_rules.sql` migration + `AdminReplenishmentRoutes` 4 endpoints + `ReplenishmentRepository` with 14 integration tests)
 
-**Impact:** C1.1–C1.4 fully live. Only C1.5 auto-replenishment logic remains before multi-store blocker is fully resolved.
+**Impact:** Blocker 2 is fully resolved. All 5 centralized inventory management features are implemented end-to-end (KMM + backend + admin panel for C1.1–C1.3, KMM + backend for C1.4–C1.5).
+
+**Remaining minor sync integration gaps (non-blocking):**
+- `PURCHASE_ORDER`, `REPLENISHMENT_RULE`, `TRANSIT_EVENT` entity type constants are defined in `SyncOperation.EntityType` and KMM repos enqueue sync operations correctly, but backend `SyncValidator.VALID_ENTITY_TYPES` and `EntityApplier` do not yet include handlers for these 3 types. Client-side changes sync via REST admin APIs; bi-directional sync for these entities is a Phase 2 polish item.
+- Admin panel replenishment dashboard (sidebar nav item + React UI) not yet created — backend REST endpoints at `/admin/replenishment/rules` and `/admin/replenishment/suggestions` are ready for integration.
+- Push notification on transfer arrival (FCM) — deferred to Phase 3.
 
 ### Blocker 3: Backend Test Coverage (B4) — ~55% vs 80% Target
 
@@ -534,38 +539,56 @@ Phase 2 stable release එකකට backend test coverage 80%+ ඕන. දැන
 
 ---
 
-### C1.3 Inter-Store Stock Transfer / IST (ශාඛා අතර තොග හුවමාරුව)
+### C1.3 Inter-Store Stock Transfer / IST (ශාඛා අතර තොග හුවමාරුව) — ✅ IMPLEMENTED
 
 **Priority:** PHASE-2
-**Status:** SUBSTANTIALLY IMPLEMENTED (2026-03-19)
+**Status:** ✅ FULLY IMPLEMENTED (2026-03-20) — KMM + Backend + Admin panel complete
+**Branch (KMM):** `claude/plan-c1-2-features-osMp7` (IST workflow)
+**Branch (Deferred):** `claude/c1-2-backend-warehouse-stock-osMp7` (admin panel + store-level view)
 
-**Codebase State (after C1.3 implementation session):**
-- `stock_transfers.sq` — Extended with IST workflow columns: `created_by`, `approved_by/at`, `dispatched_by/at`, `received_by/at`. New queries: `approveTransfer`, `dispatchTransfer`, `receiveTransfer`, `getTransfersByStatus`, `getApprovedTransfers`, `getInTransitTransfers`
-- `StockTransfer` domain model — Extended status enum: PENDING → APPROVED → IN_TRANSIT → RECEIVED (+ legacy COMMITTED / CANCELLED). New fields for multi-step audit trail
-- `ApproveStockTransferUseCase.kt` — validates PENDING before approving
-- `DispatchStockTransferUseCase.kt` — validates APPROVED, records TRANSFER_OUT, decrements stock
-- `ReceiveStockTransferUseCase.kt` — validates IN_TRANSIT, records TRANSFER_IN, restores stock
-- `WarehouseRepository` interface — 4 new methods: `approveTransfer`, `dispatchTransfer`, `receiveTransfer`, `getTransfersByStatus`
-- `WarehouseRepositoryImpl` — All 4 methods implemented with atomic transactions + audit trail
-- `PurchaseOrder` domain model + `PurchaseOrderItem` — in `:shared:domain`
-- `PurchaseOrderRepository` interface — full CRUD: create, getById, getByDateRange, getBySupplierId, getByStatus, receiveItems, cancel
-- `PurchaseOrderRepositoryImpl` — SQLDelight-backed implementation in `:shared:data`
-- `purchase_orders.sq` — Added `updatePurchaseOrderItemReceived` + `getPendingPurchaseOrders` queries
-- `WarehouseIntent` — Added: `ApproveTransfer`, `DispatchTransfer`, `ReceiveTransfer`, `LoadTransfersByStatus`, `SelectTransfer`
-- `WarehouseState` — Added: `approvedTransfers`, `inTransitTransfers`, `selectedTransfer`
-- `WarehouseEffect` — Added: `NavigateToTransferDetail`, `TransferApproved`, `TransferDispatched`, `TransferReceived`
-- `WarehouseViewModel` — Handlers for all new IST intents + init loading of approved/in-transit lists
-- `MultistoreModule.kt` (Koin DI) — New use cases registered; ViewModel constructor updated
-- `DataModule.kt` (Koin DI) — `PurchaseOrderRepository` binding registered
-- Backend: `V28__ist_workflow.sql` — PostgreSQL migration adding IST columns + purchase_orders tables
-- Backend: `AdminTransferService.kt` — list, create, approve, dispatch, receive, cancel
-- Backend: `AdminTransferRoutes.kt` — 7 REST endpoints under `/admin/transfers`
-- Backend: `Routing.kt` + `AppModule.kt` — routes registered, service bound to Koin
+> **HANDOFF (2026-03-20):** C1.3 deferred items implemented in commit `fef86b7`. Admin panel transfer
+> management dashboard with status filters + inline actions, KMM store-level transfer grouping screen,
+> backend 7-endpoint REST API all complete. Only push notification (FCM) deferred to Phase 3.
 
-**What's STILL MISSING (deferred):**
-- [ ] Admin panel UI: Transfer management dashboard with store grouping (React/Next.js panel)
+**What's DONE:**
+
+KMM Domain + Data layer:
+- [x] `stock_transfers.sq` — Extended with IST workflow columns: `created_by`, `approved_by/at`, `dispatched_by/at`, `received_by/at`. New queries: `approveTransfer`, `dispatchTransfer`, `receiveTransfer`, `getTransfersByStatus`, `getApprovedTransfers`, `getInTransitTransfers`
+- [x] `StockTransfer` domain model — Extended status enum: PENDING → APPROVED → IN_TRANSIT → RECEIVED (+ legacy COMMITTED / CANCELLED). New fields for multi-step audit trail. Helper properties: `isCancellable`, `isTerminal`
+- [x] `ApproveStockTransferUseCase.kt` — validates PENDING before approving
+- [x] `DispatchStockTransferUseCase.kt` — validates APPROVED, records TRANSFER_OUT, decrements stock
+- [x] `ReceiveStockTransferUseCase.kt` — validates IN_TRANSIT, records TRANSFER_IN, restores stock
+- [x] `WarehouseRepository` interface — 4 new methods: `approveTransfer`, `dispatchTransfer`, `receiveTransfer`, `getTransfersByStatus`
+- [x] `WarehouseRepositoryImpl` — All 4 methods implemented with atomic transactions + audit trail
+- [x] `PurchaseOrder` domain model + `PurchaseOrderItem` — in `:shared:domain`
+- [x] `PurchaseOrderRepository` interface — full CRUD: create, getById, getByDateRange, getBySupplierId, getByStatus, receiveItems, cancel
+- [x] `PurchaseOrderRepositoryImpl` — SQLDelight-backed implementation in `:shared:data`
+- [x] `purchase_orders.sq` — Added `updatePurchaseOrderItemReceived` + `getPendingPurchaseOrders` queries
+- [x] `WarehouseIntent` — Added: `ApproveTransfer`, `DispatchTransfer`, `ReceiveTransfer`, `LoadTransfersByStatus`, `SelectTransfer`
+- [x] `WarehouseState` — Added: `approvedTransfers`, `inTransitTransfers`, `selectedTransfer`
+- [x] `WarehouseEffect` — Added: `NavigateToTransferDetail`, `TransferApproved`, `TransferDispatched`, `TransferReceived`
+- [x] `WarehouseViewModel` — Handlers for all new IST intents + init loading of approved/in-transit lists
+- [x] `MultistoreModule.kt` (Koin DI) — New use cases registered; ViewModel constructor updated
+- [x] `DataModule.kt` (Koin DI) — `PurchaseOrderRepository` binding registered
+
+KMM UI (store-level view — previously deferred, now done):
+- [x] `StoreTransferDashboardScreen` — groups all warehouse IST transfers by store pair (source → dest), displays live status counts (PENDING, APPROVED, IN_TRANSIT, RECEIVED)
+
+Backend:
+- [x] `V28__ist_workflow.sql` — PostgreSQL migration adding IST columns + purchase_orders tables
+- [x] `AdminTransferService.kt` — list, create, approve, dispatch, receive, cancel (7 methods)
+- [x] `AdminTransferRoutes.kt` — 7 REST endpoints under `/admin/transfers` (GET list, POST create, GET by ID, PUT approve/dispatch/receive/cancel)
+- [x] `Routing.kt` + `AppModule.kt` — routes registered, service bound to Koin
+
+Admin panel (previously deferred, now done):
+- [x] `admin-panel/src/types/transfer.ts` — TypeScript DTOs: `TransferStatus`, `StockTransfer`, request/response types
+- [x] `admin-panel/src/api/transfers.ts` — TanStack Query hooks: `useTransfers()`, `useTransfer()`, `useApproveTransfer()`, `useDispatchTransfer()`, `useReceiveTransfer()`, `useCancelTransfer()`
+- [x] `admin-panel/src/routes/transfers/index.tsx` — DataTable with status filter chips, inline action menu (Approve/Dispatch/Mark Received/Cancel), ConfirmDialog for each action
+- [x] `admin-panel/src/routeTree.gen.ts` — `/transfers/` route registered
+- [x] `admin-panel/src/components/layout/Sidebar.tsx` — "Transfers" nav item in Monitoring group
+
+**Deferred to Phase 3:**
 - [ ] Push notification when transfer arrives at destination store (FCM integration)
-- [ ] Store-level transfer view UI in KMM app (group warehouse transfers by source/dest store)
 
 ---
 
@@ -615,32 +638,98 @@ UI layer (`composeApp/feature/multistore`):
 
 ---
 
-### C1.5 Warehouse-to-Store Replenishment (ස්වයංක්‍රීය නැවත ඇණවුම්)
+### C1.5 Warehouse-to-Store Replenishment (ස්වයංක්‍රීය නැවත ඇණවුම්) — ✅ IMPLEMENTED (2026-03-20)
 
 **Priority:** PHASE-2
-**Status:** REPORT EXISTS, NO AUTO-LOGIC
+**Status:** ✅ FULLY IMPLEMENTED (2026-03-20) — KMM + Backend complete
+**Commits:** `1c57d35` (screen fix), `fe2105e` (route fix), `a47fb07` (tests), `f0cec30` (repo JOIN fix)
 
-**Codebase State:**
-- `products.sq` has `min_stock_qty REAL` — reorder threshold exists
-- `purchase_orders.sq` EXISTS — schema for PO with items, status, supplier FK (SCHEMA ONLY — no domain model/repo/UI)
-- `purchase_order_items` table — quantity_ordered, quantity_received, unit_cost, line_total
-- `reports.sq` → `stockReorderAlerts` query — products WHERE stock_qty <= min_stock_qty with suggested reorder qty
-- `ReportRepositoryImpl.getStockReorderAlerts()` — IMPLEMENTED
-- `GenerateStockReorderReportUseCase` — IMPLEMENTED
+> **HANDOFF (2026-03-20):** C1.5 fully implemented. Three-tier architecture:
+> 1. Reorder alerts (read-only report from existing `stockReorderAlerts` query)
+> 2. Purchase order creation (manual from alert or standalone)
+> 3. Auto-replenishment rules (per-product/warehouse thresholds with auto-PO generation)
+> Backend has 4 REST endpoints + V31 migration + 14 integration tests.
+> KMM has full MVI screen with 3 tabs + dialogs.
+
+**What's DONE:**
+
+KMM Domain layer:
+- [x] `ReplenishmentRule` domain model — `id`, `productId`, `warehouseId`, `supplierId`, `reorderPoint`, `reorderQty`, `autoApprove`, `isActive`, denormalized display fields (`productName`, `warehouseName`, `supplierName`)
+- [x] `ReplenishmentRuleRepository` interface — `getAll()`, `getByWarehouse()`, `getAutoApproveRules()`, `getByProductAndWarehouse()`, `upsert()`, `delete()`
+- [x] `AutoReplenishmentUseCase` — evaluates active auto-approve rules against live warehouse stock; auto-creates PENDING POs when stock ≤ reorderPoint; returns `ReplenishmentResult(rulesEvaluated, ordersCreated, rulesSkipped, errors)`
+- [x] `CreatePurchaseOrderUseCase` — validates supplier + items, creates PO with status PENDING via `PurchaseOrderRepository`
+- [x] `PurchaseOrder` domain model + `PurchaseOrderItem` (created in C1.3, used by C1.5)
+- [x] `PurchaseOrderRepository` interface + `PurchaseOrderRepositoryImpl` (created in C1.3)
+- [x] `SyncOperation.EntityType.REPLENISHMENT_RULE` constant
+
+KMM Data layer:
+- [x] `replenishment_rules.sq` — table with UNIQUE(product_id, warehouse_id), 4 indexes, 7 queries (getAllRules with JOINs, getRulesByWarehouse, getAutoApproveRules, getRuleByProductAndWarehouse, insertRule, updateRule, deleteRule)
+- [x] `ReplenishmentRuleRepositoryImpl` — SQLDelight-backed with `SyncEnqueuer` integration on all writes
+- [x] `DataModule.kt` — `ReplenishmentRuleRepository` Koin binding registered
+
+KMM Presentation layer:
+- [x] `ReplenishmentScreen` (641 LOC) — 3-tab layout:
+  - Tab 1: **Reorder Alerts** — products below min-stock threshold with "Create PO" action per alert
+  - Tab 2: **Purchase Orders** — active PENDING/PARTIAL orders with ModalBottomSheet detail + cancel
+  - Tab 3: **Replenishment Rules** — per-product auto-PO configuration with edit/delete + rule form dialog
+  - Toolbar: "Run Auto-Replenishment" button (triggers `AutoReplenishmentUseCase`)
+  - Dialogs: CreatePoDialog, RuleEditDialog, AutoReplenishmentResultDialog
+- [x] `ReplenishmentState` — 3-tab state with form fields, reference data (suppliers, warehouses), loading/error/success
+- [x] `ReplenishmentIntent` — 20+ intents covering tab selection, PO creation, rule CRUD, auto-replenishment trigger
+- [x] `ReplenishmentEffect` — ShowError, ShowSuccess, NavigateToPurchaseOrder, NavigateBack
+- [x] `ReplenishmentViewModel` — full MVI handling: loads alerts/POs/rules/reference data, form validation, auto-replenishment execution
+- [x] `InventoryModule.kt` — Koin DI: `CreatePurchaseOrderUseCase`, `AutoReplenishmentUseCase`, `ReplenishmentViewModel` registered
+
+Backend:
+- [x] `V31__replenishment_rules.sql` — PostgreSQL table with DECIMAL(14,4) for reorder_point/reorder_qty, UNIQUE(product_id, warehouse_id), 4 indexes
+- [x] `ReplenishmentRules` Exposed table object in `Tables.kt`
+- [x] `ReplenishmentRepository` — `getRules(warehouseId?)`, `getRuleById()`, `upsertRule()`, `deleteRule()`, `getSuggestions(warehouseId?)` (INNER JOIN with warehouse_stock WHERE quantity ≤ reorder_point)
+- [x] `AdminReplenishmentRoutes` — 4 REST endpoints:
+  - `GET /admin/replenishment/rules` (permission: `inventory:read`)
+  - `POST /admin/replenishment/rules` (permission: `inventory:write`, validates reorderPoint ≥ 0, reorderQty > 0)
+  - `DELETE /admin/replenishment/rules/{id}` (permission: `inventory:write`)
+  - `GET /admin/replenishment/suggestions` (permission: `inventory:read`, joins rules with warehouse_stock)
+- [x] `AdminPermissions` — `inventory:write` permission added for ADMIN, OPERATOR roles
+- [x] `Routing.kt` — `adminReplenishmentRoutes()` registered
+- [x] `AppModule.kt` — `ReplenishmentRepository` singleton registered
+
+Backend Tests:
+- [x] `ReplenishmentRepositoryTest` — 14 integration tests (Testcontainers PostgreSQL):
+  - `getRules` (4 cases: empty, all, filtered, non-matching)
+  - `getRuleById` (2 cases: exists, not found)
+  - `upsertRule` (2 cases: insert new, update existing)
+  - `deleteRule` (2 cases: found, not found)
+  - `getSuggestions` (4 cases: below/above reorder point, inactive rules, warehouse filter)
+- [x] `TestFixtures.insertReplenishmentRule()` helper
+- [x] `AbstractIntegrationTest` updated to TRUNCATE replenishment_rules per test
+
+**Existing infrastructure (leveraged by C1.5):**
+- `reports.sq` → `stockReorderAlerts` query — products WHERE stock_qty <= min_stock_qty
+- `GenerateStockReorderReportUseCase` — feeds Tab 1 (Reorder Alerts)
 - `StockReorderData` model — productId, productName, currentStock, reorderPoint, suggestedReorderQty
-- **No automated PO generation** — alerts are informational only
 
-**What's MISSING:**
-- [ ] `PurchaseOrder` domain model in `:shared:domain`
-- [ ] `PurchaseOrderRepository` interface + impl
-- [ ] PO CRUD UI screens (create PO from reorder alert)
-- [ ] `ReplenishmentRule` domain model (product_id, warehouse_id, reorder_point, reorder_qty, auto_approve)
-- [ ] `replenishment_rules` SQLDelight table
-- [ ] `AutoReplenishmentUseCase` — check stock vs reorder_point, auto-create transfer/PO
-- [ ] Background job: Periodic stock check (daily or on stock change)
-- [ ] KMM UI: Replenishment rules config + reorder alert → auto-PO generation
-- [ ] Admin panel: Replenishment dashboard (pending auto-orders)
-- [ ] Backend: `POST /admin/replenishment/rules`, `GET /admin/replenishment/suggestions`
+**Key Files:**
+- `shared/domain/src/commonMain/.../model/ReplenishmentRule.kt`
+- `shared/domain/src/commonMain/.../repository/ReplenishmentRuleRepository.kt`
+- `shared/domain/src/commonMain/.../usecase/inventory/AutoReplenishmentUseCase.kt`
+- `shared/domain/src/commonMain/.../usecase/inventory/CreatePurchaseOrderUseCase.kt`
+- `shared/data/src/commonMain/sqldelight/.../replenishment_rules.sq`
+- `shared/data/src/commonMain/.../repository/ReplenishmentRuleRepositoryImpl.kt`
+- `composeApp/feature/inventory/src/commonMain/.../replenishment/ReplenishmentScreen.kt`
+- `composeApp/feature/inventory/src/commonMain/.../replenishment/ReplenishmentViewModel.kt`
+- `composeApp/feature/inventory/src/commonMain/.../replenishment/ReplenishmentState.kt`
+- `composeApp/feature/inventory/src/commonMain/.../replenishment/ReplenishmentIntent.kt`
+- `composeApp/feature/inventory/src/commonMain/.../replenishment/ReplenishmentEffect.kt`
+- `composeApp/feature/inventory/src/commonMain/.../InventoryModule.kt`
+- `backend/api/src/main/resources/db/migration/V31__replenishment_rules.sql`
+- `backend/api/src/main/kotlin/.../repository/ReplenishmentRepository.kt`
+- `backend/api/src/main/kotlin/.../routes/AdminReplenishmentRoutes.kt`
+- `backend/api/src/test/kotlin/.../repository/ReplenishmentRepositoryTest.kt`
+
+**Deferred to Phase 2 polish / Phase 3:**
+- [ ] Admin panel: Replenishment sidebar nav item + React dashboard (backend endpoints ready at `/admin/replenishment/*`)
+- [ ] Backend: Scheduled auto-replenishment job (cron/Quartz) — currently manual trigger only via KMM UI
+- [ ] Backend: `EntityApplier` + `SyncValidator` handlers for REPLENISHMENT_RULE entity type (bi-directional sync)
 
 ---
 
@@ -1783,7 +1872,7 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 | Sprint 6 | Admin Polish | B1, B2, B3 | 2 weeks |
 | Sprint 6.5 | UI/UX Quick Wins | G18 Phase 1.5 items | 1 week |
 | Sprint 7 | Design System + Onboarding | G1, G2 (new components + onboarding steps) | 1 week |
-| Sprint 8 | Centralized Inventory | C1.1, C1.2, C1.3, C1.4, C1.5 | 3 weeks |
+| Sprint 8 | Centralized Inventory | C1.1 ✅, C1.2 ✅, C1.3 ✅, C1.4 ✅, C1.5 ✅ | ✅ DONE (2026-03-20) |
 | Sprint 9 | Pricing & Tax | C2.1, C2.2, C2.3, C2.4 | 2 weeks |
 | Sprint 10 | Access Control + Auth UI | C3.2, C3.3, C3.4, G4 | 2 weeks |
 | Sprint 11 | Sales & Customer + POS UI | C4.1, C4.2, C4.3, G3, G10 | 2 weeks |
@@ -1909,9 +1998,11 @@ Stream 5: C2.2, C4.2, C6.3           (No dependencies — can start now)
 | A7 Admin JWT | **M** | 1 session |
 | B1-B3 Admin/Monitoring | **S** each | 1 session each |
 | B4 Test Coverage | **XL** | 3-4 sessions |
-| C1.1 Global Catalog | **XL** | 3-4 sessions |
-| C1.2 Store Inventory | **L** | 2 sessions |
-| C1.3 IST Store-Level | **L** | 2 sessions |
+| C1.1 Global Catalog | **XL** | ✅ DONE |
+| C1.2 Store Inventory | **L** | ✅ DONE |
+| C1.3 IST Store-Level | **L** | ✅ DONE |
+| C1.4 Transit Tracking | **M** | ✅ DONE |
+| C1.5 Replenishment | **L** | ✅ DONE |
 | C2.1-C2.4 Pricing | **M-L** each | 1-2 sessions each |
 | C3.2-C3.4 Permissions | **M** each | 1 session each |
 | G-series UI fixes | **S-M** each | 1 session each |
@@ -2052,11 +2143,11 @@ git push -u origin $(git branch --show-current)
 | ඔබේ Feature | Plan Item | Status |
 |-------------|-----------|--------|
 | **1. Centralized Inventory** | | |
-| Global Product Catalog | C1.1 | NOT IMPLEMENTED |
-| Store-Specific Inventory | C1.2 | PARTIAL (global stock_qty, warehouse+rack infra complete) |
-| Inter-Store Stock Transfer | C1.3 | WAREHOUSE-LEVEL COMPLETE (two-phase commit + UI), store-level missing |
-| Stock In-Transit Tracking | C1.4 | NOT IMPLEMENTED (no intermediate transit state) |
-| Warehouse Replenishment | C1.5 | REPORTS EXIST (reorder alerts), no auto-PO logic |
+| Global Product Catalog | C1.1 | ✅ COMPLETE (master_products + store_products, admin panel CRUD, sync) |
+| Store-Specific Inventory | C1.2 | ✅ COMPLETE (warehouse_stock table, admin cross-store view, KMM UI) |
+| Inter-Store Stock Transfer | C1.3 | ✅ COMPLETE (IST workflow PENDING→APPROVED→IN_TRANSIT→RECEIVED, admin panel dashboard, store-level view) |
+| Stock In-Transit Tracking | C1.4 | ✅ COMPLETE (transit_tracking.sq, 4 use cases, TransitTrackerScreen, auto-log DISPATCHED/RECEIVED) |
+| Warehouse Replenishment | C1.5 | ✅ COMPLETE (ReplenishmentRule model, AutoReplenishmentUseCase, 3-tab UI, backend 4 endpoints + 14 tests) |
 | **2. Pricing & Taxation** | | |
 | Region-Based Pricing | C2.1 | NOT IMPLEMENTED |
 | Multi-Currency | C2.2 | PARTIAL (formatter only) |
@@ -2078,8 +2169,8 @@ git push -u origin $(git branch --show-current)
 | Store Audit Logs | C5.3 | COMPLETE |
 | Real-time Dashboard | C5.4 | PARTIAL (REST only) |
 | **6. Sync & Offline** | | |
-| Multi-node Sync | C6.1 | COMPLETE (LWW CRDT + APPEND_ONLY for stock, priority sync, multi-store isolation, GZIP compression, queue maintenance, conflict resolution UI — all 6 items done 2026-03-19) |
-| Offline-First | C6.2 | PARTIAL (EntityApplier covers all core POS types) |
+| Multi-node Sync | C6.1 | ✅ COMPLETE (LWW CRDT + APPEND_ONLY for stock, priority sync, multi-store isolation, GZIP compression, queue maintenance, conflict resolution UI — all 6 items done 2026-03-19) |
+| Offline-First | C6.2 | PARTIAL (EntityApplier covers all core POS types; PURCHASE_ORDER/REPLENISHMENT_RULE/TRANSIT_EVENT not yet in sync pipeline) |
 | Timezone Management | C6.3 | MOSTLY COMPLETE |
 
 ---
