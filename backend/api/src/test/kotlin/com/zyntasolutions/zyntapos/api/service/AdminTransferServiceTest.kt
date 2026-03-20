@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.api.service
 
 import com.zyntasolutions.zyntapos.api.test.AbstractIntegrationTest
+import com.zyntasolutions.zyntapos.api.test.TestFixtures
 import kotlinx.coroutines.test.runTest
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.jupiter.api.BeforeEach
@@ -81,6 +82,10 @@ class AdminTransferServiceTest : AbstractIntegrationTest() {
 
         @Test
         fun `create_withOptionalFields_persisted`() = runTest {
+            // Insert stores required by the FK constraint on source_store_id / dest_store_id
+            TestFixtures.insertStore(id = "store-A")
+            TestFixtures.insertStore(id = "store-B")
+
             val result = service.create(
                 makeRequest(
                     notes    = "urgent shipment",
@@ -325,6 +330,8 @@ class AdminTransferServiceTest : AbstractIntegrationTest() {
 
         @Test
         fun `listTransfers_noFilters_returnsAll`() = runTest {
+            TestFixtures.insertStore(id = "s1")
+            TestFixtures.insertStore(id = "s2")
             service.create(makeRequest(srcStore = "s1"), "admin@test.local")
             service.create(makeRequest(srcStore = "s2"), "admin@test.local")
 
@@ -342,6 +349,10 @@ class AdminTransferServiceTest : AbstractIntegrationTest() {
 
         @Test
         fun `listTransfers_filterBySourceStoreId_returnsMatching`() = runTest {
+            // Insert stores required by FK constraint on source_store_id
+            TestFixtures.insertStore(id = "store-A")
+            TestFixtures.insertStore(id = "store-B")
+
             service.create(makeRequest(srcStore = "store-A"), "admin@test.local")
             service.create(makeRequest(srcStore = "store-B"), "admin@test.local")
 
@@ -352,6 +363,10 @@ class AdminTransferServiceTest : AbstractIntegrationTest() {
 
         @Test
         fun `listTransfers_filterByDestStoreId_returnsMatching`() = runTest {
+            // Insert stores required by FK constraint on dest_store_id
+            TestFixtures.insertStore(id = "store-C")
+            TestFixtures.insertStore(id = "store-D")
+
             service.create(makeRequest(dstStore = "store-C"), "admin@test.local")
             service.create(makeRequest(dstStore = "store-D"), "admin@test.local")
 
@@ -419,6 +434,10 @@ class AdminTransferServiceTest : AbstractIntegrationTest() {
 
         @Test
         fun `fullWorkflow_pendingToReceived_allTransitionsSucceed`() = runTest {
+            // Insert stores required by FK constraint on source_store_id / dest_store_id
+            TestFixtures.insertStore(id = "store-main")
+            TestFixtures.insertStore(id = "store-branch")
+
             // 1. Create
             val created = service.create(
                 makeRequest(
