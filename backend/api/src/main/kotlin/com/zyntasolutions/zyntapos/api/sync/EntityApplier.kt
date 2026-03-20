@@ -8,6 +8,10 @@ import com.zyntasolutions.zyntapos.api.service.PurchaseOrders
 import com.zyntasolutions.zyntapos.api.service.Products
 import com.zyntasolutions.zyntapos.api.service.StockTransfers
 import com.zyntasolutions.zyntapos.api.service.StoreProducts
+import com.zyntasolutions.zyntapos.common.bool
+import com.zyntasolutions.zyntapos.common.dbl
+import com.zyntasolutions.zyntapos.common.int
+import com.zyntasolutions.zyntapos.common.str
 import kotlinx.serialization.json.*
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -379,37 +383,39 @@ class EntityApplier {
      * Re-throws on failure so the surrounding transaction is rolled back.
      */
     fun applyInTransaction(storeId: String, op: SyncOperation) {
+        // Normalize entity type to uppercase — KMM client sends lowercase
+        val type = op.entityType.uppercase()
         try {
-            when (op.entityType) {
-                "PRODUCT", "product"                   -> applyProduct(storeId, op)
-                "CATEGORY", "category"                 -> applyCategory(storeId, op)
-                "CUSTOMER", "customer"                 -> applyCustomer(storeId, op)
-                "SUPPLIER", "supplier"                 -> applySupplier(storeId, op)
-                "ORDER", "order"                       -> applyOrder(storeId, op)
-                "ORDER_ITEM", "order_item"             -> applyOrderItem(op)
-                "AUDIT_ENTRY", "audit_entry"           -> applyAuditEntry(storeId, op)
-                "STOCK_ADJUSTMENT", "stock_adjustment" -> applyStockAdjustment(storeId, op)
-                "CASH_REGISTER", "cash_register"       -> applyCashRegister(storeId, op)
-                "REGISTER_SESSION", "register_session" -> applyRegisterSession(storeId, op)
-                "CASH_MOVEMENT", "cash_movement"       -> applyCashMovement(storeId, op)
-                "TAX_GROUP", "tax_group"               -> applyTaxGroup(storeId, op)
-                "UNIT_OF_MEASURE", "unit_of_measure"   -> applyUnitOfMeasure(storeId, op)
-                "PAYMENT_SPLIT", "payment_split"       -> applyPaymentSplit(storeId, op)
-                "COUPON", "coupon"                     -> applyCoupon(storeId, op)
-                "EXPENSE", "expense"                   -> applyExpense(storeId, op)
-                "SETTINGS", "settings"                 -> applySettings(storeId, op)
-                "EMPLOYEE", "employee"                 -> applyEmployee(storeId, op)
-                "EXPENSE_CATEGORY", "expense_category" -> applyExpenseCategory(storeId, op)
-                "COUPON_USAGE", "coupon_usage"         -> applyCouponUsage(storeId, op)
-                "PROMOTION", "promotion"               -> applyPromotion(storeId, op)
-                "CUSTOMER_GROUP", "customer_group"     -> applyCustomerGroup(storeId, op)
-                "MASTER_PRODUCT", "master_product"     -> applyMasterProduct(op)
-                "STORE_PRODUCT", "store_product"       -> applyStoreProduct(storeId, op)
-                "WAREHOUSE_STOCK", "warehouse_stock"   -> applyWarehouseStock(storeId, op)
-                "REPLENISHMENT_RULE", "replenishment_rule" -> applyReplenishmentRule(op)
-                "STOCK_TRANSFER", "stock_transfer" -> applyStockTransfer(storeId, op)
-                "PURCHASE_ORDER", "purchase_order" -> applyPurchaseOrder(storeId, op)
-                "TRANSIT_EVENT", "transit_event"   -> { /* append-only — stored via entity_snapshots; no normalized table */ }
+            when (type) {
+                "PRODUCT"           -> applyProduct(storeId, op)
+                "CATEGORY"          -> applyCategory(storeId, op)
+                "CUSTOMER"          -> applyCustomer(storeId, op)
+                "SUPPLIER"          -> applySupplier(storeId, op)
+                "ORDER"             -> applyOrder(storeId, op)
+                "ORDER_ITEM"        -> applyOrderItem(op)
+                "AUDIT_ENTRY"       -> applyAuditEntry(storeId, op)
+                "STOCK_ADJUSTMENT"  -> applyStockAdjustment(storeId, op)
+                "CASH_REGISTER"     -> applyCashRegister(storeId, op)
+                "REGISTER_SESSION"  -> applyRegisterSession(storeId, op)
+                "CASH_MOVEMENT"     -> applyCashMovement(storeId, op)
+                "TAX_GROUP"         -> applyTaxGroup(storeId, op)
+                "UNIT_OF_MEASURE"   -> applyUnitOfMeasure(storeId, op)
+                "PAYMENT_SPLIT"     -> applyPaymentSplit(storeId, op)
+                "COUPON"            -> applyCoupon(storeId, op)
+                "EXPENSE"           -> applyExpense(storeId, op)
+                "SETTINGS"          -> applySettings(storeId, op)
+                "EMPLOYEE"          -> applyEmployee(storeId, op)
+                "EXPENSE_CATEGORY"  -> applyExpenseCategory(storeId, op)
+                "COUPON_USAGE"      -> applyCouponUsage(storeId, op)
+                "PROMOTION"         -> applyPromotion(storeId, op)
+                "CUSTOMER_GROUP"    -> applyCustomerGroup(storeId, op)
+                "MASTER_PRODUCT"    -> applyMasterProduct(op)
+                "STORE_PRODUCT"     -> applyStoreProduct(storeId, op)
+                "WAREHOUSE_STOCK"   -> applyWarehouseStock(storeId, op)
+                "REPLENISHMENT_RULE" -> applyReplenishmentRule(op)
+                "STOCK_TRANSFER"    -> applyStockTransfer(storeId, op)
+                "PURCHASE_ORDER"    -> applyPurchaseOrder(storeId, op)
+                "TRANSIT_EVENT"     -> { /* append-only — stored via entity_snapshots; no normalized table */ }
                 else -> { /* entity_snapshots trigger handles any remaining types */ }
             }
         } catch (e: Exception) {
@@ -1167,7 +1173,6 @@ class EntityApplier {
                     it[ReplenishmentRules.reorderQty]   = payload.dbl("reorder_qty").toBigDecimal()
                     it[ReplenishmentRules.autoApprove]  = payload.bool("auto_approve")
                     it[ReplenishmentRules.isActive]     = payload.bool("is_active")
-                    it[ReplenishmentRules.createdAt]    = OffsetDateTime.now(ZoneOffset.UTC)
                     it[ReplenishmentRules.updatedAt]    = OffsetDateTime.now(ZoneOffset.UTC)
                 }
             }
@@ -1195,7 +1200,6 @@ class EntityApplier {
                     it[StockTransfers.status]             = payload.str("status") ?: "PENDING"
                     it[StockTransfers.notes]              = payload.str("notes")
                     it[StockTransfers.createdBy]          = payload.str("created_by")
-                    it[StockTransfers.createdAt]          = OffsetDateTime.now(ZoneOffset.UTC)
                     it[StockTransfers.updatedAt]          = OffsetDateTime.now(ZoneOffset.UTC)
                 }
             }
@@ -1223,7 +1227,6 @@ class EntityApplier {
                     it[PurchaseOrders.notes]       = payload.str("notes")
                     it[PurchaseOrders.createdBy]   = payload.str("created_by") ?: ""
                     it[PurchaseOrders.syncVersion] = op.createdAt
-                    it[PurchaseOrders.createdAt]   = OffsetDateTime.now(ZoneOffset.UTC)
                     it[PurchaseOrders.updatedAt]   = OffsetDateTime.now(ZoneOffset.UTC)
                 }
             }
@@ -1252,15 +1255,4 @@ class EntityApplier {
         }
     }
 
-    private fun JsonObject.str(key: String): String? =
-        this[key]?.let { if (it is JsonNull) null else it.jsonPrimitive.content }
-
-    private fun JsonObject.dbl(key: String): Double =
-        this[key]?.jsonPrimitive?.doubleOrNull ?: 0.0
-
-    private fun JsonObject.int(key: String, default: Int = 0): Int =
-        this[key]?.jsonPrimitive?.intOrNull ?: default
-
-    private fun JsonObject.bool(key: String, default: Boolean = true): Boolean =
-        this[key]?.jsonPrimitive?.booleanOrNull ?: default
 }

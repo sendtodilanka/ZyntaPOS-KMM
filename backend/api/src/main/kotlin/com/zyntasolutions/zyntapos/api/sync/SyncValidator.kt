@@ -30,17 +30,6 @@ class SyncValidator {
             "MASTER_PRODUCT", "STORE_PRODUCT", "WAREHOUSE_STOCK",
             "STOCK_TRANSFER", "PURCHASE_ORDER", "TRANSIT_EVENT",
             "REPLENISHMENT_RULE",
-            // Lowercase aliases — KMM client sends lowercase EntityType constants
-            "product", "category", "customer", "order", "order_item",
-            "supplier", "tax_group", "stock", "stock_adjustment",
-            "settings", "cash_register", "register_session", "cash_movement",
-            "payment_split", "coupon", "expense", "employee",
-            "shift", "attendance", "media_file", "e_invoice",
-            "accounting_entry", "customer_group", "unit_of_measure",
-            "warehouse", "installment", "leave_record", "payroll",
-            "master_product", "store_product", "warehouse_stock",
-            "stock_transfer", "purchase_order", "transit_event",
-            "replenishment_rule",
         )
         private val json = Json { ignoreUnknownKeys = true }
     }
@@ -70,6 +59,8 @@ class SyncValidator {
 
         for (op in operations) {
             val errors = mutableListOf<String>()
+            // Normalize entity type to uppercase — KMM client sends lowercase
+            val normalizedType = op.entityType.uppercase()
 
             if (op.id.isBlank()) errors.add("Operation ID must not be blank")
 
@@ -77,7 +68,7 @@ class SyncValidator {
                 errors.add("Invalid operation '${op.operation}'; must be one of $VALID_OPERATIONS")
             }
 
-            if (op.entityType !in VALID_ENTITY_TYPES) {
+            if (normalizedType !in VALID_ENTITY_TYPES) {
                 errors.add("Unknown entity type '${op.entityType}'")
             }
 
@@ -109,7 +100,7 @@ class SyncValidator {
 
             // S2-7: Field-level validation for known entity types (CREATE/UPDATE only)
             if (errors.isEmpty() && op.operation in setOf("CREATE", "INSERT", "UPDATE")) {
-                validatePayloadFields(op.entityType, op.payload, errors)
+                validatePayloadFields(normalizedType, op.payload, errors)
             }
 
             if (errors.isEmpty()) valid.add(op)
@@ -217,7 +208,7 @@ class SyncValidator {
                     val key = obj.str("key")
                     if (key.isNullOrBlank()) errors.add("SETTINGS.key must not be blank")
                 }
-                "REPLENISHMENT_RULE", "replenishment_rule" -> {
+                "REPLENISHMENT_RULE" -> {
                     val productId = obj.str("product_id")
                     if (productId.isNullOrBlank()) errors.add("REPLENISHMENT_RULE.product_id must not be blank")
                     val warehouseId = obj.str("warehouse_id")
@@ -227,17 +218,17 @@ class SyncValidator {
                     val reorderQty = obj.dbl("reorder_qty")
                     if (reorderQty < 0) errors.add("REPLENISHMENT_RULE.reorder_qty must be non-negative")
                 }
-                "PURCHASE_ORDER", "purchase_order" -> {
+                "PURCHASE_ORDER" -> {
                     val supplierId = obj.str("supplier_id")
                     if (supplierId.isNullOrBlank()) errors.add("PURCHASE_ORDER.supplier_id must not be blank")
                 }
-                "TRANSIT_EVENT", "transit_event" -> {
+                "TRANSIT_EVENT" -> {
                     val transferId = obj.str("transfer_id")
                     if (transferId.isNullOrBlank()) errors.add("TRANSIT_EVENT.transfer_id must not be blank")
                     val eventType = obj.str("event_type")
                     if (eventType.isNullOrBlank()) errors.add("TRANSIT_EVENT.event_type must not be blank")
                 }
-                "WAREHOUSE_STOCK", "warehouse_stock" -> {
+                "WAREHOUSE_STOCK" -> {
                     val warehouseId = obj.str("warehouse_id")
                     if (warehouseId.isNullOrBlank()) errors.add("WAREHOUSE_STOCK.warehouse_id must not be blank")
                     val productId = obj.str("product_id")

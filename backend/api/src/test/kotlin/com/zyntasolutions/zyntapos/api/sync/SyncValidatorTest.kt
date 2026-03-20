@@ -274,10 +274,23 @@ class SyncValidatorTest {
                 "COUPON" -> """{"code":"C","name":"N","discount_value":10}"""
                 "PAYMENT_SPLIT" -> """{"order_id":"o-1","amount":50}"""
                 "SETTINGS" -> """{"key":"k","value":"v"}"""
+                "REPLENISHMENT_RULE" -> """{"product_id":"p-1","warehouse_id":"w-1","reorder_point":10,"reorder_qty":50}"""
+                "PURCHASE_ORDER" -> """{"supplier_id":"s-1","order_number":"PO-1","total_amount":100}"""
+                "TRANSIT_EVENT" -> """{"transfer_id":"t-1","event_type":"DISPATCHED"}"""
+                "WAREHOUSE_STOCK" -> """{"warehouse_id":"w-1","product_id":"p-1","quantity":100}"""
                 else -> """{"id":"1"}"""
             }
             val result = validator.validateBatch(listOf(op(entityType = entityType, payload = payload)))
             assertTrue(result.valid.isNotEmpty(), "Expected $entityType to be valid but got: ${result.invalid.firstOrNull()?.reason}")
+        }
+    }
+
+    @Test
+    fun `lowercase entity types are normalized to uppercase and accepted`() {
+        val lowercaseTypes = listOf("product", "category", "customer", "order", "settings")
+        for (entityType in lowercaseTypes) {
+            val result = validator.validateBatch(listOf(op(entityType = entityType)))
+            assertTrue(result.valid.isNotEmpty(), "Expected lowercase '$entityType' to be accepted")
         }
     }
 
