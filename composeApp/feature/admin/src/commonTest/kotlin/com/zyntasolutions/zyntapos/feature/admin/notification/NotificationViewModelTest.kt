@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.admin.notification
 
 import app.cash.turbine.test
+import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.Notification
 import com.zyntasolutions.zyntapos.domain.model.Role
@@ -165,7 +166,7 @@ class NotificationViewModelTest {
         viewModel.handleIntentForTest(NotificationIntent.ToggleUnreadFilter)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertFalse(viewModel.currentState.showUnreadOnly)
+        assertFalse(viewModel.state.value.showUnreadOnly)
     }
 
     @Test
@@ -174,7 +175,7 @@ class NotificationViewModelTest {
         viewModel.handleIntentForTest(NotificationIntent.ToggleUnreadFilter)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        val visible = viewModel.currentState.visibleNotifications
+        val visible = viewModel.state.value.visibleNotifications
         assertTrue(visible.all { !it.isRead })
         assertEquals(1, visible.size)
     }
@@ -182,7 +183,7 @@ class NotificationViewModelTest {
     @Test
     fun `visibleNotifications returns all when showUnreadOnly is false`() = runTest {
         testDispatcher.scheduler.advanceUntilIdle()
-        val visible = viewModel.currentState.visibleNotifications
+        val visible = viewModel.state.value.visibleNotifications
         assertEquals(2, visible.size)
     }
 
@@ -202,7 +203,7 @@ class NotificationViewModelTest {
 
     @Test
     fun `MarkRead failure emits ShowSnackbar effect`() = runTest {
-        markReadResult = Result.Error(Exception("Network error"))
+        markReadResult = Result.Error(DatabaseException("Network error"))
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.effects.test {
@@ -232,7 +233,7 @@ class NotificationViewModelTest {
 
     @Test
     fun `MarkAllRead failure emits ShowSnackbar with error message`() = runTest {
-        markAllReadResult = Result.Error(Exception("Server unavailable"))
+        markAllReadResult = Result.Error(DatabaseException("Server unavailable"))
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.effects.test {
@@ -273,5 +274,5 @@ class NotificationViewModelTest {
 
 // ─── Extension to expose handleIntent for testing ────────────────────────────
 
-private suspend fun NotificationViewModel.handleIntentForTest(intent: NotificationIntent) =
-    handleIntent(intent)
+private fun NotificationViewModel.handleIntentForTest(intent: NotificationIntent) =
+    dispatch(intent)
