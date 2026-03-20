@@ -27,6 +27,10 @@ sealed interface WarehouseEffect {
     data class NavigateToRackProductList(val rackId: String) : WarehouseEffect
     data class NavigateToRackProductDetail(val rackId: String, val productId: String?) : WarehouseEffect
 
+    // Transit tracking navigation (C1.4)
+    data class NavigateToTransitTracker(val transferId: String) : WarehouseEffect
+    data object TransitEventAdded : WarehouseEffect
+
     data class ShowError(val message: String) : WarehouseEffect
     data class ShowSuccess(val message: String) : WarehouseEffect
 }

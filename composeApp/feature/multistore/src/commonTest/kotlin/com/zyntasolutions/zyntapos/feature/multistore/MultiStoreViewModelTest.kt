@@ -5,17 +5,23 @@ import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.RackProduct
 import com.zyntasolutions.zyntapos.domain.model.StockTransfer
+import com.zyntasolutions.zyntapos.domain.model.TransitEvent
 import com.zyntasolutions.zyntapos.domain.model.Warehouse
 import com.zyntasolutions.zyntapos.domain.model.WarehouseRack
 import com.zyntasolutions.zyntapos.domain.model.WarehouseStock
 import com.zyntasolutions.zyntapos.domain.repository.RackProductRepository
+import com.zyntasolutions.zyntapos.domain.repository.TransitTrackingRepository
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseRackRepository
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseRepository
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseStockRepository
+import com.zyntasolutions.zyntapos.domain.usecase.multistore.AddTransitEventUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.ApproveStockTransferUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.CommitStockTransferUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.DispatchStockTransferUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.multistore.GetInTransitCountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.GetLowStockByWarehouseUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.multistore.GetTransitHistoryUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.multistore.LogWorkflowTransitEventUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.ReceiveStockTransferUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.GetWarehouseStockUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.SetWarehouseStockUseCase
@@ -335,6 +341,20 @@ class MultiStoreViewModelTest {
         }
     }
 
+    // ── Fake TransitTrackingRepository ───────────────────────────────────────
+
+    private val transitEventsFlow = MutableStateFlow<List<TransitEvent>>(emptyList())
+
+    private val fakeTransitTrackingRepository = object : TransitTrackingRepository {
+        override fun getEventsForTransfer(transferId: String): Flow<List<TransitEvent>> =
+            transitEventsFlow.map { list -> list.filter { it.transferId == transferId } }
+        override suspend fun addEvent(event: TransitEvent): Result<Unit> {
+            transitEventsFlow.value = transitEventsFlow.value + event
+            return Result.Success(Unit)
+        }
+        override suspend fun getInTransitCount(): Result<Int> = Result.Success(0)
+    }
+
     // ── Use cases wired to fakes ──────────────────────────────────────────────
 
     private val commitTransferUseCase = CommitStockTransferUseCase(fakeWarehouseRepository)
@@ -350,6 +370,10 @@ class MultiStoreViewModelTest {
     private val getRackProductsUseCase = GetRackProductsUseCase(fakeRackProductRepository)
     private val saveRackProductUseCase = SaveRackProductUseCase(fakeRackProductRepository)
     private val deleteRackProductUseCase = DeleteRackProductUseCase(fakeRackProductRepository)
+    private val getTransitHistoryUseCase = GetTransitHistoryUseCase(fakeTransitTrackingRepository)
+    private val addTransitEventUseCase = AddTransitEventUseCase(fakeTransitTrackingRepository, fakeWarehouseRepository)
+    private val getInTransitCountUseCase = GetInTransitCountUseCase(fakeTransitTrackingRepository)
+    private val logWorkflowTransitEventUseCase = LogWorkflowTransitEventUseCase(fakeTransitTrackingRepository)
 
     private lateinit var viewModel: WarehouseViewModel
 
@@ -361,6 +385,7 @@ class MultiStoreViewModelTest {
         racksFlow.value = emptyList()
         stockFlow.value = emptyList()
         rackProductsFlow.value = emptyList()
+        transitEventsFlow.value = emptyList()
         shouldFailInsertWarehouse = false
         shouldFailUpdateWarehouse = false
         shouldFailCreateTransfer = false
@@ -384,6 +409,10 @@ class MultiStoreViewModelTest {
             getRackProductsUseCase = getRackProductsUseCase,
             saveRackProductUseCase = saveRackProductUseCase,
             deleteRackProductUseCase = deleteRackProductUseCase,
+            getTransitHistoryUseCase = getTransitHistoryUseCase,
+            addTransitEventUseCase = addTransitEventUseCase,
+            getInTransitCountUseCase = getInTransitCountUseCase,
+            logWorkflowTransitEventUseCase = logWorkflowTransitEventUseCase,
             authRepository = fakeAuthRepository,
             analytics = noOpAnalytics,
         )

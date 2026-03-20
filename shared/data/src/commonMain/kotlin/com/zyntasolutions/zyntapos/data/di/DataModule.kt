@@ -125,7 +125,9 @@ import com.zyntasolutions.zyntapos.domain.repository.RoleRepository
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseRepository
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseStockRepository
 import com.zyntasolutions.zyntapos.data.repository.LicenseRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.TransitTrackingRepositoryImpl
 import com.zyntasolutions.zyntapos.domain.repository.LicenseRepository
+import com.zyntasolutions.zyntapos.domain.repository.TransitTrackingRepository
 import org.koin.dsl.module
 
 /**
@@ -371,6 +373,9 @@ val dataModule = module {
 
     // Warehouses: locations per store, default warehouse, IST multi-step transfers (C1.3)
     single<WarehouseRepository> { WarehouseRepositoryImpl(db = get(), syncEnqueuer = get()) }
+
+    // Transit tracking events: in-transit stock monitoring (C1.4)
+    single<TransitTrackingRepository> { TransitTrackingRepositoryImpl(db = get(), syncEnqueuer = get()) }
 
     // Purchase orders: supplier replenishment workflow (C1.3 / C1.5)
     single<PurchaseOrderRepository> { PurchaseOrderRepositoryImpl(db = get(), syncEnqueuer = get()) }

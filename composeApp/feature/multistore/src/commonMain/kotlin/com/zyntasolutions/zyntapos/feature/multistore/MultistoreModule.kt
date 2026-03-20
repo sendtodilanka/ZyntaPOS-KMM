@@ -1,9 +1,13 @@
 package com.zyntasolutions.zyntapos.feature.multistore
 
+import com.zyntasolutions.zyntapos.domain.usecase.multistore.AddTransitEventUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.ApproveStockTransferUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.CommitStockTransferUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.DispatchStockTransferUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.multistore.GetInTransitCountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.GetLowStockByWarehouseUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.multistore.GetTransitHistoryUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.multistore.LogWorkflowTransitEventUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.GetWarehouseStockUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.ReceiveStockTransferUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.SetWarehouseStockUseCase
@@ -58,6 +62,12 @@ val multistoreModule = module {
     factoryOf(::SetWarehouseStockUseCase)
     factoryOf(::GetLowStockByWarehouseUseCase)
 
+    // C1.4: In-transit tracking use cases
+    factoryOf(::GetTransitHistoryUseCase)
+    factoryOf(::AddTransitEventUseCase)
+    factoryOf(::GetInTransitCountUseCase)
+    factoryOf(::LogWorkflowTransitEventUseCase)
+
     // C1.2: Rack-product bin location use cases
     factoryOf(::GetRackProductsUseCase)
     factoryOf(::SaveRackProductUseCase)
@@ -81,6 +91,10 @@ val multistoreModule = module {
             getRackProductsUseCase = get(),
             saveRackProductUseCase = get(),
             deleteRackProductUseCase = get(),
+            getTransitHistoryUseCase = get(),
+            addTransitEventUseCase = get(),
+            getInTransitCountUseCase = get(),
+            logWorkflowTransitEventUseCase = get(),
             authRepository = get(),
             analytics = get(),
         )
