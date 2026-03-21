@@ -1,0 +1,246 @@
+name: Setup Uptime Kuma Monitors
+
+on:
+  workflow_dispatch:
+    inputs:
+      kuma_password:
+        description: 'Uptime Kuma admin password (required for first-time setup or reset)'
+        required: true
+      kuma_username:
+        description: 'Uptime Kuma admin username'
+        required: false
+        default: 'admin'
+      reset_monitors:
+        description: 'Delete all existing monitors before creating new ones'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+      discord_webhook_url:
+        description: 'Discord webhook URL for alert notifications (optional)'
+        required: false
+        default: ''
+      alert_email:
+        description: 'Email address for alert notifications (optional)'
+        required: false
+        default: ''
+
+jobs:
+  setup-uptime-kuma:
+    name: "Configure Uptime Kuma Monitors"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Uptime Kuma via VPS SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.VPS_USER_KEY }}
+          envs: KUMA_USERNAME,KUMA_PASSWORD,RESET_MONITORS,DISCORD_WEBHOOK_URL,ALERT_EMAIL
+          script: |
+            set -euo pipefail
+
+            KUMA_URL="http://localhost:3001"
+            echo "=== Uptime Kuma Setup — $(date -u +%Y%m%dT%H%M%SZ) ==="
+            echo "Target: $KUMA_URL"
+
+            # ── Wait for Uptime Kuma to be ready ─────────────────────────────────
+            echo "--- Waiting for Uptime Kuma to be reachable..."
+            for i in $(seq 1 12); do
+              if curl -fsS --max-time 5 "$KUMA_URL/api/info" > /dev/null 2>&1; then
+                echo "    Uptime Kuma is up (attempt $i)"
+                break
+              fi
+              echo "    Not ready yet (attempt $i/12), waiting 5s..."
+              sleep 5
+              if [ "$i" -eq 12 ]; then
+                echo "ERROR: Uptime Kuma did not become ready in 60s" >&2
+                docker compose -f /opt/zyntapos/docker-compose.yml logs --tail=30 uptime-kuma || true
+                exit 1
+              fi
+            done
+
+            # ── Check if initial setup is needed ─────────────────────────────────
+            echo "--- Checking setup status..."
+            NEEDS_SETUP=$(curl -fsS --max-time 5 "$KUMA_URL/api/needs-setup" \
+              | python3 -c "import sys,json; d=json.load(sys.stdin); print(str(d.get('needSetup', d.get('data', False))).lower())" 2>/dev/null || echo "unknown")
+
+            echo "    needsSetup=$NEEDS_SETUP"
+
+            # ── Create admin account if not yet configured ────────────────────────
+            if [[ "$NEEDS_SETUP" == "true" ]]; then
+              echo "--- Performing first-time setup: creating admin account..."
+              SETUP_RESULT=$(curl -fsS --max-time 10 \
+                -X POST "$KUMA_URL/api/setup" \
+                -H "Content-Type: application/json" \
+                -d "{\"username\":\"$KUMA_USERNAME\",\"password\":\"$KUMA_PASSWORD\"}" 2>&1) || {
+                echo "ERROR: Failed to create admin account" >&2
+                echo "Response: $SETUP_RESULT"
+                exit 1
+              }
+              echo "    Admin account created successfully"
+            else
+              echo "--- Uptime Kuma already configured, skipping account creation"
+            fi
+
+            # ── Authenticate ──────────────────────────────────────────────────────
+            echo "--- Authenticating..."
+            COOKIE_JAR="$(mktemp)"
+            trap 'rm -f "$COOKIE_JAR"' EXIT
+
+            LOGIN_RESULT=$(curl -fsS --max-time 10 \
+              -c "$COOKIE_JAR" \
+              -X POST "$KUMA_URL/api/login" \
+              -H "Content-Type: application/json" \
+              -d "{\"username\":\"$KUMA_USERNAME\",\"password\":\"$KUMA_PASSWORD\"}" 2>&1) || {
+              echo "ERROR: Login failed. Check username/password." >&2
+              echo "Response: $LOGIN_RESULT"
+              exit 1
+            }
+            echo "    Login successful"
+
+            # ── Optionally delete existing monitors ───────────────────────────────
+            if [[ "$RESET_MONITORS" == "true" ]]; then
+              echo "--- Deleting all existing monitors (reset=true)..."
+              MONITORS=$(curl -fsS --max-time 10 -b "$COOKIE_JAR" \
+                "$KUMA_URL/api/monitors" 2>/dev/null \
+                | python3 -c "import sys,json; d=json.load(sys.stdin); [print(m['id']) for m in d.get('monitors',[])]" 2>/dev/null || echo "")
+              for mid in $MONITORS; do
+                curl -fsS --max-time 10 -b "$COOKIE_JAR" \
+                  -X DELETE "$KUMA_URL/api/monitors/$mid" > /dev/null 2>&1 || true
+                echo "    Deleted monitor id=$mid"
+              done
+              echo "    All monitors deleted"
+            fi
+
+            # ── Helper: create_monitor ────────────────────────────────────────────
+            create_monitor() {
+              local name="$1"
+              local type="$2"
+              local target="$3"
+              local interval="${4:-60}"
+              local extra="${5:-}"
+
+              local body="{\"name\":\"$name\",\"type\":\"$type\",\"interval\":$interval"
+
+              case "$type" in
+                http)  body="$body,\"url\":\"$target\"" ;;
+                tcp)   body="$body,\"hostname\":\"$(echo "$target" | cut -d: -f1)\",\"port\":$(echo "$target" | cut -d: -f2)" ;;
+                ping)  body="$body,\"hostname\":\"$target\"" ;;
+                push)  ;;  # push monitors have no target URL
+              esac
+
+              [[ -n "$extra" ]] && body="$body,$extra"
+              body="$body,\"active\":true}"
+
+              local result
+              result=$(curl -fsS --max-time 10 -b "$COOKIE_JAR" \
+                -X POST "$KUMA_URL/api/monitors" \
+                -H "Content-Type: application/json" \
+                -d "$body" 2>&1) || {
+                echo "  WARNING: Failed to create monitor '$name'" >&2
+                return 0
+              }
+
+              local monitor_id
+              monitor_id=$(echo "$result" | python3 -c "import sys,json; print(json.load(sys.stdin).get('monitorID','?'))" 2>/dev/null || echo "?")
+              echo "  ✓ '$name' (id=$monitor_id)"
+            }
+
+            # ── Helper: create_notification ───────────────────────────────────────
+            create_notification() {
+              local name="$1"
+              local type="$2"
+              local config="$3"
+
+              curl -fsS --max-time 10 -b "$COOKIE_JAR" \
+                -X POST "$KUMA_URL/api/notifications" \
+                -H "Content-Type: application/json" \
+                -d "{\"name\":\"$name\",\"type\":\"$type\",\"isDefault\":true,$config}" > /dev/null 2>&1 || {
+                echo "  WARNING: Failed to create notification '$name'" >&2
+                return 0
+              }
+              echo "  ✓ Notification channel '$name'"
+            }
+
+            # ── Notification channels ─────────────────────────────────────────────
+            echo "--- Creating notification channels..."
+            if [[ -n "${DISCORD_WEBHOOK_URL:-}" ]]; then
+              create_notification "Discord Alerts" "discord" \
+                "\"discordWebhookUrl\":\"$DISCORD_WEBHOOK_URL\""
+            fi
+            if [[ -n "${ALERT_EMAIL:-}" ]]; then
+              create_notification "Email Alerts" "smtp" \
+                "\"smtpHost\":\"localhost\",\"smtpPort\":25,\"smtpTo\":\"$ALERT_EMAIL\""
+            fi
+
+            # ── External HTTP monitors ────────────────────────────────────────────
+            echo "--- Creating external HTTP monitors..."
+            create_monitor "API — Health (External)"     "http" "https://api.zyntapos.com/health"     60
+            create_monitor "License — Health (External)" "http" "https://license.zyntapos.com/health"  60
+            create_monitor "Sync — Health (External)"    "http" "https://sync.zyntapos.com/health"     60
+            create_monitor "Panel (External)"            "http" "https://panel.zyntapos.com"            120
+            create_monitor "Website (External)"          "http" "https://zyntapos.com"                  120
+            create_monitor "Status Page (External)"      "http" "https://status.zyntapos.com"           120
+
+            # ── Internal HTTP monitors (Docker network) ───────────────────────────
+            echo "--- Creating internal HTTP monitors..."
+            create_monitor "API — Health (Internal)"     "http" "http://api:8080/health"      30
+            create_monitor "License — Health (Internal)" "http" "http://license:8083/health"  30
+            create_monitor "Sync — Health (Internal)"    "http" "http://sync:8082/health"     30
+
+            # ── TCP port monitors ─────────────────────────────────────────────────
+            echo "--- Creating TCP monitors..."
+            create_monitor "PostgreSQL TCP" "tcp" "postgres:5432" 60
+            create_monitor "Redis TCP"      "tcp" "redis:6379"    60
+
+            # ── TLS certificate monitors (daily) ──────────────────────────────────
+            echo "--- Creating TLS certificate monitors..."
+            TLS_EXTRA='"checkCertExpiry":true,"expiryNotification":true,"ignoreTls":false'
+            create_monitor "TLS — api.zyntapos.com"     "http" "https://api.zyntapos.com/health"     86400 "$TLS_EXTRA"
+            create_monitor "TLS — license.zyntapos.com" "http" "https://license.zyntapos.com/health"  86400 "$TLS_EXTRA"
+            create_monitor "TLS — sync.zyntapos.com"    "http" "https://sync.zyntapos.com/health"     86400 "$TLS_EXTRA"
+            create_monitor "TLS — panel.zyntapos.com"   "http" "https://panel.zyntapos.com"           86400 "$TLS_EXTRA"
+
+            # ── Push monitors (backup heartbeats) ─────────────────────────────────
+            echo "--- Creating push (heartbeat) monitors..."
+            create_monitor "Backup — Daily DB" "push" "" 90000   # 25-hour timeout
+            create_monitor "Backup — Verify"   "push" "" 691200  # 8-day timeout
+
+            # ── Persist KUMA_PASSWORD to VPS .env ────────────────────────────────
+            echo "--- Saving KUMA_PASSWORD to /opt/zyntapos/.env..."
+            ENV_FILE="/opt/zyntapos/.env"
+            if grep -q "^KUMA_PASSWORD=" "$ENV_FILE" 2>/dev/null; then
+              sed -i "s|^KUMA_PASSWORD=.*|KUMA_PASSWORD=${KUMA_PASSWORD}|" "$ENV_FILE"
+              echo "    Updated KUMA_PASSWORD in .env"
+            else
+              echo "KUMA_PASSWORD=${KUMA_PASSWORD}" >> "$ENV_FILE"
+              echo "    Added KUMA_PASSWORD to .env"
+            fi
+            if grep -q "^KUMA_USERNAME=" "$ENV_FILE" 2>/dev/null; then
+              sed -i "s|^KUMA_USERNAME=.*|KUMA_USERNAME=${KUMA_USERNAME}|" "$ENV_FILE"
+            else
+              echo "KUMA_USERNAME=${KUMA_USERNAME}" >> "$ENV_FILE"
+            fi
+
+            echo ""
+            echo "=== Setup complete — $(date -u +%Y%m%dT%H%M%SZ) ==="
+            echo ""
+            echo "Next steps:"
+            echo "  1. Visit https://status.zyntapos.com — verify all 19 monitors appear"
+            echo "  2. Copy push URLs from the 2 push monitors (Backup-Daily, Backup-Verify)"
+            echo "  3. Add KUMA_PUSH_URL and KUMA_PUSH_URL_VERIFY to /opt/zyntapos/.env"
+            echo "  4. Run: docker compose -f /opt/zyntapos/docker-compose.yml up -d"
+        env:
+          KUMA_USERNAME: ${{ github.event.inputs.kuma_username }}
+          KUMA_PASSWORD: ${{ github.event.inputs.kuma_password }}
+          RESET_MONITORS: ${{ github.event.inputs.reset_monitors }}
+          DISCORD_WEBHOOK_URL: ${{ github.event.inputs.discord_webhook_url }}
+          ALERT_EMAIL: ${{ github.event.inputs.alert_email }}
