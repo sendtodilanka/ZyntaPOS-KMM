@@ -23,7 +23,7 @@ import { useStores } from '@/api/stores';
 
 import { Route } from '@/routes/stores/index';
 
-const StoresPage = (Route as { component: React.FC }).component;
+const StoresPage = (Route as unknown as { component: React.FC }).component;
 
 const mockStore: Store = {
   id: 'store-1',
@@ -46,7 +46,7 @@ describe('StoresPage', () => {
     vi.mocked(useStores).mockReturnValue({
       data: mockData,
       isLoading: false,
-    } as ReturnType<typeof useStores>);
+    } as unknown as ReturnType<typeof useStores>);
   });
 
   it('renders page heading', () => {
@@ -78,7 +78,7 @@ describe('StoresPage', () => {
     vi.mocked(useStores).mockReturnValue({
       data: undefined,
       isLoading: false,
-    } as ReturnType<typeof useStores>);
+    } as unknown as ReturnType<typeof useStores>);
     render(<StoresPage />);
     expect(screen.getByText(/0 total/i)).toBeInTheDocument();
   });
@@ -87,7 +87,7 @@ describe('StoresPage', () => {
     vi.mocked(useStores).mockReturnValue({
       data: undefined,
       isLoading: true,
-    } as ReturnType<typeof useStores>);
+    } as unknown as ReturnType<typeof useStores>);
     render(<StoresPage />);
     // Page heading still visible during loading
     expect(screen.getByText('Stores')).toBeInTheDocument();

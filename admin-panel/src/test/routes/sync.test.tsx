@@ -30,7 +30,7 @@ import {
 } from '@/api/sync';
 import { Route } from '@/routes/sync/index';
 
-const SyncPage = (Route as { component: React.FC }).component;
+const SyncPage = (Route as unknown as { component: React.FC }).component;
 
 const mockStoreStatus: StoreSyncStatus = {
   storeId: 'store-1',
@@ -73,17 +73,17 @@ describe('SyncPage', () => {
     vi.mocked(useSyncStatus).mockReturnValue({
       data: [mockStoreStatus],
       isLoading: false,
-    } as ReturnType<typeof useSyncStatus>);
+    } as unknown as ReturnType<typeof useSyncStatus>);
 
     vi.mocked(useConflictLog).mockReturnValue({
       data: [mockConflict],
       isLoading: false,
-    } as ReturnType<typeof useConflictLog>);
+    } as unknown as ReturnType<typeof useConflictLog>);
 
     vi.mocked(useDeadLetters).mockReturnValue({
       data: [mockDeadLetter],
       isLoading: false,
-    } as ReturnType<typeof useDeadLetters>);
+    } as unknown as ReturnType<typeof useDeadLetters>);
 
     vi.mocked(useRetryDeadLetter).mockReturnValue({
       mutate: vi.fn(),

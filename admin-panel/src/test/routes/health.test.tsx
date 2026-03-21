@@ -15,7 +15,7 @@ vi.mock('@/api/health');
 import { useSystemHealth, useAllStoreHealth } from '@/api/health';
 import { Route } from '@/routes/health/index';
 
-const HealthPage = (Route as { component: React.FC }).component;
+const HealthPage = (Route as unknown as { component: React.FC }).component;
 
 const mockHealth: SystemHealth = {
   overall: 'healthy',
@@ -66,12 +66,12 @@ describe('HealthPage', () => {
       isLoading: false,
       refetch: vi.fn(),
       isFetching: false,
-    } as ReturnType<typeof useSystemHealth>);
+    } as unknown as ReturnType<typeof useSystemHealth>);
 
     vi.mocked(useAllStoreHealth).mockReturnValue({
       data: mockStoreHealth,
       isLoading: false,
-    } as ReturnType<typeof useAllStoreHealth>);
+    } as unknown as ReturnType<typeof useAllStoreHealth>);
   });
 
   it('renders page heading', () => {
@@ -121,7 +121,7 @@ describe('HealthPage', () => {
       isLoading: true,
       refetch: vi.fn(),
       isFetching: false,
-    } as ReturnType<typeof useSystemHealth>);
+    } as unknown as ReturnType<typeof useSystemHealth>);
     render(<HealthPage />);
     expect(screen.getByText(/system health/i)).toBeInTheDocument();
   });

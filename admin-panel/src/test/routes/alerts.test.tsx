@@ -15,7 +15,7 @@ import {
 } from '@/api/alerts';
 import { Route } from '@/routes/alerts/index';
 
-const AlertsPage = (Route as { component: React.FC }).component;
+const AlertsPage = (Route as unknown as { component: React.FC }).component;
 
 const mockAlert: Alert = {
   id: 'alert-1',
@@ -58,32 +58,32 @@ describe('AlertsPage', () => {
     vi.mocked(useAlerts).mockReturnValue({
       data: { items: [mockAlert], total: 1, page: 0, pageSize: 20 },
       isLoading: false,
-    } as ReturnType<typeof useAlerts>);
+    } as unknown as ReturnType<typeof useAlerts>);
 
     vi.mocked(useAlertCounts).mockReturnValue({
       data: mockCounts,
       isLoading: false,
-    } as ReturnType<typeof useAlertCounts>);
+    } as unknown as ReturnType<typeof useAlertCounts>);
 
     vi.mocked(useAlertRules).mockReturnValue({
       data: [mockRule],
       isLoading: false,
-    } as ReturnType<typeof useAlertRules>);
+    } as unknown as ReturnType<typeof useAlertRules>);
 
     vi.mocked(useAcknowledgeAlert).mockReturnValue({
       mutate: vi.fn(),
       isPending: false,
-    } as ReturnType<typeof useAcknowledgeAlert>);
+    } as unknown as ReturnType<typeof useAcknowledgeAlert>);
 
     vi.mocked(useResolveAlert).mockReturnValue({
       mutate: vi.fn(),
       isPending: false,
-    } as ReturnType<typeof useResolveAlert>);
+    } as unknown as ReturnType<typeof useResolveAlert>);
 
     vi.mocked(useToggleAlertRule).mockReturnValue({
       mutate: vi.fn(),
       isPending: false,
-    } as ReturnType<typeof useToggleAlertRule>);
+    } as unknown as ReturnType<typeof useToggleAlertRule>);
   });
 
   it('renders page heading', () => {
@@ -135,7 +135,7 @@ describe('AlertsPage', () => {
     vi.mocked(useAlerts).mockReturnValue({
       data: { items: [], total: 0, page: 0, pageSize: 20 },
       isLoading: false,
-    } as ReturnType<typeof useAlerts>);
+    } as unknown as ReturnType<typeof useAlerts>);
     render(<AlertsPage />);
     expect(screen.getByText(/no active alerts/i)).toBeInTheDocument();
   });
@@ -150,7 +150,7 @@ describe('AlertsPage', () => {
     vi.mocked(useAcknowledgeAlert).mockReturnValue({
       mutate: mockMutate,
       isPending: false,
-    } as ReturnType<typeof useAcknowledgeAlert>);
+    } as unknown as ReturnType<typeof useAcknowledgeAlert>);
     render(<AlertsPage />);
     fireEvent.click(screen.getByRole('button', { name: /acknowledge/i }));
     expect(mockMutate).toHaveBeenCalledWith('alert-1');
