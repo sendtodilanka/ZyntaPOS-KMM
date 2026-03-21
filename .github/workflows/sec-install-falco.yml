@@ -1,0 +1,202 @@
+name: "Security: Install Falco on VPS"
+
+# Installs Falco + deploys custom ZyntaPOS rules + configures Falcosidekick webhook.
+# One-time setup workflow — safe to re-run (idempotent).
+
+on:
+  workflow_dispatch:
+
+jobs:
+  install-falco:
+    name: Install Falco & Deploy Rules
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Falco on VPS
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.VPS_USER_KEY }}
+          command_timeout: 10m
+          script: |
+            set -euo pipefail
+            echo "=== Checking if Falco is already installed ==="
+            if command -v falco &>/dev/null; then
+              echo "Falco already installed: $(falco --version 2>/dev/null || echo 'version unknown')"
+            else
+              echo "=== Installing Falco ==="
+              # Add Falco GPG key and repo
+              curl -fsSL https://falco.org/repo/falcosecurity-packages.asc | \
+                sudo gpg --dearmor -o /usr/share/keyrings/falco-archive-keyring.gpg 2>/dev/null || true
+
+              echo "deb [signed-by=/usr/share/keyrings/falco-archive-keyring.gpg] \
+                https://download.falco.org/packages/deb stable main" | \
+                sudo tee /etc/apt/sources.list.d/falcosecurity.list
+
+              sudo apt-get update -qq
+              sudo FALCO_FRONTEND=noninteractive apt-get install -y falco
+              echo "Falco installed: $(falco --version)"
+            fi
+
+      - name: Deploy custom ZyntaPOS rules
+        uses: appleboy/ssh-action@v1
+        env:
+          RULES_CONTENT: ${{ '' }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.VPS_USER_KEY }}
+          script: |
+            set -euo pipefail
+            echo "=== Deploying ZyntaPOS Falco rules ==="
+            sudo mkdir -p /etc/falco/rules.d
+
+            # Copy rules from the repo checkout (checkout happened on runner, not VPS)
+            # So we write them inline from the known content
+            sudo tee /etc/falco/rules.d/zyntapos_rules.yaml > /dev/null << 'RULES_EOF'
+            # ZyntaPOS — Custom Falco Rules
+            # Detect suspicious runtime behavior in JVM containers.
+
+            - rule: JVM Container — Shell Spawned
+              desc: Detect shell process started inside a Ktor JVM container (indicates potential RCE)
+              condition: >
+                spawned_process and
+                container and
+                container.image.repository contains "zyntapos" and
+                (proc.name in (bash, sh, dash, zsh, csh, ash) or proc.name = busybox)
+              output: >
+                Shell spawned in JVM container
+                (container=%container.name image=%container.image.repository
+                command=%proc.cmdline user=%user.name pid=%proc.pid)
+              priority: CRITICAL
+              tags: [container, shell, zyntapos]
+
+            - rule: JVM Container — Unexpected Outbound Connection
+              desc: Detect outbound connections from Ktor containers to non-approved destinations
+              condition: >
+                outbound and
+                container and
+                container.image.repository contains "zyntapos" and
+                not (fd.sport in (443, 5432, 6379, 2801))
+              output: >
+                Unexpected outbound connection from JVM container
+                (container=%container.name image=%container.image.repository
+                connection=%fd.name user=%user.name)
+              priority: WARNING
+              tags: [container, network, zyntapos]
+
+            - rule: JVM Container — Sensitive File Read
+              desc: Detect reads of /etc/shadow, /etc/passwd, or private key files inside containers
+              condition: >
+                open_read and
+                container and
+                container.image.repository contains "zyntapos" and
+                (fd.name in (/etc/shadow, /etc/passwd) or
+                 fd.name endswith .pem or
+                 fd.name endswith .key or
+                 fd.name endswith .p12)
+              output: >
+                Sensitive file read in JVM container
+                (container=%container.name file=%fd.name command=%proc.cmdline user=%user.name)
+              priority: CRITICAL
+              tags: [container, filesystem, zyntapos]
+
+            - rule: JVM Container — Package Manager Invoked
+              desc: Detect package manager usage inside a read-only JVM container (indicates tampering)
+              condition: >
+                spawned_process and
+                container and
+                container.image.repository contains "zyntapos" and
+                proc.name in (apt, apt-get, apk, yum, dnf, pip, npm, curl, wget)
+              output: >
+                Package manager or download tool invoked in JVM container
+                (container=%container.name command=%proc.cmdline user=%user.name)
+              priority: WARNING
+              tags: [container, software_mgmt, zyntapos]
+            RULES_EOF
+
+            echo "Rules deployed to /etc/falco/rules.d/zyntapos_rules.yaml"
+
+      - name: Configure Falco HTTP output to Falcosidekick
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.VPS_USER_KEY }}
+          script: |
+            set -euo pipefail
+            echo "=== Configuring Falco → Falcosidekick HTTP output ==="
+
+            # Ensure Falco sends JSON to Falcosidekick on port 2801
+            FALCO_CONF="/etc/falco/falco.yaml"
+            if [ -f "$FALCO_CONF" ]; then
+              # Enable JSON output
+              sudo sed -i 's/^json_output: false/json_output: true/' "$FALCO_CONF" || true
+              if ! grep -q "^json_output: true" "$FALCO_CONF"; then
+                echo "json_output: true" | sudo tee -a "$FALCO_CONF"
+              fi
+
+              # Enable HTTP output to Falcosidekick
+              if ! grep -q "http_output:" "$FALCO_CONF"; then
+                sudo tee -a "$FALCO_CONF" > /dev/null << 'HTTP_EOF'
+
+            http_output:
+              enabled: true
+              url: "http://localhost:2801/"
+              user_agent: "falco/zyntapos"
+            HTTP_EOF
+              else
+                echo "http_output already configured"
+              fi
+            else
+              echo "WARNING: $FALCO_CONF not found — Falco may not be installed correctly"
+            fi
+
+      - name: Enable and start Falco service
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.VPS_USER_KEY }}
+          script: |
+            set -euo pipefail
+            echo "=== Enabling and starting Falco ==="
+            sudo systemctl enable falco 2>/dev/null || true
+            sudo systemctl restart falco
+
+            # Verify
+            sleep 3
+            sudo systemctl status falco --no-pager || true
+            echo ""
+            echo "=== Falco version ==="
+            falco --version 2>/dev/null || echo "falco binary not in PATH"
+            echo ""
+            echo "=== Custom rules loaded ==="
+            ls -la /etc/falco/rules.d/ 2>/dev/null || echo "No custom rules directory"
+            echo ""
+            echo "✅ Falco installation complete"
+
+      - name: Deploy response-handler.sh
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.VPS_USER_KEY }}
+          script: |
+            set -euo pipefail
+            echo "=== Deploying response-handler.sh ==="
+            sudo mkdir -p /opt/zyntapos/config/falco
+            # The response-handler.sh will be synced via git on the next deploy
+            # For now, ensure the log file exists and is writable
+            sudo touch /var/log/falco-response.log
+            sudo chmod 666 /var/log/falco-response.log
+            echo "✅ Response handler log configured"
