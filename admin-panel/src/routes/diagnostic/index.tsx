@@ -81,12 +81,13 @@ function CreateSessionModal({ stores, onClose, onCreated }: CreateSessionModalPr
   const [storeId, setStoreId]     = useState('');
   const [dataScope, setDataScope] = useState<DiagnosticDataScope>('READ_ONLY_DIAGNOSTICS');
   const createMutation = useCreateDiagnosticSession();
+  const { user } = useAuth();
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!storeId) return;
     createMutation.mutate(
-      { storeId, technicianId: 'self', dataScope },
+      { storeId, technicianId: user?.id ?? '', dataScope },
       { onSuccess: (session) => { onCreated(session); onClose(); } },
     );
   }

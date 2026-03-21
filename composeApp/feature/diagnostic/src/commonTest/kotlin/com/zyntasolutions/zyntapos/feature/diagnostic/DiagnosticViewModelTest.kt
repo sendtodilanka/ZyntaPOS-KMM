@@ -97,7 +97,7 @@ class DiagnosticViewModelTest {
         vm.state.test {
             awaitItem() // initial
 
-            vm.loadToken("valid.token.here")
+            vm.dispatch(DiagnosticIntent.LoadToken("valid.token.here"))
             testDispatcher.scheduler.advanceUntilIdle()
 
             val loading = awaitItem()
@@ -122,7 +122,7 @@ class DiagnosticViewModelTest {
         vm.state.test {
             awaitItem() // initial
 
-            vm.loadToken("invalid.token")
+            vm.dispatch(DiagnosticIntent.LoadToken("invalid.token"))
             testDispatcher.scheduler.advanceUntilIdle()
 
             val loading = awaitItem()
@@ -142,7 +142,7 @@ class DiagnosticViewModelTest {
         val vm = makeViewModel()
 
         vm.effects.test {
-            vm.loadToken("invalid.token")
+            vm.dispatch(DiagnosticIntent.LoadToken("invalid.token"))
             testDispatcher.scheduler.advanceUntilIdle()
 
             val effect = awaitItem()
@@ -169,7 +169,7 @@ class DiagnosticViewModelTest {
         tokenResult = Result.Success(validClaims)
         val vm = makeViewModel()
 
-        vm.loadToken("valid.token")
+        vm.dispatch(DiagnosticIntent.LoadToken("valid.token"))
         testDispatcher.scheduler.advanceUntilIdle()
 
         vm.state.test {
@@ -194,7 +194,7 @@ class DiagnosticViewModelTest {
         tokenResult = Result.Success(validClaims)
         val vm = makeViewModel()
 
-        vm.loadToken("valid.token")
+        vm.dispatch(DiagnosticIntent.LoadToken("valid.token"))
         testDispatcher.scheduler.advanceUntilIdle()
 
         vm.effects.test {
@@ -213,7 +213,7 @@ class DiagnosticViewModelTest {
         throwOnGrant = true
         val vm = makeViewModel()
 
-        vm.loadToken("valid.token")
+        vm.dispatch(DiagnosticIntent.LoadToken("valid.token"))
         testDispatcher.scheduler.advanceUntilIdle()
 
         vm.effects.test {
@@ -233,7 +233,7 @@ class DiagnosticViewModelTest {
         tokenResult = Result.Success(validClaims)
         val vm = makeViewModel()
 
-        vm.loadToken("valid.token")
+        vm.dispatch(DiagnosticIntent.LoadToken("valid.token"))
         testDispatcher.scheduler.advanceUntilIdle()
 
         vm.dispatch(DiagnosticIntent.DenyConsent)
@@ -247,7 +247,7 @@ class DiagnosticViewModelTest {
         tokenResult = Result.Success(validClaims)
         val vm = makeViewModel()
 
-        vm.loadToken("valid.token")
+        vm.dispatch(DiagnosticIntent.LoadToken("valid.token"))
         testDispatcher.scheduler.advanceUntilIdle()
 
         vm.effects.test {
@@ -267,7 +267,7 @@ class DiagnosticViewModelTest {
         tokenResult = Result.Error(DatabaseException("Something went wrong"))
         val vm = makeViewModel()
 
-        vm.loadToken("bad.token")
+        vm.dispatch(DiagnosticIntent.LoadToken("bad.token"))
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertEquals("Something went wrong", vm.state.value.errorMessage)
@@ -294,7 +294,7 @@ class DiagnosticViewModelTest {
         tokenResult = Result.Success(unknownScopeClaims)
         val vm = makeViewModel()
 
-        vm.loadToken("valid.token")
+        vm.dispatch(DiagnosticIntent.LoadToken("valid.token"))
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(
