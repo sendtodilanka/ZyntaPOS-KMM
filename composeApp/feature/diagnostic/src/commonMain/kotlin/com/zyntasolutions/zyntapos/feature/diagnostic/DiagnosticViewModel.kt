@@ -3,8 +3,10 @@ package com.zyntasolutions.zyntapos.feature.diagnostic
 import androidx.lifecycle.viewModelScope
 import com.zyntasolutions.zyntapos.core.result.onError
 import com.zyntasolutions.zyntapos.core.result.onSuccess
-import com.zyntasolutions.zyntapos.domain.repository.DiagnosticConsentRepository
+import com.zyntasolutions.zyntapos.domain.model.DiagnosticDataScope
 import com.zyntasolutions.zyntapos.domain.model.DiagnosticSession
+import com.zyntasolutions.zyntapos.domain.model.DiagnosticSessionStatus
+import com.zyntasolutions.zyntapos.domain.repository.DiagnosticConsentRepository
 import com.zyntasolutions.zyntapos.security.auth.DiagnosticTokenValidator
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlinx.coroutines.launch
@@ -23,11 +25,7 @@ class DiagnosticViewModel(
     private val consentRepository: DiagnosticConsentRepository,
 ) : BaseViewModel<DiagnosticState, DiagnosticIntent, DiagnosticEffect>(DiagnosticState()) {
 
-    /**
-     * Validates and loads a JIT diagnostic session token into the UI state.
-     * Call this when the device receives the token (push or QR).
-     */
-    fun loadToken(rawToken: String) {
+    private suspend fun loadToken(rawToken: String) {
         viewModelScope.launch {
             updateState { copy(isLoading = true, errorMessage = null) }
             val result = tokenValidator.validateToken(rawToken)
@@ -40,23 +38,25 @@ class DiagnosticViewModel(
                         requestedBy      = claims.technicianId,
                         consentGrantedAt = null,
                         expiresAt        = claims.exp * 1000L,
-                        status           = com.zyntasolutions.zyntapos.domain.model.DiagnosticSessionStatus.PENDING_CONSENT,
+                        status           = DiagnosticSessionStatus.PENDING_CONSENT,
                         dataScope        = when (claims.scope) {
-                            "FULL_READ_ONLY" -> com.zyntasolutions.zyntapos.domain.model.DiagnosticDataScope.FULL_READ_ONLY
-                            else             -> com.zyntasolutions.zyntapos.domain.model.DiagnosticDataScope.READ_ONLY_DIAGNOSTICS
+                            "FULL_READ_ONLY" -> DiagnosticDataScope.FULL_READ_ONLY
+                            else             -> DiagnosticDataScope.READ_ONLY_DIAGNOSTICS
                         },
                     )
                     updateState { copy(pendingSession = session, isLoading = false) }
                 }
                 .onError { error ->
-                    updateState { copy(isLoading = false, errorMessage = error.message) }
-                    sendEffect(DiagnosticEffect.ShowError(error.message))
+                    val msg = error.message ?: "Failed to load diagnostic token"
+                    updateState { copy(isLoading = false, errorMessage = msg) }
+                    sendEffect(DiagnosticEffect.ShowError(msg))
                 }
         }
     }
 
     override suspend fun handleIntent(intent: DiagnosticIntent) {
         when (intent) {
+            is DiagnosticIntent.LoadToken     -> loadToken(intent.rawToken)
             is DiagnosticIntent.AcceptConsent -> acceptConsent()
             is DiagnosticIntent.DenyConsent   -> denyConsent()
             is DiagnosticIntent.DismissError  -> updateState { copy(errorMessage = null) }

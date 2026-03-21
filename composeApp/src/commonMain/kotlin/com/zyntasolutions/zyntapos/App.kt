@@ -95,7 +95,10 @@ import com.zyntasolutions.zyntapos.feature.settings.screen.SecuritySettingsScree
 import com.zyntasolutions.zyntapos.feature.settings.screen.SystemHealthScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.TaxSettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.UserManagementScreen
+import androidx.compose.runtime.LaunchedEffect
 import com.zyntasolutions.zyntapos.feature.diagnostic.DiagnosticConsentScreen
+import com.zyntasolutions.zyntapos.feature.diagnostic.DiagnosticEffect
+import com.zyntasolutions.zyntapos.feature.diagnostic.DiagnosticIntent
 import com.zyntasolutions.zyntapos.feature.diagnostic.DiagnosticViewModel
 import com.zyntasolutions.zyntapos.navigation.MainNavScreens
 import com.zyntasolutions.zyntapos.navigation.ZyntaNavGraph
@@ -220,16 +223,16 @@ fun App() {
                 } else null,
                 diagnosticConsentScreen = { token, onDismiss ->
                     val vm = koinViewModel<DiagnosticViewModel>()
-                    androidx.compose.runtime.LaunchedEffect(token) { vm.loadToken(token) }
+                    LaunchedEffect(token) { vm.dispatch(DiagnosticIntent.LoadToken(token)) }
                     val state by vm.state.collectAsState()
                     // Dismiss the screen when consent is accepted or denied
-                    androidx.compose.runtime.LaunchedEffect(Unit) {
+                    LaunchedEffect(Unit) {
                         vm.effects.collect { effect ->
                             when (effect) {
-                                is com.zyntasolutions.zyntapos.feature.diagnostic.DiagnosticEffect.ConsentAccepted,
-                                is com.zyntasolutions.zyntapos.feature.diagnostic.DiagnosticEffect.ConsentDenied ->
+                                is DiagnosticEffect.ConsentAccepted,
+                                is DiagnosticEffect.ConsentDenied ->
                                     onDismiss()
-                                is com.zyntasolutions.zyntapos.feature.diagnostic.DiagnosticEffect.ShowError ->
+                                is DiagnosticEffect.ShowError ->
                                     Unit // Error message shown inline via state.errorMessage
                             }
                         }
