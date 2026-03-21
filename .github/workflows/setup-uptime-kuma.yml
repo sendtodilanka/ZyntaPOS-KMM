@@ -47,9 +47,17 @@ jobs:
           script: |
             set -euo pipefail
 
-            KUMA_URL="http://localhost:3001"
+            # Uptime Kuma uses expose: (Docker-internal), not ports:
+            # Resolve container's bridge IP so VPS host can reach it directly
+            KUMA_IP=$(docker inspect -f '{{.NetworkSettings.Networks.zyntapos_net.IPAddress}}' zyntapos_uptime_kuma 2>/dev/null || true)
+            if [[ -z "$KUMA_IP" ]]; then
+              echo "ERROR: Could not find zyntapos_uptime_kuma container on zyntapos_net" >&2
+              docker ps --filter name=kuma || true
+              exit 1
+            fi
+            KUMA_URL="http://${KUMA_IP}:3001"
             echo "=== Uptime Kuma Setup — $(date -u +%Y%m%dT%H%M%SZ) ==="
-            echo "Target: $KUMA_URL"
+            echo "Target: $KUMA_URL (container IP: $KUMA_IP)"
 
             # ── Wait for Uptime Kuma to be ready ─────────────────────────────────
             echo "--- Waiting for Uptime Kuma to be reachable..."
