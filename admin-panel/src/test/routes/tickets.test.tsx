@@ -54,7 +54,7 @@ vi.mock('@/hooks/use-auth', () => ({
 import { useTickets, useTicketMetrics } from '@/api/tickets';
 import { Route } from '@/routes/tickets/index';
 
-const TicketsPage = (Route as { component: React.FC }).component;
+const TicketsPage = (Route as unknown as { component: React.FC }).component;
 
 const mockTicket: Ticket = {
   id: 'ticket-1',
