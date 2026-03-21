@@ -348,27 +348,11 @@ services:
     security_opt:
       - no-new-privileges:true
 
-  # ── API Documentation — Scalar OpenAPI viewer (TODO-007e) ───────────
-  docs:
-    build:
-      context: ./zyntapos-docs
-      dockerfile: Dockerfile
-    container_name: zyntapos_docs
-    restart: unless-stopped
-    expose:
-      - "3001"
-    networks:
-      - zyntapos_net
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3001/"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-    mem_limit: 64m
-    memswap_limit: 64m
-    security_opt:
-      - no-new-privileges:true
+  # ── API Documentation — MOVED TO CLOUDFLARE PAGES ──────────────────
+  # docs.zyntapos.com is now served by Cloudflare Pages (zyntapos-docs.pages.dev).
+  # The docs Docker container is no longer needed.
+  # See: .github/workflows/cd-docs.yml (build + deploy)
+  #      .github/workflows/cf-docs-domain.yml (DNS + custom domain setup)
 
   # ── Uptime Kuma — Self-hosted monitoring & status page ──────────────
   uptime-kuma:

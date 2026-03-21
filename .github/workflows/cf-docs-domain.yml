@@ -1,0 +1,152 @@
+name: CF Docs Custom Domain Setup
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action: setup (full), dns-only, pages-only, debug'
+        required: true
+        default: 'setup'
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Step 1: Update DNS — CNAME docs → zyntapos-docs.pages.dev ──
+      - name: Update DNS CNAME record
+        if: github.event.inputs.action == 'setup' || github.event.inputs.action == 'dns-only' || github.event.inputs.action == 'debug'
+        env:
+          CF_AUTH_EMAIL: ${{ secrets.CF_AUTH_EMAIL }}
+          CF_GLOBAL_API_KEY: ${{ secrets.CF_GLOBAL_API_KEY }}
+        run: |
+          set -e
+          AUTH=(-H "X-Auth-Email: $CF_AUTH_EMAIL" -H "X-Auth-Key: $CF_GLOBAL_API_KEY")
+
+          # Get zone ID
+          ZONE_ID=$(curl -s "${AUTH[@]}" \
+            "https://api.cloudflare.com/client/v4/zones?name=zyntapos.com" \
+            | python3 -c "import sys,json; print(json.load(sys.stdin)['result'][0]['id'])")
+          echo "Zone ID: $ZONE_ID"
+
+          # Check existing docs DNS record
+          echo "=== Current 'docs' DNS record ==="
+          EXISTING=$(curl -s "${AUTH[@]}" \
+            "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?name=docs.zyntapos.com")
+          echo "$EXISTING" | python3 -c "
+          import sys,json
+          d=json.load(sys.stdin)
+          for r in d.get('result',[]):
+            print(f'  {r[\"type\"]:6} {r[\"name\"]:30} -> {r[\"content\"]:40} (proxied={r[\"proxied\"]}, id={r[\"id\"]})')
+          if not d.get('result'):
+            print('  (no record found)')
+          "
+
+          if [ "${{ github.event.inputs.action }}" = "debug" ]; then
+            echo "Debug mode — no changes made"
+            exit 0
+          fi
+
+          # Delete existing record(s) for docs.zyntapos.com
+          RECORD_IDS=$(echo "$EXISTING" | python3 -c "
+          import sys,json
+          d=json.load(sys.stdin)
+          for r in d.get('result',[]):
+            print(r['id'])
+          ")
+          for rid in $RECORD_IDS; do
+            echo "Deleting existing record $rid..."
+            curl -s -X DELETE "${AUTH[@]}" \
+              "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records/$rid" \
+              | python3 -c "import sys,json; d=json.load(sys.stdin); print('  deleted' if d.get('success') else f'  FAILED: {d}')"
+          done
+
+          # Create CNAME record: docs → zyntapos-docs.pages.dev (proxied)
+          echo "Creating CNAME: docs.zyntapos.com → zyntapos-docs.pages.dev..."
+          curl -s -X POST "${AUTH[@]}" \
+            -H "Content-Type: application/json" \
+            "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" \
+            -d '{
+              "type": "CNAME",
+              "name": "docs",
+              "content": "zyntapos-docs.pages.dev",
+              "proxied": true,
+              "ttl": 1,
+              "comment": "Cloudflare Pages — API docs site"
+            }' | python3 -c "
+          import sys,json
+          d=json.load(sys.stdin)
+          if d.get('success'):
+            r=d['result']
+            print(f'  Created: {r[\"type\"]} {r[\"name\"]} -> {r[\"content\"]} (proxied={r[\"proxied\"]})')
+          else:
+            print(f'  FAILED: {d.get(\"errors\",[])}')
+            sys.exit(1)
+          "
+
+      # ── Step 2: Add custom domain to Cloudflare Pages project ──────
+      - name: Add custom domain to Pages project
+        if: github.event.inputs.action == 'setup' || github.event.inputs.action == 'pages-only'
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_AUTH_EMAIL: ${{ secrets.CF_AUTH_EMAIL }}
+          CF_GLOBAL_API_KEY: ${{ secrets.CF_GLOBAL_API_KEY }}
+        run: |
+          set -e
+          AUTH=(-H "X-Auth-Email: $CF_AUTH_EMAIL" -H "X-Auth-Key: $CF_GLOBAL_API_KEY")
+
+          # Check current custom domains on the Pages project
+          echo "=== Current Pages domains ==="
+          curl -s "${AUTH[@]}" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/zyntapos-docs/domains" \
+            | python3 -c "
+          import sys,json
+          d=json.load(sys.stdin)
+          for r in d.get('result',[]):
+            print(f'  {r.get(\"name\",\"?\")} — status={r.get(\"status\",\"?\")}')
+          if not d.get('result'):
+            print('  (no custom domains)')
+          "
+
+          # Add docs.zyntapos.com as custom domain
+          echo "Adding docs.zyntapos.com to Pages project..."
+          RESP=$(curl -s -X POST "${AUTH[@]}" \
+            -H "Content-Type: application/json" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/zyntapos-docs/domains" \
+            -d '{"name": "docs.zyntapos.com"}')
+          echo "$RESP" | python3 -c "
+          import sys,json
+          d=json.load(sys.stdin)
+          if d.get('success'):
+            r=d.get('result',{})
+            print(f'  Added: {r.get(\"name\",\"?\")} — status={r.get(\"status\",\"?\")}')
+          else:
+            errors=d.get('errors',[])
+            # Code 8000040 = domain already exists (idempotent — not an error)
+            if any(e.get('code')==8000040 for e in errors):
+              print('  Domain already registered (OK)')
+            else:
+              print(f'  FAILED: {errors}')
+              sys.exit(1)
+          "
+
+      # ── Step 3: Verify ─────────────────────────────────────────────
+      - name: Verify setup
+        if: github.event.inputs.action == 'setup'
+        run: |
+          echo "=== Verification ==="
+          echo "Waiting 10s for DNS propagation..."
+          sleep 10
+
+          echo "Testing docs.zyntapos.com..."
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://docs.zyntapos.com" --max-time 10 || echo "000")
+          echo "  HTTP status: $HTTP_CODE"
+
+          echo "Testing zyntapos-docs.pages.dev..."
+          HTTP_CODE2=$(curl -s -o /dev/null -w "%{http_code}" "https://zyntapos-docs.pages.dev" --max-time 10 || echo "000")
+          echo "  HTTP status: $HTTP_CODE2"
+
+          echo ""
+          echo "If docs.zyntapos.com still shows old content, the VPS Caddy config"
+          echo "may still be intercepting traffic. Remove the docs.zyntapos.com block"
+          echo "from Caddyfile and reload Caddy on the VPS."
