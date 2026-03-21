@@ -96,7 +96,7 @@ TODO-005  →  TODO-003  →  TODO-004 (Part 1)
 | [007f](007f-admin-panel-cf-custom-auth.md) | Admin Panel: CF + Custom Auth | 🟡 ~97% done | **P0** | Backend fully done incl CSRF, password max-length, audit logging. Remaining: tests (G8), Google Cloud Console (G9), VPS env vars (G10), CF bypass (G11). |
 | [007b](007b-astro-marketing-website.md) | Astro Marketing Website | ✅ Done | **P1** | Implementation complete — pending CF Pages DNS cutover |
 | [009](009-ktor-security-hardening.md) | Ktor Backend Security Hardening | ✅ Done | **P0** | All 4 levels done: JVM deserialization, HTTP security, container hardening, OWASP/Dependabot/Detekt |
-| [010](010-security-monitoring-automated-response.md) | Security Monitoring & Automated Response | 🟡 ~80% done | **HIGH** | Falco rules, Falcosidekick, CF Tunnel, canary response workflow done. Remaining: canary embedding, Snyk, CF Zero Trust (external) |
+| [010](010-security-monitoring-automated-response.md) | Security Monitoring & Automated Response | ✅ ~95% done | **HIGH** | Falco rules, Falcosidekick, CF Tunnel, canary response workflow, CF Zero Trust, Snyk Monitor all done. Remaining: register live canary tokens at canarytokens.org (external), verify CF Tunnel active on VPS |
 | [008](008-seo-and-aso.md) | SEO & ASO — Website + Play Store | 🟡 ~90% done | **P1** | Technical SEO done (robots.txt, sitemap, JSON-LD, OG tags, Lighthouse CI, GA4 gtag). Remaining: Search Console (ext), Play Store ASO |
 | [006](006-remote-diagnostic-access.md) | Remote Diagnostic Access | 🟡 ~85% done | **P2** | Backend + client feature + consent API wired. Remaining: WebSocket relay, site visit tokens |
 
