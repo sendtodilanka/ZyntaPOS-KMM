@@ -1,10 +1,6 @@
 package com.zyntasolutions.zyntapos.feature.auth.license
 
 import app.cash.turbine.test
-import com.zyntasolutions.zyntapos.core.result.DatabaseException
-import com.zyntasolutions.zyntapos.core.result.NetworkException
-import com.zyntasolutions.zyntapos.core.result.Result
-import com.zyntasolutions.zyntapos.core.result.ZyntaException
 import com.zyntasolutions.zyntapos.domain.model.Edition
 import com.zyntasolutions.zyntapos.domain.model.License
 import com.zyntasolutions.zyntapos.domain.model.LicenseStatus
@@ -50,9 +46,9 @@ class LicenseViewModelTest {
         maxDevices = 5,
     )
 
-    // Hand-rolled fake repository
+    // Hand-rolled fake repository (LicenseRepository uses kotlin.Result, not the custom Result)
     private var shouldActivateSucceed = true
-    private var activateError: ZyntaException = NetworkException("Activation failed")
+    private var activateError: Throwable = RuntimeException("Activation failed")
 
     private val fakeLicenseRepo = object : LicenseRepository {
         override suspend fun activate(
@@ -61,10 +57,10 @@ class LicenseViewModelTest {
             deviceName: String?,
             appVersion: String,
             osVersion: String?,
-        ): Result<License> = if (shouldActivateSucceed) {
-            Result.Success(mockLicense)
+        ) = if (shouldActivateSucceed) {
+            kotlin.Result.success(mockLicense)
         } else {
-            Result.Error(activateError)
+            kotlin.Result.failure(activateError)
         }
 
         override suspend fun sendHeartbeat(
@@ -75,7 +71,7 @@ class LicenseViewModelTest {
             syncQueueDepth: Int,
             lastErrorCount: Int,
             uptimeHours: Double,
-        ): Result<License> = Result.Success(mockLicense)
+        ) = kotlin.Result.success(mockLicense)
 
         override suspend fun getLocalLicense(): License? = null
         override suspend fun clearLocalLicense() {}
@@ -219,7 +215,7 @@ class LicenseViewModelTest {
     @Test
     fun `ActivateClicked sets error when activation fails`() = runTest {
         shouldActivateSucceed = false
-        activateError = NetworkException("License expired")
+        activateError = RuntimeException("License expired")
 
         viewModel.handleIntentForTest(LicenseIntent.LicenseKeyChanged("ABCD-EFGH-IJKL-MNOP"))
         viewModel.handleIntentForTest(LicenseIntent.ActivateClicked)
@@ -234,7 +230,7 @@ class LicenseViewModelTest {
     @Test
     fun `ActivateClicked uses fallback message when exception has no message`() = runTest {
         shouldActivateSucceed = false
-        activateError = NetworkException("unknown")
+        activateError = RuntimeException("unknown")
 
         viewModel.handleIntentForTest(LicenseIntent.LicenseKeyChanged("ABCD-EFGH-IJKL-MNOP"))
         viewModel.handleIntentForTest(LicenseIntent.ActivateClicked)

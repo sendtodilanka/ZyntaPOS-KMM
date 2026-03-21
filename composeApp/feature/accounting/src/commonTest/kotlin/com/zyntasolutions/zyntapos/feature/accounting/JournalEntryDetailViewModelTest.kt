@@ -3,9 +3,12 @@ package com.zyntasolutions.zyntapos.feature.accounting
 import app.cash.turbine.test
 import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
+import com.zyntasolutions.zyntapos.domain.model.AccountingPeriod
 import com.zyntasolutions.zyntapos.domain.model.JournalEntry
 import com.zyntasolutions.zyntapos.domain.model.JournalEntryLine
 import com.zyntasolutions.zyntapos.domain.model.JournalReferenceType
+import com.zyntasolutions.zyntapos.domain.model.PeriodStatus
+import com.zyntasolutions.zyntapos.domain.repository.AccountingPeriodRepository
 import com.zyntasolutions.zyntapos.domain.repository.JournalRepository
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetJournalEntriesUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.PostJournalEntryUseCase
@@ -110,6 +113,31 @@ class JournalEntryDetailViewModelTest {
         ): Result<JournalEntry> = reverseResult
     }
 
+    private val openPeriod = AccountingPeriod(
+        id = "period-001",
+        periodName = "March 2026",
+        startDate = "2026-03-01",
+        endDate = "2026-03-31",
+        status = PeriodStatus.OPEN,
+        fiscalYearStart = "2026-01-01",
+        createdAt = 1_700_000_000_000L,
+        updatedAt = 1_700_000_000_000L,
+    )
+
+    private val fakePeriodRepo = object : AccountingPeriodRepository {
+        override fun getAll(storeId: String): kotlinx.coroutines.flow.Flow<List<AccountingPeriod>> =
+            kotlinx.coroutines.flow.MutableStateFlow(listOf(openPeriod))
+        override suspend fun getById(id: String): Result<AccountingPeriod?> = Result.Success(openPeriod)
+        override suspend fun getPeriodForDate(storeId: String, date: String): Result<AccountingPeriod?> =
+            Result.Success(openPeriod)
+        override suspend fun getOpenPeriods(storeId: String): Result<List<AccountingPeriod>> =
+            Result.Success(listOf(openPeriod))
+        override suspend fun create(period: AccountingPeriod): Result<Unit> = Result.Success(Unit)
+        override suspend fun closePeriod(id: String, updatedAt: Long): Result<Unit> = Result.Success(Unit)
+        override suspend fun lockPeriod(id: String, lockedBy: String, lockedAt: Long): Result<Unit> = Result.Success(Unit)
+        override suspend fun reopenPeriod(id: String, updatedAt: Long): Result<Unit> = Result.Success(Unit)
+    }
+
     private lateinit var viewModel: JournalEntryDetailViewModel
 
     @BeforeTest
@@ -117,8 +145,8 @@ class JournalEntryDetailViewModelTest {
         Dispatchers.setMain(testDispatcher)
         viewModel = JournalEntryDetailViewModel(
             getJournalEntriesUseCase = GetJournalEntriesUseCase(fakeJournalRepo),
-            saveDraftJournalEntryUseCase = SaveDraftJournalEntryUseCase(fakeJournalRepo),
-            postJournalEntryUseCase = PostJournalEntryUseCase(fakeJournalRepo),
+            saveDraftJournalEntryUseCase = SaveDraftJournalEntryUseCase(fakeJournalRepo, fakePeriodRepo),
+            postJournalEntryUseCase = PostJournalEntryUseCase(fakeJournalRepo, fakePeriodRepo),
             reverseJournalEntryUseCase = ReverseJournalEntryUseCase(fakeJournalRepo),
         )
     }
