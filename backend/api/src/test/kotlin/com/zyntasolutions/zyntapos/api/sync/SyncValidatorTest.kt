@@ -628,4 +628,60 @@ class SyncValidatorTest {
             assertEquals(1, result.valid.size, "Expected $entityType with payload $payload to pass validation")
         }
     }
+
+    // ── Payload timestamp validation ─────────────────────────────────────
+
+    @Test
+    fun `payload with valid created_at epoch ms passes`() {
+        val now = System.currentTimeMillis()
+        val result = validator.validateBatch(listOf(
+            op(payload = """{"name":"Test","price":10.0,"created_at":$now}""")
+        ))
+        assertEquals(1, result.valid.size)
+    }
+
+    @Test
+    fun `payload with pre-2020 created_at is rejected (strict)`() {
+        val pre2020 = 1_000_000_000L // ~2001
+        val result = validator.validateBatch(listOf(
+            op(payload = """{"name":"Test","price":10.0,"created_at":$pre2020}""")
+        ))
+        assertEquals(1, result.invalid.size)
+        assertTrue(result.invalid.first().reason.contains("before 2020"))
+    }
+
+    @Test
+    fun `payload with future updated_at is rejected`() {
+        val future = System.currentTimeMillis() + 120_000
+        val result = validator.validateBatch(listOf(
+            op(payload = """{"name":"Test","price":10.0,"updated_at":$future}""")
+        ))
+        assertEquals(1, result.invalid.size)
+        assertTrue(result.invalid.first().reason.contains("future"))
+    }
+
+    @Test
+    fun `payload without timestamp fields passes`() {
+        val result = validator.validateBatch(listOf(
+            op(payload = """{"name":"Test","price":10.0}""")
+        ))
+        assertEquals(1, result.valid.size)
+    }
+
+    @Test
+    fun `payload with null timestamp field passes`() {
+        val result = validator.validateBatch(listOf(
+            op(payload = """{"name":"Test","price":10.0,"created_at":null}""")
+        ))
+        assertEquals(1, result.valid.size)
+    }
+
+    @Test
+    fun `payload with string timestamp field is ignored by lng parser`() {
+        // lng() returns null for non-numeric, so string timestamps are silently skipped
+        val result = validator.validateBatch(listOf(
+            op(payload = """{"name":"Test","price":10.0,"created_at":"2025-01-01T00:00:00Z"}""")
+        ))
+        assertEquals(1, result.valid.size)
+    }
 }

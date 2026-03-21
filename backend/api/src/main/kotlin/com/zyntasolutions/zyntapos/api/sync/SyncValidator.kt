@@ -1,7 +1,9 @@
 package com.zyntasolutions.zyntapos.api.sync
 
 import com.zyntasolutions.zyntapos.api.models.SyncOperation
+import com.zyntasolutions.zyntapos.common.TimestampUtils
 import com.zyntasolutions.zyntapos.common.dbl
+import com.zyntasolutions.zyntapos.common.lng
 import com.zyntasolutions.zyntapos.common.str
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
@@ -90,13 +92,7 @@ class SyncValidator {
                 }
             }
 
-            val now = java.time.Instant.now().toEpochMilli()
-            if (op.createdAt > now + 60_000) {
-                errors.add("created_at is in the future (clock skew > 60s)")
-            }
-            if (op.createdAt < 0) {
-                errors.add("created_at must be a non-negative epoch-ms timestamp")
-            }
+            TimestampUtils.validateEpochMs(op.createdAt, "created_at")?.let { errors.add(it) }
 
             // S2-7: Field-level validation for known entity types (CREATE/UPDATE only)
             if (errors.isEmpty() && op.operation in setOf("CREATE", "INSERT", "UPDATE")) {
@@ -236,8 +232,28 @@ class SyncValidator {
                 }
                 // Other entity types: structural JSON validation only (already done above)
             }
+
+            // Validate common timestamp fields in all entity payloads (if present)
+            validatePayloadTimestamps(obj, entityType, errors)
         } catch (_: Exception) {
             // JSON parsing already validated above — skip field validation on parse error
+        }
+    }
+
+    /**
+     * Validates timestamp fields embedded in entity payloads.
+     * All timestamp fields in payloads must be epoch milliseconds (Long).
+     * Rejects timestamps before 2020-01-01 and more than 60s in the future.
+     */
+    private fun validatePayloadTimestamps(
+        obj: kotlinx.serialization.json.JsonObject,
+        entityType: String,
+        errors: MutableList<String>,
+    ) {
+        val timestampFields = listOf("created_at", "updated_at", "completed_at", "closed_at")
+        for (field in timestampFields) {
+            val value = obj.lng(field) ?: continue
+            TimestampUtils.validateEpochMs(value, "$entityType.$field", strict = true)?.let { errors.add(it) }
         }
     }
 }

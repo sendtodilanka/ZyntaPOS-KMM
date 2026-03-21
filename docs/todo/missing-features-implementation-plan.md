@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-21 (B1 Admin Panel Enhancements marked 100% complete — VPS deployment verified, nginx /ping endpoint added, Caddy health routing for panel.zyntapos.com completed; A6 Security Monitoring fully complete — Snyk Monitor imported)
+**Last Updated:** 2026-03-21 (B5 Timestamp Standardization complete — TimestampUtils, SyncValidator payload validation, timestamp contract doc; G1 Design System 4 components added — ZyntaStoreSelector, ZyntaCurrencyPicker, ZyntaTimezonePicker, ZyntaTransferStatusBadge)
 **Status:** Approved — Verified against codebase 2026-03-21
 
 ---
@@ -458,11 +458,11 @@ Phase 2 stable release එකකට backend test coverage **95%+** ඕන. ද�
 | `service/LicenseStatusIntegrationTest.kt` | 4 | Known license fields, device count, unknown key, expiresAt (Docker/CI) |
 | `routes/LicenseRoutesValidationTest.kt` | 47 | Key pattern, mandatory fields, max lengths, telemetry, pagination, filters, edition, RBAC |
 
-### B5. Mixed Timestamp Formats
+### B5. Mixed Timestamp Formats — ✅ COMPLETE (2026-03-21)
 
-- [ ] Standardize on `Instant` (kotlinx-datetime) across all services
-- [ ] Add timestamp format validation in sync
-- [ ] Document timestamp contract
+- [x] Standardize on `Instant` (kotlinx-datetime) across all services — `TimestampUtils` utility in `backend/common` centralizes all OffsetDateTime↔epochMs↔ISO8601 conversions
+- [x] Add timestamp format validation in sync — `SyncValidator` now validates payload timestamp fields (`created_at`, `updated_at`, `completed_at`, `closed_at`) with strict mode (rejects pre-2020 and future timestamps); `JsonExtensions.lng()` added for Long field extraction
+- [x] Document timestamp contract — `docs/architecture/timestamp-contract.md` documents wire format (POS=epochMs, Admin=ISO8601), DB storage, conversion rules, and validation
 
 ### B6. Ticket System Enhancements (TODO-012) — COMPLETED (merged from main 2026-03-18)
 
@@ -1492,22 +1492,27 @@ Backend Tests:
 
 ---
 
-### G1. Design System Missing Components (`:composeApp:designsystem`)
+### G1. Design System Missing Components (`:composeApp:designsystem`) — ~70% Complete
 
-**Current:** 27 Zynta* components exist (Button, TextField, CurrencyText, ProductCard, NumericPad, etc.)
+**Current:** 30 Zynta* components exist (Button, TextField, CurrencyText, ProductCard, NumericPad, StoreSelector, CurrencyPicker, TimezonePicker, TransferStatusBadge, etc.)
 
-**MISSING components needed for Phase 2+:**
+**Components implemented (2026-03-21):**
+
+| Component | Purpose | Priority | Status |
+|-----------|---------|----------|--------|
+| `ZyntaStoreSelector` | Active store picker in drawer footer + toolbar (+ compact variant) | **CRITICAL** | ✅ DONE |
+| `ZyntaCurrencyPicker` | Currency selection dropdown (9 currencies: LKR, USD, EUR, GBP, INR, AUD, SGD, AED, JPY) | **CRITICAL** | ✅ DONE |
+| `ZyntaTimezonePicker` | Timezone selection with UTC offset display (21 common timezones) | **HIGH** | ✅ DONE |
+| `ZyntaTransferStatusBadge` | PENDING/APPROVED/IN_TRANSIT/RECEIVED/CANCELLED states + string overload | **HIGH** | ✅ DONE |
+| ~~`ZyntaConflictResolutionUI`~~ | ~~CRDT merge conflict presentation~~ | ~~**LOW**~~ | ✅ DONE — `ConflictListScreen` + `ConflictDetailDialog` in Admin tab 4 (C6.1 Item 6) |
+
+**REMAINING components (MEDIUM priority):**
 
 | Component | Purpose | Priority | Blocks |
 |-----------|---------|----------|--------|
-| `ZyntaStoreSelector` | Active store picker in drawer footer + toolbar | **CRITICAL** | All multi-store features |
-| `ZyntaCurrencyPicker` | Currency selection dropdown (9 currencies supported) | **CRITICAL** | C2.2 Multi-currency |
-| `ZyntaTimezonePicker` | Timezone selection with UTC offset display | **HIGH** | C6.3 Timezone |
-| `ZyntaTransferStatusBadge` | Pending/Approved/Shipped/Received/Cancelled states | **HIGH** | C1.3 IST |
 | `ZyntaLoyaltyBadge` | Customer loyalty tier indicator (Bronze/Silver/Gold) | **MEDIUM** | C4.2 Loyalty |
-| `ZyntaDateRangeSelector` | Two-date picker for report filters | **MEDIUM** | C5.1 Reports |
-| `ZyntaWarehouseDropdown` | Warehouse context switcher | **MEDIUM** | C1.2 Inventory |
-| ~~`ZyntaConflictResolutionUI`~~ | ~~CRDT merge conflict presentation~~ | ~~**LOW**~~ | ✅ DONE — `ConflictListScreen` + `ConflictDetailDialog` in Admin tab 4 (C6.1 Item 6) |
+| `ZyntaDateRangeSelector` | Two-date picker for report filters | **MEDIUM** | C5.1 Reports (partial — `ZyntaDateRangePicker` already exists) |
+| `ZyntaWarehouseDropdown` | Warehouse context switcher | **MEDIUM** | C1.2 Inventory (partial — private impl exists in multistore) |
 
 ---
 
@@ -2233,7 +2238,7 @@ git push -u origin $(git branch --show-current)
 | Warehouse Replenishment | C1.5 | ✅ COMPLETE (ReplenishmentRule model, AutoReplenishmentUseCase, 3-tab UI, backend 4 endpoints + 14 tests) |
 | **2. Pricing & Taxation** | | |
 | Region-Based Pricing | C2.1 | NOT IMPLEMENTED |
-| Multi-Currency | C2.2 | PARTIAL (formatter only) |
+| Multi-Currency | C2.2 | PARTIAL (formatter + ZyntaCurrencyPicker design system component) |
 | Localized Tax | C2.3 | PARTIAL (single-region) |
 | Store-Specific Discounts | C2.4 | PARTIAL (no store scoping) |
 | **3. Access Control** | | |
@@ -2254,7 +2259,7 @@ git push -u origin $(git branch --show-current)
 | **6. Sync & Offline** | | |
 | Multi-node Sync | C6.1 | ✅ COMPLETE (LWW CRDT + APPEND_ONLY for stock, priority sync, multi-store isolation, GZIP compression, queue maintenance, conflict resolution UI — all 6 items done 2026-03-19) |
 | Offline-First | C6.2 | PARTIAL (EntityApplier covers all core POS types; PURCHASE_ORDER/REPLENISHMENT_RULE/TRANSIT_EVENT not yet in sync pipeline) |
-| Timezone Management | C6.3 | MOSTLY COMPLETE |
+| Timezone Management | C6.3 | MOSTLY COMPLETE (+ ZyntaTimezonePicker design system component) |
 
 ---
 
