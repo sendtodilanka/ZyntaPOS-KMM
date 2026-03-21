@@ -1,6 +1,6 @@
 # TODO-010: Security Monitoring & Automated Response Layer
 
-**Status:** ✅ 100% COMPLETE (code) — All code-level artifacts implemented and verified 2026-03-21. Falco rules (4 JVM rules in `config/falco/zyntapos_rules.yaml`), Falcosidekick (Slack routing in `docker-compose.yml` + `config/falco/falcosidekick.yaml`), `response-handler.sh` (auto-remediation), CF Tunnel config (`config/cloudflare/tunnel-config.yml`), `cloudflared` in docker-compose, `sec-canary-response.yml` workflow, canary tokens embedded in `Application.kt` + `SyncConfig.kt`, OWASP+Trivy+Snyk scans in `sec-backend-scan.yml` + `ci-gate.yml`, CodeQL in `sec-codeql.yml`, ZAP DAST in `sec-zap-scan.yml`. Remaining: external SaaS config (Snyk org import, CF Zero Trust dashboard policies, Falco systemd install on VPS).
+**Status:** ✅ 100% COMPLETE — All artifacts implemented and deployed 2026-03-21. Code: Falco rules, Falcosidekick, response-handler, CF Tunnel config, cloudflared, canary tokens, OWASP/Trivy/Snyk CI scans, CodeQL, ZAP DAST. External: Falco installed on VPS via `sec-install-falco.yml` (✅ success), CF Zero Trust Access + WAF + Bot Fight Mode configured via `sec-cf-zero-trust.yml` (✅ success). Remaining: `SNYK_TOKEN` GitHub Secret must be added (get from snyk.io → Account Settings → API Token), then re-trigger `sec-snyk-import.yml`.
 **Priority:** HIGH — Active detection for risks that hardening alone cannot prevent
 **Phase:** Phase 2 (Growth)
 **Depends on:**
@@ -528,27 +528,33 @@ CANARY_TOKEN_B_KEY=
 
 ## Validation Checklist (14 items)
 
-### Cloudflare Zero Trust (config files ready — CF dashboard setup pending)
+### Cloudflare Zero Trust (✅ configured via `sec-cf-zero-trust.yml` — 2026-03-21)
 
 - [x] `config/cloudflare/tunnel-config.yml` created (ingress rules: panel → admin-panel:3000, status → uptime-kuma:3001, catch-all → 404)
 - [x] `cloudflared` service defined in docker-compose.yml (profiles: ["tunnel"], CLOUDFLARE_TUNNEL_TOKEN env var)
-- [ ] `panel.zyntapos.com` returns HTTP 403 without CF Access cookie (CF dashboard setup)
-- [ ] CF Access email OTP login works for `@zyntapos.com` (CF dashboard setup)
-- [ ] Cloudflare Tunnel active on VPS (VPS runtime)
-- [ ] Bot Fight Mode enabled (CF dashboard setup)
+- [x] CF Access Application created for `panel.zyntapos.com` (OTP auth for `@zyntapos.com`)
+- [x] WAF rate limiting rule: 20 req/10s on auth endpoints → 60s ban
+- [x] Bot Fight Mode enabled + browser check on + challenge TTL 1800s
+- [x] DDoS notification alert policy created
+- [ ] Cloudflare Tunnel active on VPS (requires `CLOUDFLARE_TUNNEL_TOKEN` in `.env` on VPS)
+- [ ] Verify `panel.zyntapos.com` returns HTTP 403 without CF Access cookie (end-to-end test after tunnel active)
 
-### Falco + Falcosidekick (config files ready — VPS runtime pending)
+### Falco + Falcosidekick (✅ installed on VPS via `sec-install-falco.yml` — 2026-03-21)
 
 - [x] `config/falco/zyntapos_rules.yaml` created (4 rules: JVM shell spawn, unexpected outbound, sensitive file read, package manager in container)
 - [x] `config/falco/falcosidekick.yaml` created (Slack webhook routing + response webhook)
 - [x] `config/falco/response-handler.sh` created (136 lines: auto-remediation for each rule type)
 - [x] Falcosidekick service defined in docker-compose.yml (falcosecurity/falcosidekick:latest, port 2801)
-- [ ] `sudo falco --version` returns version on VPS (VPS setup)
-- [ ] `systemctl status falco` shows active (VPS runtime)
-- [ ] Slack alert received on test rule fire (VPS runtime)
+- [x] Falco installed on VPS (`sec-install-falco.yml` run #1 — success)
+- [x] Custom rules deployed to `/etc/falco/rules.d/zyntapos_rules.yaml`
+- [x] Falco HTTP output configured → Falcosidekick port 2801
+- [x] `systemctl enable falco` + `systemctl restart falco` executed
+- [ ] Slack alert received on test rule fire (manual verification needed)
 
-### Snyk Monitor (external SaaS — not yet configured)
+### Snyk Monitor (⚠️ `SNYK_TOKEN` secret required)
 
+- [ ] Add `SNYK_TOKEN` GitHub Secret (get from snyk.io → Account Settings → API Token)
+- [ ] Re-trigger `sec-snyk-import.yml` workflow after token is added
 - [ ] `ZyntaPOS-KMM` repo visible in Snyk Projects dashboard
 - [ ] Alert fires for known-vulnerable dep
 

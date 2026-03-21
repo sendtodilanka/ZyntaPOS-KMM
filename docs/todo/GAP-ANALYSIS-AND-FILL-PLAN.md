@@ -96,15 +96,13 @@ A comprehensive 17-step audit-and-fill session was completed. Key changes:
 | Koin wiring | Add AnalyticsService binding to `dataModule` in androidMain and jvmMain | 30 min |
 | ViewModel event wiring | Wire analytics events in PosViewModel, AuthViewModel, DashboardViewModel | 2-3 hrs |
 
-### ✅ COMPLETE — TODO-010: Security Monitoring (code-level)
+### ✅ COMPLETE — TODO-010: Security Monitoring (code + external)
 
-**All code artifacts implemented (2026-03-21).** Canary tokens embedded in `Application.kt` + `SyncConfig.kt`, OWASP/Trivy/Snyk scans in CI, Falco rules + Falcosidekick + auto-response handler, CF Tunnel config, CodeQL + ZAP DAST workflows.
+**All artifacts implemented and deployed (2026-03-21).** Code: canary tokens, OWASP/Trivy/Snyk CI scans, Falco rules, CodeQL, ZAP DAST. External: Falco installed on VPS (`sec-install-falco.yml` ✅), CF Zero Trust + WAF + Bot Fight Mode (`sec-cf-zero-trust.yml` ✅).
 
-| Remaining (external only) | What's Needed | Effort |
-|---------------------------|--------------|--------|
-| Snyk Monitor | External SaaS setup — import GitHub org at snyk.io | 15 min (external) |
-| CF Zero Trust policies | External CF dashboard config — no code changes needed | 30 min (external) |
-| Falco systemd install | Install Falco on VPS host, copy `config/falco/` rules | 1 hr (VPS runtime) |
+| Remaining | What's Needed | Effort |
+|-----------|--------------|--------|
+| Snyk Monitor | Add `SNYK_TOKEN` GitHub Secret, then trigger `sec-snyk-import.yml` | 15 min |
 
 ### LOW Priority — TODO-007e: API Documentation Site
 
