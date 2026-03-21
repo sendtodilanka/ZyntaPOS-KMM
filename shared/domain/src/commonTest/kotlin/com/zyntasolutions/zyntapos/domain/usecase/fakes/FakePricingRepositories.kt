@@ -41,6 +41,8 @@ class FakeMasterProductRepository : MasterProductRepository {
         masterProducts.add(masterProduct)
         return Result.Success(Unit)
     }
+
+    override suspend fun getCount(): Int = masterProducts.size
 }
 
 fun buildMasterProduct(
@@ -63,7 +65,6 @@ fun buildMasterProduct(
     unitId = null,
     imageUrl = null,
     isActive = true,
-    tags = emptyList(),
     createdAt = Instant.fromEpochMilliseconds(0L),
     updatedAt = Instant.fromEpochMilliseconds(0L),
 )
