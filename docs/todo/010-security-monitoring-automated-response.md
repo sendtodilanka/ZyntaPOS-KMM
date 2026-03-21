@@ -1,6 +1,6 @@
 # TODO-010: Security Monitoring & Automated Response Layer
 
-**Status:** 🟡 ~80% COMPLETE — Falco rules (4 JVM rules in config/falco/zyntapos_rules.yaml), Falcosidekick (Slack routing in docker-compose), response-handler.sh (auto-remediation), CF Tunnel config (tunnel-config.yml), cloudflared in docker-compose, sec-canary-response.yml workflow all implemented. Remaining: Snyk Monitor setup (external SaaS), canary token embedding in source, CF Zero Trust access policies (external CF dashboard). Verified 2026-03-12.
+**Status:** ✅ 100% COMPLETE (code) — All code-level artifacts implemented and verified 2026-03-21. Falco rules (4 JVM rules in `config/falco/zyntapos_rules.yaml`), Falcosidekick (Slack routing in `docker-compose.yml` + `config/falco/falcosidekick.yaml`), `response-handler.sh` (auto-remediation), CF Tunnel config (`config/cloudflare/tunnel-config.yml`), `cloudflared` in docker-compose, `sec-canary-response.yml` workflow, canary tokens embedded in `Application.kt` + `SyncConfig.kt`, OWASP+Trivy+Snyk scans in `sec-backend-scan.yml` + `ci-gate.yml`, CodeQL in `sec-codeql.yml`, ZAP DAST in `sec-zap-scan.yml`. Remaining: external SaaS config (Snyk org import, CF Zero Trust dashboard policies, Falco systemd install on VPS).
 **Priority:** HIGH — Active detection for risks that hardening alone cannot prevent
 **Phase:** Phase 2 (Growth)
 **Depends on:**
@@ -552,8 +552,17 @@ CANARY_TOKEN_B_KEY=
 - [ ] `ZyntaPOS-KMM` repo visible in Snyk Projects dashboard
 - [ ] Alert fires for known-vulnerable dep
 
-### Canary Tokens (workflow ready — tokens not yet embedded)
+### Canary Tokens (code complete — live token registration pending at canarytokens.org)
 
 - [x] `.github/workflows/sec-canary-response.yml` created (81 lines: GitHub Issue + Slack alert on canary trigger)
-- [ ] Token A (canary URL) embedded in source and fires correctly
-- [ ] Token B (fake AWS key) embedded in source and fires correctly
+- [x] Token A (fake AWS key + canary webhook) embedded in `Application.kt` (lines 28-30)
+- [x] Token B (fake Redis/DB creds) embedded in `SyncConfig.kt` (lines 6-7)
+- [x] `local.properties.template` updated with `CANARY_TOKEN_A_URL` and `CANARY_TOKEN_B_KEY` placeholders
+- [ ] Register real tokens at canarytokens.org and replace placeholder values (external action)
+
+### CI Security Scanning (fully automated)
+
+- [x] `sec-backend-scan.yml` — weekly OWASP Dependency Check (3 services) + Trivy container scan + Snyk container scan
+- [x] `ci-gate.yml` — OWASP `security-scan-backend` job runs on every push to main
+- [x] `sec-codeql.yml` — CodeQL semantic analysis
+- [x] `sec-zap-scan.yml` — ZAP DAST scan
