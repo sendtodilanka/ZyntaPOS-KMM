@@ -185,40 +185,30 @@ class JournalEntryListViewModelTest {
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
-        viewModel.state.test {
-            awaitItem()
-            viewModel.handleIntentForTest(
-                JournalEntryListIntent.SetDateRange("2026-02-01", "2026-02-28")
-            )
-            val updated = awaitItem()
-            assertEquals("2026-02-01", updated.fromDate)
-            assertEquals("2026-02-28", updated.toDate)
-        }
+        viewModel.handleIntentForTest(
+            JournalEntryListIntent.SetDateRange("2026-02-01", "2026-02-28")
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals("2026-02-01", viewModel.state.value.fromDate)
+        assertEquals("2026-02-28", viewModel.state.value.toDate)
     }
 
     // ── ToggleUnpostedFilter ───────────────────────────────────────────────────
 
     @Test
     fun `ToggleUnpostedFilter true switches to unposted view`() = runTest {
-        viewModel.state.test {
-            awaitItem()
-            viewModel.handleIntentForTest(JournalEntryListIntent.ToggleUnpostedFilter(true))
-            val updated = awaitItem()
-            assertTrue(updated.showUnpostedOnly)
-        }
+        viewModel.handleIntentForTest(JournalEntryListIntent.ToggleUnpostedFilter(true))
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertTrue(viewModel.state.value.showUnpostedOnly)
     }
 
     @Test
     fun `ToggleUnpostedFilter false switches to date range view`() = runTest {
         viewModel.handleIntentForTest(JournalEntryListIntent.LoadUnposted("store-001"))
         testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.state.test {
-            awaitItem()
-            viewModel.handleIntentForTest(JournalEntryListIntent.ToggleUnpostedFilter(false))
-            val updated = awaitItem()
-            assertFalse(updated.showUnpostedOnly)
-        }
+        viewModel.handleIntentForTest(JournalEntryListIntent.ToggleUnpostedFilter(false))
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertFalse(viewModel.state.value.showUnpostedOnly)
     }
 
     // ── DeleteDraft ────────────────────────────────────────────────────────────

@@ -311,12 +311,9 @@ class FinancialStatementsViewModelTest {
 
     @Test
     fun `SwitchTab updates activeTab in state`() = runTest {
-        viewModel.state.test {
-            awaitItem()
-            viewModel.handleIntentForTest(FinancialStatementsIntent.SwitchTab(FinancialStatementTab.BALANCE_SHEET))
-            val updated = awaitItem()
-            assertEquals(FinancialStatementTab.BALANCE_SHEET, updated.activeTab)
-        }
+        viewModel.handleIntentForTest(FinancialStatementsIntent.SwitchTab(FinancialStatementTab.BALANCE_SHEET))
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(FinancialStatementTab.BALANCE_SHEET, viewModel.state.value.activeTab)
     }
 
     @Test
@@ -358,13 +355,10 @@ class FinancialStatementsViewModelTest {
 
     @Test
     fun `SetDateRange updates fromDate and toDate`() = runTest {
-        viewModel.state.test {
-            awaitItem()
-            viewModel.handleIntentForTest(FinancialStatementsIntent.SetDateRange("2026-02-01", "2026-02-28"))
-            val updated = awaitItem()
-            assertEquals("2026-02-01", updated.fromDate)
-            assertEquals("2026-02-28", updated.toDate)
-        }
+        viewModel.handleIntentForTest(FinancialStatementsIntent.SetDateRange("2026-02-01", "2026-02-28"))
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals("2026-02-01", viewModel.state.value.fromDate)
+        assertEquals("2026-02-28", viewModel.state.value.toDate)
     }
 
     @Test

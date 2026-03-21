@@ -429,6 +429,8 @@ class JournalEntryDetailViewModelTest {
 
     @Test
     fun `Reverse success emits ShowSuccess and NavigateToEntry effects`() = runTest {
+        // ReverseJournalEntryUseCase requires the entry to be posted
+        getByIdResult = Result.Success(existingEntry.copy(isPosted = true))
         reverseResult = Result.Success(reversalEntry)
 
         viewModel.effects.test {

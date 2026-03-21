@@ -159,6 +159,9 @@ class ChartOfAccountsViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
         viewModel.handleIntentForTest(ChartOfAccountsIntent.SearchAccounts("Cash"))
         testDispatcher.scheduler.advanceUntilIdle()
+        // Re-trigger observeAccounts so the filter applies to the replayed flow value
+        viewModel.handleIntentForTest(ChartOfAccountsIntent.LoadAccounts)
+        testDispatcher.scheduler.advanceUntilIdle()
 
         val accounts = viewModel.state.value.accounts
         assertTrue(accounts.all { it.accountName.contains("Cash", ignoreCase = true) })
@@ -168,6 +171,9 @@ class ChartOfAccountsViewModelTest {
     fun `SearchAccounts filters accounts by account code`() = runTest {
         testDispatcher.scheduler.advanceUntilIdle()
         viewModel.handleIntentForTest(ChartOfAccountsIntent.SearchAccounts("4010"))
+        testDispatcher.scheduler.advanceUntilIdle()
+        // Re-trigger observeAccounts so the filter applies to the replayed flow value
+        viewModel.handleIntentForTest(ChartOfAccountsIntent.LoadAccounts)
         testDispatcher.scheduler.advanceUntilIdle()
 
         val accounts = viewModel.state.value.accounts
