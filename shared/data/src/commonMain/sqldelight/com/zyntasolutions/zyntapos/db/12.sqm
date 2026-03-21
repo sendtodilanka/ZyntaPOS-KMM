@@ -1,0 +1,29 @@
+-- Migration 12: Add pricing_rules table for region-based pricing (C2.1)
+
+CREATE TABLE IF NOT EXISTS pricing_rules (
+    id            TEXT    NOT NULL PRIMARY KEY,
+    product_id    TEXT    NOT NULL,
+    store_id      TEXT,
+    price         REAL    NOT NULL,
+    cost_price    REAL,
+    priority      INTEGER NOT NULL DEFAULT 0,
+    valid_from    INTEGER,
+    valid_to      INTEGER,
+    is_active     INTEGER NOT NULL DEFAULT 1,
+    description   TEXT    NOT NULL DEFAULT '',
+    created_at    INTEGER NOT NULL DEFAULT 0,
+    updated_at    INTEGER NOT NULL DEFAULT 0,
+    sync_status   TEXT    NOT NULL DEFAULT 'SYNCED'
+);
+
+CREATE INDEX IF NOT EXISTS idx_pricing_rules_product
+    ON pricing_rules(product_id);
+
+CREATE INDEX IF NOT EXISTS idx_pricing_rules_store
+    ON pricing_rules(store_id);
+
+CREATE INDEX IF NOT EXISTS idx_pricing_rules_product_store
+    ON pricing_rules(product_id, store_id, is_active);
+
+CREATE INDEX IF NOT EXISTS idx_pricing_rules_validity
+    ON pricing_rules(valid_from, valid_to);

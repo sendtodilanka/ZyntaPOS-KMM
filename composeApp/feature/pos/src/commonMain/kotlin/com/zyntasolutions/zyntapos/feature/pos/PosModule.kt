@@ -10,6 +10,7 @@ import com.zyntasolutions.zyntapos.feature.pos.printer.A4InvoicePrinterAdapter
 import com.zyntasolutions.zyntapos.domain.usecase.coupons.CalculateCouponDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.coupons.ValidateCouponUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.EarnRewardPointsUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.inventory.GetEffectiveProductPriceUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.AddItemToCartUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.ApplyItemDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.ApplyOrderDiscountUseCase
@@ -89,7 +90,19 @@ val posModule = module {
     // ── Use cases ─────────────────────────────────────────────────────────────
 
     factory { CalculateOrderTotalsUseCase() }
-    factory { AddItemToCartUseCase(productRepository = get()) }
+    factory {
+        GetEffectiveProductPriceUseCase(
+            masterProductRepository = get(),
+            storeProductOverrideRepository = get(),
+            pricingRuleRepository = get(),
+        )
+    }
+    factory {
+        AddItemToCartUseCase(
+            productRepository = get(),
+            getEffectivePrice = get(),
+        )
+    }
     factory { RemoveItemFromCartUseCase() }
     factory { UpdateCartItemQuantityUseCase(productRepository = get()) }
     factory {
