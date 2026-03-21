@@ -250,13 +250,15 @@ class NotificationViewModelTest {
     @Test
     fun `DismissError clears error`() = runTest {
         testDispatcher.scheduler.advanceUntilIdle()
+        // Trigger an error first so there is something to dismiss
+        markAllReadResult = Result.Error(DatabaseException("test error"))
+        viewModel.handleIntentForTest(NotificationIntent.MarkAllRead)
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertNotNull(viewModel.state.value.error)
 
-        viewModel.state.test {
-            awaitItem()
-            viewModel.handleIntentForTest(NotificationIntent.DismissError)
-            val s = awaitItem()
-            assertNull(s.error)
-        }
+        viewModel.handleIntentForTest(NotificationIntent.DismissError)
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertNull(viewModel.state.value.error)
     }
 
     // ── LoadNotifications ──────────────────────────────────────────────────────
@@ -268,6 +270,7 @@ class NotificationViewModelTest {
             viewModel.handleIntentForTest(NotificationIntent.LoadNotifications)
             val loading = awaitItem()
             assertTrue(loading.isLoading)
+            cancelAndIgnoreRemainingEvents()
         }
     }
 }

@@ -330,112 +330,92 @@ class ReplenishmentViewModelTest {
 
     @Test
     fun `SelectTab PURCHASE_ORDERS changes activeTab`() = runTest {
-        viewModel.state.test {
-            awaitItem() // initial state
-            viewModel.handleIntentForTest(ReplenishmentIntent.SelectTab(ReplenishmentTab.PURCHASE_ORDERS))
-            val updated = awaitItem()
-            assertEquals(ReplenishmentTab.PURCHASE_ORDERS, updated.activeTab)
-            cancelAndIgnoreRemainingEvents()
-        }
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.handleIntentForTest(ReplenishmentIntent.SelectTab(ReplenishmentTab.PURCHASE_ORDERS))
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(ReplenishmentTab.PURCHASE_ORDERS, viewModel.state.value.activeTab)
     }
 
     @Test
     fun `SelectTab REPLENISHMENT_RULES changes activeTab`() = runTest {
-        viewModel.state.test {
-            awaitItem()
-            viewModel.handleIntentForTest(ReplenishmentIntent.SelectTab(ReplenishmentTab.REPLENISHMENT_RULES))
-            val updated = awaitItem()
-            assertEquals(ReplenishmentTab.REPLENISHMENT_RULES, updated.activeTab)
-            cancelAndIgnoreRemainingEvents()
-        }
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.handleIntentForTest(ReplenishmentIntent.SelectTab(ReplenishmentTab.REPLENISHMENT_RULES))
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(ReplenishmentTab.REPLENISHMENT_RULES, viewModel.state.value.activeTab)
     }
 
     // ── Purchase order selection ───────────────────────────────────────────────
 
     @Test
     fun `SelectOrder sets selectedOrder`() = runTest {
-        viewModel.state.test {
-            awaitItem()
-            viewModel.handleIntentForTest(ReplenishmentIntent.SelectOrder(mockOrder))
-            val updated = awaitItem()
-            assertEquals("po-001", updated.selectedOrder?.id)
-        }
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.handleIntentForTest(ReplenishmentIntent.SelectOrder(mockOrder))
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals("po-001", viewModel.state.value.selectedOrder?.id)
     }
 
     @Test
     fun `DismissOrderDetail clears selectedOrder`() = runTest {
+        testDispatcher.scheduler.advanceUntilIdle()
         viewModel.handleIntentForTest(ReplenishmentIntent.SelectOrder(mockOrder))
         testDispatcher.scheduler.advanceUntilIdle()
         assertNotNull(viewModel.state.value.selectedOrder)
 
-        viewModel.state.test {
-            awaitItem()
-            viewModel.handleIntentForTest(ReplenishmentIntent.DismissOrderDetail)
-            val updated = awaitItem()
-            assertNull(updated.selectedOrder)
-        }
+        viewModel.handleIntentForTest(ReplenishmentIntent.DismissOrderDetail)
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertNull(viewModel.state.value.selectedOrder)
     }
 
     // ── Create PO dialog ──────────────────────────────────────────────────────
 
     @Test
     fun `OpenCreatePoDialog sets showCreatePoDialog to true`() = runTest {
-        viewModel.state.test {
-            awaitItem()
-            viewModel.handleIntentForTest(ReplenishmentIntent.OpenCreatePoDialog)
-            val updated = awaitItem()
-            assertTrue(updated.showCreatePoDialog)
-            assertTrue(updated.createPoSupplierId.isEmpty())
-        }
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.handleIntentForTest(ReplenishmentIntent.OpenCreatePoDialog)
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertTrue(viewModel.state.value.showCreatePoDialog)
+        assertTrue(viewModel.state.value.createPoSupplierId.isEmpty())
     }
 
     @Test
     fun `DismissCreatePoDialog hides dialog`() = runTest {
+        testDispatcher.scheduler.advanceUntilIdle()
         viewModel.handleIntentForTest(ReplenishmentIntent.OpenCreatePoDialog)
         testDispatcher.scheduler.advanceUntilIdle()
         assertTrue(viewModel.state.value.showCreatePoDialog)
 
-        viewModel.state.test {
-            awaitItem()
-            viewModel.handleIntentForTest(ReplenishmentIntent.DismissCreatePoDialog)
-            val updated = awaitItem()
-            assertFalse(updated.showCreatePoDialog)
-        }
+        viewModel.handleIntentForTest(ReplenishmentIntent.DismissCreatePoDialog)
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertFalse(viewModel.state.value.showCreatePoDialog)
     }
 
     @Test
     fun `UpdateCreatePoField SUPPLIER_ID updates createPoSupplierId`() = runTest {
-        viewModel.state.test {
-            awaitItem()
-            viewModel.handleIntentForTest(
-                ReplenishmentIntent.UpdateCreatePoField(CreatePoField.SUPPLIER_ID, "sup-001"),
-            )
-            val updated = awaitItem()
-            assertEquals("sup-001", updated.createPoSupplierId)
-        }
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.handleIntentForTest(
+            ReplenishmentIntent.UpdateCreatePoField(CreatePoField.SUPPLIER_ID, "sup-001"),
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals("sup-001", viewModel.state.value.createPoSupplierId)
     }
 
     @Test
     fun `UpdateCreatePoField ORDER_NUMBER updates createPoOrderNumber`() = runTest {
-        viewModel.state.test {
-            awaitItem()
-            viewModel.handleIntentForTest(
-                ReplenishmentIntent.UpdateCreatePoField(CreatePoField.ORDER_NUMBER, "PO-2026-001"),
-            )
-            val updated = awaitItem()
-            assertEquals("PO-2026-001", updated.createPoOrderNumber)
-        }
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.handleIntentForTest(
+            ReplenishmentIntent.UpdateCreatePoField(CreatePoField.ORDER_NUMBER, "PO-2026-001"),
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals("PO-2026-001", viewModel.state.value.createPoOrderNumber)
     }
 
     @Test
     fun `SetCreatePoExpectedDate updates createPoExpectedDate`() = runTest {
         val epochMs = 1_800_000_000_000L
-        viewModel.state.test {
-            awaitItem()
-            viewModel.handleIntentForTest(ReplenishmentIntent.SetCreatePoExpectedDate(epochMs))
-            val updated = awaitItem()
-            assertEquals(epochMs, updated.createPoExpectedDate)
-        }
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.handleIntentForTest(ReplenishmentIntent.SetCreatePoExpectedDate(epochMs))
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(epochMs, viewModel.state.value.createPoExpectedDate)
     }
 
     // ── Create PO validation ──────────────────────────────────────────────────
@@ -443,15 +423,10 @@ class ReplenishmentViewModelTest {
     @Test
     fun `SubmitCreatePo with blank supplierId sets error`() = runTest {
         testDispatcher.scheduler.advanceUntilIdle()
-        // Ensure supplierId is blank (default state)
-
-        viewModel.state.test {
-            awaitItem()
-            viewModel.handleIntentForTest(ReplenishmentIntent.SubmitCreatePo)
-            val updated = awaitItem()
-            assertNotNull(updated.error)
-            assertTrue(updated.error!!.contains("supplier", ignoreCase = true))
-        }
+        viewModel.handleIntentForTest(ReplenishmentIntent.SubmitCreatePo)
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertNotNull(viewModel.state.value.error)
+        assertTrue(viewModel.state.value.error!!.contains("supplier", ignoreCase = true))
     }
 
     @Test
@@ -461,89 +436,73 @@ class ReplenishmentViewModelTest {
             ReplenishmentIntent.UpdateCreatePoField(CreatePoField.SUPPLIER_ID, "sup-001"),
         )
         testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.state.test {
-            awaitItem()
-            viewModel.handleIntentForTest(ReplenishmentIntent.SubmitCreatePo)
-            val updated = awaitItem()
-            assertNotNull(updated.error)
-        }
+        viewModel.handleIntentForTest(ReplenishmentIntent.SubmitCreatePo)
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertNotNull(viewModel.state.value.error)
     }
 
     // ── Rule dialog ───────────────────────────────────────────────────────────
 
     @Test
     fun `OpenRuleDialog with null opens dialog with empty form fields`() = runTest {
-        viewModel.state.test {
-            awaitItem()
-            viewModel.handleIntentForTest(ReplenishmentIntent.OpenRuleDialog(null))
-            val updated = awaitItem()
-            assertTrue(updated.showRuleDialog)
-            assertNull(updated.selectedRule)
-            assertTrue(updated.ruleFormProductId.isEmpty())
-            assertTrue(updated.ruleFormWarehouseId.isEmpty())
-        }
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.handleIntentForTest(ReplenishmentIntent.OpenRuleDialog(null))
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertTrue(viewModel.state.value.showRuleDialog)
+        assertNull(viewModel.state.value.selectedRule)
+        assertTrue(viewModel.state.value.ruleFormProductId.isEmpty())
+        assertTrue(viewModel.state.value.ruleFormWarehouseId.isEmpty())
     }
 
     @Test
     fun `OpenRuleDialog with existing rule pre-fills form fields`() = runTest {
-        viewModel.state.test {
-            awaitItem()
-            viewModel.handleIntentForTest(ReplenishmentIntent.OpenRuleDialog(mockRule))
-            val updated = awaitItem()
-            assertTrue(updated.showRuleDialog)
-            assertEquals("rule-001", updated.selectedRule?.id)
-            assertEquals("prod-001", updated.ruleFormProductId)
-            assertEquals("wh-001", updated.ruleFormWarehouseId)
-            assertEquals("sup-001", updated.ruleFormSupplierId)
-            assertEquals("10.0", updated.ruleFormReorderPoint)
-            assertEquals("50.0", updated.ruleFormReorderQty)
-        }
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.handleIntentForTest(ReplenishmentIntent.OpenRuleDialog(mockRule))
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertTrue(viewModel.state.value.showRuleDialog)
+        assertEquals("rule-001", viewModel.state.value.selectedRule?.id)
+        assertEquals("prod-001", viewModel.state.value.ruleFormProductId)
+        assertEquals("wh-001", viewModel.state.value.ruleFormWarehouseId)
+        assertEquals("sup-001", viewModel.state.value.ruleFormSupplierId)
+        assertEquals("10.0", viewModel.state.value.ruleFormReorderPoint)
+        assertEquals("50.0", viewModel.state.value.ruleFormReorderQty)
     }
 
     @Test
     fun `DismissRuleDialog closes dialog and clears selectedRule`() = runTest {
+        testDispatcher.scheduler.advanceUntilIdle()
         viewModel.handleIntentForTest(ReplenishmentIntent.OpenRuleDialog(mockRule))
         testDispatcher.scheduler.advanceUntilIdle()
         assertTrue(viewModel.state.value.showRuleDialog)
 
-        viewModel.state.test {
-            awaitItem()
-            viewModel.handleIntentForTest(ReplenishmentIntent.DismissRuleDialog)
-            val updated = awaitItem()
-            assertFalse(updated.showRuleDialog)
-            assertNull(updated.selectedRule)
-        }
+        viewModel.handleIntentForTest(ReplenishmentIntent.DismissRuleDialog)
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertFalse(viewModel.state.value.showRuleDialog)
+        assertNull(viewModel.state.value.selectedRule)
     }
 
     @Test
     fun `UpdateRuleField PRODUCT_ID updates ruleFormProductId`() = runTest {
-        viewModel.state.test {
-            awaitItem()
-            viewModel.handleIntentForTest(ReplenishmentIntent.UpdateRuleField(RuleField.PRODUCT_ID, "prod-999"))
-            val updated = awaitItem()
-            assertEquals("prod-999", updated.ruleFormProductId)
-        }
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.handleIntentForTest(ReplenishmentIntent.UpdateRuleField(RuleField.PRODUCT_ID, "prod-999"))
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals("prod-999", viewModel.state.value.ruleFormProductId)
     }
 
     @Test
     fun `SetRuleAutoApprove updates ruleFormAutoApprove`() = runTest {
-        viewModel.state.test {
-            awaitItem()
-            viewModel.handleIntentForTest(ReplenishmentIntent.SetRuleAutoApprove(true))
-            val updated = awaitItem()
-            assertTrue(updated.ruleFormAutoApprove)
-        }
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.handleIntentForTest(ReplenishmentIntent.SetRuleAutoApprove(true))
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertTrue(viewModel.state.value.ruleFormAutoApprove)
     }
 
     @Test
     fun `SetRuleActive false updates ruleFormIsActive`() = runTest {
-        viewModel.state.test {
-            awaitItem()
-            viewModel.handleIntentForTest(ReplenishmentIntent.SetRuleActive(false))
-            val updated = awaitItem()
-            assertFalse(updated.ruleFormIsActive)
-        }
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.handleIntentForTest(ReplenishmentIntent.SetRuleActive(false))
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertFalse(viewModel.state.value.ruleFormIsActive)
     }
 
     // ── SaveRule validation ───────────────────────────────────────────────────
@@ -551,14 +510,10 @@ class ReplenishmentViewModelTest {
     @Test
     fun `SaveRule with blank productId sets error`() = runTest {
         testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.state.test {
-            awaitItem()
-            viewModel.handleIntentForTest(ReplenishmentIntent.SaveRule)
-            val updated = awaitItem()
-            assertNotNull(updated.error)
-            assertTrue(updated.error!!.contains("Product", ignoreCase = true))
-        }
+        viewModel.handleIntentForTest(ReplenishmentIntent.SaveRule)
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertNotNull(viewModel.state.value.error)
+        assertTrue(viewModel.state.value.error!!.contains("Product", ignoreCase = true))
     }
 
     @Test
@@ -566,14 +521,10 @@ class ReplenishmentViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
         viewModel.handleIntentForTest(ReplenishmentIntent.UpdateRuleField(RuleField.PRODUCT_ID, "prod-001"))
         testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.state.test {
-            awaitItem()
-            viewModel.handleIntentForTest(ReplenishmentIntent.SaveRule)
-            val updated = awaitItem()
-            assertNotNull(updated.error)
-            assertTrue(updated.error!!.contains("Warehouse", ignoreCase = true))
-        }
+        viewModel.handleIntentForTest(ReplenishmentIntent.SaveRule)
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertNotNull(viewModel.state.value.error)
+        assertTrue(viewModel.state.value.error!!.contains("Warehouse", ignoreCase = true))
     }
 
     @Test
@@ -582,14 +533,10 @@ class ReplenishmentViewModelTest {
         viewModel.handleIntentForTest(ReplenishmentIntent.UpdateRuleField(RuleField.PRODUCT_ID, "prod-001"))
         viewModel.handleIntentForTest(ReplenishmentIntent.UpdateRuleField(RuleField.WAREHOUSE_ID, "wh-001"))
         testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.state.test {
-            awaitItem()
-            viewModel.handleIntentForTest(ReplenishmentIntent.SaveRule)
-            val updated = awaitItem()
-            assertNotNull(updated.error)
-            assertTrue(updated.error!!.contains("Supplier", ignoreCase = true))
-        }
+        viewModel.handleIntentForTest(ReplenishmentIntent.SaveRule)
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertNotNull(viewModel.state.value.error)
+        assertTrue(viewModel.state.value.error!!.contains("Supplier", ignoreCase = true))
     }
 
     @Test
@@ -600,14 +547,10 @@ class ReplenishmentViewModelTest {
         viewModel.handleIntentForTest(ReplenishmentIntent.UpdateRuleField(RuleField.SUPPLIER_ID, "sup-001"))
         viewModel.handleIntentForTest(ReplenishmentIntent.UpdateRuleField(RuleField.REORDER_POINT, "not-a-number"))
         testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.state.test {
-            awaitItem()
-            viewModel.handleIntentForTest(ReplenishmentIntent.SaveRule)
-            val updated = awaitItem()
-            assertNotNull(updated.error)
-            assertTrue(updated.error!!.contains("reorder point", ignoreCase = true))
-        }
+        viewModel.handleIntentForTest(ReplenishmentIntent.SaveRule)
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertNotNull(viewModel.state.value.error)
+        assertTrue(viewModel.state.value.error!!.contains("reorder point", ignoreCase = true))
     }
 
     @Test
@@ -619,14 +562,10 @@ class ReplenishmentViewModelTest {
         viewModel.handleIntentForTest(ReplenishmentIntent.UpdateRuleField(RuleField.REORDER_POINT, "5"))
         viewModel.handleIntentForTest(ReplenishmentIntent.UpdateRuleField(RuleField.REORDER_QTY, "0"))
         testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.state.test {
-            awaitItem()
-            viewModel.handleIntentForTest(ReplenishmentIntent.SaveRule)
-            val updated = awaitItem()
-            assertNotNull(updated.error)
-            assertTrue(updated.error!!.contains("Reorder quantity", ignoreCase = true))
-        }
+        viewModel.handleIntentForTest(ReplenishmentIntent.SaveRule)
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertNotNull(viewModel.state.value.error)
+        assertTrue(viewModel.state.value.error!!.contains("Reorder quantity", ignoreCase = true))
     }
 
     // ── CancelOrder ───────────────────────────────────────────────────────────
@@ -701,12 +640,9 @@ class ReplenishmentViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
         assertNotNull(viewModel.state.value.lastAutoReplenishmentResult)
 
-        viewModel.state.test {
-            awaitItem()
-            viewModel.handleIntentForTest(ReplenishmentIntent.DismissAutoReplenishmentResult)
-            val updated = awaitItem()
-            assertNull(updated.lastAutoReplenishmentResult)
-        }
+        viewModel.handleIntentForTest(ReplenishmentIntent.DismissAutoReplenishmentResult)
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertNull(viewModel.state.value.lastAutoReplenishmentResult)
     }
 
     // ── DismissError / DismissSuccess ─────────────────────────────────────────
