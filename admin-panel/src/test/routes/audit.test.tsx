@@ -56,7 +56,7 @@ vi.mock('@/stores/ui-store', () => ({
 import { useAuditLogs, exportAuditLogs } from '@/api/audit';
 import { Route } from '@/routes/audit/index';
 
-const AuditPage = (Route as { component: React.FC }).component;
+const AuditPage = (Route as unknown as { component: React.FC }).component;
 
 const mockEntry: AuditEntry = {
   id: 'audit-1',
@@ -91,7 +91,7 @@ describe('AuditPage', () => {
     vi.mocked(useAuditLogs).mockReturnValue({
       data: mockPage,
       isLoading: false,
-    } as ReturnType<typeof useAuditLogs>);
+    } as unknown as ReturnType<typeof useAuditLogs>);
 
     vi.mocked(exportAuditLogs).mockResolvedValue(undefined);
   });
@@ -152,7 +152,7 @@ describe('AuditPage', () => {
     vi.mocked(useAuditLogs).mockReturnValue({
       data: undefined,
       isLoading: false,
-    } as ReturnType<typeof useAuditLogs>);
+    } as unknown as ReturnType<typeof useAuditLogs>);
     render(<AuditPage />);
     expect(screen.getByText(/0 total entries/i)).toBeInTheDocument();
   });

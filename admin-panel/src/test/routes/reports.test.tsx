@@ -26,7 +26,7 @@ vi.mock('@/api/metrics');
 import { useSalesReport, useProductPerformance } from '@/api/metrics';
 import { Route } from '@/routes/reports/index';
 
-const ReportsPage = (Route as { component: React.FC }).component;
+const ReportsPage = (Route as unknown as { component: React.FC }).component;
 
 const mockSalesRow: SalesReportRow = {
   date: '2026-03-20',
@@ -56,12 +56,12 @@ describe('ReportsPage', () => {
     vi.mocked(useSalesReport).mockReturnValue({
       data: [mockSalesRow],
       isLoading: false,
-    } as ReturnType<typeof useSalesReport>);
+    } as unknown as ReturnType<typeof useSalesReport>);
 
     vi.mocked(useProductPerformance).mockReturnValue({
       data: [mockProductRow],
       isLoading: false,
-    } as ReturnType<typeof useProductPerformance>);
+    } as unknown as ReturnType<typeof useProductPerformance>);
   });
 
   it('renders page heading', () => {
@@ -124,7 +124,7 @@ describe('ReportsPage', () => {
     vi.mocked(useSalesReport).mockReturnValue({
       data: undefined,
       isLoading: true,
-    } as ReturnType<typeof useSalesReport>);
+    } as unknown as ReturnType<typeof useSalesReport>);
     render(<ReportsPage />);
     expect(screen.getByRole('heading', { name: 'Reports' })).toBeInTheDocument();
   });

@@ -33,7 +33,7 @@ import { useAlerts } from '@/api/alerts';
 import { useSystemHealth } from '@/api/health';
 import { Route } from '@/routes/index';
 
-const DashboardPage = (Route as { component: React.FC }).component;
+const DashboardPage = (Route as unknown as { component: React.FC }).component;
 
 const mockKPIs = {
   totalStores: 8,
@@ -52,28 +52,28 @@ describe('DashboardPage', () => {
     vi.mocked(useDashboardKPIs).mockReturnValue({
       data: mockKPIs,
       isLoading: false,
-    } as ReturnType<typeof useDashboardKPIs>);
+    } as unknown as ReturnType<typeof useDashboardKPIs>);
 
     vi.mocked(useSalesChart).mockReturnValue({
       data: { labels: [], values: [] },
       isLoading: false,
-    } as ReturnType<typeof useSalesChart>);
+    } as unknown as ReturnType<typeof useSalesChart>);
 
     vi.mocked(useStoreComparison).mockReturnValue({
       data: { stores: [] },
       isLoading: false,
-    } as ReturnType<typeof useStoreComparison>);
+    } as unknown as ReturnType<typeof useStoreComparison>);
 
     vi.mocked(useAlerts).mockReturnValue({
       data: { items: [], total: 0, page: 0, pageSize: 5 },
       isLoading: false,
-    } as ReturnType<typeof useAlerts>);
+    } as unknown as ReturnType<typeof useAlerts>);
 
     vi.mocked(useSystemHealth).mockReturnValue({
       data: { overall: 'healthy', services: [], checkedAt: new Date().toISOString() },
       isLoading: false,
       refetch: vi.fn(),
-    } as ReturnType<typeof useSystemHealth>);
+    } as unknown as ReturnType<typeof useSystemHealth>);
   });
 
   it('renders dashboard heading', () => {
@@ -132,7 +132,7 @@ describe('DashboardPage', () => {
     vi.mocked(useDashboardKPIs).mockReturnValue({
       data: undefined,
       isLoading: true,
-    } as ReturnType<typeof useDashboardKPIs>);
+    } as unknown as ReturnType<typeof useDashboardKPIs>);
     render(<DashboardPage />);
     // Page heading still visible
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
@@ -147,7 +147,7 @@ describe('DashboardPage', () => {
     vi.mocked(useAlerts).mockReturnValue({
       data: { items: [], total: 0, page: 0, pageSize: 5 },
       isLoading: false,
-    } as ReturnType<typeof useAlerts>);
+    } as unknown as ReturnType<typeof useAlerts>);
     render(<DashboardPage />);
     expect(screen.getByText(/no active alerts/i)).toBeInTheDocument();
   });

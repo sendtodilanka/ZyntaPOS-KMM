@@ -16,7 +16,7 @@ vi.mock('@/api/inventory');
 import { useGlobalInventory } from '@/api/inventory';
 import { Route } from '@/routes/inventory/index';
 
-const InventoryPage = (Route as { component: React.FC }).component;
+const InventoryPage = (Route as unknown as { component: React.FC }).component;
 
 const mockInventoryItem: WarehouseStockDto = {
   id: 'wh-1',
@@ -34,7 +34,7 @@ describe('InventoryPage', () => {
     vi.mocked(useGlobalInventory).mockReturnValue({
       data: { items: [mockInventoryItem], total: 1, lowStock: 1 },
       isLoading: false,
-    } as ReturnType<typeof useGlobalInventory>);
+    } as unknown as ReturnType<typeof useGlobalInventory>);
   });
 
   it('renders page heading', () => {
@@ -71,7 +71,7 @@ describe('InventoryPage', () => {
     vi.mocked(useGlobalInventory).mockReturnValue({
       data: undefined,
       isLoading: false,
-    } as ReturnType<typeof useGlobalInventory>);
+    } as unknown as ReturnType<typeof useGlobalInventory>);
     render(<InventoryPage />);
     expect(screen.getByText(/0 stock rows/i)).toBeInTheDocument();
   });
@@ -80,7 +80,7 @@ describe('InventoryPage', () => {
     vi.mocked(useGlobalInventory).mockReturnValue({
       data: { items: [], total: 0, lowStock: 0 },
       isLoading: false,
-    } as ReturnType<typeof useGlobalInventory>);
+    } as unknown as ReturnType<typeof useGlobalInventory>);
     render(<InventoryPage />);
     expect(screen.queryByText(/· 0 low stock/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/· \d+ low stock/)).not.toBeInTheDocument();
