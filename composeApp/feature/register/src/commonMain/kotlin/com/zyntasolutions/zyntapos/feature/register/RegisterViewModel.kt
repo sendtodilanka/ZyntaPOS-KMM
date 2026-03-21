@@ -12,6 +12,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.register.CloseRegisterSessionU
 import com.zyntasolutions.zyntapos.domain.usecase.register.OpenRegisterSessionUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.PrintA4ZReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.PrintZReportUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.pos.OpenCashDrawerUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.RecordCashMovementUseCase
 import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
@@ -55,6 +56,7 @@ class RegisterViewModel(
     private val printZReportUseCase: PrintZReportUseCase,
     private val printA4ZReportUseCase: PrintA4ZReportUseCase,
     private val authRepository: AuthRepository,
+    private val openCashDrawerUseCase: OpenCashDrawerUseCase,
     private val auditLogger: SecurityAuditLogger,
     private val analytics: AnalyticsTracker,
 ) : BaseViewModel<RegisterState, RegisterIntent, RegisterEffect>(RegisterState()) {
@@ -167,9 +169,20 @@ class RegisterViewModel(
             is RegisterIntent.PrintZReport -> printZReport(intent.sessionId)
             is RegisterIntent.PrintA4ZReport -> onPrintA4ZReport(intent.sessionId)
 
+            // Cash drawer
+            is RegisterIntent.OpenCashDrawer -> onOpenCashDrawer()
+
             // UI feedback
             is RegisterIntent.DismissError -> updateState { copy(error = null) }
             is RegisterIntent.DismissSuccess -> updateState { copy(successMessage = null) }
+        }
+    }
+
+    private suspend fun onOpenCashDrawer() {
+        when (val result = openCashDrawerUseCase()) {
+            is Result.Success -> updateState { copy(successMessage = "Cash drawer opened") }
+            is Result.Error -> updateState { copy(error = "Failed to open cash drawer: ${result.exception.message}") }
+            is Result.Loading -> Unit // no-op — use case completes synchronously
         }
     }
 

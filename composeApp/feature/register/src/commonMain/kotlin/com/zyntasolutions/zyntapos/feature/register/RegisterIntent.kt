@@ -138,6 +138,11 @@ sealed interface RegisterIntent {
     /** Generates and delivers an A4 PDF Z-report for the given session. */
     data class PrintA4ZReport(val sessionId: String) : RegisterIntent
 
+    // ─── Cash Drawer ─────────────────────────────────────────────────────
+
+    /** Manually opens the cash drawer via the printer HAL (ESC p command). */
+    data object OpenCashDrawer : RegisterIntent
+
     // ─── UI Feedback ──────────────────────────────────────────────────────
 
     /** Dismisses the current error message. */

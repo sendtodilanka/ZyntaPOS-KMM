@@ -56,6 +56,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.pos.ApplyItemDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.ApplyOrderDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.CalculateOrderTotalsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.HoldOrderUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.pos.OpenCashDrawerUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.PrintReceiptUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.ProcessPaymentUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.RemoveItemFromCartUseCase
@@ -265,6 +266,8 @@ class PosViewModelTest {
 
     private val fakeReceiptPrinterPort = object : ReceiptPrinterPort {
         override suspend fun print(order: Order, cashierId: String): Result<Unit> =
+            Result.Success(Unit)
+        override suspend fun openCashDrawer(): Result<Unit> =
             Result.Success(Unit)
     }
 
@@ -506,6 +509,7 @@ class PosViewModelTest {
             retrieveHeldUseCase = RetrieveHeldOrderUseCase(fakeOrderRepository),
             processPaymentUseCase = ProcessPaymentUseCase(fakeOrderRepository, fakeStockRepository, calculateTotalsUseCase),
             printReceiptUseCase = PrintReceiptUseCase(fakeReceiptPrinterPort),
+            openCashDrawerUseCase = OpenCashDrawerUseCase(fakeReceiptPrinterPort),
             receiptFormatter = ReceiptFormatter(CurrencyFormatter()),
             walletRepository = fakeWalletRepository,
             loyaltyRepository = fakeLoyaltyRepository,

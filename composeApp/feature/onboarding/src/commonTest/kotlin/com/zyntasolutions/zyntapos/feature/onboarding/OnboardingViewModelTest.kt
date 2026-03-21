@@ -345,47 +345,64 @@ class OnboardingViewModelTest {
         assertFalse(viewModel.state.value.isPasswordVisible)
     }
 
-    // ── Completion: validation ────────────────────────────────────────────────
+    // ── Step 2 → Step 3 validation (admin fields validated on NextStep) ───────
 
     @Test
-    fun `CompleteOnboarding shows all field errors when all fields are blank`() = runTest {
-        viewModel.dispatch(OnboardingIntent.CompleteOnboarding)
+    fun `NextStep from Step 2 shows all field errors when all admin fields blank`() = runTest {
+        viewModel.dispatch(OnboardingIntent.BusinessNameChanged("Acme"))
+        viewModel.dispatch(OnboardingIntent.NextStep)
+        advanceUntilIdle()
+        // Now on Step 2 with blank admin fields — try to advance
+        viewModel.dispatch(OnboardingIntent.NextStep)
         advanceUntilIdle()
         val s = viewModel.state.value
         assertNotNull(s.adminNameError)
         assertNotNull(s.adminEmailError)
         assertNotNull(s.adminPasswordError)
         assertNotNull(s.adminConfirmPasswordError)
+        assertEquals(OnboardingState.Step.ADMIN_ACCOUNT, s.currentStep)
     }
 
     @Test
-    fun `CompleteOnboarding shows error when admin name is blank`() = runTest {
+    fun `NextStep from Step 2 shows error when admin name is blank`() = runTest {
+        viewModel.dispatch(OnboardingIntent.BusinessNameChanged("Acme"))
+        viewModel.dispatch(OnboardingIntent.NextStep)
+        advanceUntilIdle()
         fillAdminAccount(name = "")
-        viewModel.dispatch(OnboardingIntent.CompleteOnboarding)
+        viewModel.dispatch(OnboardingIntent.NextStep)
         advanceUntilIdle()
         assertNotNull(viewModel.state.value.adminNameError)
     }
 
     @Test
-    fun `CompleteOnboarding shows error when email is invalid`() = runTest {
+    fun `NextStep from Step 2 shows error when email is invalid`() = runTest {
+        viewModel.dispatch(OnboardingIntent.BusinessNameChanged("Acme"))
+        viewModel.dispatch(OnboardingIntent.NextStep)
+        advanceUntilIdle()
         fillAdminAccount(email = "not-valid")
-        viewModel.dispatch(OnboardingIntent.CompleteOnboarding)
+        viewModel.dispatch(OnboardingIntent.NextStep)
         advanceUntilIdle()
         assertNotNull(viewModel.state.value.adminEmailError)
     }
 
     @Test
-    fun `CompleteOnboarding shows error when password is too short`() = runTest {
+    fun `NextStep from Step 2 shows error when password is too short`() = runTest {
+        viewModel.dispatch(OnboardingIntent.BusinessNameChanged("Acme"))
+        viewModel.dispatch(OnboardingIntent.NextStep)
+        advanceUntilIdle()
         fillAdminAccount(password = "short", confirmPassword = "short")
-        viewModel.dispatch(OnboardingIntent.CompleteOnboarding)
+        viewModel.dispatch(OnboardingIntent.NextStep)
         advanceUntilIdle()
         assertNotNull(viewModel.state.value.adminPasswordError)
     }
 
     @Test
-    fun `CompleteOnboarding shows error when passwords do not match`() = runTest {
+    fun `NextStep from Step 2 shows error when passwords do not match`() = runTest {
+        viewModel.dispatch(OnboardingIntent.BusinessNameChanged("Acme"))
+        viewModel.dispatch(OnboardingIntent.NextStep)
+        advanceUntilIdle()
         fillAdminAccount(password = "Password1!", confirmPassword = "Different!")
-        viewModel.dispatch(OnboardingIntent.CompleteOnboarding)
+        viewModel.dispatch(OnboardingIntent.NextStep)
         advanceUntilIdle()
         assertNotNull(viewModel.state.value.adminConfirmPasswordError)
     }
@@ -506,11 +523,69 @@ class OnboardingViewModelTest {
     // ── isLastStep helper ─────────────────────────────────────────────────────
 
     @Test
-    fun `isLastStep is true on ADMIN_ACCOUNT step`() = runTest {
+    fun `isLastStep is false on ADMIN_ACCOUNT step`() = runTest {
         viewModel.dispatch(OnboardingIntent.BusinessNameChanged("Acme Corp"))
         viewModel.dispatch(OnboardingIntent.NextStep)
         advanceUntilIdle()
+        assertFalse(viewModel.state.value.isLastStep)
+    }
+
+    @Test
+    fun `isLastStep is true on STORE_SETTINGS step`() = runTest {
+        advanceToStoreSettings()
         assertTrue(viewModel.state.value.isLastStep)
+    }
+
+    // ── Step 3: Store settings ────────────────────────────────────────────────
+
+    @Test
+    fun `CurrencyChanged updates currencyCode`() = runTest {
+        viewModel.dispatch(OnboardingIntent.CurrencyChanged("USD"))
+        advanceUntilIdle()
+        assertEquals("USD", viewModel.state.value.currencyCode)
+    }
+
+    @Test
+    fun `TimezoneChanged updates timezoneId`() = runTest {
+        viewModel.dispatch(OnboardingIntent.TimezoneChanged("America/New_York"))
+        advanceUntilIdle()
+        assertEquals("America/New_York", viewModel.state.value.timezoneId)
+    }
+
+    @Test
+    fun `default currency is LKR`() = runTest {
+        assertEquals("LKR", viewModel.state.value.currencyCode)
+    }
+
+    @Test
+    fun `default timezone is Asia Colombo`() = runTest {
+        assertEquals("Asia/Colombo", viewModel.state.value.timezoneId)
+    }
+
+    @Test
+    fun `NextStep from ADMIN_ACCOUNT advances to STORE_SETTINGS when fields valid`() = runTest {
+        advanceToStoreSettings()
+        assertEquals(OnboardingState.Step.STORE_SETTINGS, viewModel.state.value.currentStep)
+    }
+
+    @Test
+    fun `NextStep from ADMIN_ACCOUNT rejects when admin fields invalid`() = runTest {
+        viewModel.dispatch(OnboardingIntent.BusinessNameChanged("Acme Corp"))
+        viewModel.dispatch(OnboardingIntent.NextStep)
+        advanceUntilIdle()
+        // Don't fill admin fields
+        viewModel.dispatch(OnboardingIntent.NextStep)
+        advanceUntilIdle()
+        assertEquals(OnboardingState.Step.ADMIN_ACCOUNT, viewModel.state.value.currentStep)
+        assertNotNull(viewModel.state.value.adminNameError)
+    }
+
+    @Test
+    fun `BackStep from STORE_SETTINGS goes to ADMIN_ACCOUNT`() = runTest {
+        advanceToStoreSettings()
+        viewModel.dispatch(OnboardingIntent.BackStep)
+        advanceUntilIdle()
+        assertEquals(OnboardingState.Step.ADMIN_ACCOUNT, viewModel.state.value.currentStep)
     }
 
     // ── System admin flag ─────────────────────────────────────────────────────
@@ -523,6 +598,28 @@ class OnboardingViewModelTest {
 
         assertEquals(1, createdUsers.size, "Exactly one admin user should be created")
         assertTrue(createdUsers.first().first.isSystemAdmin, "The onboarding admin must have isSystemAdmin = true")
+    }
+
+    @Test
+    fun `CompleteOnboarding persists currency and timezone`() = runTest {
+        setupForCompletion()
+        viewModel.dispatch(OnboardingIntent.CurrencyChanged("USD"))
+        viewModel.dispatch(OnboardingIntent.TimezoneChanged("America/New_York"))
+        viewModel.dispatch(OnboardingIntent.CompleteOnboarding)
+        advanceUntilIdle()
+
+        assertEquals("USD", settingsStore["general.currency"])
+        assertEquals("America/New_York", settingsStore["general.timezone"])
+    }
+
+    @Test
+    fun `CompleteOnboarding persists default currency and timezone when unchanged`() = runTest {
+        setupForCompletion()
+        viewModel.dispatch(OnboardingIntent.CompleteOnboarding)
+        advanceUntilIdle()
+
+        assertEquals("LKR", settingsStore["general.currency"])
+        assertEquals("Asia/Colombo", settingsStore["general.timezone"])
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -538,6 +635,19 @@ class OnboardingViewModelTest {
         viewModel.dispatch(OnboardingIntent.NextStep)
         advanceUntilIdle()
         fillAdminAccount(name, email, password, confirmPassword)
+        // Advance to Step 3 (Store Settings)
+        viewModel.dispatch(OnboardingIntent.NextStep)
+        advanceUntilIdle()
+    }
+
+    /** Advance from Step 1 through Step 2 to Step 3 with valid fields. */
+    private suspend fun TestScope.advanceToStoreSettings() {
+        viewModel.dispatch(OnboardingIntent.BusinessNameChanged("Acme Corp"))
+        viewModel.dispatch(OnboardingIntent.NextStep)
+        advanceUntilIdle()
+        fillAdminAccount()
+        viewModel.dispatch(OnboardingIntent.NextStep)
+        advanceUntilIdle()
     }
 
     private suspend fun TestScope.fillAdminAccount(

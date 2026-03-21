@@ -16,7 +16,11 @@ sealed interface OnboardingIntent {
     data class AdminConfirmPasswordChanged(val confirmPassword: String) : OnboardingIntent
     data object TogglePasswordVisibility : OnboardingIntent
 
-    /** Complete the wizard — persists business name and creates the admin account. */
+    // ── Step 3: Store settings (currency & timezone) ───────────────────
+    data class CurrencyChanged(val currencyCode: String) : OnboardingIntent
+    data class TimezoneChanged(val timezoneId: String) : OnboardingIntent
+
+    /** Complete the wizard — persists settings and creates the admin account. */
     data object CompleteOnboarding : OnboardingIntent
 
     /** Navigate back to the previous step. */

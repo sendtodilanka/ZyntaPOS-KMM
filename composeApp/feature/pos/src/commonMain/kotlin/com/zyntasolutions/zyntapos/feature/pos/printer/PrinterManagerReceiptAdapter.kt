@@ -109,6 +109,30 @@ class PrinterManagerReceiptAdapter(
         return Result.Success(Unit)
     }
 
+    override suspend fun openCashDrawer(): Result<Unit> {
+        val connectResult = printerManager.connect()
+        if (connectResult.isFailure) {
+            return Result.Error(
+                HalException(
+                    "Printer connection failed for cash drawer: ${connectResult.exceptionOrNull()?.message}",
+                    device = "cash_drawer",
+                ),
+                connectResult.exceptionOrNull(),
+            )
+        }
+        val drawerResult = printerManager.openCashDrawer()
+        if (drawerResult.isFailure) {
+            return Result.Error(
+                HalException(
+                    "Cash drawer open failed: ${drawerResult.exceptionOrNull()?.message}",
+                    device = "cash_drawer",
+                ),
+                drawerResult.exceptionOrNull(),
+            )
+        }
+        return Result.Success(Unit)
+    }
+
     /**
      * Builds a [PrinterConfig] from persisted settings keys.
      */

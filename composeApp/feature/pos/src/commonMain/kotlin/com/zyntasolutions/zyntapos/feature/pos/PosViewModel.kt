@@ -27,6 +27,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.pos.ApplyItemDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.ApplyOrderDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.CalculateOrderTotalsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.HoldOrderUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.pos.OpenCashDrawerUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.PrintReceiptUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.ProcessPaymentUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.RemoveItemFromCartUseCase
@@ -121,6 +122,8 @@ class PosViewModel(
     private val processPaymentUseCase: ProcessPaymentUseCase,
     /** Domain use case for thermal receipt printing; called when cashier taps "Print" in [ReceiptScreen]. */
     private val printReceiptUseCase: PrintReceiptUseCase,
+    /** Opens the cash drawer via the printer port (ESC p command). */
+    private val openCashDrawerUseCase: OpenCashDrawerUseCase,
     /** Pure-domain formatter that converts an [Order] into a monospace preview string for [ReceiptScreen]. */
     private val receiptFormatter: ReceiptFormatter,
     private val walletRepository: CustomerWalletRepository,
@@ -472,6 +475,8 @@ class PosViewModel(
                 // Build receipt preview text in domain — no HAL bytes in state
                 val previewText = receiptFormatter.format(order)
                 if (intent.method == PaymentMethod.CASH) {
+                    // Open cash drawer via HAL — fire-and-forget, don't block receipt flow
+                    runCatching { openCashDrawerUseCase() }
                     sendEffect(PosEffect.OpenCashDrawer(registerSessionId))
                 }
                 sendEffect(PosEffect.PrintReceipt(order.id))

@@ -5,6 +5,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.register.CloseRegisterSessionU
 import com.zyntasolutions.zyntapos.domain.usecase.register.OpenRegisterSessionUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.PrintA4ZReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.PrintZReportUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.pos.OpenCashDrawerUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.RecordCashMovementUseCase
 import com.zyntasolutions.zyntapos.feature.register.printer.ZReportPrinterAdapter
 import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
@@ -65,6 +66,7 @@ val registerModule = module {
             printZReportUseCase         = get(),
             printA4ZReportUseCase       = get(),
             authRepository              = get(),
+            openCashDrawerUseCase       = get(),
             auditLogger                 = get(),
             analytics                   = get(),
         )

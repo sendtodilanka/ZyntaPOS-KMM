@@ -279,6 +279,11 @@ class FakeReceiptPrinterPort : ReceiptPrinterPort {
         printedOrders.add(Pair(order, cashierId))
         return Result.Success(Unit)
     }
+
+    override suspend fun openCashDrawer(): Result<Unit> {
+        if (shouldFail) return Result.Error(DatabaseException("Cash drawer open failed"))
+        return Result.Success(Unit)
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

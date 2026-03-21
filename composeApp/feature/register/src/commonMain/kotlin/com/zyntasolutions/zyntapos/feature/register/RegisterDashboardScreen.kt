@@ -140,6 +140,9 @@ fun RegisterDashboardScreen(
                                         RegisterIntent.ShowCashInOutDialog(CashMovement.Type.OUT)
                                     )
                                 },
+                                onOpenDrawer = {
+                                    viewModel.dispatch(RegisterIntent.OpenCashDrawer)
+                                },
                             )
                         }
                     }
@@ -683,6 +686,7 @@ private fun RegisterActionButtons(
     isOpen: Boolean,
     onCashIn: () -> Unit,
     onCashOut: () -> Unit,
+    onOpenDrawer: () -> Unit = {},
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -739,6 +743,28 @@ private fun RegisterActionButtons(
                     fontWeight = FontWeight.SemiBold,
                 )
             }
+        }
+
+        // Open Drawer button
+        OutlinedButton(
+            onClick = onOpenDrawer,
+            enabled = isOpen,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(ZyntaSpacing.touchPreferred),
+            shape = MaterialTheme.shapes.medium,
+        ) {
+            Icon(
+                Icons.Default.LockOpen,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(Modifier.width(ZyntaSpacing.xs))
+            Text(
+                text = "Open Drawer",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+            )
         }
     }
 }

@@ -7,6 +7,7 @@ import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
+import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.domain.usecase.auth.LoginUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.auth.LogoutUseCase
 import com.zyntasolutions.zyntapos.feature.auth.mvi.AuthEffect
@@ -43,15 +44,24 @@ class AuthViewModel(
     private val _logoutUseCase: LogoutUseCase,
     private val authRepository: AuthRepository,
     private val registerRepository: RegisterRepository? = null,
+    private val settingsRepository: SettingsRepository,
     private val auditLogger: SecurityAuditLogger,
     private val analytics: AnalyticsTracker,
 ) : BaseViewModel<AuthState, AuthIntent, AuthEffect>(AuthState()) {
 
     init {
         analytics.logScreenView("Auth", "AuthViewModel")
-        // Observe session changes driven by external events (token expiry, forced logout).
-        // Handled separately — the UI navigation is driven by effects, not state.
         observeSession()
+        loadRememberMe()
+    }
+
+    /** Loads persisted "remember me" preference and pre-fills the saved email. */
+    private fun loadRememberMe() {
+        viewModelScope.launch {
+            val remembered = settingsRepository.get(KEY_REMEMBER_ME) == "true"
+            val savedEmail = if (remembered) settingsRepository.get(KEY_SAVED_EMAIL).orEmpty() else ""
+            updateState { copy(rememberMe = remembered, email = savedEmail) }
+        }
     }
 
     override suspend fun handleIntent(intent: AuthIntent) {
@@ -120,6 +130,13 @@ class AuthViewModel(
                 auditLogger.logLoginAttempt(true, s.email, "", null)
                 analytics.logEvent(AnalyticsEvents.LOGIN, mapOf(AnalyticsParams.METHOD to "email"))
                 analytics.setUserId(s.email)
+                // Persist "Remember Me" preference
+                settingsRepository.set(KEY_REMEMBER_ME, s.rememberMe.toString())
+                if (s.rememberMe) {
+                    settingsRepository.set(KEY_SAVED_EMAIL, s.email)
+                } else {
+                    settingsRepository.set(KEY_SAVED_EMAIL, "")
+                }
                 updateState { copy(isLoading = false) }
                 // Sprint 20: Check whether a cash register session is currently open.
                 // If no session is open, redirect to the RegisterGuard screen so the
@@ -172,5 +189,10 @@ class AuthViewModel(
 
     private fun String.isValidEmail(): Boolean {
         return contains("@") && contains(".") && length >= 5
+    }
+
+    companion object {
+        const val KEY_REMEMBER_ME = "auth.remember_me"
+        const val KEY_SAVED_EMAIL = "auth.saved_email"
     }
 }

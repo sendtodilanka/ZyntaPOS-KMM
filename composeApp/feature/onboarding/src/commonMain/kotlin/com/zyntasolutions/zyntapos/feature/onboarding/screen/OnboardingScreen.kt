@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Icon
@@ -45,8 +46,10 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButtonVariant
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaCurrencyPicker
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoadingOverlay
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTextField
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTimezonePicker
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.feature.onboarding.OnboardingViewModel
@@ -59,9 +62,10 @@ import org.koin.compose.viewmodel.koinViewModel
 /**
  * First-run onboarding wizard screen.
  *
- * Guides the operator through two steps:
+ * Guides the operator through three steps:
  * 1. **Business Info** — sets the store/business name.
  * 2. **Admin Account** — creates the first ADMIN user.
+ * 3. **Store Settings** — selects currency and timezone.
  *
  * Uses [ZyntaPageScaffold] for consistent top-bar design and [AnimatedContent]
  * for smooth step transitions. The wizard is shown only once on first launch;
@@ -128,6 +132,11 @@ fun OnboardingScreen(
                         onIntent = viewModel::dispatch,
                         modifier = Modifier.widthIn(max = 480.dp).fillMaxWidth(),
                     )
+                    OnboardingState.Step.STORE_SETTINGS -> StoreSettingsStep(
+                        state = state,
+                        onIntent = viewModel::dispatch,
+                        modifier = Modifier.widthIn(max = 480.dp).fillMaxWidth(),
+                    )
                 }
             }
         }
@@ -142,17 +151,15 @@ fun OnboardingScreen(
 
 @Composable
 private fun StepProgress(currentStep: OnboardingState.Step, modifier: Modifier = Modifier) {
-    val progress = when (currentStep) {
-        OnboardingState.Step.BUSINESS_INFO -> 0.5f
-        OnboardingState.Step.ADMIN_ACCOUNT -> 1.0f
-    }
+    val totalSteps = OnboardingState.Step.entries.size
+    val progress = (currentStep.ordinal + 1).toFloat() / totalSteps
     Column(modifier = modifier) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
-                "Step ${currentStep.ordinal + 1} of 2",
+                "Step ${currentStep.ordinal + 1} of $totalSteps",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -160,6 +167,7 @@ private fun StepProgress(currentStep: OnboardingState.Step, modifier: Modifier =
                 when (currentStep) {
                     OnboardingState.Step.BUSINESS_INFO -> "Business Info"
                     OnboardingState.Step.ADMIN_ACCOUNT -> "Admin Account"
+                    OnboardingState.Step.STORE_SETTINGS -> "Store Settings"
                 },
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
@@ -319,6 +327,78 @@ private fun AdminAccountStep(
             leadingIcon = Icons.Default.Lock,
             visualTransformation = if (state.isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        if (state.error != null) {
+            Text(
+                state.error,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+
+        Spacer(Modifier.height(ZyntaSpacing.sm))
+
+        ZyntaButton(
+            text = "Next",
+            onClick = { onIntent(OnboardingIntent.NextStep) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        ZyntaButton(
+            text = "Back",
+            onClick = { onIntent(OnboardingIntent.BackStep) },
+            variant = ZyntaButtonVariant.Secondary,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+// ── Step 3: Store Settings (Currency & Timezone) ────────────────────────
+
+@Composable
+private fun StoreSettingsStep(
+    state: OnboardingState,
+    onIntent: (OnboardingIntent) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
+    ) {
+        Icon(
+            Icons.Default.Settings, null,
+            modifier = Modifier.size(56.dp).align(Alignment.CenterHorizontally),
+            tint = MaterialTheme.colorScheme.primary,
+        )
+
+        Text(
+            "Store settings",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+        )
+        Text(
+            "Select your store's currency and timezone. You can change these later in Settings.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+        )
+
+        Spacer(Modifier.height(ZyntaSpacing.sm))
+
+        ZyntaCurrencyPicker(
+            selectedCode = state.currencyCode,
+            onCurrencySelected = { onIntent(OnboardingIntent.CurrencyChanged(it.code)) },
+            label = "Store Currency",
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        ZyntaTimezonePicker(
+            selectedTimezoneId = state.timezoneId,
+            onTimezoneSelected = { onIntent(OnboardingIntent.TimezoneChanged(it.id)) },
+            label = "Store Timezone",
             modifier = Modifier.fillMaxWidth(),
         )
 
