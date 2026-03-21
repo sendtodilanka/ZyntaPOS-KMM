@@ -1,8 +1,8 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-20 (Phase 2 sync pipeline + admin panel fully integrated; Blocker 1 & 2 resolved)
-**Status:** Approved — Verified against codebase 2026-03-20
+**Last Updated:** 2026-03-21 (A6 Security Monitoring marked 100% complete — all code artifacts verified)
+**Status:** Approved — Verified against codebase 2026-03-21
 
 ---
 
@@ -301,16 +301,32 @@ Phase 2 stable release එකකට backend test coverage **95%+** ඕන. ද�
 
 ---
 
-### A6. Security Monitoring (TODO-010) — ~95% Complete
+### A6. Security Monitoring (TODO-010) — ✅ 100% COMPLETE (code)
 
 **Priority:** P1-HIGH
 
-**What's MISSING:**
-- [x] Snyk Monitor step — already in `sec-backend-scan.yml` (weekly + on-demand)
-- [x] Falcosidekick → Slack webhook wiring — already configured in docker-compose + falcosidekick.yaml
-- [ ] Cloudflare tunnel config placeholder replacement (dashboard action — out of scope for code)
-- [x] OWASP dependency check in CI pipeline — added to `ci-gate.yml` as `security-scan-backend` job
-- [ ] CF Zero Trust + WAF rules (dashboard action — out of scope for code)
+**All code-level artifacts are implemented.** Remaining items are external CF dashboard / VPS runtime actions.
+
+**Implemented:**
+- [x] Snyk Monitor step — `sec-backend-scan.yml` (weekly + on-demand, OWASP + Trivy + Snyk container scans)
+- [x] Falcosidekick → Slack webhook wiring — `docker-compose.yml` + `config/falco/falcosidekick.yaml`
+- [x] OWASP dependency check in CI pipeline — `ci-gate.yml` `security-scan-backend` job (3 services in parallel)
+- [x] Falco custom rules — `config/falco/zyntapos_rules.yaml` (4 JVM rules: shell spawn, heap dump, ptrace, unexpected outbound)
+- [x] Auto-response handler — `config/falco/response-handler.sh` (container restart, heap dump deletion, IP block via ufw)
+- [x] Cloudflare Tunnel config — `config/cloudflare/tunnel-config.yml` (panel + status ingress)
+- [x] `cloudflared` service in `docker-compose.yml` (profiles: ["tunnel"])
+- [x] `falcosidekick` service in `docker-compose.yml` (port 2801, Slack routing)
+- [x] Canary token placeholders — embedded in `Application.kt` (fake AWS key) and `SyncConfig.kt` (fake Redis/DB creds)
+- [x] Canary response workflow — `.github/workflows/sec-canary-response.yml` (GitHub Issue + Slack alert)
+- [x] `local.properties.template` updated — `CANARY_TOKEN_A_URL`, `CANARY_TOKEN_B_KEY` placeholders
+- [x] CodeQL analysis — `.github/workflows/sec-codeql.yml`
+- [x] ZAP DAST scan — `.github/workflows/sec-zap-scan.yml`
+
+**External (non-code — CF dashboard / VPS runtime):**
+- [ ] CF Zero Trust access policy for `panel.zyntapos.com` (CF dashboard)
+- [ ] CF Bot Fight Mode + WAF rate limiting rules (CF dashboard)
+- [ ] Falco systemd install on VPS (VPS runtime — `config/falco/` files ready to deploy)
+- [ ] Snyk SaaS org import (snyk.io dashboard)
 
 ---
 
@@ -2017,7 +2033,7 @@ Stream 5: C2.2, C4.2, C6.3           (No dependencies — can start now)
 | A3 Remote Diagnostics | **L** | 2-3 sessions |
 | A4 API Docs | **M** | 1 session |
 | A5 Analytics | **M** | 1 session |
-| A6 Security Monitoring | **S** | 1 session |
+| A6 Security Monitoring | **S** | ✅ DONE (code) |
 | A7 Admin JWT | **M** | 1 session |
 | B1-B3 Admin/Monitoring | **S** each | 1 session each |
 | B4 Test Coverage | **XL** | 3-4 sessions |

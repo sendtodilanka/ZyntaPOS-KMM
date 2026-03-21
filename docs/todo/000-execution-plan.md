@@ -259,7 +259,7 @@ Phase 1 is **complete** (all 5 TODOs done). Phase 2 is ~87% complete:
 - ✅ TODO-007g Sync engine server-side (30 files, full implementation)
 - ✅ TODO-009 Ktor security hardening (all 4 levels)
 - ✅ TODO-008 SEO/ASO (technical SEO complete)
-- ✅ TODO-010 in-repo items (Falco rules, Falcosidekick, cloudflared, canary response workflow)
+- ✅ TODO-010 Security Monitoring — 100% code complete (Falco rules, Falcosidekick, cloudflared, canary tokens in source, OWASP/Trivy/Snyk CI, CodeQL, ZAP DAST, canary response workflow)
 
 ### In Progress
 - 🟡 TODO-006 Remote diagnostics — ~85% done; consent API wired, data isolation verified. Remaining: WebSocket relay, site visit tokens

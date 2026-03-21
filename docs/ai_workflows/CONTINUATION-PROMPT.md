@@ -38,7 +38,7 @@ Phase 2: ~97% complete
 - TODO-006 (~85%): WebSocket diagnostic relay DONE. Remaining: site visit token support (Phase 3)
 - TODO-007e: API docs site DONE (zyntapos-docs/ with Scalar, docker-compose, Caddyfile)
 - TODO-008a (~85%): Email delivery log UI DONE
-- TODO-010 (~80%): Canary tokens embedded in source. Remaining: Snyk/CF Zero Trust (external)
+- TODO-010 (✅ 100% code): All security monitoring code artifacts complete — Falco, canary tokens, OWASP/Trivy/Snyk CI scans, CodeQL, ZAP DAST. Remaining: external SaaS config only
 - TODO-011 (~95%): AnalyticsService expect/actual + Koin wiring + ViewModel event wiring DONE
 
 ## YOUR TASK: Complete remaining Phase 3 deferred items below
