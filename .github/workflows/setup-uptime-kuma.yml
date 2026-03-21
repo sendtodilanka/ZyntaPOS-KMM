@@ -130,11 +130,17 @@ jobs:
               { name: 'Backup — Verify',   type: 'push', interval: 691200 },
             ];
 
-            function emitAck(socket, event, data) {
-              return new Promise((resolve, reject) => {
-                const t = setTimeout(() => reject(new Error('Timeout on ' + event)), 12000);
-                socket.emit(event, data, (res) => { clearTimeout(t); resolve(res); });
-              });
+            // Emit with optional ack — never rejects, resolves with result or timeout marker
+            function emitMonitor(socket, mon, delayMs) {
+              return new Promise(resolve =>
+                setTimeout(() => {
+                  const t = setTimeout(() => {
+                    console.warn('  TIMEOUT: ' + mon.name + ' (ack not received in 30s)');
+                    resolve({ ok: false, msg: 'timeout' });
+                  }, 30000);
+                  socket.emit('addMonitor', mon, res => { clearTimeout(t); resolve(res); });
+                }, delayMs)
+              );
             }
 
             const socket = ioFn('http://localhost:3001', {
@@ -148,51 +154,50 @@ jobs:
               process.exit(1);
             });
 
+            // 17 monitors * 600ms stagger + 30s final ack window = ~40s; allow 120s total
             const GLOBAL_TIMEOUT = setTimeout(() => {
-              console.error('ERROR: global timeout 60s'); socket.disconnect(); process.exit(1);
-            }, 60000);
+              console.error('ERROR: global timeout 120s'); socket.disconnect(); process.exit(1);
+            }, 120000);
 
             socket.on('connect', async () => {
               console.log('Connected to Uptime Kuma socket');
               try {
-                // Login
-                const lr = await emitAck(socket, 'login', { username: USERNAME, password: PASSWORD });
+                // Login (serial, must complete first)
+                const lr = await new Promise((resolve, reject) => {
+                  const t = setTimeout(() => reject(new Error('Login timeout')), 15000);
+                  socket.emit('login', { username: USERNAME, password: PASSWORD }, res => { clearTimeout(t); resolve(res); });
+                });
                 if (!lr || !lr.ok) throw new Error('Login failed: ' + (lr && lr.msg ? lr.msg : JSON.stringify(lr)));
                 console.log('Logged in as ' + USERNAME);
 
-                // Optionally reset
+                // Optionally reset (serial)
                 if (RESET) {
-                  const listR = await emitAck(socket, 'getMonitorList', {});
+                  const listR = await new Promise(resolve => socket.emit('getMonitorList', {}, resolve));
                   const existing = Object.values((listR && listR.data) || {});
                   console.log('Deleting ' + existing.length + ' monitors...');
                   for (const m of existing) {
-                    await emitAck(socket, 'deleteMonitor', m.id);
-                    console.log('  Deleted: ' + m.name + ' (id=' + m.id + ')');
+                    await new Promise(resolve => socket.emit('deleteMonitor', m.id, resolve));
+                    console.log('  Deleted: ' + m.name);
                   }
                 }
 
-                // Create monitors
+                // Create all monitors concurrently with staggered starts (600ms apart)
+                console.log('Adding ' + MONITORS.length + ' monitors (concurrent, 600ms stagger)...');
+                const results = await Promise.all(
+                  MONITORS.map((mon, i) => emitMonitor(socket, mon, i * 600))
+                );
+
                 let created = 0, warned = 0;
-                for (const mon of MONITORS) {
-                  try {
-                    const r = await emitAck(socket, 'addMonitor', mon);
-                    if (r && r.ok) {
-                      console.log('  + ' + mon.name + ' (id=' + (r.monitorID || '?') + ')');
-                      created++;
-                    } else {
-                      console.warn('  WARNING: ' + mon.name + ': ' + JSON.stringify(r));
-                      warned++;
-                    }
-                  } catch (e) {
-                    console.warn('  WARNING: ' + mon.name + ': ' + e.message);
-                    warned++;
-                  }
-                }
+                MONITORS.forEach((mon, i) => {
+                  const r = results[i];
+                  if (r && r.ok) { console.log('  + ' + mon.name + ' (id=' + (r.monitorID || '?') + ')'); created++; }
+                  else { console.warn('  WARNING: ' + mon.name + ': ' + (r && r.msg ? r.msg : JSON.stringify(r))); warned++; }
+                });
 
                 console.log('\nDone: ' + created + ' created, ' + warned + ' warnings');
                 clearTimeout(GLOBAL_TIMEOUT);
                 socket.disconnect();
-                process.exit(warned > 0 && created === 0 ? 1 : 0);
+                process.exit(created === 0 ? 1 : 0);
               } catch (err) {
                 console.error('ERROR: ' + err.message);
                 clearTimeout(GLOBAL_TIMEOUT);
