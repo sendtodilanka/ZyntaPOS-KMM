@@ -1557,7 +1557,7 @@ Backend Tests:
 | **No employee quick-switch** — Full logout required to change user | HIGH | Phase 2 |
 | **Password reset is stub** ("contact admin") | MEDIUM | Phase 2 |
 | **No biometric fallback** on PIN lock (fingerprint/Face ID) | LOW | Phase 2 |
-| **Remember Me checkbox collected but not persisted** | LOW | Phase 1.5 |
+| ~~**Remember Me checkbox collected but not persisted**~~ | ~~LOW~~ | ✅ DONE (2026-03-21) |
 | **No PIN lockout timer countdown** — User doesn't know wait time | MEDIUM | Phase 2 |
 | **No session timeout warning** — Auto-lock without countdown | LOW | Phase 2 |
 
@@ -1911,7 +1911,7 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 **Phase 1.5 Quick Wins (< 1 day each):**
 - [x] Render hourly sparkline in Dashboard — ✅ ALREADY IMPLEMENTED in Expanded + Medium layouts (verified 2026-03-21); Compact layout lacks sparkline by design (`ZyntaCompactStatCard`)
 - [x] Add printer test button to PrinterSettingsScreen — ✅ ALREADY EXISTS (verified 2026-03-21): `SettingsIntent.TestPrint` → `PrintTestPageUseCase` → full MVI chain
-- [ ] Persist "Remember Me" checkbox in auth
+- [x] Persist "Remember Me" checkbox in auth — ✅ DONE (2026-03-21): `auth.remember_me` + `auth.saved_email` in SettingsRepository, auto-fill email on load
 - [x] Show UTC offset in timezone dropdown — ✅ `ZyntaTimezonePicker` shows UTC offset for all 21 timezones (2026-03-21)
 - [ ] Add employee name/badge to POS screen header
 
