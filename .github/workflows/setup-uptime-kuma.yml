@@ -47,82 +47,86 @@ jobs:
           script: |
             set -euo pipefail
 
-            # Uptime Kuma uses expose: (Docker-internal), not ports:
-            # Resolve container's bridge IP so VPS host can reach it directly
-            KUMA_IP=$(docker inspect -f '{{.NetworkSettings.Networks.zyntapos_net.IPAddress}}' zyntapos_uptime_kuma 2>/dev/null || true)
-            if [[ -z "$KUMA_IP" ]]; then
-              echo "ERROR: Could not find zyntapos_uptime_kuma container on zyntapos_net" >&2
+            CONTAINER="zyntapos_uptime_kuma"
+            KUMA_BASE="http://localhost:3001"
+
+            echo "=== Uptime Kuma Setup — $(date -u +%Y%m%dT%H%M%SZ) ==="
+
+            # ── Verify container is running ───────────────────────────────────────
+            CSTATUS=$(docker inspect "$CONTAINER" --format='{{.State.Status}}' 2>/dev/null || echo "not_found")
+            if [[ "$CSTATUS" != "running" ]]; then
+              echo "ERROR: Container '$CONTAINER' is not running (status=$CSTATUS)" >&2
               docker ps --filter name=kuma || true
               exit 1
             fi
-            KUMA_URL="http://${KUMA_IP}:3001"
-            echo "=== Uptime Kuma Setup — $(date -u +%Y%m%dT%H%M%SZ) ==="
-            echo "Target: $KUMA_URL (container IP: $KUMA_IP)"
+            echo "Container: $CONTAINER is $CSTATUS"
 
-            # ── Wait for Uptime Kuma to be ready ─────────────────────────────────
-            echo "--- Waiting for Uptime Kuma to be reachable..."
-            for i in $(seq 1 12); do
-              if curl -fsS --max-time 5 "$KUMA_URL/api/info" > /dev/null 2>&1; then
-                echo "    Uptime Kuma is up (attempt $i)"
+            # ── Wait for Uptime Kuma HTTP to be ready (inside container) ─────────
+            echo "--- Waiting for Uptime Kuma to be reachable inside container..."
+            for i in $(seq 1 24); do
+              if docker exec "$CONTAINER" curl -fsS --max-time 3 "$KUMA_BASE/api/info" > /dev/null 2>&1; then
+                echo "    Uptime Kuma HTTP ready (attempt $i)"
                 break
               fi
-              echo "    Not ready yet (attempt $i/12), waiting 5s..."
+              echo "    Not ready yet (attempt $i/24), waiting 5s..."
               sleep 5
-              if [ "$i" -eq 12 ]; then
-                echo "ERROR: Uptime Kuma did not become ready in 60s" >&2
-                docker compose -f /opt/zyntapos/docker-compose.yml logs --tail=30 uptime-kuma || true
+              if [ "$i" -eq 24 ]; then
+                echo "ERROR: Uptime Kuma did not become ready in 120s" >&2
+                docker logs --tail=30 "$CONTAINER" || true
                 exit 1
               fi
             done
 
+            # ── Helper: run curl inside the Uptime Kuma container ────────────────
+            kuma_curl() {
+              docker exec "$CONTAINER" curl -fsS --max-time 10 "$@"
+            }
+
             # ── Check if initial setup is needed ─────────────────────────────────
             echo "--- Checking setup status..."
-            NEEDS_SETUP=$(curl -fsS --max-time 5 "$KUMA_URL/api/needs-setup" \
+            NEEDS_SETUP=$(kuma_curl "$KUMA_BASE/api/needs-setup" \
               | python3 -c "import sys,json; d=json.load(sys.stdin); print(str(d.get('needSetup', d.get('data', False))).lower())" 2>/dev/null || echo "unknown")
-
             echo "    needsSetup=$NEEDS_SETUP"
 
             # ── Create admin account if not yet configured ────────────────────────
             if [[ "$NEEDS_SETUP" == "true" ]]; then
               echo "--- Performing first-time setup: creating admin account..."
-              SETUP_RESULT=$(curl -fsS --max-time 10 \
-                -X POST "$KUMA_URL/api/setup" \
+              SETUP_RESULT=$(kuma_curl -X POST "$KUMA_BASE/api/setup" \
                 -H "Content-Type: application/json" \
                 -d "{\"username\":\"$KUMA_USERNAME\",\"password\":\"$KUMA_PASSWORD\"}" 2>&1) || {
                 echo "ERROR: Failed to create admin account" >&2
                 echo "Response: $SETUP_RESULT"
                 exit 1
               }
-              echo "    Admin account created successfully"
+              echo "    Admin account created"
             else
               echo "--- Uptime Kuma already configured, skipping account creation"
             fi
 
-            # ── Authenticate ──────────────────────────────────────────────────────
+            # ── Authenticate — get Bearer token ──────────────────────────────────
             echo "--- Authenticating..."
-            COOKIE_JAR="$(mktemp)"
-            trap 'rm -f "$COOKIE_JAR"' EXIT
-
-            LOGIN_RESULT=$(curl -fsS --max-time 10 \
-              -c "$COOKIE_JAR" \
-              -X POST "$KUMA_URL/api/login" \
+            LOGIN_JSON=$(kuma_curl -X POST "$KUMA_BASE/api/login" \
               -H "Content-Type: application/json" \
-              -d "{\"username\":\"$KUMA_USERNAME\",\"password\":\"$KUMA_PASSWORD\"}" 2>&1) || {
+              -d "{\"username\":\"$KUMA_USERNAME\",\"password\":\"$KUMA_PASSWORD\"}") || {
               echo "ERROR: Login failed. Check username/password." >&2
-              echo "Response: $LOGIN_RESULT"
               exit 1
             }
+            TOKEN=$(echo "$LOGIN_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin).get('token',''))" 2>/dev/null || echo "")
+            if [[ -z "$TOKEN" ]]; then
+              echo "ERROR: No token in login response: $LOGIN_JSON" >&2
+              exit 1
+            fi
             echo "    Login successful"
 
             # ── Optionally delete existing monitors ───────────────────────────────
             if [[ "$RESET_MONITORS" == "true" ]]; then
               echo "--- Deleting all existing monitors (reset=true)..."
-              MONITORS=$(curl -fsS --max-time 10 -b "$COOKIE_JAR" \
-                "$KUMA_URL/api/monitors" 2>/dev/null \
+              MONITORS=$(kuma_curl -H "Authorization: Bearer $TOKEN" \
+                "$KUMA_BASE/api/monitors" 2>/dev/null \
                 | python3 -c "import sys,json; d=json.load(sys.stdin); [print(m['id']) for m in d.get('monitors',[])]" 2>/dev/null || echo "")
               for mid in $MONITORS; do
-                curl -fsS --max-time 10 -b "$COOKIE_JAR" \
-                  -X DELETE "$KUMA_URL/api/monitors/$mid" > /dev/null 2>&1 || true
+                kuma_curl -X DELETE -H "Authorization: Bearer $TOKEN" \
+                  "$KUMA_BASE/api/monitors/$mid" > /dev/null 2>&1 || true
                 echo "    Deleted monitor id=$mid"
               done
               echo "    All monitors deleted"
@@ -142,24 +146,24 @@ jobs:
                 http)  body="$body,\"url\":\"$target\"" ;;
                 tcp)   body="$body,\"hostname\":\"$(echo "$target" | cut -d: -f1)\",\"port\":$(echo "$target" | cut -d: -f2)" ;;
                 ping)  body="$body,\"hostname\":\"$target\"" ;;
-                push)  ;;  # push monitors have no target URL
+                push)  ;;
               esac
 
               [[ -n "$extra" ]] && body="$body,$extra"
               body="$body,\"active\":true}"
 
               local result
-              result=$(curl -fsS --max-time 10 -b "$COOKIE_JAR" \
-                -X POST "$KUMA_URL/api/monitors" \
+              result=$(kuma_curl -X POST "$KUMA_BASE/api/monitors" \
                 -H "Content-Type: application/json" \
+                -H "Authorization: Bearer $TOKEN" \
                 -d "$body" 2>&1) || {
-                echo "  WARNING: Failed to create monitor '$name'" >&2
+                echo "  WARNING: Failed to create monitor '$name': $result" >&2
                 return 0
               }
 
               local monitor_id
               monitor_id=$(echo "$result" | python3 -c "import sys,json; print(json.load(sys.stdin).get('monitorID','?'))" 2>/dev/null || echo "?")
-              echo "  ✓ '$name' (id=$monitor_id)"
+              echo "  + '$name' (id=$monitor_id)"
             }
 
             # ── Helper: create_notification ───────────────────────────────────────
@@ -168,14 +172,14 @@ jobs:
               local type="$2"
               local config="$3"
 
-              curl -fsS --max-time 10 -b "$COOKIE_JAR" \
-                -X POST "$KUMA_URL/api/notifications" \
+              kuma_curl -X POST "$KUMA_BASE/api/notifications" \
                 -H "Content-Type: application/json" \
+                -H "Authorization: Bearer $TOKEN" \
                 -d "{\"name\":\"$name\",\"type\":\"$type\",\"isDefault\":true,$config}" > /dev/null 2>&1 || {
                 echo "  WARNING: Failed to create notification '$name'" >&2
                 return 0
               }
-              echo "  ✓ Notification channel '$name'"
+              echo "  + Notification '$name'"
             }
 
             # ── Notification channels ─────────────────────────────────────────────
@@ -219,24 +223,23 @@ jobs:
 
             # ── Push monitors (backup heartbeats) ─────────────────────────────────
             echo "--- Creating push (heartbeat) monitors..."
-            create_monitor "Backup — Daily DB" "push" "" 90000   # 25-hour timeout
-            create_monitor "Backup — Verify"   "push" "" 691200  # 8-day timeout
+            create_monitor "Backup — Daily DB" "push" "" 90000
+            create_monitor "Backup — Verify"   "push" "" 691200
 
-            # ── Persist KUMA_PASSWORD to VPS .env ────────────────────────────────
-            echo "--- Saving KUMA_PASSWORD to /opt/zyntapos/.env..."
+            # ── Persist credentials to VPS .env ──────────────────────────────────
+            echo "--- Saving credentials to /opt/zyntapos/.env..."
             ENV_FILE="/opt/zyntapos/.env"
-            if grep -q "^KUMA_PASSWORD=" "$ENV_FILE" 2>/dev/null; then
-              sed -i "s|^KUMA_PASSWORD=.*|KUMA_PASSWORD=${KUMA_PASSWORD}|" "$ENV_FILE"
-              echo "    Updated KUMA_PASSWORD in .env"
-            else
-              echo "KUMA_PASSWORD=${KUMA_PASSWORD}" >> "$ENV_FILE"
-              echo "    Added KUMA_PASSWORD to .env"
-            fi
-            if grep -q "^KUMA_USERNAME=" "$ENV_FILE" 2>/dev/null; then
-              sed -i "s|^KUMA_USERNAME=.*|KUMA_USERNAME=${KUMA_USERNAME}|" "$ENV_FILE"
-            else
-              echo "KUMA_USERNAME=${KUMA_USERNAME}" >> "$ENV_FILE"
-            fi
+            for KEY_VAL in "KUMA_PASSWORD=${KUMA_PASSWORD}" "KUMA_USERNAME=${KUMA_USERNAME}"; do
+              KEY="${KEY_VAL%%=*}"
+              VAL="${KEY_VAL#*=}"
+              if grep -q "^${KEY}=" "$ENV_FILE" 2>/dev/null; then
+                sed -i "s|^${KEY}=.*|${KEY_VAL}|" "$ENV_FILE"
+                echo "    Updated $KEY in .env"
+              else
+                echo "$KEY_VAL" >> "$ENV_FILE"
+                echo "    Added $KEY to .env"
+              fi
+            done
 
             echo ""
             echo "=== Setup complete — $(date -u +%Y%m%dT%H%M%SZ) ==="
@@ -245,7 +248,6 @@ jobs:
             echo "  1. Visit https://status.zyntapos.com — verify all 19 monitors appear"
             echo "  2. Copy push URLs from the 2 push monitors (Backup-Daily, Backup-Verify)"
             echo "  3. Add KUMA_PUSH_URL and KUMA_PUSH_URL_VERIFY to /opt/zyntapos/.env"
-            echo "  4. Run: docker compose -f /opt/zyntapos/docker-compose.yml up -d"
         env:
           KUMA_USERNAME: ${{ github.event.inputs.kuma_username }}
           KUMA_PASSWORD: ${{ github.event.inputs.kuma_password }}
