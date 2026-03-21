@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-21 (A6 Security Monitoring marked 100% complete — all code artifacts verified)
+**Last Updated:** 2026-03-21 (A6 Security Monitoring fully complete — Snyk Monitor imported, all code + external artifacts verified)
 **Status:** Approved — Verified against codebase 2026-03-21
 
 ---
@@ -330,8 +330,8 @@ Phase 2 stable release එකකට backend test coverage **95%+** ඕන. ද�
 - [x] Falco installed on VPS — `sec-install-falco.yml` (systemd service + custom rules deployed)
 - [x] Falco HTTP output → Falcosidekick configured
 
-**Remaining (blocked on secret):**
-- [ ] Snyk import — `SNYK_TOKEN` secret must be added to GitHub, then trigger `sec-snyk-import.yml`
+**Snyk Monitor (completed 2026-03-21):**
+- [x] Snyk import — `SNYK_TOKEN` secret added, `sec-snyk-import.yml` run #3 succeeded (4 projects: KMM root, Backend API, License, Sync)
 
 ---
 
@@ -1424,7 +1424,7 @@ Backend Tests:
 ### E1. CI Pipeline Enhancements
 
 - [ ] OWASP dependency-check Gradle plugin
-- [ ] Snyk security scan
+- [x] Snyk security scan — `sec-snyk-import.yml` + `sec-backend-scan.yml` (completed 2026-03-21)
 - [ ] Test coverage threshold (fail if < 60%)
 - [ ] Playwright E2E tests for admin panel
 - [ ] `google-services.json` decode step
@@ -2038,7 +2038,7 @@ Stream 5: C2.2, C4.2, C6.3           (No dependencies — can start now)
 | A3 Remote Diagnostics | **L** | 2-3 sessions |
 | A4 API Docs | **M** | 1 session |
 | A5 Analytics | **M** | 1 session |
-| A6 Security Monitoring | **S** | ✅ DONE (code) |
+| A6 Security Monitoring | **S** | ✅ DONE (code + Snyk imported) |
 | A7 Admin JWT | **M** | 1 session |
 | B1-B3 Admin/Monitoring | **S** each | 1 session each |
 | B4 Test Coverage | **XL** | 3-4 sessions |

@@ -98,11 +98,9 @@ A comprehensive 17-step audit-and-fill session was completed. Key changes:
 
 ### ✅ COMPLETE — TODO-010: Security Monitoring (code + external)
 
-**All artifacts implemented and deployed (2026-03-21).** Code: canary tokens, OWASP/Trivy/Snyk CI scans, Falco rules, CodeQL, ZAP DAST. External: Falco installed on VPS (`sec-install-falco.yml` ✅), CF Zero Trust + WAF + Bot Fight Mode (`sec-cf-zero-trust.yml` ✅).
+**All artifacts implemented and deployed (2026-03-21).** Code: canary tokens, OWASP/Trivy/Snyk CI scans, Falco rules, CodeQL, ZAP DAST. External: Falco installed on VPS (`sec-install-falco.yml` ✅), CF Zero Trust + WAF + Bot Fight Mode (`sec-cf-zero-trust.yml` ✅), Snyk Monitor imported (`sec-snyk-import.yml` run #3 ✅ — 4 projects: KMM root, Backend API, License, Sync).
 
-| Remaining | What's Needed | Effort |
-|-----------|--------------|--------|
-| Snyk Monitor | Add `SNYK_TOKEN` GitHub Secret, then trigger `sec-snyk-import.yml` | 15 min |
+No remaining items — all code and external tasks complete.
 
 ### LOW Priority — TODO-007e: API Documentation Site
 
@@ -141,7 +139,7 @@ These items require VPS access, DNS configuration, or SaaS dashboard setup — N
 | Google Search Console | 008 | DNS TXT record verification |
 | GA4 property creation | 008, 011 | Firebase Console |
 | Google Cloud Console | 007f | OAuth client ID for admin panel |
-| Snyk Monitor | 010 | Connect GitHub repo in Snyk dashboard |
+| ~~Snyk Monitor~~ | ~~010~~ | ✅ Done — `SNYK_TOKEN` added, `sec-snyk-import.yml` run #3 success (2026-03-21) |
 | CF Zero Trust | 010 | Create Access Application in CF dashboard |
 | Bot Fight Mode | 010 | Enable in CF Security → Bots |
 | Play Store ASO | 008 | App publication + metadata (Phase 2+) |
