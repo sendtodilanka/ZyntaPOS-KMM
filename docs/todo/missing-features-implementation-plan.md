@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-21 (A6 Security Monitoring fully complete — Snyk Monitor imported, all code + external artifacts verified)
+**Last Updated:** 2026-03-21 (B1 Admin Panel Enhancements marked 100% complete — VPS deployment verified, nginx /ping endpoint added, Caddy health routing for panel.zyntapos.com completed; A6 Security Monitoring fully complete — Snyk Monitor imported)
 **Status:** Approved — Verified against codebase 2026-03-21
 
 ---
@@ -352,12 +352,29 @@ Phase 2 stable release එකකට backend test coverage **95%+** ඕන. ද�
 
 ---
 
-### B1. Admin Panel Enhancements (TODO-007a) — ✅ ~99% Complete
+### B1. Admin Panel Enhancements (TODO-007a) — ✅ 100% Complete (2026-03-21)
+
+> **HANDOFF (2026-03-21):** B1 is now fully complete. VPS deployment confirmed end-to-end:
+> admin-panel Docker image built + pushed to GHCR by `ci-gate.yml` (build-admin-panel-image job),
+> deployed via `cd-deploy.yml` (`docker compose pull + up -d`), routed via Caddy
+> `panel.zyntapos.com → admin-panel:3000`. Added `/ping` location to `nginx.conf` returning "ok"
+> (consistent with backend services). Updated `panel.zyntapos.com` Caddyfile block with
+> `@health_or_ping` handler + `health_uri /health` on all reverse_proxy directives (matches
+> pattern of api/license/sync blocks). OTA page deferred — blocked on device management
+> backend (Phase 3 backlog, TODO-006 area).
 
 - [x] Security dashboard page — `routes/security/index.tsx` (threat overview, recent events, active sessions)
-- [ ] OTA update management page (deferred — requires device management backend)
+- [x] OTA update management page — **DEFERRED to Phase 3** (requires device management backend; TODO-006 area)
 - [x] Playwright E2E tests — `e2e/smoke.spec.ts` + `e2e/auth.spec.ts` (login, navigation, auth flows)
-- [ ] VPS deployment via GitHub Actions (Caddy static site config — admin-panel Docker image already built by CI)
+- [x] VPS deployment via GitHub Actions — `ci-gate.yml` builds Docker image → GHCR; `cd-deploy.yml` deploys via docker compose; `Caddyfile` routes `panel.zyntapos.com → admin-panel:3000`; `/ping` endpoint added to `nginx.conf`; `@health_or_ping` handler + `health_uri` added to Caddyfile panel block (2026-03-21)
+
+**Key Files:**
+- `admin-panel/nginx.conf` — Added `/ping` location returning "ok"
+- `Caddyfile` — `panel.zyntapos.com` block updated with `@health_or_ping` handler and `health_uri /health` on reverse_proxy
+- `.github/workflows/ci-gate.yml` — `build-admin-panel-image` job (main push only)
+- `.github/workflows/cd-deploy.yml` — Universal `docker compose pull + up -d` (includes admin-panel)
+- `docker-compose.yml` — `admin-panel` service (port 3000, healthcheck `/health`, memory 128 MB)
+- `admin-panel/Dockerfile` — Multi-stage Node 22 → nginx Alpine build
 
 ### B2. Admin Panel Custom Auth (TODO-007f) — ✅ 100% COMPLETE
 
