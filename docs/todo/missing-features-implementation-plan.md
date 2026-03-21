@@ -1449,10 +1449,9 @@ Backend Tests:
 - [x] `DesktopUsbPrinterPort.openCashDrawer()` — JVM USB driver
 - [x] `DesktopSerialPrinterPort.openCashDrawer()` — JVM serial (jSerialComm) driver
 
-**STILL MISSING (call-site wiring only):**
-- [ ] POS payment completion use case: evaluate `config.cashDrawerTrigger` and call
-  `printerManager.openCashDrawer()` conditionally (CASH_ONLY → check payment method; NEVER → skip)
-- [ ] Register UI: manual "Open Drawer" button that calls `printerManager.openCashDrawer()` directly
+**CALL-SITE WIRING — ✅ DONE (2026-03-21):**
+- [x] POS payment completion: `OpenCashDrawerUseCase` called on CASH payments via `ReceiptPrinterPort.openCashDrawer()` (domain port added, adapter wired to `PrinterManager.openCashDrawer()`)
+- [x] Register UI: "Open Drawer" button added to `RegisterActionButtons`, wired via `RegisterIntent.OpenCashDrawer` → `RegisterViewModel.onOpenCashDrawer()` → `OpenCashDrawerUseCase`
 
 ---
 

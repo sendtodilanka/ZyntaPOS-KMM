@@ -37,4 +37,12 @@ interface ReceiptPrinterPort {
      *         on connection or print failure.
      */
     suspend fun print(order: Order, cashierId: String): Result<Unit>
+
+    /**
+     * Sends a cash drawer kick pulse to open the connected cash drawer.
+     *
+     * @return [Result.Success] when the pulse is sent,
+     *         [Result.Error] if not connected or unsupported.
+     */
+    suspend fun openCashDrawer(): Result<Unit>
 }

@@ -15,6 +15,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.pos.ApplyItemDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.ApplyOrderDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.CalculateOrderTotalsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.HoldOrderUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.pos.OpenCashDrawerUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.PrintReceiptUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.ProcessPaymentUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.RemoveItemFromCartUseCase
@@ -125,6 +126,13 @@ val posModule = module {
         )
     }
 
+    /** Opens the cash drawer via the printer ESC/POS kick command. */
+    factory {
+        OpenCashDrawerUseCase(
+            printerPort = get<ReceiptPrinterPort>(),
+        )
+    }
+
     // ── Sprint 22: coupon + loyalty use cases ─────────────────────────────────
 
     /** Validates coupon codes against the CouponRepository. */
@@ -189,6 +197,7 @@ val posModule = module {
             retrieveHeldUseCase = get(),
             processPaymentUseCase = get(),
             printReceiptUseCase = get(),
+            openCashDrawerUseCase = get(),
             receiptFormatter = get(),
             walletRepository = get(),
             loyaltyRepository = get(),
