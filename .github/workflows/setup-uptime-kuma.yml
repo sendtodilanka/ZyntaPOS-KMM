@@ -31,7 +31,7 @@ jobs:
   setup-uptime-kuma:
     name: "Configure Uptime Kuma Monitors"
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -98,129 +98,140 @@ jobs:
               [ "$i" -eq 24 ] && { echo "ERROR: Not ready after restart" >&2; exit 1; }
             done
 
+            # ── Write monitor setup script to temp file in container ─────────────
+            echo "--- Writing setup script to container..."
+            cat > /tmp/kuma_setup.js << 'JSEOF'
+'use strict';
+const SIO_PATHS = [
+  '/app/node_modules/socket.io-client',
+  '/tmp/sio/node_modules/socket.io-client'
+];
+let ioFn;
+for (const p of SIO_PATHS) {
+  try { ioFn = require(p).io; if (ioFn) break; } catch (_) {}
+}
+if (!ioFn) { console.error('socket.io-client not found in:', SIO_PATHS.join(', ')); process.exit(1); }
+
+const USERNAME = process.env.KUMA_USERNAME;
+const PASSWORD = process.env.KUMA_PASSWORD;
+const RESET    = process.env.RESET_MONITORS === 'true';
+
+const MONITORS = [
+  // External HTTP
+  { name: 'API \u2014 Health (External)',     type: 'http', url: 'https://api.zyntapos.com/health',     interval: 60  },
+  { name: 'License \u2014 Health (External)', type: 'http', url: 'https://license.zyntapos.com/health', interval: 60  },
+  { name: 'Sync \u2014 Health (External)',    type: 'http', url: 'https://sync.zyntapos.com/health',    interval: 60  },
+  { name: 'Panel (External)',                 type: 'http', url: 'https://panel.zyntapos.com',          interval: 120 },
+  { name: 'Website (External)',               type: 'http', url: 'https://zyntapos.com',                interval: 120 },
+  { name: 'Status Page (External)',           type: 'http', url: 'https://status.zyntapos.com',         interval: 120 },
+  // Internal HTTP (Docker network)
+  { name: 'API \u2014 Health (Internal)',     type: 'http', url: 'http://api:8080/health',    interval: 30 },
+  { name: 'License \u2014 Health (Internal)', type: 'http', url: 'http://license:8083/health', interval: 30 },
+  { name: 'Sync \u2014 Health (Internal)',    type: 'http', url: 'http://sync:8082/health',   interval: 30 },
+  // TCP port
+  { name: 'PostgreSQL TCP', type: 'port', hostname: 'postgres', port: 5432, interval: 60 },
+  { name: 'Redis TCP',      type: 'port', hostname: 'redis',    port: 6379, interval: 60 },
+  // TLS cert expiry (daily)
+  { name: 'TLS \u2014 api.zyntapos.com',     type: 'http', url: 'https://api.zyntapos.com/health',     interval: 86400, checkCertExpiry: true, expiryNotification: true },
+  { name: 'TLS \u2014 license.zyntapos.com', type: 'http', url: 'https://license.zyntapos.com/health', interval: 86400, checkCertExpiry: true, expiryNotification: true },
+  { name: 'TLS \u2014 sync.zyntapos.com',    type: 'http', url: 'https://sync.zyntapos.com/health',    interval: 86400, checkCertExpiry: true, expiryNotification: true },
+  { name: 'TLS \u2014 panel.zyntapos.com',   type: 'http', url: 'https://panel.zyntapos.com',          interval: 86400, checkCertExpiry: true, expiryNotification: true },
+  // Push heartbeats (backup jobs ping these)
+  { name: 'Backup \u2014 Daily DB', type: 'push', interval: 90000  },
+  { name: 'Backup \u2014 Verify',   type: 'push', interval: 691200 },
+];
+
+// Log all non-noise socket events for diagnostics
+const QUIET_EVENTS = new Set(['heartbeat','heartbeatList','avgPing','uptime','certInfo','notificationList','proxyList','statusPageList','apiKeyList','info']);
+
+const socket = ioFn('http://localhost:3001', {
+  transports: ['polling', 'websocket'],
+  timeout: 15000,
+  reconnectionAttempts: 0,
+});
+
+socket.onAny((event, ...args) => {
+  if (!QUIET_EVENTS.has(event)) {
+    const preview = JSON.stringify(args).slice(0, 120);
+    console.log('  [evt] ' + event + ' ' + preview);
+  }
+});
+
+socket.on('connect_error', (err) => {
+  console.error('Connection error:', err.message);
+  process.exit(1);
+});
+
+// Serial add — wait for each ACK before firing next (avoids Kuma backpressure)
+async function addSerial(socket, monitors) {
+  let created = 0;
+  for (const mon of monitors) {
+    const r = await new Promise(resolve => {
+      const t = setTimeout(() => {
+        console.warn('  TIMEOUT (45s): ' + mon.name);
+        resolve({ ok: false, msg: 'timeout' });
+      }, 45000);
+      socket.emit('add', mon, res => { clearTimeout(t); resolve(res); });
+    });
+    if (r && r.ok) {
+      console.log('  + ' + mon.name + ' (id=' + (r.monitorID || '?') + ')');
+      created++;
+    } else {
+      console.warn('  WARN: ' + mon.name + ': ' + (r && r.msg ? r.msg : JSON.stringify(r)));
+    }
+  }
+  return created;
+}
+
+// 17 * 45s max = 765s; global safety net at 800s
+const GLOBAL_TIMEOUT = setTimeout(() => {
+  console.error('ERROR: global timeout 800s'); socket.disconnect(); process.exit(1);
+}, 800000);
+
+socket.on('connect', async () => {
+  console.log('Connected sid=' + socket.id);
+  try {
+    const lr = await new Promise((resolve, reject) => {
+      const t = setTimeout(() => reject(new Error('Login timeout')), 15000);
+      socket.emit('login', { username: USERNAME, password: PASSWORD }, res => { clearTimeout(t); resolve(res); });
+    });
+    if (!lr || !lr.ok) throw new Error('Login failed: ' + (lr && lr.msg ? lr.msg : JSON.stringify(lr)));
+    console.log('Logged in as ' + USERNAME);
+
+    if (RESET) {
+      const listR = await new Promise(resolve => socket.emit('getMonitorList', {}, resolve));
+      const existing = Object.values((listR && listR.data) || {});
+      console.log('Deleting ' + existing.length + ' monitors...');
+      for (const m of existing) {
+        await new Promise(resolve => socket.emit('deleteMonitor', m.id, resolve));
+        console.log('  Deleted: ' + m.name);
+      }
+    }
+
+    console.log('Adding ' + MONITORS.length + ' monitors (serial, 45s timeout each)...');
+    const created = await addSerial(socket, MONITORS);
+
+    console.log('\nDone: ' + created + ' created, ' + (MONITORS.length - created) + ' warnings');
+    clearTimeout(GLOBAL_TIMEOUT);
+    socket.disconnect();
+    process.exit(created === 0 ? 1 : 0);
+  } catch (err) {
+    console.error('ERROR: ' + err.message);
+    clearTimeout(GLOBAL_TIMEOUT);
+    socket.disconnect();
+    process.exit(1);
+  }
+});
+JSEOF
+            docker cp /tmp/kuma_setup.js "$CONTAINER":/tmp/kuma_setup.js
+
             # ── Run monitor setup via Node.js inside the container ───────────────
             echo "--- Running monitor setup script inside container..."
-            docker exec -i \
+            docker exec \
               -e KUMA_USERNAME="$KUMA_USERNAME" \
               -e KUMA_PASSWORD="$KUMA_PASSWORD" \
               -e RESET_MONITORS="$RESET_MONITORS" \
-              "$CONTAINER" node << 'JSEOF'
-            'use strict';
-            const SIO_PATHS = [
-              '/app/node_modules/socket.io-client',
-              '/tmp/sio/node_modules/socket.io-client'
-            ];
-            let ioFn;
-            for (const p of SIO_PATHS) {
-              try { ioFn = require(p).io; if (ioFn) break; } catch (_) {}
-            }
-            if (!ioFn) { console.error('socket.io-client not found in:', SIO_PATHS.join(', ')); process.exit(1); }
-
-            const USERNAME = process.env.KUMA_USERNAME;
-            const PASSWORD = process.env.KUMA_PASSWORD;
-            const RESET    = process.env.RESET_MONITORS === 'true';
-
-            const MONITORS = [
-              // External HTTP
-              { name: 'API — Health (External)',     type: 'http', url: 'https://api.zyntapos.com/health',     interval: 60  },
-              { name: 'License — Health (External)', type: 'http', url: 'https://license.zyntapos.com/health', interval: 60  },
-              { name: 'Sync — Health (External)',    type: 'http', url: 'https://sync.zyntapos.com/health',    interval: 60  },
-              { name: 'Panel (External)',            type: 'http', url: 'https://panel.zyntapos.com',          interval: 120 },
-              { name: 'Website (External)',          type: 'http', url: 'https://zyntapos.com',               interval: 120 },
-              { name: 'Status Page (External)',      type: 'http', url: 'https://status.zyntapos.com',        interval: 120 },
-              // Internal HTTP (Docker network)
-              { name: 'API — Health (Internal)',     type: 'http', url: 'http://api:8080/health',    interval: 30 },
-              { name: 'License — Health (Internal)', type: 'http', url: 'http://license:8083/health', interval: 30 },
-              { name: 'Sync — Health (Internal)',    type: 'http', url: 'http://sync:8082/health',   interval: 30 },
-              // TCP port
-              { name: 'PostgreSQL TCP', type: 'port', hostname: 'postgres', port: 5432, interval: 60 },
-              { name: 'Redis TCP',      type: 'port', hostname: 'redis',    port: 6379, interval: 60 },
-              // TLS cert expiry (daily)
-              { name: 'TLS — api.zyntapos.com',     type: 'http', url: 'https://api.zyntapos.com/health',     interval: 86400, checkCertExpiry: true, expiryNotification: true },
-              { name: 'TLS — license.zyntapos.com', type: 'http', url: 'https://license.zyntapos.com/health', interval: 86400, checkCertExpiry: true, expiryNotification: true },
-              { name: 'TLS — sync.zyntapos.com',    type: 'http', url: 'https://sync.zyntapos.com/health',    interval: 86400, checkCertExpiry: true, expiryNotification: true },
-              { name: 'TLS — panel.zyntapos.com',   type: 'http', url: 'https://panel.zyntapos.com',          interval: 86400, checkCertExpiry: true, expiryNotification: true },
-              // Push heartbeats (backup jobs ping these)
-              { name: 'Backup — Daily DB', type: 'push', interval: 90000  },
-              { name: 'Backup — Verify',   type: 'push', interval: 691200 },
-            ];
-
-            // Emit with optional ack — never rejects, resolves with result or timeout marker
-            function emitMonitor(socket, mon, delayMs) {
-              return new Promise(resolve =>
-                setTimeout(() => {
-                  const t = setTimeout(() => {
-                    console.warn('  TIMEOUT: ' + mon.name + ' (ack not received in 30s)');
-                    resolve({ ok: false, msg: 'timeout' });
-                  }, 30000);
-                  socket.emit('addMonitor', mon, res => { clearTimeout(t); resolve(res); });
-                }, delayMs)
-              );
-            }
-
-            const socket = ioFn('http://localhost:3001', {
-              transports: ['websocket'],
-              timeout: 10000,
-              reconnectionAttempts: 0,
-            });
-
-            socket.on('connect_error', (err) => {
-              console.error('Connection error:', err.message);
-              process.exit(1);
-            });
-
-            // 17 monitors * 600ms stagger + 30s final ack window = ~40s; allow 120s total
-            const GLOBAL_TIMEOUT = setTimeout(() => {
-              console.error('ERROR: global timeout 120s'); socket.disconnect(); process.exit(1);
-            }, 120000);
-
-            socket.on('connect', async () => {
-              console.log('Connected to Uptime Kuma socket');
-              try {
-                // Login (serial, must complete first)
-                const lr = await new Promise((resolve, reject) => {
-                  const t = setTimeout(() => reject(new Error('Login timeout')), 15000);
-                  socket.emit('login', { username: USERNAME, password: PASSWORD }, res => { clearTimeout(t); resolve(res); });
-                });
-                if (!lr || !lr.ok) throw new Error('Login failed: ' + (lr && lr.msg ? lr.msg : JSON.stringify(lr)));
-                console.log('Logged in as ' + USERNAME);
-
-                // Optionally reset (serial)
-                if (RESET) {
-                  const listR = await new Promise(resolve => socket.emit('getMonitorList', {}, resolve));
-                  const existing = Object.values((listR && listR.data) || {});
-                  console.log('Deleting ' + existing.length + ' monitors...');
-                  for (const m of existing) {
-                    await new Promise(resolve => socket.emit('deleteMonitor', m.id, resolve));
-                    console.log('  Deleted: ' + m.name);
-                  }
-                }
-
-                // Create all monitors concurrently with staggered starts (600ms apart)
-                console.log('Adding ' + MONITORS.length + ' monitors (concurrent, 600ms stagger)...');
-                const results = await Promise.all(
-                  MONITORS.map((mon, i) => emitMonitor(socket, mon, i * 600))
-                );
-
-                let created = 0, warned = 0;
-                MONITORS.forEach((mon, i) => {
-                  const r = results[i];
-                  if (r && r.ok) { console.log('  + ' + mon.name + ' (id=' + (r.monitorID || '?') + ')'); created++; }
-                  else { console.warn('  WARNING: ' + mon.name + ': ' + (r && r.msg ? r.msg : JSON.stringify(r))); warned++; }
-                });
-
-                console.log('\nDone: ' + created + ' created, ' + warned + ' warnings');
-                clearTimeout(GLOBAL_TIMEOUT);
-                socket.disconnect();
-                process.exit(created === 0 ? 1 : 0);
-              } catch (err) {
-                console.error('ERROR: ' + err.message);
-                clearTimeout(GLOBAL_TIMEOUT);
-                socket.disconnect();
-                process.exit(1);
-              }
-            });
-            JSEOF
+              "$CONTAINER" node /tmp/kuma_setup.js
 
             # ── Save credentials to VPS .env ─────────────────────────────────────
             echo "--- Saving credentials to /opt/zyntapos/.env..."
