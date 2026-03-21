@@ -44,6 +44,7 @@ const scalarConfig = JSON.stringify({
 });
 
 // Generate index.html with Scalar CDN reference (multi-spec mode)
+// Uses Scalar.createApiReference() — required for sources/multi-spec in v1.25+
 const indexHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -54,8 +55,11 @@ const indexHtml = `<!DOCTYPE html>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>Z</text></svg>" />
 </head>
 <body>
-  <script id="api-reference" data-configuration='${scalarConfig}'></script>
+  <div id="app"></div>
   <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+  <script>
+    Scalar.createApiReference('#app', ${scalarConfig})
+  </script>
 </body>
 </html>`;
 
