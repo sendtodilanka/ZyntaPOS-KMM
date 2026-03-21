@@ -4,7 +4,6 @@ import {
   Monitor, Plus, X, Clock, CheckCircle2, ShieldAlert,
   AlertTriangle, Copy, Check,
 } from 'lucide-react';
-import { DataTable, type Column } from '@/components/shared/DataTable';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { useStores } from '@/api/stores';
 import {
