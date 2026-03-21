@@ -38,7 +38,7 @@ data class DiagnosticClaims(
  * Tokens are issued by the backend `DiagnosticSessionService` and signed with
  * the admin JWT HS256 secret. The 15-minute TTL is enforced via the `exp` claim.
  */
-class DiagnosticTokenValidator {
+open class DiagnosticTokenValidator {
 
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
@@ -47,7 +47,7 @@ class DiagnosticTokenValidator {
      * Returns [Result.Error] if the token is malformed, expired, or missing required fields.
      */
     @OptIn(ExperimentalEncodingApi::class)
-    fun validateToken(token: String): Result<DiagnosticClaims> {
+    open fun validateToken(token: String): Result<DiagnosticClaims> {
         return runCatching {
             val parts = token.split(".")
             require(parts.size == 3) { "Invalid token format — expected 3 JWT segments" }

@@ -677,3 +677,441 @@ class CloseAccountingPeriodUseCaseTest {
         assertEquals("INVALID_STATUS_TRANSITION", (result.exception as ValidationException).rule)
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PostJournalEntryUseCase — additional tests (NOT_FOUND + PERIOD_NOT_OPEN)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class PostJournalEntryUseCaseAdditionalTest {
+
+    @Test
+    fun test_post_nonexistent_entry_returns_not_found() = runTest {
+        val journalRepo = FakeJournalRepository()
+        val periodRepo = FakeAccountingPeriodRepository()
+        val useCase = PostJournalEntryUseCase(journalRepo, periodRepo)
+
+        val result = useCase.execute("does-not-exist", NOW)
+
+        assertIs<Result.Error>(result)
+        assertIs<ValidationException>(result.exception)
+        assertEquals("NOT_FOUND", (result.exception as ValidationException).rule)
+    }
+
+    @Test
+    fun test_post_closed_period_returns_period_not_open() = runTest {
+        val journalRepo = FakeJournalRepository()
+        val periodRepo = FakeAccountingPeriodRepository()
+        val useCase = PostJournalEntryUseCase(journalRepo, periodRepo)
+
+        // Period is CLOSED — getPeriodForDate returns null (fake filters for OPEN only)
+        periodRepo.periods.add(buildPeriod(status = PeriodStatus.CLOSED))
+        val entry = buildJournalEntry(
+            id = "je-closed",
+            entryDate = "2026-02-15",
+            lines = buildBalancedLines(entryId = "je-closed"),
+        )
+        journalRepo.entries.add(entry)
+
+        val result = useCase.execute("je-closed", NOW)
+
+        assertIs<Result.Error>(result)
+        assertIs<ValidationException>(result.exception)
+        assertEquals("PERIOD_NOT_OPEN", (result.exception as ValidationException).rule)
+    }
+
+    @Test
+    fun test_post_locked_period_returns_period_not_open() = runTest {
+        val journalRepo = FakeJournalRepository()
+        val periodRepo = FakeAccountingPeriodRepository()
+        val useCase = PostJournalEntryUseCase(journalRepo, periodRepo)
+
+        periodRepo.periods.add(buildPeriod(status = PeriodStatus.LOCKED))
+        val entry = buildJournalEntry(
+            id = "je-locked",
+            entryDate = "2026-02-15",
+            lines = buildBalancedLines(entryId = "je-locked"),
+        )
+        journalRepo.entries.add(entry)
+
+        val result = useCase.execute("je-locked", NOW)
+
+        assertIs<Result.Error>(result)
+        assertIs<ValidationException>(result.exception)
+        assertEquals("PERIOD_NOT_OPEN", (result.exception as ValidationException).rule)
+    }
+
+    @Test
+    fun test_post_balanced_within_tolerance_succeeds() = runTest {
+        val journalRepo = FakeJournalRepository()
+        val periodRepo = FakeAccountingPeriodRepository()
+        val useCase = PostJournalEntryUseCase(journalRepo, periodRepo)
+
+        // abs(100.004 - 100.001) = 0.003 which is within the 0.005 tolerance
+        val lines = listOf(
+            JournalEntryLine(
+                id = "line-dr",
+                journalEntryId = "je-tol",
+                accountId = "acc-cash",
+                debitAmount = 100.004,
+                creditAmount = 0.0,
+                lineOrder = 1,
+                createdAt = NOW,
+            ),
+            JournalEntryLine(
+                id = "line-cr",
+                journalEntryId = "je-tol",
+                accountId = "acc-revenue",
+                debitAmount = 0.0,
+                creditAmount = 100.001,
+                lineOrder = 2,
+                createdAt = NOW,
+            ),
+        )
+        periodRepo.periods.add(buildPeriod(status = PeriodStatus.OPEN))
+        journalRepo.entries.add(buildJournalEntry(id = "je-tol", entryDate = "2026-02-15", lines = lines))
+
+        val result = useCase.execute("je-tol", NOW)
+
+        assertIs<Result.Success<Unit>>(result)
+    }
+
+    @Test
+    fun test_post_imbalanced_just_over_tolerance_returns_unbalanced() = runTest {
+        val journalRepo = FakeJournalRepository()
+        val periodRepo = FakeAccountingPeriodRepository()
+        val useCase = PostJournalEntryUseCase(journalRepo, periodRepo)
+
+        // abs(100.006 - 100.000) = 0.006 — just over tolerance
+        val lines = listOf(
+            JournalEntryLine(
+                id = "line-dr",
+                journalEntryId = "je-over",
+                accountId = "acc-cash",
+                debitAmount = 100.006,
+                creditAmount = 0.0,
+                lineOrder = 1,
+                createdAt = NOW,
+            ),
+            JournalEntryLine(
+                id = "line-cr",
+                journalEntryId = "je-over",
+                accountId = "acc-revenue",
+                debitAmount = 0.0,
+                creditAmount = 100.000,
+                lineOrder = 2,
+                createdAt = NOW,
+            ),
+        )
+        periodRepo.periods.add(buildPeriod(status = PeriodStatus.OPEN))
+        journalRepo.entries.add(buildJournalEntry(id = "je-over", entryDate = "2026-02-15", lines = lines))
+
+        val result = useCase.execute("je-over", NOW)
+
+        assertIs<Result.Error>(result)
+        assertIs<ValidationException>(result.exception)
+        assertEquals("UNBALANCED", (result.exception as ValidationException).rule)
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SaveDraftJournalEntryUseCaseTest
+// ─────────────────────────────────────────────────────────────────────────────
+
+class SaveDraftJournalEntryUseCaseTest {
+
+    @Test
+    fun test_save_draft_with_open_period_succeeds() = runTest {
+        val journalRepo = FakeJournalRepository()
+        val periodRepo = FakeAccountingPeriodRepository()
+        periodRepo.periods.add(buildPeriod(status = PeriodStatus.OPEN))
+        val useCase = SaveDraftJournalEntryUseCase(journalRepo, periodRepo)
+
+        val entry = buildJournalEntry(
+            id = "je-new",
+            entryDate = "2026-02-15",
+            lines = buildBalancedLines(entryId = "je-new"),
+        )
+
+        val result = useCase.execute(entry)
+
+        assertIs<Result.Success<Unit>>(result)
+        assertTrue(journalRepo.entries.any { it.id == "je-new" })
+    }
+
+    @Test
+    fun test_save_draft_already_posted_returns_error() = runTest {
+        val journalRepo = FakeJournalRepository()
+        val periodRepo = FakeAccountingPeriodRepository()
+        periodRepo.periods.add(buildPeriod(status = PeriodStatus.OPEN))
+        val useCase = SaveDraftJournalEntryUseCase(journalRepo, periodRepo)
+
+        val posted = buildJournalEntry(id = "je-posted", isPosted = true)
+
+        val result = useCase.execute(posted)
+
+        assertIs<Result.Error>(result)
+        assertIs<ValidationException>(result.exception)
+        assertEquals("ALREADY_POSTED", (result.exception as ValidationException).rule)
+    }
+
+    @Test
+    fun test_save_draft_no_open_period_returns_error() = runTest {
+        val journalRepo = FakeJournalRepository()
+        val periodRepo = FakeAccountingPeriodRepository()
+        // No periods added — getPeriodForDate returns null
+        val useCase = SaveDraftJournalEntryUseCase(journalRepo, periodRepo)
+
+        val entry = buildJournalEntry(
+            id = "je-noperiod",
+            entryDate = "2026-02-15",
+            lines = buildBalancedLines(entryId = "je-noperiod"),
+        )
+
+        val result = useCase.execute(entry)
+
+        assertIs<Result.Error>(result)
+        assertIs<ValidationException>(result.exception)
+        assertEquals("PERIOD_NOT_OPEN", (result.exception as ValidationException).rule)
+    }
+
+    @Test
+    fun test_save_draft_closed_period_returns_error() = runTest {
+        val journalRepo = FakeJournalRepository()
+        val periodRepo = FakeAccountingPeriodRepository()
+        // CLOSED period — getPeriodForDate returns null because fake only matches OPEN periods
+        periodRepo.periods.add(buildPeriod(status = PeriodStatus.CLOSED))
+        val useCase = SaveDraftJournalEntryUseCase(journalRepo, periodRepo)
+
+        val entry = buildJournalEntry(
+            id = "je-closed",
+            entryDate = "2026-02-15",
+            lines = buildBalancedLines(entryId = "je-closed"),
+        )
+
+        val result = useCase.execute(entry)
+
+        assertIs<Result.Error>(result)
+        assertIs<ValidationException>(result.exception)
+        assertEquals("PERIOD_NOT_OPEN", (result.exception as ValidationException).rule)
+    }
+
+    @Test
+    fun test_save_draft_zero_line_returns_error() = runTest {
+        val journalRepo = FakeJournalRepository()
+        val periodRepo = FakeAccountingPeriodRepository()
+        periodRepo.periods.add(buildPeriod(status = PeriodStatus.OPEN))
+        val useCase = SaveDraftJournalEntryUseCase(journalRepo, periodRepo)
+
+        val lines = listOf(
+            JournalEntryLine(
+                id = "line-zero",
+                journalEntryId = "je-zero",
+                accountId = "acc-cash",
+                debitAmount = 0.0,
+                creditAmount = 0.0,
+                lineOrder = 1,
+                createdAt = NOW,
+            ),
+        )
+        val entry = buildJournalEntry(id = "je-zero", entryDate = "2026-02-15", lines = lines)
+
+        val result = useCase.execute(entry)
+
+        assertIs<Result.Error>(result)
+        assertIs<ValidationException>(result.exception)
+        assertEquals("ZERO_LINE", (result.exception as ValidationException).rule)
+    }
+
+    @Test
+    fun test_save_draft_dual_sided_line_returns_error() = runTest {
+        val journalRepo = FakeJournalRepository()
+        val periodRepo = FakeAccountingPeriodRepository()
+        periodRepo.periods.add(buildPeriod(status = PeriodStatus.OPEN))
+        val useCase = SaveDraftJournalEntryUseCase(journalRepo, periodRepo)
+
+        // Both debit AND credit > 0 on the same line — dual-sided
+        val lines = listOf(
+            JournalEntryLine(
+                id = "line-dual",
+                journalEntryId = "je-dual",
+                accountId = "acc-cash",
+                debitAmount = 100.0,
+                creditAmount = 100.0,
+                lineOrder = 1,
+                createdAt = NOW,
+            ),
+        )
+        val entry = buildJournalEntry(id = "je-dual", entryDate = "2026-02-15", lines = lines)
+
+        val result = useCase.execute(entry)
+
+        assertIs<Result.Error>(result)
+        assertIs<ValidationException>(result.exception)
+        assertEquals("DUAL_SIDED_LINE", (result.exception as ValidationException).rule)
+    }
+
+    @Test
+    fun test_save_draft_updates_existing_entry() = runTest {
+        val journalRepo = FakeJournalRepository()
+        val periodRepo = FakeAccountingPeriodRepository()
+        periodRepo.periods.add(buildPeriod(status = PeriodStatus.OPEN))
+        val useCase = SaveDraftJournalEntryUseCase(journalRepo, periodRepo)
+
+        val original = buildJournalEntry(
+            id = "je-update",
+            entryDate = "2026-02-15",
+            lines = buildBalancedLines(entryId = "je-update", amount = 50.0),
+        )
+        journalRepo.entries.add(original)
+
+        val updated = original.copy(
+            lines = buildBalancedLines(entryId = "je-update", amount = 200.0),
+        )
+        useCase.execute(updated)
+
+        val saved = journalRepo.entries.first { it.id == "je-update" }
+        assertEquals(200.0, saved.lines.first { it.debitAmount > 0 }.debitAmount)
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ReverseJournalEntryUseCaseTest
+// ─────────────────────────────────────────────────────────────────────────────
+
+class ReverseJournalEntryUseCaseTest {
+
+    @Test
+    fun test_reverse_posted_entry_returns_draft_reversal() = runTest {
+        val journalRepo = FakeJournalRepository()
+        val useCase = ReverseJournalEntryUseCase(journalRepo)
+
+        val posted = buildJournalEntry(
+            id = "je-posted",
+            isPosted = true,
+            lines = buildBalancedLines(entryId = "je-posted", amount = 300.0),
+        )
+        journalRepo.entries.add(posted)
+
+        val result = useCase.execute("je-posted", "2026-03-01", "user-01", NOW)
+
+        assertIs<Result.Success<JournalEntry>>(result)
+        val reversal = (result as Result.Success).data
+        assertEquals(false, reversal.isPosted)
+        // Reversal lines swap debit/credit
+        val drLine = reversal.lines.first { it.debitAmount > 0 }
+        val crLine = reversal.lines.first { it.creditAmount > 0 }
+        assertEquals(300.0, drLine.debitAmount)
+        assertEquals(300.0, crLine.creditAmount)
+    }
+
+    @Test
+    fun test_reverse_nonexistent_entry_returns_not_found() = runTest {
+        val journalRepo = FakeJournalRepository()
+        val useCase = ReverseJournalEntryUseCase(journalRepo)
+
+        val result = useCase.execute("ghost-id", "2026-03-01", "user-01", NOW)
+
+        assertIs<Result.Error>(result)
+        assertIs<ValidationException>(result.exception)
+        assertEquals("NOT_FOUND", (result.exception as ValidationException).rule)
+    }
+
+    @Test
+    fun test_reverse_unposted_draft_returns_not_posted() = runTest {
+        val journalRepo = FakeJournalRepository()
+        val useCase = ReverseJournalEntryUseCase(journalRepo)
+
+        val draft = buildJournalEntry(
+            id = "je-draft",
+            isPosted = false,
+            lines = buildBalancedLines(entryId = "je-draft"),
+        )
+        journalRepo.entries.add(draft)
+
+        val result = useCase.execute("je-draft", "2026-03-01", "user-01", NOW)
+
+        assertIs<Result.Error>(result)
+        assertIs<ValidationException>(result.exception)
+        assertEquals("NOT_POSTED", (result.exception as ValidationException).rule)
+    }
+
+    @Test
+    fun test_reversal_date_is_set_on_reversal_entry() = runTest {
+        val journalRepo = FakeJournalRepository()
+        val useCase = ReverseJournalEntryUseCase(journalRepo)
+
+        val posted = buildJournalEntry(
+            id = "je-rev-date",
+            isPosted = true,
+            lines = buildBalancedLines(entryId = "je-rev-date"),
+        )
+        journalRepo.entries.add(posted)
+
+        val result = useCase.execute("je-rev-date", "2026-04-01", "user-01", NOW)
+
+        assertIs<Result.Success<JournalEntry>>(result)
+        assertEquals("2026-04-01", (result as Result.Success).data.entryDate)
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DeleteDraftEntryUseCaseTest
+// ─────────────────────────────────────────────────────────────────────────────
+
+class DeleteDraftEntryUseCaseTest {
+
+    @Test
+    fun test_delete_draft_entry_succeeds() = runTest {
+        val journalRepo = FakeJournalRepository()
+        val useCase = DeleteDraftEntryUseCase(journalRepo)
+
+        val draft = buildJournalEntry(id = "je-del", isPosted = false)
+        journalRepo.entries.add(draft)
+
+        val result = useCase.execute("je-del")
+
+        assertIs<Result.Success<Unit>>(result)
+        assertTrue(journalRepo.entries.none { it.id == "je-del" })
+    }
+
+    @Test
+    fun test_delete_nonexistent_entry_returns_not_found() = runTest {
+        val journalRepo = FakeJournalRepository()
+        val useCase = DeleteDraftEntryUseCase(journalRepo)
+
+        val result = useCase.execute("ghost-entry")
+
+        assertIs<Result.Error>(result)
+        assertIs<ValidationException>(result.exception)
+        assertEquals("NOT_FOUND", (result.exception as ValidationException).rule)
+    }
+
+    @Test
+    fun test_delete_posted_entry_returns_already_posted() = runTest {
+        val journalRepo = FakeJournalRepository()
+        val useCase = DeleteDraftEntryUseCase(journalRepo)
+
+        val posted = buildJournalEntry(id = "je-posted-del", isPosted = true)
+        journalRepo.entries.add(posted)
+
+        val result = useCase.execute("je-posted-del")
+
+        assertIs<Result.Error>(result)
+        assertIs<ValidationException>(result.exception)
+        assertEquals("ALREADY_POSTED", (result.exception as ValidationException).rule)
+    }
+
+    @Test
+    fun test_delete_does_not_affect_other_entries() = runTest {
+        val journalRepo = FakeJournalRepository()
+        val useCase = DeleteDraftEntryUseCase(journalRepo)
+
+        journalRepo.entries.add(buildJournalEntry(id = "je-keep", isPosted = false))
+        journalRepo.entries.add(buildJournalEntry(id = "je-remove", isPosted = false, entryNumber = 2))
+
+        useCase.execute("je-remove")
+
+        assertEquals(1, journalRepo.entries.size)
+        assertEquals("je-keep", journalRepo.entries.first().id)
+    }
+}

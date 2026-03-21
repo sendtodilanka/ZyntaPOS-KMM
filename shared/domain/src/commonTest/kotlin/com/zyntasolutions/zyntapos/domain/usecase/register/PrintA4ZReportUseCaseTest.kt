@@ -82,4 +82,53 @@ class PrintA4ZReportUseCaseTest {
 
         assertIs<Result.Error>(result)
     }
+
+    @Test
+    fun `print A4 Z-report - ADMIN role - delegates to printer port`() = runTest {
+        val registerRepo = FakeRegisterRepository()
+        val printerPort = FakeA4InvoicePrinterPort()
+        val checkPermission = makeCheckPermission(Role.ADMIN)
+        val session = buildRegisterSession(id = "session-01")
+        registerRepo.sessions.add(session)
+        val useCase = PrintA4ZReportUseCase(registerRepo, printerPort, checkPermission)
+
+        val result = useCase.execute("session-01", "user-01")
+
+        assertIs<Result.Success<Unit>>(result)
+        assertEquals(1, printerPort.zReportJobs.size)
+    }
+
+    @Test
+    fun `print A4 Z-report - multiple sessions - each job tracked separately`() = runTest {
+        val registerRepo = FakeRegisterRepository()
+        val printerPort = FakeA4InvoicePrinterPort()
+        val checkPermission = makeCheckPermission(Role.STORE_MANAGER)
+        val s1 = buildRegisterSession(id = "session-A")
+        val s2 = buildRegisterSession(id = "session-B")
+        registerRepo.sessions.addAll(listOf(s1, s2))
+        val useCase = PrintA4ZReportUseCase(registerRepo, printerPort, checkPermission)
+
+        useCase.execute("session-A", "user-01")
+        useCase.execute("session-B", "user-01")
+
+        assertEquals(2, printerPort.zReportJobs.size)
+        assertEquals("session-A", printerPort.zReportJobs[0].id)
+        assertEquals("session-B", printerPort.zReportJobs[1].id)
+    }
+
+    @Test
+    fun `print A4 Z-report - ACCOUNTANT role without CLOSE_REGISTER - returns auth error`() = runTest {
+        val registerRepo = FakeRegisterRepository()
+        val printerPort = FakeA4InvoicePrinterPort()
+        // ACCOUNTANT does not have CLOSE_REGISTER permission
+        val checkPermission = makeCheckPermission(Role.ACCOUNTANT)
+        val session = buildRegisterSession(id = "session-01")
+        registerRepo.sessions.add(session)
+        val useCase = PrintA4ZReportUseCase(registerRepo, printerPort, checkPermission)
+
+        val result = useCase.execute("session-01", "user-01")
+
+        assertIs<Result.Error>(result)
+        assertTrue(printerPort.zReportJobs.isEmpty())
+    }
 }
