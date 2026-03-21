@@ -177,16 +177,33 @@ sync.zyntapos.com {
 panel.zyntapos.com {
 	import cf_tls
 
+	# /health and /ping — proxy to nginx for smoke tests & Uptime Kuma
+	# nginx returns "healthy\n" for /health and "ok" for /ping
+	@health_or_ping {
+		path /health /ping
+	}
+	handle @health_or_ping {
+		reverse_proxy admin-panel:3000
+	}
+
 	# SPA fallback — serve index.html for all non-asset routes
 	# so TanStack Router can handle client-side navigation
 	@assets {
 		path /assets/* /favicon.ico /robots.txt
 	}
 	handle @assets {
-		reverse_proxy admin-panel:3000
+		reverse_proxy admin-panel:3000 {
+			health_uri /health
+			health_interval 30s
+			health_timeout 10s
+		}
 	}
 	handle {
-		reverse_proxy admin-panel:3000
+		reverse_proxy admin-panel:3000 {
+			health_uri /health
+			health_interval 30s
+			health_timeout 10s
+		}
 	}
 }
 

@@ -4130,3 +4130,47 @@ Three items were out of scope for the KMM-only C1.2 task and are now implemented
 - [x] `admin-panel/src/routes/inventory/index.tsx` — table view with product/store ID filters and low-stock toggle; `inventory:read` gated via sidebar permission
 - [x] `admin-panel/src/routeTree.gen.ts` — `/inventory/` route registered in generated route tree
 - [x] `admin-panel/src/components/layout/Sidebar.tsx` — "Inventory" nav item added to Management group
+---
+
+## B1 — Admin Panel Enhancements (TODO-007a) — 100% Complete (2026-03-21)
+
+**Branch:** `claude/implement-b1-features-FLPpT`
+**Status:** Complete
+
+### Summary
+
+B1 Admin Panel Enhancements confirmed end-to-end complete. VPS deployment pipeline verified across all 7 CI/CD steps. Two infrastructure gaps closed to align admin panel health monitoring with backend service conventions.
+
+### Changes Made
+
+#### 1. `admin-panel/nginx.conf` — Added `/ping` liveness endpoint
+
+- [x] New `location /ping` block returns `200 "ok"` (consistent with all backend services)
+- Smoke test (Step[6]) and Uptime Kuma can now probe `https://panel.zyntapos.com/ping` with expected "ok" body
+- Existing `/health` endpoint unchanged (`200 "healthy\n"`)
+
+#### 2. `Caddyfile` — Updated `panel.zyntapos.com` block
+
+- [x] Added `@health_or_ping` named matcher (`path /health /ping`) — matches pattern of api/license/sync blocks
+- [x] `handle @health_or_ping` proxies to `admin-panel:3000` (nginx serves correct response)
+- [x] Added `health_uri /health`, `health_interval 30s`, `health_timeout 10s` to all `reverse_proxy admin-panel:3000` directives — Caddy now actively monitors the nginx container
+
+#### 3. Documentation
+
+- [x] `docs/todo/missing-features-implementation-plan.md` — B1 status updated to 100% complete; all items marked `[x]`; OTA page explicitly tagged as DEFERRED to Phase 3; handoff note added
+
+### VPS Deployment Architecture (Verified)
+
+| Component | Implementation | Status |
+|-----------|---------------|--------|
+| Docker image build | `ci-gate.yml` → `build-admin-panel-image` job | ✅ Main push only, pushes `admin-panel:latest` + SHA tag to GHCR |
+| Deploy trigger | `ci-gate.yml` → dispatches `deploy-trigger` on success | ✅ |
+| VPS deploy | `cd-deploy.yml` → `docker compose pull && docker compose up -d` | ✅ Includes admin-panel service |
+| Caddy routing | `panel.zyntapos.com { reverse_proxy admin-panel:3000 }` | ✅ |
+| Health monitoring | `/health` → "healthy\n", `/ping` → "ok" | ✅ Added in this session |
+| Smoke test (Step[6]) | `http://localhost/ping` with `Host: panel.zyntapos.com` → `:80` Caddy block → "ok" | ✅ Always worked via global `:80` handler |
+| Uptime Kuma | `https://panel.zyntapos.com` root path check | ✅ Configured in setup-monitors.sh |
+
+### OTA Update Management Page — Deferred
+
+The OTA update management page remains deferred. It requires a device management backend (remote command dispatch, binary artifact storage, update manifest API, OTA installation agent on device). This is tracked under TODO-006 / Phase 3 Enterprise scope.
