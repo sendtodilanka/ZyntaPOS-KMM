@@ -11,6 +11,7 @@ import com.zyntasolutions.zyntapos.domain.model.RegisterSession
 import com.zyntasolutions.zyntapos.domain.model.Role
 import com.zyntasolutions.zyntapos.domain.model.User
 import com.zyntasolutions.zyntapos.domain.printer.A4InvoicePrinterPort
+import com.zyntasolutions.zyntapos.domain.printer.ReceiptPrinterPort
 import com.zyntasolutions.zyntapos.domain.printer.ZReportPrinterPort
 import com.zyntasolutions.zyntapos.domain.repository.AuditRepository
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
@@ -21,6 +22,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.register.CloseRegisterSessionU
 import com.zyntasolutions.zyntapos.domain.usecase.register.OpenRegisterSessionUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.PrintA4ZReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.PrintZReportUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.pos.OpenCashDrawerUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.RecordCashMovementUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateSalesReportUseCase
 import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
@@ -198,6 +200,13 @@ class RegisterViewModelTest {
         override suspend fun printA4SalesReport(report: GenerateSalesReportUseCase.SalesReport): Result<Unit> = Result.Success(Unit)
     }
 
+    private val fakeReceiptPrinterPort = object : ReceiptPrinterPort {
+        override suspend fun print(order: Order, cashierId: String): Result<Unit> =
+            Result.Success(Unit)
+        override suspend fun openCashDrawer(): Result<Unit> =
+            Result.Success(Unit)
+    }
+
     private lateinit var viewModel: RegisterViewModel
 
     @BeforeTest
@@ -223,6 +232,7 @@ class RegisterViewModelTest {
             printZReportUseCase = printZReportUseCase,
             printA4ZReportUseCase = printA4ZReportUseCase,
             authRepository = fakeAuthRepository,
+            openCashDrawerUseCase = OpenCashDrawerUseCase(fakeReceiptPrinterPort),
             auditLogger = testAuditLogger,
             analytics = noOpAnalytics,
         )

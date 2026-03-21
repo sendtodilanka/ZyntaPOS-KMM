@@ -9,6 +9,7 @@ import com.zyntasolutions.zyntapos.domain.model.Role
 import com.zyntasolutions.zyntapos.domain.model.User
 import com.zyntasolutions.zyntapos.domain.repository.AuditRepository
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
+import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.domain.usecase.auth.LoginUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.auth.LogoutUseCase
 import com.zyntasolutions.zyntapos.feature.auth.mvi.AuthEffect
@@ -88,6 +89,19 @@ class AuthViewModelTest {
         override suspend fun validatePin(userId: String, pin: String): Result<Boolean> = Result.Success(true)
     }
 
+    // ── Fake SettingsRepository ────────────────────────────────────────────────
+
+    private val fakeSettingsRepository = object : SettingsRepository {
+        private val store = mutableMapOf<String, String>()
+        override suspend fun get(key: String): String? = store[key]
+        override suspend fun set(key: String, value: String): com.zyntasolutions.zyntapos.core.result.Result<Unit> {
+            store[key] = value
+            return com.zyntasolutions.zyntapos.core.result.Result.Success(Unit)
+        }
+        override suspend fun getAll(): Map<String, String> = store.toMap()
+        override fun observe(key: String): Flow<String?> = MutableStateFlow(store[key])
+    }
+
     // ── Real use cases wired to the fake repository ────────────────────────────
 
     private val loginUseCase = LoginUseCase(fakeAuthRepository)
@@ -117,6 +131,7 @@ class AuthViewModelTest {
             loginUseCase = loginUseCase,
             _logoutUseCase = logoutUseCase,
             authRepository = fakeAuthRepository,
+            settingsRepository = fakeSettingsRepository,
             auditLogger = testAuditLogger,
             analytics = noOpAnalytics,
         )
