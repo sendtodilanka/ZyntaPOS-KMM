@@ -41,10 +41,18 @@ jobs:
           test -f zyntapos-docs/dist/openapi/api-v1.yaml
           echo "Build output verified"
 
+      - name: Create Cloudflare Pages project (if not exists)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages project create zyntapos-docs --production-branch=main
+        continue-on-error: true
+
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=zyntapos-docs
+          command: pages deploy dist --project-name=zyntapos-docs --commit-dirty=true
           workingDirectory: zyntapos-docs
