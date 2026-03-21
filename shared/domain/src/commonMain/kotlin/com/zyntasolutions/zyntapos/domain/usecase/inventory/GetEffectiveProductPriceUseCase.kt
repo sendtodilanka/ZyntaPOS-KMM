@@ -5,7 +5,7 @@ import com.zyntasolutions.zyntapos.domain.model.Product
 import com.zyntasolutions.zyntapos.domain.repository.MasterProductRepository
 import com.zyntasolutions.zyntapos.domain.repository.PricingRuleRepository
 import com.zyntasolutions.zyntapos.domain.repository.StoreProductOverrideRepository
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 /**
  * Resolves the effective selling price for a product.
