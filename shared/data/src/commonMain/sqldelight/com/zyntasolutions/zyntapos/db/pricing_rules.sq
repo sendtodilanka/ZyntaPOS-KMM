@@ -1,0 +1,101 @@
+-- pricing_rules.sq — Store-specific and time-bounded product price overrides (C2.1)
+--
+-- Enables region-based pricing: administrators can set per-store prices
+-- with optional validity periods and priority-based resolution.
+
+CREATE TABLE IF NOT EXISTS pricing_rules (
+    id            TEXT    NOT NULL PRIMARY KEY,
+    product_id    TEXT    NOT NULL,
+    store_id      TEXT,                        -- NULL = global rule (all stores)
+    price         REAL    NOT NULL,
+    cost_price    REAL,
+    priority      INTEGER NOT NULL DEFAULT 0,  -- Higher = higher precedence
+    valid_from    INTEGER,                     -- Epoch ms; NULL = no start constraint
+    valid_to      INTEGER,                     -- Epoch ms; NULL = no end constraint
+    is_active     INTEGER NOT NULL DEFAULT 1,
+    description   TEXT    NOT NULL DEFAULT '',
+    created_at    INTEGER NOT NULL DEFAULT 0,
+    updated_at    INTEGER NOT NULL DEFAULT 0,
+    sync_status   TEXT    NOT NULL DEFAULT 'SYNCED'
+);
+
+CREATE INDEX IF NOT EXISTS idx_pricing_rules_product
+    ON pricing_rules(product_id);
+
+CREATE INDEX IF NOT EXISTS idx_pricing_rules_store
+    ON pricing_rules(store_id);
+
+CREATE INDEX IF NOT EXISTS idx_pricing_rules_product_store
+    ON pricing_rules(product_id, store_id, is_active);
+
+CREATE INDEX IF NOT EXISTS idx_pricing_rules_validity
+    ON pricing_rules(valid_from, valid_to);
+
+-- ── Queries ────────────────────────────────────────────────────────────
+
+getAllRules:
+SELECT *
+FROM pricing_rules
+ORDER BY product_id, priority DESC, updated_at DESC;
+
+getRulesForProduct:
+SELECT *
+FROM pricing_rules
+WHERE product_id = ?
+ORDER BY priority DESC, updated_at DESC;
+
+getActiveRulesForProduct:
+SELECT *
+FROM pricing_rules
+WHERE product_id = ?
+  AND is_active = 1
+  AND (store_id = ? OR store_id IS NULL)
+ORDER BY priority DESC, updated_at DESC;
+
+-- Returns the highest-priority active rule for a product+store at a given time.
+-- Store-specific rules take precedence over global rules (store_id IS NULL).
+getEffectiveRule:
+SELECT *
+FROM pricing_rules
+WHERE product_id = ?
+  AND is_active = 1
+  AND (store_id = ? OR store_id IS NULL)
+  AND (valid_from IS NULL OR valid_from <= ?)
+  AND (valid_to IS NULL OR valid_to >= ?)
+ORDER BY
+    CASE WHEN store_id IS NOT NULL THEN 0 ELSE 1 END ASC,
+    priority DESC
+LIMIT 1;
+
+getRuleById:
+SELECT *
+FROM pricing_rules
+WHERE id = ?;
+
+insertRule:
+INSERT OR REPLACE INTO pricing_rules(
+    id, product_id, store_id, price, cost_price,
+    priority, valid_from, valid_to, is_active,
+    description, created_at, updated_at, sync_status
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateRule:
+UPDATE pricing_rules
+SET price = ?,
+    cost_price = ?,
+    priority = ?,
+    valid_from = ?,
+    valid_to = ?,
+    is_active = ?,
+    description = ?,
+    updated_at = ?,
+    sync_status = 'PENDING'
+WHERE id = ?;
+
+deleteRule:
+DELETE FROM pricing_rules
+WHERE id = ?;
+
+deleteRulesForProduct:
+DELETE FROM pricing_rules
+WHERE product_id = ?;

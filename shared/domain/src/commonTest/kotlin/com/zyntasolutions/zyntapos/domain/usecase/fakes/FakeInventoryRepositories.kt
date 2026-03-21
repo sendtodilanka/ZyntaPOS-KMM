@@ -36,10 +36,12 @@ fun buildProduct(
     minStockQty: Double = 5.0,
     isActive: Boolean = true,
     categoryId: String = "cat-01",
+    masterProductId: String? = null,
 ) = Product(id = id, name = name, barcode = barcode, sku = sku, categoryId = categoryId,
     unitId = "unit-01", price = price, costPrice = costPrice, taxGroupId = "tax-01",
     stockQty = stockQty, minStockQty = minStockQty, imageUrl = null,
     description = "Test product description", isActive = isActive,
+    masterProductId = masterProductId,
     createdAt = Clock.System.now(), updatedAt = Clock.System.now())
 
 /** Builds a [TaxGroup] with sensible test defaults. */

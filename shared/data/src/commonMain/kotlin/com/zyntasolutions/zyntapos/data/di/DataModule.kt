@@ -22,6 +22,7 @@ import com.zyntasolutions.zyntapos.data.repository.InstallmentRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.LoyaltyRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.NotificationRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.MasterProductRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.PricingRuleRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.OrderRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.ProductRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.StoreProductOverrideRepositoryImpl
@@ -74,6 +75,7 @@ import com.zyntasolutions.zyntapos.domain.port.SecureStoragePort
 import com.zyntasolutions.zyntapos.domain.repository.AuditRepository
 import com.zyntasolutions.zyntapos.domain.repository.ConflictLogRepository
 import com.zyntasolutions.zyntapos.domain.repository.OperationalLogRepository
+import com.zyntasolutions.zyntapos.domain.repository.PricingRuleRepository
 import org.koin.core.qualifier.named
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.CategoryRepository
@@ -226,6 +228,9 @@ val dataModule = module {
     // Store product overrides (per-store price/stock)
     single<StoreProductOverrideRepository> { StoreProductOverrideRepositoryImpl(db = get(), syncEnqueuer = get()) }
     single { get<StoreProductOverrideRepository>() as StoreProductOverrideRepositoryImpl }
+
+    // Pricing rules — region-based pricing (C2.1)
+    single<PricingRuleRepository> { PricingRuleRepositoryImpl(db = get()) }
 
     // Product variants: size, colour, per-SKU variations
     single<ProductVariantRepository> { ProductVariantRepositoryImpl(db = get(), syncEnqueuer = get()) }

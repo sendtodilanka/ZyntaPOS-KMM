@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-21 (B5 Timestamp Standardization complete — TimestampUtils, SyncValidator payload validation, timestamp contract doc; G1 Design System 4 components added — ZyntaStoreSelector, ZyntaCurrencyPicker, ZyntaTimezonePicker, ZyntaTransferStatusBadge)
+**Last Updated:** 2026-03-21 (C2.1 Region-Based Pricing implemented — PricingRule domain model, 4-level price resolution in GetEffectiveProductPriceUseCase, SQLDelight schema + migration, backend V32 migration + AdminPricingRoutes, AddItemToCartUseCase wired to effective price, 12 unit tests; MS-1/MS-2 verified already complete; INV-3 routes verified already complete)
 **Status:** Approved — Verified against codebase 2026-03-21
 
 ---
@@ -822,33 +822,53 @@ Backend Tests:
 
 ---
 
-### C2.1 Region-Based Pricing (ප්‍රදේශ අනුව මිල)
+### C2.1 Region-Based Pricing (ප්‍රදේශ අනුව මිල) — ✅ CORE IMPLEMENTED (2026-03-21)
+
+> **HANDOFF (2026-03-21):** C2.1 core pricing infrastructure is fully implemented.
+> 4-level price resolution: store override → pricing rule → master product → product.price.
+> `AddItemToCartUseCase` now uses `GetEffectiveProductPriceUseCase` for price resolution.
+> Backend has V32 migration + 3 REST endpoints. 12 unit tests covering all resolution levels.
+> Branch: `claude/implement-missing-features-kL6qb`.
+> Remaining: Admin panel pricing management UI and KMM settings screen (deferred).
 
 **Priority:** PHASE-2
-**Status:** NOT IMPLEMENTED
+**Status:** CORE IMPLEMENTED — Admin panel UI pending
 
-**Codebase State:**
-- `Product.kt` has single `price: Double` — no regional override
-- `products.sq` has single `price REAL` column
-- `CartItem.kt` has `unitPrice: Double` — snapshot at time of cart add
-- Backend `ProductDto` has single `price: Double`
-- No `PricingRule`, `regional_price`, or `price_override` concept anywhere
+**What's DONE:**
+- [x] `PricingRule` domain model — id, productId, storeId (nullable=global), price, costPrice, priority, validFrom/validTo, isActive, description
+- [x] `pricing_rules.sq` SQLDelight table — 4 indexes, priority-based effective rule query (store-specific > global)
+- [x] `12.sqm` migration for existing devices
+- [x] `PricingRuleRepository` interface in `:shared:domain` — getEffectiveRule, getActiveRulesForProduct, getAllRules, CRUD
+- [x] `PricingRuleRepositoryImpl` in `:shared:data` — SQLDelight-backed
+- [x] `GetEffectiveProductPriceUseCase` updated — 4-level resolution: store override → pricing rule → master base → product.price
+- [x] `AddItemToCartUseCase` updated — uses `GetEffectiveProductPriceUseCase` for price resolution (backward-compatible: null = old behavior)
+- [x] `PRICING_RULE` entity type constant in `SyncOperation`
+- [x] `PricingRuleRepositoryImpl` registered in `DataModule.kt` Koin DI
+- [x] `GetEffectiveProductPriceUseCase` registered in `PosModule.kt` Koin DI
+- [x] Backend V32 migration — `pricing_rules` PostgreSQL table with UUID PKs, partial unique index
+- [x] Backend `PricingRuleRepository` (Exposed ORM) — getRules, upsert, delete
+- [x] Backend `AdminPricingRoutes` — GET/POST/DELETE `/admin/pricing/rules` with RBAC
+- [x] Backend Routing.kt + AppModule.kt registered
+- [x] 12 unit tests in `GetEffectiveProductPriceUseCaseTest`
+- [x] `FakePricingRepositories.kt` — fake repos + builders for MasterProduct, StoreProductOverride, PricingRule
 
-**What's MISSING:**
-- [ ] `PricingRule` domain model (id, product_id, store_id, region, price, valid_from, valid_to, priority)
-- [ ] `pricing_rules` SQLDelight table
-- [ ] `PricingRuleRepository` interface + impl
-- [ ] `GetStorePriceUseCase` — resolve product price by store/region with fallback to base price
-- [ ] Integrate into `PosViewModel` — use store-aware price at cart add time
-- [ ] Backend migration: `pricing_rules` table
-- [ ] Backend: `POST /admin/pricing-rules`, `GET /admin/pricing-rules?storeId=X`
+**What's REMAINING (deferred):**
 - [ ] Admin panel: Price management UI (override per store, bulk update)
 - [ ] KMM settings: Store pricing configuration screen
+- [ ] SyncEngine: PRICING_RULE entity type handling in `applyUpsert()` / `EntityApplier`
 
-**Key Files to Modify:**
-- `shared/domain/src/commonMain/.../model/Product.kt` (add `storePrice: Double?`)
-- `shared/domain/src/commonMain/.../usecase/pos/CalculateOrderTotalsUseCase.kt`
-- `composeApp/feature/pos/src/commonMain/.../PosViewModel.kt`
+**Key Files:**
+- `shared/domain/src/commonMain/.../model/PricingRule.kt`
+- `shared/domain/src/commonMain/.../repository/PricingRuleRepository.kt`
+- `shared/domain/src/commonMain/.../usecase/inventory/GetEffectiveProductPriceUseCase.kt`
+- `shared/domain/src/commonMain/.../usecase/pos/AddItemToCartUseCase.kt`
+- `shared/data/src/commonMain/sqldelight/.../pricing_rules.sq`
+- `shared/data/src/commonMain/sqldelight/.../12.sqm`
+- `shared/data/src/commonMain/.../repository/PricingRuleRepositoryImpl.kt`
+- `composeApp/feature/pos/src/commonMain/.../PosModule.kt`
+- `backend/api/src/main/resources/db/migration/V32__pricing_rules.sql`
+- `backend/api/src/main/kotlin/.../repository/PricingRuleRepository.kt`
+- `backend/api/src/main/kotlin/.../routes/AdminPricingRoutes.kt`
 
 ---
 
@@ -2238,7 +2258,7 @@ git push -u origin $(git branch --show-current)
 | Stock In-Transit Tracking | C1.4 | ✅ COMPLETE (transit_tracking.sq, 4 use cases, TransitTrackerScreen, auto-log DISPATCHED/RECEIVED) |
 | Warehouse Replenishment | C1.5 | ✅ COMPLETE (ReplenishmentRule model, AutoReplenishmentUseCase, 3-tab UI, backend 4 endpoints + 14 tests) |
 | **2. Pricing & Taxation** | | |
-| Region-Based Pricing | C2.1 | NOT IMPLEMENTED |
+| Region-Based Pricing | C2.1 | ✅ CORE IMPLEMENTED (domain+data+backend; admin UI pending) |
 | Multi-Currency | C2.2 | PARTIAL (formatter + ZyntaCurrencyPicker design system component) |
 | Localized Tax | C2.3 | PARTIAL (single-region) |
 | Store-Specific Discounts | C2.4 | PARTIAL (no store scoping) |

@@ -271,3 +271,20 @@ object ReplenishmentRules : Table("replenishment_rules") {
     val updatedAt    = timestampWithTimeZone("updated_at")
     override val primaryKey = PrimaryKey(id)
 }
+
+/** Pricing rules: store-specific and time-bounded price overrides (C2.1 — V32). */
+object PricingRules : Table("pricing_rules") {
+    val id          = text("id")
+    val productId   = text("product_id")
+    val storeId     = text("store_id").nullable()
+    val price       = decimal("price", precision = 14, scale = 4)
+    val costPrice   = decimal("cost_price", precision = 14, scale = 4).nullable()
+    val priority    = integer("priority").default(0)
+    val validFrom   = timestampWithTimeZone("valid_from").nullable()
+    val validTo     = timestampWithTimeZone("valid_to").nullable()
+    val isActive    = bool("is_active").default(true)
+    val description = text("description").default("")
+    val createdAt   = timestampWithTimeZone("created_at")
+    val updatedAt   = timestampWithTimeZone("updated_at")
+    override val primaryKey = PrimaryKey(id)
+}

@@ -106,5 +106,7 @@ data class SyncOperation(
         const val TRANSIT_EVENT = "transit_event"
         // C1.5 Warehouse-to-store replenishment rules
         const val REPLENISHMENT_RULE = "replenishment_rule"
+        // C2.1 Region-based pricing rules
+        const val PRICING_RULE = "pricing_rule"
     }
 }

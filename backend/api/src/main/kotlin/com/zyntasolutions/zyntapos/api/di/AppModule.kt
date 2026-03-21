@@ -15,6 +15,7 @@ import com.zyntasolutions.zyntapos.api.repository.TicketCommentRepository
 import com.zyntasolutions.zyntapos.api.repository.TicketCommentRepositoryImpl
 import com.zyntasolutions.zyntapos.api.repository.ConflictLogRepository
 import com.zyntasolutions.zyntapos.api.repository.DeadLetterRepository
+import com.zyntasolutions.zyntapos.api.repository.PricingRuleRepository
 import com.zyntasolutions.zyntapos.api.repository.ReplenishmentRepository
 import com.zyntasolutions.zyntapos.api.repository.WarehouseStockRepository
 import com.zyntasolutions.zyntapos.api.repository.EntitySnapshotRepository
@@ -110,6 +111,9 @@ val appModule = module {
 
     // Replenishment rules: per-product auto-PO thresholds (C1.5)
     single { ReplenishmentRepository() }
+
+    // Pricing rules: store-specific and time-bounded price overrides (C2.1)
+    single { PricingRuleRepository() }
 
     // ── Sync engine repositories ──────────────────────────────────────────────
     single { SyncOperationRepository() }

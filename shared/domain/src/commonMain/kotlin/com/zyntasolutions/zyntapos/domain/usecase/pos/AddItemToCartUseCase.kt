@@ -6,6 +6,7 @@ import com.zyntasolutions.zyntapos.domain.model.CartItem
 import com.zyntasolutions.zyntapos.domain.model.DiscountType
 import com.zyntasolutions.zyntapos.domain.model.Product
 import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
+import com.zyntasolutions.zyntapos.domain.usecase.inventory.GetEffectiveProductPriceUseCase
 
 /**
  * Adds a product to the active cart, validating stock availability and applying
@@ -21,11 +22,17 @@ import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
  * 5. Unit conversion: `quantity` is expected in the product's base unit.
  *    Multi-unit conversion (e.g., dozen → each) is applied when
  *    `product.unitId` differs from the cart unit (future extension point).
+ * 6. Price is resolved via [GetEffectiveProductPriceUseCase] which checks:
+ *    store override → pricing rule → master product base price → product.price.
  *
  * @param productRepository Source of truth for real-time stock levels.
+ * @param getEffectivePrice Resolves the store-aware price (C2.1 region-based pricing).
+ * @param storeId The current store context for price resolution.
  */
 class AddItemToCartUseCase(
     private val productRepository: ProductRepository,
+    private val getEffectivePrice: GetEffectiveProductPriceUseCase? = null,
+    private val storeId: String = "",
 ) {
     /**
      * @param currentCart The caller's current list of [CartItem]s (may be empty).
@@ -80,6 +87,13 @@ class AddItemToCartUseCase(
                     )
                 }
 
+                // Resolve effective price: store override → pricing rule → master → fallback
+                val effectivePrice = if (getEffectivePrice != null && storeId.isNotBlank()) {
+                    getEffectivePrice(product, storeId)
+                } else {
+                    product.price
+                }
+
                 val updatedCart = if (existingItem != null) {
                     currentCart.map { item ->
                         if (item.productId == productId) {
@@ -92,7 +106,7 @@ class AddItemToCartUseCase(
                     currentCart + CartItem(
                         productId = product.id,
                         productName = product.name,
-                        unitPrice = product.price,
+                        unitPrice = effectivePrice,
                         quantity = quantity,
                         discountType = DiscountType.FIXED,
                         taxRate = 0.0, // Resolved by CalculateOrderTotalsUseCase via TaxGroup
