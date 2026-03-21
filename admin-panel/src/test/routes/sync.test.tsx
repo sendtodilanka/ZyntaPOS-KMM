@@ -88,12 +88,12 @@ describe('SyncPage', () => {
     vi.mocked(useRetryDeadLetter).mockReturnValue({
       mutate: vi.fn(),
       isPending: false,
-    } as ReturnType<typeof useRetryDeadLetter>);
+    } as unknown as ReturnType<typeof useRetryDeadLetter>);
 
     vi.mocked(useDiscardDeadLetter).mockReturnValue({
       mutate: vi.fn(),
       isPending: false,
-    } as ReturnType<typeof useDiscardDeadLetter>);
+    } as unknown as ReturnType<typeof useDiscardDeadLetter>);
   });
 
   it('renders page heading', () => {
@@ -146,7 +146,7 @@ describe('SyncPage', () => {
     vi.mocked(useRetryDeadLetter).mockReturnValue({
       mutate: mockMutate,
       isPending: false,
-    } as ReturnType<typeof useRetryDeadLetter>);
+    } as unknown as ReturnType<typeof useRetryDeadLetter>);
     render(<SyncPage />);
     fireEvent.click(screen.getByRole('button', { name: /dead letters/i }));
     fireEvent.click(screen.getByRole('button', { name: /retry/i }));
@@ -168,7 +168,7 @@ describe('SyncPage', () => {
     vi.mocked(useConflictLog).mockReturnValue({
       data: [],
       isLoading: false,
-    } as ReturnType<typeof useConflictLog>);
+    } as unknown as ReturnType<typeof useConflictLog>);
     render(<SyncPage />);
     fireEvent.click(screen.getByRole('button', { name: /conflicts/i }));
     expect(screen.getByText(/no conflicts/i)).toBeInTheDocument();
@@ -178,7 +178,7 @@ describe('SyncPage', () => {
     vi.mocked(useDeadLetters).mockReturnValue({
       data: [],
       isLoading: false,
-    } as ReturnType<typeof useDeadLetters>);
+    } as unknown as ReturnType<typeof useDeadLetters>);
     render(<SyncPage />);
     fireEvent.click(screen.getByRole('button', { name: /dead letters/i }));
     expect(screen.getByText(/no dead letters/i)).toBeInTheDocument();
