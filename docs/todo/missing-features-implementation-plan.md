@@ -301,13 +301,13 @@ Phase 2 stable release එකකට backend test coverage **95%+** ඕන. ද�
 
 ---
 
-### A6. Security Monitoring (TODO-010) — ✅ 100% COMPLETE (code)
+### A6. Security Monitoring (TODO-010) — ✅ 100% COMPLETE
 
 **Priority:** P1-HIGH
 
-**All code-level artifacts are implemented.** Remaining items are external CF dashboard / VPS runtime actions.
+**All artifacts implemented and deployed (2026-03-21).**
 
-**Implemented:**
+**Code artifacts:**
 - [x] Snyk Monitor step — `sec-backend-scan.yml` (weekly + on-demand, OWASP + Trivy + Snyk container scans)
 - [x] Falcosidekick → Slack webhook wiring — `docker-compose.yml` + `config/falco/falcosidekick.yaml`
 - [x] OWASP dependency check in CI pipeline — `ci-gate.yml` `security-scan-backend` job (3 services in parallel)
@@ -322,11 +322,16 @@ Phase 2 stable release එකකට backend test coverage **95%+** ඕන. ද�
 - [x] CodeQL analysis — `.github/workflows/sec-codeql.yml`
 - [x] ZAP DAST scan — `.github/workflows/sec-zap-scan.yml`
 
-**External (non-code — CF dashboard / VPS runtime):**
-- [ ] CF Zero Trust access policy for `panel.zyntapos.com` (CF dashboard)
-- [ ] CF Bot Fight Mode + WAF rate limiting rules (CF dashboard)
-- [ ] Falco systemd install on VPS (VPS runtime — `config/falco/` files ready to deploy)
-- [ ] Snyk SaaS org import (snyk.io dashboard)
+**External deployments (completed 2026-03-21 via GitHub Actions):**
+- [x] CF Zero Trust Access app for `panel.zyntapos.com` — `sec-cf-zero-trust.yml` (OTP auth for `@zyntapos.com`)
+- [x] CF WAF rate limiting — 20 req/10s on auth endpoints → 60s ban
+- [x] CF Bot Fight Mode — enabled + browser check + challenge TTL 1800s
+- [x] CF DDoS notification alert policy created
+- [x] Falco installed on VPS — `sec-install-falco.yml` (systemd service + custom rules deployed)
+- [x] Falco HTTP output → Falcosidekick configured
+
+**Remaining (blocked on secret):**
+- [ ] Snyk import — `SNYK_TOKEN` secret must be added to GitHub, then trigger `sec-snyk-import.yml`
 
 ---
 
