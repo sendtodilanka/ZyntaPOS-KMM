@@ -83,6 +83,21 @@ jobs:
               echo "    Found in /app/node_modules"
             fi
 
+            # ── Clear accumulated monitors from DB + restart for clean state ───
+            echo "--- Clearing monitors table and restarting Uptime Kuma..."
+            docker exec "$CONTAINER" sqlite3 /app/data/kuma.db \
+              "DELETE FROM monitor; DELETE FROM heartbeat; DELETE FROM monitor_tls_info;" \
+              2>/dev/null || echo "    (sqlite3 not available — skipping DB clear)"
+            docker restart "$CONTAINER" > /dev/null
+            echo "    Restarted — waiting for HTTP ready..."
+            sleep 5
+            for i in $(seq 1 24); do
+              docker exec "$CONTAINER" curl -fsS --max-time 3 http://localhost:3001/api/info > /dev/null 2>&1 \
+                && { echo "    Ready after restart (attempt $i)"; break; }
+              sleep 5
+              [ "$i" -eq 24 ] && { echo "ERROR: Not ready after restart" >&2; exit 1; }
+            done
+
             # ── Run monitor setup via Node.js inside the container ───────────────
             echo "--- Running monitor setup script inside container..."
             docker exec -i \
@@ -144,7 +159,7 @@ jobs:
             }
 
             const socket = ioFn('http://localhost:3001', {
-              transports: ['polling', 'websocket'],
+              transports: ['websocket'],
               timeout: 10000,
               reconnectionAttempts: 0,
             });
