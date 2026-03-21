@@ -1,22 +1,20 @@
 package com.zyntasolutions.zyntapos.domain.usecase.inventory
 
 import com.zyntasolutions.zyntapos.core.result.Result
-import com.zyntasolutions.zyntapos.domain.model.MasterProduct
-import com.zyntasolutions.zyntapos.domain.model.PricingRule
 import com.zyntasolutions.zyntapos.domain.model.Product
-import com.zyntasolutions.zyntapos.domain.model.StoreProductOverride
 import com.zyntasolutions.zyntapos.domain.repository.MasterProductRepository
 import com.zyntasolutions.zyntapos.domain.repository.PricingRuleRepository
 import com.zyntasolutions.zyntapos.domain.repository.StoreProductOverrideRepository
+import kotlinx.datetime.Clock
 
 /**
  * Resolves the effective selling price for a product.
  *
  * Price resolution order (C2.1 — region-based pricing):
- * 1. [StoreProductOverride.localPrice] (store-specific override) — highest priority
- * 2. [PricingRule] — active, highest-priority rule for this product+store — time-bounded
- * 3. [MasterProduct.basePrice] (global default) — if product is linked to a master product
- * 4. [Product.price] (legacy per-store price) — fallback for store-local products
+ * 1. Store product override (`localPrice`) — highest priority
+ * 2. Pricing rule — active, highest-priority rule for this product+store (time-bounded)
+ * 3. Master product base price — global default
+ * 4. `Product.price` — legacy fallback for store-local products
  */
 class GetEffectiveProductPriceUseCase(
     private val masterProductRepository: MasterProductRepository,
@@ -27,26 +25,27 @@ class GetEffectiveProductPriceUseCase(
      * @param product The product to resolve pricing for.
      * @param storeId The store context.
      * @param nowEpochMs Current time in epoch milliseconds for time-bounded rule evaluation.
-     *                   Defaults to [kotlinx.datetime.Clock.System.now] if not specified.
      */
     suspend operator fun invoke(
         product: Product,
         storeId: String,
-        nowEpochMs: Long = kotlinx.datetime.Clock.System.now().toEpochMilliseconds(),
+        nowEpochMs: Long = Clock.System.now().toEpochMilliseconds(),
     ): Double {
         // 1. Store-specific override via store_products (highest priority)
         val masterProductId = product.masterProductId
         if (masterProductId != null) {
             val overrideResult = storeProductOverrideRepository.getOverride(masterProductId, storeId)
-            if (overrideResult is Result.Success && overrideResult.data.localPrice != null) {
-                return overrideResult.data.localPrice
+            if (overrideResult is Result.Success) {
+                val localPrice = overrideResult.data.localPrice
+                if (localPrice != null) return localPrice
             }
         }
 
         // 2. Pricing rule (store-specific or global, time-bounded)
         val ruleResult = pricingRuleRepository.getEffectiveRule(product.id, storeId, nowEpochMs)
-        if (ruleResult is Result.Success && ruleResult.data != null) {
-            return ruleResult.data.price
+        if (ruleResult is Result.Success) {
+            val rule = ruleResult.data
+            if (rule != null) return rule.price
         }
 
         // 3. Master product base price
