@@ -257,16 +257,23 @@ Phase 2 stable release එකකට backend test coverage **95%+** ඕන. ද�
 
 ---
 
-### A4. API Documentation Site (TODO-007e) — 0% Complete
+### A4. API Documentation Site (TODO-007e) — ✅ 100% Complete
 
 **Priority:** P1-HIGH
 
-**What's MISSING:**
-- [ ] OpenAPI 3.0 spec for all 3 backend services
-- [ ] Swagger UI or Redoc hosting
-- [ ] Deployment workflow to docs subdomain
-- [ ] Code samples + authentication docs
-- [ ] Sync protocol documentation
+**Completed:**
+- [x] OpenAPI 3.0 specs for all 3 backend services — 4 specs in `zyntapos-docs/openapi/` (api-v1, admin-v1, license-v1, sync-v1) + embedded specs in each backend service's `src/main/resources/openapi/`
+- [x] Swagger UI hosting via Ktor `swaggerUI` plugin — all 3 services serve Swagger UI at `/docs` path
+- [x] Scalar API reference site — `zyntapos-docs/build.js` generates a multi-spec Scalar viewer at `index.html` with dropdown selector for all 4 specs
+- [x] Deployment workflow — `cd-docs.yml` deploys to Cloudflare Pages on push to main; `ci-docs.yml` validates on PRs
+- [x] Code samples + authentication docs — `guides/authentication.md` (curl + Kotlin examples, POS RS256 JWT, Admin cookie auth, MFA flow, brute-force protection, IP allowlisting)
+- [x] Sync protocol documentation — `guides/sync-protocol.md` (outbox pattern, push/pull protocol, conflict resolution strategies, CRDT/LWW/FIELD_MERGE/APPEND_ONLY, version vectors, multi-store isolation, WebSocket message types, reconnection strategy)
+- [x] Additional guides: `getting-started.md`, `license-activation.md`, `error-handling.md`
+- [x] Admin API spec updated with missing Phase 2 endpoints: master products, transfers (C1.3), inventory (C1.2), replenishment (C1.5), email management, alerts, ticket bulk operations
+
+**Documentation URLs:**
+- Scalar API reference: `https://docs.zyntapos.com/` (Cloudflare Pages)
+- Swagger UI (per-service): `https://api.zyntapos.com/docs`, `https://license.zyntapos.com/docs`, `https://sync.zyntapos.com/docs`
 
 ---
 

@@ -1,23 +1,19 @@
-name: CI — API Docs
+name: Deploy API Docs to Cloudflare Pages
 
 on:
   push:
-    paths:
-      - 'zyntapos-docs/**'
-      - 'docs/api/**'
-      - 'backend/*/src/main/resources/openapi/**'
     branches: [main]
-  pull_request:
-    paths:
-      - 'zyntapos-docs/**'
-      - 'docs/api/**'
-      - 'backend/*/src/main/resources/openapi/**'
+    paths: ['zyntapos-docs/**']
+  workflow_dispatch:
 
 jobs:
-  build-and-lint:
-    name: Build & Lint OpenAPI
+  deploy:
+    name: Build & Deploy API Docs
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      deployments: write
 
     steps:
       - uses: actions/checkout@v4
@@ -44,3 +40,11 @@ jobs:
           test -f zyntapos-docs/dist/index.html
           test -f zyntapos-docs/dist/openapi/api-v1.yaml
           echo "Build output verified"
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=zyntapos-docs
+          workingDirectory: zyntapos-docs

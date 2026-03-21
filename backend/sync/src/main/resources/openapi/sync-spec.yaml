@@ -1,0 +1,180 @@
+openapi: 3.0.3
+info:
+  title: ZyntaPOS Sync Service
+  description: |
+    Real-time WebSocket sync relay for ZyntaPOS POS terminals. This service maintains
+    persistent WebSocket connections to POS devices and relays delta sync notifications
+    via Redis pub/sub.
+
+    ## Authentication
+
+    All WebSocket connections require a valid RS256 JWT as a query parameter or
+    in the `Authorization` header during the HTTP upgrade handshake.
+
+    ## WebSocket Protocol
+
+    ### Sync WebSocket (`/v1/sync/ws`)
+
+    **Connection:** `wss://sync.zyntapos.com/v1/sync/ws?deviceId=<device-id>`
+
+    **Client → Server messages:**
+
+    | Type | Description |
+    |------|-------------|
+    | `ping` | Keep-alive ping |
+    | `sync_push` | Push local operations (same format as REST push) |
+    | `sync_pull` | Request delta pull |
+    | `diag_response` | Diagnostic data response (when diagnostic session active) |
+
+    **Server → Client messages:**
+
+    | Type | Description |
+    |------|-------------|
+    | `pong` | Ping response |
+    | `sync_delta` | New delta operations available |
+    | `force_sync` | Server requests immediate sync |
+    | `diag_command` | Diagnostic command from technician |
+
+    ### Diagnostic WebSocket (`/v1/diagnostic/ws`)
+
+    **Connection:** `wss://sync.zyntapos.com/v1/diagnostic/ws?sessionId=<session-id>`
+
+    For technician diagnostic sessions. Requires admin JWT with `session_id` claim.
+
+    **Client → Server:** `diag_command`, `ping`
+    **Server → Client:** `diag_response`, `pong`
+
+    ## Message Format
+
+    All WebSocket messages are JSON:
+    ```json
+    {
+      "type": "sync_delta",
+      "payload": { ... }
+    }
+    ```
+  version: 1.0.0
+  contact:
+    name: Zynta Solutions
+    email: support@zyntapos.com
+
+servers:
+  - url: https://sync.zyntapos.com
+    description: Production
+  - url: http://localhost:8082
+    description: Local development
+
+tags:
+  - name: Health
+    description: Service health check
+  - name: WebSocket
+    description: WebSocket connection endpoints
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [UP, DOWN]
+        redis:
+          type: string
+        activeConnections:
+          type: integer
+        activeStores:
+          type: integer
+
+    WebSocketMessage:
+      type: object
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [ping, pong, sync_push, sync_pull, sync_delta, force_sync, diag_command, diag_response]
+        payload:
+          type: object
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check (redis, connections, stores)
+      operationId: getHealth
+      responses:
+        '200':
+          description: Service health
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /ping:
+    get:
+      tags: [Health]
+      summary: Liveness probe
+      operationId: ping
+      responses:
+        '200':
+          description: pong
+
+  /v1/sync/ws:
+    get:
+      tags: [WebSocket]
+      summary: POS terminal sync WebSocket
+      operationId: syncWebSocket
+      description: |
+        WebSocket endpoint for real-time sync between POS terminals and server.
+        Requires RS256 JWT authentication. The `deviceId` query parameter identifies
+        the connecting device.
+
+        After connection, the server pushes `sync_delta` messages when new operations
+        are available for the device's store. The client can push operations via
+        `sync_push` messages or request pulls via `sync_pull`.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: deviceId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Unique device identifier
+      responses:
+        '101':
+          description: WebSocket upgrade successful
+        '401':
+          description: Invalid or missing JWT
+
+  /v1/diagnostic/ws:
+    get:
+      tags: [WebSocket]
+      summary: Technician diagnostic WebSocket
+      operationId: diagnosticWebSocket
+      description: |
+        WebSocket endpoint for remote diagnostic sessions. Requires admin JWT
+        with a valid `session_id` claim matching an active diagnostic session.
+
+        The technician sends `diag_command` messages which are relayed to the
+        target POS device. The device responds with `diag_response` messages
+        relayed back to the technician.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: sessionId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Diagnostic session ID (from JIT token)
+      responses:
+        '101':
+          description: WebSocket upgrade successful
+        '401':
+          description: Invalid credentials or session

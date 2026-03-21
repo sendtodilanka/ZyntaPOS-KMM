@@ -316,7 +316,7 @@ api.zyntapos.com        → Caddy → api:8080
 license.zyntapos.com    → Caddy → license:8083
 sync.zyntapos.com       → Caddy → sync:8082  (WebSocket)
 panel.zyntapos.com      → Caddy → canary:80  (placeholder — Phase 3)
-docs.zyntapos.com       → Caddy → canary:80  (placeholder — Phase 3)
+docs.zyntapos.com       → Cloudflare Pages (zyntapos-docs project, deployed via cd-docs.yml)
 status.zyntapos.com     → Caddy → canary:80  (placeholder — Phase 3)
 ```
 
