@@ -40,6 +40,10 @@ import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaScaffold
  * @param screens Composable factories for every authenticated screen.
  * @param debugScreen Optional composable for the Debug Console. When non-null,
  *   [ZyntaRoute.Debug] is registered and "DEBUG_CONSOLE" settings key navigates to it.
+ * @param diagnosticConsentScreen Optional composable for the Remote Diagnostic consent
+ *   flow (TODO-006). When non-null, [ZyntaRoute.DiagnosticConsent] is registered and
+ *   shown when a technician JIT token arrives via push notification or deep link.
+ *   Feature-gated to PROFESSIONAL/ENTERPRISE editions.
  */
 fun NavGraphBuilder.mainNavGraph(
     navigationController: NavigationController,
@@ -51,6 +55,7 @@ fun NavGraphBuilder.mainNavGraph(
     currentUserRole: String? = null,
     screens: MainNavScreens,
     debugScreen: (@Composable (onNavigateUp: () -> Unit) -> Unit)? = null,
+    diagnosticConsentScreen: (@Composable (token: String, onDismiss: () -> Unit) -> Unit)? = null,
 ) {
     navigation<ZyntaRoute.MainGraph>(startDestination = ZyntaRoute.Dashboard) {
 
@@ -391,6 +396,20 @@ fun NavGraphBuilder.mainNavGraph(
             if (debugScreen != null) {
                 composable<ZyntaRoute.Debug> {
                     debugScreen { navigationController.navigateUp(ZyntaRoute.Settings) }
+                }
+            }
+
+            // ── Remote Diagnostic consent — ENTERPRISE feature (TODO-006) ────
+            // Navigated to when the device receives a JIT technician token via
+            // push notification (deep link: zyntapos://diagnostic/{token}).
+            // Only registered when the caller wires a diagnosticConsentScreen.
+            if (diagnosticConsentScreen != null) {
+                composable<ZyntaRoute.DiagnosticConsent> { entry ->
+                    val route = entry.toRoute<ZyntaRoute.DiagnosticConsent>()
+                    diagnosticConsentScreen(
+                        route.token,
+                        { navigationController.popBackStack() },
+                    )
                 }
             }
         }

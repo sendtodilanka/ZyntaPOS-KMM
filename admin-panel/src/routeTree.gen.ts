@@ -34,6 +34,7 @@ import { Route as HealthStoreIdRouteImport } from './routes/health/$storeId'
 import { Route as InventoryIndexRouteImport } from './routes/inventory/index'
 import { Route as TransfersIndexRouteImport } from './routes/transfers/index'
 import { Route as ReplenishmentIndexRouteImport } from './routes/replenishment/index'
+import { Route as DiagnosticIndexRouteImport } from './routes/diagnostic/index'
 import { Route as MasterProductsIndexRouteImport } from './routes/master-products/index'
 import { Route as MasterProductsMasterProductIdRouteImport } from './routes/master-products/$masterProductId'
 import { Route as TicketStatusTokenRouteImport } from './routes/ticket-status/$token'
@@ -128,6 +129,11 @@ const ReplenishmentIndexRoute = ReplenishmentIndexRouteImport.update({
   path: '/replenishment/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DiagnosticIndexRoute = DiagnosticIndexRouteImport.update({
+  id: '/diagnostic/',
+  path: '/diagnostic/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MasterProductsIndexRoute = MasterProductsIndexRouteImport.update({
   id: '/master-products/',
   path: '/master-products/',
@@ -194,6 +200,7 @@ export interface FileRoutesByFullPath {
   '/alerts/': typeof AlertsIndexRoute
   '/audit/': typeof AuditIndexRoute
   '/config/': typeof ConfigIndexRoute
+  '/diagnostic/': typeof DiagnosticIndexRoute
   '/health/': typeof HealthIndexRoute
   '/licenses/': typeof LicensesIndexRoute
   '/inventory/': typeof InventoryIndexRoute
@@ -224,6 +231,7 @@ export interface FileRoutesByTo {
   '/alerts': typeof AlertsIndexRoute
   '/audit': typeof AuditIndexRoute
   '/config': typeof ConfigIndexRoute
+  '/diagnostic': typeof DiagnosticIndexRoute
   '/health': typeof HealthIndexRoute
   '/licenses': typeof LicensesIndexRoute
   '/inventory': typeof InventoryIndexRoute
@@ -255,6 +263,7 @@ export interface FileRoutesById {
   '/alerts/': typeof AlertsIndexRoute
   '/audit/': typeof AuditIndexRoute
   '/config/': typeof ConfigIndexRoute
+  '/diagnostic/': typeof DiagnosticIndexRoute
   '/health/': typeof HealthIndexRoute
   '/licenses/': typeof LicensesIndexRoute
   '/inventory/': typeof InventoryIndexRoute
@@ -287,6 +296,7 @@ export interface FileRouteTypes {
     | '/alerts/'
     | '/audit/'
     | '/config/'
+    | '/diagnostic/'
     | '/health/'
     | '/inventory/'
     | '/transfers/'
@@ -316,6 +326,7 @@ export interface FileRouteTypes {
     | '/alerts'
     | '/audit'
     | '/config'
+    | '/diagnostic'
     | '/health'
     | '/inventory'
     | '/transfers'
@@ -346,6 +357,7 @@ export interface FileRouteTypes {
     | '/alerts/'
     | '/audit/'
     | '/config/'
+    | '/diagnostic/'
     | '/health/'
     | '/inventory/'
     | '/transfers/'
@@ -369,6 +381,7 @@ export interface RootRouteChildren {
   InventoryIndexRoute: typeof InventoryIndexRoute
   TransfersIndexRoute: typeof TransfersIndexRoute
   ReplenishmentIndexRoute: typeof ReplenishmentIndexRoute
+  DiagnosticIndexRoute: typeof DiagnosticIndexRoute
   LicensesLicenseKeyRoute: typeof LicensesLicenseKeyRoute
   MasterProductsMasterProductIdRoute: typeof MasterProductsMasterProductIdRoute
   MasterProductsIndexRoute: typeof MasterProductsIndexRoute
@@ -521,6 +534,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReplenishmentIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/diagnostic/': {
+      id: '/diagnostic/'
+      path: '/diagnostic'
+      fullPath: '/diagnostic/'
+      preLoaderRoute: typeof DiagnosticIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/master-products/': {
       id: '/master-products/'
       path: '/master-products'
@@ -601,6 +621,7 @@ const rootRouteChildren: RootRouteChildren = {
   InventoryIndexRoute: InventoryIndexRoute,
   TransfersIndexRoute: TransfersIndexRoute,
   ReplenishmentIndexRoute: ReplenishmentIndexRoute,
+  DiagnosticIndexRoute: DiagnosticIndexRoute,
   LicensesLicenseKeyRoute: LicensesLicenseKeyRoute,
   MasterProductsMasterProductIdRoute: MasterProductsMasterProductIdRoute,
   MasterProductsIndexRoute: MasterProductsIndexRoute,

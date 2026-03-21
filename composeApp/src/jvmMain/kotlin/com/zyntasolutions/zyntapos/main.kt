@@ -34,6 +34,7 @@ import com.zyntasolutions.zyntapos.feature.settings.jvmSettingsModule
 import com.zyntasolutions.zyntapos.feature.settings.settingsModule
 import com.zyntasolutions.zyntapos.feature.staff.staffModule
 import com.zyntasolutions.zyntapos.feature.accounting.di.accountingModule
+import com.zyntasolutions.zyntapos.feature.diagnostic.di.diagnosticModule
 import com.zyntasolutions.zyntapos.hal.di.halModule
 import com.zyntasolutions.zyntapos.navigation.navigationModule
 import com.zyntasolutions.zyntapos.security.di.securityModule
@@ -113,6 +114,7 @@ fun main() {
             jvmSettingsModule,   // JvmBackupService (JVM-only)
             staffModule,         // (placeholder — bindings added per sprint)
             accountingModule,    // E-Invoice / IRD submission (Sprint 18-24)
+            diagnosticModule,    // Remote diagnostic consent (ENTERPRISE, TODO-006)
         )
     }
 
