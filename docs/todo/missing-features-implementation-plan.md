@@ -1909,17 +1909,17 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 ### G21. UI/UX Implementation Priority Matrix
 
 **Phase 1.5 Quick Wins (< 1 day each):**
-- [ ] Render hourly sparkline in Dashboard (data already calculated)
-- [ ] Add printer test button to PrinterSettingsScreen
+- [x] Render hourly sparkline in Dashboard — ✅ ALREADY IMPLEMENTED in Expanded + Medium layouts (verified 2026-03-21); Compact layout lacks sparkline by design (`ZyntaCompactStatCard`)
+- [x] Add printer test button to PrinterSettingsScreen — ✅ ALREADY EXISTS (verified 2026-03-21): `SettingsIntent.TestPrint` → `PrintTestPageUseCase` → full MVI chain
 - [ ] Persist "Remember Me" checkbox in auth
-- [ ] Show UTC offset in timezone dropdown (e.g., "Asia/Colombo (UTC+5:30)")
+- [x] Show UTC offset in timezone dropdown — ✅ `ZyntaTimezonePicker` shows UTC offset for all 21 timezones (2026-03-21)
 - [ ] Add employee name/badge to POS screen header
 
 **Phase 2 Must-Have (before multi-store launch):**
-- [ ] Create `ZyntaStoreSelector` component + wire to drawer footer
-- [ ] Create `ZyntaCurrencyPicker` + `ZyntaTimezonePicker` components
+- [x] Create `ZyntaStoreSelector` component + wire to drawer footer — ✅ component created (2026-03-21), drawer wiring pending
+- [x] Create `ZyntaCurrencyPicker` + `ZyntaTimezonePicker` components — ✅ DONE (2026-03-21)
 - [ ] Add store selector to login screen
-- [ ] Add onboarding steps for currency + timezone
+- [x] Add onboarding steps for currency + timezone — ✅ Step 3 added (2026-03-21)
 - [ ] Implement loyalty points redemption at POS checkout
 - [ ] Implement WebSocket auto-refresh for Dashboard + Reports
 - [ ] Populate financial statements with real GL data
@@ -1927,7 +1927,7 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 - [ ] Add native file picker to Media module
 - [ ] Add GDPR Export button to customer detail
 - [ ] Add date picker dialogs (replace manual text entry)
-- [ ] Add transfer status badge to stock transfer list
+- [x] Add transfer status badge to stock transfer list — ✅ `ZyntaTransferStatusBadge` created (2026-03-21), integration pending
 - [ ] Add store-specific discount assignment to coupons
 - [ ] **[MS-1]** Add product selector/autocomplete to NewStockTransferScreen
 - [ ] **[MS-2]** Display warehouse names instead of IDs in StockTransferCard

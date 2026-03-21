@@ -182,6 +182,7 @@ class RegisterViewModel(
         when (val result = openCashDrawerUseCase()) {
             is Result.Success -> updateState { copy(successMessage = "Cash drawer opened") }
             is Result.Error -> updateState { copy(error = "Failed to open cash drawer: ${result.exception.message}") }
+            is Result.Loading -> Unit // no-op — use case completes synchronously
         }
     }
 
