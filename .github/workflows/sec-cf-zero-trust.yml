@@ -1,0 +1,281 @@
+name: "Security: Configure CF Zero Trust + WAF"
+
+# Sets up Cloudflare Zero Trust Access Application for panel.zyntapos.com,
+# WAF rate limiting rule for auth endpoints, and Bot Fight Mode.
+# Uses the Global API Key (CF_GLOBAL_API_KEY) for full API access.
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Action to perform"
+        required: true
+        type: choice
+        options:
+          - debug
+          - setup-access
+          - setup-waf
+          - full-setup
+        default: debug
+
+jobs:
+  cf-zero-trust:
+    name: CF Zero Trust & WAF Setup
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      CF_AUTH_EMAIL: ${{ secrets.CF_AUTH_EMAIL }}
+      CF_GLOBAL_API_KEY: ${{ secrets.CF_GLOBAL_API_KEY }}
+      CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+    steps:
+      - name: Verify credentials
+        run: |
+          echo "=== Verifying Cloudflare credentials ==="
+          if [ -z "$CF_AUTH_EMAIL" ] || [ -z "$CF_GLOBAL_API_KEY" ] || [ -z "$CF_ACCOUNT_ID" ]; then
+            echo "::error::Missing CF credentials. Need: CF_AUTH_EMAIL, CF_GLOBAL_API_KEY, CLOUDFLARE_ACCOUNT_ID"
+            exit 1
+          fi
+          echo "CF_AUTH_EMAIL: ${CF_AUTH_EMAIL}"
+          echo "CF_ACCOUNT_ID: ${CF_ACCOUNT_ID:0:8}..."
+
+      - name: Get zone ID for zyntapos.com
+        id: zone
+        run: |
+          echo "=== Looking up zone ID for zyntapos.com ==="
+          ZONE_RESP=$(curl -s -X GET \
+            "https://api.cloudflare.com/client/v4/zones?name=zyntapos.com" \
+            -H "X-Auth-Email: $CF_AUTH_EMAIL" \
+            -H "X-Auth-Key: $CF_GLOBAL_API_KEY" \
+            -H "Content-Type: application/json")
+
+          ZONE_ID=$(echo "$ZONE_RESP" | jq -r '.result[0].id // empty')
+          if [ -z "$ZONE_ID" ]; then
+            echo "::error::Zone zyntapos.com not found"
+            echo "$ZONE_RESP" | jq .
+            exit 1
+          fi
+          echo "Zone ID: $ZONE_ID"
+          echo "zone_id=$ZONE_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Debug — list current settings
+        if: contains(github.event.inputs.action, 'debug') || contains(github.event.inputs.action, 'full')
+        run: |
+          ZONE_ID="${{ steps.zone.outputs.zone_id }}"
+
+          echo "=== Zone Settings ==="
+          curl -s "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/settings" \
+            -H "X-Auth-Email: $CF_AUTH_EMAIL" \
+            -H "X-Auth-Key: $CF_GLOBAL_API_KEY" | jq '.result[] | select(.id | test("bot|waf|security")) | {id, value}'
+
+          echo ""
+          echo "=== Existing Firewall Rules ==="
+          curl -s "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/firewall/rules" \
+            -H "X-Auth-Email: $CF_AUTH_EMAIL" \
+            -H "X-Auth-Key: $CF_GLOBAL_API_KEY" | jq '.result[] | {id, description, action}' 2>/dev/null || echo "No firewall rules"
+
+          echo ""
+          echo "=== Existing Rate Limiting Rules ==="
+          curl -s "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/rate_limits" \
+            -H "X-Auth-Email: $CF_AUTH_EMAIL" \
+            -H "X-Auth-Key: $CF_GLOBAL_API_KEY" | jq '.result[] | {id, description, threshold}' 2>/dev/null || echo "No rate limits"
+
+          echo ""
+          echo "=== Access Applications ==="
+          curl -s "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/access/apps" \
+            -H "X-Auth-Email: $CF_AUTH_EMAIL" \
+            -H "X-Auth-Key: $CF_GLOBAL_API_KEY" | jq '.result[] | {id, name, domain}' 2>/dev/null || echo "No Access apps"
+
+          echo ""
+          echo "=== Bot Management Setting ==="
+          curl -s "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/bot_management" \
+            -H "X-Auth-Email: $CF_AUTH_EMAIL" \
+            -H "X-Auth-Key: $CF_GLOBAL_API_KEY" | jq '.result' 2>/dev/null || echo "Bot management not available"
+
+      - name: Setup CF Access Application for panel.zyntapos.com
+        if: contains(github.event.inputs.action, 'access') || contains(github.event.inputs.action, 'full')
+        run: |
+          ZONE_ID="${{ steps.zone.outputs.zone_id }}"
+
+          echo "=== Creating CF Access Application ==="
+          # Check if app already exists
+          EXISTING=$(curl -s "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/access/apps" \
+            -H "X-Auth-Email: $CF_AUTH_EMAIL" \
+            -H "X-Auth-Key: $CF_GLOBAL_API_KEY" | jq -r '.result[] | select(.domain == "panel.zyntapos.com") | .id')
+
+          if [ -n "$EXISTING" ]; then
+            echo "Access app already exists for panel.zyntapos.com (ID: $EXISTING)"
+          else
+            # Create Access Application
+            APP_RESP=$(curl -s -X POST \
+              "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/access/apps" \
+              -H "X-Auth-Email: $CF_AUTH_EMAIL" \
+              -H "X-Auth-Key: $CF_GLOBAL_API_KEY" \
+              -H "Content-Type: application/json" \
+              -d '{
+                "name": "ZyntaPOS Admin Panel",
+                "domain": "panel.zyntapos.com",
+                "type": "self_hosted",
+                "session_duration": "24h",
+                "auto_redirect_to_identity": false,
+                "allowed_idps": [],
+                "cors_headers": {
+                  "allowed_methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+                  "allowed_origins": ["https://panel.zyntapos.com"],
+                  "allow_credentials": true
+                }
+              }')
+
+            APP_ID=$(echo "$APP_RESP" | jq -r '.result.id // empty')
+            if [ -z "$APP_ID" ]; then
+              echo "::warning::Failed to create Access app"
+              echo "$APP_RESP" | jq .
+            else
+              echo "Created Access app: $APP_ID"
+
+              # Create Access Policy — allow @zyntapos.com emails via OTP
+              POLICY_RESP=$(curl -s -X POST \
+                "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/access/apps/$APP_ID/policies" \
+                -H "X-Auth-Email: $CF_AUTH_EMAIL" \
+                -H "X-Auth-Key: $CF_GLOBAL_API_KEY" \
+                -H "Content-Type: application/json" \
+                -d '{
+                  "name": "Allow ZyntaPOS Staff",
+                  "decision": "allow",
+                  "include": [
+                    {
+                      "email_domain": {
+                        "domain": "zyntapos.com"
+                      }
+                    }
+                  ],
+                  "precedence": 1
+                }')
+
+              echo "Policy created:"
+              echo "$POLICY_RESP" | jq '.result | {id, name, decision}'
+            fi
+          fi
+
+      - name: Setup WAF rate limiting for auth endpoints
+        if: contains(github.event.inputs.action, 'waf') || contains(github.event.inputs.action, 'full')
+        run: |
+          ZONE_ID="${{ steps.zone.outputs.zone_id }}"
+
+          echo "=== Creating rate limiting rule for auth endpoints ==="
+          # Check existing rate limits
+          EXISTING_RL=$(curl -s "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/rate_limits" \
+            -H "X-Auth-Email: $CF_AUTH_EMAIL" \
+            -H "X-Auth-Key: $CF_GLOBAL_API_KEY" | jq '.result | length')
+
+          echo "Existing rate limits: $EXISTING_RL"
+
+          # Create rate limit: 20 req/10s on auth endpoints → block 60s
+          RL_RESP=$(curl -s -X POST \
+            "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/rate_limits" \
+            -H "X-Auth-Email: $CF_AUTH_EMAIL" \
+            -H "X-Auth-Key: $CF_GLOBAL_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "match": {
+                "request": {
+                  "url_pattern": "*api.zyntapos.com/api/v1/auth/*",
+                  "schemes": ["HTTPS"],
+                  "methods": ["POST", "PUT"]
+                },
+                "response": {}
+              },
+              "threshold": 20,
+              "period": 10,
+              "action": {
+                "mode": "ban",
+                "timeout": 60,
+                "response": {
+                  "content_type": "application/json",
+                  "body": "{\"error\":\"rate_limited\",\"message\":\"Too many authentication attempts. Try again in 60 seconds.\"}"
+                }
+              },
+              "description": "ZyntaPOS auth endpoint rate limit (20 req/10s → 60s ban)",
+              "enabled": true
+            }')
+
+          echo "Rate limit response:"
+          echo "$RL_RESP" | jq '{success: .success, id: .result.id, description: .result.description}' 2>/dev/null || echo "$RL_RESP"
+
+      - name: Enable Super Bot Fight Mode
+        if: contains(github.event.inputs.action, 'waf') || contains(github.event.inputs.action, 'full')
+        run: |
+          ZONE_ID="${{ steps.zone.outputs.zone_id }}"
+
+          echo "=== Enabling Bot Fight Mode ==="
+          # Enable bot fight mode (free tier)
+          BFM_RESP=$(curl -s -X PUT \
+            "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/bot_management" \
+            -H "X-Auth-Email: $CF_AUTH_EMAIL" \
+            -H "X-Auth-Key: $CF_GLOBAL_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "fight_mode": true,
+              "enable_js": true
+            }')
+
+          echo "Bot management response:"
+          echo "$BFM_RESP" | jq '{success: .success, fight_mode: .result.fight_mode}' 2>/dev/null || echo "$BFM_RESP"
+
+          # If bot_management endpoint doesn't work (free tier), try the simpler setting
+          if echo "$BFM_RESP" | jq -e '.success == false' >/dev/null 2>&1; then
+            echo "Bot management API not available — trying zone setting..."
+            curl -s -X PATCH \
+              "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/settings/browser_check" \
+              -H "X-Auth-Email: $CF_AUTH_EMAIL" \
+              -H "X-Auth-Key: $CF_GLOBAL_API_KEY" \
+              -H "Content-Type: application/json" \
+              -d '{"value":"on"}' | jq '{success: .success}'
+
+            curl -s -X PATCH \
+              "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/settings/challenge_ttl" \
+              -H "X-Auth-Email: $CF_AUTH_EMAIL" \
+              -H "X-Auth-Key: $CF_GLOBAL_API_KEY" \
+              -H "Content-Type: application/json" \
+              -d '{"value":1800}' | jq '{success: .success}'
+          fi
+
+      - name: Setup Security Event Notification
+        if: contains(github.event.inputs.action, 'full')
+        run: |
+          echo "=== Creating alert policies ==="
+          # Create notification policy for DDoS alerts
+          NOTIF_RESP=$(curl -s -X POST \
+            "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/alerting/v3/policies" \
+            -H "X-Auth-Email: $CF_AUTH_EMAIL" \
+            -H "X-Auth-Key: $CF_GLOBAL_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "name": "ZyntaPOS DDoS Alert",
+              "description": "Alert when DDoS attack detected on any ZyntaPOS subdomain",
+              "enabled": true,
+              "alert_type": "dos_attack_l7",
+              "mechanisms": {
+                "email": [{"id": "'$CF_AUTH_EMAIL'"}]
+              }
+            }')
+
+          echo "Notification policy:"
+          echo "$NOTIF_RESP" | jq '{success: .success, id: .result.id}' 2>/dev/null || echo "$NOTIF_RESP"
+
+      - name: Summary
+        run: |
+          echo "═══════════════════════════════════════"
+          echo "  CF Zero Trust & WAF Setup — Summary"
+          echo "═══════════════════════════════════════"
+          echo ""
+          echo "Action: ${{ github.event.inputs.action }}"
+          echo ""
+          echo "Components configured:"
+          case "${{ github.event.inputs.action }}" in
+            debug)        echo "  • Debug info only (read-only)" ;;
+            setup-access) echo "  • CF Access app for panel.zyntapos.com" ;;
+            setup-waf)    echo "  • WAF rate limiting + Bot Fight Mode" ;;
+            full-setup)   echo "  • CF Access + WAF + Bot Fight Mode + Notifications" ;;
+          esac
