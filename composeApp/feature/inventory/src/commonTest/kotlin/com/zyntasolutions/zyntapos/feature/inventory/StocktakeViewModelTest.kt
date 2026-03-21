@@ -92,7 +92,7 @@ class StocktakeViewModelTest {
 
     private val sessionFlow = MutableStateFlow<User?>(adminUser)
     private var startSessionResult: Result<StocktakeSession> = Result.Success(mockSession)
-    private var scanItemResult: Result<StocktakeCount> = Result.Success(mockCount)
+    private var productByBarcodeResult: Result<Product> = Result.Success(mockProduct)
     private var completeResult: Result<Map<String, Int>> = Result.Success(mapOf("prod-001" to 5))
 
     private val fakeAuthRepo = object : AuthRepository {
@@ -119,7 +119,7 @@ class StocktakeViewModelTest {
         override suspend fun getById(id: String): Result<Product> = Result.Success(mockProduct)
         override fun search(query: String, categoryId: String?): Flow<List<Product>> =
             MutableStateFlow(emptyList())
-        override suspend fun getByBarcode(barcode: String): Result<Product> = Result.Success(mockProduct)
+        override suspend fun getByBarcode(barcode: String): Result<Product> = productByBarcodeResult
         override suspend fun insert(product: Product): Result<Unit> = Result.Success(Unit)
         override suspend fun update(product: Product): Result<Unit> = Result.Success(Unit)
         override suspend fun delete(id: String): Result<Unit> = Result.Success(Unit)
@@ -254,7 +254,8 @@ class StocktakeViewModelTest {
     @Test
     fun `ScanItem failure emits ScanNotFound effect`() = runTest {
         testDispatcher.scheduler.advanceUntilIdle()
-        scanItemResult = Result.Error(DatabaseException("Product not found"))
+        // Make barcode lookup fail so ScanItem emits ScanNotFound
+        productByBarcodeResult = Result.Error(DatabaseException("Product not found"))
         viewModel.handleIntentForTest(StocktakeIntent.StartSession)
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -263,6 +264,7 @@ class StocktakeViewModelTest {
             testDispatcher.scheduler.advanceUntilIdle()
             val effect = awaitItem()
             assertTrue(effect is StocktakeEffect.ScanNotFound)
+            cancelAndIgnoreRemainingEvents()
         }
     }
 

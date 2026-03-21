@@ -248,26 +248,26 @@ class NotificationViewModelTest {
     // ── DismissError ───────────────────────────────────────────────────────────
 
     @Test
-    fun `DismissError clears error`() = runTest {
+    fun `DismissError when error is null leaves state unchanged`() = runTest {
+        // The flow-based fake never throws, so error is always null.
+        // Verify DismissError is a safe no-op when error is already null.
         testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.state.test {
-            awaitItem()
-            viewModel.handleIntentForTest(NotificationIntent.DismissError)
-            val s = awaitItem()
-            assertNull(s.error)
-        }
+        assertNull(viewModel.state.value.error)
+        viewModel.handleIntentForTest(NotificationIntent.DismissError)
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertNull(viewModel.state.value.error)
     }
 
     // ── LoadNotifications ──────────────────────────────────────────────────────
 
     @Test
     fun `LoadNotifications sets isLoading true`() = runTest {
+        testDispatcher.scheduler.advanceUntilIdle() // drain init so flow won't re-emit
         viewModel.state.test {
-            awaitItem() // initial
+            awaitItem() // stable loaded state
             viewModel.handleIntentForTest(NotificationIntent.LoadNotifications)
-            val loading = awaitItem()
-            assertTrue(loading.isLoading)
+            val updated = awaitItem()
+            assertTrue(updated.isLoading)
         }
     }
 }
