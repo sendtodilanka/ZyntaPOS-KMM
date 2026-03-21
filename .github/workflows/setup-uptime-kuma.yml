@@ -116,8 +116,8 @@ jobs:
             const RESET    = process.env.RESET_MONITORS === 'true';
             // Base fields required by Kuma v2 — conditions must be '[]' (NOT NULL in DB)
             const HTTP_BASE = { method: 'GET', maxredirects: 10, accepted_statuscodes: ['200-299'], conditions: '[]', notificationIDList: {}, ignoreTls: false, upsideDown: false, timeout: 48, maxretries: 1, retryInterval: 60, resendInterval: 0 };
-            const PORT_BASE = { conditions: '[]', notificationIDList: {}, upsideDown: false, maxretries: 1, retryInterval: 60, resendInterval: 0 };
-            const PUSH_BASE = { conditions: '[]', notificationIDList: {}, upsideDown: false, maxretries: 1, retryInterval: 60, resendInterval: 0 };
+            const PORT_BASE = { accepted_statuscodes: ['200-299'], conditions: '[]', notificationIDList: {}, upsideDown: false, maxretries: 1, retryInterval: 60, resendInterval: 0 };
+            const PUSH_BASE = { accepted_statuscodes: ['200-299'], conditions: '[]', notificationIDList: {}, upsideDown: false, maxretries: 1, retryInterval: 60, resendInterval: 0 };
             const MONITORS = [
               { ...HTTP_BASE, name: 'API \u2014 Health (External)',     type: 'http', url: 'https://api.zyntapos.com/health',     interval: 60  },
               { ...HTTP_BASE, name: 'License \u2014 Health (External)', type: 'http', url: 'https://license.zyntapos.com/health', interval: 60  },
