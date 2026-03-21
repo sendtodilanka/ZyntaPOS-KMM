@@ -31,7 +31,7 @@ jobs:
   setup-uptime-kuma:
     name: "Configure Uptime Kuma Monitors"
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -46,208 +46,179 @@ jobs:
           envs: KUMA_USERNAME,KUMA_PASSWORD,RESET_MONITORS,DISCORD_WEBHOOK_URL,ALERT_EMAIL
           script: |
             set -euo pipefail
-
             CONTAINER="zyntapos_uptime_kuma"
-            KUMA_BASE="http://localhost:3001"
 
             echo "=== Uptime Kuma Setup — $(date -u +%Y%m%dT%H%M%SZ) ==="
 
-            # ── Verify container is running ───────────────────────────────────────
+            # ── Container running check ───────────────────────────────────────────
             CSTATUS=$(docker inspect "$CONTAINER" --format='{{.State.Status}}' 2>/dev/null || echo "not_found")
             if [[ "$CSTATUS" != "running" ]]; then
-              echo "ERROR: Container '$CONTAINER' is not running (status=$CSTATUS)" >&2
+              echo "ERROR: $CONTAINER not running (status=$CSTATUS)" >&2
               docker ps --filter name=kuma || true
               exit 1
             fi
-            echo "Container: $CONTAINER is $CSTATUS"
+            echo "Container $CONTAINER: $CSTATUS"
 
-            # ── Wait for Uptime Kuma HTTP to be ready (inside container) ─────────
-            echo "--- Waiting for Uptime Kuma to be reachable inside container..."
+            # ── Wait for Uptime Kuma HTTP ready (runs inside container) ───────────
+            echo "--- Waiting for HTTP ready..."
             for i in $(seq 1 24); do
-              if docker exec "$CONTAINER" curl -fsS --max-time 3 "$KUMA_BASE/api/info" > /dev/null 2>&1; then
-                echo "    Uptime Kuma HTTP ready (attempt $i)"
-                break
-              fi
-              echo "    Not ready yet (attempt $i/24), waiting 5s..."
+              docker exec "$CONTAINER" curl -fsS --max-time 3 http://localhost:3001/api/info > /dev/null 2>&1 \
+                && { echo "    Ready (attempt $i)"; break; }
+              echo "    Not ready (attempt $i/24), waiting 5s..."
               sleep 5
-              if [ "$i" -eq 24 ]; then
-                echo "ERROR: Uptime Kuma did not become ready in 120s" >&2
-                docker logs --tail=30 "$CONTAINER" || true
-                exit 1
-              fi
+              [ "$i" -eq 24 ] && { echo "ERROR: Not ready after 120s" >&2; docker logs --tail=20 "$CONTAINER"; exit 1; }
             done
 
-            # ── Helper: run curl inside the Uptime Kuma container ────────────────
-            kuma_curl() {
-              docker exec "$CONTAINER" curl -fsS --max-time 10 "$@"
-            }
+            # ── Install socket.io-client@4 in container if needed ────────────────
+            echo "--- Checking socket.io-client..."
+            SIO_OK=$(docker exec "$CONTAINER" node -e \
+              "try{require('/app/node_modules/socket.io-client');process.stdout.write('yes');}catch(e){process.stdout.write('no');}" \
+              2>/dev/null || echo "no")
 
-            # ── Check if initial setup is needed ─────────────────────────────────
-            echo "--- Checking setup status..."
-            NEEDS_SETUP=$(kuma_curl "$KUMA_BASE/api/needs-setup" \
-              | python3 -c "import sys,json; d=json.load(sys.stdin); print(str(d.get('needSetup', d.get('data', False))).lower())" 2>/dev/null || echo "unknown")
-            echo "    needsSetup=$NEEDS_SETUP"
-
-            # ── Create admin account if not yet configured ────────────────────────
-            if [[ "$NEEDS_SETUP" == "true" ]]; then
-              echo "--- Performing first-time setup: creating admin account..."
-              SETUP_RESULT=$(kuma_curl -X POST "$KUMA_BASE/api/setup" \
-                -H "Content-Type: application/json" \
-                -d "{\"username\":\"$KUMA_USERNAME\",\"password\":\"$KUMA_PASSWORD\"}" 2>&1) || {
-                echo "ERROR: Failed to create admin account" >&2
-                echo "Response: $SETUP_RESULT"
-                exit 1
-              }
-              echo "    Admin account created"
+            if [[ "$SIO_OK" != "yes" ]]; then
+              echo "    Not found in /app/node_modules — installing in /tmp/sio..."
+              docker exec "$CONTAINER" sh -c \
+                'mkdir -p /tmp/sio && cd /tmp/sio && npm init -y > /dev/null 2>&1 && npm install socket.io-client@4 --no-audit --no-fund --save > /dev/null 2>&1 && echo "    Installed"'
             else
-              echo "--- Uptime Kuma already configured, skipping account creation"
+              echo "    Found in /app/node_modules"
             fi
 
-            # ── Authenticate — get Bearer token ──────────────────────────────────
-            echo "--- Authenticating..."
-            LOGIN_JSON=$(kuma_curl -X POST "$KUMA_BASE/api/login" \
-              -H "Content-Type: application/json" \
-              -d "{\"username\":\"$KUMA_USERNAME\",\"password\":\"$KUMA_PASSWORD\"}") || {
-              echo "ERROR: Login failed. Check username/password." >&2
-              exit 1
+            # ── Run monitor setup via Node.js inside the container ───────────────
+            echo "--- Running monitor setup script inside container..."
+            docker exec -i \
+              -e KUMA_USERNAME="$KUMA_USERNAME" \
+              -e KUMA_PASSWORD="$KUMA_PASSWORD" \
+              -e RESET_MONITORS="$RESET_MONITORS" \
+              "$CONTAINER" node << 'JSEOF'
+            'use strict';
+            const SIO_PATHS = [
+              '/app/node_modules/socket.io-client',
+              '/tmp/sio/node_modules/socket.io-client'
+            ];
+            let ioFn;
+            for (const p of SIO_PATHS) {
+              try { ioFn = require(p).io; if (ioFn) break; } catch (_) {}
             }
-            TOKEN=$(echo "$LOGIN_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin).get('token',''))" 2>/dev/null || echo "")
-            if [[ -z "$TOKEN" ]]; then
-              echo "ERROR: No token in login response: $LOGIN_JSON" >&2
-              exit 1
-            fi
-            echo "    Login successful"
+            if (!ioFn) { console.error('socket.io-client not found in:', SIO_PATHS.join(', ')); process.exit(1); }
 
-            # ── Optionally delete existing monitors ───────────────────────────────
-            if [[ "$RESET_MONITORS" == "true" ]]; then
-              echo "--- Deleting all existing monitors (reset=true)..."
-              MONITORS=$(kuma_curl -H "Authorization: Bearer $TOKEN" \
-                "$KUMA_BASE/api/monitors" 2>/dev/null \
-                | python3 -c "import sys,json; d=json.load(sys.stdin); [print(m['id']) for m in d.get('monitors',[])]" 2>/dev/null || echo "")
-              for mid in $MONITORS; do
-                kuma_curl -X DELETE -H "Authorization: Bearer $TOKEN" \
-                  "$KUMA_BASE/api/monitors/$mid" > /dev/null 2>&1 || true
-                echo "    Deleted monitor id=$mid"
-              done
-              echo "    All monitors deleted"
-            fi
+            const USERNAME = process.env.KUMA_USERNAME;
+            const PASSWORD = process.env.KUMA_PASSWORD;
+            const RESET    = process.env.RESET_MONITORS === 'true';
 
-            # ── Helper: create_monitor ────────────────────────────────────────────
-            create_monitor() {
-              local name="$1"
-              local type="$2"
-              local target="$3"
-              local interval="${4:-60}"
-              local extra="${5:-}"
+            const MONITORS = [
+              // External HTTP
+              { name: 'API — Health (External)',     type: 'http', url: 'https://api.zyntapos.com/health',     interval: 60  },
+              { name: 'License — Health (External)', type: 'http', url: 'https://license.zyntapos.com/health', interval: 60  },
+              { name: 'Sync — Health (External)',    type: 'http', url: 'https://sync.zyntapos.com/health',    interval: 60  },
+              { name: 'Panel (External)',            type: 'http', url: 'https://panel.zyntapos.com',          interval: 120 },
+              { name: 'Website (External)',          type: 'http', url: 'https://zyntapos.com',               interval: 120 },
+              { name: 'Status Page (External)',      type: 'http', url: 'https://status.zyntapos.com',        interval: 120 },
+              // Internal HTTP (Docker network)
+              { name: 'API — Health (Internal)',     type: 'http', url: 'http://api:8080/health',    interval: 30 },
+              { name: 'License — Health (Internal)', type: 'http', url: 'http://license:8083/health', interval: 30 },
+              { name: 'Sync — Health (Internal)',    type: 'http', url: 'http://sync:8082/health',   interval: 30 },
+              // TCP port
+              { name: 'PostgreSQL TCP', type: 'port', hostname: 'postgres', port: 5432, interval: 60 },
+              { name: 'Redis TCP',      type: 'port', hostname: 'redis',    port: 6379, interval: 60 },
+              // TLS cert expiry (daily)
+              { name: 'TLS — api.zyntapos.com',     type: 'http', url: 'https://api.zyntapos.com/health',     interval: 86400, checkCertExpiry: true, expiryNotification: true },
+              { name: 'TLS — license.zyntapos.com', type: 'http', url: 'https://license.zyntapos.com/health', interval: 86400, checkCertExpiry: true, expiryNotification: true },
+              { name: 'TLS — sync.zyntapos.com',    type: 'http', url: 'https://sync.zyntapos.com/health',    interval: 86400, checkCertExpiry: true, expiryNotification: true },
+              { name: 'TLS — panel.zyntapos.com',   type: 'http', url: 'https://panel.zyntapos.com',          interval: 86400, checkCertExpiry: true, expiryNotification: true },
+              // Push heartbeats (backup jobs ping these)
+              { name: 'Backup — Daily DB', type: 'push', interval: 90000  },
+              { name: 'Backup — Verify',   type: 'push', interval: 691200 },
+            ];
 
-              local body="{\"name\":\"$name\",\"type\":\"$type\",\"interval\":$interval"
+            function emitAck(socket, event, data) {
+              return new Promise((resolve, reject) => {
+                const t = setTimeout(() => reject(new Error('Timeout on ' + event)), 12000);
+                socket.emit(event, data, (res) => { clearTimeout(t); resolve(res); });
+              });
+            }
 
-              case "$type" in
-                http)  body="$body,\"url\":\"$target\"" ;;
-                tcp)   body="$body,\"hostname\":\"$(echo "$target" | cut -d: -f1)\",\"port\":$(echo "$target" | cut -d: -f2)" ;;
-                ping)  body="$body,\"hostname\":\"$target\"" ;;
-                push)  ;;
-              esac
+            const socket = ioFn('http://localhost:3001', {
+              transports: ['polling', 'websocket'],
+              timeout: 10000,
+              reconnectionAttempts: 0,
+            });
 
-              [[ -n "$extra" ]] && body="$body,$extra"
-              body="$body,\"active\":true}"
+            socket.on('connect_error', (err) => {
+              console.error('Connection error:', err.message);
+              process.exit(1);
+            });
 
-              local result
-              result=$(kuma_curl -X POST "$KUMA_BASE/api/monitors" \
-                -H "Content-Type: application/json" \
-                -H "Authorization: Bearer $TOKEN" \
-                -d "$body" 2>&1) || {
-                echo "  WARNING: Failed to create monitor '$name': $result" >&2
-                return 0
+            const GLOBAL_TIMEOUT = setTimeout(() => {
+              console.error('ERROR: global timeout 60s'); socket.disconnect(); process.exit(1);
+            }, 60000);
+
+            socket.on('connect', async () => {
+              console.log('Connected to Uptime Kuma socket');
+              try {
+                // Login
+                const lr = await emitAck(socket, 'login', { username: USERNAME, password: PASSWORD });
+                if (!lr || !lr.ok) throw new Error('Login failed: ' + (lr && lr.msg ? lr.msg : JSON.stringify(lr)));
+                console.log('Logged in as ' + USERNAME);
+
+                // Optionally reset
+                if (RESET) {
+                  const listR = await emitAck(socket, 'getMonitorList', {});
+                  const existing = Object.values((listR && listR.data) || {});
+                  console.log('Deleting ' + existing.length + ' monitors...');
+                  for (const m of existing) {
+                    await emitAck(socket, 'deleteMonitor', m.id);
+                    console.log('  Deleted: ' + m.name + ' (id=' + m.id + ')');
+                  }
+                }
+
+                // Create monitors
+                let created = 0, warned = 0;
+                for (const mon of MONITORS) {
+                  try {
+                    const r = await emitAck(socket, 'addMonitor', mon);
+                    if (r && r.ok) {
+                      console.log('  + ' + mon.name + ' (id=' + (r.monitorID || '?') + ')');
+                      created++;
+                    } else {
+                      console.warn('  WARNING: ' + mon.name + ': ' + JSON.stringify(r));
+                      warned++;
+                    }
+                  } catch (e) {
+                    console.warn('  WARNING: ' + mon.name + ': ' + e.message);
+                    warned++;
+                  }
+                }
+
+                console.log('\nDone: ' + created + ' created, ' + warned + ' warnings');
+                clearTimeout(GLOBAL_TIMEOUT);
+                socket.disconnect();
+                process.exit(warned > 0 && created === 0 ? 1 : 0);
+              } catch (err) {
+                console.error('ERROR: ' + err.message);
+                clearTimeout(GLOBAL_TIMEOUT);
+                socket.disconnect();
+                process.exit(1);
               }
+            });
+            JSEOF
 
-              local monitor_id
-              monitor_id=$(echo "$result" | python3 -c "import sys,json; print(json.load(sys.stdin).get('monitorID','?'))" 2>/dev/null || echo "?")
-              echo "  + '$name' (id=$monitor_id)"
-            }
-
-            # ── Helper: create_notification ───────────────────────────────────────
-            create_notification() {
-              local name="$1"
-              local type="$2"
-              local config="$3"
-
-              kuma_curl -X POST "$KUMA_BASE/api/notifications" \
-                -H "Content-Type: application/json" \
-                -H "Authorization: Bearer $TOKEN" \
-                -d "{\"name\":\"$name\",\"type\":\"$type\",\"isDefault\":true,$config}" > /dev/null 2>&1 || {
-                echo "  WARNING: Failed to create notification '$name'" >&2
-                return 0
-              }
-              echo "  + Notification '$name'"
-            }
-
-            # ── Notification channels ─────────────────────────────────────────────
-            echo "--- Creating notification channels..."
-            if [[ -n "${DISCORD_WEBHOOK_URL:-}" ]]; then
-              create_notification "Discord Alerts" "discord" \
-                "\"discordWebhookUrl\":\"$DISCORD_WEBHOOK_URL\""
-            fi
-            if [[ -n "${ALERT_EMAIL:-}" ]]; then
-              create_notification "Email Alerts" "smtp" \
-                "\"smtpHost\":\"localhost\",\"smtpPort\":25,\"smtpTo\":\"$ALERT_EMAIL\""
-            fi
-
-            # ── External HTTP monitors ────────────────────────────────────────────
-            echo "--- Creating external HTTP monitors..."
-            create_monitor "API — Health (External)"     "http" "https://api.zyntapos.com/health"     60
-            create_monitor "License — Health (External)" "http" "https://license.zyntapos.com/health"  60
-            create_monitor "Sync — Health (External)"    "http" "https://sync.zyntapos.com/health"     60
-            create_monitor "Panel (External)"            "http" "https://panel.zyntapos.com"            120
-            create_monitor "Website (External)"          "http" "https://zyntapos.com"                  120
-            create_monitor "Status Page (External)"      "http" "https://status.zyntapos.com"           120
-
-            # ── Internal HTTP monitors (Docker network) ───────────────────────────
-            echo "--- Creating internal HTTP monitors..."
-            create_monitor "API — Health (Internal)"     "http" "http://api:8080/health"      30
-            create_monitor "License — Health (Internal)" "http" "http://license:8083/health"  30
-            create_monitor "Sync — Health (Internal)"    "http" "http://sync:8082/health"     30
-
-            # ── TCP port monitors ─────────────────────────────────────────────────
-            echo "--- Creating TCP monitors..."
-            create_monitor "PostgreSQL TCP" "tcp" "postgres:5432" 60
-            create_monitor "Redis TCP"      "tcp" "redis:6379"    60
-
-            # ── TLS certificate monitors (daily) ──────────────────────────────────
-            echo "--- Creating TLS certificate monitors..."
-            TLS_EXTRA='"checkCertExpiry":true,"expiryNotification":true,"ignoreTls":false'
-            create_monitor "TLS — api.zyntapos.com"     "http" "https://api.zyntapos.com/health"     86400 "$TLS_EXTRA"
-            create_monitor "TLS — license.zyntapos.com" "http" "https://license.zyntapos.com/health"  86400 "$TLS_EXTRA"
-            create_monitor "TLS — sync.zyntapos.com"    "http" "https://sync.zyntapos.com/health"     86400 "$TLS_EXTRA"
-            create_monitor "TLS — panel.zyntapos.com"   "http" "https://panel.zyntapos.com"           86400 "$TLS_EXTRA"
-
-            # ── Push monitors (backup heartbeats) ─────────────────────────────────
-            echo "--- Creating push (heartbeat) monitors..."
-            create_monitor "Backup — Daily DB" "push" "" 90000
-            create_monitor "Backup — Verify"   "push" "" 691200
-
-            # ── Persist credentials to VPS .env ──────────────────────────────────
+            # ── Save credentials to VPS .env ─────────────────────────────────────
             echo "--- Saving credentials to /opt/zyntapos/.env..."
             ENV_FILE="/opt/zyntapos/.env"
-            for KEY_VAL in "KUMA_PASSWORD=${KUMA_PASSWORD}" "KUMA_USERNAME=${KUMA_USERNAME}"; do
-              KEY="${KEY_VAL%%=*}"
-              VAL="${KEY_VAL#*=}"
+            for PAIR in "KUMA_USERNAME=${KUMA_USERNAME}" "KUMA_PASSWORD=${KUMA_PASSWORD}"; do
+              KEY="${PAIR%%=*}"
               if grep -q "^${KEY}=" "$ENV_FILE" 2>/dev/null; then
-                sed -i "s|^${KEY}=.*|${KEY_VAL}|" "$ENV_FILE"
-                echo "    Updated $KEY in .env"
+                sed -i "s|^${KEY}=.*|${PAIR}|" "$ENV_FILE"
+                echo "    Updated $KEY"
               else
-                echo "$KEY_VAL" >> "$ENV_FILE"
-                echo "    Added $KEY to .env"
+                echo "$PAIR" >> "$ENV_FILE"
+                echo "    Added $KEY"
               fi
             done
 
             echo ""
             echo "=== Setup complete — $(date -u +%Y%m%dT%H%M%SZ) ==="
-            echo ""
-            echo "Next steps:"
-            echo "  1. Visit https://status.zyntapos.com — verify all 19 monitors appear"
-            echo "  2. Copy push URLs from the 2 push monitors (Backup-Daily, Backup-Verify)"
-            echo "  3. Add KUMA_PUSH_URL and KUMA_PUSH_URL_VERIFY to /opt/zyntapos/.env"
+            echo "Visit https://status.zyntapos.com to verify all monitors appear"
         env:
           KUMA_USERNAME: ${{ github.event.inputs.kuma_username }}
           KUMA_PASSWORD: ${{ github.event.inputs.kuma_password }}
