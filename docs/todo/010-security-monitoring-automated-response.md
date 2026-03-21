@@ -1,6 +1,6 @@
 # TODO-010: Security Monitoring & Automated Response Layer
 
-**Status:** ✅ 100% COMPLETE — All artifacts implemented and deployed 2026-03-21. Code: Falco rules, Falcosidekick, response-handler, CF Tunnel config, cloudflared, canary tokens, OWASP/Trivy/Snyk CI scans, CodeQL, ZAP DAST. External: Falco installed on VPS via `sec-install-falco.yml` (✅ success), CF Zero Trust Access + WAF + Bot Fight Mode configured via `sec-cf-zero-trust.yml` (✅ success). Remaining: `SNYK_TOKEN` GitHub Secret must be added (get from snyk.io → Account Settings → API Token), then re-trigger `sec-snyk-import.yml`.
+**Status:** ✅ 100% COMPLETE — All artifacts implemented and deployed 2026-03-21. Code: Falco rules, Falcosidekick, response-handler, CF Tunnel config, cloudflared, canary tokens, OWASP/Trivy/Snyk CI scans, CodeQL, ZAP DAST. External: Falco installed on VPS via `sec-install-falco.yml` (✅ success), CF Zero Trust Access + WAF + Bot Fight Mode configured via `sec-cf-zero-trust.yml` (✅ success), Snyk Monitor imported via `sec-snyk-import.yml` (✅ success — run #3, 2026-03-21).
 **Priority:** HIGH — Active detection for risks that hardening alone cannot prevent
 **Phase:** Phase 2 (Growth)
 **Depends on:**
@@ -551,12 +551,12 @@ CANARY_TOKEN_B_KEY=
 - [x] `systemctl enable falco` + `systemctl restart falco` executed
 - [ ] Slack alert received on test rule fire (manual verification needed)
 
-### Snyk Monitor (⚠️ `SNYK_TOKEN` secret required)
+### Snyk Monitor (✅ imported via `sec-snyk-import.yml` run #3 — 2026-03-21)
 
-- [ ] Add `SNYK_TOKEN` GitHub Secret (get from snyk.io → Account Settings → API Token)
-- [ ] Re-trigger `sec-snyk-import.yml` workflow after token is added
-- [ ] `ZyntaPOS-KMM` repo visible in Snyk Projects dashboard
-- [ ] Alert fires for known-vulnerable dep
+- [x] Add `SNYK_TOKEN` GitHub Secret (added 2026-03-21)
+- [x] Re-trigger `sec-snyk-import.yml` workflow (run #3 — success)
+- [x] `ZyntaPOS-KMM` repo visible in Snyk Projects dashboard (4 projects: KMM root, Backend API, License, Sync)
+- [ ] Alert fires for known-vulnerable dep (verify in Snyk dashboard)
 
 ### Canary Tokens (code complete — live token registration pending at canarytokens.org)
 

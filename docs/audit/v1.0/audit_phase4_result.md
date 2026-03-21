@@ -348,7 +348,7 @@ The version catalog declares `kotlinx-datetime = "0.7.1"` but the root build scr
 ✅ **CI Pipeline Comprehensive (Score: 8.5/10):**
 - `ci.yml`: Builds all 5 shared modules (JVM), Android debug APK, Desktop JVM JAR, runs Lint + Detekt + allTests, uploads artifacts with 7-day retention
 - `release.yml`: 4-platform build matrix (Android APK, macOS DMG, Windows MSI, Linux DEB), base64-decoded keystore from secrets, GitHub Release creation with all artifacts
-- **Missing:** No dependency vulnerability scanning (e.g., `dependencyCheckAnalyze`, Snyk, or Gradle's `--scan`), no code coverage report (Kover/JaCoCo)
+- **Update (2026-03-21):** Dependency vulnerability scanning now fully implemented — OWASP `dependencyCheckAnalyze` in all 3 backend services, Snyk Monitor imported (4 projects via `sec-snyk-import.yml`), Trivy container scanning, CodeQL, ZAP DAST. Remaining gap: no code coverage report (Kover/JaCoCo)
 
 ---
 
@@ -665,7 +665,7 @@ This module provides `expect/actual` for:
 
 ### Long-Term (Backlog / Future Sprints)
 
-1. **Dependency vulnerability scanning:** Add Gradle `dependencyCheckAnalyze` or Snyk to CI.
+1. ~~**Dependency vulnerability scanning:**~~ ✅ DONE (2026-03-21) — OWASP `dependencyCheckAnalyze` + Snyk Monitor + Trivy + CodeQL + ZAP DAST all in CI.
 2. **Design system enforcement:** Create a Detekt custom rule or lint check that flags raw Material3 components in feature modules.
 3. **Migrate stale docs:** Archive or delete the 17 obsolete audit/plan documents from Phase 2 finding M-2.
 
