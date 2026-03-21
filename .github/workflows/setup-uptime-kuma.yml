@@ -114,24 +114,28 @@ jobs:
             const USERNAME = process.env.KUMA_USERNAME;
             const PASSWORD = process.env.KUMA_PASSWORD;
             const RESET    = process.env.RESET_MONITORS === 'true';
+            // Base fields required by Kuma v2 for all monitor types
+            const HTTP_BASE = { method: 'GET', maxredirects: 10, accepted_statuscodes: ['200-299'], notificationIDList: {}, ignoreTls: false, upsideDown: false, timeout: 48, maxretries: 1, retryInterval: 60, resendInterval: 0 };
+            const PORT_BASE = { notificationIDList: {}, upsideDown: false, maxretries: 1, retryInterval: 60, resendInterval: 0 };
+            const PUSH_BASE = { notificationIDList: {}, upsideDown: false, maxretries: 1, retryInterval: 60, resendInterval: 0 };
             const MONITORS = [
-              { name: 'API \u2014 Health (External)',     type: 'http', url: 'https://api.zyntapos.com/health',     interval: 60  },
-              { name: 'License \u2014 Health (External)', type: 'http', url: 'https://license.zyntapos.com/health', interval: 60  },
-              { name: 'Sync \u2014 Health (External)',    type: 'http', url: 'https://sync.zyntapos.com/health',    interval: 60  },
-              { name: 'Panel (External)',                 type: 'http', url: 'https://panel.zyntapos.com',          interval: 120 },
-              { name: 'Website (External)',               type: 'http', url: 'https://zyntapos.com',                interval: 120 },
-              { name: 'Status Page (External)',           type: 'http', url: 'https://status.zyntapos.com',         interval: 120 },
-              { name: 'API \u2014 Health (Internal)',     type: 'http', url: 'http://api:8080/health',    interval: 30 },
-              { name: 'License \u2014 Health (Internal)', type: 'http', url: 'http://license:8083/health', interval: 30 },
-              { name: 'Sync \u2014 Health (Internal)',    type: 'http', url: 'http://sync:8082/health',   interval: 30 },
-              { name: 'PostgreSQL TCP', type: 'port', hostname: 'postgres', port: 5432, interval: 60 },
-              { name: 'Redis TCP',      type: 'port', hostname: 'redis',    port: 6379, interval: 60 },
-              { name: 'TLS \u2014 api.zyntapos.com',     type: 'http', url: 'https://api.zyntapos.com/health',     interval: 86400, checkCertExpiry: true, expiryNotification: true },
-              { name: 'TLS \u2014 license.zyntapos.com', type: 'http', url: 'https://license.zyntapos.com/health', interval: 86400, checkCertExpiry: true, expiryNotification: true },
-              { name: 'TLS \u2014 sync.zyntapos.com',    type: 'http', url: 'https://sync.zyntapos.com/health',    interval: 86400, checkCertExpiry: true, expiryNotification: true },
-              { name: 'TLS \u2014 panel.zyntapos.com',   type: 'http', url: 'https://panel.zyntapos.com',          interval: 86400, checkCertExpiry: true, expiryNotification: true },
-              { name: 'Backup \u2014 Daily DB', type: 'push', interval: 90000  },
-              { name: 'Backup \u2014 Verify',   type: 'push', interval: 691200 },
+              { ...HTTP_BASE, name: 'API \u2014 Health (External)',     type: 'http', url: 'https://api.zyntapos.com/health',     interval: 60  },
+              { ...HTTP_BASE, name: 'License \u2014 Health (External)', type: 'http', url: 'https://license.zyntapos.com/health', interval: 60  },
+              { ...HTTP_BASE, name: 'Sync \u2014 Health (External)',    type: 'http', url: 'https://sync.zyntapos.com/health',    interval: 60  },
+              { ...HTTP_BASE, name: 'Panel (External)',                 type: 'http', url: 'https://panel.zyntapos.com',          interval: 120 },
+              { ...HTTP_BASE, name: 'Website (External)',               type: 'http', url: 'https://zyntapos.com',                interval: 120 },
+              { ...HTTP_BASE, name: 'Status Page (External)',           type: 'http', url: 'https://status.zyntapos.com',         interval: 120 },
+              { ...HTTP_BASE, name: 'API \u2014 Health (Internal)',     type: 'http', url: 'http://api:8080/health',    interval: 30 },
+              { ...HTTP_BASE, name: 'License \u2014 Health (Internal)', type: 'http', url: 'http://license:8083/health', interval: 30 },
+              { ...HTTP_BASE, name: 'Sync \u2014 Health (Internal)',    type: 'http', url: 'http://sync:8082/health',   interval: 30 },
+              { ...PORT_BASE, name: 'PostgreSQL TCP', type: 'port', hostname: 'postgres', port: 5432, interval: 60 },
+              { ...PORT_BASE, name: 'Redis TCP',      type: 'port', hostname: 'redis',    port: 6379, interval: 60 },
+              { ...HTTP_BASE, name: 'TLS \u2014 api.zyntapos.com',     type: 'http', url: 'https://api.zyntapos.com/health',     interval: 86400, checkCertExpiry: true, expiryNotification: true },
+              { ...HTTP_BASE, name: 'TLS \u2014 license.zyntapos.com', type: 'http', url: 'https://license.zyntapos.com/health', interval: 86400, checkCertExpiry: true, expiryNotification: true },
+              { ...HTTP_BASE, name: 'TLS \u2014 sync.zyntapos.com',    type: 'http', url: 'https://sync.zyntapos.com/health',    interval: 86400, checkCertExpiry: true, expiryNotification: true },
+              { ...HTTP_BASE, name: 'TLS \u2014 panel.zyntapos.com',   type: 'http', url: 'https://panel.zyntapos.com',          interval: 86400, checkCertExpiry: true, expiryNotification: true },
+              { ...PUSH_BASE, name: 'Backup \u2014 Daily DB', type: 'push', interval: 90000  },
+              { ...PUSH_BASE, name: 'Backup \u2014 Verify',   type: 'push', interval: 691200 },
             ];
             const QUIET = new Set(['heartbeat','heartbeatList','avgPing','uptime','certInfo','notificationList','proxyList','statusPageList','apiKeyList','info','monitorList']);
             const socket = ioFn('http://localhost:3001', { transports: ['polling','websocket'], timeout: 15000, reconnectionAttempts: 0 });
