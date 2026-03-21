@@ -95,6 +95,8 @@ import com.zyntasolutions.zyntapos.feature.settings.screen.SecuritySettingsScree
 import com.zyntasolutions.zyntapos.feature.settings.screen.SystemHealthScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.TaxSettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.UserManagementScreen
+import com.zyntasolutions.zyntapos.feature.diagnostic.DiagnosticConsentScreen
+import com.zyntasolutions.zyntapos.feature.diagnostic.DiagnosticViewModel
 import com.zyntasolutions.zyntapos.navigation.MainNavScreens
 import com.zyntasolutions.zyntapos.navigation.ZyntaNavGraph
 import com.zyntasolutions.zyntapos.navigation.rememberNavigationController
@@ -216,6 +218,24 @@ fun App() {
                 debugScreen = if (appInfoProvider.isDebug) { onNavigateUp ->
                     DebugScreen(onNavigateUp = onNavigateUp)
                 } else null,
+                diagnosticConsentScreen = { token, onDismiss ->
+                    val vm = koinViewModel<DiagnosticViewModel>()
+                    androidx.compose.runtime.LaunchedEffect(token) { vm.loadToken(token) }
+                    val state by vm.state.collectAsState()
+                    // Dismiss the screen when consent is accepted or denied
+                    androidx.compose.runtime.LaunchedEffect(Unit) {
+                        vm.effects.collect { effect ->
+                            when (effect) {
+                                is com.zyntasolutions.zyntapos.feature.diagnostic.DiagnosticEffect.ConsentAccepted,
+                                is com.zyntasolutions.zyntapos.feature.diagnostic.DiagnosticEffect.ConsentDenied ->
+                                    onDismiss()
+                                is com.zyntasolutions.zyntapos.feature.diagnostic.DiagnosticEffect.ShowError ->
+                                    Unit // Error message shown inline via state.errorMessage
+                            }
+                        }
+                    }
+                    DiagnosticConsentScreen(state = state, onIntent = vm::dispatch)
+                },
             )
         }
         } // end CompositionLocalProvider

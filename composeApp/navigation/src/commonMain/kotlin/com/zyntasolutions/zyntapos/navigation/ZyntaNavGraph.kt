@@ -101,6 +101,9 @@ val deepLinkOrder: NavDeepLink = navDeepLink<ZyntaRoute.OrderHistory>(
  * @param pinLockScreen Composable factory for the PinLock screen.
  * @param debugScreen Optional composable factory for the Debug Console. Non-null only when
  *   `AppInfoProvider.isDebug == true`. When null, [ZyntaRoute.Debug] is not registered.
+ * @param diagnosticConsentScreen Optional composable for the Remote Diagnostic consent
+ *   flow (TODO-006, ENTERPRISE tier). When null, [ZyntaRoute.DiagnosticConsent] is not
+ *   registered. Receives the raw JIT token and a dismiss callback.
  */
 @Composable
 fun ZyntaNavGraph(
@@ -119,6 +122,7 @@ fun ZyntaNavGraph(
     licenseActivationScreen: @Composable (onActivated: () -> Unit) -> Unit = {},
     licenseExpiredScreen: @Composable () -> Unit = {},
     debugScreen: (@Composable (onNavigateUp: () -> Unit) -> Unit)? = null,
+    diagnosticConsentScreen: (@Composable (token: String, onDismiss: () -> Unit) -> Unit)? = null,
 ) {
     // Compute RBAC-filtered nav items once per role change
     val navItems: List<NavItem> = if (userRole != null) {
@@ -163,6 +167,7 @@ fun ZyntaNavGraph(
             currentUserRole = currentUserRole,
             screens = screens,
             debugScreen = debugScreen,
+            diagnosticConsentScreen = diagnosticConsentScreen,
         )
     }
 

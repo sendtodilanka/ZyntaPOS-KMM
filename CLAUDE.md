@@ -414,7 +414,7 @@ ZyntaPOS-KMM/
 │   ├── core/                          # BaseViewModel<S,I,E> for all features
 │   ├── designsystem/                  # Material 3 theme + reusable Zynta* components
 │   ├── navigation/                    # Type-safe NavHost, RBAC route gating
-│   └── feature/                       # 16 feature modules (see Module Map below)
+│   └── feature/                       # 17 feature modules (see Module Map below)
 ├── shared/                            # 100% cross-platform business logic
 │   ├── core/                          # MVI base, Result<T>, utilities (pure Kotlin)
 │   ├── domain/                        # Domain models, use-case interfaces, repo contracts
@@ -485,6 +485,7 @@ ZyntaPOS-KMM/
 | `:composeApp:feature:admin` | System health, audit-log viewer, DB maintenance, backup management |
 | `:composeApp:feature:media` | Product image picker, crop, compression pipeline |
 | `:composeApp:feature:accounting` | E-Invoice creation and IRD (Sri Lanka) submission pipeline |
+| `:composeApp:feature:diagnostic` | Remote diagnostic consent flow — JIT token decode, operator accept/deny UI, WebSocket relay to technician (ENTERPRISE, TODO-006) |
 
 ### Platform Apps / Tools
 
@@ -1342,6 +1343,7 @@ See `docs/ai_workflows/execution_log.md` for the granular task checklist.
 | **Admin panel auth store** | `admin-panel/src/stores/auth-store.ts` — Zustand store for `AdminUser \| null` |
 | **Admin panel API hooks** | `admin-panel/src/api/auth.ts`, `users.ts` — TanStack Query mutations |
 | **Admin panel routes** | `admin-panel/src/routes/` — login, users, tickets, master-products, settings/profile, settings/mfa |
+| **Admin panel diagnostic viewer** | `admin-panel/src/routes/diagnostic/index.tsx` — technician session management (create JIT token, per-store status, revoke); `admin-panel/src/api/diagnostic.ts` + `admin-panel/src/types/diagnostic.ts` (TODO-006) |
 
 ---
 
