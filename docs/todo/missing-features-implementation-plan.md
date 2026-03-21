@@ -1516,12 +1516,14 @@ Backend Tests:
 
 ---
 
-### G2. Onboarding Gaps (`:composeApp:feature:onboarding`)
+### G2. Onboarding Gaps (`:composeApp:feature:onboarding`) — ~50% Complete
 
-**Current:** 2-step wizard (Business Name → Admin Account)
+**Current:** 3-step wizard (Business Name → Admin Account → Store Settings)
 
-**MISSING steps needed for correct store setup:**
-- [ ] **Step 3: Currency & Timezone** — Select store currency + timezone (currently defaults to LKR + Asia/Colombo)
+**Implemented (2026-03-21):**
+- [x] **Step 3: Currency & Timezone** — Uses `ZyntaCurrencyPicker` (9 currencies) + `ZyntaTimezonePicker` (21 timezones); persists to `general.currency` and `general.timezone` settings keys; ViewModel tests updated (Step 2→3 validation, currency/timezone persistence)
+
+**REMAINING:**
 - [ ] **Step 4: Basic Tax Setup** — Optional tax group configuration (can defer to Settings)
 - [ ] **Step 5: Receipt Format** — Optional printer/receipt configuration
 - [ ] Multi-store setup flow (Phase 2 — additional store creation)

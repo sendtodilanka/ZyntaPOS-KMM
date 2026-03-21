@@ -54,6 +54,8 @@ class OnboardingViewModel(
             is OnboardingIntent.AdminPasswordChanged -> onAdminPasswordChanged(intent.password)
             is OnboardingIntent.AdminConfirmPasswordChanged -> onAdminConfirmPasswordChanged(intent.confirmPassword)
             is OnboardingIntent.TogglePasswordVisibility -> updateState { copy(isPasswordVisible = !isPasswordVisible) }
+            is OnboardingIntent.CurrencyChanged -> updateState { copy(currencyCode = intent.currencyCode) }
+            is OnboardingIntent.TimezoneChanged -> updateState { copy(timezoneId = intent.timezoneId) }
             is OnboardingIntent.CompleteOnboarding -> onCompleteOnboarding()
             is OnboardingIntent.BackStep -> onBackStep()
             is OnboardingIntent.DismissError -> updateState { copy(error = null) }
@@ -75,17 +77,58 @@ class OnboardingViewModel(
 
     private fun onNextStep() {
         val s = currentState
-        val nameError = validateBusinessName(s.businessName)
-        if (nameError != null) {
-            updateState { copy(businessNameError = nameError) }
-            return
+        when (s.currentStep) {
+            OnboardingState.Step.BUSINESS_INFO -> {
+                val nameError = validateBusinessName(s.businessName)
+                if (nameError != null) {
+                    updateState { copy(businessNameError = nameError) }
+                    return
+                }
+                updateState { copy(currentStep = OnboardingState.Step.ADMIN_ACCOUNT, businessNameError = null) }
+            }
+            OnboardingState.Step.ADMIN_ACCOUNT -> {
+                // Validate admin fields before advancing to Step 3
+                val nameError = if (s.adminName.isBlank()) "Name is required"
+                    else if (s.adminName.trim().length < 2) "Name is too short" else null
+                val emailError = when {
+                    s.adminEmail.isBlank() -> "Email is required"
+                    !s.adminEmail.isValidEmail() -> "Enter a valid email address"
+                    else -> null
+                }
+                val passwordError = when {
+                    s.adminPassword.isBlank() -> "Password is required"
+                    s.adminPassword.length < 8 -> "Password must be at least 8 characters"
+                    else -> null
+                }
+                val confirmError = when {
+                    s.adminConfirmPassword.isBlank() -> "Please confirm your password"
+                    s.adminConfirmPassword != s.adminPassword -> "Passwords do not match"
+                    else -> null
+                }
+                if (nameError != null || emailError != null || passwordError != null || confirmError != null) {
+                    updateState {
+                        copy(
+                            adminNameError = nameError,
+                            adminEmailError = emailError,
+                            adminPasswordError = passwordError,
+                            adminConfirmPasswordError = confirmError,
+                        )
+                    }
+                    return
+                }
+                updateState { copy(currentStep = OnboardingState.Step.STORE_SETTINGS) }
+            }
+            OnboardingState.Step.STORE_SETTINGS -> {
+                // Last step — no-op, use CompleteOnboarding instead
+            }
         }
-        updateState { copy(currentStep = OnboardingState.Step.ADMIN_ACCOUNT, businessNameError = null) }
     }
 
     private fun onBackStep() {
-        if (currentState.currentStep == OnboardingState.Step.ADMIN_ACCOUNT) {
-            updateState { copy(currentStep = OnboardingState.Step.BUSINESS_INFO) }
+        when (currentState.currentStep) {
+            OnboardingState.Step.ADMIN_ACCOUNT -> updateState { copy(currentStep = OnboardingState.Step.BUSINESS_INFO) }
+            OnboardingState.Step.STORE_SETTINGS -> updateState { copy(currentStep = OnboardingState.Step.ADMIN_ACCOUNT) }
+            OnboardingState.Step.BUSINESS_INFO -> Unit // no-op
         }
     }
 
@@ -138,37 +181,6 @@ class OnboardingViewModel(
     private suspend fun onCompleteOnboarding() {
         val s = currentState
 
-        // ── Client-side validation ────────────────────────────────────────
-        val nameError = if (s.adminName.isBlank()) "Name is required"
-            else if (s.adminName.trim().length < 2) "Name is too short" else null
-        val emailError = when {
-            s.adminEmail.isBlank() -> "Email is required"
-            !s.adminEmail.isValidEmail() -> "Enter a valid email address"
-            else -> null
-        }
-        val passwordError = when {
-            s.adminPassword.isBlank() -> "Password is required"
-            s.adminPassword.length < 8 -> "Password must be at least 8 characters"
-            else -> null
-        }
-        val confirmError = when {
-            s.adminConfirmPassword.isBlank() -> "Please confirm your password"
-            s.adminConfirmPassword != s.adminPassword -> "Passwords do not match"
-            else -> null
-        }
-
-        if (nameError != null || emailError != null || passwordError != null || confirmError != null) {
-            updateState {
-                copy(
-                    adminNameError = nameError,
-                    adminEmailError = emailError,
-                    adminPasswordError = passwordError,
-                    adminConfirmPasswordError = confirmError,
-                )
-            }
-            return
-        }
-
         updateState { copy(isLoading = true, error = null) }
 
         // ── Persist business name ─────────────────────────────────────────
@@ -179,6 +191,10 @@ class OnboardingViewModel(
             }
             return
         }
+
+        // ── Persist currency & timezone (Step 3) ─────────────────────────
+        settingsRepository.set("general.currency", s.currencyCode)
+        settingsRepository.set("general.timezone", s.timezoneId)
 
         // ── Create admin user ─────────────────────────────────────────────
         val now = Clock.System.now()
