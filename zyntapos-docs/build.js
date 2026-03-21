@@ -61,9 +61,20 @@ const indexHtml = `<!DOCTYPE html>
 
 fs.writeFileSync(path.join(distDir, 'index.html'), indexHtml);
 
+// Copy guides into dist/guides/ for static serving
+const guidesDir = path.join(distDir, 'guides');
+fs.mkdirSync(guidesDir, { recursive: true });
+const guidesSrc = path.join(__dirname, 'guides');
+if (fs.existsSync(guidesSrc)) {
+  for (const file of fs.readdirSync(guidesSrc)) {
+    fs.copyFileSync(path.join(guidesSrc, file), path.join(guidesDir, file));
+  }
+}
+
 console.log('Build complete — output in dist/');
 console.log('  - index.html (Scalar API reference — 4 specs with dropdown selector)');
 console.log('  - openapi/api-v1.yaml     (POS API)');
 console.log('  - openapi/admin-v1.yaml   (Admin API)');
 console.log('  - openapi/license-v1.yaml (License API)');
 console.log('  - openapi/sync-v1.yaml    (Sync WebSocket)');
+console.log('  - guides/                 (Markdown guides)');

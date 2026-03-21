@@ -518,6 +518,86 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /v1/integrity/verify:
+    post:
+      operationId: verifyIntegrity
+      summary: Play Integrity attestation (Android only, soft enforcement)
+      description: |
+        Submits a Play Integrity token for server-side verification. Used to detect
+        tampered APKs or rooted devices. Currently soft enforcement (Phase 1) —
+        failures are logged but do not block API access.
+      tags: [Auth]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [integrityToken]
+              properties:
+                integrityToken:
+                  type: string
+                  description: Play Integrity API token from the Android client
+      responses:
+        "200":
+          description: Attestation result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  verdict:
+                    type: string
+                    enum: [PASS, FAIL, UNKNOWN]
+                  deviceIntegrity:
+                    type: boolean
+                  appIntegrity:
+                    type: boolean
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /tickets/status/{token}:
+    get:
+      operationId: getTicketStatusByToken
+      summary: Public ticket status check (customer-facing)
+      description: |
+        Allows customers to check the status of their support ticket using the
+        access token sent to them via email. No authentication required.
+      tags: [Export]
+      security: []
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Customer access token from the ticket notification email
+      responses:
+        "200":
+          description: Ticket status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ticketNumber:
+                    type: string
+                  status:
+                    type: string
+                  priority:
+                    type: string
+                  createdAt:
+                    type: integer
+                    format: int64
+                  resolvedAt:
+                    type: integer
+                    format: int64
+                    nullable: true
+        "404":
+          description: Invalid or expired token
+
   /unsubscribe:
     get:
       operationId: emailUnsubscribe

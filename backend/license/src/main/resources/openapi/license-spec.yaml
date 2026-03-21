@@ -1,0 +1,579 @@
+openapi: 3.0.3
+info:
+  title: ZyntaPOS License Service
+  description: |
+    License activation, heartbeat, and device management service for ZyntaPOS.
+
+    ## Authentication
+
+    **POS Endpoints (`/v1/license/*`):** Bearer token (RS256 JWT) in the `Authorization` header.
+
+    **Admin Endpoints (`/admin/licenses/*`):** Cookie-based session (`admin_access_token` httpOnly cookie)
+    issued by the API service. Admin JWT is validated using the shared RS256 public key.
+
+    ## Rate Limits
+
+    | Tier | Limit | Applies to |
+    |------|-------|-----------|
+    | activate | 10 req/min | All license endpoints |
+
+    ## Error Format
+
+    ```json
+    { "code": "ERROR_CODE", "message": "Human-readable message" }
+    ```
+  version: 1.0.0
+  contact:
+    name: Zynta Solutions
+    email: support@zyntapos.com
+
+servers:
+  - url: https://license.zyntapos.com
+    description: Production
+  - url: http://localhost:8083
+    description: Local development
+
+tags:
+  - name: Health
+    description: Service health check
+  - name: License
+    description: POS license activation and heartbeat
+  - name: Admin Licenses
+    description: Admin panel license management
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: RS256 JWT from the API service
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: admin_access_token
+      description: HttpOnly cookie from admin login
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+
+    ActivateRequest:
+      type: object
+      required: [licenseKey, deviceId, appVersion]
+      properties:
+        licenseKey:
+          type: string
+          maxLength: 128
+        deviceId:
+          type: string
+          maxLength: 256
+        deviceName:
+          type: string
+          nullable: true
+        appVersion:
+          type: string
+          maxLength: 64
+        osVersion:
+          type: string
+          nullable: true
+
+    ActivateResponse:
+      type: object
+      required: [isValid, licenseKey, edition, maxDevices, activeDevices]
+      properties:
+        isValid:
+          type: boolean
+        licenseKey:
+          type: string
+        edition:
+          type: string
+          enum: [STARTER, PROFESSIONAL, ENTERPRISE]
+        maxDevices:
+          type: integer
+        activeDevices:
+          type: integer
+        expiresAt:
+          type: integer
+          format: int64
+          nullable: true
+          description: Epoch ms, null for perpetual licenses
+        gracePeriodDays:
+          type: integer
+          default: 7
+        message:
+          type: string
+          nullable: true
+        errorCode:
+          type: string
+          nullable: true
+
+    HeartbeatRequest:
+      type: object
+      required: [licenseKey, deviceId, appVersion]
+      properties:
+        licenseKey:
+          type: string
+        deviceId:
+          type: string
+        appVersion:
+          type: string
+        osVersion:
+          type: string
+          nullable: true
+        dbSizeBytes:
+          type: integer
+          format: int64
+          default: 0
+        syncQueueDepth:
+          type: integer
+          default: 0
+        lastErrorCount:
+          type: integer
+          default: 0
+        uptimeHours:
+          type: number
+          format: double
+          default: 0
+        nonce:
+          type: string
+          nullable: true
+          maxLength: 128
+          description: Unique per-heartbeat for replay protection
+        clientTimestamp:
+          type: integer
+          format: int64
+          nullable: true
+
+    HeartbeatResponse:
+      type: object
+      required: [status, licenseKey, serverTimestamp]
+      properties:
+        status:
+          type: string
+          enum: [ACTIVE, EXPIRING_SOON, GRACE_PERIOD, EXPIRED]
+        licenseKey:
+          type: string
+        expiresAt:
+          type: integer
+          format: int64
+          nullable: true
+        daysUntilExpiry:
+          type: integer
+          nullable: true
+        serverTimestamp:
+          type: integer
+          format: int64
+        forceSync:
+          type: boolean
+          default: false
+
+    LicenseStatusResponse:
+      type: object
+      required: [key, edition, status, maxDevices, activeDevices, issuedAt]
+      properties:
+        key:
+          type: string
+        edition:
+          type: string
+        status:
+          type: string
+        maxDevices:
+          type: integer
+        activeDevices:
+          type: integer
+        issuedAt:
+          type: integer
+          format: int64
+        expiresAt:
+          type: integer
+          format: int64
+          nullable: true
+        lastHeartbeatAt:
+          type: integer
+          format: int64
+          nullable: true
+
+    AdminLicense:
+      type: object
+      properties:
+        id:
+          type: string
+        key:
+          type: string
+        customerId:
+          type: string
+        customerName:
+          type: string
+        edition:
+          type: string
+        status:
+          type: string
+        maxDevices:
+          type: integer
+        activeDevices:
+          type: integer
+        activatedAt:
+          type: string
+        expiresAt:
+          type: string
+          nullable: true
+        lastHeartbeatAt:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    LicenseDevice:
+      type: object
+      properties:
+        id:
+          type: string
+        licenseKey:
+          type: string
+        deviceId:
+          type: string
+        deviceName:
+          type: string
+        appVersion:
+          type: string
+        os:
+          type: string
+        osVersion:
+          type: string
+        firstSeenAt:
+          type: string
+        lastSeenAt:
+          type: string
+
+    AdminLicenseStats:
+      type: object
+      properties:
+        total:
+          type: integer
+        active:
+          type: integer
+        expired:
+          type: integer
+        revoked:
+          type: integer
+        suspended:
+          type: integer
+        expiringSoon:
+          type: integer
+        byEdition:
+          type: object
+          additionalProperties:
+            type: integer
+
+    AdminCreateLicenseRequest:
+      type: object
+      required: [customerId, edition, maxDevices]
+      properties:
+        customerId:
+          type: string
+        customerName:
+          type: string
+        edition:
+          type: string
+          enum: [STARTER, PROFESSIONAL, ENTERPRISE]
+        maxDevices:
+          type: integer
+          minimum: 1
+          maximum: 100
+        expiresAt:
+          type: string
+          description: ISO-8601 OffsetDateTime
+
+    AdminUpdateLicenseRequest:
+      type: object
+      properties:
+        edition:
+          type: string
+        maxDevices:
+          type: integer
+          minimum: 1
+        expiresAt:
+          type: string
+        clearExpiry:
+          type: boolean
+        status:
+          type: string
+        forceSync:
+          type: boolean
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      operationId: getHealth
+      responses:
+        '200':
+          description: Service is healthy
+
+  /v1/license/activate:
+    post:
+      tags: [License]
+      summary: Activate license for device
+      operationId: activateLicense
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActivateRequest'
+      responses:
+        '200':
+          description: License activated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivateResponse'
+        '403':
+          description: License invalid or device limit reached
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: License key not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/license/heartbeat:
+    post:
+      tags: [License]
+      summary: Send device heartbeat with metrics
+      operationId: licenseHeartbeat
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HeartbeatRequest'
+      responses:
+        '200':
+          description: Heartbeat accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HeartbeatResponse'
+        '401':
+          description: License or device not registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/license/{key}:
+    get:
+      tags: [License]
+      summary: Get license status
+      operationId: getLicenseStatus
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 128
+      responses:
+        '200':
+          description: License status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LicenseStatusResponse'
+        '404':
+          description: License not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/licenses:
+    get:
+      tags: [Admin Licenses]
+      summary: List licenses (paginated)
+      operationId: listLicenses
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: edition
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paginated license list
+
+    post:
+      tags: [Admin Licenses]
+      summary: Create license (ADMIN/OPERATOR only)
+      operationId: createLicense
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminCreateLicenseRequest'
+      responses:
+        '201':
+          description: License created
+        '403':
+          description: Insufficient role
+
+  /admin/licenses/stats:
+    get:
+      tags: [Admin Licenses]
+      summary: License statistics
+      operationId: getLicenseStats
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: License stats
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminLicenseStats'
+
+  /admin/licenses/{key}:
+    get:
+      tags: [Admin Licenses]
+      summary: Get license with devices
+      operationId: getLicense
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: License with devices
+        '404':
+          description: Not found
+
+    put:
+      tags: [Admin Licenses]
+      summary: Update license (ADMIN/OPERATOR only)
+      operationId: updateLicense
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUpdateLicenseRequest'
+      responses:
+        '200':
+          description: License updated
+        '404':
+          description: Not found
+
+    delete:
+      tags: [Admin Licenses]
+      summary: Revoke license (ADMIN/OPERATOR only)
+      operationId: revokeLicense
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: License revoked
+        '404':
+          description: Not found
+
+  /admin/licenses/{key}/devices:
+    get:
+      tags: [Admin Licenses]
+      summary: List registered devices
+      operationId: listDevices
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Device list
+
+  /admin/licenses/{key}/devices/{deviceId}:
+    delete:
+      tags: [Admin Licenses]
+      summary: Deregister device (ADMIN/OPERATOR only)
+      operationId: deregisterDevice
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: deviceId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Device deregistered
+        '404':
+          description: Not found

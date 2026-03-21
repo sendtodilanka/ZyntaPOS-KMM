@@ -1344,6 +1344,9 @@ See `docs/ai_workflows/execution_log.md` for the granular task checklist.
 | **Admin panel API hooks** | `admin-panel/src/api/auth.ts`, `users.ts` — TanStack Query mutations |
 | **Admin panel routes** | `admin-panel/src/routes/` — login, users, tickets, master-products, settings/profile, settings/mfa |
 | **Admin panel diagnostic viewer** | `admin-panel/src/routes/diagnostic/index.tsx` — technician session management (create JIT token, per-store status, revoke); `admin-panel/src/api/diagnostic.ts` + `admin-panel/src/types/diagnostic.ts` (TODO-006) |
+| **API documentation site** | `zyntapos-docs/` — Scalar multi-spec viewer (4 OpenAPI specs), deployed to Cloudflare Pages via `cd-docs.yml`; guides in `zyntapos-docs/guides/` |
+| **OpenAPI specs (docs site)** | `zyntapos-docs/openapi/api-v1.yaml`, `admin-v1.yaml`, `license-v1.yaml`, `sync-v1.yaml` |
+| **OpenAPI specs (embedded)** | `backend/api/src/main/resources/openapi/api-spec.yaml`, `backend/license/.../license-spec.yaml`, `backend/sync/.../sync-spec.yaml` — served as Swagger UI at `/docs` per service |
 
 ---
 

@@ -7,10 +7,14 @@ import io.ktor.server.application.Application
 import io.ktor.server.auth.authenticate
 import io.ktor.server.plugins.ratelimit.RateLimitName
 import io.ktor.server.plugins.ratelimit.rateLimit
+import io.ktor.server.plugins.swagger.swaggerUI
 import io.ktor.server.routing.routing
 
 fun Application.configureRouting() {
     routing {
+        // OpenAPI documentation — Swagger UI served at /docs
+        swaggerUI(path = "docs", swaggerFile = "openapi/sync-spec.yaml")
+
         healthRoutes()
         // Rate-limit WebSocket connection upgrades to prevent connection floods
         rateLimit(RateLimitName("ws")) {

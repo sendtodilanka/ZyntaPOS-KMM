@@ -1,0 +1,1494 @@
+openapi: 3.0.3
+info:
+  title: ZyntaPOS API Service
+  description: |
+    REST API for the ZyntaPOS Point of Sale system. Handles POS terminal authentication,
+    product catalog, offline sync (push/pull), GDPR export, diagnostic consent, and the
+    full Admin Panel back-office API.
+
+    ## Authentication
+
+    **POS Endpoints (`/v1/*`):** Bearer token (RS256 JWT) in the `Authorization` header.
+    Obtain tokens via `POST /v1/auth/login`, refresh via `POST /v1/auth/refresh`.
+
+    **Admin Endpoints (`/admin/*`):** Cookie-based session (`admin_access_token` httpOnly cookie).
+    Login via `POST /admin/auth/login`. MFA required if enabled on the account.
+
+    ## Rate Limits
+
+    | Tier | Limit | Applies to |
+    |------|-------|-----------|
+    | auth | 10 req/min | `/v1/auth/*`, `/admin/auth/*` |
+    | api | 300 req/min | All other endpoints |
+    | sync | 60 req/min | `/v1/sync/*` |
+
+    ## Error Format
+
+    ```json
+    { "code": "ERROR_CODE", "message": "Human-readable message" }
+    ```
+  version: 1.0.0
+  contact:
+    name: Zynta Solutions
+    email: support@zyntapos.com
+    url: https://zyntapos.com
+
+servers:
+  - url: https://api.zyntapos.com
+    description: Production
+  - url: http://localhost:8081
+    description: Local development
+
+tags:
+  - name: Health
+    description: Service health and liveness probes
+  - name: POS Auth
+    description: POS terminal authentication (RS256 JWT)
+  - name: Sync
+    description: Offline sync push/pull protocol
+  - name: Products
+    description: Product catalog
+  - name: Export
+    description: GDPR data export
+  - name: Diagnostic
+    description: Remote diagnostic consent
+  - name: Integrity
+    description: Play Integrity attestation
+  - name: Well-Known
+    description: RFC 5785 well-known endpoints
+  - name: Admin Auth
+    description: Admin panel authentication (cookie-based)
+  - name: Admin Users
+    description: Admin user management
+  - name: Admin Stores
+    description: Store management
+  - name: Admin Health
+    description: System health monitoring
+  - name: Admin Audit
+    description: Audit trail
+  - name: Admin Metrics
+    description: Dashboard metrics and reports
+  - name: Admin Alerts
+    description: Alert management
+  - name: Admin Sync
+    description: Sync monitoring and management
+  - name: Admin Config
+    description: Feature flags, tax rates, system config
+  - name: Admin Tickets
+    description: Support ticket management
+  - name: Admin Diagnostic
+    description: Remote diagnostic session management
+  - name: Admin Email
+    description: Email delivery logs, templates, preferences
+  - name: Admin Master Products
+    description: Centralized product catalog (multi-store)
+  - name: Admin Transfers
+    description: Inter-store stock transfers (C1.3)
+  - name: Admin Inventory
+    description: Cross-store inventory view (C1.2)
+  - name: Admin Replenishment
+    description: Auto-replenishment rules and suggestions (C1.5)
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: RS256 JWT from `POST /v1/auth/login`
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: admin_access_token
+      description: HttpOnly cookie set by `POST /admin/auth/login`
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          example: VALIDATION_ERROR
+        message:
+          type: string
+          example: Email is required
+
+    # -- POS Auth --
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        license_key:
+          type: string
+          nullable: true
+        device_id:
+          type: string
+          nullable: true
+
+    LoginResponse:
+      type: object
+      required: [access_token, refresh_token, expires_in, user]
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        expires_in:
+          type: integer
+          format: int64
+          description: Token TTL in seconds
+        user:
+          $ref: '#/components/schemas/UserResponseDto'
+
+    RefreshRequest:
+      type: object
+      required: [refresh_token]
+      properties:
+        refresh_token:
+          type: string
+
+    RefreshResponse:
+      type: object
+      required: [access_token, expires_in]
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+          nullable: true
+        expires_in:
+          type: integer
+          format: int64
+
+    UserResponseDto:
+      type: object
+      required: [id, name, email, role, store_id, is_active, created_at, updated_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [ADMIN, MANAGER, CASHIER, CUSTOMER_SERVICE, REPORTER]
+        store_id:
+          type: string
+          format: uuid
+        is_active:
+          type: boolean
+        created_at:
+          type: integer
+          format: int64
+          description: Epoch milliseconds
+        updated_at:
+          type: integer
+          format: int64
+
+    # -- Sync --
+    SyncOperation:
+      type: object
+      required: [id, entity_type, entity_id, operation, payload, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        entity_type:
+          type: string
+          enum: [PRODUCT, ORDER, CUSTOMER, CATEGORY, SUPPLIER, STOCK_ADJUSTMENT, USER]
+        entity_id:
+          type: string
+          format: uuid
+        operation:
+          type: string
+          enum: [CREATE, UPDATE, DELETE]
+        payload:
+          type: string
+          description: JSON-encoded entity snapshot
+        created_at:
+          type: integer
+          format: int64
+          description: Client-side epoch ms
+        retry_count:
+          type: integer
+          default: 0
+
+    PushRequest:
+      type: object
+      required: [device_id, operations]
+      properties:
+        device_id:
+          type: string
+        operations:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncOperation'
+          maxItems: 50
+
+    PushResponse:
+      type: object
+      required: [accepted, rejected, conflicts, server_timestamp]
+      properties:
+        accepted:
+          type: array
+          items:
+            type: string
+        rejected:
+          type: array
+          items:
+            type: string
+        conflicts:
+          type: array
+          items:
+            type: string
+        delta_operations:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncOperation'
+        server_timestamp:
+          type: integer
+          format: int64
+
+    PullResponse:
+      type: object
+      required: [operations, server_timestamp, server_vector_clock, has_more]
+      properties:
+        operations:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncOperation'
+        server_timestamp:
+          type: integer
+          format: int64
+        server_vector_clock:
+          type: integer
+          format: int64
+        has_more:
+          type: boolean
+
+    # -- Products --
+    ProductDto:
+      type: object
+      required: [id, name, price, created_at, updated_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        barcode:
+          type: string
+          nullable: true
+        sku:
+          type: string
+          nullable: true
+        category_id:
+          type: string
+          format: uuid
+          nullable: true
+        unit_id:
+          type: string
+          format: uuid
+          nullable: true
+        price:
+          type: number
+          format: double
+        cost_price:
+          type: number
+          format: double
+        tax_group_id:
+          type: string
+          nullable: true
+        stock_qty:
+          type: number
+          format: double
+        min_stock_qty:
+          type: number
+          format: double
+        image_url:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        is_active:
+          type: boolean
+        created_at:
+          type: integer
+          format: int64
+        updated_at:
+          type: integer
+          format: int64
+        sync_status:
+          type: string
+
+    PagedResponse:
+      type: object
+      required: [data, page, size, total, has_more]
+      properties:
+        data:
+          type: array
+          items: {}
+        page:
+          type: integer
+        size:
+          type: integer
+        total:
+          type: integer
+          format: int64
+        has_more:
+          type: boolean
+
+    # -- Health --
+    HealthResponse:
+      type: object
+      required: [status, database, redis]
+      properties:
+        status:
+          type: string
+          enum: [UP, DEGRADED, DOWN]
+        database:
+          type: string
+        redis:
+          type: string
+
+    DeepHealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        database:
+          type: string
+        redis:
+          type: string
+        uptime:
+          type: string
+        version:
+          type: string
+        syncQueueDepth:
+          type: integer
+        activeSessions:
+          type: integer
+
+    PublicKeyResponse:
+      type: object
+      required: [public_key]
+      properties:
+        public_key:
+          type: string
+          description: PEM-encoded RS256 public key
+
+    # -- Admin Auth --
+    AdminLoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    AdminLoginResponse:
+      type: object
+      required: [user, expiresIn]
+      properties:
+        user:
+          $ref: '#/components/schemas/AdminUserResponse'
+        expiresIn:
+          type: integer
+          format: int64
+        mfaRequired:
+          type: boolean
+        passwordExpired:
+          type: boolean
+
+    AdminUserResponse:
+      type: object
+      required: [id, email, name, role, mfaEnabled, isActive, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        role:
+          type: string
+          enum: [ADMIN, OPERATOR, FINANCE, AUDITOR, HELPDESK]
+        mfaEnabled:
+          type: boolean
+        isActive:
+          type: boolean
+        lastLoginAt:
+          type: integer
+          format: int64
+          nullable: true
+        createdAt:
+          type: integer
+          format: int64
+
+    AdminBootstrapRequest:
+      type: object
+      required: [email, name, password]
+      properties:
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        password:
+          type: string
+
+    AdminStatusResponse:
+      type: object
+      required: [needsBootstrap]
+      properties:
+        needsBootstrap:
+          type: boolean
+
+    MfaSetupResponse:
+      type: object
+      required: [secret, qrCodeUrl, backupCodes]
+      properties:
+        secret:
+          type: string
+        qrCodeUrl:
+          type: string
+        backupCodes:
+          type: array
+          items:
+            type: string
+
+    MfaVerifyRequest:
+      type: object
+      required: [code, pendingToken]
+      properties:
+        code:
+          type: string
+        pendingToken:
+          type: string
+
+paths:
+  # ── Health ──────────────────────────────────────────────────────────
+  /health:
+    get:
+      tags: [Health]
+      summary: Basic health check
+      operationId: getHealth
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /health/deep:
+    get:
+      tags: [Health]
+      summary: Deep health check with uptime metrics
+      operationId: getDeepHealth
+      responses:
+        '200':
+          description: Detailed health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeepHealthResponse'
+
+  /health/sync:
+    get:
+      tags: [Health]
+      summary: Sync-specific health metrics
+      operationId: getSyncHealth
+      responses:
+        '200':
+          description: Sync queue depth, conflict rate
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /ping:
+    get:
+      tags: [Health]
+      summary: Lightweight liveness probe
+      operationId: ping
+      responses:
+        '200':
+          description: pong
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  # ── Well-Known ──────────────────────────────────────────────────────
+  /.well-known/public-key:
+    get:
+      tags: [Well-Known]
+      summary: RS256 public key for offline JWT verification (ADR-008)
+      operationId: getPublicKey
+      responses:
+        '200':
+          description: PEM-encoded public key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicKeyResponse'
+
+  # ── POS Auth ────────────────────────────────────────────────────────
+  /v1/auth/login:
+    post:
+      tags: [POS Auth]
+      summary: POS terminal login
+      operationId: posLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded (brute-force protection)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/auth/refresh:
+    post:
+      tags: [POS Auth]
+      summary: Refresh access token
+      operationId: posRefresh
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshResponse'
+        '401':
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ── Sync ────────────────────────────────────────────────────────────
+  /v1/sync/push:
+    post:
+      tags: [Sync]
+      summary: Push local operations to server
+      operationId: syncPush
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PushRequest'
+      responses:
+        '200':
+          description: Push acknowledged
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PushResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error (max 50 operations)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/sync/pull:
+    get:
+      tags: [Sync]
+      summary: Pull server changes since timestamp
+      operationId: syncPull
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: since
+          in: query
+          schema:
+            type: integer
+            format: int64
+          description: Epoch ms — fetch operations after this timestamp
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 100
+        - name: deviceId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Delta operations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PullResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ── Products ────────────────────────────────────────────────────────
+  /v1/products:
+    get:
+      tags: [Products]
+      summary: List products (paginated)
+      operationId: listProducts
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+        - name: updatedSince
+          in: query
+          schema:
+            type: integer
+            format: int64
+          description: Epoch ms — only return products updated after this time
+      responses:
+        '200':
+          description: Paginated product list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedResponse'
+
+  # ── Export ──────────────────────────────────────────────────────────
+  /v1/export/customer/{customerId}:
+    get:
+      tags: [Export]
+      summary: GDPR customer data export (ADMIN/MANAGER only)
+      operationId: exportCustomerData
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Customer data export
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Insufficient role
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ── Diagnostic Consent ──────────────────────────────────────────────
+  /v1/diagnostic/consent/grant:
+    post:
+      tags: [Diagnostic]
+      summary: Grant remote diagnostic access (POS ADMIN only)
+      operationId: grantDiagnosticConsent
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Consent granted
+        '403':
+          description: Not a POS ADMIN
+
+  /v1/diagnostic/consent/revoke:
+    post:
+      tags: [Diagnostic]
+      summary: Revoke remote diagnostic access
+      operationId: revokeDiagnosticConsent
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Consent revoked
+
+  # ── Integrity ──────────────────────────────────────────────────────
+  /v1/integrity/verify:
+    post:
+      tags: [Integrity]
+      summary: Play Integrity attestation (soft enforcement)
+      operationId: verifyIntegrity
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Attestation result
+
+  # ── Admin Auth ─────────────────────────────────────────────────────
+  /admin/auth/status:
+    get:
+      tags: [Admin Auth]
+      summary: Check if bootstrap is needed
+      operationId: adminAuthStatus
+      responses:
+        '200':
+          description: Bootstrap status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminStatusResponse'
+
+  /admin/auth/bootstrap:
+    post:
+      tags: [Admin Auth]
+      summary: Create first ADMIN account (one-time)
+      operationId: adminBootstrap
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminBootstrapRequest'
+      responses:
+        '201':
+          description: Admin created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUserResponse'
+        '409':
+          description: Admin already exists
+
+  /admin/auth/login:
+    post:
+      tags: [Admin Auth]
+      summary: Admin panel login
+      operationId: adminLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminLoginRequest'
+      responses:
+        '200':
+          description: Login successful (sets httpOnly cookies)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminLoginResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/auth/refresh:
+    post:
+      tags: [Admin Auth]
+      summary: Refresh admin access token (cookie-based)
+      operationId: adminRefresh
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Token refreshed
+
+  /admin/auth/logout:
+    post:
+      tags: [Admin Auth]
+      summary: Clear auth cookies
+      operationId: adminLogout
+      responses:
+        '200':
+          description: Logged out
+
+  /admin/auth/me:
+    get:
+      tags: [Admin Auth]
+      summary: Get current admin user
+      operationId: adminGetMe
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Current admin user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUserResponse'
+
+  /admin/auth/mfa/setup:
+    post:
+      tags: [Admin Auth]
+      summary: Generate TOTP secret and QR code
+      operationId: mfaSetup
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: MFA setup data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MfaSetupResponse'
+
+  /admin/auth/mfa/verify:
+    post:
+      tags: [Admin Auth]
+      summary: Complete MFA login verification
+      operationId: mfaVerify
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MfaVerifyRequest'
+      responses:
+        '200':
+          description: MFA verified, cookies set
+
+  # ── Admin Users ────────────────────────────────────────────────────
+  /admin/users:
+    get:
+      tags: [Admin Users]
+      summary: List admin users (paginated)
+      operationId: listAdminUsers
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: role
+          in: query
+          schema:
+            type: string
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Paginated user list
+    post:
+      tags: [Admin Users]
+      summary: Create admin user (non-ADMIN roles)
+      operationId: createAdminUser
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, name, role, password]
+              properties:
+                email:
+                  type: string
+                name:
+                  type: string
+                role:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '201':
+          description: User created
+
+  /admin/users/{id}:
+    patch:
+      tags: [Admin Users]
+      summary: Update admin user
+      operationId: updateAdminUser
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                role:
+                  type: string
+                isActive:
+                  type: boolean
+      responses:
+        '200':
+          description: User updated
+
+  # ── Admin Stores ───────────────────────────────────────────────────
+  /admin/stores:
+    get:
+      tags: [Admin Stores]
+      summary: List stores
+      operationId: listStores
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Store list
+
+  /admin/stores/{storeId}:
+    get:
+      tags: [Admin Stores]
+      summary: Get store detail
+      operationId: getStore
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: storeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Store detail
+
+  # ── Admin Audit ────────────────────────────────────────────────────
+  /admin/audit:
+    get:
+      tags: [Admin Audit]
+      summary: List audit entries (paginated, filterable)
+      operationId: listAuditEntries
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: size
+          in: query
+          schema:
+            type: integer
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: eventType
+          in: query
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:
+            type: string
+        - name: to
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paginated audit entries
+
+  /admin/audit/export:
+    get:
+      tags: [Admin Audit]
+      summary: Export audit entries as CSV
+      operationId: exportAudit
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: CSV download
+          content:
+            text/csv:
+              schema:
+                type: string
+
+  # ── Admin Metrics ──────────────────────────────────────────────────
+  /admin/metrics/dashboard:
+    get:
+      tags: [Admin Metrics]
+      summary: Dashboard KPIs
+      operationId: getDashboardMetrics
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [today, week, month, quarter]
+      responses:
+        '200':
+          description: Dashboard KPI data
+
+  /admin/metrics/sales:
+    get:
+      tags: [Admin Metrics]
+      summary: Sales chart data
+      operationId: getSalesMetrics
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+        - name: storeId
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sales chart data
+
+  # ── Admin Sync ─────────────────────────────────────────────────────
+  /admin/sync/status:
+    get:
+      tags: [Admin Sync]
+      summary: Sync status across all stores
+      operationId: getSyncStatus
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Per-store sync status
+
+  /admin/sync/{storeId}/force:
+    post:
+      tags: [Admin Sync]
+      summary: Force sync trigger for a store
+      operationId: forceSyncStore
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: storeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sync triggered
+
+  /admin/sync/conflicts:
+    get:
+      tags: [Admin Sync]
+      summary: List all sync conflicts (max 200)
+      operationId: listSyncConflicts
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Conflict list
+
+  /admin/sync/tokens/revoke:
+    post:
+      tags: [Admin Sync]
+      summary: Revoke a POS JWT by JTI
+      operationId: revokeToken
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [jti]
+              properties:
+                jti:
+                  type: string
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Token revoked
+
+  # ── Admin Tickets ──────────────────────────────────────────────────
+  /admin/tickets:
+    get:
+      tags: [Admin Tickets]
+      summary: List tickets (paginated, filterable)
+      operationId: listTickets
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: size
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: priority
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paginated ticket list
+    post:
+      tags: [Admin Tickets]
+      summary: Create new ticket
+      operationId: createTicket
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, description, priority, category]
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                priority:
+                  type: string
+                  enum: [LOW, MEDIUM, HIGH, CRITICAL]
+                category:
+                  type: string
+                storeId:
+                  type: string
+                customerEmail:
+                  type: string
+      responses:
+        '201':
+          description: Ticket created
+
+  # ── Admin Master Products ──────────────────────────────────────────
+  /admin/master-products:
+    get:
+      tags: [Admin Master Products]
+      summary: List master products (paginated)
+      operationId: listMasterProducts
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: size
+          in: query
+          schema:
+            type: integer
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paginated product list
+    post:
+      tags: [Admin Master Products]
+      summary: Create master product
+      operationId: createMasterProduct
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, price]
+              properties:
+                name:
+                  type: string
+                sku:
+                  type: string
+                barcode:
+                  type: string
+                price:
+                  type: number
+                costPrice:
+                  type: number
+                categoryId:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '201':
+          description: Product created
+
+  # ── Admin Transfers ────────────────────────────────────────────────
+  /admin/transfers:
+    get:
+      tags: [Admin Transfers]
+      summary: List inter-store transfers
+      operationId: listTransfers
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: storeId
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, APPROVED, IN_TRANSIT, RECEIVED, CANCELLED]
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: size
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Transfer list
+    post:
+      tags: [Admin Transfers]
+      summary: Create transfer (PENDING)
+      operationId: createTransfer
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sourceStoreId, destinationStoreId, items]
+              properties:
+                sourceStoreId:
+                  type: string
+                destinationStoreId:
+                  type: string
+                notes:
+                  type: string
+                items:
+                  type: array
+                  items:
+                    type: object
+                    required: [productId, quantity]
+                    properties:
+                      productId:
+                        type: string
+                      quantity:
+                        type: number
+      responses:
+        '201':
+          description: Transfer created
+
+  /admin/transfers/{id}/approve:
+    put:
+      tags: [Admin Transfers]
+      summary: Approve transfer (PENDING → APPROVED)
+      operationId: approveTransfer
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Transfer approved
+
+  /admin/transfers/{id}/dispatch:
+    put:
+      tags: [Admin Transfers]
+      summary: Dispatch transfer (APPROVED → IN_TRANSIT)
+      operationId: dispatchTransfer
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Transfer dispatched
+
+  /admin/transfers/{id}/receive:
+    put:
+      tags: [Admin Transfers]
+      summary: Receive transfer (IN_TRANSIT → RECEIVED)
+      operationId: receiveTransfer
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Transfer received
+
+  # ── Admin Inventory ────────────────────────────────────────────────
+  /admin/inventory/global:
+    get:
+      tags: [Admin Inventory]
+      summary: Cross-store warehouse stock view
+      operationId: getGlobalInventory
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: productId
+          in: query
+          schema:
+            type: string
+        - name: storeId
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Global inventory data
+
+  # ── Admin Replenishment ────────────────────────────────────────────
+  /admin/replenishment/rules:
+    get:
+      tags: [Admin Replenishment]
+      summary: List replenishment rules
+      operationId: listReplenishmentRules
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: warehouseId
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Replenishment rules
+    post:
+      tags: [Admin Replenishment]
+      summary: Create or upsert replenishment rule
+      operationId: upsertReplenishmentRule
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [warehouseId, productId, reorderPoint, reorderQty]
+              properties:
+                warehouseId:
+                  type: string
+                productId:
+                  type: string
+                reorderPoint:
+                  type: number
+                reorderQty:
+                  type: number
+                maxStock:
+                  type: number
+      responses:
+        '200':
+          description: Rule upserted
+
+  /admin/replenishment/suggestions:
+    get:
+      tags: [Admin Replenishment]
+      summary: Products at or below reorder point
+      operationId: getReplenishmentSuggestions
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: warehouseId
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Replenishment suggestions
