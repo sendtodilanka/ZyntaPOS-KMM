@@ -98,7 +98,7 @@ class LicenseStatusIntegrationTest {
         licenseKey: String,
         status: String = "ACTIVE",
         maxDevices: Int = 5,
-        edition: String = "STARTER",
+        edition: String = "COMMUNITY",
         expiresAt: OffsetDateTime? = null,
     ) {
         transaction(sharedDatabase) {

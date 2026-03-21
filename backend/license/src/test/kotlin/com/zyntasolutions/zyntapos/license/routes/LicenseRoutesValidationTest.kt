@@ -318,7 +318,8 @@ class LicenseRoutesValidationTest {
     // ── Admin route edition whitelist ────────────────────────────────────────
 
     @Test
-    fun `STARTER is a valid edition`() {
+    fun `STARTER is a valid edition in admin route whitelist`() {
+        // AdminLicenseRoutes.kt uses STARTER in its edition whitelist
         val validEditions = setOf("STARTER", "PROFESSIONAL", "ENTERPRISE")
         assertTrue("STARTER" in validEditions)
     }
