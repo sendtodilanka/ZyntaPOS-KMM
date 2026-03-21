@@ -199,6 +199,9 @@ fun RegisterDashboardScreen(
                                     RegisterIntent.ShowCashInOutDialog(CashMovement.Type.OUT)
                                 )
                             },
+                            onOpenDrawer = {
+                                viewModel.dispatch(RegisterIntent.OpenCashDrawer)
+                            },
                         )
                     }
 
