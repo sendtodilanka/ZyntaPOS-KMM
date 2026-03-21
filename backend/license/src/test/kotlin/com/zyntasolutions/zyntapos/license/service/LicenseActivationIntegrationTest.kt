@@ -108,7 +108,7 @@ class LicenseActivationIntegrationTest {
     private fun seedLicense(
         status: String = "ACTIVE",
         maxDevices: Int = 5,
-        edition: String = "STARTER",
+        edition: String = "COMMUNITY",
         expiresAt: OffsetDateTime? = null,
         licenseKey: String = "LK-ACT-${UUID.randomUUID().toString().take(8).uppercase()}",
     ): String {
