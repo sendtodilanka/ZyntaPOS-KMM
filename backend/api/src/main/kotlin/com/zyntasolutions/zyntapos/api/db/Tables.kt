@@ -274,9 +274,9 @@ object ReplenishmentRules : Table("replenishment_rules") {
 
 /** Pricing rules: store-specific and time-bounded price overrides (C2.1 — V32). */
 object PricingRules : Table("pricing_rules") {
-    val id          = uuid("id").autoGenerate()
-    val productId   = uuid("product_id")
-    val storeId     = uuid("store_id").nullable()
+    val id          = text("id")
+    val productId   = text("product_id")
+    val storeId     = text("store_id").nullable()
     val price       = decimal("price", precision = 14, scale = 4)
     val costPrice   = decimal("cost_price", precision = 14, scale = 4).nullable()
     val priority    = integer("priority").default(0)

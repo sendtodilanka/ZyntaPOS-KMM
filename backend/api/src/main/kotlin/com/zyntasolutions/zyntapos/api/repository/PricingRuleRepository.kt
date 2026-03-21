@@ -17,15 +17,15 @@ class PricingRuleRepository {
 
     fun getRules(productId: String? = null, storeId: String? = null): List<PricingRuleRow> = transaction {
         val query = PricingRules.selectAll()
-        productId?.let { query.andWhere { PricingRules.productId eq UUID.fromString(it) } }
-        storeId?.let { query.andWhere { PricingRules.storeId eq UUID.fromString(it) } }
+        productId?.let { query.andWhere { PricingRules.productId eq it } }
+        storeId?.let { query.andWhere { PricingRules.storeId eq it } }
         query.orderBy(PricingRules.priority, SortOrder.DESC)
             .map { it.toRow() }
     }
 
     fun getRuleById(id: String): PricingRuleRow? = transaction {
         PricingRules.selectAll()
-            .where { PricingRules.id eq UUID.fromString(id) }
+            .where { PricingRules.id eq id }
             .firstOrNull()?.toRow()
     }
 
@@ -41,13 +41,13 @@ class PricingRuleRepository {
         isActive: Boolean,
         description: String,
     ): PricingRuleRow = transaction {
-        val ruleId = id?.let { UUID.fromString(it) } ?: UUID.randomUUID()
+        val ruleId = id ?: UUID.randomUUID().toString()
         val now = OffsetDateTime.now()
 
         PricingRules.upsert(PricingRules.id) {
             it[PricingRules.id] = ruleId
-            it[PricingRules.productId] = UUID.fromString(productId)
-            it[PricingRules.storeId] = storeId?.let { s -> UUID.fromString(s) }
+            it[PricingRules.productId] = productId
+            it[PricingRules.storeId] = storeId
             it[PricingRules.price] = price.toBigDecimal()
             it[PricingRules.costPrice] = costPrice?.toBigDecimal()
             it[PricingRules.priority] = priority
@@ -59,17 +59,17 @@ class PricingRuleRepository {
             it[PricingRules.updatedAt] = now
         }
 
-        getRuleById(ruleId.toString())!!
+        getRuleById(ruleId)!!
     }
 
     fun deleteRule(id: String): Boolean = transaction {
-        PricingRules.deleteWhere { PricingRules.id eq UUID.fromString(id) } > 0
+        PricingRules.deleteWhere { PricingRules.id eq id } > 0
     }
 
     private fun ResultRow.toRow() = PricingRuleRow(
-        id = this[PricingRules.id].toString(),
-        productId = this[PricingRules.productId].toString(),
-        storeId = this[PricingRules.storeId]?.toString(),
+        id = this[PricingRules.id],
+        productId = this[PricingRules.productId],
+        storeId = this[PricingRules.storeId],
         price = this[PricingRules.price].toDouble(),
         costPrice = this[PricingRules.costPrice]?.toDouble(),
         priority = this[PricingRules.priority],
