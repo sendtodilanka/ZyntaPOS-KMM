@@ -1,7 +1,8 @@
 package com.zyntasolutions.zyntapos.feature.inventory.pricing
 
 import androidx.lifecycle.viewModelScope
-import com.zyntasolutions.zyntapos.core.result.Result
+import com.zyntasolutions.zyntapos.core.result.onError
+import com.zyntasolutions.zyntapos.core.result.onSuccess
 import com.zyntasolutions.zyntapos.core.utils.IdGenerator
 import com.zyntasolutions.zyntapos.domain.model.PricingRule
 import com.zyntasolutions.zyntapos.domain.repository.PricingRuleRepository
@@ -129,29 +130,28 @@ class PricingRuleViewModel(
         )
 
         viewModelScope.launch {
-            when (val result = pricingRuleRepository.upsert(rule)) {
-                is Result.Success -> {
-                    val action = if (state.editingRule != null) "updated" else "created"
+            val isUpdate = state.editingRule != null
+            pricingRuleRepository.upsert(rule)
+                .onSuccess {
+                    val action = if (isUpdate) "updated" else "created"
                     updateState { copy(isSaving = false, showDialog = false, editingRule = null, successMessage = "Pricing rule $action") }
                 }
-                is Result.Failure -> {
-                    updateState { copy(isSaving = false, error = result.error.message) }
+                .onError { ex ->
+                    updateState { copy(isSaving = false, error = ex.message) }
                 }
-            }
         }
     }
 
     private fun onExecuteDelete() {
         val target = state.value.deleteTarget ?: return
         viewModelScope.launch {
-            when (val result = pricingRuleRepository.delete(target.id)) {
-                is Result.Success -> {
+            pricingRuleRepository.delete(target.id)
+                .onSuccess {
                     updateState { copy(deleteTarget = null, successMessage = "Pricing rule deleted") }
                 }
-                is Result.Failure -> {
-                    updateState { copy(deleteTarget = null, error = result.error.message) }
+                .onError { ex ->
+                    updateState { copy(deleteTarget = null, error = ex.message) }
                 }
-            }
         }
     }
 }
