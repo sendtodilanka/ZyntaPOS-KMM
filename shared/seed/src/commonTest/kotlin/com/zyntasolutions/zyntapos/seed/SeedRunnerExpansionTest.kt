@@ -308,6 +308,8 @@ class SeedRunnerExpansionTest {
         override fun getUsageByCoupon(couponId: String) = flowOf(emptyList<CouponUsage>())
         override fun getAllPromotions() = flowOf(emptyList<Promotion>())
         override fun getActivePromotions(nowEpochMillis: Long) = flowOf(emptyList<Promotion>())
+        override fun getActiveCouponsForStore(nowEpochMillis: Long, storeId: String) = flowOf(emptyList<Coupon>())
+        override fun getActivePromotionsForStore(nowEpochMillis: Long, storeId: String) = flowOf(emptyList<Promotion>())
         override suspend fun getPromotionById(id: String) = Result.Error(DatabaseException("nf")) as Result<Promotion>
         override suspend fun insertPromotion(promotion: Promotion) = Result.Success(Unit)
         override suspend fun updatePromotion(promotion: Promotion) = Result.Success(Unit)
