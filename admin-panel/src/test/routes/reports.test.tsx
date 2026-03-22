@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '../utils';
 import React from 'react';
-import type { SalesReportRow, ProductPerformanceRow } from '@/types/metrics';
+import type { SalesReportRow } from '@/types/metrics';
 
 vi.mock('@tanstack/react-router', () => ({
   createFileRoute: () => (opts: Record<string, unknown>) => opts,
@@ -23,7 +23,7 @@ vi.mock('recharts', () => ({
 }));
 
 vi.mock('@/api/metrics');
-import { useSalesReport, useProductPerformance } from '@/api/metrics';
+import { useSalesReport } from '@/api/metrics';
 import { Route } from '@/routes/reports/index';
 
 const ReportsPage = (Route as unknown as { component: React.FC }).component;
@@ -39,29 +39,12 @@ const mockSalesRow: SalesReportRow = {
   storeName: 'Colombo Store',
 };
 
-const mockProductRow: ProductPerformanceRow = {
-  productId: 'prod-1',
-  productName: 'Espresso Blend',
-  category: 'Beverages',
-  unitsSold: 50,
-  revenue: 125000,
-  marginPercent: 42.0,
-  returns: 1,
-  storeId: 'store-1',
-  storeName: 'Colombo Store',
-};
-
 describe('ReportsPage', () => {
   beforeEach(() => {
     vi.mocked(useSalesReport).mockReturnValue({
       data: [mockSalesRow],
       isLoading: false,
     } as unknown as ReturnType<typeof useSalesReport>);
-
-    vi.mocked(useProductPerformance).mockReturnValue({
-      data: [mockProductRow],
-      isLoading: false,
-    } as unknown as ReturnType<typeof useProductPerformance>);
   });
 
   it('renders page heading', () => {
@@ -71,7 +54,7 @@ describe('ReportsPage', () => {
 
   it('renders subtitle', () => {
     render(<ReportsPage />);
-    expect(screen.getByText(/sales performance/i)).toBeInTheDocument();
+    expect(screen.getByText(/platform-level sales performance/i)).toBeInTheDocument();
   });
 
   it('renders period selector buttons', () => {
@@ -102,12 +85,12 @@ describe('ReportsPage', () => {
     expect(screen.getByTestId('line-chart')).toBeInTheDocument();
   });
 
-  it('renders product chart', () => {
+  it('renders orders bar chart', () => {
     render(<ReportsPage />);
     expect(screen.getByTestId('bar-chart')).toBeInTheDocument();
   });
 
-  it('renders export buttons', () => {
+  it('renders export button', () => {
     render(<ReportsPage />);
     const exportBtns = screen.getAllByRole('button', { name: /export/i });
     expect(exportBtns.length).toBeGreaterThan(0);
@@ -115,9 +98,13 @@ describe('ReportsPage', () => {
 
   it('renders summary stats when sales data is available', () => {
     render(<ReportsPage />);
-    // Summary stats section should be present
     const summarySection = screen.getAllByText(/450/);
     expect(summarySection.length).toBeGreaterThan(0);
+  });
+
+  it('does not render Product Performance tab (removed per ADR-009)', () => {
+    render(<ReportsPage />);
+    expect(screen.queryByText('Product Performance')).not.toBeInTheDocument();
   });
 
   it('renders loading state when data is loading', () => {

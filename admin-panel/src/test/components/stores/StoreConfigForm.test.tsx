@@ -1,13 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '../../utils';
+import { describe, it, expect } from 'vitest';
+import { render, screen } from '../../utils';
 import { StoreConfigForm } from '@/components/stores/StoreConfigForm';
 import type { StoreConfig } from '@/types/store';
-
-const mockMutate = vi.fn();
-
-vi.mock('@/api/stores', () => ({
-  useUpdateStoreConfig: () => ({ mutate: mockMutate, isPending: false }),
-}));
 
 const mockConfig: StoreConfig = {
   storeId: 'store-1',
@@ -21,50 +15,46 @@ const mockConfig: StoreConfig = {
 };
 
 describe('StoreConfigForm', () => {
-  beforeEach(() => {
-    mockMutate.mockClear();
+  it('renders timezone as read-only text', () => {
+    render(<StoreConfigForm storeId="store-1" config={mockConfig} />);
+    expect(screen.getByText('Asia/Colombo')).toBeInTheDocument();
   });
 
-  it('renders timezone field with current value', () => {
+  it('renders currency as read-only text', () => {
     render(<StoreConfigForm storeId="store-1" config={mockConfig} />);
-    const timezoneInput = screen.getByDisplayValue('Asia/Colombo');
-    expect(timezoneInput).toBeInTheDocument();
+    expect(screen.getByText('LKR')).toBeInTheDocument();
   });
 
-  it('renders currency field with current value', () => {
+  it('renders sync interval as read-only text', () => {
     render(<StoreConfigForm storeId="store-1" config={mockConfig} />);
-    const currencyInput = screen.getByDisplayValue('LKR');
-    expect(currencyInput).toBeInTheDocument();
+    expect(screen.getByText('60')).toBeInTheDocument();
   });
 
-  it('renders receipt footer textarea', () => {
+  it('renders receipt footer as read-only text', () => {
     render(<StoreConfigForm storeId="store-1" config={mockConfig} />);
-    const textarea = screen.getByDisplayValue('Thank you!');
-    expect(textarea).toBeInTheDocument();
+    expect(screen.getByText('Thank you!')).toBeInTheDocument();
   });
 
-  it('Save button is present', () => {
+  it('does not render a Save button (read-only per ADR-009)', () => {
     render(<StoreConfigForm storeId="store-1" config={mockConfig} />);
-    expect(screen.getByRole('button', { name: /save changes/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /save/i })).not.toBeInTheDocument();
   });
 
-  it('submitting the form calls useUpdateStoreConfig mutation', async () => {
+  it('shows read-only notice', () => {
     render(<StoreConfigForm storeId="store-1" config={mockConfig} />);
+    expect(screen.getByText(/managed by the store owner/i)).toBeInTheDocument();
+  });
 
-    // Dirty the form so the save button is enabled
-    const timezoneInput = screen.getByDisplayValue('Asia/Colombo');
-    fireEvent.change(timezoneInput, { target: { value: 'Asia/Kolkata' } });
+  it('shows fallback when receipt footer is empty', () => {
+    const configNoFooter = { ...mockConfig, receiptFooter: '' };
+    render(<StoreConfigForm storeId="store-1" config={configNoFooter} />);
+    expect(screen.getByText('Not configured')).toBeInTheDocument();
+  });
 
-    const saveButton = screen.getByRole('button', { name: /save changes/i });
-    fireEvent.click(saveButton);
-
-    await waitFor(() => {
-      expect(mockMutate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          storeId: 'store-1',
-          config: expect.objectContaining({ timezone: 'Asia/Kolkata' }),
-        }),
-      );
-    });
+  it('shows defaults when config is undefined', () => {
+    render(<StoreConfigForm storeId="store-1" />);
+    expect(screen.getByText('Asia/Colombo')).toBeInTheDocument();
+    expect(screen.getByText('LKR')).toBeInTheDocument();
+    expect(screen.getByText('300')).toBeInTheDocument();
   });
 });
