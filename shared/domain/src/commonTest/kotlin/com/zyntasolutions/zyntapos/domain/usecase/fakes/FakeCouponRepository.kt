@@ -27,6 +27,7 @@ fun buildCoupon(
     usageCount: Int = 0,
     perCustomerLimit: Int? = null,
     isActive: Boolean = true,
+    storeId: String? = null,
     validFrom: Long = Clock.System.now().toEpochMilliseconds() - 86_400_000L, // -1 day
     validTo: Long = Clock.System.now().toEpochMilliseconds() + 86_400_000L,   // +1 day
 ) = Coupon(
@@ -36,6 +37,7 @@ fun buildCoupon(
     usageLimit = usageLimit, usageCount = usageCount,
     perCustomerLimit = perCustomerLimit,
     validFrom = validFrom, validTo = validTo, isActive = isActive,
+    storeId = storeId,
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -59,6 +61,12 @@ class FakeCouponRepository : CouponRepository {
     override fun getActiveCoupons(nowEpochMillis: Long): Flow<List<Coupon>> =
         MutableStateFlow(coupons.filter {
             it.isActive && it.validFrom <= nowEpochMillis && it.validTo >= nowEpochMillis
+        })
+
+    override fun getActiveCouponsForStore(nowEpochMillis: Long, storeId: String): Flow<List<Coupon>> =
+        MutableStateFlow(coupons.filter {
+            it.isActive && it.validFrom <= nowEpochMillis && it.validTo >= nowEpochMillis &&
+                (it.storeId == null || it.storeId == storeId)
         })
 
     override suspend fun getByCode(code: String): Result<Coupon> {
@@ -128,6 +136,12 @@ class FakeCouponRepository : CouponRepository {
     override fun getActivePromotions(nowEpochMillis: Long): Flow<List<Promotion>> =
         MutableStateFlow(promotions.filter {
             it.isActive && it.validFrom <= nowEpochMillis && it.validTo >= nowEpochMillis
+        })
+
+    override fun getActivePromotionsForStore(nowEpochMillis: Long, storeId: String): Flow<List<Promotion>> =
+        MutableStateFlow(promotions.filter {
+            it.isActive && it.validFrom <= nowEpochMillis && it.validTo >= nowEpochMillis &&
+                (it.storeIds.isEmpty() || it.storeIds.contains(storeId))
         })
 
     override suspend fun getPromotionById(id: String): Result<Promotion> {

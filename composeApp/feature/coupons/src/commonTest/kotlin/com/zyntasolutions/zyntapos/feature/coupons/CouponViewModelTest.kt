@@ -117,6 +117,12 @@ class CouponViewModelTest {
         override fun getActivePromotions(nowEpochMillis: Long): Flow<List<Promotion>> =
             MutableStateFlow(emptyList())
 
+        override fun getActiveCouponsForStore(nowEpochMillis: Long, storeId: String): Flow<List<Coupon>> =
+            getActiveCoupons(nowEpochMillis)
+
+        override fun getActivePromotionsForStore(nowEpochMillis: Long, storeId: String): Flow<List<Promotion>> =
+            MutableStateFlow(emptyList())
+
         override suspend fun getPromotionById(id: String): Result<Promotion> =
             Result.Error(DatabaseException("Not found"))
 

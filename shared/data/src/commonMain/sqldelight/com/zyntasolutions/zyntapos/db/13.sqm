@@ -1,0 +1,8 @@
+-- Migration 13: C2.4 Store-specific discounts & promotions
+-- Add store_id to coupons (nullable = global) and store_ids to promotions (JSON array)
+
+ALTER TABLE coupons ADD COLUMN store_id TEXT;
+
+ALTER TABLE promotions ADD COLUMN store_ids TEXT NOT NULL DEFAULT '[]';
+
+CREATE INDEX idx_coupons_store ON coupons(store_id);

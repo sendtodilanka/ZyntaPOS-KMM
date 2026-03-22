@@ -25,6 +25,8 @@ data class Promotion(
     val validTo: Long,
     val priority: Int = 0,
     val isActive: Boolean = true,
+    /** Store IDs this promotion targets. Empty = global (all stores). */
+    val storeIds: List<String> = emptyList(),
 ) {
     init {
         require(validFrom < validTo) { "validFrom must be before validTo" }
