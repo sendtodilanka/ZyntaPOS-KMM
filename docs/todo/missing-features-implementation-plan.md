@@ -1,8 +1,33 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-21 (C2.1 Region-Based Pricing implemented — PricingRule domain model, 4-level price resolution in GetEffectiveProductPriceUseCase, SQLDelight schema + migration, backend V32 migration + AdminPricingRoutes, AddItemToCartUseCase wired to effective price, 12 unit tests; MS-1/MS-2 verified already complete; INV-3 routes verified already complete)
-**Status:** Approved — Verified against codebase 2026-03-21
+**Last Updated:** 2026-03-22 (ADR-009 compliance audit — removed admin panel store-operational claims per ADR-009; documented BUG: AddItemToCartUseCase storeId not injected; documented deleted admin panel files from PR #502; noted backend /admin/ write endpoints that need migration to /v1/ with POS JWT auth; added undocumented KMM PricingRuleScreen)
+**Status:** Approved — Verified against codebase 2026-03-22, updated for ADR-009 compliance
+
+---
+
+## 🔴 ADR-009 COMPLIANCE (MANDATORY)
+
+> **ADR-009 (Accepted 2026-03-21):** The admin panel MUST NOT contain store-operational write features.
+>
+> **Boundary test:** "Who has the business authority to perform this action?"
+> - Store owner / manager / cashier → **KMM App** (POS JWT, `/v1/*` endpoints)
+> - Zynta Solutions staff → **Admin Panel** (Admin JWT, `/admin/*` endpoints)
+> - Both need visibility → **KMM App for write**, Admin Panel for read-only monitoring
+>
+> **Admin panel ALLOWED:** Licenses, store provisioning/monitoring, support tickets, system health,
+> diagnostics, audit logs (read-only), master product catalog curation (CRUD), platform config
+> (feature flags, system settings), exchange rates (platform-level), email management.
+>
+> **Admin panel FORBIDDEN:** Stock transfers, replenishment rules, pricing rules, tax rate CRUD,
+> store-specific product overrides, promotions/discounts, inventory writes, customer data writes,
+> any store-level business operation.
+>
+> **Known backend violations to migrate (write endpoints under /admin/ that should be under /v1/):**
+> - `AdminTransferRoutes.kt` — POST/PUT for transfers → migrate to `/v1/transfers/*`
+> - `AdminReplenishmentRoutes.kt` — POST/DELETE for replenishment rules → migrate to `/v1/replenishment/*`
+> - `AdminPricingRoutes.kt` — POST/DELETE for pricing rules → migrate to `/v1/pricing/*`
+> - `AdminMasterProductRoutes.kt` — PUT store overrides → migrate to `/v1/store-products/*`
 
 ---
 
@@ -56,19 +81,19 @@ JWT validation, token revocation, heartbeat replay protection, circular parent d
 Phase 2 core feature එක multi-store. C1.1–C1.5 all implemented (2026-03-19/20):
 
 - **Global Product Catalog** (`master_products` + `store_products` tables) — ✅ DONE (C1.1, 2026-03-19)
-- **Store-Specific Inventory** backend + admin panel cross-store stock view — ✅ DONE (C1.2, 2026-03-19; `warehouse_stock` table + `WarehouseStockRepository`, admin `/inventory` route)
-- **Inter-Store Transfer (IST)** backend pipeline + admin panel dashboard — ✅ DONE (C1.3, 2026-03-19/20; `stock_transfers` backend 7-endpoint REST API, approval workflow `PENDING→APPROVED→IN_TRANSIT→RECEIVED`, admin panel transfer dashboard with status filters + inline actions, KMM `StoreTransferDashboardScreen`)
+- **Store-Specific Inventory** backend + admin panel cross-store stock view (read-only monitoring per ADR-009) — ✅ DONE (C1.2, 2026-03-19; `warehouse_stock` table + `WarehouseStockRepository`, admin `/inventory` route is read-only)
+- **Inter-Store Transfer (IST)** backend pipeline + KMM store-level dashboard — ✅ DONE (C1.3, 2026-03-19/20; `stock_transfers` backend 7-endpoint REST API, approval workflow `PENDING→APPROVED→IN_TRANSIT→RECEIVED`, KMM `StoreTransferDashboardScreen`; admin panel transfer dashboard removed per ADR-009)
 - **Stock In-Transit Tracking** — ✅ DONE (C1.4, 2026-03-20; `transit_tracking.sq`, `TransitTrackingRepositoryImpl`, 4 use cases, `TransitTrackerScreen`, auto-log DISPATCHED/RECEIVED at IST workflow transitions)
 - **Cross-Store Sync** (multi-node CRDT) — ✅ DONE (C6.1, 2026-03-19); `TRANSIT_EVENT` + `REPLENISHMENT_RULE` entity type constants in SyncOperation
 - **Warehouse-to-Store Replenishment** (auto-PO) — ✅ DONE (C1.5, 2026-03-20; `ReplenishmentRule` domain model, `AutoReplenishmentUseCase`, `CreatePurchaseOrderUseCase`, `ReplenishmentScreen` 3-tab UI, backend `V31__replenishment_rules.sql` migration + `AdminReplenishmentRoutes` 4 endpoints + `ReplenishmentRepository` with 14 integration tests)
 
-**Impact:** Blocker 2 is fully resolved. All 5 centralized inventory management features are implemented end-to-end (KMM + backend + admin panel for C1.1–C1.3, KMM + backend for C1.4–C1.5).
+**Impact:** Blocker 2 is fully resolved. All 5 centralized inventory management features are implemented end-to-end (KMM + backend for all; admin panel provides read-only monitoring views only per ADR-009).
 
 **All sync integration gaps resolved (2026-03-20):**
 - ✅ `SyncValidator.VALID_ENTITY_TYPES` — all Phase 2 entity types added (both UPPERCASE and lowercase aliases) + field-level validation for `REPLENISHMENT_RULE`, `PURCHASE_ORDER`, `TRANSIT_EVENT`, `WAREHOUSE_STOCK`
 - ✅ `EntityApplier` — handlers added for `REPLENISHMENT_RULE`, `STOCK_TRANSFER`, `PURCHASE_ORDER` (normalized table upsert/delete) + `TRANSIT_EVENT` (append-only via entity_snapshots) + lowercase aliases on all 25 existing when branches
 - ✅ `SyncEngine.applyUpsert()` — all Phase 2 entity types acknowledged (server-managed; local data refreshed via REST API pull)
-- ✅ Admin panel replenishment dashboard — `/replenishment` route with Reorder Alerts + Rules tabs, sidebar nav item, TanStack Query hooks, delete action with confirmation
+- ~~✅ Admin panel replenishment dashboard~~ — REMOVED per ADR-009 (PR #502). Replenishment is managed via KMM `ReplenishmentScreen` (3-tab UI)
 - Push notification on transfer arrival (FCM) — deferred to Phase 3.
 
 ### Blocker 3: Backend Test Coverage (B4) — ~55% vs 95%+ Target
@@ -551,7 +576,7 @@ Phase 2 stable release එකකට backend test coverage **95%+** ඕන. ද�
 - [x] Backend `EntityApplier` — MASTER_PRODUCT + STORE_PRODUCT handlers
 - [x] Backend Koin DI — `MasterProductService` binding
 - [x] Admin panel: types (`master-product.ts`), API hooks (`master-products.ts`)
-- [x] Admin panel: list page + detail page with store assignments
+- [x] Admin panel: list page + detail page with store assignments (master product catalog curation is a platform operation — ADR-009 compliant; however, `useUpdateStoreOverride` sets per-store pricing which is a store operation — should migrate to KMM per ADR-009)
 - [x] Admin panel: TanStack Router route tree registration (`routeTree.gen.ts`) — fixed 2026-03-19
 - [x] Admin panel: `hasMore` → `totalPages` pagination fix + breadcrumb link path — fixed 2026-03-19
 - [x] KMM MVI: `MasterProductOverrideViewModel/State/Intent/Effect`
@@ -625,13 +650,14 @@ Phase 2 stable release එකකට backend test coverage **95%+** ඕන. ද�
 ### C1.3 Inter-Store Stock Transfer / IST (ශාඛා අතර තොග හුවමාරුව) — ✅ IMPLEMENTED
 
 **Priority:** PHASE-2
-**Status:** ✅ FULLY IMPLEMENTED (2026-03-20) — KMM + Backend + Admin panel complete
+**Status:** ✅ FULLY IMPLEMENTED (2026-03-20) — KMM + Backend complete
 **Branch (KMM):** `claude/plan-c1-2-features-osMp7` (IST workflow)
-**Branch (Deferred):** `claude/c1-2-backend-warehouse-stock-osMp7` (admin panel + store-level view)
 
-> **HANDOFF (2026-03-20):** C1.3 deferred items implemented in commit `fef86b7`. Admin panel transfer
-> management dashboard with status filters + inline actions, KMM store-level transfer grouping screen,
-> backend 7-endpoint REST API all complete. Only push notification (FCM) deferred to Phase 3.
+> **HANDOFF (2026-03-20):** C1.3 implemented in commit `fef86b7`. KMM store-level transfer
+> grouping screen + backend 7-endpoint REST API complete. Admin panel transfer dashboard
+> was removed in PR #502 per ADR-009 (store operations belong in KMM app, not admin panel).
+> Backend `/admin/transfers` write endpoints need migration to `/v1/transfers` with POS JWT auth.
+> Push notification (FCM) deferred to Phase 3.
 
 **What's DONE:**
 
@@ -662,13 +688,14 @@ Backend:
 - [x] `AdminTransferService.kt` — list, create, approve, dispatch, receive, cancel (7 methods)
 - [x] `AdminTransferRoutes.kt` — 7 REST endpoints under `/admin/transfers` (GET list, POST create, GET by ID, PUT approve/dispatch/receive/cancel)
 - [x] `Routing.kt` + `AppModule.kt` — routes registered, service bound to Koin
+- [ ] **ADR-009:** Migrate write endpoints (POST/PUT) from `/admin/transfers` to `/v1/transfers` with POS JWT auth — store managers own transfer decisions, not Zynta staff
 
-Admin panel (previously deferred, now done):
-- [x] `admin-panel/src/types/transfer.ts` — TypeScript DTOs: `TransferStatus`, `StockTransfer`, request/response types
-- [x] `admin-panel/src/api/transfers.ts` — TanStack Query hooks: `useTransfers()`, `useTransfer()`, `useApproveTransfer()`, `useDispatchTransfer()`, `useReceiveTransfer()`, `useCancelTransfer()`
-- [x] `admin-panel/src/routes/transfers/index.tsx` — DataTable with status filter chips, inline action menu (Approve/Dispatch/Mark Received/Cancel), ConfirmDialog for each action
-- [x] `admin-panel/src/routeTree.gen.ts` — `/transfers/` route registered
-- [x] `admin-panel/src/components/layout/Sidebar.tsx` — "Transfers" nav item in Monitoring group
+Admin panel (REMOVED per ADR-009 — PR #502, commit `0ac0fa4`):
+- ~~[x]~~ `admin-panel/src/types/transfer.ts` — REMOVED per ADR-009 (store operations belong in KMM app)
+- ~~[x]~~ `admin-panel/src/api/transfers.ts` — REMOVED per ADR-009
+- ~~[x]~~ `admin-panel/src/routes/transfers/index.tsx` — REMOVED per ADR-009
+- ~~[x]~~ `admin-panel/src/routeTree.gen.ts` — `/transfers/` route removed
+- ~~[x]~~ `admin-panel/src/components/layout/Sidebar.tsx` — "Transfers" nav item removed
 
 **Deferred to Phase 3:**
 - [ ] Push notification when transfer arrives at destination store (FCM integration)
@@ -810,7 +837,8 @@ Backend Tests:
 - `backend/api/src/test/kotlin/.../repository/ReplenishmentRepositoryTest.kt`
 
 **Deferred to Phase 2 polish / Phase 3:**
-- [x] Admin panel: Replenishment sidebar nav item + React dashboard (backend endpoints ready at `/admin/replenishment/*`)
+- ~~[x]~~ Admin panel: Replenishment dashboard REMOVED per ADR-009 (PR #502) — replenishment is a store-level operation, managed via KMM `ReplenishmentScreen`
+- [ ] **ADR-009:** Migrate write endpoints (POST/DELETE) from `/admin/replenishment/rules` to `/v1/replenishment/rules` with POS JWT auth
 - [ ] Backend: Scheduled auto-replenishment job (cron/Quartz) — currently manual trigger only via KMM UI
 - [x] Backend: `EntityApplier` + `SyncValidator` handlers for REPLENISHMENT_RULE entity type (bi-directional sync)
 
@@ -824,15 +852,16 @@ Backend Tests:
 
 ### C2.1 Region-Based Pricing (ප්‍රදේශ අනුව මිල) — ✅ CORE IMPLEMENTED (2026-03-21)
 
-> **HANDOFF (2026-03-21):** C2.1 core pricing infrastructure is fully implemented.
+> **HANDOFF (2026-03-21, updated 2026-03-22):** C2.1 core pricing infrastructure is implemented.
 > 4-level price resolution: store override → pricing rule → master product → product.price.
-> `AddItemToCartUseCase` now uses `GetEffectiveProductPriceUseCase` for price resolution.
+> `AddItemToCartUseCase` has `GetEffectiveProductPriceUseCase` but **BUG: storeId not injected** — effective price never executes.
 > Backend has V32 migration + 3 REST endpoints. 12 unit tests covering all resolution levels.
+> KMM `PricingRuleScreen` + MVI added in PR #502 (replaces admin panel pricing UI per ADR-009).
 > Branch: `claude/implement-missing-features-kL6qb`.
-> Remaining: Admin panel pricing management UI and KMM settings screen (deferred).
+> Remaining: Fix storeId injection bug, migrate backend pricing write endpoints to `/v1/` (ADR-009).
 
 **Priority:** PHASE-2
-**Status:** CORE IMPLEMENTED — Admin panel UI pending
+**Status:** CORE IMPLEMENTED — KMM PricingRuleScreen done (PR #502 per ADR-009); BUG: storeId not injected in AddItemToCartUseCase
 
 **What's DONE:**
 - [x] `PricingRule` domain model — id, productId, storeId (nullable=global), price, costPrice, priority, validFrom/validTo, isActive, description
@@ -851,10 +880,11 @@ Backend Tests:
 - [x] Backend Routing.kt + AppModule.kt registered
 - [x] 12 unit tests in `GetEffectiveProductPriceUseCaseTest`
 - [x] `FakePricingRepositories.kt` — fake repos + builders for MasterProduct, StoreProductOverride, PricingRule
+- [x] KMM `PricingRuleScreen` + `PricingRuleViewModel` (MVI) — full CRUD UI in `:feature:inventory/pricing/` (added PR #502, replaces admin panel pricing UI per ADR-009)
 
 **What's REMAINING (deferred):**
-- [ ] Admin panel: Price management UI (override per store, bulk update)
-- [ ] KMM settings: Store pricing configuration screen
+- [ ] **ADR-009:** Migrate write endpoints (POST/DELETE) from `/admin/pricing/rules` to `/v1/pricing/rules` with POS JWT auth — pricing is a store-level operation
+- [ ] **BUG:** `AddItemToCartUseCase` — `storeId` not injected via Koin; effective price calculation never executes (defaults to `product.price`)
 - [ ] SyncEngine: PRICING_RULE entity type handling in `applyUpsert()` / `EntityApplier`
 
 **Key Files:**
@@ -894,8 +924,8 @@ Backend Tests:
 - [ ] `Store` domain model in `:shared:domain` (currently NO Store model — only table/DTO)
 - [ ] `StoreRepository` interface in `:shared:domain` — expose store settings to business logic
 - [ ] Backend migration: `exchange_rates` table + `currency` column on orders
-- [ ] Backend: `GET /admin/exchange-rates`, `PUT /admin/exchange-rates`
-- [ ] Admin panel: Exchange rate management UI
+- [ ] Backend: `GET /admin/exchange-rates`, `PUT /admin/exchange-rates` (platform-level config — admin panel OK per ADR-009)
+- [ ] Admin panel: Exchange rate management UI (platform operation — ADR-009 compliant)
 - [ ] KMM: Currency display using store's configured currency, not hardcoded LKR
 
 **Key Files:**
@@ -928,8 +958,8 @@ Backend Tests:
 - [ ] Support for compound taxes (VAT + service charge + local surcharge stacked)
 - [ ] Tax registration number per store (legal requirement in many jurisdictions)
 - [ ] Backend migration: `regional_tax_overrides` table, `tax_registration_number` on stores
-- [ ] Backend: `GET /admin/taxes/by-store/{storeId}`
-- [ ] KMM settings: Per-store tax override configuration
+- [ ] Backend: `GET /v1/taxes/by-store` with POS JWT auth (store-level operation per ADR-009)
+- [ ] KMM settings: Per-store tax override configuration (store owner manages via KMM app per ADR-009)
 
 **Key Files:**
 - `shared/domain/src/commonMain/.../model/TaxGroup.kt`
@@ -959,8 +989,8 @@ Backend Tests:
 - [ ] Store-specific discount limits (e.g., max 20% at store A, max 30% at store B)
 - [ ] Promotion conflict resolution when multiple match (BOGO + coupon both applicable)
 - [ ] `PromotionConfig` sealed class to replace untyped JSON `config` field
-- [ ] Backend: `GET /admin/promotions?storeId=X`
-- [ ] Admin panel: Store-scoped promotion management
+- [ ] Backend: `GET /v1/promotions` with POS JWT auth (store-level operation per ADR-009)
+- [ ] KMM: Store-scoped promotion management UI (per ADR-009 — store operations belong in KMM app, not admin panel)
 - [ ] KMM: Auto-apply store promotions at checkout
 
 **Key Files:**
@@ -1013,7 +1043,7 @@ Backend Tests:
 - [ ] Modify `RbacEngine` to accept `storeId` parameter for permission checks
 - [ ] Backend migration: `user_store_access` table
 - [ ] Backend: Middleware to validate user has access to requested store data
-- [ ] Admin panel: User → store assignment management UI
+- [ ] KMM: User → store assignment management UI (store ADMIN manages their own staff per ADR-009)
 - [ ] KMM: Store selector for users with multi-store access
 
 ---
@@ -1084,7 +1114,7 @@ Backend Tests:
 - [ ] Cross-store inventory adjustment (return stock to original or current store?)
 - [ ] Business rule: Configurable policy — stock goes to return store vs original store
 - [ ] KMM POS: Lookup order by ID/receipt from any store for return processing
-- [ ] Backend: Cross-store order lookup endpoint
+- [ ] Backend: Cross-store order lookup endpoint under `/v1/orders` with POS JWT auth (store operation per ADR-009)
 - [ ] Sync: Refund propagation to original store for accounting
 
 ---
@@ -1111,7 +1141,7 @@ Backend Tests:
 - [ ] Points expiry policy (e.g., expire after 12 months inactive)
 - [ ] KMM POS: "Apply Loyalty Points" button at checkout
 - [ ] KMM: Customer loyalty summary screen
-- [ ] Backend: `GET /admin/loyalty/summary`, `POST /admin/loyalty/rules`
+- [ ] Backend: `GET /v1/loyalty/summary` with POS JWT auth (loyalty management is a store operation per ADR-009); `GET /admin/loyalty/summary` read-only for platform monitoring is acceptable
 
 **Key Files:**
 - `shared/data/src/commonMain/sqldelight/.../reward_points.sq`
@@ -1139,8 +1169,8 @@ Backend Tests:
 - [ ] `CustomerMergeUseCase` — merge two customer records (combine points, order history)
 - [ ] GDPR export UI in KMM app (backend route exists)
 - [ ] Customer purchase history spanning all stores
-- [ ] Backend: `GET /admin/customers/global?search=X` (cross-store search)
-- [ ] Admin panel: Global customer directory with store filter
+- [ ] Backend: `GET /admin/customers/global?search=X` (read-only cross-store search — ADR-009 compliant for support/monitoring)
+- [ ] Admin panel: Global customer directory with store filter (read-only monitoring per ADR-009 — no write operations)
 
 ---
 
@@ -1197,7 +1227,7 @@ Backend Tests:
 - [ ] Backend: `GET /admin/reports/consolidated-balance-sheet?asOf=X`
 - [ ] Multi-currency consolidation (convert all store revenues to base currency)
 - [ ] Inter-store transaction elimination (remove internal transfers from consolidated reports)
-- [ ] Admin panel: Consolidated financial report pages
+- [ ] Admin panel: Consolidated financial report pages (read-only monitoring — ADR-009 compliant)
 - [ ] CSV/PDF export for consolidated reports
 
 **Key Files:**
@@ -1226,7 +1256,7 @@ Backend Tests:
 - [ ] KMM UI: Rankings screen (top-performing stores by revenue, orders, margin)
 - [ ] Backend: `GET /admin/reports/store-ranking?metric=revenue&period=monthly`
 - [ ] Backend: Profit/margin comparison (not just revenue/orders)
-- [ ] Admin panel: Interactive comparison dashboard with filters
+- [ ] Admin panel: Interactive comparison dashboard with filters (read-only monitoring — ADR-009 compliant)
 - [ ] Trend analysis: Growth % per store over time
 
 ---
@@ -1266,7 +1296,7 @@ Backend Tests:
 - [ ] Backend: Publish dashboard events to Redis when order completes
 - [ ] `RedisPubSubListener` — subscribe to `dashboard:update:{storeId}` topic
 - [ ] KMM: `DashboardViewModel` connect to WebSocket for live updates
-- [ ] Admin panel: WebSocket connection for live store metrics
+- [ ] Admin panel: WebSocket connection for live store metrics (read-only monitoring — ADR-009 compliant)
 - [ ] SLA alerting: Notify admin when revenue drops below expected or sync queue grows
 
 ---
