@@ -278,6 +278,8 @@ class SyncValidatorTest {
                 "PURCHASE_ORDER" -> """{"supplier_id":"s-1","order_number":"PO-1","total_amount":100}"""
                 "TRANSIT_EVENT" -> """{"transfer_id":"t-1","event_type":"DISPATCHED"}"""
                 "WAREHOUSE_STOCK" -> """{"warehouse_id":"w-1","product_id":"p-1","quantity":100}"""
+                "PRICING_RULE" -> """{"product_id":"p-1","price":9.99}"""
+                "REGIONAL_TAX_OVERRIDE" -> """{"tax_group_id":"tg-1","effective_rate":15.0}"""
                 else -> """{"id":"1"}"""
             }
             val result = validator.validateBatch(listOf(op(entityType = entityType, payload = payload)))
