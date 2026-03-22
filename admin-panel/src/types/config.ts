@@ -11,18 +11,6 @@ export interface FeatureFlag {
   modifiedBy: string;
 }
 
-export interface TaxRate {
-  id: string;
-  name: string;
-  rate: number; // percentage e.g. 15.0
-  description: string;
-  applicableTo: string[];
-  isDefault: boolean;
-  country: string;
-  region?: string;
-  active: boolean;
-}
-
 export interface SystemConfig {
   key: string;
   value: string | number | boolean;
@@ -36,14 +24,4 @@ export interface SystemConfig {
 export interface ConfigUpdatePayload {
   key: string;
   value: string | number | boolean;
-}
-
-export interface TaxRateCreatePayload {
-  name: string;
-  rate: number;
-  description: string;
-  applicableTo: string[];
-  isDefault: boolean;
-  country: string;
-  region?: string;
 }
