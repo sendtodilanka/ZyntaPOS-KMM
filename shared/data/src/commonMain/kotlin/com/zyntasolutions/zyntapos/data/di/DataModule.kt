@@ -21,6 +21,7 @@ import com.zyntasolutions.zyntapos.data.repository.ExpenseRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.InstallmentRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.LoyaltyRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.NotificationRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.ExchangeRateRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.MasterProductRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.PricingRuleRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.OrderRepositoryImpl
@@ -75,6 +76,7 @@ import com.zyntasolutions.zyntapos.domain.port.SecureStoragePort
 import com.zyntasolutions.zyntapos.domain.repository.AuditRepository
 import com.zyntasolutions.zyntapos.domain.repository.ConflictLogRepository
 import com.zyntasolutions.zyntapos.domain.repository.OperationalLogRepository
+import com.zyntasolutions.zyntapos.domain.repository.ExchangeRateRepository
 import com.zyntasolutions.zyntapos.domain.repository.PricingRuleRepository
 import org.koin.core.qualifier.named
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
@@ -231,6 +233,9 @@ val dataModule = module {
 
     // Pricing rules — region-based pricing (C2.1)
     single<PricingRuleRepository> { PricingRuleRepositoryImpl(db = get()) }
+
+    // Exchange rates — multi-currency support (C2.2)
+    single<ExchangeRateRepository> { ExchangeRateRepositoryImpl(db = get()) }
 
     // Product variants: size, colour, per-SKU variations
     single<ProductVariantRepository> { ProductVariantRepositoryImpl(db = get(), syncEnqueuer = get()) }

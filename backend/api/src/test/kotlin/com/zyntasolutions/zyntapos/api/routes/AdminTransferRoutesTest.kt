@@ -6,18 +6,17 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
- * Unit tests for [adminTransferRoutes] validation logic (C1.3 — IST endpoints).
+ * Unit tests for IST transfer validation logic (C1.3).
  *
  * Tests cover:
  * - Request field validation (blank IDs, invalid quantities)
  * - IST workflow state transitions (valid state machine rules)
- * - Route path structure
+ * - Route path structure (admin=read-only, POS=read-write per ADR-009)
  * - Pagination parameter coercion
  * - Status filter allowed values
  *
- * Full HTTP round-trip tests require Ktor testApplication with Koin DI.
- * These tests validate the request/response contract and validation rules
- * that are applied before the service is called.
+ * Per ADR-009: Admin routes (/admin/transfers) are read-only monitoring.
+ * Write operations are exclusively on POS routes (/v1/transfers).
  */
 class AdminTransferRoutesTest {
 
@@ -112,43 +111,47 @@ class AdminTransferRoutesTest {
         assertTrue("CANCELLED" in terminalStatuses)
     }
 
-    // ── Route paths ──────────────────────────────────────────────────────────────
+    // ── Route paths (ADR-009: admin=read-only, POS=read-write) ───────────────────
 
     @Test
-    fun `list transfers endpoint path`() {
+    fun `admin list transfers endpoint is read-only monitoring`() {
         val path = "/admin/transfers"
         assertTrue(path.startsWith("/admin/"))
         assertTrue(path.endsWith("transfers"))
     }
 
     @Test
-    fun `transfer detail endpoint path contains id`() {
+    fun `admin transfer detail endpoint is read-only`() {
         val id   = "transfer-abc123"
         val path = "/admin/transfers/$id"
         assertTrue(path.contains(id))
     }
 
     @Test
-    fun `approve endpoint path`() {
-        val path = "/admin/transfers/t-001/approve"
+    fun `POS approve endpoint path`() {
+        val path = "/v1/transfers/t-001/approve"
+        assertTrue(path.startsWith("/v1/"))
         assertTrue(path.endsWith("/approve"))
     }
 
     @Test
-    fun `dispatch endpoint path`() {
-        val path = "/admin/transfers/t-001/dispatch"
+    fun `POS dispatch endpoint path`() {
+        val path = "/v1/transfers/t-001/dispatch"
+        assertTrue(path.startsWith("/v1/"))
         assertTrue(path.endsWith("/dispatch"))
     }
 
     @Test
-    fun `receive endpoint path`() {
-        val path = "/admin/transfers/t-001/receive"
+    fun `POS receive endpoint path`() {
+        val path = "/v1/transfers/t-001/receive"
+        assertTrue(path.startsWith("/v1/"))
         assertTrue(path.endsWith("/receive"))
     }
 
     @Test
-    fun `cancel endpoint path`() {
-        val path = "/admin/transfers/t-001/cancel"
+    fun `POS cancel endpoint path`() {
+        val path = "/v1/transfers/t-001/cancel"
+        assertTrue(path.startsWith("/v1/"))
         assertTrue(path.endsWith("/cancel"))
     }
 

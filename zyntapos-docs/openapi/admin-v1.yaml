@@ -1933,12 +1933,17 @@ paths:
         "200":
           description: Product assigned to all specified stores
 
-  # ── Transfers (C1.3) ────────────────────────────────────────────────────
+  # ── Transfers (C1.3) — READ-ONLY per ADR-009 ──────────────────────────────
+  # Write operations (create, approve, dispatch, receive, cancel) are
+  # exclusively on POS-authenticated /v1/transfers endpoints (see api-v1.yaml).
 
   /admin/transfers:
     get:
       operationId: listTransfers
-      summary: List inter-store transfers
+      summary: List inter-store transfers (read-only monitoring)
+      description: |
+        Read-only monitoring endpoint for Zynta Solutions staff.
+        Write operations are on /v1/transfers with POS JWT auth (ADR-009).
       tags: [Transfers]
       parameters:
         - name: storeId
@@ -1958,24 +1963,11 @@ paths:
       responses:
         "200":
           description: Transfer list
-    post:
-      operationId: createTransfer
-      summary: Create inter-store transfer (PENDING)
-      tags: [Transfers]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreateTransferRequest"
-      responses:
-        "201":
-          description: Transfer created
 
   /admin/transfers/{id}:
     get:
       operationId: getTransfer
-      summary: Get transfer detail
+      summary: Get transfer detail (read-only monitoring)
       tags: [Transfers]
       parameters:
         - name: id
@@ -1987,62 +1979,6 @@ paths:
           description: Transfer detail
         "404":
           $ref: "#/components/responses/NotFound"
-
-  /admin/transfers/{id}/approve:
-    put:
-      operationId: approveTransfer
-      summary: Approve transfer (PENDING → APPROVED)
-      tags: [Transfers]
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
-      responses:
-        "200":
-          description: Transfer approved
-
-  /admin/transfers/{id}/dispatch:
-    put:
-      operationId: dispatchTransfer
-      summary: Dispatch transfer (APPROVED → IN_TRANSIT)
-      tags: [Transfers]
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
-      responses:
-        "200":
-          description: Transfer dispatched
-
-  /admin/transfers/{id}/receive:
-    put:
-      operationId: receiveTransfer
-      summary: Receive transfer (IN_TRANSIT → RECEIVED)
-      tags: [Transfers]
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
-      responses:
-        "200":
-          description: Transfer received
-
-  /admin/transfers/{id}/cancel:
-    put:
-      operationId: cancelTransfer
-      summary: Cancel transfer (PENDING|APPROVED → CANCELLED)
-      tags: [Transfers]
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
-      responses:
-        "200":
-          description: Transfer cancelled
 
   # ── Inventory (C1.2) ────────────────────────────────────────────────────
 
@@ -2066,12 +2002,17 @@ paths:
               schema:
                 $ref: "#/components/schemas/GlobalInventoryResponse"
 
-  # ── Replenishment (C1.5) ────────────────────────────────────────────────
+  # ── Replenishment (C1.5) — READ-ONLY per ADR-009 ──────────────────────────
+  # Write operations (upsert, delete) are exclusively on POS-authenticated
+  # /v1/replenishment endpoints (see api-v1.yaml).
 
   /admin/replenishment/rules:
     get:
       operationId: listReplenishmentRules
-      summary: List replenishment rules
+      summary: List replenishment rules (read-only monitoring)
+      description: |
+        Read-only monitoring endpoint for Zynta Solutions staff.
+        Write operations are on /v1/replenishment with POS JWT auth (ADR-009).
       tags: [Replenishment]
       parameters:
         - name: warehouseId
@@ -2080,40 +2021,11 @@ paths:
       responses:
         "200":
           description: Replenishment rules
-    post:
-      operationId: upsertReplenishmentRule
-      summary: Create or upsert replenishment rule
-      tags: [Replenishment]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UpsertReplenishmentRuleRequest"
-      responses:
-        "200":
-          description: Rule upserted
-
-  /admin/replenishment/rules/{id}:
-    delete:
-      operationId: deleteReplenishmentRule
-      summary: Delete replenishment rule
-      tags: [Replenishment]
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
-      responses:
-        "204":
-          description: Rule deleted
-        "404":
-          $ref: "#/components/responses/NotFound"
 
   /admin/replenishment/suggestions:
     get:
       operationId: getReplenishmentSuggestions
-      summary: Products at or below reorder point
+      summary: Products at or below reorder point (read-only monitoring)
       tags: [Replenishment]
       parameters:
         - name: warehouseId

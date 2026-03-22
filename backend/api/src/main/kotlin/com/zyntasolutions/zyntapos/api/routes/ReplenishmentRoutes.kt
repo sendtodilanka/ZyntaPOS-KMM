@@ -9,6 +9,7 @@ import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.serialization.Serializable
 import org.koin.ktor.ext.inject
 
 /**
@@ -17,6 +18,9 @@ import org.koin.ktor.ext.inject
  * Uses RS256 JWT auth with storeId claim for store isolation.
  * Roles: ADMIN, MANAGER can create/update/delete rules.
  *        CASHIER can view suggestions.
+ *
+ * Per ADR-009: All write operations for replenishment rules are exclusively here
+ * (not in admin panel routes). Admin panel has read-only monitoring at /admin/replenishment.
  */
 fun Route.replenishmentRoutes() {
     val repo: ReplenishmentRepository by inject()
@@ -29,12 +33,7 @@ fun Route.replenishmentRoutes() {
             val rules = repo.getRules(warehouseId)
             call.respond(HttpStatusCode.OK, ReplenishmentRulesResponse(
                 total = rules.size,
-                rules = rules.map { ReplenishmentRuleDto(
-                    id = it.id, productId = it.productId, warehouseId = it.warehouseId,
-                    supplierId = it.supplierId, reorderPoint = it.reorderPoint,
-                    reorderQty = it.reorderQty, autoApprove = it.autoApprove,
-                    isActive = it.isActive, updatedAt = it.updatedAt,
-                ) },
+                rules = rules.map { it.toDto() },
             ))
         }
 
@@ -108,3 +107,66 @@ fun Route.replenishmentRoutes() {
         }
     }
 }
+
+// ── Request / Response DTOs ───────────────────────────────────────────────────
+
+@Serializable
+data class UpsertReplenishmentRuleRequest(
+    val id: String,
+    val productId: String,
+    val warehouseId: String,
+    val supplierId: String,
+    val reorderPoint: Double,
+    val reorderQty: Double,
+    val autoApprove: Boolean = false,
+    val isActive: Boolean = true,
+)
+
+@Serializable
+data class ReplenishmentRulesResponse(
+    val total: Int,
+    val rules: List<ReplenishmentRuleDto>,
+)
+
+@Serializable
+data class ReplenishmentRuleDto(
+    val id: String,
+    val productId: String,
+    val warehouseId: String,
+    val supplierId: String,
+    val reorderPoint: Double,
+    val reorderQty: Double,
+    val autoApprove: Boolean,
+    val isActive: Boolean,
+    val updatedAt: Long,
+)
+
+@Serializable
+data class ReplenishmentSuggestionsResponse(
+    val total: Int,
+    val suggestions: List<ReplenishmentSuggestionDto>,
+)
+
+@Serializable
+data class ReplenishmentSuggestionDto(
+    val ruleId: String,
+    val productId: String,
+    val warehouseId: String,
+    val supplierId: String,
+    val currentStock: Double,
+    val reorderPoint: Double,
+    val reorderQty: Double,
+    val autoApprove: Boolean,
+)
+
+fun ReplenishmentRuleRow.toDto() = ReplenishmentRuleDto(
+    id           = id,
+    productId    = productId,
+    warehouseId  = warehouseId,
+    supplierId   = supplierId,
+    reorderPoint = reorderPoint,
+    reorderQty   = reorderQty,
+    autoApprove  = autoApprove,
+    isActive     = isActive,
+    updatedAt    = updatedAt,
+)

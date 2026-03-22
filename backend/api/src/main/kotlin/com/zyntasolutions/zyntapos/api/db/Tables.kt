@@ -288,3 +288,16 @@ object PricingRules : Table("pricing_rules") {
     val updatedAt   = timestampWithTimeZone("updated_at")
     override val primaryKey = PrimaryKey(id)
 }
+
+object ExchangeRates : Table("exchange_rates") {
+    val id              = uuid("id").autoGenerate()
+    val sourceCurrency  = varchar("source_currency", 3)
+    val targetCurrency  = varchar("target_currency", 3)
+    val rate            = decimal("rate", precision = 18, scale = 8)
+    val effectiveDate   = timestampWithTimeZone("effective_date")
+    val expiresAt       = timestampWithTimeZone("expires_at").nullable()
+    val rateSource      = varchar("source", 32).default("MANUAL")
+    val createdAt       = timestampWithTimeZone("created_at")
+    val updatedAt       = timestampWithTimeZone("updated_at")
+    override val primaryKey = PrimaryKey(id)
+}

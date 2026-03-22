@@ -1,0 +1,56 @@
+-- Exchange rates table: currency conversion rates for multi-currency support (C2.2)
+CREATE TABLE exchange_rates (
+    id               TEXT    NOT NULL PRIMARY KEY,
+    source_currency  TEXT    NOT NULL,
+    target_currency  TEXT    NOT NULL,
+    rate             REAL    NOT NULL,
+    effective_date   INTEGER NOT NULL,
+    expires_at       INTEGER,
+    source           TEXT    NOT NULL DEFAULT 'MANUAL',
+    created_at       INTEGER NOT NULL,
+    updated_at       INTEGER NOT NULL
+);
+
+CREATE UNIQUE INDEX idx_exchange_rates_pair ON exchange_rates(source_currency, target_currency);
+CREATE INDEX idx_exchange_rates_source ON exchange_rates(source_currency);
+CREATE INDEX idx_exchange_rates_target ON exchange_rates(target_currency);
+CREATE INDEX idx_exchange_rates_effective ON exchange_rates(effective_date);
+
+-- Get all exchange rates ordered by source currency
+getAllRates:
+SELECT *
+FROM exchange_rates
+ORDER BY source_currency, target_currency;
+
+-- Get effective rate for a currency pair (most recent, not expired)
+getEffectiveRate:
+SELECT *
+FROM exchange_rates
+WHERE source_currency = :sourceCurrency
+  AND target_currency = :targetCurrency
+  AND effective_date <= :now
+  AND (expires_at IS NULL OR expires_at > :now)
+ORDER BY effective_date DESC
+LIMIT 1;
+
+-- Get all rates for a given source currency
+getRatesForCurrency:
+SELECT *
+FROM exchange_rates
+WHERE source_currency = :currencyCode
+   OR target_currency = :currencyCode
+ORDER BY source_currency, target_currency;
+
+-- Upsert an exchange rate
+upsertRate:
+INSERT OR REPLACE INTO exchange_rates(
+    id, source_currency, target_currency, rate,
+    effective_date, expires_at, source, created_at, updated_at
+) VALUES (
+    :id, :sourceCurrency, :targetCurrency, :rate,
+    :effectiveDate, :expiresAt, :source, :createdAt, :updatedAt
+);
+
+-- Delete an exchange rate
+deleteRate:
+DELETE FROM exchange_rates WHERE id = :id;

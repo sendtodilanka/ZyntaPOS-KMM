@@ -335,6 +335,274 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  # ── Transfers (C1.3 — ADR-009: POS JWT auth for write operations) ──────
+
+  /v1/transfers:
+    get:
+      operationId: posListTransfers
+      summary: List store transfers
+      description: Lists transfers for the authenticated store (storeId from JWT claim).
+      tags: [Transfers]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, APPROVED, IN_TRANSIT, RECEIVED, CANCELLED]
+        - name: page
+          in: query
+          schema: { type: integer, default: 0 }
+        - name: size
+          in: query
+          schema: { type: integer, default: 20 }
+      responses:
+        "200":
+          description: Transfer list
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      operationId: posCreateTransfer
+      summary: Create inter-store transfer
+      description: Creates a transfer in PENDING status. Requires ADMIN or MANAGER role.
+      tags: [Transfers]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTransferRequest"
+      responses:
+        "201":
+          description: Transfer created
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /v1/transfers/{id}:
+    get:
+      operationId: posGetTransfer
+      summary: Get transfer detail
+      tags: [Transfers]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Transfer detail
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /v1/transfers/{id}/approve:
+    put:
+      operationId: posApproveTransfer
+      summary: Approve transfer (PENDING → APPROVED)
+      tags: [Transfers]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Transfer approved
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          description: Invalid transfer state
+
+  /v1/transfers/{id}/dispatch:
+    put:
+      operationId: posDispatchTransfer
+      summary: Dispatch transfer (APPROVED → IN_TRANSIT)
+      tags: [Transfers]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Transfer dispatched
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /v1/transfers/{id}/receive:
+    put:
+      operationId: posReceiveTransfer
+      summary: Receive transfer (IN_TRANSIT → RECEIVED)
+      tags: [Transfers]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Transfer received
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /v1/transfers/{id}/cancel:
+    put:
+      operationId: posCancelTransfer
+      summary: Cancel transfer (PENDING|APPROVED → CANCELLED)
+      tags: [Transfers]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Transfer cancelled
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  # ── Replenishment (C1.5 — ADR-009: POS JWT auth for write operations) ──
+
+  /v1/replenishment/rules:
+    get:
+      operationId: posListReplenishmentRules
+      summary: List replenishment rules
+      tags: [Replenishment]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: warehouseId
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Replenishment rules
+    post:
+      operationId: posUpsertReplenishmentRule
+      summary: Create or update replenishment rule
+      description: Requires ADMIN or MANAGER role.
+      tags: [Replenishment]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpsertReplenishmentRuleRequest"
+      responses:
+        "200":
+          description: Rule upserted
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /v1/replenishment/rules/{id}:
+    delete:
+      operationId: posDeleteReplenishmentRule
+      summary: Delete replenishment rule
+      description: Requires ADMIN or MANAGER role.
+      tags: [Replenishment]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Rule deleted
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /v1/replenishment/suggestions:
+    get:
+      operationId: posGetReplenishmentSuggestions
+      summary: Products at or below reorder point
+      tags: [Replenishment]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: warehouseId
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Replenishment suggestions
+
+  # ── Pricing (C2.1 — ADR-009: POS JWT auth for write operations) ────────
+
+  /v1/pricing/rules:
+    get:
+      operationId: posListPricingRules
+      summary: List pricing rules for store
+      description: Returns pricing rules scoped to the store from JWT claim.
+      tags: [Pricing]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: productId
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Pricing rules
+    post:
+      operationId: posUpsertPricingRule
+      summary: Create or update pricing rule
+      description: Requires ADMIN or MANAGER role.
+      tags: [Pricing]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpsertPricingRuleRequest"
+      responses:
+        "200":
+          description: Rule upserted
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /v1/pricing/rules/{id}:
+    delete:
+      operationId: posDeletePricingRule
+      summary: Delete pricing rule
+      description: Requires ADMIN or MANAGER role.
+      tags: [Pricing]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204":
+          description: Rule deleted
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ── GDPR Export ────────────────────────────────────────────────────────
+
   /v1/export/gdpr/{customerId}:
     get:
       operationId: exportGdprData
@@ -975,6 +1243,88 @@ components:
         createdAt:
           type: integer
           format: int64
+
+    CreateTransferRequest:
+      type: object
+      required: [sourceWarehouseId, destWarehouseId, productId, quantity]
+      properties:
+        sourceWarehouseId:
+          type: string
+        destWarehouseId:
+          type: string
+        productId:
+          type: string
+        quantity:
+          type: number
+          minimum: 0.001
+        sourceStoreId:
+          type: string
+          nullable: true
+        destStoreId:
+          type: string
+          nullable: true
+
+    UpsertReplenishmentRuleRequest:
+      type: object
+      required: [id, productId, warehouseId, supplierId, reorderPoint, reorderQty]
+      properties:
+        id:
+          type: string
+        productId:
+          type: string
+        warehouseId:
+          type: string
+        supplierId:
+          type: string
+        reorderPoint:
+          type: number
+          minimum: 0
+        reorderQty:
+          type: number
+          minimum: 0.001
+        autoApprove:
+          type: boolean
+          default: false
+        isActive:
+          type: boolean
+          default: true
+
+    UpsertPricingRuleRequest:
+      type: object
+      required: [productId, price]
+      properties:
+        id:
+          type: string
+          nullable: true
+        productId:
+          type: string
+        storeId:
+          type: string
+          nullable: true
+          description: Null means global rule
+        price:
+          type: number
+          minimum: 0
+        costPrice:
+          type: number
+          nullable: true
+        priority:
+          type: integer
+          default: 0
+        validFrom:
+          type: string
+          format: date-time
+          nullable: true
+        validTo:
+          type: string
+          format: date-time
+          nullable: true
+        isActive:
+          type: boolean
+          default: true
+        description:
+          type: string
+          default: ""
 
     ErrorResponse:
       type: object

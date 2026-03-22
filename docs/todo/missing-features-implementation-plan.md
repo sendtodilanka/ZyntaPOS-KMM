@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-22 (C2.4 store-specific discounts core implemented; C2.1 storeId bug fixed; C6.3 timezone startup init + receipt tz; G-series MS-1/MS-2/MS-3/MS-4/INV-3/INV-8 verified)
+**Last Updated:** 2026-03-22 (ADR-009: admin transfer/replenishment/pricing routes made read-only; C2.2 multi-currency core implemented; C2.4 store-specific discounts core implemented; C2.1 storeId bug fixed; C6.3 timezone startup init + receipt tz; G-series MS-1/MS-2/MS-3/MS-4/INV-3/INV-8 verified)
 **Status:** Approved — Verified against codebase 2026-03-22, updated for ADR-009 compliance
 
 ---
@@ -688,7 +688,7 @@ Backend:
 - [x] `AdminTransferService.kt` — list, create, approve, dispatch, receive, cancel (7 methods)
 - [x] `AdminTransferRoutes.kt` — 7 REST endpoints under `/admin/transfers` (GET list, POST create, GET by ID, PUT approve/dispatch/receive/cancel)
 - [x] `Routing.kt` + `AppModule.kt` — routes registered, service bound to Koin
-- [ ] **ADR-009:** Migrate write endpoints (POST/PUT) from `/admin/transfers` to `/v1/transfers` with POS JWT auth — store managers own transfer decisions, not Zynta staff
+- [x] **ADR-009:** Write endpoints removed from `/admin/transfers` (read-only now); POS writes at `/v1/transfers` with RS256 JWT auth (2026-03-22)
 
 Admin panel (REMOVED per ADR-009 — PR #502, commit `0ac0fa4`):
 - ~~[x]~~ `admin-panel/src/types/transfer.ts` — REMOVED per ADR-009 (store operations belong in KMM app)
@@ -838,7 +838,7 @@ Backend Tests:
 
 **Deferred to Phase 2 polish / Phase 3:**
 - ~~[x]~~ Admin panel: Replenishment dashboard REMOVED per ADR-009 (PR #502) — replenishment is a store-level operation, managed via KMM `ReplenishmentScreen`
-- [ ] **ADR-009:** Migrate write endpoints (POST/DELETE) from `/admin/replenishment/rules` to `/v1/replenishment/rules` with POS JWT auth
+- [x] **ADR-009:** Write endpoints removed from `/admin/replenishment/rules` (read-only now); POS writes at `/v1/replenishment/rules` with RS256 JWT auth (2026-03-22)
 - [ ] Backend: Scheduled auto-replenishment job (cron/Quartz) — currently manual trigger only via KMM UI
 - [x] Backend: `EntityApplier` + `SyncValidator` handlers for REPLENISHMENT_RULE entity type (bi-directional sync)
 
@@ -883,7 +883,7 @@ Backend Tests:
 - [x] KMM `PricingRuleScreen` + `PricingRuleViewModel` (MVI) — full CRUD UI in `:feature:inventory/pricing/` (added PR #502, replaces admin panel pricing UI per ADR-009)
 
 **What's REMAINING (deferred):**
-- [ ] **ADR-009:** Migrate write endpoints (POST/DELETE) from `/admin/pricing/rules` to `/v1/pricing/rules` with POS JWT auth — pricing is a store-level operation
+- [x] **ADR-009:** Write endpoints removed from `/admin/pricing/rules` (read-only now); POS writes at `/v1/pricing/rules` with RS256 JWT auth (2026-03-22)
 - [x] **BUG FIXED (2026-03-22):** `AddItemToCartUseCase` — `storeId` moved from constructor to `invoke()` parameter; `PosViewModel` now passes `storeId` from auth session; 3 new tests added
 - [ ] SyncEngine: PRICING_RULE entity type handling in `applyUpsert()` / `EntityApplier`
 
@@ -902,36 +902,60 @@ Backend Tests:
 
 ---
 
-### C2.2 Multi-Currency Support (බහු මුදල් ඒකක)
+### C2.2 Multi-Currency Support (බහු මුදල් ඒකක) — ✅ CORE IMPLEMENTED (2026-03-22)
+
+> **HANDOFF (2026-03-22):** Core multi-currency infrastructure implemented. `ExchangeRate` domain model,
+> `exchange_rates` SQLDelight table (migration 14.sqm), `ExchangeRateRepository` interface + impl,
+> `ConvertCurrencyUseCase` (with bidirectional conversion), `currency` column on `orders.sq`,
+> backend V33 migration with seed rates, `ExchangeRateRepository` backend (Exposed ORM),
+> `AdminExchangeRateRoutes` (GET + PUT per ADR-009), 8 unit tests. Koin bindings registered.
 
 **Priority:** PHASE-2
-**Status:** PARTIAL — formatter exists, no conversion
+**Status:** ✅ CORE IMPLEMENTED — exchange rate model, conversion, backend endpoints (2026-03-22)
 
 **Codebase State:**
 - `CurrencyFormatter.kt` — supports 9 currencies (LKR, USD, EUR, GBP, INR, JPY, AUD, CAD, SGD)
 - `stores.sq` has `currency TEXT NOT NULL DEFAULT 'LKR'` — per-store currency
 - `AppConfig.kt` has `DEFAULT_CURRENCY_CODE = "LKR"`, `CURRENCY_DECIMAL_PLACES = 2`
-- `orders.sq` stores totals as `REAL` — no currency column on orders
-- `CartItem.kt` has no currency field
-- No exchange rate table or conversion logic
+- `orders.sq` now has `currency TEXT NOT NULL DEFAULT 'LKR'` column (migration 14.sqm)
+- `exchange_rates.sq` — full CRUD with effective date + expiry support
+- `ConvertCurrencyUseCase` — bidirectional conversion with inverse rate fallback
+- Backend V33: `exchange_rates` PostgreSQL table with 8 seed rates + `currency` on orders
 
-**What's MISSING:**
-- [ ] `ExchangeRate` domain model (source_currency, target_currency, rate, effective_date)
-- [ ] `exchange_rates` SQLDelight table
-- [ ] `ExchangeRateRepository` interface + impl
-- [ ] `ConvertCurrencyUseCase` — convert amount between currencies
-- [ ] Add `currency TEXT` column to `orders.sq` (store currency at time of sale)
+**What's DONE (2026-03-22):**
+- [x] `ExchangeRate` domain model (source_currency, target_currency, rate, effective_date, expires_at, source)
+- [x] `exchange_rates` SQLDelight table with unique pair index, effective date queries
+- [x] `ExchangeRateRepository` interface in `:shared:domain` + `ExchangeRateRepositoryImpl` in `:shared:data`
+- [x] `ConvertCurrencyUseCase` — convert amount between currencies (direct + inverse rate)
+- [x] Add `currency TEXT` column to `orders.sq` (migration 14.sqm)
+- [x] Backend migration V33: `exchange_rates` table + `currency` column on orders + 8 seed rates
+- [x] Backend `ExchangeRateRepository` (Exposed ORM) — getRates, getEffectiveRate, upsertRate, deleteRate
+- [x] Backend `AdminExchangeRateRoutes` — GET/PUT `/admin/exchange-rates` (ADR-009 compliant — platform config)
+- [x] `ExchangeRates` Exposed table object in `Tables.kt`
+- [x] Koin bindings: `ExchangeRateRepository` in `DataModule.kt`, `ExchangeRateRepository` in `AppModule.kt`
+- [x] Routing registration: `adminExchangeRateRoutes()` in `Routing.kt`
+- [x] 8 unit tests in `ConvertCurrencyUseCaseTest` + `FakeExchangeRateRepository`
+
+**What's REMAINING (deferred):**
 - [ ] `Store` domain model in `:shared:domain` (currently NO Store model — only table/DTO)
 - [ ] `StoreRepository` interface in `:shared:domain` — expose store settings to business logic
-- [ ] Backend migration: `exchange_rates` table + `currency` column on orders
-- [ ] Backend: `GET /admin/exchange-rates`, `PUT /admin/exchange-rates` (platform-level config — admin panel OK per ADR-009)
 - [ ] Admin panel: Exchange rate management UI (platform operation — ADR-009 compliant)
 - [ ] KMM: Currency display using store's configured currency, not hardcoded LKR
+- [ ] Real-time exchange rate sync from external API (e.g., ECB, CBSL)
 
 **Key Files:**
+- `shared/domain/src/commonMain/.../model/ExchangeRate.kt`
+- `shared/domain/src/commonMain/.../repository/ExchangeRateRepository.kt`
+- `shared/domain/src/commonMain/.../usecase/pos/ConvertCurrencyUseCase.kt`
+- `shared/data/src/commonMain/sqldelight/.../exchange_rates.sq`
+- `shared/data/src/commonMain/sqldelight/.../14.sqm`
+- `shared/data/src/commonMain/.../repository/ExchangeRateRepositoryImpl.kt`
+- `shared/data/src/commonMain/.../di/DataModule.kt`
+- `backend/api/src/main/resources/db/migration/V33__exchange_rates.sql`
+- `backend/api/src/main/kotlin/.../repository/ExchangeRateRepository.kt`
+- `backend/api/src/main/kotlin/.../routes/AdminExchangeRateRoutes.kt`
+- `backend/api/src/main/kotlin/.../db/Tables.kt`
 - `shared/core/src/commonMain/.../utils/CurrencyFormatter.kt`
-- `shared/core/src/commonMain/.../config/AppConfig.kt`
-- `shared/data/src/commonMain/sqldelight/.../stores.sq`
 - `shared/data/src/commonMain/sqldelight/.../orders.sq`
 
 ---
@@ -2299,7 +2323,7 @@ git push -u origin $(git branch --show-current)
 | Warehouse Replenishment | C1.5 | ✅ COMPLETE (ReplenishmentRule model, AutoReplenishmentUseCase, 3-tab UI, backend 4 endpoints + 14 tests) |
 | **2. Pricing & Taxation** | | |
 | Region-Based Pricing | C2.1 | ✅ CORE IMPLEMENTED (domain+data+backend+KMM UI; storeId bug fixed 2026-03-22) |
-| Multi-Currency | C2.2 | PARTIAL (formatter + ZyntaCurrencyPicker design system component) |
+| Multi-Currency | C2.2 | ✅ CORE IMPLEMENTED (ExchangeRate model + table + repo + ConvertCurrencyUseCase + backend V33 + admin endpoints; 2026-03-22) |
 | Localized Tax | C2.3 | PARTIAL (single-region) |
 | Store-Specific Discounts | C2.4 | ✅ CORE IMPLEMENTED (store_id on coupons, store_ids on promotions, validation + query; 2026-03-22) |
 | **3. Access Control** | | |
