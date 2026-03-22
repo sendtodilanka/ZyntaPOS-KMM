@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-22 (ADR-009: admin transfer/replenishment/pricing routes made read-only; C2.2 multi-currency core implemented; C2.4 store-specific discounts core implemented; C2.1 storeId bug fixed; C6.3 timezone startup init + receipt tz; G-series MS-1/MS-2/MS-3/MS-4/INV-3/INV-8 verified)
+**Last Updated:** 2026-03-22 (C2.1 PRICING_RULE sync pipeline complete; C2.3 localized tax core implemented — RegionalTaxOverride model + SQLDelight + repo + use case + backend V34 migration + EntityApplier + SyncValidator + 8 tests)
 **Status:** Approved — Verified against codebase 2026-03-22, updated for ADR-009 compliance
 
 ---
@@ -885,7 +885,7 @@ Backend Tests:
 **What's REMAINING (deferred):**
 - [x] **ADR-009:** Write endpoints removed from `/admin/pricing/rules` (read-only now); POS writes at `/v1/pricing/rules` with RS256 JWT auth (2026-03-22)
 - [x] **BUG FIXED (2026-03-22):** `AddItemToCartUseCase` — `storeId` moved from constructor to `invoke()` parameter; `PosViewModel` now passes `storeId` from auth session; 3 new tests added
-- [ ] SyncEngine: PRICING_RULE entity type handling in `applyUpsert()` / `EntityApplier`
+- [x] SyncEngine: PRICING_RULE entity type handling in `applyUpsert()` / `EntityApplier` — KMM `SyncEngine.applyUpsert()` + `PricingRuleRepositoryImpl.upsertFromSync()` + backend `EntityApplier.applyPricingRule()` + `SyncValidator.VALID_ENTITY_TYPES` (2026-03-22)
 
 **Key Files:**
 - `shared/domain/src/commonMain/.../model/PricingRule.kt`
@@ -960,10 +960,16 @@ Backend Tests:
 
 ---
 
-### C2.3 Localized Tax Configurations (ප්‍රදේශ අනුව බදු)
+### C2.3 Localized Tax Configurations (ප්‍රදේශ අනුව බදු) — ✅ CORE IMPLEMENTED (2026-03-22)
+
+> **HANDOFF (2026-03-22):** Core multi-region tax infrastructure implemented. `RegionalTaxOverride` domain model,
+> `regional_tax_overrides` SQLDelight table (migration 15.sqm), `RegionalTaxOverrideRepository` interface + impl
+> (with SyncEnqueuer integration), `GetEffectiveTaxRateUseCase` (override rate > global rate), backend V34 migration
+> (`regional_tax_overrides` table + `tax_registration_number` on stores), backend `EntityApplier` + `SyncValidator`,
+> `REGIONAL_TAX_OVERRIDE` entity type in SyncEngine. 8 unit tests. Koin bindings registered.
 
 **Priority:** PHASE-2
-**Status:** PARTIAL — single-region tax exists, no multi-region
+**Status:** ✅ CORE IMPLEMENTED — RegionalTaxOverride model + SQLDelight + repo + use case + backend (2026-03-22)
 
 **Codebase State:**
 - `TaxGroup.kt` — model with `rate`, `isInclusive`, `isActive` (fully implemented)
@@ -974,16 +980,26 @@ Backend Tests:
 - Backend `tax_rates` table (V3) — system-wide, not per-store
 - Product → TaxGroup assignment via `taxGroupId` field
 
-**What's MISSING:**
-- [ ] `RegionalTax` domain model (store_id, tax_group_id, effective_rate, jurisdiction_code, valid_from, valid_to)
-- [ ] `regional_tax_overrides` SQLDelight table — per-store tax rate overrides
-- [ ] Tax group → region/store mapping logic
-- [ ] Auto-select tax rate based on store's jurisdiction at checkout
+**What's DONE (2026-03-22):**
+- [x] `RegionalTaxOverride` domain model (id, taxGroupId, storeId, effectiveRate, jurisdictionCode, taxRegistrationNumber, validFrom, validTo, isActive)
+- [x] `regional_tax_overrides` SQLDelight table — per-store tax rate overrides with indexes, migration 15.sqm
+- [x] `RegionalTaxOverrideRepository` interface in `:shared:domain` — getOverridesForStore, getEffectiveOverride, CRUD
+- [x] `RegionalTaxOverrideRepositoryImpl` in `:shared:data` — SQLDelight-backed with SyncEnqueuer integration + `upsertFromSync()`
+- [x] `GetEffectiveTaxRateUseCase` — auto-select tax rate based on store: override rate (time-valid) > global TaxGroup.rate
+- [x] `REGIONAL_TAX_OVERRIDE` entity type constant in `SyncOperation`
+- [x] SyncEngine `applyUpsert()` routes REGIONAL_TAX_OVERRIDE to `RegionalTaxOverrideRepositoryImpl.upsertFromSync()`
+- [x] Koin bindings: `RegionalTaxOverrideRepository` + concrete impl in `DataModule.kt`
+- [x] Backend V34 migration: `regional_tax_overrides` table + `tax_registration_number` column on stores
+- [x] Backend `RegionalTaxOverrides` Exposed table in `Tables.kt`
+- [x] Backend `EntityApplier.applyRegionalTaxOverride()` — upsert/delete handler
+- [x] Backend `SyncValidator.VALID_ENTITY_TYPES` — REGIONAL_TAX_OVERRIDE added + field-level validation
+- [x] 8 unit tests in `GetEffectiveTaxRateUseCaseTest` + `FakeRegionalTaxOverrideRepository`
+
+**What's REMAINING (deferred):**
 - [ ] Support for compound taxes (VAT + service charge + local surcharge stacked)
-- [ ] Tax registration number per store (legal requirement in many jurisdictions)
-- [ ] Backend migration: `regional_tax_overrides` table, `tax_registration_number` on stores
-- [ ] Backend: `GET /v1/taxes/by-store` with POS JWT auth (store-level operation per ADR-009)
-- [ ] KMM settings: Per-store tax override configuration (store owner manages via KMM app per ADR-009)
+- [ ] KMM settings UI: Per-store tax override configuration screen (store owner manages via KMM app per ADR-009)
+- [ ] Integration of `GetEffectiveTaxRateUseCase` into `CalculateOrderTotalsUseCase` at checkout
+- [ ] Backend: REST endpoint `GET/POST /v1/taxes/overrides` with POS JWT auth (store operation per ADR-009)
 
 **Key Files:**
 - `shared/domain/src/commonMain/.../model/TaxGroup.kt`
@@ -2324,7 +2340,7 @@ git push -u origin $(git branch --show-current)
 | **2. Pricing & Taxation** | | |
 | Region-Based Pricing | C2.1 | ✅ CORE IMPLEMENTED (domain+data+backend+KMM UI; storeId bug fixed 2026-03-22) |
 | Multi-Currency | C2.2 | ✅ CORE IMPLEMENTED (ExchangeRate model + table + repo + ConvertCurrencyUseCase + backend V33 + admin endpoints; 2026-03-22) |
-| Localized Tax | C2.3 | PARTIAL (single-region) |
+| Localized Tax | C2.3 | ✅ CORE IMPLEMENTED (RegionalTaxOverride model + repo + use case + backend V34; 2026-03-22) |
 | Store-Specific Discounts | C2.4 | ✅ CORE IMPLEMENTED (store_id on coupons, store_ids on promotions, validation + query; 2026-03-22) |
 | **3. Access Control** | | |
 | RBAC | C3.1 | COMPLETE |

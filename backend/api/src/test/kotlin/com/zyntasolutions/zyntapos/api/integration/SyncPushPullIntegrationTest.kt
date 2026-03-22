@@ -77,6 +77,8 @@ class SyncPushPullIntegrationTest {
         "PURCHASE_ORDER" -> """{"supplier_id":"s-1","order_number":"PO-$id","total_amount":100}"""
         "TRANSIT_EVENT" -> """{"transfer_id":"t-1","event_type":"DISPATCHED"}"""
         "WAREHOUSE_STOCK" -> """{"warehouse_id":"w-1","product_id":"p-1","quantity":100}"""
+        "PRICING_RULE" -> """{"product_id":"p-1","price":9.99}"""
+        "REGIONAL_TAX_OVERRIDE" -> """{"tax_group_id":"tg-1","effective_rate":15.0}"""
         else -> """{"id":"entity-$id","name":"Product $id"}"""
     }
 

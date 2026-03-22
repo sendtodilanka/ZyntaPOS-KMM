@@ -14,6 +14,8 @@ import com.zyntasolutions.zyntapos.data.repository.CustomerRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.OrderRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.ProductRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.MasterProductRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.PricingRuleRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.RegionalTaxOverrideRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.StockRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.StoreProductOverrideRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.SupplierRepositoryImpl
@@ -73,6 +75,10 @@ class SyncEngine(
     // Global Product Catalog (C1.1)
     private val masterProductRepository: MasterProductRepositoryImpl,
     private val storeProductOverrideRepository: StoreProductOverrideRepositoryImpl,
+    // Region-Based Pricing (C2.1)
+    private val pricingRuleRepository: PricingRuleRepositoryImpl,
+    // Localized Tax (C2.3)
+    private val regionalTaxOverrideRepository: RegionalTaxOverrideRepositoryImpl,
     // CRDT conflict resolution (C6.1)
     private val conflictResolver: ConflictResolver,
     private val conflictLogRepository: ConflictLogRepository,
@@ -429,6 +435,8 @@ class SyncEngine(
             SyncOperation.EntityType.STOCK_ADJUSTMENT -> stockRepository.upsertFromSync(payload)
             SyncOperation.EntityType.MASTER_PRODUCT   -> masterProductRepository.upsertFromSyncPayload(payload)
             SyncOperation.EntityType.STORE_PRODUCT    -> storeProductOverrideRepository.upsertFromSyncPayload(payload)
+            SyncOperation.EntityType.PRICING_RULE     -> pricingRuleRepository.upsertFromSync(payload)
+            SyncOperation.EntityType.REGIONAL_TAX_OVERRIDE -> regionalTaxOverrideRepository.upsertFromSync(payload)
             SyncOperation.EntityType.USER             -> { /* read-only from device — managed via auth */ }
             // Phase 2: Multi-store entities (C1.1–C1.5) — server-managed, deltas acknowledged
             // Local data is refreshed via REST API pull; individual delta application not needed.

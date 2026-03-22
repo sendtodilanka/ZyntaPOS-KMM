@@ -1,0 +1,77 @@
+-- Regional tax overrides — per-store tax rate overrides (C2.3)
+--
+-- Enables multi-region tax where different stores in different
+-- jurisdictions apply different rates for the same tax group.
+-- Resolution: override rate (if found) > global TaxGroup.rate.
+
+CREATE TABLE IF NOT EXISTS regional_tax_overrides (
+    id                       TEXT    NOT NULL PRIMARY KEY,
+    tax_group_id             TEXT    NOT NULL,
+    store_id                 TEXT    NOT NULL,
+    effective_rate           REAL    NOT NULL DEFAULT 0.0,
+    jurisdiction_code        TEXT    NOT NULL DEFAULT '',
+    tax_registration_number  TEXT    NOT NULL DEFAULT '',
+    valid_from               INTEGER,
+    valid_to                 INTEGER,
+    is_active                INTEGER NOT NULL DEFAULT 1,
+    created_at               INTEGER NOT NULL DEFAULT 0,
+    updated_at               INTEGER NOT NULL DEFAULT 0,
+    sync_status              TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE INDEX IF NOT EXISTS idx_regional_tax_store
+    ON regional_tax_overrides(store_id, is_active);
+
+CREATE INDEX IF NOT EXISTS idx_regional_tax_group_store
+    ON regional_tax_overrides(tax_group_id, store_id, is_active);
+
+-- ── Read queries ─────────────────────────────────────────────────────────
+
+getOverridesForStore:
+SELECT * FROM regional_tax_overrides
+WHERE store_id = ? AND is_active = 1
+ORDER BY tax_group_id ASC;
+
+getEffectiveOverride:
+SELECT * FROM regional_tax_overrides
+WHERE tax_group_id = ?
+  AND store_id = ?
+  AND is_active = 1
+  AND (valid_from IS NULL OR valid_from <= ?)
+  AND (valid_to IS NULL OR valid_to >= ?)
+ORDER BY valid_from DESC
+LIMIT 1;
+
+getOverridesForTaxGroup:
+SELECT * FROM regional_tax_overrides
+WHERE tax_group_id = ? AND is_active = 1
+ORDER BY store_id ASC;
+
+getOverrideById:
+SELECT * FROM regional_tax_overrides
+WHERE id = ?;
+
+-- ── Write queries ────────────────────────────────────────────────────────
+
+insertOverride:
+INSERT OR REPLACE INTO regional_tax_overrides(
+    id, tax_group_id, store_id, effective_rate,
+    jurisdiction_code, tax_registration_number,
+    valid_from, valid_to, is_active,
+    created_at, updated_at, sync_status
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateOverride:
+UPDATE regional_tax_overrides
+SET effective_rate = ?,
+    jurisdiction_code = ?,
+    tax_registration_number = ?,
+    valid_from = ?,
+    valid_to = ?,
+    is_active = ?,
+    updated_at = ?,
+    sync_status = 'PENDING'
+WHERE id = ?;
+
+deleteOverride:
+DELETE FROM regional_tax_overrides WHERE id = ?;
