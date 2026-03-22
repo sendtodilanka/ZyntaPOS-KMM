@@ -8,6 +8,7 @@ import com.zyntasolutions.zyntapos.data.local.SyncEnqueuer
 import com.zyntasolutions.zyntapos.db.Regional_tax_overrides
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
 import com.zyntasolutions.zyntapos.domain.model.RegionalTaxOverride
+import com.zyntasolutions.zyntapos.domain.model.SyncOperation
 import com.zyntasolutions.zyntapos.domain.repository.RegionalTaxOverrideRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -87,7 +88,7 @@ class RegionalTaxOverrideRepositoryImpl(
                     updated_at = now,
                     sync_status = "PENDING",
                 )
-                syncEnqueuer.enqueue("regional_tax_override", override.id, "UPSERT")
+                syncEnqueuer.enqueue("regional_tax_override", override.id, SyncOperation.Operation.UPDATE)
             }
         }.fold(
             onSuccess = { Result.Success(Unit) },
@@ -99,7 +100,7 @@ class RegionalTaxOverrideRepositoryImpl(
         runCatching {
             db.transaction {
                 q.deleteOverride(id)
-                syncEnqueuer.enqueue("regional_tax_override", id, "DELETE")
+                syncEnqueuer.enqueue("regional_tax_override", id, SyncOperation.Operation.DELETE)
             }
         }.fold(
             onSuccess = { Result.Success(Unit) },
