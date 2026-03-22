@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.api.routes
 
 import com.zyntasolutions.zyntapos.api.repository.PricingRuleRepository
+import com.zyntasolutions.zyntapos.api.repository.PricingRuleRow
 import com.zyntasolutions.zyntapos.common.ErrorResponse
 import io.ktor.http.*
 import io.ktor.server.auth.*
@@ -8,6 +9,7 @@ import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.serialization.Serializable
 import org.koin.ktor.ext.inject
 import java.time.OffsetDateTime
 import java.time.format.DateTimeParseException
@@ -18,6 +20,9 @@ import java.time.format.DateTimeParseException
  * Uses RS256 JWT auth with storeId claim for store isolation.
  * Roles: ADMIN, MANAGER can create/update/delete rules.
  *        CASHIER, CUSTOMER_SERVICE, REPORTER can only read.
+ *
+ * Per ADR-009: All write operations for pricing rules are exclusively here
+ * (not in admin panel routes). Admin panel has read-only monitoring at /admin/pricing.
  */
 fun Route.pricingRoutes() {
     val repo: PricingRuleRepository by inject()
@@ -91,3 +96,25 @@ fun Route.pricingRoutes() {
         }
     }
 }
+
+// ── Request / Response DTOs ───────────────────────────────────────────────────
+
+@Serializable
+data class PricingRulesResponse(
+    val total: Int,
+    val rules: List<PricingRuleRow>,
+)
+
+@Serializable
+data class UpsertPricingRuleRequest(
+    val id: String? = null,
+    val productId: String,
+    val storeId: String? = null,
+    val price: Double,
+    val costPrice: Double? = null,
+    val priority: Int = 0,
+    val validFrom: String? = null,
+    val validTo: String? = null,
+    val isActive: Boolean = true,
+    val description: String = "",
+)

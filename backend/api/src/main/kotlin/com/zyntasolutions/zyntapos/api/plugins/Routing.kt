@@ -97,6 +97,7 @@ fun Application.configureRouting() {
                 adminEmailPreferencesRoutes()
                 adminMasterProductRoutes()
                 adminInventoryRoutes()
+                adminExchangeRateRoutes()
             }
         }
 

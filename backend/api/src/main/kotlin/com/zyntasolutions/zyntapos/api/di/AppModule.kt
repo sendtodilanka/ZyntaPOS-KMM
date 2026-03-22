@@ -115,6 +115,9 @@ val appModule = module {
     // Pricing rules: store-specific and time-bounded price overrides (C2.1)
     single { PricingRuleRepository() }
 
+    // Exchange rates: multi-currency conversion (C2.2 — platform-level config per ADR-009)
+    single { com.zyntasolutions.zyntapos.api.repository.ExchangeRateRepository() }
+
     // ── Sync engine repositories ──────────────────────────────────────────────
     single { SyncOperationRepository() }
     single { SyncCursorRepository() }

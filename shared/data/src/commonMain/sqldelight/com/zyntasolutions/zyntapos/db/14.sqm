@@ -1,0 +1,22 @@
+-- Migration 14: Multi-currency support (C2.2)
+-- Add exchange_rates table and currency column to orders
+
+CREATE TABLE IF NOT EXISTS exchange_rates (
+    id               TEXT    NOT NULL PRIMARY KEY,
+    source_currency  TEXT    NOT NULL,
+    target_currency  TEXT    NOT NULL,
+    rate             REAL    NOT NULL,
+    effective_date   INTEGER NOT NULL,
+    expires_at       INTEGER,
+    source           TEXT    NOT NULL DEFAULT 'MANUAL',
+    created_at       INTEGER NOT NULL,
+    updated_at       INTEGER NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_exchange_rates_pair ON exchange_rates(source_currency, target_currency);
+CREATE INDEX IF NOT EXISTS idx_exchange_rates_source ON exchange_rates(source_currency);
+CREATE INDEX IF NOT EXISTS idx_exchange_rates_target ON exchange_rates(target_currency);
+CREATE INDEX IF NOT EXISTS idx_exchange_rates_effective ON exchange_rates(effective_date);
+
+-- Add currency column to orders (store's currency at time of sale)
+ALTER TABLE orders ADD COLUMN currency TEXT NOT NULL DEFAULT 'LKR';

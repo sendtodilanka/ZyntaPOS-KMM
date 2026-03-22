@@ -7,16 +7,19 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * Unit tests for [adminPricingRoutes] validation logic (C2.1).
+ * Unit tests for pricing rule validation logic (C2.1).
  *
  * Tests cover:
  * - UpsertPricingRuleRequest field validation
  * - Numeric constraint enforcement (price >= 0)
- * - Route path structure for all 3 endpoints
+ * - Route path structure (admin=read-only, POS=read-write per ADR-009)
  * - Store-specific vs global rule semantics
  * - Priority ordering rules
  * - Time-bounded validity constraints
  * - PricingRuleRow serialization structure
+ *
+ * Per ADR-009: Admin routes (/admin/pricing) are read-only monitoring.
+ * Write operations are exclusively on POS routes (/v1/pricing).
  */
 class AdminPricingRoutesTest {
 
@@ -101,18 +104,19 @@ class AdminPricingRoutesTest {
         assertTrue(validFrom.contains("T"), "must be ISO-8601 format")
     }
 
-    // ── Route path structure ─────────────────────────────────────────────────
+    // ── Route path structure (ADR-009: admin=read-only, POS=read-write) ──────
 
     @Test
-    fun `list rules endpoint path`() {
+    fun `admin list rules endpoint is read-only monitoring`() {
         val path = "/admin/pricing/rules"
         assertTrue(path.startsWith("/admin/"))
         assertTrue(path.contains("pricing"))
     }
 
     @Test
-    fun `delete rule endpoint requires id parameter`() {
-        val path = "/admin/pricing/rules/{id}"
+    fun `POS delete rule endpoint requires id parameter`() {
+        val path = "/v1/pricing/rules/{id}"
+        assertTrue(path.startsWith("/v1/"))
         assertTrue(path.contains("{id}"))
     }
 

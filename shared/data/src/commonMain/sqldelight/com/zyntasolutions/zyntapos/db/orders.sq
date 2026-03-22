@@ -18,6 +18,7 @@ CREATE TABLE orders (
     change_amount       REAL,
     notes               TEXT,
     reference           TEXT,
+    currency            TEXT    NOT NULL DEFAULT 'LKR',
     created_at          INTEGER NOT NULL,
     updated_at          INTEGER NOT NULL,
     sync_status         TEXT    NOT NULL DEFAULT 'PENDING'

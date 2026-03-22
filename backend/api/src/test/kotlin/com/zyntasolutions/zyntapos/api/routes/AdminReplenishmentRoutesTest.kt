@@ -6,18 +6,19 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
- * Unit tests for [adminReplenishmentRoutes] validation logic (C1.5).
+ * Unit tests for replenishment validation logic (C1.5).
  *
  * Tests cover:
  * - UpsertReplenishmentRuleRequest field validation
  * - Numeric constraint enforcement (reorderPoint >= 0, reorderQty > 0)
- * - Route path structure for all 4 endpoints
+ * - Route path structure (admin=read-only, POS=read-write per ADR-009)
  * - RBAC permission requirements (inventory:read vs inventory:write)
  * - Suggestion logic (stock at or below reorder point)
  * - Response structure
  * - warehouseId filter parameter handling
  *
- * Full HTTP tests require Ktor testApplication + Koin DI.
+ * Per ADR-009: Admin routes (/admin/replenishment) are read-only monitoring.
+ * Write operations are exclusively on POS routes (/v1/replenishment).
  */
 class AdminReplenishmentRoutesTest {
 
@@ -118,33 +119,34 @@ class AdminReplenishmentRoutesTest {
         assertTrue(isActive)
     }
 
-    // ── Route paths ──────────────────────────────────────────────────────────────
+    // ── Route paths (ADR-009: admin=read-only, POS=read-write) ───────────────────
 
     @Test
-    fun `list rules endpoint path`() {
+    fun `admin list rules endpoint is read-only monitoring`() {
         val path = "/admin/replenishment/rules"
         assertTrue(path.startsWith("/admin/replenishment"))
         assertTrue(path.endsWith("/rules"))
     }
 
     @Test
-    fun `upsert rule endpoint uses POST to rules path`() {
-        val path   = "/admin/replenishment/rules"
+    fun `POS upsert rule endpoint uses POST`() {
+        val path   = "/v1/replenishment/rules"
         val method = "POST"
+        assertTrue(path.startsWith("/v1/"))
         assertTrue(path.endsWith("/rules"))
         assertEquals("POST", method)
     }
 
     @Test
-    fun `delete rule endpoint path contains id`() {
+    fun `POS delete rule endpoint path contains id`() {
         val ruleId = "rule-abc-123"
-        val path   = "/admin/replenishment/rules/$ruleId"
+        val path   = "/v1/replenishment/rules/$ruleId"
         assertTrue(path.contains(ruleId))
-        assertTrue(path.startsWith("/admin/replenishment/rules/"))
+        assertTrue(path.startsWith("/v1/replenishment/rules/"))
     }
 
     @Test
-    fun `suggestions endpoint path`() {
+    fun `admin suggestions endpoint is read-only monitoring`() {
         val path = "/admin/replenishment/suggestions"
         assertTrue(path.startsWith("/admin/replenishment"))
         assertTrue(path.endsWith("/suggestions"))
