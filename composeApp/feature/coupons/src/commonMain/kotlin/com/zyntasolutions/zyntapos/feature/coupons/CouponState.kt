@@ -53,6 +53,8 @@ data class CouponFormState(
     val validFrom: String = "",
     val validTo: String = "",
     val isActive: Boolean = true,
+    /** C2.4: Store scope — null = global (all stores), non-null = store-specific. */
+    val storeId: String? = null,
     val isEditing: Boolean = false,
     val validationErrors: Map<String, String> = emptyMap(),
 )

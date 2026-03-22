@@ -22,6 +22,12 @@ interface CouponRepository {
      */
     fun getActiveCoupons(nowEpochMillis: Long): Flow<List<Coupon>>
 
+    /**
+     * C2.4: Emits coupons applicable to a specific store (global + store-specific).
+     * Global coupons have store_id = NULL; store-specific ones match the given storeId.
+     */
+    fun getActiveCouponsForStore(nowEpochMillis: Long, storeId: String): Flow<List<Coupon>>
+
     /** Looks up a coupon by its [code]. Returns [Result.Error] if not found. */
     suspend fun getByCode(code: String): Result<Coupon>
 
@@ -63,6 +69,12 @@ interface CouponRepository {
 
     /** Emits promotions currently valid and active. */
     fun getActivePromotions(nowEpochMillis: Long): Flow<List<Promotion>>
+
+    /**
+     * C2.4: Emits promotions applicable to a specific store (global + store-targeted).
+     * Global promotions have empty storeIds; store-targeted ones contain the given storeId.
+     */
+    fun getActivePromotionsForStore(nowEpochMillis: Long, storeId: String): Flow<List<Promotion>>
 
     /** Returns a promotion by [id]. */
     suspend fun getPromotionById(id: String): Result<Promotion>

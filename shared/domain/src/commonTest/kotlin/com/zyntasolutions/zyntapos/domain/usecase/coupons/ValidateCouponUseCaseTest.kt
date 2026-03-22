@@ -153,4 +153,49 @@ class ValidateCouponUseCaseTest {
 
         assertIs<Result.Error>(result)
     }
+
+    // ── C2.4 Store Scope ─────────────────────────────────────────────────────
+
+    @Test
+    fun `global coupon valid at any store`() = runTest {
+        val (useCase, repo) = makeUseCase()
+        repo.coupons.add(buildCoupon(code = "GLOBAL", storeId = null))
+
+        val result = useCase("GLOBAL", cartTotal = 100.0, storeId = "store-A", nowMillis = now)
+
+        assertIs<Result.Success<*>>(result)
+    }
+
+    @Test
+    fun `store-specific coupon valid at matching store`() = runTest {
+        val (useCase, repo) = makeUseCase()
+        repo.coupons.add(buildCoupon(code = "STOREA", storeId = "store-A"))
+
+        val result = useCase("STOREA", cartTotal = 100.0, storeId = "store-A", nowMillis = now)
+
+        assertIs<Result.Success<*>>(result)
+    }
+
+    @Test
+    fun `store-specific coupon rejected at wrong store`() = runTest {
+        val (useCase, repo) = makeUseCase()
+        repo.coupons.add(buildCoupon(code = "STOREA", storeId = "store-A"))
+
+        val result = useCase("STOREA", cartTotal = 100.0, storeId = "store-B", nowMillis = now)
+
+        assertIs<Result.Error>(result)
+        assertIs<ValidationException>(result.exception)
+        assertContains(result.exception.message ?: "", "store", ignoreCase = true)
+    }
+
+    @Test
+    fun `store-specific coupon valid when no storeId provided`() = runTest {
+        val (useCase, repo) = makeUseCase()
+        repo.coupons.add(buildCoupon(code = "STOREA", storeId = "store-A"))
+
+        // No storeId = skip store validation (backward compatible)
+        val result = useCase("STOREA", cartTotal = 100.0, storeId = null, nowMillis = now)
+
+        assertIs<Result.Success<*>>(result)
+    }
 }

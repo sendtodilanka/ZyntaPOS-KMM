@@ -16,6 +16,7 @@ import kotlin.time.Clock
  * 4. Usage limit has not been exceeded
  * 5. Per-customer limit has not been exceeded (if [customerId] provided)
  * 6. Cart total meets the minimum purchase threshold
+ * 7. Store scope validation (C2.4) — coupon must be global or scoped to [storeId]
  *
  * Returns the [Coupon] on success; a [ValidationException] describing the
  * specific rejection reason on failure.
@@ -27,6 +28,7 @@ class ValidateCouponUseCase(
         code: String,
         cartTotal: Double,
         customerId: String? = null,
+        storeId: String? = null,
         nowMillis: Long = Clock.System.now().toEpochMilliseconds(),
     ): Result<Coupon> {
         val couponResult = couponRepo.getByCode(code)
@@ -44,6 +46,10 @@ class ValidateCouponUseCase(
         }
         if (!coupon.hasAvailableRedemptions()) {
             return Result.Error(ValidationException("Coupon '$code' has reached its usage limit"))
+        }
+        // C2.4: Store scope validation — reject store-specific coupons used at wrong store
+        if (coupon.storeId != null && storeId != null && coupon.storeId != storeId) {
+            return Result.Error(ValidationException("Coupon '$code' is not valid at this store"))
         }
         if (cartTotal < coupon.minimumPurchase) {
             return Result.Error(

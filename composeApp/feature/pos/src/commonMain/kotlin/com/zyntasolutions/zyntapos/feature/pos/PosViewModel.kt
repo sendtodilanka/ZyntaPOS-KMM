@@ -642,6 +642,7 @@ class PosViewModel(
             code = code,
             cartTotal = currentState.orderTotals.total,
             customerId = currentState.selectedCustomer?.id,
+            storeId = storeId,
         )
         when (result) {
             is Result.Success -> {

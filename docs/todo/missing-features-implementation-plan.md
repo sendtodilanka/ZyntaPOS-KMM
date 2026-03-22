@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-22 (Fixed C2.1 storeId injection bug; C6.3 timezone startup init + receipt tz; verified G-series MS-1/MS-2/MS-3/MS-4/INV-3/INV-8 already implemented)
+**Last Updated:** 2026-03-22 (C2.4 store-specific discounts core implemented; C2.1 storeId bug fixed; C6.3 timezone startup init + receipt tz; G-series MS-1/MS-2/MS-3/MS-4/INV-3/INV-8 verified)
 **Status:** Approved — Verified against codebase 2026-03-22, updated for ADR-009 compliance
 
 ---
@@ -969,28 +969,36 @@ Backend Tests:
 
 ---
 
-### C2.4 Store-Specific Discounts & Promotions (ශාඛා අනුව වට්ටම්)
+### C2.4 Store-Specific Discounts & Promotions (ශාඛා අනුව වට්ටම්) — ✅ CORE IMPLEMENTED (2026-03-22)
+
+> **HANDOFF (2026-03-22):** Core store-scoping infrastructure implemented. `Coupon.storeId` (nullable)
+> and `Promotion.storeIds` (JSON array) added to domain models, SQLDelight schema (migration 13.sqm),
+> repository interface/impl, and form state. `ValidateCouponUseCase` now rejects store-specific coupons
+> at wrong store. `GetStorePromotionsUseCase` created. `PosViewModel.onValidateCoupon()` passes storeId.
+> 4 new tests for store scope validation. Per ADR-009: all coupon/promotion management in KMM app.
 
 **Priority:** PHASE-2
-**Status:** PARTIAL — global promotions exist, no store scoping
+**Status:** ✅ CORE IMPLEMENTED — store scoping on coupons + promotions (2026-03-22)
 
-**Codebase State:**
-- `Coupon.kt` — model with scope (CART/PRODUCT/CATEGORY/CUSTOMER), discount types (FIXED/PERCENT/BOGO)
-- `Promotion.kt` — model with types (BUY_X_GET_Y, BUNDLE, FLASH_SALE, SCHEDULED), priority-based
-- `coupons.sq` — coupons + promotions tables with `scope_ids` JSON array
-- `CalculateCouponDiscountUseCase.kt`, `ValidateCouponUseCase.kt` — validation + calculation
-- `ApplyItemDiscountUseCase.kt`, `ApplyOrderDiscountUseCase.kt` — role-gated discounts
-- **NO `store_id` FK** on coupons or promotions tables
+**What's DONE (2026-03-22):**
+- [x] Add `store_id TEXT` (nullable) to `coupons` table + `Coupon.storeId` domain field — null = global, non-null = store-specific
+- [x] Add `store_ids TEXT` (JSON array) to `promotions` table + `Promotion.storeIds` domain field — empty = global
+- [x] SQLDelight migration 13.sqm — `ALTER TABLE coupons ADD COLUMN store_id`, `ALTER TABLE promotions ADD COLUMN store_ids`
+- [x] `getActiveCouponsForStore` + `getActivePromotionsForStore` queries in `coupons.sq`
+- [x] `CouponRepository` interface + `CouponRepositoryImpl` — new store-filtered methods
+- [x] `ValidateCouponUseCase` — store scope validation (check 7): rejects store-specific coupons at wrong store
+- [x] `GetStorePromotionsUseCase` — filter active promotions by current store
+- [x] `CouponFormState.storeId` — store assignment field in coupon detail form
+- [x] `CouponViewModel` — storeId in form populate/save/update
+- [x] `PosViewModel.onValidateCoupon()` — passes storeId from auth session
+- [x] `CouponsModule.kt` — `GetStorePromotionsUseCase` registered
+- [x] 4 new tests in `ValidateCouponUseCaseTest`: global coupon at any store, store-specific at matching store, rejected at wrong store, backward compat when no storeId
 
-**What's MISSING:**
-- [ ] Add `store_id TEXT` (nullable) to `coupons.sq` — null = global, non-null = store-specific
-- [ ] Add `store_ids TEXT` (JSON array) to `promotions` table — target specific stores
-- [ ] `GetStorePromotionsUseCase` — filter active promotions by current store
+**What's REMAINING (deferred):**
 - [ ] Store-specific discount limits (e.g., max 20% at store A, max 30% at store B)
 - [ ] Promotion conflict resolution when multiple match (BOGO + coupon both applicable)
 - [ ] `PromotionConfig` sealed class to replace untyped JSON `config` field
 - [ ] Backend: `GET /v1/promotions` with POS JWT auth (store-level operation per ADR-009)
-- [ ] KMM: Store-scoped promotion management UI (per ADR-009 — store operations belong in KMM app, not admin panel)
 - [ ] KMM: Auto-apply store promotions at checkout
 
 **Key Files:**
@@ -1980,7 +1988,7 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 - [ ] Add GDPR Export button to customer detail
 - [ ] Add date picker dialogs (replace manual text entry)
 - [x] Add transfer status badge to stock transfer list — ✅ `ZyntaTransferStatusBadge` created (2026-03-21), integration pending
-- [ ] Add store-specific discount assignment to coupons
+- [x] Add store-specific discount assignment to coupons — ✅ DONE (C2.4, 2026-03-22)
 - [x] **[MS-1]** Add product selector/autocomplete to NewStockTransferScreen — ✅ DONE (ProductSearchDropdown composable)
 - [x] **[MS-2]** Display warehouse names instead of IDs in StockTransferCard — ✅ DONE (warehouseMap lookup)
 - [x] **[MS-3]** Add WarehouseRackList/Detail routes to ZyntaRoute.kt — ✅ DONE (verified 2026-03-22)
@@ -2293,7 +2301,7 @@ git push -u origin $(git branch --show-current)
 | Region-Based Pricing | C2.1 | ✅ CORE IMPLEMENTED (domain+data+backend+KMM UI; storeId bug fixed 2026-03-22) |
 | Multi-Currency | C2.2 | PARTIAL (formatter + ZyntaCurrencyPicker design system component) |
 | Localized Tax | C2.3 | PARTIAL (single-region) |
-| Store-Specific Discounts | C2.4 | PARTIAL (no store scoping) |
+| Store-Specific Discounts | C2.4 | ✅ CORE IMPLEMENTED (store_id on coupons, store_ids on promotions, validation + query; 2026-03-22) |
 | **3. Access Control** | | |
 | RBAC | C3.1 | COMPLETE |
 | Store-Level Permissions | C3.2 | NOT IMPLEMENTED |

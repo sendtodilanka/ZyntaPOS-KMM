@@ -40,6 +40,10 @@ class CouponRepositoryImpl(
         cq.getActiveCoupons(nowEpochMillis, nowEpochMillis)
             .asFlow().mapToList(Dispatchers.IO).map { rows -> rows.map(::toCouponDomain) }
 
+    override fun getActiveCouponsForStore(nowEpochMillis: Long, storeId: String): Flow<List<Coupon>> =
+        cq.getActiveCouponsForStore(nowEpochMillis, nowEpochMillis, storeId)
+            .asFlow().mapToList(Dispatchers.IO).map { rows -> rows.map(::toCouponDomain) }
+
     override suspend fun getByCode(code: String): Result<Coupon> = withContext(Dispatchers.IO) {
         runCatching {
             cq.getCouponByCode(code).executeAsOneOrNull()
@@ -73,6 +77,7 @@ class CouponRepositoryImpl(
                 scope = coupon.scope.name, scope_ids = scopeIdsJson,
                 valid_from = coupon.validFrom, valid_to = coupon.validTo,
                 is_active = if (coupon.isActive) 1L else 0L,
+                store_id = coupon.storeId,
                 created_at = now, updated_at = now, sync_status = "PENDING",
             )
             syncEnqueuer.enqueue(SyncOperation.EntityType.COUPON, coupon.id, SyncOperation.Operation.INSERT)
@@ -95,6 +100,7 @@ class CouponRepositoryImpl(
                 scope = coupon.scope.name, scope_ids = scopeIdsJson,
                 valid_from = coupon.validFrom, valid_to = coupon.validTo,
                 is_active = if (coupon.isActive) 1L else 0L,
+                store_id = coupon.storeId,
                 updated_at = now, sync_status = "PENDING", id = coupon.id,
             )
             syncEnqueuer.enqueue(SyncOperation.EntityType.COUPON, coupon.id, SyncOperation.Operation.UPDATE)
@@ -160,6 +166,10 @@ class CouponRepositoryImpl(
         pq.getActivePromotions(nowEpochMillis, nowEpochMillis)
             .asFlow().mapToList(Dispatchers.IO).map { rows -> rows.map(::toPromotionDomain) }
 
+    override fun getActivePromotionsForStore(nowEpochMillis: Long, storeId: String): Flow<List<Promotion>> =
+        pq.getActivePromotionsForStore(nowEpochMillis, nowEpochMillis, storeId)
+            .asFlow().mapToList(Dispatchers.IO).map { rows -> rows.map(::toPromotionDomain) }
+
     override suspend fun getPromotionById(id: String): Result<Promotion> = withContext(Dispatchers.IO) {
         runCatching {
             pq.getPromotionById(id).executeAsOneOrNull()
@@ -173,11 +183,13 @@ class CouponRepositoryImpl(
     override suspend fun insertPromotion(promotion: Promotion): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
             val now = Clock.System.now().toEpochMilliseconds()
+            val storeIdsJson = promotion.storeIds.joinToString(prefix = "[", postfix = "]") { "\"$it\"" }
             pq.insertPromotion(
                 id = promotion.id, name = promotion.name, type = promotion.type.name,
                 config = promotion.config, valid_from = promotion.validFrom, valid_to = promotion.validTo,
                 priority = promotion.priority.toLong(),
                 is_active = if (promotion.isActive) 1L else 0L,
+                store_ids = storeIdsJson,
                 created_at = now, updated_at = now, sync_status = "PENDING",
             )
             syncEnqueuer.enqueue(SyncOperation.EntityType.PROMOTION, promotion.id, SyncOperation.Operation.INSERT)
@@ -190,11 +202,13 @@ class CouponRepositoryImpl(
     override suspend fun updatePromotion(promotion: Promotion): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
             val now = Clock.System.now().toEpochMilliseconds()
+            val storeIdsJson = promotion.storeIds.joinToString(prefix = "[", postfix = "]") { "\"$it\"" }
             pq.updatePromotion(
                 name = promotion.name, type = promotion.type.name, config = promotion.config,
                 valid_from = promotion.validFrom, valid_to = promotion.validTo,
                 priority = promotion.priority.toLong(),
                 is_active = if (promotion.isActive) 1L else 0L,
+                store_ids = storeIdsJson,
                 updated_at = now, sync_status = "PENDING", id = promotion.id,
             )
             syncEnqueuer.enqueue(SyncOperation.EntityType.PROMOTION, promotion.id, SyncOperation.Operation.UPDATE)
@@ -226,6 +240,7 @@ class CouponRepositoryImpl(
             scopeIds = scopeIds,
             validFrom = row.valid_from, validTo = row.valid_to,
             isActive = row.is_active == 1L,
+            storeId = row.store_id,
         )
     }
 
@@ -234,10 +249,16 @@ class CouponRepositoryImpl(
         customerId = row.customer_id, discountAmount = row.discount_amount, usedAt = row.used_at,
     )
 
-    private fun toPromotionDomain(row: Promotions) = Promotion(
-        id = row.id, name = row.name,
-        type = runCatching { PromotionType.valueOf(row.type) }.getOrDefault(PromotionType.FLASH_SALE),
-        config = row.config, validFrom = row.valid_from, validTo = row.valid_to,
-        priority = row.priority.toInt(), isActive = row.is_active == 1L,
-    )
+    private fun toPromotionDomain(row: Promotions): Promotion {
+        val storeIds = runCatching {
+            Json.parseToJsonElement(row.store_ids).jsonArray.map { it.jsonPrimitive.content }
+        }.getOrDefault(emptyList())
+        return Promotion(
+            id = row.id, name = row.name,
+            type = runCatching { PromotionType.valueOf(row.type) }.getOrDefault(PromotionType.FLASH_SALE),
+            config = row.config, validFrom = row.valid_from, validTo = row.valid_to,
+            priority = row.priority.toInt(), isActive = row.is_active == 1L,
+            storeIds = storeIds,
+        )
+    }
 }

@@ -18,6 +18,7 @@ CREATE TABLE coupons (
     valid_from        INTEGER NOT NULL,
     valid_to          INTEGER NOT NULL,
     is_active         INTEGER NOT NULL DEFAULT 1,
+    store_id          TEXT,                          -- null = global (all stores), non-null = store-specific (C2.4)
     created_at        INTEGER NOT NULL,
     updated_at        INTEGER NOT NULL,
     sync_status       TEXT    NOT NULL DEFAULT 'PENDING'
@@ -25,6 +26,7 @@ CREATE TABLE coupons (
 
 CREATE UNIQUE INDEX idx_coupons_code   ON coupons(code);
 CREATE INDEX       idx_coupons_active  ON coupons(is_active, valid_from, valid_to);
+CREATE INDEX       idx_coupons_store   ON coupons(store_id);
 
 CREATE TABLE coupon_usage (
     id              TEXT    NOT NULL PRIMARY KEY,
@@ -49,6 +51,7 @@ CREATE TABLE promotions (
     valid_to   INTEGER NOT NULL,
     priority   INTEGER NOT NULL DEFAULT 0,
     is_active  INTEGER NOT NULL DEFAULT 1,
+    store_ids  TEXT    NOT NULL DEFAULT '[]', -- JSON array of target store IDs; empty = global (C2.4)
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
     sync_status TEXT   NOT NULL DEFAULT 'PENDING'
@@ -76,6 +79,10 @@ SELECT * FROM coupons ORDER BY created_at DESC;
 getActiveCoupons:
 SELECT * FROM coupons WHERE is_active = 1 AND valid_from <= ? AND valid_to >= ? ORDER BY name ASC;
 
+-- C2.4: Get coupons applicable to a specific store (global + store-specific)
+getActiveCouponsForStore:
+SELECT * FROM coupons WHERE is_active = 1 AND valid_from <= ? AND valid_to >= ? AND (store_id IS NULL OR store_id = ?) ORDER BY name ASC;
+
 getCouponByCode:
 SELECT * FROM coupons WHERE code = ? LIMIT 1;
 
@@ -89,14 +96,14 @@ SELECT COUNT(*) FROM coupon_usage WHERE coupon_id = ? AND customer_id = ?;
 -- ── Coupon write queries ──────────────────────────────────────────────────────
 
 insertCoupon:
-INSERT INTO coupons(id, code, name, discount_type, discount_value, minimum_purchase, maximum_discount, usage_limit, usage_count, per_customer_limit, scope, scope_ids, valid_from, valid_to, is_active, created_at, updated_at, sync_status)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO coupons(id, code, name, discount_type, discount_value, minimum_purchase, maximum_discount, usage_limit, usage_count, per_customer_limit, scope, scope_ids, valid_from, valid_to, is_active, store_id, created_at, updated_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 updateCoupon:
 UPDATE coupons SET
     code = ?, name = ?, discount_type = ?, discount_value = ?, minimum_purchase = ?,
     maximum_discount = ?, usage_limit = ?, per_customer_limit = ?, scope = ?, scope_ids = ?,
-    valid_from = ?, valid_to = ?, is_active = ?, updated_at = ?, sync_status = ?
+    valid_from = ?, valid_to = ?, is_active = ?, store_id = ?, updated_at = ?, sync_status = ?
 WHERE id = ?;
 
 -- Atomic usage increment — called within a transaction alongside insertCouponUsage
@@ -124,19 +131,24 @@ SELECT * FROM promotions ORDER BY priority DESC, created_at DESC;
 getActivePromotions:
 SELECT * FROM promotions WHERE is_active = 1 AND valid_from <= ? AND valid_to >= ? ORDER BY priority DESC;
 
+-- C2.4: Get promotions applicable to a specific store (global + store-targeted)
+-- Global promotions have store_ids = '[]'; store-specific ones contain the storeId in the JSON array
+getActivePromotionsForStore:
+SELECT * FROM promotions WHERE is_active = 1 AND valid_from <= ? AND valid_to >= ? AND (store_ids = '[]' OR store_ids LIKE '%' || ? || '%') ORDER BY priority DESC;
+
 getPromotionById:
 SELECT * FROM promotions WHERE id = ?;
 
 -- ── Promotion write queries ───────────────────────────────────────────────────
 
 insertPromotion:
-INSERT INTO promotions(id, name, type, config, valid_from, valid_to, priority, is_active, created_at, updated_at, sync_status)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO promotions(id, name, type, config, valid_from, valid_to, priority, is_active, store_ids, created_at, updated_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 updatePromotion:
 UPDATE promotions SET
     name = ?, type = ?, config = ?, valid_from = ?, valid_to = ?,
-    priority = ?, is_active = ?, updated_at = ?, sync_status = ?
+    priority = ?, is_active = ?, store_ids = ?, updated_at = ?, sync_status = ?
 WHERE id = ?;
 
 deletePromotion:

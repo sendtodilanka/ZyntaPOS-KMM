@@ -35,6 +35,8 @@ data class Coupon(
     val validFrom: Long,
     val validTo: Long,
     val isActive: Boolean = true,
+    /** Store this coupon is scoped to. Null = global (applies to all stores). */
+    val storeId: String? = null,
 ) {
     enum class CouponScope { CART, PRODUCT, CATEGORY, CUSTOMER }
 

@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.coupons
 
 import com.zyntasolutions.zyntapos.domain.usecase.coupons.CalculateCouponDiscountUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.coupons.GetStorePromotionsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.coupons.SaveCouponUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.coupons.ValidateCouponUseCase
 import org.koin.core.module.dsl.factoryOf
@@ -23,6 +24,7 @@ val couponsModule = module {
     factoryOf(::SaveCouponUseCase)
     factoryOf(::ValidateCouponUseCase)
     factory { CalculateCouponDiscountUseCase() }
+    factoryOf(::GetStorePromotionsUseCase)
 
     // ── ViewModel ─────────────────────────────────────────────────────────────
     viewModelOf(::CouponViewModel)

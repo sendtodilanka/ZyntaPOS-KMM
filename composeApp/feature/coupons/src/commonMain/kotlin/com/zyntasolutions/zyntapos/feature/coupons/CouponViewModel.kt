@@ -109,6 +109,7 @@ class CouponViewModel(
                             validFrom = c.validFrom.toString(),
                             validTo = c.validTo.toString(),
                             isActive = c.isActive,
+                            storeId = c.storeId,
                             isEditing = true,
                         ),
                     )
@@ -137,6 +138,7 @@ class CouponViewModel(
                     "perCustomerLimit" -> formState.copy(perCustomerLimit = value)
                     "validFrom" -> formState.copy(validFrom = value, validationErrors = formState.validationErrors - "validFrom")
                     "validTo" -> formState.copy(validTo = value, validationErrors = formState.validationErrors - "validTo")
+                    "storeId" -> formState.copy(storeId = value.ifBlank { null })
                     else -> formState
                 },
             )
@@ -165,6 +167,7 @@ class CouponViewModel(
             validFrom = form.validFrom.toLongOrNull() ?: 0L,
             validTo = form.validTo.toLongOrNull() ?: 0L,
             isActive = form.isActive,
+            storeId = form.storeId,
         )
 
         when (val result = saveCouponUseCase(coupon, isNew = !form.isEditing)) {
