@@ -171,6 +171,7 @@ class PosViewModel(
             cashierId = session?.id ?: "unknown"
             storeId = session?.storeId ?: "default-store"
             registerSessionId = registerRepository.getActive().first()?.id ?: ""
+            updateState { copy(cashierName = session?.name ?: "") }
         }
         observeCategories()
         observeProducts()

@@ -1973,7 +1973,7 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 - [x] Add printer test button to PrinterSettingsScreen — ✅ ALREADY EXISTS (verified 2026-03-21): `SettingsIntent.TestPrint` → `PrintTestPageUseCase` → full MVI chain
 - [x] Persist "Remember Me" checkbox in auth — ✅ DONE (2026-03-21): `auth.remember_me` + `auth.saved_email` in SettingsRepository, auto-fill email on load
 - [x] Show UTC offset in timezone dropdown — ✅ `ZyntaTimezonePicker` shows UTC offset for all 21 timezones (2026-03-21)
-- [ ] Add employee name/badge to POS screen header
+- [x] Add employee name/badge to POS screen header — ✅ DONE (2026-03-22): `PosState.cashierName` from auth session, Person icon + name in both EXPANDED and COMPACT layouts
 
 **Phase 2 Must-Have (before multi-store launch):**
 - [x] Create `ZyntaStoreSelector` component + wire to drawer footer — ✅ component created (2026-03-21), drawer wiring pending
@@ -1995,7 +1995,7 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 - [ ] **[INV-1]** Wire barcode scanner HAL integration (ProductDetail + Stocktake)
 - [ ] **[INV-2]** Implement variant persistence in CreateProduct/UpdateProduct use cases
 - [x] **[INV-3]** Add missing CategoryDetail, SupplierDetail routes to ZyntaRoute.kt — ✅ DONE (verified 2026-03-22)
-- [ ] **[INV-4]** Add Coil image preview in ProductDetailScreen
+- [x] **[INV-4]** Add Coil image preview in ProductDetailScreen — ✅ ALREADY EXISTS (AsyncImage in ImageSection, verified 2026-03-22)
 - [ ] **[INV-10]** Implement TaxGroupScreen + UnitManagementScreen
 
 **Phase 3 Nice-to-Have:**
