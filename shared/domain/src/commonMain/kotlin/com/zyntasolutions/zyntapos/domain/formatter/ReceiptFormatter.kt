@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.domain.formatter
 
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
+import com.zyntasolutions.zyntapos.core.utils.DateTimeUtils
 import com.zyntasolutions.zyntapos.domain.model.DiscountType
 import com.zyntasolutions.zyntapos.domain.model.Order
 import com.zyntasolutions.zyntapos.domain.model.OrderItem
@@ -81,9 +82,7 @@ class ReceiptFormatter(
         if (headerLines.isNotEmpty()) appendLine(divider)
 
         // ── Order meta ────────────────────────────────────────────────────────
-        val dateTime = order.createdAt.toString()
-            .replace("T", "  Time: ")
-            .take(38) // trim sub-second precision
+        val dateTime = DateTimeUtils.formatForDisplay(order.createdAt.toEpochMilliseconds())
         appendLine("Date: $dateTime")
         appendLine("Order #: ${order.orderNumber}")
         if (order.customerId != null) {

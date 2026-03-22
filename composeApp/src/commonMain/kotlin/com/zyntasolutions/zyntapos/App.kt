@@ -6,6 +6,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
+import com.zyntasolutions.zyntapos.core.utils.AppTimezone
 import com.zyntasolutions.zyntapos.debug.DebugViewModel
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoadingOverlay
 import com.zyntasolutions.zyntapos.designsystem.theme.ThemeMode
@@ -128,6 +129,16 @@ fun App() {
         "LIGHT" -> ThemeMode.LIGHT
         "DARK" -> ThemeMode.DARK
         else -> ThemeMode.SYSTEM
+    }
+
+    // ── C6.3: Load store timezone on startup so all display calls use it ─────
+    val persistedTimezone by settingsRepository.observe("general.timezone")
+        .collectAsState(initial = null)
+    LaunchedEffect(persistedTimezone) {
+        val tz = persistedTimezone
+        if (!tz.isNullOrBlank()) {
+            AppTimezone.set(tz)
+        }
     }
 
     val appInfoProvider: AppInfoProvider = koinInject()

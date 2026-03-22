@@ -27,17 +27,17 @@ import com.zyntasolutions.zyntapos.domain.usecase.inventory.GetEffectiveProductP
  *
  * @param productRepository Source of truth for real-time stock levels.
  * @param getEffectivePrice Resolves the store-aware price (C2.1 region-based pricing).
- * @param storeId The current store context for price resolution.
  */
 class AddItemToCartUseCase(
     private val productRepository: ProductRepository,
     private val getEffectivePrice: GetEffectiveProductPriceUseCase? = null,
-    private val storeId: String = "",
 ) {
     /**
      * @param currentCart The caller's current list of [CartItem]s (may be empty).
      * @param productId   The [Product] to add.
      * @param quantity    Number of units to add (must be > 0).
+     * @param storeId     The current store context for price resolution (C2.1).
+     *                    When non-blank, [getEffectivePrice] resolves the store-aware price.
      * @return [Result.Success] with the updated cart list, or
      *         [Result.Error] wrapping a [ValidationException] if validation fails.
      */
@@ -45,6 +45,7 @@ class AddItemToCartUseCase(
         currentCart: List<CartItem>,
         productId: String,
         quantity: Double = 1.0,
+        storeId: String = "",
     ): Result<List<CartItem>> {
         if (quantity <= 0.0) {
             return Result.Error(

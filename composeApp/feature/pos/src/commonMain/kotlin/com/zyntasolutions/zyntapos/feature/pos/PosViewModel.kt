@@ -295,7 +295,7 @@ class PosViewModel(
     }
 
     private suspend fun onAddToCart(productId: String) {
-        val result = addItemUseCase(currentState.cartItems, productId)
+        val result = addItemUseCase(currentState.cartItems, productId, storeId = storeId)
         when (result) {
             is Result.Success -> {
                 val updatedCart = result.data

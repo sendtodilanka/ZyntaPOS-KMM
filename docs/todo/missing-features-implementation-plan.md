@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-22 (ADR-009 compliance audit — removed admin panel store-operational claims per ADR-009; documented BUG: AddItemToCartUseCase storeId not injected; documented deleted admin panel files from PR #502; noted backend /admin/ write endpoints that need migration to /v1/ with POS JWT auth; added undocumented KMM PricingRuleScreen)
+**Last Updated:** 2026-03-22 (Fixed C2.1 storeId injection bug; C6.3 timezone startup init + receipt tz; verified G-series MS-1/MS-2/MS-3/MS-4/INV-3/INV-8 already implemented)
 **Status:** Approved — Verified against codebase 2026-03-22, updated for ADR-009 compliance
 
 ---
@@ -852,16 +852,16 @@ Backend Tests:
 
 ### C2.1 Region-Based Pricing (ප්‍රදේශ අනුව මිල) — ✅ CORE IMPLEMENTED (2026-03-21)
 
-> **HANDOFF (2026-03-21, updated 2026-03-22):** C2.1 core pricing infrastructure is implemented.
-> 4-level price resolution: store override → pricing rule → master product → product.price.
-> `AddItemToCartUseCase` has `GetEffectiveProductPriceUseCase` but **BUG: storeId not injected** — effective price never executes.
-> Backend has V32 migration + 3 REST endpoints. 12 unit tests covering all resolution levels.
+> **HANDOFF (2026-03-22):** C2.1 storeId injection bug FIXED. `AddItemToCartUseCase` now accepts
+> `storeId` as an `invoke()` parameter (moved from constructor). `PosViewModel.onAddToCart()` passes
+> `storeId` from the authenticated session. 3 new tests added for effective pricing path.
+> 4-level price resolution now fully operational: store override → pricing rule → master product → product.price.
+> Backend has V32 migration + 3 REST endpoints. 15 unit tests covering all resolution levels.
 > KMM `PricingRuleScreen` + MVI added in PR #502 (replaces admin panel pricing UI per ADR-009).
-> Branch: `claude/implement-missing-features-kL6qb`.
-> Remaining: Fix storeId injection bug, migrate backend pricing write endpoints to `/v1/` (ADR-009).
+> Remaining: Migrate backend pricing write endpoints to `/v1/` (ADR-009).
 
 **Priority:** PHASE-2
-**Status:** CORE IMPLEMENTED — KMM PricingRuleScreen done (PR #502 per ADR-009); BUG: storeId not injected in AddItemToCartUseCase
+**Status:** ✅ CORE IMPLEMENTED — storeId bug fixed (2026-03-22); KMM PricingRuleScreen done (PR #502 per ADR-009)
 
 **What's DONE:**
 - [x] `PricingRule` domain model — id, productId, storeId (nullable=global), price, costPrice, priority, validFrom/validTo, isActive, description
@@ -884,7 +884,7 @@ Backend Tests:
 
 **What's REMAINING (deferred):**
 - [ ] **ADR-009:** Migrate write endpoints (POST/DELETE) from `/admin/pricing/rules` to `/v1/pricing/rules` with POS JWT auth — pricing is a store-level operation
-- [ ] **BUG:** `AddItemToCartUseCase` — `storeId` not injected via Koin; effective price calculation never executes (defaults to `product.price`)
+- [x] **BUG FIXED (2026-03-22):** `AddItemToCartUseCase` — `storeId` moved from constructor to `invoke()` parameter; `PosViewModel` now passes `storeId` from auth session; 3 new tests added
 - [ ] SyncEngine: PRICING_RULE entity type handling in `applyUpsert()` / `EntityApplier`
 
 **Key Files:**
@@ -1391,7 +1391,7 @@ Backend Tests:
 ### C6.3 Timezone Management (වේලා කලාප කළමනාකරණය)
 
 **Priority:** PHASE-2
-**Status:** MOSTLY IMPLEMENTED
+**Status:** ✅ CORE COMPLETE (2026-03-22) — startup init + receipt tz done; minor items remain
 
 **Codebase State:**
 - `AppTimezone.kt` — singleton with `set(tzId)`, `current: TimeZone` (default: Asia/Colombo)
@@ -1400,11 +1400,13 @@ Backend Tests:
 - Admin panel: `use-timezone.ts` hook + `timezone-store.ts` Zustand store
 - Backend: `OffsetDateTime.now(UTC)` — server always in UTC
 
-**What's MISSING:**
-- [ ] Load store timezone on app startup → call `AppTimezone.set(store.timezone)`
+**What's DONE (2026-03-22):**
+- [x] Load store timezone on app startup — `App.kt` observes `general.timezone` via `LaunchedEffect` and calls `AppTimezone.set()` reactively; updates on setting change
+- [x] Receipt timestamp: `ReceiptFormatter` now uses `DateTimeUtils.formatForDisplay()` which respects `AppTimezone.current` (store's local timezone)
+
+**What's REMAINING (deferred):**
 - [ ] Multi-store timezone handling: When admin views reports from different timezones
 - [ ] Report date range conversion: User selects "Today" → convert to store's timezone for query
-- [ ] Receipt timestamp: Print in store's local timezone, not UTC
 - [ ] Sync timestamp normalization: All sync operations use UTC, display converts to local
 - [ ] DST (Daylight Saving Time) handling for stores in affected regions
 
@@ -1979,12 +1981,12 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 - [ ] Add date picker dialogs (replace manual text entry)
 - [x] Add transfer status badge to stock transfer list — ✅ `ZyntaTransferStatusBadge` created (2026-03-21), integration pending
 - [ ] Add store-specific discount assignment to coupons
-- [ ] **[MS-1]** Add product selector/autocomplete to NewStockTransferScreen
-- [ ] **[MS-2]** Display warehouse names instead of IDs in StockTransferCard
-- [ ] **[MS-3]** Add WarehouseRackList/Detail routes to ZyntaRoute.kt
+- [x] **[MS-1]** Add product selector/autocomplete to NewStockTransferScreen — ✅ DONE (ProductSearchDropdown composable)
+- [x] **[MS-2]** Display warehouse names instead of IDs in StockTransferCard — ✅ DONE (warehouseMap lookup)
+- [x] **[MS-3]** Add WarehouseRackList/Detail routes to ZyntaRoute.kt — ✅ DONE (verified 2026-03-22)
 - [ ] **[INV-1]** Wire barcode scanner HAL integration (ProductDetail + Stocktake)
 - [ ] **[INV-2]** Implement variant persistence in CreateProduct/UpdateProduct use cases
-- [ ] **[INV-3]** Add missing CategoryDetail, SupplierDetail routes to ZyntaRoute.kt
+- [x] **[INV-3]** Add missing CategoryDetail, SupplierDetail routes to ZyntaRoute.kt — ✅ DONE (verified 2026-03-22)
 - [ ] **[INV-4]** Add Coil image preview in ProductDetailScreen
 - [ ] **[INV-10]** Implement TaxGroupScreen + UnitManagementScreen
 
@@ -2288,7 +2290,7 @@ git push -u origin $(git branch --show-current)
 | Stock In-Transit Tracking | C1.4 | ✅ COMPLETE (transit_tracking.sq, 4 use cases, TransitTrackerScreen, auto-log DISPATCHED/RECEIVED) |
 | Warehouse Replenishment | C1.5 | ✅ COMPLETE (ReplenishmentRule model, AutoReplenishmentUseCase, 3-tab UI, backend 4 endpoints + 14 tests) |
 | **2. Pricing & Taxation** | | |
-| Region-Based Pricing | C2.1 | ✅ CORE IMPLEMENTED (domain+data+backend; admin UI pending) |
+| Region-Based Pricing | C2.1 | ✅ CORE IMPLEMENTED (domain+data+backend+KMM UI; storeId bug fixed 2026-03-22) |
 | Multi-Currency | C2.2 | PARTIAL (formatter + ZyntaCurrencyPicker design system component) |
 | Localized Tax | C2.3 | PARTIAL (single-region) |
 | Store-Specific Discounts | C2.4 | PARTIAL (no store scoping) |
@@ -2310,7 +2312,7 @@ git push -u origin $(git branch --show-current)
 | **6. Sync & Offline** | | |
 | Multi-node Sync | C6.1 | ✅ COMPLETE (LWW CRDT + APPEND_ONLY for stock, priority sync, multi-store isolation, GZIP compression, queue maintenance, conflict resolution UI — all 6 items done 2026-03-19) |
 | Offline-First | C6.2 | PARTIAL (EntityApplier covers all core POS types; PURCHASE_ORDER/REPLENISHMENT_RULE/TRANSIT_EVENT not yet in sync pipeline) |
-| Timezone Management | C6.3 | MOSTLY COMPLETE (+ ZyntaTimezonePicker design system component) |
+| Timezone Management | C6.3 | ✅ CORE COMPLETE (startup init + receipt tz done 2026-03-22; minor items remain) |
 
 ---
 

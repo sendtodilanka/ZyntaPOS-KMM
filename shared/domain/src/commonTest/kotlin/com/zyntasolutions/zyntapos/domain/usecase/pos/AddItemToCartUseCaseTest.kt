@@ -3,9 +3,14 @@ package com.zyntasolutions.zyntapos.domain.usecase.pos
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.core.result.ValidationException
 import com.zyntasolutions.zyntapos.domain.model.DiscountType
+import com.zyntasolutions.zyntapos.domain.usecase.fakes.FakeMasterProductRepository
+import com.zyntasolutions.zyntapos.domain.usecase.fakes.FakePricingRuleRepository
 import com.zyntasolutions.zyntapos.domain.usecase.fakes.FakeProductRepository
+import com.zyntasolutions.zyntapos.domain.usecase.fakes.FakeStoreProductOverrideRepository
 import com.zyntasolutions.zyntapos.domain.usecase.fakes.buildCartItem
+import com.zyntasolutions.zyntapos.domain.usecase.fakes.buildPricingRule
 import com.zyntasolutions.zyntapos.domain.usecase.fakes.buildProduct
+import com.zyntasolutions.zyntapos.domain.usecase.inventory.GetEffectiveProductPriceUseCase
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -153,5 +158,59 @@ class AddItemToCartUseCaseTest {
         val result = makeUseCase(repo)(currentCart = existingCart, productId = "p1") as Result.Success
         assertEquals(2, result.data.size)
         assertTrue(result.data.any { it.productId == "p2" })
+    }
+
+    // ─── C2.1 Effective Pricing (storeId) ──────────────────────────────────────
+
+    @Test
+    fun `pricing rule overrides product price when storeId is provided`() = runTest {
+        val pricingRuleRepo = FakePricingRuleRepository().also {
+            it.rules.add(buildPricingRule(productId = "p1", storeId = "store-1", price = 7.50))
+        }
+        val effectivePriceUseCase = GetEffectiveProductPriceUseCase(
+            masterProductRepository = FakeMasterProductRepository(),
+            storeProductOverrideRepository = FakeStoreProductOverrideRepository(),
+            pricingRuleRepository = pricingRuleRepo,
+        )
+        val repo = FakeProductRepository().also {
+            it.addProduct(buildProduct(id = "p1", price = 9.99, stockQty = 50.0))
+        }
+        val useCase = AddItemToCartUseCase(repo, effectivePriceUseCase)
+        val result = useCase(currentCart = emptyList(), productId = "p1", storeId = "store-1")
+        assertIs<Result.Success<*>>(result)
+        val cart = (result as Result.Success).data
+        assertEquals(7.50, cart[0].unitPrice, 0.001)
+    }
+
+    @Test
+    fun `falls back to product price when storeId is blank`() = runTest {
+        val pricingRuleRepo = FakePricingRuleRepository().also {
+            it.rules.add(buildPricingRule(productId = "p1", storeId = "store-1", price = 7.50))
+        }
+        val effectivePriceUseCase = GetEffectiveProductPriceUseCase(
+            masterProductRepository = FakeMasterProductRepository(),
+            storeProductOverrideRepository = FakeStoreProductOverrideRepository(),
+            pricingRuleRepository = pricingRuleRepo,
+        )
+        val repo = FakeProductRepository().also {
+            it.addProduct(buildProduct(id = "p1", price = 9.99, stockQty = 50.0))
+        }
+        val useCase = AddItemToCartUseCase(repo, effectivePriceUseCase)
+        val result = useCase(currentCart = emptyList(), productId = "p1", storeId = "")
+        assertIs<Result.Success<*>>(result)
+        val cart = (result as Result.Success).data
+        assertEquals(9.99, cart[0].unitPrice, 0.001)
+    }
+
+    @Test
+    fun `falls back to product price when getEffectivePrice is null`() = runTest {
+        val repo = FakeProductRepository().also {
+            it.addProduct(buildProduct(id = "p1", price = 9.99, stockQty = 50.0))
+        }
+        val useCase = AddItemToCartUseCase(repo, getEffectivePrice = null)
+        val result = useCase(currentCart = emptyList(), productId = "p1", storeId = "store-1")
+        assertIs<Result.Success<*>>(result)
+        val cart = (result as Result.Success).data
+        assertEquals(9.99, cart[0].unitPrice, 0.001)
     }
 }
