@@ -1030,6 +1030,7 @@ All structural decisions are documented in `docs/adr/`. Create a new ADR before 
 | ADR-006 | Backend Docker Build in CI — images built by CI Gate, pushed to GHCR | ACCEPTED |
 | ADR-007 | Database-Per-Service — API uses `zyntapos_api`, License uses `zyntapos_license` | ACCEPTED |
 | ADR-008 | RS256 Key Distribution — Bundle default key + SecurePreferences cache (TOFU); `GET /.well-known/public-key` | ACCEPTED |
+| ADR-009 | Admin Panel / POS App Feature Boundary — admin panel MUST NOT contain store-operational write features | ACCEPTED |
 
 ---
 
@@ -1197,6 +1198,7 @@ interface BarcodeScanner {
 10. **Do not run bare `gradle` — always use `./gradlew`** to ensure the correct Gradle wrapper version.
 11. **Do not add cross-database FK constraints in backend migrations.** API and License use separate databases (`zyntapos_api`, `zyntapos_license`) — validate references at app layer (ADR-007).
 12. **Do not share Flyway migrations between services.** Each service owns its own `db/migration/` directory and schema history.
+13. **Do not add store-operational write features to the admin panel.** Stock transfers, replenishment rules, pricing rules, tax rate CRUD — all store-level business operations belong in the KMM app with POS JWT auth (`/v1/*` endpoints). The admin panel is for Zynta Solutions platform operations only (licenses, monitoring, support, master catalog). If support needs store data for debugging, use the remote diagnostic system (TODO-006), not admin panel views (ADR-009).
 
 ---
 
@@ -1300,6 +1302,7 @@ A comprehensive audit was completed on 2026-03-12. See `docs/audit/backend-modul
 4. **Do not add `ForceSyncSubscriber`** — `RedisPubSubListener` handles both `sync:delta:*` and `sync:commands`.
 5. **Do not issue POS refresh tokens as JWTs** — use opaque tokens stored in `pos_sessions` table.
 6. **Do not interpolate user values in email templates without HTML-escaping** — use `htmlEscape()`.
+7. **Do not add `/admin/*` endpoints for store-level business operations** — transfers, replenishment, pricing, tax rates belong under `/v1/*` with POS JWT (RS256) auth. Admin endpoints are for platform operations only (ADR-009).
 
 ---
 
