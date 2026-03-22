@@ -40,23 +40,23 @@ fun PricingRuleScreen(
     LaunchedEffect(state.error) {
         state.error?.let {
             snackbarHostState.showSnackbar(it)
-            viewModel.onIntent(PricingRuleIntent.DismissError)
+            viewModel.dispatch(PricingRuleIntent.DismissError)
         }
     }
     LaunchedEffect(state.successMessage) {
         state.successMessage?.let {
             snackbarHostState.showSnackbar(it)
-            viewModel.onIntent(PricingRuleIntent.DismissSuccess)
+            viewModel.dispatch(PricingRuleIntent.DismissSuccess)
         }
     }
 
     ZyntaPageScaffold(
         title = "Pricing Rules",
         modifier = modifier,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHostState = snackbarHostState,
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = { viewModel.onIntent(PricingRuleIntent.OpenDialog(null)) },
+                onClick = { viewModel.dispatch(PricingRuleIntent.OpenDialog(null)) },
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
                 text = { Text("New Rule") },
                 containerColor = MaterialTheme.colorScheme.primary,
@@ -87,7 +87,7 @@ fun PricingRuleScreen(
                 icon = Icons.Default.AttachMoney,
                 subtitle = "Create pricing rules to set store-specific or time-bounded prices",
                 ctaLabel = "New Rule",
-                onCtaClick = { viewModel.onIntent(PricingRuleIntent.OpenDialog(null)) },
+                onCtaClick = { viewModel.dispatch(PricingRuleIntent.OpenDialog(null)) },
                 modifier = Modifier.padding(innerPadding),
             )
             else -> LazyColumn(
@@ -102,8 +102,8 @@ fun PricingRuleScreen(
                     PricingRuleCard(
                         rule = rule,
                         productName = state.products.find { it.id == rule.productId }?.name,
-                        onEdit = { viewModel.onIntent(PricingRuleIntent.OpenDialog(rule)) },
-                        onDelete = { viewModel.onIntent(PricingRuleIntent.ConfirmDelete(rule)) },
+                        onEdit = { viewModel.dispatch(PricingRuleIntent.OpenDialog(rule)) },
+                        onDelete = { viewModel.dispatch(PricingRuleIntent.ConfirmDelete(rule)) },
                     )
                 }
                 item { Spacer(Modifier.height(88.dp)) } // FAB clearance
@@ -116,30 +116,30 @@ fun PricingRuleScreen(
         PricingRuleEditDialog(
             state = state,
             onUpdateField = { field, value ->
-                viewModel.onIntent(PricingRuleIntent.UpdateField(field, value))
+                viewModel.dispatch(PricingRuleIntent.UpdateField(field, value))
             },
-            onSetActive = { viewModel.onIntent(PricingRuleIntent.SetActive(it)) },
-            onSave = { viewModel.onIntent(PricingRuleIntent.SaveRule) },
-            onDismiss = { viewModel.onIntent(PricingRuleIntent.DismissDialog) },
+            onSetActive = { viewModel.dispatch(PricingRuleIntent.SetActive(it)) },
+            onSave = { viewModel.dispatch(PricingRuleIntent.SaveRule) },
+            onDismiss = { viewModel.dispatch(PricingRuleIntent.DismissDialog) },
         )
     }
 
     // ── Delete Confirm Dialog ────────────────────────────────────────────
     state.deleteTarget?.let { rule ->
         AlertDialog(
-            onDismissRequest = { viewModel.onIntent(PricingRuleIntent.DismissDelete) },
+            onDismissRequest = { viewModel.dispatch(PricingRuleIntent.DismissDelete) },
             title = { Text("Delete Pricing Rule?") },
             text = {
                 Text("\"${rule.description.ifBlank { "Rule for ${rule.productId.take(8)}" }}\" will be permanently deleted.")
             },
             confirmButton = {
                 TextButton(
-                    onClick = { viewModel.onIntent(PricingRuleIntent.ExecuteDelete) },
+                    onClick = { viewModel.dispatch(PricingRuleIntent.ExecuteDelete) },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
                 ) { Text("Delete") }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.onIntent(PricingRuleIntent.DismissDelete) }) { Text("Cancel") }
+                TextButton(onClick = { viewModel.dispatch(PricingRuleIntent.DismissDelete) }) { Text("Cancel") }
             },
         )
     }

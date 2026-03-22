@@ -115,7 +115,7 @@ class PricingRuleViewModel(
         val now = Clock.System.now().toEpochMilliseconds()
 
         val rule = PricingRule(
-            id = state.editingRule?.id ?: IdGenerator.uuid(),
+            id = state.editingRule?.id ?: IdGenerator.newId(),
             productId = state.formProductId,
             storeId = state.formStoreId.takeIf { it.isNotBlank() },
             price = price,
