@@ -131,8 +131,10 @@ import com.zyntasolutions.zyntapos.domain.repository.RoleRepository
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseRepository
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseStockRepository
 import com.zyntasolutions.zyntapos.data.repository.LicenseRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.RegionalTaxOverrideRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.TransitTrackingRepositoryImpl
 import com.zyntasolutions.zyntapos.domain.repository.LicenseRepository
+import com.zyntasolutions.zyntapos.domain.repository.RegionalTaxOverrideRepository
 import com.zyntasolutions.zyntapos.domain.repository.TransitTrackingRepository
 import org.koin.dsl.module
 
@@ -233,6 +235,11 @@ val dataModule = module {
 
     // Pricing rules — region-based pricing (C2.1)
     single<PricingRuleRepository> { PricingRuleRepositoryImpl(db = get()) }
+    single { get<PricingRuleRepository>() as PricingRuleRepositoryImpl }
+
+    // Regional tax overrides — localized tax (C2.3)
+    single<RegionalTaxOverrideRepository> { RegionalTaxOverrideRepositoryImpl(db = get(), syncEnqueuer = get()) }
+    single { get<RegionalTaxOverrideRepository>() as RegionalTaxOverrideRepositoryImpl }
 
     // Exchange rates — multi-currency support (C2.2)
     single<ExchangeRateRepository> { ExchangeRateRepositoryImpl(db = get()) }
@@ -453,6 +460,8 @@ val dataModule = module {
             stockRepository       = get(),
             masterProductRepository       = get(),
             storeProductOverrideRepository = get(),
+            pricingRuleRepository = get(),
+            regionalTaxOverrideRepository = get(),
             conflictResolver      = get(),
             conflictLogRepository = get(),
             queueMaintenance      = get(),

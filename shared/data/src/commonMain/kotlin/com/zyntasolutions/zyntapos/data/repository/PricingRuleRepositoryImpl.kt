@@ -12,6 +12,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlin.time.Clock
 
 /**
  * SQLDelight-backed implementation of [PricingRuleRepository].
@@ -22,6 +26,25 @@ import kotlinx.coroutines.withContext
 class PricingRuleRepositoryImpl(
     private val db: ZyntaDatabase,
 ) : PricingRuleRepository {
+
+    @Serializable
+    private data class PricingRuleSyncPayload(
+        val id: String,
+        @SerialName("product_id")  val productId: String,
+        @SerialName("store_id")    val storeId: String? = null,
+        val price: Double,
+        @SerialName("cost_price")  val costPrice: Double? = null,
+        val priority: Int = 0,
+        @SerialName("valid_from")  val validFrom: Long? = null,
+        @SerialName("valid_to")    val validTo: Long? = null,
+        @SerialName("is_active")   val isActive: Boolean = true,
+        val description: String = "",
+        @SerialName("updated_at")  val updatedAt: Long = 0L,
+    )
+
+    companion object {
+        private val syncJson = Json { ignoreUnknownKeys = true; isLenient = true }
+    }
 
     private val q get() = db.pricing_rulesQueries
 
@@ -84,6 +107,32 @@ class PricingRuleRepositoryImpl(
         runCatching { q.deleteRule(ruleId) }.fold(
             onSuccess = { Result.Success(Unit) },
             onFailure = { t -> Result.Error(DatabaseException(t.message ?: "DB error", cause = t)) },
+        )
+    }
+
+    /**
+     * Applies a server-authoritative pricing rule snapshot from a sync delta payload.
+     * Uses INSERT OR REPLACE for idempotent upsert with sync_status = SYNCED.
+     * Does NOT enqueue a SyncOperation — server data must not be re-pushed.
+     */
+    suspend fun upsertFromSync(payload: String) = withContext(Dispatchers.IO) {
+        val dto = syncJson.decodeFromString<PricingRuleSyncPayload>(payload)
+        val isActive = if (dto.isActive) 1L else 0L
+        val now = Clock.System.now().toEpochMilliseconds()
+        q.insertRule(
+            id = dto.id,
+            product_id = dto.productId,
+            store_id = dto.storeId,
+            price = dto.price,
+            cost_price = dto.costPrice,
+            priority = dto.priority.toLong(),
+            valid_from = dto.validFrom,
+            valid_to = dto.validTo,
+            is_active = isActive,
+            description = dto.description,
+            created_at = dto.updatedAt.takeIf { it > 0 } ?: now,
+            updated_at = dto.updatedAt,
+            sync_status = "SYNCED",
         )
     }
 

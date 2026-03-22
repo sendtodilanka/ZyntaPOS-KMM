@@ -1,5 +1,7 @@
 package com.zyntasolutions.zyntapos.api.sync
 
+import com.zyntasolutions.zyntapos.api.db.PricingRules
+import com.zyntasolutions.zyntapos.api.db.RegionalTaxOverrides
 import com.zyntasolutions.zyntapos.api.db.ReplenishmentRules
 import com.zyntasolutions.zyntapos.api.db.WarehouseStock
 import com.zyntasolutions.zyntapos.api.models.SyncOperation
@@ -8,9 +10,11 @@ import com.zyntasolutions.zyntapos.api.service.PurchaseOrders
 import com.zyntasolutions.zyntapos.api.service.Products
 import com.zyntasolutions.zyntapos.api.service.StockTransfers
 import com.zyntasolutions.zyntapos.api.service.StoreProducts
+import com.zyntasolutions.zyntapos.common.TimestampUtils
 import com.zyntasolutions.zyntapos.common.bool
 import com.zyntasolutions.zyntapos.common.dbl
 import com.zyntasolutions.zyntapos.common.int
+import com.zyntasolutions.zyntapos.common.lng
 import com.zyntasolutions.zyntapos.common.str
 import kotlinx.serialization.json.*
 import org.jetbrains.exposed.sql.*
@@ -415,6 +419,8 @@ class EntityApplier {
                 "REPLENISHMENT_RULE" -> applyReplenishmentRule(op)
                 "STOCK_TRANSFER"    -> applyStockTransfer(storeId, op)
                 "PURCHASE_ORDER"    -> applyPurchaseOrder(storeId, op)
+                "PRICING_RULE"      -> applyPricingRule(storeId, op)
+                "REGIONAL_TAX_OVERRIDE" -> applyRegionalTaxOverride(storeId, op)
                 "TRANSIT_EVENT"     -> { /* append-only — stored via entity_snapshots; no normalized table */ }
                 else -> { /* entity_snapshots trigger handles any remaining types */ }
             }
@@ -1177,6 +1183,55 @@ class EntityApplier {
                 }
             }
             "DELETE" -> ReplenishmentRules.deleteWhere { ReplenishmentRules.id eq op.entityId }
+        }
+    }
+
+    // ── Pricing Rule (C2.1) ──────────────────────────────────────────────
+
+    private fun applyPricingRule(storeId: String, op: SyncOperation) {
+        val payload = parsePayload(op) ?: return
+        when (op.operation) {
+            "INSERT", "CREATE", "UPDATE" -> {
+                val productId = payload.str("product_id") ?: return
+                PricingRules.upsert(PricingRules.id) {
+                    it[PricingRules.id]          = op.entityId
+                    it[PricingRules.productId]   = productId
+                    it[PricingRules.storeId]     = payload.str("store_id")
+                    it[PricingRules.price]       = payload.dbl("price").toBigDecimal()
+                    it[PricingRules.costPrice]   = payload.str("cost_price")?.toDoubleOrNull()?.toBigDecimal()
+                    it[PricingRules.priority]    = payload.int("priority")
+                    it[PricingRules.validFrom]   = payload.lng("valid_from")?.let { ms -> TimestampUtils.fromEpochMs(ms) }
+                    it[PricingRules.validTo]     = payload.lng("valid_to")?.let { ms -> TimestampUtils.fromEpochMs(ms) }
+                    it[PricingRules.isActive]    = payload.bool("is_active")
+                    it[PricingRules.description] = payload.str("description") ?: ""
+                    it[PricingRules.updatedAt]   = OffsetDateTime.now(ZoneOffset.UTC)
+                }
+            }
+            "DELETE" -> PricingRules.deleteWhere { PricingRules.id eq op.entityId }
+        }
+    }
+
+    // ── Regional Tax Override (C2.3) ──────────────────────────────────────
+
+    private fun applyRegionalTaxOverride(storeId: String, op: SyncOperation) {
+        val payload = parsePayload(op) ?: return
+        when (op.operation) {
+            "INSERT", "CREATE", "UPDATE" -> {
+                val taxGroupId = payload.str("tax_group_id") ?: return
+                RegionalTaxOverrides.upsert(RegionalTaxOverrides.id) {
+                    it[RegionalTaxOverrides.id]                    = op.entityId
+                    it[RegionalTaxOverrides.taxGroupId]            = taxGroupId
+                    it[RegionalTaxOverrides.storeId]               = storeId
+                    it[RegionalTaxOverrides.effectiveRate]          = payload.dbl("effective_rate").toBigDecimal()
+                    it[RegionalTaxOverrides.jurisdictionCode]      = payload.str("jurisdiction_code") ?: ""
+                    it[RegionalTaxOverrides.taxRegistrationNumber]  = payload.str("tax_registration_number") ?: ""
+                    it[RegionalTaxOverrides.validFrom]              = payload.lng("valid_from")?.let { ms -> TimestampUtils.fromEpochMs(ms) }
+                    it[RegionalTaxOverrides.validTo]                = payload.lng("valid_to")?.let { ms -> TimestampUtils.fromEpochMs(ms) }
+                    it[RegionalTaxOverrides.isActive]               = payload.bool("is_active")
+                    it[RegionalTaxOverrides.updatedAt]              = OffsetDateTime.now(ZoneOffset.UTC)
+                }
+            }
+            "DELETE" -> RegionalTaxOverrides.deleteWhere { RegionalTaxOverrides.id eq op.entityId }
         }
     }
 

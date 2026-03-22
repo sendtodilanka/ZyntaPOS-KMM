@@ -1,0 +1,22 @@
+-- Migration 15: Add regional_tax_overrides table (C2.3 Localized Tax)
+
+CREATE TABLE IF NOT EXISTS regional_tax_overrides (
+    id                       TEXT    NOT NULL PRIMARY KEY,
+    tax_group_id             TEXT    NOT NULL,
+    store_id                 TEXT    NOT NULL,
+    effective_rate           REAL    NOT NULL DEFAULT 0.0,
+    jurisdiction_code        TEXT    NOT NULL DEFAULT '',
+    tax_registration_number  TEXT    NOT NULL DEFAULT '',
+    valid_from               INTEGER,
+    valid_to                 INTEGER,
+    is_active                INTEGER NOT NULL DEFAULT 1,
+    created_at               INTEGER NOT NULL DEFAULT 0,
+    updated_at               INTEGER NOT NULL DEFAULT 0,
+    sync_status              TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE INDEX IF NOT EXISTS idx_regional_tax_store
+    ON regional_tax_overrides(store_id, is_active);
+
+CREATE INDEX IF NOT EXISTS idx_regional_tax_group_store
+    ON regional_tax_overrides(tax_group_id, store_id, is_active);

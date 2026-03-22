@@ -289,6 +289,21 @@ object PricingRules : Table("pricing_rules") {
     override val primaryKey = PrimaryKey(id)
 }
 
+object RegionalTaxOverrides : Table("regional_tax_overrides") {
+    val id                     = text("id")
+    val taxGroupId             = text("tax_group_id")
+    val storeId                = text("store_id")
+    val effectiveRate          = decimal("effective_rate", precision = 6, scale = 3)
+    val jurisdictionCode       = text("jurisdiction_code").default("")
+    val taxRegistrationNumber  = text("tax_registration_number").default("")
+    val validFrom              = timestampWithTimeZone("valid_from").nullable()
+    val validTo                = timestampWithTimeZone("valid_to").nullable()
+    val isActive               = bool("is_active").default(true)
+    val createdAt              = timestampWithTimeZone("created_at")
+    val updatedAt              = timestampWithTimeZone("updated_at")
+    override val primaryKey = PrimaryKey(id)
+}
+
 object ExchangeRates : Table("exchange_rates") {
     val id              = uuid("id").autoGenerate()
     val sourceCurrency  = varchar("source_currency", 3)

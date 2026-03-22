@@ -32,6 +32,8 @@ class SyncValidator {
             "MASTER_PRODUCT", "STORE_PRODUCT", "WAREHOUSE_STOCK",
             "STOCK_TRANSFER", "PURCHASE_ORDER", "TRANSIT_EVENT",
             "REPLENISHMENT_RULE",
+            // Phase 2: Pricing & Tax (C2.1, C2.3)
+            "PRICING_RULE", "REGIONAL_TAX_OVERRIDE",
         )
         private val json = Json { ignoreUnknownKeys = true }
     }
@@ -229,6 +231,18 @@ class SyncValidator {
                     if (warehouseId.isNullOrBlank()) errors.add("WAREHOUSE_STOCK.warehouse_id must not be blank")
                     val productId = obj.str("product_id")
                     if (productId.isNullOrBlank()) errors.add("WAREHOUSE_STOCK.product_id must not be blank")
+                }
+                "PRICING_RULE" -> {
+                    val productId = obj.str("product_id")
+                    if (productId.isNullOrBlank()) errors.add("PRICING_RULE.product_id must not be blank")
+                    val price = obj.dbl("price")
+                    if (price < 0) errors.add("PRICING_RULE.price must be non-negative")
+                }
+                "REGIONAL_TAX_OVERRIDE" -> {
+                    val taxGroupId = obj.str("tax_group_id")
+                    if (taxGroupId.isNullOrBlank()) errors.add("REGIONAL_TAX_OVERRIDE.tax_group_id must not be blank")
+                    val effectiveRate = obj.dbl("effective_rate")
+                    if (effectiveRate < 0 || effectiveRate > 100) errors.add("REGIONAL_TAX_OVERRIDE.effective_rate must be 0-100")
                 }
                 // Other entity types: structural JSON validation only (already done above)
             }

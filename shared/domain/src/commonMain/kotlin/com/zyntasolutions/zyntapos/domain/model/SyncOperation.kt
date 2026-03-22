@@ -108,5 +108,7 @@ data class SyncOperation(
         const val REPLENISHMENT_RULE = "replenishment_rule"
         // C2.1 Region-based pricing rules
         const val PRICING_RULE = "pricing_rule"
+        // C2.3 Regional tax overrides
+        const val REGIONAL_TAX_OVERRIDE = "regional_tax_override"
     }
 }
