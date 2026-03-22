@@ -4,6 +4,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.inventory.AdjustStockUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.AutoReplenishmentUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.CreatePurchaseOrderUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.enterprise.GenerateStockReorderReportUseCase
+import com.zyntasolutions.zyntapos.feature.inventory.pricing.PricingRuleViewModel
 import com.zyntasolutions.zyntapos.feature.inventory.replenishment.ReplenishmentViewModel
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.CompleteStocktakeUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.CreateProductUseCase
@@ -143,6 +144,13 @@ val inventoryModule = module {
             generateStockReorderReportUseCase = get(),
             createPurchaseOrderUseCase      = get(),
             autoReplenishmentUseCase        = get(),
+        )
+    }
+
+    viewModel {
+        PricingRuleViewModel(
+            pricingRuleRepository = get(),
+            productRepository     = get(),
         )
     }
 

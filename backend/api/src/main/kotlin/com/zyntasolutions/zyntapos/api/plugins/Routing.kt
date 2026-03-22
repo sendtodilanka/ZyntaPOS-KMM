@@ -4,13 +4,13 @@ import com.zyntasolutions.zyntapos.api.routes.adminAlertsRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminDiagnosticRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminAuditRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminInventoryRoutes
-import com.zyntasolutions.zyntapos.api.routes.adminPricingRoutes
-import com.zyntasolutions.zyntapos.api.routes.adminReplenishmentRoutes
+import com.zyntasolutions.zyntapos.api.routes.pricingRoutes
+import com.zyntasolutions.zyntapos.api.routes.replenishmentRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminAuthRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminConfigRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminEmailRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminMasterProductRoutes
-import com.zyntasolutions.zyntapos.api.routes.adminTransferRoutes
+import com.zyntasolutions.zyntapos.api.routes.transferRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminEmailPreferencesRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminEmailTemplateRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminHealthRoutes
@@ -96,10 +96,7 @@ fun Application.configureRouting() {
                 adminEmailTemplateRoutes()
                 adminEmailPreferencesRoutes()
                 adminMasterProductRoutes()
-                adminTransferRoutes()
                 adminInventoryRoutes()
-                adminReplenishmentRoutes()
-                adminPricingRoutes()
             }
         }
 
@@ -116,6 +113,9 @@ fun Application.configureRouting() {
                     exportRoutes()
                     diagnosticConsentRoutes()
                     integrityRoutes()   // Play Integrity attestation (TODO-008 ASO)
+                    transferRoutes()
+                    replenishmentRoutes()
+                    pricingRoutes()
                 }
                 // Sync push is write-heavy — use sync tier (60 req/min)
                 rateLimit(RateLimitName("sync")) {

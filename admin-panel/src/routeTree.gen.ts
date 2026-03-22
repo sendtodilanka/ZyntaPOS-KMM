@@ -32,8 +32,6 @@ import { Route as SettingsEmailRouteImport } from './routes/settings/email'
 import { Route as LicensesLicenseKeyRouteImport } from './routes/licenses/$licenseKey'
 import { Route as HealthStoreIdRouteImport } from './routes/health/$storeId'
 import { Route as InventoryIndexRouteImport } from './routes/inventory/index'
-import { Route as TransfersIndexRouteImport } from './routes/transfers/index'
-import { Route as ReplenishmentIndexRouteImport } from './routes/replenishment/index'
 import { Route as DiagnosticIndexRouteImport } from './routes/diagnostic/index'
 import { Route as MasterProductsIndexRouteImport } from './routes/master-products/index'
 import { Route as MasterProductsMasterProductIdRouteImport } from './routes/master-products/$masterProductId'
@@ -119,16 +117,6 @@ const InventoryIndexRoute = InventoryIndexRouteImport.update({
   path: '/inventory/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TransfersIndexRoute = TransfersIndexRouteImport.update({
-  id: '/transfers/',
-  path: '/transfers/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ReplenishmentIndexRoute = ReplenishmentIndexRouteImport.update({
-  id: '/replenishment/',
-  path: '/replenishment/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const DiagnosticIndexRoute = DiagnosticIndexRouteImport.update({
   id: '/diagnostic/',
   path: '/diagnostic/',
@@ -204,8 +192,6 @@ export interface FileRoutesByFullPath {
   '/health/': typeof HealthIndexRoute
   '/licenses/': typeof LicensesIndexRoute
   '/inventory/': typeof InventoryIndexRoute
-  '/transfers/': typeof TransfersIndexRoute
-  '/replenishment/': typeof ReplenishmentIndexRoute
   '/master-products/': typeof MasterProductsIndexRoute
   '/reports/': typeof ReportsIndexRoute
   '/security/': typeof SecurityIndexRoute
@@ -235,8 +221,6 @@ export interface FileRoutesByTo {
   '/health': typeof HealthIndexRoute
   '/licenses': typeof LicensesIndexRoute
   '/inventory': typeof InventoryIndexRoute
-  '/transfers': typeof TransfersIndexRoute
-  '/replenishment': typeof ReplenishmentIndexRoute
   '/master-products': typeof MasterProductsIndexRoute
   '/reports': typeof ReportsIndexRoute
   '/security': typeof SecurityIndexRoute
@@ -267,8 +251,6 @@ export interface FileRoutesById {
   '/health/': typeof HealthIndexRoute
   '/licenses/': typeof LicensesIndexRoute
   '/inventory/': typeof InventoryIndexRoute
-  '/transfers/': typeof TransfersIndexRoute
-  '/replenishment/': typeof ReplenishmentIndexRoute
   '/master-products/': typeof MasterProductsIndexRoute
   '/reports/': typeof ReportsIndexRoute
   '/security/': typeof SecurityIndexRoute
@@ -299,8 +281,6 @@ export interface FileRouteTypes {
     | '/diagnostic/'
     | '/health/'
     | '/inventory/'
-    | '/transfers/'
-    | '/replenishment/'
     | '/licenses/'
     | '/master-products/'
     | '/reports/'
@@ -329,8 +309,6 @@ export interface FileRouteTypes {
     | '/diagnostic'
     | '/health'
     | '/inventory'
-    | '/transfers'
-    | '/replenishment'
     | '/licenses'
     | '/master-products'
     | '/reports'
@@ -360,8 +338,6 @@ export interface FileRouteTypes {
     | '/diagnostic/'
     | '/health/'
     | '/inventory/'
-    | '/transfers/'
-    | '/replenishment/'
     | '/licenses/'
     | '/master-products/'
     | '/reports/'
@@ -379,8 +355,6 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   HealthStoreIdRoute: typeof HealthStoreIdRoute
   InventoryIndexRoute: typeof InventoryIndexRoute
-  TransfersIndexRoute: typeof TransfersIndexRoute
-  ReplenishmentIndexRoute: typeof ReplenishmentIndexRoute
   DiagnosticIndexRoute: typeof DiagnosticIndexRoute
   LicensesLicenseKeyRoute: typeof LicensesLicenseKeyRoute
   MasterProductsMasterProductIdRoute: typeof MasterProductsMasterProductIdRoute
@@ -520,20 +494,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InventoryIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/transfers/': {
-      id: '/transfers/'
-      path: '/transfers'
-      fullPath: '/transfers/'
-      preLoaderRoute: typeof TransfersIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/replenishment/': {
-      id: '/replenishment/'
-      path: '/replenishment'
-      fullPath: '/replenishment/'
-      preLoaderRoute: typeof ReplenishmentIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/diagnostic/': {
       id: '/diagnostic/'
       path: '/diagnostic'
@@ -619,8 +579,6 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   HealthStoreIdRoute: HealthStoreIdRoute,
   InventoryIndexRoute: InventoryIndexRoute,
-  TransfersIndexRoute: TransfersIndexRoute,
-  ReplenishmentIndexRoute: ReplenishmentIndexRoute,
   DiagnosticIndexRoute: DiagnosticIndexRoute,
   LicensesLicenseKeyRoute: LicensesLicenseKeyRoute,
   MasterProductsMasterProductIdRoute: MasterProductsMasterProductIdRoute,

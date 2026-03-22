@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Key, Store, Users, ClipboardList,
   RefreshCw, Settings2, BarChart3, Activity, Bell,
   ChevronLeft, ChevronRight, X, SlidersHorizontal, Ticket, Mail, Package,
-  ArrowRightLeft, RotateCcw, Monitor,
+  Monitor,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUiStore } from '@/stores/ui-store';
@@ -42,8 +42,6 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Monitoring',
     items: [
-      { label: 'Transfers', icon: ArrowRightLeft, href: '/transfers', permission: 'transfers:read' },
-      { label: 'Replenishment', icon: RotateCcw, href: '/replenishment', permission: 'inventory:read' },
       { label: 'Diagnostics', icon: Monitor, href: '/diagnostic', permission: 'diagnostics:read' },
       { label: 'Sync', icon: RefreshCw, href: '/sync', permission: 'store:sync:manage' },
       { label: 'Health', icon: Activity, href: '/health', permission: 'system:health' },
