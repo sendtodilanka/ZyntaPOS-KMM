@@ -6,12 +6,9 @@ package com.zyntasolutions.zyntapos.domain.model
  * Enables multi-region tax configurations where different stores in different
  * jurisdictions apply different tax rates for the same tax group.
  *
- * Resolution: At checkout, the system first checks for a [RegionalTaxOverride]
- * matching (taxGroupId, storeId). If found, [effectiveRate] is used instead of
- * [TaxGroup.rate]. If not found, the global [TaxGroup.rate] applies.
- *
- * Per ADR-009: regional tax configuration is a store-level business operation,
- * managed via the KMM app with POS JWT auth (`/v1/taxes/*` endpoints).
+ * Resolution: At checkout, the system first checks for a RegionalTaxOverride
+ * matching (taxGroupId, storeId). If found, effectiveRate is used instead of
+ * TaxGroup.rate. If not found, the global TaxGroup.rate applies.
  */
 data class RegionalTaxOverride(
     val id: String,

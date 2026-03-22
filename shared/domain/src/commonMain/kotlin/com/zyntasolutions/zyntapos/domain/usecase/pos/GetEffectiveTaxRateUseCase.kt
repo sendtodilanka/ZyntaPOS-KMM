@@ -37,6 +37,7 @@ class GetEffectiveTaxRateUseCase(
         return when (overrideResult) {
             is Result.Success -> overrideResult.data?.effectiveRate ?: taxGroup.rate
             is Result.Error -> taxGroup.rate
+            is Result.Loading -> taxGroup.rate
         }
     }
 }
