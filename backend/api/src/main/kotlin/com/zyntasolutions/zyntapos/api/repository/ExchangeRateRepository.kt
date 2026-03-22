@@ -19,7 +19,7 @@ class ExchangeRateRepository {
 
     fun getRates(): List<ExchangeRateRow> = transaction {
         ExchangeRates.selectAll()
-            .orderBy(ExchangeRates.sourceCurrency, SortOrder.ASC)
+            .orderBy(ExchangeRates.rateSourceCurrency, SortOrder.ASC)
             .map { it.toRow() }
     }
 
@@ -27,7 +27,7 @@ class ExchangeRateRepository {
         val now = OffsetDateTime.now()
         ExchangeRates.selectAll()
             .where {
-                (ExchangeRates.sourceCurrency eq sourceCurrency) and
+                (ExchangeRates.rateSourceCurrency eq sourceCurrency) and
                 (ExchangeRates.targetCurrency eq targetCurrency) and
                 (ExchangeRates.effectiveDate lessEq now) and
                 (ExchangeRates.expiresAt.isNull() or (ExchangeRates.expiresAt greater now))
@@ -46,28 +46,28 @@ class ExchangeRateRepository {
         val now = OffsetDateTime.now()
         val existing = ExchangeRates.selectAll()
             .where {
-                (ExchangeRates.sourceCurrency eq sourceCurrency) and
+                (ExchangeRates.rateSourceCurrency eq sourceCurrency) and
                 (ExchangeRates.targetCurrency eq targetCurrency)
             }
             .firstOrNull()
 
         if (existing != null) {
             ExchangeRates.update({
-                (ExchangeRates.sourceCurrency eq sourceCurrency) and
+                (ExchangeRates.rateSourceCurrency eq sourceCurrency) and
                 (ExchangeRates.targetCurrency eq targetCurrency)
             }) {
                 it[ExchangeRates.rate] = rate.toBigDecimal()
-                it[ExchangeRates.source] = source
+                it[ExchangeRates.rateSource] = source
                 it[ExchangeRates.updatedAt] = now
             }
         } else {
             ExchangeRates.insert {
                 it[ExchangeRates.id] = UUID.randomUUID()
-                it[ExchangeRates.sourceCurrency] = sourceCurrency
+                it[ExchangeRates.rateSourceCurrency] = sourceCurrency
                 it[ExchangeRates.targetCurrency] = targetCurrency
                 it[ExchangeRates.rate] = rate.toBigDecimal()
                 it[ExchangeRates.effectiveDate] = now
-                it[ExchangeRates.source] = source
+                it[ExchangeRates.rateSource] = source
                 it[ExchangeRates.createdAt] = now
                 it[ExchangeRates.updatedAt] = now
             }
@@ -75,7 +75,7 @@ class ExchangeRateRepository {
 
         ExchangeRates.selectAll()
             .where {
-                (ExchangeRates.sourceCurrency eq sourceCurrency) and
+                (ExchangeRates.rateSourceCurrency eq sourceCurrency) and
                 (ExchangeRates.targetCurrency eq targetCurrency)
             }
             .first().toRow()
@@ -83,19 +83,19 @@ class ExchangeRateRepository {
 
     fun deleteRate(sourceCurrency: String, targetCurrency: String): Boolean = transaction {
         ExchangeRates.deleteWhere {
-            (ExchangeRates.sourceCurrency eq sourceCurrency) and
+            (ExchangeRates.rateSourceCurrency eq sourceCurrency) and
             (ExchangeRates.targetCurrency eq targetCurrency)
         } > 0
     }
 
     private fun ResultRow.toRow() = ExchangeRateRow(
         id = this[ExchangeRates.id].toString(),
-        sourceCurrency = this[ExchangeRates.sourceCurrency],
+        sourceCurrency = this[ExchangeRates.rateSourceCurrency],
         targetCurrency = this[ExchangeRates.targetCurrency],
         rate = this[ExchangeRates.rate].toDouble(),
         effectiveDate = this[ExchangeRates.effectiveDate].toString(),
         expiresAt = this[ExchangeRates.expiresAt]?.toString(),
-        source = this[ExchangeRates.source],
+        source = this[ExchangeRates.rateSource],
         createdAt = this[ExchangeRates.createdAt].toString(),
         updatedAt = this[ExchangeRates.updatedAt].toString(),
     )

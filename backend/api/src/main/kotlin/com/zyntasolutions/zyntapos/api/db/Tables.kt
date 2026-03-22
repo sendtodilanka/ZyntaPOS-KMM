@@ -296,7 +296,7 @@ object ExchangeRates : Table("exchange_rates") {
     val rate            = decimal("rate", precision = 18, scale = 8)
     val effectiveDate   = timestampWithTimeZone("effective_date")
     val expiresAt       = timestampWithTimeZone("expires_at").nullable()
-    val source          = varchar("source", 32).default("MANUAL")
+    val rateSource      = varchar("source", 32).default("MANUAL")
     val createdAt       = timestampWithTimeZone("created_at")
     val updatedAt       = timestampWithTimeZone("updated_at")
     override val primaryKey = PrimaryKey(id)

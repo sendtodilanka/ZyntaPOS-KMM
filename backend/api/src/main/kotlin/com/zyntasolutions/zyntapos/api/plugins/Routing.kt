@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.api.plugins
 
 import com.zyntasolutions.zyntapos.api.routes.adminAlertsRoutes
+import com.zyntasolutions.zyntapos.api.routes.adminExchangeRateRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminDiagnosticRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminAuditRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminInventoryRoutes
