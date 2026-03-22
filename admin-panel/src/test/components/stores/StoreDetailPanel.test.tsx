@@ -20,7 +20,6 @@ vi.mock('@/api/stores', () => ({
     },
     isLoading: false,
   }),
-  useUpdateStoreConfig: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 
 const mockStore: Store = {
@@ -69,8 +68,8 @@ describe('StoreDetailPanel', () => {
     render(<StoreDetailPanel store={mockStore} config={mockConfig} />);
     const configTab = screen.getByRole('button', { name: /configuration/i });
     fireEvent.click(configTab);
-    expect(screen.getByText(/store configuration/i)).toBeInTheDocument();
-    expect(screen.getByDisplayValue('Asia/Colombo')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /store configuration/i })).toBeInTheDocument();
+    expect(screen.getByText('Asia/Colombo')).toBeInTheDocument();
   });
 
   it('clicking Sync tab shows sync information', () => {
