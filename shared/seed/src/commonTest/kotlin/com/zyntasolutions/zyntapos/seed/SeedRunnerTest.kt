@@ -120,6 +120,11 @@ class SeedRunnerTest {
         }
         override suspend fun update(customer: Customer): Result<Unit> = Result.Success(Unit)
         override suspend fun delete(id: String): Result<Unit> = Result.Success(Unit)
+        override fun searchGlobal(query: String): Flow<List<Customer>> = flowOf(emptyList())
+        override fun getByStore(storeId: String): Flow<List<Customer>> = flowOf(emptyList())
+        override fun getGlobalCustomers(): Flow<List<Customer>> = flowOf(emptyList())
+        override suspend fun makeGlobal(customerId: String): Result<Unit> = Result.Success(Unit)
+        override suspend fun updateLoyaltyPoints(customerId: String, points: Int): Result<Unit> = Result.Success(Unit)
     }
 
     private fun runner() = SeedRunner(

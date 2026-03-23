@@ -14,8 +14,14 @@ import com.zyntasolutions.zyntapos.domain.repository.CustomerGroupRepository
 import com.zyntasolutions.zyntapos.domain.repository.CustomerRepository
 import com.zyntasolutions.zyntapos.domain.repository.CustomerWalletRepository
 import com.zyntasolutions.zyntapos.domain.repository.LoyaltyRepository
+import com.zyntasolutions.zyntapos.domain.model.Order
+import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
+import com.zyntasolutions.zyntapos.domain.usecase.crm.ExportCustomerDataUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.crm.GetCustomerPurchaseHistoryUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.crm.MergeCustomersUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.SaveCustomerGroupUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.WalletTopUpUseCase
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -119,6 +125,25 @@ class CustomerViewModelTest {
             customersFlow.value = customersFlow.value.filter { it.id != id }
             return Result.Success(Unit)
         }
+        override fun searchGlobal(query: String): Flow<List<Customer>> = search(query)
+        override fun getByStore(storeId: String): Flow<List<Customer>> =
+            customersFlow.map { list -> list.filter { it.storeId == storeId } }
+        override fun getGlobalCustomers(): Flow<List<Customer>> =
+            customersFlow.map { list -> list.filter { it.storeId == null } }
+        override suspend fun makeGlobal(customerId: String): Result<Unit> {
+            val idx = customersFlow.value.indexOfFirst { it.id == customerId }
+            if (idx == -1) return Result.Error(DatabaseException("Not found"))
+            val updated = customersFlow.value.toMutableList().also { it[idx] = it[idx].copy(storeId = null) }
+            customersFlow.value = updated
+            return Result.Success(Unit)
+        }
+        override suspend fun updateLoyaltyPoints(customerId: String, points: Int): Result<Unit> {
+            val idx = customersFlow.value.indexOfFirst { it.id == customerId }
+            if (idx == -1) return Result.Error(DatabaseException("Not found"))
+            val updated = customersFlow.value.toMutableList().also { it[idx] = it[idx].copy(loyaltyPoints = points) }
+            customersFlow.value = updated
+            return Result.Success(Unit)
+        }
     }
 
     // ── Fake CustomerGroupRepository ──────────────────────────────────────────
@@ -209,6 +234,19 @@ class CustomerViewModelTest {
 
     private val saveGroupUseCase = SaveCustomerGroupUseCase(fakeGroupRepository)
     private val walletTopUpUseCase = WalletTopUpUseCase(fakeWalletRepository)
+    private val fakeOrderRepository = object : OrderRepository {
+        override suspend fun create(order: Order): Result<Order> = error("not needed")
+        override suspend fun getById(id: String): Result<Order> = error("not needed")
+        override fun getAll(filters: Map<String, String>): Flow<List<Order>> = flowOf(emptyList())
+        override suspend fun update(order: Order): Result<Unit> = error("not needed")
+        override suspend fun void(id: String, reason: String): Result<Unit> = error("not needed")
+        override fun getByDateRange(from: kotlinx.datetime.Instant, to: kotlinx.datetime.Instant): Flow<List<Order>> = flowOf(emptyList())
+        override suspend fun holdOrder(cart: List<com.zyntasolutions.zyntapos.domain.model.CartItem>): Result<String> = error("not needed")
+        override suspend fun retrieveHeld(holdId: String): Result<Order> = error("not needed")
+    }
+    private val exportCustomerDataUseCase = ExportCustomerDataUseCase(fakeCustomerRepository, fakeOrderRepository)
+    private val mergeCustomersUseCase = MergeCustomersUseCase(fakeCustomerRepository, fakeWalletRepository, fakeLoyaltyRepository)
+    private val getPurchaseHistoryUseCase = GetCustomerPurchaseHistoryUseCase(fakeOrderRepository)
 
     private lateinit var viewModel: CustomerViewModel
 
@@ -233,6 +271,9 @@ class CustomerViewModelTest {
             loyaltyRepository = fakeLoyaltyRepository,
             saveGroupUseCase = saveGroupUseCase,
             walletTopUpUseCase = walletTopUpUseCase,
+            exportCustomerDataUseCase = exportCustomerDataUseCase,
+            mergeCustomersUseCase = mergeCustomersUseCase,
+            getPurchaseHistoryUseCase = getPurchaseHistoryUseCase,
             authRepository = fakeAuthRepository,
             analytics = noOpAnalytics,
         )
