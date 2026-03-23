@@ -118,6 +118,9 @@ val appModule = module {
     // Exchange rates: multi-currency conversion (C2.2 — platform-level config per ADR-009)
     single { com.zyntasolutions.zyntapos.api.repository.ExchangeRateRepository() }
 
+    // User store access: multi-store permission grants (C3.2)
+    single { com.zyntasolutions.zyntapos.api.repository.UserStoreAccessRepository() }
+
     // ── Sync engine repositories ──────────────────────────────────────────────
     single { SyncOperationRepository() }
     single { SyncCursorRepository() }

@@ -61,6 +61,7 @@ import com.zyntasolutions.zyntapos.data.repository.ShiftRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.SystemRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.PurchaseOrderRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.ReplenishmentRuleRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.UserStoreAccessRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.RackProductRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.WarehouseRackRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.WarehouseRepositoryImpl
@@ -125,6 +126,7 @@ import com.zyntasolutions.zyntapos.domain.repository.ShiftRepository
 import com.zyntasolutions.zyntapos.domain.repository.SystemRepository
 import com.zyntasolutions.zyntapos.domain.repository.PurchaseOrderRepository
 import com.zyntasolutions.zyntapos.domain.repository.ReplenishmentRuleRepository
+import com.zyntasolutions.zyntapos.domain.repository.UserStoreAccessRepository
 import com.zyntasolutions.zyntapos.domain.repository.RackProductRepository
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseRackRepository
 import com.zyntasolutions.zyntapos.domain.repository.RoleRepository
@@ -405,6 +407,10 @@ val dataModule = module {
     // Warehouse stock: per-warehouse product quantity tracking (C1.2)
     single<WarehouseStockRepository> { WarehouseStockRepositoryImpl(db = get(), syncEnqueuer = get()) }
 
+    // User store access: multi-store user permission grants (C3.2)
+    single<UserStoreAccessRepository> { UserStoreAccessRepositoryImpl(db = get(), syncEnqueuer = get()) }
+    single { get<UserStoreAccessRepository>() as UserStoreAccessRepositoryImpl }
+
     // ─────────────────────────────────────────────────────────────────────────
     // ── Phase 2 Notifications ────────────────────────────────────────────────
     // ─────────────────────────────────────────────────────────────────────────
@@ -462,6 +468,7 @@ val dataModule = module {
             storeProductOverrideRepository = get(),
             pricingRuleRepository = get(),
             regionalTaxOverrideRepository = get(),
+            userStoreAccessRepository = get(),
             conflictResolver      = get(),
             conflictLogRepository = get(),
             queueMaintenance      = get(),

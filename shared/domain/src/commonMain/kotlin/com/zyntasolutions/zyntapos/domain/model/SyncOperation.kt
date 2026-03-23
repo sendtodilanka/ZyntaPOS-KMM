@@ -110,5 +110,7 @@ data class SyncOperation(
         const val PRICING_RULE = "pricing_rule"
         // C2.3 Regional tax overrides
         const val REGIONAL_TAX_OVERRIDE = "regional_tax_override"
+        // C3.2 Multi-store user access grants
+        const val USER_STORE_ACCESS = "user_store_access"
     }
 }

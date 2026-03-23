@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-22 (C2.1 PRICING_RULE sync pipeline complete; C2.3 localized tax core implemented — RegionalTaxOverride model + SQLDelight + repo + use case + backend V34 migration + EntityApplier + SyncValidator + 8 tests)
+**Last Updated:** 2026-03-23 (C3.2 store-level permissions core implemented — UserStoreAccess model + SQLDelight + repo + use cases + RbacEngine.hasPermissionAtStore + backend V35 migration + EntityApplier + SyncValidator + StoreAccessRoutes + 17 tests)
 **Status:** Approved — Verified against codebase 2026-03-22, updated for ADR-009 compliance
 
 ---
@@ -1072,25 +1072,38 @@ Backend Tests:
 
 ---
 
-### C3.2 Store-Level Permissions (ශාඛා මට්ටමේ ප්‍රවේශ)
+### C3.2 Store-Level Permissions (ශාඛා මට්ටමේ ප්‍රවේශ) — ✅ CORE IMPLEMENTED (2026-03-23)
+
+> **HANDOFF (2026-03-23):** Core store-level permissions infrastructure implemented end-to-end.
+> `UserStoreAccess` domain model, `user_store_access` SQLDelight table (migration 16.sqm),
+> repository interface + impl with SyncEnqueuer, 4 use cases, `RbacEngine.hasPermissionAtStore()`,
+> backend V35 migration, Exposed ORM repo, 4 REST endpoints under `/v1/store-access`,
+> `EntityApplier` + `SyncValidator` handlers, 17 unit tests.
 
 **Priority:** PHASE-2
-**Status:** NOT IMPLEMENTED
+**Status:** ✅ CORE IMPLEMENTED — junction table, domain model, repos, use cases, RBAC, backend (2026-03-23)
 
 **Codebase State:**
-- `users.sq` has `store_id TEXT NOT NULL` — each user belongs to ONE store only
-- `employees.sq` has `store_id TEXT NOT NULL` — same limitation
-- Backend `users` table: `UNIQUE (store_id, username)` — username scoped per store
-- No `user_allowed_stores` junction table
-- No mechanism for a user to access data from a different store
+- `users.sq` has `store_id TEXT NOT NULL` — primary store (backward-compatible)
+- `user_store_access.sq` — junction table for additional store grants (C3.2)
+- `UserStoreAccess` domain model with per-store role override
+- `RbacEngine.hasPermissionAtStore()` — store-scoped permission checks
 
-**What's MISSING:**
-- [ ] `user_store_access` junction table (user_id, store_id, role, granted_at, granted_by)
-- [ ] `UserStoreAccess` domain model
-- [ ] `UserStoreAccessRepository` interface + impl
-- [ ] Modify `RbacEngine` to accept `storeId` parameter for permission checks
-- [ ] Backend migration: `user_store_access` table
-- [ ] Backend: Middleware to validate user has access to requested store data
+**What's DONE (2026-03-23):**
+- [x] `user_store_access` SQLDelight table + migration 16.sqm
+- [x] `UserStoreAccess` domain model in `:shared:domain`
+- [x] `UserStoreAccessRepository` interface + `UserStoreAccessRepositoryImpl` with SyncEnqueuer
+- [x] `RbacEngine.hasPermissionAtStore()` — store-scoped RBAC
+- [x] `GrantStoreAccessUseCase`, `RevokeStoreAccessUseCase`, `CheckStoreAccessUseCase`, `GetUserAccessibleStoresUseCase`
+- [x] `USER_STORE_ACCESS` entity type in SyncOperation + SyncEngine routing
+- [x] Koin bindings in `DataModule.kt`
+- [x] Backend V35 migration: `user_store_access` PostgreSQL table
+- [x] Backend `UserStoreAccessRepository` (Exposed ORM) + `StoreAccessRoutes` (4 endpoints under `/v1/store-access`)
+- [x] Backend `EntityApplier` + `SyncValidator` handlers
+- [x] 17 unit tests (5 RbacEngine + 12 use case)
+
+**What's REMAINING (deferred):**
+- [ ] Backend: Middleware to validate user has access to requested store data in sync routes
 - [ ] KMM: User → store assignment management UI (store ADMIN manages their own staff per ADR-009)
 - [ ] KMM: Store selector for users with multi-store access
 
@@ -2344,7 +2357,7 @@ git push -u origin $(git branch --show-current)
 | Store-Specific Discounts | C2.4 | ✅ CORE IMPLEMENTED (store_id on coupons, store_ids on promotions, validation + query; 2026-03-22) |
 | **3. Access Control** | | |
 | RBAC | C3.1 | COMPLETE |
-| Store-Level Permissions | C3.2 | NOT IMPLEMENTED |
+| Store-Level Permissions | C3.2 | ✅ CORE IMPLEMENTED (junction table, domain model, RBAC, backend; 2026-03-23) |
 | Global Admin Dashboard | C3.3 | PARTIAL |
 | Employee Roaming | C3.4 | NOT IMPLEMENTED |
 | **4. Sales & Customer** | | |

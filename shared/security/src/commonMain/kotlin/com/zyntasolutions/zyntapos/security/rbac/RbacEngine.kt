@@ -72,6 +72,36 @@ class RbacEngine {
     fun getDeniedPermissions(role: Role): Set<Permission> =
         Permission.entries.toSet() - getPermissions(role)
 
+    // ── Store-scoped RBAC (C3.2) ──────────────────────────────────────────────
+
+    /**
+     * Returns `true` if [user] holds [permission] at the specified [storeId].
+     *
+     * The effective role is resolved as follows:
+     * 1. If [storeId] == [user.storeId] → use user's default role.
+     * 2. If [roleAtStore] is provided (from a [UserStoreAccess] grant) → use that role.
+     * 3. Otherwise → deny access.
+     *
+     * @param user        The authenticated user.
+     * @param permission  The required permission.
+     * @param storeId     The store where the action is being performed.
+     * @param roleAtStore Optional per-store role override from a UserStoreAccess grant.
+     */
+    fun hasPermissionAtStore(
+        user: User,
+        permission: Permission,
+        storeId: String,
+        roleAtStore: Role? = null,
+    ): Boolean {
+        // Primary store — use default role
+        if (storeId == user.storeId) {
+            return hasPermission(user, permission)
+        }
+        // Multi-store access — use override role or user's default role
+        val effectiveRole = roleAtStore ?: user.role
+        return hasPermission(effectiveRole, permission)
+    }
+
     // ── Dynamic RBAC overloads ────────────────────────────────────────────────
 
     /**

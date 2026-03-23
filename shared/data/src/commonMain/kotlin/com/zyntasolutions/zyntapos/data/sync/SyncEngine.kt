@@ -16,6 +16,7 @@ import com.zyntasolutions.zyntapos.data.repository.ProductRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.MasterProductRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.PricingRuleRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.RegionalTaxOverrideRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.UserStoreAccessRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.StockRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.StoreProductOverrideRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.SupplierRepositoryImpl
@@ -79,6 +80,8 @@ class SyncEngine(
     private val pricingRuleRepository: PricingRuleRepositoryImpl,
     // Localized Tax (C2.3)
     private val regionalTaxOverrideRepository: RegionalTaxOverrideRepositoryImpl,
+    // Store-Level Permissions (C3.2)
+    private val userStoreAccessRepository: UserStoreAccessRepositoryImpl,
     // CRDT conflict resolution (C6.1)
     private val conflictResolver: ConflictResolver,
     private val conflictLogRepository: ConflictLogRepository,
@@ -437,6 +440,7 @@ class SyncEngine(
             SyncOperation.EntityType.STORE_PRODUCT    -> storeProductOverrideRepository.upsertFromSyncPayload(payload)
             SyncOperation.EntityType.PRICING_RULE     -> pricingRuleRepository.upsertFromSync(payload)
             SyncOperation.EntityType.REGIONAL_TAX_OVERRIDE -> regionalTaxOverrideRepository.upsertFromSync(payload)
+            SyncOperation.EntityType.USER_STORE_ACCESS -> userStoreAccessRepository.upsertFromSync(payload)
             SyncOperation.EntityType.USER             -> { /* read-only from device — managed via auth */ }
             // Phase 2: Multi-store entities (C1.1–C1.5) — server-managed, deltas acknowledged
             // Local data is refreshed via REST API pull; individual delta application not needed.

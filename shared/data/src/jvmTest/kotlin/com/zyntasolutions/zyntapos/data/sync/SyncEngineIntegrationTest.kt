@@ -10,6 +10,7 @@ import com.zyntasolutions.zyntapos.data.repository.OrderRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.ProductRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.PricingRuleRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.RegionalTaxOverrideRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.UserStoreAccessRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.StockRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.MasterProductRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.StoreProductOverrideRepositoryImpl
@@ -163,6 +164,7 @@ class SyncEngineIntegrationTest {
             storeProductOverrideRepository = StoreProductOverrideRepositoryImpl(db, syncEnqueuer),
             pricingRuleRepository = PricingRuleRepositoryImpl(db),
             regionalTaxOverrideRepository = RegionalTaxOverrideRepositoryImpl(db, syncEnqueuer),
+            userStoreAccessRepository = UserStoreAccessRepositoryImpl(db, syncEnqueuer),
             conflictResolver      = ConflictResolver(localDeviceId = testDeviceId),
             conflictLogRepository = ConflictLogRepositoryImpl(db = db),
             queueMaintenance      = SyncQueueMaintenance(db = db),
