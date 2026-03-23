@@ -44,7 +44,7 @@ Beyond these bugs, building on the VPS is architecturally wrong:
 **Build Docker images in CI (GitHub Actions) and push to the GitHub Container Registry (GHCR).
 The VPS only pulls pre-built images — it never compiles code or runs Gradle.**
 
-### CI side (`ci-gate.yml` — `build-backend-images` job)
+### CI side (`ci-push-main.yml` — `build-backend-images` job)
 
 ```yaml
 build-backend-images:

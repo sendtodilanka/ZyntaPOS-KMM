@@ -140,7 +140,7 @@ git checkout -b claude/<task-id>
 | Detekt static analysis | ✅ Yes | `./gradlew detekt` |
 | Android Lint | ✅ Yes | `./gradlew lint` |
 | SQLDelight code generation | ✅ Yes | `./gradlew generateSqlDelightInterface` |
-| Backend Docker services | ❌ CI/VPS only | Images built by `ci-gate.yml`, run on VPS |
+| Backend Docker services | ❌ CI/VPS only | Images built by `ci-push-main.yml`, run on VPS |
 | Deploy / Smoke / Verify | ❌ CI/VPS only | Triggered via GitHub Actions after merge |
 
 ### Recommended Local Pipeline Run (mirrors Step[1] Branch Validate)
@@ -194,21 +194,27 @@ Step[1]: Branch Validate   (ci-branch-validate.yml)
 Step[2]: Auto PR           (ci-auto-pr.yml)
   • Creates PR targeting main (idempotent — reuses existing PR)
   • Enables auto-merge (squash + delete branch)
-  • PAT_TOKEN required to trigger CI Gate on the PR
+  • PAT_TOKEN required to trigger PR Gate on the PR
         │
         ▼
-Step[3+4]: CI Gate         (ci-gate.yml)
+Step[3]: PR Gate           (ci-pr-gate.yml)
   • Full build + Android Lint + Detekt + allTests
   • Backend compile + unit tests + Kover coverage (api, license, sync)
   • Admin panel TypeScript + ESLint + Vitest + Playwright
   • Flyway migration validation, docker-compose validation
-  • OWASP security scan (advisory — continue-on-error)
+  • OWASP security scan (advisory — runs independently, doesn't block merge)
   • Publishes JUnit XML as PR check annotations
-  • "CI Gate Status" job aggregates ALL jobs → single required branch protection check
-  • Builds & pushes backend Docker images to GHCR (push-to-main only)
-  • On push-to-main success (all jobs green) → dispatches "deploy-trigger"
+  • "CI Gate Status" job aggregates required jobs → single branch protection check
   • Blocks PR merge until "CI Gate Status" passes
         │ (after auto-merge squashes PR into main)
+        ▼
+Step[4]: Build Images & Deploy  (ci-push-main.yml)
+  • Runs on push to main only (post-merge)
+  • Re-verifies merged code builds and tests pass
+  • Builds & pushes Docker images to GHCR (backend, website, admin panel)
+  • NO OWASP scan (already validated in Step[3])
+  • On success → dispatches "deploy-trigger"
+        │
         ▼
 Step[5]: Deploy to VPS     (cd-deploy.yml)
   • SSH into Contabo VPS
@@ -334,10 +340,11 @@ curl -s -H "Authorization: token $PAT" \
   "https://api.github.com/repos/$REPO/pulls?head=sendtodilanka:$BRANCH&state=open" \
   | python3 -c "import sys,json; prs=json.load(sys.stdin); print('PR #'+str(prs[0]['number']) if prs else 'No PR yet')"
 
-# Step[3+4] — Watch CI Gate checks on the PR
+# Step[3] — Watch PR Gate checks on the PR
 # (use PR check-runs command above with the PR number)
 
-# Steps 5-7 — Watch deploy chain (only after PR merges to main)
+# Step[4] — Watch Build Images & Deploy (only after PR merges to main)
+# Steps 5-7 — Watch deploy chain (only after Step[4] triggers deploy)
 curl -s -H "Authorization: token $PAT" \
   "https://api.github.com/repos/$REPO/actions/runs?branch=main&per_page=10" \
   | python3 -c "
@@ -918,12 +925,28 @@ See `docs/architecture/deployment.md` → "GitHub Secrets required" for full det
 
 ## CI/CD
 
-**Two GitHub Actions workflows:**
+**Core CI/CD workflows (7-step pipeline):**
 
-### `.github/workflows/ci.yml` — Continuous Integration
-- Triggers: push to `main`/`develop`, PR to `main`
-- Runner: `ubuntu-latest`, JDK 21 (Temurin), 60-min timeout
-- Steps: build shared modules → build Android debug APK → build Desktop JVM JAR → Android Lint → Detekt → all tests → upload artifacts (APK, test reports, lint reports, 7-day retention)
+### `.github/workflows/ci-branch-validate.yml` — Step[1]: Branch Validate
+- Triggers: push to `claude/*`, `feature/*`, `fix/*`, etc.
+- Build-only (no tests) — catches compilation errors fast (~10 min)
+- On success → dispatches Step[2]
+
+### `.github/workflows/ci-auto-pr.yml` — Step[2]: Auto PR
+- Triggers: `repository_dispatch` from Step[1]
+- Creates PR targeting main, enables auto-merge (squash + delete branch)
+
+### `.github/workflows/ci-pr-gate.yml` — Step[3]: PR Gate
+- Triggers: `pull_request` to main
+- Full build + lint + detekt + tests + backend compile + admin panel + migrations + OWASP scan
+- "CI Gate Status" is the single required branch protection check
+- OWASP runs independently (advisory) — doesn't block merge
+
+### `.github/workflows/ci-push-main.yml` — Step[4]: Build Images & Deploy
+- Triggers: `push` to main (after PR squash-merge)
+- Re-verifies merged code, builds Docker images, pushes to GHCR
+- NO OWASP scan (already validated in Step[3])
+- On success → dispatches Step[5]
 
 ### `.github/workflows/release.yml` — Release
 - Triggers: push to `main`
@@ -937,7 +960,7 @@ All 26 secrets are configured. See "Secrets & Local Configuration" section above
 
 | Secret | Purpose | Used by |
 |--------|---------|---------|
-| `PAT_TOKEN` | Repository dispatch + GHCR pull on VPS | ci-gate, cd-deploy |
+| `PAT_TOKEN` | Repository dispatch + GHCR pull on VPS | ci-push-main, cd-deploy |
 | `VPS_HOST` | Contabo VPS IP address | FTS Steps 1-6, cd-deploy |
 | `VPS_USER` | SSH username (`deploy`) | FTS Steps 1-6, cd-deploy |
 | `VPS_PORT` | SSH port | FTS Steps 1-6, cd-deploy |
