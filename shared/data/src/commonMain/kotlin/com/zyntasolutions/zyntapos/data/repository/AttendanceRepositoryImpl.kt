@@ -94,6 +94,7 @@ class AttendanceRepositoryImpl(
                 q.insertAttendance(
                     id = record.id,
                     employee_id = record.employeeId,
+                    store_id = null,  // C3.4: null = primary store; set when roaming
                     clock_in = record.clockIn,
                     clock_out = record.clockOut,
                     total_hours = record.totalHours,

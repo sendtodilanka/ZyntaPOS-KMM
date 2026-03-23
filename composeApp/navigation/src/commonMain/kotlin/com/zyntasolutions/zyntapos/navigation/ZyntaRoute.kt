@@ -396,6 +396,13 @@ sealed class ZyntaRoute {
     @Serializable
     data class NewStockTransfer(val sourceWarehouseId: String? = null) : ZyntaRoute()
 
+    /**
+     * Multi-store global dashboard — aggregated KPIs across all accessible
+     * stores with per-store comparison and store switcher (C3.3).
+     */
+    @Serializable
+    data object MultiStoreDashboard : ZyntaRoute()
+
     // ─────────────────────────────────────────────────────────────────
     // NOTIFICATIONS
     // ─────────────────────────────────────────────────────────────────

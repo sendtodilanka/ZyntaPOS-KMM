@@ -6,6 +6,7 @@
 CREATE TABLE attendance_records (
     id             TEXT    NOT NULL PRIMARY KEY,
     employee_id    TEXT    NOT NULL REFERENCES employees(id),
+    store_id       TEXT,                                -- C3.4: which store the employee clocked in at (NULL = primary store)
     clock_in       TEXT    NOT NULL,                    -- ISO datetime: YYYY-MM-DDTHH:mm:ss (TEXT for LIKE prefix queries)
     clock_out      TEXT,                                -- NULL until clocked out
     total_hours    REAL,                                -- Computed on clock-out
@@ -46,12 +47,19 @@ JOIN employees e ON ar.employee_id = e.id
 WHERE e.store_id = ? AND ar.clock_in >= ? AND ar.clock_in <= ?
 ORDER BY ar.clock_in DESC;
 
+-- C3.4: Cross-store attendance for roaming employees
+getAttendanceByEmployeeAcrossStores:
+SELECT ar.*, s.name AS store_name FROM attendance_records ar
+LEFT JOIN stores s ON ar.store_id = s.id
+WHERE ar.employee_id = ? AND ar.clock_in >= ? AND ar.clock_in <= ?
+ORDER BY ar.clock_in DESC;
+
 -- ── Write queries ──────────────────────────────────────────────────────────────
 
 insertAttendance:
-INSERT INTO attendance_records(id, employee_id, clock_in, clock_out, total_hours, overtime_hours,
+INSERT INTO attendance_records(id, employee_id, store_id, clock_in, clock_out, total_hours, overtime_hours,
     notes, status, created_at, updated_at, sync_status)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 clockOut:
 UPDATE attendance_records

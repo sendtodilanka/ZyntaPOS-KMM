@@ -27,6 +27,7 @@ import com.zyntasolutions.zyntapos.data.repository.PricingRuleRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.OrderRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.ProductRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.StoreProductOverrideRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.StoreRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.ProductVariantRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.RegisterRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.SettingsRepositoryImpl
@@ -46,6 +47,7 @@ import com.zyntasolutions.zyntapos.data.backup.BackupFileManager
 import com.zyntasolutions.zyntapos.data.remote.ird.IrdApiClient
 import com.zyntasolutions.zyntapos.data.repository.BackupRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.EInvoiceRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.EmployeeStoreAssignmentRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.EmployeeRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.FeatureRegistryRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.LeaveRepositoryImpl
@@ -113,6 +115,7 @@ import com.zyntasolutions.zyntapos.domain.repository.AttendanceRepository
 import com.zyntasolutions.zyntapos.domain.repository.BackupRepository
 import com.zyntasolutions.zyntapos.domain.repository.EInvoiceRepository
 import com.zyntasolutions.zyntapos.domain.repository.EmployeeRepository
+import com.zyntasolutions.zyntapos.domain.repository.EmployeeStoreAssignmentRepository
 import com.zyntasolutions.zyntapos.domain.repository.FeatureRegistryRepository
 import com.zyntasolutions.zyntapos.domain.repository.LeaveRepository
 import com.zyntasolutions.zyntapos.domain.repository.MediaRepository
@@ -122,6 +125,7 @@ import com.zyntasolutions.zyntapos.domain.repository.LabelTemplateRepository
 import com.zyntasolutions.zyntapos.domain.repository.PrinterProfileRepository
 import com.zyntasolutions.zyntapos.domain.repository.ReportRepository
 import com.zyntasolutions.zyntapos.domain.repository.StocktakeRepository
+import com.zyntasolutions.zyntapos.domain.repository.StoreRepository
 import com.zyntasolutions.zyntapos.domain.repository.ShiftRepository
 import com.zyntasolutions.zyntapos.domain.repository.SystemRepository
 import com.zyntasolutions.zyntapos.domain.repository.PurchaseOrderRepository
@@ -406,6 +410,13 @@ val dataModule = module {
 
     // Warehouse stock: per-warehouse product quantity tracking (C1.2)
     single<WarehouseStockRepository> { WarehouseStockRepositoryImpl(db = get(), syncEnqueuer = get()) }
+
+    // Store registry: multi-store branch data (C3.3)
+    single<StoreRepository> { StoreRepositoryImpl(database = get()) }
+    single { get<StoreRepository>() as StoreRepositoryImpl }
+
+    // Employee store assignments: multi-store employee roaming (C3.4)
+    single<EmployeeStoreAssignmentRepository> { EmployeeStoreAssignmentRepositoryImpl(db = get(), syncEnqueuer = get()) }
 
     // User store access: multi-store user permission grants (C3.2)
     single<UserStoreAccessRepository> { UserStoreAccessRepositoryImpl(db = get(), syncEnqueuer = get()) }

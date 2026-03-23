@@ -1,0 +1,23 @@
+-- Migration 17: Add employee_store_assignments table for multi-store roaming (C3.4)
+-- and add store_id column to attendance_records for cross-store clock-in tracking.
+
+CREATE TABLE IF NOT EXISTS employee_store_assignments (
+    id              TEXT    NOT NULL PRIMARY KEY,
+    employee_id     TEXT    NOT NULL,
+    store_id        TEXT    NOT NULL,
+    start_date      TEXT    NOT NULL,
+    end_date        TEXT,
+    is_temporary    INTEGER NOT NULL DEFAULT 0,
+    is_active       INTEGER NOT NULL DEFAULT 1,
+    created_at      INTEGER NOT NULL,
+    updated_at      INTEGER NOT NULL,
+    sync_status     TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_emp_store_assign_pair ON employee_store_assignments(employee_id, store_id);
+CREATE INDEX IF NOT EXISTS idx_emp_store_assign_emp   ON employee_store_assignments(employee_id);
+CREATE INDEX IF NOT EXISTS idx_emp_store_assign_store ON employee_store_assignments(store_id);
+CREATE INDEX IF NOT EXISTS idx_emp_store_assign_active ON employee_store_assignments(is_active);
+
+-- Add store_id to attendance_records for tracking which store an employee clocked in at
+ALTER TABLE attendance_records ADD COLUMN store_id TEXT;

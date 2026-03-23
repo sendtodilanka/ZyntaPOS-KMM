@@ -18,6 +18,8 @@ CREATE TABLE orders (
     change_amount       REAL,
     notes               TEXT,
     reference           TEXT,
+    original_order_id   TEXT,                              -- C4.1: FK to original SALE for REFUND orders
+    original_store_id   TEXT,                              -- C4.1: store where original sale occurred (cross-store returns)
     currency            TEXT    NOT NULL DEFAULT 'LKR',
     created_at          INTEGER NOT NULL,
     updated_at          INTEGER NOT NULL,
@@ -61,11 +63,19 @@ SELECT * FROM order_items WHERE order_id = ?;
 getOrdersByDateRange:
 SELECT * FROM orders WHERE created_at >= ? AND created_at <= ? ORDER BY created_at DESC;
 
+-- C4.1: Lookup order by ID or order number across all stores (for cross-store returns)
+getOrderForReturn:
+SELECT * FROM orders WHERE (id = ? OR order_number = ?) AND type = 'SALE' AND status = 'COMPLETED' LIMIT 1;
+
+-- C4.1: Get all refund orders linked to an original order
+getRefundsForOrder:
+SELECT * FROM orders WHERE original_order_id = ? AND type = 'REFUND' ORDER BY created_at DESC;
+
 -- ── Write queries ───────────────────────────────────────────────────────────
 
 insertOrder:
-INSERT INTO orders(id, order_number, type, status, customer_id, cashier_id, store_id, register_session_id, subtotal, tax_amount, discount_amount, total, payment_method, payment_splits_json, amount_tendered, change_amount, notes, reference, created_at, updated_at, sync_status)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO orders(id, order_number, type, status, customer_id, cashier_id, store_id, register_session_id, subtotal, tax_amount, discount_amount, total, payment_method, payment_splits_json, amount_tendered, change_amount, notes, reference, original_order_id, original_store_id, created_at, updated_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 insertOrderItem:
 INSERT INTO order_items(id, order_id, product_id, product_name, unit_price, quantity, discount, discount_type, tax_rate, tax_amount, line_total)

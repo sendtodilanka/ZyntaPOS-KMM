@@ -17,6 +17,9 @@ import com.zyntasolutions.zyntapos.domain.usecase.rack.GetRackProductsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rack.GetWarehouseRacksUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rack.SaveRackProductUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rack.SaveWarehouseRackUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.multistore.GetAllStoresUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.multistore.GetMultiStoreKPIsUseCase
+import com.zyntasolutions.zyntapos.feature.multistore.dashboard.MultiStoreDashboardViewModel
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
@@ -73,6 +76,10 @@ val multistoreModule = module {
     factoryOf(::SaveRackProductUseCase)
     factoryOf(::DeleteRackProductUseCase)
 
+    // C3.3: Multi-store dashboard use cases
+    factoryOf(::GetAllStoresUseCase)
+    factoryOf(::GetMultiStoreKPIsUseCase)
+
     // ── ViewModel ─────────────────────────────────────────────────────────────
     viewModel {
         WarehouseViewModel(
@@ -97,6 +104,15 @@ val multistoreModule = module {
             logWorkflowTransitEventUseCase = get(),
             authRepository = get(),
             analytics = get(),
+        )
+    }
+
+    // C3.3: Multi-store dashboard ViewModel
+    viewModel {
+        MultiStoreDashboardViewModel(
+            storeRepository = get(),
+            authRepository = get(),
+            getMultiStoreKPIs = get(),
         )
     }
 }

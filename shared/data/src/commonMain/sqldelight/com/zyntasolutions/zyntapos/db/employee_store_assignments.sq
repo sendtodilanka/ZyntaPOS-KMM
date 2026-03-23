@@ -1,0 +1,66 @@
+-- ============================================================
+-- employee_store_assignments.sq — Multi-store employee roaming (C3.4)
+-- Tracks additional store assignments beyond Employee.storeId (primary).
+-- ============================================================
+
+CREATE TABLE employee_store_assignments (
+    id              TEXT    NOT NULL PRIMARY KEY,
+    employee_id     TEXT    NOT NULL,
+    store_id        TEXT    NOT NULL,
+    start_date      TEXT    NOT NULL,              -- ISO date: YYYY-MM-DD
+    end_date        TEXT,                           -- NULL = open-ended / permanent
+    is_temporary    INTEGER NOT NULL DEFAULT 0,
+    is_active       INTEGER NOT NULL DEFAULT 1,
+    created_at      INTEGER NOT NULL,
+    updated_at      INTEGER NOT NULL,
+    sync_status     TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE UNIQUE INDEX idx_emp_store_assign_pair ON employee_store_assignments(employee_id, store_id);
+CREATE INDEX idx_emp_store_assign_emp   ON employee_store_assignments(employee_id);
+CREATE INDEX idx_emp_store_assign_store ON employee_store_assignments(store_id);
+CREATE INDEX idx_emp_store_assign_active ON employee_store_assignments(is_active);
+
+-- ── Read queries ──────────────────────────────────────────────────────────────
+
+getAssignmentsForEmployee:
+SELECT * FROM employee_store_assignments
+WHERE employee_id = ? AND is_active = 1
+ORDER BY start_date ASC;
+
+getEmployeesAssignedToStore:
+SELECT * FROM employee_store_assignments
+WHERE store_id = ? AND is_active = 1
+ORDER BY start_date ASC;
+
+getAssignmentById:
+SELECT * FROM employee_store_assignments WHERE id = ?;
+
+getAssignmentByEmployeeAndStore:
+SELECT * FROM employee_store_assignments
+WHERE employee_id = ? AND store_id = ? LIMIT 1;
+
+isEmployeeAssigned:
+SELECT COUNT(*) FROM employee_store_assignments
+WHERE employee_id = ? AND store_id = ? AND is_active = 1;
+
+-- ── Write queries ──────────────────────────────────────────────────────────────
+
+insertAssignment:
+INSERT INTO employee_store_assignments(id, employee_id, store_id, start_date, end_date,
+    is_temporary, is_active, created_at, updated_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateAssignment:
+UPDATE employee_store_assignments
+SET start_date = ?, end_date = ?, is_temporary = ?, is_active = ?,
+    updated_at = ?, sync_status = 'PENDING'
+WHERE id = ?;
+
+deactivateAssignment:
+UPDATE employee_store_assignments
+SET is_active = 0, updated_at = ?, sync_status = 'PENDING'
+WHERE employee_id = ? AND store_id = ?;
+
+markSynced:
+UPDATE employee_store_assignments SET sync_status = 'SYNCED' WHERE id = ?;
