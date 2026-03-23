@@ -19,7 +19,9 @@ import com.zyntasolutions.zyntapos.domain.usecase.admin.DeleteBackupUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.GetBackupsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.GetDatabaseStatsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.GetSystemHealthUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.admin.PurgeExpiredDataUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.RestoreBackupUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.admin.VacuumDatabaseUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.VerifyAuditIntegrityUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.GetUnresolvedConflictsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.ResolveConflictUseCase
@@ -203,6 +205,8 @@ class AdminViewModelTest {
 
     private val getSystemHealthUseCase = GetSystemHealthUseCase(fakeSystemRepository)
     private val getDatabaseStatsUseCase = GetDatabaseStatsUseCase(fakeSystemRepository)
+    private val vacuumDatabaseUseCase = VacuumDatabaseUseCase(fakeSystemRepository)
+    private val purgeExpiredDataUseCase = PurgeExpiredDataUseCase(fakeSystemRepository)
     private val getBackupsUseCase = GetBackupsUseCase(fakeBackupRepository)
     private val createBackupUseCase = CreateBackupUseCase(fakeBackupRepository)
     private val restoreBackupUseCase = RestoreBackupUseCase(fakeBackupRepository)
@@ -223,7 +227,8 @@ class AdminViewModelTest {
         viewModel = AdminViewModel(
             getSystemHealthUseCase = getSystemHealthUseCase,
             getDatabaseStatsUseCase = getDatabaseStatsUseCase,
-            systemRepository = fakeSystemRepository,
+            vacuumDatabaseUseCase = vacuumDatabaseUseCase,
+            purgeExpiredDataUseCase = purgeExpiredDataUseCase,
             getBackupsUseCase = getBackupsUseCase,
             createBackupUseCase = createBackupUseCase,
             restoreBackupUseCase = restoreBackupUseCase,
