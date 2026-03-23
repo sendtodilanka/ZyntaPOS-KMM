@@ -490,6 +490,10 @@ jobs:
   # 3 parallel jobs that each downloaded the NVD independently (25-30 min
   # on cache miss × 3 = up to 90 min total runner time).
   #
+  # IMPORTANT: This job is NOT in the ci-gate-status dependency chain.
+  # The NVD download can take 25-30 min on cache miss, which would block
+  # the entire merge/deploy pipeline. It runs independently as advisory.
+  #
   # Report-only in CI (OWASP_FAIL_CVSS=11 disables build failure); local dev
   # uses the default threshold (7.0) from each service's build.gradle.kts.
   security-scan-backend:
@@ -573,7 +577,7 @@ jobs:
   # migration validation, and security scans.
   ci-gate-status:
     name: "CI Gate Status"
-    needs: [build-and-test, test-website, test-admin-panel, test-backend, validate-migrations, validate-compose, security-scan-backend]
+    needs: [build-and-test, test-website, test-admin-panel, test-backend, validate-migrations, validate-compose]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 2
@@ -586,7 +590,6 @@ jobs:
           TEST_BACKEND: ${{ needs.test-backend.result }}
           VALIDATE_MIGRATIONS: ${{ needs.validate-migrations.result }}
           VALIDATE_COMPOSE: ${{ needs.validate-compose.result }}
-          SECURITY_SCAN: ${{ needs.security-scan-backend.result }}
         run: |
           echo "=== CI Gate Job Results ==="
           echo "build-and-test:        $BUILD_AND_TEST"
@@ -595,7 +598,6 @@ jobs:
           echo "test-backend:          $TEST_BACKEND"
           echo "validate-migrations:   $VALIDATE_MIGRATIONS"
           echo "validate-compose:      $VALIDATE_COMPOSE"
-          echo "security-scan-backend: $SECURITY_SCAN"
 
           # Fail if any required job failed or was cancelled
           FAILED=false
@@ -613,13 +615,6 @@ jobs:
               FAILED=true
             fi
           done
-
-          # Security scan uses continue-on-error so advisory failures report
-          # as "success" to GitHub. Only block on unexpected cancellation.
-          if [ "$SECURITY_SCAN" = "cancelled" ]; then
-            echo "::error::Security scan was cancelled unexpectedly"
-            FAILED=true
-          fi
 
           if [ "$FAILED" = "true" ]; then
             echo "::error::CI Gate FAILED — one or more required jobs did not pass"
