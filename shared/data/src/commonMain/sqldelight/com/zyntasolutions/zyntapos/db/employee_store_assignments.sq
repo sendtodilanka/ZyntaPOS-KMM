@@ -41,7 +41,7 @@ SELECT * FROM employee_store_assignments
 WHERE employee_id = ? AND store_id = ? LIMIT 1;
 
 isEmployeeAssigned:
-SELECT COUNT(*) AS count FROM employee_store_assignments
+SELECT COUNT(*) FROM employee_store_assignments
 WHERE employee_id = ? AND store_id = ? AND is_active = 1;
 
 -- ── Write queries ──────────────────────────────────────────────────────────────

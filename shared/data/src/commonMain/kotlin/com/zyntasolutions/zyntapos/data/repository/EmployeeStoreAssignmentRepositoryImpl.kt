@@ -101,7 +101,8 @@ class EmployeeStoreAssignmentRepositoryImpl(
 
     override suspend fun isAssigned(employeeId: String, storeId: String): Boolean =
         withContext(Dispatchers.IO) {
-            q.isEmployeeAssigned(employeeId, storeId).executeAsOne().count > 0L
+            val count = q.isEmployeeAssigned(employeeId, storeId).executeAsOne()
+            count > 0
         }
 
     override suspend fun upsertFromSync(assignment: EmployeeStoreAssignment) =
