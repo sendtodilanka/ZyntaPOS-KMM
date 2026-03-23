@@ -24,6 +24,7 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
@@ -167,7 +168,7 @@ fun CouponDetailScreen(
                     readOnly = true,
                     label = { Text("Discount Type") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(discountTypeExpanded) },
-                    modifier = Modifier.menuAnchor().fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                 )
                 ExposedDropdownMenu(
                     expanded = discountTypeExpanded,
@@ -234,7 +235,7 @@ fun CouponDetailScreen(
                     readOnly = true,
                     label = { Text("Applies To") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(scopeExpanded) },
-                    modifier = Modifier.menuAnchor().fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                 )
                 ExposedDropdownMenu(
                     expanded = scopeExpanded,
