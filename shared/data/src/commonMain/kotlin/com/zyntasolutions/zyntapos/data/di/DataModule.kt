@@ -47,6 +47,7 @@ import com.zyntasolutions.zyntapos.data.backup.BackupFileManager
 import com.zyntasolutions.zyntapos.data.remote.ird.IrdApiClient
 import com.zyntasolutions.zyntapos.data.repository.BackupRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.EInvoiceRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.EmployeeStoreAssignmentRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.EmployeeRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.FeatureRegistryRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.LeaveRepositoryImpl
@@ -114,6 +115,7 @@ import com.zyntasolutions.zyntapos.domain.repository.AttendanceRepository
 import com.zyntasolutions.zyntapos.domain.repository.BackupRepository
 import com.zyntasolutions.zyntapos.domain.repository.EInvoiceRepository
 import com.zyntasolutions.zyntapos.domain.repository.EmployeeRepository
+import com.zyntasolutions.zyntapos.domain.repository.EmployeeStoreAssignmentRepository
 import com.zyntasolutions.zyntapos.domain.repository.FeatureRegistryRepository
 import com.zyntasolutions.zyntapos.domain.repository.LeaveRepository
 import com.zyntasolutions.zyntapos.domain.repository.MediaRepository
@@ -411,6 +413,10 @@ val dataModule = module {
 
     // Store registry: multi-store branch data (C3.3)
     single<StoreRepository> { StoreRepositoryImpl(database = get()) }
+    single { get<StoreRepository>() as StoreRepositoryImpl }
+
+    // Employee store assignments: multi-store employee roaming (C3.4)
+    single<EmployeeStoreAssignmentRepository> { EmployeeStoreAssignmentRepositoryImpl(db = get(), syncEnqueuer = get()) }
 
     // User store access: multi-store user permission grants (C3.2)
     single<UserStoreAccessRepository> { UserStoreAccessRepositoryImpl(db = get(), syncEnqueuer = get()) }

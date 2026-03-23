@@ -1151,22 +1151,36 @@ Backend Tests:
 
 ---
 
-### C3.4 Employee Roaming (සේවක බහු-ශාඛා ප්‍රවේශය)
+### C3.4 Employee Roaming (සේවක බහු-ශාඛා ප්‍රවේශය) — ✅ CORE IMPLEMENTED (2026-03-23)
+
+> **HANDOFF (2026-03-23):** Core employee roaming infrastructure implemented.
+> `EmployeeStoreAssignment` domain model, `employee_store_assignments` SQLDelight table
+> (migration 17.sqm), `EmployeeStoreAssignmentRepository` interface + impl with SyncEnqueuer,
+> `store_id` column added to `attendance_records` for cross-store clock-in tracking,
+> cross-store attendance query, 3 use cases, `EMPLOYEE_STORE_ASSIGNMENT` entity type,
+> 11 unit tests. Backend migration and UI deferred.
 
 **Priority:** PHASE-2
-**Status:** NOT IMPLEMENTED
+**Status:** ✅ CORE IMPLEMENTED (2026-03-23)
 
 **Codebase State:**
-- Employees tied 1:1 to store via `employees.store_id NOT NULL`
-- `attendance_records.sq` — clock in/out per employee (no cross-store tracking)
-- `shift_schedules.sq` — shifts scoped by `store_id` (no cross-store shifts)
+- Employees have primary store via `employees.store_id NOT NULL`
+- Additional store assignments tracked via `employee_store_assignments` junction table
+- `attendance_records.sq` — now includes `store_id` for cross-store clock-in tracking
 
-**What's MISSING:**
-- [ ] `employee_store_assignments` table (employee_id, store_id, start_date, end_date, is_temporary)
-- [ ] `EmployeeStoreAssignment` domain model
-- [ ] Modify `attendance_records.sq` — add `store_id TEXT` for where they clocked in
+**What's DONE (2026-03-23):**
+- [x] `employee_store_assignments` table (employee_id, store_id, start_date, end_date, is_temporary)
+- [x] `EmployeeStoreAssignment` domain model
+- [x] `EmployeeStoreAssignmentRepository` interface + `EmployeeStoreAssignmentRepositoryImpl`
+- [x] Migration 17.sqm — `employee_store_assignments` table + `store_id` on `attendance_records`
+- [x] `attendance_records.sq` — `store_id TEXT` column added + `getAttendanceByEmployeeAcrossStores` query
+- [x] `AssignEmployeeToStoreUseCase`, `GetEmployeeStoresUseCase`, `RevokeEmployeeStoreAssignmentUseCase`
+- [x] `EMPLOYEE_STORE_ASSIGNMENT` entity type in SyncOperation + SyncEngine
+- [x] `EmployeeStoreAssignmentRepository` Koin binding in DataModule
+- [x] 11 unit tests (EmployeeStoreAssignmentUseCaseTest) — assign, revoke, isAssigned, idempotent, temporary
+
+**What's REMAINING (deferred):**
 - [ ] Modify `shift_schedules.sq` — allow shifts across different stores for same employee
-- [ ] `AssignEmployeeToStoreUseCase`, `GetEmployeeStoresUseCase`
 - [ ] KMM UI: Employee store assignment management
 - [ ] KMM UI: Store selector on clock-in screen (if employee has multi-store access)
 - [ ] Backend migration: `employee_store_assignments` table
@@ -2382,7 +2396,7 @@ git push -u origin $(git branch --show-current)
 | RBAC | C3.1 | COMPLETE |
 | Store-Level Permissions | C3.2 | ✅ CORE IMPLEMENTED (junction table, domain model, RBAC, backend; 2026-03-23) |
 | Global Admin Dashboard | C3.3 | ✅ CORE IMPLEMENTED (Store model + StoreRepo + dashboard screen + store switcher + 13 tests; 2026-03-23) |
-| Employee Roaming | C3.4 | NOT IMPLEMENTED |
+| Employee Roaming | C3.4 | ✅ CORE IMPLEMENTED (assignment table + domain model + 3 use cases + 11 tests; 2026-03-23) |
 | **4. Sales & Customer** | | |
 | Cross-Store Returns | C4.1 | NOT IMPLEMENTED |
 | Universal Loyalty | C4.2 | PARTIAL (no redemption) |

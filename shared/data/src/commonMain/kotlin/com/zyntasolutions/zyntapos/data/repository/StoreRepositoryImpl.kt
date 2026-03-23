@@ -2,7 +2,7 @@ package com.zyntasolutions.zyntapos.data.repository
 
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
-import com.zyntasolutions.zyntapos.db.ZyntaPosDatabase
+import com.zyntasolutions.zyntapos.db.ZyntaDatabase
 import com.zyntasolutions.zyntapos.domain.model.Store
 import com.zyntasolutions.zyntapos.domain.repository.StoreRepository
 import kotlinx.coroutines.Dispatchers
@@ -17,7 +17,7 @@ import kotlinx.datetime.Instant
  * Reads from the local `stores` table which is populated via sync.
  */
 class StoreRepositoryImpl(
-    private val database: ZyntaPosDatabase,
+    private val database: ZyntaDatabase,
 ) : StoreRepository {
 
     private val q get() = database.storesQueries
