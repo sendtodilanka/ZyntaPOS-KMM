@@ -114,6 +114,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.feature.customers.CustomerEffect
@@ -643,7 +644,8 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
         }
 
         // GDPR export result dialog (G10)
-        if (exportedJson != null) {
+        val currentExportedJson = exportedJson
+        if (currentExportedJson != null) {
             AlertDialog(
                 onDismissRequest = { exportedJson = null },
                 title = { Text("Customer Data Export (GDPR)") },
@@ -657,12 +659,11 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
                         Spacer(Modifier.height(8.dp))
                         Surface(
                             tonalElevation = 2.dp,
-                            shape = MaterialTheme.shapes.small,
                             modifier = Modifier.fillMaxWidth().heightIn(max = 300.dp),
                         ) {
                             SelectionContainer {
                                 Text(
-                                    text = exportedJson ?: "",
+                                    text = currentExportedJson,
                                     style = MaterialTheme.typography.bodySmall,
                                     modifier = Modifier.padding(8.dp)
                                         .verticalScroll(rememberScrollState()),
