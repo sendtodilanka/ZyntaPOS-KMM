@@ -108,7 +108,7 @@ class UserStoreAccessRepositoryImpl(
                     syncEnqueuer.enqueue(
                         entityType = SyncOperation.EntityType.USER_STORE_ACCESS,
                         entityId = access.id,
-                        operation = SyncOperation.Operation.UPSERT,
+                        operation = SyncOperation.Operation.INSERT,
                     )
                 }
             }.fold(
@@ -132,7 +132,7 @@ class UserStoreAccessRepositoryImpl(
                         syncEnqueuer.enqueue(
                             entityType = SyncOperation.EntityType.USER_STORE_ACCESS,
                             entityId = existing.id,
-                            operation = SyncOperation.Operation.UPSERT,
+                            operation = SyncOperation.Operation.INSERT,
                         )
                     }
                 }
