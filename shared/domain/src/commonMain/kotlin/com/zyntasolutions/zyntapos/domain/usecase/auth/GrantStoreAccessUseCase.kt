@@ -62,6 +62,7 @@ class GrantStoreAccessUseCase(
         return when (val result = accessRepository.grantAccess(access)) {
             is Result.Success -> Result.Success(access)
             is Result.Error -> result
+            is Result.Loading -> Result.Loading
         }
     }
 }
