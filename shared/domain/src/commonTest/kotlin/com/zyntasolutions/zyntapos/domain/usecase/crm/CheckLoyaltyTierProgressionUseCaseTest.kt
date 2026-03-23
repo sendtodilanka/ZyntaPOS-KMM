@@ -4,6 +4,7 @@ import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.usecase.fakes.FakeLoyaltyRepository
 import com.zyntasolutions.zyntapos.domain.usecase.fakes.buildLoyaltyTier
 import kotlinx.coroutines.test.runTest
+import com.zyntasolutions.zyntapos.domain.model.LoyaltyTier
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -20,7 +21,7 @@ class CheckLoyaltyTierProgressionUseCaseTest {
         repo.pointsStore["cust-01"] = 500
 
         val result = useCase("cust-01")
-        assertIs<Result.Success<*>>(result)
+        assertIs<Result.Success<LoyaltyTier?>>(result)
         assertNull(result.data)
     }
 
@@ -32,7 +33,7 @@ class CheckLoyaltyTierProgressionUseCaseTest {
         repo.tiers.add(buildLoyaltyTier(id = "gold", name = "Gold", minPoints = 500))
 
         val result = useCase("cust-01")
-        assertIs<Result.Success<*>>(result)
+        assertIs<Result.Success<LoyaltyTier?>>(result)
         assertNull(result.data)
     }
 
@@ -45,7 +46,7 @@ class CheckLoyaltyTierProgressionUseCaseTest {
         repo.tiers.add(buildLoyaltyTier(id = "gold", name = "Gold", minPoints = 500))
 
         val result = useCase("cust-01")
-        assertIs<Result.Success<*>>(result)
+        assertIs<Result.Success<LoyaltyTier?>>(result)
         assertEquals("Silver", result.data?.name)
     }
 
@@ -58,7 +59,7 @@ class CheckLoyaltyTierProgressionUseCaseTest {
         repo.tiers.add(buildLoyaltyTier(id = "gold", name = "Gold", minPoints = 500))
 
         val result = useCase("cust-01")
-        assertIs<Result.Success<*>>(result)
+        assertIs<Result.Success<LoyaltyTier?>>(result)
         assertEquals("Gold", result.data?.name)
     }
 

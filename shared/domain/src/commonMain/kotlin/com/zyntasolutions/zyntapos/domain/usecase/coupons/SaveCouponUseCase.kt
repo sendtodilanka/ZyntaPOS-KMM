@@ -3,6 +3,7 @@ package com.zyntasolutions.zyntapos.domain.usecase.coupons
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.core.result.ValidationException
 import com.zyntasolutions.zyntapos.domain.model.Coupon
+import com.zyntasolutions.zyntapos.domain.model.DiscountType
 import com.zyntasolutions.zyntapos.domain.repository.CouponRepository
 
 /**
@@ -18,7 +19,7 @@ class SaveCouponUseCase(
         if (coupon.name.isBlank()) {
             return Result.Error(ValidationException("Coupon name cannot be blank"))
         }
-        if (coupon.discountValue <= 0.0) {
+        if (coupon.discountType != DiscountType.BOGO && coupon.discountValue <= 0.0) {
             return Result.Error(ValidationException("Discount value must be positive"))
         }
         if (coupon.validFrom >= coupon.validTo) {

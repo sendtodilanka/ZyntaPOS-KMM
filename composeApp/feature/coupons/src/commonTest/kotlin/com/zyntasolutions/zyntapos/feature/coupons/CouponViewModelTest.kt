@@ -3,10 +3,12 @@ package com.zyntasolutions.zyntapos.feature.coupons
 import app.cash.turbine.test
 import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
+import com.zyntasolutions.zyntapos.domain.model.Category
 import com.zyntasolutions.zyntapos.domain.model.Coupon
 import com.zyntasolutions.zyntapos.domain.model.CouponUsage
 import com.zyntasolutions.zyntapos.domain.model.DiscountType
 import com.zyntasolutions.zyntapos.domain.model.Promotion
+import com.zyntasolutions.zyntapos.domain.repository.CategoryRepository
 import com.zyntasolutions.zyntapos.domain.repository.CouponRepository
 import com.zyntasolutions.zyntapos.domain.usecase.coupons.SaveCouponUseCase
 import kotlinx.coroutines.Dispatchers
@@ -136,6 +138,27 @@ class CouponViewModelTest {
             Result.Success(Unit)
     }
 
+    // ── Fake CategoryRepository ──────────────────────────────────────────────
+
+    private val categoriesFlow = MutableStateFlow(listOf(
+        Category(id = "cat-1", name = "Beverages"),
+        Category(id = "cat-2", name = "Electronics"),
+        Category(id = "cat-3", name = "Food"),
+    ))
+
+    private val fakeCategoryRepository = object : CategoryRepository {
+        override fun getAll(): Flow<List<Category>> = categoriesFlow
+        override suspend fun getById(id: String): Result<Category> {
+            val cat = categoriesFlow.value.firstOrNull { it.id == id }
+                ?: return Result.Error(DatabaseException("Not found"))
+            return Result.Success(cat)
+        }
+        override suspend fun insert(category: Category): Result<Unit> = Result.Success(Unit)
+        override suspend fun update(category: Category): Result<Unit> = Result.Success(Unit)
+        override suspend fun delete(id: String): Result<Unit> = Result.Success(Unit)
+        override fun getTree(): Flow<List<Category>> = categoriesFlow
+    }
+
     private val saveCouponUseCase = SaveCouponUseCase(fakeCouponRepository)
 
     private lateinit var viewModel: CouponViewModel
@@ -164,6 +187,7 @@ class CouponViewModelTest {
         viewModel = CouponViewModel(
             couponRepository = fakeCouponRepository,
             saveCouponUseCase = saveCouponUseCase,
+            categoryRepository = fakeCategoryRepository,
             analytics = noOpAnalytics,
         )
     }
@@ -329,5 +353,136 @@ class CouponViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertTrue(viewModel.state.value.showActiveOnly)
+    }
+
+    // ── G12: BOGO + Category Rules ─────────────────────────────────────────
+
+    @Test
+    fun `categories are loaded on init`() = runTest {
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(3, viewModel.state.value.availableCategories.size)
+        assertEquals("Beverages", viewModel.state.value.availableCategories.first().name)
+    }
+
+    @Test
+    fun `GenerateCode produces 8-character alphanumeric code`() = runTest {
+        viewModel.dispatch(CouponIntent.GenerateCode)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val code = viewModel.state.value.formState.code
+        assertEquals(8, code.length)
+        assertTrue(code.all { it.isLetterOrDigit() })
+    }
+
+    @Test
+    fun `UpdateScope changes scope and clears scopeIds`() = runTest {
+        // First add some scope IDs
+        viewModel.dispatch(CouponIntent.UpdateScope(Coupon.CouponScope.CATEGORY.name))
+        viewModel.dispatch(CouponIntent.ToggleScopeId("cat-1"))
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(1, viewModel.state.value.formState.scopeIds.size)
+
+        // Change scope — scopeIds should be cleared
+        viewModel.dispatch(CouponIntent.UpdateScope(Coupon.CouponScope.PRODUCT.name))
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(Coupon.CouponScope.PRODUCT.name, viewModel.state.value.formState.scope)
+        assertTrue(viewModel.state.value.formState.scopeIds.isEmpty())
+    }
+
+    @Test
+    fun `ToggleScopeId adds and removes IDs`() = runTest {
+        viewModel.dispatch(CouponIntent.UpdateScope(Coupon.CouponScope.CATEGORY.name))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.dispatch(CouponIntent.ToggleScopeId("cat-1"))
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertTrue("cat-1" in viewModel.state.value.formState.scopeIds)
+
+        viewModel.dispatch(CouponIntent.ToggleScopeId("cat-2"))
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(2, viewModel.state.value.formState.scopeIds.size)
+
+        // Toggle off
+        viewModel.dispatch(CouponIntent.ToggleScopeId("cat-1"))
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertFalse("cat-1" in viewModel.state.value.formState.scopeIds)
+        assertEquals(1, viewModel.state.value.formState.scopeIds.size)
+    }
+
+    @Test
+    fun `SaveCoupon with CATEGORY scope but no scopeIds fails validation`() = runTest {
+        viewModel.dispatch(CouponIntent.UpdateFormField("code", "CAT10"))
+        viewModel.dispatch(CouponIntent.UpdateFormField("name", "Category Coupon"))
+        viewModel.dispatch(CouponIntent.UpdateFormField("discountValue", "10"))
+        viewModel.dispatch(CouponIntent.UpdateFormField("validFrom", now.toString()))
+        viewModel.dispatch(CouponIntent.UpdateFormField("validTo", (now + 100000L).toString()))
+        viewModel.dispatch(CouponIntent.UpdateScope(Coupon.CouponScope.CATEGORY.name))
+        // No scopeIds selected
+        viewModel.dispatch(CouponIntent.SaveCoupon)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNotNull(viewModel.state.value.formState.validationErrors["scopeIds"])
+    }
+
+    @Test
+    fun `SaveCoupon with BOGO type does not require discountValue`() = runTest {
+        viewModel.dispatch(CouponIntent.UpdateFormField("code", "BOGO1"))
+        viewModel.dispatch(CouponIntent.UpdateFormField("name", "Buy One Get One"))
+        viewModel.dispatch(CouponIntent.UpdateFormField("discountType", DiscountType.BOGO.name))
+        viewModel.dispatch(CouponIntent.UpdateFormField("validFrom", (now - 1000L).toString()))
+        viewModel.dispatch(CouponIntent.UpdateFormField("validTo", (now + 100000L).toString()))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.effects.test {
+            viewModel.dispatch(CouponIntent.SaveCoupon)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val effect1 = awaitItem()
+            assertTrue(effect1 is CouponEffect.ShowSuccess)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `SaveCoupon with scope and scopeIds persists correctly`() = runTest {
+        viewModel.dispatch(CouponIntent.UpdateFormField("code", "CATDEAL"))
+        viewModel.dispatch(CouponIntent.UpdateFormField("name", "Category Deal"))
+        viewModel.dispatch(CouponIntent.UpdateFormField("discountValue", "15"))
+        viewModel.dispatch(CouponIntent.UpdateFormField("validFrom", (now - 1000L).toString()))
+        viewModel.dispatch(CouponIntent.UpdateFormField("validTo", (now + 100000L).toString()))
+        viewModel.dispatch(CouponIntent.UpdateScope(Coupon.CouponScope.CATEGORY.name))
+        viewModel.dispatch(CouponIntent.ToggleScopeId("cat-1"))
+        viewModel.dispatch(CouponIntent.ToggleScopeId("cat-2"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.dispatch(CouponIntent.SaveCoupon)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val saved = couponsFlow.value.firstOrNull { it.code == "CATDEAL" }
+        assertNotNull(saved)
+        assertEquals(Coupon.CouponScope.CATEGORY, saved.scope)
+        assertEquals(2, saved.scopeIds.size)
+        assertTrue("cat-1" in saved.scopeIds)
+        assertTrue("cat-2" in saved.scopeIds)
+    }
+
+    @Test
+    fun `SelectCoupon loads scope and scopeIds into form state`() = runTest {
+        val couponWithScope = testCoupon.copy(
+            id = "coupon-scoped",
+            scope = Coupon.CouponScope.CATEGORY,
+            scopeIds = listOf("cat-1", "cat-3"),
+        )
+        couponsFlow.value = listOf(couponWithScope)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.dispatch(CouponIntent.SelectCoupon("coupon-scoped"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val form = viewModel.state.value.formState
+        assertEquals(Coupon.CouponScope.CATEGORY.name, form.scope)
+        assertEquals(2, form.scopeIds.size)
+        assertTrue("cat-1" in form.scopeIds)
+        assertTrue("cat-3" in form.scopeIds)
     }
 }

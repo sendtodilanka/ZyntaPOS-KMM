@@ -6,6 +6,7 @@ import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import com.zyntasolutions.zyntapos.core.utils.IdGenerator
 import com.zyntasolutions.zyntapos.domain.model.Coupon
 import com.zyntasolutions.zyntapos.domain.model.DiscountType
+import com.zyntasolutions.zyntapos.domain.repository.CategoryRepository
 import com.zyntasolutions.zyntapos.domain.repository.CouponRepository
 import com.zyntasolutions.zyntapos.domain.usecase.coupons.SaveCouponUseCase
 import kotlinx.coroutines.flow.first
@@ -29,12 +30,14 @@ import kotlin.time.Clock
 class CouponViewModel(
     private val couponRepository: CouponRepository,
     private val saveCouponUseCase: SaveCouponUseCase,
+    private val categoryRepository: CategoryRepository,
     private val analytics: AnalyticsTracker,
 ) : BaseViewModel<CouponState, CouponIntent, CouponEffect>(CouponState()) {
 
     init {
         analytics.logScreenView("Coupons", "CouponViewModel")
         observeCoupons()
+        observeCategories()
     }
 
     private fun observeCoupons() {
@@ -47,6 +50,14 @@ class CouponViewModel(
                     coupons
                 }
                 updateState { copy(coupons = filtered, isLoading = false) }
+            }
+            .launchIn(viewModelScope)
+    }
+
+    private fun observeCategories() {
+        categoryRepository.getAll()
+            .onEach { categories ->
+                updateState { copy(availableCategories = categories) }
             }
             .launchIn(viewModelScope)
     }
@@ -64,6 +75,23 @@ class CouponViewModel(
             is CouponIntent.UpdateFormField -> onUpdateFormField(intent.field, intent.value)
             is CouponIntent.UpdateIsActive -> updateState {
                 copy(formState = formState.copy(isActive = intent.isActive))
+            }
+            is CouponIntent.UpdateScope -> updateState {
+                copy(formState = formState.copy(scope = intent.scope, scopeIds = emptyList()))
+            }
+            is CouponIntent.ToggleScopeId -> updateState {
+                val updated = if (intent.id in formState.scopeIds) {
+                    formState.scopeIds - intent.id
+                } else {
+                    formState.scopeIds + intent.id
+                }
+                copy(formState = formState.copy(scopeIds = updated))
+            }
+            is CouponIntent.GenerateCode -> updateState {
+                copy(formState = formState.copy(
+                    code = generateCouponCode(),
+                    validationErrors = formState.validationErrors - "code",
+                ))
             }
             is CouponIntent.SaveCoupon -> onSaveCoupon()
             is CouponIntent.DeleteCoupon -> onDeleteCoupon(intent.couponId)
@@ -110,6 +138,8 @@ class CouponViewModel(
                             validTo = c.validTo.toString(),
                             isActive = c.isActive,
                             storeId = c.storeId,
+                            scope = c.scope.name,
+                            scopeIds = c.scopeIds,
                             isEditing = true,
                         ),
                     )
@@ -164,6 +194,8 @@ class CouponViewModel(
             maximumDiscount = form.maximumDiscount.toDoubleOrNull(),
             usageLimit = form.usageLimit.toIntOrNull(),
             perCustomerLimit = form.perCustomerLimit.toIntOrNull(),
+            scope = runCatching { Coupon.CouponScope.valueOf(form.scope) }.getOrDefault(Coupon.CouponScope.CART),
+            scopeIds = form.scopeIds,
             validFrom = form.validFrom.toLongOrNull() ?: 0L,
             validTo = form.validTo.toLongOrNull() ?: 0L,
             isActive = form.isActive,
@@ -225,8 +257,11 @@ class CouponViewModel(
         val errors = mutableMapOf<String, String>()
         if (form.code.isBlank()) errors["code"] = "Coupon code is required"
         if (form.name.isBlank()) errors["name"] = "Coupon name is required"
-        val value = form.discountValue.toDoubleOrNull()
-        if (value == null || value <= 0) errors["discountValue"] = "Discount value must be positive"
+        val discountType = runCatching { DiscountType.valueOf(form.discountType) }.getOrNull()
+        if (discountType != DiscountType.BOGO) {
+            val value = form.discountValue.toDoubleOrNull()
+            if (value == null || value <= 0) errors["discountValue"] = "Discount value must be positive"
+        }
         val from = form.validFrom.toLongOrNull()
         if (from == null) errors["validFrom"] = "Valid-from date is required"
         val to = form.validTo.toLongOrNull()
@@ -234,6 +269,17 @@ class CouponViewModel(
         if (from != null && to != null && from >= to) {
             errors["validTo"] = "Valid-to must be after valid-from"
         }
+        val scope = runCatching { Coupon.CouponScope.valueOf(form.scope) }.getOrDefault(Coupon.CouponScope.CART)
+        if (scope != Coupon.CouponScope.CART && form.scopeIds.isEmpty()) {
+            errors["scopeIds"] = "Select at least one ${scope.name.lowercase()} for this scope"
+        }
         return errors
+    }
+
+    private fun generateCouponCode(): String {
+        val chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+        return buildString {
+            repeat(8) { append(chars.random()) }
+        }
     }
 }

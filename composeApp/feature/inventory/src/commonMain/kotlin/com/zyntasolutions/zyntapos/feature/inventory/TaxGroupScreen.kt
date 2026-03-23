@@ -341,7 +341,7 @@ private fun TaxGroupEditDialog(
                 }
                 if (valid) {
                     onConfirm(TaxGroup(
-                        id = existingGroup?.id ?: "",
+                        id = existingGroup?.id ?: com.zyntasolutions.zyntapos.core.utils.IdGenerator.newId(),
                         name = name.trim(),
                         rate = rateVal!!,
                         isInclusive = isInclusive,
