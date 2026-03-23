@@ -14,7 +14,7 @@ run-name: "${{ github.event.client_payload.title || 'Auto PR' }} (${{ github.eve
 #
 # PREREQUISITES (one-time setup in GitHub repo settings):
 #   Settings → General → Pull Requests:  Allow auto-merge
-#   Settings → Branches → main:          Require status check "Step[3+4]: Build & Test"
+#   Settings → Branches → main:          Require status check "CI Gate Status"
 #   Settings → Secrets → PAT_TOKEN:      Personal Access Token with "repo" scope
 #
 # EDGE CASES HANDLED:

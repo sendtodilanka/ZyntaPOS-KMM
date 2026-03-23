@@ -540,12 +540,79 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
+  # ── CI Gate Status (single required check for branch protection) ─────────
+  # This job depends on ALL CI jobs and becomes the single required check
+  # in branch protection settings. Auto-merge waits for THIS job, ensuring
+  # no PR merges until every check (tests, lint, security scans, etc.) passes.
+  #
+  # Without this, auto-merge can fire as soon as the first required check
+  # passes (e.g., build-and-test), ignoring backend tests, admin panel tests,
+  # migration validation, and security scans.
+  ci-gate-status:
+    name: "CI Gate Status"
+    needs: [build-and-test, test-website, test-admin-panel, test-backend, validate-migrations, validate-compose, security-scan-backend]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Check all job results
+        env:
+          BUILD_AND_TEST: ${{ needs.build-and-test.result }}
+          TEST_WEBSITE: ${{ needs.test-website.result }}
+          TEST_ADMIN_PANEL: ${{ needs.test-admin-panel.result }}
+          TEST_BACKEND: ${{ needs.test-backend.result }}
+          VALIDATE_MIGRATIONS: ${{ needs.validate-migrations.result }}
+          VALIDATE_COMPOSE: ${{ needs.validate-compose.result }}
+          SECURITY_SCAN: ${{ needs.security-scan-backend.result }}
+        run: |
+          echo "=== CI Gate Job Results ==="
+          echo "build-and-test:        $BUILD_AND_TEST"
+          echo "test-website:          $TEST_WEBSITE"
+          echo "test-admin-panel:      $TEST_ADMIN_PANEL"
+          echo "test-backend:          $TEST_BACKEND"
+          echo "validate-migrations:   $VALIDATE_MIGRATIONS"
+          echo "validate-compose:      $VALIDATE_COMPOSE"
+          echo "security-scan-backend: $SECURITY_SCAN"
+
+          # Fail if any required job failed or was cancelled
+          FAILED=false
+          for PAIR in \
+            "build-and-test:$BUILD_AND_TEST" \
+            "test-website:$TEST_WEBSITE" \
+            "test-admin-panel:$TEST_ADMIN_PANEL" \
+            "test-backend:$TEST_BACKEND" \
+            "validate-migrations:$VALIDATE_MIGRATIONS" \
+            "validate-compose:$VALIDATE_COMPOSE"; do
+            JOB_NAME="${PAIR%%:*}"
+            RESULT="${PAIR#*:}"
+            if [ "$RESULT" != "success" ]; then
+              echo "::error::Job '$JOB_NAME' did not succeed (result: $RESULT)"
+              FAILED=true
+            fi
+          done
+
+          # Security scan uses continue-on-error so advisory failures report
+          # as "success" to GitHub. Only block on unexpected cancellation.
+          if [ "$SECURITY_SCAN" = "cancelled" ]; then
+            echo "::error::Security scan was cancelled unexpectedly"
+            FAILED=true
+          fi
+
+          if [ "$FAILED" = "true" ]; then
+            echo "::error::CI Gate FAILED — one or more required jobs did not pass"
+            exit 1
+          fi
+
+          echo "All CI Gate checks passed"
+
   # ── Trigger Deploy (push-to-main only) ───────────────────────────────────
   # Uses repository_dispatch to chain to cd-deploy.yml.
-  # Only fires on push events (not PRs) and only when ALL builds succeed.
+  # Only fires on push events (not PRs) and only when ALL jobs succeed.
+  # Depends on ci-gate-status (which aggregates all jobs) plus Docker image
+  # builds (push-to-main only, so not in ci-gate-status).
   trigger-deploy:
     name: "Trigger Deploy"
-    needs: [build-and-test, test-website, test-admin-panel, test-backend, validate-migrations, validate-compose, build-backend-images, build-website-image, build-admin-panel-image]
+    needs: [ci-gate-status, build-backend-images, build-website-image, build-admin-panel-image]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 2
