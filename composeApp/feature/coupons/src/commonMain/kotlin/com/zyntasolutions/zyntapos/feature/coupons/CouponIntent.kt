@@ -24,6 +24,15 @@ sealed interface CouponIntent {
     /** Toggle the is_active switch on the form. */
     data class UpdateIsActive(val isActive: Boolean) : CouponIntent
 
+    /** G12: Update the coupon targeting scope (CART, PRODUCT, CATEGORY, CUSTOMER). */
+    data class UpdateScope(val scope: String) : CouponIntent
+
+    /** G12: Toggle a scope ID (add/remove from selected list). */
+    data class ToggleScopeId(val id: String) : CouponIntent
+
+    /** G12: Auto-generate a random coupon code. */
+    data object GenerateCode : CouponIntent
+
     /** Validate and persist the current [CouponFormState]. */
     data object SaveCoupon : CouponIntent
 
