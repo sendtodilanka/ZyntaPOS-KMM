@@ -8,7 +8,7 @@ name: "Step[1]: Branch Validate"
 # If anything fails the pipeline stops here — main is never touched.
 #
 # WHY BUILD-ONLY (no tests):
-# The full test suite runs in Step[3+4] (CI Gate) on the PR. Running tests
+# The full test suite runs in Step[3] (PR Gate) on the PR. Running tests
 # twice per branch wastes ~15-20 min of Actions minutes. Build-only catches
 # compilation errors, missing imports, and resource issues — the most common
 # failure mode on feature branches — in ~10 min instead of ~30 min.

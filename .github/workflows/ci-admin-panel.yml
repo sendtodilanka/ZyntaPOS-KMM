@@ -100,8 +100,8 @@ jobs:
           path: admin-panel/dist/
           retention-days: 7
 
-  # ── Docker Build (branch builds only — main push is handled by ci-gate.yml) ──
-  # ci-gate.yml → build-admin-panel-image already builds and pushes to GHCR on
+  # ── Docker Build (branch builds only — main push is handled by ci-push-main.yml) ──
+  # ci-push-main.yml → build-admin-panel-image already builds and pushes to GHCR on
   # push-to-main. This job only validates the Docker build on feature branches
   # (build-only, no push) to catch Dockerfile issues before merge.
   docker-validate:
@@ -109,8 +109,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [build]
-    # Only run on feature/claude branches — main push is handled by ci-gate.yml
-    # to avoid double image push and version drift (ci-gate uses @v6, this was @v5).
+    # Only run on feature/claude branches — main push is handled by ci-push-main.yml
+    # to avoid double image push and version drift (ci-push-main uses @v6, this was @v5).
     if: github.ref != 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4

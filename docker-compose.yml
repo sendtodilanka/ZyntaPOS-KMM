@@ -52,7 +52,7 @@ services:
       start_period: 15s
 
   # ── Ktor REST API ──────────────────────────────────────────────────
-  # Image built by CI (ci-gate.yml build-backend-images job) and pushed to GHCR.
+  # Image built by CI (ci-push-main.yml build-backend-images job) and pushed to GHCR.
   # VPS pulls the pre-built image — no Gradle or build tooling needed on server.
   # See: docs/adr/ADR-006-backend-docker-build-in-ci.md
   api:

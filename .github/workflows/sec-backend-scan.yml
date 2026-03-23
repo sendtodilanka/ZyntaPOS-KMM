@@ -6,7 +6,7 @@ name: Backend Security Scan
 #   • Weekly (Monday 01:00 UTC = 06:30 LKT) — scheduled sweep
 #   • On demand (workflow_dispatch)
 #
-# NOTE: push trigger intentionally removed — ci-gate.yml already builds and
+# NOTE: push trigger intentionally removed — ci-push-main.yml already builds and
 # pushes Docker images on every push to main, catching compilation errors.
 # Security CVE scanning on every push creates noise and redundant builds;
 # the weekly sweep is sufficient for vulnerability management.
@@ -247,7 +247,7 @@ jobs:
           file: backend/${{ matrix.service }}/Dockerfile
           load: true
           tags: zyntapos-${{ matrix.service }}:scan
-          cache-from: type=gha   # Reuse layers from ci-gate.yml build-backend-images
+          cache-from: type=gha   # Reuse layers from ci-push-main.yml build-backend-images
           cache-to: type=gha,mode=max
 
       - name: Run Trivy vulnerability scan

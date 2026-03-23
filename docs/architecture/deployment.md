@@ -19,14 +19,14 @@ Developer / Claude pushes to claude/* branch
         ▼  Step[2]: Auto PR (~1 min)
         │  ci-auto-pr.yml — creates PR to main, enables auto-merge
         │
-        ▼  Step[3+4]: CI Gate on PR (~25 min)
-        │  ci-gate.yml — full KMM build + lint + detekt + all tests
-        │  Auto-merge fires when "Build & Test" check passes
+        ▼  Step[3]: PR Gate (~5 min for merge, OWASP runs independently)
+        │  ci-pr-gate.yml — full KMM build + lint + detekt + all tests + OWASP scan
+        │  Auto-merge fires when "CI Gate Status" check passes
         │
-        ▼  Step[3+4]: CI Gate on push to main (~35 min)
-        │  ci-gate.yml — parallel jobs:
-        │    ├── build-and-test (KMM: build + lint + tests)
-        │    └── build-backend-images (Docker → GHCR)
+        ▼  Step[4]: Build Images & Deploy on push to main (~10 min)
+        │  ci-push-main.yml — parallel jobs:
+        │    ├── build-and-test (re-verify merged code)
+        │    └── build Docker images → push to GHCR
         │
         ▼  Step[5]: Deploy to VPS (~2 min)
         │  cd-deploy.yml — SSH to Contabo VPS
@@ -40,9 +40,9 @@ Developer / Claude pushes to claude/* branch
 
 ---
 
-## Step[3+4]: CI Gate — Backend Docker Image Build
+## Step[4]: Build Images & Deploy — Backend Docker Image Build
 
-When CI runs on a push to `main` (after auto-merge), two jobs run in parallel:
+When `ci-push-main.yml` runs on a push to `main` (after auto-merge), jobs run in parallel:
 
 ### `build-and-test`
 

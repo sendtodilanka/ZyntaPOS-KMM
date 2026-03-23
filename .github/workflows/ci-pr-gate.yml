@@ -1,33 +1,27 @@
-name: "Step[3+4]: CI Gate"
+name: "Step[3]: PR Gate"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# PIPELINE POSITION: Steps 3 & 4 of 7
+# PIPELINE POSITION: Step 3 of 7
 #
-# THE MERGE GATE — Full build + lint + detekt + tests.
-# Runs on:
-#   - pull_request to main  → blocks merge until green (branch protection)
-#   - push to main          → triggers deploy via repository_dispatch
-#   - workflow_dispatch      → manual re-run from Actions tab
+# THE MERGE GATE — Full build + lint + detekt + tests + security scan.
+# Runs on pull_request to main and workflow_dispatch (manual re-run).
 #
-# CHAINING: On push-to-main success, dispatches "deploy-trigger" event to
-# start Step[5]. Uses repository_dispatch instead of workflow_run to avoid
-# ghost workflow interference (GitHub platform bug with deleted workflows).
+# This is the quality gate that blocks PR merge until ALL checks pass.
+# Branch protection requires "CI Gate Status" to be green before merge.
+#
+# Includes OWASP security scanning — the NVD download can take 25-30 min
+# on cache miss, but that's acceptable during PR review. Step[4] (push to
+# main) skips OWASP since it was already validated here.
 #
 # EDGE CASES HANDLED:
-#   - PR + push double-trigger: concurrency groups keyed by event_name so they
-#     never cancel each other. Only PR runs use cancel-in-progress (push-to-main
-#     runs must complete to trigger deploy).
 #   - Stale PRs: newer push cancels in-progress CI on same PR
-#   - Merge queue: push-to-main run ensures merged code is verified before deploy
 #   - Test flakiness: --continue flag runs all tests, reports all failures
-#   - Test reporting: JUnit XML published as PR check annotations via dorny/test-reporter
-#   - Deploy dispatch only on push (not PR): explicit event_name guard
+#   - Test reporting: JUnit XML published as PR check annotations
+#   - OWASP advisory: continue-on-error so known CVEs don't block merges
 # ─────────────────────────────────────────────────────────────────────────────
 
 on:
   pull_request:
-    branches: [ main ]
-  push:
     branches: [ main ]
   workflow_dispatch:
 
@@ -35,17 +29,17 @@ permissions:
   contents: read
   checks: write
   actions: read
-  packages: write
+  packages: read
   security-events: write   # Required for Detekt SARIF upload to Security tab
 
 concurrency:
-  group: ci-gate-${{ github.event_name }}-${{ github.event.pull_request.number || github.sha }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ci-pr-gate-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
 
 jobs:
   # ── Full build + lint + test via reusable workflow ──────────────────────────
   build-and-test:
-    name: "Step[3+4]: Build & Test"
+    name: "Step[3]: Build & Test"
     uses: ./.github/workflows/_reusable-build-test.yml
     secrets:
       GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
@@ -58,10 +52,6 @@ jobs:
       artifact-suffix: '-ci-${{ github.run_id }}'
 
   # ── Website: Build validation (runs only when website/** files changed) ─────
-  # ci-website.yml runs full Playwright + Lighthouse tests on website PRs, but
-  # it is NOT a required CI Gate check (separate workflow). This job closes the
-  # gap by catching website build failures inside the merge gate.
-  # Skipped on non-website changes to avoid adding 5+ min to every PR.
   test-website:
     name: "Website Build (validate)"
     runs-on: ubuntu-latest
@@ -109,14 +99,7 @@ jobs:
         if: steps.changes.outputs.website_changed == '0'
         run: echo "No website/** files changed — skipping website build."
 
-  # ── Backend: Compile + Unit Tests (PR + push-to-main) ──────────────────────
-  # Validates that all three backend Gradle subprojects compile and pass unit
-  # tests BEFORE they are merged. Without this, compilation errors only surface
-  # during the Docker shadowJar build on push-to-main (post-merge), requiring
-  # a follow-up fix PR to unblock the deploy chain.
-  #
-  # Each backend subproject has its own settings.gradle.kts and Gradle wrapper;
-  # they are NOT compiled by the root KMP build.
+  # ── Backend: Compile + Unit Tests ─────────────────────────────────────────
   test-backend:
     name: "Backend Compile & Test"
     runs-on: ubuntu-latest
@@ -190,10 +173,7 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-  # ── Admin Panel: TypeScript, ESLint, Vitest, npm audit, Playwright ──────────
-  # Runs in parallel with build-and-test. Visual snapshot tests are excluded
-  # because pixel comparisons differ between local and ubuntu-22.04 renderers.
-  # Node 22 aligns with ci-admin-panel.yml (was Node 20 — version inconsistency).
+  # ── Admin Panel: TypeScript, ESLint, Vitest, npm audit, Playwright ────────
   test-admin-panel:
     name: "Admin Panel Tests"
     runs-on: ubuntu-22.04
@@ -256,10 +236,6 @@ jobs:
           if-no-files-found: ignore
 
   # ── Flyway Migration Validation ───────────────────────────────────────────
-  # Spins up a fresh PostgreSQL container and applies all Flyway migrations for
-  # api and license services. Catches SQL syntax errors and version conflicts
-  # BEFORE they reach production and cause a deploy-time outage.
-  # sync service has no Flyway migrations (Redis only).
   validate-migrations:
     name: "Validate DB Migrations (${{ matrix.service }})"
     runs-on: ubuntu-latest
@@ -303,8 +279,6 @@ jobs:
             migrate
 
   # ── Docker Compose Config Validation ─────────────────────────────────────
-  # Validates docker-compose.yml syntax before merge. Catches broken YAML,
-  # invalid service references, or misconfigured volumes without needing the VPS.
   validate-compose:
     name: "Validate docker-compose.yml"
     runs-on: ubuntu-latest
@@ -326,7 +300,7 @@ jobs:
             docker compose -f docker-compose.admin.yml config --quiet
           fi
 
-  # ── Test Result Reporting ──────────────────────────────────────────────────
+  # ── Test Result Reporting ────────────────────────────────────────────────
   test-report:
     name: "Publish Test Results"
     needs: build-and-test
@@ -355,151 +329,18 @@ jobs:
           fail-on-error: false
           fail-on-empty: false
 
-  # ── Build & Push Backend Docker Images to GHCR (push-to-main only) ─────────
-  # Runs in parallel with test-report after build-and-test succeeds.
-  # Pushes :latest and :<sha> tags so the VPS can pull without building.
-  build-backend-images:
-    name: "Build & Push Backend Docker Images"
-    needs: build-and-test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: read
-      packages: write
-    strategy:
-      fail-fast: false
-      matrix:
-        service: [api, license, sync]
-
-    steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push image — ${{ matrix.service }}
-        uses: docker/build-push-action@v6
-        with:
-          context: backend
-          file: backend/${{ matrix.service }}/Dockerfile
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/zyntapos-${{ matrix.service }}:latest
-            ghcr.io/${{ github.repository_owner }}/zyntapos-${{ matrix.service }}:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  # ── Build & Push Website Docker Image to GHCR (push-to-main only) ──────────
-  # Builds the Astro marketing website into an nginx Docker image.
-  # Runs in parallel with build-backend-images after build-and-test succeeds.
-  build-website-image:
-    name: "Build & Push Website Docker Image"
-    needs: build-and-test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push image — website
-        uses: docker/build-push-action@v6
-        with:
-          context: website
-          file: website/Dockerfile
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/zyntapos-website:latest
-            ghcr.io/${{ github.repository_owner }}/zyntapos-website:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  # ── Build & Push Admin Panel Docker Image to GHCR (push-to-main only) ──────
-  # Builds the React admin panel into an nginx Docker image.
-  # Runs in parallel with build-backend-images after build-and-test succeeds.
-  build-admin-panel-image:
-    name: "Build & Push Admin Panel Docker Image"
-    needs: build-and-test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Compute lowercase image name
-        id: image
-        run: echo "repo=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
-
-      - name: Build and push image — admin-panel
-        uses: docker/build-push-action@v6
-        with:
-          context: admin-panel
-          file: admin-panel/Dockerfile
-          push: true
-          tags: |
-            ghcr.io/${{ steps.image.outputs.repo }}/admin-panel:latest
-            ghcr.io/${{ steps.image.outputs.repo }}/admin-panel:${{ github.sha }}
-          build-args: |
-            VITE_API_URL=https://api.zyntapos.com
-            VITE_LICENSE_URL=https://license.zyntapos.com
-            VITE_SYNC_URL=https://sync.zyntapos.com
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
   # ── Security Scanning: OWASP Dependency Check (A6) ───────────────────────
   # Scans all 3 backend services SEQUENTIALLY in a single job so the NVD
-  # database (~500MB) is downloaded only once. The old matrix approach ran
-  # 3 parallel jobs that each downloaded the NVD independently (25-30 min
-  # on cache miss × 3 = up to 90 min total runner time).
+  # database (~500MB) is downloaded only once.
   #
-  # IMPORTANT: This job is NOT in the ci-gate-status dependency chain.
-  # The NVD download can take 25-30 min on cache miss, which would block
-  # the entire merge/deploy pipeline. It runs independently as advisory.
-  #
-  # Report-only in CI (OWASP_FAIL_CVSS=11 disables build failure); local dev
-  # uses the default threshold (7.0) from each service's build.gradle.kts.
+  # Report-only (OWASP_FAIL_CVSS=11 disables build failure); the CI Gate
+  # Status job does not block on this — it only blocks on cancellation.
+  # This ensures OWASP scans run during PR review (where 25-30 min is
+  # acceptable) without blocking the merge gate.
   security-scan-backend:
     name: "Security Scan (all backends)"
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     continue-on-error: true  # Advisory — don't block merges for known vulns
 
     steps:
@@ -568,13 +409,11 @@ jobs:
           if-no-files-found: ignore
 
   # ── CI Gate Status (single required check for branch protection) ─────────
-  # This job depends on ALL CI jobs and becomes the single required check
-  # in branch protection settings. Auto-merge waits for THIS job, ensuring
-  # no PR merges until every check (tests, lint, security scans, etc.) passes.
+  # Aggregates ALL required jobs into a single check. Branch protection
+  # requires "CI Gate Status" to pass before auto-merge proceeds.
   #
-  # Without this, auto-merge can fire as soon as the first required check
-  # passes (e.g., build-and-test), ignoring backend tests, admin panel tests,
-  # migration validation, and security scans.
+  # security-scan-backend is NOT in the needs list — it runs independently
+  # as advisory. This prevents a 25-30 min NVD download from blocking merge.
   ci-gate-status:
     name: "CI Gate Status"
     needs: [build-and-test, test-website, test-admin-panel, test-backend, validate-migrations, validate-compose]
@@ -622,33 +461,3 @@ jobs:
           fi
 
           echo "All CI Gate checks passed"
-
-  # ── Trigger Deploy (push-to-main only) ───────────────────────────────────
-  # Uses repository_dispatch to chain to cd-deploy.yml.
-  # Only fires on push events (not PRs) and only when ALL jobs succeed.
-  # Depends on ci-gate-status (which aggregates all jobs) plus Docker image
-  # builds (push-to-main only, so not in ci-gate-status).
-  trigger-deploy:
-    name: "Trigger Deploy"
-    needs: [ci-gate-status, build-backend-images, build-website-image, build-admin-panel-image]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    permissions:
-      contents: write
-    steps:
-      - name: Extract commit title
-        id: commit
-        env:
-          COMMIT_MSG: ${{ github.event.head_commit.message }}
-        run: |
-          # Use env var to safely handle special characters in commit messages
-          TITLE=$(echo "$COMMIT_MSG" | head -1 | tr -d '"' | cut -c1-80)
-          echo "title=$TITLE" >> "$GITHUB_OUTPUT"
-
-      - name: Dispatch deploy event
-        uses: peter-evans/repository-dispatch@v3
-        with:
-          token: ${{ secrets.PAT_TOKEN }}
-          event-type: deploy-trigger
-          client-payload: '{"sha": "${{ github.sha }}", "run_id": "${{ github.run_id }}", "title": "${{ steps.commit.outputs.title }}"}'

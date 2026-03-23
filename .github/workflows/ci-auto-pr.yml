@@ -8,7 +8,7 @@ run-name: "${{ github.event.client_payload.title || 'Auto PR' }} (${{ github.eve
 # Creates a PR targeting main (or reuses an open one) and enables GitHub's
 # native auto-merge (squash + delete branch).
 #
-# PAT_TOKEN is required so GitHub fires Step[3+4]: CI Gate on the new PR.
+# PAT_TOKEN is required so GitHub fires Step[3]: PR Gate on the new PR.
 # GITHUB_TOKEN cannot trigger subsequent workflow runs — that is a GitHub
 # security restriction.
 #
@@ -104,7 +104,7 @@ jobs:
           BRANCH="${{ steps.meta.outputs.branch }}"
           if [ "$HAS_PAT_TOKEN" != "true" ]; then
             echo "::warning::PAT_TOKEN secret is not set. Using GITHUB_TOKEN fallback."
-            echo "::warning::Step[3+4]: CI Gate will NOT be triggered automatically on the PR."
+            echo "::warning::Step[3]: PR Gate will NOT be triggered automatically on the PR."
           fi
 
           # Check for open PR first
@@ -147,7 +147,7 @@ jobs:
             echo "- Build — Desktop JVM JAR"
             echo ""
             echo "**What happens next:**"
-            echo "Step[3+4]: CI Gate runs on this PR (full test + lint + detekt)."
+            echo "Step[3]: PR Gate runs on this PR (full test + lint + detekt + OWASP scan)."
             echo "When all required status checks pass, GitHub will automatically"
             echo "squash-merge and delete the source branch."
             echo ""
@@ -244,5 +244,5 @@ jobs:
             echo "| **Branch after merge** | Deleted automatically |"
             echo ""
             echo "### Next"
-            echo "Step[3+4]: CI Gate is running full build + lint + detekt + tests on the PR."
+            echo "Step[3]: PR Gate is running full build + lint + detekt + tests + OWASP scan on the PR."
           } >> "$GITHUB_STEP_SUMMARY"
