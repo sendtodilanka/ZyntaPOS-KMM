@@ -81,14 +81,12 @@ fun MultiStoreDashboardScreen(
         actions = {
             if (state.stores.size > 1) {
                 ZyntaStoreSelectorCompact(
-                    currentStore = state.activeStore?.let {
-                        StoreItem(id = it.id, name = it.name, address = it.address)
-                    },
-                    availableStores = state.stores.map {
-                        StoreItem(id = it.id, name = it.name, address = it.address)
+                    currentStoreName = state.activeStore?.name ?: "Select Store",
+                    availableStores = state.stores.map { s ->
+                        StoreItem(id = s.id, name = s.name, address = s.address)
                     },
                     onStoreSelected = { item ->
-                        state.stores.find { it.id == item.id }?.let { store ->
+                        state.stores.find { s -> s.id == item.id }?.let { store ->
                             viewModel.dispatch(MultiStoreDashboardIntent.SwitchStore(store))
                         }
                     },
