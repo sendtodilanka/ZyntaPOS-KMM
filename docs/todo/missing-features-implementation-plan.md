@@ -2149,7 +2149,7 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 **Phase 2 Must-Have (before multi-store launch):**
 - [x] Create `ZyntaStoreSelector` component + wire to drawer footer — ✅ component created (2026-03-21), drawer wiring pending
 - [x] Create `ZyntaCurrencyPicker` + `ZyntaTimezonePicker` components — ✅ DONE (2026-03-21)
-- [ ] Add store selector to login screen
+- [x] Add store selector to login screen — ✅ DONE (G4, 2026-03-23: `ZyntaStoreSelector` in `LoginScreen`, `AuthState.availableStores` + `selectedStoreId`, `AuthViewModel.loadAvailableStores()` via `StoreRepository`)
 - [x] Add onboarding steps for currency + timezone — ✅ Step 3 added (2026-03-21)
 - [ ] Implement loyalty points redemption at POS checkout
 - [ ] Implement WebSocket auto-refresh for Dashboard + Reports
