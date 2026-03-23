@@ -335,12 +335,11 @@ jobs:
   # download (25-30 min on cache miss).
   #
   # Scans all 3 backend Gradle lockfiles for known vulnerabilities.
-  # Advisory mode: continue-on-error so known CVEs don't block merges.
+  # Required check — blocks PR merge if vulnerabilities are found.
   security-scan-backend:
     name: "Security Scan (OSV)"
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    continue-on-error: true  # Advisory — don't block merges for known vulns
 
     steps:
       - name: Checkout source
@@ -352,7 +351,7 @@ jobs:
           chmod +x /usr/local/bin/osv-scanner
 
       - name: Run OSV-Scanner — backend
-        run: osv-scanner --recursive --format=json --output=osv-results.json ./backend || true
+        run: osv-scanner --recursive --format=json --output=osv-results.json ./backend
 
       - name: Upload OSV scan results
         if: always()
@@ -367,11 +366,9 @@ jobs:
   # Aggregates ALL required jobs into a single check. Branch protection
   # requires "CI Gate Status" to pass before auto-merge proceeds.
   #
-  # security-scan-backend is NOT in the needs list — it runs independently
-  # as advisory.
   ci-gate-status:
     name: "CI Gate Status"
-    needs: [build-and-test, test-website, test-admin-panel, test-backend, validate-migrations, validate-compose]
+    needs: [build-and-test, test-website, test-admin-panel, test-backend, validate-migrations, validate-compose, security-scan-backend]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 2
@@ -384,6 +381,7 @@ jobs:
           TEST_BACKEND: ${{ needs.test-backend.result }}
           VALIDATE_MIGRATIONS: ${{ needs.validate-migrations.result }}
           VALIDATE_COMPOSE: ${{ needs.validate-compose.result }}
+          SECURITY_SCAN: ${{ needs.security-scan-backend.result }}
         run: |
           echo "=== CI Gate Job Results ==="
           echo "build-and-test:        $BUILD_AND_TEST"
@@ -392,6 +390,7 @@ jobs:
           echo "test-backend:          $TEST_BACKEND"
           echo "validate-migrations:   $VALIDATE_MIGRATIONS"
           echo "validate-compose:      $VALIDATE_COMPOSE"
+          echo "security-scan:         $SECURITY_SCAN"
 
           # Fail if any required job failed or was cancelled
           FAILED=false
@@ -401,7 +400,8 @@ jobs:
             "test-admin-panel:$TEST_ADMIN_PANEL" \
             "test-backend:$TEST_BACKEND" \
             "validate-migrations:$VALIDATE_MIGRATIONS" \
-            "validate-compose:$VALIDATE_COMPOSE"; do
+            "validate-compose:$VALIDATE_COMPOSE" \
+            "security-scan:$SECURITY_SCAN"; do
             JOB_NAME="${PAIR%%:*}"
             RESULT="${PAIR#*:}"
             if [ "$RESULT" != "success" ]; then
