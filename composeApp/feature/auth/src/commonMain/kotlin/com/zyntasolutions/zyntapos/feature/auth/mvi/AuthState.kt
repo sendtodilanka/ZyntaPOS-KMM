@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.auth.mvi
 
 import androidx.compose.runtime.Immutable
+import com.zyntasolutions.zyntapos.domain.model.Store
 
 /**
  * Represents the complete UI state for the authentication flow.
@@ -29,4 +30,8 @@ data class AuthState(
     val isPasswordVisible: Boolean = false,
     val rememberMe: Boolean = false,
     val error: String? = null,
+    /** Available stores for multi-store login selector (G4). Empty = single-store mode. */
+    val availableStores: List<Store> = emptyList(),
+    /** Selected store ID for multi-store login. Null = use user's default store. */
+    val selectedStoreId: String? = null,
 )

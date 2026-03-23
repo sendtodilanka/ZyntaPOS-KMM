@@ -29,4 +29,7 @@ sealed class AuthIntent {
 
     /** Dismisses the current top-level error banner. */
     data object DismissError : AuthIntent()
+
+    /** Multi-store login: user selected a store from the dropdown (G4). */
+    data class StoreSelected(val storeId: String?) : AuthIntent()
 }
