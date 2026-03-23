@@ -52,6 +52,8 @@ data class Order(
     val cashierId: String,
     val storeId: String,
     val registerSessionId: String,
+    /** ISO 4217 currency code for this order (e.g., "LKR", "USD"). Defaults to store currency. */
+    val currency: String = "LKR",
     val notes: String? = null,
     val reference: String? = null,
     /** C4.1: For REFUND orders, the ID of the original SALE order being returned. */

@@ -122,6 +122,15 @@ object AppConfig {
     /** Maximum PIN length (digits). */
     const val PIN_MAX_LENGTH: Int = 6
 
+    // ── Loyalty ──────────────────────────────────────────────────────────
+
+    /**
+     * How many loyalty points equal 1 currency unit for redemption.
+     * Default: 100 points = 1 LKR/USD/etc.
+     * Configurable at runtime via SettingsRepository.
+     */
+    const val LOYALTY_POINTS_PER_CURRENCY_UNIT: Int = 100
+
     // ── Printing ──────────────────────────────────────────────────────────────
 
     /** Characters per line for 58 mm thermal paper. */

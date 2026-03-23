@@ -19,7 +19,9 @@ import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
 import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
 import com.zyntasolutions.zyntapos.domain.usecase.coupons.CalculateCouponDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.coupons.ValidateCouponUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.crm.CalculateLoyaltyDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.EarnRewardPointsUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.crm.RedeemRewardPointsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.AddItemToCartUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.PrintA4TaxInvoiceUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.ReprintLastReceiptUseCase
@@ -131,6 +133,8 @@ class PosViewModel(
     private val validateCouponUseCase: ValidateCouponUseCase,
     private val calculateCouponDiscountUseCase: CalculateCouponDiscountUseCase,
     private val earnRewardPointsUseCase: EarnRewardPointsUseCase,
+    private val redeemRewardPointsUseCase: RedeemRewardPointsUseCase,
+    private val calculateLoyaltyDiscountUseCase: CalculateLoyaltyDiscountUseCase,
     private val customerRepository: CustomerRepository,
     private val registerRepository: RegisterRepository,
     private val authRepository: AuthRepository,
@@ -248,6 +252,7 @@ class PosViewModel(
             // ── Sprint 22: wallet + coupon ──────────────────────────────────
             is PosIntent.LoadCustomerWallet      -> currentState.selectedCustomer?.let { onLoadCustomerWallet(it.id) }
             is PosIntent.SetWalletPaymentAmount  -> updateState { copy(walletPaymentAmount = intent.amount) }
+            is PosIntent.SetLoyaltyPointsRedemption -> onSetLoyaltyRedemption(intent.points)
             is PosIntent.EnterCouponCode         -> updateState { copy(couponCode = intent.code, couponError = null) }
             is PosIntent.ValidateCoupon          -> onValidateCoupon()
             is PosIntent.ClearCoupon             -> updateState {
@@ -385,6 +390,8 @@ class PosViewModel(
                 walletBalance = null,
                 loyaltyPointsBalance = null,
                 walletPaymentAmount = 0.0,
+                loyaltyPointsToRedeem = 0,
+                loyaltyDiscount = 0.0,
                 // ── coupon ────────────────────────────────────────────────────
                 couponCode = "",
                 couponValidating = false,
@@ -451,9 +458,9 @@ class PosViewModel(
 
     private suspend fun onProcessPayment(intent: PosIntent.ProcessPayment) {
         updateState { copy(isLoading = true) }
-        // Combine base order discount (monetary) + coupon discount as a single FIXED amount.
+        // Combine base order discount (monetary) + coupon discount + loyalty discount as a single FIXED amount.
         // orderTotals.discountAmount is already the monetary value regardless of original type.
-        val combinedDiscount = currentState.orderTotals.discountAmount + currentState.couponDiscount
+        val combinedDiscount = currentState.orderTotals.discountAmount + currentState.couponDiscount + currentState.loyaltyDiscount
         // Add wallet payment to tendered amount so the payment validator is satisfied.
         val effectiveTendered = intent.tendered + currentState.walletPaymentAmount
         val result = processPaymentUseCase(
@@ -506,6 +513,10 @@ class PosViewModel(
                 val customer = currentState.selectedCustomer
                 if (customer != null) {
                     onEarnLoyaltyPoints(customerId = customer.id, orderTotal = order.total, orderId = order.id)
+                    val loyaltyPts = currentState.loyaltyPointsToRedeem
+                    if (loyaltyPts > 0) {
+                        onRedeemLoyaltyPoints(customerId = customer.id, points = loyaltyPts, orderId = order.id)
+                    }
                     val walletAmt = currentState.walletPaymentAmount
                     if (walletAmt > 0.0) {
                         onDebitWallet(customerId = customer.id, amount = walletAmt, orderId = order.id)
@@ -628,6 +639,20 @@ class PosViewModel(
         }
     }
 
+    /**
+     * Converts the requested loyalty points to a monetary discount and updates state.
+     * Validates that points don't exceed the customer's available balance.
+     */
+    private fun onSetLoyaltyRedemption(points: Int) {
+        val available = currentState.loyaltyPointsBalance ?: 0
+        val clamped = points.coerceIn(0, available)
+        val discount = calculateLoyaltyDiscountUseCase(
+            pointsToRedeem = clamped,
+            orderTotal = currentState.orderTotals.total,
+        )
+        updateState { copy(loyaltyPointsToRedeem = clamped, loyaltyDiscount = discount) }
+    }
+
     // ── Sprint 22: coupon validation ──────────────────────────────────────────
 
     /**
@@ -686,6 +711,18 @@ class PosViewModel(
             basePoints = basePoints,
             orderId = orderId,
             tier = tier,
+        )
+    }
+
+    /**
+     * Redeems [points] from the customer's loyalty balance after a successful payment.
+     * Silently no-ops on error — redemption failure should not block the receipt flow.
+     */
+    private suspend fun onRedeemLoyaltyPoints(customerId: String, points: Int, orderId: String) {
+        redeemRewardPointsUseCase(
+            customerId = customerId,
+            pointsToRedeem = points,
+            orderId = orderId,
         )
     }
 
