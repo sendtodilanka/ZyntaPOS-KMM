@@ -119,7 +119,7 @@ fun Application.configureRouting() {
                     transferRoutes()
                     replenishmentRoutes()
                     pricingRoutes()
-                    storeAccessRoutes(get())
+                    storeAccessRoutes()
                 }
                 // Sync push is write-heavy — use sync tier (60 req/min)
                 rateLimit(RateLimitName("sync")) {

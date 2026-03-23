@@ -8,6 +8,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
+import org.koin.ktor.ext.inject
 
 /**
  * REST endpoints for multi-store user access management (C3.2).
@@ -15,7 +16,8 @@ import kotlinx.serialization.Serializable
  * These are store-level operations managed by store ADMINs via the KMM app,
  * secured by POS RS256 JWT auth (ADR-009 compliant — under /v1/).
  */
-fun Route.storeAccessRoutes(repo: UserStoreAccessRepository) {
+fun Route.storeAccessRoutes() {
+    val repo by inject<UserStoreAccessRepository>()
     route("/store-access") {
 
             /**
