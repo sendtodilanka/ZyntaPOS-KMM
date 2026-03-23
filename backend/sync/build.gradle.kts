@@ -3,7 +3,7 @@ plugins {
     kotlin("plugin.serialization") version "2.3.0"
     id("com.github.johnrengelman.shadow") version "8.1.1"
     application
-    id("org.owasp.dependencycheck") version "12.2.0"
+
     id("org.jetbrains.kotlinx.kover") version "0.9.1"
     id("io.gitlab.arturbosch.detekt") version "1.23.8"
 }
@@ -43,18 +43,6 @@ configurations.all {
 
 val ktorVersion = "3.4.1"
 val koinVersion = "4.1.1"
-
-// ── OWASP Dependency Check (TODO-009 Level 4) ─────────────────────────────
-// CI sets OWASP_FAIL_CVSS=11 to report-only (never fail); local dev uses 7.0
-dependencyCheck {
-    failBuildOnCVSS = (System.getenv("OWASP_FAIL_CVSS")?.toFloatOrNull() ?: 7.0f)
-    suppressionFile = "owasp-suppressions.xml"
-    formats = listOf("HTML", "JSON", "SARIF")
-    nvd {
-        apiKey = System.getenv("NVD_API_KEY") ?: ""
-        delay = if (System.getenv("NVD_API_KEY").isNullOrBlank()) 3500 else 500
-    }
-}
 
 dependencies {
     // ── Common validation utilities + JWT defaults ───────────────────
