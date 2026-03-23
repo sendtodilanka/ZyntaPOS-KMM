@@ -41,6 +41,25 @@ class FakeCustomerRepository : CustomerRepository {
         _flow.value = customers.toList()
         return Result.Success(Unit)
     }
+    override fun searchGlobal(query: String): Flow<List<Customer>> = search(query)
+    override fun getByStore(storeId: String): Flow<List<Customer>> =
+        _flow.map { list -> list.filter { it.storeId == storeId } }
+    override fun getGlobalCustomers(): Flow<List<Customer>> =
+        _flow.map { list -> list.filter { it.storeId == null } }
+    override suspend fun makeGlobal(customerId: String): Result<Unit> {
+        val i = customers.indexOfFirst { it.id == customerId }
+        if (i == -1) return Result.Error(DatabaseException("Not found"))
+        customers[i] = customers[i].copy(storeId = null)
+        _flow.value = customers.toList()
+        return Result.Success(Unit)
+    }
+    override suspend fun updateLoyaltyPoints(customerId: String, points: Int): Result<Unit> {
+        val i = customers.indexOfFirst { it.id == customerId }
+        if (i == -1) return Result.Error(DatabaseException("Not found"))
+        customers[i] = customers[i].copy(loyaltyPoints = points)
+        _flow.value = customers.toList()
+        return Result.Success(Unit)
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

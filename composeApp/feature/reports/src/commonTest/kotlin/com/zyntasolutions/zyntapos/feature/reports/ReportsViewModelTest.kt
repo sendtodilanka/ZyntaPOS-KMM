@@ -204,6 +204,11 @@ class ReportsViewModelTest {
         override suspend fun update(customer: Customer): Result<Unit> = error("not used in test")
         override suspend fun delete(id: String): Result<Unit> = error("not used in test")
         override fun search(query: String): Flow<List<Customer>> = flowOf(emptyList())
+        override fun searchGlobal(query: String): Flow<List<Customer>> = flowOf(emptyList())
+        override fun getByStore(storeId: String): Flow<List<Customer>> = flowOf(emptyList())
+        override fun getGlobalCustomers(): Flow<List<Customer>> = flowOf(emptyList())
+        override suspend fun makeGlobal(customerId: String): Result<Unit> = error("not used in test")
+        override suspend fun updateLoyaltyPoints(customerId: String, points: Int): Result<Unit> = error("not used in test")
     }
 
     // ── Fake ExpenseRepository ────────────────────────────────────────────────

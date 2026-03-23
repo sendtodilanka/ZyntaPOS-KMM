@@ -142,6 +142,11 @@ class SeedRunnerExpansionTest {
         }
         override suspend fun update(c: Customer) = Result.Success(Unit)
         override suspend fun delete(id: String) = Result.Success(Unit)
+        override fun searchGlobal(query: String) = flowOf(emptyList<Customer>())
+        override fun getByStore(storeId: String) = flowOf(emptyList<Customer>())
+        override fun getGlobalCustomers() = flowOf(emptyList<Customer>())
+        override suspend fun makeGlobal(customerId: String) = Result.Success(Unit)
+        override suspend fun updateLoyaltyPoints(customerId: String, points: Int) = Result.Success(Unit)
     }
 
     // ── New entity fakes ────────────────────────────────────────────────────

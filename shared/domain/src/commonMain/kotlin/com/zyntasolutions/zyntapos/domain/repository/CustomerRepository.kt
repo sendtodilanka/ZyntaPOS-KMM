@@ -43,4 +43,35 @@ interface CustomerRepository {
      * Existing order records referencing this customer remain unaffected.
      */
     suspend fun delete(id: String): Result<Unit>
+
+    // ── C4.3: Cross-Store Customer Operations ───────────────────────────────
+
+    /**
+     * Emits customers whose name, phone, or email match [query] across ALL stores.
+     *
+     * Unlike [search], this includes inactive customers and ignores store scope.
+     * Intended for admin/support cross-store customer lookup.
+     */
+    fun searchGlobal(query: String): Flow<List<Customer>>
+
+    /**
+     * Returns customers belonging to a specific [storeId].
+     */
+    fun getByStore(storeId: String): Flow<List<Customer>>
+
+    /**
+     * Returns customers with no store assignment (global/shared customers).
+     */
+    fun getGlobalCustomers(): Flow<List<Customer>>
+
+    /**
+     * Promotes a store-specific customer to a global customer by clearing store_id.
+     */
+    suspend fun makeGlobal(customerId: String): Result<Unit>
+
+    /**
+     * Updates the loyalty points for a customer.
+     * Used during customer merge operations.
+     */
+    suspend fun updateLoyaltyPoints(customerId: String, points: Int): Result<Unit>
 }

@@ -1,6 +1,9 @@
 package com.zyntasolutions.zyntapos.feature.customers
 
 import com.zyntasolutions.zyntapos.domain.usecase.crm.EarnRewardPointsUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.crm.ExportCustomerDataUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.crm.GetCustomerPurchaseHistoryUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.crm.MergeCustomersUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.RedeemRewardPointsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.SaveCustomerGroupUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.WalletTopUpUseCase
@@ -33,18 +36,24 @@ val customersModule = module {
     factoryOf(::WalletTopUpUseCase)
     factoryOf(::EarnRewardPointsUseCase)
     factoryOf(::RedeemRewardPointsUseCase)
+    factoryOf(::ExportCustomerDataUseCase)
+    factoryOf(::MergeCustomersUseCase)
+    factoryOf(::GetCustomerPurchaseHistoryUseCase)
 
     // ── ViewModel ─────────────────────────────────────────────────────────────
     viewModel {
         CustomerViewModel(
-            customerRepository = get(),
-            groupRepository    = get(),
-            walletRepository   = get(),
-            loyaltyRepository  = get(),
-            saveGroupUseCase   = get(),
-            walletTopUpUseCase = get(),
-            authRepository     = get(),
-            analytics          = get(),
+            customerRepository       = get(),
+            groupRepository          = get(),
+            walletRepository         = get(),
+            loyaltyRepository        = get(),
+            saveGroupUseCase         = get(),
+            walletTopUpUseCase       = get(),
+            exportCustomerDataUseCase = get(),
+            mergeCustomersUseCase    = get(),
+            getPurchaseHistoryUseCase = get(),
+            authRepository           = get(),
+            analytics                = get(),
         )
     }
 }

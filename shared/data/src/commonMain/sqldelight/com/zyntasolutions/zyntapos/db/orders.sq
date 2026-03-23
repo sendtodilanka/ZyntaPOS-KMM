@@ -71,6 +71,20 @@ SELECT * FROM orders WHERE (id = ? OR order_number = ?) AND type = 'SALE' AND st
 getRefundsForOrder:
 SELECT * FROM orders WHERE original_order_id = ? AND type = 'REFUND' ORDER BY created_at DESC;
 
+-- C4.3: Get all orders for a customer across all stores (for centralized profile)
+getOrdersByCustomer:
+SELECT * FROM orders WHERE customer_id = ? ORDER BY created_at DESC;
+
+-- C4.3: Get order count and total spend per customer (for customer analytics)
+getCustomerOrderSummary:
+SELECT customer_id, COUNT(*) AS order_count, SUM(total) AS total_spend
+FROM orders WHERE customer_id = ? AND type = 'SALE' AND status = 'COMPLETED';
+
+-- C4.3: Reassign orders from one customer to another (used during merge)
+reassignOrdersToCustomer:
+UPDATE orders SET customer_id = ?, updated_at = ?, sync_status = 'PENDING'
+WHERE customer_id = ?;
+
 -- ── Write queries ───────────────────────────────────────────────────────────
 
 insertOrder:
