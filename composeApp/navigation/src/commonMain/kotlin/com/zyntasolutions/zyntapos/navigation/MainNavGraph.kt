@@ -6,6 +6,8 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.toRoute
+import com.zyntasolutions.zyntapos.designsystem.components.LocalSyncDisplayStatus
+import com.zyntasolutions.zyntapos.designsystem.components.LocalSyncPendingCount
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaScaffold
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -919,6 +921,8 @@ private fun MainScaffoldShell(
         drawerUserName = drawerUserName,
         drawerUserInitials = drawerUserInitials,
         drawerUserRole = drawerUserRole,
+        syncStatus = LocalSyncDisplayStatus.current,
+        syncPendingCount = LocalSyncPendingCount.current,
         content = { _ -> content() },
     )
 }

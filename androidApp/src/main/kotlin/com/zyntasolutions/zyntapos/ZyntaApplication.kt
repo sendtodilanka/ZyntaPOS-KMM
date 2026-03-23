@@ -40,6 +40,8 @@ import co.touchlab.kermit.Logger
 import com.zyntasolutions.zyntapos.data.local.db.SecurePreferencesKeyMigration
 import com.zyntasolutions.zyntapos.data.job.AuditIntegrityJob
 import com.zyntasolutions.zyntapos.data.job.LogRetentionJob
+import com.zyntasolutions.zyntapos.data.sync.NetworkMonitor
+import com.zyntasolutions.zyntapos.data.sync.SyncWorker
 import com.zyntasolutions.zyntapos.data.logging.KermitSqliteAdapter
 import com.zyntasolutions.zyntapos.domain.repository.FeatureRegistryRepository
 import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
@@ -176,6 +178,12 @@ class ZyntaApplication : Application() {
         // AuditIntegrityJob: daily SHA-256 hash chain verification of audit_entries
         koin.koin.get<LogRetentionJob>().start()
         koin.koin.get<AuditIntegrityJob>().start()
+
+        // ── C6.2: Offline-first sync bootstrap ─────────────────────────────────
+        // Start network monitoring for real-time connectivity state.
+        // Schedule WorkManager periodic sync (15-min interval, requires network).
+        koin.koin.get<NetworkMonitor>().start()
+        SyncWorker.schedule(this, requireWifi = false)
 
         // ── Tier 7: Debug tools — loaded only in debug builds ─────────────────
         // seedModule    — registers SeedRunner (55+ products, 25 customers, etc.)

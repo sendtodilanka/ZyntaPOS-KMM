@@ -75,6 +75,8 @@ import com.zyntasolutions.zyntapos.data.sync.ConflictResolver
 import com.zyntasolutions.zyntapos.data.sync.NetworkMonitor
 import com.zyntasolutions.zyntapos.data.sync.SyncEngine
 import com.zyntasolutions.zyntapos.data.sync.SyncQueueMaintenance
+import com.zyntasolutions.zyntapos.data.sync.SyncStatusAdapter
+import com.zyntasolutions.zyntapos.domain.port.SyncStatusPort
 import com.zyntasolutions.zyntapos.domain.port.SecureStoragePort
 import com.zyntasolutions.zyntapos.domain.repository.AuditRepository
 import com.zyntasolutions.zyntapos.domain.repository.ConflictLogRepository
@@ -486,6 +488,12 @@ val dataModule = module {
             storeId               = get(named("storeId")),
         )
     }
+
+    /**
+     * [SyncStatusPort] — domain-level abstraction for sync/network state.
+     * Consumed by the root App() composable for the drawer sync indicator.
+     */
+    single<SyncStatusPort> { SyncStatusAdapter(syncEngine = get(), networkMonitor = get()) }
 
     // ─────────────────────────────────────────────────────────────────────────
     // ── Phase 3 Staff / HR Repositories ──────────────────────────────────────

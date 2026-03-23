@@ -8,6 +8,10 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import com.zyntasolutions.zyntapos.core.utils.AppTimezone
 import com.zyntasolutions.zyntapos.debug.DebugViewModel
+import com.zyntasolutions.zyntapos.designsystem.components.LocalSyncDisplayStatus
+import com.zyntasolutions.zyntapos.designsystem.components.LocalSyncPendingCount
+import com.zyntasolutions.zyntapos.designsystem.components.SyncDisplayStatus
+import com.zyntasolutions.zyntapos.domain.port.SyncStatusPort
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoadingOverlay
 import com.zyntasolutions.zyntapos.designsystem.theme.ThemeMode
 import com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme
@@ -143,6 +147,19 @@ fun App() {
 
     val appInfoProvider: AppInfoProvider = koinInject()
 
+    // ── C6.2: Observe sync engine state for the offline/sync indicator ────────
+    val syncStatus: SyncStatusPort = koinInject()
+    val isNetworkConnected by syncStatus.isNetworkConnected.collectAsState()
+    val isSyncing by syncStatus.isSyncing.collectAsState()
+    val lastSyncFailed by syncStatus.lastSyncFailed.collectAsState()
+
+    val syncDisplayStatus = when {
+        !isNetworkConnected -> SyncDisplayStatus.OFFLINE
+        isSyncing -> SyncDisplayStatus.SYNCING
+        lastSyncFailed -> SyncDisplayStatus.ERROR
+        else -> SyncDisplayStatus.SYNCED
+    }
+
     // ── Debug overrides (active only when debug console is loaded) ────────────
     // These keys are only ever written by DebugViewModel; they emit null in
     // production builds where debugModule is never loaded, so the effective
@@ -166,7 +183,9 @@ fun App() {
             LocalDensity provides Density(
                 density   = baseDensity.density,
                 fontScale = baseDensity.fontScale * debugFontScale,
-            )
+            ),
+            LocalSyncDisplayStatus provides syncDisplayStatus,
+            LocalSyncPendingCount provides 0, // TODO: expose pending count from SyncEngine
         ) {
         Surface(
             modifier = Modifier.fillMaxSize(),
