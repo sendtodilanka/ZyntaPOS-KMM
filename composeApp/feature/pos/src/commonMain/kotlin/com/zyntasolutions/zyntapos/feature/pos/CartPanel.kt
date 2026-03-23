@@ -51,6 +51,8 @@ fun CartPanel(
     onDismissSheet: () -> Unit,
     modifier: Modifier = Modifier,
     loyaltyPointsBalance: Int? = null,
+    loyaltyPointsToRedeem: Int = 0,
+    loyaltyDiscount: Double = 0.0,
 ) {
     val windowSizeClass = currentWindowSize()
 
@@ -68,6 +70,8 @@ fun CartPanel(
                 selectedCustomer = selectedCustomer,
                 onIntent = onIntent,
                 loyaltyPointsBalance = loyaltyPointsBalance,
+                loyaltyPointsToRedeem = loyaltyPointsToRedeem,
+                loyaltyDiscount = loyaltyDiscount,
                 modifier = Modifier.fillMaxSize(),
             )
         }
@@ -86,6 +90,8 @@ fun CartPanel(
                     selectedCustomer = selectedCustomer,
                     onIntent = onIntent,
                     loyaltyPointsBalance = loyaltyPointsBalance,
+                loyaltyPointsToRedeem = loyaltyPointsToRedeem,
+                loyaltyDiscount = loyaltyDiscount,
                     modifier = Modifier
                         .fillMaxWidth()
                         .navigationBarsPadding(),

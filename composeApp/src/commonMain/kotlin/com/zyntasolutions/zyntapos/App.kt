@@ -100,7 +100,23 @@ import com.zyntasolutions.zyntapos.feature.settings.screen.SecuritySettingsScree
 import com.zyntasolutions.zyntapos.feature.settings.screen.SystemHealthScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.TaxSettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.UserManagementScreen
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.feature.customers.CustomerEffect
 import com.zyntasolutions.zyntapos.feature.diagnostic.DiagnosticConsentScreen
 import com.zyntasolutions.zyntapos.feature.diagnostic.DiagnosticEffect
 import com.zyntasolutions.zyntapos.feature.diagnostic.DiagnosticIntent
@@ -609,12 +625,65 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
     customerDetail = { customerId, onNavigateUp, onNavigateToWallet ->
         val vm: CustomerViewModel = koinViewModel()
         val state by vm.state.collectAsState()
+        val snackbarHostState = remember { SnackbarHostState() }
+        var exportedJson by remember { mutableStateOf<String?>(null) }
+
+        // Collect one-shot effects (snackbar, GDPR export, navigation)
+        LaunchedEffect(Unit) {
+            vm.effects.collect { effect ->
+                when (effect) {
+                    is CustomerEffect.ShowSuccess -> snackbarHostState.showSnackbar(effect.message)
+                    is CustomerEffect.ShowError -> snackbarHostState.showSnackbar(effect.message)
+                    is CustomerEffect.CustomerDataExported -> exportedJson = effect.json
+                    is CustomerEffect.NavigateToList -> onNavigateUp()
+                    is CustomerEffect.MergeCompleted -> snackbarHostState.showSnackbar(effect.message)
+                    else -> Unit
+                }
+            }
+        }
+
+        // GDPR export result dialog (G10)
+        if (exportedJson != null) {
+            AlertDialog(
+                onDismissRequest = { exportedJson = null },
+                title = { Text("Customer Data Export (GDPR)") },
+                text = {
+                    Column {
+                        Text(
+                            text = "Customer data has been exported successfully. " +
+                                "The data is shown below in JSON format.",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Surface(
+                            tonalElevation = 2.dp,
+                            shape = MaterialTheme.shapes.small,
+                            modifier = Modifier.fillMaxWidth().heightIn(max = 300.dp),
+                        ) {
+                            SelectionContainer {
+                                Text(
+                                    text = exportedJson ?: "",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.padding(8.dp)
+                                        .verticalScroll(rememberScrollState()),
+                                )
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { exportedJson = null }) { Text("Close") }
+                },
+            )
+        }
+
         CustomerDetailScreen(
             customerId = customerId,
             state = state,
             onIntent = vm::dispatch,
             onNavigateUp = onNavigateUp,
             onNavigateToWallet = onNavigateToWallet,
+            snackbarHostState = snackbarHostState,
         )
     },
 

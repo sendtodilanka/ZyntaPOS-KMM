@@ -168,6 +168,7 @@ val inventoryModule = module {
             updateProductUseCase    = get(),
             adjustStockUseCase      = get(),
             authRepository          = get(),
+            purchaseOrderRepository = get(),
             auditLogger             = get(),
             analytics               = get(),
         )

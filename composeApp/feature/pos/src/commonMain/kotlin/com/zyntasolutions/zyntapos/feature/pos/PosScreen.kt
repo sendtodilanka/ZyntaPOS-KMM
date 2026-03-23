@@ -171,6 +171,8 @@ fun PosScreen(
                         isSheetVisible = true,
                         onDismissSheet = { },
                         loyaltyPointsBalance = state.loyaltyPointsBalance,
+                        loyaltyPointsToRedeem = state.loyaltyPointsToRedeem,
+                        loyaltyDiscount = state.loyaltyDiscount,
                     )
                 }
             } else {
@@ -228,6 +230,8 @@ fun PosScreen(
                         isSheetVisible = isCartSheetVisible,
                         onDismissSheet = { isCartSheetVisible = false },
                         loyaltyPointsBalance = state.loyaltyPointsBalance,
+                        loyaltyPointsToRedeem = state.loyaltyPointsToRedeem,
+                        loyaltyDiscount = state.loyaltyDiscount,
                     )
                 }
             }
