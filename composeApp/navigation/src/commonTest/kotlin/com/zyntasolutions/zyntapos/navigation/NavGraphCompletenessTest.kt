@@ -52,6 +52,7 @@ class NavGraphCompletenessTest {
         "stockReport",
         "customerReport",
         "expenseReport",
+        "storeComparisonReport",
 
         // Settings sub-graph
         "settings",

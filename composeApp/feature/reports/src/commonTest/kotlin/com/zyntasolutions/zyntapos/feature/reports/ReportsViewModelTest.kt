@@ -25,6 +25,10 @@ import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateExpenseReportU
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateSalesReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateStockReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.PrintReportUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.reports.enterprise.GenerateMultiStoreComparisonReportUseCase
+import com.zyntasolutions.zyntapos.domain.model.report.StoreSalesData
+import com.zyntasolutions.zyntapos.domain.repository.ReportRepository
+import kotlinx.datetime.LocalDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -245,6 +249,47 @@ class ReportsViewModelTest {
             else kotlin.Result.success(Unit)
     }
 
+    // ── Fake ReportRepository (for store comparison) ──────────────────────────
+
+    private val fakeReportRepository = object : ReportRepository {
+        override suspend fun getMultiStoreComparison(from: Instant, to: Instant) = emptyList<StoreSalesData>()
+        override suspend fun getDailySalesSummary(date: LocalDate) = throw NotImplementedError()
+        override suspend fun getSalesByCategory(from: Instant, to: Instant) = throw NotImplementedError()
+        override suspend fun getCashMovementLog(from: Instant, to: Instant) = throw NotImplementedError()
+        override suspend fun getTopProductsByVolume(from: Instant, to: Instant, limit: Int) = throw NotImplementedError()
+        override suspend fun getProductPerformance(from: Instant, to: Instant) = throw NotImplementedError()
+        override suspend fun getCouponUsage(from: Instant, to: Instant) = throw NotImplementedError()
+        override suspend fun getPaymentMethodBreakdown(from: Instant, to: Instant) = throw NotImplementedError()
+        override suspend fun getTaxCollection(from: Instant, to: Instant) = throw NotImplementedError()
+        override suspend fun getDiscountVoidAnalysis(from: Instant, to: Instant) = throw NotImplementedError()
+        override suspend fun getTopCustomers(from: Instant, to: Instant, limit: Int) = throw NotImplementedError()
+        override suspend fun getProfitLoss(from: Instant, to: Instant) = throw NotImplementedError()
+        override suspend fun getStaffAttendanceSummary(from: Instant, to: Instant) = throw NotImplementedError()
+        override suspend fun getStaffSalesSummary(from: Instant, to: Instant) = throw NotImplementedError()
+        override suspend fun getPayrollSummary(payPeriodId: String) = throw NotImplementedError()
+        override suspend fun getLeaveBalances(asOf: Instant) = throw NotImplementedError()
+        override suspend fun getShiftCoverage(from: Instant, to: Instant) = throw NotImplementedError()
+        override suspend fun getInterStoreTransfers(from: Instant, to: Instant) = throw NotImplementedError()
+        override suspend fun getWarehouseInventory() = throw NotImplementedError()
+        override suspend fun getStockAging(noSalesDays: Int) = throw NotImplementedError()
+        override suspend fun getStockReorderAlerts() = throw NotImplementedError()
+        override suspend fun getSupplierPurchases(from: Instant, to: Instant) = throw NotImplementedError()
+        override suspend fun getReturnRefundSummary(from: Instant, to: Instant) = throw NotImplementedError()
+        override suspend fun getEInvoiceStatus(from: Instant, to: Instant) = throw NotImplementedError()
+        override suspend fun getAccountingLedger(from: Instant, to: Instant) = throw NotImplementedError()
+        override suspend fun getHourlySales(date: LocalDate) = throw NotImplementedError()
+        override suspend fun getCustomerLoyaltySummary(from: Instant, to: Instant) = throw NotImplementedError()
+        override suspend fun getWalletBalances() = throw NotImplementedError()
+        override suspend fun getCOGS(from: Instant, to: Instant) = throw NotImplementedError()
+        override suspend fun getGrossMargin(from: Instant, to: Instant) = throw NotImplementedError()
+        override suspend fun getAnnualSalesTrend(year: Int) = throw NotImplementedError()
+        override suspend fun getClockInOutLog(from: Instant, to: Instant, employeeId: String?) = throw NotImplementedError()
+        override suspend fun getInventoryValuation() = throw NotImplementedError()
+        override suspend fun getCustomerRetentionMetrics(from: Instant, to: Instant) = throw NotImplementedError()
+        override suspend fun getPurchaseOrders(from: Instant, to: Instant) = throw NotImplementedError()
+        override suspend fun getExpensesByDepartment(from: Instant, to: Instant) = throw NotImplementedError()
+    }
+
     // ── Fake ReportExporter ───────────────────────────────────────────────────
 
     private val fakeReportExporter = object : ReportExporter {
@@ -295,6 +340,7 @@ class ReportsViewModelTest {
             generateExpenseReport  = GenerateExpenseReportUseCase(fakeExpenseRepository),
             printReport            = PrintReportUseCase(fakePrinterPort),
             reportExporter         = fakeReportExporter,
+            generateStoreComparison = GenerateMultiStoreComparisonReportUseCase(fakeReportRepository),
             analytics              = noOpAnalytics,
         )
     }
