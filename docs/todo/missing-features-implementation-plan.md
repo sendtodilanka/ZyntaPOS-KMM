@@ -1194,25 +1194,37 @@ Backend Tests:
 
 ---
 
-### C4.1 Cross-Store Returns (බහු-ශාඛා ප්‍රතිලාභ)
+### C4.1 Cross-Store Returns (බහු-ශාඛා ප්‍රතිලාභ) — ✅ CORE IMPLEMENTED (2026-03-23)
+
+> **HANDOFF (2026-03-23):** Core cross-store return infrastructure implemented.
+> `original_order_id` + `original_store_id` columns on orders table (migration 18.sqm),
+> Order domain model updated with both fields, `getOrderForReturn` + `getRefundsForOrder`
+> queries, `LookupOrderForReturnUseCase`, `ProcessCrossStoreRefundUseCase`, 11 unit tests.
 
 **Priority:** PHASE-2
-**Status:** NOT IMPLEMENTED
+**Status:** ✅ CORE IMPLEMENTED (2026-03-23)
 
 **Codebase State:**
 - `OrderType.REFUND` exists — refund orders can be created
-- `orders.sq` has `store_id TEXT NOT NULL` — each order/refund tied to one store
+- `orders.sq` has `store_id`, `original_order_id`, `original_store_id`
 - Permission `PROCESS_REFUND` exists in RBAC
-- No concept of "original store" for a refund
+- Cross-store returns link refund to original sale via `original_order_id`
 
-**What's MISSING:**
-- [ ] Add `original_store_id TEXT` to orders table (for refunds initiated at different store)
-- [ ] Add `original_order_id TEXT` to orders table (link refund to original sale)
-- [ ] `ProcessCrossStoreRefundUseCase` — validate original order exists, process return
+**What's DONE (2026-03-23):**
+- [x] Add `original_store_id TEXT` to orders table (migration 18.sqm)
+- [x] Add `original_order_id TEXT` to orders table (migration 18.sqm)
+- [x] Order domain model updated with `originalOrderId` + `originalStoreId`
+- [x] `getOrderForReturn` query — cross-store lookup by ID or order number
+- [x] `getRefundsForOrder` query — find all refunds linked to an original order
+- [x] `LookupOrderForReturnUseCase` — validates order is SALE + COMPLETED
+- [x] `ProcessCrossStoreRefundUseCase` — creates REFUND order linked to original
+- [x] 11 unit tests (CrossStoreReturnUseCaseTest)
+
+**What's REMAINING (deferred):**
 - [ ] Cross-store inventory adjustment (return stock to original or current store?)
 - [ ] Business rule: Configurable policy — stock goes to return store vs original store
-- [ ] KMM POS: Lookup order by ID/receipt from any store for return processing
-- [ ] Backend: Cross-store order lookup endpoint under `/v1/orders` with POS JWT auth (store operation per ADR-009)
+- [ ] KMM POS: Lookup order by ID/receipt from any store for return processing (UI)
+- [ ] Backend: Cross-store order lookup endpoint under `/v1/orders` with POS JWT auth
 - [ ] Sync: Refund propagation to original store for accounting
 
 ---
@@ -2398,7 +2410,7 @@ git push -u origin $(git branch --show-current)
 | Global Admin Dashboard | C3.3 | ✅ CORE IMPLEMENTED (Store model + StoreRepo + dashboard screen + store switcher + 13 tests; 2026-03-23) |
 | Employee Roaming | C3.4 | ✅ CORE IMPLEMENTED (assignment table + domain model + 3 use cases + 11 tests; 2026-03-23) |
 | **4. Sales & Customer** | | |
-| Cross-Store Returns | C4.1 | NOT IMPLEMENTED |
+| Cross-Store Returns | C4.1 | ✅ CORE IMPLEMENTED (order fields + use cases + 11 tests; 2026-03-23) |
 | Universal Loyalty | C4.2 | PARTIAL (no redemption) |
 | Centralized Customers | C4.3 | AMBIGUOUS |
 | Click & Collect (BOPIS) | C4.4 | NOT IMPLEMENTED |

@@ -46,6 +46,8 @@ object OrderMapper {
         registerSessionId = row.register_session_id ?: "",
         notes             = row.notes,
         reference         = row.reference,
+        originalOrderId   = row.original_order_id,
+        originalStoreId   = row.original_store_id,
         createdAt         = Instant.fromEpochMilliseconds(row.created_at),
         updatedAt         = Instant.fromEpochMilliseconds(row.updated_at),
         syncStatus        = SyncStatus(

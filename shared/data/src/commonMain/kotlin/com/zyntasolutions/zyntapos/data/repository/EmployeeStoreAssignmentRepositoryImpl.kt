@@ -12,7 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 import kotlinx.datetime.Instant
 
 /**
@@ -101,7 +101,7 @@ class EmployeeStoreAssignmentRepositoryImpl(
 
     override suspend fun isAssigned(employeeId: String, storeId: String): Boolean =
         withContext(Dispatchers.IO) {
-            q.isEmployeeAssigned(employeeId, storeId).executeAsOne().count > 0
+            q.isEmployeeAssigned(employeeId, storeId).executeAsOne().count > 0L
         }
 
     override suspend fun upsertFromSync(assignment: EmployeeStoreAssignment) =

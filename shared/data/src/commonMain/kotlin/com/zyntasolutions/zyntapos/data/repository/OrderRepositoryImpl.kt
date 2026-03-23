@@ -75,6 +75,7 @@ class OrderRepositoryImpl(
                     payment_splits_json = null,
                     amount_tendered = dto.amountTendered, change_amount = dto.changeAmount,
                     notes = dto.notes, reference = dto.reference,
+                    original_order_id = null, original_store_id = null,
                     created_at = dto.createdAt, updated_at = dto.updatedAt,
                     sync_status = "SYNCED",
                 )
@@ -155,6 +156,7 @@ class OrderRepositoryImpl(
                     payment_method = order.paymentMethod.name, payment_splits_json = splits,
                     amount_tendered = order.amountTendered, change_amount = order.changeAmount,
                     notes = order.notes, reference = order.reference,
+                    original_order_id = order.originalOrderId, original_store_id = order.originalStoreId,
                     created_at = now, updated_at = now, sync_status = "PENDING",
                 )
                 order.items.forEach { item ->
@@ -239,6 +241,7 @@ class OrderRepositoryImpl(
                     payment_method = PaymentMethod.CASH.name, payment_splits_json = null,
                     amount_tendered = 0.0, change_amount = 0.0,
                     notes = "HELD", reference = null,
+                    original_order_id = null, original_store_id = null,
                     created_at = now, updated_at = now, sync_status = "PENDING",
                 )
                 cart.forEach { item ->

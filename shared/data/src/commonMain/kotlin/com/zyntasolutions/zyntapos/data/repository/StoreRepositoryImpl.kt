@@ -35,7 +35,7 @@ class StoreRepositoryImpl(
 
     override suspend fun getStoreName(storeId: String): String? =
         withContext(Dispatchers.IO) {
-            q.getStoreNameById(storeId).executeAsOneOrNull()?.name
+            q.getStoreById(storeId).executeAsOneOrNull()?.name
         }
 
     override suspend fun upsertFromSync(store: Store) =

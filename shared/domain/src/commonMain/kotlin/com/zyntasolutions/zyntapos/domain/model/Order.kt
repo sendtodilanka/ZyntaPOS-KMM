@@ -54,6 +54,10 @@ data class Order(
     val registerSessionId: String,
     val notes: String? = null,
     val reference: String? = null,
+    /** C4.1: For REFUND orders, the ID of the original SALE order being returned. */
+    val originalOrderId: String? = null,
+    /** C4.1: For cross-store returns, the store where the original sale occurred. */
+    val originalStoreId: String? = null,
     val createdAt: Instant,
     val updatedAt: Instant,
     val syncStatus: SyncStatus,
