@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -77,6 +78,13 @@ fun CustomerDetailScreen(
                 },
                 actions = {
                     if (isEditMode && state.selectedCustomer != null) {
+                        // GDPR data export (G10)
+                        IconButton(
+                            onClick = { onIntent(CustomerIntent.ExportCustomerData(state.selectedCustomer.id)) },
+                            enabled = !state.isExporting,
+                        ) {
+                            Icon(Icons.Filled.FileDownload, contentDescription = "Export Customer Data (GDPR)")
+                        }
                         IconButton(onClick = {
                             onNavigateToWallet(state.selectedCustomer.id)
                         }) {

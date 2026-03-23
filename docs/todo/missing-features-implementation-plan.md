@@ -2146,7 +2146,7 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 - [x] **[MS-2]** Display warehouse names instead of IDs in StockTransferCard — ✅ DONE (warehouseMap lookup)
 - [x] **[MS-3]** Add WarehouseRackList/Detail routes to ZyntaRoute.kt — ✅ DONE (verified 2026-03-22)
 - [ ] **[INV-1]** Wire barcode scanner HAL integration (ProductDetail + Stocktake)
-- [ ] **[INV-2]** Implement variant persistence in CreateProduct/UpdateProduct use cases
+- [x] **[INV-2]** Variant persistence in CreateProduct/UpdateProduct use cases — ✅ ALREADY COMPLETE (verified 2026-03-23: full pipeline from UI → ViewModel.onSaveProduct() → CreateProductUseCase(product, variants) → ProductVariantRepository.replaceAll() works end-to-end; SQLDelight schema, Koin DI, mapper all in place)
 - [x] **[INV-3]** Add missing CategoryDetail, SupplierDetail routes to ZyntaRoute.kt — ✅ DONE (verified 2026-03-22)
 - [x] **[INV-4]** Add Coil image preview in ProductDetailScreen — ✅ ALREADY EXISTS (AsyncImage in ImageSection, verified 2026-03-22)
 - [ ] **[INV-10]** Implement TaxGroupScreen + UnitManagementScreen
