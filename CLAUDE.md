@@ -199,10 +199,15 @@ Step[2]: Auto PR           (ci-auto-pr.yml)
         ▼
 Step[3+4]: CI Gate         (ci-gate.yml)
   • Full build + Android Lint + Detekt + allTests
+  • Backend compile + unit tests + Kover coverage (api, license, sync)
+  • Admin panel TypeScript + ESLint + Vitest + Playwright
+  • Flyway migration validation, docker-compose validation
+  • OWASP security scan (advisory — continue-on-error)
   • Publishes JUnit XML as PR check annotations
+  • "CI Gate Status" job aggregates ALL jobs → single required branch protection check
   • Builds & pushes backend Docker images to GHCR (push-to-main only)
-  • On push-to-main success → dispatches "deploy-trigger"
-  • Blocks PR merge until all checks pass
+  • On push-to-main success (all jobs green) → dispatches "deploy-trigger"
+  • Blocks PR merge until "CI Gate Status" passes
         │ (after auto-merge squashes PR into main)
         ▼
 Step[5]: Deploy to VPS     (cd-deploy.yml)
