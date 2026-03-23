@@ -14,7 +14,9 @@ import com.zyntasolutions.zyntapos.hal.scanner.BarcodeScanner
 import com.zyntasolutions.zyntapos.hal.scanner.ScanResult
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.CategoryRepository
+import com.zyntasolutions.zyntapos.core.utils.DateTimeUtils
 import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
+import com.zyntasolutions.zyntapos.domain.repository.PurchaseOrderRepository
 import com.zyntasolutions.zyntapos.domain.repository.ProductVariantRepository
 import com.zyntasolutions.zyntapos.domain.repository.SupplierRepository
 import com.zyntasolutions.zyntapos.domain.repository.TaxGroupRepository
@@ -79,6 +81,7 @@ class InventoryViewModel(
     private val updateProductUseCase: UpdateProductUseCase,
     private val adjustStockUseCase: AdjustStockUseCase,
     private val authRepository: AuthRepository,
+    private val purchaseOrderRepository: PurchaseOrderRepository,
     private val auditLogger: SecurityAuditLogger,
     private val analytics: AnalyticsTracker,
 ) : BaseViewModel<InventoryState, InventoryIntent, InventoryEffect>(InventoryState()) {
@@ -633,7 +636,22 @@ class InventoryViewModel(
             return
         }
         when (val result = supplierRepository.getById(supplierId)) {
-            is Result.Success -> updateState { copy(selectedSupplier = result.data, showSupplierDetail = true) }
+            is Result.Success -> {
+                updateState { copy(selectedSupplier = result.data, showSupplierDetail = true) }
+                // INV-5: Load purchase history for this supplier
+                val poResult = purchaseOrderRepository.getBySupplierId(supplierId)
+                if (poResult is Result.Success) {
+                    val summaries = poResult.data.map { po ->
+                        PurchaseOrderSummary(
+                            orderId = po.orderNumber,
+                            date = DateTimeUtils.formatForDisplay(po.orderDate),
+                            totalAmount = po.totalAmount,
+                            status = po.status.name,
+                        )
+                    }
+                    updateState { copy(supplierPurchaseHistory = summaries) }
+                }
+            }
             is Result.Error -> sendEffect(InventoryEffect.ShowError(result.exception.message ?: "Supplier not found"))
             is Result.Loading -> Unit
         }

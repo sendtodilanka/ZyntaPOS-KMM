@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-23 (C4.2 loyalty POS checkout integration + C2.2 Order.currency bug fix + G12 BOGO/category rules + INV-10 TaxGroup wiring)
+**Last Updated:** 2026-03-23 (C4.2 loyalty redemption UI in cart + G10 GDPR export effect wiring + INV-5 supplier purchase history + INV-8/INV-9/MS-4 verified complete)
 **Status:** Approved — Verified against codebase 2026-03-22, updated for ADR-009 compliance
 
 ---
@@ -1787,7 +1787,7 @@ Backend Tests:
 | Gap | Severity | Phase |
 |-----|----------|-------|
 | **No store switcher** — POS assumes single store | CRITICAL | Phase 2 |
-| **No loyalty points redemption at checkout** — Balance shown but no "Spend Points" UI | HIGH | Phase 2 |
+| ~~**No loyalty points redemption at checkout**~~ — ✅ DONE: `LoyaltyRedemptionDialog` with quick-select chips + slider, wired to `PosIntent.SetLoyaltyPointsRedemption`, discount shown in `CartSummaryFooter` | ~~HIGH~~ | ✅ DONE (2026-03-23) |
 | **No cross-store return processing** — No UI to scan/identify items from other stores | HIGH | Phase 2 |
 | **Gift card lookup returns "Phase 2" stub** | MEDIUM | Phase 2 |
 | **No card terminal integration UI** — No EMV reader connection status | HIGH | Phase 2 |
@@ -1899,7 +1899,7 @@ Backend Tests:
 
 | Gap | Severity | Phase |
 |-----|----------|-------|
-| **No GDPR Export button** — Backend supports, UI missing | HIGH | Phase 2 |
+| ~~**No GDPR Export button**~~ — ✅ DONE: Button in TopAppBar, effect wired in App.kt with selectable JSON dialog | ~~HIGH~~ | ✅ DONE (2026-03-23) |
 | **No cross-store customer profile view** | MEDIUM | Phase 2 |
 | **No loyalty tier display** — Raw points only, no Bronze/Silver/Gold badge | MEDIUM | Phase 2 |
 | **No bulk customer import** (CSV) | LOW | Phase 3 |
@@ -2030,7 +2030,7 @@ Backend Tests:
 | MS-1 | **No Product Selection UI** — NewStockTransferScreen requires manual product ID entry; should have autocomplete or dropdown backed by `ProductRepository.search()` | HIGH | Add `ExposedDropdownMenuBox` or search-as-you-type field with product results |
 | MS-2 | **No Warehouse Name Display** — StockTransferCard shows raw `sourceWarehouseId`/`destWarehouseId` UUIDs; users see meaningless IDs | HIGH | Resolve warehouse names from `WarehouseState.warehouses` list or add `warehouseName` to `StockTransfer` model |
 | MS-3 | **Rack Screen Navigation Missing** — `WarehouseRackListScreen` and `WarehouseRackDetailScreen` have no routes in `ZyntaRoute.kt`; parent handles nav locally | MEDIUM | Add `WarehouseRackList(warehouseId)` and `WarehouseRackDetail(warehouseId, rackId?)` to `ZyntaRoute` sealed class |
-| MS-4 | **RackDetailScreen No Back Button** — No TopAppBar with back icon; assumes parent composable provides scaffold | MEDIUM | Add `TopAppBar` with navigationIcon back arrow |
+| MS-4 | ~~**RackDetailScreen No Back Button**~~ — ✅ ALREADY EXISTS: TopAppBar with ArrowBack icon at lines 39-51 | ~~MEDIUM~~ | ✅ Verified (2026-03-23) |
 | MS-5 | **No Warehouse Metadata** — No image/logo field for visual identity; warehouse cards look plain | LOW | Add optional `imageUrl` field to `Warehouse` domain model + `AsyncImage` in card |
 | MS-6 | **No Rack Capacity Enforcement** — UI validates capacity but doesn't prevent overstocking against capacity limits | LOW | Add stock-vs-capacity check in `WarehouseRepositoryImpl.commitTransfer()` |
 
@@ -2089,11 +2089,11 @@ Backend Tests:
 | INV-2 | **Variant Persistence Not Implemented** — `ProductVariants` added/edited in form state but never saved to domain; `CreateProductUseCase`/`UpdateProductUseCase` ignore variants | HIGH | Add variant list to `CreateProductUseCase.Params`, persist via `product_variants.sq` table |
 | INV-3 | **Missing Screen Route Definitions** — `CategoryDetail`, `SupplierDetail`, `TaxGroupScreen`, `UnitManagementScreen` not in `ZyntaRoute.kt` | HIGH | Add `@Serializable` route classes + NavHost entries |
 | INV-4 | **Product Image Preview Missing** — `ProductDetailScreen` accepts image URL but doesn't show preview; just a text field | MEDIUM | Add Coil `AsyncImage` with placeholder/error states |
-| INV-5 | **Supplier Purchase History Empty** — `supplierPurchaseHistory` state property exists but never populated | MEDIUM | Load purchase orders from `purchase_orders.sq` in supplier detail |
+| INV-5 | ~~**Supplier Purchase History Empty**~~ — ✅ DONE: `PurchaseOrderRepository.getBySupplierId()` called in `onOpenSupplierDetail()`, mapped to `PurchaseOrderSummary` with `DateTimeUtils.formatForDisplay()` | ~~MEDIUM~~ | ✅ DONE (2026-03-23) |
 | INV-6 | **Bulk Import Dialog Unaudited** — Column mapping UX unclear; may have usability issues | MEDIUM | Audit and refine `BulkImportDialog.kt` composable |
 | INV-7 | **No Batch Product Selection** — ProductListScreen has no multi-select for bulk operations (delete, price adjust) | MEDIUM | Add checkbox column + batch action toolbar |
-| INV-8 | **No Search Result Count** — ProductListScreen doesn't show "X products found" after search | LOW | Add result count chip/text below search bar |
-| INV-9 | **No Unsaved Changes Warning** — ProductDetailScreen doesn't warn on back if form has unsaved edits | LOW | Track form dirty state; show confirmation dialog on back press |
+| INV-8 | ~~**No Search Result Count**~~ — ✅ ALREADY EXISTS: Lines 123-131 show "X product(s) found" when any filter active | ~~LOW~~ | ✅ Verified (2026-03-23) |
+| INV-9 | ~~**No Unsaved Changes Warning**~~ — ✅ ALREADY EXISTS: Lines 61-84 track `isDirty` state + discard dialog on back | ~~LOW~~ | ✅ Verified (2026-03-23) |
 | INV-10 | ~~**Tax Group / Unit Management Screens Missing**~~ — `TaxGroupScreen.kt` exists with full CRUD; `TaxGroupDropdown` in ProductDetailScreen; "Manage" button wired to open TaxGroupScreen as modal dialog (2026-03-23) | ~~MEDIUM~~ | ✅ DONE (2026-03-23) |
 
 **Key Files:**
@@ -2183,12 +2183,12 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 - [x] Create `ZyntaCurrencyPicker` + `ZyntaTimezonePicker` components — ✅ DONE (2026-03-21)
 - [x] Add store selector to login screen — ✅ DONE (G4, 2026-03-23: `ZyntaStoreSelector` in `LoginScreen`, `AuthState.availableStores` + `selectedStoreId`, `AuthViewModel.loadAvailableStores()` via `StoreRepository`)
 - [x] Add onboarding steps for currency + timezone — ✅ Step 3 added (2026-03-21)
-- [ ] Implement loyalty points redemption at POS checkout
+- [x] Implement loyalty points redemption at POS checkout — ✅ DONE (2026-03-23): `LoyaltyRedemptionDialog` + `CartSummaryFooter` loyalty discount line
 - [ ] Implement WebSocket auto-refresh for Dashboard + Reports
 - [ ] Populate financial statements with real GL data
 - [x] Add BOGO + category rules to coupon detail form — ✅ DONE (G12, 2026-03-23)
 - [ ] Add native file picker to Media module
-- [ ] Add GDPR Export button to customer detail
+- [x] Add GDPR Export button to customer detail — ✅ DONE (2026-03-23): Button existed; effect wired in App.kt with selectable JSON dialog
 - [x] Add date picker dialogs (replace manual text entry) — ✅ DONE in CouponDetailScreen (G12, 2026-03-23)
 - [x] Add transfer status badge to stock transfer list — ✅ `ZyntaTransferStatusBadge` created (2026-03-21), integration pending
 - [x] Add store-specific discount assignment to coupons — ✅ DONE (C2.4, 2026-03-22)
@@ -2512,7 +2512,7 @@ git push -u origin $(git branch --show-current)
 | Employee Roaming | C3.4 | ✅ CORE IMPLEMENTED (assignment table + domain model + 3 use cases + 11 tests; 2026-03-23) |
 | **4. Sales & Customer** | | |
 | Cross-Store Returns | C4.1 | ✅ CORE IMPLEMENTED (order fields + use cases + 11 tests; 2026-03-23) |
-| Universal Loyalty | C4.2 | ✅ POS CHECKOUT INTEGRATED (earn + redeem + discount at checkout + tier progression + 25 tests; 2026-03-23) |
+| Universal Loyalty | C4.2 | ✅ POS CHECKOUT INTEGRATED (earn + redeem via LoyaltyRedemptionDialog + discount in CartSummaryFooter + tier progression + 25 tests; 2026-03-23) |
 | Centralized Customers | C4.3 | ✅ CORE IMPLEMENTED (global search, merge, GDPR export, purchase history; 2026-03-23) |
 | Click & Collect (BOPIS) | C4.4 | NOT IMPLEMENTED |
 | **5. Reporting & Analytics** | | |

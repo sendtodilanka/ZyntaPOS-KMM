@@ -42,10 +42,13 @@ internal fun CartContent(
     modifier: Modifier = Modifier,
     formatter: CurrencyFormatter = CurrencyFormatter(),
     loyaltyPointsBalance: Int? = null,
+    loyaltyPointsToRedeem: Int = 0,
+    loyaltyDiscount: Double = 0.0,
 ) {
     var showNotesDialog by remember { mutableStateOf(false) }
     var showVoidDialog by remember { mutableStateOf(false) }
     var showOrderDiscountDialog by remember { mutableStateOf(false) }
+    var showLoyaltyRedemptionDialog by remember { mutableStateOf(false) }
 
     // ── Order notes dialog ────────────────────────────────────────────────────
     if (showNotesDialog) {
@@ -86,6 +89,25 @@ internal fun CartContent(
             dismissButton = {
                 TextButton(onClick = { showVoidDialog = false }) { Text("Cancel") }
             },
+        )
+    }
+
+    // ── Loyalty points redemption dialog ───────────────────────────────────────
+    if (showLoyaltyRedemptionDialog && loyaltyPointsBalance != null && loyaltyPointsBalance > 0) {
+        LoyaltyRedemptionDialog(
+            availablePoints = loyaltyPointsBalance,
+            currentRedemption = loyaltyPointsToRedeem,
+            currentDiscount = loyaltyDiscount,
+            formatter = formatter,
+            onConfirm = { points ->
+                onIntent(PosIntent.SetLoyaltyPointsRedemption(points))
+                showLoyaltyRedemptionDialog = false
+            },
+            onClear = {
+                onIntent(PosIntent.SetLoyaltyPointsRedemption(0))
+                showLoyaltyRedemptionDialog = false
+            },
+            onDismiss = { showLoyaltyRedemptionDialog = false },
         )
     }
 
@@ -138,9 +160,17 @@ internal fun CartContent(
         // ── Loyalty points chip (shown when customer has balance) ─────────
         if (loyaltyPointsBalance != null && loyaltyPointsBalance > 0) {
             AssistChip(
-                onClick = { /* loyalty redeem — Phase 2 */ },
-                label = { Text("Points: $loyaltyPointsBalance available") },
-                leadingIcon = { Icon(Icons.Default.Stars, contentDescription = null) },
+                onClick = { showLoyaltyRedemptionDialog = true },
+                label = {
+                    Text(
+                        if (loyaltyPointsToRedeem > 0) {
+                            "Redeeming $loyaltyPointsToRedeem pts (-${formatter.format(loyaltyDiscount)})"
+                        } else {
+                            "Points: $loyaltyPointsBalance available"
+                        },
+                    )
+                },
+                leadingIcon = { Icon(Icons.Default.Stars, contentDescription = "Loyalty points") },
                 modifier = Modifier.padding(horizontal = ZyntaSpacing.md, vertical = ZyntaSpacing.xs),
             )
         }
@@ -150,6 +180,7 @@ internal fun CartContent(
             orderTotals = orderTotals,
             onPayClicked = { onIntent(PosIntent.RequestPayment) },
             formatter = formatter,
+            loyaltyDiscount = loyaltyDiscount,
             modifier = Modifier.fillMaxWidth(),
         )
     }

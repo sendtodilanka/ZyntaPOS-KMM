@@ -41,6 +41,7 @@ fun CartSummaryFooter(
     modifier: Modifier = Modifier,
     formatter: CurrencyFormatter = CurrencyFormatter(),
     isLoading: Boolean = false,
+    loyaltyDiscount: Double = 0.0,
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -70,6 +71,15 @@ fun CartSummaryFooter(
                     label = "Discount",
                     amount = "- ${formatter.format(orderTotals.discountAmount)}",
                     amountColor = MaterialTheme.colorScheme.error,
+                )
+            }
+
+            // ── Loyalty discount (shown only when > 0) ──────────────────────
+            if (loyaltyDiscount > 0.0) {
+                SummaryRow(
+                    label = "Loyalty Points",
+                    amount = "- ${formatter.format(loyaltyDiscount)}",
+                    amountColor = MaterialTheme.colorScheme.tertiary,
                 )
             }
 
