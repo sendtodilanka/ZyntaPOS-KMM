@@ -4,7 +4,7 @@ import com.zyntasolutions.zyntapos.domain.model.report.StoreSalesData
 import com.zyntasolutions.zyntapos.domain.repository.ReportRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test

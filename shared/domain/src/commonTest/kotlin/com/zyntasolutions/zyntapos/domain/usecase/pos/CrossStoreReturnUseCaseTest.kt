@@ -2,6 +2,7 @@ package com.zyntasolutions.zyntapos.domain.usecase.pos
 
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.CartItem
+import com.zyntasolutions.zyntapos.domain.model.DiscountType
 import com.zyntasolutions.zyntapos.domain.model.Order
 import com.zyntasolutions.zyntapos.domain.model.OrderItem
 import com.zyntasolutions.zyntapos.domain.model.OrderStatus
@@ -33,7 +34,7 @@ class CrossStoreReturnUseCaseTest {
             unitPrice = 500.0,
             quantity = 2.0,
             discount = 0.0,
-            discountType = "NONE",
+            discountType = DiscountType.FIXED,
             taxRate = 10.0,
             taxAmount = 100.0,
             lineTotal = 1000.0,
