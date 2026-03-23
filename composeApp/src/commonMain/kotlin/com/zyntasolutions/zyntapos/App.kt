@@ -7,7 +7,13 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import com.zyntasolutions.zyntapos.core.utils.AppTimezone
+import com.zyntasolutions.zyntapos.data.sync.NetworkMonitor
+import com.zyntasolutions.zyntapos.data.sync.SyncEngine
+import com.zyntasolutions.zyntapos.data.sync.SyncResult
 import com.zyntasolutions.zyntapos.debug.DebugViewModel
+import com.zyntasolutions.zyntapos.designsystem.components.LocalSyncDisplayStatus
+import com.zyntasolutions.zyntapos.designsystem.components.LocalSyncPendingCount
+import com.zyntasolutions.zyntapos.designsystem.components.SyncDisplayStatus
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoadingOverlay
 import com.zyntasolutions.zyntapos.designsystem.theme.ThemeMode
 import com.zyntasolutions.zyntapos.designsystem.theme.ZyntaTheme
@@ -143,6 +149,20 @@ fun App() {
 
     val appInfoProvider: AppInfoProvider = koinInject()
 
+    // ── C6.2: Observe sync engine state for the offline/sync indicator ────────
+    val syncEngine: SyncEngine = koinInject()
+    val networkMonitor: NetworkMonitor = koinInject()
+    val isNetworkConnected by networkMonitor.isConnected.collectAsState()
+    val isSyncing by syncEngine.isSyncing.collectAsState()
+    val lastSyncResult by syncEngine.lastSyncResult.collectAsState()
+
+    val syncDisplayStatus = when {
+        !isNetworkConnected -> SyncDisplayStatus.OFFLINE
+        isSyncing -> SyncDisplayStatus.SYNCING
+        lastSyncResult is SyncResult.Failure -> SyncDisplayStatus.ERROR
+        else -> SyncDisplayStatus.SYNCED
+    }
+
     // ── Debug overrides (active only when debug console is loaded) ────────────
     // These keys are only ever written by DebugViewModel; they emit null in
     // production builds where debugModule is never loaded, so the effective
@@ -166,7 +186,9 @@ fun App() {
             LocalDensity provides Density(
                 density   = baseDensity.density,
                 fontScale = baseDensity.fontScale * debugFontScale,
-            )
+            ),
+            LocalSyncDisplayStatus provides syncDisplayStatus,
+            LocalSyncPendingCount provides 0, // TODO: expose pending count from SyncEngine
         ) {
         Surface(
             modifier = Modifier.fillMaxSize(),

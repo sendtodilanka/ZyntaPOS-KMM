@@ -56,6 +56,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
+import com.zyntasolutions.zyntapos.designsystem.components.SyncDisplayStatus
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSyncStatusIndicator
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -140,6 +142,8 @@ fun ZyntaNavigationDrawer(
     drawerUserName: String? = null,
     drawerUserInitials: String? = null,
     drawerUserRole: String? = null,
+    syncStatus: SyncDisplayStatus? = null,
+    syncPendingCount: Int = 0,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     // ── Collapse / expand toggle state ────────────────────────────────────────
@@ -175,6 +179,8 @@ fun ZyntaNavigationDrawer(
                     drawerUserName = drawerUserName,
                     drawerUserInitials = drawerUserInitials,
                     drawerUserRole = drawerUserRole,
+                    syncStatus = syncStatus,
+                    syncPendingCount = syncPendingCount,
                 )
             }
 
@@ -220,6 +226,8 @@ internal fun DrawerColumnContent(
     drawerUserName: String? = null,
     drawerUserInitials: String? = null,
     drawerUserRole: String? = null,
+    syncStatus: SyncDisplayStatus? = null,
+    syncPendingCount: Int = 0,
 ) {
     // ── Mini-mode hover popout state ─────────────────────────────────────────
     var hoveredMiniIndex by remember { mutableStateOf(-1) }
@@ -364,12 +372,14 @@ internal fun DrawerColumnContent(
             }
         }
 
-        // ── Sticky footer — user info tile ─────────────────────────────────────
+        // ── Sticky footer — user info tile + sync status ──────────────────────
         DrawerFooter(
             isMini = isMini,
             userName = drawerUserName,
             userInitials = drawerUserInitials,
             userRole = drawerUserRole,
+            syncStatus = syncStatus,
+            syncPendingCount = syncPendingCount,
         )
     }
 }
@@ -439,8 +449,10 @@ private fun DrawerFooter(
     userName: String?,
     userInitials: String?,
     userRole: String?,
+    syncStatus: SyncDisplayStatus? = null,
+    syncPendingCount: Int = 0,
 ) {
-    if (userName == null && userInitials == null) {
+    if (userName == null && userInitials == null && syncStatus == null) {
         Spacer(modifier = Modifier.height(16.dp))
         return
     }
@@ -450,48 +462,62 @@ private fun DrawerFooter(
         color = MaterialTheme.colorScheme.outlineVariant,
     )
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(64.dp)
-            .padding(horizontal = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        // Avatar circle
-        Surface(
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.primaryContainer,
-            modifier = Modifier.size(36.dp),
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Text(
-                    text = userInitials ?: userName?.take(1)?.uppercase() ?: "?",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
-            }
-        }
+    // ── Sync status row (above user info) ────────────────────────────────────
+    if (syncStatus != null) {
+        ZyntaSyncStatusIndicator(
+            status = syncStatus,
+            isMini = isMini,
+            pendingCount = syncPendingCount,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 4.dp),
+        )
+    }
 
-        // Name + role (hidden in mini mode)
-        if (!isMini) {
-            Spacer(modifier = Modifier.width(10.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = userName ?: "",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (!userRole.isNullOrBlank()) {
+    if (userName != null || userInitials != null) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // Avatar circle
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer,
+                modifier = Modifier.size(36.dp),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
                     Text(
-                        text = userRole,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
+                        text = userInitials ?: userName?.take(1)?.uppercase() ?: "?",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
+                }
+            }
+
+            // Name + role (hidden in mini mode)
+            if (!isMini) {
+                Spacer(modifier = Modifier.width(10.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = userName ?: "",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (!userRole.isNullOrBlank()) {
+                        Text(
+                            text = userRole,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                        )
+                    }
                 }
             }
         }

@@ -13,6 +13,8 @@ import co.touchlab.kermit.Logger
 import com.zyntasolutions.zyntapos.data.local.db.SecurePreferencesKeyMigration
 import com.zyntasolutions.zyntapos.data.job.AuditIntegrityJob
 import com.zyntasolutions.zyntapos.data.job.LogRetentionJob
+import com.zyntasolutions.zyntapos.data.sync.NetworkMonitor
+import com.zyntasolutions.zyntapos.data.sync.SyncEngine
 import com.zyntasolutions.zyntapos.data.logging.KermitSqliteAdapter
 import com.zyntasolutions.zyntapos.domain.repository.FeatureRegistryRepository
 import com.zyntasolutions.zyntapos.feature.dashboard.dashboardModule
@@ -143,6 +145,11 @@ fun main() {
     // AuditIntegrityJob: daily SHA-256 hash chain verification of audit_entries
     koin.koin.get<LogRetentionJob>().start()
     koin.koin.get<AuditIntegrityJob>().start()
+
+    // ── C6.2: Offline-first sync bootstrap ─────────────────────────────────
+    // Start network monitoring and periodic sync loop for desktop.
+    koin.koin.get<NetworkMonitor>().start()
+    koin.koin.get<SyncEngine>().startPeriodicSync(CoroutineScope(Dispatchers.IO))
 
     // ── Tier 7: Debug tools — loaded only when isDebug == true ───────────────
     // seedModule registers SeedRunner; debugModule registers action handlers

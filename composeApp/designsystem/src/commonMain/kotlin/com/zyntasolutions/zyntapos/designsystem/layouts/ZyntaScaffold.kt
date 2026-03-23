@@ -8,6 +8,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.designsystem.components.SyncDisplayStatus
 import com.zyntasolutions.zyntapos.designsystem.util.WindowSize
 import com.zyntasolutions.zyntapos.designsystem.util.currentWindowSize
 import kotlinx.coroutines.launch
@@ -116,6 +117,8 @@ fun ZyntaScaffold(
     drawerUserName: String? = null,
     drawerUserInitials: String? = null,
     drawerUserRole: String? = null,
+    syncStatus: SyncDisplayStatus? = null,
+    syncPendingCount: Int = 0,
     windowSize: WindowSize = currentWindowSize(),
     content: @Composable (PaddingValues) -> Unit,
 ) {
@@ -131,6 +134,8 @@ fun ZyntaScaffold(
             drawerUserName = drawerUserName,
             drawerUserInitials = drawerUserInitials,
             drawerUserRole = drawerUserRole,
+            syncStatus = syncStatus,
+            syncPendingCount = syncPendingCount,
             content = content,
         )
         WindowSize.MEDIUM -> MediumScaffold(
@@ -144,6 +149,8 @@ fun ZyntaScaffold(
             drawerUserName = drawerUserName,
             drawerUserInitials = drawerUserInitials,
             drawerUserRole = drawerUserRole,
+            syncStatus = syncStatus,
+            syncPendingCount = syncPendingCount,
             content = content,
         )
         WindowSize.EXPANDED -> ExpandedScaffold(
@@ -157,6 +164,8 @@ fun ZyntaScaffold(
             drawerUserName = drawerUserName,
             drawerUserInitials = drawerUserInitials,
             drawerUserRole = drawerUserRole,
+            syncStatus = syncStatus,
+            syncPendingCount = syncPendingCount,
             content = content,
         )
     }
@@ -178,6 +187,8 @@ private fun CompactScaffold(
     drawerUserName: String? = null,
     drawerUserInitials: String? = null,
     drawerUserRole: String? = null,
+    syncStatus: SyncDisplayStatus? = null,
+    syncPendingCount: Int = 0,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
@@ -212,6 +223,8 @@ private fun CompactScaffold(
                         drawerUserName = drawerUserName,
                         drawerUserInitials = drawerUserInitials,
                         drawerUserRole = drawerUserRole,
+                        syncStatus = syncStatus,
+                        syncPendingCount = syncPendingCount,
                     )
                 }
             },
@@ -237,6 +250,8 @@ private fun MediumScaffold(
     drawerUserName: String? = null,
     drawerUserInitials: String? = null,
     drawerUserRole: String? = null,
+    syncStatus: SyncDisplayStatus? = null,
+    syncPendingCount: Int = 0,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     ZyntaNavigationDrawer(
@@ -251,6 +266,8 @@ private fun MediumScaffold(
         drawerUserName = drawerUserName,
         drawerUserInitials = drawerUserInitials,
         drawerUserRole = drawerUserRole,
+        syncStatus = syncStatus,
+        syncPendingCount = syncPendingCount,
         content = content,
     )
 }
@@ -271,6 +288,8 @@ private fun ExpandedScaffold(
     drawerUserName: String? = null,
     drawerUserInitials: String? = null,
     drawerUserRole: String? = null,
+    syncStatus: SyncDisplayStatus? = null,
+    syncPendingCount: Int = 0,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     ZyntaNavigationDrawer(
@@ -285,6 +304,8 @@ private fun ExpandedScaffold(
         drawerUserName = drawerUserName,
         drawerUserInitials = drawerUserInitials,
         drawerUserRole = drawerUserRole,
+        syncStatus = syncStatus,
+        syncPendingCount = syncPendingCount,
         content = content,
     )
 }
