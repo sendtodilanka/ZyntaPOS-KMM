@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-23 (C6.2 Offline-First — sync scheduling wired at Android/Desktop entry points, NetworkMonitor.start() called, ZyntaSyncStatusIndicator in drawer footer via CompositionLocal)
+**Last Updated:** 2026-03-23 (G12 BOGO+category rules in CouponDetailScreen, INV-10 TaxGroupScreen wiring in ProductDetailScreen, date pickers, coupon code auto-gen)
 **Status:** Approved — Verified against codebase 2026-03-22, updated for ADR-009 compliance
 
 ---
@@ -1902,19 +1902,31 @@ Backend Tests:
 
 ---
 
-### G12. Coupons Module UI/UX Gaps (`:composeApp:feature:coupons` — 7 files, 234 LOC VM)
+### G12. Coupons Module UI/UX Gaps (`:composeApp:feature:coupons` — 7 files, 234 LOC VM) — ✅ ~90% COMPLETE (2026-03-23)
 
-**Basic (70%):** Coupon CRUD with FIXED/PERCENT discounts
+> **HANDOFF (2026-03-23):** G12 BOGO + category rules implemented:
+> - BOGO discount type added to form dropdown (all 3 DiscountType entries now selectable)
+> - Coupon scope selector (CART/PRODUCT/CATEGORY/CUSTOMER) with FlowRow category chip picker
+> - Scope and scopeIds persisted to domain model + SQLDelight (columns already existed)
+> - Auto-generate coupon code button (8-char alphanumeric)
+> - Date picker dialogs replace raw epoch ms text entry
+> - BOGO validation: discountValue not required when type=BOGO
+> - Scope validation: scopeIds required when scope != CART
+> - CategoryRepository injected into CouponViewModel for category list
+> - 8 new tests in CouponViewModelTest covering all G12 features
+> Branch: claude/implement-coupon-tax-features-Gdo2N
+
+**Extended (90%):** Coupon CRUD with FIXED/PERCENT/BOGO, scope targeting, date pickers
 
 | Gap | Severity | Phase |
 |-----|----------|-------|
-| **No BOGO UI** — Domain has `DiscountType.BOGO` but form only shows FIXED/PERCENT | HIGH | Phase 2 |
-| **No category-based promotion targeting** | HIGH | Phase 2 |
-| **No store-specific discount assignment** | HIGH | Phase 2 |
-| **No coupon code auto-generation** | MEDIUM | Phase 2 |
-| **No minimum purchase threshold UI** | MEDIUM | Phase 2 |
+| ~~**No BOGO UI** — Domain has `DiscountType.BOGO` but form only shows FIXED/PERCENT~~ | ~~HIGH~~ | ✅ DONE (2026-03-23) |
+| ~~**No category-based promotion targeting**~~ | ~~HIGH~~ | ✅ DONE (2026-03-23) |
+| ~~**No store-specific discount assignment**~~ | ~~HIGH~~ | ✅ DONE (C2.4, 2026-03-22) |
+| ~~**No coupon code auto-generation**~~ | ~~MEDIUM~~ | ✅ DONE (2026-03-23) |
+| ~~**No minimum purchase threshold UI**~~ | ~~MEDIUM~~ | ✅ Already existed |
 | **No coupon analytics/redemption stats** | LOW | Phase 2 |
-| **No date picker for validity period** — Epoch ms manual entry | MEDIUM | Phase 2 |
+| ~~**No date picker for validity period** — Epoch ms manual entry~~ | ~~MEDIUM~~ | ✅ DONE (2026-03-23) |
 
 ---
 
@@ -2062,7 +2074,7 @@ Backend Tests:
 | INV-7 | **No Batch Product Selection** — ProductListScreen has no multi-select for bulk operations (delete, price adjust) | MEDIUM | Add checkbox column + batch action toolbar |
 | INV-8 | **No Search Result Count** — ProductListScreen doesn't show "X products found" after search | LOW | Add result count chip/text below search bar |
 | INV-9 | **No Unsaved Changes Warning** — ProductDetailScreen doesn't warn on back if form has unsaved edits | LOW | Track form dirty state; show confirmation dialog on back press |
-| INV-10 | **Tax Group / Unit Management Screens Missing** — Referenced in InventoryIntent but screen files not found | MEDIUM | Implement `TaxGroupScreen.kt` and `UnitManagementScreen.kt` |
+| INV-10 | ~~**Tax Group / Unit Management Screens Missing**~~ — `TaxGroupScreen.kt` exists with full CRUD; `TaxGroupDropdown` in ProductDetailScreen; "Manage" button wired to open TaxGroupScreen as modal dialog (2026-03-23) | ~~MEDIUM~~ | ✅ DONE (2026-03-23) |
 
 **Key Files:**
 - `composeApp/feature/inventory/src/commonMain/.../ProductListScreen.kt`
@@ -2154,10 +2166,10 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 - [ ] Implement loyalty points redemption at POS checkout
 - [ ] Implement WebSocket auto-refresh for Dashboard + Reports
 - [ ] Populate financial statements with real GL data
-- [ ] Add BOGO + category rules to coupon detail form
+- [x] Add BOGO + category rules to coupon detail form — ✅ DONE (G12, 2026-03-23)
 - [ ] Add native file picker to Media module
 - [ ] Add GDPR Export button to customer detail
-- [ ] Add date picker dialogs (replace manual text entry)
+- [x] Add date picker dialogs (replace manual text entry) — ✅ DONE in CouponDetailScreen (G12, 2026-03-23)
 - [x] Add transfer status badge to stock transfer list — ✅ `ZyntaTransferStatusBadge` created (2026-03-21), integration pending
 - [x] Add store-specific discount assignment to coupons — ✅ DONE (C2.4, 2026-03-22)
 - [x] **[MS-1]** Add product selector/autocomplete to NewStockTransferScreen — ✅ DONE (ProductSearchDropdown composable)
@@ -2167,7 +2179,7 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 - [x] **[INV-2]** Variant persistence in CreateProduct/UpdateProduct use cases — ✅ ALREADY COMPLETE (verified 2026-03-23: full pipeline from UI → ViewModel.onSaveProduct() → CreateProductUseCase(product, variants) → ProductVariantRepository.replaceAll() works end-to-end; SQLDelight schema, Koin DI, mapper all in place)
 - [x] **[INV-3]** Add missing CategoryDetail, SupplierDetail routes to ZyntaRoute.kt — ✅ DONE (verified 2026-03-22)
 - [x] **[INV-4]** Add Coil image preview in ProductDetailScreen — ✅ ALREADY EXISTS (AsyncImage in ImageSection, verified 2026-03-22)
-- [ ] **[INV-10]** Implement TaxGroupScreen + UnitManagementScreen
+- [x] **[INV-10]** TaxGroupScreen exists + "Manage" button wired in ProductDetailScreen — ✅ DONE (2026-03-23)
 
 **Phase 3 Nice-to-Have:**
 - [ ] 3-pane responsive layout for warehouse tablet UI

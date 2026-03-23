@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.feature.coupons
 
+import com.zyntasolutions.zyntapos.domain.model.Category
 import com.zyntasolutions.zyntapos.domain.model.Coupon
 import com.zyntasolutions.zyntapos.domain.model.CouponUsage
 import com.zyntasolutions.zyntapos.domain.model.DiscountType
@@ -28,6 +29,9 @@ data class CouponState(
     val formState: CouponFormState = CouponFormState(),
     val usageHistory: List<CouponUsage> = emptyList(),
 
+    // ── Picker Data (loaded for category/product scope selectors) ─────────
+    val availableCategories: List<Category> = emptyList(),
+
     // ── Global ────────────────────────────────────────────────────────────
     val isLoading: Boolean = false,
     val error: String? = null,
@@ -55,6 +59,10 @@ data class CouponFormState(
     val isActive: Boolean = true,
     /** C2.4: Store scope — null = global (all stores), non-null = store-specific. */
     val storeId: String? = null,
+    /** G12: Coupon targeting scope — CART (entire order), PRODUCT, CATEGORY, CUSTOMER. */
+    val scope: String = Coupon.CouponScope.CART.name,
+    /** G12: IDs for scope-targeted coupons (product/category/customer IDs). */
+    val scopeIds: List<String> = emptyList(),
     val isEditing: Boolean = false,
     val validationErrors: Map<String, String> = emptyMap(),
 )

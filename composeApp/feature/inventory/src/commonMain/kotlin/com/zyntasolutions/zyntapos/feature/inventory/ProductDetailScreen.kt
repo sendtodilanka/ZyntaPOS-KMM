@@ -83,6 +83,24 @@ fun ProductDetailScreen(
         )
     }
 
+    // INV-10: TaxGroupScreen as full-screen dialog
+    if (state.showTaxGroupManagement) {
+        AlertDialog(
+            onDismissRequest = { onIntent(InventoryIntent.CloseTaxGroupManagement) },
+            confirmButton = {},
+            title = null,
+            text = {
+                TaxGroupScreen(
+                    taxGroups = state.allTaxGroups,
+                    isLoading = state.isLoading,
+                    onSaveTaxGroup = { onIntent(InventoryIntent.SaveTaxGroup(it)) },
+                    onDeleteTaxGroup = { onIntent(InventoryIntent.DeleteTaxGroup(it)) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+        )
+    }
+
     ZyntaPageScaffold(
         title = if (isNew) "New Product" else "Edit Product",
         modifier = modifier,
@@ -302,12 +320,22 @@ private fun PricingSection(
                 )
             }
 
-            // Tax group selector
-            TaxGroupDropdown(
-                taxGroups = state.allTaxGroups,
-                selectedId = form.taxGroupId,
-                onSelect = { onIntent(InventoryIntent.UpdateFormField("taxGroupId", it ?: "")) },
-            )
+            // Tax group selector + manage link
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(Modifier.weight(1f)) {
+                    TaxGroupDropdown(
+                        taxGroups = state.allTaxGroups,
+                        selectedId = form.taxGroupId,
+                        onSelect = { onIntent(InventoryIntent.UpdateFormField("taxGroupId", it ?: "")) },
+                    )
+                }
+                TextButton(onClick = { onIntent(InventoryIntent.OpenTaxGroupManagement) }) {
+                    Text("Manage", style = MaterialTheme.typography.labelMedium)
+                }
+            }
         }
     }
 }
