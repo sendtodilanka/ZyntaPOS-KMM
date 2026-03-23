@@ -6,6 +6,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateExpenseReportU
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateSalesReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateStockReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.PrintReportUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.reports.enterprise.GenerateMultiStoreComparisonReportUseCase
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Job
@@ -46,6 +47,7 @@ class ReportsViewModel(
     private val generateExpenseReport: GenerateExpenseReportUseCase,
     private val printReport: PrintReportUseCase,
     private val reportExporter: ReportExporter,
+    private val generateStoreComparison: GenerateMultiStoreComparisonReportUseCase,
     private val analytics: AnalyticsTracker,
 ) : BaseViewModel<ReportsState, ReportsIntent, ReportsEffect>(ReportsState()) {
 
@@ -90,6 +92,12 @@ class ReportsViewModel(
             ReportsIntent.ExportExpenseReportCsv   -> exportExpense()
             ReportsIntent.DismissExpenseError      -> updateState {
                 copy(expenseReport = expenseReport.copy(error = null))
+            }
+            // ── Store Comparison (C5.2) ──────────────────────────────────────
+            ReportsIntent.LoadStoreComparison      -> loadStoreComparison()
+            is ReportsIntent.SelectStoreComparisonRange -> selectStoreComparisonRange(intent.range)
+            ReportsIntent.DismissStoreComparisonError -> updateState {
+                copy(storeComparison = storeComparison.copy(error = null))
             }
         }
     }
@@ -351,6 +359,50 @@ class ReportsViewModel(
             customFrom = currentState.expenseReport.customFrom,
             customTo   = currentState.expenseReport.customTo,
         )
+
+    // ── Store Comparison (C5.2) ─────────────────────────────────────────────
+
+    private var storeComparisonJob: Job? = null
+
+    private fun selectStoreComparisonRange(range: DateRange) {
+        updateState { copy(storeComparison = storeComparison.copy(selectedRange = range)) }
+        loadStoreComparison()
+    }
+
+    private fun loadStoreComparison() {
+        storeComparisonJob?.cancel()
+        val (from, to) = resolveDateRange(
+            range = currentState.storeComparison.selectedRange,
+            customFrom = null,
+            customTo = null,
+        )
+        updateState { copy(storeComparison = storeComparison.copy(isLoading = true, error = null)) }
+        storeComparisonJob = viewModelScope.launch {
+            generateStoreComparison(from, to)
+                .catch { e ->
+                    updateState {
+                        copy(storeComparison = storeComparison.copy(
+                            isLoading = false,
+                            error = e.message ?: "Failed to load store comparison",
+                        ))
+                    }
+                }
+                .collect { stores ->
+                    val totalRevenue = stores.sumOf { it.totalRevenue }
+                    val totalOrders = stores.sumOf { it.orderCount }
+                    updateState {
+                        copy(storeComparison = storeComparison.copy(
+                            isLoading = false,
+                            stores = stores,
+                            totalRevenue = totalRevenue,
+                            totalOrders = totalOrders,
+                        ))
+                    }
+                }
+        }
+    }
+
+    // ── Date Range Utilities ─────────────────────────────────────────────────
 
     private fun resolveDateRange(
         range: DateRange,

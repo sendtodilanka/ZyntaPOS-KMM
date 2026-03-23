@@ -34,4 +34,9 @@ sealed interface ReportsIntent {
     data class SetCustomExpenseRange(val from: Instant, val to: Instant) : ReportsIntent
     data object ExportExpenseReportCsv : ReportsIntent
     data object DismissExpenseError : ReportsIntent
+
+    // ── Store Comparison Report (C5.2) ──────────────────────────────────────
+    data object LoadStoreComparison : ReportsIntent
+    data class SelectStoreComparisonRange(val range: DateRange) : ReportsIntent
+    data object DismissStoreComparisonError : ReportsIntent
 }

@@ -440,6 +440,17 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
     customerReport = { CustomerReportScreen(onNavigateUp = { }) },
     expenseReport = { ExpenseReportScreen(onNavigateUp = { }) },
 
+    // ── Store Comparison Report (C5.2) ──────────────────────────────────
+    storeComparisonReport = { onNavigateUp ->
+        val vm: com.zyntasolutions.zyntapos.feature.reports.ReportsViewModel = koinViewModel()
+        val state by vm.state.collectAsState()
+        com.zyntasolutions.zyntapos.feature.reports.StoreComparisonReportScreen(
+            state = state.storeComparison,
+            onIntent = vm::dispatch,
+            onNavigateUp = onNavigateUp,
+        )
+    },
+
     // ── Settings: Home ──────────────────────────────────────────────────────
     settings = { onNavigateToRoute ->
         SettingsHomeScreen(

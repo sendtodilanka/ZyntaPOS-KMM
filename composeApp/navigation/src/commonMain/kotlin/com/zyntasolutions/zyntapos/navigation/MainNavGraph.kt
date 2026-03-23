@@ -286,6 +286,19 @@ fun NavGraphBuilder.mainNavGraph(
                     screens.expenseReport()
                 }
             }
+
+            composable<ZyntaRoute.StoreComparisonReport> {
+                MainScaffoldShell(
+                    navigationController = navigationController,
+                    navItems = navItems,
+                    drawerUserName = currentUserName,
+                    drawerUserInitials = currentUserInitials,
+                    drawerUserRole = currentUserRole,
+                    currentRoute = ZyntaRoute.StoreComparisonReport,
+                ) {
+                    screens.storeComparisonReport { navigationController.popBackStack() }
+                }
+            }
         }
 
         // ── Settings sub-graph ───────────────────────────────────────────────
@@ -806,7 +819,8 @@ private fun MainScaffoldShell(
         is ZyntaRoute.SalesReport,
         is ZyntaRoute.StockReport,
         is ZyntaRoute.CustomerReport,
-        is ZyntaRoute.ExpenseReport -> item.route is ZyntaRoute.SalesReport
+        is ZyntaRoute.ExpenseReport,
+        is ZyntaRoute.StoreComparisonReport -> item.route is ZyntaRoute.SalesReport
 
         // Settings sub-graph
         is ZyntaRoute.Settings,

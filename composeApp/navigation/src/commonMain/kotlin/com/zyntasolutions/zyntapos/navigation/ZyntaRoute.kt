@@ -216,6 +216,10 @@ sealed class ZyntaRoute {
     @Serializable
     data object ExpenseReport : ZyntaRoute()
 
+    /** Store comparison report — ranked revenue/orders across all stores (C5.2). */
+    @Serializable
+    data object StoreComparisonReport : ZyntaRoute()
+
     // ─────────────────────────────────────────────────────────────────
     // SETTINGS GROUP
     // ─────────────────────────────────────────────────────────────────

@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import com.zyntasolutions.zyntapos.domain.model.PaymentMethod
 import com.zyntasolutions.zyntapos.domain.model.Product
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateCustomerReportUseCase
+import com.zyntasolutions.zyntapos.domain.model.report.StoreSalesData
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateExpenseReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateSalesReportUseCase
 import kotlinx.datetime.Instant
@@ -24,6 +25,7 @@ data class ReportsState(
     val stockReport: StockState = StockState(),
     val customerReport: CustomerReportState = CustomerReportState(),
     val expenseReport: ExpenseReportState = ExpenseReportState(),
+    val storeComparison: StoreComparisonState = StoreComparisonState(),
 ) {
     /** State slice for the reports home tile grid. */
     data class HomeState(
@@ -82,6 +84,16 @@ data class ReportsState(
         val report: GenerateExpenseReportUseCase.ExpenseReport? = null,
         val error: String? = null,
         val isExporting: Boolean = false,
+    )
+
+    /** State slice for the store comparison report screen (C5.2). */
+    data class StoreComparisonState(
+        val isLoading: Boolean = false,
+        val selectedRange: DateRange = DateRange.THIS_MONTH,
+        val stores: List<StoreSalesData> = emptyList(),
+        val totalRevenue: Double = 0.0,
+        val totalOrders: Int = 0,
+        val error: String? = null,
     )
 }
 
