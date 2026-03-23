@@ -234,6 +234,15 @@ sealed interface PosIntent {
      */
     data class SetWalletPaymentAmount(val amount: Double) : PosIntent
 
+    /**
+     * Sets the number of loyalty points to redeem for this transaction.
+     * The ViewModel converts points to a monetary discount via [CalculateLoyaltyDiscountUseCase]
+     * and updates [PosState.loyaltyDiscount].
+     *
+     * @param points Points to redeem (0 = no redemption). Must not exceed [PosState.loyaltyPointsBalance].
+     */
+    data class SetLoyaltyPointsRedemption(val points: Int) : PosIntent
+
     // ─── Coupon ────────────────────────────────────────────────────────────────
 
     /**

@@ -50,7 +50,9 @@ import com.zyntasolutions.zyntapos.domain.repository.StockRepository
 import com.zyntasolutions.zyntapos.domain.usecase.auth.CheckPermissionUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.coupons.CalculateCouponDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.coupons.ValidateCouponUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.crm.CalculateLoyaltyDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.EarnRewardPointsUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.crm.RedeemRewardPointsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.AddItemToCartUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.ApplyItemDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.ApplyOrderDiscountUseCase
@@ -523,6 +525,8 @@ class PosViewModelTest {
             validateCouponUseCase = ValidateCouponUseCase(fakeCouponRepository),
             calculateCouponDiscountUseCase = CalculateCouponDiscountUseCase(),
             earnRewardPointsUseCase = EarnRewardPointsUseCase(fakeLoyaltyRepository),
+            redeemRewardPointsUseCase = RedeemRewardPointsUseCase(fakeLoyaltyRepository),
+            calculateLoyaltyDiscountUseCase = CalculateLoyaltyDiscountUseCase(),
             authRepository = fakeAuthRepository,
             customerRepository = fakeCustomerRepository,
             registerRepository = fakeRegisterRepository,

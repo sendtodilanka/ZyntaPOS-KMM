@@ -106,6 +106,10 @@ data class PosState(
     val loyaltyPointsBalance: Int? = null,
     /** Monetary amount the cashier has elected to pay via the customer's store-credit wallet. */
     val walletPaymentAmount: Double = 0.0,
+    /** Number of loyalty points the cashier has elected to redeem for this transaction. */
+    val loyaltyPointsToRedeem: Int = 0,
+    /** Pre-computed monetary discount for [loyaltyPointsToRedeem] at the current conversion rate. */
+    val loyaltyDiscount: Double = 0.0,
     // ── Coupon ────────────────────────────────────────────────────────────────
     /** Raw code text currently in the coupon entry field. */
     val couponCode: String = "",

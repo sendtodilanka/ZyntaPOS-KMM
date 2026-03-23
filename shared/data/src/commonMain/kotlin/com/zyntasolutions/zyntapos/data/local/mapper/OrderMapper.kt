@@ -44,6 +44,7 @@ object OrderMapper {
         cashierId         = row.cashier_id,
         storeId           = row.store_id,
         registerSessionId = row.register_session_id ?: "",
+        currency          = row.currency,
         notes             = row.notes,
         reference         = row.reference,
         originalOrderId   = row.original_order_id,

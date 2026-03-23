@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-23 (G12 BOGO+category rules in CouponDetailScreen, INV-10 TaxGroupScreen wiring in ProductDetailScreen, date pickers, coupon code auto-gen)
+**Last Updated:** 2026-03-23 (C4.2 loyalty POS checkout integration + C2.2 Order.currency bug fix + G12 BOGO/category rules + INV-10 TaxGroup wiring)
 **Status:** Approved — Verified against codebase 2026-03-22, updated for ADR-009 compliance
 
 ---
@@ -936,9 +936,13 @@ Backend Tests:
 - [x] Routing registration: `adminExchangeRateRoutes()` in `Routing.kt`
 - [x] 8 unit tests in `ConvertCurrencyUseCaseTest` + `FakeExchangeRateRepository`
 
+**What's DONE (2026-03-23, session gZhuU):**
+- [x] `Order.currency` field added to domain model (was missing — data loss bug)
+- [x] `OrderMapper.toDomain()` now maps `currency` column from SQLDelight
+- [x] `Store` domain model already exists in `:shared:domain` (created by C3.3 session)
+- [x] `StoreRepository` interface already exists in `:shared:domain` (created by C3.3 session)
+
 **What's REMAINING (deferred):**
-- [ ] `Store` domain model in `:shared:domain` (currently NO Store model — only table/DTO)
-- [ ] `StoreRepository` interface in `:shared:domain` — expose store settings to business logic
 - [ ] Admin panel: Exchange rate management UI (platform operation — ADR-009 compliant)
 - [ ] KMM: Currency display using store's configured currency, not hardcoded LKR
 - [ ] Real-time exchange rate sync from external API (e.g., ECB, CBSL)
@@ -1229,10 +1233,19 @@ Backend Tests:
 
 ---
 
-### C4.2 Universal Loyalty Program (සර්වත්‍ර පක්ෂපාතිත්ව වැඩසටහන)
+### C4.2 Universal Loyalty Program (සර්වත්‍ර පක්ෂපාතිත්ව වැඩසටහන) — ✅ POS CHECKOUT INTEGRATED (2026-03-23)
+
+> **HANDOFF (2026-03-23, session gZhuU):** Loyalty points redemption fully integrated into POS checkout.
+> `CalculateLoyaltyDiscountUseCase` converts points to monetary discount (100 pts = 1 currency unit).
+> `SetLoyaltyPointsRedemption` intent added to PosIntent. PosViewModel includes loyalty discount
+> in combined discount calculation and calls `RedeemRewardPointsUseCase` post-payment.
+> `CheckLoyaltyTierProgressionUseCase` added for tier auto-detection.
+> `loyaltyPointsToRedeem` + `loyaltyDiscount` fields in PosState. 13 new tests (8 discount + 5 tier).
+> `AppConfig.LOYALTY_POINTS_PER_CURRENCY_UNIT` configurable constant added.
+> Koin bindings updated in PosModule.
 
 **Priority:** PHASE-2
-**Status:** PARTIAL — points exist, no cross-store/redemption logic
+**Status:** ✅ POS CHECKOUT INTEGRATED — redemption at checkout, tier progression, earn+redeem (2026-03-23)
 
 **Codebase State:**
 - `customers.sq` has `loyalty_points INTEGER` (aggregate field)
@@ -1246,13 +1259,20 @@ Backend Tests:
 - [x] `EarnRewardPointsUseCase` (in `crm` package) — already existed, awards points with tier multiplier
 - [x] `RedeemRewardPointsUseCase` (in `crm` package) — already existed, redeems points with balance validation
 - [x] 12 unit tests (LoyaltyUseCaseTest) — earn with tier multiplier, redeem, insufficient balance, edge cases
+- [x] `CalculateLoyaltyDiscountUseCase` — converts points to monetary discount (configurable rate, capped at order total)
+- [x] `CheckLoyaltyTierProgressionUseCase` — auto-detects customer tier based on current balance
+- [x] `PosState.loyaltyPointsToRedeem` + `loyaltyDiscount` fields
+- [x] `PosIntent.SetLoyaltyPointsRedemption` — cashier selects points to redeem
+- [x] `PosViewModel` — loyalty discount included in combined discount, points redeemed post-payment
+- [x] `PosModule.kt` — `RedeemRewardPointsUseCase`, `CalculateLoyaltyDiscountUseCase` registered
+- [x] `AppConfig.LOYALTY_POINTS_PER_CURRENCY_UNIT` (100 default)
+- [x] 8 unit tests in `CalculateLoyaltyDiscountUseCaseTest`
+- [x] 5 unit tests in `CheckLoyaltyTierProgressionUseCaseTest`
 
 **What's REMAINING (deferred):**
-- [ ] Points redemption flow integration into POS checkout UI
 - [ ] Cross-store points earning/spending (ensure universal acceptance)
-- [ ] Loyalty tier progression logic (auto-upgrade/downgrade based on spend)
 - [ ] Points expiry policy (e.g., expire after 12 months inactive)
-- [ ] KMM POS: "Apply Loyalty Points" button at checkout
+- [ ] KMM POS: "Apply Loyalty Points" button Compose UI in payment sheet
 - [ ] KMM: Customer loyalty summary screen
 - [ ] Backend: `GET /v1/loyalty/summary` with POS JWT auth
 
@@ -2482,7 +2502,7 @@ git push -u origin $(git branch --show-current)
 | Warehouse Replenishment | C1.5 | ✅ COMPLETE (ReplenishmentRule model, AutoReplenishmentUseCase, 3-tab UI, backend 4 endpoints + 14 tests) |
 | **2. Pricing & Taxation** | | |
 | Region-Based Pricing | C2.1 | ✅ CORE IMPLEMENTED (domain+data+backend+KMM UI; storeId bug fixed 2026-03-22) |
-| Multi-Currency | C2.2 | ✅ CORE IMPLEMENTED (ExchangeRate model + table + repo + ConvertCurrencyUseCase + backend V33 + admin endpoints; 2026-03-22) |
+| Multi-Currency | C2.2 | ✅ CORE IMPLEMENTED (ExchangeRate model + table + repo + ConvertCurrencyUseCase + backend V33 + admin endpoints + Order.currency field + OrderMapper fix; 2026-03-23) |
 | Localized Tax | C2.3 | ✅ CORE IMPLEMENTED (RegionalTaxOverride model + repo + use case + backend V34; 2026-03-22) |
 | Store-Specific Discounts | C2.4 | ✅ CORE IMPLEMENTED (store_id on coupons, store_ids on promotions, validation + query; 2026-03-22) |
 | **3. Access Control** | | |
@@ -2492,7 +2512,7 @@ git push -u origin $(git branch --show-current)
 | Employee Roaming | C3.4 | ✅ CORE IMPLEMENTED (assignment table + domain model + 3 use cases + 11 tests; 2026-03-23) |
 | **4. Sales & Customer** | | |
 | Cross-Store Returns | C4.1 | ✅ CORE IMPLEMENTED (order fields + use cases + 11 tests; 2026-03-23) |
-| Universal Loyalty | C4.2 | ✅ CORE IMPLEMENTED (EarnPointsUseCase + RedeemPointsUseCase + tier multiplier + 12 tests; 2026-03-23) |
+| Universal Loyalty | C4.2 | ✅ POS CHECKOUT INTEGRATED (earn + redeem + discount at checkout + tier progression + 25 tests; 2026-03-23) |
 | Centralized Customers | C4.3 | ✅ CORE IMPLEMENTED (global search, merge, GDPR export, purchase history; 2026-03-23) |
 | Click & Collect (BOPIS) | C4.4 | NOT IMPLEMENTED |
 | **5. Reporting & Analytics** | | |

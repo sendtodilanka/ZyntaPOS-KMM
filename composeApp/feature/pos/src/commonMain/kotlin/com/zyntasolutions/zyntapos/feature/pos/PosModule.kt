@@ -9,7 +9,9 @@ import com.zyntasolutions.zyntapos.domain.usecase.pos.ReprintLastReceiptUseCase
 import com.zyntasolutions.zyntapos.feature.pos.printer.A4InvoicePrinterAdapter
 import com.zyntasolutions.zyntapos.domain.usecase.coupons.CalculateCouponDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.coupons.ValidateCouponUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.crm.CalculateLoyaltyDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.EarnRewardPointsUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.crm.RedeemRewardPointsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.GetEffectiveProductPriceUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.AddItemToCartUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.ApplyItemDiscountUseCase
@@ -157,6 +159,12 @@ val posModule = module {
     /** Awards loyalty points to a customer after a successful sale. */
     factory { EarnRewardPointsUseCase(loyaltyRepo = get()) }
 
+    /** Redeems loyalty points from a customer's balance. */
+    factory { RedeemRewardPointsUseCase(loyaltyRepo = get()) }
+
+    /** Converts loyalty points to a monetary discount value. */
+    factory { CalculateLoyaltyDiscountUseCase() }
+
     /** Auto-posts a balanced double-entry journal entry for each completed sale (Wave 1A). */
     factory {
         PostSaleJournalEntryUseCase(
@@ -217,6 +225,8 @@ val posModule = module {
             validateCouponUseCase = get(),
             calculateCouponDiscountUseCase = get(),
             earnRewardPointsUseCase = get(),
+            redeemRewardPointsUseCase = get(),
+            calculateLoyaltyDiscountUseCase = get(),
             customerRepository = get(),
             registerRepository = get(),
             authRepository = get(),
