@@ -99,6 +99,7 @@ data class MainNavScreens(
     val stockReport: @Composable () -> Unit,
     val customerReport: @Composable () -> Unit,
     val expenseReport: @Composable () -> Unit,
+    val storeComparisonReport: @Composable (onNavigateUp: () -> Unit) -> Unit = {},
 
     // ── Settings sub-graph ────────────────────────────────────────────────────
     val settings: @Composable (

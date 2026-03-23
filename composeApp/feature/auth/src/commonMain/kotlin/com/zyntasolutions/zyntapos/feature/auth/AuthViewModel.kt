@@ -8,6 +8,7 @@ import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
 import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
+import com.zyntasolutions.zyntapos.domain.repository.StoreRepository
 import com.zyntasolutions.zyntapos.domain.usecase.auth.LoginUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.auth.LogoutUseCase
 import com.zyntasolutions.zyntapos.feature.auth.mvi.AuthEffect
@@ -45,6 +46,7 @@ class AuthViewModel(
     private val authRepository: AuthRepository,
     private val registerRepository: RegisterRepository? = null,
     private val settingsRepository: SettingsRepository,
+    private val storeRepository: StoreRepository? = null,
     private val auditLogger: SecurityAuditLogger,
     private val analytics: AnalyticsTracker,
 ) : BaseViewModel<AuthState, AuthIntent, AuthEffect>(AuthState()) {
@@ -53,6 +55,7 @@ class AuthViewModel(
         analytics.logScreenView("Auth", "AuthViewModel")
         observeSession()
         loadRememberMe()
+        loadAvailableStores()
     }
 
     /** Loads persisted "remember me" preference and pre-fills the saved email. */
@@ -61,6 +64,16 @@ class AuthViewModel(
             val remembered = settingsRepository.get(KEY_REMEMBER_ME) == "true"
             val savedEmail = if (remembered) settingsRepository.get(KEY_SAVED_EMAIL).orEmpty() else ""
             updateState { copy(rememberMe = remembered, email = savedEmail) }
+        }
+    }
+
+    /** Loads available stores for the multi-store login selector (G4). */
+    private fun loadAvailableStores() {
+        val repo = storeRepository ?: return
+        viewModelScope.launch {
+            repo.getAllStores().collectLatest { stores ->
+                updateState { copy(availableStores = stores) }
+            }
         }
     }
 
@@ -73,6 +86,7 @@ class AuthViewModel(
             is AuthIntent.RememberMeToggled   -> updateState { copy(rememberMe = intent.checked) }
             is AuthIntent.ForgotPasswordClicked -> handleForgotPassword()
             is AuthIntent.DismissError        -> updateState { copy(error = null) }
+            is AuthIntent.StoreSelected       -> updateState { copy(selectedStoreId = intent.storeId) }
         }
     }
 

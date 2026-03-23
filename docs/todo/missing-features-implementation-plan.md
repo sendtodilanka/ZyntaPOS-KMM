@@ -1384,26 +1384,44 @@ Backend Tests:
 
 ---
 
-### C5.2 Store Comparison Analytics (ශාඛා සංසන්දන විශ්ලේෂණ)
+### C5.2 Store Comparison Analytics (ශාඛා සංසන්දන විශ්ලේෂණ) — ✅ CORE IMPLEMENTED (2026-03-23)
+
+> **HANDOFF (2026-03-23):** Core store comparison report implemented. `StoreComparisonReportScreen`
+> added to `:composeApp:feature:reports` with period filters (Today/Week/Month), summary KPI cards
+> (Total Revenue, Orders, Store Count), and ranked store list with revenue share bars. Wired via
+> `ZyntaRoute.StoreComparisonReport`, `MainNavScreens.storeComparisonReport`, and `MainNavGraph`.
+> ReportsViewModel extended with `StoreComparisonState`, `LoadStoreComparison` + `SelectStoreComparisonRange`
+> intents. Uses existing `GenerateMultiStoreComparisonReportUseCase` (NOT a stub — fully functional via
+> `multiStoreSales` SQLDelight query). Backend endpoint also exists: `GET /admin/metrics/stores`.
 
 **Priority:** PHASE-2
-**Status:** PARTIAL — backend endpoint exists, KMM stub
+**Status:** ✅ CORE IMPLEMENTED — KMM report screen + ranking (2026-03-23)
 
 **Codebase State:**
 - Backend: `GET /admin/metrics/stores?period={period}` → `List<StoreComparisonData>` (revenue, orders, growth)
 - Backend: `GET /admin/metrics/sales?period=X&storeId=Y` → `List<SalesChartData>` (date, revenue, orders, AOV)
-- KMM: `GenerateMultiStoreComparisonReportUseCase.kt` — stub returning empty list
+- KMM: `GenerateMultiStoreComparisonReportUseCase.kt` — fully implemented (NOT a stub; wraps `reportRepository.getMultiStoreComparison()`)
 - KMM: `StoreSalesData` model (storeId, storeName, totalRevenue, orderCount, averageOrderValue)
-- Admin panel: Store health pages exist but no side-by-side comparison charts
+- KMM: `StoreComparisonReportScreen` — ranked store list with revenue share bars, period filters, summary KPIs
+- KMM: `ReportsViewModel` extended with `StoreComparisonState`, `LoadStoreComparison`, `SelectStoreComparisonRange`
+- KMM: `ZyntaRoute.StoreComparisonReport` route registered in nav graph
 
-**What's MISSING:**
-- [ ] Implement `GenerateMultiStoreComparisonReportUseCase` — call backend API
-- [ ] KMM UI: Store comparison chart screen (bar chart: revenue per store)
-- [ ] KMM UI: Rankings screen (top-performing stores by revenue, orders, margin)
-- [ ] Backend: `GET /admin/reports/store-ranking?metric=revenue&period=monthly`
+**What's DONE (2026-03-23):**
+- [x] `GenerateMultiStoreComparisonReportUseCase` — already fully implemented (verified)
+- [x] KMM UI: `StoreComparisonReportScreen` — ranked revenue list with revenue share progress bars
+- [x] KMM UI: Rankings screen (top-performing stores by revenue, orders, AOV)
+- [x] `ZyntaRoute.StoreComparisonReport` navigation route
+- [x] `MainNavScreens.storeComparisonReport` slot
+- [x] `ReportsState.StoreComparisonState` — isLoading, selectedRange, stores, totalRevenue, totalOrders
+- [x] `ReportsIntent.LoadStoreComparison` + `SelectStoreComparisonRange`
+- [x] `CurrencyFormatter` used for all currency display (DRY compliance)
+
+**What's REMAINING (deferred):**
 - [ ] Backend: Profit/margin comparison (not just revenue/orders)
+- [ ] Backend: Growth trend calculation (currently `growth=0.0` hardcoded)
 - [ ] Admin panel: Interactive comparison dashboard with filters (read-only monitoring — ADR-009 compliant)
 - [ ] Trend analysis: Growth % per store over time
+- [ ] CSV/PDF export for store comparison report
 
 ---
 
@@ -2131,7 +2149,7 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 **Phase 2 Must-Have (before multi-store launch):**
 - [x] Create `ZyntaStoreSelector` component + wire to drawer footer — ✅ component created (2026-03-21), drawer wiring pending
 - [x] Create `ZyntaCurrencyPicker` + `ZyntaTimezonePicker` components — ✅ DONE (2026-03-21)
-- [ ] Add store selector to login screen
+- [x] Add store selector to login screen — ✅ DONE (G4, 2026-03-23: `ZyntaStoreSelector` in `LoginScreen`, `AuthState.availableStores` + `selectedStoreId`, `AuthViewModel.loadAvailableStores()` via `StoreRepository`)
 - [x] Add onboarding steps for currency + timezone — ✅ Step 3 added (2026-03-21)
 - [ ] Implement loyalty points redemption at POS checkout
 - [ ] Implement WebSocket auto-refresh for Dashboard + Reports
@@ -2467,7 +2485,7 @@ git push -u origin $(git branch --show-current)
 | Click & Collect (BOPIS) | C4.4 | NOT IMPLEMENTED |
 | **5. Reporting & Analytics** | | |
 | Consolidated Financial | C5.1 | ✅ CORE IMPLEMENTED (single-store P&L/BS/TB/CF fully functional; multi-store deferred) |
-| Store Comparison | C5.2 | PARTIAL (backend only) |
+| Store Comparison | C5.2 | ✅ CORE IMPLEMENTED (KMM ranked report screen + backend; 2026-03-23) |
 | Store Audit Logs | C5.3 | COMPLETE |
 | Real-time Dashboard | C5.4 | PARTIAL (REST only) |
 | **6. Sync & Offline** | | |

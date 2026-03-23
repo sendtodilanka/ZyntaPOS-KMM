@@ -21,9 +21,11 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.zyntasolutions.zyntapos.designsystem.components.StoreItem
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButtonSize
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSnackbarHost
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaStoreSelector
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTextField
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaSplitPane
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
@@ -224,6 +226,18 @@ private fun LoginFormContent(
             enabled = !state.isLoading,
             modifier = Modifier.fillMaxWidth(),
         )
+
+        // ── Multi-store selector (G4) — shown only when multiple stores exist ─
+        if (state.availableStores.size > 1) {
+            Spacer(Modifier.height(ZyntaSpacing.md))
+            val storeItems = state.availableStores.map { StoreItem(it.id, it.name, it.address) }
+            val selected = storeItems.find { it.id == state.selectedStoreId }
+            ZyntaStoreSelector(
+                currentStore = selected,
+                availableStores = storeItems,
+                onStoreSelected = { onIntent(AuthIntent.StoreSelected(it.id)) },
+            )
+        }
 
         Spacer(Modifier.height(ZyntaSpacing.sm))
 
