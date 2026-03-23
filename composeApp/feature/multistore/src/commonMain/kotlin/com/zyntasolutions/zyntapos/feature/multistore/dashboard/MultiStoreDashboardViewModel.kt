@@ -14,7 +14,7 @@ import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.minus
-import kotlinx.datetime.todayIn
+import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 
 /**
@@ -69,10 +69,10 @@ class MultiStoreDashboardViewModel(
         try {
             val period = state.value.selectedPeriod
             val tz = TimeZone.currentSystemDefault()
-            val nowInstant = kotlinx.datetime.Clock.System.now()
-            val today = kotlinx.datetime.Clock.System.todayIn(tz)
+            val now = Clock.System.now()
+            val today = now.toLocalDateTime(tz).date
             val from = today.minus(period.days - 1, DateTimeUnit.DAY).atStartOfDayIn(tz)
-            val to = nowInstant
+            val to = now
 
             val storeData = getMultiStoreKPIs(from, to).first()
 
