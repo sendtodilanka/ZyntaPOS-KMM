@@ -485,22 +485,18 @@ jobs:
           cache-to: type=gha,mode=max
 
   # ── Security Scanning: OWASP Dependency Check (A6) ───────────────────────
-  # Runs OWASP dependency-check on all 3 backend services in parallel.
-  # Reports vulnerabilities from the NVD (National Vulnerability Database).
+  # Scans all 3 backend services SEQUENTIALLY in a single job so the NVD
+  # database (~500MB) is downloaded only once. The old matrix approach ran
+  # 3 parallel jobs that each downloaded the NVD independently (25-30 min
+  # on cache miss × 3 = up to 90 min total runner time).
+  #
   # Report-only in CI (OWASP_FAIL_CVSS=11 disables build failure); local dev
   # uses the default threshold (7.0) from each service's build.gradle.kts.
   security-scan-backend:
-    name: "Security Scan (${{ matrix.service }})"
+    name: "Security Scan (all backends)"
     runs-on: ubuntu-latest
     timeout-minutes: 30
     continue-on-error: true  # Advisory — don't block merges for known vulns
-    strategy:
-      fail-fast: false
-      matrix:
-        service: [api, license, sync]
-    defaults:
-      run:
-        working-directory: backend/${{ matrix.service }}
 
     steps:
       - name: Checkout source
@@ -512,7 +508,7 @@ jobs:
           java-version: "21"
           distribution: "temurin"
 
-      - name: Cache NVD data (shared across services)
+      - name: Cache NVD data
         uses: actions/cache@v4
         with:
           path: ~/.gradle/dependency-check-data
@@ -525,24 +521,45 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: owasp-gradle-${{ runner.os }}-${{ matrix.service }}-${{ hashFiles(format('backend/{0}/**/*.gradle.kts', matrix.service)) }}
-          restore-keys: owasp-gradle-${{ runner.os }}-${{ matrix.service }}-
+          key: owasp-gradle-${{ runner.os }}-${{ hashFiles('backend/**/build.gradle.kts') }}
+          restore-keys: owasp-gradle-${{ runner.os }}-
 
-      - name: OWASP Dependency Check — ${{ matrix.service }}
+      - name: OWASP Dependency Check — api
+        working-directory: backend/api
         run: |
           chmod +x ./gradlew
           ./gradlew dependencyCheckAnalyze --no-daemon \
             -Dorg.gradle.jvmargs="-Xmx2g -Xms512m"
         env:
-          OWASP_FAIL_CVSS: "11"  # Report-only in CI (never fail)
+          OWASP_FAIL_CVSS: "11"
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
 
-      - name: Upload OWASP report — ${{ matrix.service }}
+      - name: OWASP Dependency Check — license
+        working-directory: backend/license
+        run: |
+          chmod +x ./gradlew
+          ./gradlew dependencyCheckAnalyze --no-daemon \
+            -Dorg.gradle.jvmargs="-Xmx2g -Xms512m"
+        env:
+          OWASP_FAIL_CVSS: "11"
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+
+      - name: OWASP Dependency Check — sync
+        working-directory: backend/sync
+        run: |
+          chmod +x ./gradlew
+          ./gradlew dependencyCheckAnalyze --no-daemon \
+            -Dorg.gradle.jvmargs="-Xmx2g -Xms512m"
+        env:
+          OWASP_FAIL_CVSS: "11"
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+
+      - name: Upload OWASP reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: owasp-report-${{ matrix.service }}-${{ github.run_id }}
-          path: backend/${{ matrix.service }}/build/reports/dependency-check-report.html
+          name: owasp-reports-${{ github.run_id }}
+          path: backend/*/build/reports/dependency-check-report.html
           retention-days: 14
           if-no-files-found: ignore
 
