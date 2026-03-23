@@ -64,6 +64,33 @@ SELECT c.* FROM customers c
 INNER JOIN customers_fts fts ON fts.customer_id = c.id
 WHERE customers_fts MATCH :query AND c.is_active = 1;
 
+-- C4.3: Get customers by store (null store_id = global customers)
+getCustomersByStore:
+SELECT * FROM customers WHERE store_id = ? AND is_active = 1 ORDER BY name ASC;
+
+-- C4.3: Get global customers (store_id IS NULL = shared across all stores)
+getGlobalCustomers:
+SELECT * FROM customers WHERE store_id IS NULL AND is_active = 1 ORDER BY name ASC;
+
+-- C4.3: Search across ALL stores (ignores store scope — for admin/support use)
+searchCustomersGlobal:
+SELECT c.* FROM customers c
+INNER JOIN customers_fts fts ON fts.customer_id = c.id
+WHERE customers_fts MATCH :query;
+
+-- C4.3: Count active customers per store (for dashboard metrics)
+countCustomersByStore:
+SELECT store_id, COUNT(*) AS customer_count
+FROM customers WHERE is_active = 1 GROUP BY store_id;
+
+-- C4.3: Update loyalty points (used during customer merge)
+updateLoyaltyPoints:
+UPDATE customers SET loyalty_points = ?, updated_at = ?, sync_status = 'PENDING' WHERE id = ?;
+
+-- C4.3: Transfer customer to global scope (clear store_id)
+makeCustomerGlobal:
+UPDATE customers SET store_id = NULL, updated_at = ?, sync_status = 'PENDING' WHERE id = ?;
+
 -- ── Write queries ───────────────────────────────────────────────────────────
 
 insertCustomer:

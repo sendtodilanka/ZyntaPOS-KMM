@@ -23,4 +23,11 @@ sealed interface CustomerEffect {
 
     /** Show a brief success snackbar with [message]. */
     data class ShowSuccess(val message: String) : CustomerEffect
+
+    // ── C4.3: Cross-Store Effects ────────────────────────────────────────────
+    /** Deliver GDPR-exported customer data as JSON. */
+    data class CustomerDataExported(val json: String) : CustomerEffect
+
+    /** Notify that a customer merge completed successfully. */
+    data class MergeCompleted(val message: String) : CustomerEffect
 }

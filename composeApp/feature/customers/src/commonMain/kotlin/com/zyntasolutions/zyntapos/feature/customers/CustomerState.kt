@@ -3,6 +3,7 @@ package com.zyntasolutions.zyntapos.feature.customers
 import com.zyntasolutions.zyntapos.domain.model.Customer
 import com.zyntasolutions.zyntapos.domain.model.CustomerGroup
 import com.zyntasolutions.zyntapos.domain.model.CustomerWallet
+import com.zyntasolutions.zyntapos.domain.model.Order
 import com.zyntasolutions.zyntapos.domain.model.RewardPoints
 import com.zyntasolutions.zyntapos.domain.model.WalletTransaction
 
@@ -53,6 +54,11 @@ data class CustomerState(
     val walletTransactions: List<WalletTransaction> = emptyList(),
     val rewardHistory: List<RewardPoints> = emptyList(),
     val pointsBalance: Int = 0,
+
+    // ── C4.3: Cross-Store ─────────────────────────────────────────────────
+    val purchaseHistory: List<Order> = emptyList(),
+    val isPurchaseHistoryLoading: Boolean = false,
+    val isExporting: Boolean = false,
 
     // ── Global ────────────────────────────────────────────────────────────
     val isLoading: Boolean = false,

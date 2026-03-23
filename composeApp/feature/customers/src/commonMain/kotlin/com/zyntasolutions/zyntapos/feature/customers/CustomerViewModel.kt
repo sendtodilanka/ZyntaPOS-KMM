@@ -12,6 +12,9 @@ import com.zyntasolutions.zyntapos.domain.repository.CustomerRepository
 import com.zyntasolutions.zyntapos.domain.repository.CustomerWalletRepository
 import com.zyntasolutions.zyntapos.domain.repository.LoyaltyRepository
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
+import com.zyntasolutions.zyntapos.domain.usecase.crm.ExportCustomerDataUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.crm.GetCustomerPurchaseHistoryUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.crm.MergeCustomersUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.SaveCustomerGroupUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.WalletTopUpUseCase
 import com.zyntasolutions.zyntapos.domain.validation.UserValidator
@@ -57,6 +60,9 @@ class CustomerViewModel(
     private val loyaltyRepository: LoyaltyRepository,
     private val saveGroupUseCase: SaveCustomerGroupUseCase,
     private val walletTopUpUseCase: WalletTopUpUseCase,
+    private val exportCustomerDataUseCase: ExportCustomerDataUseCase,
+    private val mergeCustomersUseCase: MergeCustomersUseCase,
+    private val getPurchaseHistoryUseCase: GetCustomerPurchaseHistoryUseCase,
     private val authRepository: AuthRepository,
     private val analytics: AnalyticsTracker,
 ) : BaseViewModel<CustomerState, CustomerIntent, CustomerEffect>(CustomerState()) {
@@ -136,6 +142,12 @@ class CustomerViewModel(
 
             is CustomerIntent.LoadWallet -> onLoadWallet(intent.customerId)
             is CustomerIntent.TopUpWallet -> onTopUpWallet(intent.customerId, intent.amount, intent.note)
+
+            // C4.3: Cross-store operations
+            is CustomerIntent.ExportCustomerData -> onExportCustomerData(intent.customerId)
+            is CustomerIntent.MergeCustomers -> onMergeCustomers(intent.targetId, intent.sourceId)
+            is CustomerIntent.LoadPurchaseHistory -> onLoadPurchaseHistory(intent.customerId)
+            is CustomerIntent.MakeCustomerGlobal -> onMakeCustomerGlobal(intent.customerId)
         }
     }
 
@@ -422,6 +434,87 @@ class CustomerViewModel(
             is Result.Error -> {
                 updateState { copy(isWalletLoading = false) }
                 sendEffect(CustomerEffect.ShowError(result.exception.message ?: "Top-up failed"))
+            }
+            is Result.Loading -> {}
+        }
+    }
+
+    // ── C4.3: Cross-Store Operations ────────────────────────────────────────
+
+    private suspend fun onExportCustomerData(customerId: String) {
+        updateState { copy(isExporting = true) }
+        when (val result = exportCustomerDataUseCase(customerId)) {
+            is Result.Success -> {
+                val export = result.data
+                val json = buildString {
+                    append("{\n")
+                    append("  \"customer\": {\n")
+                    append("    \"id\": \"${export.customer.id}\",\n")
+                    append("    \"name\": \"${export.customer.name}\",\n")
+                    append("    \"phone\": \"${export.customer.phone}\",\n")
+                    append("    \"email\": \"${export.customer.email ?: ""}\",\n")
+                    append("    \"address\": \"${export.customer.address ?: ""}\",\n")
+                    append("    \"loyaltyPoints\": ${export.customer.loyaltyPoints}\n")
+                    append("  },\n")
+                    append("  \"orders\": ${export.orders.size},\n")
+                    append("  \"exportedAt\": ${export.exportedAt}\n")
+                    append("}")
+                }
+                updateState { copy(isExporting = false) }
+                sendEffect(CustomerEffect.CustomerDataExported(json))
+                sendEffect(CustomerEffect.ShowSuccess("Customer data exported (${export.orders.size} orders)"))
+            }
+            is Result.Error -> {
+                updateState { copy(isExporting = false) }
+                sendEffect(CustomerEffect.ShowError(result.exception.message ?: "Export failed"))
+            }
+            is Result.Loading -> {}
+        }
+    }
+
+    private suspend fun onMergeCustomers(targetId: String, sourceId: String) {
+        updateState { copy(isLoading = true) }
+        when (val result = mergeCustomersUseCase(targetId, sourceId)) {
+            is Result.Success -> {
+                val merge = result.data
+                val msg = buildString {
+                    append("Customers merged successfully. ")
+                    append("${merge.pointsMerged} points transferred")
+                    if (merge.walletBalanceTransferred > 0) {
+                        append(", wallet balance transferred")
+                    }
+                    append(".")
+                }
+                updateState { copy(isLoading = false) }
+                sendEffect(CustomerEffect.MergeCompleted(msg))
+                sendEffect(CustomerEffect.ShowSuccess(msg))
+            }
+            is Result.Error -> {
+                updateState { copy(isLoading = false) }
+                sendEffect(CustomerEffect.ShowError(result.exception.message ?: "Merge failed"))
+            }
+            is Result.Loading -> {}
+        }
+    }
+
+    private suspend fun onLoadPurchaseHistory(customerId: String) {
+        updateState { copy(isPurchaseHistoryLoading = true) }
+        val orders = getPurchaseHistoryUseCase(customerId).first()
+        updateState { copy(purchaseHistory = orders, isPurchaseHistoryLoading = false) }
+    }
+
+    private suspend fun onMakeCustomerGlobal(customerId: String) {
+        updateState { copy(isLoading = true) }
+        when (val result = customerRepository.makeGlobal(customerId)) {
+            is Result.Success -> {
+                updateState { copy(isLoading = false) }
+                sendEffect(CustomerEffect.ShowSuccess("Customer promoted to global scope"))
+                // Refresh the selected customer
+                onSelectCustomer(customerId)
+            }
+            is Result.Error -> {
+                updateState { copy(isLoading = false) }
+                sendEffect(CustomerEffect.ShowError(result.exception.message ?: "Failed to make global"))
             }
             is Result.Loading -> {}
         }

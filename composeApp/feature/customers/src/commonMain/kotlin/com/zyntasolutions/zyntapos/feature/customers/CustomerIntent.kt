@@ -64,4 +64,17 @@ sealed interface CustomerIntent {
 
     /** Top up the customer wallet by [amount] (manual credit). */
     data class TopUpWallet(val customerId: String, val amount: Double, val note: String) : CustomerIntent
+
+    // ── C4.3: Cross-Store Operations ─────────────────────────────────────────
+    /** Export all customer data as JSON for GDPR compliance. */
+    data class ExportCustomerData(val customerId: String) : CustomerIntent
+
+    /** Merge [sourceId] into [targetId] — combines points, wallet, and contact info. */
+    data class MergeCustomers(val targetId: String, val sourceId: String) : CustomerIntent
+
+    /** Load purchase history for a customer across all stores. */
+    data class LoadPurchaseHistory(val customerId: String) : CustomerIntent
+
+    /** Promote a store-specific customer to global scope. */
+    data class MakeCustomerGlobal(val customerId: String) : CustomerIntent
 }

@@ -165,6 +165,64 @@ class CustomerRepositoryImpl(
         )
     }
 
+    // ── C4.3: Cross-Store Customer Operations ─────────────────────────────
+
+    override fun searchGlobal(query: String): Flow<List<Customer>> =
+        if (query.isBlank()) {
+            q.getAllCustomers()
+                .asFlow()
+                .mapToList(Dispatchers.IO)
+                .map { rows -> rows.map(CustomerMapper::toDomain) }
+        } else {
+            val ftsQuery = toFtsQuery(query)
+            q.searchCustomersGlobal(ftsQuery)
+                .asFlow()
+                .mapToList(Dispatchers.IO)
+                .map { rows -> rows.map(CustomerMapper::toDomain) }
+        }
+
+    override fun getByStore(storeId: String): Flow<List<Customer>> =
+        q.getCustomersByStore(storeId)
+            .asFlow()
+            .mapToList(Dispatchers.IO)
+            .map { rows -> rows.map(CustomerMapper::toDomain) }
+
+    override fun getGlobalCustomers(): Flow<List<Customer>> =
+        q.getGlobalCustomers()
+            .asFlow()
+            .mapToList(Dispatchers.IO)
+            .map { rows -> rows.map(CustomerMapper::toDomain) }
+
+    override suspend fun makeGlobal(customerId: String): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            val now = Clock.System.now().toEpochMilliseconds()
+            db.transaction {
+                q.makeCustomerGlobal(updated_at = now, id = customerId)
+                syncEnqueuer.enqueue(SyncOperation.EntityType.CUSTOMER, customerId, SyncOperation.Operation.UPDATE)
+            }
+        }.fold(
+            onSuccess = { Result.Success(Unit) },
+            onFailure = { t -> Result.Error(DatabaseException(t.message ?: "Make global failed", cause = t)) },
+        )
+    }
+
+    override suspend fun updateLoyaltyPoints(customerId: String, points: Int): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            val now = Clock.System.now().toEpochMilliseconds()
+            db.transaction {
+                q.updateLoyaltyPoints(
+                    loyalty_points = points.toLong(),
+                    updated_at = now,
+                    id = customerId,
+                )
+                syncEnqueuer.enqueue(SyncOperation.EntityType.CUSTOMER, customerId, SyncOperation.Operation.UPDATE)
+            }
+        }.fold(
+            onSuccess = { Result.Success(Unit) },
+            onFailure = { t -> Result.Error(DatabaseException(t.message ?: "Update points failed", cause = t)) },
+        )
+    }
+
     override suspend fun delete(id: String): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
             val row = q.getCustomerById(id).executeAsOneOrNull()
