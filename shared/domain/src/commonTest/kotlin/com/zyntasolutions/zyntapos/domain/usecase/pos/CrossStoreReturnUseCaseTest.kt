@@ -59,7 +59,7 @@ class CrossStoreReturnUseCaseTest {
         registerSessionId = "sess-001",
         createdAt = now,
         updatedAt = now,
-        syncStatus = SyncStatus.SYNCED,
+        syncStatus = SyncStatus.synced(),
     )
 
     private val fakeOrderRepository = FakeOrderRepository()

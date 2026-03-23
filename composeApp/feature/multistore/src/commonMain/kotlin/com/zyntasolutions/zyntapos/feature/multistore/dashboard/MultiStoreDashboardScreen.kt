@@ -360,6 +360,9 @@ private fun StoreComparisonCard(
 }
 
 private fun formatCurrency(amount: Double): String {
-    val formatted = String.format("%.2f", amount)
-    return "LKR $formatted"
+    val rounded = kotlin.math.round(amount * 100) / 100
+    val parts = rounded.toString().split(".")
+    val whole = parts[0]
+    val decimal = if (parts.size > 1) parts[1].take(2).padEnd(2, '0') else "00"
+    return "LKR $whole.$decimal"
 }

@@ -21,6 +21,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDate
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -114,7 +115,7 @@ class MultiStoreDashboardViewModelTest {
         ): List<StoreSalesData> = reportData
 
         // Stub all other ReportRepository methods as needed
-        override suspend fun getDailySalesSummary(from: Instant, to: Instant) = throw NotImplementedError()
+        override suspend fun getDailySalesSummary(date: LocalDate) = throw NotImplementedError()
         override suspend fun getSalesByCategory(from: Instant, to: Instant) = throw NotImplementedError()
         override suspend fun getCashMovementLog(from: Instant, to: Instant) = throw NotImplementedError()
         override suspend fun getTopProductsByVolume(from: Instant, to: Instant, limit: Int) = throw NotImplementedError()
@@ -127,24 +128,24 @@ class MultiStoreDashboardViewModelTest {
         override suspend fun getProfitLoss(from: Instant, to: Instant) = throw NotImplementedError()
         override suspend fun getStaffAttendanceSummary(from: Instant, to: Instant) = throw NotImplementedError()
         override suspend fun getStaffSalesSummary(from: Instant, to: Instant) = throw NotImplementedError()
-        override suspend fun getPayrollSummary(from: Instant, to: Instant) = throw NotImplementedError()
-        override suspend fun getLeaveBalances() = throw NotImplementedError()
+        override suspend fun getPayrollSummary(payPeriodId: String) = throw NotImplementedError()
+        override suspend fun getLeaveBalances(asOf: Instant) = throw NotImplementedError()
         override suspend fun getShiftCoverage(from: Instant, to: Instant) = throw NotImplementedError()
         override suspend fun getInterStoreTransfers(from: Instant, to: Instant) = throw NotImplementedError()
         override suspend fun getWarehouseInventory() = throw NotImplementedError()
-        override suspend fun getStockAging() = throw NotImplementedError()
+        override suspend fun getStockAging(noSalesDays: Int) = throw NotImplementedError()
         override suspend fun getStockReorderAlerts() = throw NotImplementedError()
         override suspend fun getSupplierPurchases(from: Instant, to: Instant) = throw NotImplementedError()
         override suspend fun getReturnRefundSummary(from: Instant, to: Instant) = throw NotImplementedError()
         override suspend fun getEInvoiceStatus(from: Instant, to: Instant) = throw NotImplementedError()
         override suspend fun getAccountingLedger(from: Instant, to: Instant) = throw NotImplementedError()
-        override suspend fun getHourlySales(from: Instant, to: Instant) = throw NotImplementedError()
-        override suspend fun getCustomerLoyaltySummary() = throw NotImplementedError()
+        override suspend fun getHourlySales(date: LocalDate) = throw NotImplementedError()
+        override suspend fun getCustomerLoyaltySummary(from: Instant, to: Instant) = throw NotImplementedError()
         override suspend fun getWalletBalances() = throw NotImplementedError()
         override suspend fun getCOGS(from: Instant, to: Instant) = throw NotImplementedError()
         override suspend fun getGrossMargin(from: Instant, to: Instant) = throw NotImplementedError()
-        override suspend fun getAnnualSalesTrend() = throw NotImplementedError()
-        override suspend fun getClockInOutLog(from: Instant, to: Instant) = throw NotImplementedError()
+        override suspend fun getAnnualSalesTrend(year: Int) = throw NotImplementedError()
+        override suspend fun getClockInOutLog(from: Instant, to: Instant, employeeId: String?) = throw NotImplementedError()
         override suspend fun getInventoryValuation() = throw NotImplementedError()
         override suspend fun getCustomerRetentionMetrics(from: Instant, to: Instant) = throw NotImplementedError()
         override suspend fun getPurchaseOrders(from: Instant, to: Instant) = throw NotImplementedError()
