@@ -2,6 +2,7 @@ package com.zyntasolutions.zyntapos.core.di
 
 import com.zyntasolutions.zyntapos.core.health.SystemHealthTracker
 import com.zyntasolutions.zyntapos.core.health.createSystemHealthTracker
+import com.zyntasolutions.zyntapos.core.i18n.LocalizationManager
 import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import com.zyntasolutions.zyntapos.core.platform.AppInfoProvider
 import com.zyntasolutions.zyntapos.core.platform.createAppInfoProvider
@@ -57,6 +58,9 @@ val coreModule = module {
 
     // ── Currency formatter ─────────────────────────────────────────────────────
     single { CurrencyFormatter() }
+
+    // ── Localization manager ────────────────────────────────────────────────────
+    single { LocalizationManager() }
 
     // ── App info provider (platform-specific build metadata) ─────────────────
     single<AppInfoProvider> { createAppInfoProvider() }

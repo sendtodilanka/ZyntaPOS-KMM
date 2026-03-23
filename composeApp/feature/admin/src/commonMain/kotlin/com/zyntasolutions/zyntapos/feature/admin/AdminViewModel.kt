@@ -17,7 +17,8 @@ import com.zyntasolutions.zyntapos.domain.usecase.admin.ResolveConflictUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.RestoreBackupUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.VerifyAuditIntegrityUseCase
 import com.zyntasolutions.zyntapos.domain.model.SyncConflict
-import com.zyntasolutions.zyntapos.domain.repository.SystemRepository
+import com.zyntasolutions.zyntapos.domain.usecase.admin.PurgeExpiredDataUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.admin.VacuumDatabaseUseCase
 import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlinx.coroutines.flow.first
@@ -39,7 +40,8 @@ import kotlin.time.Clock
 class AdminViewModel(
     private val getSystemHealthUseCase: GetSystemHealthUseCase,
     private val getDatabaseStatsUseCase: GetDatabaseStatsUseCase,
-    private val systemRepository: SystemRepository,
+    private val vacuumDatabaseUseCase: VacuumDatabaseUseCase,
+    private val purgeExpiredDataUseCase: PurgeExpiredDataUseCase,
     private val getBackupsUseCase: GetBackupsUseCase,
     private val createBackupUseCase: CreateBackupUseCase,
     private val restoreBackupUseCase: RestoreBackupUseCase,
@@ -161,7 +163,7 @@ class AdminViewModel(
 
     private suspend fun runVacuum() {
         updateState { copy(isLoading = true) }
-        when (val result = systemRepository.vacuumDatabase()) {
+        when (val result = vacuumDatabaseUseCase()) {
             is Result.Success -> {
                 updateState {
                     copy(
@@ -180,7 +182,7 @@ class AdminViewModel(
     private suspend fun purgeExpiredData(olderThanDays: Int) {
         updateState { copy(isLoading = true) }
         val cutoff = Clock.System.now().toEpochMilliseconds() - olderThanDays.toLong() * 24 * 60 * 60 * 1000L
-        when (val result = systemRepository.purgeExpiredData(cutoff)) {
+        when (val result = purgeExpiredDataUseCase(cutoff)) {
             is Result.Success -> {
                 updateState {
                     copy(
