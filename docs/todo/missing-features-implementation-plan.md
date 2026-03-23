@@ -1242,16 +1242,19 @@ Backend Tests:
 - `loyalty_tiers` SQLDelight table exists
 - No store scoping on loyalty — points are inherently global to customer
 
-**What's MISSING:**
-- [ ] `EarnPointsUseCase` — calculate points earned per purchase (configurable rate per store?)
-- [ ] `RedeemPointsUseCase` — apply points as discount at checkout
-- [ ] Points redemption flow integration into POS checkout
+**What's DONE (2026-03-23):**
+- [x] `EarnRewardPointsUseCase` (in `crm` package) — already existed, awards points with tier multiplier
+- [x] `RedeemRewardPointsUseCase` (in `crm` package) — already existed, redeems points with balance validation
+- [x] 12 unit tests (LoyaltyUseCaseTest) — earn with tier multiplier, redeem, insufficient balance, edge cases
+
+**What's REMAINING (deferred):**
+- [ ] Points redemption flow integration into POS checkout UI
 - [ ] Cross-store points earning/spending (ensure universal acceptance)
 - [ ] Loyalty tier progression logic (auto-upgrade/downgrade based on spend)
 - [ ] Points expiry policy (e.g., expire after 12 months inactive)
 - [ ] KMM POS: "Apply Loyalty Points" button at checkout
 - [ ] KMM: Customer loyalty summary screen
-- [ ] Backend: `GET /v1/loyalty/summary` with POS JWT auth (loyalty management is a store operation per ADR-009); `GET /admin/loyalty/summary` read-only for platform monitoring is acceptable
+- [ ] Backend: `GET /v1/loyalty/summary` with POS JWT auth
 
 **Key Files:**
 - `shared/data/src/commonMain/sqldelight/.../reward_points.sq`
@@ -2411,7 +2414,7 @@ git push -u origin $(git branch --show-current)
 | Employee Roaming | C3.4 | ✅ CORE IMPLEMENTED (assignment table + domain model + 3 use cases + 11 tests; 2026-03-23) |
 | **4. Sales & Customer** | | |
 | Cross-Store Returns | C4.1 | ✅ CORE IMPLEMENTED (order fields + use cases + 11 tests; 2026-03-23) |
-| Universal Loyalty | C4.2 | PARTIAL (no redemption) |
+| Universal Loyalty | C4.2 | ✅ CORE IMPLEMENTED (EarnPointsUseCase + RedeemPointsUseCase + tier multiplier + 12 tests; 2026-03-23) |
 | Centralized Customers | C4.3 | AMBIGUOUS |
 | Click & Collect (BOPIS) | C4.4 | NOT IMPLEMENTED |
 | **5. Reporting & Analytics** | | |

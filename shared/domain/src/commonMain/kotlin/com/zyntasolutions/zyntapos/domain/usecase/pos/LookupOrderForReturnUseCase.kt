@@ -23,6 +23,9 @@ class LookupOrderForReturnUseCase(
         val order = when (orderResult) {
             is Result.Success -> orderResult.data
             is Result.Error -> return orderResult
+            is Result.Loading -> return Result.Error(
+                com.zyntasolutions.zyntapos.core.result.ValidationException("Order lookup in progress"),
+            )
         }
 
         if (order.type != OrderType.SALE) {

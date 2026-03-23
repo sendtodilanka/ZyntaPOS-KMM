@@ -9,7 +9,7 @@ import com.zyntasolutions.zyntapos.domain.model.OrderType
 import com.zyntasolutions.zyntapos.domain.model.PaymentMethod
 import com.zyntasolutions.zyntapos.domain.model.SyncStatus
 import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
-import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -84,9 +84,9 @@ class ProcessCrossStoreRefundUseCase(
             reference = originalOrder.orderNumber,
             originalOrderId = originalOrder.id,
             originalStoreId = if (isCrossStore) originalOrder.storeId else null,
-            createdAt = Clock.System.now(),
-            updatedAt = Clock.System.now(),
-            syncStatus = SyncStatus.PENDING,
+            createdAt = Instant.fromEpochMilliseconds(kotlin.time.Clock.System.now().toEpochMilliseconds()),
+            updatedAt = Instant.fromEpochMilliseconds(kotlin.time.Clock.System.now().toEpochMilliseconds()),
+            syncStatus = SyncStatus.pending(),
         )
 
         return orderRepository.create(refundOrder)
