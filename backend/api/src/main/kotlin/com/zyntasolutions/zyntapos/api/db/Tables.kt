@@ -316,3 +316,16 @@ object ExchangeRates : Table("exchange_rates") {
     val updatedAt       = timestampWithTimeZone("updated_at")
     override val primaryKey = PrimaryKey(id)
 }
+
+/** C3.2: Multi-store user access grants (V35). */
+object UserStoreAccessTable : Table("user_store_access") {
+    val id          = uuid("id").autoGenerate()
+    val userId      = text("user_id").references(Users.id)
+    val storeId     = text("store_id").references(Stores.id)
+    val roleAtStore = text("role_at_store").nullable()
+    val isActive    = bool("is_active").default(true)
+    val grantedBy   = text("granted_by").nullable()
+    val createdAt   = timestampWithTimeZone("created_at")
+    val updatedAt   = timestampWithTimeZone("updated_at")
+    override val primaryKey = PrimaryKey(id)
+}

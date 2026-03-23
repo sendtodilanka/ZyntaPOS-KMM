@@ -181,6 +181,47 @@ class RbacEngineTest {
         }
     }
 
+    // ── Store-scoped RBAC (C3.2) ────────────────────────────────────────────
+
+    @Test
+    fun `hasPermissionAtStore returns true for primary store with user default role`() {
+        val user = buildUser(Role.CASHIER)
+        assertTrue(rbac.hasPermissionAtStore(user, Permission.PROCESS_SALE, "store-1"))
+    }
+
+    @Test
+    fun `hasPermissionAtStore denies permission not in role at primary store`() {
+        val user = buildUser(Role.CASHIER)
+        assertFalse(rbac.hasPermissionAtStore(user, Permission.MANAGE_PRODUCTS, "store-1"))
+    }
+
+    @Test
+    fun `hasPermissionAtStore uses roleAtStore for non-primary store`() {
+        val user = buildUser(Role.CASHIER)
+        // At store-2, user is a STORE_MANAGER (role override from grant)
+        assertTrue(
+            rbac.hasPermissionAtStore(user, Permission.MANAGE_PRODUCTS, "store-2", roleAtStore = Role.STORE_MANAGER)
+        )
+    }
+
+    @Test
+    fun `hasPermissionAtStore denies permission not in override role`() {
+        val user = buildUser(Role.CASHIER)
+        // At store-2, user is a STOCK_MANAGER (no PROCESS_SALE)
+        assertFalse(
+            rbac.hasPermissionAtStore(user, Permission.PROCESS_SALE, "store-2", roleAtStore = Role.STOCK_MANAGER)
+        )
+    }
+
+    @Test
+    fun `hasPermissionAtStore with null roleAtStore falls back to user default role`() {
+        val user = buildUser(Role.STORE_MANAGER)
+        // No role override — use user's default role (STORE_MANAGER)
+        assertTrue(
+            rbac.hasPermissionAtStore(user, Permission.MANAGE_PRODUCTS, "store-2", roleAtStore = null)
+        )
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun buildUser(role: Role) = User(

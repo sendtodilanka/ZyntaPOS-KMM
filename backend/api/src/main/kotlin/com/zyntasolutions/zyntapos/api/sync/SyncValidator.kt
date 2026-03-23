@@ -34,6 +34,8 @@ class SyncValidator {
             "REPLENISHMENT_RULE",
             // Phase 2: Pricing & Tax (C2.1, C2.3)
             "PRICING_RULE", "REGIONAL_TAX_OVERRIDE",
+            // Phase 2: User Access (C3.2)
+            "USER_STORE_ACCESS",
         )
         private val json = Json { ignoreUnknownKeys = true }
     }
@@ -237,6 +239,12 @@ class SyncValidator {
                     if (productId.isNullOrBlank()) errors.add("PRICING_RULE.product_id must not be blank")
                     val price = obj.dbl("price")
                     if (price < 0) errors.add("PRICING_RULE.price must be non-negative")
+                }
+                "USER_STORE_ACCESS" -> {
+                    val userId = obj.str("user_id")
+                    if (userId.isNullOrBlank()) errors.add("USER_STORE_ACCESS.user_id must not be blank")
+                    val storeId = obj.str("store_id")
+                    if (storeId.isNullOrBlank()) errors.add("USER_STORE_ACCESS.store_id must not be blank")
                 }
                 "REGIONAL_TAX_OVERRIDE" -> {
                     val taxGroupId = obj.str("tax_group_id")

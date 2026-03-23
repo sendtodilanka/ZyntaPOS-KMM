@@ -2,6 +2,7 @@ package com.zyntasolutions.zyntapos.api.sync
 
 import com.zyntasolutions.zyntapos.api.db.PricingRules
 import com.zyntasolutions.zyntapos.api.db.RegionalTaxOverrides
+import com.zyntasolutions.zyntapos.api.db.UserStoreAccessTable
 import com.zyntasolutions.zyntapos.api.db.ReplenishmentRules
 import com.zyntasolutions.zyntapos.api.db.WarehouseStock
 import com.zyntasolutions.zyntapos.api.models.SyncOperation
@@ -421,6 +422,7 @@ class EntityApplier {
                 "PURCHASE_ORDER"    -> applyPurchaseOrder(storeId, op)
                 "PRICING_RULE"      -> applyPricingRule(storeId, op)
                 "REGIONAL_TAX_OVERRIDE" -> applyRegionalTaxOverride(storeId, op)
+                "USER_STORE_ACCESS" -> applyUserStoreAccess(op)
                 "TRANSIT_EVENT"     -> { /* append-only — stored via entity_snapshots; no normalized table */ }
                 else -> { /* entity_snapshots trigger handles any remaining types */ }
             }
@@ -1232,6 +1234,28 @@ class EntityApplier {
                 }
             }
             "DELETE" -> RegionalTaxOverrides.deleteWhere { RegionalTaxOverrides.id eq op.entityId }
+        }
+    }
+
+    // ── User Store Access (C3.2) ──────────────────────────────────────────
+
+    private fun applyUserStoreAccess(op: SyncOperation) {
+        val payload = parsePayload(op) ?: return
+        when (op.operation) {
+            "INSERT", "CREATE", "UPDATE" -> {
+                val userId  = payload.str("user_id") ?: return
+                val storeId = payload.str("store_id") ?: return
+                UserStoreAccessTable.upsert(UserStoreAccessTable.id) {
+                    it[UserStoreAccessTable.id]          = java.util.UUID.fromString(op.entityId)
+                    it[UserStoreAccessTable.userId]      = userId
+                    it[UserStoreAccessTable.storeId]     = storeId
+                    it[UserStoreAccessTable.roleAtStore]  = payload.str("role_at_store")
+                    it[UserStoreAccessTable.isActive]     = payload.bool("is_active")
+                    it[UserStoreAccessTable.grantedBy]    = payload.str("granted_by")
+                    it[UserStoreAccessTable.updatedAt]    = OffsetDateTime.now(ZoneOffset.UTC)
+                }
+            }
+            "DELETE" -> UserStoreAccessTable.deleteWhere { UserStoreAccessTable.id eq java.util.UUID.fromString(op.entityId) }
         }
     }
 

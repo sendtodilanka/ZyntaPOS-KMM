@@ -1,0 +1,59 @@
+-- User-store access junction table: tracks multi-store user access grants.
+-- A user's primary store is users.store_id; this table tracks additional stores.
+CREATE TABLE user_store_access (
+    id              TEXT    NOT NULL PRIMARY KEY,
+    user_id         TEXT    NOT NULL,
+    store_id        TEXT    NOT NULL,
+    role_at_store   TEXT,                           -- nullable = use user's default role
+    is_active       INTEGER NOT NULL DEFAULT 1,
+    granted_by      TEXT,
+    created_at      INTEGER NOT NULL,
+    updated_at      INTEGER NOT NULL,
+    sync_status     TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE UNIQUE INDEX idx_user_store_access_pair ON user_store_access(user_id, store_id);
+CREATE INDEX idx_user_store_access_user  ON user_store_access(user_id);
+CREATE INDEX idx_user_store_access_store ON user_store_access(store_id);
+
+-- ── Read queries ────────────────────────────────────────────────────────────
+
+getAccessibleStores:
+SELECT * FROM user_store_access
+WHERE user_id = ? AND is_active = 1
+ORDER BY created_at ASC;
+
+getUsersForStore:
+SELECT * FROM user_store_access
+WHERE store_id = ? AND is_active = 1
+ORDER BY created_at ASC;
+
+getById:
+SELECT * FROM user_store_access WHERE id = ?;
+
+getByUserAndStore:
+SELECT * FROM user_store_access WHERE user_id = ? AND store_id = ?;
+
+hasAccess:
+SELECT COUNT(*) FROM user_store_access
+WHERE user_id = ? AND store_id = ? AND is_active = 1;
+
+-- ── Write queries ───────────────────────────────────────────────────────────
+
+insertAccess:
+INSERT OR REPLACE INTO user_store_access(
+    id, user_id, store_id, role_at_store, is_active, granted_by, created_at, updated_at, sync_status
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+revokeAccess:
+UPDATE user_store_access
+SET is_active = 0, updated_at = ?, sync_status = 'PENDING'
+WHERE user_id = ? AND store_id = ?;
+
+updateRoleAtStore:
+UPDATE user_store_access
+SET role_at_store = ?, updated_at = ?, sync_status = 'PENDING'
+WHERE user_id = ? AND store_id = ?;
+
+deleteAccess:
+DELETE FROM user_store_access WHERE id = ?;
