@@ -35,15 +35,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install OSV-Scanner
+        run: |
+          curl -fsSL https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64 -o /usr/local/bin/osv-scanner
+          chmod +x /usr/local/bin/osv-scanner
+
       - name: Run OSV-Scanner — all backend services
-        uses: google/osv-scanner-action/osv-scanner-action@v2
-        with:
-          scan-args: |-
-            --recursive
-            --format=sarif
-            --output=osv-results.sarif
-            ./backend
-        continue-on-error: true  # Report-only — don't fail for known vulns
+        run: osv-scanner --recursive --format=sarif --output=osv-results.sarif ./backend || true
 
       - name: Verify SARIF file exists
         if: always()
