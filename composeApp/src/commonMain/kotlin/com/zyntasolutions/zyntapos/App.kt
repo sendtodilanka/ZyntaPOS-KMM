@@ -116,6 +116,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.feature.customers.CustomerEffect
 import com.zyntasolutions.zyntapos.feature.diagnostic.DiagnosticConsentScreen
