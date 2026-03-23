@@ -453,6 +453,7 @@ class SyncEngine(
             SyncOperation.EntityType.COUPON             -> log.d("Delta ack: coupon/${entityType}")
             SyncOperation.EntityType.EXPENSE            -> log.d("Delta ack: expense/${entityType}")
             SyncOperation.EntityType.EMPLOYEE           -> log.d("Delta ack: employee/${entityType}")
+            SyncOperation.EntityType.STORE              -> log.d("Delta ack: store/${entityType}")
             else -> log.w("Unknown entityType for delta op: $entityType")
         }
     }

@@ -27,6 +27,7 @@ import com.zyntasolutions.zyntapos.data.repository.PricingRuleRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.OrderRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.ProductRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.StoreProductOverrideRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.StoreRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.ProductVariantRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.RegisterRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.SettingsRepositoryImpl
@@ -122,6 +123,7 @@ import com.zyntasolutions.zyntapos.domain.repository.LabelTemplateRepository
 import com.zyntasolutions.zyntapos.domain.repository.PrinterProfileRepository
 import com.zyntasolutions.zyntapos.domain.repository.ReportRepository
 import com.zyntasolutions.zyntapos.domain.repository.StocktakeRepository
+import com.zyntasolutions.zyntapos.domain.repository.StoreRepository
 import com.zyntasolutions.zyntapos.domain.repository.ShiftRepository
 import com.zyntasolutions.zyntapos.domain.repository.SystemRepository
 import com.zyntasolutions.zyntapos.domain.repository.PurchaseOrderRepository
@@ -406,6 +408,9 @@ val dataModule = module {
 
     // Warehouse stock: per-warehouse product quantity tracking (C1.2)
     single<WarehouseStockRepository> { WarehouseStockRepositoryImpl(db = get(), syncEnqueuer = get()) }
+
+    // Store registry: multi-store branch data (C3.3)
+    single<StoreRepository> { StoreRepositoryImpl(database = get()) }
 
     // User store access: multi-store user permission grants (C3.2)
     single<UserStoreAccessRepository> { UserStoreAccessRepositoryImpl(db = get(), syncEnqueuer = get()) }

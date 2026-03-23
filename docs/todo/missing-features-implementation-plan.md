@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-23 (C3.2 store-level permissions core implemented — UserStoreAccess model + SQLDelight + repo + use cases + RbacEngine.hasPermissionAtStore + backend V35 migration + EntityApplier + SyncValidator + StoreAccessRoutes + 17 tests)
+**Last Updated:** 2026-03-23 (C3.3 Global Admin Dashboard — Store domain model, StoreRepository, MultiStoreDashboardViewModel + Screen, ZyntaRoute.MultiStoreDashboard, 13 VM + 3 use case tests)
 **Status:** Approved — Verified against codebase 2026-03-22, updated for ADR-009 compliance
 
 ---
@@ -1109,22 +1109,45 @@ Backend Tests:
 
 ---
 
-### C3.3 Global Admin Dashboard (ප්‍රධාන පාලක පුවරුව)
+### C3.3 Global Admin Dashboard (ප්‍රධාන පාලක පුවරුව) — ✅ CORE IMPLEMENTED (2026-03-23)
+
+> **HANDOFF (2026-03-23):** Core multi-store dashboard implemented. `Store` domain model,
+> `StoreRepository` interface + `StoreRepositoryImpl` (SQLDelight-backed), `GetAllStoresUseCase`,
+> `GetMultiStoreKPIsUseCase`, `MultiStoreDashboardViewModel` (MVI), `MultiStoreDashboardScreen`
+> (aggregate KPI cards + per-store comparison with revenue share bars + store switcher via
+> `ZyntaStoreSelectorCompact`), `ZyntaRoute.MultiStoreDashboard` route, Koin DI registered,
+> `STORE` entity type in SyncOperation + SyncEngine, 13 ViewModel tests + 3 use case tests.
 
 **Priority:** PHASE-2
-**Status:** PARTIALLY EXISTS
+**Status:** ✅ CORE IMPLEMENTED (2026-03-23)
 
 **Codebase State:**
 - Admin panel dashboard: `/admin/metrics/dashboard` — totalStores, activeLicenses, revenueToday, syncHealth
 - `AdminStoresRoutes.kt` — store list, health, config endpoints
 - `AdminMetricsService.kt` — `getDashboardKPIs()`, `getStoreComparison()`, `getSalesChart()`
-- KMM `:composeApp:feature:multistore` — scaffold only
+- KMM `:composeApp:feature:multistore` — full multi-store dashboard
 
-**What's MISSING:**
-- [ ] KMM app: Multi-store dashboard screen (see all store KPIs from a single view)
-- [ ] KMM app: Store switcher (select which store to operate as)
+**What's DONE (2026-03-23):**
+- [x] `Store` domain model in `:shared:domain/model/` — id, name, address, phone, email, currency, timezone, isActive, isHeadquarters
+- [x] `StoreRepository` interface in `:shared:domain/repository/` — getAllStores, getById, getStoreName, upsertFromSync
+- [x] `StoreRepositoryImpl` in `:shared:data/` — SQLDelight-backed, reactive Flow
+- [x] `GetAllStoresUseCase` — reactive list of all active stores
+- [x] `GetMultiStoreKPIsUseCase` — wraps ReportRepository.getMultiStoreComparison()
+- [x] `STORE` entity type in SyncOperation + SyncEngine delta routing
+- [x] `MultiStoreDashboardState/Intent/Effect` — full MVI with period filter, store comparison, store switcher
+- [x] `MultiStoreDashboardViewModel` — observes stores, loads KPIs, switches active store
+- [x] `MultiStoreDashboardScreen` — aggregate KPI row (revenue, orders, AOV, store count) + per-store comparison cards with revenue share progress bars + `ZyntaStoreSelectorCompact` in top bar
+- [x] `ZyntaRoute.MultiStoreDashboard` route in `:composeApp:navigation`
+- [x] Koin DI: use cases + ViewModel registered in `MultistoreModule`
+- [x] `StoreRepository` binding in `DataModule`
+- [x] 10 ViewModel tests (MultiStoreDashboardViewModelTest)
+- [x] 3 use case tests (GetMultiStoreKPIsUseCaseTest)
+
+**What's REMAINING (deferred):**
 - [ ] Real-time WebSocket updates for dashboard KPIs (currently REST polling)
 - [ ] Cross-store notifications (e.g., "Store B low on Product X")
+- [ ] Wire MultiStoreDashboard route into MainNavGraph composable
+- [ ] Admin panel: Global dashboard enhancements (read-only monitoring — ADR-009 compliant)
 
 ---
 
@@ -2358,7 +2381,7 @@ git push -u origin $(git branch --show-current)
 | **3. Access Control** | | |
 | RBAC | C3.1 | COMPLETE |
 | Store-Level Permissions | C3.2 | ✅ CORE IMPLEMENTED (junction table, domain model, RBAC, backend; 2026-03-23) |
-| Global Admin Dashboard | C3.3 | PARTIAL |
+| Global Admin Dashboard | C3.3 | ✅ CORE IMPLEMENTED (Store model + StoreRepo + dashboard screen + store switcher + 13 tests; 2026-03-23) |
 | Employee Roaming | C3.4 | NOT IMPLEMENTED |
 | **4. Sales & Customer** | | |
 | Cross-Store Returns | C4.1 | NOT IMPLEMENTED |

@@ -112,5 +112,7 @@ data class SyncOperation(
         const val REGIONAL_TAX_OVERRIDE = "regional_tax_override"
         // C3.2 Multi-store user access grants
         const val USER_STORE_ACCESS = "user_store_access"
+        // C3.3 Store registry
+        const val STORE = "store"
     }
 }
