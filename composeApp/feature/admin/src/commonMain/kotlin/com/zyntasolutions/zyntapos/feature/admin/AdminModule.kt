@@ -60,7 +60,8 @@ val adminModule = module {
         AdminViewModel(
             getSystemHealthUseCase = get(),
             getDatabaseStatsUseCase = get(),
-            systemRepository = get(),
+            vacuumDatabaseUseCase = get(),
+            purgeExpiredDataUseCase = get(),
             getBackupsUseCase = get(),
             createBackupUseCase = get(),
             restoreBackupUseCase = get(),
