@@ -512,15 +512,21 @@ jobs:
           java-version: "21"
           distribution: "temurin"
 
-      - name: Cache Gradle + NVD data
+      - name: Cache NVD data (shared across services)
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/dependency-check-data
+          key: owasp-nvd-${{ runner.os }}
+          restore-keys: owasp-nvd-
+
+      - name: Cache Gradle deps
         uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-            ~/.gradle/dependency-check-data
-          key: owasp-${{ runner.os }}-${{ matrix.service }}-${{ hashFiles(format('backend/{0}/**/*.gradle.kts', matrix.service)) }}
-          restore-keys: owasp-${{ runner.os }}-${{ matrix.service }}-
+          key: owasp-gradle-${{ runner.os }}-${{ matrix.service }}-${{ hashFiles(format('backend/{0}/**/*.gradle.kts', matrix.service)) }}
+          restore-keys: owasp-gradle-${{ runner.os }}-${{ matrix.service }}-
 
       - name: OWASP Dependency Check — ${{ matrix.service }}
         run: |
