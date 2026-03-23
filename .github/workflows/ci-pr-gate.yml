@@ -329,82 +329,39 @@ jobs:
           fail-on-error: false
           fail-on-empty: false
 
-  # ── Security Scanning: OWASP Dependency Check (A6) ───────────────────────
-  # Scans all 3 backend services SEQUENTIALLY in a single job so the NVD
-  # database (~500MB) is downloaded only once.
+  # ── Security Scanning: OSV-Scanner (dependency vulnerability check) ───────
+  # Uses Google's OSV database — no NVD download required (~30s per scan).
+  # Replaces OWASP Dependency Check which required a ~500MB NVD database
+  # download (25-30 min on cache miss).
   #
-  # Report-only (OWASP_FAIL_CVSS=11 disables build failure); the CI Gate
-  # Status job does not block on this — it only blocks on cancellation.
-  # This ensures OWASP scans run during PR review (where 25-30 min is
-  # acceptable) without blocking the merge gate.
+  # Scans all 3 backend Gradle lockfiles for known vulnerabilities.
+  # Advisory mode: continue-on-error so known CVEs don't block merges.
   security-scan-backend:
-    name: "Security Scan (all backends)"
+    name: "Security Scan (OSV)"
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 10
     continue-on-error: true  # Advisory — don't block merges for known vulns
 
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
+      - name: Run OSV-Scanner — backend
+        uses: google/osv-scanner-action/osv-scanner-action@v2
         with:
-          java-version: "21"
-          distribution: "temurin"
+          scan-args: |-
+            --recursive
+            --format=json
+            --output=osv-results.json
+            ./backend
+        continue-on-error: true
 
-      - name: Cache NVD data
-        uses: actions/cache@v4
-        with:
-          path: ~/.gradle/dependency-check-data
-          key: owasp-nvd-${{ runner.os }}
-          restore-keys: owasp-nvd-
-
-      - name: Cache Gradle deps
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: owasp-gradle-${{ runner.os }}-${{ hashFiles('backend/**/build.gradle.kts') }}
-          restore-keys: owasp-gradle-${{ runner.os }}-
-
-      - name: OWASP Dependency Check — api
-        working-directory: backend/api
-        run: |
-          chmod +x ./gradlew
-          ./gradlew dependencyCheckAnalyze --no-daemon \
-            -Dorg.gradle.jvmargs="-Xmx2g -Xms512m"
-        env:
-          OWASP_FAIL_CVSS: "11"
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
-
-      - name: OWASP Dependency Check — license
-        working-directory: backend/license
-        run: |
-          chmod +x ./gradlew
-          ./gradlew dependencyCheckAnalyze --no-daemon \
-            -Dorg.gradle.jvmargs="-Xmx2g -Xms512m"
-        env:
-          OWASP_FAIL_CVSS: "11"
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
-
-      - name: OWASP Dependency Check — sync
-        working-directory: backend/sync
-        run: |
-          chmod +x ./gradlew
-          ./gradlew dependencyCheckAnalyze --no-daemon \
-            -Dorg.gradle.jvmargs="-Xmx2g -Xms512m"
-        env:
-          OWASP_FAIL_CVSS: "11"
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
-
-      - name: Upload OWASP reports
+      - name: Upload OSV scan results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: owasp-reports-${{ github.run_id }}
-          path: backend/*/build/reports/dependency-check-report.html
+          name: osv-scan-results-${{ github.run_id }}
+          path: osv-results.json
           retention-days: 14
           if-no-files-found: ignore
 
@@ -413,7 +370,7 @@ jobs:
   # requires "CI Gate Status" to pass before auto-merge proceeds.
   #
   # security-scan-backend is NOT in the needs list — it runs independently
-  # as advisory. This prevents a 25-30 min NVD download from blocking merge.
+  # as advisory.
   ci-gate-status:
     name: "CI Gate Status"
     needs: [build-and-test, test-website, test-admin-panel, test-backend, validate-migrations, validate-compose]

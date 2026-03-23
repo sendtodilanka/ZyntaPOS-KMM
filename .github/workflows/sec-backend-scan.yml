@@ -1,6 +1,6 @@
 name: Backend Security Scan
 
-# ── TODO-009 Level 4: OWASP Dependency Check + Trivy Container Scan ──────────
+# ── Security Scanning: OSV-Scanner + Trivy Container Scan + Snyk ──────────
 #
 # Runs:
 #   • Weekly (Monday 01:00 UTC = 06:30 LKT) — scheduled sweep
@@ -23,206 +23,61 @@ permissions:
   contents: read
   security-events: write   # Required to upload SARIF results
 
-# ── Shared environment for all OWASP jobs ────────────────────────────────────
-# OWASP Dependency Check NVD download needs significant heap.
-env:
-  GRADLE_OPTS: "-Xmx2g -Xms512m -XX:MaxMetaspaceSize=512m"
-  # Cache-bust key: increment to force fresh NVD download after corruption
-  NVD_CACHE_VERSION: "v4"
-  # CVSS 11 = report-only (max CVSS is 10.0, so never fails build).
-  # Vulnerabilities still appear in SARIF → GitHub Security tab.
-  # Local dev defaults to 7.0 (see build.gradle.kts).
-  OWASP_FAIL_CVSS: "11"
-
 jobs:
-  # ── OWASP Dependency Check — backend/api ────────────────────────────────────
-  owasp-api:
-    name: OWASP — API
+  # ── OSV-Scanner — Dependency vulnerability check (all backends) ────────────
+  # Uses Google's OSV database — no NVD download required (~30s total).
+  # Replaces the 3 parallel OWASP Dependency Check jobs that each took 25-30 min.
+  osv-scan:
+    name: OSV-Scanner — All Backends
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-    defaults:
-      run:
-        working-directory: backend/api
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
+      - name: Run OSV-Scanner — all backend services
+        uses: google/osv-scanner-action/osv-scanner-action@v2
         with:
-          java-version: "21"
-          distribution: "temurin"
+          scan-args: |-
+            --recursive
+            --format=sarif
+            --output=osv-results.sarif
+            ./backend
+        continue-on-error: true  # Report-only — don't fail for known vulns
 
-      - name: Cache Gradle dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-api-${{ hashFiles('backend/api/build.gradle.kts', 'backend/api/settings.gradle.kts') }}
-          restore-keys: gradle-${{ runner.os }}-api-
-
-      - name: Cache OWASP NVD database
-        uses: actions/cache@v4
-        with:
-          path: ~/.gradle/dependency-check-data
-          key: owasp-nvd-${{ env.NVD_CACHE_VERSION }}-${{ runner.os }}-${{ github.run_id }}
-          restore-keys: owasp-nvd-${{ env.NVD_CACHE_VERSION }}-${{ runner.os }}-
-
-      - name: Run OWASP Dependency Check
-        run: |
-          chmod +x ./gradlew
-          ./gradlew dependencyCheckAnalyze --no-daemon \
-            -Dorg.gradle.jvmargs="-Xmx2g -Xms512m" \
-            --stacktrace --info
-        env:
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
-          OWASP_FAIL_CVSS: "11"
-        timeout-minutes: 30
-        continue-on-error: true   # NVD download can hit rate-limits or timeouts; CVSS-11 is report-only anyway
-
-      - name: Upload OWASP report
+      - name: Verify SARIF file exists
         if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: owasp-report-api
-          path: backend/api/build/reports/dependency-check-report.html
-          retention-days: 30
-          if-no-files-found: warn
+        run: |
+          if [ ! -f "osv-results.sarif" ]; then
+            echo "::warning::OSV SARIF not generated. Creating empty SARIF."
+            cat > "osv-results.sarif" <<'SARIF'
+          {
+            "version": "2.1.0",
+            "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json",
+            "runs": [{
+              "tool": { "driver": { "name": "osv-scanner", "version": "2.0", "rules": [] } },
+              "results": []
+            }]
+          }
+          SARIF
+          fi
 
-      - name: Upload OWASP SARIF to GitHub Security
+      - name: Upload OSV SARIF to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
-          sarif_file: backend/api/build/reports/dependency-check-report.sarif
-          category: owasp-api
+          sarif_file: osv-results.sarif
+          category: osv-backend
         continue-on-error: true
 
-  # ── OWASP Dependency Check — backend/license ────────────────────────────────
-  owasp-license:
-    name: OWASP — License
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    defaults:
-      run:
-        working-directory: backend/license
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: "21"
-          distribution: "temurin"
-
-      - name: Cache Gradle dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-license-${{ hashFiles('backend/license/build.gradle.kts') }}
-          restore-keys: gradle-${{ runner.os }}-license-
-
-      - name: Cache OWASP NVD database
-        uses: actions/cache@v4
-        with:
-          path: ~/.gradle/dependency-check-data
-          key: owasp-nvd-${{ env.NVD_CACHE_VERSION }}-${{ runner.os }}-${{ github.run_id }}
-          restore-keys: owasp-nvd-${{ env.NVD_CACHE_VERSION }}-${{ runner.os }}-
-
-      - name: Run OWASP Dependency Check
-        run: |
-          chmod +x ./gradlew
-          ./gradlew dependencyCheckAnalyze --no-daemon \
-            -Dorg.gradle.jvmargs="-Xmx2g -Xms512m" \
-            --stacktrace --info
-        env:
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
-          OWASP_FAIL_CVSS: "11"
-        timeout-minutes: 30
-        continue-on-error: true   # NVD download can hit rate-limits or timeouts; CVSS-11 is report-only anyway
-
-      - name: Upload OWASP report
+      - name: Upload OSV report artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: owasp-report-license
-          path: backend/license/build/reports/dependency-check-report.html
+          name: osv-scan-report
+          path: osv-results.sarif
           retention-days: 30
           if-no-files-found: warn
-
-      - name: Upload OWASP SARIF to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: backend/license/build/reports/dependency-check-report.sarif
-          category: owasp-license
-        continue-on-error: true
-
-  # ── OWASP Dependency Check — backend/sync ───────────────────────────────────
-  owasp-sync:
-    name: OWASP — Sync
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    defaults:
-      run:
-        working-directory: backend/sync
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: "21"
-          distribution: "temurin"
-
-      - name: Cache Gradle dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-sync-${{ hashFiles('backend/sync/build.gradle.kts') }}
-          restore-keys: gradle-${{ runner.os }}-sync-
-
-      - name: Cache OWASP NVD database
-        uses: actions/cache@v4
-        with:
-          path: ~/.gradle/dependency-check-data
-          key: owasp-nvd-${{ env.NVD_CACHE_VERSION }}-${{ runner.os }}-${{ github.run_id }}
-          restore-keys: owasp-nvd-${{ env.NVD_CACHE_VERSION }}-${{ runner.os }}-
-
-      - name: Run OWASP Dependency Check
-        run: |
-          chmod +x ./gradlew
-          ./gradlew dependencyCheckAnalyze --no-daemon \
-            -Dorg.gradle.jvmargs="-Xmx2g -Xms512m" \
-            --stacktrace --info
-        env:
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
-          OWASP_FAIL_CVSS: "11"
-        timeout-minutes: 30
-        continue-on-error: true   # NVD download can hit rate-limits or timeouts; CVSS-11 is report-only anyway
-
-      - name: Upload OWASP report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: owasp-report-sync
-          path: backend/sync/build/reports/dependency-check-report.html
-          retention-days: 30
-          if-no-files-found: warn
-
-      - name: Upload OWASP SARIF to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: backend/sync/build/reports/dependency-check-report.sarif
-          category: owasp-sync
-        continue-on-error: true
 
   # ── Trivy Container Image Scan ────────────────────────────────────────────────
   trivy-images:
@@ -332,11 +187,11 @@ jobs:
           category: snyk-${{ matrix.service }}
         continue-on-error: true
 
-  # ── Summary gate (required check) ───────────────────────────────────────────
+  # ── Summary gate ───────────────────────────────────────────────────────────
   security-scan-summary:
     name: Security Scan Summary
     runs-on: ubuntu-latest
-    needs: [owasp-api, owasp-license, owasp-sync, trivy-images, snyk-images]
+    needs: [osv-scan, trivy-images, snyk-images]
     if: always()
     steps:
       - name: Check scan results
@@ -347,31 +202,21 @@ jobs:
           echo ""
           echo "| Job | Result |"
           echo "|-----|--------|"
-          echo "| OWASP API | ${{ needs.owasp-api.result }} |"
-          echo "| OWASP License | ${{ needs.owasp-license.result }} |"
-          echo "| OWASP Sync | ${{ needs.owasp-sync.result }} |"
+          echo "| OSV-Scanner | ${{ needs.osv-scan.result }} |"
           echo "| Trivy Images | ${{ needs.trivy-images.result }} |"
           echo "| Snyk Images | ${{ needs.snyk-images.result }} |"
           echo ""
 
-          # OWASP jobs use continue-on-error (CVSS-11 = report-only, timeouts are non-blocking).
           # Only Trivy failures (infra-level scan) block the summary gate.
           FAILED=false
           if [ "${{ needs.trivy-images.result }}" = "failure" ]; then
             FAILED=true
           fi
 
-          # Warn (but don't fail) if OWASP jobs hit errors or timeouts
-          for result in "${{ needs.owasp-api.result }}" "${{ needs.owasp-license.result }}" "${{ needs.owasp-sync.result }}"; do
-            if [ "$result" = "failure" ]; then
-              echo "::warning::An OWASP scan job reported failure (likely NVD download timeout). Check the job log."
-            fi
-          done
-
           if [ "$FAILED" = "true" ]; then
             echo "::error::One or more Trivy container scans FAILED. Check job logs above."
             exit 1
           else
-            echo "✅ Security scan gate passed."
+            echo "All security scan checks passed."
             echo "Review SARIF results in the Security tab → Code scanning alerts."
           fi
