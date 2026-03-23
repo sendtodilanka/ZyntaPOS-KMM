@@ -44,9 +44,11 @@ import com.zyntasolutions.zyntapos.domain.model.Supplier
 import com.zyntasolutions.zyntapos.domain.model.ProductVariant
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.ProductVariantRepository
+import com.zyntasolutions.zyntapos.domain.repository.PurchaseOrderRepository
 import com.zyntasolutions.zyntapos.domain.repository.SupplierRepository
 import com.zyntasolutions.zyntapos.domain.repository.TaxGroupRepository
 import com.zyntasolutions.zyntapos.domain.repository.UnitGroupRepository
+import com.zyntasolutions.zyntapos.domain.model.PurchaseOrder
 import com.zyntasolutions.zyntapos.hal.scanner.BarcodeScanner
 import com.zyntasolutions.zyntapos.hal.scanner.ScanResult
 import kotlinx.coroutines.flow.flowOf
@@ -275,6 +277,17 @@ class InventoryViewModelTest {
         override suspend fun replaceAll(productId: String, variants: List<ProductVariant>): Result<Unit> = Result.Success(Unit)
     }
 
+    private val fakePurchaseOrderRepository = object : PurchaseOrderRepository {
+        override fun getAll(): Flow<List<PurchaseOrder>> = flowOf(emptyList())
+        override suspend fun getById(id: String): Result<PurchaseOrder> = Result.Error(DatabaseException("Not found"))
+        override suspend fun getByDateRange(startDate: Long, endDate: Long): Result<List<PurchaseOrder>> = Result.Success(emptyList())
+        override suspend fun getBySupplierId(supplierId: String): Result<List<PurchaseOrder>> = Result.Success(emptyList())
+        override suspend fun getByStatus(status: PurchaseOrder.Status): Result<List<PurchaseOrder>> = Result.Success(emptyList())
+        override suspend fun create(order: PurchaseOrder): Result<Unit> = Result.Success(Unit)
+        override suspend fun receiveItems(purchaseOrderId: String, receivedItems: Map<String, Double>, receivedBy: String): Result<Unit> = Result.Success(Unit)
+        override suspend fun cancel(purchaseOrderId: String): Result<Unit> = Result.Success(Unit)
+    }
+
     private val fakeBarcodeScanner = object : BarcodeScanner {
         override val scanEvents: Flow<ScanResult> = flowOf()
         override suspend fun startListening(): kotlin.Result<Unit> = kotlin.Result.success(Unit)
@@ -311,6 +324,7 @@ class InventoryViewModelTest {
             updateProductUseCase = updateProductUseCase,
             adjustStockUseCase = adjustStockUseCase,
             authRepository = fakeAuthRepository,
+            purchaseOrderRepository = fakePurchaseOrderRepository,
             taxGroupRepository = fakeTaxGroupRepository,
             unitGroupRepository = fakeUnitGroupRepository,
             auditLogger = testAuditLogger,
