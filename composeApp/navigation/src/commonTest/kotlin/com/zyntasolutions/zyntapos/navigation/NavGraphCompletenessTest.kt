@@ -95,6 +95,7 @@ class NavGraphCompletenessTest {
         "newStockTransfer",
         "warehouseRackList",
         "warehouseRackDetail",
+        "multiStoreDashboard",
 
         // Accounting / E-Invoice sub-graph
         "accountingLedger",
