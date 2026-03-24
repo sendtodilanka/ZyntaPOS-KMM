@@ -4,6 +4,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.multistore.AddTransitEventUseC
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.ApproveStockTransferUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.CommitStockTransferUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.DispatchStockTransferUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.multistore.GeneratePickListUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.GetInTransitCountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.GetLowStockByWarehouseUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.GetTransitHistoryUseCase
@@ -76,6 +77,9 @@ val multistoreModule = module {
     factoryOf(::SaveRackProductUseCase)
     factoryOf(::DeleteRackProductUseCase)
 
+    // P3-B1: Pick list generation
+    factoryOf(::GeneratePickListUseCase)
+
     // C3.3: Multi-store dashboard use cases
     factoryOf(::GetAllStoresUseCase)
     factoryOf(::GetMultiStoreKPIsUseCase)
@@ -102,6 +106,8 @@ val multistoreModule = module {
             addTransitEventUseCase = get(),
             getInTransitCountUseCase = get(),
             logWorkflowTransitEventUseCase = get(),
+            generatePickListUseCase = get(),
+            printerManager = get(),
             authRepository = get(),
             analytics = get(),
         )
