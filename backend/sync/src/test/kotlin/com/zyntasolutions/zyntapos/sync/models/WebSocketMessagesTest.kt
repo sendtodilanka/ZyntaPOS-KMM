@@ -20,7 +20,7 @@ class WebSocketMessagesTest {
 
     @Test
     fun `WsAck serializes with correct type`() {
-        val ack = WsAck(storeId = "store-1", deviceId = "dev-1", connectedAt = 1710000000000L)
+        val ack: WsMessage = WsAck(storeId = "store-1", deviceId = "dev-1", connectedAt = 1710000000000L)
         val encoded = json.encodeToString(ack)
         assertTrue(encoded.contains("\"type\":\"ack\""))
         assertTrue(encoded.contains("\"storeId\":\"store-1\""))
@@ -46,7 +46,7 @@ class WebSocketMessagesTest {
 
     @Test
     fun `WsDelta serializes with correct type`() {
-        val delta = WsDelta(storeId = "store-1", operationCount = 5, latestSeq = 42L)
+        val delta: WsMessage = WsDelta(storeId = "store-1", operationCount = 5, latestSeq = 42L)
         val encoded = json.encodeToString(delta)
         assertTrue(encoded.contains("\"type\":\"delta\""))
         assertTrue(encoded.contains("\"operationCount\":5"))
@@ -89,7 +89,7 @@ class WebSocketMessagesTest {
 
     @Test
     fun `WsNotify serializes with correct type`() {
-        val notify = WsNotify(storeId = "store-1", latestSeq = 99L)
+        val notify: WsMessage = WsNotify(storeId = "store-1", latestSeq = 99L)
         val encoded = json.encodeToString(notify)
         assertTrue(encoded.contains("\"type\":\"notify\""))
         assertTrue(encoded.contains("\"message\":\"sync_available\""))
@@ -128,7 +128,7 @@ class WebSocketMessagesTest {
 
     @Test
     fun `WsForceSync serializes with correct type`() {
-        val forceSync = WsForceSync(storeId = "store-1")
+        val forceSync: WsMessage = WsForceSync(storeId = "store-1")
         val encoded = json.encodeToString(forceSync)
         assertTrue(encoded.contains("\"type\":\"force_sync\""))
         assertTrue(encoded.contains("\"storeId\":\"store-1\""))
@@ -146,14 +146,14 @@ class WebSocketMessagesTest {
 
     @Test
     fun `WsPing serializes with correct type`() {
-        val ping = WsPing()
+        val ping: WsMessage = WsPing()
         val encoded = json.encodeToString(ping)
         assertTrue(encoded.contains("\"type\":\"ping\""))
     }
 
     @Test
     fun `WsPong serializes with correct type`() {
-        val pong = WsPong()
+        val pong: WsMessage = WsPong()
         val encoded = json.encodeToString(pong)
         assertTrue(encoded.contains("\"type\":\"pong\""))
     }
@@ -178,7 +178,7 @@ class WebSocketMessagesTest {
 
     @Test
     fun `WsDiagCommand serializes with correct type`() {
-        val cmd = WsDiagCommand(sessionId = "sess-1", command = "get_logs")
+        val cmd: WsMessage = WsDiagCommand(sessionId = "sess-1", command = "get_logs")
         val encoded = json.encodeToString(cmd)
         assertTrue(encoded.contains("\"type\":\"diag_command\""))
         assertTrue(encoded.contains("\"sessionId\":\"sess-1\""))
@@ -214,7 +214,7 @@ class WebSocketMessagesTest {
 
     @Test
     fun `WsDiagResponse serializes with correct type`() {
-        val resp = WsDiagResponse(sessionId = "sess-1", command = "get_logs", result = "OK")
+        val resp: WsMessage = WsDiagResponse(sessionId = "sess-1", command = "get_logs", result = "OK")
         val encoded = json.encodeToString(resp)
         assertTrue(encoded.contains("\"type\":\"diag_response\""))
     }
@@ -243,7 +243,7 @@ class WebSocketMessagesTest {
 
     @Test
     fun `WsDiagSessionEvent serializes with correct type`() {
-        val event = WsDiagSessionEvent(sessionId = "sess-1", storeId = "store-1", event = "SESSION_STARTED")
+        val event: WsMessage = WsDiagSessionEvent(sessionId = "sess-1", storeId = "store-1", event = "SESSION_STARTED")
         val encoded = json.encodeToString(event)
         assertTrue(encoded.contains("\"type\":\"diag_session_event\""))
         assertTrue(encoded.contains("\"event\":\"SESSION_STARTED\""))

@@ -345,7 +345,7 @@ class LicenseRoutesValidationTest {
     @Test
     fun `edition comparison is case-insensitive via uppercase normalization`() {
         val validEditions = setOf("COMMUNITY", "PROFESSIONAL", "ENTERPRISE")
-        assertTrue("starter".uppercase() in validEditions)
+        assertTrue("community".uppercase() in validEditions)
         assertTrue("professional".uppercase() in validEditions)
     }
 

@@ -15,7 +15,7 @@ import kotlin.test.assertTrue
  */
 class SyncTokenRevocationCacheExtendedTest {
 
-    private fun mockRedis(revokedJtis: Set<String>): StatefulRedisConnection<String, String> {
+    private fun mockRedis(revokedJtis: Set<String>): Pair<StatefulRedisConnection<String, String>, RedisCommands<String, String>> {
         val commands = mockk<RedisCommands<String, String>>()
         every { commands.sismember("revoked_jtis", any()) } answers {
             val jti = arg<String>(1)
@@ -23,21 +23,21 @@ class SyncTokenRevocationCacheExtendedTest {
         }
         val connection = mockk<StatefulRedisConnection<String, String>>()
         every { connection.sync() } returns commands
-        return connection
+        return connection to commands
     }
 
     // ── Redis-backed checks ───────────────────────────────────────────────
 
     @Test
     fun `returns true for revoked JTI when Redis available`() {
-        val redis = mockRedis(setOf("revoked-jti-1"))
+        val (redis, _) = mockRedis(setOf("revoked-jti-1"))
         val result = SyncTokenRevocationCache.isRevoked("revoked-jti-1", redis)
         assertTrue(result)
     }
 
     @Test
     fun `returns false for non-revoked JTI when Redis available`() {
-        val redis = mockRedis(emptySet())
+        val (redis, _) = mockRedis(emptySet())
         val jti = "not-revoked-${System.nanoTime()}"
         val result = SyncTokenRevocationCache.isRevoked(jti, redis)
         assertFalse(result)
@@ -45,10 +45,10 @@ class SyncTokenRevocationCacheExtendedTest {
 
     @Test
     fun `queries Redis when checking revocation`() {
-        val redis = mockRedis(emptySet())
+        val (redis, commands) = mockRedis(emptySet())
         val jti = "check-${System.nanoTime()}"
         SyncTokenRevocationCache.isRevoked(jti, redis)
-        verify { redis.sync().sismember("revoked_jtis", jti) }
+        verify { commands.sismember("revoked_jtis", jti) }
     }
 
     // ── Graceful degradation ──────────────────────────────────────────────
