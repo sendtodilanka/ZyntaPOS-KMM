@@ -81,7 +81,73 @@ java -version   # Must be JDK 21 (Temurin recommended)
 
 If wrong version: set `JAVA_HOME` to a JDK 21 installation before running any Gradle command.
 
-### Step 3 — Verify Android SDK
+### Step 3 — Fix Proxy TLS (Anthropic CA + nonProxyHosts)
+
+Claude Code web sessions run behind an Anthropic TLS-inspecting egress proxy. The proxy's CA certificate (`sandbox-egress-production TLS Inspection CA`) is trusted by the system (`/etc/ssl/certs/ca-certificates.crt`) but **NOT** by Java's `cacerts` truststore. Additionally, `JAVA_TOOL_OPTIONS` excludes `*.google.com` and `*.googleapis.com` from the proxy (`nonProxyHosts`), which breaks Maven/Google repository resolution since there is no direct internet access.
+
+**Both fixes are required before any Gradle command will work.**
+
+```bash
+# 1. Extract the Anthropic proxy CA certificate
+python3 << 'PYEOF'
+import ssl, socket, os, re, base64, _ssl
+
+java_opts = os.environ.get('JAVA_TOOL_OPTIONS', '')
+user_match = re.search(r'-Dhttp\.proxyUser=(\S+)', java_opts)
+pass_match = re.search(r'-Dhttp\.proxyPassword=(\S+)', java_opts)
+proxy_user = user_match.group(1) if user_match else ''
+proxy_pass = pass_match.group(1) if pass_match else ''
+
+proxy_host = re.search(r'-Dhttp\.proxyHost=(\S+)', java_opts).group(1)
+proxy_port = int(re.search(r'-Dhttp\.proxyPort=(\S+)', java_opts).group(1))
+
+creds = base64.b64encode(f"{proxy_user}:{proxy_pass}".encode()).decode()
+sock = socket.create_connection((proxy_host, proxy_port), timeout=10)
+sock.sendall(f"CONNECT dl.google.com:443 HTTP/1.1\r\nHost: dl.google.com:443\r\nProxy-Authorization: Basic {creds}\r\n\r\n".encode())
+resp = sock.recv(4096).decode()
+if '200' in resp:
+    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    ctx.load_verify_locations('/etc/ssl/certs/ca-certificates.crt')
+    ssock = ctx.wrap_socket(sock, server_hostname='dl.google.com')
+    chain = ssock._sslobj.get_verified_chain()
+    ca_der = chain[-1].public_bytes(_ssl.ENCODING_DER)
+    with open('/tmp/anthropic-ca.pem', 'w') as f:
+        f.write(ssl.DER_cert_to_PEM_cert(ca_der))
+    print("OK: Anthropic CA written to /tmp/anthropic-ca.pem")
+    ssock.close()
+else:
+    print(f"FAIL: CONNECT returned {resp.splitlines()[0]}")
+    sock.close()
+PYEOF
+
+# 2. Import CA into system JDK cacerts
+keytool -importcert -trustcacerts -alias "anthropic-sandbox-egress-ca" \
+  -file /tmp/anthropic-ca.pem -keystore /etc/ssl/certs/java/cacerts \
+  -storepass changeit -noprompt 2>/dev/null || true
+
+# 3. Import CA into Gradle daemon JDK (JetBrains JDK downloaded by Gradle)
+JBDK_DIR=$(ls -d /root/.gradle/jdks/jetbrains_s_r_o_-*/ 2>/dev/null | head -1)
+if [ -n "$JBDK_DIR" ] && [ -f "$JBDK_DIR/lib/security/cacerts" ]; then
+  "$JBDK_DIR/bin/keytool" -importcert -trustcacerts -alias "anthropic-sandbox-egress-ca" \
+    -file /tmp/anthropic-ca.pem -keystore "$JBDK_DIR/lib/security/cacerts" \
+    -storepass changeit -noprompt 2>/dev/null || true
+  echo "OK: CA imported into JetBrains JDK at $JBDK_DIR"
+else
+  echo "WARN: JetBrains JDK not yet downloaded — re-run after first ./gradlew --version"
+fi
+
+# 4. Fix nonProxyHosts — remove *.google.com and *.googleapis.com so Maven repos route through proxy
+export JAVA_TOOL_OPTIONS=$(echo "$JAVA_TOOL_OPTIONS" | sed 's/|\*\.googleapis\.com//g; s/|\*\.google\.com//g')
+
+# 5. Stop any existing Gradle daemons started with old settings
+./gradlew --stop 2>/dev/null || true
+```
+
+**Verify with:** `./gradlew --version` — must complete without `Plugin not found` errors.
+
+> **Why:** The container has no direct internet access. All HTTP traffic must go through the Anthropic egress proxy (`21.0.0.x:15004`). Without the CA cert, Java rejects the proxy's TLS-inspected certificates (PKIX path validation failure). Without removing Google domains from `nonProxyHosts`, Gradle tries direct connections to `dl.google.com` / `maven.google.com` which time out.
+
+### Step 4 — Verify Android SDK
 
 ```bash
 echo $ANDROID_HOME   # Must point to a valid SDK directory
@@ -110,9 +176,9 @@ echo "Pkg.Revision=35.0.0" > /home/user/android-sdk/build-tools/35.0.0/source.pr
 export ANDROID_HOME=/home/user/android-sdk
 ```
 
-Then update `local.properties` (Step 4 below) with `sdk.dir=/home/user/android-sdk`.
+Then update `local.properties` (Step 5 below) with `sdk.dir=/home/user/android-sdk`.
 
-### Step 4 — Verify `local.properties` Exists
+### Step 5 — Verify `local.properties` Exists
 
 ```bash
 ls local.properties   # Must exist — copy from template if missing
@@ -126,7 +192,7 @@ cp local.properties.template local.properties
 
 `local.properties` is git-ignored — **never commit it.**
 
-### Step 5 — Verify Gradle Wrapper
+### Step 6 — Verify Gradle Wrapper
 
 ```bash
 ./gradlew --version   # Must succeed — confirms wrapper JAR is intact
@@ -137,7 +203,7 @@ If it fails, re-download:
 ./gradlew wrapper --gradle-version 8.9
 ```
 
-### Step 6 — Confirm Current Branch
+### Step 7 — Confirm Current Branch
 
 ```bash
 git branch --show-current   # Should be claude/<task-id>
