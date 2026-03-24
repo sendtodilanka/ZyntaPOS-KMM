@@ -345,6 +345,22 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "temurin"
+
+      - name: Generate Gradle dependency lockfiles
+        run: |
+          for svc in api license sync; do
+            cd backend/$svc
+            chmod +x ./gradlew
+            ./gradlew dependencies --write-locks --no-daemon \
+              -Dorg.gradle.jvmargs="-Xmx2g -Xms512m" 2>/dev/null || true
+            cd ../..
+          done
+
       - name: Install OSV-Scanner
         run: |
           curl -fsSL https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64 -o /usr/local/bin/osv-scanner
