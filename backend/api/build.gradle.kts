@@ -19,6 +19,11 @@ repositories {
     mavenCentral()
 }
 
+// Enable dependency locking so Trivy/OSV-Scanner can scan gradle.lockfile
+dependencyLocking {
+    lockAllConfigurations()
+}
+
 // ── Security: force patched transitive dependency versions ───────────────────
 // netty-codec/netty-handler: transitive via lettuce-core (Redis client)
 // jackson-core/databind: transitive via logback-classic JSON encoder

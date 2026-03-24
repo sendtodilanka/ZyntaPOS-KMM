@@ -24,56 +24,42 @@ permissions:
   security-events: write   # Required to upload SARIF results
 
 jobs:
-  # ── OSV-Scanner — Dependency vulnerability check (all backends) ────────────
-  # Uses Google's OSV database — no NVD download required (~30s total).
-  # Replaces the 3 parallel OWASP Dependency Check jobs that each took 25-30 min.
-  osv-scan:
-    name: OSV-Scanner — All Backends
+  # ── Trivy Filesystem Scan — Dependency vulnerabilities (all backends) ──────
+  # Scans backend Gradle dependency trees for CRITICAL/HIGH CVEs.
+  # Trivy natively parses build.gradle.kts — no lockfile generation needed.
+  trivy-deps:
+    name: Trivy — Dependency Scan
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install OSV-Scanner
-        run: |
-          curl -fsSL https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64 -o /usr/local/bin/osv-scanner
-          chmod +x /usr/local/bin/osv-scanner
+      - name: Run Trivy filesystem scan — backend
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          scan-type: fs
+          scan-ref: ./backend
+          format: sarif
+          output: trivy-deps.sarif
+          severity: CRITICAL,HIGH
+          exit-code: "0"   # Report-only for weekly scan
+          timeout: 10m
 
-      - name: Run OSV-Scanner — all backend services
-        run: osv-scanner --recursive --format=sarif --output=osv-results.sarif ./backend || true
-
-      - name: Verify SARIF file exists
-        if: always()
-        run: |
-          if [ ! -f "osv-results.sarif" ]; then
-            echo "::warning::OSV SARIF not generated. Creating empty SARIF."
-            cat > "osv-results.sarif" <<'SARIF'
-          {
-            "version": "2.1.0",
-            "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json",
-            "runs": [{
-              "tool": { "driver": { "name": "osv-scanner", "version": "2.0", "rules": [] } },
-              "results": []
-            }]
-          }
-          SARIF
-          fi
-
-      - name: Upload OSV SARIF to GitHub Security
+      - name: Upload Trivy SARIF to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
-          sarif_file: osv-results.sarif
-          category: osv-backend
+          sarif_file: trivy-deps.sarif
+          category: trivy-deps-backend
         continue-on-error: true
 
-      - name: Upload OSV report artifact
+      - name: Upload scan report artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: osv-scan-report
-          path: osv-results.sarif
+          name: trivy-deps-report
+          path: trivy-deps.sarif
           retention-days: 30
           if-no-files-found: warn
 
@@ -189,7 +175,7 @@ jobs:
   security-scan-summary:
     name: Security Scan Summary
     runs-on: ubuntu-latest
-    needs: [osv-scan, trivy-images, snyk-images]
+    needs: [trivy-deps, trivy-images, snyk-images]
     if: always()
     steps:
       - name: Check scan results
@@ -200,7 +186,7 @@ jobs:
           echo ""
           echo "| Job | Result |"
           echo "|-----|--------|"
-          echo "| OSV-Scanner | ${{ needs.osv-scan.result }} |"
+          echo "| Trivy Deps | ${{ needs.trivy-deps.result }} |"
           echo "| Trivy Images | ${{ needs.trivy-images.result }} |"
           echo "| Snyk Images | ${{ needs.snyk-images.result }} |"
           echo ""
