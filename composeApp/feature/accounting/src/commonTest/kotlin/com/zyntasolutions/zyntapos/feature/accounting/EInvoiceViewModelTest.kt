@@ -381,8 +381,60 @@ class EInvoiceViewModelTest {
     }
 
     @Test
-    fun `SubmitToIrd on non-DRAFT invoice sets error state`() = runTest {
+    fun `SubmitToIrd on non-DRAFT and non-REJECTED invoice sets error state`() = runTest {
         val invoice = buildInvoice(id = "inv-001", status = EInvoiceStatus.ACCEPTED)
+        invoicesFlow.value = listOf(invoice)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.dispatch(EInvoiceIntent.SubmitToIrd("inv-001"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNotNull(viewModel.state.value.error)
+        assertTrue(
+            viewModel.state.value.error!!.contains("DRAFT", ignoreCase = true),
+            "Error should mention DRAFT: ${viewModel.state.value.error}",
+        )
+    }
+
+    @Test
+    fun `SubmitToIrd on REJECTED invoice succeeds`() = runTest {
+        val invoice = buildInvoice(id = "inv-001", status = EInvoiceStatus.REJECTED)
+        invoicesFlow.value = listOf(invoice)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        submitResult = Result.Success(
+            IrdSubmissionResult(success = true, referenceNumber = "IRD-RESUBMIT-001", submittedAt = 0L)
+        )
+        viewModel.dispatch(EInvoiceIntent.SubmitToIrd("inv-001"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNotNull(viewModel.state.value.successMessage)
+        assertTrue(
+            viewModel.state.value.successMessage!!.contains("IRD-RESUBMIT-001"),
+            "Success message should contain IRD reference number",
+        )
+        assertEquals("inv-001", submitCalledWithId)
+    }
+
+    @Test
+    fun `SubmitToIrd on SUBMITTED invoice sets error state`() = runTest {
+        val invoice = buildInvoice(id = "inv-001", status = EInvoiceStatus.SUBMITTED)
+        invoicesFlow.value = listOf(invoice)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.dispatch(EInvoiceIntent.SubmitToIrd("inv-001"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNotNull(viewModel.state.value.error)
+        assertTrue(
+            viewModel.state.value.error!!.contains("DRAFT", ignoreCase = true),
+            "Error should mention DRAFT: ${viewModel.state.value.error}",
+        )
+    }
+
+    @Test
+    fun `SubmitToIrd on CANCELLED invoice sets error state`() = runTest {
+        val invoice = buildInvoice(id = "inv-001", status = EInvoiceStatus.CANCELLED)
         invoicesFlow.value = listOf(invoice)
         testDispatcher.scheduler.advanceUntilIdle()
 
