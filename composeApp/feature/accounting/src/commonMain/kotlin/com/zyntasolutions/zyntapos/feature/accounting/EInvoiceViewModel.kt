@@ -81,8 +81,8 @@ class EInvoiceViewModel(
                 updateState { copy(error = "Invoice not found") }
                 return
             }
-        if (invoice.status.name != "DRAFT") {
-            updateState { copy(error = "Only DRAFT invoices can be submitted to IRD.") }
+        if (invoice.status.name != "DRAFT" && invoice.status.name != "REJECTED") {
+            updateState { copy(error = "Only DRAFT or REJECTED invoices can be submitted to IRD.") }
             return
         }
         updateState { copy(isSubmitting = true, error = null) }

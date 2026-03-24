@@ -136,7 +136,7 @@ fun EInvoiceDetailScreen(
 
             // ── Actions ───────────────────────────────────────────────────
             Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
-                if (invoice.status == EInvoiceStatus.DRAFT) {
+                if (invoice.status == EInvoiceStatus.DRAFT || invoice.status == EInvoiceStatus.REJECTED) {
                     Button(
                         onClick = { onIntent(EInvoiceIntent.SubmitToIrd(invoice.id)) },
                         modifier = Modifier.fillMaxWidth(),
@@ -153,7 +153,10 @@ fun EInvoiceDetailScreen(
                         } else {
                             Icon(Icons.Default.CloudUpload, contentDescription = null)
                             Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                            Text("Submit to IRD")
+                            Text(
+                                if (invoice.status == EInvoiceStatus.REJECTED) "Resubmit to IRD"
+                                else "Submit to IRD",
+                            )
                         }
                     }
                 }
