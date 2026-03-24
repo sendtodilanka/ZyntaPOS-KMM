@@ -12,6 +12,9 @@ import {
   Settings,
   Save,
   Eye,
+  UserX,
+  Server,
+  Search,
 } from 'lucide-react';
 import {
   useEmailDeliveryLogs,
@@ -20,6 +23,8 @@ import {
   useUpdateEmailTemplate,
   useEmailPreferences,
   useUpdateEmailPreferences,
+  useEmailUnsubscribes,
+  useEmailConfigStatus,
   type EmailDeliveryLog,
   type EmailStatus,
   type EmailLogFilters,
@@ -32,7 +37,7 @@ export const Route = createFileRoute('/settings/email')({
   component: EmailSettingsPage,
 });
 
-type Tab = 'logs' | 'templates' | 'preferences';
+type Tab = 'logs' | 'templates' | 'preferences' | 'unsubscribes' | 'config';
 
 const STATUS_CONFIG = {
   SENT: { icon: Clock, color: 'text-blue-500', bg: 'bg-blue-50', label: 'Sent' },
@@ -50,6 +55,8 @@ function EmailSettingsPage() {
     { id: 'logs', label: 'Delivery Logs', icon: Mail },
     { id: 'templates', label: 'Templates', icon: FileText },
     { id: 'preferences', label: 'Preferences', icon: Settings },
+    { id: 'unsubscribes', label: 'Unsubscribes', icon: UserX },
+    { id: 'config', label: 'Configuration', icon: Server },
   ];
 
   return (
@@ -65,14 +72,14 @@ function EmailSettingsPage() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex gap-1 border-b">
+      <div className="flex gap-1 border-b overflow-x-auto">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           return (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${
+              className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px whitespace-nowrap ${
                 activeTab === tab.id
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30'
@@ -88,6 +95,8 @@ function EmailSettingsPage() {
       {activeTab === 'logs' && <DeliveryLogsTab />}
       {activeTab === 'templates' && <TemplatesTab />}
       {activeTab === 'preferences' && <PreferencesTab />}
+      {activeTab === 'unsubscribes' && <UnsubscribesTab />}
+      {activeTab === 'config' && <ConfigStatusTab />}
     </div>
   );
 }
@@ -101,7 +110,8 @@ function DeliveryLogsTab() {
   const { data, isLoading, isError } = useEmailDeliveryLogs(page, 20, filters);
   const { formatDateTime } = useTimezone();
 
-  const hasActiveFilters = filters.status || filters.startDate || filters.endDate;
+  const hasActiveFilters = filters.status || filters.recipient || filters.startDate || filters.endDate;
+  const activeFilterCount = [filters.status, filters.recipient, filters.startDate, filters.endDate].filter(Boolean).length;
 
   const updateFilter = (key: keyof EmailLogFilters, value: string | undefined) => {
     setPage(1);
@@ -131,7 +141,7 @@ function DeliveryLogsTab() {
           Filters
           {hasActiveFilters && (
             <span className="ml-1 px-1.5 py-0.5 text-xs bg-blue-200 text-blue-800 rounded-full">
-              {[filters.status, filters.startDate, filters.endDate].filter(Boolean).length}
+              {activeFilterCount}
             </span>
           )}
         </button>
@@ -153,6 +163,20 @@ function DeliveryLogsTab() {
                 </option>
               ))}
             </select>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-muted-foreground">Recipient</label>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <input
+                type="text"
+                value={filters.recipient || ''}
+                onChange={(e) => updateFilter('recipient', e.target.value)}
+                placeholder="Search by email..."
+                className="pl-8 pr-3 py-1.5 text-sm border rounded-md bg-background w-52"
+              />
+            </div>
           </div>
 
           <div className="flex flex-col gap-1">
@@ -546,6 +570,172 @@ function PreferenceToggle({
           }`}
         />
       </button>
+    </div>
+  );
+}
+
+// ── Unsubscribes Tab ──────────────────────────────────────────────────────────
+
+function UnsubscribesTab() {
+  const { data, isLoading, isError } = useEmailUnsubscribes();
+  const { formatDateTime } = useTimezone();
+
+  if (isLoading) {
+    return <div className="text-center py-12 text-muted-foreground">Loading unsubscribe list...</div>;
+  }
+
+  if (isError) {
+    return (
+      <div className="text-center py-12 text-destructive">
+        Failed to load unsubscribe list.
+      </div>
+    );
+  }
+
+  const unsubscribes = data?.unsubscribes ?? [];
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        Users who have opted out of email notifications via the unsubscribe link.
+      </p>
+
+      {unsubscribes.length === 0 && (
+        <div className="text-center py-12 text-muted-foreground">
+          <UserX className="h-8 w-8 mx-auto mb-3 opacity-40" />
+          No users have unsubscribed.
+        </div>
+      )}
+
+      {unsubscribes.length > 0 && (
+        <div className="border rounded-lg overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50">
+              <tr>
+                <th className="text-left px-4 py-3 font-medium">User ID</th>
+                <th className="text-left px-4 py-3 font-medium">Unsubscribed At</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {unsubscribes.map((entry) => (
+                <tr key={entry.userId} className="hover:bg-muted/30">
+                  <td className="px-4 py-3 font-mono text-xs">{entry.userId}</td>
+                  <td className="px-4 py-3 text-muted-foreground text-xs">
+                    {entry.unsubscribedAt
+                      ? formatDateTime(new Date(entry.unsubscribedAt).getTime())
+                      : '\u2014'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="px-4 py-2 bg-muted/30 text-xs text-muted-foreground border-t">
+            {unsubscribes.length} user{unsubscribes.length !== 1 ? 's' : ''} unsubscribed
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Configuration Status Tab ──────────────────────────────────────────────────
+
+function ConfigStatusTab() {
+  const { data: config, isLoading, isError } = useEmailConfigStatus();
+
+  if (isLoading) {
+    return <div className="text-center py-12 text-muted-foreground">Loading configuration...</div>;
+  }
+
+  if (isError) {
+    return (
+      <div className="text-center py-12 text-destructive">
+        Failed to load email configuration status.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        Read-only view of the email delivery configuration. Settings are managed via environment variables on the server.
+      </p>
+
+      {config && (
+        <div className="space-y-4">
+          {/* Provider status card */}
+          <div className="border rounded-lg p-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Server className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Email Provider</span>
+              </div>
+              <span
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                  config.configured
+                    ? 'bg-green-50 text-green-700'
+                    : 'bg-red-50 text-red-700'
+                }`}
+              >
+                {config.configured ? (
+                  <CheckCircle className="h-3 w-3" />
+                ) : (
+                  <XCircle className="h-3 w-3" />
+                )}
+                {config.configured ? 'Connected' : 'Not Configured'}
+              </span>
+            </div>
+
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <ConfigField label="Provider" value={config.provider} />
+              <ConfigField label="API Key" value={config.maskedApiKey ?? 'Not set'} mono />
+              <ConfigField label="From Address" value={config.fromAddress} mono />
+              <ConfigField label="From Name" value={config.fromName} />
+            </dl>
+          </div>
+
+          {/* Infrastructure info */}
+          <div className="border rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Mail className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Email Infrastructure</span>
+            </div>
+
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <ConfigField label="Outbound Provider" value="Resend (HTTP API)" />
+              <ConfigField label="Inbound Routing" value="Cloudflare Email Routing" />
+              <ConfigField label="Mail Server" value="Stalwart (IMAP/SMTP)" />
+              <ConfigField label="Relay" value="HTTP-to-SMTP (Docker internal)" />
+              <ConfigField label="DKIM" value="RSA (202603r) + Ed25519 (202603e)" />
+              <ConfigField label="SPF" value="include:_spf.mx.cloudflare.net" />
+              <ConfigField label="DMARC" value="p=quarantine" />
+            </dl>
+          </div>
+
+          {!config.configured && (
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+              <div className="flex items-center gap-2 mb-1">
+                <AlertTriangle className="h-4 w-4" />
+                <span className="font-medium">Email delivery is disabled</span>
+              </div>
+              <p>
+                Set the <code className="text-xs bg-yellow-100 px-1 py-0.5 rounded">RESEND_API_KEY</code> and{' '}
+                <code className="text-xs bg-yellow-100 px-1 py-0.5 rounded">EMAIL_FROM_ADDRESS</code> environment
+                variables on the API server to enable transactional email delivery.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ConfigField({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div>
+      <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
+      <dd className={`text-sm mt-0.5 ${mono ? 'font-mono text-xs' : ''}`}>{value}</dd>
     </div>
   );
 }

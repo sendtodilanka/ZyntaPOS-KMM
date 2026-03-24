@@ -169,6 +169,10 @@ class AuthViewModel(
             }
             is Result.Error -> {
                 auditLogger.logLoginAttempt(false, s.email, "", null)
+                analytics.logEvent(AnalyticsEvents.LOGIN, mapOf(
+                    AnalyticsParams.METHOD to "email",
+                    "success" to "false",
+                ))
                 val errorMessage = if (auditLogger.isLoginBruteForced(s.email)) {
                     "Too many failed attempts. Please try again in 5 minutes."
                 } else {

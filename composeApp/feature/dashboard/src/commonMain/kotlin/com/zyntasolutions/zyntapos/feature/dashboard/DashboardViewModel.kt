@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.feature.dashboard
 
+import com.zyntasolutions.zyntapos.core.analytics.AnalyticsEvents
 import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import com.zyntasolutions.zyntapos.designsystem.components.ChartDataPoint
 import com.zyntasolutions.zyntapos.domain.model.OrderStatus
@@ -163,6 +164,8 @@ class DashboardViewModel(
     }
 
     private suspend fun onLogout() {
+        analytics.logEvent(AnalyticsEvents.LOGOUT)
+        analytics.setUserId(null)
         authRepository.logout()
     }
 }

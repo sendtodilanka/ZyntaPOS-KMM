@@ -23,6 +23,7 @@ export interface EmailDeliveryResponse {
 
 export interface EmailLogFilters {
   status?: EmailStatus;
+  recipient?: string;
   startDate?: string;
   endDate?: string;
 }
@@ -41,6 +42,23 @@ export interface EmailPreferences {
   unsubscribed: boolean;
 }
 
+export interface UnsubscribeEntry {
+  userId: string;
+  unsubscribedAt: string | null;
+}
+
+export interface UnsubscribeListResponse {
+  unsubscribes: UnsubscribeEntry[];
+}
+
+export interface EmailConfigStatus {
+  provider: string;
+  configured: boolean;
+  fromAddress: string;
+  fromName: string;
+  maskedApiKey: string | null;
+}
+
 // Query keys
 export const emailKeys = {
   all: ['email'] as const,
@@ -49,11 +67,13 @@ export const emailKeys = {
   templates: () => [...emailKeys.all, 'templates'] as const,
   template: (slug: string) => [...emailKeys.all, 'templates', slug] as const,
   preferences: () => [...emailKeys.all, 'preferences'] as const,
+  unsubscribes: () => [...emailKeys.all, 'unsubscribes'] as const,
+  configStatus: () => [...emailKeys.all, 'config-status'] as const,
 };
 
 /**
  * Fetches email delivery logs from the admin API.
- * Paginated with optional status and date range filters.
+ * Paginated with optional status, recipient, and date range filters.
  */
 export function useEmailDeliveryLogs(
   page = 1,
@@ -68,6 +88,7 @@ export function useEmailDeliveryLogs(
         pageSize: String(pageSize),
       });
       if (filters?.status) params.set('status', filters.status);
+      if (filters?.recipient) params.set('recipient', filters.recipient);
       if (filters?.startDate) params.set('startDate', filters.startDate);
       if (filters?.endDate) params.set('endDate', filters.endDate);
 
@@ -153,5 +174,29 @@ export function useUpdateEmailPreferences() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: emailKeys.preferences() });
     },
+  });
+}
+
+/**
+ * Fetches the list of unsubscribed users.
+ */
+export function useEmailUnsubscribes() {
+  return useQuery({
+    queryKey: emailKeys.unsubscribes(),
+    queryFn: () =>
+      apiClient.get('admin/email/unsubscribes').json<UnsubscribeListResponse>(),
+    staleTime: 60_000,
+  });
+}
+
+/**
+ * Fetches email configuration status (read-only).
+ */
+export function useEmailConfigStatus() {
+  return useQuery({
+    queryKey: emailKeys.configStatus(),
+    queryFn: () =>
+      apiClient.get('admin/email/config-status').json<EmailConfigStatus>(),
+    staleTime: 120_000,
   });
 }
