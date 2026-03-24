@@ -238,6 +238,7 @@ val posModule = module {
             customerRepository = get(),
             registerRepository = get(),
             authRepository = get(),
+            storeRepository = get(),
             postSaleJournalEntryUseCase = get(),
             reprintLastReceiptUseCase = get(),
             printA4TaxInvoiceUseCase = get(),

@@ -1820,13 +1820,13 @@ Backend Tests:
 
 | Gap | Severity | Phase |
 |-----|----------|-------|
-| **No store switcher** — POS assumes single store | CRITICAL | Phase 2 |
+| ~~**No store switcher**~~ — ✅ DONE: `PosState.storeName` + `activeStoreId` from `StoreRepository`; Store icon + name displayed in both EXPANDED and COMPACT layout headers next to cashier badge (2026-03-24) | ~~CRITICAL~~ | ✅ DONE (2026-03-24) |
 | ~~**No loyalty points redemption at checkout**~~ — ✅ DONE: `LoyaltyRedemptionDialog` with quick-select chips + slider, wired to `PosIntent.SetLoyaltyPointsRedemption`, discount shown in `CartSummaryFooter` | ~~HIGH~~ | ✅ DONE (2026-03-23) |
 | **No cross-store return processing** — No UI to scan/identify items from other stores | HIGH | Phase 2 |
 | **Gift card lookup returns "Phase 2" stub** | MEDIUM | Phase 2 |
 | **No card terminal integration UI** — No EMV reader connection status | HIGH | Phase 2 |
 | **No wallet payment choice dialog** — Amount combined in total, unclear if applied | MEDIUM | Phase 2 |
-| **No employee badge/name on POS screen header** | LOW | Phase 2 |
+| ~~**No employee badge/name on POS screen header**~~ — ✅ DONE (2026-03-22, enhanced 2026-03-24: now part of unified Store + Cashier context bar) | ~~LOW~~ | ✅ DONE |
 | **No multi-currency display** at checkout | MEDIUM | Phase 2 |
 | **No coupon barcode scanning preview** | LOW | Phase 2 |
 
