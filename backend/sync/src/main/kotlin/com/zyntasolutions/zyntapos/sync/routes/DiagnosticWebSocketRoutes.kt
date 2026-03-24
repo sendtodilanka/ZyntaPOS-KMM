@@ -3,6 +3,7 @@ package com.zyntasolutions.zyntapos.sync.routes
 import com.zyntasolutions.zyntapos.sync.hub.DiagnosticRelay
 import com.zyntasolutions.zyntapos.sync.models.WsAck
 import com.zyntasolutions.zyntapos.sync.models.WsDiagSessionEvent
+import com.zyntasolutions.zyntapos.sync.models.WsMessage
 import com.zyntasolutions.zyntapos.sync.models.WsPong
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
@@ -70,14 +71,14 @@ fun Route.diagnosticWebSocketRoutes() {
         relay.registerTechnician(sessionId, resolvedStoreId, this)
 
         // Send acknowledgement
-        send(Frame.Text(json.encodeToString(WsAck(
+        send(Frame.Text(json.encodeToString<WsMessage>(WsAck(
             storeId = resolvedStoreId,
             deviceId = "technician-$technicianId",
             connectedAt = java.time.Instant.now().toEpochMilli(),
         ))))
 
         // Notify store devices that diagnostic session started
-        relay.relayCommandToStore(sessionId, json.encodeToString(WsDiagSessionEvent(
+        relay.relayCommandToStore(sessionId, json.encodeToString<WsMessage>(WsDiagSessionEvent(
             sessionId = sessionId,
             storeId = resolvedStoreId,
             event = "SESSION_STARTED",
@@ -98,7 +99,7 @@ fun Route.diagnosticWebSocketRoutes() {
             logger.warn("Diagnostic WS error: sessionId=$sessionId — ${e.message}")
         } finally {
             // Notify store devices that diagnostic session ended
-            relay.relayCommandToStore(sessionId, json.encodeToString(WsDiagSessionEvent(
+            relay.relayCommandToStore(sessionId, json.encodeToString<WsMessage>(WsDiagSessionEvent(
                 sessionId = sessionId,
                 storeId = resolvedStoreId,
                 event = "SESSION_ENDED",
@@ -153,14 +154,14 @@ fun Route.diagnosticDeviceWebSocketRoutes() {
         relay.registerDevice(sessionId, storeId, this)
 
         // Send acknowledgement to the device
-        send(Frame.Text(json.encodeToString(WsAck(
+        send(Frame.Text(json.encodeToString<WsMessage>(WsAck(
             storeId = storeId,
             deviceId = "diag-device-$sessionId",
             connectedAt = java.time.Instant.now().toEpochMilli(),
         ))))
 
         // Notify technician that device has connected
-        relay.relayResponseToTechnician(sessionId, json.encodeToString(WsDiagSessionEvent(
+        relay.relayResponseToTechnician(sessionId, json.encodeToString<WsMessage>(WsDiagSessionEvent(
             sessionId = sessionId,
             storeId = storeId,
             event = "DEVICE_CONNECTED",
@@ -181,7 +182,7 @@ fun Route.diagnosticDeviceWebSocketRoutes() {
             logger.warn("Diagnostic device WS error: sessionId=$sessionId — ${e.message}")
         } finally {
             // Notify technician that device has disconnected
-            relay.relayResponseToTechnician(sessionId, json.encodeToString(WsDiagSessionEvent(
+            relay.relayResponseToTechnician(sessionId, json.encodeToString<WsMessage>(WsDiagSessionEvent(
                 sessionId = sessionId,
                 storeId = storeId,
                 event = "DEVICE_DISCONNECTED",

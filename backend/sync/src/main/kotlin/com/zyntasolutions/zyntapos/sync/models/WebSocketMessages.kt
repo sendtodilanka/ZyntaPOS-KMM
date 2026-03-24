@@ -9,9 +9,7 @@ import kotlinx.serialization.Serializable
  * Messages flow server → client unless otherwise noted.
  */
 @Serializable
-sealed class WsMessage {
-    abstract val type: String
-}
+sealed class WsMessage
 
 /**
  * Sent to the connecting device as the first message on successful handshake.
@@ -19,7 +17,6 @@ sealed class WsMessage {
 @Serializable
 @SerialName("ack")
 data class WsAck(
-    override val type: String = "ack",
     val storeId: String,
     val deviceId: String,
     val connectedAt: Long,
@@ -32,7 +29,6 @@ data class WsAck(
 @Serializable
 @SerialName("delta")
 data class WsDelta(
-    override val type: String = "delta",
     val storeId: String,
     val operationCount: Int,
     val latestSeq: Long,
@@ -46,7 +42,6 @@ data class WsDelta(
 @Serializable
 @SerialName("notify")
 data class WsNotify(
-    override val type: String = "notify",
     val storeId: String,
     val message: String = "sync_available",
     val latestSeq: Long,
@@ -59,19 +54,18 @@ data class WsNotify(
 @Serializable
 @SerialName("force_sync")
 data class WsForceSync(
-    override val type: String = "force_sync",
     val storeId: String,
 ) : WsMessage()
 
 /** Keep-alive — client sends, server replies with [WsPong]. */
 @Serializable
 @SerialName("ping")
-data class WsPing(override val type: String = "ping") : WsMessage()
+data class WsPing(val ts: Long = System.currentTimeMillis()) : WsMessage()
 
 /** Keep-alive reply. */
 @Serializable
 @SerialName("pong")
-data class WsPong(override val type: String = "pong") : WsMessage()
+data class WsPong(val ts: Long = System.currentTimeMillis()) : WsMessage()
 
 // ── Diagnostic relay messages (TODO-006) ────────────────────────────────────
 
@@ -82,7 +76,6 @@ data class WsPong(override val type: String = "pong") : WsMessage()
 @Serializable
 @SerialName("diag_command")
 data class WsDiagCommand(
-    override val type: String = "diag_command",
     val sessionId: String,
     val command: String,
     val payload: String = "{}",
@@ -94,7 +87,6 @@ data class WsDiagCommand(
 @Serializable
 @SerialName("diag_response")
 data class WsDiagResponse(
-    override val type: String = "diag_response",
     val sessionId: String,
     val command: String,
     val result: String,
@@ -107,7 +99,6 @@ data class WsDiagResponse(
 @Serializable
 @SerialName("diag_session_event")
 data class WsDiagSessionEvent(
-    override val type: String = "diag_session_event",
     val sessionId: String,
     val storeId: String,
     val event: String,

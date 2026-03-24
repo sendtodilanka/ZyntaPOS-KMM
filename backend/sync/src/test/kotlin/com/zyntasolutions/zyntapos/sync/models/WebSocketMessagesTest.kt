@@ -29,9 +29,10 @@ class WebSocketMessagesTest {
     }
 
     @Test
-    fun `WsAck default type is ack`() {
-        val ack = WsAck(storeId = "s", deviceId = "d", connectedAt = 0L)
-        assertEquals("ack", ack.type)
+    fun `WsAck discriminator is ack`() {
+        val ack: WsMessage = WsAck(storeId = "s", deviceId = "d", connectedAt = 0L)
+        val encoded = json.encodeToString(ack)
+        assertTrue(encoded.contains("\"type\":\"ack\""))
     }
 
     @Test
@@ -297,19 +298,23 @@ class WebSocketMessagesTest {
     // ── Cross-type discrimination ─────────────────────────────────────────
 
     @Test
-    fun `different message types have different type fields`() {
-        val types = listOf(
-            WsAck(storeId = "s", deviceId = "d", connectedAt = 0L).type,
-            WsDelta(storeId = "s", operationCount = 0, latestSeq = 0L).type,
-            WsNotify(storeId = "s", latestSeq = 0L).type,
-            WsForceSync(storeId = "s").type,
-            WsPing().type,
-            WsPong().type,
-            WsDiagCommand(sessionId = "s", command = "c").type,
-            WsDiagResponse(sessionId = "s", command = "c", result = "r").type,
-            WsDiagSessionEvent(sessionId = "s", storeId = "s", event = "e").type,
+    fun `different message types have different type discriminators`() {
+        val messages: List<WsMessage> = listOf(
+            WsAck(storeId = "s", deviceId = "d", connectedAt = 0L),
+            WsDelta(storeId = "s", operationCount = 0, latestSeq = 0L),
+            WsNotify(storeId = "s", latestSeq = 0L),
+            WsForceSync(storeId = "s"),
+            WsPing(),
+            WsPong(),
+            WsDiagCommand(sessionId = "s", command = "c"),
+            WsDiagResponse(sessionId = "s", command = "c", result = "r"),
+            WsDiagSessionEvent(sessionId = "s", storeId = "s", event = "e"),
         )
-        // All type strings should be unique
+        val types = messages.map { msg ->
+            val encoded = json.encodeToString(msg)
+            Regex("\"type\":\"([^\"]+)\"").find(encoded)!!.groupValues[1]
+        }
+        // All type discriminators should be unique
         assertEquals(types.size, types.toSet().size)
     }
 }

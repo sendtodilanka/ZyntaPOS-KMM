@@ -4,6 +4,7 @@ import com.zyntasolutions.zyntapos.sync.hub.DiagnosticRelay
 import com.zyntasolutions.zyntapos.sync.hub.SyncForwarder
 import com.zyntasolutions.zyntapos.sync.hub.WebSocketHub
 import com.zyntasolutions.zyntapos.sync.models.WsAck
+import com.zyntasolutions.zyntapos.sync.models.WsMessage
 import com.zyntasolutions.zyntapos.sync.models.WsPong
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
@@ -47,7 +48,7 @@ fun Route.syncWebSocketRoutes() {
         hub.register(storeId, deviceId, this)
 
         // Send acknowledgement as first message
-        send(Frame.Text(json.encodeToString(WsAck(
+        send(Frame.Text(json.encodeToString<WsMessage>(WsAck(
             storeId     = storeId,
             deviceId    = deviceId,
             connectedAt = java.time.Instant.now().toEpochMilli(),
@@ -60,7 +61,7 @@ fun Route.syncWebSocketRoutes() {
                         val text = frame.readText()
                         when {
                             text.contains("\"type\":\"ping\"") -> {
-                                send(Frame.Text(json.encodeToString(WsPong())))
+                                send(Frame.Text(json.encodeToString<WsMessage>(WsPong())))
                             }
                             text.contains("\"type\":\"sync_push\"") -> {
                                 // Forward sync push to API service's /v1/sync/push endpoint
