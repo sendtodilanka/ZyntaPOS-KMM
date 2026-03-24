@@ -3,11 +3,15 @@ package com.zyntasolutions.zyntapos.feature.settings.screen
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.OutlinedCard
+import androidx.compose.ui.Alignment
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -65,6 +69,7 @@ fun TaxSettingsScreen(
     effects: Flow<SettingsEffect>,
     onIntent: (SettingsIntent) -> Unit,
     onBack: () -> Unit,
+    onNavigateToRegionalOverrides: (storeId: String) -> Unit = {},
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -165,6 +170,39 @@ fun TaxSettingsScreen(
                             }
                         },
                     )
+                }
+            }
+
+            // ── Regional Tax Overrides action ─────────────────────────────────
+            item {
+                OutlinedCard(
+                    onClick = { onNavigateToRegionalOverrides("default") },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(ZyntaSpacing.md),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "Regional Tax Overrides",
+                                style = MaterialTheme.typography.titleSmall,
+                            )
+                            Text(
+                                "Configure jurisdiction-specific tax rates that override global tax groups for this store.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = "Open Regional Tax Overrides",
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
                 }
             }
         }
