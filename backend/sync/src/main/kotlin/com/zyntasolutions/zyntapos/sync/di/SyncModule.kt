@@ -20,7 +20,14 @@ val syncModule = module {
     single { WebSocketHub() }
 
     // DiagnosticRelay bridges technician ↔ POS device for diagnostic sessions (TODO-006)
-    single { DiagnosticRelay(get()) }
+    single {
+        val config = get<SyncConfig>()
+        DiagnosticRelay(
+            hub = get(),
+            jwtPublicKey = config.jwtPublicKey,
+            jwtIssuer = config.adminJwtIssuer,
+        )
+    }
 
     // S3-13: Redis connection with configured timeouts and auto-reconnect
     single<StatefulRedisConnection<String, String>?> {
