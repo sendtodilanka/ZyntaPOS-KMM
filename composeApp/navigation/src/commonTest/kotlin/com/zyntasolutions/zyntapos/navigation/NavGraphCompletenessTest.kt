@@ -98,6 +98,9 @@ class NavGraphCompletenessTest {
         "warehouseRackDetail",
         "multiStoreDashboard",
 
+        // Pick list (P3-B1)
+        "pickListView",
+
         // Accounting / E-Invoice sub-graph
         "accountingLedger",
         "accountDetail",

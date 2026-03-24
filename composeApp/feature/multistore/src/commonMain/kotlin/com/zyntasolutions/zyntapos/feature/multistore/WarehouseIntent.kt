@@ -92,6 +92,14 @@ sealed interface WarehouseIntent {
     /** Load the dashboard "In-Transit Items" count. */
     data object LoadInTransitCount : WarehouseIntent
 
+    // ── Pick List (P3-B1) ───────────────────────────────────────────────────
+    /** Generate a pick list for an APPROVED transfer. */
+    data class GeneratePickList(val transferId: String) : WarehouseIntent
+    /** Print the currently displayed pick list via ESC/POS printer. */
+    data object PrintPickList : WarehouseIntent
+    /** Dismiss the pick list overlay. */
+    data object DismissPickList : WarehouseIntent
+
     // ── Global ─────────────────────────────────────────────────────────────
     data object DismissMessage : WarehouseIntent
 }

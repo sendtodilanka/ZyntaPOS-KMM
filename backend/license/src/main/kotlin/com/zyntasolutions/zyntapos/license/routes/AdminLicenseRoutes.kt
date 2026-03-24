@@ -58,7 +58,7 @@ fun Route.adminLicenseRoutes() {
                 requireInRange("maxDevices", body.maxDevices, 1, 100)
             }) return@post
 
-            val validEditions = setOf("STARTER", "PROFESSIONAL", "ENTERPRISE")
+            val validEditions = setOf("COMMUNITY", "PROFESSIONAL", "ENTERPRISE")
             if (body.edition.uppercase() !in validEditions) {
                 call.respond(
                     HttpStatusCode.UnprocessableEntity,

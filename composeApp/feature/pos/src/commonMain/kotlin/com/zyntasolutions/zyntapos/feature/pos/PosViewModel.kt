@@ -321,6 +321,10 @@ class PosViewModel(
                 )
                 val totals = (totalsResult as? Result.Success)?.data ?: currentState.orderTotals
                 updateState { copy(cartItems = updatedCart, orderTotals = totals, error = null) }
+                analytics.logEvent(AnalyticsEvents.CART_UPDATED, mapOf(
+                    AnalyticsParams.ITEM_COUNT to updatedCart.size.toString(),
+                    AnalyticsParams.STORE_ID to storeId,
+                ))
             }
             is Result.Error -> sendEffect(PosEffect.ShowError(result.exception.message ?: "Failed to add item"))
             is Result.Loading -> Unit
@@ -369,6 +373,9 @@ class PosViewModel(
             val totalsResult = calculateTotalsUseCase(result.data, currentState.orderDiscount, currentState.orderDiscountType)
             val totals = (totalsResult as? Result.Success)?.data ?: currentState.orderTotals
             updateState { copy(cartItems = result.data, orderTotals = totals) }
+            analytics.logEvent(AnalyticsEvents.DISCOUNT_APPLIED, mapOf(
+                AnalyticsParams.STORE_ID to storeId,
+            ))
         } else if (result is Result.Error) {
             sendEffect(PosEffect.ShowError(result.exception.message ?: "Cannot apply discount"))
         }
@@ -379,6 +386,9 @@ class PosViewModel(
         when (result) {
             is Result.Success -> {
                 updateState { copy(orderDiscount = discount, orderDiscountType = type, orderTotals = result.data) }
+                analytics.logEvent(AnalyticsEvents.DISCOUNT_APPLIED, mapOf(
+                    AnalyticsParams.STORE_ID to storeId,
+                ))
             }
             is Result.Error -> sendEffect(PosEffect.ShowError(result.exception.message ?: "Cannot apply discount"))
             is Result.Loading -> Unit
@@ -511,6 +521,11 @@ class PosViewModel(
                     AnalyticsParams.ORDER_TOTAL to order.total.toString(),
                     AnalyticsParams.ITEM_COUNT to order.items.size.toString(),
                     AnalyticsParams.PAYMENT_METHOD to intent.method.name,
+                    AnalyticsParams.STORE_ID to storeId,
+                ))
+                analytics.logEvent(AnalyticsEvents.PAYMENT_PROCESSED, mapOf(
+                    AnalyticsParams.PAYMENT_METHOD to intent.method.name,
+                    AnalyticsParams.ORDER_TOTAL to order.total.toString(),
                     AnalyticsParams.STORE_ID to storeId,
                 ))
                 // ── Play In-App Review prompt (every 5th order) — TODO-008 ASO ─

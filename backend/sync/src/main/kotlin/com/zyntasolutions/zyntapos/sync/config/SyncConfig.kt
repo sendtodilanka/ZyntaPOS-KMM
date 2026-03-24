@@ -16,6 +16,8 @@ data class SyncConfig(
     val jwtPublicKey: PublicKey,
     val redisUrl: String,
     val apiBaseUrl: String,
+    /** Admin JWT issuer — used to verify JIT diagnostic tokens (TODO-006). */
+    val adminJwtIssuer: String,
 ) {
     companion object {
         fun fromEnvironment(): SyncConfig {
@@ -30,6 +32,7 @@ data class SyncConfig(
                 jwtPublicKey = JwtDefaults.parseRsaPublicKey(publicKeyPem),
                 redisUrl = System.getenv("REDIS_URL") ?: "redis://localhost:6379",
                 apiBaseUrl = System.getenv("API_BASE_URL") ?: "http://api:8081",
+                adminJwtIssuer = System.getenv("ADMIN_JWT_ISSUER") ?: JwtDefaults.ADMIN_ISSUER,
             )
         }
     }

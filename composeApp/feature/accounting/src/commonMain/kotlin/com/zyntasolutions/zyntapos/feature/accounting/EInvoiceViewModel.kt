@@ -81,8 +81,8 @@ class EInvoiceViewModel(
                 updateState { copy(error = "Invoice not found") }
                 return
             }
-        if (invoice.status.name != "DRAFT") {
-            updateState { copy(error = "Only DRAFT invoices can be submitted to IRD.") }
+        if (invoice.status.name != "DRAFT" && invoice.status.name != "REJECTED") {
+            updateState { copy(error = "Only DRAFT or REJECTED invoices can be submitted to IRD.") }
             return
         }
         updateState { copy(isSubmitting = true, error = null) }
@@ -95,7 +95,14 @@ class EInvoiceViewModel(
                 } else {
                     "IRD submission failed: ${irdResult.errorMessage ?: "Unknown error"}"
                 }
-                updateState { copy(isSubmitting = false, successMessage = msg.takeIf { irdResult.success }) }
+                updateState {
+                    copy(
+                        isSubmitting = false,
+                        successMessage = msg.takeIf { irdResult.success },
+                        // Refresh selectedInvoice from the reactive list so status badge updates
+                        selectedInvoice = invoices.find { it.id == invoiceId } ?: selectedInvoice,
+                    )
+                }
                 if (!irdResult.success) {
                     updateState { copy(error = msg) }
                 }

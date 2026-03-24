@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.sync.plugins
 
+import com.zyntasolutions.zyntapos.sync.routes.diagnosticDeviceWebSocketRoutes
 import com.zyntasolutions.zyntapos.sync.routes.diagnosticWebSocketRoutes
 import com.zyntasolutions.zyntapos.sync.routes.healthRoutes
 import com.zyntasolutions.zyntapos.sync.routes.syncWebSocketRoutes
@@ -23,6 +24,9 @@ fun Application.configureRouting() {
                 // Diagnostic relay WebSocket for technician sessions (TODO-006)
                 diagnosticWebSocketRoutes()
             }
+            // Device diagnostic endpoint — uses JIT token auth (query param), not JWT bearer.
+            // Placed outside authenticate() because the JIT token is validated by DiagnosticRelay.
+            diagnosticDeviceWebSocketRoutes()
         }
     }
 }

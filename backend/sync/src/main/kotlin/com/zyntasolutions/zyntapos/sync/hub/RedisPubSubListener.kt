@@ -2,6 +2,7 @@ package com.zyntasolutions.zyntapos.sync.hub
 
 import com.zyntasolutions.zyntapos.sync.models.SyncNotification
 import com.zyntasolutions.zyntapos.sync.models.WsDelta
+import com.zyntasolutions.zyntapos.sync.models.WsMessage
 import com.zyntasolutions.zyntapos.sync.models.WsNotify
 import io.lettuce.core.RedisClient
 import io.lettuce.core.pubsub.RedisPubSubListener
@@ -98,14 +99,14 @@ class RedisPubSubListener(
         try {
             val notification = json.decodeFromString<SyncNotification>(message)
             val wsMessage = if (notification.operationCount <= SMALL_DELTA_THRESHOLD) {
-                json.encodeToString(WsDelta(
+                json.encodeToString<WsMessage>(WsDelta(
                     storeId        = storeId,
                     operationCount = notification.operationCount,
                     latestSeq      = notification.latestSeq,
                     entityTypes    = notification.entityTypes,
                 ))
             } else {
-                json.encodeToString(WsNotify(
+                json.encodeToString<WsMessage>(WsNotify(
                     storeId     = storeId,
                     message     = "sync_available",
                     latestSeq   = notification.latestSeq,

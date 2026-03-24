@@ -16,7 +16,7 @@ sealed interface EInvoiceIntent {
     data class LoadInvoice(val invoiceId: String) : EInvoiceIntent
 
     // ── IRD Submission ─────────────────────────────────────────────────────
-    /** Submit the currently selected DRAFT invoice to the IRD API. */
+    /** Submit the currently selected DRAFT or REJECTED invoice to the IRD API. */
     data class SubmitToIrd(val invoiceId: String) : EInvoiceIntent
 
     // ── Cancel ─────────────────────────────────────────────────────────────

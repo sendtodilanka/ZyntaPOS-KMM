@@ -163,4 +163,17 @@ class FakeWarehouseRepository : WarehouseRepository {
         if (shouldFail) return Result.Error(DatabaseException("DB error"))
         return Result.Success(transfers.filter { it.status == status })
     }
+
+    // ── Pick List (P3-B1) ─────────────────────────────────────────────────
+
+    /** Map of (productId, warehouseId) → (rackName, binLocation) for pick list tests. */
+    val rackLocations = mutableMapOf<Pair<String, String>, Pair<String?, String?>>()
+
+    override suspend fun getRackLocationForProduct(
+        productId: String,
+        warehouseId: String,
+    ): Result<Pair<String?, String?>> {
+        if (shouldFail) return Result.Error(DatabaseException("DB error"))
+        return Result.Success(rackLocations[productId to warehouseId] ?: (null to null))
+    }
 }

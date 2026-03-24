@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.api.routes
 
 import com.zyntasolutions.zyntapos.api.auth.AdminPermissions
+import com.zyntasolutions.zyntapos.api.config.AppConfig
 import com.zyntasolutions.zyntapos.api.db.EmailDeliveryLogs
 import com.zyntasolutions.zyntapos.api.models.ErrorResponse
 import com.zyntasolutions.zyntapos.api.service.AdminAuthService
@@ -11,12 +12,14 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.route
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.sql.SortOrder
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.isNotNull
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.like
 import org.jetbrains.exposed.sql.andWhere
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.koin.ktor.ext.inject
+import java.time.Instant
 import java.time.LocalDate
-import java.time.OffsetDateTime
 import java.time.ZoneOffset
 
 /**
@@ -24,9 +27,12 @@ import java.time.ZoneOffset
  *
  * ## Routes
  * - `GET /admin/email/delivery-logs` — paginated delivery log with optional filters (email:logs permission)
+ * - `GET /admin/email/unsubscribes`  — list of unsubscribed users (email:logs permission)
+ * - `GET /admin/email/config-status` — read-only Resend/SMTP configuration status (email:settings permission)
  */
 fun Route.adminEmailRoutes() {
     val authService: AdminAuthService by inject()
+    val config: AppConfig by inject()
 
     route("/admin/email") {
 
@@ -43,6 +49,7 @@ fun Route.adminEmailRoutes() {
 
             // Optional filters
             val statusFilter = call.request.queryParameters["status"]
+            val recipientFilter = call.request.queryParameters["recipient"]?.trim()
             val startDate = call.request.queryParameters["startDate"]?.runCatching {
                 LocalDate.parse(this).atStartOfDay().atOffset(ZoneOffset.UTC)
             }?.getOrNull()
@@ -54,6 +61,9 @@ fun Route.adminEmailRoutes() {
                 val query = EmailDeliveryLogs.selectAll().apply {
                     if (!statusFilter.isNullOrBlank()) {
                         andWhere { EmailDeliveryLogs.status eq statusFilter }
+                    }
+                    if (!recipientFilter.isNullOrBlank()) {
+                        andWhere { EmailDeliveryLogs.toAddress like "%$recipientFilter%" }
                     }
                     if (startDate != null) {
                         andWhere { EmailDeliveryLogs.createdAt greaterEq startDate }
@@ -89,6 +99,51 @@ fun Route.adminEmailRoutes() {
                 pageSize = pageSize,
             ))
         }
+
+        get("/unsubscribes") {
+            val admin = resolveAdminUser(call, authService) ?: return@get
+            if (!AdminPermissions.check(admin.role, "email:logs")) {
+                call.respond(HttpStatusCode.Forbidden, ErrorResponse("FORBIDDEN", "Insufficient permissions"))
+                return@get
+            }
+
+            val unsubscribes = newSuspendedTransaction {
+                EmailPreferences.selectAll()
+                    .where { EmailPreferences.unsubscribedAt.isNotNull() }
+                    .map { row ->
+                        UnsubscribeEntry(
+                            userId = row[EmailPreferences.userId].toString(),
+                            unsubscribedAt = row[EmailPreferences.unsubscribedAt]?.let {
+                                Instant.ofEpochMilli(it).atOffset(ZoneOffset.UTC).toString()
+                            },
+                        )
+                    }
+            }
+
+            call.respond(HttpStatusCode.OK, UnsubscribeListResponse(unsubscribes = unsubscribes))
+        }
+
+        get("/config-status") {
+            val admin = resolveAdminUser(call, authService) ?: return@get
+            if (!AdminPermissions.check(admin.role, "email:settings")) {
+                call.respond(HttpStatusCode.Forbidden, ErrorResponse("FORBIDDEN", "Insufficient permissions"))
+                return@get
+            }
+
+            val resendConfigured = config.resendApiKey.isNotBlank()
+            val maskedKey = if (resendConfigured) {
+                val key = config.resendApiKey
+                if (key.length > 8) "${key.take(4)}****${key.takeLast(4)}" else "****"
+            } else null
+
+            call.respond(HttpStatusCode.OK, EmailConfigStatus(
+                provider = "Resend",
+                configured = resendConfigured,
+                fromAddress = config.emailFromAddress,
+                fromName = config.emailFromName,
+                maskedApiKey = maskedKey,
+            ))
+        }
     }
 }
 
@@ -109,4 +164,24 @@ private data class DeliveryLogResponse(
     val total: Long,
     val page: Int,
     val pageSize: Int,
+)
+
+@Serializable
+private data class UnsubscribeEntry(
+    val userId: String,
+    val unsubscribedAt: String?,
+)
+
+@Serializable
+private data class UnsubscribeListResponse(
+    val unsubscribes: List<UnsubscribeEntry>,
+)
+
+@Serializable
+private data class EmailConfigStatus(
+    val provider: String,
+    val configured: Boolean,
+    val fromAddress: String,
+    val fromName: String,
+    val maskedApiKey: String?,
 )

@@ -426,6 +426,24 @@ class WarehouseRepositoryImpl(
             )
         }
 
+    // ── Pick List (P3-B1) ─────────────────────────────────────────────────
+
+    override suspend fun getRackLocationForProduct(
+        productId: String,
+        warehouseId: String,
+    ): Result<Pair<String?, String?>> = withContext(Dispatchers.IO) {
+        runCatching {
+            val row = db.rack_productsQueries
+                .getRackLocationForProduct(productId, warehouseId)
+                .executeAsOneOrNull()
+            if (row != null) Pair(row.rack_name, row.bin_location)
+            else Pair(null, null)
+        }.fold(
+            onSuccess = { Result.Success(it) },
+            onFailure = { t -> Result.Error(DatabaseException(t.message ?: "DB error", cause = t)) },
+        )
+    }
+
     private fun toWarehouseDomain(row: Warehouses) = Warehouse(
         id = row.id, storeId = row.store_id, name = row.name,
         managerId = row.manager_id,

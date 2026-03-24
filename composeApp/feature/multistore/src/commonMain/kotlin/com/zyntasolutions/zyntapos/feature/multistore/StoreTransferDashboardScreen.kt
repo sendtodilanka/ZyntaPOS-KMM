@@ -85,6 +85,7 @@ private data class StorePairGroup(
 fun StoreTransferDashboardScreen(
     onNavigateToNewTransfer: (sourceWarehouseId: String?) -> Unit,
     onNavigateUp: () -> Unit,
+    onNavigateToPickList: (transferId: String) -> Unit = {},
     viewModel: WarehouseViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -94,6 +95,13 @@ fun StoreTransferDashboardScreen(
         viewModel.dispatch(WarehouseIntent.LoadTransfersByStatus(StockTransfer.Status.PENDING))
         viewModel.dispatch(WarehouseIntent.LoadTransfersByStatus(StockTransfer.Status.APPROVED))
         viewModel.dispatch(WarehouseIntent.LoadTransfersByStatus(StockTransfer.Status.IN_TRANSIT))
+    }
+
+    // Navigate to pick list screen when generated (P3-B1)
+    LaunchedEffect(state.pickList) {
+        state.pickList?.let { pickList ->
+            onNavigateToPickList(pickList.transferId)
+        }
     }
 
     // Status filter chip selection
@@ -250,6 +258,7 @@ fun StoreTransferDashboardScreen(
                         onApprove = { id -> viewModel.dispatch(WarehouseIntent.ApproveTransfer(id)) },
                         onDispatch = { id -> viewModel.dispatch(WarehouseIntent.DispatchTransfer(id)) },
                         onReceive  = { id -> viewModel.dispatch(WarehouseIntent.ReceiveTransfer(id)) },
+                        onGeneratePickList = { id -> viewModel.dispatch(WarehouseIntent.GeneratePickList(id)) },
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
                     )
                 }
@@ -268,6 +277,7 @@ private fun StorePairGroupCard(
     onApprove: (String) -> Unit,
     onDispatch: (String) -> Unit,
     onReceive:  (String) -> Unit,
+    onGeneratePickList: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -345,6 +355,7 @@ private fun StorePairGroupCard(
                         onApprove = { onApprove(transfer.id) },
                         onDispatch = { onDispatch(transfer.id) },
                         onReceive  = { onReceive(transfer.id) },
+                        onGeneratePickList = { onGeneratePickList(transfer.id) },
                     )
                 }
 
@@ -369,6 +380,7 @@ private fun TransferActionRow(
     onApprove: () -> Unit,
     onDispatch: () -> Unit,
     onReceive:  () -> Unit,
+    onGeneratePickList: () -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
@@ -388,6 +400,18 @@ private fun TransferActionRow(
                     maxLines = 1,
                 )
             }
+        }
+
+        // Pick List action — only for APPROVED transfers (P3-B1)
+        if (transfer.status == StockTransfer.Status.APPROVED) {
+            Text(
+                text = "Pick List",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .clickable { onGeneratePickList() }
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+            )
         }
 
         val (actionLabel, actionColor) = when (transfer.status) {

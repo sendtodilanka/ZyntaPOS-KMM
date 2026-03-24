@@ -39,3 +39,13 @@ ON CONFLICT(rack_id, product_id) DO UPDATE SET
 
 deleteRackProduct:
 DELETE FROM rack_products WHERE rack_id = ? AND product_id = ?;
+
+-- ── Pick List support (P3-B1) ──────────────────────────────────────────────
+-- Returns rack/bin location for a product within a specific warehouse.
+-- Used by GeneratePickListUseCase to enrich pick-list items with location info.
+getRackLocationForProduct:
+SELECT wr.name AS rack_name, rp.bin_location
+FROM rack_products rp
+JOIN warehouse_racks wr ON wr.id = rp.rack_id
+WHERE rp.product_id = ? AND wr.warehouse_id = ? AND wr.deleted_at IS NULL
+LIMIT 1;

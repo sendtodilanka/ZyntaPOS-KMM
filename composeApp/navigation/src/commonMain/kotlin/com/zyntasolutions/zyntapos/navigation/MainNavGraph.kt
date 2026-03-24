@@ -569,6 +569,7 @@ fun NavGraphBuilder.mainNavGraph(
                 screens.storeTransferDashboard(
                     { srcId -> navigationController.navigate(ZyntaRoute.NewStockTransfer(srcId)) },
                     { navigationController.navigateUp(ZyntaRoute.WarehouseList) },
+                    { transferId -> navigationController.navigate(ZyntaRoute.PickListView(transferId)) },
                 )
             }
 
@@ -589,6 +590,14 @@ fun NavGraphBuilder.mainNavGraph(
                             inclusive = false,
                         )
                     },
+                    { navigationController.popBackStack() },
+                )
+            }
+
+            composable<ZyntaRoute.PickListView> { entry ->
+                val route = entry.toRoute<ZyntaRoute.PickListView>()
+                screens.pickListView(
+                    route.transferId,
                     { navigationController.popBackStack() },
                 )
             }
@@ -883,7 +892,8 @@ private fun MainScaffoldShell(
         is ZyntaRoute.StockTransferList,
         is ZyntaRoute.NewStockTransfer,
         is ZyntaRoute.WarehouseRackList,
-        is ZyntaRoute.WarehouseRackDetail -> item.route is ZyntaRoute.WarehouseList
+        is ZyntaRoute.WarehouseRackDetail,
+        is ZyntaRoute.PickListView -> item.route is ZyntaRoute.WarehouseList
 
         // Accounting / E-Invoice sub-graph (including Wave 4B routes)
         is ZyntaRoute.AccountingLedger,
