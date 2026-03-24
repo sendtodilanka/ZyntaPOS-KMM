@@ -127,10 +127,10 @@ class AdminLicenseServiceExpandedTest {
 
     @Test
     fun `byEdition map counts licenses per edition`() {
-        val editions = listOf("STARTER", "PROFESSIONAL", "STARTER", "ENTERPRISE", "STARTER")
+        val editions = listOf("COMMUNITY", "PROFESSIONAL", "COMMUNITY", "ENTERPRISE", "COMMUNITY")
         val byEdition = editions.groupBy { it }.mapValues { it.value.size }
 
-        assertEquals(3, byEdition["STARTER"])
+        assertEquals(3, byEdition["COMMUNITY"])
         assertEquals(1, byEdition["PROFESSIONAL"])
         assertEquals(1, byEdition["ENTERPRISE"])
     }
@@ -277,9 +277,9 @@ class AdminLicenseServiceExpandedTest {
 
     @Test
     fun `editions are normalized to uppercase before storage`() {
-        val editions = listOf("starter", "professional", "enterprise")
+        val editions = listOf("community", "professional", "enterprise")
         val normalized = editions.map { it.uppercase() }
-        assertEquals(listOf("STARTER", "PROFESSIONAL", "ENTERPRISE"), normalized)
+        assertEquals(listOf("COMMUNITY", "PROFESSIONAL", "ENTERPRISE"), normalized)
     }
 
     @Test

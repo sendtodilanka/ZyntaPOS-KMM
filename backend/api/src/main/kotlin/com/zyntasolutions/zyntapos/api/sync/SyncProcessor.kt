@@ -95,7 +95,8 @@ class SyncProcessor(
                                      latestSnapshot.deviceId > request.deviceId)
 
                                 if (existingIsNewer) {
-                                    // Conflict: existing server state wins or needs field merge
+                                    // Conflict: existing server state wins — record conflict but do NOT
+                                    // apply the loser's payload to the entity table (server data is already correct)
                                     val resolution = conflictResolver.resolve(storeId, op, latestSnapshot, request.deviceId)
                                     syncOpRepo.insertWithConflict(
                                         storeId         = storeId,
@@ -104,7 +105,6 @@ class SyncProcessor(
                                         conflictId      = resolution.conflictId,
                                         resolvedPayload = resolution.winnerPayload,
                                     )
-                                    entityApplier.applyInTransaction(storeId, op)
                                     conflicts.add(op.id)
                                     metrics.conflictsTotal.incrementAndGet()
                                 } else {

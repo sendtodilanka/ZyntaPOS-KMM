@@ -8,6 +8,8 @@ import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import java.security.KeyPairGenerator
+import java.security.interfaces.RSAPublicKey
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -19,8 +21,14 @@ import kotlin.test.assertTrue
  */
 class DiagnosticRelayExtendedTest {
 
+    companion object {
+        private const val TEST_ISSUER = "zyntapos-api"
+        private val publicKey = KeyPairGenerator.getInstance("RSA")
+            .apply { initialize(2048) }.generateKeyPair().public as RSAPublicKey
+    }
+
     private val hub = mockk<WebSocketHub>(relaxed = true)
-    private val relay = DiagnosticRelay(hub)
+    private val relay = DiagnosticRelay(hub, publicKey, TEST_ISSUER)
 
     // ── relayResponseToTechnician ──────────────────────────────────────────
 

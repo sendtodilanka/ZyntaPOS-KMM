@@ -346,6 +346,7 @@ class AdminAuthService(
         val accessToken = JWT.create()
             .withIssuer(config.adminJwtIssuer)
             .withSubject(user.id.toString())
+            .withJWTId(UUID.randomUUID().toString())
             .withClaim("email", user.email)
             .withClaim("name", user.name)
             .withClaim("role", user.role.name)

@@ -96,7 +96,7 @@ class AdminLicenseServiceTest {
 
     @Test
     fun `valid editions are accepted`() {
-        val validEditions = listOf("STARTER", "PROFESSIONAL", "ENTERPRISE")
+        val validEditions = listOf("COMMUNITY", "PROFESSIONAL", "ENTERPRISE")
         for (edition in validEditions) {
             assertTrue(edition in validEditions)
         }

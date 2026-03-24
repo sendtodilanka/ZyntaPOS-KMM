@@ -95,15 +95,15 @@ class LicenseRoutesExpandedValidationTest {
     }
 
     @Test
-    fun `edition COMMUNITY is not in admin whitelist`() {
-        val validEditions = setOf("STARTER", "PROFESSIONAL", "ENTERPRISE")
-        assertFalse("COMMUNITY" in validEditions, "COMMUNITY is not a valid admin edition")
+    fun `edition COMMUNITY is in admin whitelist`() {
+        val validEditions = setOf("COMMUNITY", "PROFESSIONAL", "ENTERPRISE")
+        assertTrue("COMMUNITY" in validEditions, "COMMUNITY is a valid admin edition")
     }
 
     @Test
     fun `edition validation is case-insensitive via uppercase normalization`() {
-        val validEditions = setOf("STARTER", "PROFESSIONAL", "ENTERPRISE")
-        assertTrue("starter".uppercase() in validEditions)
+        val validEditions = setOf("COMMUNITY", "PROFESSIONAL", "ENTERPRISE")
+        assertTrue("community".uppercase() in validEditions)
         assertTrue("Enterprise".uppercase() in validEditions)
     }
 

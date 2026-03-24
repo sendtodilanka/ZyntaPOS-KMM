@@ -7,7 +7,7 @@ import com.zyntasolutions.zyntapos.domain.model.PickListItem
 import com.zyntasolutions.zyntapos.domain.model.StockTransfer
 import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseRepository
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 /**
  * Generates a warehouse pick list for an approved inter-store transfer (P3-B1).

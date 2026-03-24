@@ -94,7 +94,7 @@ class AdminLicenseServiceIntegrationTest {
     private fun seedLicense(
         licenseKey: String,
         status: String = "ACTIVE",
-        edition: String = "STARTER",
+        edition: String = "COMMUNITY",
         maxDevices: Int = 5,
         expiresAt: OffsetDateTime? = null,
         customerId: String = "cust-admin-test",
@@ -199,7 +199,7 @@ class AdminLicenseServiceIntegrationTest {
         val result = service.createLicense(
             AdminCreateLicenseRequest(
                 customerId = "cust-perp-001",
-                edition = "STARTER",
+                edition = "COMMUNITY",
                 maxDevices = 1,
                 expiresAt = null,
             ),
@@ -216,7 +216,7 @@ class AdminLicenseServiceIntegrationTest {
         service.createLicense(
             AdminCreateLicenseRequest(
                 customerId = "cust-audit-001",
-                edition = "STARTER",
+                edition = "COMMUNITY",
                 maxDevices = 2,
             ),
             ADMIN_ID
@@ -226,7 +226,7 @@ class AdminLicenseServiceIntegrationTest {
         assertEquals(1, logs.size, "Should have exactly one CREATE_LICENSE audit log")
         assertEquals(ADMIN_ID, logs[0]["adminId"])
         assertTrue(
-            (logs[0]["details"] as String).contains("edition=STARTER"),
+            (logs[0]["details"] as String).contains("edition=COMMUNITY"),
             "Audit details should contain edition"
         )
         assertTrue(
@@ -262,7 +262,7 @@ class AdminLicenseServiceIntegrationTest {
     @Test
     fun `updateLicense changes edition tier`() = runTest {
         val key = "LK-CHED-${UUID.randomUUID().toString().take(8)}"
-        seedLicense(key, edition = "STARTER")
+        seedLicense(key, edition = "COMMUNITY")
 
         val service = AdminLicenseService()
         val result = service.updateLicense(
@@ -483,10 +483,10 @@ class AdminLicenseServiceIntegrationTest {
 
     @Test
     fun `getStats returns correct counts for mixed statuses`() = runTest {
-        seedLicense("LK-S1", status = "ACTIVE", edition = "STARTER")
-        seedLicense("LK-S2", status = "ACTIVE", edition = "STARTER")
+        seedLicense("LK-S1", status = "ACTIVE", edition = "COMMUNITY")
+        seedLicense("LK-S2", status = "ACTIVE", edition = "COMMUNITY")
         seedLicense("LK-S3", status = "ACTIVE", edition = "PROFESSIONAL")
-        seedLicense("LK-S4", status = "EXPIRED", edition = "STARTER")
+        seedLicense("LK-S4", status = "EXPIRED", edition = "COMMUNITY")
         seedLicense("LK-S5", status = "REVOKED", edition = "ENTERPRISE")
         seedLicense("LK-S6", status = "SUSPENDED", edition = "PROFESSIONAL")
 
@@ -518,15 +518,15 @@ class AdminLicenseServiceIntegrationTest {
 
     @Test
     fun `getStats byEdition map is correct`() = runTest {
-        seedLicense("LK-E1", edition = "STARTER")
-        seedLicense("LK-E2", edition = "STARTER")
+        seedLicense("LK-E1", edition = "COMMUNITY")
+        seedLicense("LK-E2", edition = "COMMUNITY")
         seedLicense("LK-E3", edition = "PROFESSIONAL")
         seedLicense("LK-E4", edition = "ENTERPRISE")
 
         val service = AdminLicenseService()
         val stats = service.getStats()
 
-        assertEquals(2, stats.byEdition["STARTER"])
+        assertEquals(2, stats.byEdition["COMMUNITY"])
         assertEquals(1, stats.byEdition["PROFESSIONAL"])
         assertEquals(1, stats.byEdition["ENTERPRISE"])
     }
@@ -597,14 +597,14 @@ class AdminLicenseServiceIntegrationTest {
 
     @Test
     fun `listLicenses filters by edition`() = runTest {
-        seedLicense("LK-FED-1", edition = "STARTER")
+        seedLicense("LK-FED-1", edition = "COMMUNITY")
         seedLicense("LK-FED-2", edition = "PROFESSIONAL")
-        seedLicense("LK-FED-3", edition = "STARTER")
+        seedLicense("LK-FED-3", edition = "COMMUNITY")
 
         val service = AdminLicenseService()
-        val result = service.listLicenses(page = 0, size = 20, status = null, edition = "STARTER", search = null)
+        val result = service.listLicenses(page = 0, size = 20, status = null, edition = "COMMUNITY", search = null)
 
-        assertEquals(2, result.total, "Should only return STARTER licenses")
+        assertEquals(2, result.total, "Should only return COMMUNITY licenses")
     }
 
     @Test

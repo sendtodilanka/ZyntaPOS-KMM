@@ -318,33 +318,33 @@ class LicenseRoutesValidationTest {
     // ── Admin route edition whitelist ────────────────────────────────────────
 
     @Test
-    fun `STARTER is a valid edition in admin route whitelist`() {
-        // AdminLicenseRoutes.kt uses STARTER in its edition whitelist
-        val validEditions = setOf("STARTER", "PROFESSIONAL", "ENTERPRISE")
-        assertTrue("STARTER" in validEditions)
+    fun `COMMUNITY is a valid edition in admin route whitelist`() {
+        // AdminLicenseRoutes.kt uses COMMUNITY in its edition whitelist
+        val validEditions = setOf("COMMUNITY", "PROFESSIONAL", "ENTERPRISE")
+        assertTrue("COMMUNITY" in validEditions)
     }
 
     @Test
     fun `PROFESSIONAL is a valid edition`() {
-        val validEditions = setOf("STARTER", "PROFESSIONAL", "ENTERPRISE")
+        val validEditions = setOf("COMMUNITY", "PROFESSIONAL", "ENTERPRISE")
         assertTrue("PROFESSIONAL" in validEditions)
     }
 
     @Test
     fun `ENTERPRISE is a valid edition`() {
-        val validEditions = setOf("STARTER", "PROFESSIONAL", "ENTERPRISE")
+        val validEditions = setOf("COMMUNITY", "PROFESSIONAL", "ENTERPRISE")
         assertTrue("ENTERPRISE" in validEditions)
     }
 
     @Test
     fun `BASIC is not a valid edition`() {
-        val validEditions = setOf("STARTER", "PROFESSIONAL", "ENTERPRISE")
+        val validEditions = setOf("COMMUNITY", "PROFESSIONAL", "ENTERPRISE")
         assertFalse("BASIC" in validEditions, "BASIC is not a recognized edition")
     }
 
     @Test
     fun `edition comparison is case-insensitive via uppercase normalization`() {
-        val validEditions = setOf("STARTER", "PROFESSIONAL", "ENTERPRISE")
+        val validEditions = setOf("COMMUNITY", "PROFESSIONAL", "ENTERPRISE")
         assertTrue("starter".uppercase() in validEditions)
         assertTrue("professional".uppercase() in validEditions)
     }
