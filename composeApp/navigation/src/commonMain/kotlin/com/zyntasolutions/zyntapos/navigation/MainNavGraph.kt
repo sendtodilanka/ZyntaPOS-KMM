@@ -343,6 +343,15 @@ fun NavGraphBuilder.mainNavGraph(
             composable<ZyntaRoute.TaxSettings> {
                 screens.taxSettings(
                     { navigationController.navigateUp(ZyntaRoute.Settings) },
+                    { storeId -> navigationController.navigate(ZyntaRoute.RegionalTaxOverride(storeId)) },
+                )
+            }
+
+            composable<ZyntaRoute.RegionalTaxOverride> { backStackEntry ->
+                val route = backStackEntry.toRoute<ZyntaRoute.RegionalTaxOverride>()
+                screens.regionalTaxOverride(
+                    route.storeId,
+                    { navigationController.navigateUp(ZyntaRoute.TaxSettings) },
                 )
             }
 

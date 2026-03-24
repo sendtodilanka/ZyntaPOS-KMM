@@ -21,4 +21,7 @@ interface SyncStatusPort {
 
     /** True when the last sync cycle ended in failure. */
     val lastSyncFailed: StateFlow<Boolean>
+
+    /** Number of PENDING operations in the sync outbox queue. */
+    val pendingCount: StateFlow<Int>
 }

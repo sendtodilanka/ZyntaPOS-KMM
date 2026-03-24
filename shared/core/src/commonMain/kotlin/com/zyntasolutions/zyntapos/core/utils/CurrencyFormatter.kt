@@ -19,8 +19,8 @@ import kotlin.math.roundToLong
  * ```
  */
 class CurrencyFormatter(
-    /** Default ISO 4217 code used when no currency is passed to [format]. */
-    val defaultCurrency: String = AppConfig.DEFAULT_CURRENCY_CODE,
+    /** Default ISO 4217 code used when no currency is passed to [format]. Mutable to allow runtime update from store settings. */
+    var defaultCurrency: String = AppConfig.DEFAULT_CURRENCY_CODE,
     /** Default number of decimal places. */
     val defaultDecimals: Int = AppConfig.CURRENCY_DECIMAL_PLACES,
 ) {
@@ -107,8 +107,8 @@ class CurrencyFormatter(
 
     // ── Supported currencies (Phase 1) ────────────────────────────────────────
 
-    /** ISO 4217 codes supported in Phase 1. */
-    val supportedCurrencies: List<String> = listOf("LKR", "USD", "EUR")
+    /** ISO 4217 codes supported. */
+    val supportedCurrencies: List<String> = listOf("LKR", "USD", "EUR", "GBP", "INR", "JPY", "AUD", "CAD", "SGD")
 
     // ── Internal helpers ──────────────────────────────────────────────────────
 

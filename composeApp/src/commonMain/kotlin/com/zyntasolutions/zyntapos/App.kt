@@ -7,6 +7,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import com.zyntasolutions.zyntapos.core.utils.AppTimezone
+import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
 import com.zyntasolutions.zyntapos.debug.DebugViewModel
 import com.zyntasolutions.zyntapos.designsystem.components.LocalSyncDisplayStatus
 import com.zyntasolutions.zyntapos.designsystem.components.LocalSyncPendingCount
@@ -101,6 +102,8 @@ import com.zyntasolutions.zyntapos.feature.settings.screen.RbacManagementScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.SecuritySettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.SystemHealthScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.TaxSettingsScreen
+import com.zyntasolutions.zyntapos.feature.settings.screen.RegionalTaxOverrideScreen
+import com.zyntasolutions.zyntapos.feature.settings.screen.RegionalTaxOverrideViewModel
 import com.zyntasolutions.zyntapos.feature.settings.screen.UserManagementScreen
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -165,6 +168,17 @@ fun App() {
         }
     }
 
+    // ── C2.2: Load store currency so all currency display uses it ────────────
+    val currencyFormatter: CurrencyFormatter = koinInject()
+    val persistedCurrency by settingsRepository.observe("general.currency")
+        .collectAsState(initial = null)
+    LaunchedEffect(persistedCurrency) {
+        val currency = persistedCurrency
+        if (!currency.isNullOrBlank()) {
+            currencyFormatter.defaultCurrency = currency
+        }
+    }
+
     val appInfoProvider: AppInfoProvider = koinInject()
 
     // ── C6.2: Observe sync engine state for the offline/sync indicator ────────
@@ -172,6 +186,8 @@ fun App() {
     val isNetworkConnected by syncStatus.isNetworkConnected.collectAsState()
     val isSyncing by syncStatus.isSyncing.collectAsState()
     val lastSyncFailed by syncStatus.lastSyncFailed.collectAsState()
+
+    val syncPendingCount by syncStatus.pendingCount.collectAsState()
 
     val syncDisplayStatus = when {
         !isNetworkConnected -> SyncDisplayStatus.OFFLINE
@@ -205,7 +221,7 @@ fun App() {
                 fontScale = baseDensity.fontScale * debugFontScale,
             ),
             LocalSyncDisplayStatus provides syncDisplayStatus,
-            LocalSyncPendingCount provides 0, // TODO: expose pending count from SyncEngine
+            LocalSyncPendingCount provides syncPendingCount,
         ) {
         Surface(
             modifier = Modifier.fillMaxSize(),
@@ -493,11 +509,25 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
     },
 
     // ── Settings: Tax ───────────────────────────────────────────────────────
-    taxSettings = { onNavigateUp ->
+    taxSettings = { onNavigateUp, onNavigateToRegionalOverrides ->
         val vm: SettingsViewModel = koinViewModel()
         val state by vm.state.collectAsState()
         TaxSettingsScreen(
             state = state.tax,
+            effects = vm.effects,
+            onIntent = vm::dispatch,
+            onBack = onNavigateUp,
+            onNavigateToRegionalOverrides = onNavigateToRegionalOverrides,
+        )
+    },
+
+    // ── Settings: Regional Tax Override ──────────────────────────────────
+    regionalTaxOverride = { storeId, onNavigateUp ->
+        val vm: RegionalTaxOverrideViewModel = koinViewModel()
+        val state by vm.state.collectAsState()
+        RegionalTaxOverrideScreen(
+            storeId = storeId,
+            state = state,
             effects = vm.effects,
             onIntent = vm::dispatch,
             onBack = onNavigateUp,

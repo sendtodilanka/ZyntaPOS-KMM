@@ -100,6 +100,10 @@ class SyncEngine(
     private val _lastSyncResult = MutableStateFlow<SyncResult>(SyncResult.Idle)
     val lastSyncResult: StateFlow<SyncResult> = _lastSyncResult.asStateFlow()
 
+    private val _pendingCount = MutableStateFlow(0)
+    /** Number of PENDING operations in the sync outbox queue. */
+    val pendingCount: StateFlow<Int> = _pendingCount.asStateFlow()
+
     /** Current background periodic-sync job (Desktop only). */
     private var periodicJob: Job? = null
 
@@ -153,7 +157,15 @@ class SyncEngine(
             supervisorScope { executeSyncCycle() }
         } finally {
             _isSyncing.value = false
+            refreshPendingCount()
         }
+    }
+
+    /** Refreshes the [pendingCount] from the sync queue. Safe to call from any context. */
+    fun refreshPendingCount() {
+        _pendingCount.value = runCatching {
+            db.sync_queueQueries.getPendingCount().executeAsOne().toInt()
+        }.getOrDefault(0)
     }
 
     // ── Core Sync Cycle ────────────────────────────────────────────────────────

@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-24 (admin panel exchange rate UI + backend employee_store_assignments migration + KMM RegionalTaxOverride settings screen)
+**Last Updated:** 2026-03-24 (RegionalTaxOverride nav wiring + CurrencyFormatter runtime currency from store settings + sync pending count badge + stale gap corrections)
 **Status:** Approved — Verified against codebase 2026-03-22, updated for ADR-009 compliance
 
 ---
@@ -945,8 +945,10 @@ Backend Tests:
 **What's DONE (2026-03-24):**
 - [x] Admin panel: Exchange rate management UI — `admin-panel/src/routes/settings/exchange-rates.tsx` (table view, upsert form, edit/add functionality; `admin-panel/src/api/exchange-rates.ts` TanStack Query hooks; sidebar nav item under Intelligence; route registered in `routeTree.gen.ts`)
 
+**What's DONE (2026-03-24, session Dh6o):**
+- [x] KMM: Currency display using store's configured currency — `CurrencyFormatter.defaultCurrency` made mutable; `App.kt` observes `general.currency` setting and updates formatter singleton at runtime; `supportedCurrencies` expanded to 9 (LKR, USD, EUR, GBP, INR, JPY, AUD, CAD, SGD); zero call-site changes needed — all existing callers automatically pick up the store's currency
+
 **What's REMAINING (deferred):**
-- [ ] KMM: Currency display using store's configured currency, not hardcoded LKR
 - [ ] Real-time exchange rate sync from external API (e.g., ECB, CBSL)
 
 **Key Files:**
@@ -1012,10 +1014,17 @@ Backend Tests:
 **What's DONE (2026-03-24, session CurEI):**
 - [x] KMM settings UI: `RegionalTaxOverrideScreen` + `RegionalTaxOverrideViewModel` (MVI) — full CRUD UI with tax group radio selector, rate input, jurisdiction code, tax registration number, active toggle; `RegionalTaxOverrideViewModel` registered in `settingsModule` Koin DI
 
+**What's DONE (2026-03-24, session Dh6o):**
+- [x] Wire `RegionalTaxOverrideScreen` into navigation graph:
+  - `ZyntaRoute.RegionalTaxOverride(storeId: String)` added to `:composeApp:navigation`
+  - `MainNavScreens.regionalTaxOverride` slot added
+  - `MainNavGraph` composable entry in SettingsGraph (navigates back to TaxSettings)
+  - `App.kt` wires `RegionalTaxOverrideViewModel` + `RegionalTaxOverrideScreen`
+  - `TaxSettingsScreen` — "Regional Tax Overrides" action card navigates to override screen
+
 **What's REMAINING (deferred):**
 - [ ] Support for compound taxes (VAT + service charge + local surcharge stacked)
 - [ ] Backend: REST endpoint `GET/POST /v1/taxes/overrides` with POS JWT auth (store operation per ADR-009)
-- [ ] Wire `RegionalTaxOverrideScreen` into navigation graph (settings section or tax settings sub-route)
 
 **Key Files:**
 - `shared/domain/src/commonMain/.../model/TaxGroup.kt`
@@ -1603,10 +1612,12 @@ Backend Tests:
 - [x] Sync progress indicator in KMM UI — `ZyntaSyncStatusIndicator` in drawer footer via `LocalSyncDisplayStatus` CompositionLocal
 - [x] Offline indicator in status bar — same indicator shows `CloudOff` + "Offline" when `NetworkMonitor.isConnected` is false
 
+**What's DONE (2026-03-24, session Dh6o):**
+- [x] Sync pending count badge — `SyncStatusPort.pendingCount` StateFlow added; `SyncEngine.refreshPendingCount()` queries `getPendingCount` after each sync cycle; `SyncStatusAdapter` delegates to engine; `App.kt` `LocalSyncPendingCount` now provides real count (was hardcoded 0); `ZyntaSyncStatusIndicator` shows "X pending" when count > 0
+
 **What's REMAINING (deferred):**
 - [ ] Conflict notification to user (toast when sync conflict detected)
 - [ ] Data integrity check: Verify local DB consistency on app startup
-- [ ] Sync pending count badge (expose count from SyncEngine to UI)
 
 ---
 
@@ -1906,7 +1917,7 @@ Backend Tests:
 
 | Gap | Severity | Phase |
 |-----|----------|-------|
-| **Financial statements are UI shells** — No real data population from GL | CRITICAL | Phase 2 |
+| ~~**Financial statements are UI shells**~~ — ✅ VERIFIED FUNCTIONAL: `FinancialStatementRepositoryImpl.kt` (411 LOC) is fully implemented with P&L, BS, TB, CF from GL; see C5.1 | ~~CRITICAL~~ | ✅ DONE |
 | **No date picker dialog** — Manual text entry required (YYYY-MM-DD) | HIGH | Phase 2 |
 | **No multi-store P&L consolidation** | HIGH | Phase 2 |
 | **No export buttons** on any financial statement | HIGH | Phase 2 |
@@ -1994,7 +2005,7 @@ Backend Tests:
 
 | Gap | Severity | Phase |
 |-----|----------|-------|
-| **Data integrity check button missing** — State has `integrityReport` but no trigger UI | MEDIUM | Phase 2 |
+| ~~**Data integrity check button missing**~~ — ✅ VERIFIED: `IntegrityBadge` composable in `AuditLogScreen` (L367-438) has refresh icon button + auto-runs on init + status display | ~~MEDIUM~~ | ✅ DONE |
 | **No backup scheduling** — Manual only | MEDIUM | Phase 2 |
 | **No audit log CSV/JSON export** | MEDIUM | Phase 2 |
 | **No license info display** | LOW | Phase 2 |
@@ -2525,8 +2536,8 @@ git push -u origin $(git branch --show-current)
 | Warehouse Replenishment | C1.5 | ✅ COMPLETE (ReplenishmentRule model, AutoReplenishmentUseCase, 3-tab UI, backend 4 endpoints + 14 tests) |
 | **2. Pricing & Taxation** | | |
 | Region-Based Pricing | C2.1 | ✅ CORE IMPLEMENTED (domain+data+backend+KMM UI; storeId bug fixed 2026-03-22) |
-| Multi-Currency | C2.2 | ✅ CORE IMPLEMENTED + ADMIN UI (ExchangeRate model + table + repo + ConvertCurrencyUseCase + backend V33 + admin endpoints + admin panel exchange rate management page + Order.currency field + OrderMapper fix; 2026-03-24) |
-| Localized Tax | C2.3 | ✅ CHECKOUT INTEGRATED + KMM SETTINGS UI (regional override → cart item tax rate + per-item inclusive + RegionalTaxOverrideScreen + ViewModel; 2026-03-24) |
+| Multi-Currency | C2.2 | ✅ COMPLETE (ExchangeRate model + table + repo + ConvertCurrencyUseCase + backend V33 + admin endpoints + admin panel exchange rate management page + Order.currency field + OrderMapper fix + runtime CurrencyFormatter update from store settings + 9 supported currencies; 2026-03-24) |
+| Localized Tax | C2.3 | ✅ CHECKOUT INTEGRATED + KMM SETTINGS UI + NAV WIRED (regional override → cart item tax rate + per-item inclusive + RegionalTaxOverrideScreen + ViewModel + nav graph route from TaxSettings; 2026-03-24) |
 | Store-Specific Discounts | C2.4 | ✅ CORE IMPLEMENTED (store_id on coupons, store_ids on promotions, validation + query; 2026-03-22) |
 | **3. Access Control** | | |
 | RBAC | C3.1 | COMPLETE |
@@ -2545,7 +2556,7 @@ git push -u origin $(git branch --show-current)
 | Real-time Dashboard | C5.4 | PARTIAL (REST only) |
 | **6. Sync & Offline** | | |
 | Multi-node Sync | C6.1 | ✅ COMPLETE (LWW CRDT + APPEND_ONLY for stock, priority sync, multi-store isolation, GZIP compression, queue maintenance, conflict resolution UI — all 6 items done 2026-03-19) |
-| Offline-First | C6.2 | ✅ CORE IMPLEMENTED (sync scheduling wired, network monitoring active, UI indicator in drawer; 2026-03-23) |
+| Offline-First | C6.2 | ✅ COMPLETE (sync scheduling wired, network monitoring active, UI indicator in drawer with live pending count badge; 2026-03-24) |
 | Timezone Management | C6.3 | ✅ CORE COMPLETE (startup init + receipt tz done 2026-03-22; minor items remain) |
 
 ---

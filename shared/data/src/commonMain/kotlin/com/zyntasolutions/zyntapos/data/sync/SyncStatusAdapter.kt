@@ -29,6 +29,9 @@ class SyncStatusAdapter(
     private val _lastSyncFailed = MutableStateFlow(false)
     override val lastSyncFailed: StateFlow<Boolean> = _lastSyncFailed.asStateFlow()
 
+    override val pendingCount: StateFlow<Int>
+        get() = syncEngine.pendingCount
+
     /**
      * Starts observing [SyncEngine.lastSyncResult] to derive [lastSyncFailed].
      * Call once during DI initialization.
@@ -37,5 +40,7 @@ class SyncStatusAdapter(
         syncEngine.lastSyncResult
             .onEach { result -> _lastSyncFailed.value = result is SyncResult.Failure }
             .launchIn(scope)
+        // Initial pending count refresh
+        syncEngine.refreshPendingCount()
     }
 }

@@ -112,6 +112,12 @@ data class MainNavScreens(
 
     val taxSettings: @Composable (
         onNavigateUp: () -> Unit,
+        onNavigateToRegionalOverrides: (storeId: String) -> Unit,
+    ) -> Unit,
+
+    val regionalTaxOverride: @Composable (
+        storeId: String,
+        onNavigateUp: () -> Unit,
     ) -> Unit,
 
     val userManagement: @Composable (
