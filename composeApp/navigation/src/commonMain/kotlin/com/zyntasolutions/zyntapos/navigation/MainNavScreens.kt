@@ -247,6 +247,11 @@ data class MainNavScreens(
         onNavigateUp: () -> Unit,
     ) -> Unit,
 
+    // ── Multi-Store Dashboard (C3.3) ────────────────────────────────────────
+    val multiStoreDashboard: @Composable (
+        onNavigateUp: () -> Unit,
+    ) -> Unit,
+
     // ── Accounting / E-Invoice sub-graph  (Sprint 18-24) ─────────────────────
     val accountingLedger: @Composable (
         onNavigateToDetail: (accountCode: String, fiscalPeriod: String) -> Unit,

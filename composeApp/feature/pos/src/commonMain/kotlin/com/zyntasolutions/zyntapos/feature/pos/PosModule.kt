@@ -14,6 +14,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.crm.EarnRewardPointsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.RedeemRewardPointsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.GetEffectiveProductPriceUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.AddItemToCartUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.pos.GetEffectiveTaxRateUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.ApplyItemDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.ApplyOrderDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.CalculateOrderTotalsUseCase
@@ -93,6 +94,11 @@ val posModule = module {
 
     factory { CalculateOrderTotalsUseCase() }
     factory {
+        GetEffectiveTaxRateUseCase(
+            regionalTaxOverrideRepository = get(),
+        )
+    }
+    factory {
         GetEffectiveProductPriceUseCase(
             masterProductRepository = get(),
             storeProductOverrideRepository = get(),
@@ -103,6 +109,8 @@ val posModule = module {
         AddItemToCartUseCase(
             productRepository = get(),
             getEffectivePrice = get(),
+            taxGroupRepository = get(),
+            getEffectiveTaxRate = get(),
         )
     }
     factory { RemoveItemFromCartUseCase() }

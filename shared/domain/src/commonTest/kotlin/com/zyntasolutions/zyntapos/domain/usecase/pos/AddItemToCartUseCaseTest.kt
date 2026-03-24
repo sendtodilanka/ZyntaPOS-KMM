@@ -6,10 +6,13 @@ import com.zyntasolutions.zyntapos.domain.model.DiscountType
 import com.zyntasolutions.zyntapos.domain.usecase.fakes.FakeMasterProductRepository
 import com.zyntasolutions.zyntapos.domain.usecase.fakes.FakePricingRuleRepository
 import com.zyntasolutions.zyntapos.domain.usecase.fakes.FakeProductRepository
+import com.zyntasolutions.zyntapos.domain.usecase.fakes.FakeRegionalTaxOverrideRepository
 import com.zyntasolutions.zyntapos.domain.usecase.fakes.FakeStoreProductOverrideRepository
+import com.zyntasolutions.zyntapos.domain.usecase.fakes.FakeTaxGroupRepository
 import com.zyntasolutions.zyntapos.domain.usecase.fakes.buildCartItem
 import com.zyntasolutions.zyntapos.domain.usecase.fakes.buildPricingRule
 import com.zyntasolutions.zyntapos.domain.usecase.fakes.buildProduct
+import com.zyntasolutions.zyntapos.domain.usecase.fakes.buildTaxGroup
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.GetEffectiveProductPriceUseCase
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -212,5 +215,100 @@ class AddItemToCartUseCaseTest {
         assertIs<Result.Success<*>>(result)
         val cart = (result as Result.Success).data
         assertEquals(9.99, cart[0].unitPrice, 0.001)
+    }
+
+    // ─── C2.3 Tax Rate Resolution ─────────────────────────────────────────────
+
+    @Test
+    fun `tax rate resolved from TaxGroup when taxGroupRepository is provided`() = runTest {
+        val taxGroupRepo = FakeTaxGroupRepository().also {
+            it.addTaxGroup(buildTaxGroup(id = "tax-01", rate = 15.0, isInclusive = false))
+        }
+        val taxRateUseCase = GetEffectiveTaxRateUseCase(
+            regionalTaxOverrideRepository = FakeRegionalTaxOverrideRepository(),
+        )
+        val repo = FakeProductRepository().also {
+            it.addProduct(buildProduct(id = "p1", stockQty = 50.0, taxGroupId = "tax-01"))
+        }
+        val useCase = AddItemToCartUseCase(
+            productRepository = repo,
+            taxGroupRepository = taxGroupRepo,
+            getEffectiveTaxRate = taxRateUseCase,
+        )
+        val result = useCase(currentCart = emptyList(), productId = "p1", storeId = "store-1")
+        assertIs<Result.Success<*>>(result)
+        val cart = (result as Result.Success).data
+        assertEquals(15.0, cart[0].taxRate, 0.001)
+        assertEquals(false, cart[0].isTaxInclusive)
+    }
+
+    @Test
+    fun `inclusive tax group sets isTaxInclusive true on cart item`() = runTest {
+        val taxGroupRepo = FakeTaxGroupRepository().also {
+            it.addTaxGroup(buildTaxGroup(id = "tax-vat", rate = 10.0, isInclusive = true))
+        }
+        val taxRateUseCase = GetEffectiveTaxRateUseCase(
+            regionalTaxOverrideRepository = FakeRegionalTaxOverrideRepository(),
+        )
+        val repo = FakeProductRepository().also {
+            it.addProduct(buildProduct(id = "p1", stockQty = 50.0, taxGroupId = "tax-vat"))
+        }
+        val useCase = AddItemToCartUseCase(
+            productRepository = repo,
+            taxGroupRepository = taxGroupRepo,
+            getEffectiveTaxRate = taxRateUseCase,
+        )
+        val result = useCase(currentCart = emptyList(), productId = "p1", storeId = "store-1")
+        assertIs<Result.Success<*>>(result)
+        val cart = (result as Result.Success).data
+        assertEquals(10.0, cart[0].taxRate, 0.001)
+        assertEquals(true, cart[0].isTaxInclusive)
+    }
+
+    @Test
+    fun `product with no taxGroupId gets zero tax rate`() = runTest {
+        val taxGroupRepo = FakeTaxGroupRepository()
+        val repo = FakeProductRepository().also {
+            it.addProduct(buildProduct(id = "p1", stockQty = 50.0, taxGroupId = null))
+        }
+        val useCase = AddItemToCartUseCase(
+            productRepository = repo,
+            taxGroupRepository = taxGroupRepo,
+        )
+        val result = useCase(currentCart = emptyList(), productId = "p1")
+        assertIs<Result.Success<*>>(result)
+        val cart = (result as Result.Success).data
+        assertEquals(0.0, cart[0].taxRate, 0.001)
+        assertEquals(false, cart[0].isTaxInclusive)
+    }
+
+    @Test
+    fun `inactive tax group results in zero tax rate`() = runTest {
+        val taxGroupRepo = FakeTaxGroupRepository().also {
+            it.addTaxGroup(buildTaxGroup(id = "tax-01", rate = 15.0, isActive = false))
+        }
+        val repo = FakeProductRepository().also {
+            it.addProduct(buildProduct(id = "p1", stockQty = 50.0, taxGroupId = "tax-01"))
+        }
+        val useCase = AddItemToCartUseCase(
+            productRepository = repo,
+            taxGroupRepository = taxGroupRepo,
+        )
+        val result = useCase(currentCart = emptyList(), productId = "p1")
+        assertIs<Result.Success<*>>(result)
+        val cart = (result as Result.Success).data
+        assertEquals(0.0, cart[0].taxRate, 0.001)
+    }
+
+    @Test
+    fun `falls back to zero tax when taxGroupRepository is null`() = runTest {
+        val repo = FakeProductRepository().also {
+            it.addProduct(buildProduct(id = "p1", stockQty = 50.0, taxGroupId = "tax-01"))
+        }
+        val useCase = AddItemToCartUseCase(productRepository = repo)
+        val result = useCase(currentCart = emptyList(), productId = "p1")
+        assertIs<Result.Success<*>>(result)
+        val cart = (result as Result.Success).data
+        assertEquals(0.0, cart[0].taxRate, 0.001)
     }
 }

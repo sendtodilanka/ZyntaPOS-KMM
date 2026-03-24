@@ -13,7 +13,10 @@ package com.zyntasolutions.zyntapos.domain.model
  * @property quantity Number of units. Must be ≥ 1.
  * @property discount Discount value applied to this line (see [discountType]).
  * @property discountType Whether [discount] is a [DiscountType.FIXED] amount or [DiscountType.PERCENT].
- * @property taxRate Effective tax percentage for this item (sourced from its [TaxGroup]).
+ * @property taxRate Effective tax percentage for this item (sourced from its [TaxGroup],
+ *                  with regional override applied via `GetEffectiveTaxRateUseCase`).
+ * @property isTaxInclusive If true, [unitPrice] already includes tax (inclusive/VAT style).
+ *                          If false, tax is added on top at checkout. Sourced from [TaxGroup.isInclusive].
  * @property lineTotal Computed: `(unitPrice × quantity) - discountAmount ± taxAmount`.
  *                     Calculated by `CalculateOrderTotalsUseCase` — **do not set manually**.
  */
@@ -25,6 +28,7 @@ data class CartItem(
     val discount: Double = 0.0,
     val discountType: DiscountType = DiscountType.FIXED,
     val taxRate: Double = 0.0,
+    val isTaxInclusive: Boolean = false,
     val lineTotal: Double = 0.0,
 ) {
     init {

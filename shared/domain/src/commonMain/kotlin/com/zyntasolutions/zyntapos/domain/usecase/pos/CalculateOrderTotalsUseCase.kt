@@ -61,11 +61,13 @@ import kotlin.math.roundToInt
  * **Rounding:** All monetary values are rounded to **2 decimal places** using
  * `HALF_UP` semantics (multiply by 100, round to nearest Int, divide by 100).
  *
- * @param items        Cart line items (each carries its own [CartItem.taxRate]).
+ * @param items        Cart line items (each carries its own [CartItem.taxRate] and
+ *                     [CartItem.isTaxInclusive] resolved from its TaxGroup + regional override).
  * @param orderDiscount Order-level discount value (0.0 = no discount).
  * @param orderDiscountType Whether [orderDiscount] is [DiscountType.PERCENT] or [DiscountType.FIXED].
- * @param taxInclusive  When `true`, item prices are treated as tax-inclusive (Scenario 3).
- *                      When `false`, tax is added on top (Scenarios 2/4/5).
+ * @param taxInclusive  **Deprecated fallback.** Per-item [CartItem.isTaxInclusive] takes precedence.
+ *                      This global flag is used ONLY for items where `isTaxInclusive` is `false`
+ *                      AND the caller explicitly passes `taxInclusive = true` (backward compatibility).
  * @return [Result.Success] with fully computed [OrderTotals].
  */
 class CalculateOrderTotalsUseCase {
@@ -77,6 +79,8 @@ class CalculateOrderTotalsUseCase {
     ): Result<OrderTotals> {
         var subtotalBeforeTax = 0.0
         var totalTax = 0.0
+        // Track exclusive-tax line totals separately for correct grand total
+        var exclusiveTaxTotal = 0.0
 
         items.forEach { item ->
             val rawLine = item.unitPrice * item.quantity
@@ -90,12 +94,17 @@ class CalculateOrderTotalsUseCase {
 
             val baseAmount = rawLine - itemDiscountAmt
 
-            val taxAmt = if (taxInclusive && item.taxRate > 0.0) {
+            // Per-item isTaxInclusive takes precedence; fall back to global taxInclusive flag
+            val itemTaxInclusive = item.isTaxInclusive || taxInclusive
+
+            val taxAmt = if (itemTaxInclusive && item.taxRate > 0.0) {
                 // Scenario 3: inclusive — extract tax from gross
                 baseAmount - (baseAmount / (1.0 + item.taxRate / 100.0))
             } else {
                 // Scenarios 1, 2, 4, 5: exclusive or zero-rate
-                baseAmount * (item.taxRate / 100.0)
+                val excTax = baseAmount * (item.taxRate / 100.0)
+                exclusiveTaxTotal += excTax
+                excTax
             }
 
             subtotalBeforeTax += baseAmount
@@ -109,13 +118,11 @@ class CalculateOrderTotalsUseCase {
             DiscountType.BOGO -> 0.0 // BOGO applied per-item; no extra order-level deduction
         }
 
-        // For inclusive tax, the tax is already contained within subtotalBeforeTax,
-        // so we must not add totalTax again (that would double-count).
-        val total = if (taxInclusive) {
-            subtotalBeforeTax - orderDiscountAmt
-        } else {
-            subtotalBeforeTax + totalTax - orderDiscountAmt
-        }
+        // For items with inclusive tax, tax is already contained within subtotalBeforeTax
+        // (no need to add it). For items with exclusive tax, we must add the tax on top.
+        // Mixed carts: subtotal includes gross of inclusive items + net of exclusive items.
+        // We add only the exclusive tax portion to avoid double-counting inclusive tax.
+        val total = subtotalBeforeTax + exclusiveTaxTotal - orderDiscountAmt
 
         return Result.Success(
             OrderTotals(
