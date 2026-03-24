@@ -19,6 +19,11 @@ repositories {
     mavenCentral()
 }
 
+// Enable dependency locking so Trivy/OSV-Scanner can scan gradle.lockfile
+dependencyLocking {
+    lockAllConfigurations()
+}
+
 // ── Security: force patched transitive dependency versions ───────────────────
 // jackson-core/databind: transitive via logback-classic JSON encoder
 // kotlin-reflect: Exposed ORM pulls in an older 1.6.x transitive (CVE-2020-29582)
