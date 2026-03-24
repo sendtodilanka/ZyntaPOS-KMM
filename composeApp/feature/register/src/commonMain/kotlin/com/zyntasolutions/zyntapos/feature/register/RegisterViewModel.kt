@@ -8,6 +8,7 @@ import com.zyntasolutions.zyntapos.domain.model.RegisterSession
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
 import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
+import com.zyntasolutions.zyntapos.domain.repository.StoreRepository
 import com.zyntasolutions.zyntapos.domain.usecase.register.CloseRegisterSessionUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.OpenRegisterSessionUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.PrintA4ZReportUseCase
@@ -46,6 +47,7 @@ import kotlinx.datetime.toLocalDateTime
  * @param printZReportUseCase    Prints the Z-report to the connected thermal printer.
  * @param printA4ZReportUseCase  Prints the A4 PDF Z-report via system print dialog.
  * @param authRepository         Provides the active auth session for resolving currentUserId.
+ * @param storeRepository        Provides store name lookup for the active store context.
  */
 class RegisterViewModel(
     private val registerRepository: RegisterRepository,
@@ -56,6 +58,7 @@ class RegisterViewModel(
     private val printZReportUseCase: PrintZReportUseCase,
     private val printA4ZReportUseCase: PrintA4ZReportUseCase,
     private val authRepository: AuthRepository,
+    private val storeRepository: StoreRepository,
     private val openCashDrawerUseCase: OpenCashDrawerUseCase,
     private val auditLogger: SecurityAuditLogger,
     private val analytics: AnalyticsTracker,
@@ -66,7 +69,13 @@ class RegisterViewModel(
     init {
         analytics.logScreenView("Register", "RegisterViewModel")
         viewModelScope.launch {
-            currentUserId = authRepository.getSession().first()?.id ?: "unknown"
+            val session = authRepository.getSession().first()
+            currentUserId = session?.id ?: "unknown"
+            val storeId = session?.storeId ?: ""
+            val name = if (storeId.isNotEmpty()) {
+                storeRepository.getStoreName(storeId) ?: ""
+            } else ""
+            updateState { copy(activeStoreId = storeId, storeName = name) }
         }
     }
 
@@ -193,10 +202,23 @@ class RegisterViewModel(
             .onEach { session ->
                 updateState { copy(activeSession = session) }
                 if (session != null) {
+                    resolveActiveRegister(session.registerId)
                     observeMovements(session.id)
+                } else {
+                    updateState { copy(activeRegister = null) }
                 }
             }
             .launchIn(viewModelScope)
+    }
+
+    /**
+     * Resolves the [CashRegister] for the active session so the UI can display
+     * the register location label (e.g. "Front Counter", "Lane 3").
+     */
+    private suspend fun resolveActiveRegister(registerId: String) {
+        val register = registerRepository.getRegisters().first()
+            .firstOrNull { it.id == registerId }
+        updateState { copy(activeRegister = register) }
     }
 
     private fun observeMovements(sessionId: String) {
@@ -232,9 +254,11 @@ class RegisterViewModel(
         when (result) {
             is Result.Success -> {
                 auditLogger.logRegisterOpen(currentUserId, form.selectedRegisterId!!, form.openingBalanceDouble)
+                val register = currentState.availableRegisters.firstOrNull { it.id == form.selectedRegisterId }
                 updateState {
                     copy(
                         activeSession = result.data,
+                        activeRegister = register,
                         openRegisterForm = OpenRegisterFormState(),
                     )
                 }
@@ -350,6 +374,7 @@ class RegisterViewModel(
                 updateState {
                     copy(
                         activeSession = null,
+                        activeRegister = null,
                         closeRegisterForm = CloseRegisterFormState(),
                         zReportSession = closeResult.session,
                     )

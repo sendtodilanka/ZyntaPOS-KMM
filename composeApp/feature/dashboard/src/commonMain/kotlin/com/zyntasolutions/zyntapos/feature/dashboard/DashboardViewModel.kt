@@ -7,6 +7,7 @@ import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
 import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
 import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
+import com.zyntasolutions.zyntapos.domain.repository.StoreRepository
 import com.zyntasolutions.zyntapos.feature.dashboard.mvi.DashboardEffect
 import com.zyntasolutions.zyntapos.feature.dashboard.mvi.DashboardIntent
 import com.zyntasolutions.zyntapos.feature.dashboard.mvi.DashboardState
@@ -32,6 +33,7 @@ class DashboardViewModel(
     private val productRepository: ProductRepository,
     private val registerRepository: RegisterRepository,
     private val authRepository: AuthRepository,
+    private val storeRepository: StoreRepository,
     private val analytics: AnalyticsTracker,
 ) : BaseViewModel<DashboardState, DashboardIntent, DashboardEffect>(DashboardState()) {
 
@@ -48,6 +50,12 @@ class DashboardViewModel(
 
         try {
             val user = authRepository.getSession().first()
+            val activeStoreId = user?.storeId ?: ""
+            val storeName = if (activeStoreId.isNotEmpty()) {
+                storeRepository.getStoreName(activeStoreId) ?: ""
+            } else {
+                ""
+            }
             val tz = TimeZone.currentSystemDefault()
             val now = Clock.System.now()
             val todayStart = now.toLocalDateTime(tz).date.atStartOfDayIn(tz)
@@ -132,6 +140,8 @@ class DashboardViewModel(
             updateState {
                 copy(
                     currentUser = user,
+                    activeStoreId = activeStoreId,
+                    storeName = storeName,
                     todaysSales = sales,
                     totalOrders = orderCount,
                     lowStockCount = lowStockProducts.size.toLong(),

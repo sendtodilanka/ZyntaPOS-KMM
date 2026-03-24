@@ -93,6 +93,8 @@ import com.zyntasolutions.zyntapos.domain.repository.AuditRepository
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.CustomerRepository
 import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
+import com.zyntasolutions.zyntapos.domain.repository.StoreRepository
+import com.zyntasolutions.zyntapos.domain.model.Store
 import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
 import kotlinx.coroutines.flow.flowOf
 
@@ -472,6 +474,15 @@ class PosViewModelTest {
             Result.Error(DatabaseException("not used"))
     }
 
+    // ── Fake StoreRepository ───────────────────────────────────────────────────
+
+    private val fakeStoreRepository = object : StoreRepository {
+        override fun getAllStores(): Flow<List<Store>> = flowOf(emptyList())
+        override suspend fun getById(storeId: String): Store? = null
+        override suspend fun getStoreName(storeId: String): String? = "Test Store"
+        override suspend fun upsertFromSync(store: Store) = Unit
+    }
+
     // ── Real use cases wired to fake repositories ──────────────────────────────
 
     private val calculateTotalsUseCase = CalculateOrderTotalsUseCase()
@@ -528,6 +539,7 @@ class PosViewModelTest {
             redeemRewardPointsUseCase = RedeemRewardPointsUseCase(fakeLoyaltyRepository),
             calculateLoyaltyDiscountUseCase = CalculateLoyaltyDiscountUseCase(),
             authRepository = fakeAuthRepository,
+            storeRepository = fakeStoreRepository,
             customerRepository = fakeCustomerRepository,
             registerRepository = fakeRegisterRepository,
             postSaleJournalEntryUseCase = PostSaleJournalEntryUseCase(
@@ -621,6 +633,15 @@ class PosViewModelTest {
     @Test
     fun `initial state has no selected category`() {
         assertNull(viewModel.state.value.selectedCategoryId)
+    }
+
+    @Test
+    fun `init loads store name and cashier name from session`() = runTest {
+        advanceUntilIdle()
+        val state = viewModel.state.value
+        assertEquals("Test Store", state.storeName)
+        assertEquals("store-01", state.activeStoreId)
+        assertEquals("Test Cashier", state.cashierName)
     }
 
     @Test

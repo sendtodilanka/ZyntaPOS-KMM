@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -39,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoadingOverlay
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoyaltyTierBadge
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTextField
 
 /**
@@ -70,7 +72,15 @@ fun CustomerDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (isEditMode) "Edit Customer" else "New Customer") },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(if (isEditMode) "Edit Customer" else "New Customer")
+                        if (isEditMode && state.currentLoyaltyTier != null) {
+                            Spacer(Modifier.width(8.dp))
+                            ZyntaLoyaltyTierBadge(tierName = state.currentLoyaltyTier.name)
+                        }
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateUp) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Back")

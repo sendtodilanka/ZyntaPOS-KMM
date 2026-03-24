@@ -17,6 +17,7 @@ import com.zyntasolutions.zyntapos.domain.repository.LoyaltyRepository
 import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
 import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
 import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
+import com.zyntasolutions.zyntapos.domain.repository.StoreRepository
 import com.zyntasolutions.zyntapos.domain.usecase.coupons.CalculateCouponDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.coupons.ValidateCouponUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.CalculateLoyaltyDiscountUseCase
@@ -138,6 +139,7 @@ class PosViewModel(
     private val customerRepository: CustomerRepository,
     private val registerRepository: RegisterRepository,
     private val authRepository: AuthRepository,
+    private val storeRepository: StoreRepository,
     private val postSaleJournalEntryUseCase: PostSaleJournalEntryUseCase,
     private val reprintLastReceiptUseCase: ReprintLastReceiptUseCase,
     private val printA4TaxInvoiceUseCase: PrintA4TaxInvoiceUseCase,
@@ -175,7 +177,14 @@ class PosViewModel(
             cashierId = session?.id ?: "unknown"
             storeId = session?.storeId ?: "default-store"
             registerSessionId = registerRepository.getActive().first()?.id ?: ""
-            updateState { copy(cashierName = session?.name ?: "") }
+            val resolvedStoreName = storeRepository.getStoreName(storeId) ?: ""
+            updateState {
+                copy(
+                    cashierName = session?.name ?: "",
+                    storeName = resolvedStoreName,
+                    activeStoreId = storeId,
+                )
+            }
         }
         observeCategories()
         observeProducts()

@@ -167,13 +167,7 @@ fun AuditLogScreen(
                 label = { Text("FAIL", style = MaterialTheme.typography.labelSmall) },
             )
             Spacer(Modifier.weight(1f))
-            IconButton(onClick = { onIntent(AdminIntent.ExportAuditLogCsv) }) {
-                Icon(
-                    Icons.Default.Download,
-                    contentDescription = "Export CSV",
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            }
+            ExportDropdown(onIntent = onIntent)
         }
 
         Text(
@@ -257,6 +251,44 @@ fun AuditLogScreen(
 }
 
 // ─── Private composables ──────────────────────────────────────────────────────
+
+/**
+ * Export button with a dropdown menu offering CSV and JSON formats.
+ */
+@Composable
+private fun ExportDropdown(onIntent: (AdminIntent) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { expanded = true }) {
+            Icon(
+                Icons.Default.Download,
+                contentDescription = "Export audit log",
+                tint = MaterialTheme.colorScheme.primary,
+            )
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            DropdownMenuItem(
+                text = { Text("Export as CSV", style = MaterialTheme.typography.bodyMedium) },
+                onClick = {
+                    expanded = false
+                    onIntent(AdminIntent.ExportAuditLogCsv)
+                },
+                leadingIcon = { Icon(Icons.Default.Description, contentDescription = null, modifier = Modifier.size(20.dp)) },
+            )
+            DropdownMenuItem(
+                text = { Text("Export as JSON", style = MaterialTheme.typography.bodyMedium) },
+                onClick = {
+                    expanded = false
+                    onIntent(AdminIntent.ExportAuditLogJson)
+                },
+                leadingIcon = { Icon(Icons.Default.Code, contentDescription = null, modifier = Modifier.size(20.dp)) },
+            )
+        }
+    }
+}
 
 /**
  * Material 3 exposed dropdown for filtering audit entries by [AuditEventType].

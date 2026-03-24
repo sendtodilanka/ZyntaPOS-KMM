@@ -36,9 +36,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoadingSkeleton
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoyaltyTierBadge
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSearchBar
 import com.zyntasolutions.zyntapos.domain.model.Customer
 import com.zyntasolutions.zyntapos.domain.model.CustomerGroup
+import com.zyntasolutions.zyntapos.domain.model.LoyaltyTier
 
 /**
  * Customer directory screen — search, group filter, sortable list.
@@ -136,6 +138,7 @@ fun CustomerListScreen(
                 else -> CustomerTable(
                     customers = state.customers,
                     groups = state.customerGroups,
+                    currentLoyaltyTier = state.currentLoyaltyTier,
                     sortColumn = state.sortColumn,
                     sortDirection = state.sortDirection,
                     onSortColumn = { onIntent(CustomerIntent.SortByColumn(it)) },
@@ -151,6 +154,7 @@ fun CustomerListScreen(
 private fun CustomerTable(
     customers: List<Customer>,
     groups: List<CustomerGroup>,
+    currentLoyaltyTier: LoyaltyTier?,
     sortColumn: String,
     sortDirection: SortDir,
     onSortColumn: (String) -> Unit,
@@ -173,6 +177,7 @@ private fun CustomerTable(
             CustomerTableRow(
                 customer = customer,
                 groupName = groupMap[customer.groupId]?.name,
+                loyaltyTier = currentLoyaltyTier,
                 onClick = { onCustomerClick(customer) },
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -227,6 +232,7 @@ private fun SortableHeaderCell(
 private fun CustomerTableRow(
     customer: Customer,
     groupName: String?,
+    loyaltyTier: LoyaltyTier?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -249,7 +255,16 @@ private fun CustomerTableRow(
         }
         Spacer(Modifier.width(8.dp))
         Text(customer.phone, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1.5f))
-        Text(customer.loyaltyPoints.toString(), style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-        Text(groupName ?: "—", style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1.5f))
+        Row(
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(customer.loyaltyPoints.toString(), style = MaterialTheme.typography.bodySmall)
+            if (loyaltyTier != null) {
+                ZyntaLoyaltyTierBadge(tierName = loyaltyTier.name)
+            }
+        }
+        Text(groupName ?: "\u2014", style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1.5f))
     }
 }

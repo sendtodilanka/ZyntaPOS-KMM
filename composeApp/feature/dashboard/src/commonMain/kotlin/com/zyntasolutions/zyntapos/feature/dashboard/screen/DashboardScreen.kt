@@ -27,6 +27,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Store
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.Notifications
@@ -170,6 +171,10 @@ internal fun DashboardScreenContent(
         title = "Dashboard",
         snackbarHostState = snackbarHostState,
         actions = {
+            if (state.storeName.isNotEmpty()) {
+                StoreNameChip(storeName = state.storeName)
+                Spacer(Modifier.width(8.dp))
+            }
             ProfileAvatarMenu(
                 currentUser = state.currentUser,
                 userInitials = state.userInitials,
@@ -823,6 +828,37 @@ private fun EmptyActivityCard() {
                 "Complete your first sale to see activity here",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+            )
+        }
+    }
+}
+
+/**
+ * Compact chip displaying the active store name with a store icon.
+ * Rendered in the top app bar actions slot to provide multi-store context.
+ */
+@Composable
+private fun StoreNameChip(storeName: String) {
+    Surface(
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.secondaryContainer,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = ZyntaSpacing.sm, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Icon(
+                Icons.Default.Store,
+                contentDescription = "Active store",
+                modifier = Modifier.size(14.dp),
+                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+            Text(
+                text = storeName,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                fontWeight = FontWeight.Medium,
             )
         }
     }

@@ -30,6 +30,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Store
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -124,24 +125,47 @@ fun PosScreen(
                     Column(modifier = Modifier.weight(1f)) {
                         // Printer hardware alert banner (paper-out / paper-low / cover-open)
                         PrinterStatusAlertBanner()
-                        // Cashier name badge — G21 Phase 1.5
-                        if (state.cashierName.isNotBlank()) {
+                        // Store + Cashier context bar — G3 Phase 2 store switcher + G21 Phase 1.5
+                        if (state.storeName.isNotBlank() || state.cashierName.isNotBlank()) {
                             Row(
                                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Icon(
-                                    Icons.Default.Person,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                Spacer(Modifier.width(4.dp))
-                                Text(
-                                    text = state.cashierName,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
+                                if (state.storeName.isNotBlank()) {
+                                    Icon(
+                                        Icons.Default.Store,
+                                        contentDescription = "Active store",
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.primary,
+                                    )
+                                    Spacer(Modifier.width(4.dp))
+                                    Text(
+                                        text = state.storeName,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    )
+                                }
+                                if (state.storeName.isNotBlank() && state.cashierName.isNotBlank()) {
+                                    Text(
+                                        text = " · ",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                if (state.cashierName.isNotBlank()) {
+                                    Icon(
+                                        Icons.Default.Person,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    Spacer(Modifier.width(4.dp))
+                                    Text(
+                                        text = state.cashierName,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
                             }
                         }
                         PosSearchBar(
@@ -181,24 +205,47 @@ fun PosScreen(
                     Column(modifier = Modifier.fillMaxSize()) {
                         // Printer hardware alert banner (paper-out / paper-low / cover-open)
                         PrinterStatusAlertBanner()
-                        // Cashier name badge — G21 Phase 1.5
-                        if (state.cashierName.isNotBlank()) {
+                        // Store + Cashier context bar — G3 Phase 2 store switcher + G21 Phase 1.5
+                        if (state.storeName.isNotBlank() || state.cashierName.isNotBlank()) {
                             Row(
                                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Icon(
-                                    Icons.Default.Person,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                Spacer(Modifier.width(4.dp))
-                                Text(
-                                    text = state.cashierName,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
+                                if (state.storeName.isNotBlank()) {
+                                    Icon(
+                                        Icons.Default.Store,
+                                        contentDescription = "Active store",
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.primary,
+                                    )
+                                    Spacer(Modifier.width(4.dp))
+                                    Text(
+                                        text = state.storeName,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    )
+                                }
+                                if (state.storeName.isNotBlank() && state.cashierName.isNotBlank()) {
+                                    Text(
+                                        text = " · ",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                if (state.cashierName.isNotBlank()) {
+                                    Icon(
+                                        Icons.Default.Person,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    Spacer(Modifier.width(4.dp))
+                                    Text(
+                                        text = state.cashierName,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
                             }
                         }
                         PosSearchBar(

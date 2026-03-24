@@ -83,6 +83,10 @@ data class PosState(
     val isSearchFocused: Boolean = false,
     /** Cashier display name for the POS header. Populated from auth session on init. */
     val cashierName: String = "",
+    /** Store display name for the POS header. Populated from StoreRepository on init. */
+    val storeName: String = "",
+    /** Active store ID for context-aware operations. Populated from auth session on init. */
+    val activeStoreId: String = "",
     val cartItems: List<CartItem> = emptyList(),
     val selectedCustomer: Customer? = null,
     // ── Customer picker ───────────────────────────────────────────────────────

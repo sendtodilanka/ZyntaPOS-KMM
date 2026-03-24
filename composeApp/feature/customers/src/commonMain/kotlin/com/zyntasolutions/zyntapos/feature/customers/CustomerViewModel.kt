@@ -406,11 +406,14 @@ class CustomerViewModel(
                 val wallet = walletResult.data
                 val transactions = walletRepository.getTransactions(wallet.id).first()
                 val history = loyaltyRepository.getPointsHistory(customerId).first()
+                val points = (loyaltyBalance as? Result.Success)?.data ?: 0
+                val tier = (loyaltyRepository.getTierForPoints(points) as? Result.Success)?.data
                 updateState {
                     copy(
                         isWalletLoading = false,
                         wallet = wallet,
-                        pointsBalance = (loyaltyBalance as? Result.Success)?.data ?: 0,
+                        pointsBalance = points,
+                        currentLoyaltyTier = tier,
                         rewardHistory = history,
                         walletTransactions = transactions,
                     )

@@ -33,8 +33,14 @@ import com.zyntasolutions.zyntapos.domain.model.RegisterSession
  */
 @Immutable
 data class RegisterState(
+    // ── Store context ─────────────────────────────────────────────────────
+    val activeStoreId: String = "",
+    val storeName: String = "",
+
     // ── Session ───────────────────────────────────────────────────────────
     val activeSession: RegisterSession? = null,
+    /** The CashRegister associated with the active session — for location label display (G5). */
+    val activeRegister: CashRegister? = null,
 
     // ── Open Register screen ──────────────────────────────────────────────
     val availableRegisters: List<CashRegister> = emptyList(),

@@ -123,6 +123,7 @@ class AdminViewModel(
             is AdminIntent.FilterAuditBySuccess -> updateState { copy(auditSuccessFilter = intent.success, auditPage = 0) }
             is AdminIntent.FilterAuditByDateRange -> updateState { copy(auditDateFrom = intent.from, auditDateTo = intent.to, auditPage = 0) }
             AdminIntent.ExportAuditLogCsv -> exportAuditLogCsv()
+            AdminIntent.ExportAuditLogJson -> exportAuditLogJson()
             AdminIntent.VerifyIntegrity -> verifyIntegrity()
             AdminIntent.NextAuditPage -> updateState { copy(auditPage = (auditPage + 1).coerceAtMost(auditTotalPages - 1)) }
             AdminIntent.PrevAuditPage -> updateState { copy(auditPage = (auditPage - 1).coerceAtLeast(0)) }
@@ -239,7 +240,7 @@ class AdminViewModel(
                 )
             }
             val fileName = "audit_log_${Clock.System.now().toEpochMilliseconds()}.csv"
-            sendEffect(AdminEffect.ShareCsvExport(csvContent = sb.toString(), fileName = fileName))
+            sendEffect(AdminEffect.ShareAuditExport(content = sb.toString(), fileName = fileName, format = "csv"))
         }.onFailure {
             sendEffect(AdminEffect.ShowSnackbar("Export failed: ${it.message}"))
         }
@@ -247,6 +248,67 @@ class AdminViewModel(
 
     /** Wraps a cell value in double-quotes and escapes internal quotes (RFC 4180). */
     private fun String.csvCell(): String = "\"${replace("\"", "\"\"")}\""
+
+    // ── Audit JSON Export ───────────────────────────────────────────────────────
+
+    private suspend fun exportAuditLogJson() {
+        val s = currentState
+        val filtered = s.auditEntries
+            .filter { e ->
+                (s.auditUserFilter.isBlank() || e.userId.contains(s.auditUserFilter, ignoreCase = true)) &&
+                (s.auditEventTypeFilter == null || e.eventType == s.auditEventTypeFilter) &&
+                (s.auditRoleFilter == null || e.userRole == s.auditRoleFilter) &&
+                (s.auditSuccessFilter == null || e.success == s.auditSuccessFilter) &&
+                (s.auditDateFrom == null || e.createdAt >= s.auditDateFrom) &&
+                (s.auditDateTo == null || e.createdAt <= s.auditDateTo)
+            }
+
+        if (filtered.isEmpty()) {
+            sendEffect(AdminEffect.ShowSnackbar("No entries to export."))
+            return
+        }
+
+        runCatching {
+            val sb = StringBuilder()
+            sb.append("[\n")
+            filtered.forEachIndexed { index, e ->
+                sb.append("  {\n")
+                sb.append("    \"id\": ${e.id.jsonString()},\n")
+                sb.append("    \"eventType\": ${e.eventType.name.jsonString()},\n")
+                sb.append("    \"userId\": ${e.userId.jsonString()},\n")
+                sb.append("    \"userName\": ${e.userName.jsonString()},\n")
+                sb.append("    \"userRole\": ${e.userRole?.name?.jsonString() ?: "null"},\n")
+                sb.append("    \"deviceId\": ${e.deviceId.jsonString()},\n")
+                sb.append("    \"entityType\": ${e.entityType?.jsonString() ?: "null"},\n")
+                sb.append("    \"entityId\": ${e.entityId?.jsonString() ?: "null"},\n")
+                sb.append("    \"success\": ${e.success},\n")
+                sb.append("    \"ipAddress\": ${e.ipAddress?.jsonString() ?: "null"},\n")
+                sb.append("    \"payload\": ${e.payload.jsonString()},\n")
+                sb.append("    \"previousValue\": ${e.previousValue?.jsonString() ?: "null"},\n")
+                sb.append("    \"newValue\": ${e.newValue?.jsonString() ?: "null"},\n")
+                sb.append("    \"createdAt\": ${e.createdAt.toEpochMilliseconds()}\n")
+                sb.append("  }")
+                if (index < filtered.size - 1) sb.append(",")
+                sb.append("\n")
+            }
+            sb.append("]")
+            val fileName = "audit_log_${Clock.System.now().toEpochMilliseconds()}.json"
+            sendEffect(AdminEffect.ShareAuditExport(content = sb.toString(), fileName = fileName, format = "json"))
+        }.onFailure {
+            sendEffect(AdminEffect.ShowSnackbar("Export failed: ${it.message}"))
+        }
+    }
+
+    /** Escapes a string value for JSON output (handles backslash, quotes, control chars). */
+    private fun String.jsonString(): String {
+        val escaped = this
+            .replace("\\", "\\\\")
+            .replace("\"", "\\\"")
+            .replace("\n", "\\n")
+            .replace("\r", "\\r")
+            .replace("\t", "\\t")
+        return "\"$escaped\""
+    }
 
     // ── Audit Integrity ───────────────────────────────────────────────────────
 
