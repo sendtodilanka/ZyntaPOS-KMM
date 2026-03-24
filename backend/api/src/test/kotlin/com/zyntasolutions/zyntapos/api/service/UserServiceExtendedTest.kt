@@ -209,7 +209,7 @@ class UserServiceExtendedTest {
     // ── Login happy path ────────────────────────────────────────────────────
 
     @Test
-    fun `authenticate succeeds with correct email and SHA-256 password`() = runBlocking {
+    fun `authenticate succeeds with correct email and SHA-256 password`() = runBlocking<Unit> {
         val repo = FakePosUserRepo()
         val user = repo.addUser()
         val service = UserService(posUserRepo = repo)
@@ -224,7 +224,7 @@ class UserServiceExtendedTest {
     }
 
     @Test
-    fun `authenticate succeeds with bcrypt password`() = runBlocking {
+    fun `authenticate succeeds with bcrypt password`() = runBlocking<Unit> {
         val repo = FakePosUserRepo()
         repo.addUser(useBcrypt = true)
         val service = UserService(posUserRepo = repo)
@@ -238,7 +238,7 @@ class UserServiceExtendedTest {
     // ── Login failure paths ─────────────────────────────────────────────────
 
     @Test
-    fun `authenticate returns null for wrong password`() = runBlocking {
+    fun `authenticate returns null for wrong password`() = runBlocking<Unit> {
         val repo = FakePosUserRepo()
         repo.addUser()
         val service = UserService(posUserRepo = repo)
@@ -249,7 +249,7 @@ class UserServiceExtendedTest {
     }
 
     @Test
-    fun `authenticate returns null for non-existent email`() = runBlocking {
+    fun `authenticate returns null for non-existent email`() = runBlocking<Unit> {
         val repo = FakePosUserRepo()
         repo.addUser()
         val service = UserService(posUserRepo = repo)
@@ -260,7 +260,7 @@ class UserServiceExtendedTest {
     }
 
     @Test
-    fun `authenticate returns null for inactive user`() = runBlocking {
+    fun `authenticate returns null for inactive user`() = runBlocking<Unit> {
         val repo = FakePosUserRepo()
         repo.addUser(isActive = false)
         val service = UserService(posUserRepo = repo)
@@ -272,7 +272,7 @@ class UserServiceExtendedTest {
     }
 
     @Test
-    fun `authenticate returns null for invalid license key`() = runBlocking {
+    fun `authenticate returns null for invalid license key`() = runBlocking<Unit> {
         val repo = FakePosUserRepo()
         repo.addUser()
         val service = UserService(posUserRepo = repo)
@@ -283,7 +283,7 @@ class UserServiceExtendedTest {
     }
 
     @Test
-    fun `authenticate scopes to store when license key is provided`() = runBlocking {
+    fun `authenticate scopes to store when license key is provided`() = runBlocking<Unit> {
         val repo = FakePosUserRepo()
         repo.addStore(TEST_LICENSE_KEY, TEST_STORE_ID)
         repo.addUser(storeId = TEST_STORE_ID)
@@ -299,7 +299,7 @@ class UserServiceExtendedTest {
     // ── Brute-force lockout ─────────────────────────────────────────────────
 
     @Test
-    fun `account locks after 5 failed attempts`() = runBlocking {
+    fun `account locks after 5 failed attempts`() = runBlocking<Unit> {
         val repo = FakePosUserRepo()
         repo.addUser(useBcrypt = true)
         val service = UserService(posUserRepo = repo)
@@ -316,7 +316,7 @@ class UserServiceExtendedTest {
     }
 
     @Test
-    fun `locked account rejects correct password`() = runBlocking {
+    fun `locked account rejects correct password`() = runBlocking<Unit> {
         val repo = FakePosUserRepo()
         repo.addUser(useBcrypt = true)
         val service = UserService(posUserRepo = repo)
@@ -333,7 +333,7 @@ class UserServiceExtendedTest {
     }
 
     @Test
-    fun `successful login resets failed attempt counter`() = runBlocking {
+    fun `successful login resets failed attempt counter`() = runBlocking<Unit> {
         val repo = FakePosUserRepo()
         repo.addUser(useBcrypt = true)
         val service = UserService(posUserRepo = repo)
@@ -353,7 +353,7 @@ class UserServiceExtendedTest {
     }
 
     @Test
-    fun `four failed attempts do not trigger lockout`() = runBlocking {
+    fun `four failed attempts do not trigger lockout`() = runBlocking<Unit> {
         val repo = FakePosUserRepo()
         repo.addUser(useBcrypt = true)
         val service = UserService(posUserRepo = repo)
@@ -374,7 +374,7 @@ class UserServiceExtendedTest {
     // ── Token issuance ──────────────────────────────────────────────────────
 
     @Test
-    fun `issueTokens produces valid RS256 JWT with correct claims`() = runBlocking {
+    fun `issueTokens produces valid RS256 JWT with correct claims`() = runBlocking<Unit> {
         val repo = FakePosUserRepo()
         val service = UserService(posUserRepo = repo)
         val config = testConfig()
@@ -414,7 +414,7 @@ class UserServiceExtendedTest {
     }
 
     @Test
-    fun `issueTokens creates a POS session record`() = runBlocking {
+    fun `issueTokens creates a POS session record`() = runBlocking<Unit> {
         val repo = FakePosUserRepo()
         val service = UserService(posUserRepo = repo)
         val config = testConfig()
@@ -436,7 +436,7 @@ class UserServiceExtendedTest {
     // ── Token refresh ───────────────────────────────────────────────────────
 
     @Test
-    fun `refreshTokens succeeds with valid refresh token`() = runBlocking {
+    fun `refreshTokens succeeds with valid refresh token`() = runBlocking<Unit> {
         val repo = FakePosUserRepo()
         val user = repo.addUser(useBcrypt = true)
         val service = UserService(posUserRepo = repo)
@@ -456,7 +456,7 @@ class UserServiceExtendedTest {
     }
 
     @Test
-    fun `refreshTokens returns null for invalid refresh token`() = runBlocking {
+    fun `refreshTokens returns null for invalid refresh token`() = runBlocking<Unit> {
         val repo = FakePosUserRepo()
         repo.addUser(useBcrypt = true)
         val service = UserService(posUserRepo = repo)
@@ -468,7 +468,7 @@ class UserServiceExtendedTest {
     }
 
     @Test
-    fun `refreshTokens revokes old session on rotation`() = runBlocking {
+    fun `refreshTokens revokes old session on rotation`() = runBlocking<Unit> {
         val repo = FakePosUserRepo()
         repo.addUser(useBcrypt = true)
         val service = UserService(posUserRepo = repo)
@@ -489,7 +489,7 @@ class UserServiceExtendedTest {
     }
 
     @Test
-    fun `refreshTokens rejects already-used refresh token`() = runBlocking {
+    fun `refreshTokens rejects already-used refresh token`() = runBlocking<Unit> {
         val repo = FakePosUserRepo()
         repo.addUser(useBcrypt = true)
         val service = UserService(posUserRepo = repo)
@@ -510,7 +510,7 @@ class UserServiceExtendedTest {
     // ── Session revocation ──────────────────────────────────────────────────
 
     @Test
-    fun `revokeAllSessions marks all sessions as revoked`() = runBlocking {
+    fun `revokeAllSessions marks all sessions as revoked`() = runBlocking<Unit> {
         val repo = FakePosUserRepo()
         repo.addUser(useBcrypt = true)
         val service = UserService(posUserRepo = repo)
@@ -530,7 +530,7 @@ class UserServiceExtendedTest {
     }
 
     @Test
-    fun `revokeAllSessions makes refresh tokens unusable`() = runBlocking {
+    fun `revokeAllSessions makes refresh tokens unusable`() = runBlocking<Unit> {
         val repo = FakePosUserRepo()
         repo.addUser(useBcrypt = true)
         val service = UserService(posUserRepo = repo)
@@ -548,7 +548,7 @@ class UserServiceExtendedTest {
     // ── JWT token properties ────────────────────────────────────────────────
 
     @Test
-    fun `access token has correct TTL`() = runBlocking {
+    fun `access token has correct TTL`() = runBlocking<Unit> {
         val repo = FakePosUserRepo()
         val service = UserService(posUserRepo = repo)
         val config = testConfig()
@@ -573,7 +573,7 @@ class UserServiceExtendedTest {
     }
 
     @Test
-    fun `each issueTokens call produces unique jti`() = runBlocking {
+    fun `each issueTokens call produces unique jti`() = runBlocking<Unit> {
         val repo = FakePosUserRepo()
         val service = UserService(posUserRepo = repo)
         val config = testConfig()
@@ -593,7 +593,7 @@ class UserServiceExtendedTest {
     }
 
     @Test
-    fun `access token includes role and storeId claims`() = runBlocking {
+    fun `access token includes role and storeId claims`() = runBlocking<Unit> {
         val repo = FakePosUserRepo()
         val service = UserService(posUserRepo = repo)
         val config = testConfig()
