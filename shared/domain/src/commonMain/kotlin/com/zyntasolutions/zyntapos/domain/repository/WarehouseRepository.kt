@@ -80,4 +80,16 @@ interface WarehouseRepository {
 
     /** Returns all transfers matching the given [status]. */
     suspend fun getTransfersByStatus(status: StockTransfer.Status): Result<List<StockTransfer>>
+
+    // ── Pick List (P3-B1) ────────────────────────────────────────────────────
+
+    /**
+     * Returns the rack location (rack name + bin) for [productId] in [warehouseId].
+     *
+     * Returns null pair values when the product has no assigned rack location.
+     */
+    suspend fun getRackLocationForProduct(
+        productId: String,
+        warehouseId: String,
+    ): Result<Pair<String?, String?>>
 }
