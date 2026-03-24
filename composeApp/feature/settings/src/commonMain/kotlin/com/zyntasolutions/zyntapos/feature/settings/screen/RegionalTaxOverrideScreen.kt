@@ -44,10 +44,13 @@ import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTextField
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.RegionalTaxOverride
+import com.zyntasolutions.zyntapos.core.result.onError
+import com.zyntasolutions.zyntapos.core.result.onSuccess
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 
 // ─── MVI contracts ──────────────────────────────────────────────────────────
 
@@ -192,32 +195,30 @@ class RegionalTaxOverrideViewModel(
             jurisdictionCode = s.formJurisdictionCode,
             taxRegistrationNumber = s.formTaxRegistrationNumber,
             isActive = s.formIsActive,
-            createdAt = kotlinx.datetime.Clock.System.now().toEpochMilliseconds(),
-            updatedAt = kotlinx.datetime.Clock.System.now().toEpochMilliseconds(),
+            createdAt = Clock.System.now().toEpochMilliseconds(),
+            updatedAt = Clock.System.now().toEpochMilliseconds(),
         )
 
-        taxOverrideRepository.upsert(override).fold(
-            onSuccess = {
+        taxOverrideRepository.upsert(override)
+            .onSuccess {
                 updateState { copy(showForm = false, editingOverrideId = null) }
                 sendEffect(
                     RegionalTaxOverrideEffect.ShowSuccess(
                         if (s.editingOverrideId != null) "Tax override updated" else "Tax override created"
                     )
                 )
-            },
-            onFailure = { sendEffect(RegionalTaxOverrideEffect.ShowError(it.message ?: "Failed to save")) }
-        )
+            }
+            .onError { sendEffect(RegionalTaxOverrideEffect.ShowError(it.message)) }
     }
 
     private suspend fun confirmDelete() {
         val id = state.value.pendingDeleteId ?: return
-        taxOverrideRepository.delete(id).fold(
-            onSuccess = {
+        taxOverrideRepository.delete(id)
+            .onSuccess {
                 updateState { copy(pendingDeleteId = null) }
                 sendEffect(RegionalTaxOverrideEffect.ShowSuccess("Tax override deleted"))
-            },
-            onFailure = { sendEffect(RegionalTaxOverrideEffect.ShowError(it.message ?: "Delete failed")) }
-        )
+            }
+            .onError { sendEffect(RegionalTaxOverrideEffect.ShowError(it.message)) }
     }
 
 }
