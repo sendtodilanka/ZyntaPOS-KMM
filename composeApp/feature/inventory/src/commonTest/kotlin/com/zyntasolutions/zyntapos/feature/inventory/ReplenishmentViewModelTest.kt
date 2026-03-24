@@ -185,6 +185,8 @@ class ReplenishmentViewModelTest {
         override suspend fun receiveTransfer(transferId: String, receivedBy: String): Result<Unit> = Result.Success(Unit)
         override suspend fun getTransfersByStatus(status: StockTransfer.Status): Result<List<StockTransfer>> =
             Result.Success(emptyList())
+        override suspend fun getRackLocationForProduct(productId: String, warehouseId: String): Result<Pair<String?, String?>> =
+            Result.Success(null to null)
     }
 
     private val fakePurchaseOrderRepo = object : PurchaseOrderRepository {

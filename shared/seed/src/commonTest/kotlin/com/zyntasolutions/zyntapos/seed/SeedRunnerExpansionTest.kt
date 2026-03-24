@@ -350,6 +350,8 @@ class SeedRunnerExpansionTest {
         override suspend fun dispatchTransfer(transferId: String, dispatchedBy: String) = Result.Success(Unit)
         override suspend fun receiveTransfer(transferId: String, receivedBy: String) = Result.Success(Unit)
         override suspend fun getTransfersByStatus(status: StockTransfer.Status) = Result.Success(emptyList<StockTransfer>())
+        override suspend fun getRackLocationForProduct(productId: String, warehouseId: String) =
+            Result.Success(null as String? to null as String?)
     }
 
     private val existingAccountIds = mutableSetOf<String>()

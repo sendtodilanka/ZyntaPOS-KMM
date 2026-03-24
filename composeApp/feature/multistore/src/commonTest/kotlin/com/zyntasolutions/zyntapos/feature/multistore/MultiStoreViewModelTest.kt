@@ -55,6 +55,9 @@ import com.zyntasolutions.zyntapos.domain.model.User
 import com.zyntasolutions.zyntapos.domain.model.Role
 import kotlinx.coroutines.flow.flowOf
 import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
+import com.zyntasolutions.zyntapos.domain.usecase.multistore.GeneratePickListUseCase
+import com.zyntasolutions.zyntapos.hal.printer.PrinterManager
+import com.zyntasolutions.zyntapos.hal.printer.PrinterPort
 import kotlinx.datetime.Instant
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -253,6 +256,9 @@ class MultiStoreViewModelTest {
 
         override suspend fun getTransfersByStatus(status: StockTransfer.Status): Result<List<StockTransfer>> =
             Result.Success(transfersFlow.value.filter { it.status == status })
+
+        override suspend fun getRackLocationForProduct(productId: String, warehouseId: String): Result<Pair<String?, String?>> =
+            Result.Success(null to null)
     }
 
     // ── Fake WarehouseRackRepository ──────────────────────────────────────────
@@ -374,6 +380,16 @@ class MultiStoreViewModelTest {
     private val addTransitEventUseCase = AddTransitEventUseCase(fakeTransitTrackingRepository, fakeWarehouseRepository)
     private val getInTransitCountUseCase = GetInTransitCountUseCase(fakeTransitTrackingRepository)
     private val logWorkflowTransitEventUseCase = LogWorkflowTransitEventUseCase(fakeTransitTrackingRepository)
+    private val generatePickListUseCase = GeneratePickListUseCase(fakeWarehouseRepository, fakeProductRepository)
+    private val fakePrinterPort = object : PrinterPort {
+        override suspend fun connect(): kotlin.Result<Unit> = kotlin.Result.success(Unit)
+        override suspend fun disconnect(): kotlin.Result<Unit> = kotlin.Result.success(Unit)
+        override suspend fun isConnected(): Boolean = false
+        override suspend fun print(commands: ByteArray): kotlin.Result<Unit> = kotlin.Result.success(Unit)
+        override suspend fun openCashDrawer(): kotlin.Result<Unit> = kotlin.Result.success(Unit)
+        override suspend fun cutPaper(): kotlin.Result<Unit> = kotlin.Result.success(Unit)
+    }
+    private val fakePrinterManager = PrinterManager(fakePrinterPort)
 
     private lateinit var viewModel: WarehouseViewModel
 
@@ -413,6 +429,8 @@ class MultiStoreViewModelTest {
             addTransitEventUseCase = addTransitEventUseCase,
             getInTransitCountUseCase = getInTransitCountUseCase,
             logWorkflowTransitEventUseCase = logWorkflowTransitEventUseCase,
+            generatePickListUseCase = generatePickListUseCase,
+            printerManager = fakePrinterManager,
             authRepository = fakeAuthRepository,
             analytics = noOpAnalytics,
         )
