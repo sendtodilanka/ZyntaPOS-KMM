@@ -42,7 +42,6 @@ import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTextField
-import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.RegionalTaxOverride
 import com.zyntasolutions.zyntapos.core.result.onError
 import com.zyntasolutions.zyntapos.core.result.onSuccess
@@ -50,7 +49,6 @@ import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
 
 // ─── MVI contracts ──────────────────────────────────────────────────────────
 
@@ -195,8 +193,8 @@ class RegionalTaxOverrideViewModel(
             jurisdictionCode = s.formJurisdictionCode,
             taxRegistrationNumber = s.formTaxRegistrationNumber,
             isActive = s.formIsActive,
-            createdAt = Clock.System.now().toEpochMilliseconds(),
-            updatedAt = Clock.System.now().toEpochMilliseconds(),
+            createdAt = System.currentTimeMillis(),
+            updatedAt = System.currentTimeMillis(),
         )
 
         taxOverrideRepository.upsert(override)
@@ -290,8 +288,8 @@ fun RegionalTaxOverrideScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         LazyColumn(
-            modifier = Modifier.padding(padding).padding(horizontal = ZyntaSpacing.ScreenPadding),
-            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.CardGap),
+            modifier = Modifier.padding(padding).padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Form
             if (state.showForm) {
@@ -308,7 +306,7 @@ fun RegionalTaxOverrideScreen(
                 item {
                     ZyntaEmptyState(
                         title = "No Regional Tax Overrides",
-                        message = "Global tax rates apply. Add an override to customize tax rates for this store's jurisdiction.",
+                        subtitle = "Global tax rates apply. Add an override to customize tax rates for this store's jurisdiction.",
                     )
                 }
             }
