@@ -281,6 +281,7 @@ class SyncValidatorTest {
                 "PRICING_RULE" -> """{"product_id":"p-1","price":9.99}"""
                 "REGIONAL_TAX_OVERRIDE" -> """{"tax_group_id":"tg-1","effective_rate":15.0}"""
                 "USER_STORE_ACCESS" -> """{"user_id":"u-1","store_id":"s-1"}"""
+                "EMPLOYEE_STORE_ASSIGNMENT" -> """{"employee_id":"e-1","store_id":"s-1"}"""
                 else -> """{"id":"1"}"""
             }
             val result = validator.validateBatch(listOf(op(entityType = entityType, payload = payload)))
