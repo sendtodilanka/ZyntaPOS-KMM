@@ -58,6 +58,7 @@ class NavGraphCompletenessTest {
         "settings",
         "printerSettings",
         "taxSettings",
+        "regionalTaxOverride",
         "userManagement",
         "generalSettings",
         "appearanceSettings",
