@@ -329,3 +329,19 @@ object UserStoreAccessTable : Table("user_store_access") {
     val updatedAt   = timestampWithTimeZone("updated_at")
     override val primaryKey = PrimaryKey(id)
 }
+
+/** C3.4: Employee multi-store assignments for roaming (V36). */
+object EmployeeStoreAssignments : Table("employee_store_assignments") {
+    val id          = uuid("id").autoGenerate()
+    val employeeId  = text("employee_id") // FK to employees.id (table not in Exposed yet)
+    val storeId     = text("store_id").references(Stores.id)
+    val startDate   = text("start_date") // DATE stored as text (ISO-8601)
+    val endDate     = text("end_date").nullable()
+    val isTemporary = bool("is_temporary").default(false)
+    val createdAt   = timestampWithTimeZone("created_at")
+    val updatedAt   = timestampWithTimeZone("updated_at")
+    override val primaryKey = PrimaryKey(id)
+    init {
+        uniqueIndex(employeeId, storeId)
+    }
+}

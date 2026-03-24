@@ -3,6 +3,7 @@ package com.zyntasolutions.zyntapos.api.sync
 import com.zyntasolutions.zyntapos.api.db.PricingRules
 import com.zyntasolutions.zyntapos.api.db.RegionalTaxOverrides
 import com.zyntasolutions.zyntapos.api.db.UserStoreAccessTable
+import com.zyntasolutions.zyntapos.api.db.EmployeeStoreAssignments
 import com.zyntasolutions.zyntapos.api.db.ReplenishmentRules
 import com.zyntasolutions.zyntapos.api.db.WarehouseStock
 import com.zyntasolutions.zyntapos.api.models.SyncOperation
@@ -423,6 +424,7 @@ class EntityApplier {
                 "PRICING_RULE"      -> applyPricingRule(storeId, op)
                 "REGIONAL_TAX_OVERRIDE" -> applyRegionalTaxOverride(storeId, op)
                 "USER_STORE_ACCESS" -> applyUserStoreAccess(op)
+                "EMPLOYEE_STORE_ASSIGNMENT" -> applyEmployeeStoreAssignment(op)
                 "TRANSIT_EVENT"     -> { /* append-only — stored via entity_snapshots; no normalized table */ }
                 else -> { /* entity_snapshots trigger handles any remaining types */ }
             }
@@ -1256,6 +1258,26 @@ class EntityApplier {
                 }
             }
             "DELETE" -> UserStoreAccessTable.deleteWhere { UserStoreAccessTable.id eq java.util.UUID.fromString(op.entityId) }
+        }
+    }
+
+    // ── Employee Store Assignment (C3.4) ─────────────────────────────────
+
+    private fun applyEmployeeStoreAssignment(op: SyncOperation) {
+        val payload = parsePayload(op) ?: return
+        when (op.operation) {
+            "INSERT", "CREATE", "UPDATE" -> {
+                val employeeId = payload.str("employee_id") ?: return
+                val storeId    = payload.str("store_id") ?: return
+                EmployeeStoreAssignments.upsert(EmployeeStoreAssignments.id) {
+                    it[EmployeeStoreAssignments.id]          = java.util.UUID.fromString(op.entityId)
+                    it[EmployeeStoreAssignments.employeeId]  = employeeId
+                    it[EmployeeStoreAssignments.storeId]     = storeId
+                    it[EmployeeStoreAssignments.isTemporary] = payload.bool("is_temporary")
+                    it[EmployeeStoreAssignments.updatedAt]   = OffsetDateTime.now(ZoneOffset.UTC)
+                }
+            }
+            "DELETE" -> EmployeeStoreAssignments.deleteWhere { EmployeeStoreAssignments.id eq java.util.UUID.fromString(op.entityId) }
         }
     }
 

@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-24 (C2.3 tax rate integration at checkout + C3.3 MultiStoreDashboard nav wiring + Android SDK session setup)
+**Last Updated:** 2026-03-24 (admin panel exchange rate UI + backend employee_store_assignments migration + KMM RegionalTaxOverride settings screen)
 **Status:** Approved — Verified against codebase 2026-03-22, updated for ADR-009 compliance
 
 ---
@@ -942,8 +942,10 @@ Backend Tests:
 - [x] `Store` domain model already exists in `:shared:domain` (created by C3.3 session)
 - [x] `StoreRepository` interface already exists in `:shared:domain` (created by C3.3 session)
 
+**What's DONE (2026-03-24):**
+- [x] Admin panel: Exchange rate management UI — `admin-panel/src/routes/settings/exchange-rates.tsx` (table view, upsert form, edit/add functionality; `admin-panel/src/api/exchange-rates.ts` TanStack Query hooks; sidebar nav item under Intelligence; route registered in `routeTree.gen.ts`)
+
 **What's REMAINING (deferred):**
-- [ ] Admin panel: Exchange rate management UI (platform operation — ADR-009 compliant)
 - [ ] KMM: Currency display using store's configured currency, not hardcoded LKR
 - [ ] Real-time exchange rate sync from external API (e.g., ECB, CBSL)
 
@@ -1007,10 +1009,13 @@ Backend Tests:
   - `PosModule.kt` — `GetEffectiveTaxRateUseCase` + `TaxGroupRepository` wired into `AddItemToCartUseCase`
   - 9 new tests: 4 in CalculateOrderTotalsUseCaseTest (per-item inclusive, mixed cart) + 5 in AddItemToCartUseCaseTest (tax resolution, inactive group, null group, fallback)
 
+**What's DONE (2026-03-24, session CurEI):**
+- [x] KMM settings UI: `RegionalTaxOverrideScreen` + `RegionalTaxOverrideViewModel` (MVI) — full CRUD UI with tax group radio selector, rate input, jurisdiction code, tax registration number, active toggle; `RegionalTaxOverrideViewModel` registered in `settingsModule` Koin DI
+
 **What's REMAINING (deferred):**
 - [ ] Support for compound taxes (VAT + service charge + local surcharge stacked)
-- [ ] KMM settings UI: Per-store tax override configuration screen (store owner manages via KMM app per ADR-009)
 - [ ] Backend: REST endpoint `GET/POST /v1/taxes/overrides` with POS JWT auth (store operation per ADR-009)
+- [ ] Wire `RegionalTaxOverrideScreen` into navigation graph (settings section or tax settings sub-route)
 
 **Key Files:**
 - `shared/domain/src/commonMain/.../model/TaxGroup.kt`
@@ -1196,11 +1201,16 @@ Backend Tests:
 - [x] `EmployeeStoreAssignmentRepository` Koin binding in DataModule
 - [x] 11 unit tests (EmployeeStoreAssignmentUseCaseTest) — assign, revoke, isAssigned, idempotent, temporary
 
+**What's DONE (2026-03-24, session CurEI):**
+- [x] Backend migration V36: `employee_store_assignments` PostgreSQL table (UNIQUE employee_id+store_id, 3 indexes, store_id on attendance_records)
+- [x] `EmployeeStoreAssignments` Exposed table object in `Tables.kt`
+- [x] `EntityApplier.applyEmployeeStoreAssignment()` — upsert/delete handler for sync
+- [x] `SyncValidator.VALID_ENTITY_TYPES` — `EMPLOYEE_STORE_ASSIGNMENT` added with field-level validation
+
 **What's REMAINING (deferred):**
 - [ ] Modify `shift_schedules.sq` — allow shifts across different stores for same employee
 - [ ] KMM UI: Employee store assignment management
 - [ ] KMM UI: Store selector on clock-in screen (if employee has multi-store access)
-- [ ] Backend migration: `employee_store_assignments` table
 - [ ] Cross-store attendance reports
 
 ---
@@ -2515,14 +2525,14 @@ git push -u origin $(git branch --show-current)
 | Warehouse Replenishment | C1.5 | ✅ COMPLETE (ReplenishmentRule model, AutoReplenishmentUseCase, 3-tab UI, backend 4 endpoints + 14 tests) |
 | **2. Pricing & Taxation** | | |
 | Region-Based Pricing | C2.1 | ✅ CORE IMPLEMENTED (domain+data+backend+KMM UI; storeId bug fixed 2026-03-22) |
-| Multi-Currency | C2.2 | ✅ CORE IMPLEMENTED (ExchangeRate model + table + repo + ConvertCurrencyUseCase + backend V33 + admin endpoints + Order.currency field + OrderMapper fix; 2026-03-23) |
-| Localized Tax | C2.3 | ✅ CHECKOUT INTEGRATED (regional override → cart item tax rate + per-item inclusive; 2026-03-24) |
+| Multi-Currency | C2.2 | ✅ CORE IMPLEMENTED + ADMIN UI (ExchangeRate model + table + repo + ConvertCurrencyUseCase + backend V33 + admin endpoints + admin panel exchange rate management page + Order.currency field + OrderMapper fix; 2026-03-24) |
+| Localized Tax | C2.3 | ✅ CHECKOUT INTEGRATED + KMM SETTINGS UI (regional override → cart item tax rate + per-item inclusive + RegionalTaxOverrideScreen + ViewModel; 2026-03-24) |
 | Store-Specific Discounts | C2.4 | ✅ CORE IMPLEMENTED (store_id on coupons, store_ids on promotions, validation + query; 2026-03-22) |
 | **3. Access Control** | | |
 | RBAC | C3.1 | COMPLETE |
 | Store-Level Permissions | C3.2 | ✅ CORE IMPLEMENTED (junction table, domain model, RBAC, backend; 2026-03-23) |
 | Global Admin Dashboard | C3.3 | ✅ NAV WIRED (Store model + StoreRepo + dashboard screen + store switcher + 13 tests + MainNavGraph route; 2026-03-24) |
-| Employee Roaming | C3.4 | ✅ CORE IMPLEMENTED (assignment table + domain model + 3 use cases + 11 tests; 2026-03-23) |
+| Employee Roaming | C3.4 | ✅ CORE IMPLEMENTED + BACKEND (assignment table + domain model + 3 use cases + 11 tests + V36 migration + EntityApplier + SyncValidator; 2026-03-24) |
 | **4. Sales & Customer** | | |
 | Cross-Store Returns | C4.1 | ✅ CORE IMPLEMENTED (order fields + use cases + 11 tests; 2026-03-23) |
 | Universal Loyalty | C4.2 | ✅ POS CHECKOUT INTEGRATED (earn + redeem via LoyaltyRedemptionDialog + discount in CartSummaryFooter + tier progression + 25 tests; 2026-03-23) |
