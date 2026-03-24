@@ -20,6 +20,8 @@ import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
 import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
 import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
+import com.zyntasolutions.zyntapos.domain.repository.StoreRepository
+import com.zyntasolutions.zyntapos.domain.model.Store
 import com.zyntasolutions.zyntapos.feature.dashboard.mvi.DashboardEffect
 import com.zyntasolutions.zyntapos.feature.dashboard.mvi.DashboardIntent
 import kotlinx.coroutines.Dispatchers
@@ -116,6 +118,13 @@ class DashboardViewModelTest {
         override fun getMovements(sessionId: String): Flow<List<CashMovement>> = flowOf(emptyList())
     }
 
+    private val fakeStoreRepository = object : StoreRepository {
+        override fun getAllStores(): Flow<List<Store>> = flowOf(emptyList())
+        override suspend fun getById(storeId: String): Store? = null
+        override suspend fun getStoreName(storeId: String): String? = "Test Store"
+        override suspend fun upsertFromSync(store: Store) {}
+    }
+
     private val fakeAuthRepository = object : AuthRepository {
         override suspend fun login(email: String, password: String): Result<User> = Result.Error(DatabaseException("Error"))
         override suspend fun logout() { logoutCalled = true; sessionFlow.value = null }
@@ -154,6 +163,7 @@ class DashboardViewModelTest {
             productRepository = fakeProductRepository,
             registerRepository = fakeRegisterRepository,
             authRepository = fakeAuthRepository,
+            storeRepository = fakeStoreRepository,
             analytics = noOpAnalytics,
         )
     }

@@ -33,6 +33,10 @@ import com.zyntasolutions.zyntapos.domain.model.RegisterSession
  */
 @Immutable
 data class RegisterState(
+    // ── Store context ─────────────────────────────────────────────────────
+    val activeStoreId: String = "",
+    val storeName: String = "",
+
     // ── Session ───────────────────────────────────────────────────────────
     val activeSession: RegisterSession? = null,
 

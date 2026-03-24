@@ -66,6 +66,7 @@ val registerModule = module {
             printZReportUseCase         = get(),
             printA4ZReportUseCase       = get(),
             authRepository              = get(),
+            storeRepository             = get(),
             openCashDrawerUseCase       = get(),
             auditLogger                 = get(),
             analytics                   = get(),

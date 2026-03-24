@@ -14,9 +14,11 @@ import com.zyntasolutions.zyntapos.domain.printer.A4InvoicePrinterPort
 import com.zyntasolutions.zyntapos.domain.printer.ReceiptPrinterPort
 import com.zyntasolutions.zyntapos.domain.printer.ZReportPrinterPort
 import com.zyntasolutions.zyntapos.domain.repository.AuditRepository
+import com.zyntasolutions.zyntapos.domain.model.Store
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
 import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
+import com.zyntasolutions.zyntapos.domain.repository.StoreRepository
 import com.zyntasolutions.zyntapos.domain.usecase.auth.CheckPermissionUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.CloseRegisterSessionUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.OpenRegisterSessionUseCase
@@ -182,6 +184,14 @@ class RegisterViewModelTest {
             else Result.Success(Unit)
     }
 
+    private val fakeStoreRepository = object : StoreRepository {
+        override fun getAllStores(): Flow<List<Store>> = flowOf(emptyList())
+        override suspend fun getById(storeId: String): Store? = null
+        override suspend fun getStoreName(storeId: String): String? =
+            if (storeId == "store-001") "Test Store" else null
+        override suspend fun upsertFromSync(store: Store) = Unit
+    }
+
     private val noOpAnalytics = object : AnalyticsTracker {
         override fun logEvent(name: String, params: Map<String, String>) = Unit
         override fun logScreenView(screenName: String, screenClass: String) = Unit
@@ -232,6 +242,7 @@ class RegisterViewModelTest {
             printZReportUseCase = printZReportUseCase,
             printA4ZReportUseCase = printA4ZReportUseCase,
             authRepository = fakeAuthRepository,
+            storeRepository = fakeStoreRepository,
             openCashDrawerUseCase = OpenCashDrawerUseCase(fakeReceiptPrinterPort),
             auditLogger = testAuditLogger,
             analytics = noOpAnalytics,

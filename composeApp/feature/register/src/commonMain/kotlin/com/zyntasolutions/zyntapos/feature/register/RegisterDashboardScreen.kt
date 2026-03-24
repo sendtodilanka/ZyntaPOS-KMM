@@ -76,6 +76,27 @@ fun RegisterDashboardScreen(
         title = "Register",
         onNavigateBack = onNavigateBack,
         snackbarHostState = snackbarHost,
+        actions = {
+            if (state.storeName.isNotEmpty()) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(end = ZyntaSpacing.sm),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Store,
+                        contentDescription = "Current store",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        text = state.storeName,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        },
     ) { innerPadding ->
         if (session == null) {
             // Guard re-routes before this is shown, but handle null defensively

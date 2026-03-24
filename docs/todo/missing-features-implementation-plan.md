@@ -1854,7 +1854,7 @@ Backend Tests:
 
 | Gap | Severity | Phase |
 |-----|----------|-------|
-| **No multi-store cash consolidation** — Single register view | HIGH | Phase 2 |
+| ~~**No multi-store cash consolidation**~~ — ✅ PARTIAL: Store context displayed in Register top bar via `RegisterState.storeName` + `StoreRepository`; full multi-store cash aggregation deferred (2026-03-24) | ~~HIGH~~ | ✅ PARTIAL (2026-03-24) |
 | **No discrepancy approval workflow** — Warning shown, no manager sign-off | MEDIUM | Phase 2 |
 | **No shift handoff flow** — No cashier takeover process | MEDIUM | Phase 2 |
 | **No cash removal authorization** — Large cash-outs bypass oversight | MEDIUM | Phase 2 |
@@ -1887,7 +1887,7 @@ Backend Tests:
 | Gap | Severity | Phase |
 |-----|----------|-------|
 | **No real-time updates** — Loads once on screen open, never refreshes | CRITICAL | Phase 2 |
-| **No multi-store KPI consolidation** | CRITICAL | Phase 2 |
+| ~~**No multi-store KPI consolidation**~~ — ✅ PARTIAL: Store context chip (StoreNameChip) in dashboard top bar via `DashboardState.storeName` + `StoreRepository`; full KPI aggregation deferred (2026-03-24) | ~~CRITICAL~~ | ✅ PARTIAL (2026-03-24) |
 | **Daily sales target hardcoded** ("LKR 50,000") not configurable | MEDIUM | Phase 2 |
 | **Hourly sparkline data calculated but never rendered** | LOW | Phase 1.5 |
 | **No comparison to previous period** (yesterday, last week) | MEDIUM | Phase 2 |

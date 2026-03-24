@@ -11,6 +11,10 @@ import com.zyntasolutions.zyntapos.domain.model.User
  */
 data class DashboardState(
     val currentUser: User? = null,
+    /** ID of the currently active store (from auth session). */
+    val activeStoreId: String = "",
+    /** Display name of the currently active store. */
+    val storeName: String = "",
     val todaysSales: Double = 0.0,
     val totalOrders: Long = 0L,
     val lowStockCount: Long = 0L,
