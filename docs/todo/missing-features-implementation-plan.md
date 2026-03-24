@@ -1794,7 +1794,7 @@ Backend Tests:
 
 | Component | Purpose | Priority | Blocks |
 |-----------|---------|----------|--------|
-| `ZyntaLoyaltyBadge` | Customer loyalty tier indicator (Bronze/Silver/Gold) | **MEDIUM** | C4.2 Loyalty |
+| ~~`ZyntaLoyaltyBadge`~~ → ✅ DONE as `ZyntaLoyaltyTierBadge` (2026-03-24) | Customer loyalty tier indicator (Bronze/Silver/Gold/Platinum) | ~~**MEDIUM**~~ | ✅ DONE |
 | `ZyntaDateRangeSelector` | Two-date picker for report filters | **MEDIUM** | C5.1 Reports (partial — `ZyntaDateRangePicker` already exists) |
 | `ZyntaWarehouseDropdown` | Warehouse context switcher | **MEDIUM** | C1.2 Inventory (partial — private impl exists in multistore) |
 
@@ -1859,7 +1859,7 @@ Backend Tests:
 | **No shift handoff flow** — No cashier takeover process | MEDIUM | Phase 2 |
 | **No cash removal authorization** — Large cash-outs bypass oversight | MEDIUM | Phase 2 |
 | **No float tracking** — Register float vs sales cash not separated | MEDIUM | Phase 2 |
-| **No register location label** (e.g., "Front Counter", "Lane 3") | LOW | Phase 2 |
+| ~~**No register location label**~~ — ✅ DONE: `activeRegister: CashRegister?` in RegisterState; register name shown in status banner ("Lane 3 — OPEN"), session info card, and CloseRegisterScreen title (2026-03-24) | ~~LOW~~ | ✅ DONE (2026-03-24) |
 
 ---
 
@@ -1935,7 +1935,7 @@ Backend Tests:
 |-----|----------|-------|
 | ~~**No GDPR Export button**~~ — ✅ DONE: Button in TopAppBar, effect wired in App.kt with selectable JSON dialog | ~~HIGH~~ | ✅ DONE (2026-03-23) |
 | **No cross-store customer profile view** | MEDIUM | Phase 2 |
-| **No loyalty tier display** — Raw points only, no Bronze/Silver/Gold badge | MEDIUM | Phase 2 |
+| ~~**No loyalty tier display**~~ — ✅ DONE: `ZyntaLoyaltyTierBadge` (Bronze/Silver/Gold/Platinum colors) in CustomerListScreen + CustomerDetailScreen; tier resolved via `loyaltyRepository.getTierForPoints()` in CustomerViewModel (2026-03-24) | ~~MEDIUM~~ | ✅ DONE (2026-03-24) |
 | **No bulk customer import** (CSV) | LOW | Phase 3 |
 | **No advanced customer segmentation/filtering** | LOW | Phase 3 |
 
@@ -2007,7 +2007,7 @@ Backend Tests:
 |-----|----------|-------|
 | ~~**Data integrity check button missing**~~ — ✅ VERIFIED: `IntegrityBadge` composable in `AuditLogScreen` (L367-438) has refresh icon button + auto-runs on init + status display | ~~MEDIUM~~ | ✅ DONE |
 | **No backup scheduling** — Manual only | MEDIUM | Phase 2 |
-| **No audit log CSV/JSON export** | MEDIUM | Phase 2 |
+| ~~**No audit log CSV/JSON export**~~ — ✅ DONE: `ExportDropdown` with CSV/JSON options in AuditLogScreen; `ExportAuditLogJson` intent + `ShareAuditExport` effect with RFC 4180 CSV + JSON escaping (2026-03-24) | ~~MEDIUM~~ | ✅ DONE (2026-03-24) |
 | **No license info display** | LOW | Phase 2 |
 | **No crash log/Sentry viewer** | LOW | Phase 3 |
 
