@@ -29,6 +29,7 @@ import { Route as StoresStoreIdRouteImport } from './routes/stores/$storeId'
 import { Route as SettingsProfileRouteImport } from './routes/settings/profile'
 import { Route as SettingsMfaRouteImport } from './routes/settings/mfa'
 import { Route as SettingsEmailRouteImport } from './routes/settings/email'
+import { Route as SettingsExchangeRatesRouteImport } from './routes/settings/exchange-rates'
 import { Route as LicensesLicenseKeyRouteImport } from './routes/licenses/$licenseKey'
 import { Route as HealthStoreIdRouteImport } from './routes/health/$storeId'
 import { Route as InventoryIndexRouteImport } from './routes/inventory/index'
@@ -157,6 +158,11 @@ const SettingsEmailRoute = SettingsEmailRouteImport.update({
   path: '/settings/email',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsExchangeRatesRoute = SettingsExchangeRatesRouteImport.update({
+  id: '/settings/exchange-rates',
+  path: '/settings/exchange-rates',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LicensesLicenseKeyRoute = LicensesLicenseKeyRouteImport.update({
   id: '/licenses/$licenseKey',
   path: '/licenses/$licenseKey',
@@ -180,6 +186,7 @@ export interface FileRoutesByFullPath {
   '/licenses/$licenseKey': typeof LicensesLicenseKeyRoute
   '/master-products/$masterProductId': typeof MasterProductsMasterProductIdRoute
   '/settings/email': typeof SettingsEmailRoute
+  '/settings/exchange-rates': typeof SettingsExchangeRatesRoute
   '/settings/mfa': typeof SettingsMfaRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/stores/$storeId': typeof StoresStoreIdRoute
@@ -209,6 +216,7 @@ export interface FileRoutesByTo {
   '/licenses/$licenseKey': typeof LicensesLicenseKeyRoute
   '/master-products/$masterProductId': typeof MasterProductsMasterProductIdRoute
   '/settings/email': typeof SettingsEmailRoute
+  '/settings/exchange-rates': typeof SettingsExchangeRatesRoute
   '/settings/mfa': typeof SettingsMfaRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/stores/$storeId': typeof StoresStoreIdRoute
@@ -239,6 +247,7 @@ export interface FileRoutesById {
   '/licenses/$licenseKey': typeof LicensesLicenseKeyRoute
   '/master-products/$masterProductId': typeof MasterProductsMasterProductIdRoute
   '/settings/email': typeof SettingsEmailRoute
+  '/settings/exchange-rates': typeof SettingsExchangeRatesRoute
   '/settings/mfa': typeof SettingsMfaRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/stores/$storeId': typeof StoresStoreIdRoute
@@ -270,6 +279,7 @@ export interface FileRouteTypes {
     | '/licenses/$licenseKey'
     | '/master-products/$masterProductId'
     | '/settings/email'
+    | '/settings/exchange-rates'
     | '/settings/mfa'
     | '/settings/profile'
     | '/stores/$storeId'
@@ -299,6 +309,7 @@ export interface FileRouteTypes {
     | '/licenses/$licenseKey'
     | '/master-products/$masterProductId'
     | '/settings/email'
+    | '/settings/exchange-rates'
     | '/settings/mfa'
     | '/settings/profile'
     | '/stores/$storeId'
@@ -327,6 +338,7 @@ export interface FileRouteTypes {
     | '/licenses/$licenseKey'
     | '/master-products/$masterProductId'
     | '/settings/email'
+    | '/settings/exchange-rates'
     | '/settings/mfa'
     | '/settings/profile'
     | '/stores/$storeId'
@@ -360,6 +372,7 @@ export interface RootRouteChildren {
   MasterProductsMasterProductIdRoute: typeof MasterProductsMasterProductIdRoute
   MasterProductsIndexRoute: typeof MasterProductsIndexRoute
   SettingsEmailRoute: typeof SettingsEmailRoute
+  SettingsExchangeRatesRoute: typeof SettingsExchangeRatesRoute
   SettingsMfaRoute: typeof SettingsMfaRoute
   SettingsProfileRoute: typeof SettingsProfileRoute
   StoresStoreIdRoute: typeof StoresStoreIdRoute
@@ -550,6 +563,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/exchange-rates': {
+      id: '/settings/exchange-rates'
+      path: '/settings/exchange-rates'
+      fullPath: '/settings/exchange-rates'
+      preLoaderRoute: typeof SettingsExchangeRatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/licenses/$licenseKey': {
       id: '/licenses/$licenseKey'
       path: '/licenses/$licenseKey'
@@ -584,6 +604,7 @@ const rootRouteChildren: RootRouteChildren = {
   MasterProductsMasterProductIdRoute: MasterProductsMasterProductIdRoute,
   MasterProductsIndexRoute: MasterProductsIndexRoute,
   SettingsEmailRoute: SettingsEmailRoute,
+  SettingsExchangeRatesRoute: SettingsExchangeRatesRoute,
   SettingsMfaRoute: SettingsMfaRoute,
   SettingsProfileRoute: SettingsProfileRoute,
   StoresStoreIdRoute: StoresStoreIdRoute,

@@ -14,6 +14,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.settings.SaveLabelPrinterConfi
 import com.zyntasolutions.zyntapos.domain.usecase.settings.SavePrinterProfileUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.SaveUserUseCase
 import com.zyntasolutions.zyntapos.feature.settings.edition.EditionManagementViewModel
+import com.zyntasolutions.zyntapos.feature.settings.screen.RegionalTaxOverrideViewModel
 import com.zyntasolutions.zyntapos.hal.printer.PrinterManager
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.viewModelOf
@@ -61,4 +62,5 @@ val settingsModule = module {
     // ── ViewModels ────────────────────────────────────────────────────────────
     viewModelOf(::SettingsViewModel)
     viewModelOf(::EditionManagementViewModel)
+    viewModelOf(::RegionalTaxOverrideViewModel)
 }

@@ -36,6 +36,8 @@ class SyncValidator {
             "PRICING_RULE", "REGIONAL_TAX_OVERRIDE",
             // Phase 2: User Access (C3.2)
             "USER_STORE_ACCESS",
+            // Phase 2: Employee Roaming (C3.4)
+            "EMPLOYEE_STORE_ASSIGNMENT",
         )
         private val json = Json { ignoreUnknownKeys = true }
     }
@@ -251,6 +253,12 @@ class SyncValidator {
                     if (taxGroupId.isNullOrBlank()) errors.add("REGIONAL_TAX_OVERRIDE.tax_group_id must not be blank")
                     val effectiveRate = obj.dbl("effective_rate")
                     if (effectiveRate < 0 || effectiveRate > 100) errors.add("REGIONAL_TAX_OVERRIDE.effective_rate must be 0-100")
+                }
+                "EMPLOYEE_STORE_ASSIGNMENT" -> {
+                    val employeeId = obj.str("employee_id")
+                    if (employeeId.isNullOrBlank()) errors.add("EMPLOYEE_STORE_ASSIGNMENT.employee_id must not be blank")
+                    val storeId = obj.str("store_id")
+                    if (storeId.isNullOrBlank()) errors.add("EMPLOYEE_STORE_ASSIGNMENT.store_id must not be blank")
                 }
                 // Other entity types: structural JSON validation only (already done above)
             }
