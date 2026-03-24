@@ -26,6 +26,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -51,11 +52,19 @@ import org.koin.compose.viewmodel.koinViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PickListScreen(
+    transferId: String? = null,
     onNavigateUp: () -> Unit,
     viewModel: WarehouseViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
     val pickList = state.pickList
+
+    // Re-generate pick list if state was lost (e.g., process death)
+    LaunchedEffect(transferId) {
+        if (pickList == null && transferId != null) {
+            viewModel.dispatch(WarehouseIntent.GeneratePickList(transferId))
+        }
+    }
 
     Scaffold(
         topBar = {

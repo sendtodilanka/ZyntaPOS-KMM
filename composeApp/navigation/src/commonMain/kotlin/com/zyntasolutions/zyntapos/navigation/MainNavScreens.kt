@@ -227,6 +227,7 @@ data class MainNavScreens(
     val storeTransferDashboard: @Composable (
         onNavigateToNewTransfer: (sourceWarehouseId: String?) -> Unit,
         onNavigateUp: () -> Unit,
+        onNavigateToPickList: (transferId: String) -> Unit,
     ) -> Unit,
 
     val stockTransferList: @Composable (
@@ -238,6 +239,12 @@ data class MainNavScreens(
         sourceWarehouseId: String?,
         onComplete: () -> Unit,
         onCancel: () -> Unit,
+    ) -> Unit,
+
+    /** Pick list view for an approved transfer (P3-B1). */
+    val pickListView: @Composable (
+        transferId: String,
+        onNavigateUp: () -> Unit,
     ) -> Unit,
 
     // ── Warehouse Racks sub-graph  (Sprint 18) ────────────────────────────────

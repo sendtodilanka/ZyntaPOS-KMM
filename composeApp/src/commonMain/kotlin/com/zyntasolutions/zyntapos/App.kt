@@ -61,6 +61,7 @@ import com.zyntasolutions.zyntapos.feature.expenses.ExpenseDetailScreen
 import com.zyntasolutions.zyntapos.feature.expenses.ExpenseListScreen
 import com.zyntasolutions.zyntapos.feature.multistore.NewStockTransferScreen
 import com.zyntasolutions.zyntapos.feature.multistore.StockTransferListScreen
+import com.zyntasolutions.zyntapos.feature.multistore.PickListScreen
 import com.zyntasolutions.zyntapos.feature.multistore.StoreTransferDashboardScreen
 import com.zyntasolutions.zyntapos.feature.multistore.WarehouseDetailScreen
 import com.zyntasolutions.zyntapos.feature.multistore.WarehouseListScreen
@@ -779,10 +780,11 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
         WarehouseDetailScreen(warehouseId = warehouseId, onNavigateUp = onNavigateUp)
     },
 
-    storeTransferDashboard = { onNavigateToNewTransfer, onNavigateUp ->
+    storeTransferDashboard = { onNavigateToNewTransfer, onNavigateUp, onNavigateToPickList ->
         StoreTransferDashboardScreen(
             onNavigateToNewTransfer = onNavigateToNewTransfer,
             onNavigateUp = onNavigateUp,
+            onNavigateToPickList = onNavigateToPickList,
         )
     },
 
@@ -799,6 +801,10 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
             onComplete = onComplete,
             onCancel = onCancel,
         )
+    },
+
+    pickListView = { transferId, onNavigateUp ->
+        PickListScreen(transferId = transferId, onNavigateUp = onNavigateUp)
     },
 
     // ── Admin  (Sprint 13-15) ────────────────────────────────────────────────

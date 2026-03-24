@@ -10,6 +10,7 @@ import com.zyntasolutions.zyntapos.license.models.AdminUpdateLicenseRequest
 import kotlinx.coroutines.test.runTest
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll

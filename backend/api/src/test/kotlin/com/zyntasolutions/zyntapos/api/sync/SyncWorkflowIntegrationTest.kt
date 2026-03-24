@@ -14,6 +14,7 @@ import com.zyntasolutions.zyntapos.api.repository.SyncOperations
 import com.zyntasolutions.zyntapos.api.service.Products
 import com.zyntasolutions.zyntapos.api.test.TestFixtures
 import kotlinx.coroutines.test.runTest
+import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.junit.jupiter.api.BeforeEach

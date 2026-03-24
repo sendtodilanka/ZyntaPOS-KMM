@@ -405,6 +405,16 @@ sealed class ZyntaRoute {
     data class NewStockTransfer(val sourceWarehouseId: String? = null) : ZyntaRoute()
 
     /**
+     * Pick list view for an approved inter-store transfer (P3-B1).
+     *
+     * Shows items to pick sorted by rack location with a print-to-printer action.
+     *
+     * @param transferId The approved transfer to generate the pick list for.
+     */
+    @Serializable
+    data class PickListView(val transferId: String) : ZyntaRoute()
+
+    /**
      * Multi-store global dashboard — aggregated KPIs across all accessible
      * stores with per-store comparison and store switcher (C3.3).
      */
