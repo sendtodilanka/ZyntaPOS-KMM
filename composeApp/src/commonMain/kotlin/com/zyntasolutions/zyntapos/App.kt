@@ -823,7 +823,7 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
     // ── Multi-Store Dashboard (C3.3) ────────────────────────────────────────
     multiStoreDashboard = { onNavigateUp ->
         val vm: MultiStoreDashboardViewModel = koinViewModel()
-        MultiStoreDashboardScreen(viewModel = vm)
+        MultiStoreDashboardScreen(viewModel = vm, onNavigateBack = onNavigateUp)
     },
 
     // ── Accounting / E-Invoice  (Sprint 18-24) ────────────────────────────────
