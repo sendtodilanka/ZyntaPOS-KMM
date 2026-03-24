@@ -14,7 +14,7 @@ import kotlin.test.assertTrue
  */
 class WebSocketMessagesTest {
 
-    private val json = Json { ignoreUnknownKeys = true }
+    private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
     // ── WsAck ─────────────────────────────────────────────────────────────
 
