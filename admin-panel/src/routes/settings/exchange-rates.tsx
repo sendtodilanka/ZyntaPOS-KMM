@@ -75,10 +75,10 @@ function ExchangeRatesPage() {
           onSave={async (data) => {
             try {
               await upsertMutation.mutateAsync(data);
-              toast(editingRate ? 'Exchange rate updated' : 'Exchange rate added', 'success');
+              toast.success(editingRate ? 'Exchange rate updated' : 'Exchange rate added');
               handleCloseForm();
             } catch {
-              toast('Failed to save exchange rate', 'error');
+              toast.error('Failed to save exchange rate');
             }
           }}
           onCancel={handleCloseForm}
@@ -150,7 +150,7 @@ function ExchangeRatesPage() {
                   <td className="px-4 py-3 text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <Clock className="h-3.5 w-3.5" />
-                      {formatDate(rate.updatedAt)}
+                      {formatDate(new Date(rate.updatedAt).getTime())}
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right">
