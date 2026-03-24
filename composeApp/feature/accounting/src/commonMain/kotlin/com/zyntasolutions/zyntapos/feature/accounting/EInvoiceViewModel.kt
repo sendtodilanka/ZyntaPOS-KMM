@@ -95,7 +95,14 @@ class EInvoiceViewModel(
                 } else {
                     "IRD submission failed: ${irdResult.errorMessage ?: "Unknown error"}"
                 }
-                updateState { copy(isSubmitting = false, successMessage = msg.takeIf { irdResult.success }) }
+                updateState {
+                    copy(
+                        isSubmitting = false,
+                        successMessage = msg.takeIf { irdResult.success },
+                        // Refresh selectedInvoice from the reactive list so status badge updates
+                        selectedInvoice = invoices.find { it.id == invoiceId } ?: selectedInvoice,
+                    )
+                }
                 if (!irdResult.success) {
                     updateState { copy(error = msg) }
                 }
