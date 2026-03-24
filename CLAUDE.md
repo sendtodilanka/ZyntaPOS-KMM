@@ -88,7 +88,29 @@ echo $ANDROID_HOME   # Must point to a valid SDK directory
 ls $ANDROID_HOME/platforms | grep android-36   # compileSdk 36 must be installed
 ```
 
-If missing, install via Android Studio SDK Manager: API 36, Build Tools 35+.
+If missing (common in Claude Code web sessions — no Android Studio available), install minimal SDK:
+```bash
+# 1. Download cmdline-tools
+mkdir -p /home/user/android-sdk/cmdline-tools
+cd /home/user/android-sdk/cmdline-tools
+curl -sL "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip" -o cmdline-tools.zip
+unzip -q cmdline-tools.zip && mv cmdline-tools latest && rm cmdline-tools.zip
+
+# 2. Install platform 36 (direct download — sdkmanager may fail behind proxy)
+cd /tmp
+curl -sL "https://dl.google.com/android/repository/platform-36_r01.zip" -o platform-36.zip
+unzip -q -o platform-36.zip -d /home/user/android-sdk/platforms/
+mv /home/user/android-sdk/platforms/android-16 /home/user/android-sdk/platforms/android-36 2>/dev/null
+
+# 3. Create minimal build-tools placeholder + platform-tools dir
+mkdir -p /home/user/android-sdk/build-tools/35.0.0 /home/user/android-sdk/platform-tools
+echo "Pkg.Revision=35.0.0" > /home/user/android-sdk/build-tools/35.0.0/source.properties
+
+# 4. Export for current session
+export ANDROID_HOME=/home/user/android-sdk
+```
+
+Then update `local.properties` (Step 4 below) with `sdk.dir=/home/user/android-sdk`.
 
 ### Step 4 — Verify `local.properties` Exists
 

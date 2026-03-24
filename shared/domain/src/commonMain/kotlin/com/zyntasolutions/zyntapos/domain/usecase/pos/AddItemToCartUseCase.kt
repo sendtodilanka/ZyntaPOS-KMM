@@ -6,7 +6,9 @@ import com.zyntasolutions.zyntapos.domain.model.CartItem
 import com.zyntasolutions.zyntapos.domain.model.DiscountType
 import com.zyntasolutions.zyntapos.domain.model.Product
 import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
+import com.zyntasolutions.zyntapos.domain.repository.TaxGroupRepository
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.GetEffectiveProductPriceUseCase
+import kotlin.time.Clock
 
 /**
  * Adds a product to the active cart, validating stock availability and applying
@@ -27,10 +29,14 @@ import com.zyntasolutions.zyntapos.domain.usecase.inventory.GetEffectiveProductP
  *
  * @param productRepository Source of truth for real-time stock levels.
  * @param getEffectivePrice Resolves the store-aware price (C2.1 region-based pricing).
+ * @param taxGroupRepository Looks up TaxGroup by ID for tax rate resolution (C2.3).
+ * @param getEffectiveTaxRate Resolves regional tax overrides per store (C2.3).
  */
 class AddItemToCartUseCase(
     private val productRepository: ProductRepository,
     private val getEffectivePrice: GetEffectiveProductPriceUseCase? = null,
+    private val taxGroupRepository: TaxGroupRepository? = null,
+    private val getEffectiveTaxRate: GetEffectiveTaxRateUseCase? = null,
 ) {
     /**
      * @param currentCart The caller's current list of [CartItem]s (may be empty).
@@ -95,6 +101,9 @@ class AddItemToCartUseCase(
                     product.price
                 }
 
+                // Resolve tax rate from product's TaxGroup + regional override (C2.3)
+                val (effectiveTaxRate, taxInclusive) = resolveTaxRate(product, storeId)
+
                 val updatedCart = if (existingItem != null) {
                     currentCart.map { item ->
                         if (item.productId == productId) {
@@ -110,12 +119,43 @@ class AddItemToCartUseCase(
                         unitPrice = effectivePrice,
                         quantity = quantity,
                         discountType = DiscountType.FIXED,
-                        taxRate = 0.0, // Resolved by CalculateOrderTotalsUseCase via TaxGroup
+                        taxRate = effectiveTaxRate,
+                        isTaxInclusive = taxInclusive,
                     )
                 }
 
                 Result.Success(updatedCart)
             }
         }
+    }
+
+    /**
+     * Resolves the effective tax rate and inclusive flag for a product at a store.
+     *
+     * Resolution: Product.taxGroupId → TaxGroup → GetEffectiveTaxRateUseCase (regional override)
+     * Falls back to (0.0, false) if no TaxGroup is assigned or repos are not injected.
+     */
+    private suspend fun resolveTaxRate(product: Product, storeId: String): Pair<Double, Boolean> {
+        val taxGroupId = product.taxGroupId ?: return 0.0 to false
+        val taxGroupRepo = taxGroupRepository ?: return 0.0 to false
+
+        val taxGroup = when (val result = taxGroupRepo.getById(taxGroupId)) {
+            is Result.Success -> result.data
+            else -> return 0.0 to false
+        }
+
+        if (!taxGroup.isActive) return 0.0 to false
+
+        val effectiveRate = if (getEffectiveTaxRate != null && storeId.isNotBlank()) {
+            getEffectiveTaxRate.invoke(
+                taxGroup = taxGroup,
+                storeId = storeId,
+                nowEpochMs = Clock.System.now().toEpochMilliseconds(),
+            )
+        } else {
+            taxGroup.rate
+        }
+
+        return effectiveRate to taxGroup.isInclusive
     }
 }

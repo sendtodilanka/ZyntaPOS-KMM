@@ -239,4 +239,58 @@ class CalculateOrderTotalsUseCaseTest {
         val result = useCase(items) as Result.Success
         assertEquals(3, result.data.itemCount)
     }
+
+    // ─── Per-Item isTaxInclusive (C2.3) ────────────────────────────────────────
+
+    @Test
+    fun `per-item isTaxInclusive true - tax extracted from gross`() {
+        // 110 × 1, inclusive 10% → tax = 10, total = 110 (tax is within price)
+        val items = listOf(
+            buildCartItem(unitPrice = 110.0, quantity = 1.0, taxRate = 10.0, isTaxInclusive = true),
+        )
+        val result = useCase(items, taxInclusive = false) as Result.Success
+        assertEquals(110.0, result.data.subtotal, 0.005)
+        assertEquals(10.0, result.data.taxAmount, 0.005)
+        assertEquals(110.0, result.data.total, 0.005) // inclusive — total = subtotal
+    }
+
+    @Test
+    fun `per-item isTaxInclusive false - tax added on top`() {
+        // 100 × 1, exclusive 10% → tax = 10, total = 110
+        val items = listOf(
+            buildCartItem(unitPrice = 100.0, quantity = 1.0, taxRate = 10.0, isTaxInclusive = false),
+        )
+        val result = useCase(items, taxInclusive = false) as Result.Success
+        assertEquals(100.0, result.data.subtotal, 0.005)
+        assertEquals(10.0, result.data.taxAmount, 0.005)
+        assertEquals(110.0, result.data.total, 0.005)
+    }
+
+    @Test
+    fun `mixed inclusive and exclusive items - totals calculated correctly`() {
+        // Item 1: 110 inclusive 10% → tax = 10, base = 110
+        // Item 2: 100 exclusive 10% → tax = 10, base = 100
+        // subtotal = 210, totalTax = 20, total = 210 + 10 (exclusive only) = 220
+        val items = listOf(
+            buildCartItem(productId = "p1", unitPrice = 110.0, quantity = 1.0,
+                taxRate = 10.0, isTaxInclusive = true),
+            buildCartItem(productId = "p2", unitPrice = 100.0, quantity = 1.0,
+                taxRate = 10.0, isTaxInclusive = false),
+        )
+        val result = useCase(items, taxInclusive = false) as Result.Success
+        assertEquals(210.0, result.data.subtotal, 0.005)
+        assertEquals(20.0, result.data.taxAmount, 0.005)
+        // total = 210 (subtotal) + 10 (exclusive tax only) = 220
+        assertEquals(220.0, result.data.total, 0.005)
+    }
+
+    @Test
+    fun `per-item inclusive overrides global taxInclusive false`() {
+        // Even though global taxInclusive=false, item's isTaxInclusive=true takes effect
+        val items = listOf(
+            buildCartItem(unitPrice = 110.0, quantity = 1.0, taxRate = 10.0, isTaxInclusive = true),
+        )
+        val result = useCase(items, taxInclusive = false) as Result.Success
+        assertEquals(110.0, result.data.total, 0.005) // inclusive — no extra tax on top
+    }
 }

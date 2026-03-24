@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-23 (C4.2 loyalty redemption UI in cart + G10 GDPR export effect wiring + INV-5 supplier purchase history + INV-8/INV-9/MS-4 verified complete)
+**Last Updated:** 2026-03-24 (C2.3 tax rate integration at checkout + C3.3 MultiStoreDashboard nav wiring + Android SDK session setup)
 **Status:** Approved — Verified against codebase 2026-03-22, updated for ADR-009 compliance
 
 ---
@@ -999,10 +999,17 @@ Backend Tests:
 - [x] Backend `SyncValidator.VALID_ENTITY_TYPES` — REGIONAL_TAX_OVERRIDE added + field-level validation
 - [x] 8 unit tests in `GetEffectiveTaxRateUseCaseTest` + `FakeRegionalTaxOverrideRepository`
 
+**What's DONE (2026-03-24):**
+- [x] Integration of `GetEffectiveTaxRateUseCase` into checkout flow:
+  - `CartItem.isTaxInclusive` field added — per-item inclusive/exclusive tax mode from TaxGroup
+  - `AddItemToCartUseCase` now resolves tax rate via TaxGroup + `GetEffectiveTaxRateUseCase` (regional override)
+  - `CalculateOrderTotalsUseCase` uses per-item `isTaxInclusive` (supports mixed inclusive/exclusive carts)
+  - `PosModule.kt` — `GetEffectiveTaxRateUseCase` + `TaxGroupRepository` wired into `AddItemToCartUseCase`
+  - 9 new tests: 4 in CalculateOrderTotalsUseCaseTest (per-item inclusive, mixed cart) + 5 in AddItemToCartUseCaseTest (tax resolution, inactive group, null group, fallback)
+
 **What's REMAINING (deferred):**
 - [ ] Support for compound taxes (VAT + service charge + local surcharge stacked)
 - [ ] KMM settings UI: Per-store tax override configuration screen (store owner manages via KMM app per ADR-009)
-- [ ] Integration of `GetEffectiveTaxRateUseCase` into `CalculateOrderTotalsUseCase` at checkout
 - [ ] Backend: REST endpoint `GET/POST /v1/taxes/overrides` with POS JWT auth (store operation per ADR-009)
 
 **Key Files:**
@@ -1147,10 +1154,16 @@ Backend Tests:
 - [x] 10 ViewModel tests (MultiStoreDashboardViewModelTest)
 - [x] 3 use case tests (GetMultiStoreKPIsUseCaseTest)
 
+**What's DONE (2026-03-24):**
+- [x] Wire MultiStoreDashboard route into MainNavGraph composable:
+  - `MainNavScreens.multiStoreDashboard` slot added to navigation contract
+  - `ZyntaRoute.MultiStoreDashboard` registered in `MainNavGraph.kt` within MultiStoreGraph (with MainScaffoldShell)
+  - `App.kt` wires `MultiStoreDashboardScreen` + `MultiStoreDashboardViewModel` via koinViewModel
+  - Route accessible via multi-store navigation graph alongside warehouses/transfers
+
 **What's REMAINING (deferred):**
 - [ ] Real-time WebSocket updates for dashboard KPIs (currently REST polling)
 - [ ] Cross-store notifications (e.g., "Store B low on Product X")
-- [ ] Wire MultiStoreDashboard route into MainNavGraph composable
 - [ ] Admin panel: Global dashboard enhancements (read-only monitoring — ADR-009 compliant)
 
 ---
@@ -2503,12 +2516,12 @@ git push -u origin $(git branch --show-current)
 | **2. Pricing & Taxation** | | |
 | Region-Based Pricing | C2.1 | ✅ CORE IMPLEMENTED (domain+data+backend+KMM UI; storeId bug fixed 2026-03-22) |
 | Multi-Currency | C2.2 | ✅ CORE IMPLEMENTED (ExchangeRate model + table + repo + ConvertCurrencyUseCase + backend V33 + admin endpoints + Order.currency field + OrderMapper fix; 2026-03-23) |
-| Localized Tax | C2.3 | ✅ CORE IMPLEMENTED (RegionalTaxOverride model + repo + use case + backend V34; 2026-03-22) |
+| Localized Tax | C2.3 | ✅ CHECKOUT INTEGRATED (regional override → cart item tax rate + per-item inclusive; 2026-03-24) |
 | Store-Specific Discounts | C2.4 | ✅ CORE IMPLEMENTED (store_id on coupons, store_ids on promotions, validation + query; 2026-03-22) |
 | **3. Access Control** | | |
 | RBAC | C3.1 | COMPLETE |
 | Store-Level Permissions | C3.2 | ✅ CORE IMPLEMENTED (junction table, domain model, RBAC, backend; 2026-03-23) |
-| Global Admin Dashboard | C3.3 | ✅ CORE IMPLEMENTED (Store model + StoreRepo + dashboard screen + store switcher + 13 tests; 2026-03-23) |
+| Global Admin Dashboard | C3.3 | ✅ NAV WIRED (Store model + StoreRepo + dashboard screen + store switcher + 13 tests + MainNavGraph route; 2026-03-24) |
 | Employee Roaming | C3.4 | ✅ CORE IMPLEMENTED (assignment table + domain model + 3 use cases + 11 tests; 2026-03-23) |
 | **4. Sales & Customer** | | |
 | Cross-Store Returns | C4.1 | ✅ CORE IMPLEMENTED (order fields + use cases + 11 tests; 2026-03-23) |
@@ -2834,6 +2847,35 @@ After EVERY commit+push, the 7-step pipeline must pass:
 □ 3.  Read docs/architecture/ (diagrams, module deps)
 □ 4.  Read this plan file (features + gaps + priorities)
 □ 5.  Run `echo $PAT` to confirm GitHub token available
+□ 5a. Install Android SDK if not present (required for Gradle to resolve AGP):
+      ```bash
+      # Check if Android SDK is available
+      echo $ANDROID_HOME
+      ls $ANDROID_HOME/platforms/android-36 2>/dev/null || echo "MISSING"
+
+      # If missing, install minimal SDK:
+      mkdir -p /home/user/android-sdk/cmdline-tools
+      cd /home/user/android-sdk/cmdline-tools
+      curl -sL "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip" -o cmdline-tools.zip
+      unzip -q cmdline-tools.zip && mv cmdline-tools latest && rm cmdline-tools.zip
+
+      # Install platform 36 (direct download — sdkmanager may fail behind proxy)
+      cd /tmp
+      curl -sL "https://dl.google.com/android/repository/platform-36_r01.zip" -o platform-36.zip
+      unzip -q -o platform-36.zip -d /home/user/android-sdk/platforms/
+      # Rename if extracted as android-16 (Google's naming quirk)
+      mv /home/user/android-sdk/platforms/android-16 /home/user/android-sdk/platforms/android-36 2>/dev/null
+
+      # Create minimal build-tools placeholder
+      mkdir -p /home/user/android-sdk/build-tools/35.0.0 /home/user/android-sdk/platform-tools
+      echo "Pkg.Revision=35.0.0" > /home/user/android-sdk/build-tools/35.0.0/source.properties
+
+      # Update local.properties with correct SDK path
+      sed 's|sdk.dir=.*|sdk.dir=/home/user/android-sdk|' local.properties.template > local.properties
+
+      # Export for current session
+      export ANDROID_HOME=/home/user/android-sdk
+      ```
 □ 6.  Sync: `git fetch origin main && git merge origin/main --no-edit`
 
 ═══ PER-ITEM LOOP (repeat for each feature/fix) ♻️ ════════════

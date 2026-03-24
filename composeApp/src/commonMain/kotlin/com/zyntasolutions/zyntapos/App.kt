@@ -66,6 +66,8 @@ import com.zyntasolutions.zyntapos.feature.multistore.WarehouseListScreen
 import com.zyntasolutions.zyntapos.feature.multistore.WarehouseRackListScreen
 import com.zyntasolutions.zyntapos.feature.multistore.WarehouseRackDetailScreen
 import com.zyntasolutions.zyntapos.feature.multistore.WarehouseViewModel
+import com.zyntasolutions.zyntapos.feature.multistore.dashboard.MultiStoreDashboardScreen
+import com.zyntasolutions.zyntapos.feature.multistore.dashboard.MultiStoreDashboardViewModel
 import com.zyntasolutions.zyntapos.feature.accounting.EInvoiceListScreen
 import com.zyntasolutions.zyntapos.feature.accounting.EInvoiceDetailScreen
 import com.zyntasolutions.zyntapos.feature.accounting.EInvoiceViewModel
@@ -816,6 +818,12 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
             onIntent = vm::dispatch,
             onBack = onNavigateUp,
         )
+    },
+
+    // ── Multi-Store Dashboard (C3.3) ────────────────────────────────────────
+    multiStoreDashboard = { onNavigateUp ->
+        val vm: MultiStoreDashboardViewModel = koinViewModel()
+        MultiStoreDashboardScreen(viewModel = vm)
     },
 
     // ── Accounting / E-Invoice  (Sprint 18-24) ────────────────────────────────

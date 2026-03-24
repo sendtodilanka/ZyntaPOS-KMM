@@ -583,6 +583,21 @@ fun NavGraphBuilder.mainNavGraph(
                     { navigationController.popBackStack() },
                 )
             }
+
+            composable<ZyntaRoute.MultiStoreDashboard> {
+                MainScaffoldShell(
+                    navigationController = navigationController,
+                    navItems = navItems,
+                    drawerUserName = currentUserName,
+                    drawerUserInitials = currentUserInitials,
+                    drawerUserRole = currentUserRole,
+                    currentRoute = ZyntaRoute.MultiStoreDashboard,
+                ) {
+                    screens.multiStoreDashboard(
+                        { navigationController.navigateUp(ZyntaRoute.WarehouseList) },
+                    )
+                }
+            }
         }
 
         // ── Warehouse Rack screens  (Sprint 18) ─────────────────────────────────

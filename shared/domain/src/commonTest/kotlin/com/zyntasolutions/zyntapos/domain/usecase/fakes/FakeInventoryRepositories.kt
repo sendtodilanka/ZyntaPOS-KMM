@@ -37,8 +37,9 @@ fun buildProduct(
     isActive: Boolean = true,
     categoryId: String = "cat-01",
     masterProductId: String? = null,
+    taxGroupId: String? = "tax-01",
 ) = Product(id = id, name = name, barcode = barcode, sku = sku, categoryId = categoryId,
-    unitId = "unit-01", price = price, costPrice = costPrice, taxGroupId = "tax-01",
+    unitId = "unit-01", price = price, costPrice = costPrice, taxGroupId = taxGroupId,
     stockQty = stockQty, minStockQty = minStockQty, imageUrl = null,
     description = "Test product description", isActive = isActive,
     masterProductId = masterProductId,
@@ -234,6 +235,11 @@ class FakeSupplierRepository : SupplierRepository {
 class FakeTaxGroupRepository : TaxGroupRepository {
     val taxGroups = mutableListOf<TaxGroup>()
     private val _flow = MutableStateFlow<List<TaxGroup>>(emptyList())
+
+    fun addTaxGroup(taxGroup: TaxGroup) {
+        taxGroups.add(taxGroup)
+        _flow.value = taxGroups.toList()
+    }
 
     override fun getAll(): Flow<List<TaxGroup>> = _flow
 
