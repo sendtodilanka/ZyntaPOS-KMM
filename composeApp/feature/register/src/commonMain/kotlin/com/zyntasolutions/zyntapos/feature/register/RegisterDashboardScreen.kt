@@ -130,8 +130,8 @@ fun RegisterDashboardScreen(
                             .verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                     ) {
-                        RegisterStatusBanner(session = session)
-                        SessionInfoCard(session = session)
+                        RegisterStatusBanner(session = session, registerName = state.activeRegister?.name)
+                        SessionInfoCard(session = session, registerName = state.activeRegister?.name)
 
                         // Quick Stats Section
                         SectionCard(title = "Today's Performance", icon = Icons.Default.Insights) {
@@ -192,8 +192,8 @@ fun RegisterDashboardScreen(
                         .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                 ) {
-                    RegisterStatusBanner(session = session)
-                    SessionInfoCard(session = session)
+                    RegisterStatusBanner(session = session, registerName = state.activeRegister?.name)
+                    SessionInfoCard(session = session, registerName = state.activeRegister?.name)
 
                     SectionCard(title = "Today's Performance", icon = Icons.Default.Insights) {
                         QuickStatsRow(
@@ -269,7 +269,7 @@ fun RegisterDashboardScreen(
 // ---------------------------------------------------------------------------
 
 @Composable
-private fun RegisterStatusBanner(session: RegisterSession) {
+private fun RegisterStatusBanner(session: RegisterSession, registerName: String? = null) {
     val isOpen = session.status == RegisterSession.Status.OPEN
 
     val bannerContainerColor: Color
@@ -282,7 +282,7 @@ private fun RegisterStatusBanner(session: RegisterSession) {
         bannerContainerColor = MaterialTheme.colorScheme.primaryContainer
         bannerContentColor = MaterialTheme.colorScheme.onPrimaryContainer
         bannerIcon = Icons.Default.CheckCircle
-        bannerTitle = "Register is OPEN"
+        bannerTitle = if (registerName != null) "$registerName — OPEN" else "Register is OPEN"
         bannerSubtitle = run {
             val openedLocal = session.openedAt.toLocalDateTime(TimeZone.currentSystemDefault())
             val durationMs = Clock.System.now().toEpochMilliseconds() - session.openedAt.toEpochMilliseconds()
@@ -296,7 +296,7 @@ private fun RegisterStatusBanner(session: RegisterSession) {
         bannerContainerColor = MaterialTheme.colorScheme.tertiaryContainer
         bannerContentColor = MaterialTheme.colorScheme.onTertiaryContainer
         bannerIcon = Icons.Default.Lock
-        bannerTitle = "Register is CLOSED"
+        bannerTitle = if (registerName != null) "$registerName — CLOSED" else "Register is CLOSED"
         bannerSubtitle = if (session.closedAt != null) {
             val closedLocal = session.closedAt!!.toLocalDateTime(TimeZone.currentSystemDefault())
             "Last closed: ${closedLocal.date} at ${closedLocal.hour.toString().padStart(2, '0')}:${closedLocal.minute.toString().padStart(2, '0')}"
@@ -346,7 +346,7 @@ private fun RegisterStatusBanner(session: RegisterSession) {
 // ---------------------------------------------------------------------------
 
 @Composable
-private fun SessionInfoCard(session: RegisterSession) {
+private fun SessionInfoCard(session: RegisterSession, registerName: String? = null) {
     val openedAtFormatted = remember(session.openedAt) {
         val local = session.openedAt.toLocalDateTime(TimeZone.currentSystemDefault())
         "${local.date} ${local.hour.toString().padStart(2, '0')}:${local.minute.toString().padStart(2, '0')}"
@@ -395,6 +395,9 @@ private fun SessionInfoCard(session: RegisterSession) {
                 }
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            if (registerName != null) {
+                SessionRow(label = "Register", value = registerName)
+            }
             SessionRow(label = "Opened at", value = openedAtFormatted)
             SessionRow(label = "Opened by", value = session.openedBy)
             SessionRow(label = "Opening balance", value = "%.2f".format(session.openingBalance))

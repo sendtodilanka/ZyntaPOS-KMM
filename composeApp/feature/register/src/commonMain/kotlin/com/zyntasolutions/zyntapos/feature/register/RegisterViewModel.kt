@@ -202,10 +202,23 @@ class RegisterViewModel(
             .onEach { session ->
                 updateState { copy(activeSession = session) }
                 if (session != null) {
+                    resolveActiveRegister(session.registerId)
                     observeMovements(session.id)
+                } else {
+                    updateState { copy(activeRegister = null) }
                 }
             }
             .launchIn(viewModelScope)
+    }
+
+    /**
+     * Resolves the [CashRegister] for the active session so the UI can display
+     * the register location label (e.g. "Front Counter", "Lane 3").
+     */
+    private suspend fun resolveActiveRegister(registerId: String) {
+        val register = registerRepository.getRegisters().first()
+            .firstOrNull { it.id == registerId }
+        updateState { copy(activeRegister = register) }
     }
 
     private fun observeMovements(sessionId: String) {
@@ -241,9 +254,11 @@ class RegisterViewModel(
         when (result) {
             is Result.Success -> {
                 auditLogger.logRegisterOpen(currentUserId, form.selectedRegisterId!!, form.openingBalanceDouble)
+                val register = currentState.availableRegisters.firstOrNull { it.id == form.selectedRegisterId }
                 updateState {
                     copy(
                         activeSession = result.data,
+                        activeRegister = register,
                         openRegisterForm = OpenRegisterFormState(),
                     )
                 }
@@ -359,6 +374,7 @@ class RegisterViewModel(
                 updateState {
                     copy(
                         activeSession = null,
+                        activeRegister = null,
                         closeRegisterForm = CloseRegisterFormState(),
                         zReportSession = closeResult.session,
                     )

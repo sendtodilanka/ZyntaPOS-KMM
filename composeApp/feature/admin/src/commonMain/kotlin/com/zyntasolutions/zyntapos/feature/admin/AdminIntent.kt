@@ -16,7 +16,7 @@ import kotlinx.datetime.Instant
  *   [RunVacuum], [PurgeExpiredData]
  * - **Backups:** [CreateBackup], [RestoreBackup], [ConfirmRestore], [CancelRestore],
  *   [DeleteBackup], [ConfirmDelete], [CancelDelete]
- * - **Audit Log:** [RefreshAuditLog], [FilterAuditByUser]
+ * - **Audit Log:** [RefreshAuditLog], [FilterAuditByUser], [ExportAuditLogCsv], [ExportAuditLogJson]
  * - **UI:** [DismissError], [DismissSuccess]
  */
 sealed interface AdminIntent {
@@ -54,6 +54,7 @@ sealed interface AdminIntent {
     /** Set the date range filter. Null values clear the respective bound. */
     data class FilterAuditByDateRange(val from: Instant?, val to: Instant?) : AdminIntent
     data object ExportAuditLogCsv : AdminIntent
+    data object ExportAuditLogJson : AdminIntent
     data object VerifyIntegrity : AdminIntent
     data object NextAuditPage : AdminIntent
     data object PrevAuditPage : AdminIntent

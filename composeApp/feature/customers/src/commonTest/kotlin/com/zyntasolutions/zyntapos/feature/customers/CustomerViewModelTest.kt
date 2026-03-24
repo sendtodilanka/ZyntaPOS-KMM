@@ -209,12 +209,15 @@ class CustomerViewModelTest {
 
     // ── Fake LoyaltyRepository ────────────────────────────────────────────────
 
+    private var fakePointsBalance = 0
+    private var fakeTierForPoints: LoyaltyTier? = null
+
     private val fakeLoyaltyRepository = object : LoyaltyRepository {
         override fun getPointsHistory(customerId: String): Flow<List<RewardPoints>> =
             MutableStateFlow(emptyList())
 
         override suspend fun getBalance(customerId: String): Result<Int> =
-            Result.Success(0)
+            Result.Success(fakePointsBalance)
 
         override suspend fun recordPoints(entry: RewardPoints): Result<Unit> =
             Result.Success(Unit)
@@ -223,7 +226,7 @@ class CustomerViewModelTest {
             MutableStateFlow(emptyList())
 
         override suspend fun getTierForPoints(points: Int): Result<LoyaltyTier?> =
-            Result.Success(null)
+            Result.Success(fakeTierForPoints)
 
         override suspend fun saveTier(tier: LoyaltyTier): Result<Unit> =
             Result.Success(Unit)
@@ -264,6 +267,8 @@ class CustomerViewModelTest {
         groupsFlow.value = emptyList()
         shouldFailInsert = false
         shouldFailDelete = false
+        fakePointsBalance = 0
+        fakeTierForPoints = null
         viewModel = CustomerViewModel(
             customerRepository = fakeCustomerRepository,
             groupRepository = fakeGroupRepository,
@@ -293,6 +298,7 @@ class CustomerViewModelTest {
         assertTrue(state.customers.isEmpty())
         assertFalse(state.isLoading)
         assertNull(state.error)
+        assertNull(state.currentLoyaltyTier)
     }
 
     // ── Observable list ───────────────────────────────────────────────────────
@@ -406,5 +412,42 @@ class CustomerViewModelTest {
 
         assertNull(viewModel.state.value.error)
         assertNull(viewModel.state.value.successMessage)
+    }
+
+    // ── LoadWallet — loyalty tier ──────────────────────────────────────────────
+
+    @Test
+    fun `LoadWallet sets currentLoyaltyTier when tier exists for points balance`() = runTest {
+        val goldTier = LoyaltyTier(
+            id = "tier-gold",
+            name = "Gold",
+            minPoints = 500,
+            discountPercent = 10.0,
+            pointsMultiplier = 2.0,
+        )
+        fakePointsBalance = 600
+        fakeTierForPoints = goldTier
+
+        viewModel.dispatch(CustomerIntent.LoadWallet("cust-001"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertEquals(600, state.pointsBalance)
+        assertNotNull(state.currentLoyaltyTier)
+        assertEquals("Gold", state.currentLoyaltyTier?.name)
+        assertEquals(goldTier, state.currentLoyaltyTier)
+    }
+
+    @Test
+    fun `LoadWallet sets currentLoyaltyTier to null when no tier qualifies`() = runTest {
+        fakePointsBalance = 0
+        fakeTierForPoints = null
+
+        viewModel.dispatch(CustomerIntent.LoadWallet("cust-001"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertEquals(0, state.pointsBalance)
+        assertNull(state.currentLoyaltyTier)
     }
 }

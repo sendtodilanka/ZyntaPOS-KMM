@@ -78,8 +78,11 @@ fun CloseRegisterScreen(
         }
     }
 
+    val registerName = state.activeRegister?.name
+    val closeTitle = if (registerName != null) "Close Register — $registerName" else "Close Register"
+
     ZyntaPageScaffold(
-        title = "Close Register",
+        title = closeTitle,
         onNavigateBack = onBack,
         snackbarHostState = snackbarHost,
     ) { padding ->

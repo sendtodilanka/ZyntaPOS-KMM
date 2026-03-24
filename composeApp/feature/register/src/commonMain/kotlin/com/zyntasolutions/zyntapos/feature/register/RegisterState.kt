@@ -39,6 +39,8 @@ data class RegisterState(
 
     // ── Session ───────────────────────────────────────────────────────────
     val activeSession: RegisterSession? = null,
+    /** The CashRegister associated with the active session — for location label display (G5). */
+    val activeRegister: CashRegister? = null,
 
     // ── Open Register screen ──────────────────────────────────────────────
     val availableRegisters: List<CashRegister> = emptyList(),
