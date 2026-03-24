@@ -16,6 +16,3 @@ CREATE TABLE employee_store_assignments (
 CREATE INDEX idx_employee_store_assignments_employee ON employee_store_assignments(employee_id);
 CREATE INDEX idx_employee_store_assignments_store ON employee_store_assignments(store_id);
 CREATE INDEX idx_employee_store_assignments_active ON employee_store_assignments(employee_id) WHERE end_date IS NULL;
-
--- Add store_id to attendance_records for cross-store clock-in tracking
-ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS store_id TEXT REFERENCES stores(id);
