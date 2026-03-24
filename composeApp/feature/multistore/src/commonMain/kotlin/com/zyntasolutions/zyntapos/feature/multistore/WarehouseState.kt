@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.feature.multistore
 
+import com.zyntasolutions.zyntapos.domain.model.PickList
 import com.zyntasolutions.zyntapos.domain.model.Product
 import com.zyntasolutions.zyntapos.domain.model.RackProduct
 import com.zyntasolutions.zyntapos.domain.model.StockTransfer
@@ -57,6 +58,9 @@ data class WarehouseState(
     val rackProducts: List<RackProduct> = emptyList(),
     val rackProductForm: RackProductFormState = RackProductFormState(),
     val showDeleteRackProductConfirm: RackProduct? = null,
+
+    // ── Pick List (P3-B1) ──────────────────────────────────────────────────
+    val pickList: PickList? = null,
 
     // ── Global ────────────────────────────────────────────────────────────
     val isLoading: Boolean = false,

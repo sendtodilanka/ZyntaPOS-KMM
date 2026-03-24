@@ -16,6 +16,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.multistore.AddTransitEventUseC
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.ApproveStockTransferUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.CommitStockTransferUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.DispatchStockTransferUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.multistore.GeneratePickListUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.GetInTransitCountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.GetLowStockByWarehouseUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.GetTransitHistoryUseCase
@@ -23,6 +24,8 @@ import com.zyntasolutions.zyntapos.domain.usecase.multistore.LogWorkflowTransitE
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.GetWarehouseStockUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.ReceiveStockTransferUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.multistore.SetWarehouseStockUseCase
+import com.zyntasolutions.zyntapos.hal.printer.PickListFormatter
+import com.zyntasolutions.zyntapos.hal.printer.PrinterManager
 import com.zyntasolutions.zyntapos.domain.usecase.rack.DeleteRackProductUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rack.DeleteWarehouseRackUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rack.GetRackProductsUseCase
@@ -77,6 +80,8 @@ class WarehouseViewModel(
     private val addTransitEventUseCase: AddTransitEventUseCase,
     private val getInTransitCountUseCase: GetInTransitCountUseCase,
     private val logWorkflowTransitEventUseCase: LogWorkflowTransitEventUseCase,
+    private val generatePickListUseCase: GeneratePickListUseCase,
+    private val printerManager: PrinterManager,
     private val authRepository: AuthRepository,
     private val analytics: AnalyticsTracker,
 ) : BaseViewModel<WarehouseState, WarehouseIntent, WarehouseEffect>(WarehouseState()) {
@@ -185,6 +190,11 @@ class WarehouseViewModel(
                 copy(transitEventForm = TransitEventFormState())
             }
             is WarehouseIntent.LoadInTransitCount -> loadInTransitCount()
+
+            // ── Pick List (P3-B1) ───────────────────────────────────────────
+            is WarehouseIntent.GeneratePickList -> onGeneratePickList(intent.transferId)
+            is WarehouseIntent.PrintPickList -> onPrintPickList()
+            is WarehouseIntent.DismissPickList -> updateState { copy(pickList = null) }
 
             is WarehouseIntent.DismissMessage -> updateState { copy(error = null, successMessage = null) }
         }
@@ -926,6 +936,43 @@ class WarehouseViewModel(
             is Result.Error -> Unit  // Non-critical — count shows 0
             is Result.Loading -> Unit
         }
+    }
+
+    // ── Pick List (P3-B1) ──────────────────────────────────────────────
+
+    private suspend fun onGeneratePickList(transferId: String) {
+        updateState { copy(isLoading = true) }
+        when (val result = generatePickListUseCase(transferId)) {
+            is Result.Success -> {
+                updateState { copy(isLoading = false, pickList = result.data) }
+                sendEffect(WarehouseEffect.PickListGenerated)
+            }
+            is Result.Error -> {
+                updateState { copy(isLoading = false) }
+                sendEffect(WarehouseEffect.ShowError(result.exception.message ?: "Failed to generate pick list"))
+            }
+            is Result.Loading -> {}
+        }
+    }
+
+    private suspend fun onPrintPickList() {
+        val pickList = currentState.pickList ?: run {
+            sendEffect(WarehouseEffect.ShowError("No pick list to print"))
+            return
+        }
+        updateState { copy(isLoading = true) }
+        val bytes = PickListFormatter.toBytes(pickList)
+        val result = printerManager.print(bytes)
+        updateState { copy(isLoading = false) }
+        result.fold(
+            onSuccess = {
+                sendEffect(WarehouseEffect.PickListPrinted)
+                sendEffect(WarehouseEffect.ShowSuccess("Pick list sent to printer"))
+            },
+            onFailure = { err ->
+                sendEffect(WarehouseEffect.ShowError("Print failed: ${err.message}"))
+            },
+        )
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────

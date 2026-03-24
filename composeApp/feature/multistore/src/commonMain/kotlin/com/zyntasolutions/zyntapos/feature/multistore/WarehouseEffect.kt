@@ -31,6 +31,10 @@ sealed interface WarehouseEffect {
     data class NavigateToTransitTracker(val transferId: String) : WarehouseEffect
     data object TransitEventAdded : WarehouseEffect
 
+    // Pick list (P3-B1)
+    data object PickListGenerated : WarehouseEffect
+    data object PickListPrinted : WarehouseEffect
+
     data class ShowError(val message: String) : WarehouseEffect
     data class ShowSuccess(val message: String) : WarehouseEffect
 }
