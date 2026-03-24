@@ -329,15 +329,13 @@ jobs:
           fail-on-error: false
           fail-on-empty: false
 
-  # ── Security Scanning: OSV-Scanner (dependency vulnerability check) ───────
-  # Uses Google's OSV database — no NVD download required (~30s per scan).
-  # Replaces OWASP Dependency Check which required a ~500MB NVD database
-  # download (25-30 min on cache miss).
-  #
-  # Scans all 3 backend Gradle lockfiles for known vulnerabilities.
-  # Required check — blocks PR merge if vulnerabilities are found.
+  # ── Security Scanning: Trivy filesystem scan (dependency vulnerabilities) ──
+  # Scans backend Gradle dependency trees for CRITICAL/HIGH CVEs.
+  # Trivy natively parses build.gradle.kts — no lockfile generation needed.
+  # Completes in ~1-2 min (vs 25-30 min for OWASP Dependency Check).
+  # Required check — blocks PR merge if CRITICAL/HIGH vulnerabilities found.
   security-scan-backend:
-    name: "Security Scan (OSV)"
+    name: "Security Scan (Trivy)"
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -345,37 +343,16 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
+      - name: Run Trivy vulnerability scan — backend
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         with:
-          java-version: "21"
-          distribution: "temurin"
-
-      - name: Generate Gradle dependency lockfiles
-        run: |
-          for svc in api license sync; do
-            cd backend/$svc
-            chmod +x ./gradlew
-            ./gradlew dependencies --write-locks --no-daemon \
-              -Dorg.gradle.jvmargs="-Xmx2g -Xms512m" 2>/dev/null || true
-            cd ../..
-          done
-
-      - name: Install OSV-Scanner
-        run: |
-          curl -fsSL https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64 -o /usr/local/bin/osv-scanner
-          chmod +x /usr/local/bin/osv-scanner
-
-      - name: Run OSV-Scanner — backend
-        run: |
-          EXIT_CODE=0
-          osv-scanner --recursive --format=json --output=osv-results.json ./backend || EXIT_CODE=$?
-          if [ "$EXIT_CODE" -eq 1 ]; then
-            echo "::warning::OSV-Scanner found vulnerabilities — see osv-results.json artifact"
-          elif [ "$EXIT_CODE" -ne 0 ]; then
-            echo "::error::OSV-Scanner failed with exit code $EXIT_CODE"
-            exit "$EXIT_CODE"
-          fi
+          scan-type: fs
+          scan-ref: ./backend
+          format: json
+          output: osv-results.json
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          timeout: 10m
 
       - name: Upload OSV scan results
         if: always()
