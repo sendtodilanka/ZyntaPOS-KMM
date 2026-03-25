@@ -429,6 +429,154 @@ class FinancialStatementsViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
         assertNull(viewModel.state.value.error)
     }
+
+    // ── ShowDatePicker / HideDatePicker ────────────────────────────────────────
+
+    @Test
+    fun `ShowDatePicker FROM sets activeDatePicker to FROM`() = runTest {
+        viewModel.handleIntentForTest(FinancialStatementsIntent.ShowDatePicker(DatePickerField.FROM))
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(DatePickerField.FROM, viewModel.state.value.activeDatePicker)
+    }
+
+    @Test
+    fun `ShowDatePicker TO sets activeDatePicker to TO`() = runTest {
+        viewModel.handleIntentForTest(FinancialStatementsIntent.ShowDatePicker(DatePickerField.TO))
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(DatePickerField.TO, viewModel.state.value.activeDatePicker)
+    }
+
+    @Test
+    fun `ShowDatePicker AS_OF sets activeDatePicker to AS_OF`() = runTest {
+        viewModel.handleIntentForTest(FinancialStatementsIntent.ShowDatePicker(DatePickerField.AS_OF))
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(DatePickerField.AS_OF, viewModel.state.value.activeDatePicker)
+    }
+
+    @Test
+    fun `HideDatePicker resets activeDatePicker to NONE`() = runTest {
+        viewModel.handleIntentForTest(FinancialStatementsIntent.ShowDatePicker(DatePickerField.FROM))
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(DatePickerField.FROM, viewModel.state.value.activeDatePicker)
+
+        viewModel.handleIntentForTest(FinancialStatementsIntent.HideDatePicker)
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(DatePickerField.NONE, viewModel.state.value.activeDatePicker)
+    }
+
+    @Test
+    fun `initial activeDatePicker is NONE`() {
+        assertEquals(DatePickerField.NONE, viewModel.state.value.activeDatePicker)
+    }
+
+    // ── ExportCsv ──────────────────────────────────────────────────────────────
+
+    @Test
+    fun `ExportCsv on PROFIT_LOSS with data emits ShareExport effect`() = runTest {
+        viewModel.handleIntentForTest(
+            FinancialStatementsIntent.LoadPandL("store-001", "2026-03-01", "2026-03-31")
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.effects.test {
+            viewModel.handleIntentForTest(FinancialStatementsIntent.ExportCsv)
+            testDispatcher.scheduler.advanceUntilIdle()
+            val effect = awaitItem()
+            assertTrue(effect is FinancialStatementsEffect.ShareExport)
+            val shareEffect = effect as FinancialStatementsEffect.ShareExport
+            assertTrue(shareEffect.fileName.startsWith("pnl_"))
+            assertTrue(shareEffect.fileName.endsWith(".csv"))
+            assertTrue(shareEffect.content.contains("section,accountCode,accountName,amount"))
+        }
+    }
+
+    @Test
+    fun `ExportCsv on BALANCE_SHEET with data emits ShareExport effect`() = runTest {
+        viewModel.handleIntentForTest(FinancialStatementsIntent.SwitchTab(FinancialStatementTab.BALANCE_SHEET))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.effects.test {
+            viewModel.handleIntentForTest(FinancialStatementsIntent.ExportCsv)
+            testDispatcher.scheduler.advanceUntilIdle()
+            val effect = awaitItem()
+            assertTrue(effect is FinancialStatementsEffect.ShareExport)
+            val shareEffect = effect as FinancialStatementsEffect.ShareExport
+            assertTrue(shareEffect.fileName.startsWith("balance_sheet_"))
+            assertTrue(shareEffect.content.contains("Total Assets"))
+        }
+    }
+
+    @Test
+    fun `ExportCsv on TRIAL_BALANCE with data emits ShareExport effect`() = runTest {
+        viewModel.handleIntentForTest(FinancialStatementsIntent.SwitchTab(FinancialStatementTab.TRIAL_BALANCE))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.effects.test {
+            viewModel.handleIntentForTest(FinancialStatementsIntent.ExportCsv)
+            testDispatcher.scheduler.advanceUntilIdle()
+            val effect = awaitItem()
+            assertTrue(effect is FinancialStatementsEffect.ShareExport)
+            val shareEffect = effect as FinancialStatementsEffect.ShareExport
+            assertTrue(shareEffect.fileName.startsWith("trial_balance_"))
+            assertTrue(shareEffect.content.contains("accountCode,accountName"))
+        }
+    }
+
+    @Test
+    fun `ExportCsv on CASH_FLOW with data emits ShareExport effect`() = runTest {
+        viewModel.handleIntentForTest(FinancialStatementsIntent.SwitchTab(FinancialStatementTab.CASH_FLOW))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.effects.test {
+            viewModel.handleIntentForTest(FinancialStatementsIntent.ExportCsv)
+            testDispatcher.scheduler.advanceUntilIdle()
+            val effect = awaitItem()
+            assertTrue(effect is FinancialStatementsEffect.ShareExport)
+            val shareEffect = effect as FinancialStatementsEffect.ShareExport
+            assertTrue(shareEffect.fileName.startsWith("cash_flow_"))
+            assertTrue(shareEffect.content.contains("Closing Cash Balance"))
+        }
+    }
+
+    @Test
+    fun `ExportCsv on PROFIT_LOSS without data emits ShowError effect`() = runTest {
+        // pAndL is null (never loaded)
+        viewModel.effects.test {
+            viewModel.handleIntentForTest(FinancialStatementsIntent.ExportCsv)
+            testDispatcher.scheduler.advanceUntilIdle()
+            val effect = awaitItem()
+            assertTrue(effect is FinancialStatementsEffect.ShowError)
+        }
+    }
+
+    // ── Date helper functions ──────────────────────────────────────────────────
+
+    @Test
+    fun `toEpochMillisOrNull returns millis for valid ISO date`() {
+        val millis = "2026-03-25".toEpochMillisOrNull()
+        assertNotNull(millis)
+        assertTrue(millis!! > 0L)
+    }
+
+    @Test
+    fun `toEpochMillisOrNull returns null for invalid date`() {
+        assertNull("not-a-date".toEpochMillisOrNull())
+        assertNull("".toEpochMillisOrNull())
+        assertNull("2026-13-01".toEpochMillisOrNull())
+    }
+
+    @Test
+    fun `toLocalDateString round-trips with toEpochMillisOrNull`() {
+        val original = "2026-03-25"
+        val millis = original.toEpochMillisOrNull()
+        assertNotNull(millis)
+        assertEquals(original, millis!!.toLocalDateString())
+    }
+
+    @Test
+    fun `toLocalDateString formats epoch zero as 1970-01-01`() {
+        assertEquals("1970-01-01", 0L.toLocalDateString())
+    }
 }
 
 // ─── Extension to expose handleIntent for testing ────────────────────────────

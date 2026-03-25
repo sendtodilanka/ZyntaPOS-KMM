@@ -28,6 +28,7 @@ object SettingsKeys {
     const val TAX_DISPLAY_MODE        = "pos.tax_display_mode"
     const val RECEIPT_TEMPLATE        = "pos.receipt_template"
     const val MAX_DISCOUNT_PERCENT    = "pos.max_discount_percent"
+    const val DAILY_SALES_TARGET      = "pos.daily_sales_target"
 
     // ── Printer ───────────────────────────────────────────────────────────────
     const val PRINTER_TYPE            = "printer.type"

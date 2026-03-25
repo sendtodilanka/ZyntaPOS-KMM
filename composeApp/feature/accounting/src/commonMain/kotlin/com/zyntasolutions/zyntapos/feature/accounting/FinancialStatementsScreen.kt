@@ -5,6 +5,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,15 +24,16 @@ import kotlinx.coroutines.flow.collectLatest
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
- * Financial Statements screen — Profit & Loss, Balance Sheet, and Trial Balance.
+ * Financial Statements screen — Profit & Loss, Balance Sheet, Trial Balance, Cash Flow.
  *
- * Hosts a TabRow with three tabs. Each tab has its own date inputs and "Generate" button
- * that triggers the corresponding load intent.
+ * Hosts a TabRow with four tabs. Each tab has date picker inputs and a "Generate" button.
+ * The TopAppBar provides a CSV export action for the currently loaded statement.
  *
  * @param storeId                Store scope for all statements.
  * @param initialTab             The tab shown initially (defaults to PROFIT_LOSS).
  * @param viewModel              Provided by Koin via [koinViewModel].
  * @param onNavigateBack         Back navigation callback.
+ * @param onShareExport          Callback to display or share exported CSV content.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,6 +42,7 @@ fun FinancialStatementsScreen(
     initialTab: FinancialStatementTab = FinancialStatementTab.PROFIT_LOSS,
     viewModel: FinancialStatementsViewModel = koinViewModel(),
     onNavigateBack: () -> Unit,
+    onShareExport: (content: String, fileName: String) -> Unit = { _, _ -> },
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -52,9 +56,14 @@ fun FinancialStatementsScreen(
             when (effect) {
                 is FinancialStatementsEffect.ShowError ->
                     snackbarHostState.showSnackbar(effect.message, duration = SnackbarDuration.Short)
+                is FinancialStatementsEffect.ShareExport ->
+                    onShareExport(effect.content, effect.fileName)
             }
         }
     }
+
+    // Date picker dialogs
+    DatePickerDialogs(state = state, onIntent = viewModel::dispatch)
 
     Scaffold(
         topBar = {
@@ -63,6 +72,25 @@ fun FinancialStatementsScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    // Export CSV button — enabled only when the active tab has data
+                    val hasData = when (state.activeTab) {
+                        FinancialStatementTab.PROFIT_LOSS -> state.pAndL != null
+                        FinancialStatementTab.BALANCE_SHEET -> state.balanceSheet != null
+                        FinancialStatementTab.TRIAL_BALANCE -> state.trialBalance != null
+                        FinancialStatementTab.CASH_FLOW -> state.cashFlow != null
+                    }
+                    IconButton(
+                        onClick = { viewModel.dispatch(FinancialStatementsIntent.ExportCsv) },
+                        enabled = hasData,
+                    ) {
+                        Icon(
+                            Icons.Default.Download,
+                            contentDescription = "Export as CSV",
+                            tint = if (hasData) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 },
             )
@@ -116,6 +144,101 @@ fun FinancialStatementsScreen(
     }
 }
 
+// ── Date picker dialogs ─────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DatePickerDialogs(
+    state: FinancialStatementsState,
+    onIntent: (FinancialStatementsIntent) -> Unit,
+) {
+    when (state.activeDatePicker) {
+        DatePickerField.NONE -> Unit
+
+        DatePickerField.FROM -> {
+            val datePickerState = rememberDatePickerState(
+                initialSelectedDateMillis = state.fromDate.toEpochMillisOrNull(),
+            )
+            DatePickerDialog(
+                onDismissRequest = { onIntent(FinancialStatementsIntent.HideDatePicker) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            onIntent(
+                                FinancialStatementsIntent.SetDateRange(
+                                    fromDate = millis.toLocalDateString(),
+                                    toDate = state.toDate,
+                                ),
+                            )
+                        }
+                        onIntent(FinancialStatementsIntent.HideDatePicker)
+                    }) { Text("OK") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { onIntent(FinancialStatementsIntent.HideDatePicker) }) {
+                        Text("Cancel")
+                    }
+                },
+            ) {
+                DatePicker(state = datePickerState)
+            }
+        }
+
+        DatePickerField.TO -> {
+            val datePickerState = rememberDatePickerState(
+                initialSelectedDateMillis = state.toDate.toEpochMillisOrNull(),
+            )
+            DatePickerDialog(
+                onDismissRequest = { onIntent(FinancialStatementsIntent.HideDatePicker) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            onIntent(
+                                FinancialStatementsIntent.SetDateRange(
+                                    fromDate = state.fromDate,
+                                    toDate = millis.toLocalDateString(),
+                                ),
+                            )
+                        }
+                        onIntent(FinancialStatementsIntent.HideDatePicker)
+                    }) { Text("OK") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { onIntent(FinancialStatementsIntent.HideDatePicker) }) {
+                        Text("Cancel")
+                    }
+                },
+            ) {
+                DatePicker(state = datePickerState)
+            }
+        }
+
+        DatePickerField.AS_OF -> {
+            val datePickerState = rememberDatePickerState(
+                initialSelectedDateMillis = state.asOfDate.toEpochMillisOrNull(),
+            )
+            DatePickerDialog(
+                onDismissRequest = { onIntent(FinancialStatementsIntent.HideDatePicker) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            onIntent(FinancialStatementsIntent.SetAsOfDate(millis.toLocalDateString()))
+                        }
+                        onIntent(FinancialStatementsIntent.HideDatePicker)
+                    }) { Text("OK") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { onIntent(FinancialStatementsIntent.HideDatePicker) }) {
+                        Text("Cancel")
+                    }
+                },
+            ) {
+                DatePicker(state = datePickerState)
+            }
+        }
+    }
+}
+
 // ── Tab content composables ────────────────────────────────────────────────────
 
 @Composable
@@ -126,7 +249,7 @@ private fun PandLTabContent(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
-        // Date inputs
+        // Date inputs with picker buttons
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -134,20 +257,16 @@ private fun PandLTabContent(
             horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            OutlinedTextField(
+            DateInputField(
+                label = "From",
                 value = state.fromDate,
-                onValueChange = { onIntent(FinancialStatementsIntent.SetDateRange(it, state.toDate)) },
-                label = { Text("From") },
-                placeholder = { Text("YYYY-MM-DD") },
-                singleLine = true,
+                onPickerClick = { onIntent(FinancialStatementsIntent.ShowDatePicker(DatePickerField.FROM)) },
                 modifier = Modifier.weight(1f),
             )
-            OutlinedTextField(
+            DateInputField(
+                label = "To",
                 value = state.toDate,
-                onValueChange = { onIntent(FinancialStatementsIntent.SetDateRange(state.fromDate, it)) },
-                label = { Text("To") },
-                placeholder = { Text("YYYY-MM-DD") },
-                singleLine = true,
+                onPickerClick = { onIntent(FinancialStatementsIntent.ShowDatePicker(DatePickerField.TO)) },
                 modifier = Modifier.weight(1f),
             )
             Button(
@@ -251,12 +370,10 @@ private fun BalanceSheetTabContent(
             horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            OutlinedTextField(
+            DateInputField(
+                label = "As Of",
                 value = state.asOfDate,
-                onValueChange = { onIntent(FinancialStatementsIntent.SetAsOfDate(it)) },
-                label = { Text("As Of") },
-                placeholder = { Text("YYYY-MM-DD") },
-                singleLine = true,
+                onPickerClick = { onIntent(FinancialStatementsIntent.ShowDatePicker(DatePickerField.AS_OF)) },
                 modifier = Modifier.weight(1f),
             )
             Button(
@@ -372,12 +489,10 @@ private fun TrialBalanceTabContent(
             horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            OutlinedTextField(
+            DateInputField(
+                label = "As Of",
                 value = state.asOfDate,
-                onValueChange = { onIntent(FinancialStatementsIntent.SetAsOfDate(it)) },
-                label = { Text("As Of") },
-                placeholder = { Text("YYYY-MM-DD") },
-                singleLine = true,
+                onPickerClick = { onIntent(FinancialStatementsIntent.ShowDatePicker(DatePickerField.AS_OF)) },
                 modifier = Modifier.weight(1f),
             )
             Button(
@@ -470,7 +585,143 @@ private fun TrialBalanceTabContent(
     }
 }
 
+@Composable
+private fun CashFlowTabContent(
+    state: FinancialStatementsState,
+    storeId: String,
+    onIntent: (FinancialStatementsIntent) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.fillMaxSize()) {
+        // Date range inputs
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(ZyntaSpacing.md),
+            horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            DateInputField(
+                label = "From",
+                value = state.fromDate,
+                onPickerClick = { onIntent(FinancialStatementsIntent.ShowDatePicker(DatePickerField.FROM)) },
+                modifier = Modifier.weight(1f),
+            )
+            DateInputField(
+                label = "To",
+                value = state.toDate,
+                onPickerClick = { onIntent(FinancialStatementsIntent.ShowDatePicker(DatePickerField.TO)) },
+                modifier = Modifier.weight(1f),
+            )
+            Button(
+                onClick = {
+                    onIntent(FinancialStatementsIntent.LoadCashFlow(storeId, state.fromDate, state.toDate))
+                },
+                enabled = state.fromDate.isNotBlank() && state.toDate.isNotBlank() && !state.isLoading,
+            ) { Text("Generate") }
+        }
+
+        if (state.isLoading) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+            return@Column
+        }
+
+        val cf = state.cashFlow
+        if (cf == null) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Set a date range and tap Generate.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            return@Column
+        }
+
+        LazyColumn(
+            contentPadding = PaddingValues(ZyntaSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
+        ) {
+            // Opening cash
+            item {
+                CashFlowSummaryRow("Opening Cash Balance", cf.openingCash, highlight = false)
+            }
+
+            // Operating activities
+            item { StatementSectionHeader("Operating Activities", color = MaterialTheme.colorScheme.tertiary) }
+            items(cf.operatingLines, key = { "op-${it.label}" }) { line ->
+                CashFlowLineRow(line)
+            }
+            item {
+                StatementSubtotal("Net Cash from Operations", cf.netOperating,
+                    color = if (cf.netOperating >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error)
+                Spacer(Modifier.height(ZyntaSpacing.sm))
+            }
+
+            // Investing activities
+            item { StatementSectionHeader("Investing Activities", color = MaterialTheme.colorScheme.primary) }
+            items(cf.investingLines, key = { "inv-${it.label}" }) { line ->
+                CashFlowLineRow(line)
+            }
+            item {
+                StatementSubtotal("Net Cash from Investing", cf.netInvesting,
+                    color = if (cf.netInvesting >= 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
+                Spacer(Modifier.height(ZyntaSpacing.sm))
+            }
+
+            // Financing activities
+            item { StatementSectionHeader("Financing Activities", color = Color(0xFF7B1FA2)) }
+            items(cf.financingLines, key = { "fin-${it.label}" }) { line ->
+                CashFlowLineRow(line)
+            }
+            item {
+                StatementSubtotal("Net Cash from Financing", cf.netFinancing,
+                    color = if (cf.netFinancing >= 0) Color(0xFF7B1FA2) else MaterialTheme.colorScheme.error)
+                Spacer(Modifier.height(ZyntaSpacing.sm))
+            }
+
+            // Net change + closing
+            item {
+                HorizontalDivider()
+                Spacer(Modifier.height(ZyntaSpacing.sm))
+                CashFlowSummaryRow("Net Change in Cash", cf.netChange, highlight = true)
+                Spacer(Modifier.height(ZyntaSpacing.xs))
+                CashFlowSummaryRow("Closing Cash Balance", cf.closingCash, highlight = true)
+            }
+            item { Spacer(Modifier.height(ZyntaSpacing.xl)) }
+        }
+    }
+}
+
 // ── Shared statement UI helpers ─────────────────────────────────────────────────
+
+/**
+ * Read-only date display field with a calendar icon that opens the date picker.
+ * Replaces direct OutlinedTextField YYYY-MM-DD text entry.
+ */
+@Composable
+private fun DateInputField(
+    label: String,
+    value: String,
+    onPickerClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = {},
+        readOnly = true,
+        label = { Text(label) },
+        placeholder = { Text("YYYY-MM-DD") },
+        singleLine = true,
+        trailingIcon = {
+            IconButton(onClick = onPickerClick) {
+                Icon(
+                    Icons.Default.CalendarMonth,
+                    contentDescription = "Pick $label date",
+                )
+            }
+        },
+        modifier = modifier,
+    )
+}
 
 @Composable
 private fun StatementSectionHeader(title: String, color: Color = MaterialTheme.colorScheme.onSurface) {
@@ -553,116 +804,6 @@ private fun TrialBalanceRow(line: TrialBalanceLine) {
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.width(80.dp),
         )
-    }
-}
-
-@Composable
-private fun CashFlowTabContent(
-    state: FinancialStatementsState,
-    storeId: String,
-    onIntent: (FinancialStatementsIntent) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(modifier = modifier.fillMaxSize()) {
-        // Date range inputs
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(ZyntaSpacing.md),
-            horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            OutlinedTextField(
-                value = state.fromDate,
-                onValueChange = { onIntent(FinancialStatementsIntent.SetDateRange(it, state.toDate)) },
-                label = { Text("From") },
-                placeholder = { Text("YYYY-MM-DD") },
-                singleLine = true,
-                modifier = Modifier.weight(1f),
-            )
-            OutlinedTextField(
-                value = state.toDate,
-                onValueChange = { onIntent(FinancialStatementsIntent.SetDateRange(state.fromDate, it)) },
-                label = { Text("To") },
-                placeholder = { Text("YYYY-MM-DD") },
-                singleLine = true,
-                modifier = Modifier.weight(1f),
-            )
-            Button(
-                onClick = {
-                    onIntent(FinancialStatementsIntent.LoadCashFlow(storeId, state.fromDate, state.toDate))
-                },
-                enabled = state.fromDate.isNotBlank() && state.toDate.isNotBlank() && !state.isLoading,
-            ) { Text("Generate") }
-        }
-
-        if (state.isLoading) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-            return@Column
-        }
-
-        val cf = state.cashFlow
-        if (cf == null) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Set a date range and tap Generate.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            return@Column
-        }
-
-        LazyColumn(
-            contentPadding = PaddingValues(ZyntaSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
-        ) {
-            // Opening cash
-            item {
-                CashFlowSummaryRow("Opening Cash Balance", cf.openingCash, highlight = false)
-            }
-
-            // Operating activities
-            item { StatementSectionHeader("Operating Activities", color = MaterialTheme.colorScheme.tertiary) }
-            items(cf.operatingLines, key = { "op-${it.label}" }) { line ->
-                CashFlowLineRow(line)
-            }
-            item {
-                StatementSubtotal("Net Cash from Operations", cf.netOperating,
-                    color = if (cf.netOperating >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error)
-                Spacer(Modifier.height(ZyntaSpacing.sm))
-            }
-
-            // Investing activities
-            item { StatementSectionHeader("Investing Activities", color = MaterialTheme.colorScheme.primary) }
-            items(cf.investingLines, key = { "inv-${it.label}" }) { line ->
-                CashFlowLineRow(line)
-            }
-            item {
-                StatementSubtotal("Net Cash from Investing", cf.netInvesting,
-                    color = if (cf.netInvesting >= 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
-                Spacer(Modifier.height(ZyntaSpacing.sm))
-            }
-
-            // Financing activities
-            item { StatementSectionHeader("Financing Activities", color = Color(0xFF7B1FA2)) }
-            items(cf.financingLines, key = { "fin-${it.label}" }) { line ->
-                CashFlowLineRow(line)
-            }
-            item {
-                StatementSubtotal("Net Cash from Financing", cf.netFinancing,
-                    color = if (cf.netFinancing >= 0) Color(0xFF7B1FA2) else MaterialTheme.colorScheme.error)
-                Spacer(Modifier.height(ZyntaSpacing.sm))
-            }
-
-            // Net change + closing
-            item {
-                HorizontalDivider()
-                Spacer(Modifier.height(ZyntaSpacing.sm))
-                CashFlowSummaryRow("Net Change in Cash", cf.netChange, highlight = true)
-                Spacer(Modifier.height(ZyntaSpacing.xs))
-                CashFlowSummaryRow("Closing Cash Balance", cf.closingCash, highlight = true)
-            }
-            item { Spacer(Modifier.height(ZyntaSpacing.xl)) }
-        }
     }
 }
 

@@ -8,7 +8,9 @@ import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetProfitAndLossUse
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetTrialBalanceUseCase
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlin.time.Clock
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.toLocalDateTime
 
 // ── Tab enum ──────────────────────────────────────────────────────────────────
@@ -28,6 +30,9 @@ enum class FinancialStatementTab {
     CASH_FLOW,
 }
 
+/** Identifies which date picker field is currently active. */
+enum class DatePickerField { FROM, TO, AS_OF, NONE }
+
 // ── State ─────────────────────────────────────────────────────────────────────
 
 /**
@@ -45,6 +50,7 @@ enum class FinancialStatementTab {
  * @property fromDate Start of the P&L reporting period (ISO: YYYY-MM-DD).
  * @property toDate End of the P&L reporting period (ISO: YYYY-MM-DD).
  * @property asOfDate Point-in-time date for Balance Sheet and Trial Balance (ISO: YYYY-MM-DD).
+ * @property activeDatePicker Which date picker is currently open (NONE = closed).
  * @property error Non-null when a statement computation fails.
  */
 data class FinancialStatementsState(
@@ -58,6 +64,7 @@ data class FinancialStatementsState(
     val fromDate: String = "",
     val toDate: String = "",
     val asOfDate: String = "",
+    val activeDatePicker: DatePickerField = DatePickerField.NONE,
     val error: String? = null,
 )
 
@@ -109,6 +116,15 @@ sealed class FinancialStatementsIntent {
         val fromDate: String,
         val toDate: String,
     ) : FinancialStatementsIntent()
+
+    /** Open the date picker for the given [field]. */
+    data class ShowDatePicker(val field: DatePickerField) : FinancialStatementsIntent()
+
+    /** Close any open date picker without applying a date. */
+    data object HideDatePicker : FinancialStatementsIntent()
+
+    /** Export the currently visible statement as CSV. */
+    data object ExportCsv : FinancialStatementsIntent()
 }
 
 // ── Effect ────────────────────────────────────────────────────────────────────
@@ -117,6 +133,17 @@ sealed class FinancialStatementsIntent {
 sealed class FinancialStatementsEffect {
     /** Display a snackbar-style error message. */
     data class ShowError(val message: String) : FinancialStatementsEffect()
+
+    /**
+     * Share / display the exported statement content.
+     *
+     * @property content Full UTF-8 CSV text.
+     * @property fileName Suggested file name (e.g., `pnl_2026-03-01_2026-03-25.csv`).
+     */
+    data class ShareExport(
+        val content: String,
+        val fileName: String,
+    ) : FinancialStatementsEffect()
 }
 
 // ── ViewModel ─────────────────────────────────────────────────────────────────
@@ -124,16 +151,12 @@ sealed class FinancialStatementsEffect {
 /**
  * ViewModel for the Financial Statements screen.
  *
- * Manages three independent statement datasets (P&L, Balance Sheet, Trial Balance).
+ * Manages four independent statement datasets (P&L, Balance Sheet, Trial Balance, Cash Flow).
  * Switching tabs via [FinancialStatementsIntent.SwitchTab] triggers a lazy load of
- * the selected statement if not yet computed. Date range changes (via
- * [FinancialStatementsIntent.SetDateRange] / [FinancialStatementsIntent.SetAsOfDate])
- * invalidate the relevant cached statements and re-fetch them automatically.
- *
- * @param getProfitAndLossUseCase Computes the P&L statement.
- * @param getBalanceSheetUseCase Computes the Balance Sheet.
- * @param getTrialBalanceUseCase Computes the Trial Balance.
- * @param getCashFlowStatementUseCase Computes the Cash Flow Statement (Direct Method).
+ * the selected statement if not yet computed. Date range changes invalidate and re-fetch
+ * the relevant cached statements. Date pickers ([ShowDatePicker] / [HideDatePicker]) are
+ * managed via [FinancialStatementsState.activeDatePicker]. CSV export is available per tab
+ * via [FinancialStatementsIntent.ExportCsv].
  */
 class FinancialStatementsViewModel(
     private val getProfitAndLossUseCase: GetProfitAndLossUseCase,
@@ -197,6 +220,18 @@ class FinancialStatementsViewModel(
             is FinancialStatementsIntent.LoadCashFlow -> {
                 updateState { copy(storeId = intent.storeId, fromDate = intent.fromDate, toDate = intent.toDate) }
                 fetchCashFlow(intent.storeId, intent.fromDate, intent.toDate)
+            }
+
+            is FinancialStatementsIntent.ShowDatePicker -> {
+                updateState { copy(activeDatePicker = intent.field) }
+            }
+
+            is FinancialStatementsIntent.HideDatePicker -> {
+                updateState { copy(activeDatePicker = DatePickerField.NONE) }
+            }
+
+            is FinancialStatementsIntent.ExportCsv -> {
+                exportCurrentTab()
             }
         }
     }
@@ -280,4 +315,120 @@ class FinancialStatementsViewModel(
             is Result.Loading -> Unit
         }
     }
+
+    // ── Export helpers ────────────────────────────────────────────────────────
+
+    private suspend fun exportCurrentTab() {
+        val state = currentState
+        val (content, fileName) = when (state.activeTab) {
+            FinancialStatementTab.PROFIT_LOSS -> {
+                val pAndL = state.pAndL ?: run {
+                    sendEffect(FinancialStatementsEffect.ShowError("Generate P&L first before exporting"))
+                    return
+                }
+                generatePandLCsv(pAndL) to "pnl_${state.fromDate}_${state.toDate}.csv"
+            }
+            FinancialStatementTab.BALANCE_SHEET -> {
+                val bs = state.balanceSheet ?: run {
+                    sendEffect(FinancialStatementsEffect.ShowError("Generate Balance Sheet first before exporting"))
+                    return
+                }
+                generateBalanceSheetCsv(bs) to "balance_sheet_${state.asOfDate}.csv"
+            }
+            FinancialStatementTab.TRIAL_BALANCE -> {
+                val tb = state.trialBalance ?: run {
+                    sendEffect(FinancialStatementsEffect.ShowError("Generate Trial Balance first before exporting"))
+                    return
+                }
+                generateTrialBalanceCsv(tb) to "trial_balance_${state.asOfDate}.csv"
+            }
+            FinancialStatementTab.CASH_FLOW -> {
+                val cf = state.cashFlow ?: run {
+                    sendEffect(FinancialStatementsEffect.ShowError("Generate Cash Flow first before exporting"))
+                    return
+                }
+                generateCashFlowCsv(cf) to "cash_flow_${state.fromDate}_${state.toDate}.csv"
+            }
+        }
+        sendEffect(FinancialStatementsEffect.ShareExport(content, fileName))
+    }
+
+    private fun generatePandLCsv(pAndL: FinancialStatement.PAndL): String {
+        val sb = StringBuilder()
+        sb.appendLine("section,accountCode,accountName,amount")
+        pAndL.revenueLines.forEach { sb.appendLine("Revenue,${it.accountCode},${it.accountName.csvCell()},${it.amount}") }
+        sb.appendLine("Revenue Summary,,Total Revenue,${pAndL.totalRevenue}")
+        pAndL.cogsLines.forEach { sb.appendLine("COGS,${it.accountCode},${it.accountName.csvCell()},${it.amount}") }
+        sb.appendLine("COGS Summary,,Total COGS,${pAndL.totalCogs}")
+        sb.appendLine("Summary,,Gross Profit,${pAndL.grossProfit}")
+        pAndL.expenseLines.forEach { sb.appendLine("Expenses,${it.accountCode},${it.accountName.csvCell()},${it.amount}") }
+        sb.appendLine("Expenses Summary,,Total Expenses,${pAndL.totalExpenses}")
+        sb.appendLine("Summary,,Net Profit,${pAndL.netProfit}")
+        sb.appendLine("Summary,,Gross Margin %,${pAndL.grossMarginPct}")
+        return sb.toString()
+    }
+
+    private fun generateBalanceSheetCsv(bs: FinancialStatement.BalanceSheet): String {
+        val sb = StringBuilder()
+        sb.appendLine("section,accountCode,accountName,amount")
+        bs.assetLines.forEach { sb.appendLine("Assets,${it.accountCode},${it.accountName.csvCell()},${it.amount}") }
+        sb.appendLine("Assets Summary,,Total Assets,${bs.totalAssets}")
+        bs.liabilityLines.forEach { sb.appendLine("Liabilities,${it.accountCode},${it.accountName.csvCell()},${it.amount}") }
+        sb.appendLine("Liabilities Summary,,Total Liabilities,${bs.totalLiabilities}")
+        bs.equityLines.forEach { sb.appendLine("Equity,${it.accountCode},${it.accountName.csvCell()},${it.amount}") }
+        sb.appendLine("Equity Summary,,Retained Earnings,${bs.retainedEarnings}")
+        sb.appendLine("Equity Summary,,Total Equity,${bs.totalEquity}")
+        return sb.toString()
+    }
+
+    private fun generateTrialBalanceCsv(tb: FinancialStatement.TrialBalance): String {
+        val sb = StringBuilder()
+        sb.appendLine("accountCode,accountName,accountType,normalBalance,totalDebits,totalCredits,balance")
+        tb.lines.forEach { line ->
+            sb.appendLine(
+                "${line.accountCode},${line.accountName.csvCell()}," +
+                    "${line.accountType},${line.normalBalance}," +
+                    "${line.totalDebits},${line.totalCredits},${line.balance}",
+            )
+        }
+        sb.appendLine(",,,,${tb.totalDebits},${tb.totalCredits},")
+        return sb.toString()
+    }
+
+    private fun generateCashFlowCsv(cf: FinancialStatement.CashFlow): String {
+        val sb = StringBuilder()
+        sb.appendLine("section,label,inflow,outflow,net")
+        cf.operatingLines.forEach { sb.appendLine("Operating,${it.label.csvCell()},${it.inflow},${it.outflow},${it.net}") }
+        sb.appendLine("Operating Summary,Net Cash from Operations,,,${cf.netOperating}")
+        cf.investingLines.forEach { sb.appendLine("Investing,${it.label.csvCell()},${it.inflow},${it.outflow},${it.net}") }
+        sb.appendLine("Investing Summary,Net Cash from Investing,,,${cf.netInvesting}")
+        cf.financingLines.forEach { sb.appendLine("Financing,${it.label.csvCell()},${it.inflow},${it.outflow},${it.net}") }
+        sb.appendLine("Financing Summary,Net Cash from Financing,,,${cf.netFinancing}")
+        sb.appendLine("Summary,Net Change in Cash,,,${cf.netChange}")
+        sb.appendLine("Summary,Opening Cash Balance,,,${cf.openingCash}")
+        sb.appendLine("Summary,Closing Cash Balance,,,${cf.closingCash}")
+        return sb.toString()
+    }
+
+    private fun String.csvCell(): String = if (contains(',') || contains('"') || contains('\n')) {
+        "\"${replace("\"", "\"\"")}\""
+    } else this
+}
+
+// ── Date conversion helpers ───────────────────────────────────────────────────
+
+/** Convert a YYYY-MM-DD string to epoch milliseconds (UTC midnight). Returns null on parse error. */
+fun String.toEpochMillisOrNull(): Long? = try {
+    val date = LocalDate.parse(this)
+    // kotlinx-datetime: LocalDate → Instant at UTC midnight
+    val instant = date.atStartOfDayIn(kotlinx.datetime.TimeZone.UTC)
+    instant.toEpochMilliseconds()
+} catch (_: Exception) {
+    null
+}
+
+/** Convert epoch milliseconds to a YYYY-MM-DD string (UTC). */
+fun Long.toLocalDateString(): String {
+    val instant = kotlinx.datetime.Instant.fromEpochMilliseconds(this)
+    return instant.toLocalDateTime(kotlinx.datetime.TimeZone.UTC).date.toString()
 }

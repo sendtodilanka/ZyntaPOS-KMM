@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-24 (RegionalTaxOverride nav wiring + CurrencyFormatter runtime currency from store settings + sync pending count badge + stale gap corrections)
+**Last Updated:** 2026-03-25 (G9: date picker dialogs + CSV export; G7: configurable daily sales target)
 **Status:** Approved — Verified against codebase 2026-03-22, updated for ADR-009 compliance
 
 ---
@@ -1888,7 +1888,7 @@ Backend Tests:
 |-----|----------|-------|
 | **No real-time updates** — Loads once on screen open, never refreshes | CRITICAL | Phase 2 |
 | ~~**No multi-store KPI consolidation**~~ — ✅ PARTIAL: Store context chip (StoreNameChip) in dashboard top bar via `DashboardState.storeName` + `StoreRepository`; full KPI aggregation deferred (2026-03-24) | ~~CRITICAL~~ | ✅ PARTIAL (2026-03-24) |
-| **Daily sales target hardcoded** ("LKR 50,000") not configurable | MEDIUM | Phase 2 |
+| ~~**Daily sales target hardcoded**~~ — ✅ DONE: `DAILY_SALES_TARGET` key in `SettingsKeys`; `PosState.dailySalesTarget` field; `UpdateDailySalesTarget` intent; load/save in `SettingsViewModel`; `OutlinedTextField` in `PosSettingsScreen`; `DashboardViewModel` reads from `SettingsRepository` on load (2026-03-25) | ~~MEDIUM~~ | ✅ DONE (2026-03-25) |
 | **Hourly sparkline data calculated but never rendered** | LOW | Phase 1.5 |
 | **No comparison to previous period** (yesterday, last week) | MEDIUM | Phase 2 |
 | **Notifications menu item exists but not implemented** | LOW | Phase 2 |
@@ -1918,9 +1918,9 @@ Backend Tests:
 | Gap | Severity | Phase |
 |-----|----------|-------|
 | ~~**Financial statements are UI shells**~~ — ✅ VERIFIED FUNCTIONAL: `FinancialStatementRepositoryImpl.kt` (411 LOC) is fully implemented with P&L, BS, TB, CF from GL; see C5.1 | ~~CRITICAL~~ | ✅ DONE |
-| **No date picker dialog** — Manual text entry required (YYYY-MM-DD) | HIGH | Phase 2 |
+| ~~**No date picker dialog**~~ — ✅ DONE: Material 3 `DatePickerDialog` replaces manual text entry across all 4 tabs; `DateInputField` composable + `DatePickerDialogs` composable; `DatePickerField` enum + `ShowDatePicker`/`HideDatePicker` intents; date helpers `toEpochMillisOrNull()`/`toLocalDateString()` (2026-03-25) | ~~HIGH~~ | ✅ DONE (2026-03-25) |
 | **No multi-store P&L consolidation** | HIGH | Phase 2 |
-| **No export buttons** on any financial statement | HIGH | Phase 2 |
+| ~~**No export buttons** on any financial statement~~ — ✅ DONE: CSV export button in TopAppBar; `ExportCsv` intent; `ShareExport` effect wired in App.kt with selectable-text dialog; RFC 4180 CSV generation for all 4 statements (2026-03-25) | ~~HIGH~~ | ✅ DONE (2026-03-25) |
 | **No account reconciliation workflow** | MEDIUM | Phase 3 |
 | **E-invoice list exists but no IRD submission flow** | MEDIUM | Phase 3 |
 | **Trial Balance "UNBALANCED" error has no remediation path** | LOW | Phase 2 |
@@ -2119,7 +2119,7 @@ Backend Tests:
 
 | Gap ID | Issue | Severity | Fix Required |
 |--------|-------|----------|-------------|
-| INV-1 | **Barcode Scanner Not Integrated** — `ProductDetailScreen` has QR icon with TODO comment; `StocktakeScreen` has scanner toggle but handler may be stubbed | HIGH | Wire HAL `BarcodeScanner` interface; implement `actual` for Android (ML Kit) and JVM (HID keyboard) |
+| INV-1 | ~~**Barcode Scanner Not Integrated**~~ — ✅ VERIFIED DONE: `ProductDetailScreen` has QR icon + `StartBarcodeScanner`/`StopBarcodeScanner`/`BarcodeScanResult` intents; InventoryViewModel fully handles scanner lifecycle; `isScannerActive` state tracks scanner; StocktakeScreen fully integrated with scanner toggle (2026-03-25) | ~~HIGH~~ | ✅ DONE |
 | INV-2 | **Variant Persistence Not Implemented** — `ProductVariants` added/edited in form state but never saved to domain; `CreateProductUseCase`/`UpdateProductUseCase` ignore variants | HIGH | Add variant list to `CreateProductUseCase.Params`, persist via `product_variants.sq` table |
 | INV-3 | **Missing Screen Route Definitions** — `CategoryDetail`, `SupplierDetail`, `TaxGroupScreen`, `UnitManagementScreen` not in `ZyntaRoute.kt` | HIGH | Add `@Serializable` route classes + NavHost entries |
 | INV-4 | **Product Image Preview Missing** — `ProductDetailScreen` accepts image URL but doesn't show preview; just a text field | MEDIUM | Add Coil `AsyncImage` with placeholder/error states |
@@ -2229,7 +2229,7 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 - [x] **[MS-1]** Add product selector/autocomplete to NewStockTransferScreen — ✅ DONE (ProductSearchDropdown composable)
 - [x] **[MS-2]** Display warehouse names instead of IDs in StockTransferCard — ✅ DONE (warehouseMap lookup)
 - [x] **[MS-3]** Add WarehouseRackList/Detail routes to ZyntaRoute.kt — ✅ DONE (verified 2026-03-22)
-- [ ] **[INV-1]** Wire barcode scanner HAL integration (ProductDetail + Stocktake)
+- [x] **[INV-1]** Wire barcode scanner HAL integration (ProductDetail + Stocktake) — ✅ VERIFIED DONE (2026-03-25)
 - [x] **[INV-2]** Variant persistence in CreateProduct/UpdateProduct use cases — ✅ ALREADY COMPLETE (verified 2026-03-23: full pipeline from UI → ViewModel.onSaveProduct() → CreateProductUseCase(product, variants) → ProductVariantRepository.replaceAll() works end-to-end; SQLDelight schema, Koin DI, mapper all in place)
 - [x] **[INV-3]** Add missing CategoryDetail, SupplierDetail routes to ZyntaRoute.kt — ✅ DONE (verified 2026-03-22)
 - [x] **[INV-4]** Add Coil image preview in ProductDetailScreen — ✅ ALREADY EXISTS (AsyncImage in ImageSection, verified 2026-03-22)

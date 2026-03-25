@@ -119,6 +119,7 @@ class SettingsViewModel(
         is SettingsIntent.UpdateTaxDisplayMode       -> updateState { copy(pos = pos.copy(taxDisplayMode = intent.mode)) }
         is SettingsIntent.UpdateReceiptTemplate      -> updateState { copy(pos = pos.copy(receiptTemplate = intent.template)) }
         is SettingsIntent.UpdateMaxDiscount          -> updateState { copy(pos = pos.copy(maxDiscountPercent = intent.percent)) }
+        is SettingsIntent.UpdateDailySalesTarget     -> updateState { copy(pos = pos.copy(dailySalesTarget = intent.amount)) }
         SettingsIntent.SavePos                       -> savePos()
         // Tax
         SettingsIntent.LoadTaxGroups                 -> loadTaxGroups()
@@ -353,6 +354,7 @@ class SettingsViewModel(
                             ReceiptTemplate.valueOf(all[SettingsKeys.RECEIPT_TEMPLATE] ?: "STANDARD")
                         }.getOrDefault(ReceiptTemplate.STANDARD),
                         maxDiscountPercent = all[SettingsKeys.MAX_DISCOUNT_PERCENT]?.toDoubleOrNull() ?: 20.0,
+                        dailySalesTarget  = all[SettingsKeys.DAILY_SALES_TARGET]?.toDoubleOrNull() ?: 75_000.0,
                     )
                 )
             }
@@ -369,6 +371,7 @@ class SettingsViewModel(
                 settingsRepository.set(SettingsKeys.TAX_DISPLAY_MODE,     s.taxDisplayMode.name)
                 settingsRepository.set(SettingsKeys.RECEIPT_TEMPLATE,     s.receiptTemplate.name)
                 settingsRepository.set(SettingsKeys.MAX_DISCOUNT_PERCENT, s.maxDiscountPercent.toString())
+                settingsRepository.set(SettingsKeys.DAILY_SALES_TARGET,   s.dailySalesTarget.toString())
                 sendEffect(SettingsEffect.PosSaved)
                 auditLogger.logSettingsChanged(currentUserId, "pos")
             } catch (e: Exception) {

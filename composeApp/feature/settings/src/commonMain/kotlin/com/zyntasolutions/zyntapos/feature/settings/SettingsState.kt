@@ -60,6 +60,7 @@ data class SettingsState(
         val taxDisplayMode: TaxDisplayMode = TaxDisplayMode.EXCLUSIVE,
         val receiptTemplate: ReceiptTemplate = ReceiptTemplate.STANDARD,
         val maxDiscountPercent: Double    = 20.0,
+        val dailySalesTarget: Double     = 75_000.0,
         val isSaving: Boolean            = false,
         val saveError: String?           = null,
     )
