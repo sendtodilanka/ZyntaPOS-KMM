@@ -122,9 +122,12 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.feature.customers.CustomerEffect
+import com.zyntasolutions.zyntapos.feature.reports.ReportExporter
+import kotlinx.coroutines.launch
 import com.zyntasolutions.zyntapos.feature.diagnostic.DiagnosticConsentScreen
 import com.zyntasolutions.zyntapos.feature.diagnostic.DiagnosticEffect
 import com.zyntasolutions.zyntapos.feature.diagnostic.DiagnosticIntent
@@ -662,6 +665,9 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
         val state by vm.state.collectAsState()
         val snackbarHostState = remember { SnackbarHostState() }
         var exportedJson by remember { mutableStateOf<String?>(null) }
+        val reportExporter: ReportExporter = koinInject()
+        val scope = rememberCoroutineScope()
+        var isGdprExporting by remember { mutableStateOf(false) }
 
         // Collect one-shot effects (snackbar, GDPR export, navigation)
         LaunchedEffect(Unit) {
@@ -707,6 +713,28 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
                     }
                 },
                 confirmButton = {
+                    TextButton(
+                        onClick = {
+                            val json = currentExportedJson
+                            if (json != null && !isGdprExporting) {
+                                isGdprExporting = true
+                                scope.launch {
+                                    try {
+                                        reportExporter.exportGdprJson(customerId, json)
+                                    } catch (_: Exception) {
+                                        // Cancelled or failed — no-op (user can copy text instead)
+                                    } finally {
+                                        isGdprExporting = false
+                                    }
+                                }
+                            }
+                        },
+                        enabled = !isGdprExporting,
+                    ) {
+                        Text(if (isGdprExporting) "Saving…" else "Save / Share")
+                    }
+                },
+                dismissButton = {
                     TextButton(onClick = { exportedJson = null }) { Text("Close") }
                 },
             )

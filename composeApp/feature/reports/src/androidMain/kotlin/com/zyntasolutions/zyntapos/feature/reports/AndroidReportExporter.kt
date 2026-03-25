@@ -138,6 +138,14 @@ class AndroidReportExporter(private val context: Context) : ReportExporter {
             file.absolutePath
         }
 
+    override suspend fun exportGdprJson(customerId: String, json: String): String =
+        withContext(Dispatchers.IO) {
+            val file = File(context.cacheDir, "gdpr_export_${customerId}_$dateStamp.json")
+            file.writeText(json)
+            shareFile(file, "application/json")
+            file.absolutePath
+        }
+
     override suspend fun exportStoreComparisonCsv(stores: List<StoreSalesData>): String =
         withContext(Dispatchers.IO) {
             val file = File(context.cacheDir, "store_comparison_$dateStamp.csv")

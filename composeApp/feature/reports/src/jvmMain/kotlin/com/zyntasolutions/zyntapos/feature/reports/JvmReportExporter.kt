@@ -133,6 +133,14 @@ class JvmReportExporter : ReportExporter {
             file.absolutePath
         }
 
+    override suspend fun exportGdprJson(customerId: String, json: String): String =
+        withContext(Dispatchers.IO) {
+            val dir = chooseSaveDirectory() ?: throw Exception("Export cancelled by user")
+            val file = File(dir, "gdpr_export_${customerId}_$dateStamp.json")
+            file.writeText(json)
+            file.absolutePath
+        }
+
     override suspend fun exportStoreComparisonCsv(stores: List<StoreSalesData>): String =
         withContext(Dispatchers.IO) {
             val dir = chooseSaveDirectory() ?: throw Exception("Export cancelled by user")

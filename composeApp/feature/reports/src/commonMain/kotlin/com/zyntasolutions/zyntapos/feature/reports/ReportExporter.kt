@@ -62,4 +62,12 @@ interface ReportExporter {
      * @return Absolute path of the written file.
      */
     suspend fun exportStoreComparisonCsv(stores: List<StoreSalesData>): String
+
+    /**
+     * Save and share GDPR customer data export as a JSON file.
+     * @param customerId Used to name the output file.
+     * @param json The full JSON payload produced by [ExportCustomerDataUseCase].
+     * @return Absolute path of the written file.
+     */
+    suspend fun exportGdprJson(customerId: String, json: String): String
 }
