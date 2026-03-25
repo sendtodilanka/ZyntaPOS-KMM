@@ -2063,9 +2063,9 @@ Backend Tests:
 
 | Gap ID | Issue | Severity | Fix Required |
 |--------|-------|----------|-------------|
-| MS-1 | **No Product Selection UI** — NewStockTransferScreen requires manual product ID entry; should have autocomplete or dropdown backed by `ProductRepository.search()` | HIGH | Add `ExposedDropdownMenuBox` or search-as-you-type field with product results |
-| MS-2 | **No Warehouse Name Display** — StockTransferCard shows raw `sourceWarehouseId`/`destWarehouseId` UUIDs; users see meaningless IDs | HIGH | Resolve warehouse names from `WarehouseState.warehouses` list or add `warehouseName` to `StockTransfer` model |
-| MS-3 | **Rack Screen Navigation Missing** — `WarehouseRackListScreen` and `WarehouseRackDetailScreen` have no routes in `ZyntaRoute.kt`; parent handles nav locally | MEDIUM | Add `WarehouseRackList(warehouseId)` and `WarehouseRackDetail(warehouseId, rackId?)` to `ZyntaRoute` sealed class |
+| MS-1 | ~~**No Product Selection UI**~~ — ✅ ALREADY DONE: `ProductSearchDropdown` composable in `NewStockTransferScreen.kt` with search-as-you-type backed by `WarehouseIntent.SearchProducts`; shows name + SKU + stock (verified 2026-03-25) | ~~HIGH~~ | ✅ DONE |
+| MS-2 | ~~**No Warehouse Name Display**~~ — ✅ ALREADY DONE: `StockTransferListScreen.kt` line 72 builds `warehouseMap` from `WarehouseState.warehouses`; resolves source/dest names with UUID fallback (verified 2026-03-25) | ~~HIGH~~ | ✅ DONE |
+| MS-3 | ~~**Rack Screen Navigation Missing**~~ — ✅ ALREADY DONE: `WarehouseRackList(warehouseId)` and `WarehouseRackDetail(rackId?, warehouseId)` both in `ZyntaRoute.kt` and wired in `MainNavGraph.kt:622-631` (verified 2026-03-25) | ~~MEDIUM~~ | ✅ DONE |
 | MS-4 | ~~**RackDetailScreen No Back Button**~~ — ✅ ALREADY EXISTS: TopAppBar with ArrowBack icon at lines 39-51 | ~~MEDIUM~~ | ✅ Verified (2026-03-23) |
 | MS-5 | **No Warehouse Metadata** — No image/logo field for visual identity; warehouse cards look plain | LOW | Add optional `imageUrl` field to `Warehouse` domain model + `AsyncImage` in card |
 | MS-6 | **No Rack Capacity Enforcement** — UI validates capacity but doesn't prevent overstocking against capacity limits | LOW | Add stock-vs-capacity check in `WarehouseRepositoryImpl.commitTransfer()` |
@@ -2122,9 +2122,9 @@ Backend Tests:
 | Gap ID | Issue | Severity | Fix Required |
 |--------|-------|----------|-------------|
 | INV-1 | ~~**Barcode Scanner Not Integrated**~~ — ✅ VERIFIED DONE: `ProductDetailScreen` has QR icon + `StartBarcodeScanner`/`StopBarcodeScanner`/`BarcodeScanResult` intents; InventoryViewModel fully handles scanner lifecycle; `isScannerActive` state tracks scanner; StocktakeScreen fully integrated with scanner toggle (2026-03-25) | ~~HIGH~~ | ✅ DONE |
-| INV-2 | **Variant Persistence Not Implemented** — `ProductVariants` added/edited in form state but never saved to domain; `CreateProductUseCase`/`UpdateProductUseCase` ignore variants | HIGH | Add variant list to `CreateProductUseCase.Params`, persist via `product_variants.sq` table |
+| INV-2 | ~~**Variant Persistence Not Implemented**~~ — ✅ ALREADY DONE: `CreateProductUseCase` takes `variants: List<ProductVariant>` and persists via `ProductVariantRepository.replaceAll()`; `InventoryViewModel` maps `productVariants` from state and passes them on both create/update; `UpdateProductUseCase` does the same (verified 2026-03-25) | ~~HIGH~~ | ✅ DONE |
 | INV-3 | **Missing Screen Route Definitions** — `CategoryDetail`, `SupplierDetail`, `TaxGroupScreen`, `UnitManagementScreen` not in `ZyntaRoute.kt` | HIGH | Add `@Serializable` route classes + NavHost entries |
-| INV-4 | **Product Image Preview Missing** — `ProductDetailScreen` accepts image URL but doesn't show preview; just a text field | MEDIUM | Add Coil `AsyncImage` with placeholder/error states |
+| INV-4 | ~~**Product Image Preview Missing**~~ — ✅ ALREADY DONE: `ProductDetailScreen` has Coil `AsyncImage` preview below the imageUrl text field with loading spinner and error placeholder (INV-4 comment at line 430); `import coil3.compose.AsyncImage` at line 23 (verified 2026-03-25) | ~~MEDIUM~~ | ✅ DONE |
 | INV-5 | ~~**Supplier Purchase History Empty**~~ — ✅ DONE: `PurchaseOrderRepository.getBySupplierId()` called in `onOpenSupplierDetail()`, mapped to `PurchaseOrderSummary` with `DateTimeUtils.formatForDisplay()` | ~~MEDIUM~~ | ✅ DONE (2026-03-23) |
 | INV-6 | **Bulk Import Dialog Unaudited** — Column mapping UX unclear; may have usability issues | MEDIUM | Audit and refine `BulkImportDialog.kt` composable |
 | INV-7 | **No Batch Product Selection** — ProductListScreen has no multi-select for bulk operations (delete, price adjust) | MEDIUM | Add checkbox column + batch action toolbar |
