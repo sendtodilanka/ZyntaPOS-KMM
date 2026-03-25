@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-25 (INV-3: UnitManagementScreen modal wired; INV-6: bulk import auto column mapping + required field indicators; INV-7: batch product selection; fix(sync): WebSocketHubBroadcastTest flaky test fixed; G9: date picker dialogs + CSV export; G7: configurable daily sales target; G2: onboarding Step 4 tax setup + Step 5 receipt format; G1: ZyntaWarehouseDropdown; G20: color-only status indicators fixed — icons added to StockBadge, EInvoiceStatusChip, InvoiceStatusBadge, PurchaseOrderCard; G17: BarcodeGeneratorDialog + BarcodeLabelPrintScreen audited — both complete; CRM: purchase history tab added to CustomerDetailScreen)
+**Last Updated:** 2026-03-25 (INV-3: UnitManagementScreen modal wired; INV-6: bulk import auto column mapping + required field indicators; INV-7: batch product selection; fix(sync): WebSocketHubBroadcastTest flaky test fixed; G9: date picker dialogs + CSV export; G7: configurable daily sales target; G2: onboarding Step 4 tax setup + Step 5 receipt format; G1: ZyntaWarehouseDropdown; G20: color-only status indicators fixed; G17: BarcodeGeneratorDialog + BarcodeLabelPrintScreen audited; CRM: purchase history tab + customer merge dialog added to CustomerDetailScreen)
 **Status:** Approved — Verified against codebase 2026-03-22, updated for ADR-009 compliance
 
 ---
@@ -1304,8 +1304,8 @@ Backend Tests:
 **What's REMAINING (deferred):**
 - [ ] Cross-store points earning/spending (ensure universal acceptance)
 - [ ] Points expiry policy (e.g., expire after 12 months inactive)
-- [ ] KMM POS: "Apply Loyalty Points" button Compose UI in payment sheet
-- [ ] KMM: Customer loyalty summary screen
+- [x] KMM POS: "Apply Loyalty Points" button Compose UI in payment sheet — ✅ ALREADY DONE: `LoyaltyRedemptionDialog.kt` exists; `CartContent.kt` shows "Redeem Points" button when `loyaltyPointsBalance > 0`; `showLoyaltyRedemptionDialog` state toggles dialog (verified 2026-03-25)
+- [x] KMM: Customer loyalty summary screen — ✅ COVERED: `CustomerWalletScreen` shows `pointsBalance`, `rewardHistory` list, `currentLoyaltyTier` badge; `LoyaltyTierBadge` shown in CustomerDetailScreen TopAppBar (verified 2026-03-25)
 - [ ] Backend: `GET /v1/loyalty/summary` with POS JWT auth
 
 **Key Files:**
@@ -1355,7 +1355,7 @@ Backend Tests:
 - [ ] Backend: Remove `NOT NULL` on `store_id` in customers table (V-next migration)
 - [ ] Backend: `GET /admin/customers/global?search=X` (read-only cross-store search — ADR-009 compliant)
 - [ ] Admin panel: Global customer directory with store filter (read-only monitoring per ADR-009)
-- [ ] KMM: Customer merge UI (select two customers → confirm merge dialog)
+- [x] KMM: Customer merge UI (select two customers → confirm merge dialog) — ✅ DONE (2026-03-25): `MergeCustomerDialog` in `CustomerDetailScreen` — CallMerge icon button in TopAppBar (non-walk-in edit mode only); 2-step dialog: (1) search/select source customer, (2) confirmation with warning; dispatches `MergeCustomers(targetId, sourceId)`
 - [ ] KMM: GDPR export save-to-file / share dialog
 - [x] KMM: Purchase history tab in customer detail screen — ✅ DONE (2026-03-25): TabRow added to CustomerDetailScreen (Profile | History tabs); History tab dispatches `LoadPurchaseHistory` on selection; `PurchaseHistoryRow` shows order number, total, item count, date, status color; empty state with ShoppingBag icon
 

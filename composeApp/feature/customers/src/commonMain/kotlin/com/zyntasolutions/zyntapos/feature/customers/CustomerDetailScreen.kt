@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.feature.customers
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,8 +20,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CallMerge
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -30,9 +33,11 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -56,6 +61,7 @@ import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoadingOverlay
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoyaltyTierBadge
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTextField
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
+import com.zyntasolutions.zyntapos.domain.model.Customer
 import com.zyntasolutions.zyntapos.domain.model.Order
 import com.zyntasolutions.zyntapos.domain.model.OrderStatus
 import kotlinx.datetime.TimeZone
@@ -88,6 +94,7 @@ fun CustomerDetailScreen(
     }
 
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showMergeDialog by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableIntStateOf(0) }
     val form = state.editFormState
     val isEditMode = form.isEditing
@@ -124,6 +131,15 @@ fun CustomerDetailScreen(
                             enabled = !state.isExporting,
                         ) {
                             Icon(Icons.Filled.FileDownload, contentDescription = "Export Customer Data (GDPR)")
+                        }
+                        // Merge customer (C4.3)
+                        if (!state.selectedCustomer.isWalkIn) {
+                            IconButton(onClick = {
+                                onIntent(CustomerIntent.LoadCustomers)
+                                showMergeDialog = true
+                            }) {
+                                Icon(Icons.Filled.CallMerge, contentDescription = "Merge with another customer")
+                            }
                         }
                         IconButton(onClick = {
                             onNavigateToWallet(state.selectedCustomer.id)
@@ -190,6 +206,25 @@ fun CustomerDetailScreen(
             }
             ZyntaLoadingOverlay(isLoading = state.isLoading)
         }
+    }
+
+    // ── Merge Customer Dialog ──────────────────────────────────────────────────
+    if (showMergeDialog && state.selectedCustomer != null) {
+        MergeCustomerDialog(
+            targetCustomer = state.selectedCustomer,
+            candidates = state.customers.filter {
+                it.id != state.selectedCustomer.id && !it.isWalkIn
+            },
+            isLoading = state.isLoading,
+            onMerge = { sourceId ->
+                onIntent(CustomerIntent.MergeCustomers(
+                    targetId = state.selectedCustomer.id,
+                    sourceId = sourceId,
+                ))
+                showMergeDialog = false
+            },
+            onDismiss = { showMergeDialog = false },
+        )
     }
 
     // ── Delete Confirmation Dialog ─────────────────────────────────────────────
@@ -399,7 +434,7 @@ private fun PurchaseHistoryRow(order: Order) {
     val dateStr = "${localDate.date}"
     val statusColor = when (order.status) {
         OrderStatus.COMPLETED -> MaterialTheme.colorScheme.tertiary
-        OrderStatus.REFUNDED, OrderStatus.VOIDED -> MaterialTheme.colorScheme.error
+        OrderStatus.VOIDED -> MaterialTheme.colorScheme.error
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
 
@@ -448,4 +483,162 @@ private fun PurchaseHistoryRow(order: Order) {
             }
         }
     }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MergeCustomerDialog — select a source customer to merge into the target (C4.3)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Dialog for merging two customer profiles.
+ *
+ * Displays a searchable list of candidates (all non-walk-in customers except
+ * the merge target). On selection shows a confirmation step before dispatching
+ * [CustomerIntent.MergeCustomers].
+ *
+ * **Merge semantics (performed by [MergeCustomersUseCase]):**
+ * - Source customer loyalty points, wallet balance, and order history are
+ *   combined with the target customer.
+ * - Source customer is soft-deleted after merge.
+ *
+ * @param targetCustomer  The customer that will receive merged data.
+ * @param candidates      Filterable list of source customer candidates.
+ * @param isLoading       True while candidates are loading.
+ * @param onMerge         Called with the selected source customer ID.
+ * @param onDismiss       Dismissal callback.
+ */
+@Composable
+private fun MergeCustomerDialog(
+    targetCustomer: Customer,
+    candidates: List<Customer>,
+    isLoading: Boolean,
+    onMerge: (sourceId: String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedSource by remember { mutableStateOf<Customer?>(null) }
+
+    val filtered = if (searchQuery.isBlank()) {
+        candidates
+    } else {
+        val q = searchQuery.lowercase()
+        candidates.filter {
+            it.name.lowercase().contains(q) ||
+                it.phone.contains(q) ||
+                it.email.lowercase().contains(q)
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                if (selectedSource == null) "Merge Customer" else "Confirm Merge",
+                style = MaterialTheme.typography.titleMedium,
+            )
+        },
+        text = {
+            if (selectedSource != null) {
+                // ── Step 2: Confirmation ──────────────────────────────────────
+                Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
+                    Text(
+                        "Merge \"${selectedSource!!.name}\" into \"${targetCustomer.name}\"?",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Surface(
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        shape = MaterialTheme.shapes.small,
+                    ) {
+                        Text(
+                            "• \"${selectedSource!!.name}\" will be deleted after merge\n" +
+                                "• Loyalty points and wallet balance will be combined\n" +
+                                "• This action cannot be undone",
+                            modifier = Modifier.padding(ZyntaSpacing.sm),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                        )
+                    }
+                }
+            } else {
+                // ── Step 1: Customer search ───────────────────────────────────
+                Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
+                    Text(
+                        "Select a customer to merge into \"${targetCustomer.name}\":",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        placeholder = { Text("Search by name, phone, email…") },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                    )
+                    when {
+                        isLoading -> Box(
+                            modifier = Modifier.fillMaxWidth().height(80.dp),
+                            contentAlignment = Alignment.Center,
+                        ) { CircularProgressIndicator() }
+                        filtered.isEmpty() -> Text(
+                            "No matching customers",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        else -> LazyColumn(modifier = Modifier.heightIn(max = 240.dp)) {
+                            items(filtered.take(10), key = { it.id }) { candidate ->
+                                Surface(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 2.dp)
+                                        .clickable { selectedSource = candidate },
+                                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                                    shape = MaterialTheme.shapes.small,
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(
+                                            horizontal = ZyntaSpacing.sm,
+                                            vertical = 6.dp,
+                                        ),
+                                    ) {
+                                        Text(
+                                            candidate.name,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Medium,
+                                        )
+                                        if (candidate.phone.isNotBlank()) {
+                                            Text(
+                                                candidate.phone,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            if (selectedSource != null) {
+                TextButton(
+                    onClick = { onMerge(selectedSource!!.id) },
+                ) {
+                    Text("Merge", color = MaterialTheme.colorScheme.error)
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = {
+                    if (selectedSource != null) selectedSource = null
+                    else onDismiss()
+                },
+            ) {
+                Text(if (selectedSource != null) "Back" else "Cancel")
+            }
+        },
+    )
 }
