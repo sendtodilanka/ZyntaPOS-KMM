@@ -16,6 +16,7 @@ import com.zyntasolutions.zyntapos.domain.model.Role
 import com.zyntasolutions.zyntapos.domain.model.SyncStatus
 import com.zyntasolutions.zyntapos.domain.model.User
 import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
+import com.zyntasolutions.zyntapos.domain.port.SyncStatusPort
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
 import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
@@ -28,7 +29,12 @@ import com.zyntasolutions.zyntapos.feature.dashboard.mvi.DashboardIntent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -147,6 +153,23 @@ class DashboardViewModelTest {
             kotlinx.coroutines.flow.flowOf(store[key])
     }
 
+    private val fakeSyncStatusPort = object : SyncStatusPort {
+        private val _isSyncing = MutableStateFlow(false)
+        private val _isNetworkConnected = MutableStateFlow(true)
+        private val _lastSyncFailed = MutableStateFlow(false)
+        private val _pendingCount = MutableStateFlow(0)
+        private val _newConflictCount = MutableSharedFlow<Int>()
+        private val _onSyncComplete = MutableSharedFlow<Unit>()
+        override val isSyncing: StateFlow<Boolean> = _isSyncing.asStateFlow()
+        override val isNetworkConnected: StateFlow<Boolean> = _isNetworkConnected.asStateFlow()
+        override val lastSyncFailed: StateFlow<Boolean> = _lastSyncFailed.asStateFlow()
+        override val pendingCount: StateFlow<Int> = _pendingCount.asStateFlow()
+        override val newConflictCount: SharedFlow<Int> = _newConflictCount.asSharedFlow()
+        override val onSyncComplete: SharedFlow<Unit> = _onSyncComplete.asSharedFlow()
+        /** Emit a sync-complete event to trigger dashboard refresh. */
+        suspend fun emitSyncComplete() = _onSyncComplete.emit(Unit)
+    }
+
     private lateinit var viewModel: DashboardViewModel
 
     private val fakeUser = User(
@@ -179,6 +202,7 @@ class DashboardViewModelTest {
             storeRepository = fakeStoreRepository,
             settingsRepository = fakeSettingsRepository,
             analytics = noOpAnalytics,
+            syncStatusPort = fakeSyncStatusPort,
         )
     }
 
@@ -442,6 +466,60 @@ class DashboardViewModelTest {
         updatedAt = createdAt,
         syncStatus = SyncStatus(state = SyncStatus.State.PENDING),
     )
+
+    // ── Refresh (pull-to-refresh + auto-refresh) ───────────────────────────────
+
+    @Test
+    fun `Refresh intent reloads data without showing full-screen loading spinner`() = runTest {
+        allOrders = listOf(makeOrder(total = 500.0))
+        ordersByDateRange = allOrders
+        viewModel.dispatch(DashboardIntent.LoadDashboard)
+        advanceUntilIdle()
+
+        // Update data and trigger pull-to-refresh
+        allOrders = listOf(makeOrder(total = 1000.0))
+        ordersByDateRange = allOrders
+        viewModel.dispatch(DashboardIntent.Refresh)
+        advanceUntilIdle()
+
+        // isLoading should stay false (was set to false after LoadDashboard)
+        assertFalse(viewModel.state.value.isLoading)
+        // isRefreshing should be false (completed)
+        assertFalse(viewModel.state.value.isRefreshing)
+        // lastRefreshedAt updated
+        assertTrue(viewModel.state.value.lastRefreshedAt > 0L)
+    }
+
+    @Test
+    fun `onSyncComplete triggers silent reload after initial load`() = runTest {
+        allOrders = listOf(makeOrder(total = 500.0))
+        ordersByDateRange = allOrders
+        viewModel.dispatch(DashboardIntent.LoadDashboard)
+        advanceUntilIdle()
+
+        val firstRefreshedAt = viewModel.state.value.lastRefreshedAt
+        assertTrue(firstRefreshedAt > 0L)
+
+        // New order added; sync completes
+        allOrders = listOf(makeOrder(total = 500.0), makeOrder(total = 200.0))
+        ordersByDateRange = allOrders
+        fakeSyncStatusPort.emitSyncComplete()
+        advanceUntilIdle()
+
+        // KPIs should have been refreshed silently
+        assertFalse(viewModel.state.value.isLoading)
+    }
+
+    @Test
+    fun `onSyncComplete before initial load does not trigger reload`() = runTest {
+        // Emit sync-complete BEFORE LoadDashboard — should be ignored (lastRefreshedAt == 0)
+        fakeSyncStatusPort.emitSyncComplete()
+        advanceUntilIdle()
+
+        // ViewModel should still be in initial loading state
+        assertTrue(viewModel.state.value.isLoading)
+        assertEquals(0L, viewModel.state.value.lastRefreshedAt)
+    }
 
     private fun makeProduct(
         id: String = "product-id",

@@ -144,6 +144,7 @@ fun DashboardScreen(
         onNavigateToSettings = onNavigateToSettings,
         onNavigateToNotifications = onNavigateToNotifications,
         onLogout = { viewModel.dispatch(DashboardIntent.Logout) },
+        onRefresh = { viewModel.dispatch(DashboardIntent.Refresh) },
     )
 }
 
@@ -166,6 +167,7 @@ internal fun DashboardScreenContent(
     onNavigateToSettings: () -> Unit,
     onNavigateToNotifications: () -> Unit,
     onLogout: () -> Unit,
+    onRefresh: () -> Unit = {},
 ) {
     ZyntaPageScaffold(
         title = "Dashboard",

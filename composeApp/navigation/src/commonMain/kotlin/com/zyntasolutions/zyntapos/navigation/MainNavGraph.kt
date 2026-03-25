@@ -814,6 +814,13 @@ fun NavGraphBuilder.mainNavGraph(
             )
         }
 
+        // ── Click & Collect: FulfillmentQueue (C4.4) ────────────────────────
+        composable<ZyntaRoute.FulfillmentQueue> {
+            screens.fulfillmentQueue(
+                { navigationController.navigateUp(ZyntaRoute.Pos) },
+            )
+        }
+
         // ── Deep-link target: OrderHistory ───────────────────────────────────
         composable<ZyntaRoute.OrderHistory> { entry ->
             val route = entry.toRoute<ZyntaRoute.OrderHistory>()

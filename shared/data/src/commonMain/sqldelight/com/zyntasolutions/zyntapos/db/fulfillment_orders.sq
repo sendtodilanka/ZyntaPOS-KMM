@@ -1,0 +1,56 @@
+-- Fulfillment orders: Click & Collect / BOPIS pickup queue (C4.4)
+CREATE TABLE fulfillment_orders (
+    order_id               TEXT    NOT NULL PRIMARY KEY,
+    store_id               TEXT    NOT NULL,
+    customer_id            TEXT    NOT NULL,
+    status                 TEXT    NOT NULL DEFAULT 'RECEIVED',
+    pickup_deadline        INTEGER NOT NULL,
+    customer_notified      INTEGER NOT NULL DEFAULT 0,
+    notes                  TEXT,
+    sync_status            TEXT    NOT NULL DEFAULT 'PENDING',
+    created_at             INTEGER NOT NULL,
+    updated_at             INTEGER NOT NULL
+);
+
+CREATE INDEX idx_fo_store_id     ON fulfillment_orders(store_id);
+CREATE INDEX idx_fo_customer_id  ON fulfillment_orders(customer_id);
+CREATE INDEX idx_fo_status       ON fulfillment_orders(store_id, status);
+CREATE INDEX idx_fo_deadline     ON fulfillment_orders(store_id, pickup_deadline);
+
+-- ── Queries ──────────────────────────────────────────────────────────────────
+
+getPendingPickups:
+SELECT * FROM fulfillment_orders
+WHERE store_id = :storeId
+  AND status NOT IN ('PICKED_UP', 'EXPIRED', 'CANCELLED')
+ORDER BY pickup_deadline ASC;
+
+getByOrderId:
+SELECT * FROM fulfillment_orders WHERE order_id = :orderId;
+
+insert:
+INSERT OR REPLACE INTO fulfillment_orders
+(order_id, store_id, customer_id, status, pickup_deadline, customer_notified, notes, sync_status, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateStatus:
+UPDATE fulfillment_orders
+SET status = :status,
+    customer_notified = :customerNotified,
+    updated_at = :updatedAt,
+    sync_status = 'PENDING'
+WHERE order_id = :orderId;
+
+expireOverdueOrders:
+UPDATE fulfillment_orders
+SET status = 'EXPIRED',
+    updated_at = :now,
+    sync_status = 'PENDING'
+WHERE store_id = :storeId
+  AND status NOT IN ('PICKED_UP', 'EXPIRED', 'CANCELLED')
+  AND pickup_deadline < :timeoutEpochMillis;
+
+countExpired:
+SELECT COUNT(*) FROM fulfillment_orders
+WHERE store_id = :storeId
+  AND status = 'EXPIRED';

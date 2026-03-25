@@ -4,6 +4,7 @@ import com.zyntasolutions.zyntapos.core.analytics.AnalyticsEvents
 import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import com.zyntasolutions.zyntapos.designsystem.components.ChartDataPoint
 import com.zyntasolutions.zyntapos.domain.model.OrderStatus
+import com.zyntasolutions.zyntapos.domain.port.SyncStatusPort
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
 import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
@@ -15,7 +16,9 @@ import com.zyntasolutions.zyntapos.feature.dashboard.mvi.DashboardIntent
 import com.zyntasolutions.zyntapos.feature.dashboard.mvi.DashboardState
 import com.zyntasolutions.zyntapos.feature.dashboard.mvi.RecentOrderItem
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlin.time.Clock
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
@@ -23,12 +26,19 @@ import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
 
+/** Interval between periodic background KPI refreshes (30 seconds). */
+private const val AUTO_REFRESH_INTERVAL_MS = 30_000L
+
 /**
  * MVI ViewModel for the home dashboard screen.
  *
  * Aggregates KPI data from multiple repositories and exposes it as a single
  * [DashboardState] snapshot. All data loading happens inside [handleIntent]
  * so the composable layer remains pure UI.
+ *
+ * **Real-time updates:** Two mechanisms keep KPIs current without user interaction:
+ * 1. [SyncStatusPort.onSyncComplete] — refresh immediately after every sync cycle.
+ * 2. A 30-second periodic coroutine — fallback for low-sync-frequency scenarios.
  */
 class DashboardViewModel(
     private val orderRepository: OrderRepository,
@@ -38,18 +48,51 @@ class DashboardViewModel(
     private val storeRepository: StoreRepository,
     private val settingsRepository: SettingsRepository,
     private val analytics: AnalyticsTracker,
+    private val syncStatusPort: SyncStatusPort,
 ) : BaseViewModel<DashboardState, DashboardIntent, DashboardEffect>(DashboardState()) {
+
+    init {
+        // Refresh on every sync cycle completion (real-time KPI updates).
+        viewModelScope.launch {
+            syncStatusPort.onSyncComplete.collect {
+                if (currentState.lastRefreshedAt > 0L) {
+                    performLoad(showLoadingSpinner = false)
+                }
+            }
+        }
+
+        // 30-second periodic fallback refresh.
+        viewModelScope.launch {
+            while (true) {
+                delay(AUTO_REFRESH_INTERVAL_MS)
+                if (currentState.lastRefreshedAt > 0L) {
+                    performLoad(showLoadingSpinner = false)
+                }
+            }
+        }
+    }
 
     override suspend fun handleIntent(intent: DashboardIntent) {
         when (intent) {
-            is DashboardIntent.LoadDashboard -> loadDashboard()
+            is DashboardIntent.LoadDashboard -> performLoad(showLoadingSpinner = true)
+            is DashboardIntent.Refresh -> {
+                updateState { copy(isRefreshing = true) }
+                try {
+                    performLoad(showLoadingSpinner = false)
+                } finally {
+                    updateState { copy(isRefreshing = false) }
+                }
+            }
             is DashboardIntent.Logout -> onLogout()
         }
     }
 
-    private suspend fun loadDashboard() {
-        updateState { copy(isLoading = true) }
-        analytics.logScreenView("Dashboard", "DashboardViewModel")
+    @Suppress("LongMethod")
+    private suspend fun performLoad(showLoadingSpinner: Boolean) {
+        if (showLoadingSpinner) {
+            updateState { copy(isLoading = true) }
+            analytics.logScreenView("Dashboard", "DashboardViewModel")
+        }
 
         try {
             val user = authRepository.getSession().first()
@@ -118,7 +161,9 @@ class DashboardViewModel(
                         total = order.total,
                         method = order.paymentMethod.name,
                         timestamp = order.createdAt.toEpochMilliseconds(),
-                        formattedTime = "${orderTime.hour.toString().padStart(2, '0')}:${orderTime.minute.toString().padStart(2, '0')}",
+                        formattedTime = "${orderTime.hour.toString().padStart(2, '0')}:${
+                            orderTime.minute.toString().padStart(2, '0')
+                        }",
                     )
                 }
 
@@ -129,7 +174,6 @@ class DashboardViewModel(
                 else -> "Good evening,"
             }
 
-            // Derived display values computed in VM so composables stay pure (MVI)
             val target = settingsRepository.get("pos.daily_sales_target")?.toDoubleOrNull()
                 ?: currentState.dailySalesTarget
             val computedSalesProgress = if (target > 0) (sales / target).toFloat().coerceIn(0f, 1f) else 0f
@@ -159,10 +203,11 @@ class DashboardViewModel(
                     salesProgress = computedSalesProgress,
                     userInitials = computedInitials,
                     dailySalesTarget = target,
+                    lastRefreshedAt = now.toEpochMilliseconds(),
                 )
             }
         } catch (e: Exception) {
-            updateState { copy(isLoading = false) }
+            if (showLoadingSpinner) updateState { copy(isLoading = false) }
             sendEffect(DashboardEffect.ShowError(e.message ?: "Failed to load dashboard"))
         }
     }

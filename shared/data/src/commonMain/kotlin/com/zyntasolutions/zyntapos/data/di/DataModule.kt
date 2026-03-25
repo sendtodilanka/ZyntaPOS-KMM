@@ -138,9 +138,11 @@ import com.zyntasolutions.zyntapos.domain.repository.WarehouseRackRepository
 import com.zyntasolutions.zyntapos.domain.repository.RoleRepository
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseRepository
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseStockRepository
+import com.zyntasolutions.zyntapos.data.repository.FulfillmentRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.LicenseRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.RegionalTaxOverrideRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.TransitTrackingRepositoryImpl
+import com.zyntasolutions.zyntapos.domain.repository.FulfillmentRepository
 import com.zyntasolutions.zyntapos.domain.repository.LicenseRepository
 import com.zyntasolutions.zyntapos.domain.repository.RegionalTaxOverrideRepository
 import com.zyntasolutions.zyntapos.domain.repository.TransitTrackingRepository
@@ -432,6 +434,13 @@ val dataModule = module {
 
     // In-app notifications: insert, mark-read, prune old; no remote sync queue
     single<NotificationRepository> { NotificationRepositoryImpl(db = get()) }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ── Phase 3 Click & Collect (C4.4) ───────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Fulfillment orders: BOPIS pickup queue, status lifecycle, expiry sweep
+    single<FulfillmentRepository> { FulfillmentRepositoryImpl(db = get()) }
 
     // ─────────────────────────────────────────────────────────────────────────
     // ── Network & Sync Layer (Step 3.4) ──────────────────────────────────────

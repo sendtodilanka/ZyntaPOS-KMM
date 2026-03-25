@@ -136,6 +136,17 @@ class SyncProcessor(
                 .distinct()
             publishToRedis(storeId, request.deviceId, accepted.size + conflicts.size, latestSeq, affectedEntityTypes)
 
+            // Step 4b: Publish dashboard-update event when order/cash data changes (C5.4).
+            // This triggers a silent KPI refresh on all dashboard WebSocket clients for the store.
+            val dashboardAffected = affectedEntityTypes.any { type ->
+                type.equals("ORDER", ignoreCase = true) ||
+                type.equals("REGISTER_SESSION", ignoreCase = true) ||
+                type.equals("CASH_MOVEMENT", ignoreCase = true)
+            }
+            if (dashboardAffected) {
+                publishDashboardUpdate(storeId, affectedEntityTypes)
+            }
+
             // Update metrics
             metrics.opsAccepted.addAndGet(accepted.size.toLong())
             metrics.opsRejected.addAndGet(rejected.size.toLong())
@@ -158,6 +169,30 @@ class SyncProcessor(
             // across coroutine boundaries (coroutines may reuse threads).
             MDC.remove("storeId")
             MDC.remove("deviceId")
+        }
+    }
+
+    /** Publishes a `dashboard:update:{storeId}` event to Redis for KPI refresh (C5.4). */
+    private fun publishDashboardUpdate(storeId: String, affectedAreas: List<String>) {
+        if (redisPool == null) return
+        @kotlinx.serialization.Serializable
+        data class DashboardNotification(val storeId: String, val triggeredAt: Long, val affectedAreas: List<String>)
+        try {
+            val payload = json.encodeToString(
+                DashboardNotification(
+                    storeId      = storeId,
+                    triggeredAt  = System.currentTimeMillis(),
+                    affectedAreas = affectedAreas,
+                )
+            )
+            val conn = redisPool.borrowObject()
+            try {
+                conn.async().publish("dashboard:update:$storeId", payload)
+            } finally {
+                redisPool.returnObject(conn)
+            }
+        } catch (e: Exception) {
+            logger.warn("Failed to publish dashboard update to Redis: ${e.message}")
         }
     }
 

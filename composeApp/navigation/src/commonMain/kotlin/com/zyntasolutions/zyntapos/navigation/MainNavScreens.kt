@@ -166,6 +166,11 @@ data class MainNavScreens(
         onNavigateUp: () -> Unit,
     ) -> Unit = { _, _ -> },
 
+    // ── Click & Collect (C4.4) ────────────────────────────────────────────────
+    val fulfillmentQueue: @Composable (
+        onNavigateUp: () -> Unit,
+    ) -> Unit = { onUp -> },
+
     // ── Deep-link target ──────────────────────────────────────────────────────
     val orderHistory: @Composable (
         orderId: String,

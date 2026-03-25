@@ -1,6 +1,8 @@
 package com.zyntasolutions.zyntapos.sync.hub
 
+import com.zyntasolutions.zyntapos.sync.models.DashboardUpdateNotification
 import com.zyntasolutions.zyntapos.sync.models.SyncNotification
+import com.zyntasolutions.zyntapos.sync.models.WsDashboardUpdate
 import com.zyntasolutions.zyntapos.sync.models.WsDelta
 import com.zyntasolutions.zyntapos.sync.models.WsMessage
 import com.zyntasolutions.zyntapos.sync.models.WsNotify
@@ -17,6 +19,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import org.slf4j.LoggerFactory
 
 private const val SYNC_DELTA_PATTERN = "sync:delta:*"
+private const val DASHBOARD_UPDATE_PATTERN = "dashboard:update:*"
 private const val SYNC_COMMANDS_CHANNEL = "sync:commands"
 private const val SMALL_DELTA_THRESHOLD = 10
 private const val MAX_RECONNECT_ATTEMPTS = 8
@@ -87,13 +90,25 @@ class RedisPubSubListener(
 
         // Pattern subscribe for delta notifications per store
         connection?.async()?.psubscribe(SYNC_DELTA_PATTERN)
+        // Pattern subscribe for dashboard KPI update events (C5.4)
+        connection?.async()?.psubscribe(DASHBOARD_UPDATE_PATTERN)
         // Direct subscribe for admin force-sync commands
         connection?.async()?.subscribe(SYNC_COMMANDS_CHANNEL)
 
-        logger.info("RedisPubSubListener started — patterns: $SYNC_DELTA_PATTERN, $SYNC_COMMANDS_CHANNEL")
+        logger.info(
+            "RedisPubSubListener started — patterns: $SYNC_DELTA_PATTERN, " +
+            "$DASHBOARD_UPDATE_PATTERN, $SYNC_COMMANDS_CHANNEL"
+        )
     }
 
     private fun handlePattern(channel: String, message: String) {
+        when {
+            channel.startsWith("sync:delta:")     -> handleSyncDelta(channel, message)
+            channel.startsWith("dashboard:update:") -> handleDashboardUpdate(channel, message)
+        }
+    }
+
+    private fun handleSyncDelta(channel: String, message: String) {
         if (!channel.startsWith("sync:delta:")) return
         val storeId = channel.removePrefix("sync:delta:")
         try {
@@ -116,6 +131,26 @@ class RedisPubSubListener(
             hub.broadcast(storeId, wsMessage, excludeDeviceId = notification.senderDeviceId)
         } catch (e: Exception) {
             logger.warn("Failed to handle delta message on $channel: ${e.message}")
+        }
+    }
+
+    private fun handleDashboardUpdate(channel: String, message: String) {
+        val storeId = channel.removePrefix("dashboard:update:")
+        try {
+            val notification = json.decodeFromString<DashboardUpdateNotification>(message)
+            val wsMessage = json.encodeToString<WsMessage>(
+                WsDashboardUpdate(
+                    storeId      = storeId,
+                    triggeredAt  = notification.triggeredAt,
+                    affectedAreas = notification.affectedAreas,
+                )
+            )
+            // Broadcast to ALL devices in the store (no sender exclusion — dashboard clients
+            // don't push data, so all need to be notified).
+            hub.broadcast(storeId, wsMessage)
+            logger.debug("Dashboard update broadcast for store $storeId")
+        } catch (e: Exception) {
+            logger.warn("Failed to handle dashboard update on $channel: ${e.message}")
         }
     }
 

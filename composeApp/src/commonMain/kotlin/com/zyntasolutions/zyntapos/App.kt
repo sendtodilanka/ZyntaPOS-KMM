@@ -44,6 +44,7 @@ import com.zyntasolutions.zyntapos.feature.pos.OrderHistoryScreen
 import com.zyntasolutions.zyntapos.feature.pos.PaymentScreen
 import com.zyntasolutions.zyntapos.feature.pos.PosScreen
 import com.zyntasolutions.zyntapos.feature.pos.PosViewModel
+import com.zyntasolutions.zyntapos.feature.pos.fulfillment.FulfillmentQueueScreen
 import com.zyntasolutions.zyntapos.feature.admin.AdminScreen
 import com.zyntasolutions.zyntapos.feature.admin.AdminViewModel
 import com.zyntasolutions.zyntapos.feature.admin.notification.NotificationInboxScreen
@@ -637,6 +638,11 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
         EditionManagementScreen(
             onNavigateBack = onNavigateUp,
         )
+    },
+
+    // ── Click & Collect: Fulfillment Queue (C4.4) ──────────────────────────
+    fulfillmentQueue = { onNavigateUp ->
+        FulfillmentQueueScreen(onNavigateUp = onNavigateUp)
     },
 
     // ── Order History ───────────────────────────────────────────────────────

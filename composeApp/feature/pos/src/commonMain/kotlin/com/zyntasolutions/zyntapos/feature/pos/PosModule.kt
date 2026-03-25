@@ -4,6 +4,7 @@ import com.zyntasolutions.zyntapos.domain.formatter.ReceiptFormatter
 import com.zyntasolutions.zyntapos.domain.printer.A4InvoicePrinterPort
 import com.zyntasolutions.zyntapos.domain.printer.ReceiptPrinterPort
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.PostSaleJournalEntryUseCase
+import com.zyntasolutions.zyntapos.feature.pos.fulfillment.FulfillmentViewModel
 import com.zyntasolutions.zyntapos.domain.usecase.pos.LookupOrderForReturnUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.PrintA4TaxInvoiceUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.ReprintLastReceiptUseCase
@@ -220,6 +221,15 @@ val posModule = module {
             orderRepository = get(),
             printerPort = get<A4InvoicePrinterPort>(),
             checkPermission = get(),
+        )
+    }
+
+    // ── Click & Collect ViewModel (C4.4) ─────────────────────────────────────
+
+    viewModel {
+        FulfillmentViewModel(
+            fulfillmentRepository = get(),
+            storeId = get(named("storeId")),
         )
     }
 

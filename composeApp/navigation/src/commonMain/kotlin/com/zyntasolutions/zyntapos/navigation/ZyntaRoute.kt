@@ -644,6 +644,17 @@ sealed class ZyntaRoute {
     data class DiagnosticConsent(val token: String) : ZyntaRoute()
 
     // ─────────────────────────────────────────────────────────────────
+    // CLICK & COLLECT (C4.4)
+    // ─────────────────────────────────────────────────────────────────
+
+    /**
+     * Click & Collect pickup queue — staff view of all active BOPIS orders.
+     * Accessible from the POS screen via the overflow menu or quick-action tile.
+     */
+    @Serializable
+    data object FulfillmentQueue : ZyntaRoute()
+
+    // ─────────────────────────────────────────────────────────────────
     // DEEP-LINK TARGETS (not primary nav destinations)
     // ─────────────────────────────────────────────────────────────────
 
