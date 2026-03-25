@@ -386,6 +386,8 @@ val dataModule = module {
 
     // Coupons: CRUD, redemption tracking, customer-coupon assignments, promotions
     single<CouponRepository> { CouponRepositoryImpl(db = get(), syncEnqueuer = get()) }
+    // Concrete binding for SyncEngine delta routing (PROMOTION entity type)
+    single { get<CouponRepository>() as CouponRepositoryImpl }
 
     // ─────────────────────────────────────────────────────────────────────────
     // ── Phase 2 Expenses ─────────────────────────────────────────────────────
@@ -482,6 +484,7 @@ val dataModule = module {
             pricingRuleRepository = get(),
             regionalTaxOverrideRepository = get(),
             userStoreAccessRepository = get(),
+            couponRepository      = get(),
             conflictResolver      = get(),
             conflictLogRepository = get(),
             queueMaintenance      = get(),

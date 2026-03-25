@@ -26,6 +26,7 @@ import com.zyntasolutions.zyntapos.api.routes.diagnosticConsentRoutes
 import com.zyntasolutions.zyntapos.api.routes.exportRoutes
 import com.zyntasolutions.zyntapos.api.routes.healthRoutes
 import com.zyntasolutions.zyntapos.api.routes.productRoutes
+import com.zyntasolutions.zyntapos.api.routes.promotionsRoutes
 import com.zyntasolutions.zyntapos.api.routes.syncRoutes
 import com.zyntasolutions.zyntapos.api.routes.unsubscribeRoutes
 import com.zyntasolutions.zyntapos.api.routes.inboundEmailRoutes
@@ -113,6 +114,7 @@ fun Application.configureRouting() {
             authenticate("jwt-rs256") {
                 rateLimit(RateLimitName("api")) {
                     productRoutes()
+                    promotionsRoutes()
                     exportRoutes()
                     diagnosticConsentRoutes()
                     integrityRoutes()   // Play Integrity attestation (TODO-008 ASO)

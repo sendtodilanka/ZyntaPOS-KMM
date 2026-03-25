@@ -5,10 +5,12 @@ import com.zyntasolutions.zyntapos.core.analytics.AnalyticsEvents
 import com.zyntasolutions.zyntapos.core.analytics.AnalyticsParams
 import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import com.zyntasolutions.zyntapos.core.result.Result
+import com.zyntasolutions.zyntapos.domain.model.CartItem
 import com.zyntasolutions.zyntapos.domain.model.DiscountType
 import com.zyntasolutions.zyntapos.domain.model.OrderStatus
 import com.zyntasolutions.zyntapos.domain.model.OrderTotals
 import com.zyntasolutions.zyntapos.domain.model.PaymentMethod
+import com.zyntasolutions.zyntapos.domain.model.Promotion
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.CategoryRepository
 import com.zyntasolutions.zyntapos.domain.repository.CustomerRepository
@@ -18,7 +20,9 @@ import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
 import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
 import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
 import com.zyntasolutions.zyntapos.domain.repository.StoreRepository
+import com.zyntasolutions.zyntapos.domain.usecase.coupons.ApplyStorePromotionsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.coupons.CalculateCouponDiscountUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.coupons.GetStorePromotionsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.coupons.ValidateCouponUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.CalculateLoyaltyDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.EarnRewardPointsUseCase
@@ -145,6 +149,8 @@ class PosViewModel(
     private val reprintLastReceiptUseCase: ReprintLastReceiptUseCase,
     private val printA4TaxInvoiceUseCase: PrintA4TaxInvoiceUseCase,
     private val lookupOrderForReturnUseCase: LookupOrderForReturnUseCase,
+    private val getStorePromotionsUseCase: GetStorePromotionsUseCase,
+    private val applyStorePromotionsUseCase: ApplyStorePromotionsUseCase,
     private val auditLogger: SecurityAuditLogger,
     private val analytics: AnalyticsTracker,
 ) : BaseViewModel<PosState, PosIntent, PosEffect>(PosState()) {
@@ -161,6 +167,11 @@ class PosViewModel(
     private companion object {
         private const val REVIEW_PROMPT_INTERVAL = 5
     }
+
+    // ── Store promotions cache ─────────────────────────────────────────────────
+
+    /** In-memory cache of active promotions for [storeId]; updated by [observeStorePromotions]. */
+    private var activePromotions: List<Promotion> = emptyList()
 
     // ── Internal search / category filter state flows ─────────────────────────
 
@@ -187,6 +198,7 @@ class PosViewModel(
                     activeStoreId = storeId,
                 )
             }
+            observeStorePromotions()
         }
         observeCategories()
         observeProducts()
@@ -231,6 +243,30 @@ class PosViewModel(
         orderRepository.getAll(mapOf("status" to OrderStatus.HELD.name))
             .onEach { held -> updateState { copy(heldOrders = held) } }
             .launchIn(viewModelScope)
+    }
+
+    /**
+     * Subscribes to active store promotions and keeps [activePromotions] cache up-to-date.
+     * Must be called after [storeId] is resolved in the init coroutine.
+     * When the promotions list changes, the auto-discount is recalculated against the current cart.
+     */
+    private fun observeStorePromotions() {
+        getStorePromotionsUseCase(storeId)
+            .onEach { promos ->
+                activePromotions = promos
+                val discount = applyStorePromotionsUseCase(currentState.cartItems, promos)
+                updateState { copy(autoPromotionDiscount = discount) }
+            }
+            .launchIn(viewModelScope)
+    }
+
+    /**
+     * Recalculates [PosState.autoPromotionDiscount] for [cartItems] against the cached promotions.
+     * Called after every cart mutation so the displayed discount stays in sync.
+     */
+    private fun recalculatePromotionDiscount(cartItems: List<CartItem>) {
+        val discount = applyStorePromotionsUseCase(cartItems, activePromotions)
+        updateState { copy(autoPromotionDiscount = discount) }
     }
 
     // ── Intent handler ────────────────────────────────────────────────────────
@@ -328,6 +364,7 @@ class PosViewModel(
                 )
                 val totals = (totalsResult as? Result.Success)?.data ?: currentState.orderTotals
                 updateState { copy(cartItems = updatedCart, orderTotals = totals, error = null) }
+                recalculatePromotionDiscount(updatedCart)
                 analytics.logEvent(AnalyticsEvents.CART_UPDATED, mapOf(
                     AnalyticsParams.ITEM_COUNT to updatedCart.size.toString(),
                     AnalyticsParams.STORE_ID to storeId,
@@ -349,6 +386,7 @@ class PosViewModel(
             )
             val totals = (totalsResult as? Result.Success)?.data ?: OrderTotals.EMPTY
             updateState { copy(cartItems = updatedCart, orderTotals = totals) }
+            recalculatePromotionDiscount(updatedCart)
         }
     }
 
@@ -368,6 +406,7 @@ class PosViewModel(
                 )
                 val totals = (totalsResult as? Result.Success)?.data ?: currentState.orderTotals
                 updateState { copy(cartItems = updatedCart, orderTotals = totals) }
+                recalculatePromotionDiscount(updatedCart)
             }
             is Result.Error -> sendEffect(PosEffect.ShowError(result.exception.message ?: "Invalid quantity"))
             is Result.Loading -> Unit
@@ -424,6 +463,8 @@ class PosViewModel(
                 appliedCoupon = null,
                 couponDiscount = 0.0,
                 couponError = null,
+                // ── store promotions ──────────────────────────────────────────
+                autoPromotionDiscount = 0.0,
             )
         }
     }
@@ -486,7 +527,7 @@ class PosViewModel(
         updateState { copy(isLoading = true) }
         // Combine base order discount (monetary) + coupon discount + loyalty discount as a single FIXED amount.
         // orderTotals.discountAmount is already the monetary value regardless of original type.
-        val combinedDiscount = currentState.orderTotals.discountAmount + currentState.couponDiscount + currentState.loyaltyDiscount
+        val combinedDiscount = currentState.orderTotals.discountAmount + currentState.couponDiscount + currentState.loyaltyDiscount + currentState.autoPromotionDiscount
         // Add wallet payment to tendered amount so the payment validator is satisfied.
         val effectiveTendered = intent.tendered + currentState.walletPaymentAmount
         val result = processPaymentUseCase(

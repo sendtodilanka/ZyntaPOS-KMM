@@ -125,6 +125,9 @@ data class PosState(
     val couponDiscount: Double = 0.0,
     /** Non-null when coupon validation fails; cleared when a new code is entered or coupon is cleared. */
     val couponError: String? = null,
+    // ── Store Promotions (C2.4) ───────────────────────────────────────────────
+    /** Pre-computed monetary discount from auto-applied store promotions (flash sales, BOGO, bundles). */
+    val autoPromotionDiscount: Double = 0.0,
     // ── Receipt preview state ─────────────────────────────────────────────────
     val receiptPreviewText: String = "",
     val currentReceiptOrder: Order? = null,

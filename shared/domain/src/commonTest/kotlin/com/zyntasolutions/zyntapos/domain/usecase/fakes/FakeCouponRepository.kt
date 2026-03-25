@@ -172,4 +172,8 @@ class FakeCouponRepository : CouponRepository {
         _promotionsFlow.value = promotions.toList()
         return Result.Success(Unit)
     }
+
+    override suspend fun upsertPromotionFromSync(payload: String) {
+        // No-op in tests — sync inbound path not exercised via fakes
+    }
 }

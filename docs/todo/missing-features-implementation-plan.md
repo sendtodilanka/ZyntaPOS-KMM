@@ -1034,18 +1034,21 @@ Backend Tests:
 
 ---
 
-### C2.4 Store-Specific Discounts & Promotions (ශාඛා අනුව වට්ටම්) — ✅ CORE IMPLEMENTED (2026-03-22)
+### C2.4 Store-Specific Discounts & Promotions (ශාඛා අනුව වට්ටම්) — ✅ 100% COMPLETE (2026-03-25)
 
-> **HANDOFF (2026-03-22):** Core store-scoping infrastructure implemented. `Coupon.storeId` (nullable)
-> and `Promotion.storeIds` (JSON array) added to domain models, SQLDelight schema (migration 13.sqm),
-> repository interface/impl, and form state. `ValidateCouponUseCase` now rejects store-specific coupons
-> at wrong store. `GetStorePromotionsUseCase` created. `PosViewModel.onValidateCoupon()` passes storeId.
-> 4 new tests for store scope validation. Per ADR-009: all coupon/promotion management in KMM app.
+> **HANDOFF (2026-03-25):** All C2.4 items fully implemented. `PromotionConfig` sealed class added
+> (BuyXGetY, Bundle, FlashSale, Scheduled, Unknown). `ApplyStorePromotionsUseCase` evaluates active
+> promotions against cart (no-stack per type, cross-type allowed, priority ordering). PosViewModel
+> subscribes to active store promotions, recalculates autoPromotionDiscount on every cart mutation.
+> Backend V37 migration adds `config`+`store_ids` columns; `GET /v1/promotions` endpoint added;
+> `EntityApplier.applyPromotion()` populates new columns; `SyncEngine` handles PROMOTION delta via
+> `CouponRepositoryImpl.upsertPromotionFromSync()`. 16 unit tests in ApplyStorePromotionsUseCaseTest.
+> GeneratePickListUseCaseTest em-dash renamed (pre-existing compilation bug fixed).
 
 **Priority:** PHASE-2
-**Status:** ✅ CORE IMPLEMENTED — store scoping on coupons + promotions (2026-03-22)
+**Status:** ✅ 100% COMPLETE (2026-03-25)
 
-**What's DONE (2026-03-22):**
+**What's DONE (2026-03-22 → 2026-03-25):**
 - [x] Add `store_id TEXT` (nullable) to `coupons` table + `Coupon.storeId` domain field — null = global, non-null = store-specific
 - [x] Add `store_ids TEXT` (JSON array) to `promotions` table + `Promotion.storeIds` domain field — empty = global
 - [x] SQLDelight migration 13.sqm — `ALTER TABLE coupons ADD COLUMN store_id`, `ALTER TABLE promotions ADD COLUMN store_ids`
@@ -1056,15 +1059,30 @@ Backend Tests:
 - [x] `CouponFormState.storeId` — store assignment field in coupon detail form
 - [x] `CouponViewModel` — storeId in form populate/save/update
 - [x] `PosViewModel.onValidateCoupon()` — passes storeId from auth session
-- [x] `CouponsModule.kt` — `GetStorePromotionsUseCase` registered
+- [x] `CouponsModule.kt` — `GetStorePromotionsUseCase` + `ApplyStorePromotionsUseCase` registered
 - [x] 4 new tests in `ValidateCouponUseCaseTest`: global coupon at any store, store-specific at matching store, rejected at wrong store, backward compat when no storeId
+- [x] `PromotionConfig` sealed class (BuyXGetY, Bundle, FlashSale, Scheduled, Unknown) — replaces untyped JSON string
+- [x] `CouponRepositoryImpl` — parses `config` JSON → `PromotionConfig`; serialises back on write
+- [x] `CartItem.categoryId` field — used by FlashSale category-targeted promotions
+- [x] `AddItemToCartUseCase` — propagates `Product.categoryId` to `CartItem.categoryId`
+- [x] `ApplyStorePromotionsUseCase` — pure promotion evaluator (priority order, no same-type stacking, cross-type stacking, capped at subtotal)
+- [x] `PosState.autoPromotionDiscount` — pre-computed promotion monetary discount
+- [x] `PosViewModel` — subscribes to active promotions; recalculates on every cart mutation; includes `autoPromotionDiscount` in `combinedDiscount` at checkout
+- [x] 16 unit tests in `ApplyStorePromotionsUseCaseTest` — all edge cases
+- [x] Backend V37 migration: `ALTER TABLE promotions ADD COLUMN config TEXT NOT NULL DEFAULT '{}'`, `ADD COLUMN store_ids TEXT NOT NULL DEFAULT '[]'`
+- [x] `PromotionsTable` Exposed object added to `db/Tables.kt` (full column set including V37 additions)
+- [x] `PromotionRepository.kt` — reads active promotions for a store from PostgreSQL
+- [x] `PromotionsRoutes.kt` — `GET /v1/promotions` (POS JWT, storeId from claim)
+- [x] `PromotionRepository` registered in `AppModule.kt`; `promotionsRoutes()` registered in `Routing.kt`
+- [x] `EntityApplier.applyPromotion()` — now populates `config` + `store_ids` from sync payload
+- [x] `CouponRepository.upsertPromotionFromSync()` — parses server delta JSON, upserts local promotion
+- [x] `SyncEngine.applyUpsert()` — PROMOTION entity type now routed to `couponRepository.upsertPromotionFromSync()`
+- [x] `CouponRepositoryImpl` concrete binding added to `DataModule.kt`; `couponRepository` passed to `SyncEngine`
 
-**What's REMAINING (deferred):**
+**What's REMAINING (deferred to Phase 3):**
 - [ ] Store-specific discount limits (e.g., max 20% at store A, max 30% at store B)
-- [ ] Promotion conflict resolution when multiple match (BOGO + coupon both applicable)
-- [ ] `PromotionConfig` sealed class to replace untyped JSON `config` field
-- [ ] Backend: `GET /v1/promotions` with POS JWT auth (store-level operation per ADR-009)
-- [ ] KMM: Auto-apply store promotions at checkout
+- [ ] Promotion conflict resolution when multiple promotion types match simultaneously
+- [ ] `PromotionConfig` backend write (admin panel promotion management — ADR-009 Phase 3)
 
 **Key Files:**
 - `shared/domain/src/commonMain/.../model/Coupon.kt`

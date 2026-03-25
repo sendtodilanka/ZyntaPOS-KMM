@@ -37,10 +37,13 @@ fun buildCartItem(
     discountType: DiscountType = DiscountType.FIXED,
     taxRate: Double = 0.0,
     isTaxInclusive: Boolean = false,
+    categoryId: String = "",
+    lineTotal: Double = unitPrice * quantity,
 ) = CartItem(
     productId = productId, productName = productName, unitPrice = unitPrice,
     quantity = quantity, discount = discount, discountType = discountType,
-    taxRate = taxRate, isTaxInclusive = isTaxInclusive,
+    taxRate = taxRate, isTaxInclusive = isTaxInclusive, categoryId = categoryId,
+    lineTotal = lineTotal,
 )
 
 /** Builds a test [Order] with sensible defaults. */

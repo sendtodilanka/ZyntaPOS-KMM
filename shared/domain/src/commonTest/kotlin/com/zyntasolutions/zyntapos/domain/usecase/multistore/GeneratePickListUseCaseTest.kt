@@ -21,7 +21,7 @@ import kotlin.test.assertNull
  *
  * Covers:
  * - Happy path: APPROVED transfer generates pick list with product + rack info
- * - Happy path: APPROVED transfer with no rack location — item has null rack/bin
+ * - Happy path: APPROVED transfer with no rack location - item has null rack/bin
  * - Blank transferId: ValidationException
  * - Transfer not APPROVED: ValidationException
  * - Transfer not found: Result.Error propagated
@@ -74,7 +74,7 @@ class GeneratePickListUseCaseTest {
     }
 
     @Test
-    fun `APPROVED transfer with no rack location — null rack and bin`() = runTest {
+    fun `APPROVED transfer with no rack location - null rack and bin`() = runTest {
         val warehouseRepo = FakeWarehouseRepository()
         val productRepo = FakeProductRepository()
         val useCase = GeneratePickListUseCase(warehouseRepo, productRepo)
@@ -85,7 +85,7 @@ class GeneratePickListUseCaseTest {
             buildStockTransfer(id = "t-02", status = StockTransfer.Status.APPROVED)
         )
         productRepo.addProduct(buildProduct(id = "prod-01", name = "Gadget Y"))
-        // No rack location added — should be null
+        // No rack location added - should be null
 
         val result = useCase("t-02")
 
@@ -96,7 +96,7 @@ class GeneratePickListUseCaseTest {
     }
 
     @Test
-    fun `blank transferId — returns ValidationException`() = runTest {
+    fun `blank transferId - returns ValidationException`() = runTest {
         val useCase = GeneratePickListUseCase(FakeWarehouseRepository(), FakeProductRepository())
 
         val result = useCase("  ")
@@ -106,7 +106,7 @@ class GeneratePickListUseCaseTest {
     }
 
     @Test
-    fun `PENDING transfer — returns ValidationException`() = runTest {
+    fun `PENDING transfer - returns ValidationException`() = runTest {
         val warehouseRepo = FakeWarehouseRepository()
         val productRepo = FakeProductRepository()
         val useCase = GeneratePickListUseCase(warehouseRepo, productRepo)
@@ -123,7 +123,7 @@ class GeneratePickListUseCaseTest {
     }
 
     @Test
-    fun `IN_TRANSIT transfer — returns ValidationException`() = runTest {
+    fun `IN_TRANSIT transfer - returns ValidationException`() = runTest {
         val warehouseRepo = FakeWarehouseRepository()
         val productRepo = FakeProductRepository()
         val useCase = GeneratePickListUseCase(warehouseRepo, productRepo)
@@ -139,7 +139,7 @@ class GeneratePickListUseCaseTest {
     }
 
     @Test
-    fun `transfer not found — returns Result Error`() = runTest {
+    fun `transfer not found - returns Result Error`() = runTest {
         val useCase = GeneratePickListUseCase(FakeWarehouseRepository(), FakeProductRepository())
 
         val result = useCase("non-existent")
@@ -148,7 +148,7 @@ class GeneratePickListUseCaseTest {
     }
 
     @Test
-    fun `product not found — returns Result Error`() = runTest {
+    fun `product not found - returns Result Error`() = runTest {
         val warehouseRepo = FakeWarehouseRepository()
         val productRepo = FakeProductRepository()
         val useCase = GeneratePickListUseCase(warehouseRepo, productRepo)
@@ -158,7 +158,7 @@ class GeneratePickListUseCaseTest {
         warehouseRepo.transfers.add(
             buildStockTransfer(id = "t-no-prod", status = StockTransfer.Status.APPROVED)
         )
-        // No product added — should fail
+        // No product added - should fail
 
         val result = useCase("t-no-prod")
 

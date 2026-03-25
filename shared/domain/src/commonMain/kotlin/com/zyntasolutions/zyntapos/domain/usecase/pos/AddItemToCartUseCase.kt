@@ -121,6 +121,7 @@ class AddItemToCartUseCase(
                         discountType = DiscountType.FIXED,
                         taxRate = effectiveTaxRate,
                         isTaxInclusive = taxInclusive,
+                        categoryId = product.categoryId,
                     )
                 }
 
