@@ -10,6 +10,7 @@ import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlin.time.Clock
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.toLocalDateTime
 
 // ── Tab enum ──────────────────────────────────────────────────────────────────
@@ -317,33 +318,33 @@ class FinancialStatementsViewModel(
 
     // ── Export helpers ────────────────────────────────────────────────────────
 
-    private fun exportCurrentTab() {
+    private suspend fun exportCurrentTab() {
         val state = currentState
         val (content, fileName) = when (state.activeTab) {
             FinancialStatementTab.PROFIT_LOSS -> {
                 val pAndL = state.pAndL ?: run {
-                    viewModelScope.let { sendEffect(FinancialStatementsEffect.ShowError("Generate P&L first before exporting")) }
+                    sendEffect(FinancialStatementsEffect.ShowError("Generate P&L first before exporting"))
                     return
                 }
                 generatePandLCsv(pAndL) to "pnl_${state.fromDate}_${state.toDate}.csv"
             }
             FinancialStatementTab.BALANCE_SHEET -> {
                 val bs = state.balanceSheet ?: run {
-                    viewModelScope.let { sendEffect(FinancialStatementsEffect.ShowError("Generate Balance Sheet first before exporting")) }
+                    sendEffect(FinancialStatementsEffect.ShowError("Generate Balance Sheet first before exporting"))
                     return
                 }
                 generateBalanceSheetCsv(bs) to "balance_sheet_${state.asOfDate}.csv"
             }
             FinancialStatementTab.TRIAL_BALANCE -> {
                 val tb = state.trialBalance ?: run {
-                    viewModelScope.let { sendEffect(FinancialStatementsEffect.ShowError("Generate Trial Balance first before exporting")) }
+                    sendEffect(FinancialStatementsEffect.ShowError("Generate Trial Balance first before exporting"))
                     return
                 }
                 generateTrialBalanceCsv(tb) to "trial_balance_${state.asOfDate}.csv"
             }
             FinancialStatementTab.CASH_FLOW -> {
                 val cf = state.cashFlow ?: run {
-                    viewModelScope.let { sendEffect(FinancialStatementsEffect.ShowError("Generate Cash Flow first before exporting")) }
+                    sendEffect(FinancialStatementsEffect.ShowError("Generate Cash Flow first before exporting"))
                     return
                 }
                 generateCashFlowCsv(cf) to "cash_flow_${state.fromDate}_${state.toDate}.csv"
