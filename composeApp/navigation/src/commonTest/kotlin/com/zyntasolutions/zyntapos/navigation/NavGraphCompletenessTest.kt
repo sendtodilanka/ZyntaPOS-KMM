@@ -127,6 +127,9 @@ class NavGraphCompletenessTest {
 
         // Click & Collect — fulfillment queue (C4.4)
         "fulfillmentQueue",
+
+        // Employee Roaming (C3.4)
+        "employeeStoreAssignments",
     )
 
     /**
