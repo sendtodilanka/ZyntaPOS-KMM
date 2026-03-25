@@ -25,7 +25,7 @@ class FulfillmentRepositoryImpl(
 ) : FulfillmentRepository {
 
     override fun getPendingPickups(storeId: String): Flow<List<FulfillmentOrder>> =
-        db.fulfillmentOrdersQueries
+        db.fulfillment_ordersQueries
             .getPendingPickups(storeId)
             .asFlow()
             .mapToList(Dispatchers.Default)
@@ -34,7 +34,7 @@ class FulfillmentRepositoryImpl(
     override suspend fun getByOrderId(orderId: String): Result<FulfillmentOrder> =
         withContext(Dispatchers.Default) {
             try {
-                val row = db.fulfillmentOrdersQueries.getByOrderId(orderId).executeAsOneOrNull()
+                val row = db.fulfillment_ordersQueries.getByOrderId(orderId).executeAsOneOrNull()
                     ?: return@withContext Result.Error(DatabaseException("Fulfillment not found: $orderId"))
                 Result.Success(row.toDomain())
             } catch (e: Exception) {
@@ -45,7 +45,7 @@ class FulfillmentRepositoryImpl(
     override suspend fun create(fulfillment: FulfillmentOrder): Result<Unit> =
         withContext(Dispatchers.Default) {
             try {
-                db.fulfillmentOrdersQueries.insert(
+                db.fulfillment_ordersQueries.insert(
                     order_id          = fulfillment.orderId,
                     store_id          = fulfillment.storeId,
                     customer_id       = fulfillment.customerId,
@@ -69,7 +69,7 @@ class FulfillmentRepositoryImpl(
         notifyCustomer: Boolean,
     ): Result<Unit> = withContext(Dispatchers.Default) {
         try {
-            db.fulfillmentOrdersQueries.updateStatus(
+            db.fulfillment_ordersQueries.updateStatus(
                 status            = newStatus.name,
                 customerNotified  = if (notifyCustomer) 1L else 0L,
                 updatedAt         = Clock.System.now().toEpochMilliseconds(),
@@ -84,12 +84,12 @@ class FulfillmentRepositoryImpl(
     override suspend fun expireOverdueOrders(storeId: String, timeoutEpochMillis: Long): Result<Int> =
         withContext(Dispatchers.Default) {
             try {
-                db.fulfillmentOrdersQueries.expireOverdueOrders(
+                db.fulfillment_ordersQueries.expireOverdueOrders(
                     now                = Clock.System.now().toEpochMilliseconds(),
                     storeId            = storeId,
                     timeoutEpochMillis = timeoutEpochMillis,
                 )
-                val expired = db.fulfillmentOrdersQueries.countExpired(storeId).executeAsOne()
+                val expired = db.fulfillment_ordersQueries.countExpired(storeId).executeAsOne()
                 Result.Success(expired.toInt())
             } catch (e: Exception) {
                 Result.Error(DatabaseException(e.message ?: "Expire failed"))

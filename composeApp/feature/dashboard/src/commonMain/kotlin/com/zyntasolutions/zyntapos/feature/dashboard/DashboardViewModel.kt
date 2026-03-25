@@ -15,6 +15,7 @@ import com.zyntasolutions.zyntapos.feature.dashboard.mvi.DashboardEffect
 import com.zyntasolutions.zyntapos.feature.dashboard.mvi.DashboardIntent
 import com.zyntasolutions.zyntapos.feature.dashboard.mvi.DashboardState
 import com.zyntasolutions.zyntapos.feature.dashboard.mvi.RecentOrderItem
+import androidx.lifecycle.viewModelScope
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
