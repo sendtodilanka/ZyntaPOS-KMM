@@ -6,7 +6,6 @@ import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateExpenseReportU
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateSalesReportUseCase
 import com.zyntasolutions.zyntapos.domain.port.SyncStatusPort
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateStockReportUseCase
-import kotlinx.coroutines.delay
 import com.zyntasolutions.zyntapos.domain.usecase.reports.PrintReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.enterprise.GenerateMultiStoreComparisonReportUseCase
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
@@ -54,28 +53,12 @@ class ReportsViewModel(
     private val syncStatusPort: SyncStatusPort,
 ) : BaseViewModel<ReportsState, ReportsIntent, ReportsEffect>(ReportsState()) {
 
-    /** Lazily started background refresh jobs — launched on first report load. */
-    private var backgroundRefreshJob: Job? = null
-
     init {
         analytics.logScreenView("Reports", "ReportsViewModel")
-    }
 
-    /** Start the sync-complete listener and periodic fallback refresh once. */
-    private fun ensureBackgroundRefresh() {
-        if (backgroundRefreshJob != null) return
-        backgroundRefreshJob = viewModelScope.launch {
-            // Refresh active reports on every sync cycle completion (real-time report updates — G6).
-            launch {
-                syncStatusPort.onSyncComplete.collect { refreshLoadedReports() }
-            }
-            // 30-second periodic fallback refresh.
-            launch {
-                while (true) {
-                    delay(AUTO_REFRESH_INTERVAL_MS)
-                    refreshLoadedReports()
-                }
-            }
+        // Refresh active reports on every sync cycle completion (real-time report updates — G6).
+        viewModelScope.launch {
+            syncStatusPort.onSyncComplete.collect { refreshLoadedReports() }
         }
     }
 
@@ -89,10 +72,6 @@ class ReportsViewModel(
         if (s.storeComparison.stores.isNotEmpty()) loadStoreComparison()
     }
 
-    companion object {
-        private const val AUTO_REFRESH_INTERVAL_MS = 30_000L
-    }
-
     private var salesJob: Job? = null
     private var stockJob: Job? = null
     private var customerJob: Job? = null
@@ -104,7 +83,7 @@ class ReportsViewModel(
         when (intent) {
             is ReportsIntent.SelectSalesRange      -> selectSalesRange(intent.range)
             is ReportsIntent.SetCustomSalesRange   -> setCustomRange(intent.from, intent.to)
-            ReportsIntent.LoadSalesReport          -> { ensureBackgroundRefresh(); loadSalesReport() }
+            ReportsIntent.LoadSalesReport          -> loadSalesReport()
             ReportsIntent.ExportSalesReportCsv     -> exportSales(pdf = false)
             ReportsIntent.ExportSalesReportPdf     -> exportSales(pdf = true)
             ReportsIntent.PrintSalesReport         -> printSalesReport()

@@ -17,8 +17,6 @@ import com.zyntasolutions.zyntapos.feature.dashboard.mvi.DashboardState
 import com.zyntasolutions.zyntapos.feature.dashboard.mvi.RecentOrderItem
 import androidx.lifecycle.viewModelScope
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
@@ -27,9 +25,6 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
-
-/** Interval between periodic background KPI refreshes (30 seconds). */
-private const val AUTO_REFRESH_INTERVAL_MS = 30_000L
 
 /**
  * MVI ViewModel for the home dashboard screen.
@@ -53,28 +48,12 @@ class DashboardViewModel(
     private val syncStatusPort: SyncStatusPort,
 ) : BaseViewModel<DashboardState, DashboardIntent, DashboardEffect>(DashboardState()) {
 
-    /** Lazily started background refresh jobs — launched on first [LoadDashboard]. */
-    private var backgroundRefreshJob: Job? = null
-
-    /** Start the sync-complete listener and periodic fallback refresh once. */
-    private fun ensureBackgroundRefresh() {
-        if (backgroundRefreshJob != null) return
-        backgroundRefreshJob = viewModelScope.launch {
-            // Refresh on every sync cycle completion (real-time KPI updates).
-            launch {
-                syncStatusPort.onSyncComplete.collect {
-                    if (currentState.lastRefreshedAt > 0L) {
-                        performLoad(showLoadingSpinner = false)
-                    }
-                }
-            }
-            // 30-second periodic fallback refresh.
-            launch {
-                while (true) {
-                    delay(AUTO_REFRESH_INTERVAL_MS)
-                    if (currentState.lastRefreshedAt > 0L) {
-                        performLoad(showLoadingSpinner = false)
-                    }
+    init {
+        // Refresh on every sync cycle completion (real-time KPI updates).
+        viewModelScope.launch {
+            syncStatusPort.onSyncComplete.collect {
+                if (currentState.lastRefreshedAt > 0L) {
+                    performLoad(showLoadingSpinner = false)
                 }
             }
         }
@@ -82,10 +61,7 @@ class DashboardViewModel(
 
     override suspend fun handleIntent(intent: DashboardIntent) {
         when (intent) {
-            is DashboardIntent.LoadDashboard -> {
-                ensureBackgroundRefresh()
-                performLoad(showLoadingSpinner = true)
-            }
+            is DashboardIntent.LoadDashboard -> performLoad(showLoadingSpinner = true)
             is DashboardIntent.Refresh -> {
                 updateState { copy(isRefreshing = true) }
                 try {

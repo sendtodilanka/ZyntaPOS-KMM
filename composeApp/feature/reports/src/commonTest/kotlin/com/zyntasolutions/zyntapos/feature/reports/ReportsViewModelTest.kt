@@ -378,8 +378,7 @@ class ReportsViewModelTest {
 
     @Test
     fun `initial state has no loaded reports and is not loading`() = runTest {
-        testDispatcher.scheduler.advanceTimeBy(5_000)
-        testDispatcher.scheduler.runCurrent()
+        testDispatcher.scheduler.advanceUntilIdle()
         val state = viewModel.state.value
 
         assertNull(state.salesReport.report)
@@ -397,8 +396,7 @@ class ReportsViewModelTest {
         ordersFlow.value = emptyList()
 
         viewModel.dispatch(ReportsIntent.LoadSalesReport)
-        testDispatcher.scheduler.advanceTimeBy(5_000)
-        testDispatcher.scheduler.runCurrent()
+        testDispatcher.scheduler.advanceUntilIdle()
 
         val salesState = viewModel.state.value.salesReport
         assertFalse(salesState.isLoading)
@@ -413,8 +411,7 @@ class ReportsViewModelTest {
         ordersFlow.value = listOf(testOrder)
 
         viewModel.dispatch(ReportsIntent.LoadSalesReport)
-        testDispatcher.scheduler.advanceTimeBy(5_000)
-        testDispatcher.scheduler.runCurrent()
+        testDispatcher.scheduler.advanceUntilIdle()
 
         val report = viewModel.state.value.salesReport.report
         assertNotNull(report)
@@ -430,8 +427,7 @@ class ReportsViewModelTest {
         ordersFlow.value = listOf(testOrder, voidedOrder)
 
         viewModel.dispatch(ReportsIntent.LoadSalesReport)
-        testDispatcher.scheduler.advanceTimeBy(5_000)
-        testDispatcher.scheduler.runCurrent()
+        testDispatcher.scheduler.advanceUntilIdle()
 
         val report = viewModel.state.value.salesReport.report
         assertNotNull(report)
@@ -441,8 +437,7 @@ class ReportsViewModelTest {
     @Test
     fun `SelectSalesRange updates selected range`() = runTest {
         viewModel.dispatch(ReportsIntent.SelectSalesRange(DateRange.THIS_WEEK))
-        testDispatcher.scheduler.advanceTimeBy(5_000)
-        testDispatcher.scheduler.runCurrent()
+        testDispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(DateRange.THIS_WEEK, viewModel.state.value.salesReport.selectedRange)
     }
@@ -450,8 +445,7 @@ class ReportsViewModelTest {
     @Test
     fun `DismissSalesError clears sales error state`() = runTest {
         viewModel.dispatch(ReportsIntent.DismissSalesError)
-        testDispatcher.scheduler.advanceTimeBy(5_000)
-        testDispatcher.scheduler.runCurrent()
+        testDispatcher.scheduler.advanceUntilIdle()
 
         assertNull(viewModel.state.value.salesReport.error)
     }
@@ -463,8 +457,7 @@ class ReportsViewModelTest {
         productsFlow.value = listOf(testProduct, lowStockProduct)
 
         viewModel.dispatch(ReportsIntent.LoadStockReport)
-        testDispatcher.scheduler.advanceTimeBy(5_000)
-        testDispatcher.scheduler.runCurrent()
+        testDispatcher.scheduler.advanceUntilIdle()
 
         val stockState = viewModel.state.value.stockReport
         assertFalse(stockState.isLoading)
@@ -476,8 +469,7 @@ class ReportsViewModelTest {
         productsFlow.value = listOf(testProduct, lowStockProduct)
 
         viewModel.dispatch(ReportsIntent.LoadStockReport)
-        testDispatcher.scheduler.advanceTimeBy(5_000)
-        testDispatcher.scheduler.runCurrent()
+        testDispatcher.scheduler.advanceUntilIdle()
 
         val stockState = viewModel.state.value.stockReport
         assertEquals(1, stockState.lowStockItems.size)
@@ -490,8 +482,7 @@ class ReportsViewModelTest {
         productsFlow.value = listOf(testProduct, inactiveProduct)
 
         viewModel.dispatch(ReportsIntent.LoadStockReport)
-        testDispatcher.scheduler.advanceTimeBy(5_000)
-        testDispatcher.scheduler.runCurrent()
+        testDispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(1, viewModel.state.value.stockReport.allProducts.size)
     }
@@ -499,8 +490,7 @@ class ReportsViewModelTest {
     @Test
     fun `DismissStockError clears stock error state`() = runTest {
         viewModel.dispatch(ReportsIntent.DismissStockError)
-        testDispatcher.scheduler.advanceTimeBy(5_000)
-        testDispatcher.scheduler.runCurrent()
+        testDispatcher.scheduler.advanceUntilIdle()
 
         assertNull(viewModel.state.value.stockReport.error)
     }
@@ -508,8 +498,7 @@ class ReportsViewModelTest {
     @Test
     fun `FilterStockByCategory updates selected category`() = runTest {
         viewModel.dispatch(ReportsIntent.FilterStockByCategory("cat-001"))
-        testDispatcher.scheduler.advanceTimeBy(5_000)
-        testDispatcher.scheduler.runCurrent()
+        testDispatcher.scheduler.advanceUntilIdle()
 
         assertEquals("cat-001", viewModel.state.value.stockReport.selectedCategory)
     }
@@ -518,8 +507,7 @@ class ReportsViewModelTest {
     fun `FilterStockByCategory with null clears selection`() = runTest {
         viewModel.dispatch(ReportsIntent.FilterStockByCategory("cat-001"))
         viewModel.dispatch(ReportsIntent.FilterStockByCategory(null))
-        testDispatcher.scheduler.advanceTimeBy(5_000)
-        testDispatcher.scheduler.runCurrent()
+        testDispatcher.scheduler.advanceUntilIdle()
 
         assertNull(viewModel.state.value.stockReport.selectedCategory)
     }
@@ -531,8 +519,7 @@ class ReportsViewModelTest {
         customersFlow.value = listOf(testCustomer, walkInCustomer)
 
         viewModel.dispatch(ReportsIntent.LoadCustomerReport)
-        testDispatcher.scheduler.advanceTimeBy(5_000)
-        testDispatcher.scheduler.runCurrent()
+        testDispatcher.scheduler.advanceUntilIdle()
 
         val report = viewModel.state.value.customerReport.report
         assertNotNull(report)
@@ -548,8 +535,7 @@ class ReportsViewModelTest {
         customersFlow.value = emptyList()
 
         viewModel.dispatch(ReportsIntent.LoadCustomerReport)
-        testDispatcher.scheduler.advanceTimeBy(5_000)
-        testDispatcher.scheduler.runCurrent()
+        testDispatcher.scheduler.advanceUntilIdle()
 
         val report = viewModel.state.value.customerReport.report
         assertNotNull(report)
@@ -560,8 +546,7 @@ class ReportsViewModelTest {
     @Test
     fun `DismissCustomerError clears customer error state`() = runTest {
         viewModel.dispatch(ReportsIntent.DismissCustomerError)
-        testDispatcher.scheduler.advanceTimeBy(5_000)
-        testDispatcher.scheduler.runCurrent()
+        testDispatcher.scheduler.advanceUntilIdle()
 
         assertNull(viewModel.state.value.customerReport.error)
     }
@@ -573,8 +558,7 @@ class ReportsViewModelTest {
         expensesFlow.value = listOf(testExpense)
 
         viewModel.dispatch(ReportsIntent.LoadExpenseReport)
-        testDispatcher.scheduler.advanceTimeBy(5_000)
-        testDispatcher.scheduler.runCurrent()
+        testDispatcher.scheduler.advanceUntilIdle()
 
         val report = viewModel.state.value.expenseReport.report
         assertNotNull(report)
@@ -590,8 +574,7 @@ class ReportsViewModelTest {
         expensesFlow.value = listOf(testExpense, pending, rejected)
 
         viewModel.dispatch(ReportsIntent.LoadExpenseReport)
-        testDispatcher.scheduler.advanceTimeBy(5_000)
-        testDispatcher.scheduler.runCurrent()
+        testDispatcher.scheduler.advanceUntilIdle()
 
         val report = viewModel.state.value.expenseReport.report!!
         assertEquals(150.0, report.totalApproved)
@@ -605,8 +588,7 @@ class ReportsViewModelTest {
     @Test
     fun `SelectExpenseRange updates selected range`() = runTest {
         viewModel.dispatch(ReportsIntent.SelectExpenseRange(DateRange.THIS_WEEK))
-        testDispatcher.scheduler.advanceTimeBy(5_000)
-        testDispatcher.scheduler.runCurrent()
+        testDispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(DateRange.THIS_WEEK, viewModel.state.value.expenseReport.selectedRange)
     }
@@ -614,8 +596,7 @@ class ReportsViewModelTest {
     @Test
     fun `DismissExpenseError clears expense error state`() = runTest {
         viewModel.dispatch(ReportsIntent.DismissExpenseError)
-        testDispatcher.scheduler.advanceTimeBy(5_000)
-        testDispatcher.scheduler.runCurrent()
+        testDispatcher.scheduler.advanceUntilIdle()
 
         assertNull(viewModel.state.value.expenseReport.error)
     }
@@ -626,13 +607,11 @@ class ReportsViewModelTest {
     fun `ExportSalesReportCsv with loaded report emits ExportComplete effect`() = runTest {
         ordersFlow.value = listOf(testOrder)
         viewModel.dispatch(ReportsIntent.LoadSalesReport)
-        testDispatcher.scheduler.advanceTimeBy(5_000)
-        testDispatcher.scheduler.runCurrent()
+        testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.effects.test {
             viewModel.dispatch(ReportsIntent.ExportSalesReportCsv)
-            testDispatcher.scheduler.advanceTimeBy(5_000)
-        testDispatcher.scheduler.runCurrent()
+            testDispatcher.scheduler.advanceUntilIdle()
 
             val effect = awaitItem()
             assertTrue(effect is ReportsEffect.ExportComplete)
@@ -645,13 +624,11 @@ class ReportsViewModelTest {
     fun `ExportSalesReportPdf with loaded report emits ExportComplete effect`() = runTest {
         ordersFlow.value = listOf(testOrder)
         viewModel.dispatch(ReportsIntent.LoadSalesReport)
-        testDispatcher.scheduler.advanceTimeBy(5_000)
-        testDispatcher.scheduler.runCurrent()
+        testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.effects.test {
             viewModel.dispatch(ReportsIntent.ExportSalesReportPdf)
-            testDispatcher.scheduler.advanceTimeBy(5_000)
-        testDispatcher.scheduler.runCurrent()
+            testDispatcher.scheduler.advanceUntilIdle()
 
             val effect = awaitItem()
             assertTrue(effect is ReportsEffect.ExportComplete)
@@ -663,14 +640,12 @@ class ReportsViewModelTest {
     fun `ExportSalesReportCsv on export failure emits ShowSnackbar effect`() = runTest {
         ordersFlow.value = listOf(testOrder)
         viewModel.dispatch(ReportsIntent.LoadSalesReport)
-        testDispatcher.scheduler.advanceTimeBy(5_000)
-        testDispatcher.scheduler.runCurrent()
+        testDispatcher.scheduler.advanceUntilIdle()
         shouldFailExport = true
 
         viewModel.effects.test {
             viewModel.dispatch(ReportsIntent.ExportSalesReportCsv)
-            testDispatcher.scheduler.advanceTimeBy(5_000)
-        testDispatcher.scheduler.runCurrent()
+            testDispatcher.scheduler.advanceUntilIdle()
 
             val effect = awaitItem()
             assertTrue(effect is ReportsEffect.ShowSnackbar)
@@ -684,13 +659,11 @@ class ReportsViewModelTest {
     fun `PrintSalesReport with loaded report emits PrintJobSent effect`() = runTest {
         ordersFlow.value = listOf(testOrder)
         viewModel.dispatch(ReportsIntent.LoadSalesReport)
-        testDispatcher.scheduler.advanceTimeBy(5_000)
-        testDispatcher.scheduler.runCurrent()
+        testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.effects.test {
             viewModel.dispatch(ReportsIntent.PrintSalesReport)
-            testDispatcher.scheduler.advanceTimeBy(5_000)
-        testDispatcher.scheduler.runCurrent()
+            testDispatcher.scheduler.advanceUntilIdle()
 
             val effect = awaitItem()
             assertTrue(effect is ReportsEffect.PrintJobSent)
@@ -702,14 +675,12 @@ class ReportsViewModelTest {
     fun `PrintSalesReport on printer failure emits ShowSnackbar effect`() = runTest {
         ordersFlow.value = listOf(testOrder)
         viewModel.dispatch(ReportsIntent.LoadSalesReport)
-        testDispatcher.scheduler.advanceTimeBy(5_000)
-        testDispatcher.scheduler.runCurrent()
+        testDispatcher.scheduler.advanceUntilIdle()
         shouldFailPrint = true
 
         viewModel.effects.test {
             viewModel.dispatch(ReportsIntent.PrintSalesReport)
-            testDispatcher.scheduler.advanceTimeBy(5_000)
-        testDispatcher.scheduler.runCurrent()
+            testDispatcher.scheduler.advanceUntilIdle()
 
             val effect = awaitItem()
             assertTrue(effect is ReportsEffect.ShowSnackbar)
@@ -723,15 +694,13 @@ class ReportsViewModelTest {
     fun `stock report re-emits when products flow updates`() = runTest {
         productsFlow.value = listOf(testProduct)
         viewModel.dispatch(ReportsIntent.LoadStockReport)
-        testDispatcher.scheduler.advanceTimeBy(5_000)
-        testDispatcher.scheduler.runCurrent()
+        testDispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(1, viewModel.state.value.stockReport.allProducts.size)
 
         // Add a second product to the flow
         productsFlow.value = listOf(testProduct, lowStockProduct)
-        testDispatcher.scheduler.advanceTimeBy(5_000)
-        testDispatcher.scheduler.runCurrent()
+        testDispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(2, viewModel.state.value.stockReport.allProducts.size)
     }
