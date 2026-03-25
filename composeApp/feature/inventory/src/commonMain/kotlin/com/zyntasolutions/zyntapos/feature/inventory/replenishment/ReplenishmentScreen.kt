@@ -231,11 +231,11 @@ private fun PurchaseOrderCard(
     onSelect: () -> Unit,
     onCancel: (() -> Unit)?,
 ) {
-    val chipVariant = when (order.status) {
-        PurchaseOrder.Status.PENDING  -> StatusChipVariant.Warning
-        PurchaseOrder.Status.PARTIAL  -> StatusChipVariant.Info
-        PurchaseOrder.Status.RECEIVED -> StatusChipVariant.Success
-        PurchaseOrder.Status.CANCELLED -> StatusChipVariant.Error
+    val (chipVariant, chipIcon) = when (order.status) {
+        PurchaseOrder.Status.PENDING  -> StatusChipVariant.Warning to Icons.Default.HourglassEmpty
+        PurchaseOrder.Status.PARTIAL  -> StatusChipVariant.Info to Icons.Default.LocalShipping
+        PurchaseOrder.Status.RECEIVED -> StatusChipVariant.Success to Icons.Default.CheckCircle
+        PurchaseOrder.Status.CANCELLED -> StatusChipVariant.Error to Icons.Default.Cancel
     }
     Card(onClick = onSelect, modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -255,7 +255,7 @@ private fun PurchaseOrderCard(
             }
             Spacer(Modifier.width(ZyntaSpacing.sm))
             Column(horizontalAlignment = Alignment.End) {
-                ZyntaStatusChip(label = order.status.name, variant = chipVariant)
+                ZyntaStatusChip(label = order.status.name, variant = chipVariant, icon = chipIcon)
                 if (onCancel != null) {
                     TextButton(onClick = onCancel, contentPadding = PaddingValues(0.dp)) {
                         Text("Cancel", style = MaterialTheme.typography.labelSmall)

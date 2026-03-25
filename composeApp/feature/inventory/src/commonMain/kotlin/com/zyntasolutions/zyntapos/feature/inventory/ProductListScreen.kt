@@ -484,6 +484,13 @@ private fun ProductTableView(
                 AssistChip(
                     onClick = { onStockAdjust(product) },
                     label = { Text(indicator.label, style = MaterialTheme.typography.labelSmall) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = indicator.icon,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                        )
+                    },
                     colors = AssistChipDefaults.assistChipColors(
                         containerColor = indicator.chipColor(),
                     ),
@@ -606,4 +613,11 @@ private val StockIndicator.label: String get() = when (this) {
     StockIndicator.InStock -> "In Stock"
     StockIndicator.LowStock -> "Low"
     StockIndicator.OutOfStock -> "Out"
+}
+
+/** Icon for [StockIndicator] (accessibility — do not rely on color alone). */
+private val StockIndicator.icon get() = when (this) {
+    StockIndicator.InStock -> Icons.Default.CheckCircle
+    StockIndicator.LowStock -> Icons.Default.Warning
+    StockIndicator.OutOfStock -> Icons.Default.Error
 }

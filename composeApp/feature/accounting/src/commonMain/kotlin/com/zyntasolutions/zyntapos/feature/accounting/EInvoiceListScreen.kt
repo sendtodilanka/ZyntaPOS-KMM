@@ -161,9 +161,17 @@ private fun EInvoiceStatusChip(status: EInvoiceStatus) {
     SuggestionChip(
         onClick = {},
         label = { Text(status.label(), style = MaterialTheme.typography.labelSmall) },
+        icon = {
+            Icon(
+                imageVector = status.icon(),
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
+            )
+        },
         colors = SuggestionChipDefaults.suggestionChipColors(
             containerColor = status.color().copy(alpha = 0.12f),
             labelColor = status.color(),
+            iconContentColor = status.color(),
         ),
     )
 }

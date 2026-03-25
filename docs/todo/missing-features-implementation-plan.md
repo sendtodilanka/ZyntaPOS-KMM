@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-25 (INV-3: UnitManagementScreen modal wired; INV-6: bulk import auto column mapping + required field indicators; INV-7: batch product selection; fix(sync): WebSocketHubBroadcastTest flaky test fixed; G9: date picker dialogs + CSV export; G7: configurable daily sales target; G2: onboarding Step 4 tax setup + Step 5 receipt format; G1: ZyntaWarehouseDropdown)
+**Last Updated:** 2026-03-25 (INV-3: UnitManagementScreen modal wired; INV-6: bulk import auto column mapping + required field indicators; INV-7: batch product selection; fix(sync): WebSocketHubBroadcastTest flaky test fixed; G9: date picker dialogs + CSV export; G7: configurable daily sales target; G2: onboarding Step 4 tax setup + Step 5 receipt format; G1: ZyntaWarehouseDropdown; G20: color-only status indicators fixed — icons added to StockBadge, EInvoiceStatusChip, InvoiceStatusBadge, PurchaseOrderCard; G17: BarcodeGeneratorDialog + BarcodeLabelPrintScreen audited — both complete)
 **Status:** Approved — Verified against codebase 2026-03-22, updated for ADR-009 compliance
 
 ---
@@ -2104,8 +2104,8 @@ Backend Tests:
 | 6 | `StockAdjustmentDialog` | 293 | ✅ Excellent | NumericPad, type selector (increase/decrease/transfer), real-time preview with color-coded risk |
 | 7 | `StocktakeScreen` | 623 | ✅ Excellent | Session lifecycle, scanner toggle, variance calc, snackbar feedback — well-designed for tablet |
 | 8 | `BulkImportDialog` | — | ⚠️ Not Reviewed | State has fileName, parsedRows, columnMapping, importProgress — dialog composable not audited |
-| 9 | `BarcodeGeneratorDialog` | — | ⚠️ Not Reviewed | Referenced in state — dialog composable not audited |
-| 10 | `BarcodeLabelPrintScreen` | — | ⚠️ Not Reviewed | Referenced in routes — screen composable not audited |
+| 9 | `BarcodeGeneratorDialog` | 435 | ✅ Complete | EAN-13/Code128 type selector, auto-generate, Canvas preview, validation, Apply + Print callbacks — fully implemented (2026-03-25) |
+| 10 | `BarcodeLabelPrintScreen` | 548 | ✅ Complete | Adaptive 3-panel (COMPACT/MEDIUM/EXPANDED), template selector, product search, print queue + qty stepper, PDF preview panel — fully implemented (2026-03-25) |
 
 **Compliance Checklist:**
 
@@ -2190,7 +2190,7 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 
 | Gap | Severity | Phase |
 |-----|----------|-------|
-| **Deep-linking not wired** — `zyntapos://` scheme declared but not in AndroidManifest | MEDIUM | Phase 2 |
+| ~~**Deep-linking not wired**~~ — ✅ DONE (2026-03-25): Added `intent-filter` with `android:scheme="zyntapos"` to MainActivity in AndroidManifest; `NavDeepLink` already registered in `ZyntaNavGraph.kt` for `zyntapos://product/{barcode}` and `zyntapos://order/{orderId}` | ~~MEDIUM~~ | ✅ DONE |
 | **EditionManagementScreen is placeholder** — Feature toggle panel needed | MEDIUM | Phase 2 |
 | **No 3-pane layout** for tablet warehouse management | LOW | Phase 3 |
 
@@ -2203,7 +2203,7 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 | **No auto-refresh/WebSocket** — All screens load once | Dashboard, Reports, POS, Accounting | CRITICAL |
 | **Date format not from GeneralSettings** — Hardcoded formats | Reports, Accounting, Staff | MEDIUM |
 | **No timezone label on timestamps** | All screens with timestamps | MEDIUM |
-| **Color-only status indicators** — No icon pairing for color-blind | Stock, E-Invoice, Transfer | MEDIUM |
+| ~~**Color-only status indicators**~~ — ✅ DONE (2026-03-25): Icons added to `StockBadge` (ProductCard + ProductListScreen), `EInvoiceStatusChip` (list), `InvoiceStatusBadge` (detail), `PurchaseOrderCard` (ReplenishmentScreen) | Stock, E-Invoice, Transfer | ~~MEDIUM~~ |
 | **Canvas chart colors may fail in dark mode** | Dashboard, Reports | LOW |
 | **No loading skeletons** — Abrupt blank → rendered transition | Dashboard, Reports | LOW |
 
