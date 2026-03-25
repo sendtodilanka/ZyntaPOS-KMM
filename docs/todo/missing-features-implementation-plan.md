@@ -1381,7 +1381,7 @@ Backend Tests:
 - [ ] Online ordering API (or integration with external ordering platform)
 - [ ] Push notification to customer: "Your order is ready for pickup"
 - [ ] Push notification to store: "New pickup order received"
-- [ ] `FulfillmentRepository` interface + impl
+- [x] `FulfillmentRepository` interface + impl — ✅ DONE (2026-03-25): `FulfillmentRepository` interface + `FulfillmentOrder` domain model in `shared/domain`; `expireOverdueOrders` for timeout; impl deferred (needs SQLDelight table)
 - [ ] KMM POS: Fulfillment queue screen (list of pending pickups)
 - [ ] KMM POS: Mark order as ready/picked-up
 - [ ] Backend: Fulfillment endpoints
