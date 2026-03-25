@@ -716,11 +716,12 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
                     TextButton(
                         onClick = {
                             val json = currentExportedJson
-                            if (json != null && !isGdprExporting) {
+                            val cid = customerId
+                            if (json != null && cid != null && !isGdprExporting) {
                                 isGdprExporting = true
                                 scope.launch {
                                     try {
-                                        reportExporter.exportGdprJson(customerId, json)
+                                        reportExporter.exportGdprJson(cid, json)
                                     } catch (_: Exception) {
                                         // Cancelled or failed — no-op (user can copy text instead)
                                     } finally {
