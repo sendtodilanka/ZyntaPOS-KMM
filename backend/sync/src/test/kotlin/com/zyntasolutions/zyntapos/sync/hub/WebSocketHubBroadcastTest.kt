@@ -11,6 +11,9 @@ import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -166,8 +169,8 @@ class WebSocketHubBroadcastTest {
     // ── Multiple broadcasts ───────────────────────────────────────────────
 
     @Test
-    fun `multiple broadcasts deliver all messages`() = runBlocking {
-        val hub = WebSocketHub()
+    fun `multiple broadcasts deliver all messages`() = runTest {
+        val hub = WebSocketHub(testScope = this)
         val session = TrackingSession()
 
         hub.register("store-A", "device-1", session)
@@ -176,7 +179,7 @@ class WebSocketHubBroadcastTest {
         hub.broadcast("store-A", """{"seq":2}""")
         hub.broadcast("store-A", """{"seq":3}""")
 
-        delay(2000)
+        advanceUntilIdle()
 
         assertTrue(session.sentFrames.size >= 3, "Expected at least 3 frames, got ${session.sentFrames.size}")
     }
