@@ -1420,8 +1420,10 @@ Backend Tests:
 - [x] 4-tab Compose UI with responsive layouts
 - [x] 32 comprehensive unit tests
 
+**What's DONE (2026-03-25):**
+- [x] `ConsolidatedFinancialReportUseCase` — ✅ DONE: aggregates P&L across multiple stores; merges lines by accountId, sums totals; registered in `accountingModule`
+
 **What's REMAINING (deferred):**
-- [ ] `ConsolidatedFinancialReportUseCase` — aggregate P&L across all stores
 - [ ] Multi-currency consolidation (convert all store revenues to base currency)
 - [ ] Inter-store transaction elimination (remove internal transfers)
 - [ ] Admin panel: Consolidated financial report pages (read-only monitoring — ADR-009 compliant)
@@ -1433,6 +1435,7 @@ Backend Tests:
 - `shared/domain/src/commonMain/.../repository/FinancialStatementRepository.kt`
 - `shared/data/src/commonMain/.../repository/FinancialStatementRepositoryImpl.kt`
 - `composeApp/feature/accounting/src/commonMain/.../FinancialStatementsViewModel.kt`
+- `shared/domain/src/commonMain/.../usecase/accounting/ConsolidatedFinancialReportUseCase.kt`
 
 ---
 

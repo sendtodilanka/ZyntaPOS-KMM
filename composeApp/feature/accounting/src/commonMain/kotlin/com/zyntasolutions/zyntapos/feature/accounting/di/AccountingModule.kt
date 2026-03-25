@@ -2,6 +2,7 @@ package com.zyntasolutions.zyntapos.feature.accounting.di
 
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.CloseAccountingPeriodUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.accounting.ConsolidatedFinancialReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.CreateAccountingEntryUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.CreateAccountingPeriodUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.DeactivateAccountUseCase
@@ -110,6 +111,7 @@ val accountingModule = module {
     factoryOf(::ReopenAccountingPeriodUseCase)
 
     // ── Financial Statement Use Cases (Wave 3B) ───────────────────────────────
+    factoryOf(::ConsolidatedFinancialReportUseCase)
     factoryOf(::GetProfitAndLossUseCase)
     factoryOf(::GetBalanceSheetUseCase)
     factoryOf(::GetTrialBalanceUseCase)
