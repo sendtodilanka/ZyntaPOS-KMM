@@ -73,8 +73,13 @@ class OnboardingViewModel(
                 updateState { copy(taxRate = intent.rate, taxRateError = rateError) }
             }
             is OnboardingIntent.TaxIsInclusiveChanged -> updateState { copy(taxIsInclusive = intent.inclusive) }
-            is OnboardingIntent.SkipTaxSetup -> onCompleteOnboarding(saveTax = false)
-            is OnboardingIntent.CompleteOnboarding -> onCompleteOnboarding(saveTax = true)
+            is OnboardingIntent.SkipTaxSetup -> updateState { copy(currentStep = OnboardingState.Step.RECEIPT_FORMAT) }
+            is OnboardingIntent.ReceiptHeaderChanged -> updateState { copy(receiptHeader = intent.header) }
+            is OnboardingIntent.ReceiptFooterChanged -> updateState { copy(receiptFooter = intent.footer) }
+            is OnboardingIntent.ReceiptPaperWidthChanged -> updateState { copy(receiptPaperWidthMm = intent.widthMm) }
+            is OnboardingIntent.ReceiptAutoPrintChanged -> updateState { copy(receiptAutoPrint = intent.enabled) }
+            is OnboardingIntent.SkipReceiptFormat -> onCompleteOnboarding(saveReceipt = false)
+            is OnboardingIntent.CompleteOnboarding -> onCompleteOnboarding(saveReceipt = true)
             is OnboardingIntent.BackStep -> onBackStep()
             is OnboardingIntent.DismissError -> updateState { copy(error = null) }
         }
@@ -141,7 +146,11 @@ class OnboardingViewModel(
                 updateState { copy(currentStep = OnboardingState.Step.TAX_SETUP) }
             }
             OnboardingState.Step.TAX_SETUP -> {
-                // Last step — no-op; user uses CompleteOnboarding or SkipTaxSetup
+                // Advance to optional receipt format step
+                updateState { copy(currentStep = OnboardingState.Step.RECEIPT_FORMAT) }
+            }
+            OnboardingState.Step.RECEIPT_FORMAT -> {
+                // Last step — no-op; user uses CompleteOnboarding or SkipReceiptFormat
             }
         }
     }
@@ -151,6 +160,7 @@ class OnboardingViewModel(
             OnboardingState.Step.ADMIN_ACCOUNT -> updateState { copy(currentStep = OnboardingState.Step.BUSINESS_INFO) }
             OnboardingState.Step.STORE_SETTINGS -> updateState { copy(currentStep = OnboardingState.Step.ADMIN_ACCOUNT) }
             OnboardingState.Step.TAX_SETUP -> updateState { copy(currentStep = OnboardingState.Step.STORE_SETTINGS) }
+            OnboardingState.Step.RECEIPT_FORMAT -> updateState { copy(currentStep = OnboardingState.Step.TAX_SETUP) }
             OnboardingState.Step.BUSINESS_INFO -> Unit // no-op
         }
     }
@@ -201,17 +211,8 @@ class OnboardingViewModel(
 
     // ── Completion ────────────────────────────────────────────────────────
 
-    private suspend fun onCompleteOnboarding(saveTax: Boolean = true) {
+    private suspend fun onCompleteOnboarding(saveReceipt: Boolean = true) {
         val s = currentState
-
-        // Validate tax rate if user intends to save
-        if (saveTax && s.taxGroupName.isNotBlank()) {
-            val rateVal = s.taxRate.toDoubleOrNull()
-            if (rateVal == null || rateVal < 0.0 || rateVal > 100.0) {
-                updateState { copy(taxRateError = "Enter a valid rate between 0 and 100") }
-                return
-            }
-        }
 
         updateState { copy(isLoading = true, error = null) }
 
@@ -253,8 +254,12 @@ class OnboardingViewModel(
         }
 
         // ── Persist tax group if user configured one (Step 4) ────────────
-        if (saveTax && s.taxGroupName.isNotBlank()) {
-            val rateVal = s.taxRate.toDoubleOrNull() ?: 0.0
+        if (s.taxGroupName.isNotBlank()) {
+            val rateVal = s.taxRate.toDoubleOrNull()
+            if (rateVal == null || rateVal < 0.0 || rateVal > 100.0) {
+                updateState { copy(isLoading = false, taxRateError = "Enter a valid rate between 0 and 100") }
+                return
+            }
             val taxGroup = TaxGroup(
                 id = IdGenerator.newId(),
                 name = s.taxGroupName.trim(),
@@ -264,6 +269,15 @@ class OnboardingViewModel(
             )
             taxGroupRepository.insert(taxGroup)
             // Ignore error — user can create tax groups from Settings later
+        }
+
+        // ── Persist receipt format preferences (Step 5) ──────────────────
+        if (saveReceipt) {
+            settingsRepository.set("pos.receipt_header", s.receiptHeader.trim())
+            settingsRepository.set("pos.receipt_footer", s.receiptFooter.trim())
+            settingsRepository.set("printer.paper_width_mm", s.receiptPaperWidthMm.toString())
+            settingsRepository.set("pos.auto_print_receipt", if (s.receiptAutoPrint) "true" else "false")
+            // Ignore errors — user can configure receipt format from Settings later
         }
 
         // ── Seed Chart of Accounts (best-effort, non-blocking) ────────────

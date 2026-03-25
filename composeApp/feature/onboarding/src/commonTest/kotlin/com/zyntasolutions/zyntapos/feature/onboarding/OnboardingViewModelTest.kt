@@ -560,8 +560,14 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun `isLastStep is true on TAX_SETUP step`() = runTest {
+    fun `isLastStep is false on TAX_SETUP step`() = runTest {
         advanceToTaxSetup()
+        assertFalse(viewModel.state.value.isLastStep)
+    }
+
+    @Test
+    fun `isLastStep is true on RECEIPT_FORMAT step`() = runTest {
+        advanceToReceiptFormat()
         assertTrue(viewModel.state.value.isLastStep)
     }
 
@@ -762,26 +768,113 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun `SkipTaxSetup completes onboarding without inserting a tax group`() = runTest {
+    fun `SkipTaxSetup advances to RECEIPT_FORMAT without inserting a tax group`() = runTest {
+        setupForCompletion()
+        viewModel.dispatch(OnboardingIntent.SkipTaxSetup)
+        advanceUntilIdle()
+
+        assertEquals(OnboardingState.Step.RECEIPT_FORMAT, viewModel.state.value.currentStep)
+        assertEquals(0, insertedTaxGroups.size)
+    }
+
+    @Test
+    fun `SkipReceiptFormat completes onboarding without saving receipt settings`() = runTest {
         setupForCompletion()
         viewModel.effects.test {
-            viewModel.dispatch(OnboardingIntent.SkipTaxSetup)
+            viewModel.dispatch(OnboardingIntent.SkipReceiptFormat)
             advanceUntilIdle()
 
             assertEquals(OnboardingEffect.NavigateToLogin, awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
-        assertEquals(0, insertedTaxGroups.size)
+        // Receipt keys should not be persisted
+        assertNull(settingsStore["pos.receipt_header"])
+        assertNull(settingsStore["pos.receipt_footer"])
     }
 
     @Test
-    fun `SkipTaxSetup still persists business name and admin user`() = runTest {
+    fun `SkipReceiptFormat still persists business name and admin user`() = runTest {
         setupForCompletion(businessName = "Skip Corp")
-        viewModel.dispatch(OnboardingIntent.SkipTaxSetup)
+        viewModel.dispatch(OnboardingIntent.SkipReceiptFormat)
         advanceUntilIdle()
 
         assertEquals("Skip Corp", settingsStore["general.business_name"])
         assertEquals(1, createdUsers.size)
+    }
+
+    // ── Step 4 → Step 5 navigation ────────────────────────────────────────────
+
+    @Test
+    fun `NextStep from TAX_SETUP advances to RECEIPT_FORMAT`() = runTest {
+        advanceToTaxSetup()
+        viewModel.dispatch(OnboardingIntent.NextStep)
+        advanceUntilIdle()
+        assertEquals(OnboardingState.Step.RECEIPT_FORMAT, viewModel.state.value.currentStep)
+    }
+
+    @Test
+    fun `BackStep from RECEIPT_FORMAT goes to TAX_SETUP`() = runTest {
+        advanceToReceiptFormat()
+        viewModel.dispatch(OnboardingIntent.BackStep)
+        advanceUntilIdle()
+        assertEquals(OnboardingState.Step.TAX_SETUP, viewModel.state.value.currentStep)
+    }
+
+    // ── Step 5: Receipt format ────────────────────────────────────────────────
+
+    @Test
+    fun `ReceiptHeaderChanged updates receiptHeader`() = runTest {
+        viewModel.dispatch(OnboardingIntent.ReceiptHeaderChanged("Welcome!"))
+        advanceUntilIdle()
+        assertEquals("Welcome!", viewModel.state.value.receiptHeader)
+    }
+
+    @Test
+    fun `ReceiptFooterChanged updates receiptFooter`() = runTest {
+        viewModel.dispatch(OnboardingIntent.ReceiptFooterChanged("Thanks!"))
+        advanceUntilIdle()
+        assertEquals("Thanks!", viewModel.state.value.receiptFooter)
+    }
+
+    @Test
+    fun `ReceiptPaperWidthChanged updates receiptPaperWidthMm`() = runTest {
+        viewModel.dispatch(OnboardingIntent.ReceiptPaperWidthChanged(58))
+        advanceUntilIdle()
+        assertEquals(58, viewModel.state.value.receiptPaperWidthMm)
+    }
+
+    @Test
+    fun `ReceiptAutoPrintChanged updates receiptAutoPrint`() = runTest {
+        assertTrue(viewModel.state.value.receiptAutoPrint)
+        viewModel.dispatch(OnboardingIntent.ReceiptAutoPrintChanged(false))
+        advanceUntilIdle()
+        assertFalse(viewModel.state.value.receiptAutoPrint)
+    }
+
+    @Test
+    fun `CompleteOnboarding persists receipt format settings`() = runTest {
+        setupForCompletion()
+        viewModel.dispatch(OnboardingIntent.ReceiptHeaderChanged("Hello!"))
+        viewModel.dispatch(OnboardingIntent.ReceiptFooterChanged("Thanks!"))
+        viewModel.dispatch(OnboardingIntent.ReceiptPaperWidthChanged(58))
+        viewModel.dispatch(OnboardingIntent.ReceiptAutoPrintChanged(false))
+        viewModel.dispatch(OnboardingIntent.CompleteOnboarding)
+        advanceUntilIdle()
+
+        assertEquals("Hello!", settingsStore["pos.receipt_header"])
+        assertEquals("Thanks!", settingsStore["pos.receipt_footer"])
+        assertEquals("58", settingsStore["printer.paper_width_mm"])
+        assertEquals("false", settingsStore["pos.auto_print_receipt"])
+    }
+
+    @Test
+    fun `default receipt paper width is 80mm`() = runTest {
+        assertEquals(80, viewModel.state.value.receiptPaperWidthMm)
+    }
+
+    @Test
+    fun `default auto print receipt is true`() = runTest {
+        assertTrue(viewModel.state.value.receiptAutoPrint)
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -818,6 +911,13 @@ class OnboardingViewModelTest {
     /** Advance from Step 1 through Step 3 to Step 4 with valid fields. */
     private suspend fun TestScope.advanceToTaxSetup() {
         advanceToStoreSettings()
+        viewModel.dispatch(OnboardingIntent.NextStep)
+        advanceUntilIdle()
+    }
+
+    /** Advance from Step 1 through Step 4 to Step 5 with valid fields. */
+    private suspend fun TestScope.advanceToReceiptFormat() {
+        advanceToTaxSetup()
         viewModel.dispatch(OnboardingIntent.NextStep)
         advanceUntilIdle()
     }

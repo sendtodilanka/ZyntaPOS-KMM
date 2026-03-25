@@ -20,11 +20,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Percent
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.filled.Percent
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -145,6 +147,11 @@ fun OnboardingScreen(
                         onIntent = viewModel::dispatch,
                         modifier = Modifier.widthIn(max = 480.dp).fillMaxWidth(),
                     )
+                    OnboardingState.Step.RECEIPT_FORMAT -> ReceiptFormatStep(
+                        state = state,
+                        onIntent = viewModel::dispatch,
+                        modifier = Modifier.widthIn(max = 480.dp).fillMaxWidth(),
+                    )
                 }
             }
         }
@@ -177,6 +184,7 @@ private fun StepProgress(currentStep: OnboardingState.Step, modifier: Modifier =
                     OnboardingState.Step.ADMIN_ACCOUNT -> "Admin Account"
                     OnboardingState.Step.STORE_SETTINGS -> "Store Settings"
                     OnboardingState.Step.TAX_SETUP -> "Tax Setup"
+                    OnboardingState.Step.RECEIPT_FORMAT -> "Receipt Format"
                 },
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
@@ -522,14 +530,138 @@ private fun TaxSetupStep(
         Spacer(Modifier.height(ZyntaSpacing.sm))
 
         ZyntaButton(
-            text = "Complete Setup",
-            onClick = { onIntent(OnboardingIntent.CompleteOnboarding) },
+            text = "Next",
+            onClick = { onIntent(OnboardingIntent.NextStep) },
             modifier = Modifier.fillMaxWidth(),
         )
 
         ZyntaButton(
             text = "Skip Tax Setup",
             onClick = { onIntent(OnboardingIntent.SkipTaxSetup) },
+            variant = ZyntaButtonVariant.Secondary,
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        ZyntaButton(
+            text = "Back",
+            onClick = { onIntent(OnboardingIntent.BackStep) },
+            variant = ZyntaButtonVariant.Secondary,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+// ── Step 5: Receipt Format (optional) ─────────────────────────────────────
+
+@Composable
+private fun ReceiptFormatStep(
+    state: OnboardingState,
+    onIntent: (OnboardingIntent) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
+    ) {
+        Icon(
+            Icons.Default.Print, null,
+            modifier = Modifier.size(56.dp).align(Alignment.CenterHorizontally),
+            tint = MaterialTheme.colorScheme.primary,
+        )
+
+        Text(
+            "Receipt format (optional)",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+        )
+        Text(
+            "Customize your receipts. You can change this later in Settings → Printer.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+        )
+
+        Spacer(Modifier.height(ZyntaSpacing.sm))
+
+        ZyntaTextField(
+            value = state.receiptHeader,
+            onValueChange = { onIntent(OnboardingIntent.ReceiptHeaderChanged(it)) },
+            label = "Receipt Header (optional)",
+            placeholder = "e.g. Welcome to our store!",
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        ZyntaTextField(
+            value = state.receiptFooter,
+            onValueChange = { onIntent(OnboardingIntent.ReceiptFooterChanged(it)) },
+            label = "Receipt Footer",
+            placeholder = "e.g. Thank you for your purchase!",
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        // Paper width selector
+        Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.xs)) {
+            Text(
+                "Paper Width",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
+                listOf(58 to "58mm (Portable)", 80 to "80mm (Standard)").forEach { (widthMm, label) ->
+                    FilterChip(
+                        selected = state.receiptPaperWidthMm == widthMm,
+                        onClick = { onIntent(OnboardingIntent.ReceiptPaperWidthChanged(widthMm)) },
+                        label = { Text(label, style = MaterialTheme.typography.bodySmall) },
+                    )
+                }
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "Auto-print Receipt",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                )
+                Text(
+                    "Automatically print after each payment",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Switch(
+                checked = state.receiptAutoPrint,
+                onCheckedChange = { onIntent(OnboardingIntent.ReceiptAutoPrintChanged(it)) },
+            )
+        }
+
+        if (state.error != null) {
+            Text(
+                state.error,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+
+        Spacer(Modifier.height(ZyntaSpacing.sm))
+
+        ZyntaButton(
+            text = "Complete Setup",
+            onClick = { onIntent(OnboardingIntent.CompleteOnboarding) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        ZyntaButton(
+            text = "Skip Receipt Setup",
+            onClick = { onIntent(OnboardingIntent.SkipReceiptFormat) },
             variant = ZyntaButtonVariant.Secondary,
             modifier = Modifier.fillMaxWidth(),
         )
