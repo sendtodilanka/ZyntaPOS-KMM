@@ -943,9 +943,43 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
     },
 
     financialStatements = { storeId, onNavigateBack ->
+        var exportedCsv by remember { mutableStateOf<Pair<String, String>?>(null) }
+        val currentExport = exportedCsv
+        if (currentExport != null) {
+            AlertDialog(
+                onDismissRequest = { exportedCsv = null },
+                title = { Text(currentExport.second) },
+                text = {
+                    Column {
+                        Text(
+                            text = "CSV export is ready. Select the text below to copy it.",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Surface(
+                            tonalElevation = 2.dp,
+                            modifier = Modifier.fillMaxWidth().heightIn(max = 300.dp),
+                        ) {
+                            SelectionContainer {
+                                Text(
+                                    text = currentExport.first,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.padding(8.dp)
+                                        .verticalScroll(rememberScrollState()),
+                                )
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { exportedCsv = null }) { Text("Close") }
+                },
+            )
+        }
         FinancialStatementsScreen(
             storeId = storeId,
             onNavigateBack = onNavigateBack,
+            onShareExport = { content, fileName -> exportedCsv = content to fileName },
         )
     },
 
