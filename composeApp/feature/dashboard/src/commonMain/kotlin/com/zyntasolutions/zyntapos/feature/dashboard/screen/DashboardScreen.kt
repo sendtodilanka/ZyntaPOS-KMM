@@ -691,6 +691,22 @@ private fun CompactDashboard(
             }
         }
 
+        // Hourly sparkline (G7) — shows today's sales by hour for at-a-glance trend
+        if (state.todaySparkline.isNotEmpty()) {
+            item {
+                StaggeredEntrance(delayMs = 75) {
+                    ZyntaLineChart(
+                        title = "Today's Hourly Sales",
+                        series = listOf(
+                            ChartSeries("Sales", state.todaySparkline, MaterialTheme.colorScheme.secondary)
+                        ),
+                        chartHeight = 120,
+                        showLegend = false,
+                    )
+                }
+            }
+        }
+
         // Quick Actions
         item {
             StaggeredEntrance(delayMs = 100) {

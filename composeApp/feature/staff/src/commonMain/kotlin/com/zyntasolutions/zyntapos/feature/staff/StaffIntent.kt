@@ -122,6 +122,10 @@ sealed interface StaffIntent {
     /** Load the full leave history for a specific employee (reactive stream). */
     data class LoadLeaveHistory(val employeeId: String) : StaffIntent
 
+    // ── C3.4: Employee Roaming ─────────────────────────────────────────────
+    /** Navigate to the employee's store assignments screen (C3.4). */
+    data class NavigateToEmployeeStores(val employeeId: String) : StaffIntent
+
     // ── UI Feedback ────────────────────────────────────────────────────────
     data object DismissError : StaffIntent
     data object DismissSuccess : StaffIntent

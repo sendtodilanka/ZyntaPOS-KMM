@@ -31,6 +31,12 @@ sealed interface MediaIntent {
     /** Validate and save the entered file path as a new MediaFile record. */
     data object ConfirmAddFile : MediaIntent
 
+    // ── Full-screen preview (G15) ─────────────────────────────────────────
+    /** Open full-screen preview for the given file. */
+    data class ShowFullScreenPreview(val fileId: String) : MediaIntent
+    /** Close the full-screen preview. */
+    data object HideFullScreenPreview : MediaIntent
+
     // ── Primary image ─────────────────────────────────────────────────────
     /** Marks the selected file as the primary image for the entity. */
     data class SetAsPrimary(val fileId: String) : MediaIntent

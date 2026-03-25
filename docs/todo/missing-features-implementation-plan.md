@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-25 (C5.4: SyncStatusPort.onSyncComplete + DashboardViewModel 30s auto-refresh + backend Redis dashboard:update publish + RedisPubSubListener WsDashboardUpdate; C4.4: fulfillment_orders migration 19 + SQLDelight queries + FulfillmentRepositoryImpl + FulfillmentQueueScreen + FulfillmentViewModel + ZyntaRoute.FulfillmentQueue; G15: expect/actual rememberNativeFilePicker Android+JVM + Browse button in MediaLibraryScreen; G6: ReportsViewModel SyncStatusPort.onSyncComplete + 30s auto-refresh; G13: ExpenseDetailScreen receipt file picker + Coil AsyncImage preview; G4: PIN lockout countdown timer in LoginScreen — AuthState.lockedOutUntilMs + M:SS display + disabled login button; verified done: C3.2 KMM StoreUserAccessScreen + LoginScreen multi-store selector, C3.3/G7 dashboard real-time via SyncStatusPort; fixes: FulfillmentOrder import path, fulfillment_ordersQueries naming, DashboardViewModel viewModelScope import, FulfillmentViewModel updateState receiver + viewModelScope import, NativeFilePicker KDoc nested comment)
+**Last Updated:** 2026-03-25 (C3.4 KMM UI: EmployeeStoreAssignmentScreen + EmployeeRoamingViewModel + EmployeeRoamingState/Intent/Effect + StaffModule C3.4 use case registrations + StaffEffect.NavigateToEmployeeStores + StaffIntent.NavigateToEmployeeStores + StaffViewModel handler + EmployeeDetailScreen "Manage Store Assignments" button + ZyntaRoute.EmployeeStoreAssignments + MainNavScreens.employeeStoreAssignments + MainNavGraph route + App.kt wiring + shift_schedules.sq unique index change + migration 20.sqm; G15: full-screen image preview Dialog in MediaLibraryScreen — ShowFullScreenPreview/HideFullScreenPreview intents + previewFile state + combinedClickable cell tap→preview/long-press→action-sheet; G7: todaySparkline ZyntaLineChart added to CompactDashboard; prev: C5.4: SyncStatusPort.onSyncComplete + DashboardViewModel 30s auto-refresh + backend Redis dashboard:update publish + RedisPubSubListener WsDashboardUpdate; C4.4: fulfillment_orders migration 19 + SQLDelight queries + FulfillmentRepositoryImpl + FulfillmentQueueScreen + FulfillmentViewModel + ZyntaRoute.FulfillmentQueue; G15: expect/actual rememberNativeFilePicker Android+JVM + Browse button in MediaLibraryScreen; G6: ReportsViewModel SyncStatusPort.onSyncComplete + 30s auto-refresh; G13: ExpenseDetailScreen receipt file picker + Coil AsyncImage preview; G4: PIN lockout countdown timer in LoginScreen — AuthState.lockedOutUntilMs + M:SS display + disabled login button; verified done: C3.2 KMM StoreUserAccessScreen + LoginScreen multi-store selector, C3.3/G7 dashboard real-time via SyncStatusPort; fixes: FulfillmentOrder import path, fulfillment_ordersQueries naming, DashboardViewModel viewModelScope import, FulfillmentViewModel updateState receiver + viewModelScope import, NativeFilePicker KDoc nested comment)
 **Status:** Approved — Verified against codebase 2026-03-22, updated for ADR-009 compliance
 
 ---
@@ -1235,8 +1235,8 @@ Backend Tests:
 - [x] `SyncValidator.VALID_ENTITY_TYPES` — `EMPLOYEE_STORE_ASSIGNMENT` added with field-level validation
 
 **What's REMAINING (deferred):**
-- [ ] Modify `shift_schedules.sq` — allow shifts across different stores for same employee
-- [ ] KMM UI: Employee store assignment management
+- [x] Modify `shift_schedules.sq` — allow shifts across different stores for same employee (migration `20.sqm`, index `idx_shifts_emp_store_date`)
+- [x] KMM UI: Employee store assignment management (`EmployeeStoreAssignmentScreen` + `EmployeeRoamingViewModel` + `EmployeeRoamingState/Intent/Effect`; wired in `ZyntaRoute.EmployeeStoreAssignments`, `MainNavScreens`, `MainNavGraph`, `App.kt`; "Manage Store Assignments" button in `EmployeeDetailScreen`)
 - [ ] KMM UI: Store selector on clock-in screen (if employee has multi-store access)
 - [ ] Cross-store attendance reports
 
@@ -1929,7 +1929,7 @@ Backend Tests:
 | ~~**No real-time updates**~~ — ✅ DONE (2026-03-25): `DashboardViewModel` subscribes to `SyncStatusPort.onSyncComplete` SharedFlow; `Refresh` intent + `isRefreshing`/`lastRefreshedAt` state; 30s periodic fallback timer (C5.4) | ~~CRITICAL~~ | ✅ DONE |
 | ~~**No multi-store KPI consolidation**~~ — ✅ PARTIAL: Store context chip (StoreNameChip) in dashboard top bar via `DashboardState.storeName` + `StoreRepository`; full KPI aggregation deferred (2026-03-24) | ~~CRITICAL~~ | ✅ PARTIAL (2026-03-24) |
 | ~~**Daily sales target hardcoded**~~ — ✅ DONE: `DAILY_SALES_TARGET` key in `SettingsKeys`; `PosState.dailySalesTarget` field; `UpdateDailySalesTarget` intent; load/save in `SettingsViewModel`; `OutlinedTextField` in `PosSettingsScreen`; `DashboardViewModel` reads from `SettingsRepository` on load (2026-03-25) | ~~MEDIUM~~ | ✅ DONE (2026-03-25) |
-| **Hourly sparkline data calculated but never rendered** | LOW | Phase 1.5 |
+| **Hourly sparkline data calculated but never rendered** ✅ | LOW | Phase 1.5 |
 | **No comparison to previous period** (yesterday, last week) | MEDIUM | Phase 2 |
 | ~~**Notifications menu item exists but not implemented**~~ — ✅ VERIFIED DONE (2026-03-25): `NotificationInboxScreen.kt` (feature/admin) — full inbox with filter chips (ALL/UNREAD/LOW_STOCK/SYNC/PAYMENT), `MarkAsRead`/`MarkAllAsRead`/`DeleteNotification` intents, `NotificationViewModel` (MVI), `NotificationRepository` + tests; `ZyntaRoute.NotificationInbox` wired in MainNavGraph; Dashboard Notifications menu item calls `onNavigateToNotifications()` | ~~LOW~~ | ✅ DONE |
 
@@ -2063,7 +2063,7 @@ Backend Tests:
 | **No camera capture** ("Take Photo" option) | HIGH | Phase 2 |
 | **No image crop/compress UI** | MEDIUM | Phase 2 |
 | **No batch upload** | LOW | Phase 3 |
-| **No full-screen image preview** | LOW | Phase 2 |
+| **No full-screen image preview** ✅ | LOW | Phase 2 |
 
 ---
 

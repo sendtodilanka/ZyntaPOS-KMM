@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.media
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -15,6 +16,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.MediaFile
@@ -104,7 +107,8 @@ fun MediaLibraryScreen(
                         MediaFileCell(
                             file = file,
                             isSelected = state.selectedFile?.id == file.id,
-                            onClick = { onIntent(MediaIntent.SelectFile(file.id)) },
+                            onClick = { onIntent(MediaIntent.ShowFullScreenPreview(file.id)) },
+                            onLongClick = { onIntent(MediaIntent.SelectFile(file.id)) },
                         )
                     }
                 }
@@ -118,6 +122,18 @@ fun MediaLibraryScreen(
                 onSetPrimary = { onIntent(MediaIntent.SetAsPrimary(file.id)) },
                 onDelete = { onIntent(MediaIntent.DeleteFile(file.id)) },
                 onDismiss = { onIntent(MediaIntent.ClearSelection) },
+            )
+        }
+
+        // Full-screen image preview (G15)
+        state.previewFile?.let { file ->
+            FullScreenImagePreview(
+                file = file,
+                onDismiss = { onIntent(MediaIntent.HideFullScreenPreview) },
+                onShowActions = {
+                    onIntent(MediaIntent.HideFullScreenPreview)
+                    onIntent(MediaIntent.SelectFile(file.id))
+                },
             )
         }
 
@@ -137,17 +153,19 @@ fun MediaLibraryScreen(
 
 // ─── Private composables ──────────────────────────────────────────────────────
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun MediaFileCell(
     file: MediaFile,
     isSelected: Boolean,
     onClick: () -> Unit,
+    onLongClick: () -> Unit = {},
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(1f)
-            .clickable(onClick = onClick),
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
         border = if (isSelected)
             CardDefaults.outlinedCardBorder()
         else null,
@@ -255,6 +273,83 @@ private fun FileActionBottomSheet(
             }
         },
     )
+}
+
+@Composable
+private fun FullScreenImagePreview(
+    file: MediaFile,
+    onDismiss: () -> Unit,
+    onShowActions: () -> Unit,
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) {
+            // Dim background
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.8f),
+            ) {}
+
+            // Full-size image
+            AsyncImage(
+                model = file.displayUrl,
+                contentDescription = file.fileName,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(ZyntaSpacing.md),
+                contentScale = ContentScale.Fit,
+            )
+
+            // Top-right close button
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(ZyntaSpacing.sm),
+            ) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = "Close preview",
+                    tint = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+
+            // Bottom actions bar
+            Surface(
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter),
+            ) {
+                Row(
+                    modifier = Modifier.padding(ZyntaSpacing.sm),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            file.fileName,
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            "%.1f KB · ${file.uploadStatus.name}".format(file.fileSizeKb),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    TextButton(onClick = onShowActions) {
+                        Text("Actions")
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable

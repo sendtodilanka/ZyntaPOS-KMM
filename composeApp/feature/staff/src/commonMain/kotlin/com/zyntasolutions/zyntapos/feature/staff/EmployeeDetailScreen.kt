@@ -194,6 +194,21 @@ fun EmployeeDetailScreen(
 
             Spacer(Modifier.height(ZyntaSpacing.sm))
 
+            // ── Store Assignments (C3.4 — only for existing employees) ─────
+            if (isEditing) {
+                OutlinedButton(
+                    onClick = {
+                        form.id?.let { onIntent(StaffIntent.NavigateToEmployeeStores(it)) }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(Icons.Default.Store, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Manage Store Assignments")
+                }
+                Spacer(Modifier.height(ZyntaSpacing.sm))
+            }
+
             // ── Save Button ────────────────────────────────────────────────
             Button(
                 onClick = { onIntent(StaffIntent.SaveEmployee) },

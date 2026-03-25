@@ -16,8 +16,8 @@ CREATE TABLE shift_schedules (
     sync_status TEXT NOT NULL DEFAULT 'PENDING'
 );
 
--- One shift per employee per day
-CREATE UNIQUE INDEX idx_shifts_emp_date   ON shift_schedules(employee_id, shift_date);
+-- One shift per employee per store per day (C3.4: allows multi-store roaming shifts)
+CREATE UNIQUE INDEX idx_shifts_emp_store_date ON shift_schedules(employee_id, store_id, shift_date);
 CREATE INDEX idx_shifts_store_date        ON shift_schedules(store_id, shift_date);
 CREATE INDEX idx_shifts_employee          ON shift_schedules(employee_id);
 

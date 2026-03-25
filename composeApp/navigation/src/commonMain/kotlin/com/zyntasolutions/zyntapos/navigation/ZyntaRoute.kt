@@ -480,6 +480,14 @@ sealed class ZyntaRoute {
     @Serializable
     data class PayrollDetail(val employeeId: String, val periodStart: String) : ZyntaRoute()
 
+    /**
+     * Employee store assignments — list and manage multi-store roaming (C3.4).
+     *
+     * @param employeeId Employee whose assignments are being managed.
+     */
+    @Serializable
+    data class EmployeeStoreAssignments(val employeeId: String) : ZyntaRoute()
+
     // ─────────────────────────────────────────────────────────────────
     // ADMIN GROUP  (Phase 3 — Sprint 13-15)
     // ─────────────────────────────────────────────────────────────────
