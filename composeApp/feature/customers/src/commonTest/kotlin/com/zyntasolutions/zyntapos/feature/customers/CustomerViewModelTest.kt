@@ -233,6 +233,9 @@ class CustomerViewModelTest {
 
         override suspend fun deleteTier(id: String): Result<Unit> =
             Result.Success(Unit)
+
+        override suspend fun expirePointsForCustomer(customerId: String, nowEpochMillis: Long): Result<Int> =
+            Result.Success(0)
     }
 
     private val saveGroupUseCase = SaveCustomerGroupUseCase(fakeGroupRepository)

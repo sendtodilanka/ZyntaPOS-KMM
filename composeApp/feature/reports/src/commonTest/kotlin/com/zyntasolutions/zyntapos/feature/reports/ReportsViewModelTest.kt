@@ -317,6 +317,8 @@ class ReportsViewModelTest {
             if (shouldFailExport) throw Exception("Export failed")
             return exportedPath
         }
+        override suspend fun exportStoreComparisonCsv(stores: List<com.zyntasolutions.zyntapos.domain.model.report.StoreSalesData>): String = exportedPath
+        override suspend fun exportGdprJson(customerId: String, json: String): String = exportedPath
     }
 
     // ── ViewModel construction ────────────────────────────────────────────────
