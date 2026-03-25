@@ -83,6 +83,25 @@ fun ProductDetailScreen(
         )
     }
 
+    // INV-3: UnitManagementScreen as full-screen dialog
+    if (state.showUnitManagement) {
+        AlertDialog(
+            onDismissRequest = { onIntent(InventoryIntent.CloseUnitManagement) },
+            confirmButton = {},
+            title = null,
+            text = {
+                UnitManagementScreen(
+                    unitGroups = state.unitGroups,
+                    isLoading = state.isLoading,
+                    onSaveUnit = { groupId, unit -> onIntent(InventoryIntent.SaveUnit(groupId, unit)) },
+                    onDeleteUnit = { onIntent(InventoryIntent.DeleteUnit(it)) },
+                    onSaveGroup = { onIntent(InventoryIntent.SaveUnitGroup(it)) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+        )
+    }
+
     // INV-10: TaxGroupScreen as full-screen dialog
     if (state.showTaxGroupManagement) {
         AlertDialog(
@@ -262,14 +281,24 @@ private fun CoreFieldsSection(
                 errorText = form.validationErrors["categoryId"],
             )
 
-            // Unit selector
-            UnitDropdown(
-                units = state.allUnits,
-                selectedId = form.unitId,
-                onSelect = { onIntent(InventoryIntent.UpdateFormField("unitId", it)) },
-                isError = form.validationErrors.containsKey("unitId"),
-                errorText = form.validationErrors["unitId"],
-            )
+            // Unit selector + manage link (INV-3)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(Modifier.weight(1f)) {
+                    UnitDropdown(
+                        units = state.allUnits,
+                        selectedId = form.unitId,
+                        onSelect = { onIntent(InventoryIntent.UpdateFormField("unitId", it)) },
+                        isError = form.validationErrors.containsKey("unitId"),
+                        errorText = form.validationErrors["unitId"],
+                    )
+                }
+                TextButton(onClick = { onIntent(InventoryIntent.OpenUnitManagement) }) {
+                    Text("Manage", style = MaterialTheme.typography.labelMedium)
+                }
+            }
 
             // Description
             ZyntaTextField(

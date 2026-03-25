@@ -198,6 +198,21 @@ class InventoryViewModel(
             is InventoryIntent.SaveUnit -> onSaveUnit(intent.groupId, intent.unit)
             is InventoryIntent.DeleteUnit -> onDeleteUnit(intent.unitId)
             is InventoryIntent.SaveUnitGroup -> onSaveUnitGroup(intent.group)
+            // ── INV-7: Batch Selection ───────────────────────────────────────
+            is InventoryIntent.EnterSelectionMode ->
+                updateState { copy(isSelectionMode = true, selectedProductIds = emptySet()) }
+            is InventoryIntent.ExitSelectionMode ->
+                updateState { copy(isSelectionMode = false, selectedProductIds = emptySet()) }
+            is InventoryIntent.ToggleProductSelection -> {
+                val current = currentState.selectedProductIds
+                updateState {
+                    copy(selectedProductIds = if (intent.productId in current)
+                        current - intent.productId else current + intent.productId)
+                }
+            }
+            is InventoryIntent.SelectAllProducts ->
+                updateState { copy(selectedProductIds = products.map { it.id }.toSet()) }
+            is InventoryIntent.BatchDeleteSelectedProducts -> onBatchDeleteProducts()
         }
     }
 
@@ -742,6 +757,31 @@ class InventoryViewModel(
                 sendEffect(InventoryEffect.ShowError(result.exception.message ?: "Delete failed"))
             }
             is Result.Loading -> Unit
+        }
+    }
+
+    private suspend fun onBatchDeleteProducts() {
+        val ids = currentState.selectedProductIds.toList()
+        if (ids.isEmpty()) return
+        updateState { copy(isLoading = true) }
+        var successCount = 0
+        var failCount = 0
+        ids.forEach { productId ->
+            val productName = currentState.products.find { it.id == productId }?.name ?: ""
+            when (productRepository.delete(productId)) {
+                is Result.Success -> {
+                    auditLogger.logProductDeleted(currentUserId, productId, productName)
+                    successCount++
+                }
+                is Result.Error -> failCount++
+                is Result.Loading -> Unit
+            }
+        }
+        updateState { copy(isLoading = false, isSelectionMode = false, selectedProductIds = emptySet()) }
+        if (failCount == 0) {
+            sendEffect(InventoryEffect.ShowSuccess("$successCount product(s) deleted."))
+        } else {
+            sendEffect(InventoryEffect.ShowError("$successCount deleted, $failCount failed."))
         }
     }
 

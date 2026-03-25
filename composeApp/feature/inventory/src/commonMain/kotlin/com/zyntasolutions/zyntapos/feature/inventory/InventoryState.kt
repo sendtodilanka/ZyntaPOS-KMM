@@ -108,6 +108,12 @@ data class InventoryState(
     // ── Sprint 19: Low Stock ──────────────────────────────────────────────
     /** Count of products with stockQty < minStockQty for the alert banner. */
     val lowStockCount: Int = 0,
+
+    // ── INV-7: Batch Product Selection ───────────────────────────────────
+    /** True when the list is in multi-select mode. */
+    val isSelectionMode: Boolean = false,
+    /** IDs of products currently selected for batch operations. */
+    val selectedProductIds: Set<String> = emptySet(),
 )
 
 /** Stock status filter options for the product list. */

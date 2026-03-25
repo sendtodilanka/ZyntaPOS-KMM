@@ -30,6 +30,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.zyntasolutions.zyntapos.designsystem.components.WarehouseOption
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaWarehouseDropdown
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -92,21 +94,24 @@ fun NewStockTransferScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // ── Source Warehouse Dropdown ─────────────────────────────────
-            WarehouseDropdown(
+            val warehouseOptions = state.warehouses.map { WarehouseOption(it.id, it.name, it.address) }
+            ZyntaWarehouseDropdown(
                 label = "Source Warehouse *",
-                warehouses = state.warehouses,
+                warehouses = warehouseOptions,
                 selectedId = form.sourceWarehouseId,
                 onSelect = { viewModel.dispatch(WarehouseIntent.UpdateTransferField("sourceWarehouseId", it)) },
+                modifier = Modifier.fillMaxWidth(),
                 isError = form.validationErrors.containsKey("sourceWarehouseId"),
                 errorText = form.validationErrors["sourceWarehouseId"],
             )
 
             // ── Destination Warehouse Dropdown ───────────────────────────
-            WarehouseDropdown(
+            ZyntaWarehouseDropdown(
                 label = "Destination Warehouse *",
-                warehouses = state.warehouses,
+                warehouses = warehouseOptions,
                 selectedId = form.destWarehouseId,
                 onSelect = { viewModel.dispatch(WarehouseIntent.UpdateTransferField("destWarehouseId", it)) },
+                modifier = Modifier.fillMaxWidth(),
                 isError = form.validationErrors.containsKey("destWarehouseId"),
                 errorText = form.validationErrors["destWarehouseId"],
             )
@@ -150,59 +155,6 @@ fun NewStockTransferScreen(
                 modifier = Modifier.fillMaxWidth(),
                 isLoading = state.isLoading,
             )
-        }
-    }
-}
-
-/**
- * Warehouse selection dropdown using [ExposedDropdownMenuBox].
- * Shows warehouse names instead of raw UUIDs.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun WarehouseDropdown(
-    label: String,
-    warehouses: List<com.zyntasolutions.zyntapos.domain.model.Warehouse>,
-    selectedId: String,
-    onSelect: (String) -> Unit,
-    isError: Boolean = false,
-    errorText: String? = null,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val selectedName = warehouses.find { it.id == selectedId }?.name ?: ""
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = it },
-    ) {
-        OutlinedTextField(
-            value = selectedName,
-            onValueChange = {},
-            readOnly = true,
-            label = { Text(label) },
-            isError = isError,
-            supportingText = errorText?.let { { Text(it) } },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
-            singleLine = true,
-        )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            warehouses.forEach { wh ->
-                DropdownMenuItem(
-                    text = {
-                        Column {
-                            Text(wh.name, style = MaterialTheme.typography.bodyMedium)
-                            wh.address?.let {
-                                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        }
-                    },
-                    onClick = {
-                        onSelect(wh.id)
-                        expanded = false
-                    },
-                )
-            }
         }
     }
 }

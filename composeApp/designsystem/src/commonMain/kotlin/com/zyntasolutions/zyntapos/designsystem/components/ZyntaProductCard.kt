@@ -3,6 +3,8 @@ package com.zyntasolutions.zyntapos.designsystem.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -54,9 +56,10 @@ fun ZyntaProductCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     variant: ProductCardVariant = ProductCardVariant.Grid,
+    isSelected: Boolean = false,
 ) {
     when (variant) {
-        ProductCardVariant.Grid -> GridCard(name, price, imageUrl, stockIndicator, onClick, modifier)
+        ProductCardVariant.Grid -> GridCard(name, price, imageUrl, stockIndicator, onClick, modifier, isSelected)
         ProductCardVariant.List -> ListCard(name, price, imageUrl, stockIndicator, onClick, modifier)
         ProductCardVariant.Compact -> CompactCard(name, price, stockIndicator, onClick, modifier)
     }
@@ -71,12 +74,16 @@ private fun GridCard(
     stock: StockIndicator,
     onClick: () -> Unit,
     modifier: Modifier,
+    isSelected: Boolean = false,
 ) {
     Card(
         modifier = modifier
             .aspectRatio(0.85f)
             .clickable(onClick = onClick),
         shape = MaterialTheme.shapes.medium,
+        colors = if (isSelected)
+            CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+        else CardDefaults.cardColors(),
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             // Product image
@@ -99,6 +106,26 @@ private fun GridCard(
                         .align(Alignment.TopEnd)
                         .padding(ZyntaSpacing.xs),
                 )
+                // Selection checkmark overlay (INV-7)
+                if (isSelected) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(ZyntaSpacing.xs)
+                            .background(
+                                color = MaterialTheme.colorScheme.primary,
+                                shape = MaterialTheme.shapes.small,
+                            )
+                            .padding(2.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Selected",
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                }
             }
             // Name + price footer
             Column(

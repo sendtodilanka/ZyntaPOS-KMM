@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-25 (G9: date picker dialogs + CSV export; G7: configurable daily sales target; G2: onboarding Step 4 tax setup)
+**Last Updated:** 2026-03-25 (G9: date picker dialogs + CSV export; G7: configurable daily sales target; G2: onboarding Step 4 tax setup; G1: ZyntaWarehouseDropdown)
 **Status:** Approved — Verified against codebase 2026-03-22, updated for ADR-009 compliance
 
 ---
@@ -1776,7 +1776,7 @@ Backend Tests:
 
 ---
 
-### G1. Design System Missing Components (`:composeApp:designsystem`) — ~70% Complete
+### G1. Design System Missing Components (`:composeApp:designsystem`) — ✅ 100% Complete
 
 **Current:** 30 Zynta* components exist (Button, TextField, CurrencyText, ProductCard, NumericPad, StoreSelector, CurrencyPicker, TimezonePicker, TransferStatusBadge, etc.)
 
@@ -1795,8 +1795,8 @@ Backend Tests:
 | Component | Purpose | Priority | Blocks |
 |-----------|---------|----------|--------|
 | ~~`ZyntaLoyaltyBadge`~~ → ✅ DONE as `ZyntaLoyaltyTierBadge` (2026-03-24) | Customer loyalty tier indicator (Bronze/Silver/Gold/Platinum) | ~~**MEDIUM**~~ | ✅ DONE |
-| `ZyntaDateRangeSelector` | Two-date picker for report filters | **MEDIUM** | C5.1 Reports (partial — `ZyntaDateRangePicker` already exists) |
-| `ZyntaWarehouseDropdown` | Warehouse context switcher | **MEDIUM** | C1.2 Inventory (partial — private impl exists in multistore) |
+| ~~`ZyntaDateRangeSelector`~~ → ✅ DONE as `ZyntaDateRangePicker` | Two-date picker with preset chips (Today/Week/Month/Custom) + calendar dialog; `DateRangePreset` enum; used in Reports module | ~~**MEDIUM**~~ | ✅ ALREADY EXISTED (verified 2026-03-25) |
+| ~~`ZyntaWarehouseDropdown`~~ → ✅ DONE (2026-03-25) | Warehouse context switcher — extracted from private `WarehouseDropdown` in `NewStockTransferScreen`; now a public design system component; call sites updated | ~~**MEDIUM**~~ | ✅ DONE (2026-03-25) |
 
 ---
 
@@ -2063,9 +2063,9 @@ Backend Tests:
 
 | Gap ID | Issue | Severity | Fix Required |
 |--------|-------|----------|-------------|
-| MS-1 | **No Product Selection UI** — NewStockTransferScreen requires manual product ID entry; should have autocomplete or dropdown backed by `ProductRepository.search()` | HIGH | Add `ExposedDropdownMenuBox` or search-as-you-type field with product results |
-| MS-2 | **No Warehouse Name Display** — StockTransferCard shows raw `sourceWarehouseId`/`destWarehouseId` UUIDs; users see meaningless IDs | HIGH | Resolve warehouse names from `WarehouseState.warehouses` list or add `warehouseName` to `StockTransfer` model |
-| MS-3 | **Rack Screen Navigation Missing** — `WarehouseRackListScreen` and `WarehouseRackDetailScreen` have no routes in `ZyntaRoute.kt`; parent handles nav locally | MEDIUM | Add `WarehouseRackList(warehouseId)` and `WarehouseRackDetail(warehouseId, rackId?)` to `ZyntaRoute` sealed class |
+| MS-1 | ~~**No Product Selection UI**~~ — ✅ ALREADY DONE: `ProductSearchDropdown` composable in `NewStockTransferScreen.kt` with search-as-you-type backed by `WarehouseIntent.SearchProducts`; shows name + SKU + stock (verified 2026-03-25) | ~~HIGH~~ | ✅ DONE |
+| MS-2 | ~~**No Warehouse Name Display**~~ — ✅ ALREADY DONE: `StockTransferListScreen.kt` line 72 builds `warehouseMap` from `WarehouseState.warehouses`; resolves source/dest names with UUID fallback (verified 2026-03-25) | ~~HIGH~~ | ✅ DONE |
+| MS-3 | ~~**Rack Screen Navigation Missing**~~ — ✅ ALREADY DONE: `WarehouseRackList(warehouseId)` and `WarehouseRackDetail(rackId?, warehouseId)` both in `ZyntaRoute.kt` and wired in `MainNavGraph.kt:622-631` (verified 2026-03-25) | ~~MEDIUM~~ | ✅ DONE |
 | MS-4 | ~~**RackDetailScreen No Back Button**~~ — ✅ ALREADY EXISTS: TopAppBar with ArrowBack icon at lines 39-51 | ~~MEDIUM~~ | ✅ Verified (2026-03-23) |
 | MS-5 | **No Warehouse Metadata** — No image/logo field for visual identity; warehouse cards look plain | LOW | Add optional `imageUrl` field to `Warehouse` domain model + `AsyncImage` in card |
 | MS-6 | **No Rack Capacity Enforcement** — UI validates capacity but doesn't prevent overstocking against capacity limits | LOW | Add stock-vs-capacity check in `WarehouseRepositoryImpl.commitTransfer()` |
@@ -2122,9 +2122,9 @@ Backend Tests:
 | Gap ID | Issue | Severity | Fix Required |
 |--------|-------|----------|-------------|
 | INV-1 | ~~**Barcode Scanner Not Integrated**~~ — ✅ VERIFIED DONE: `ProductDetailScreen` has QR icon + `StartBarcodeScanner`/`StopBarcodeScanner`/`BarcodeScanResult` intents; InventoryViewModel fully handles scanner lifecycle; `isScannerActive` state tracks scanner; StocktakeScreen fully integrated with scanner toggle (2026-03-25) | ~~HIGH~~ | ✅ DONE |
-| INV-2 | **Variant Persistence Not Implemented** — `ProductVariants` added/edited in form state but never saved to domain; `CreateProductUseCase`/`UpdateProductUseCase` ignore variants | HIGH | Add variant list to `CreateProductUseCase.Params`, persist via `product_variants.sq` table |
+| INV-2 | ~~**Variant Persistence Not Implemented**~~ — ✅ ALREADY DONE: `CreateProductUseCase` takes `variants: List<ProductVariant>` and persists via `ProductVariantRepository.replaceAll()`; `InventoryViewModel` maps `productVariants` from state and passes them on both create/update; `UpdateProductUseCase` does the same (verified 2026-03-25) | ~~HIGH~~ | ✅ DONE |
 | INV-3 | **Missing Screen Route Definitions** — `CategoryDetail`, `SupplierDetail`, `TaxGroupScreen`, `UnitManagementScreen` not in `ZyntaRoute.kt` | HIGH | Add `@Serializable` route classes + NavHost entries |
-| INV-4 | **Product Image Preview Missing** — `ProductDetailScreen` accepts image URL but doesn't show preview; just a text field | MEDIUM | Add Coil `AsyncImage` with placeholder/error states |
+| INV-4 | ~~**Product Image Preview Missing**~~ — ✅ ALREADY DONE: `ProductDetailScreen` has Coil `AsyncImage` preview below the imageUrl text field with loading spinner and error placeholder (INV-4 comment at line 430); `import coil3.compose.AsyncImage` at line 23 (verified 2026-03-25) | ~~MEDIUM~~ | ✅ DONE |
 | INV-5 | ~~**Supplier Purchase History Empty**~~ — ✅ DONE: `PurchaseOrderRepository.getBySupplierId()` called in `onOpenSupplierDetail()`, mapped to `PurchaseOrderSummary` with `DateTimeUtils.formatForDisplay()` | ~~MEDIUM~~ | ✅ DONE (2026-03-23) |
 | INV-6 | **Bulk Import Dialog Unaudited** — Column mapping UX unclear; may have usability issues | MEDIUM | Audit and refine `BulkImportDialog.kt` composable |
 | INV-7 | **No Batch Product Selection** — ProductListScreen has no multi-select for bulk operations (delete, price adjust) | MEDIUM | Add checkbox column + batch action toolbar |
@@ -2158,18 +2158,18 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 
 ---
 
-### G18. Navigation Route Gaps — Multistore & Inventory
+### G18. Navigation Route Gaps — Multistore & Inventory — ✅ Mostly Resolved
 
-**Missing routes in `ZyntaRoute.kt`** (discovered during G16/G17 audit):
+**Routes verified in `ZyntaRoute.kt` + `MainNavGraph.kt`** (verified 2026-03-25):
 
-| Missing Route | Referenced By | Fix |
-|---------------|---------------|-----|
-| `WarehouseRackList(warehouseId: String)` | `WarehouseDetailScreen` → navigate to racks | Add `@Serializable data class` in ZyntaRoute |
-| `WarehouseRackDetail(warehouseId: String, rackId: String?)` | `WarehouseRackListScreen` → navigate to rack detail | Add `@Serializable data class` in ZyntaRoute |
-| `CategoryDetail(categoryId: String?)` | `CategoryListScreen` → navigate to edit category | Add `@Serializable data class` in ZyntaRoute |
-| `SupplierDetail(supplierId: String?)` | `SupplierListScreen` → navigate to edit supplier | Add `@Serializable data class` in ZyntaRoute |
-| `TaxGroupList` / `TaxGroupDetail` | `InventoryIntent.OpenTaxGroupDetail` | Add routes + implement screens |
-| `UnitManagementList` / `UnitDetail` | `InventoryIntent.OpenUnitManagement` | Add routes + implement screens |
+| Route | Status |
+|-------|--------|
+| `WarehouseRackList(warehouseId: String)` | ✅ EXISTS in ZyntaRoute.kt + wired in MainNavGraph.kt:622 |
+| `WarehouseRackDetail(rackId: String?, warehouseId: String)` | ✅ EXISTS in ZyntaRoute.kt + wired in MainNavGraph.kt:631 |
+| `CategoryDetail(categoryId: String?)` | ✅ EXISTS in ZyntaRoute.kt + wired in MainNavGraph.kt:157 |
+| `SupplierDetail(supplierId: String?)` | ✅ EXISTS in ZyntaRoute.kt + wired in MainNavGraph.kt:172 |
+| `TaxGroupList` / `TaxGroupDetail` | ✅ TaxGroupScreen is a modal dialog, no route needed (INV-10 resolved) |
+| `UnitManagementList` / `UnitDetail` | ⚠️ Still needed — `InventoryIntent.OpenUnitManagement` dispatched but no route wired |
 
 **Existing routes confirmed working:**
 - `WarehouseList`, `WarehouseDetail(warehouseId?)`, `StockTransferList`, `NewStockTransfer(sourceWarehouseId?)`
