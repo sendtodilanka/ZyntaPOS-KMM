@@ -89,6 +89,7 @@ data class ReportsState(
     /** State slice for the store comparison report screen (C5.2). */
     data class StoreComparisonState(
         val isLoading: Boolean = false,
+        val isExporting: Boolean = false,
         val selectedRange: DateRange = DateRange.THIS_MONTH,
         val stores: List<StoreSalesData> = emptyList(),
         val totalRevenue: Double = 0.0,

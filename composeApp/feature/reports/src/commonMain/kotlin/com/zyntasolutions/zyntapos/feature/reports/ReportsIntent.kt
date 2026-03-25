@@ -38,5 +38,6 @@ sealed interface ReportsIntent {
     // ── Store Comparison Report (C5.2) ──────────────────────────────────────
     data object LoadStoreComparison : ReportsIntent
     data class SelectStoreComparisonRange(val range: DateRange) : ReportsIntent
+    data object ExportStoreComparisonCsv : ReportsIntent
     data object DismissStoreComparisonError : ReportsIntent
 }

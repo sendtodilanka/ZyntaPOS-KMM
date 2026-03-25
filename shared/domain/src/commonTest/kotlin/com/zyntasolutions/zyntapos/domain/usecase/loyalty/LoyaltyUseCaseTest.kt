@@ -208,4 +208,5 @@ private class FakeLoyaltyRepository(
 
     override suspend fun saveTier(tier: LoyaltyTier): Result<Unit> = Result.Success(Unit)
     override suspend fun deleteTier(id: String): Result<Unit> = Result.Success(Unit)
+    override suspend fun expirePointsForCustomer(customerId: String, nowEpochMillis: Long): Result<Int> = Result.Success(0)
 }

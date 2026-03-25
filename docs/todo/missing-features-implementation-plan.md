@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-25 (INV-3: UnitManagementScreen modal wired; INV-6: bulk import auto column mapping + required field indicators; INV-7: batch product selection; fix(sync): WebSocketHubBroadcastTest flaky test fixed; G9: date picker dialogs + CSV export; G7: configurable daily sales target; G2: onboarding Step 4 tax setup + Step 5 receipt format; G1: ZyntaWarehouseDropdown; G20: color-only status indicators fixed; G17: BarcodeGeneratorDialog + BarcodeLabelPrintScreen audited; CRM: purchase history tab + customer merge dialog added to CustomerDetailScreen; C6.2: sync conflict notification snackbar; ConsolidatedFinancialReportUseCase; CLICK_AND_COLLECT + FulfillmentStatus + FulfillmentRepository; C4.4 loyalty points expiry: ExpireLoyaltyPointsUseCase + impl + 7 tests)
+**Last Updated:** 2026-03-25 (INV-3: UnitManagementScreen modal wired; INV-6: bulk import auto column mapping + required field indicators; INV-7: batch product selection; fix(sync): WebSocketHubBroadcastTest flaky test fixed; G9: date picker dialogs + CSV export; G7: configurable daily sales target; G2: onboarding Step 4 tax setup + Step 5 receipt format; G1: ZyntaWarehouseDropdown; G20: color-only status indicators fixed; G17: BarcodeGeneratorDialog + BarcodeLabelPrintScreen audited; CRM: purchase history tab + customer merge dialog added to CustomerDetailScreen; C6.2: sync conflict notification snackbar; ConsolidatedFinancialReportUseCase; CLICK_AND_COLLECT + FulfillmentStatus + FulfillmentRepository; C4.4 loyalty points expiry: ExpireLoyaltyPointsUseCase + impl + 7 tests; C5.2 store comparison CSV export: ReportExporter.exportStoreComparisonCsv() + JVM/Android impls + ExportStoreComparisonCsv intent + FileDownload button)
 **Status:** Approved — Verified against codebase 2026-03-22, updated for ADR-009 compliance
 
 ---
@@ -1478,7 +1478,7 @@ Backend Tests:
 - [ ] Backend: Growth trend calculation (currently `growth=0.0` hardcoded)
 - [ ] Admin panel: Interactive comparison dashboard with filters (read-only monitoring — ADR-009 compliant)
 - [ ] Trend analysis: Growth % per store over time
-- [ ] CSV/PDF export for store comparison report
+- [x] CSV/PDF export for store comparison report — ✅ DONE (2026-03-25): exportStoreComparisonCsv() added to ReportExporter interface; implemented in JvmReportExporter (JFileChooser) and AndroidReportExporter (cacheDir + shareFile); isExporting added to StoreComparisonState; ExportStoreComparisonCsv intent + VM handler; FileDownload icon in StoreComparisonReportScreen TopAppBar
 
 ---
 
@@ -1885,7 +1885,7 @@ Backend Tests:
 | **No real-time WebSocket updates** — Reports load once, never auto-refresh | CRITICAL | Phase 2 |
 | **No multi-store consolidation** — All reports single-store only | CRITICAL | Phase 2 |
 | **No store comparison charts** — No side-by-side performance | HIGH | Phase 2 |
-| **PDF export buttons present but may be stubbed** | HIGH | Phase 2 |
+| ~~**PDF export buttons present but may be stubbed**~~ — ✅ VERIFIED DONE (2026-03-25): `JvmReportExporter.exportSalesPdf()` + `exportStockPdf()` use PDFBox to write plain-text PDF; `AndroidReportExporter` generates HTML-to-PDF via `PdfDocument`; all 4 report types have PDF export via `PdfBoxRenderer` | ~~HIGH~~ | ✅ DONE |
 | **No drill-down** — Clicking chart points doesn't navigate to transactions | MEDIUM | Phase 2 |
 | **No report scheduling/email** — Can't schedule daily/weekly reports | LOW | Phase 3 |
 | **No pagination for large datasets** — May crash with 10K+ products | MEDIUM | Phase 2 |
@@ -1904,7 +1904,7 @@ Backend Tests:
 | ~~**Daily sales target hardcoded**~~ — ✅ DONE: `DAILY_SALES_TARGET` key in `SettingsKeys`; `PosState.dailySalesTarget` field; `UpdateDailySalesTarget` intent; load/save in `SettingsViewModel`; `OutlinedTextField` in `PosSettingsScreen`; `DashboardViewModel` reads from `SettingsRepository` on load (2026-03-25) | ~~MEDIUM~~ | ✅ DONE (2026-03-25) |
 | **Hourly sparkline data calculated but never rendered** | LOW | Phase 1.5 |
 | **No comparison to previous period** (yesterday, last week) | MEDIUM | Phase 2 |
-| **Notifications menu item exists but not implemented** | LOW | Phase 2 |
+| ~~**Notifications menu item exists but not implemented**~~ — ✅ VERIFIED DONE (2026-03-25): `NotificationInboxScreen.kt` (feature/admin) — full inbox with filter chips (ALL/UNREAD/LOW_STOCK/SYNC/PAYMENT), `MarkAsRead`/`MarkAllAsRead`/`DeleteNotification` intents, `NotificationViewModel` (MVI), `NotificationRepository` + tests; `ZyntaRoute.NotificationInbox` wired in MainNavGraph; Dashboard Notifications menu item calls `onNavigateToNotifications()` | ~~LOW~~ | ✅ DONE |
 
 ---
 
@@ -2198,7 +2198,7 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 | Gap | Severity | Phase |
 |-----|----------|-------|
 | ~~**Deep-linking not wired**~~ — ✅ DONE (2026-03-25): Added `intent-filter` with `android:scheme="zyntapos"` to MainActivity in AndroidManifest; `NavDeepLink` already registered in `ZyntaNavGraph.kt` for `zyntapos://product/{barcode}` and `zyntapos://order/{orderId}` | ~~MEDIUM~~ | ✅ DONE |
-| **EditionManagementScreen is placeholder** — Feature toggle panel needed | MEDIUM | Phase 2 |
+| ~~**EditionManagementScreen is placeholder**~~ — ✅ VERIFIED DONE (2026-03-25): Full feature-flag toggle UI — 23 `ZyntaFeature` rows grouped by edition (Standard/Premium/Enterprise); Standard switches disabled; Premium/Enterprise dispatch `ToggleFeature` intent; `EditionManagementViewModel` + `SetFeatureEnabledUseCase` + `GetFeaturesForEditionUseCase` fully implemented with tests | ~~MEDIUM~~ | ✅ DONE |
 | **No 3-pane layout** for tablet warehouse management | LOW | Phase 3 |
 
 ---

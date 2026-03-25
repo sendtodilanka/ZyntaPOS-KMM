@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.feature.reports
 
+import com.zyntasolutions.zyntapos.domain.model.report.StoreSalesData
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateCustomerReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateExpenseReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateSalesReportUseCase
@@ -55,4 +56,10 @@ interface ReportExporter {
      * @return Absolute path of the written file.
      */
     suspend fun exportExpenseCsv(report: GenerateExpenseReportUseCase.ExpenseReport): String
+
+    /**
+     * Export the store comparison report as a CSV file.
+     * @return Absolute path of the written file.
+     */
+    suspend fun exportStoreComparisonCsv(stores: List<StoreSalesData>): String
 }

@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.reports
 
 import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
+import com.zyntasolutions.zyntapos.domain.model.report.StoreSalesData
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateCustomerReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateExpenseReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateSalesReportUseCase
@@ -127,6 +128,25 @@ class JvmReportExporter : ReportExporter {
                 writer.appendLine("Category ID,Total")
                 report.byCategory.forEach { (categoryId, total) ->
                     writer.appendLine("${categoryId ?: "Uncategorised"},$total")
+                }
+            }
+            file.absolutePath
+        }
+
+    override suspend fun exportStoreComparisonCsv(stores: List<StoreSalesData>): String =
+        withContext(Dispatchers.IO) {
+            val dir = chooseSaveDirectory() ?: throw Exception("Export cancelled by user")
+            val file = File(dir, "store_comparison_$dateStamp.csv")
+            val totalRevenue = stores.sumOf { it.totalRevenue }.takeIf { it > 0 } ?: 1.0
+            FileWriter(file).use { writer ->
+                writer.appendLine("Store Comparison Report")
+                writer.appendLine("Rank,Store,Revenue,Orders,AOV,Revenue Share %")
+                stores.forEachIndexed { index, store ->
+                    val share = "%.1f".format(store.totalRevenue / totalRevenue * 100)
+                    writer.appendLine(
+                        "${index + 1},${store.storeName},${"%.2f".format(store.totalRevenue)}," +
+                            "${store.orderCount},${"%.2f".format(store.averageOrderValue)},$share"
+                    )
                 }
             }
             file.absolutePath
