@@ -319,6 +319,7 @@ class SeedRunnerExpansionTest {
         override suspend fun insertPromotion(promotion: Promotion) = Result.Success(Unit)
         override suspend fun updatePromotion(promotion: Promotion) = Result.Success(Unit)
         override suspend fun deletePromotion(id: String) = Result.Success(Unit)
+        override suspend fun upsertPromotionFromSync(payload: String) = Unit
     }
 
     // ── New entity fakes (Phase 2: warehouses, accounts, periods, etc.) ─────

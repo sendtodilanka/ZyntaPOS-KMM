@@ -16,6 +16,7 @@ import com.zyntasolutions.zyntapos.api.repository.TicketCommentRepositoryImpl
 import com.zyntasolutions.zyntapos.api.repository.ConflictLogRepository
 import com.zyntasolutions.zyntapos.api.repository.DeadLetterRepository
 import com.zyntasolutions.zyntapos.api.repository.PricingRuleRepository
+import com.zyntasolutions.zyntapos.api.repository.PromotionRepository
 import com.zyntasolutions.zyntapos.api.repository.ReplenishmentRepository
 import com.zyntasolutions.zyntapos.api.repository.WarehouseStockRepository
 import com.zyntasolutions.zyntapos.api.repository.EntitySnapshotRepository
@@ -114,6 +115,9 @@ val appModule = module {
 
     // Pricing rules: store-specific and time-bounded price overrides (C2.1)
     single { PricingRuleRepository() }
+
+    // Promotions: typed promotion rules for in-store evaluation (C2.4)
+    single { PromotionRepository() }
 
     // Exchange rates: multi-currency conversion (C2.2 — platform-level config per ADR-009)
     single { com.zyntasolutions.zyntapos.api.repository.ExchangeRateRepository() }

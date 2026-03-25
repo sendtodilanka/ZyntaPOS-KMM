@@ -4,6 +4,7 @@ import com.zyntasolutions.zyntapos.core.result.NetworkException
 import com.zyntasolutions.zyntapos.data.createTestDatabase
 import com.zyntasolutions.zyntapos.data.local.SyncEnqueuer
 import com.zyntasolutions.zyntapos.data.repository.CategoryRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.CouponRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.ConflictLogRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.CustomerRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.OrderRepositoryImpl
@@ -168,6 +169,7 @@ class SyncEngineIntegrationTest {
             conflictResolver      = ConflictResolver(localDeviceId = testDeviceId),
             conflictLogRepository = ConflictLogRepositoryImpl(db = db),
             queueMaintenance      = SyncQueueMaintenance(db = db),
+            couponRepository      = CouponRepositoryImpl(db, syncEnqueuer),
             storeId               = "",
         )
     }

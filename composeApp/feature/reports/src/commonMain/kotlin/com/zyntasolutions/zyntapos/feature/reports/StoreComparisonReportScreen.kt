@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -63,6 +64,14 @@ fun StoreComparisonReportScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateUp) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(
+                        onClick = { onIntent(ReportsIntent.ExportStoreComparisonCsv) },
+                        enabled = !state.isExporting && state.stores.isNotEmpty(),
+                    ) {
+                        Icon(Icons.Default.FileDownload, contentDescription = "Export CSV")
                     }
                 },
             )

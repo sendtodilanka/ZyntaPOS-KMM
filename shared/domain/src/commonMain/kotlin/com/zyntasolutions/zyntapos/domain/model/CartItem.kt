@@ -30,6 +30,8 @@ data class CartItem(
     val taxRate: Double = 0.0,
     val isTaxInclusive: Boolean = false,
     val lineTotal: Double = 0.0,
+    /** FK to [Category]. Used for category-targeted promotion evaluation. */
+    val categoryId: String = "",
 ) {
     init {
         require(quantity >= 1.0) { "Cart item quantity must be at least 1, got $quantity" }

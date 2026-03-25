@@ -218,7 +218,25 @@ private fun ColumnMappingStep(
         HorizontalDivider()
 
         // ── Column mapping section ───────────────────────────────────
-        Text("Map CSV Columns to Product Fields", style = MaterialTheme.typography.labelLarge)
+        // INV-6: Show required field indicators
+        val requiredFields = setOf("name", "price", "categoryId", "unitId")
+        val mappedFields = state.columnMapping.values.toSet()
+        val missingRequired = requiredFields - mappedFields
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("Map CSV Columns to Product Fields", style = MaterialTheme.typography.labelLarge)
+            if (missingRequired.isNotEmpty()) {
+                val labels = mapOf("name" to "Name", "price" to "Price", "categoryId" to "Category", "unitId" to "Unit")
+                Text(
+                    "Required: ${missingRequired.mapNotNull { labels[it] }.joinToString(", ")}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        }
 
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.xs),
@@ -228,6 +246,7 @@ private fun ColumnMappingStep(
                 ColumnMappingRow(
                     csvColumn = csvColumn,
                     currentMapping = state.columnMapping[csvColumn] ?: "",
+                    requiredFields = requiredFields,
                     onMappingChanged = { field ->
                         onIntent(InventoryIntent.SetColumnMapping(csvColumn, field))
                     },
@@ -310,10 +329,12 @@ private fun ColumnMappingStep(
 private fun ColumnMappingRow(
     csvColumn: String,
     currentMapping: String,
+    requiredFields: Set<String> = emptySet(),
     onMappingChanged: (String) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
     val selectedLabel = productFieldOptions.firstOrNull { it.first == currentMapping }?.second ?: "— Skip —"
+    val isRequired = currentMapping in requiredFields
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -356,8 +377,23 @@ private fun ColumnMappingRow(
                 onDismissRequest = { expanded = false },
             ) {
                 productFieldOptions.forEach { (fieldKey, fieldLabel) ->
+                    val isRequiredOption = fieldKey in requiredFields
                     DropdownMenuItem(
-                        text = { Text(fieldLabel, style = MaterialTheme.typography.bodySmall) },
+                        text = {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.xs),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(fieldLabel, style = MaterialTheme.typography.bodySmall)
+                                if (isRequiredOption) {
+                                    Text(
+                                        "*",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.error,
+                                    )
+                                }
+                            }
+                        },
                         onClick = {
                             onMappingChanged(fieldKey)
                             expanded = false

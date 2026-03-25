@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.feature.reports
 
+import com.zyntasolutions.zyntapos.domain.model.report.StoreSalesData
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateCustomerReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateExpenseReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateSalesReportUseCase
@@ -55,4 +56,18 @@ interface ReportExporter {
      * @return Absolute path of the written file.
      */
     suspend fun exportExpenseCsv(report: GenerateExpenseReportUseCase.ExpenseReport): String
+
+    /**
+     * Export the store comparison report as a CSV file.
+     * @return Absolute path of the written file.
+     */
+    suspend fun exportStoreComparisonCsv(stores: List<StoreSalesData>): String
+
+    /**
+     * Save and share GDPR customer data export as a JSON file.
+     * @param customerId Used to name the output file.
+     * @param json The full JSON payload produced by [ExportCustomerDataUseCase].
+     * @return Absolute path of the written file.
+     */
+    suspend fun exportGdprJson(customerId: String, json: String): String
 }

@@ -5,6 +5,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -219,22 +222,33 @@ private fun CompactCard(
 // ── Stock badge ────────────────────────────────────────────────────────────────
 @Composable
 private fun StockBadge(stock: StockIndicator, modifier: Modifier = Modifier) {
-    val (label, color) = when (stock) {
-        StockIndicator.InStock -> "In Stock" to MaterialTheme.colorScheme.tertiary
-        StockIndicator.LowStock -> "Low Stock" to MaterialTheme.colorScheme.secondary
-        StockIndicator.OutOfStock -> "Out" to MaterialTheme.colorScheme.error
+    val (label, color, icon) = when (stock) {
+        StockIndicator.InStock -> Triple("In Stock", MaterialTheme.colorScheme.tertiary, Icons.Default.CheckCircle)
+        StockIndicator.LowStock -> Triple("Low Stock", MaterialTheme.colorScheme.secondary, Icons.Default.Warning)
+        StockIndicator.OutOfStock -> Triple("Out", MaterialTheme.colorScheme.error, Icons.Default.Error)
     }
     Surface(
         modifier = modifier,
         color = color.copy(alpha = 0.15f),
         shape = MaterialTheme.shapes.extraSmall,
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = color,
+        Row(
             modifier = Modifier.padding(horizontal = ZyntaSpacing.xs, vertical = 2.dp),
-        )
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(10.dp),
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = color,
+            )
+        }
     }
 }
 

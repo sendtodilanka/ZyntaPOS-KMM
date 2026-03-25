@@ -14,12 +14,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -28,6 +32,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AssignmentReturn
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Store
@@ -166,6 +171,14 @@ fun PosScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
+                                Spacer(Modifier.weight(1f))
+                                IconButton(onClick = { viewModel.dispatch(PosIntent.ShowReturnLookupDialog) }) {
+                                    Icon(
+                                        Icons.Default.AssignmentReturn,
+                                        contentDescription = "Process Return",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
                             }
                         }
                         PosSearchBar(
@@ -244,6 +257,14 @@ fun PosScreen(
                                         text = state.cashierName,
                                         style = MaterialTheme.typography.labelMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                Spacer(Modifier.weight(1f))
+                                IconButton(onClick = { viewModel.dispatch(PosIntent.ShowReturnLookupDialog) }) {
+                                    Icon(
+                                        Icons.Default.AssignmentReturn,
+                                        contentDescription = "Process Return",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
                             }
@@ -325,6 +346,18 @@ fun PosScreen(
                     viewModel.dispatch(PosIntent.EmailReceipt(orderId, email))
                 },
                 onDismiss = { viewModel.dispatch(PosIntent.DismissEmailDialog) },
+            )
+        }
+
+        // ── Return lookup dialog ──────────────────────────────────────────────
+        if (state.showReturnLookupDialog) {
+            ReturnLookupDialog(
+                query = state.returnLookupQuery,
+                isLoading = state.isReturnLookupLoading,
+                error = state.returnLookupError,
+                onQueryChange = { viewModel.dispatch(PosIntent.SetReturnLookupQuery(it)) },
+                onLookup = { viewModel.dispatch(PosIntent.LookupOrderForReturn) },
+                onDismiss = { viewModel.dispatch(PosIntent.DismissReturnLookupDialog) },
             )
         }
     }
@@ -409,6 +442,51 @@ private fun CustomerPickerDialog(
         confirmButton = {},
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
+}
+
+@Composable
+private fun ReturnLookupDialog(
+    query: String,
+    isLoading: Boolean,
+    error: String?,
+    onQueryChange: (String) -> Unit,
+    onLookup: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = { if (!isLoading) onDismiss() },
+        title = { Text("Process Return") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    "Enter the order ID or receipt number to look up the original order.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = onQueryChange,
+                    label = { Text("Order ID / Receipt No.") },
+                    singleLine = true,
+                    enabled = !isLoading,
+                    isError = error != null,
+                    supportingText = error?.let { { Text(it, color = MaterialTheme.colorScheme.error) } },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onLookup,
+                enabled = !isLoading && query.isNotBlank(),
+            ) { Text("Look Up") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !isLoading) { Text("Cancel") }
         },
     )
 }

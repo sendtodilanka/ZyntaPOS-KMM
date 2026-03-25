@@ -349,6 +349,9 @@ object Promotions : Table("promotions") {
     val isStackable     = bool("is_stackable")
     val isActive        = bool("is_active")
     val syncVersion     = long("sync_version")
+    // V37: typed config JSON + store_ids for KMM-compatible GET /v1/promotions
+    val config          = text("config")
+    val storeIds        = text("store_ids")
     val createdAt       = timestampWithTimeZone("created_at").nullable()
     val updatedAt       = timestampWithTimeZone("updated_at")
     override val primaryKey = PrimaryKey(id)
@@ -1113,6 +1116,9 @@ class EntityApplier {
                     it[Promotions.isStackable]     = payload.bool("is_stackable", default = false)
                     it[Promotions.isActive]        = payload.bool("is_active")
                     it[Promotions.syncVersion]     = op.createdAt
+                    // V37: store typed config and store_ids for GET /v1/promotions
+                    it[Promotions.config]          = payload.str("config") ?: "{}"
+                    it[Promotions.storeIds]        = payload.str("store_ids") ?: "[]"
                     it[Promotions.updatedAt]       = OffsetDateTime.now(ZoneOffset.UTC)
                 }
             }

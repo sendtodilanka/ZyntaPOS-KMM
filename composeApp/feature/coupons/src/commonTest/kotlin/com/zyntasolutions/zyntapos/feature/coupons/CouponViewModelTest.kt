@@ -136,6 +136,8 @@ class CouponViewModelTest {
 
         override suspend fun deletePromotion(id: String): Result<Unit> =
             Result.Success(Unit)
+
+        override suspend fun upsertPromotionFromSync(payload: String) = Unit
     }
 
     // ── Fake CategoryRepository ──────────────────────────────────────────────

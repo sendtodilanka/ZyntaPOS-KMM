@@ -345,3 +345,35 @@ object EmployeeStoreAssignments : Table("employee_store_assignments") {
         uniqueIndex(employeeId, storeId)
     }
 }
+
+/**
+ * C2.4: Full promotions table definition for read queries (V24 + V37 columns).
+ *
+ * V37 added [config] (typed PromotionConfig JSON) and [storeIds] (JSON array of
+ * targeted store IDs) so that GET /v1/promotions can return KMM-compatible payloads.
+ *
+ * Write operations use [EntityApplier.Promotions] during sync apply.
+ */
+object PromotionsTable : Table("promotions") {
+    val id              = text("id")
+    val storeId         = text("store_id")
+    val name            = text("name")
+    val description     = text("description").nullable()
+    val type            = text("type")
+    val value           = decimal("value", 12, 4)
+    val minimumPurchase = decimal("minimum_purchase", 12, 4)
+    val scope           = text("scope")
+    val scopeIds        = text("scope_ids").nullable()
+    val validFrom       = long("valid_from").nullable()
+    val validTo         = long("valid_to").nullable()
+    val priority        = integer("priority")
+    val isStackable     = bool("is_stackable")
+    val isActive        = bool("is_active")
+    val syncVersion     = long("sync_version")
+    // V37 additions ────────────────────────────────────────────────────────────
+    val config          = text("config")
+    val storeIds        = text("store_ids")
+    val createdAt       = timestampWithTimeZone("created_at").nullable()
+    val updatedAt       = timestampWithTimeZone("updated_at")
+    override val primaryKey = PrimaryKey(id)
+}

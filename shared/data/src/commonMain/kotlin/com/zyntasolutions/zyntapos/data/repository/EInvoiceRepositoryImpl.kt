@@ -19,6 +19,7 @@ import com.zyntasolutions.zyntapos.domain.model.SyncOperation
 import com.zyntasolutions.zyntapos.domain.model.TaxBreakdownItem
 import com.zyntasolutions.zyntapos.domain.repository.EInvoiceRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
@@ -168,23 +169,37 @@ class EInvoiceRepositoryImpl(
                 storeId         = invoice.store_id,
             )
 
-            val apiResponse = runCatching { irdApiClient.submitInvoice(payload) }.getOrElse { t ->
-                IrdApiResponse(
-                    success      = false,
-                    errorMessage = t.message ?: "Network error during IRD submission",
-                )
+            // Retry on transient network exceptions (not on API-level rejections which return IrdApiResponse)
+            val maxAttempts = 3
+            val baseDelayMs = 1_000L
+            var lastNetworkError: Throwable? = null
+            var apiResponse: IrdApiResponse? = null
+            for (attempt in 0 until maxAttempts) {
+                val attempt_result = runCatching { irdApiClient.submitInvoice(payload) }
+                if (attempt_result.isSuccess) {
+                    apiResponse = attempt_result.getOrThrow()
+                    break
+                }
+                lastNetworkError = attempt_result.exceptionOrNull()
+                if (attempt < maxAttempts - 1) {
+                    delay(baseDelayMs * (1L shl attempt)) // 1s → 2s → 4s
+                }
             }
+            val finalApiResponse = apiResponse ?: IrdApiResponse(
+                success      = false,
+                errorMessage = lastNetworkError?.message ?: "Network error after $maxAttempts attempts",
+            )
 
             // Update DB status based on IRD API response
-            val finalStatus = if (apiResponse.success) EInvoiceStatus.ACCEPTED else EInvoiceStatus.REJECTED
+            val finalStatus = if (finalApiResponse.success) EInvoiceStatus.ACCEPTED else EInvoiceStatus.REJECTED
             runCatching {
                 q.updateStatus(
                     status               = finalStatus.name,
-                    ird_reference_number = apiResponse.referenceNumber,
+                    ird_reference_number = finalApiResponse.referenceNumber,
                     submitted_at         = submittedAt,
-                    accepted_at          = if (apiResponse.success) now else null,
-                    rejection_reason     = if (!apiResponse.success)
-                        "[${apiResponse.errorCode}] ${apiResponse.errorMessage}" else null,
+                    accepted_at          = if (finalApiResponse.success) now else null,
+                    rejection_reason     = if (!finalApiResponse.success)
+                        "[${finalApiResponse.errorCode}] ${finalApiResponse.errorMessage}" else null,
                     updated_at           = now,
                     id                   = id,
                 )
@@ -193,10 +208,10 @@ class EInvoiceRepositoryImpl(
 
             Result.Success(
                 IrdSubmissionResult(
-                    success         = apiResponse.success,
-                    referenceNumber = apiResponse.referenceNumber,
-                    errorCode       = apiResponse.errorCode,
-                    errorMessage    = apiResponse.errorMessage,
+                    success         = finalApiResponse.success,
+                    referenceNumber = finalApiResponse.referenceNumber,
+                    errorCode       = finalApiResponse.errorCode,
+                    errorMessage    = finalApiResponse.errorMessage,
                     submittedAt     = submittedAt,
                 )
             )

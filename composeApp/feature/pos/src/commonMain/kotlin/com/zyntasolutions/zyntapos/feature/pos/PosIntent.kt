@@ -314,4 +314,25 @@ sealed interface PosIntent {
 
     /** Barcode detected as a gift card — look up the balance and apply to payment. */
     data class ScanGiftCard(val barcode: String) : PosIntent
+
+    // ─── Return / Lookup ───────────────────────────────────────────────────────
+
+    /** Opens the manual order lookup dialog for return processing. */
+    data object ShowReturnLookupDialog : PosIntent
+
+    /** Closes the return lookup dialog without navigating. */
+    data object DismissReturnLookupDialog : PosIntent
+
+    /**
+     * Updates the live text in the return lookup query field.
+     *
+     * @param query Current text in the order ID / receipt number field.
+     */
+    data class SetReturnLookupQuery(val query: String) : PosIntent
+
+    /**
+     * Triggers a lookup of [PosState.returnLookupQuery] via [LookupOrderForReturnUseCase].
+     * On success, emits [PosEffect.NavigateToRefund]. On failure, sets [PosState.returnLookupError].
+     */
+    data object LookupOrderForReturn : PosIntent
 }

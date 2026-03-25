@@ -24,8 +24,16 @@ sealed interface OnboardingIntent {
     data class TaxGroupNameChanged(val name: String) : OnboardingIntent
     data class TaxRateChanged(val rate: String) : OnboardingIntent
     data class TaxIsInclusiveChanged(val inclusive: Boolean) : OnboardingIntent
-    /** Skip the optional tax setup step and complete onboarding without a tax group. */
+    /** Skip the optional tax setup step and advance to receipt format. */
     data object SkipTaxSetup : OnboardingIntent
+
+    // ── Step 5: Receipt format (optional) ────────────────────────────────
+    data class ReceiptHeaderChanged(val header: String) : OnboardingIntent
+    data class ReceiptFooterChanged(val footer: String) : OnboardingIntent
+    data class ReceiptPaperWidthChanged(val widthMm: Int) : OnboardingIntent
+    data class ReceiptAutoPrintChanged(val enabled: Boolean) : OnboardingIntent
+    /** Skip receipt format and complete onboarding without saving receipt prefs. */
+    data object SkipReceiptFormat : OnboardingIntent
 
     /** Complete the wizard — persists settings and creates the admin account. */
     data object CompleteOnboarding : OnboardingIntent

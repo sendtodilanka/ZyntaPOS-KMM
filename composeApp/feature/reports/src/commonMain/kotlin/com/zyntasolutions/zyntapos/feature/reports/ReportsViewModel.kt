@@ -96,6 +96,7 @@ class ReportsViewModel(
             // ── Store Comparison (C5.2) ──────────────────────────────────────
             ReportsIntent.LoadStoreComparison      -> loadStoreComparison()
             is ReportsIntent.SelectStoreComparisonRange -> selectStoreComparisonRange(intent.range)
+            ReportsIntent.ExportStoreComparisonCsv -> exportStoreComparison()
             ReportsIntent.DismissStoreComparisonError -> updateState {
                 copy(storeComparison = storeComparison.copy(error = null))
             }
@@ -399,6 +400,22 @@ class ReportsViewModel(
                         ))
                     }
                 }
+        }
+    }
+
+    private fun exportStoreComparison() {
+        val stores = currentState.storeComparison.stores
+        if (stores.isEmpty()) return
+        updateState { copy(storeComparison = storeComparison.copy(isExporting = true)) }
+        viewModelScope.launch {
+            try {
+                val path = reportExporter.exportStoreComparisonCsv(stores)
+                sendEffect(ReportsEffect.ExportComplete(path))
+            } catch (e: Exception) {
+                sendEffect(ReportsEffect.ShowSnackbar("Export failed: ${e.message}"))
+            } finally {
+                updateState { copy(storeComparison = storeComparison.copy(isExporting = false)) }
+            }
         }
     }
 

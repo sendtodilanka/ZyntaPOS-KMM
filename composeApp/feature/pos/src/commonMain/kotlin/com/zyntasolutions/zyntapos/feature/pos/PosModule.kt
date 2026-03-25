@@ -4,10 +4,13 @@ import com.zyntasolutions.zyntapos.domain.formatter.ReceiptFormatter
 import com.zyntasolutions.zyntapos.domain.printer.A4InvoicePrinterPort
 import com.zyntasolutions.zyntapos.domain.printer.ReceiptPrinterPort
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.PostSaleJournalEntryUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.pos.LookupOrderForReturnUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.PrintA4TaxInvoiceUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.ReprintLastReceiptUseCase
 import com.zyntasolutions.zyntapos.feature.pos.printer.A4InvoicePrinterAdapter
+import com.zyntasolutions.zyntapos.domain.usecase.coupons.ApplyStorePromotionsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.coupons.CalculateCouponDiscountUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.coupons.GetStorePromotionsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.coupons.ValidateCouponUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.CalculateLoyaltyDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.EarnRewardPointsUseCase
@@ -173,6 +176,14 @@ val posModule = module {
     /** Converts loyalty points to a monetary discount value. */
     factory { CalculateLoyaltyDiscountUseCase() }
 
+    // ── C2.4: Store promotions ─────────────────────────────────────────────────
+
+    /** Retrieves active promotions for a given store from CouponRepository. */
+    factory { GetStorePromotionsUseCase(couponRepository = get()) }
+
+    /** Pure use case — evaluates active promotions against cart items and returns total discount. */
+    factory { ApplyStorePromotionsUseCase() }
+
     /** Auto-posts a balanced double-entry journal entry for each completed sale (Wave 1A). */
     factory {
         PostSaleJournalEntryUseCase(
@@ -191,6 +202,9 @@ val posModule = module {
     single<A4InvoicePrinterPort> {
         A4InvoicePrinterAdapter(delegate = get())
     }
+
+    /** Looks up a completed SALE order by ID/receipt number for return processing (C4.1). */
+    factory { LookupOrderForReturnUseCase(orderRepository = get()) }
 
     /** Reprints a past order's thermal receipt. */
     factory {
@@ -242,6 +256,9 @@ val posModule = module {
             postSaleJournalEntryUseCase = get(),
             reprintLastReceiptUseCase = get(),
             printA4TaxInvoiceUseCase = get(),
+            lookupOrderForReturnUseCase = get(),
+            getStorePromotionsUseCase = get(),
+            applyStorePromotionsUseCase = get(),
             auditLogger = get(),
             analytics = get(),
         )

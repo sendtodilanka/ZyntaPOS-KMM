@@ -87,4 +87,11 @@ interface CouponRepository {
 
     /** Hard-deletes a promotion. */
     suspend fun deletePromotion(id: String): Result<Unit>
+
+    /**
+     * Upserts a promotion received from the server sync delta.
+     * Payload is the raw JSONB string from the sync operation.
+     * Marks the local row as SYNCED after apply.
+     */
+    suspend fun upsertPromotionFromSync(payload: String)
 }

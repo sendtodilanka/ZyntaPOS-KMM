@@ -13,6 +13,7 @@ import com.zyntasolutions.zyntapos.domain.model.Coupon
 import com.zyntasolutions.zyntapos.domain.model.CouponUsage
 import com.zyntasolutions.zyntapos.domain.model.DiscountType
 import com.zyntasolutions.zyntapos.domain.model.Promotion
+import com.zyntasolutions.zyntapos.domain.model.PromotionConfig
 import com.zyntasolutions.zyntapos.domain.model.PromotionType
 import com.zyntasolutions.zyntapos.domain.model.SyncOperation
 import com.zyntasolutions.zyntapos.domain.repository.CouponRepository
@@ -21,6 +22,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlin.time.Clock
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
@@ -186,7 +189,7 @@ class CouponRepositoryImpl(
             val storeIdsJson = promotion.storeIds.joinToString(prefix = "[", postfix = "]") { "\"$it\"" }
             pq.insertPromotion(
                 id = promotion.id, name = promotion.name, type = promotion.type.name,
-                config = promotion.config, valid_from = promotion.validFrom, valid_to = promotion.validTo,
+                config = promotion.config.toJson(), valid_from = promotion.validFrom, valid_to = promotion.validTo,
                 priority = promotion.priority.toLong(),
                 is_active = if (promotion.isActive) 1L else 0L,
                 store_ids = storeIdsJson,
@@ -204,7 +207,7 @@ class CouponRepositoryImpl(
             val now = Clock.System.now().toEpochMilliseconds()
             val storeIdsJson = promotion.storeIds.joinToString(prefix = "[", postfix = "]") { "\"$it\"" }
             pq.updatePromotion(
-                name = promotion.name, type = promotion.type.name, config = promotion.config,
+                name = promotion.name, type = promotion.type.name, config = promotion.config.toJson(),
                 valid_from = promotion.validFrom, valid_to = promotion.validTo,
                 priority = promotion.priority.toLong(),
                 is_active = if (promotion.isActive) 1L else 0L,
@@ -253,12 +256,121 @@ class CouponRepositoryImpl(
         val storeIds = runCatching {
             Json.parseToJsonElement(row.store_ids).jsonArray.map { it.jsonPrimitive.content }
         }.getOrDefault(emptyList())
+        val type = runCatching { PromotionType.valueOf(row.type) }.getOrDefault(PromotionType.FLASH_SALE)
         return Promotion(
             id = row.id, name = row.name,
-            type = runCatching { PromotionType.valueOf(row.type) }.getOrDefault(PromotionType.FLASH_SALE),
-            config = row.config, validFrom = row.valid_from, validTo = row.valid_to,
+            type = type,
+            config = row.config.parsePromotionConfig(type),
+            validFrom = row.valid_from, validTo = row.valid_to,
             priority = row.priority.toInt(), isActive = row.is_active == 1L,
             storeIds = storeIds,
         )
+    }
+
+    // ── PromotionConfig serialisation helpers ─────────────────────────────────
+
+    /**
+     * Flat DTO used for JSON serialisation of [PromotionConfig].
+     * All fields are optional; only those relevant to the promotion type are populated.
+     */
+    @Serializable
+    private data class PromotionConfigDto(
+        val buyQty: Int? = null,
+        val getQty: Int? = null,
+        val targetProductId: String? = null,
+        val discountPct: Double? = null,
+        val productIds: List<String>? = null,
+        val bundlePrice: Double? = null,
+        val targetProductIds: List<String>? = null,
+        val targetCategoryIds: List<String>? = null,
+        val dayOfWeek: Int? = null,
+    )
+
+    private fun PromotionConfigDto.toDomain(type: PromotionType): PromotionConfig = when (type) {
+        PromotionType.BUY_X_GET_Y -> PromotionConfig.BuyXGetY(
+            buyQty = buyQty ?: 1,
+            getQty = getQty ?: 1,
+            targetProductId = targetProductId,
+            discountPct = discountPct ?: 100.0,
+        )
+        PromotionType.BUNDLE -> PromotionConfig.Bundle(
+            productIds = productIds ?: emptyList(),
+            bundlePrice = bundlePrice ?: 0.0,
+        )
+        PromotionType.FLASH_SALE -> PromotionConfig.FlashSale(
+            discountPct = discountPct ?: 0.0,
+            targetProductIds = targetProductIds ?: emptyList(),
+            targetCategoryIds = targetCategoryIds ?: emptyList(),
+        )
+        PromotionType.SCHEDULED -> PromotionConfig.Scheduled(
+            discountPct = discountPct ?: 0.0,
+            dayOfWeek = dayOfWeek,
+        )
+    }
+
+    private fun PromotionConfig.toJson(): String = when (this) {
+        is PromotionConfig.Unknown   -> "{}"
+        is PromotionConfig.BuyXGetY  -> jsonSerializer.encodeToString(
+            PromotionConfigDto(buyQty = buyQty, getQty = getQty, targetProductId = targetProductId, discountPct = discountPct)
+        )
+        is PromotionConfig.Bundle    -> jsonSerializer.encodeToString(
+            PromotionConfigDto(productIds = productIds, bundlePrice = bundlePrice)
+        )
+        is PromotionConfig.FlashSale -> jsonSerializer.encodeToString(
+            PromotionConfigDto(discountPct = discountPct, targetProductIds = targetProductIds, targetCategoryIds = targetCategoryIds)
+        )
+        is PromotionConfig.Scheduled -> jsonSerializer.encodeToString(
+            PromotionConfigDto(discountPct = discountPct, dayOfWeek = dayOfWeek)
+        )
+    }
+
+    private fun String.parsePromotionConfig(type: PromotionType): PromotionConfig =
+        runCatching {
+            jsonSerializer.decodeFromString<PromotionConfigDto>(this).toDomain(type)
+        }.getOrDefault(PromotionConfig.Unknown)
+
+    // ── Sync inbound ──────────────────────────────────────────────────────────
+
+    /**
+     * Upserts a promotion from a server sync delta payload (JSON string).
+     *
+     * Expected JSON fields: id, name, type, config, valid_from, valid_to,
+     * priority, is_active, store_ids, updated_at.
+     */
+    override suspend fun upsertPromotionFromSync(payload: String): Unit = withContext(Dispatchers.IO) {
+        val json = jsonSerializer.parseToJsonElement(payload)
+            .let { it as? kotlinx.serialization.json.JsonObject } ?: return@withContext
+        val id          = json["id"]?.jsonPrimitive?.content ?: return@withContext
+        val name        = json["name"]?.jsonPrimitive?.content ?: return@withContext
+        val typeStr     = json["type"]?.jsonPrimitive?.content ?: "FLASH_SALE"
+        val configStr   = json["config"]?.let {
+            if (it is kotlinx.serialization.json.JsonPrimitive) it.content
+            else it.toString()
+        } ?: "{}"
+        val validFrom   = json["valid_from"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
+        val validTo     = json["valid_to"]?.jsonPrimitive?.content?.toLongOrNull() ?: Long.MAX_VALUE
+        val priority    = json["priority"]?.jsonPrimitive?.content?.toIntOrNull() ?: 0
+        val isActive    = json["is_active"]?.jsonPrimitive?.content?.toBooleanStrictOrNull() ?: true
+        val storeIds    = json["store_ids"]?.toString() ?: "[]"
+        val now         = Clock.System.now().toEpochMilliseconds()
+
+        db.couponsQueries.insertPromotion(
+            id         = id,
+            name       = name,
+            type       = typeStr,
+            config     = configStr,
+            valid_from = validFrom,
+            valid_to   = validTo,
+            priority   = priority.toLong(),
+            is_active  = if (isActive) 1L else 0L,
+            store_ids  = storeIds,
+            created_at = now,
+            updated_at = now,
+            sync_status = "SYNCED",
+        )
+    }
+
+    private companion object {
+        val jsonSerializer = Json { ignoreUnknownKeys = true; explicitNulls = false }
     }
 }

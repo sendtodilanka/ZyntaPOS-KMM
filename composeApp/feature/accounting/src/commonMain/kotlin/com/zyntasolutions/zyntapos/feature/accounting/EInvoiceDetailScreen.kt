@@ -5,7 +5,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.HourglassEmpty
+import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -270,16 +274,34 @@ private fun InvoiceStatusBadge(status: EInvoiceStatus) {
         EInvoiceStatus.REJECTED -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
         EInvoiceStatus.CANCELLED -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.outline
     }
+    val icon = when (status) {
+        EInvoiceStatus.DRAFT -> Icons.Default.Receipt
+        EInvoiceStatus.SUBMITTED -> Icons.Default.HourglassEmpty
+        EInvoiceStatus.ACCEPTED -> Icons.Default.CheckCircle
+        EInvoiceStatus.REJECTED -> Icons.Default.Error
+        EInvoiceStatus.CANCELLED -> Icons.Default.Cancel
+    }
     Surface(
         color = containerColor,
         shape = MaterialTheme.shapes.small,
     ) {
-        Text(
-            status.name,
+        Row(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            style = MaterialTheme.typography.labelSmall,
-            color = contentColor,
-            fontWeight = FontWeight.Bold,
-        )
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(14.dp),
+            )
+            Text(
+                status.name,
+                style = MaterialTheme.typography.labelSmall,
+                color = contentColor,
+                fontWeight = FontWeight.Bold,
+            )
+        }
     }
 }

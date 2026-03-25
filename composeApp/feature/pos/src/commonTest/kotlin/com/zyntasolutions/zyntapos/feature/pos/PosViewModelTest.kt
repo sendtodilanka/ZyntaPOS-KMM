@@ -48,8 +48,11 @@ import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
 import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.domain.repository.StockRepository
 import com.zyntasolutions.zyntapos.domain.usecase.auth.CheckPermissionUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.coupons.ApplyStorePromotionsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.coupons.CalculateCouponDiscountUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.coupons.GetStorePromotionsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.coupons.ValidateCouponUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.pos.LookupOrderForReturnUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.CalculateLoyaltyDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.EarnRewardPointsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.RedeemRewardPointsUseCase
@@ -384,6 +387,8 @@ class PosViewModelTest {
 
         override suspend fun saveTier(tier: LoyaltyTier): Result<Unit> = Result.Success(Unit)
         override suspend fun deleteTier(id: String): Result<Unit> = Result.Success(Unit)
+        override suspend fun expirePointsForCustomer(customerId: String, nowEpochMillis: Long): Result<Int> =
+            Result.Success(0)
     }
 
     private val couponStore = mutableMapOf<String, Coupon>()  // code -> Coupon
@@ -432,6 +437,7 @@ class PosViewModelTest {
         override suspend fun insertPromotion(promotion: com.zyntasolutions.zyntapos.domain.model.Promotion) = Result.Success(Unit)
         override suspend fun updatePromotion(promotion: com.zyntasolutions.zyntapos.domain.model.Promotion) = Result.Success(Unit)
         override suspend fun deletePromotion(id: String) = Result.Success(Unit)
+        override suspend fun upsertPromotionFromSync(payload: String) = Unit
     }
 
     // ── Fake CustomerRepository ───────────────────────────────────────────────
@@ -549,6 +555,9 @@ class PosViewModelTest {
             ),
             reprintLastReceiptUseCase = ReprintLastReceiptUseCase(fakeOrderRepository, fakeReceiptPrinterPort),
             printA4TaxInvoiceUseCase = PrintA4TaxInvoiceUseCase(fakeOrderRepository, fakeA4PrinterPort, checkPermissionUseCase),
+            lookupOrderForReturnUseCase = LookupOrderForReturnUseCase(fakeOrderRepository),
+            getStorePromotionsUseCase = GetStorePromotionsUseCase(fakeCouponRepository),
+            applyStorePromotionsUseCase = ApplyStorePromotionsUseCase(),
             auditLogger = testAuditLogger,
             analytics = noOpAnalytics,
         )

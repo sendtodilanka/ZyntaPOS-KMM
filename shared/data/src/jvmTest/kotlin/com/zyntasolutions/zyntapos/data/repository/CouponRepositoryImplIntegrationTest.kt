@@ -9,6 +9,7 @@ import com.zyntasolutions.zyntapos.domain.model.Coupon
 import com.zyntasolutions.zyntapos.domain.model.CouponUsage
 import com.zyntasolutions.zyntapos.domain.model.DiscountType
 import com.zyntasolutions.zyntapos.domain.model.Promotion
+import com.zyntasolutions.zyntapos.domain.model.PromotionConfig
 import com.zyntasolutions.zyntapos.domain.model.PromotionType
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -89,7 +90,7 @@ class CouponRepositoryImplIntegrationTest {
         id        = id,
         name      = name,
         type      = type,
-        config    = "{}",
+        config    = PromotionConfig.FlashSale(discountPct = 10.0),
         validFrom = from,
         validTo   = to,
         priority  = priority,

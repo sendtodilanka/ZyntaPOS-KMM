@@ -21,7 +21,16 @@ import java.util.concurrent.ConcurrentHashMap
  * The internal coroutine scope is lifecycle-aware (C5): call [close] during
  * application shutdown to cancel all in-flight broadcasts and free resources.
  */
-class WebSocketHub {
+class WebSocketHub(
+    /**
+     * Optional coroutine scope override — used by tests to inject a
+     * [TestCoroutineScheduler]-backed dispatcher so broadcasts complete
+     * deterministically without relying on wall-clock delays.
+     *
+     * Production code uses the default `Dispatchers.IO + SupervisorJob()` scope.
+     */
+    testScope: CoroutineScope? = null,
+) {
     private val logger = LoggerFactory.getLogger(WebSocketHub::class.java)
 
     // storeId → { deviceId → session }
@@ -29,7 +38,7 @@ class WebSocketHub {
 
     // SupervisorJob: one failing broadcast coroutine does not cancel siblings
     private val job = SupervisorJob()
-    private val scope = CoroutineScope(Dispatchers.IO + job)
+    private val scope = testScope ?: CoroutineScope(Dispatchers.IO + job)
 
     fun register(storeId: String, deviceId: String, session: DefaultWebSocketServerSession) {
         connections.getOrPut(storeId) { ConcurrentHashMap() }[deviceId] = session

@@ -3,11 +3,12 @@ package com.zyntasolutions.zyntapos.feature.onboarding.mvi
 /**
  * Immutable UI state for the onboarding wizard.
  *
- * The wizard has four steps:
+ * The wizard has five steps:
  * 1. [Step.BUSINESS_INFO] — collect the store/business name.
  * 2. [Step.ADMIN_ACCOUNT] — collect admin email + password.
  * 3. [Step.STORE_SETTINGS] — select currency and timezone.
  * 4. [Step.TAX_SETUP] — optional basic tax group setup (can be skipped).
+ * 5. [Step.RECEIPT_FORMAT] — optional receipt header/footer/paper-width config (can be skipped).
  */
 data class OnboardingState(
     // ── Step tracking ──────────────────────────────────────────────────────
@@ -41,12 +42,22 @@ data class OnboardingState(
     val taxIsInclusive: Boolean = false,
     val taxRateError: String? = null,
 
+    // ── Step 5: Receipt format (optional) ────────────────────────────────
+    /** Custom header text printed above the store name on receipts. */
+    val receiptHeader: String = "",
+    /** Footer message at the bottom of receipts (e.g. "Thank you!"). */
+    val receiptFooter: String = "Thank you for your purchase!",
+    /** Paper width: 58mm (narrow/portable) or 80mm (standard counter). */
+    val receiptPaperWidthMm: Int = 80,
+    /** Whether to auto-print receipt after payment completes. */
+    val receiptAutoPrint: Boolean = true,
+
     // ── Async ──────────────────────────────────────────────────────────────
     val isLoading: Boolean = false,
     val error: String? = null,
 ) {
     /** Wizard step identifiers. */
-    enum class Step { BUSINESS_INFO, ADMIN_ACCOUNT, STORE_SETTINGS, TAX_SETUP }
+    enum class Step { BUSINESS_INFO, ADMIN_ACCOUNT, STORE_SETTINGS, TAX_SETUP, RECEIPT_FORMAT }
 
     /** Total number of wizard steps. */
     val totalSteps: Int get() = Step.entries.size
@@ -55,5 +66,5 @@ data class OnboardingState(
     val stepNumber: Int get() = currentStep.ordinal + 1
 
     /** `true` when the user is on the last step of the wizard. */
-    val isLastStep: Boolean get() = currentStep == Step.TAX_SETUP
+    val isLastStep: Boolean get() = currentStep == Step.RECEIPT_FORMAT
 }

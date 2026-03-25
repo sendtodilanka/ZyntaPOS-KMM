@@ -114,6 +114,7 @@ fun ConflictListScreen(
             conflict = conflict,
             onKeepLocal = { onIntent(AdminIntent.ResolveConflictKeepLocal(conflict.id)) },
             onAcceptServer = { onIntent(AdminIntent.ResolveConflictAcceptServer(conflict.id)) },
+            onResolveManual = { value -> onIntent(AdminIntent.ResolveConflictManual(conflict.id, value)) },
             onDismiss = { onIntent(AdminIntent.DismissConflictDetail) },
         )
     }
@@ -173,8 +174,11 @@ private fun ConflictDetailDialog(
     conflict: SyncConflict,
     onKeepLocal: () -> Unit,
     onAcceptServer: () -> Unit,
+    onResolveManual: (value: String) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    var customValue by remember { mutableStateOf("") }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Resolve Conflict") },
@@ -188,12 +192,31 @@ private fun ConflictDetailDialog(
                 Spacer(Modifier.height(8.dp))
                 Text("Server Value:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                 Text(conflict.serverValue ?: "null", style = MaterialTheme.typography.bodySmall)
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = customValue,
+                    onValueChange = { customValue = it },
+                    label = { Text("Custom merge value") },
+                    placeholder = { Text("Enter a custom value…") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         },
         confirmButton = {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = onKeepLocal) { Text("Keep Local") }
-                Button(onClick = onAcceptServer) { Text("Accept Server") }
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = onKeepLocal) { Text("Keep Local") }
+                    Button(onClick = onAcceptServer) { Text("Accept Server") }
+                }
+                if (customValue.isNotBlank()) {
+                    Button(
+                        onClick = { onResolveManual(customValue) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Use Custom Value")
+                    }
+                }
             }
         },
         dismissButton = {

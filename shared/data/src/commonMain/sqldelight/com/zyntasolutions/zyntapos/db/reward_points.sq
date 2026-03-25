@@ -45,6 +45,21 @@ SELECT * FROM reward_points WHERE customer_id = ? ORDER BY created_at DESC;
 getPointsBalanceForCustomer:
 SELECT COALESCE(SUM(points), 0) FROM reward_points WHERE customer_id = ?;
 
+-- Get all earned points entries that have an expiry date before the cutoff and
+-- have not already been offset by an EXPIRED ledger entry. Used by the expiry job.
+getActiveExpirablePointsByCustomer:
+SELECT rp.* FROM reward_points rp
+WHERE rp.customer_id = ?
+  AND rp.type = 'EARNED'
+  AND rp.expires_at IS NOT NULL
+  AND rp.expires_at < ?
+  AND NOT EXISTS (
+      SELECT 1 FROM reward_points exp
+      WHERE exp.customer_id = rp.customer_id
+        AND exp.type = 'EXPIRED'
+        AND exp.reference_id = rp.id
+  );
+
 -- ── Reward points write queries ───────────────────────────────────────────────
 
 insertRewardPoints:

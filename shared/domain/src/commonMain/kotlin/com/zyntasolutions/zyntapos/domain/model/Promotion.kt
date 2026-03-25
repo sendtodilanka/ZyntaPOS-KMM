@@ -9,8 +9,8 @@ package com.zyntasolutions.zyntapos.domain.model
  * @property id Unique identifier (UUID v4).
  * @property name Human-readable promotion name.
  * @property type The promotion mechanic.
- * @property config Type-specific configuration serialized as JSON.
- *   See [PromotionConfig] for schema per type.
+ * @property config Typed promotion configuration. See [PromotionConfig] for variant details.
+ *   Populated by the repository from the stored JSON at read time.
  * @property validFrom Epoch millis when the promotion becomes active.
  * @property validTo Epoch millis when the promotion expires.
  * @property priority Evaluation order (higher = evaluated first).
@@ -20,7 +20,7 @@ data class Promotion(
     val id: String,
     val name: String,
     val type: PromotionType,
-    val config: String,   // JSON string — parsed in feature layer
+    val config: PromotionConfig = PromotionConfig.Unknown,
     val validFrom: Long,
     val validTo: Long,
     val priority: Int = 0,

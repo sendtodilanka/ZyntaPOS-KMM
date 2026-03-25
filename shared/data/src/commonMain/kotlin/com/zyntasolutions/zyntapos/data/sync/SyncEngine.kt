@@ -16,6 +16,7 @@ import com.zyntasolutions.zyntapos.data.repository.ProductRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.MasterProductRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.PricingRuleRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.RegionalTaxOverrideRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.CouponRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.UserStoreAccessRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.StockRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.StoreProductOverrideRepositoryImpl
@@ -82,6 +83,8 @@ class SyncEngine(
     private val regionalTaxOverrideRepository: RegionalTaxOverrideRepositoryImpl,
     // Store-Level Permissions (C3.2)
     private val userStoreAccessRepository: UserStoreAccessRepositoryImpl,
+    // Promotions (C2.4)
+    private val couponRepository: CouponRepositoryImpl,
     // CRDT conflict resolution (C6.1)
     private val conflictResolver: ConflictResolver,
     private val conflictLogRepository: ConflictLogRepository,
@@ -462,6 +465,7 @@ class SyncEngine(
             SyncOperation.EntityType.TRANSIT_EVENT      -> log.d("Delta ack: transit_event/${entityType}")
             SyncOperation.EntityType.REPLENISHMENT_RULE -> log.d("Delta ack: replenishment_rule/${entityType}")
             SyncOperation.EntityType.WAREHOUSE          -> log.d("Delta ack: warehouse/${entityType}")
+            SyncOperation.EntityType.PROMOTION           -> couponRepository.upsertPromotionFromSync(payload)
             SyncOperation.EntityType.COUPON             -> log.d("Delta ack: coupon/${entityType}")
             SyncOperation.EntityType.EXPENSE            -> log.d("Delta ack: expense/${entityType}")
             SyncOperation.EntityType.EMPLOYEE           -> log.d("Delta ack: employee/${entityType}")

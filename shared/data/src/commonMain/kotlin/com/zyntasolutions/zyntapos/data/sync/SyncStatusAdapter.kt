@@ -1,10 +1,12 @@
 package com.zyntasolutions.zyntapos.data.sync
 
 import com.zyntasolutions.zyntapos.domain.port.SyncStatusPort
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -32,13 +34,22 @@ class SyncStatusAdapter(
     override val pendingCount: StateFlow<Int>
         get() = syncEngine.pendingCount
 
+    private val _newConflictCount = MutableSharedFlow<Int>(extraBufferCapacity = 4)
+    override val newConflictCount: SharedFlow<Int> = _newConflictCount.asSharedFlow()
+
     /**
-     * Starts observing [SyncEngine.lastSyncResult] to derive [lastSyncFailed].
+     * Starts observing [SyncEngine.lastSyncResult] to derive [lastSyncFailed] and
+     * to emit [newConflictCount] events when conflicts are detected.
      * Call once during DI initialization.
      */
     fun startObserving(scope: CoroutineScope) {
         syncEngine.lastSyncResult
-            .onEach { result -> _lastSyncFailed.value = result is SyncResult.Failure }
+            .onEach { result ->
+                _lastSyncFailed.value = result is SyncResult.Failure
+                if (result is SyncResult.Success && result.conflictCount > 0) {
+                    _newConflictCount.tryEmit(result.conflictCount)
+                }
+            }
             .launchIn(scope)
         // Initial pending count refresh
         syncEngine.refreshPendingCount()

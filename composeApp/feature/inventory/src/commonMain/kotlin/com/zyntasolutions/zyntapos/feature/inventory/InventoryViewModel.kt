@@ -527,13 +527,29 @@ class InventoryViewModel(
     // ── Bulk Import ───────────────────────────────────────────────────────
 
     private fun onSetImportFile(fileName: String, columns: List<String>, rows: List<Map<String, String>>) {
+        // INV-6: Auto-detect common CSV column → product field mappings
+        val autoMapping = columns.associateWith { col ->
+            when (col.trim().lowercase()) {
+                "name", "product name", "product_name", "productname", "title" -> "name"
+                "barcode", "ean", "upc", "gtin" -> "barcode"
+                "sku", "stock keeping unit", "item code", "code" -> "sku"
+                "category", "category id", "categoryid", "category_id" -> "categoryId"
+                "unit", "unit id", "unitid", "unit_id", "uom" -> "unitId"
+                "price", "selling price", "unit price", "retail price" -> "price"
+                "cost", "cost price", "purchase price", "cost_price" -> "costPrice"
+                "stock", "stock qty", "quantity", "qty", "stock_qty" -> "stockQty"
+                "min stock", "minimum stock", "min_stock", "reorder point" -> "minStockQty"
+                "description", "desc", "notes" -> "description"
+                else -> ""
+            }
+        }.filter { it.value.isNotEmpty() }
         updateState {
             copy(
                 bulkImportState = bulkImportState.copy(
                     fileName = fileName,
                     availableColumns = columns,
                     parsedRows = rows,
-                    columnMapping = emptyMap(),
+                    columnMapping = autoMapping,
                 )
             )
         }

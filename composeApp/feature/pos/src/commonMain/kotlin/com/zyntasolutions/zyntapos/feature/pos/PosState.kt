@@ -125,11 +125,23 @@ data class PosState(
     val couponDiscount: Double = 0.0,
     /** Non-null when coupon validation fails; cleared when a new code is entered or coupon is cleared. */
     val couponError: String? = null,
+    // ── Store Promotions (C2.4) ───────────────────────────────────────────────
+    /** Pre-computed monetary discount from auto-applied store promotions (flash sales, BOGO, bundles). */
+    val autoPromotionDiscount: Double = 0.0,
     // ── Receipt preview state ─────────────────────────────────────────────────
     val receiptPreviewText: String = "",
     val currentReceiptOrder: Order? = null,
     val isPrinting: Boolean = false,
     val printError: String? = null,
+    // ── Return / Lookup ───────────────────────────────────────────────────────
+    /** `true` when the manual return lookup dialog is visible. */
+    val showReturnLookupDialog: Boolean = false,
+    /** Live text in the return lookup order ID / receipt number field. */
+    val returnLookupQuery: String = "",
+    /** Non-null when the last lookup attempt failed; cleared when query changes. */
+    val returnLookupError: String? = null,
+    /** `true` while [LookupOrderForReturnUseCase] is running. */
+    val isReturnLookupLoading: Boolean = false,
     // ── Reprint / A4 Invoice / Email ──────────────────────────────────────────
     /** `true` while a reprint job for a past order is in-flight. */
     val isReprintingReceipt: Boolean = false,
