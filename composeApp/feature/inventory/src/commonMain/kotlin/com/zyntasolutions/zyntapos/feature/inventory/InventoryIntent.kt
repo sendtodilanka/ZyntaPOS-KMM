@@ -211,4 +211,21 @@ sealed interface InventoryIntent {
 
     /** Saves (rename) a UnitGroup. */
     data class SaveUnitGroup(val group: UnitGroup) : InventoryIntent
+
+    // ─── INV-7: Batch Product Selection ───────────────────────────────────
+
+    /** Enters multi-select mode for batch operations. */
+    data object EnterSelectionMode : InventoryIntent
+
+    /** Exits multi-select mode and clears selection. */
+    data object ExitSelectionMode : InventoryIntent
+
+    /** Toggles the selection state of a product by ID. */
+    data class ToggleProductSelection(val productId: String) : InventoryIntent
+
+    /** Selects all currently visible products. */
+    data object SelectAllProducts : InventoryIntent
+
+    /** Deletes all currently selected products. */
+    data object BatchDeleteSelectedProducts : InventoryIntent
 }

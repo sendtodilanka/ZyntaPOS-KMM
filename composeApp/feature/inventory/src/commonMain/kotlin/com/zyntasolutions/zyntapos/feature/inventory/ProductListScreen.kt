@@ -69,16 +69,40 @@ fun ProductListScreen(
     // Wire Bulk Import dialog — visibility is controlled by BulkImportState.isVisible
     BulkImportDialog(state = state.bulkImportState, onIntent = onIntent)
 
+    // INV-7: Confirm batch delete dialog
+    var showBatchDeleteDialog by remember { mutableStateOf(false) }
+    if (showBatchDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showBatchDeleteDialog = false },
+            title = { Text("Delete ${state.selectedProductIds.size} product(s)?") },
+            text = { Text("This will deactivate all selected products. This cannot be undone.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showBatchDeleteDialog = false
+                        onIntent(InventoryIntent.BatchDeleteSelectedProducts)
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                ) { Text("Delete") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showBatchDeleteDialog = false }) { Text("Cancel") }
+            },
+        )
+    }
+
     Scaffold(
         modifier = modifier,
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { onNavigateToDetail(null) },
-                icon = { Icon(Icons.Default.Add, contentDescription = "Add Product") },
-                text = { Text("Add Product") },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-            )
+            if (!state.isSelectionMode) {
+                ExtendedFloatingActionButton(
+                    onClick = { onNavigateToDetail(null) },
+                    icon = { Icon(Icons.Default.Add, contentDescription = "Add Product") },
+                    text = { Text("Add Product") },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                )
+            }
         },
     ) { innerPadding ->
         Column(
@@ -87,41 +111,57 @@ fun ProductListScreen(
                 .padding(innerPadding)
                 .padding(horizontal = ZyntaSpacing.md),
         ) {
-            // ── Search Bar ──────────────────────────────────────────────
-            Spacer(Modifier.height(ZyntaSpacing.sm))
-            ZyntaSearchBar(
-                query = state.searchQuery,
-                onQueryChange = { onIntent(InventoryIntent.SearchQueryChanged(it)) },
-                onClear = { onIntent(InventoryIntent.SearchQueryChanged("")) },
-                onScanToggle = {
-                    if (state.isScannerActive) {
-                        onIntent(InventoryIntent.StopBarcodeScanner)
-                    } else {
-                        onIntent(InventoryIntent.StartBarcodeScanner)
-                    }
-                },
-                isScanActive = state.isScannerActive,
-                placeholder = "Search products by name, barcode, SKU…",
-            )
+            // ── INV-7: Batch Action Toolbar (replaces search bar in selection mode) ──
+            if (state.isSelectionMode) {
+                BatchActionToolbar(
+                    selectedCount = state.selectedProductIds.size,
+                    totalCount = state.products.size,
+                    onSelectAll = { onIntent(InventoryIntent.SelectAllProducts) },
+                    onDelete = { showBatchDeleteDialog = true },
+                    onCancel = { onIntent(InventoryIntent.ExitSelectionMode) },
+                )
+            } else {
+                // ── Search Bar ────────────────────────────────────────────
+                Spacer(Modifier.height(ZyntaSpacing.sm))
+                ZyntaSearchBar(
+                    query = state.searchQuery,
+                    onQueryChange = { onIntent(InventoryIntent.SearchQueryChanged(it)) },
+                    onClear = { onIntent(InventoryIntent.SearchQueryChanged("")) },
+                    onScanToggle = {
+                        if (state.isScannerActive) {
+                            onIntent(InventoryIntent.StopBarcodeScanner)
+                        } else {
+                            onIntent(InventoryIntent.StartBarcodeScanner)
+                        }
+                    },
+                    isScanActive = state.isScannerActive,
+                    placeholder = "Search products by name, barcode, SKU…",
+                )
+            }
 
             Spacer(Modifier.height(ZyntaSpacing.sm))
 
             // ── Filter Row: Categories + Stock Filters + View Toggle ────
-            ProductFilterRow(
-                categories = state.categories,
-                selectedCategoryId = state.selectedCategoryId,
-                stockFilter = state.stockFilter,
-                viewMode = state.viewMode,
-                onSelectCategory = { onIntent(InventoryIntent.SelectCategory(it)) },
-                onSetStockFilter = { onIntent(InventoryIntent.SetStockFilter(it)) },
-                onToggleViewMode = { onIntent(InventoryIntent.ToggleViewMode) },
-                onBulkImport = { onIntent(InventoryIntent.OpenBulkImport) },
-                onPrintLabels = onNavigateToPrintLabels,
-                onStocktake = onNavigateToStocktake,
-            )
+            if (!state.isSelectionMode) {
+                ProductFilterRow(
+                    categories = state.categories,
+                    selectedCategoryId = state.selectedCategoryId,
+                    stockFilter = state.stockFilter,
+                    viewMode = state.viewMode,
+                    onSelectCategory = { onIntent(InventoryIntent.SelectCategory(it)) },
+                    onSetStockFilter = { onIntent(InventoryIntent.SetStockFilter(it)) },
+                    onToggleViewMode = { onIntent(InventoryIntent.ToggleViewMode) },
+                    onBulkImport = { onIntent(InventoryIntent.OpenBulkImport) },
+                    onPrintLabels = onNavigateToPrintLabels,
+                    onStocktake = onNavigateToStocktake,
+                    onEnterSelectionMode = { onIntent(InventoryIntent.EnterSelectionMode) },
+                )
+            }
 
             // INV-8: Search result count
-            if (state.searchQuery.isNotBlank() || state.selectedCategoryId != null || state.stockFilter != StockFilter.ALL) {
+            if (!state.isSelectionMode &&
+                (state.searchQuery.isNotBlank() || state.selectedCategoryId != null || state.stockFilter != StockFilter.ALL)
+            ) {
                 Text(
                     text = "${state.products.size} product${if (state.products.size != 1) "s" else ""} found",
                     style = MaterialTheme.typography.labelMedium,
@@ -141,17 +181,33 @@ fun ProductListScreen(
                     sortColumn = state.sortColumn,
                     sortDirection = state.sortDirection,
                     onSort = { onIntent(InventoryIntent.SortByColumn(it)) },
-                    onProductClick = { onNavigateToDetail(it.id) },
+                    onProductClick = { product ->
+                        if (state.isSelectionMode) {
+                            onIntent(InventoryIntent.ToggleProductSelection(product.id))
+                        } else {
+                            onNavigateToDetail(product.id)
+                        }
+                    },
                     onStockAdjust = { onIntent(InventoryIntent.OpenStockAdjustment(it)) },
                     windowSize = windowSize,
                     currencyFormatter = currencyFormatter,
+                    isSelectionMode = state.isSelectionMode,
+                    selectedProductIds = state.selectedProductIds,
                 )
                 ViewMode.GRID -> ProductGridView(
                     products = state.products,
                     isLoading = state.isLoading,
-                    onProductClick = { onNavigateToDetail(it.id) },
+                    onProductClick = { product ->
+                        if (state.isSelectionMode) {
+                            onIntent(InventoryIntent.ToggleProductSelection(product.id))
+                        } else {
+                            onNavigateToDetail(product.id)
+                        }
+                    },
                     windowSize = windowSize,
                     currencyFormatter = currencyFormatter,
+                    isSelectionMode = state.isSelectionMode,
+                    selectedProductIds = state.selectedProductIds,
                 )
             }
         }
@@ -174,6 +230,49 @@ fun ProductListScreen(
  * @param onSetStockFilter   Stock filter selection callback.
  * @param onToggleViewMode   View mode toggle callback.
  */
+/**
+ * Top bar shown when the product list is in multi-select mode (INV-7).
+ */
+@Composable
+private fun BatchActionToolbar(
+    selectedCount: Int,
+    totalCount: Int,
+    onSelectAll: () -> Unit,
+    onDelete: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.primaryContainer,
+        tonalElevation = 2.dp,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = ZyntaSpacing.sm, vertical = ZyntaSpacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = onCancel) {
+                Icon(Icons.Default.Close, contentDescription = "Exit selection mode")
+            }
+            Text(
+                text = "$selectedCount of $totalCount selected",
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(onClick = onSelectAll) { Text("All") }
+            IconButton(onClick = onDelete, enabled = selectedCount > 0) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "Delete selected",
+                    tint = if (selectedCount > 0) MaterialTheme.colorScheme.error
+                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                )
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ProductFilterRow(
@@ -187,6 +286,7 @@ private fun ProductFilterRow(
     onBulkImport: () -> Unit,
     onPrintLabels: () -> Unit = {},
     onStocktake: () -> Unit = {},
+    onEnterSelectionMode: () -> Unit = {},
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -222,7 +322,7 @@ private fun ProductFilterRow(
             }
         }
 
-        // ── Stocktake + Print Labels + Bulk Import + View toggle ─────
+        // ── Stocktake + Print Labels + Bulk Import + Select + View toggle ─
         IconButton(onClick = onStocktake) {
             Icon(
                 imageVector = Icons.Default.Inventory,
@@ -239,6 +339,13 @@ private fun ProductFilterRow(
             Icon(
                 imageVector = Icons.Default.Upload,
                 contentDescription = "Bulk Import",
+            )
+        }
+        // INV-7: Enter multi-select mode
+        IconButton(onClick = onEnterSelectionMode) {
+            Icon(
+                imageVector = Icons.Default.Checklist,
+                contentDescription = "Select products",
             )
         }
         IconButton(onClick = onToggleViewMode) {
@@ -278,10 +385,13 @@ private fun ProductTableView(
     onStockAdjust: (Product) -> Unit,
     windowSize: WindowSize,
     currencyFormatter: CurrencyFormatter,
+    isSelectionMode: Boolean = false,
+    selectedProductIds: Set<String> = emptySet(),
 ) {
     val categoryMap = remember(categories) { categories.associateBy { it.id } }
 
     val columns = buildList {
+        if (isSelectionMode) add(ZyntaTableColumn("select", "", weight = 0.5f, sortable = false))
         add(ZyntaTableColumn("name", "Product Name", weight = 2.5f))
         if (windowSize != WindowSize.COMPACT) {
             add(ZyntaTableColumn("sku", "SKU", weight = 1.2f))
@@ -322,6 +432,14 @@ private fun ProductTableView(
             }
         },
         rowContent = { product: Product ->
+        // INV-7: Checkbox column in selection mode
+        if (isSelectionMode) {
+            Checkbox(
+                checked = product.id in selectedProductIds,
+                onCheckedChange = { onProductClick(product) },
+                modifier = Modifier.weight(0.5f),
+            )
+        }
         // Name column
         Text(
             text = product.name,
@@ -396,6 +514,8 @@ private fun ProductGridView(
     onProductClick: (Product) -> Unit,
     windowSize: WindowSize,
     currencyFormatter: CurrencyFormatter,
+    isSelectionMode: Boolean = false,
+    selectedProductIds: Set<String> = emptySet(),
 ) {
     if (isLoading) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -431,12 +551,14 @@ private fun ProductGridView(
         verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
     ) {
         items(products, key = { it.id }) { product ->
+            val isSelected = isSelectionMode && product.id in selectedProductIds
             ZyntaProductCard(
                 name = product.name,
                 price = currencyFormatter.format(product.price),
                 imageUrl = product.imageUrl,
                 stockIndicator = product.toStockIndicator(),
                 onClick = { onProductClick(product) },
+                isSelected = isSelected,
             )
         }
     }
