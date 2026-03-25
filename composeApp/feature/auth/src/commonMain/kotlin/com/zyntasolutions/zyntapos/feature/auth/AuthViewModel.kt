@@ -56,6 +56,7 @@ class AuthViewModel(
         observeSession()
         loadRememberMe()
         loadAvailableStores()
+        loadPersistedStoreSelection()
     }
 
     /** Loads persisted "remember me" preference and pre-fills the saved email. */
@@ -64,6 +65,14 @@ class AuthViewModel(
             val remembered = settingsRepository.get(KEY_REMEMBER_ME) == "true"
             val savedEmail = if (remembered) settingsRepository.get(KEY_SAVED_EMAIL).orEmpty() else ""
             updateState { copy(rememberMe = remembered, email = savedEmail) }
+        }
+    }
+
+    /** Restores the previously selected store ID so the selector pre-populates on next login. */
+    private fun loadPersistedStoreSelection() {
+        viewModelScope.launch {
+            val storeId = settingsRepository.get(KEY_SELECTED_STORE_ID).orEmpty().ifBlank { null }
+            if (storeId != null) updateState { copy(selectedStoreId = storeId) }
         }
     }
 
@@ -151,6 +160,8 @@ class AuthViewModel(
                 } else {
                     settingsRepository.set(KEY_SAVED_EMAIL, "")
                 }
+                // Persist selected store for next login pre-population
+                settingsRepository.set(KEY_SELECTED_STORE_ID, s.selectedStoreId.orEmpty())
                 updateState { copy(isLoading = false) }
                 // Sprint 20: Check whether a cash register session is currently open.
                 // If no session is open, redirect to the RegisterGuard screen so the
@@ -212,5 +223,6 @@ class AuthViewModel(
     companion object {
         const val KEY_REMEMBER_ME = "auth.remember_me"
         const val KEY_SAVED_EMAIL = "auth.saved_email"
+        const val KEY_SELECTED_STORE_ID = "auth.selected_store_id"
     }
 }

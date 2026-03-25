@@ -1,5 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.settings
 
+import com.zyntasolutions.zyntapos.domain.usecase.auth.GrantStoreAccessUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.auth.RevokeStoreAccessUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.auth.SetPinUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.feature.GetAllFeatureConfigsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.feature.IsFeatureEnabledUseCase
@@ -15,6 +17,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.settings.SavePrinterProfileUse
 import com.zyntasolutions.zyntapos.domain.usecase.settings.SaveUserUseCase
 import com.zyntasolutions.zyntapos.feature.settings.edition.EditionManagementViewModel
 import com.zyntasolutions.zyntapos.feature.settings.screen.RegionalTaxOverrideViewModel
+import com.zyntasolutions.zyntapos.feature.settings.screen.StoreUserAccessViewModel
 import com.zyntasolutions.zyntapos.hal.printer.PrinterManager
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.viewModelOf
@@ -43,6 +46,8 @@ val settingsModule = module {
     factory<PrintTestPageUseCase> { PrintTestPageUseCaseImpl(get()) }
     factoryOf(::SaveUserUseCase)
     factoryOf(::SetPinUseCase)
+    factoryOf(::GrantStoreAccessUseCase)
+    factoryOf(::RevokeStoreAccessUseCase)
     factoryOf(::SaveCustomRoleUseCase)
     factoryOf(::DeleteCustomRoleUseCase)
 
@@ -63,4 +68,5 @@ val settingsModule = module {
     viewModelOf(::SettingsViewModel)
     viewModelOf(::EditionManagementViewModel)
     viewModelOf(::RegionalTaxOverrideViewModel)
+    viewModelOf(::StoreUserAccessViewModel)
 }
