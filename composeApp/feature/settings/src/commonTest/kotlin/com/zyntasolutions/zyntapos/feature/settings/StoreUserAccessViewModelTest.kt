@@ -143,7 +143,7 @@ class StoreUserAccessViewModelTest {
             val initial = awaitItem()
             assertEquals("", initial.storeId)
 
-            vm.sendIntent(StoreUserAccessIntent.LoadForStore("store-1"))
+            vm.dispatch(StoreUserAccessIntent.LoadForStore("store-1"))
             advanceUntilIdle()
 
             val loaded = awaitItem()
@@ -155,9 +155,9 @@ class StoreUserAccessViewModelTest {
     @Test
     fun `OpenGrantForm sets showGrantForm true and clears form fields`() = runTest {
         val vm = makeViewModel()
-        vm.sendIntent(StoreUserAccessIntent.LoadForStore("store-1"))
+        vm.dispatch(StoreUserAccessIntent.LoadForStore("store-1"))
         advanceUntilIdle()
-        vm.sendIntent(StoreUserAccessIntent.OpenGrantForm)
+        vm.dispatch(StoreUserAccessIntent.OpenGrantForm)
         advanceUntilIdle()
 
         assertTrue(vm.state.value.showGrantForm)
@@ -168,11 +168,11 @@ class StoreUserAccessViewModelTest {
     @Test
     fun `DismissGrantForm clears form and hides it`() = runTest {
         val vm = makeViewModel()
-        vm.sendIntent(StoreUserAccessIntent.OpenGrantForm)
+        vm.dispatch(StoreUserAccessIntent.OpenGrantForm)
         advanceUntilIdle()
-        vm.sendIntent(StoreUserAccessIntent.UpdateFormUserId("user-alice"))
+        vm.dispatch(StoreUserAccessIntent.UpdateFormUserId("user-alice"))
         advanceUntilIdle()
-        vm.sendIntent(StoreUserAccessIntent.DismissGrantForm)
+        vm.dispatch(StoreUserAccessIntent.DismissGrantForm)
         advanceUntilIdle()
 
         assertFalse(vm.state.value.showGrantForm)
@@ -183,12 +183,12 @@ class StoreUserAccessViewModelTest {
     fun `SubmitGrant with valid userId succeeds and hides form`() = runTest {
         hasAccessResult = false
         val vm = makeViewModel()
-        vm.sendIntent(StoreUserAccessIntent.LoadForStore("store-1"))
+        vm.dispatch(StoreUserAccessIntent.LoadForStore("store-1"))
         advanceUntilIdle()
-        vm.sendIntent(StoreUserAccessIntent.OpenGrantForm)
-        vm.sendIntent(StoreUserAccessIntent.UpdateFormUserId("user-bob"))
+        vm.dispatch(StoreUserAccessIntent.OpenGrantForm)
+        vm.dispatch(StoreUserAccessIntent.UpdateFormUserId("user-bob"))
         advanceUntilIdle()
-        vm.sendIntent(StoreUserAccessIntent.SubmitGrant)
+        vm.dispatch(StoreUserAccessIntent.SubmitGrant)
         advanceUntilIdle()
 
         assertFalse(vm.state.value.showGrantForm)
@@ -197,12 +197,12 @@ class StoreUserAccessViewModelTest {
     @Test
     fun `SubmitGrant with blank userId emits ShowError effect`() = runTest {
         val vm = makeViewModel()
-        vm.sendIntent(StoreUserAccessIntent.LoadForStore("store-1"))
-        vm.sendIntent(StoreUserAccessIntent.OpenGrantForm)
+        vm.dispatch(StoreUserAccessIntent.LoadForStore("store-1"))
+        vm.dispatch(StoreUserAccessIntent.OpenGrantForm)
         advanceUntilIdle()
 
         vm.effects.test {
-            vm.sendIntent(StoreUserAccessIntent.SubmitGrant)
+            vm.dispatch(StoreUserAccessIntent.SubmitGrant)
             advanceUntilIdle()
             val effect = awaitItem()
             assertTrue(effect is com.zyntasolutions.zyntapos.feature.settings.screen.StoreUserAccessEffect.ShowError)
@@ -213,7 +213,7 @@ class StoreUserAccessViewModelTest {
     @Test
     fun `RequestRevoke sets pendingRevokeEntry`() = runTest {
         val vm = makeViewModel()
-        vm.sendIntent(StoreUserAccessIntent.RequestRevoke(accessEntry))
+        vm.dispatch(StoreUserAccessIntent.RequestRevoke(accessEntry))
         advanceUntilIdle()
 
         assertEquals(accessEntry, vm.state.value.pendingRevokeEntry)
@@ -222,9 +222,9 @@ class StoreUserAccessViewModelTest {
     @Test
     fun `CancelRevoke clears pendingRevokeEntry`() = runTest {
         val vm = makeViewModel()
-        vm.sendIntent(StoreUserAccessIntent.RequestRevoke(accessEntry))
+        vm.dispatch(StoreUserAccessIntent.RequestRevoke(accessEntry))
         advanceUntilIdle()
-        vm.sendIntent(StoreUserAccessIntent.CancelRevoke)
+        vm.dispatch(StoreUserAccessIntent.CancelRevoke)
         advanceUntilIdle()
 
         assertNull(vm.state.value.pendingRevokeEntry)
@@ -235,11 +235,11 @@ class StoreUserAccessViewModelTest {
         hasAccessResult = true
         revokeResult = Result.Success(Unit)
         val vm = makeViewModel()
-        vm.sendIntent(StoreUserAccessIntent.LoadForStore("store-1"))
+        vm.dispatch(StoreUserAccessIntent.LoadForStore("store-1"))
         advanceUntilIdle()
-        vm.sendIntent(StoreUserAccessIntent.RequestRevoke(accessEntry))
+        vm.dispatch(StoreUserAccessIntent.RequestRevoke(accessEntry))
         advanceUntilIdle()
-        vm.sendIntent(StoreUserAccessIntent.ConfirmRevoke)
+        vm.dispatch(StoreUserAccessIntent.ConfirmRevoke)
         advanceUntilIdle()
 
         assertNull(vm.state.value.pendingRevokeEntry)
@@ -248,7 +248,7 @@ class StoreUserAccessViewModelTest {
     @Test
     fun `UpdateFormRole updates formRole in state`() = runTest {
         val vm = makeViewModel()
-        vm.sendIntent(StoreUserAccessIntent.UpdateFormRole(Role.STORE_MANAGER))
+        vm.dispatch(StoreUserAccessIntent.UpdateFormRole(Role.STORE_MANAGER))
         advanceUntilIdle()
 
         assertEquals(Role.STORE_MANAGER, vm.state.value.formRole)
