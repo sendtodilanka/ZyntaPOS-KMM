@@ -20,6 +20,7 @@ import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
 import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
 import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
+import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.domain.repository.StoreRepository
 import com.zyntasolutions.zyntapos.domain.model.Store
 import com.zyntasolutions.zyntapos.feature.dashboard.mvi.DashboardEffect
@@ -134,6 +135,18 @@ class DashboardViewModelTest {
         override suspend fun validatePin(userId: String, pin: String): Result<Boolean> = Result.Success(true)
     }
 
+    private val fakeSettingsRepository = object : SettingsRepository {
+        private val store = mutableMapOf<String, String>()
+        override suspend fun get(key: String): String? = store[key]
+        override suspend fun set(key: String, value: String): com.zyntasolutions.zyntapos.core.result.Result<Unit> {
+            store[key] = value
+            return com.zyntasolutions.zyntapos.core.result.Result.Success(Unit)
+        }
+        override suspend fun getAll(): Map<String, String> = store.toMap()
+        override fun observe(key: String): kotlinx.coroutines.flow.Flow<String?> =
+            kotlinx.coroutines.flow.flowOf(store[key])
+    }
+
     private lateinit var viewModel: DashboardViewModel
 
     private val fakeUser = User(
@@ -164,6 +177,7 @@ class DashboardViewModelTest {
             registerRepository = fakeRegisterRepository,
             authRepository = fakeAuthRepository,
             storeRepository = fakeStoreRepository,
+            settingsRepository = fakeSettingsRepository,
             analytics = noOpAnalytics,
         )
     }

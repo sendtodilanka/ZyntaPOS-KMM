@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-25 (G9: date picker dialogs + CSV export for all 4 financial statement tabs)
+**Last Updated:** 2026-03-25 (G9: date picker dialogs + CSV export; G7: configurable daily sales target)
 **Status:** Approved — Verified against codebase 2026-03-22, updated for ADR-009 compliance
 
 ---
@@ -1888,7 +1888,7 @@ Backend Tests:
 |-----|----------|-------|
 | **No real-time updates** — Loads once on screen open, never refreshes | CRITICAL | Phase 2 |
 | ~~**No multi-store KPI consolidation**~~ — ✅ PARTIAL: Store context chip (StoreNameChip) in dashboard top bar via `DashboardState.storeName` + `StoreRepository`; full KPI aggregation deferred (2026-03-24) | ~~CRITICAL~~ | ✅ PARTIAL (2026-03-24) |
-| **Daily sales target hardcoded** ("LKR 50,000") not configurable | MEDIUM | Phase 2 |
+| ~~**Daily sales target hardcoded**~~ — ✅ DONE: `DAILY_SALES_TARGET` key in `SettingsKeys`; `PosState.dailySalesTarget` field; `UpdateDailySalesTarget` intent; load/save in `SettingsViewModel`; `OutlinedTextField` in `PosSettingsScreen`; `DashboardViewModel` reads from `SettingsRepository` on load (2026-03-25) | ~~MEDIUM~~ | ✅ DONE (2026-03-25) |
 | **Hourly sparkline data calculated but never rendered** | LOW | Phase 1.5 |
 | **No comparison to previous period** (yesterday, last week) | MEDIUM | Phase 2 |
 | **Notifications menu item exists but not implemented** | LOW | Phase 2 |

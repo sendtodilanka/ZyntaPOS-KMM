@@ -31,6 +31,7 @@ sealed interface SettingsIntent {
     data class UpdateTaxDisplayMode(val mode: TaxDisplayMode) : SettingsIntent
     data class UpdateReceiptTemplate(val template: ReceiptTemplate) : SettingsIntent
     data class UpdateMaxDiscount(val percent: Double) : SettingsIntent
+    data class UpdateDailySalesTarget(val amount: Double) : SettingsIntent
     data object SavePos : SettingsIntent
 
     // ── Tax Settings ──────────────────────────────────────────────────────────

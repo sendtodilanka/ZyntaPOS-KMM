@@ -8,6 +8,7 @@ import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
 import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
 import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
+import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.domain.repository.StoreRepository
 import com.zyntasolutions.zyntapos.feature.dashboard.mvi.DashboardEffect
 import com.zyntasolutions.zyntapos.feature.dashboard.mvi.DashboardIntent
@@ -35,6 +36,7 @@ class DashboardViewModel(
     private val registerRepository: RegisterRepository,
     private val authRepository: AuthRepository,
     private val storeRepository: StoreRepository,
+    private val settingsRepository: SettingsRepository,
     private val analytics: AnalyticsTracker,
 ) : BaseViewModel<DashboardState, DashboardIntent, DashboardEffect>(DashboardState()) {
 
@@ -128,7 +130,8 @@ class DashboardViewModel(
             }
 
             // Derived display values computed in VM so composables stay pure (MVI)
-            val target = currentState.dailySalesTarget
+            val target = settingsRepository.get("pos.daily_sales_target")?.toDoubleOrNull()
+                ?: currentState.dailySalesTarget
             val computedSalesProgress = if (target > 0) (sales / target).toFloat().coerceIn(0f, 1f) else 0f
             val computedInitials = user?.name
                 ?.split(" ")
@@ -155,6 +158,7 @@ class DashboardViewModel(
                     greetingText = greeting,
                     salesProgress = computedSalesProgress,
                     userInitials = computedInitials,
+                    dailySalesTarget = target,
                 )
             }
         } catch (e: Exception) {
