@@ -1615,9 +1615,11 @@ Backend Tests:
 **What's DONE (2026-03-24, session Dh6o):**
 - [x] Sync pending count badge — `SyncStatusPort.pendingCount` StateFlow added; `SyncEngine.refreshPendingCount()` queries `getPendingCount` after each sync cycle; `SyncStatusAdapter` delegates to engine; `App.kt` `LocalSyncPendingCount` now provides real count (was hardcoded 0); `ZyntaSyncStatusIndicator` shows "X pending" when count > 0
 
+**What's DONE (2026-03-25):**
+- [x] Conflict notification to user (toast when sync conflict detected) — `SyncStatusPort.newConflictCount: SharedFlow<Int>` added; `SyncStatusAdapter` emits on `SyncResult.Success(conflictCount > 0)`; `MainScaffoldShell` collects and shows snackbar toast
+
 **What's REMAINING (deferred):**
-- [ ] Conflict notification to user (toast when sync conflict detected)
-- [ ] Data integrity check: Verify local DB consistency on app startup
+- [x] Data integrity check: Verify local DB consistency on app startup — ✅ VERIFIED DONE: `IntegrityBadge` in `AuditLogScreen` (L367-438) auto-runs on init; `AuditLogViewModel` dispatches `RunIntegrityCheck` at init
 
 ---
 

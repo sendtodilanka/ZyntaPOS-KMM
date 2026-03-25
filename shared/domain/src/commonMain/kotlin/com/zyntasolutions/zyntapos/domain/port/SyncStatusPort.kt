@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.domain.port
 
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -24,4 +25,10 @@ interface SyncStatusPort {
 
     /** Number of PENDING operations in the sync outbox queue. */
     val pendingCount: StateFlow<Int>
+
+    /**
+     * Emits the number of conflicts detected whenever a sync cycle completes with
+     * one or more conflicts. Consumers should show a non-blocking toast on each emission.
+     */
+    val newConflictCount: SharedFlow<Int>
 }

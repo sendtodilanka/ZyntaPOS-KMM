@@ -1,6 +1,10 @@
 package com.zyntasolutions.zyntapos.navigation
 
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
@@ -9,6 +13,8 @@ import androidx.navigation.toRoute
 import com.zyntasolutions.zyntapos.designsystem.components.LocalSyncDisplayStatus
 import com.zyntasolutions.zyntapos.designsystem.components.LocalSyncPendingCount
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaScaffold
+import com.zyntasolutions.zyntapos.domain.port.SyncStatusPort
+import org.koin.compose.koinInject
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MAIN NAV GRAPH
@@ -936,6 +942,17 @@ private fun MainScaffoldShell(
         ?.children?.indexOfFirst { child -> child.route::class == currentRoute::class }
         ?: -1
 
+    // Sync conflict notification toast
+    val syncStatus: SyncStatusPort = koinInject()
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(Unit) {
+        syncStatus.newConflictCount.collect { count ->
+            snackbarHostState.showSnackbar(
+                "Sync: $count conflict${if (count == 1) "" else "s"} detected and resolved automatically."
+            )
+        }
+    }
+
     fun navigate(item: NavItem) {
         navigationController.navigate(item.route) {
             popUpTo(navigationController.navController.graph.startDestinationId) {
@@ -971,6 +988,7 @@ private fun MainScaffoldShell(
         drawerUserRole = drawerUserRole,
         syncStatus = LocalSyncDisplayStatus.current,
         syncPendingCount = LocalSyncPendingCount.current,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         content = { _ -> content() },
     )
 }

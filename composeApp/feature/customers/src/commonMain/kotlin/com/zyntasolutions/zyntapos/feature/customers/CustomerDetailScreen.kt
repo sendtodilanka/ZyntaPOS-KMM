@@ -526,7 +526,7 @@ private fun MergeCustomerDialog(
         candidates.filter {
             it.name.lowercase().contains(q) ||
                 it.phone.contains(q) ||
-                it.email.lowercase().contains(q)
+                it.email?.lowercase()?.contains(q) == true
         }
     }
 
