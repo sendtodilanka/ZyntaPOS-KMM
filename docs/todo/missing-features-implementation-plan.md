@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-25 (G9: date picker dialogs + CSV export; G7: configurable daily sales target; G2: onboarding Step 4 tax setup; G1: ZyntaWarehouseDropdown)
+**Last Updated:** 2026-03-25 (INV-3: UnitManagementScreen modal wired; INV-7: batch product selection; fix(sync): WebSocketHubBroadcastTest flaky test fixed; G9: date picker dialogs + CSV export; G7: configurable daily sales target; G2: onboarding Step 4 tax setup; G1: ZyntaWarehouseDropdown)
 **Status:** Approved — Verified against codebase 2026-03-22, updated for ADR-009 compliance
 
 ---
@@ -2123,11 +2123,11 @@ Backend Tests:
 |--------|-------|----------|-------------|
 | INV-1 | ~~**Barcode Scanner Not Integrated**~~ — ✅ VERIFIED DONE: `ProductDetailScreen` has QR icon + `StartBarcodeScanner`/`StopBarcodeScanner`/`BarcodeScanResult` intents; InventoryViewModel fully handles scanner lifecycle; `isScannerActive` state tracks scanner; StocktakeScreen fully integrated with scanner toggle (2026-03-25) | ~~HIGH~~ | ✅ DONE |
 | INV-2 | ~~**Variant Persistence Not Implemented**~~ — ✅ ALREADY DONE: `CreateProductUseCase` takes `variants: List<ProductVariant>` and persists via `ProductVariantRepository.replaceAll()`; `InventoryViewModel` maps `productVariants` from state and passes them on both create/update; `UpdateProductUseCase` does the same (verified 2026-03-25) | ~~HIGH~~ | ✅ DONE |
-| INV-3 | **Missing Screen Route Definitions** — `CategoryDetail`, `SupplierDetail`, `TaxGroupScreen`, `UnitManagementScreen` not in `ZyntaRoute.kt` | HIGH | Add `@Serializable` route classes + NavHost entries |
+| INV-3 | ~~**Missing Screen Route Definitions**~~ — ✅ DONE (2026-03-25): `CategoryDetail` and `SupplierDetail` routes verified in `ZyntaRoute.kt` + `MainNavGraph.kt`; `TaxGroupScreen` is a modal dialog (no route needed, INV-10); `UnitManagementScreen` wired as AlertDialog in `ProductDetailScreen` with "Manage" TextButton next to UnitDropdown; `OpenUnitManagement`/`CloseUnitManagement` intents handled in `InventoryViewModel` | ~~HIGH~~ | ✅ DONE |
 | INV-4 | ~~**Product Image Preview Missing**~~ — ✅ ALREADY DONE: `ProductDetailScreen` has Coil `AsyncImage` preview below the imageUrl text field with loading spinner and error placeholder (INV-4 comment at line 430); `import coil3.compose.AsyncImage` at line 23 (verified 2026-03-25) | ~~MEDIUM~~ | ✅ DONE |
 | INV-5 | ~~**Supplier Purchase History Empty**~~ — ✅ DONE: `PurchaseOrderRepository.getBySupplierId()` called in `onOpenSupplierDetail()`, mapped to `PurchaseOrderSummary` with `DateTimeUtils.formatForDisplay()` | ~~MEDIUM~~ | ✅ DONE (2026-03-23) |
 | INV-6 | **Bulk Import Dialog Unaudited** — Column mapping UX unclear; may have usability issues | MEDIUM | Audit and refine `BulkImportDialog.kt` composable |
-| INV-7 | **No Batch Product Selection** — ProductListScreen has no multi-select for bulk operations (delete, price adjust) | MEDIUM | Add checkbox column + batch action toolbar |
+| INV-7 | ~~**No Batch Product Selection**~~ — ✅ DONE (2026-03-25): Multi-select mode with `isSelectionMode`/`selectedProductIds` in `InventoryState`; `EnterSelectionMode`, `ExitSelectionMode`, `ToggleProductSelection`, `SelectAllProducts`, `BatchDeleteSelectedProducts` intents; `BatchActionToolbar` shown when in selection mode (count, Select All, Delete, Cancel); "Select" icon in filter row; checkbox column in `ProductTableView`; `ZyntaProductCard` supports `isSelected` with primaryContainer tint + check icon overlay | ~~MEDIUM~~ | ✅ DONE |
 | INV-8 | ~~**No Search Result Count**~~ — ✅ ALREADY EXISTS: Lines 123-131 show "X product(s) found" when any filter active | ~~LOW~~ | ✅ Verified (2026-03-23) |
 | INV-9 | ~~**No Unsaved Changes Warning**~~ — ✅ ALREADY EXISTS: Lines 61-84 track `isDirty` state + discard dialog on back | ~~LOW~~ | ✅ Verified (2026-03-23) |
 | INV-10 | ~~**Tax Group / Unit Management Screens Missing**~~ — `TaxGroupScreen.kt` exists with full CRUD; `TaxGroupDropdown` in ProductDetailScreen; "Manage" button wired to open TaxGroupScreen as modal dialog (2026-03-23) | ~~MEDIUM~~ | ✅ DONE (2026-03-23) |
