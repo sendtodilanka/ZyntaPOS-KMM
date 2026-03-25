@@ -4,6 +4,7 @@ import com.zyntasolutions.zyntapos.core.result.onError
 import com.zyntasolutions.zyntapos.core.result.onSuccess
 import com.zyntasolutions.zyntapos.domain.model.FulfillmentStatus
 import com.zyntasolutions.zyntapos.domain.repository.FulfillmentRepository
+import androidx.lifecycle.viewModelScope
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
@@ -31,18 +32,18 @@ class FulfillmentViewModel(
             is FulfillmentIntent.MarkReady    -> updateStatus(intent.orderId, FulfillmentStatus.READY_FOR_PICKUP, notifyCustomer = intent.notifyCustomer)
             is FulfillmentIntent.MarkPickedUp -> updateStatus(intent.orderId, FulfillmentStatus.PICKED_UP)
             is FulfillmentIntent.CancelOrder  -> updateStatus(intent.orderId, FulfillmentStatus.CANCELLED)
-            is FulfillmentIntent.DismissError -> updateState { it.copy(errorMessage = null) }
+            is FulfillmentIntent.DismissError -> updateState { copy(errorMessage = null) }
         }
     }
 
     private fun observePickups() {
-        updateState { it.copy(isLoading = true) }
+        updateState { copy(isLoading = true) }
         fulfillmentRepository.getPendingPickups(storeId)
             .onEach { pickups ->
-                updateState { it.copy(pickups = pickups, isLoading = false) }
+                updateState { copy(pickups = pickups, isLoading = false) }
             }
             .catch { e ->
-                updateState { it.copy(isLoading = false, errorMessage = e.message ?: "Failed to load pickups") }
+                updateState { copy(isLoading = false, errorMessage = e.message ?: "Failed to load pickups") }
             }
             .launchIn(viewModelScope)
     }
@@ -52,13 +53,13 @@ class FulfillmentViewModel(
         newStatus: FulfillmentStatus,
         notifyCustomer: Boolean = false,
     ) {
-        updateState { it.copy(updatingOrderId = orderId) }
+        updateState { copy(updatingOrderId = orderId) }
         fulfillmentRepository.updateStatus(orderId, newStatus, notifyCustomer)
             .onSuccess {
-                updateState { it.copy(updatingOrderId = null) }
+                updateState { copy(updatingOrderId = null) }
             }
             .onError { e ->
-                updateState { it.copy(updatingOrderId = null, errorMessage = e.message ?: "Update failed") }
+                updateState { copy(updatingOrderId = null, errorMessage = e.message ?: "Update failed") }
             }
     }
 }
