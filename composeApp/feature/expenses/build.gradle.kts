@@ -25,6 +25,8 @@ kotlin {
         commonMain.dependencies {
             implementation(project(":composeApp:designsystem"))
             implementation(project(":composeApp:core"))
+            implementation(project(":composeApp:feature:media"))
+            implementation(libs.coil.compose)
             implementation(project(":shared:core"))
             implementation(project(":shared:domain"))
             implementation(project(":shared:security"))

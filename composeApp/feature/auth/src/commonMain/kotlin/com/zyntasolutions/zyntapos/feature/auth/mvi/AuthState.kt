@@ -34,4 +34,10 @@ data class AuthState(
     val availableStores: List<Store> = emptyList(),
     /** Selected store ID for multi-store login. Null = use user's default store. */
     val selectedStoreId: String? = null,
+    /**
+     * Epoch-millisecond timestamp when the brute-force lockout expires (G4).
+     * Non-null while the user is locked out after too many failed attempts.
+     * The UI renders a live countdown from this value.
+     */
+    val lockedOutUntilMs: Long? = null,
 )

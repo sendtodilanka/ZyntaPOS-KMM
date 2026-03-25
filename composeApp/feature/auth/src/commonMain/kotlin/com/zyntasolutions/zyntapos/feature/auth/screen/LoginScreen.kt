@@ -35,7 +35,9 @@ import com.zyntasolutions.zyntapos.feature.auth.AuthViewModel
 import com.zyntasolutions.zyntapos.feature.auth.mvi.AuthEffect
 import com.zyntasolutions.zyntapos.feature.auth.mvi.AuthIntent
 import com.zyntasolutions.zyntapos.feature.auth.mvi.AuthState
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.datetime.Clock
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -177,6 +179,25 @@ private fun LoginFormContent(
     onIntent: (AuthIntent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // G4: Live countdown when account is locked out after too many failed attempts
+    var lockoutSecondsRemaining by remember { mutableStateOf(0) }
+    LaunchedEffect(state.lockedOutUntilMs) {
+        val expiry = state.lockedOutUntilMs
+        if (expiry == null) {
+            lockoutSecondsRemaining = 0
+            return@LaunchedEffect
+        }
+        while (true) {
+            val remaining = ((expiry - Clock.System.now().toEpochMilliseconds()) / 1000L)
+                .coerceAtLeast(0L).toInt()
+            lockoutSecondsRemaining = remaining
+            if (remaining <= 0) break
+            delay(1_000L)
+        }
+    }
+
+    val isLockedOut = lockoutSecondsRemaining > 0
+
     Column(modifier = modifier.fillMaxWidth()) {
 
         Text(
@@ -259,19 +280,30 @@ private fun LoginFormContent(
             }
         }
 
-        // Inline error banner
-        if (state.error != null) {
+        // Inline error banner — shows lockout countdown when account is locked (G4)
+        if (state.error != null || isLockedOut) {
             Spacer(Modifier.height(ZyntaSpacing.sm))
             Card(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(
-                    text = state.error,
-                    color = MaterialTheme.colorScheme.onErrorContainer,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(ZyntaSpacing.md),
-                )
+                Column(modifier = Modifier.padding(ZyntaSpacing.md)) {
+                    Text(
+                        text = state.error ?: "Account locked.",
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    if (isLockedOut) {
+                        val minutes = lockoutSecondsRemaining / 60
+                        val seconds = lockoutSecondsRemaining % 60
+                        Text(
+                            text = "Try again in %d:%02d".format(minutes, seconds),
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                }
             }
         }
 
@@ -281,6 +313,7 @@ private fun LoginFormContent(
             text = "Login to Dashboard",
             onClick = { onIntent(AuthIntent.LoginClicked) },
             isLoading = state.isLoading,
+            enabled = !isLockedOut,
             size = ZyntaButtonSize.Large,
             modifier = Modifier.fillMaxWidth(),
         )

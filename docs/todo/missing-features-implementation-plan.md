@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-25 (C5.4: SyncStatusPort.onSyncComplete + DashboardViewModel 30s auto-refresh + backend Redis dashboard:update publish + RedisPubSubListener WsDashboardUpdate; C4.4: fulfillment_orders migration 19 + SQLDelight queries + FulfillmentRepositoryImpl + FulfillmentQueueScreen + FulfillmentViewModel + ZyntaRoute.FulfillmentQueue; G15: expect/actual rememberNativeFilePicker Android+JVM + Browse button in MediaLibraryScreen; G6: ReportsViewModel SyncStatusPort.onSyncComplete + 30s auto-refresh; fixes: FulfillmentOrder import path, fulfillment_ordersQueries naming, DashboardViewModel viewModelScope import, FulfillmentViewModel updateState receiver + viewModelScope import, NativeFilePicker KDoc nested comment)
+**Last Updated:** 2026-03-25 (C5.4: SyncStatusPort.onSyncComplete + DashboardViewModel 30s auto-refresh + backend Redis dashboard:update publish + RedisPubSubListener WsDashboardUpdate; C4.4: fulfillment_orders migration 19 + SQLDelight queries + FulfillmentRepositoryImpl + FulfillmentQueueScreen + FulfillmentViewModel + ZyntaRoute.FulfillmentQueue; G15: expect/actual rememberNativeFilePicker Android+JVM + Browse button in MediaLibraryScreen; G6: ReportsViewModel SyncStatusPort.onSyncComplete + 30s auto-refresh; G13: ExpenseDetailScreen receipt file picker + Coil AsyncImage preview; G4: PIN lockout countdown timer in LoginScreen — AuthState.lockedOutUntilMs + M:SS display + disabled login button; verified done: C3.2 KMM StoreUserAccessScreen + LoginScreen multi-store selector, C3.3/G7 dashboard real-time via SyncStatusPort; fixes: FulfillmentOrder import path, fulfillment_ordersQueries naming, DashboardViewModel viewModelScope import, FulfillmentViewModel updateState receiver + viewModelScope import, NativeFilePicker KDoc nested comment)
 **Status:** Approved — Verified against codebase 2026-03-22, updated for ADR-009 compliance
 
 ---
@@ -1147,8 +1147,8 @@ Backend Tests:
 
 **What's REMAINING (deferred):**
 - [ ] Backend: Middleware to validate user has access to requested store data in sync routes
-- [ ] KMM: User → store assignment management UI (store ADMIN manages their own staff per ADR-009)
-- [ ] KMM: Store selector for users with multi-store access
+- [x] KMM: User → store assignment management UI (store ADMIN manages their own staff per ADR-009) — ✅ VERIFIED DONE (2026-03-25): `StoreUserAccessScreen.kt` exists in `:composeApp:feature:settings`; `ZyntaRoute.StoreUserAccess(storeId)` wired in `MainNavGraph.kt`; Grant/Revoke form with UserDropdown + RoleDropdown; `StoreUserAccessViewModel` + 12 tests
+- [x] KMM: Store selector for users with multi-store access — ✅ VERIFIED DONE (2026-03-25): `LoginScreen.kt` has multi-store `ZyntaStoreSelector` shown when `AuthState.availableStores.size > 1`; `AuthViewModel.loadAvailableStores()` via `StoreRepository` (G4, 2026-03-23)
 
 ---
 
@@ -1194,7 +1194,7 @@ Backend Tests:
   - Route accessible via multi-store navigation graph alongside warehouses/transfers
 
 **What's REMAINING (deferred):**
-- [ ] Real-time WebSocket updates for dashboard KPIs (currently REST polling)
+- [x] Real-time WebSocket updates for dashboard KPIs (currently REST polling) — ✅ DONE (2026-03-25): `DashboardViewModel` subscribes to `SyncStatusPort.onSyncComplete` SharedFlow for silent refresh; 30s periodic fallback timer; same pattern as ReportsViewModel (C5.4). Backend: `SyncProcessor.publishDashboardUpdate()` + `RedisPubSubListener` `dashboard:update:*` → `WsDashboardUpdate` push
 - [ ] Cross-store notifications (e.g., "Store B low on Product X")
 - [ ] Admin panel: Global dashboard enhancements (read-only monitoring — ADR-009 compliant)
 
@@ -1883,7 +1883,7 @@ Backend Tests:
 | **Password reset is stub** ("contact admin") | MEDIUM | Phase 2 |
 | **No biometric fallback** on PIN lock (fingerprint/Face ID) | LOW | Phase 2 |
 | ~~**Remember Me checkbox collected but not persisted**~~ | ~~LOW~~ | ✅ DONE (2026-03-21) |
-| **No PIN lockout timer countdown** — User doesn't know wait time | MEDIUM | Phase 2 |
+| ~~**No PIN lockout timer countdown**~~ — ✅ DONE (2026-03-25): `AuthState.lockedOutUntilMs: Long?` added; `AuthViewModel` sets expiry as `Clock.System.now() + 5min` when `isLoginBruteForced`; `LoginFormContent` ticks down via `LaunchedEffect` + `delay(1000)` loop; error banner shows "Try again in M:SS"; Login button disabled while locked | ~~MEDIUM~~ | ✅ DONE |
 | **No session timeout warning** — Auto-lock without countdown | LOW | Phase 2 |
 
 ---
@@ -1926,7 +1926,7 @@ Backend Tests:
 
 | Gap | Severity | Phase |
 |-----|----------|-------|
-| **No real-time updates** — Loads once on screen open, never refreshes | CRITICAL | Phase 2 |
+| ~~**No real-time updates**~~ — ✅ DONE (2026-03-25): `DashboardViewModel` subscribes to `SyncStatusPort.onSyncComplete` SharedFlow; `Refresh` intent + `isRefreshing`/`lastRefreshedAt` state; 30s periodic fallback timer (C5.4) | ~~CRITICAL~~ | ✅ DONE |
 | ~~**No multi-store KPI consolidation**~~ — ✅ PARTIAL: Store context chip (StoreNameChip) in dashboard top bar via `DashboardState.storeName` + `StoreRepository`; full KPI aggregation deferred (2026-03-24) | ~~CRITICAL~~ | ✅ PARTIAL (2026-03-24) |
 | ~~**Daily sales target hardcoded**~~ — ✅ DONE: `DAILY_SALES_TARGET` key in `SettingsKeys`; `PosState.dailySalesTarget` field; `UpdateDailySalesTarget` intent; load/save in `SettingsViewModel`; `OutlinedTextField` in `PosSettingsScreen`; `DashboardViewModel` reads from `SettingsRepository` on load (2026-03-25) | ~~MEDIUM~~ | ✅ DONE (2026-03-25) |
 | **Hourly sparkline data calculated but never rendered** | LOW | Phase 1.5 |
@@ -2030,8 +2030,8 @@ Backend Tests:
 
 | Gap | Severity | Phase |
 |-----|----------|-------|
-| **Receipt attachment incomplete** — URL text field only, no file picker/camera | HIGH | Phase 2 |
-| **No receipt image preview** | MEDIUM | Phase 2 |
+| ~~**Receipt attachment incomplete**~~ — ✅ DONE (2026-03-25): `rememberNativeFilePicker` wired in `ExpenseDetailScreen`; `Row` with `OutlinedTextField` + `AttachFile IconButton`; file picker launches on tap and dispatches `UpdateFormField("receiptUrl", path)`; `:composeApp:feature:media` added as dependency to `:composeApp:feature:expenses` | ~~HIGH~~ | ✅ DONE |
+| ~~**No receipt image preview**~~ — ✅ DONE (2026-03-25): Coil `AsyncImage` shown below the receipt field when `form.receiptUrl.isNotBlank()` (ContentScale.Fit, 200dp height) | ~~MEDIUM~~ | ✅ DONE |
 | **No budget tracking per category** | MEDIUM | Phase 2 |
 | **No approval amount thresholds** — All expenses same workflow | MEDIUM | Phase 2 |
 | **No vendor/supplier field** in expense form | LOW | Phase 2 |

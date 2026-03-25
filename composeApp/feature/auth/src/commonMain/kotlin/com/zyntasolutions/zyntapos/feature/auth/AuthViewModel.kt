@@ -19,6 +19,7 @@ import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 
 /**
  * ViewModel for the authentication flow.
@@ -94,7 +95,7 @@ class AuthViewModel(
             is AuthIntent.LoginClicked        -> onLoginClicked()
             is AuthIntent.RememberMeToggled   -> updateState { copy(rememberMe = intent.checked) }
             is AuthIntent.ForgotPasswordClicked -> handleForgotPassword()
-            is AuthIntent.DismissError        -> updateState { copy(error = null) }
+            is AuthIntent.DismissError        -> updateState { copy(error = null, lockedOutUntilMs = null) }
             is AuthIntent.StoreSelected       -> updateState { copy(selectedStoreId = intent.storeId) }
         }
     }
@@ -162,7 +163,7 @@ class AuthViewModel(
                 }
                 // Persist selected store for next login pre-population
                 settingsRepository.set(KEY_SELECTED_STORE_ID, s.selectedStoreId.orEmpty())
-                updateState { copy(isLoading = false) }
+                updateState { copy(isLoading = false, lockedOutUntilMs = null) }
                 // Sprint 20: Check whether a cash register session is currently open.
                 // If no session is open, redirect to the RegisterGuard screen so the
                 // cashier must open their till before accessing the POS.
@@ -184,12 +185,17 @@ class AuthViewModel(
                     AnalyticsParams.METHOD to "email",
                     "success" to "false",
                 ))
-                val errorMessage = if (auditLogger.isLoginBruteForced(s.email)) {
-                    "Too many failed attempts. Please try again in 5 minutes."
+                val isBruteForced = auditLogger.isLoginBruteForced(s.email)
+                val errorMessage = if (isBruteForced) {
+                    "Too many failed attempts. Account locked."
                 } else {
                     result.exception.message ?: "Login failed. Please try again."
                 }
-                updateState { copy(isLoading = false, error = errorMessage) }
+                // G4: Set lockout expiry for countdown UI (5-min window matches SecurityAuditLogger default)
+                val lockedUntilMs = if (isBruteForced) {
+                    Clock.System.now().toEpochMilliseconds() + (5 * 60 * 1000L)
+                } else null
+                updateState { copy(isLoading = false, error = errorMessage, lockedOutUntilMs = lockedUntilMs) }
             }
             is Result.Loading -> Unit // transitional — no UI action needed
         }
