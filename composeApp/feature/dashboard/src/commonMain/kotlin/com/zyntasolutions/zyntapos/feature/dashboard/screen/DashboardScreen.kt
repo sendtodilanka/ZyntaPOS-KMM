@@ -60,6 +60,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
+import com.zyntasolutions.zyntapos.designsystem.components.ChartDataPoint
 import com.zyntasolutions.zyntapos.designsystem.components.ChartSeries
 import com.zyntasolutions.zyntapos.designsystem.components.InfoCardVariant
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaActivityItem
@@ -698,7 +699,11 @@ private fun CompactDashboard(
                     ZyntaLineChart(
                         title = "Today's Hourly Sales",
                         series = listOf(
-                            ChartSeries("Sales", state.todaySparkline, MaterialTheme.colorScheme.secondary)
+                            ChartSeries(
+                                "Sales",
+                                state.todaySparkline.mapIndexed { i, v -> ChartDataPoint("${i}h", v) },
+                                MaterialTheme.colorScheme.secondary,
+                            )
                         ),
                         chartHeight = 120,
                         showLegend = false,
