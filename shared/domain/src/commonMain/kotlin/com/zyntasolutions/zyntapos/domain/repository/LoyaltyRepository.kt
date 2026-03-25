@@ -24,6 +24,17 @@ interface LoyaltyRepository {
      */
     suspend fun recordPoints(entry: RewardPoints): Result<Unit>
 
+    /**
+     * Expires all earned points for [customerId] that have an [RewardPoints.expiresAt] before
+     * [nowEpochMillis] and have not already been expired.
+     *
+     * For each qualifying EARNED entry, a corresponding negative EXPIRED entry is inserted to
+     * cancel the points. This preserves the append-only ledger invariant.
+     *
+     * @return [Result.Success] with the total points expired (0 if none), or [Result.Error] on DB failure.
+     */
+    suspend fun expirePointsForCustomer(customerId: String, nowEpochMillis: Long): Result<Int>
+
     // ── Loyalty tiers ─────────────────────────────────────────────────────────
 
     /** Emits all loyalty tier definitions, ordered by minimum points ascending. Re-emits on change. */

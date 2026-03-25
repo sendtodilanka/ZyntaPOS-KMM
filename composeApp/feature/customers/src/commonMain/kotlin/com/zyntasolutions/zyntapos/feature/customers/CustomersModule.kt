@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.customers
 
 import com.zyntasolutions.zyntapos.domain.usecase.crm.EarnRewardPointsUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.crm.ExpireLoyaltyPointsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.ExportCustomerDataUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.GetCustomerPurchaseHistoryUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.MergeCustomersUseCase
@@ -35,6 +36,7 @@ val customersModule = module {
     factoryOf(::SaveCustomerGroupUseCase)
     factoryOf(::WalletTopUpUseCase)
     factoryOf(::EarnRewardPointsUseCase)
+    factoryOf(::ExpireLoyaltyPointsUseCase)
     factoryOf(::RedeemRewardPointsUseCase)
     factoryOf(::ExportCustomerDataUseCase)
     factoryOf(::MergeCustomersUseCase)

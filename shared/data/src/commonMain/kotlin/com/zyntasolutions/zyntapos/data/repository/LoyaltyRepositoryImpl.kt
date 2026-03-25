@@ -4,6 +4,7 @@ import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
+import com.zyntasolutions.zyntapos.core.utils.IdGenerator
 import com.zyntasolutions.zyntapos.db.Loyalty_tiers
 import com.zyntasolutions.zyntapos.db.Reward_points
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
@@ -62,6 +63,38 @@ class LoyaltyRepositoryImpl(
             onFailure = { t -> Result.Error(DatabaseException(t.message ?: "Insert failed", cause = t)) },
         )
     }
+
+    override suspend fun expirePointsForCustomer(customerId: String, nowEpochMillis: Long): Result<Int> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val expirableEntries = rpq.getActiveExpirablePointsByCustomer(customerId, nowEpochMillis).executeAsList()
+                if (expirableEntries.isEmpty()) return@runCatching 0
+                var runningBalance = rpq.getPointsBalanceForCustomer(customerId).executeAsOne().toInt()
+                var totalExpired = 0
+                for (entry in expirableEntries) {
+                    val pts = entry.points.toInt()
+                    runningBalance -= pts
+                    rpq.insertRewardPoints(
+                        id = IdGenerator.newId(),
+                        customer_id = customerId,
+                        points = -pts.toLong(),
+                        balance_after = runningBalance.toLong(),
+                        type = "EXPIRED",
+                        reference_type = "MANUAL",
+                        reference_id = entry.id,
+                        note = "Points expired",
+                        expires_at = null,
+                        created_at = nowEpochMillis,
+                        sync_status = "PENDING",
+                    )
+                    totalExpired += pts
+                }
+                totalExpired
+            }.fold(
+                onSuccess = { Result.Success(it) },
+                onFailure = { t -> Result.Error(DatabaseException(t.message ?: "Expiry failed", cause = t)) },
+            )
+        }
 
     override fun getAllTiers(): Flow<List<LoyaltyTier>> =
         ltq.getAllLoyaltyTiers()

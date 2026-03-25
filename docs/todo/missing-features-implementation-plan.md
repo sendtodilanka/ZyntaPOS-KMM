@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-25 (INV-3: UnitManagementScreen modal wired; INV-6: bulk import auto column mapping + required field indicators; INV-7: batch product selection; fix(sync): WebSocketHubBroadcastTest flaky test fixed; G9: date picker dialogs + CSV export; G7: configurable daily sales target; G2: onboarding Step 4 tax setup + Step 5 receipt format; G1: ZyntaWarehouseDropdown; G20: color-only status indicators fixed; G17: BarcodeGeneratorDialog + BarcodeLabelPrintScreen audited; CRM: purchase history tab + customer merge dialog added to CustomerDetailScreen)
+**Last Updated:** 2026-03-25 (INV-3: UnitManagementScreen modal wired; INV-6: bulk import auto column mapping + required field indicators; INV-7: batch product selection; fix(sync): WebSocketHubBroadcastTest flaky test fixed; G9: date picker dialogs + CSV export; G7: configurable daily sales target; G2: onboarding Step 4 tax setup + Step 5 receipt format; G1: ZyntaWarehouseDropdown; G20: color-only status indicators fixed; G17: BarcodeGeneratorDialog + BarcodeLabelPrintScreen audited; CRM: purchase history tab + customer merge dialog added to CustomerDetailScreen; C6.2: sync conflict notification snackbar; ConsolidatedFinancialReportUseCase; CLICK_AND_COLLECT + FulfillmentStatus + FulfillmentRepository; C4.4 loyalty points expiry: ExpireLoyaltyPointsUseCase + impl + 7 tests)
 **Status:** Approved — Verified against codebase 2026-03-22, updated for ADR-009 compliance
 
 ---
@@ -1303,7 +1303,7 @@ Backend Tests:
 
 **What's REMAINING (deferred):**
 - [ ] Cross-store points earning/spending (ensure universal acceptance)
-- [ ] Points expiry policy (e.g., expire after 12 months inactive)
+- [x] Points expiry policy (e.g., expire after 12 months inactive) — ✅ DONE (2026-03-25): `getActiveExpirablePointsByCustomer` SQL query; `LoyaltyRepository.expirePointsForCustomer()` interface method; `LoyaltyRepositoryImpl.expirePointsForCustomer()` inserts negative EXPIRED ledger entries (append-only); `ExpireLoyaltyPointsUseCase`; registered in `customersModule`; 7 unit tests in `ExpireLoyaltyPointsUseCaseTest`
 - [x] KMM POS: "Apply Loyalty Points" button Compose UI in payment sheet — ✅ ALREADY DONE: `LoyaltyRedemptionDialog.kt` exists; `CartContent.kt` shows "Redeem Points" button when `loyaltyPointsBalance > 0`; `showLoyaltyRedemptionDialog` state toggles dialog (verified 2026-03-25)
 - [x] KMM: Customer loyalty summary screen — ✅ COVERED: `CustomerWalletScreen` shows `pointsBalance`, `rewardHistory` list, `currentLoyaltyTier` badge; `LoyaltyTierBadge` shown in CustomerDetailScreen TopAppBar (verified 2026-03-25)
 - [ ] Backend: `GET /v1/loyalty/summary` with POS JWT auth

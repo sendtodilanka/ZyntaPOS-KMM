@@ -146,6 +146,41 @@ class FakeLoyaltyRepository : LoyaltyRepository {
         _tiersFlow.value = tiers.toList()
         return Result.Success(Unit)
     }
+
+    override suspend fun expirePointsForCustomer(customerId: String, nowEpochMillis: Long): Result<Int> {
+        if (shouldFail) return Result.Error(DatabaseException("DB error"))
+        val toExpire = ledger.filter { entry ->
+            entry.customerId == customerId &&
+                entry.type == RewardPoints.PointsType.EARNED &&
+                entry.expiresAt != null &&
+                entry.expiresAt < nowEpochMillis &&
+                ledger.none { exp ->
+                    exp.customerId == customerId &&
+                        exp.type == RewardPoints.PointsType.EXPIRED &&
+                        exp.referenceId == entry.id
+                }
+        }
+        var currentBalance = pointsStore.getOrDefault(customerId, 0)
+        var totalExpired = 0
+        for (entry in toExpire) {
+            currentBalance -= entry.points
+            ledger.add(entry.copy(
+                id = "expired-${entry.id}",
+                points = -entry.points,
+                balanceAfter = currentBalance,
+                type = RewardPoints.PointsType.EXPIRED,
+                referenceId = entry.id,
+                expiresAt = null,
+                createdAt = nowEpochMillis,
+            ))
+            totalExpired += entry.points
+        }
+        if (totalExpired > 0) {
+            pointsStore[customerId] = currentBalance
+            _historyFlow.value = ledger.toList()
+        }
+        return Result.Success(totalExpired)
+    }
 }
 
 /**
