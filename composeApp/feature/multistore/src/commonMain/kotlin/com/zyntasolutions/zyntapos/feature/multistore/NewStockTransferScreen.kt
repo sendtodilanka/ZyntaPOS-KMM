@@ -30,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.zyntasolutions.zyntapos.designsystem.components.WarehouseOption
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaWarehouseDropdown
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
@@ -93,9 +94,10 @@ fun NewStockTransferScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // ── Source Warehouse Dropdown ─────────────────────────────────
+            val warehouseOptions = state.warehouses.map { WarehouseOption(it.id, it.name, it.address) }
             ZyntaWarehouseDropdown(
                 label = "Source Warehouse *",
-                warehouses = state.warehouses,
+                warehouses = warehouseOptions,
                 selectedId = form.sourceWarehouseId,
                 onSelect = { viewModel.dispatch(WarehouseIntent.UpdateTransferField("sourceWarehouseId", it)) },
                 modifier = Modifier.fillMaxWidth(),
@@ -106,7 +108,7 @@ fun NewStockTransferScreen(
             // ── Destination Warehouse Dropdown ───────────────────────────
             ZyntaWarehouseDropdown(
                 label = "Destination Warehouse *",
-                warehouses = state.warehouses,
+                warehouses = warehouseOptions,
                 selectedId = form.destWarehouseId,
                 onSelect = { viewModel.dispatch(WarehouseIntent.UpdateTransferField("destWarehouseId", it)) },
                 modifier = Modifier.fillMaxWidth(),

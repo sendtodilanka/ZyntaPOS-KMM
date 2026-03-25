@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.designsystem.components
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -15,7 +16,19 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import com.zyntasolutions.zyntapos.domain.model.Warehouse
+
+/**
+ * Lightweight warehouse option for use in [ZyntaWarehouseDropdown].
+ *
+ * @param id      Warehouse UUID.
+ * @param name    Display name (e.g. "Main Floor", "Back Storage").
+ * @param address Optional address hint shown below the name.
+ */
+data class WarehouseOption(
+    val id: String,
+    val name: String,
+    val address: String? = null,
+)
 
 /**
  * Warehouse selection dropdown for multi-warehouse inventory operations.
@@ -27,9 +40,9 @@ import com.zyntasolutions.zyntapos.domain.model.Warehouse
  * source or destination warehouse.
  *
  * @param label      Field label (e.g. "Source Warehouse", "Destination Warehouse").
- * @param warehouses The list of available [Warehouse]s to display.
- * @param selectedId The [Warehouse.id] of the currently selected warehouse.
- * @param onSelect   Callback with the [Warehouse.id] when the user picks an item.
+ * @param warehouses The list of available [WarehouseOption]s to display.
+ * @param selectedId The [WarehouseOption.id] of the currently selected warehouse.
+ * @param onSelect   Callback with the [WarehouseOption.id] when the user picks an item.
  * @param modifier   Optional [Modifier].
  * @param isError    When `true` the field is rendered in error state.
  * @param errorText  Supporting error message shown below the field.
@@ -38,7 +51,7 @@ import com.zyntasolutions.zyntapos.domain.model.Warehouse
 @Composable
 fun ZyntaWarehouseDropdown(
     label: String,
-    warehouses: List<Warehouse>,
+    warehouses: List<WarehouseOption>,
     selectedId: String,
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -62,7 +75,7 @@ fun ZyntaWarehouseDropdown(
             supportingText = errorText?.let { msg -> { Text(msg) } },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier
-                .fillParentMaxWidth()
+                .fillMaxWidth()
                 .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
             singleLine = true,
         )

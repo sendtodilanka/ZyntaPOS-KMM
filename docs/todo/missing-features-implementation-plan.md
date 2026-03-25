@@ -1776,7 +1776,7 @@ Backend Tests:
 
 ---
 
-### G1. Design System Missing Components (`:composeApp:designsystem`) — ~70% Complete
+### G1. Design System Missing Components (`:composeApp:designsystem`) — ✅ 100% Complete
 
 **Current:** 30 Zynta* components exist (Button, TextField, CurrencyText, ProductCard, NumericPad, StoreSelector, CurrencyPicker, TimezonePicker, TransferStatusBadge, etc.)
 
@@ -1795,7 +1795,7 @@ Backend Tests:
 | Component | Purpose | Priority | Blocks |
 |-----------|---------|----------|--------|
 | ~~`ZyntaLoyaltyBadge`~~ → ✅ DONE as `ZyntaLoyaltyTierBadge` (2026-03-24) | Customer loyalty tier indicator (Bronze/Silver/Gold/Platinum) | ~~**MEDIUM**~~ | ✅ DONE |
-| `ZyntaDateRangeSelector` | Two-date picker for report filters | **MEDIUM** | C5.1 Reports (partial — `ZyntaDateRangePicker` already exists) |
+| ~~`ZyntaDateRangeSelector`~~ → ✅ DONE as `ZyntaDateRangePicker` | Two-date picker with preset chips (Today/Week/Month/Custom) + calendar dialog; `DateRangePreset` enum; used in Reports module | ~~**MEDIUM**~~ | ✅ ALREADY EXISTED (verified 2026-03-25) |
 | ~~`ZyntaWarehouseDropdown`~~ → ✅ DONE (2026-03-25) | Warehouse context switcher — extracted from private `WarehouseDropdown` in `NewStockTransferScreen`; now a public design system component; call sites updated | ~~**MEDIUM**~~ | ✅ DONE (2026-03-25) |
 
 ---
@@ -2158,18 +2158,18 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 
 ---
 
-### G18. Navigation Route Gaps — Multistore & Inventory
+### G18. Navigation Route Gaps — Multistore & Inventory — ✅ Mostly Resolved
 
-**Missing routes in `ZyntaRoute.kt`** (discovered during G16/G17 audit):
+**Routes verified in `ZyntaRoute.kt` + `MainNavGraph.kt`** (verified 2026-03-25):
 
-| Missing Route | Referenced By | Fix |
-|---------------|---------------|-----|
-| `WarehouseRackList(warehouseId: String)` | `WarehouseDetailScreen` → navigate to racks | Add `@Serializable data class` in ZyntaRoute |
-| `WarehouseRackDetail(warehouseId: String, rackId: String?)` | `WarehouseRackListScreen` → navigate to rack detail | Add `@Serializable data class` in ZyntaRoute |
-| `CategoryDetail(categoryId: String?)` | `CategoryListScreen` → navigate to edit category | Add `@Serializable data class` in ZyntaRoute |
-| `SupplierDetail(supplierId: String?)` | `SupplierListScreen` → navigate to edit supplier | Add `@Serializable data class` in ZyntaRoute |
-| `TaxGroupList` / `TaxGroupDetail` | `InventoryIntent.OpenTaxGroupDetail` | Add routes + implement screens |
-| `UnitManagementList` / `UnitDetail` | `InventoryIntent.OpenUnitManagement` | Add routes + implement screens |
+| Route | Status |
+|-------|--------|
+| `WarehouseRackList(warehouseId: String)` | ✅ EXISTS in ZyntaRoute.kt + wired in MainNavGraph.kt:622 |
+| `WarehouseRackDetail(rackId: String?, warehouseId: String)` | ✅ EXISTS in ZyntaRoute.kt + wired in MainNavGraph.kt:631 |
+| `CategoryDetail(categoryId: String?)` | ✅ EXISTS in ZyntaRoute.kt + wired in MainNavGraph.kt:157 |
+| `SupplierDetail(supplierId: String?)` | ✅ EXISTS in ZyntaRoute.kt + wired in MainNavGraph.kt:172 |
+| `TaxGroupList` / `TaxGroupDetail` | ✅ TaxGroupScreen is a modal dialog, no route needed (INV-10 resolved) |
+| `UnitManagementList` / `UnitDetail` | ⚠️ Still needed — `InventoryIntent.OpenUnitManagement` dispatched but no route wired |
 
 **Existing routes confirmed working:**
 - `WarehouseList`, `WarehouseDetail(warehouseId?)`, `StockTransferList`, `NewStockTransfer(sourceWarehouseId?)`
