@@ -24,6 +24,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.crm.CalculateLoyaltyDiscountUs
 import com.zyntasolutions.zyntapos.domain.usecase.crm.EarnRewardPointsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.RedeemRewardPointsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.AddItemToCartUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.pos.LookupOrderForReturnUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.PrintA4TaxInvoiceUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.ReprintLastReceiptUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.ApplyItemDiscountUseCase
@@ -143,6 +144,7 @@ class PosViewModel(
     private val postSaleJournalEntryUseCase: PostSaleJournalEntryUseCase,
     private val reprintLastReceiptUseCase: ReprintLastReceiptUseCase,
     private val printA4TaxInvoiceUseCase: PrintA4TaxInvoiceUseCase,
+    private val lookupOrderForReturnUseCase: LookupOrderForReturnUseCase,
     private val auditLogger: SecurityAuditLogger,
     private val analytics: AnalyticsTracker,
 ) : BaseViewModel<PosState, PosIntent, PosEffect>(PosState()) {
@@ -280,6 +282,11 @@ class PosViewModel(
             // ── Context-aware barcode scans ─────────────────────────────────
             is PosIntent.ScanReceiptBarcode -> onScanReceiptBarcode(intent.barcode)
             is PosIntent.ScanLoyaltyCard    -> onScanLoyaltyCard(intent.barcode)
+
+            is PosIntent.ShowReturnLookupDialog  -> updateState { copy(showReturnLookupDialog = true, returnLookupQuery = "", returnLookupError = null) }
+            is PosIntent.DismissReturnLookupDialog -> updateState { copy(showReturnLookupDialog = false, returnLookupQuery = "", returnLookupError = null) }
+            is PosIntent.SetReturnLookupQuery    -> updateState { copy(returnLookupQuery = intent.query, returnLookupError = null) }
+            is PosIntent.LookupOrderForReturn    -> onLookupOrderForReturn()
             is PosIntent.ScanCoupon         -> {
                 updateState { copy(couponCode = intent.barcode, couponError = null) }
                 onValidateCoupon()
@@ -826,6 +833,25 @@ class PosViewModel(
             is Result.Success -> onSelectCustomer(PosIntent.SelectCustomer(result.data))
             is Result.Error   -> sendEffect(PosEffect.ShowError("Loyalty card not found: $barcode"))
             is Result.Loading -> Unit
+        }
+    }
+
+    private suspend fun onLookupOrderForReturn() {
+        val query = currentState.returnLookupQuery.trim()
+        if (query.isBlank()) {
+            updateState { copy(returnLookupError = "Enter an order ID or receipt number") }
+            return
+        }
+        updateState { copy(isReturnLookupLoading = true, returnLookupError = null) }
+        when (val result = lookupOrderForReturnUseCase(query)) {
+            is Result.Success -> {
+                updateState { copy(showReturnLookupDialog = false, returnLookupQuery = "", isReturnLookupLoading = false) }
+                sendEffect(PosEffect.NavigateToRefund(result.data.id))
+            }
+            is Result.Error -> {
+                updateState { copy(isReturnLookupLoading = false, returnLookupError = result.exception.message ?: "Order not found") }
+            }
+            is Result.Loading -> updateState { copy(isReturnLookupLoading = false) }
         }
     }
 }

@@ -130,6 +130,15 @@ data class PosState(
     val currentReceiptOrder: Order? = null,
     val isPrinting: Boolean = false,
     val printError: String? = null,
+    // ── Return / Lookup ───────────────────────────────────────────────────────
+    /** `true` when the manual return lookup dialog is visible. */
+    val showReturnLookupDialog: Boolean = false,
+    /** Live text in the return lookup order ID / receipt number field. */
+    val returnLookupQuery: String = "",
+    /** Non-null when the last lookup attempt failed; cleared when query changes. */
+    val returnLookupError: String? = null,
+    /** `true` while [LookupOrderForReturnUseCase] is running. */
+    val isReturnLookupLoading: Boolean = false,
     // ── Reprint / A4 Invoice / Email ──────────────────────────────────────────
     /** `true` while a reprint job for a past order is in-flight. */
     val isReprintingReceipt: Boolean = false,

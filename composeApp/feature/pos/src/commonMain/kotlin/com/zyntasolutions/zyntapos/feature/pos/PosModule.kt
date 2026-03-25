@@ -4,6 +4,7 @@ import com.zyntasolutions.zyntapos.domain.formatter.ReceiptFormatter
 import com.zyntasolutions.zyntapos.domain.printer.A4InvoicePrinterPort
 import com.zyntasolutions.zyntapos.domain.printer.ReceiptPrinterPort
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.PostSaleJournalEntryUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.pos.LookupOrderForReturnUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.PrintA4TaxInvoiceUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.ReprintLastReceiptUseCase
 import com.zyntasolutions.zyntapos.feature.pos.printer.A4InvoicePrinterAdapter
@@ -192,6 +193,9 @@ val posModule = module {
         A4InvoicePrinterAdapter(delegate = get())
     }
 
+    /** Looks up a completed SALE order by ID/receipt number for return processing (C4.1). */
+    factory { LookupOrderForReturnUseCase(orderRepository = get()) }
+
     /** Reprints a past order's thermal receipt. */
     factory {
         ReprintLastReceiptUseCase(
@@ -242,6 +246,7 @@ val posModule = module {
             postSaleJournalEntryUseCase = get(),
             reprintLastReceiptUseCase = get(),
             printA4TaxInvoiceUseCase = get(),
+            lookupOrderForReturnUseCase = get(),
             auditLogger = get(),
             analytics = get(),
         )

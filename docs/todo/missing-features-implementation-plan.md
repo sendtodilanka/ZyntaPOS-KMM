@@ -1259,7 +1259,7 @@ Backend Tests:
 **What's REMAINING (deferred):**
 - [ ] Cross-store inventory adjustment (return stock to original or current store?)
 - [ ] Business rule: Configurable policy — stock goes to return store vs original store
-- [ ] KMM POS: Lookup order by ID/receipt from any store for return processing (UI)
+- [x] KMM POS: Lookup order by ID/receipt from any store for return processing (UI)
 - [ ] Backend: Cross-store order lookup endpoint under `/v1/orders` with POS JWT auth
 - [ ] Sync: Refund propagation to original store for accounting
 
