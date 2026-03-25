@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-25 (INV-3: UnitManagementScreen modal wired; INV-6: bulk import auto column mapping + required field indicators; INV-7: batch product selection; fix(sync): WebSocketHubBroadcastTest flaky test fixed; G9: date picker dialogs + CSV export; G7: configurable daily sales target; G2: onboarding Step 4 tax setup + Step 5 receipt format; G1: ZyntaWarehouseDropdown; G20: color-only status indicators fixed; G17: BarcodeGeneratorDialog + BarcodeLabelPrintScreen audited; CRM: purchase history tab + customer merge dialog added to CustomerDetailScreen; C6.2: sync conflict notification snackbar; ConsolidatedFinancialReportUseCase; CLICK_AND_COLLECT + FulfillmentStatus + FulfillmentRepository; C4.4 loyalty points expiry: ExpireLoyaltyPointsUseCase + impl + 7 tests; C5.2 store comparison CSV export: ReportExporter.exportStoreComparisonCsv() + JVM/Android impls + ExportStoreComparisonCsv intent + FileDownload button; C4.3 GDPR save-to-file/share: exportGdprJson() + JVM/Android impls + Save/Share button in GDPR dialog; D1 IRD submission retry: EInvoiceRepositoryImpl 3-attempt exponential backoff; C6.1 custom merge value input in ConflictDetailDialog + OutlinedTextField + Use Custom Value button)
+**Last Updated:** 2026-03-25 (C5.4: SyncStatusPort.onSyncComplete + DashboardViewModel 30s auto-refresh + backend Redis dashboard:update publish + RedisPubSubListener WsDashboardUpdate; C4.4: fulfillment_orders migration 19 + SQLDelight queries + FulfillmentRepositoryImpl + FulfillmentQueueScreen + FulfillmentViewModel + ZyntaRoute.FulfillmentQueue; G15: expect/actual rememberNativeFilePicker Android+JVM + Browse button in MediaLibraryScreen; fix: FulfillmentOrder import path in FulfillmentRepositoryImpl)
 **Status:** Approved — Verified against codebase 2026-03-22, updated for ADR-009 compliance
 
 ---
@@ -1382,28 +1382,32 @@ Backend Tests:
 ### C4.4 Click & Collect / BOPIS (අන්තර්ජාල ඇණවුම් + ශාඛා භාරගැනීම)
 
 **Priority:** PHASE-3
-**Status:** NOT IMPLEMENTED
+**Status:** ✅ CORE KMM IMPLEMENTED (2026-03-25) — SQLDelight table + repo + POS queue screen
 
-**Codebase State:**
-- `OrderType` enum has `SALE, REFUND, HOLD` — no `CLICK_AND_COLLECT`
-- `OrderStatus` has `IN_PROGRESS, COMPLETED, VOIDED, HELD` — no fulfillment statuses
-- No pickup location, fulfillment workflow, or online ordering system
-- Zero references to "pickup", "bopis", "fulfillment" in codebase
+**Codebase State (2026-03-25):**
+- `OrderType.CLICK_AND_COLLECT` — added with full KDoc
+- `FulfillmentStatus` enum — `RECEIVED, PREPARING, READY_FOR_PICKUP, PICKED_UP, EXPIRED, CANCELLED`
+- `FulfillmentOrder` domain model + `FulfillmentRepository` interface (in `shared/domain`)
+- `FulfillmentRepositoryImpl` backed by SQLDelight (in `shared/data`)
+- Migration 19: `fulfillment_orders` table + 4 indexes
+- `fulfillment_orders.sq`: getPendingPickups, getByOrderId, insert, updateStatus, expireOverdueOrders, countExpired
+- Koin DI: `FulfillmentRepository → FulfillmentRepositoryImpl` in `DataModule`
+- `FulfillmentViewModel` (MVI): observes live queue, handles all status transitions
+- `FulfillmentQueueScreen`: LazyColumn of pickup cards, status badges, deadline color coding
+- `ZyntaRoute.FulfillmentQueue` + nav graph registration + App.kt wiring
 
-**What's DONE (2026-03-25):**
-- [x] Add `CLICK_AND_COLLECT` to `OrderType` enum — ✅ DONE: `OrderType.CLICK_AND_COLLECT` added with full KDoc
-- [x] Add fulfillment statuses: `RECEIVED, PREPARING, READY_FOR_PICKUP, PICKED_UP, EXPIRED` — ✅ DONE: New `FulfillmentStatus` enum in `shared/domain` (separate from `OrderStatus` to avoid breaking existing exhaustive when expressions); includes `CANCELLED` too
+**What WAS MISSING (now DONE 2026-03-25):**
+- [x] `fulfillment_orders` SQLDelight table + migration 19
+- [x] `FulfillmentRepository` interface + `FulfillmentRepositoryImpl`
+- [x] KMM POS: Fulfillment queue screen (list of pending pickups by status)
+- [x] KMM POS: Mark order as Preparing / Ready / Picked Up / Cancelled
 
-**What's MISSING:**
-- [ ] `fulfillment_orders` SQLDelight table (order_id, pickup_store_id, pickup_date, status, customer_notified)
+**Remaining (deferred — needs external integration):**
 - [ ] Online ordering API (or integration with external ordering platform)
 - [ ] Push notification to customer: "Your order is ready for pickup"
 - [ ] Push notification to store: "New pickup order received"
-- [x] `FulfillmentRepository` interface + impl — ✅ DONE (2026-03-25): `FulfillmentRepository` interface + `FulfillmentOrder` domain model in `shared/domain`; `expireOverdueOrders` for timeout; impl deferred (needs SQLDelight table)
-- [ ] KMM POS: Fulfillment queue screen (list of pending pickups)
-- [ ] KMM POS: Mark order as ready/picked-up
-- [ ] Backend: Fulfillment endpoints
-- [ ] Timeout: Auto-cancel if not picked up within X hours
+- [ ] Backend: REST Fulfillment endpoints (`GET /v1/fulfillment`, `PATCH /v1/fulfillment/{orderId}/status`)
+- [ ] Timeout: Auto-cancel cron (expireOverdueOrders query already implemented in SQLDelight)
 
 ---
 
@@ -1521,20 +1525,25 @@ Backend Tests:
 ### C5.4 Real-time Dashboard (සජීවී පාලක පුවරුව)
 
 **Priority:** PHASE-2
-**Status:** PARTIAL — REST polling, no WebSocket push
+**Status:** ✅ CORE IMPLEMENTED (2026-03-25) — KMM auto-refresh via SyncStatusPort + Redis pub/sub push path
 
 **Codebase State:**
 - `DashboardViewModel.kt` — loads KPIs (revenue, orders, AOV, hourly sparkline, weekly chart)
 - Backend: `GET /admin/metrics/dashboard`, `GET /admin/metrics/sales`
 - Backend sync: `WebSocketHub.kt` — per-store WebSocket connections exist for sync
 - Backend: `SyncMetrics.kt` — real-time counters (ops accepted/rejected, P95 latency)
-- No WebSocket channel for dashboard KPI streaming
 
-**What's MISSING:**
-- [ ] WebSocket channel: `ws://sync/dashboard/{storeId}` — push KPI updates on new orders
-- [ ] Backend: Publish dashboard events to Redis when order completes
-- [ ] `RedisPubSubListener` — subscribe to `dashboard:update:{storeId}` topic
-- [ ] KMM: `DashboardViewModel` connect to WebSocket for live updates
+**What WAS MISSING (now DONE 2026-03-25):**
+- [x] Backend: Publish `dashboard:update:{storeId}` Redis event on ORDER/REGISTER_SESSION/CASH_MOVEMENT sync
+  → `SyncProcessor.publishDashboardUpdate()` added, triggers when affected entity types include order/cash data
+- [x] `RedisPubSubListener` — subscribe to `dashboard:update:*` pattern and broadcast `WsDashboardUpdate`
+  → Broadcasts to ALL devices in store (no sender exclusion — dashboard clients don't push)
+- [x] KMM: `DashboardViewModel` connects to `SyncStatusPort.onSyncComplete` SharedFlow for silent refresh
+  → `Refresh` intent + `isRefreshing`/`lastRefreshedAt` state; 30s periodic fallback timer
+- [x] `SyncStatusPort.onSyncComplete: SharedFlow<Unit>` — emitted by `SyncStatusAdapter` on every sync cycle
+- [x] `WsDashboardUpdate` + `DashboardUpdateNotification` WebSocket message types added
+
+**Remaining (out of scope / deferred):**
 - [ ] Admin panel: WebSocket connection for live store metrics (read-only monitoring — ADR-009 compliant)
 - [ ] SLA alerting: Notify admin when revenue drops below expected or sync queue grows
 
@@ -2249,10 +2258,10 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 - [x] Add store selector to login screen — ✅ DONE (G4, 2026-03-23: `ZyntaStoreSelector` in `LoginScreen`, `AuthState.availableStores` + `selectedStoreId`, `AuthViewModel.loadAvailableStores()` via `StoreRepository`)
 - [x] Add onboarding steps for currency + timezone — ✅ Step 3 added (2026-03-21)
 - [x] Implement loyalty points redemption at POS checkout — ✅ DONE (2026-03-23): `LoyaltyRedemptionDialog` + `CartSummaryFooter` loyalty discount line
-- [ ] Implement WebSocket auto-refresh for Dashboard + Reports
+- [x] Implement WebSocket auto-refresh for Dashboard + Reports — ✅ DONE (2026-03-25): SyncStatusPort.onSyncComplete + 30s periodic fallback; backend Redis pub/sub push path for dashboard updates
 - [x] Populate financial statements with real GL data — ✅ VERIFIED DONE: `FinancialStatementRepositoryImpl.kt` (411 LOC) fully implemented with P&L, Balance Sheet, Trial Balance, Cash Flow from GL (verified G9 2026-03-25)
 - [x] Add BOGO + category rules to coupon detail form — ✅ DONE (G12, 2026-03-23)
-- [ ] Add native file picker to Media module
+- [x] Add native file picker to Media module — ✅ DONE (2026-03-25): expect/actual `rememberNativeFilePicker`; Android: ActivityResultContracts.GetContent; JVM: JFileChooser on IO thread; Browse button in AddMediaDialog
 - [x] Add GDPR Export button to customer detail — ✅ DONE (2026-03-23): Button existed; effect wired in App.kt with selectable JSON dialog
 - [x] Add date picker dialogs (replace manual text entry) — ✅ DONE in CouponDetailScreen (G12, 2026-03-23)
 - [x] Add transfer status badge to stock transfer list — ✅ `ZyntaTransferStatusBadge` created (2026-03-21), integration pending
@@ -2579,12 +2588,12 @@ git push -u origin $(git branch --show-current)
 | Cross-Store Returns | C4.1 | ✅ CORE IMPLEMENTED (order fields + use cases + 11 tests; 2026-03-23) |
 | Universal Loyalty | C4.2 | ✅ POS CHECKOUT INTEGRATED (earn + redeem via LoyaltyRedemptionDialog + discount in CartSummaryFooter + tier progression + 25 tests; 2026-03-23) |
 | Centralized Customers | C4.3 | ✅ CORE IMPLEMENTED (global search, merge, GDPR export, purchase history; 2026-03-23) |
-| Click & Collect (BOPIS) | C4.4 | NOT IMPLEMENTED |
+| Click & Collect (BOPIS) | C4.4 | ✅ CORE KMM IMPLEMENTED (2026-03-25) |
 | **5. Reporting & Analytics** | | |
 | Consolidated Financial | C5.1 | ✅ CORE IMPLEMENTED (single-store P&L/BS/TB/CF fully functional; multi-store deferred) |
 | Store Comparison | C5.2 | ✅ CORE IMPLEMENTED (KMM ranked report screen + backend; 2026-03-23) |
 | Store Audit Logs | C5.3 | COMPLETE |
-| Real-time Dashboard | C5.4 | PARTIAL (REST only) |
+| Real-time Dashboard | C5.4 | ✅ CORE IMPLEMENTED (2026-03-25) |
 | **6. Sync & Offline** | | |
 | Multi-node Sync | C6.1 | ✅ COMPLETE (LWW CRDT + APPEND_ONLY for stock, priority sync, multi-store isolation, GZIP compression, queue maintenance, conflict resolution UI — all 6 items done 2026-03-19) |
 | Offline-First | C6.2 | ✅ COMPLETE (sync scheduling wired, network monitoring active, UI indicator in drawer with live pending count badge; 2026-03-24) |
