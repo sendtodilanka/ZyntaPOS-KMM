@@ -347,10 +347,10 @@ class CouponRepositoryImpl(
             if (it is kotlinx.serialization.json.JsonPrimitive) it.content
             else it.toString()
         } ?: "{}"
-        val validFrom   = json["valid_from"]?.jsonPrimitive?.longOrNull ?: 0L
-        val validTo     = json["valid_to"]?.jsonPrimitive?.longOrNull ?: Long.MAX_VALUE
-        val priority    = json["priority"]?.jsonPrimitive?.intOrNull ?: 0
-        val isActive    = json["is_active"]?.jsonPrimitive?.booleanOrNull ?: true
+        val validFrom   = json["valid_from"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
+        val validTo     = json["valid_to"]?.jsonPrimitive?.content?.toLongOrNull() ?: Long.MAX_VALUE
+        val priority    = json["priority"]?.jsonPrimitive?.content?.toIntOrNull() ?: 0
+        val isActive    = json["is_active"]?.jsonPrimitive?.content?.toBooleanStrictOrNull() ?: true
         val storeIds    = json["store_ids"]?.toString() ?: "[]"
         val now         = Clock.System.now().toEpochMilliseconds()
 
