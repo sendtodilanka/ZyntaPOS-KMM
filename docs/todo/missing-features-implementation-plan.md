@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-25 (INV-3: UnitManagementScreen modal wired; INV-6: bulk import auto column mapping + required field indicators; INV-7: batch product selection; fix(sync): WebSocketHubBroadcastTest flaky test fixed; G9: date picker dialogs + CSV export; G7: configurable daily sales target; G2: onboarding Step 4 tax setup + Step 5 receipt format; G1: ZyntaWarehouseDropdown; G20: color-only status indicators fixed — icons added to StockBadge, EInvoiceStatusChip, InvoiceStatusBadge, PurchaseOrderCard; G17: BarcodeGeneratorDialog + BarcodeLabelPrintScreen audited — both complete)
+**Last Updated:** 2026-03-25 (INV-3: UnitManagementScreen modal wired; INV-6: bulk import auto column mapping + required field indicators; INV-7: batch product selection; fix(sync): WebSocketHubBroadcastTest flaky test fixed; G9: date picker dialogs + CSV export; G7: configurable daily sales target; G2: onboarding Step 4 tax setup + Step 5 receipt format; G1: ZyntaWarehouseDropdown; G20: color-only status indicators fixed — icons added to StockBadge, EInvoiceStatusChip, InvoiceStatusBadge, PurchaseOrderCard; G17: BarcodeGeneratorDialog + BarcodeLabelPrintScreen audited — both complete; CRM: purchase history tab added to CustomerDetailScreen)
 **Status:** Approved — Verified against codebase 2026-03-22, updated for ADR-009 compliance
 
 ---
@@ -1357,7 +1357,7 @@ Backend Tests:
 - [ ] Admin panel: Global customer directory with store filter (read-only monitoring per ADR-009)
 - [ ] KMM: Customer merge UI (select two customers → confirm merge dialog)
 - [ ] KMM: GDPR export save-to-file / share dialog
-- [ ] KMM: Purchase history tab in customer detail screen
+- [x] KMM: Purchase history tab in customer detail screen — ✅ DONE (2026-03-25): TabRow added to CustomerDetailScreen (Profile | History tabs); History tab dispatches `LoadPurchaseHistory` on selection; `PurchaseHistoryRow` shows order number, total, item count, date, status color; empty state with ShoppingBag icon
 
 ---
 
