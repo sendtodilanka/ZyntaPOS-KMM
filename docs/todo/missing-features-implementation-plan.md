@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-25 (INV-3: UnitManagementScreen modal wired; INV-7: batch product selection; fix(sync): WebSocketHubBroadcastTest flaky test fixed; G9: date picker dialogs + CSV export; G7: configurable daily sales target; G2: onboarding Step 4 tax setup; G1: ZyntaWarehouseDropdown)
+**Last Updated:** 2026-03-25 (INV-3: UnitManagementScreen modal wired; INV-6: bulk import auto column mapping + required field indicators; INV-7: batch product selection; fix(sync): WebSocketHubBroadcastTest flaky test fixed; G9: date picker dialogs + CSV export; G7: configurable daily sales target; G2: onboarding Step 4 tax setup; G1: ZyntaWarehouseDropdown)
 **Status:** Approved — Verified against codebase 2026-03-22, updated for ADR-009 compliance
 
 ---
@@ -1679,7 +1679,7 @@ Backend Tests:
 - [ ] IRD-specific XML invoice format (currently JSON — needs verification against actual IRD spec)
 - [ ] Submission retry on transient network failure (the repository currently makes one attempt; no retry loop)
 - [ ] Tax calculation verification against IRD official tax rules (requires IRD sandbox testing)
-- [ ] E-Invoice UI: no IRD submission button visible in `EInvoiceDetailScreen` (wiring to use case pending)
+- [x] E-Invoice UI: IRD submission button — ✅ VERIFIED DONE: `EInvoiceDetailScreen` has "Submit to IRD" button for DRAFT/REJECTED, `EInvoiceIntent.SubmitToIrd(id)` dispatched, `EInvoiceViewModel.onSubmitToIrd()` calls `SubmitEInvoiceToIrdUseCase`, `isSubmitting` state shown as loading indicator (verified 2026-03-25)
 
 ---
 
@@ -1690,11 +1690,13 @@ Backend Tests:
 
 **EXISTS:** `attendance_records.sq`, `shift_schedules.sq`, `leave_records` (SQLDelight), `employees.sq`, `payroll_records` table
 
-**MISSING:**
-- [ ] Payroll calculation engine (salary, overtime, deductions)
-- [ ] Leave management workflow (request → approve → track)
-- [ ] KMM UI: Staff module screens (currently scaffold)
-- [ ] Cross-store attendance/shifts (see C3.4)
+**EXISTS (verified 2026-03-25):**
+- [x] KMM UI: Staff module screens — ✅ VERIFIED: `EmployeeListScreen.kt`, `EmployeeDetailScreen.kt`, `AttendanceScreen.kt`, `ShiftSchedulerScreen.kt`, `LeaveManagementScreen.kt`, `PayrollScreen.kt` + `StaffViewModel.kt` (675L) — 3,006 LOC total, fully implemented
+
+**REMAINING (Phase 3):**
+- [ ] Payroll calculation engine (salary, overtime, deductions) — Phase 3
+- [ ] Leave management workflow (request → approve → track) — Phase 3
+- [ ] Cross-store attendance/shifts (see C3.4) — Phase 3
 
 ---
 
@@ -1705,11 +1707,13 @@ Backend Tests:
 
 **EXISTS:** `expenses` SQLDelight table, `journal_entries` + `chart_of_accounts` tables
 
-**MISSING:**
-- [ ] Expense log CRUD UI
-- [ ] Receipt image attachment
-- [ ] P&L integration (connect expenses to financial statements)
-- [ ] Budget tracking per store/category
+**EXISTS (verified 2026-03-25):**
+- [x] Expense log CRUD UI — ✅ VERIFIED: `ExpenseListScreen.kt` (182L) + `ExpenseDetailScreen.kt` (185L) + `ExpenseViewModel.kt` (350L) + `ExpenseCategoryListScreen.kt` fully implemented with CRUD, status workflow, category management (1,066 LOC total)
+
+**REMAINING (Phase 3):**
+- [ ] Receipt image attachment — Phase 3
+- [ ] P&L integration (connect expenses to financial statements) — Phase 3
+- [ ] Budget tracking per store/category — Phase 3
 
 ---
 
@@ -1746,19 +1750,19 @@ Backend Tests:
 
 ### E1. CI Pipeline Enhancements
 
-- [ ] OWASP dependency-check Gradle plugin
+- [x] OWASP dependency-check Gradle plugin — ✅ VERIFIED: `security-scan-backend` job in `ci-pr-gate.yml` runs OWASP dependency check on all 3 backend services in parallel
 - [x] Snyk security scan — `sec-snyk-import.yml` + `sec-backend-scan.yml` (completed 2026-03-21)
-- [ ] Test coverage threshold (fail if < 60%)
-- [ ] Playwright E2E tests for admin panel
-- [ ] `google-services.json` decode step
+- [x] Test coverage threshold — ✅ VERIFIED: `koverVerify` with 95% threshold in `ci-pr-gate.yml` (line 146-148)
+- [x] Playwright E2E tests for admin panel — ✅ VERIFIED: `ci-pr-gate.yml` runs `e2e/navigation.spec.ts`, `e2e/accessibility.spec.ts`, `e2e/smoke.spec.ts` via Playwright
+- [x] `google-services.json` decode step — ✅ VERIFIED: `_reusable-build-test.yml` injects `GOOGLE_SERVICES_JSON` secret into `androidApp/google-services.json` before build
 
 ### E2. Deployment Enhancements
 
-- [ ] Admin panel static deploy to Caddy
-- [ ] API docs site deployment
-- [ ] DB migration dry-run before deploy
-- [ ] Blue-green deployment
-- [ ] Automated backup before deploy
+- [x] Admin panel static deploy to Caddy — ✅ VERIFIED: `panel.zyntapos.com` → `admin-panel:3000` in Caddyfile; built as Docker image in `ci-pr-gate.yml`, deployed in `cd-deploy.yml`
+- [x] API docs site deployment — ✅ VERIFIED: `docs.zyntapos.com` deployed to Cloudflare Pages via `cd-docs.yml`; `cd-deploy.yml` deploys `zyntapos-docs` container
+- [ ] DB migration dry-run before deploy — Phase 2
+- [ ] Blue-green deployment — Phase 3
+- [ ] Automated backup before deploy — Phase 2
 
 ---
 
@@ -2126,7 +2130,7 @@ Backend Tests:
 | INV-3 | ~~**Missing Screen Route Definitions**~~ — ✅ DONE (2026-03-25): `CategoryDetail` and `SupplierDetail` routes verified in `ZyntaRoute.kt` + `MainNavGraph.kt`; `TaxGroupScreen` is a modal dialog (no route needed, INV-10); `UnitManagementScreen` wired as AlertDialog in `ProductDetailScreen` with "Manage" TextButton next to UnitDropdown; `OpenUnitManagement`/`CloseUnitManagement` intents handled in `InventoryViewModel` | ~~HIGH~~ | ✅ DONE |
 | INV-4 | ~~**Product Image Preview Missing**~~ — ✅ ALREADY DONE: `ProductDetailScreen` has Coil `AsyncImage` preview below the imageUrl text field with loading spinner and error placeholder (INV-4 comment at line 430); `import coil3.compose.AsyncImage` at line 23 (verified 2026-03-25) | ~~MEDIUM~~ | ✅ DONE |
 | INV-5 | ~~**Supplier Purchase History Empty**~~ — ✅ DONE: `PurchaseOrderRepository.getBySupplierId()` called in `onOpenSupplierDetail()`, mapped to `PurchaseOrderSummary` with `DateTimeUtils.formatForDisplay()` | ~~MEDIUM~~ | ✅ DONE (2026-03-23) |
-| INV-6 | **Bulk Import Dialog Unaudited** — Column mapping UX unclear; may have usability issues | MEDIUM | Audit and refine `BulkImportDialog.kt` composable |
+| INV-6 | ~~**Bulk Import Dialog Unaudited**~~ — ✅ DONE (2026-03-25): Auto column mapping in `onSetImportFile()` detects common CSV headers (name/barcode/sku/price/cost/stock/category/unit/description variants); ColumnMappingStep shows missing required fields (name, price, categoryId, unitId) as error text in header; dropdown marks required options with `*` asterisk | ~~MEDIUM~~ | ✅ DONE |
 | INV-7 | ~~**No Batch Product Selection**~~ — ✅ DONE (2026-03-25): Multi-select mode with `isSelectionMode`/`selectedProductIds` in `InventoryState`; `EnterSelectionMode`, `ExitSelectionMode`, `ToggleProductSelection`, `SelectAllProducts`, `BatchDeleteSelectedProducts` intents; `BatchActionToolbar` shown when in selection mode (count, Select All, Delete, Cancel); "Select" icon in filter row; checkbox column in `ProductTableView`; `ZyntaProductCard` supports `isSelected` with primaryContainer tint + check icon overlay | ~~MEDIUM~~ | ✅ DONE |
 | INV-8 | ~~**No Search Result Count**~~ — ✅ ALREADY EXISTS: Lines 123-131 show "X product(s) found" when any filter active | ~~LOW~~ | ✅ Verified (2026-03-23) |
 | INV-9 | ~~**No Unsaved Changes Warning**~~ — ✅ ALREADY EXISTS: Lines 61-84 track `isDirty` state + discard dialog on back | ~~LOW~~ | ✅ Verified (2026-03-23) |
@@ -2169,7 +2173,7 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 | `CategoryDetail(categoryId: String?)` | ✅ EXISTS in ZyntaRoute.kt + wired in MainNavGraph.kt:157 |
 | `SupplierDetail(supplierId: String?)` | ✅ EXISTS in ZyntaRoute.kt + wired in MainNavGraph.kt:172 |
 | `TaxGroupList` / `TaxGroupDetail` | ✅ TaxGroupScreen is a modal dialog, no route needed (INV-10 resolved) |
-| `UnitManagementList` / `UnitDetail` | ⚠️ Still needed — `InventoryIntent.OpenUnitManagement` dispatched but no route wired |
+| `UnitManagementList` / `UnitDetail` | ✅ Resolved as modal dialog (INV-3/INV-10 pattern — AlertDialog in ProductDetailScreen, no route needed) |
 
 **Existing routes confirmed working:**
 - `WarehouseList`, `WarehouseDetail(warehouseId?)`, `StockTransferList`, `NewStockTransfer(sourceWarehouseId?)`
@@ -2221,7 +2225,7 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 - [x] Add onboarding steps for currency + timezone — ✅ Step 3 added (2026-03-21)
 - [x] Implement loyalty points redemption at POS checkout — ✅ DONE (2026-03-23): `LoyaltyRedemptionDialog` + `CartSummaryFooter` loyalty discount line
 - [ ] Implement WebSocket auto-refresh for Dashboard + Reports
-- [ ] Populate financial statements with real GL data
+- [x] Populate financial statements with real GL data — ✅ VERIFIED DONE: `FinancialStatementRepositoryImpl.kt` (411 LOC) fully implemented with P&L, Balance Sheet, Trial Balance, Cash Flow from GL (verified G9 2026-03-25)
 - [x] Add BOGO + category rules to coupon detail form — ✅ DONE (G12, 2026-03-23)
 - [ ] Add native file picker to Media module
 - [x] Add GDPR Export button to customer detail — ✅ DONE (2026-03-23): Button existed; effect wired in App.kt with selectable JSON dialog
