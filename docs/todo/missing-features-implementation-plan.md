@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-25 (C5.4: SyncStatusPort.onSyncComplete + DashboardViewModel 30s auto-refresh + backend Redis dashboard:update publish + RedisPubSubListener WsDashboardUpdate; C4.4: fulfillment_orders migration 19 + SQLDelight queries + FulfillmentRepositoryImpl + FulfillmentQueueScreen + FulfillmentViewModel + ZyntaRoute.FulfillmentQueue; G15: expect/actual rememberNativeFilePicker Android+JVM + Browse button in MediaLibraryScreen; fix: FulfillmentOrder import path in FulfillmentRepositoryImpl)
+**Last Updated:** 2026-03-25 (C5.4: SyncStatusPort.onSyncComplete + DashboardViewModel 30s auto-refresh + backend Redis dashboard:update publish + RedisPubSubListener WsDashboardUpdate; C4.4: fulfillment_orders migration 19 + SQLDelight queries + FulfillmentRepositoryImpl + FulfillmentQueueScreen + FulfillmentViewModel + ZyntaRoute.FulfillmentQueue; G15: expect/actual rememberNativeFilePicker Android+JVM + Browse button in MediaLibraryScreen; G6: ReportsViewModel SyncStatusPort.onSyncComplete + 30s auto-refresh; fixes: FulfillmentOrder import path, fulfillment_ordersQueries naming, DashboardViewModel viewModelScope import, FulfillmentViewModel updateState receiver + viewModelScope import, NativeFilePicker KDoc nested comment)
 **Status:** Approved — Verified against codebase 2026-03-22, updated for ADR-009 compliance
 
 ---
@@ -1909,7 +1909,7 @@ Backend Tests:
 
 | Gap | Severity | Phase |
 |-----|----------|-------|
-| **No real-time WebSocket updates** — Reports load once, never auto-refresh | CRITICAL | Phase 2 |
+| ~~**No real-time WebSocket updates**~~ — ✅ DONE (2026-03-25): `SyncStatusPort.onSyncComplete` subscription in `ReportsViewModel` silently reloads active report tabs after each sync cycle; 30s periodic fallback refresh; same pattern as DashboardViewModel (C5.4) | ~~CRITICAL~~ | ✅ DONE |
 | **No multi-store consolidation** — All reports single-store only | CRITICAL | Phase 2 |
 | **No store comparison charts** — No side-by-side performance | HIGH | Phase 2 |
 | ~~**PDF export buttons present but may be stubbed**~~ — ✅ VERIFIED DONE (2026-03-25): `JvmReportExporter.exportSalesPdf()` + `exportStockPdf()` use PDFBox to write plain-text PDF; `AndroidReportExporter` generates HTML-to-PDF via `PdfDocument`; all 4 report types have PDF export via `PdfBoxRenderer` | ~~HIGH~~ | ✅ DONE |
@@ -2258,7 +2258,7 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 - [x] Add store selector to login screen — ✅ DONE (G4, 2026-03-23: `ZyntaStoreSelector` in `LoginScreen`, `AuthState.availableStores` + `selectedStoreId`, `AuthViewModel.loadAvailableStores()` via `StoreRepository`)
 - [x] Add onboarding steps for currency + timezone — ✅ Step 3 added (2026-03-21)
 - [x] Implement loyalty points redemption at POS checkout — ✅ DONE (2026-03-23): `LoyaltyRedemptionDialog` + `CartSummaryFooter` loyalty discount line
-- [x] Implement WebSocket auto-refresh for Dashboard + Reports — ✅ DONE (2026-03-25): SyncStatusPort.onSyncComplete + 30s periodic fallback; backend Redis pub/sub push path for dashboard updates
+- [x] Implement WebSocket auto-refresh for Dashboard + Reports — ✅ DONE (2026-03-25): `DashboardViewModel` + `ReportsViewModel` both subscribe to `SyncStatusPort.onSyncComplete` and have 30s periodic fallback; backend Redis pub/sub `dashboard:update:*` push path
 - [x] Populate financial statements with real GL data — ✅ VERIFIED DONE: `FinancialStatementRepositoryImpl.kt` (411 LOC) fully implemented with P&L, Balance Sheet, Trial Balance, Cash Flow from GL (verified G9 2026-03-25)
 - [x] Add BOGO + category rules to coupon detail form — ✅ DONE (G12, 2026-03-23)
 - [x] Add native file picker to Media module — ✅ DONE (2026-03-25): expect/actual `rememberNativeFilePicker`; Android: ActivityResultContracts.GetContent; JVM: JFileChooser on IO thread; Browse button in AddMediaDialog
