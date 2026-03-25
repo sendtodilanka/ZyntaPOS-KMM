@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-25 (INV-3: UnitManagementScreen modal wired; INV-6: bulk import auto column mapping + required field indicators; INV-7: batch product selection; fix(sync): WebSocketHubBroadcastTest flaky test fixed; G9: date picker dialogs + CSV export; G7: configurable daily sales target; G2: onboarding Step 4 tax setup; G1: ZyntaWarehouseDropdown)
+**Last Updated:** 2026-03-25 (INV-3: UnitManagementScreen modal wired; INV-6: bulk import auto column mapping + required field indicators; INV-7: batch product selection; fix(sync): WebSocketHubBroadcastTest flaky test fixed; G9: date picker dialogs + CSV export; G7: configurable daily sales target; G2: onboarding Step 4 tax setup + Step 5 receipt format; G1: ZyntaWarehouseDropdown)
 **Status:** Approved — Verified against codebase 2026-03-22, updated for ADR-009 compliance
 
 ---
@@ -1815,7 +1815,7 @@ Backend Tests:
 - [x] **Step 4: Basic Tax Setup** — Optional 4th wizard step with tax group name, rate (0–100%), inclusive toggle; `TaxGroup` inserted via `TaxGroupRepository` on completion; "Skip Tax Setup" button bypasses without creating a group; `OnboardingState.Step.TAX_SETUP` added to enum; `OnboardingViewModel` handles `TaxGroupNameChanged`, `TaxRateChanged`, `TaxIsInclusiveChanged`, `SkipTaxSetup`; `TaxSetupStep` composable with `Switch` inclusive toggle and `Percent` icon; full ViewModel test coverage (12 new tests)
 
 **REMAINING:**
-- [ ] **Step 5: Receipt Format** — Optional printer/receipt configuration
+- [x] **Step 5: Receipt Format** — ✅ DONE (2026-03-25): Optional 5th wizard step; `receiptHeader`, `receiptFooter`, `receiptPaperWidthMm` (58/80mm FilterChip), `receiptAutoPrint` fields; `ReceiptFormatStep` composable; `SkipTaxSetup` now advances to RECEIPT_FORMAT; `SkipReceiptFormat` completes onboarding; `CompleteOnboarding` persists to `pos.receipt_header`, `pos.receipt_footer`, `printer.paper_width_mm`, `pos.auto_print_receipt`; 12 new ViewModel tests
 - [ ] Multi-store setup flow (Phase 2 — additional store creation)
 
 ---
