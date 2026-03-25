@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-25 (G9: date picker dialogs + CSV export; G7: configurable daily sales target; G2: onboarding Step 4 tax setup)
+**Last Updated:** 2026-03-25 (G9: date picker dialogs + CSV export; G7: configurable daily sales target; G2: onboarding Step 4 tax setup; G1: ZyntaWarehouseDropdown)
 **Status:** Approved — Verified against codebase 2026-03-22, updated for ADR-009 compliance
 
 ---
@@ -1796,7 +1796,7 @@ Backend Tests:
 |-----------|---------|----------|--------|
 | ~~`ZyntaLoyaltyBadge`~~ → ✅ DONE as `ZyntaLoyaltyTierBadge` (2026-03-24) | Customer loyalty tier indicator (Bronze/Silver/Gold/Platinum) | ~~**MEDIUM**~~ | ✅ DONE |
 | `ZyntaDateRangeSelector` | Two-date picker for report filters | **MEDIUM** | C5.1 Reports (partial — `ZyntaDateRangePicker` already exists) |
-| `ZyntaWarehouseDropdown` | Warehouse context switcher | **MEDIUM** | C1.2 Inventory (partial — private impl exists in multistore) |
+| ~~`ZyntaWarehouseDropdown`~~ → ✅ DONE (2026-03-25) | Warehouse context switcher — extracted from private `WarehouseDropdown` in `NewStockTransferScreen`; now a public design system component; call sites updated | ~~**MEDIUM**~~ | ✅ DONE (2026-03-25) |
 
 ---
 
