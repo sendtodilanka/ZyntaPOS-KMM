@@ -1,5 +1,8 @@
 package com.zyntasolutions.zyntapos.domain.usecase.accounting
 
+import com.zyntasolutions.zyntapos.core.result.Result
+import com.zyntasolutions.zyntapos.core.result.ValidationException
+import com.zyntasolutions.zyntapos.core.result.getOrNull
 import com.zyntasolutions.zyntapos.domain.model.FinancialStatement
 import com.zyntasolutions.zyntapos.domain.model.FinancialStatementLine
 import com.zyntasolutions.zyntapos.domain.repository.FinancialStatementRepository
@@ -23,7 +26,7 @@ class ConsolidatedFinancialReportUseCase(
      * @param storeIds List of store IDs to consolidate.
      * @param fromDate Start of the reporting window (ISO: YYYY-MM-DD).
      * @param toDate   End of the reporting window (ISO: YYYY-MM-DD).
-     * @return [Result] wrapping the consolidated [FinancialStatement.PAndL], or failure if
+     * @return [Result] wrapping the consolidated [FinancialStatement.PAndL], or [Result.Error] if
      *         no stores provided or all per-store fetches fail.
      */
     suspend operator fun invoke(
@@ -31,17 +34,21 @@ class ConsolidatedFinancialReportUseCase(
         fromDate: String,
         toDate: String,
     ): Result<FinancialStatement.PAndL> {
-        if (storeIds.isEmpty()) return Result.failure(IllegalArgumentException("No store IDs provided"))
+        if (storeIds.isEmpty()) {
+            return Result.Error(ValidationException("No store IDs provided", field = "storeIds", rule = "REQUIRED"))
+        }
 
-        val perStorePandL = storeIds.mapNotNull { storeId ->
+        val perStorePandL = mutableListOf<FinancialStatement.PAndL>()
+        for (storeId in storeIds) {
             financialStatementRepository.getProfitAndLoss(storeId, fromDate, toDate).getOrNull()
+                ?.let { perStorePandL.add(it) }
         }
 
         if (perStorePandL.isEmpty()) {
-            return Result.failure(IllegalStateException("No P&L data available for any store"))
+            return Result.Error(ValidationException("No P&L data available for any store", field = "storeIds", rule = "NO_DATA"))
         }
 
-        if (perStorePandL.size == 1) return Result.success(perStorePandL.first())
+        if (perStorePandL.size == 1) return Result.Success(perStorePandL.first())
 
         // Aggregate totals across stores
         val totalRevenue = perStorePandL.sumOf { it.totalRevenue }
@@ -67,7 +74,7 @@ class ConsolidatedFinancialReportUseCase(
             return byAccountId.values.toList()
         }
 
-        return Result.success(
+        return Result.Success(
             FinancialStatement.PAndL(
                 dateFrom = fromDate,
                 dateTo = toDate,
