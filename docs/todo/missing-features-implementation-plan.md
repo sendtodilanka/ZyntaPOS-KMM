@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-25 (G9: date picker dialogs + CSV export; G7: configurable daily sales target)
+**Last Updated:** 2026-03-25 (G9: date picker dialogs + CSV export; G7: configurable daily sales target; G2: onboarding Step 4 tax setup)
 **Status:** Approved — Verified against codebase 2026-03-22, updated for ADR-009 compliance
 
 ---
@@ -1800,15 +1800,17 @@ Backend Tests:
 
 ---
 
-### G2. Onboarding Gaps (`:composeApp:feature:onboarding`) — ~50% Complete
+### G2. Onboarding Gaps (`:composeApp:feature:onboarding`) — ~75% Complete
 
-**Current:** 3-step wizard (Business Name → Admin Account → Store Settings)
+**Current:** 4-step wizard (Business Name → Admin Account → Store Settings → Tax Setup)
 
 **Implemented (2026-03-21):**
 - [x] **Step 3: Currency & Timezone** — Uses `ZyntaCurrencyPicker` (9 currencies) + `ZyntaTimezonePicker` (21 timezones); persists to `general.currency` and `general.timezone` settings keys; ViewModel tests updated (Step 2→3 validation, currency/timezone persistence)
 
+**Implemented (2026-03-25):**
+- [x] **Step 4: Basic Tax Setup** — Optional 4th wizard step with tax group name, rate (0–100%), inclusive toggle; `TaxGroup` inserted via `TaxGroupRepository` on completion; "Skip Tax Setup" button bypasses without creating a group; `OnboardingState.Step.TAX_SETUP` added to enum; `OnboardingViewModel` handles `TaxGroupNameChanged`, `TaxRateChanged`, `TaxIsInclusiveChanged`, `SkipTaxSetup`; `TaxSetupStep` composable with `Switch` inclusive toggle and `Percent` icon; full ViewModel test coverage (12 new tests)
+
 **REMAINING:**
-- [ ] **Step 4: Basic Tax Setup** — Optional tax group configuration (can defer to Settings)
 - [ ] **Step 5: Receipt Format** — Optional printer/receipt configuration
 - [ ] Multi-store setup flow (Phase 2 — additional store creation)
 

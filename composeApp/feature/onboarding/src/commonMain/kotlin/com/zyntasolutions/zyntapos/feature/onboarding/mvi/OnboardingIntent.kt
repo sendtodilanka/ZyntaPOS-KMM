@@ -20,6 +20,13 @@ sealed interface OnboardingIntent {
     data class CurrencyChanged(val currencyCode: String) : OnboardingIntent
     data class TimezoneChanged(val timezoneId: String) : OnboardingIntent
 
+    // ── Step 4: Tax setup (optional) ────────────────────────────────────
+    data class TaxGroupNameChanged(val name: String) : OnboardingIntent
+    data class TaxRateChanged(val rate: String) : OnboardingIntent
+    data class TaxIsInclusiveChanged(val inclusive: Boolean) : OnboardingIntent
+    /** Skip the optional tax setup step and complete onboarding without a tax group. */
+    data object SkipTaxSetup : OnboardingIntent
+
     /** Complete the wizard — persists settings and creates the admin account. */
     data object CompleteOnboarding : OnboardingIntent
 

@@ -24,12 +24,14 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Percent
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -62,10 +64,11 @@ import org.koin.compose.viewmodel.koinViewModel
 /**
  * First-run onboarding wizard screen.
  *
- * Guides the operator through three steps:
+ * Guides the operator through four steps:
  * 1. **Business Info** — sets the store/business name.
  * 2. **Admin Account** — creates the first ADMIN user.
  * 3. **Store Settings** — selects currency and timezone.
+ * 4. **Tax Setup** — optionally creates a default tax group (can be skipped).
  *
  * Uses [ZyntaPageScaffold] for consistent top-bar design and [AnimatedContent]
  * for smooth step transitions. The wizard is shown only once on first launch;
@@ -137,6 +140,11 @@ fun OnboardingScreen(
                         onIntent = viewModel::dispatch,
                         modifier = Modifier.widthIn(max = 480.dp).fillMaxWidth(),
                     )
+                    OnboardingState.Step.TAX_SETUP -> TaxSetupStep(
+                        state = state,
+                        onIntent = viewModel::dispatch,
+                        modifier = Modifier.widthIn(max = 480.dp).fillMaxWidth(),
+                    )
                 }
             }
         }
@@ -168,6 +176,7 @@ private fun StepProgress(currentStep: OnboardingState.Step, modifier: Modifier =
                     OnboardingState.Step.BUSINESS_INFO -> "Business Info"
                     OnboardingState.Step.ADMIN_ACCOUNT -> "Admin Account"
                     OnboardingState.Step.STORE_SETTINGS -> "Store Settings"
+                    OnboardingState.Step.TAX_SETUP -> "Tax Setup"
                 },
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
@@ -413,8 +422,115 @@ private fun StoreSettingsStep(
         Spacer(Modifier.height(ZyntaSpacing.sm))
 
         ZyntaButton(
+            text = "Next",
+            onClick = { onIntent(OnboardingIntent.NextStep) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        ZyntaButton(
+            text = "Back",
+            onClick = { onIntent(OnboardingIntent.BackStep) },
+            variant = ZyntaButtonVariant.Secondary,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+// ── Step 4: Tax Setup (optional) ──────────────────────────────────────────
+
+@Composable
+private fun TaxSetupStep(
+    state: OnboardingState,
+    onIntent: (OnboardingIntent) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
+    ) {
+        Icon(
+            Icons.Default.Percent, null,
+            modifier = Modifier.size(56.dp).align(Alignment.CenterHorizontally),
+            tint = MaterialTheme.colorScheme.primary,
+        )
+
+        Text(
+            "Tax setup (optional)",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+        )
+        Text(
+            "Create a default tax group for your store. You can skip this and configure taxes later in Settings.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+        )
+
+        Spacer(Modifier.height(ZyntaSpacing.sm))
+
+        ZyntaTextField(
+            value = state.taxGroupName,
+            onValueChange = { onIntent(OnboardingIntent.TaxGroupNameChanged(it)) },
+            label = "Tax Group Name",
+            placeholder = "e.g. VAT, GST, Sales Tax",
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        ZyntaTextField(
+            value = state.taxRate,
+            onValueChange = { onIntent(OnboardingIntent.TaxRateChanged(it)) },
+            label = "Tax Rate (%)",
+            placeholder = "e.g. 15",
+            error = state.taxRateError,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "Tax Inclusive",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                )
+                Text(
+                    "Price already includes tax (e.g. VAT-inclusive pricing)",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Switch(
+                checked = state.taxIsInclusive,
+                onCheckedChange = { onIntent(OnboardingIntent.TaxIsInclusiveChanged(it)) },
+            )
+        }
+
+        if (state.error != null) {
+            Text(
+                state.error,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+
+        Spacer(Modifier.height(ZyntaSpacing.sm))
+
+        ZyntaButton(
             text = "Complete Setup",
             onClick = { onIntent(OnboardingIntent.CompleteOnboarding) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        ZyntaButton(
+            text = "Skip Tax Setup",
+            onClick = { onIntent(OnboardingIntent.SkipTaxSetup) },
+            variant = ZyntaButtonVariant.Secondary,
             modifier = Modifier.fillMaxWidth(),
         )
 
