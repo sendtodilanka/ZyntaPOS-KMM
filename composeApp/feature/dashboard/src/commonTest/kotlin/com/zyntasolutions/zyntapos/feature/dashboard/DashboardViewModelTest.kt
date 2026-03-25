@@ -37,7 +37,6 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -221,7 +220,8 @@ class DashboardViewModelTest {
     @Test
     fun `LoadDashboard clears isLoading when data loads successfully`() = runTest {
         viewModel.dispatch(DashboardIntent.LoadDashboard)
-        advanceUntilIdle()
+        testDispatcher.scheduler.advanceTimeBy(5_000)
+        testDispatcher.scheduler.runCurrent()
         assertFalse(viewModel.state.value.isLoading)
     }
 
@@ -230,7 +230,8 @@ class DashboardViewModelTest {
     @Test
     fun `LoadDashboard populates currentUser from session`() = runTest {
         viewModel.dispatch(DashboardIntent.LoadDashboard)
-        advanceUntilIdle()
+        testDispatcher.scheduler.advanceTimeBy(5_000)
+        testDispatcher.scheduler.runCurrent()
         assertEquals(fakeUser, viewModel.state.value.currentUser)
     }
 
@@ -238,7 +239,8 @@ class DashboardViewModelTest {
     fun `LoadDashboard sets currentUser to null when no session`() = runTest {
         sessionFlow.value = null
         viewModel.dispatch(DashboardIntent.LoadDashboard)
-        advanceUntilIdle()
+        testDispatcher.scheduler.advanceTimeBy(5_000)
+        testDispatcher.scheduler.runCurrent()
         assertNull(viewModel.state.value.currentUser)
     }
 
@@ -253,7 +255,8 @@ class DashboardViewModelTest {
             makeOrder(id = "o3", total = 200.0, status = OrderStatus.VOIDED, createdAt = now),
         )
         viewModel.dispatch(DashboardIntent.LoadDashboard)
-        advanceUntilIdle()
+        testDispatcher.scheduler.advanceTimeBy(5_000)
+        testDispatcher.scheduler.runCurrent()
 
         assertEquals(150.0, viewModel.state.value.todaysSales)
         assertEquals(2L, viewModel.state.value.totalOrders)
@@ -265,7 +268,8 @@ class DashboardViewModelTest {
             makeOrder(id = "o1", total = 500.0, status = OrderStatus.VOIDED),
         )
         viewModel.dispatch(DashboardIntent.LoadDashboard)
-        advanceUntilIdle()
+        testDispatcher.scheduler.advanceTimeBy(5_000)
+        testDispatcher.scheduler.runCurrent()
 
         assertEquals(0.0, viewModel.state.value.todaysSales)
         assertEquals(0L, viewModel.state.value.totalOrders)
@@ -275,7 +279,8 @@ class DashboardViewModelTest {
     fun `LoadDashboard returns zero sales when no orders at all`() = runTest {
         ordersByDateRange = emptyList()
         viewModel.dispatch(DashboardIntent.LoadDashboard)
-        advanceUntilIdle()
+        testDispatcher.scheduler.advanceTimeBy(5_000)
+        testDispatcher.scheduler.runCurrent()
 
         assertEquals(0.0, viewModel.state.value.todaysSales)
         assertEquals(0L, viewModel.state.value.totalOrders)
@@ -291,7 +296,8 @@ class DashboardViewModelTest {
             makeProduct(id = "p3", stockQty = 20.0, minStockQty = 5.0),  // ok
         )
         viewModel.dispatch(DashboardIntent.LoadDashboard)
-        advanceUntilIdle()
+        testDispatcher.scheduler.advanceTimeBy(5_000)
+        testDispatcher.scheduler.runCurrent()
 
         assertEquals(2L, viewModel.state.value.lowStockCount)
     }
@@ -302,7 +308,8 @@ class DashboardViewModelTest {
             makeProduct(id = "p$i", name = "Product $i", stockQty = 0.0, minStockQty = 5.0)
         }
         viewModel.dispatch(DashboardIntent.LoadDashboard)
-        advanceUntilIdle()
+        testDispatcher.scheduler.advanceTimeBy(5_000)
+        testDispatcher.scheduler.runCurrent()
 
         assertEquals(8L, viewModel.state.value.lowStockCount)
         assertEquals(5, viewModel.state.value.lowStockNames.size)
@@ -315,7 +322,8 @@ class DashboardViewModelTest {
             makeProduct(id = "p2", stockQty = 50.0, minStockQty = 0.0),
         )
         viewModel.dispatch(DashboardIntent.LoadDashboard)
-        advanceUntilIdle()
+        testDispatcher.scheduler.advanceTimeBy(5_000)
+        testDispatcher.scheduler.runCurrent()
 
         assertEquals(0L, viewModel.state.value.lowStockCount)
         assertTrue(viewModel.state.value.lowStockNames.isEmpty())
@@ -327,7 +335,8 @@ class DashboardViewModelTest {
     fun `LoadDashboard sets activeRegisters to 1 when a session is open`() = runTest {
         activeSession = makeRegisterSession()
         viewModel.dispatch(DashboardIntent.LoadDashboard)
-        advanceUntilIdle()
+        testDispatcher.scheduler.advanceTimeBy(5_000)
+        testDispatcher.scheduler.runCurrent()
 
         assertEquals(1L, viewModel.state.value.activeRegisters)
     }
@@ -336,7 +345,8 @@ class DashboardViewModelTest {
     fun `LoadDashboard sets activeRegisters to 0 when no session is open`() = runTest {
         activeSession = null
         viewModel.dispatch(DashboardIntent.LoadDashboard)
-        advanceUntilIdle()
+        testDispatcher.scheduler.advanceTimeBy(5_000)
+        testDispatcher.scheduler.runCurrent()
 
         assertEquals(0L, viewModel.state.value.activeRegisters)
     }
@@ -351,7 +361,8 @@ class DashboardViewModelTest {
                 createdAt = Instant.fromEpochMilliseconds(now.toEpochMilliseconds() - i * 1000L))
         }
         viewModel.dispatch(DashboardIntent.LoadDashboard)
-        advanceUntilIdle()
+        testDispatcher.scheduler.advanceTimeBy(5_000)
+        testDispatcher.scheduler.runCurrent()
 
         assertEquals(10, viewModel.state.value.recentOrders.size)
     }
@@ -366,7 +377,8 @@ class DashboardViewModelTest {
                 createdAt = now),
         )
         viewModel.dispatch(DashboardIntent.LoadDashboard)
-        advanceUntilIdle()
+        testDispatcher.scheduler.advanceTimeBy(5_000)
+        testDispatcher.scheduler.runCurrent()
 
         assertEquals("ORD-001", viewModel.state.value.recentOrders.first().orderNumber)
     }
@@ -378,7 +390,8 @@ class DashboardViewModelTest {
             makeOrder(id = "o2", status = OrderStatus.VOIDED),
         )
         viewModel.dispatch(DashboardIntent.LoadDashboard)
-        advanceUntilIdle()
+        testDispatcher.scheduler.advanceTimeBy(5_000)
+        testDispatcher.scheduler.runCurrent()
 
         assertEquals(1, viewModel.state.value.recentOrders.size)
     }
@@ -387,7 +400,8 @@ class DashboardViewModelTest {
     fun `LoadDashboard returns empty recentOrders when no orders exist`() = runTest {
         allOrders = emptyList()
         viewModel.dispatch(DashboardIntent.LoadDashboard)
-        advanceUntilIdle()
+        testDispatcher.scheduler.advanceTimeBy(5_000)
+        testDispatcher.scheduler.runCurrent()
 
         assertTrue(viewModel.state.value.recentOrders.isEmpty())
     }
@@ -397,7 +411,8 @@ class DashboardViewModelTest {
     @Test
     fun `LoadDashboard populates weeklySalesData with 7 data points`() = runTest {
         viewModel.dispatch(DashboardIntent.LoadDashboard)
-        advanceUntilIdle()
+        testDispatcher.scheduler.advanceTimeBy(5_000)
+        testDispatcher.scheduler.runCurrent()
 
         assertEquals(7, viewModel.state.value.weeklySalesData.size)
     }
@@ -407,7 +422,8 @@ class DashboardViewModelTest {
     @Test
     fun `Logout intent calls authRepository logout`() = runTest {
         viewModel.dispatch(DashboardIntent.Logout)
-        advanceUntilIdle()
+        testDispatcher.scheduler.advanceTimeBy(5_000)
+        testDispatcher.scheduler.runCurrent()
 
         assertTrue(logoutCalled)
     }
@@ -420,7 +436,8 @@ class DashboardViewModelTest {
 
         viewModel.effects.test {
             viewModel.dispatch(DashboardIntent.LoadDashboard)
-            advanceUntilIdle()
+            testDispatcher.scheduler.advanceTimeBy(5_000)
+        testDispatcher.scheduler.runCurrent()
 
             val effect = awaitItem()
             assertTrue(effect is DashboardEffect.ShowError)
@@ -432,7 +449,8 @@ class DashboardViewModelTest {
     fun `LoadDashboard clears isLoading on error`() = runTest {
         orderRepositoryThrows = true
         viewModel.dispatch(DashboardIntent.LoadDashboard)
-        advanceUntilIdle()
+        testDispatcher.scheduler.advanceTimeBy(5_000)
+        testDispatcher.scheduler.runCurrent()
 
         assertFalse(viewModel.state.value.isLoading)
     }
@@ -474,13 +492,15 @@ class DashboardViewModelTest {
         allOrders = listOf(makeOrder(total = 500.0))
         ordersByDateRange = allOrders
         viewModel.dispatch(DashboardIntent.LoadDashboard)
-        advanceUntilIdle()
+        testDispatcher.scheduler.advanceTimeBy(5_000)
+        testDispatcher.scheduler.runCurrent()
 
         // Update data and trigger pull-to-refresh
         allOrders = listOf(makeOrder(total = 1000.0))
         ordersByDateRange = allOrders
         viewModel.dispatch(DashboardIntent.Refresh)
-        advanceUntilIdle()
+        testDispatcher.scheduler.advanceTimeBy(5_000)
+        testDispatcher.scheduler.runCurrent()
 
         // isLoading should stay false (was set to false after LoadDashboard)
         assertFalse(viewModel.state.value.isLoading)
@@ -495,7 +515,8 @@ class DashboardViewModelTest {
         allOrders = listOf(makeOrder(total = 500.0))
         ordersByDateRange = allOrders
         viewModel.dispatch(DashboardIntent.LoadDashboard)
-        advanceUntilIdle()
+        testDispatcher.scheduler.advanceTimeBy(5_000)
+        testDispatcher.scheduler.runCurrent()
 
         val firstRefreshedAt = viewModel.state.value.lastRefreshedAt
         assertTrue(firstRefreshedAt > 0L)
@@ -504,7 +525,8 @@ class DashboardViewModelTest {
         allOrders = listOf(makeOrder(total = 500.0), makeOrder(total = 200.0))
         ordersByDateRange = allOrders
         fakeSyncStatusPort.emitSyncComplete()
-        advanceUntilIdle()
+        testDispatcher.scheduler.advanceTimeBy(5_000)
+        testDispatcher.scheduler.runCurrent()
 
         // KPIs should have been refreshed silently
         assertFalse(viewModel.state.value.isLoading)
@@ -514,7 +536,8 @@ class DashboardViewModelTest {
     fun `onSyncComplete before initial load does not trigger reload`() = runTest {
         // Emit sync-complete BEFORE LoadDashboard — should be ignored (lastRefreshedAt == 0)
         fakeSyncStatusPort.emitSyncComplete()
-        advanceUntilIdle()
+        testDispatcher.scheduler.advanceTimeBy(5_000)
+        testDispatcher.scheduler.runCurrent()
 
         // ViewModel should still be in initial loading state
         assertTrue(viewModel.state.value.isLoading)

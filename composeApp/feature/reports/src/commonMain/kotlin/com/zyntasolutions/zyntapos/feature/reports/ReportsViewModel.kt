@@ -54,19 +54,27 @@ class ReportsViewModel(
     private val syncStatusPort: SyncStatusPort,
 ) : BaseViewModel<ReportsState, ReportsIntent, ReportsEffect>(ReportsState()) {
 
+    /** Lazily started background refresh jobs — launched on first report load. */
+    private var backgroundRefreshJob: Job? = null
+
     init {
         analytics.logScreenView("Reports", "ReportsViewModel")
+    }
 
-        // Refresh active reports on every sync cycle completion (real-time report updates — G6).
-        viewModelScope.launch {
-            syncStatusPort.onSyncComplete.collect { refreshLoadedReports() }
-        }
-
-        // 30-second periodic fallback refresh.
-        viewModelScope.launch {
-            while (true) {
-                delay(AUTO_REFRESH_INTERVAL_MS)
-                refreshLoadedReports()
+    /** Start the sync-complete listener and periodic fallback refresh once. */
+    private fun ensureBackgroundRefresh() {
+        if (backgroundRefreshJob != null) return
+        backgroundRefreshJob = viewModelScope.launch {
+            // Refresh active reports on every sync cycle completion (real-time report updates — G6).
+            launch {
+                syncStatusPort.onSyncComplete.collect { refreshLoadedReports() }
+            }
+            // 30-second periodic fallback refresh.
+            launch {
+                while (true) {
+                    delay(AUTO_REFRESH_INTERVAL_MS)
+                    refreshLoadedReports()
+                }
             }
         }
     }
@@ -96,7 +104,7 @@ class ReportsViewModel(
         when (intent) {
             is ReportsIntent.SelectSalesRange      -> selectSalesRange(intent.range)
             is ReportsIntent.SetCustomSalesRange   -> setCustomRange(intent.from, intent.to)
-            ReportsIntent.LoadSalesReport          -> loadSalesReport()
+            ReportsIntent.LoadSalesReport          -> { ensureBackgroundRefresh(); loadSalesReport() }
             ReportsIntent.ExportSalesReportCsv     -> exportSales(pdf = false)
             ReportsIntent.ExportSalesReportPdf     -> exportSales(pdf = true)
             ReportsIntent.PrintSalesReport         -> printSalesReport()

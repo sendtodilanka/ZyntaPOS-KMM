@@ -17,6 +17,7 @@ import com.zyntasolutions.zyntapos.feature.dashboard.mvi.DashboardState
 import com.zyntasolutions.zyntapos.feature.dashboard.mvi.RecentOrderItem
 import androidx.lifecycle.viewModelScope
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -52,22 +53,28 @@ class DashboardViewModel(
     private val syncStatusPort: SyncStatusPort,
 ) : BaseViewModel<DashboardState, DashboardIntent, DashboardEffect>(DashboardState()) {
 
-    init {
-        // Refresh on every sync cycle completion (real-time KPI updates).
-        viewModelScope.launch {
-            syncStatusPort.onSyncComplete.collect {
-                if (currentState.lastRefreshedAt > 0L) {
-                    performLoad(showLoadingSpinner = false)
+    /** Lazily started background refresh jobs — launched on first [LoadDashboard]. */
+    private var backgroundRefreshJob: Job? = null
+
+    /** Start the sync-complete listener and periodic fallback refresh once. */
+    private fun ensureBackgroundRefresh() {
+        if (backgroundRefreshJob != null) return
+        backgroundRefreshJob = viewModelScope.launch {
+            // Refresh on every sync cycle completion (real-time KPI updates).
+            launch {
+                syncStatusPort.onSyncComplete.collect {
+                    if (currentState.lastRefreshedAt > 0L) {
+                        performLoad(showLoadingSpinner = false)
+                    }
                 }
             }
-        }
-
-        // 30-second periodic fallback refresh.
-        viewModelScope.launch {
-            while (true) {
-                delay(AUTO_REFRESH_INTERVAL_MS)
-                if (currentState.lastRefreshedAt > 0L) {
-                    performLoad(showLoadingSpinner = false)
+            // 30-second periodic fallback refresh.
+            launch {
+                while (true) {
+                    delay(AUTO_REFRESH_INTERVAL_MS)
+                    if (currentState.lastRefreshedAt > 0L) {
+                        performLoad(showLoadingSpinner = false)
+                    }
                 }
             }
         }
@@ -75,7 +82,10 @@ class DashboardViewModel(
 
     override suspend fun handleIntent(intent: DashboardIntent) {
         when (intent) {
-            is DashboardIntent.LoadDashboard -> performLoad(showLoadingSpinner = true)
+            is DashboardIntent.LoadDashboard -> {
+                ensureBackgroundRefresh()
+                performLoad(showLoadingSpinner = true)
+            }
             is DashboardIntent.Refresh -> {
                 updateState { copy(isRefreshing = true) }
                 try {
