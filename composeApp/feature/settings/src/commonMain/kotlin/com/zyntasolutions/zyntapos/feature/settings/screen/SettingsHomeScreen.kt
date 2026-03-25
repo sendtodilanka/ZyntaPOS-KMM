@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Store
+import androidx.compose.material.icons.filled.SupervisedUserCircle
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.Card
@@ -113,6 +114,8 @@ data class SettingsGroup(
 enum class SettingsRoute {
     GENERAL, POS, TAX, PRINTER, USERS, SECURITY, RBAC_MANAGEMENT, BACKUP, APPEARANCE, SYSTEM_HEALTH, ABOUT,
     LABEL_PRINTER, SCANNER_SETTINGS, PRINTER_PROFILES, EDITION_MANAGEMENT,
+    /** Multi-store user access management — grant/revoke staff access to stores (C3.2). */
+    STORE_USER_ACCESS,
     /** Debug Console — only presented when [SettingsHomeScreen] receives `isDebug = true`. */
     DEBUG_CONSOLE,
 }
@@ -139,6 +142,10 @@ private val settingsGroups: List<SettingsGroup> = listOf(
         title = "Administration",
         entries = listOf(
             SettingsEntry("Users", "Create and manage staff accounts", Icons.Filled.PersonOutline, SettingsRoute.USERS),
+            SettingsEntry(
+                "Store User Access", "Grant or revoke staff access to stores (multi-store)",
+                Icons.Filled.SupervisedUserCircle, SettingsRoute.STORE_USER_ACCESS,
+            ),
             SettingsEntry("Security", "PIN policy, session timeout & RBAC", Icons.Filled.Security, SettingsRoute.SECURITY),
             SettingsEntry(
                 "Roles & Permissions", "Manage role definitions and RBAC permission matrix",

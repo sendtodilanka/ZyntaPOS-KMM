@@ -332,6 +332,7 @@ fun NavGraphBuilder.mainNavGraph(
                             "SECURITY" -> navigationController.navigate(ZyntaRoute.SecuritySettings)
                             "RBAC_MANAGEMENT" -> navigationController.navigate(ZyntaRoute.RbacManagement)
                             "EDITION_MANAGEMENT" -> navigationController.navigate(ZyntaRoute.EditionManagement)
+                            "STORE_USER_ACCESS" -> navigationController.navigate(ZyntaRoute.StoreUserAccess("default"))
                             "DEBUG_CONSOLE" -> if (debugScreen != null) {
                                 navigationController.navigate(ZyntaRoute.Debug)
                             }
@@ -363,6 +364,14 @@ fun NavGraphBuilder.mainNavGraph(
 
             composable<ZyntaRoute.UserManagement> {
                 screens.userManagement(
+                    { navigationController.navigateUp(ZyntaRoute.Settings) },
+                )
+            }
+
+            composable<ZyntaRoute.StoreUserAccess> { backStackEntry ->
+                val route = backStackEntry.toRoute<ZyntaRoute.StoreUserAccess>()
+                screens.storeUserAccess(
+                    route.storeId,
                     { navigationController.navigateUp(ZyntaRoute.Settings) },
                 )
             }
@@ -874,7 +883,8 @@ private fun MainScaffoldShell(
         is ZyntaRoute.SystemHealthSettings,
         is ZyntaRoute.SecuritySettings,
         is ZyntaRoute.RbacManagement,
-        is ZyntaRoute.EditionManagement -> item.route is ZyntaRoute.Settings
+        is ZyntaRoute.EditionManagement,
+        is ZyntaRoute.StoreUserAccess -> item.route is ZyntaRoute.Settings
 
         // CRM sub-graph
         is ZyntaRoute.CustomerList,

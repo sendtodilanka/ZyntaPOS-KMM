@@ -240,6 +240,10 @@ sealed class ZyntaRoute {
     @Serializable
     data class RegionalTaxOverride(val storeId: String) : ZyntaRoute()
 
+    /** Store user access management — grant/revoke staff access to a specific store (C3.2). */
+    @Serializable
+    data class StoreUserAccess(val storeId: String) : ZyntaRoute()
+
     /** User account management (admin only). */
     @Serializable
     data object UserManagement : ZyntaRoute()
