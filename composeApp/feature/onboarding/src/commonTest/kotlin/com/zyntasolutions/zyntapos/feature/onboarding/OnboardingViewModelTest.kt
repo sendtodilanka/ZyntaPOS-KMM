@@ -4,7 +4,9 @@ import app.cash.turbine.test
 import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.User
+import com.zyntasolutions.zyntapos.domain.model.TaxGroup
 import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
+import com.zyntasolutions.zyntapos.domain.repository.TaxGroupRepository
 import com.zyntasolutions.zyntapos.domain.repository.UserRepository
 import com.zyntasolutions.zyntapos.domain.model.Account
 import com.zyntasolutions.zyntapos.domain.model.AccountBalance
@@ -110,6 +112,25 @@ class OnboardingViewModelTest {
 
     private val seedChartOfAccountsUseCase = SeedDefaultChartOfAccountsUseCase(fakeAccountRepository)
 
+    // ── Fake TaxGroupRepository ────────────────────────────────────────────────
+
+    private val insertedTaxGroups = mutableListOf<TaxGroup>()
+
+    private val fakeTaxGroupRepository = object : TaxGroupRepository {
+        override fun getAll(): kotlinx.coroutines.flow.Flow<List<TaxGroup>> =
+            MutableStateFlow(emptyList())
+        override suspend fun getById(id: String): com.zyntasolutions.zyntapos.core.result.Result<TaxGroup> =
+            com.zyntasolutions.zyntapos.core.result.Result.Error(DatabaseException("Not found"))
+        override suspend fun insert(taxGroup: TaxGroup): com.zyntasolutions.zyntapos.core.result.Result<Unit> {
+            insertedTaxGroups.add(taxGroup)
+            return com.zyntasolutions.zyntapos.core.result.Result.Success(Unit)
+        }
+        override suspend fun update(taxGroup: TaxGroup): com.zyntasolutions.zyntapos.core.result.Result<Unit> =
+            com.zyntasolutions.zyntapos.core.result.Result.Success(Unit)
+        override suspend fun delete(id: String): com.zyntasolutions.zyntapos.core.result.Result<Unit> =
+            com.zyntasolutions.zyntapos.core.result.Result.Success(Unit)
+    }
+
     private val noOpAnalytics = object : AnalyticsTracker {
         override fun logEvent(name: String, params: Map<String, String>) = Unit
         override fun logScreenView(screenName: String, screenClass: String) = Unit
@@ -124,11 +145,13 @@ class OnboardingViewModelTest {
         Dispatchers.setMain(testDispatcher)
         settingsStore.clear()
         createdUsers.clear()
+        insertedTaxGroups.clear()
         settingsSetError = null
         userCreateError = null
         viewModel = OnboardingViewModel(
             userRepository = fakeUserRepository,
             settingsRepository = fakeSettingsRepository,
+            taxGroupRepository = fakeTaxGroupRepository,
             seedChartOfAccountsUseCase = seedChartOfAccountsUseCase,
             analytics = noOpAnalytics,
         )
@@ -531,9 +554,33 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun `isLastStep is true on STORE_SETTINGS step`() = runTest {
+    fun `isLastStep is false on STORE_SETTINGS step`() = runTest {
         advanceToStoreSettings()
+        assertFalse(viewModel.state.value.isLastStep)
+    }
+
+    @Test
+    fun `isLastStep is true on TAX_SETUP step`() = runTest {
+        advanceToTaxSetup()
         assertTrue(viewModel.state.value.isLastStep)
+    }
+
+    // ── Step 3 → Step 4 navigation ────────────────────────────────────────────
+
+    @Test
+    fun `NextStep from STORE_SETTINGS advances to TAX_SETUP`() = runTest {
+        advanceToStoreSettings()
+        viewModel.dispatch(OnboardingIntent.NextStep)
+        advanceUntilIdle()
+        assertEquals(OnboardingState.Step.TAX_SETUP, viewModel.state.value.currentStep)
+    }
+
+    @Test
+    fun `BackStep from TAX_SETUP goes to STORE_SETTINGS`() = runTest {
+        advanceToTaxSetup()
+        viewModel.dispatch(OnboardingIntent.BackStep)
+        advanceUntilIdle()
+        assertEquals(OnboardingState.Step.STORE_SETTINGS, viewModel.state.value.currentStep)
     }
 
     // ── Step 3: Store settings ────────────────────────────────────────────────
@@ -622,6 +669,121 @@ class OnboardingViewModelTest {
         assertEquals("Asia/Colombo", settingsStore["general.timezone"])
     }
 
+    // ── Step 4: Tax setup ─────────────────────────────────────────────────────
+
+    @Test
+    fun `TaxGroupNameChanged updates taxGroupName`() = runTest {
+        viewModel.dispatch(OnboardingIntent.TaxGroupNameChanged("GST"))
+        advanceUntilIdle()
+        assertEquals("GST", viewModel.state.value.taxGroupName)
+    }
+
+    @Test
+    fun `TaxRateChanged updates taxRate`() = runTest {
+        viewModel.dispatch(OnboardingIntent.TaxRateChanged("10"))
+        advanceUntilIdle()
+        assertEquals("10", viewModel.state.value.taxRate)
+    }
+
+    @Test
+    fun `TaxRateChanged sets error for rate above 100`() = runTest {
+        viewModel.dispatch(OnboardingIntent.TaxRateChanged("150"))
+        advanceUntilIdle()
+        assertNotNull(viewModel.state.value.taxRateError)
+    }
+
+    @Test
+    fun `TaxRateChanged sets error for negative rate`() = runTest {
+        viewModel.dispatch(OnboardingIntent.TaxRateChanged("-5"))
+        advanceUntilIdle()
+        assertNotNull(viewModel.state.value.taxRateError)
+    }
+
+    @Test
+    fun `TaxRateChanged sets error for non-numeric rate`() = runTest {
+        viewModel.dispatch(OnboardingIntent.TaxRateChanged("abc"))
+        advanceUntilIdle()
+        assertNotNull(viewModel.state.value.taxRateError)
+    }
+
+    @Test
+    fun `TaxRateChanged clears error for valid rate`() = runTest {
+        viewModel.dispatch(OnboardingIntent.TaxRateChanged("abc"))
+        advanceUntilIdle()
+        assertNotNull(viewModel.state.value.taxRateError)
+
+        viewModel.dispatch(OnboardingIntent.TaxRateChanged("15"))
+        advanceUntilIdle()
+        assertNull(viewModel.state.value.taxRateError)
+    }
+
+    @Test
+    fun `TaxIsInclusiveChanged updates taxIsInclusive`() = runTest {
+        assertFalse(viewModel.state.value.taxIsInclusive)
+        viewModel.dispatch(OnboardingIntent.TaxIsInclusiveChanged(true))
+        advanceUntilIdle()
+        assertTrue(viewModel.state.value.taxIsInclusive)
+    }
+
+    @Test
+    fun `CompleteOnboarding inserts tax group when name is provided`() = runTest {
+        setupForCompletion()
+        viewModel.dispatch(OnboardingIntent.TaxGroupNameChanged("VAT"))
+        viewModel.dispatch(OnboardingIntent.TaxRateChanged("15"))
+        viewModel.dispatch(OnboardingIntent.CompleteOnboarding)
+        advanceUntilIdle()
+
+        assertEquals(1, insertedTaxGroups.size)
+        assertEquals("VAT", insertedTaxGroups[0].name)
+        assertEquals(15.0, insertedTaxGroups[0].rate)
+    }
+
+    @Test
+    fun `CompleteOnboarding does not insert tax group when name is blank`() = runTest {
+        setupForCompletion()
+        viewModel.dispatch(OnboardingIntent.TaxGroupNameChanged(""))
+        viewModel.dispatch(OnboardingIntent.CompleteOnboarding)
+        advanceUntilIdle()
+
+        assertEquals(0, insertedTaxGroups.size)
+    }
+
+    @Test
+    fun `CompleteOnboarding shows error for invalid rate when tax name is provided`() = runTest {
+        setupForCompletion()
+        viewModel.dispatch(OnboardingIntent.TaxGroupNameChanged("VAT"))
+        viewModel.dispatch(OnboardingIntent.TaxRateChanged("200"))
+        viewModel.dispatch(OnboardingIntent.CompleteOnboarding)
+        advanceUntilIdle()
+
+        assertNotNull(viewModel.state.value.taxRateError)
+        assertFalse(viewModel.state.value.isLoading)
+        assertEquals(0, insertedTaxGroups.size)
+    }
+
+    @Test
+    fun `SkipTaxSetup completes onboarding without inserting a tax group`() = runTest {
+        setupForCompletion()
+        viewModel.effects.test {
+            viewModel.dispatch(OnboardingIntent.SkipTaxSetup)
+            advanceUntilIdle()
+
+            assertEquals(OnboardingEffect.NavigateToLogin, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(0, insertedTaxGroups.size)
+    }
+
+    @Test
+    fun `SkipTaxSetup still persists business name and admin user`() = runTest {
+        setupForCompletion(businessName = "Skip Corp")
+        viewModel.dispatch(OnboardingIntent.SkipTaxSetup)
+        advanceUntilIdle()
+
+        assertEquals("Skip Corp", settingsStore["general.business_name"])
+        assertEquals(1, createdUsers.size)
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private suspend fun TestScope.setupForCompletion(
@@ -638,6 +800,9 @@ class OnboardingViewModelTest {
         // Advance to Step 3 (Store Settings)
         viewModel.dispatch(OnboardingIntent.NextStep)
         advanceUntilIdle()
+        // Advance to Step 4 (Tax Setup)
+        viewModel.dispatch(OnboardingIntent.NextStep)
+        advanceUntilIdle()
     }
 
     /** Advance from Step 1 through Step 2 to Step 3 with valid fields. */
@@ -646,6 +811,13 @@ class OnboardingViewModelTest {
         viewModel.dispatch(OnboardingIntent.NextStep)
         advanceUntilIdle()
         fillAdminAccount()
+        viewModel.dispatch(OnboardingIntent.NextStep)
+        advanceUntilIdle()
+    }
+
+    /** Advance from Step 1 through Step 3 to Step 4 with valid fields. */
+    private suspend fun TestScope.advanceToTaxSetup() {
+        advanceToStoreSettings()
         viewModel.dispatch(OnboardingIntent.NextStep)
         advanceUntilIdle()
     }

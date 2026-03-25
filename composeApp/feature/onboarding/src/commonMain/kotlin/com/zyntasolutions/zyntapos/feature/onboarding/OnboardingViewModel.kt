@@ -1,9 +1,12 @@
 package com.zyntasolutions.zyntapos.feature.onboarding
 
 import com.zyntasolutions.zyntapos.core.result.Result
+import com.zyntasolutions.zyntapos.core.utils.IdGenerator
 import com.zyntasolutions.zyntapos.domain.model.Role
+import com.zyntasolutions.zyntapos.domain.model.TaxGroup
 import com.zyntasolutions.zyntapos.domain.model.User
 import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
+import com.zyntasolutions.zyntapos.domain.repository.TaxGroupRepository
 import com.zyntasolutions.zyntapos.domain.repository.UserRepository
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.SeedDefaultChartOfAccountsUseCase
 import com.zyntasolutions.zyntapos.feature.onboarding.mvi.OnboardingEffect
@@ -37,6 +40,7 @@ import kotlin.time.Clock
 class OnboardingViewModel(
     private val userRepository: UserRepository,
     private val settingsRepository: SettingsRepository,
+    private val taxGroupRepository: TaxGroupRepository,
     private val seedChartOfAccountsUseCase: SeedDefaultChartOfAccountsUseCase,
     private val analytics: AnalyticsTracker,
 ) : BaseViewModel<OnboardingState, OnboardingIntent, OnboardingEffect>(OnboardingState()) {
@@ -56,7 +60,21 @@ class OnboardingViewModel(
             is OnboardingIntent.TogglePasswordVisibility -> updateState { copy(isPasswordVisible = !isPasswordVisible) }
             is OnboardingIntent.CurrencyChanged -> updateState { copy(currencyCode = intent.currencyCode) }
             is OnboardingIntent.TimezoneChanged -> updateState { copy(timezoneId = intent.timezoneId) }
-            is OnboardingIntent.CompleteOnboarding -> onCompleteOnboarding()
+            is OnboardingIntent.TaxGroupNameChanged -> updateState { copy(taxGroupName = intent.name) }
+            is OnboardingIntent.TaxRateChanged -> {
+                val rateError = if (intent.rate.isNotBlank()) {
+                    val v = intent.rate.toDoubleOrNull()
+                    when {
+                        v == null -> "Enter a valid number"
+                        v < 0.0 || v > 100.0 -> "Rate must be between 0 and 100"
+                        else -> null
+                    }
+                } else null
+                updateState { copy(taxRate = intent.rate, taxRateError = rateError) }
+            }
+            is OnboardingIntent.TaxIsInclusiveChanged -> updateState { copy(taxIsInclusive = intent.inclusive) }
+            is OnboardingIntent.SkipTaxSetup -> onCompleteOnboarding(saveTax = false)
+            is OnboardingIntent.CompleteOnboarding -> onCompleteOnboarding(saveTax = true)
             is OnboardingIntent.BackStep -> onBackStep()
             is OnboardingIntent.DismissError -> updateState { copy(error = null) }
         }
@@ -119,7 +137,11 @@ class OnboardingViewModel(
                 updateState { copy(currentStep = OnboardingState.Step.STORE_SETTINGS) }
             }
             OnboardingState.Step.STORE_SETTINGS -> {
-                // Last step — no-op, use CompleteOnboarding instead
+                // Advance to optional tax setup step
+                updateState { copy(currentStep = OnboardingState.Step.TAX_SETUP) }
+            }
+            OnboardingState.Step.TAX_SETUP -> {
+                // Last step — no-op; user uses CompleteOnboarding or SkipTaxSetup
             }
         }
     }
@@ -128,6 +150,7 @@ class OnboardingViewModel(
         when (currentState.currentStep) {
             OnboardingState.Step.ADMIN_ACCOUNT -> updateState { copy(currentStep = OnboardingState.Step.BUSINESS_INFO) }
             OnboardingState.Step.STORE_SETTINGS -> updateState { copy(currentStep = OnboardingState.Step.ADMIN_ACCOUNT) }
+            OnboardingState.Step.TAX_SETUP -> updateState { copy(currentStep = OnboardingState.Step.STORE_SETTINGS) }
             OnboardingState.Step.BUSINESS_INFO -> Unit // no-op
         }
     }
@@ -178,8 +201,17 @@ class OnboardingViewModel(
 
     // ── Completion ────────────────────────────────────────────────────────
 
-    private suspend fun onCompleteOnboarding() {
+    private suspend fun onCompleteOnboarding(saveTax: Boolean = true) {
         val s = currentState
+
+        // Validate tax rate if user intends to save
+        if (saveTax && s.taxGroupName.isNotBlank()) {
+            val rateVal = s.taxRate.toDoubleOrNull()
+            if (rateVal == null || rateVal < 0.0 || rateVal > 100.0) {
+                updateState { copy(taxRateError = "Enter a valid rate between 0 and 100") }
+                return
+            }
+        }
 
         updateState { copy(isLoading = true, error = null) }
 
@@ -218,6 +250,20 @@ class OnboardingViewModel(
                 return
             }
             else -> Unit
+        }
+
+        // ── Persist tax group if user configured one (Step 4) ────────────
+        if (saveTax && s.taxGroupName.isNotBlank()) {
+            val rateVal = s.taxRate.toDoubleOrNull() ?: 0.0
+            val taxGroup = TaxGroup(
+                id = IdGenerator.newId(),
+                name = s.taxGroupName.trim(),
+                rate = rateVal,
+                isInclusive = s.taxIsInclusive,
+                isActive = true,
+            )
+            taxGroupRepository.insert(taxGroup)
+            // Ignore error — user can create tax groups from Settings later
         }
 
         // ── Seed Chart of Accounts (best-effort, non-blocking) ────────────
