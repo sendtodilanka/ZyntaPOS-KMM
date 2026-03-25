@@ -1490,7 +1490,7 @@ Backend Tests:
 - Fields: event_type, user_id, entity_type, entity_id, previous_value, new_value
 
 **COMPLETE — minor enhancements only:**
-- [ ] KMM UI: Dedicated audit log viewer screen (currently debug console only)
+- [x] KMM UI: Dedicated audit log viewer screen — ✅ VERIFIED DONE (2026-03-25): `AuditLogScreen.kt` (742 LOC) exists in `:composeApp:feature:admin`; wired at `ZyntaRoute.AuditLogViewer` in `MainNavGraph.kt` (line 748)
 - [ ] Admin panel: Store-filtered audit log page (exists but could add export)
 
 ---
