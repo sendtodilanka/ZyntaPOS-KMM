@@ -48,7 +48,7 @@ jobs:
       run-lint: true
       upload-apk: true
       artifact-retention-days: 7
-      timeout-minutes: 45
+      timeout-minutes: 90
       artifact-suffix: '-ci-${{ github.run_id }}'
 
   # ── Website: Build validation (runs only when website/** files changed) ─────
