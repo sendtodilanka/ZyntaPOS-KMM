@@ -37,7 +37,7 @@ import com.zyntasolutions.zyntapos.feature.auth.mvi.AuthIntent
 import com.zyntasolutions.zyntapos.feature.auth.mvi.AuthState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
