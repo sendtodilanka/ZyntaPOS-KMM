@@ -5,8 +5,8 @@ import app.cash.sqldelight.coroutines.mapToList
 import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
-import com.zyntasolutions.zyntapos.domain.model.FulfillmentOrder
 import com.zyntasolutions.zyntapos.domain.model.FulfillmentStatus
+import com.zyntasolutions.zyntapos.domain.repository.FulfillmentOrder
 import com.zyntasolutions.zyntapos.domain.repository.FulfillmentRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow

@@ -50,6 +50,13 @@ fun MediaLibraryScreen(
             )
         },
     ) { innerPadding ->
+
+        // G15: Native file picker — must be called unconditionally at the screen level,
+        // not inside the conditionally-shown AddMediaDialog.
+        val pickFile = rememberNativeFilePicker { path ->
+            if (path != null) onIntent(MediaIntent.UpdateFilePath(path))
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -122,6 +129,7 @@ fun MediaLibraryScreen(
                 onPathChange = { onIntent(MediaIntent.UpdateFilePath(it)) },
                 onConfirm = { onIntent(MediaIntent.ConfirmAddFile) },
                 onDismiss = { onIntent(MediaIntent.HideAddDialog) },
+                onBrowse = pickFile,
             )
         }
     }
@@ -256,6 +264,7 @@ private fun AddMediaDialog(
     onPathChange: (String) -> Unit,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
+    onBrowse: () -> Unit = {},
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -263,14 +272,23 @@ private fun AddMediaDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                 Text(
-                    "Enter the absolute file path to the image on this device.",
+                    "Select an image using the file picker or enter its path manually.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                // G15: Native file picker button
+                OutlinedButton(
+                    onClick = onBrowse,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(Icons.Default.FolderOpen, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(ZyntaSpacing.xs))
+                    Text("Browse…")
+                }
                 OutlinedTextField(
                     value = filePath,
                     onValueChange = onPathChange,
-                    label = { Text("File path *") },
+                    label = { Text("File path") },
                     placeholder = { Text("/storage/emulated/0/DCIM/photo.jpg") },
                     isError = error != null,
                     supportingText = error?.let { { Text(it, color = MaterialTheme.colorScheme.error) } },
@@ -280,7 +298,7 @@ private fun AddMediaDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onConfirm) { Text("Add") }
+            TextButton(onClick = onConfirm, enabled = filePath.isNotBlank()) { Text("Add") }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancel") }
