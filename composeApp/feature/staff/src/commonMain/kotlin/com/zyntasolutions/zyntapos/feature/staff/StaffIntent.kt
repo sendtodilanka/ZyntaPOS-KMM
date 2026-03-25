@@ -13,7 +13,8 @@ import com.zyntasolutions.zyntapos.domain.model.SalaryType
  * - **Employee list:** [LoadEmployees], [SearchEmployees], [ToggleShowInactive]
  * - **Employee detail:** [SelectEmployee], [BackToEmployeeList], [UpdateEmployeeField],
  *   [UpdateEmployeeSalaryType], [ToggleEmployeeActive], [SaveEmployee], [DeleteEmployee]
- * - **Attendance:** [LoadTodayAttendance], [LoadAttendanceHistory], [ClockIn], [ClockOut]
+ * - **Attendance:** [LoadTodayAttendance], [LoadAttendanceHistory], [ClockIn], [ClockOut],
+ *   [ExportAttendanceCsv]
  * - **Leave:** [LoadPendingLeave], [ShowLeaveForm], [HideLeaveForm], [UpdateLeaveFormField],
  *   [UpdateLeaveType], [SubmitLeaveRequest], [ApproveLeave], [RejectLeave]
  * - **Shifts:** [LoadWeeklyShifts], [ShowShiftForm], [HideShiftForm], [UpdateShiftField],
@@ -59,6 +60,7 @@ sealed interface StaffIntent {
         val employeeId: String,
         val clockOutTime: String,
     ) : StaffIntent
+    data object ExportAttendanceCsv : StaffIntent
 
     // ── Leave Management ───────────────────────────────────────────────────
     data class LoadPendingLeave(val storeId: String) : StaffIntent
@@ -121,6 +123,9 @@ sealed interface StaffIntent {
 
     /** Load the full leave history for a specific employee (reactive stream). */
     data class LoadLeaveHistory(val employeeId: String) : StaffIntent
+
+    /** Compute leave balance (days used/remaining) for the current calendar year. */
+    data class LoadLeaveBalance(val employeeId: String) : StaffIntent
 
     // ── C3.4: Employee Roaming ─────────────────────────────────────────────
     /** Navigate to the employee's store assignments screen (C3.4). */

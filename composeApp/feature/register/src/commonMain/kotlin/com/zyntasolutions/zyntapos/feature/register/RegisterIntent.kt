@@ -127,6 +127,15 @@ sealed interface RegisterIntent {
     /** Hides the close-register confirmation dialog. */
     data object DismissCloseConfirmation : RegisterIntent
 
+    /** Manager enters PIN to approve a large discrepancy close. */
+    data class ManagerApprovalPinChanged(val pin: String) : RegisterIntent
+
+    /** Manager submits PIN to approve the discrepancy and proceed with close. */
+    data object SubmitManagerApproval : RegisterIntent
+
+    /** Cancel the manager approval flow and return to the close register form. */
+    data object CancelManagerApproval : RegisterIntent
+
     // ─── Z-Report (Sprint 21, task 11.1.8) ────────────────────────────────
 
     /** Loads the Z-report data for the most recently closed session. */

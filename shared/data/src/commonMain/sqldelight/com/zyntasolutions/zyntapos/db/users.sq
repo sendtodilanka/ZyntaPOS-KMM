@@ -32,6 +32,12 @@ SELECT * FROM users WHERE email = ?;
 getSystemAdmin:
 SELECT * FROM users WHERE is_system_admin = 1 LIMIT 1;
 
+-- Active users with a PIN set at a given store (for quick-switch user list)
+getQuickSwitchCandidates:
+SELECT id, name, role FROM users
+WHERE store_id = ? AND is_active = 1 AND pin_hash IS NOT NULL
+ORDER BY name ASC;
+
 -- ── Write queries ───────────────────────────────────────────────────────────
 
 insertUser:

@@ -25,6 +25,9 @@ import com.zyntasolutions.zyntapos.debug.DebugScreen
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.feature.auth.screen.LoginScreen
+import com.zyntasolutions.zyntapos.feature.auth.AuthViewModel
+import com.zyntasolutions.zyntapos.feature.auth.mvi.AuthEffect
+import com.zyntasolutions.zyntapos.feature.auth.mvi.AuthIntent
 import com.zyntasolutions.zyntapos.feature.auth.screen.PinLockScreen
 import com.zyntasolutions.zyntapos.feature.dashboard.screen.DashboardScreen
 import com.zyntasolutions.zyntapos.feature.onboarding.OnboardingViewModel
@@ -287,11 +290,77 @@ fun App() {
                     OnboardingScreen(onOnboardingComplete = onOnboardingComplete)
                 },
                 pinLockScreen = { onUnlocked ->
-                    PinLockScreen(
-                        currentUser = currentUser,
-                        onPinEntered = { onUnlocked() },
-                        onDifferentUser = { },
-                    )
+                    val authVm = koinViewModel<AuthViewModel>()
+                    val authState by authVm.state.collectAsState()
+
+                    // Collect one-shot effects for PIN unlock / quick-switch
+                    LaunchedEffect(Unit) {
+                        authVm.effects.collect { effect ->
+                            when (effect) {
+                                is AuthEffect.PinUnlocked,
+                                is AuthEffect.QuickSwitchCompleted -> onUnlocked()
+                                is AuthEffect.NavigateToLogin -> {
+                                    // Full login required — navigate away from PIN lock
+                                    navController.navigateAndClear(com.zyntasolutions.zyntapos.navigation.ZyntaRoute.Login)
+                                }
+                                else -> Unit
+                            }
+                        }
+                    }
+
+                    if (authState.isQuickSwitchMode) {
+                        // Quick-switch: show user picker or PIN entry for selected target
+                        val targetId = authState.quickSwitchTargetId
+                        if (targetId == null) {
+                            // Show candidate picker dialog
+                            AlertDialog(
+                                onDismissRequest = { authVm.dispatch(AuthIntent.CancelQuickSwitch) },
+                                title = { Text("Switch User") },
+                                text = {
+                                    Column {
+                                        authState.quickSwitchCandidates.forEach { candidate ->
+                                            TextButton(
+                                                onClick = { authVm.dispatch(AuthIntent.QuickSwitchSelected(candidate.id)) },
+                                                modifier = Modifier.fillMaxWidth(),
+                                            ) {
+                                                Text("${candidate.name} (${candidate.role.name})")
+                                            }
+                                        }
+                                    }
+                                },
+                                confirmButton = {},
+                                dismissButton = {
+                                    TextButton(onClick = { authVm.dispatch(AuthIntent.CancelQuickSwitch) }) {
+                                        Text("Cancel")
+                                    }
+                                },
+                            )
+                        } else {
+                            // Show PIN entry for the selected quick-switch target
+                            val targetCandidate = authState.quickSwitchCandidates.find { it.id == targetId }
+                            PinLockScreen(
+                                currentUser = targetCandidate?.let {
+                                    com.zyntasolutions.zyntapos.domain.model.User(
+                                        id = it.id, name = it.name, email = "", role = it.role, storeId = "",
+                                        createdAt = kotlinx.datetime.Instant.DISTANT_PAST,
+                                        updatedAt = kotlinx.datetime.Instant.DISTANT_PAST,
+                                    )
+                                },
+                                onPinEntered = { pin -> authVm.dispatch(AuthIntent.QuickSwitchPinEntered(pin)) },
+                                onDifferentUser = { authVm.dispatch(AuthIntent.CancelQuickSwitch) },
+                                isLoading = authState.isPinValidating,
+                                errorMessage = authState.pinError,
+                            )
+                        }
+                    } else {
+                        PinLockScreen(
+                            currentUser = currentUser,
+                            onPinEntered = { pin -> authVm.dispatch(AuthIntent.PinEntered(pin)) },
+                            onDifferentUser = { authVm.dispatch(AuthIntent.OpenQuickSwitch) },
+                            isLoading = authState.isPinValidating,
+                            errorMessage = authState.pinError,
+                        )
+                    }
                 },
                 debugScreen = if (appInfoProvider.isDebug) { onNavigateUp ->
                     DebugScreen(onNavigateUp = onNavigateUp)

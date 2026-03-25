@@ -32,4 +32,24 @@ sealed class AuthIntent {
 
     /** Multi-store login: user selected a store from the dropdown (G4). */
     data class StoreSelected(val storeId: String?) : AuthIntent()
+
+    // ── PIN Lock / Quick-Switch (G4) ───────────────────────────────────────
+
+    /** The user entered their PIN on the lock screen to re-authenticate. */
+    data class PinEntered(val pin: String) : AuthIntent()
+
+    /** The user tapped "Different user?" — open quick-switch picker. */
+    data object OpenQuickSwitch : AuthIntent()
+
+    /** The user selected a different employee from the quick-switch list. */
+    data class QuickSwitchSelected(val userId: String) : AuthIntent()
+
+    /** The user entered a PIN for the quick-switch target. */
+    data class QuickSwitchPinEntered(val pin: String) : AuthIntent()
+
+    /** Cancel quick-switch and return to the normal PIN lock. */
+    data object CancelQuickSwitch : AuthIntent()
+
+    /** Dismiss the PIN error message. */
+    data object DismissPinError : AuthIntent()
 }

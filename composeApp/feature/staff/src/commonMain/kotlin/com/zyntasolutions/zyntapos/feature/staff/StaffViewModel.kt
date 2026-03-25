@@ -180,6 +180,7 @@ class StaffViewModel(
             }
             is StaffIntent.ClockIn -> clockIn(intent.employeeId, intent.storeId, intent.clockInTime)
             is StaffIntent.ClockOut -> clockOut(intent.employeeId, intent.clockOutTime)
+            is StaffIntent.ExportAttendanceCsv -> exportAttendanceCsv()
 
             // Leave
             is StaffIntent.LoadPendingLeave -> Unit // driven by reactive observePendingLeave()
@@ -227,6 +228,7 @@ class StaffViewModel(
                 intent.employeeId, intent.from, intent.to
             )
             is StaffIntent.LoadLeaveHistory -> loadLeaveHistory(intent.employeeId)
+            is StaffIntent.LoadLeaveBalance -> loadLeaveBalance(intent.employeeId)
 
             // C3.4: Employee Roaming
             is StaffIntent.NavigateToEmployeeStores ->
@@ -258,6 +260,8 @@ class StaffViewModel(
                     )
                 }
                 sendEffect(StaffEffect.NavigateToEmployeeDetail(employeeId))
+                // Auto-load leave balance for the selected employee
+                loadLeaveBalance(employeeId)
             }
             is Result.Error -> {
                 updateState { copy(isLoading = false, error = result.exception.message) }
@@ -403,6 +407,48 @@ class StaffViewModel(
             is Result.Loading -> Unit
         }
     }
+
+    // ── Attendance CSV Export ───────────────────────────────────────────────
+
+    private suspend fun exportAttendanceCsv() {
+        val s = currentState
+        val records = s.todayAttendance
+        val employeeMap = s.employees.associateBy { it.id }
+
+        if (records.isEmpty()) {
+            sendEffect(StaffEffect.ShowError("No attendance records to export."))
+            return
+        }
+
+        runCatching {
+            val sb = StringBuilder()
+            sb.appendLine("Employee Name,Date,Clock In,Clock Out,Hours Worked,Status")
+            for (r in records) {
+                val empName = employeeMap[r.employeeId]?.fullName ?: r.employeeId
+                val date = r.clockIn.substringBefore("T")
+                val clockIn = r.clockIn.substringAfter("T", "")
+                val clockOut = r.clockOut?.substringAfter("T", "") ?: ""
+                val hours = r.totalHours?.let { "%.2f".format(it) } ?: ""
+                sb.appendLine(
+                    listOf(
+                        empName.csvCell(),
+                        date.csvCell(),
+                        clockIn.csvCell(),
+                        clockOut.csvCell(),
+                        hours.csvCell(),
+                        r.status.name.csvCell(),
+                    ).joinToString(","),
+                )
+            }
+            val fileName = "attendance_${Clock.System.now().toEpochMilliseconds()}.csv"
+            sendEffect(StaffEffect.ShareAttendanceExport(csvContent = sb.toString(), fileName = fileName))
+        }.onFailure {
+            sendEffect(StaffEffect.ShowError("Export failed: ${it.message}"))
+        }
+    }
+
+    /** Wraps a cell value in double-quotes and escapes internal quotes (RFC 4180). */
+    private fun String.csvCell(): String = "\"${replace("\"", "\"\"")}\""
 
     // ── Leave handlers ────────────────────────────────────────────────────
 
@@ -657,6 +703,60 @@ class StaffViewModel(
         getLeaveHistoryUseCase(employeeId)
             .onEach { records -> updateState { copy(leaveHistory = records) } }
             .launchIn(viewModelScope)
+    }
+
+    /**
+     * Computes leave balance for the current calendar year from approved leave records.
+     * Counts business days between start/end dates for each approved leave record.
+     */
+    private fun loadLeaveBalance(employeeId: String) {
+        val now = Clock.System.now()
+        val today = now.toLocalDateTime(TimeZone.currentSystemDefault())
+        val yearStart = "${today.year}-01-01"
+        val yearEnd = "${today.year}-12-31"
+        getLeaveHistoryUseCase(employeeId)
+            .onEach { allRecords ->
+                val approvedThisYear = allRecords.filter { record ->
+                    record.status == com.zyntasolutions.zyntapos.domain.model.LeaveStatus.APPROVED &&
+                        record.startDate >= yearStart && record.startDate <= yearEnd
+                }
+                var annualDays = 0
+                var sickDays = 0
+                var personalDays = 0
+                var unpaidDays = 0
+                for (record in approvedThisYear) {
+                    val days = countDays(record.startDate, record.endDate)
+                    when (record.leaveType) {
+                        com.zyntasolutions.zyntapos.domain.model.LeaveType.ANNUAL -> annualDays += days
+                        com.zyntasolutions.zyntapos.domain.model.LeaveType.SICK -> sickDays += days
+                        com.zyntasolutions.zyntapos.domain.model.LeaveType.PERSONAL -> personalDays += days
+                        com.zyntasolutions.zyntapos.domain.model.LeaveType.UNPAID -> unpaidDays += days
+                    }
+                }
+                updateState {
+                    copy(
+                        leaveBalance = LeaveBalanceState(
+                            annualUsed = annualDays,
+                            sickUsed = sickDays,
+                            personalUsed = personalDays,
+                            unpaidUsed = unpaidDays,
+                        ),
+                    )
+                }
+            }
+            .launchIn(viewModelScope)
+    }
+
+    /** Counts calendar days between two ISO date strings (inclusive). */
+    private fun countDays(startDate: String, endDate: String): Int {
+        return try {
+            val start = kotlinx.datetime.LocalDate.parse(startDate)
+            val end = kotlinx.datetime.LocalDate.parse(endDate)
+            val diff = end.toEpochDays() - start.toEpochDays()
+            (diff + 1).coerceAtLeast(1)
+        } catch (_: Exception) {
+            1 // Fallback: assume 1 day if dates can't be parsed
+        }
     }
 }
 

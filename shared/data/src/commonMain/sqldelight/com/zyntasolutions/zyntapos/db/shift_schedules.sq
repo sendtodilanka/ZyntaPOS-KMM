@@ -38,6 +38,11 @@ getShiftByEmployeeAndDate:
 SELECT * FROM shift_schedules
 WHERE employee_id = ? AND shift_date = ? LIMIT 1;
 
+getAllShiftsByEmployeeAndDate:
+SELECT * FROM shift_schedules
+WHERE employee_id = ? AND shift_date = ?
+ORDER BY start_time ASC;
+
 getShiftsByStoreAndDate:
 SELECT ss.*, e.first_name, e.last_name
 FROM shift_schedules ss JOIN employees e ON ss.employee_id = e.id

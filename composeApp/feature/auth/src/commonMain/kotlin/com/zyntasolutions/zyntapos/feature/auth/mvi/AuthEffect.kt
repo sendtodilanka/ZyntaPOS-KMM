@@ -37,4 +37,13 @@ sealed class AuthEffect {
      * Emitted by [com.zyntasolutions.zyntapos.feature.auth.session.SessionManager].
      */
     data object ShowPinLock : AuthEffect()
+
+    /** PIN validated successfully — dismiss the PIN lock screen. */
+    data object PinUnlocked : AuthEffect()
+
+    /** Quick-switch succeeded — dismiss PIN lock + switch session. */
+    data class QuickSwitchCompleted(val userName: String) : AuthEffect()
+
+    /** Quick-switch or PIN lock failed — navigate to full login. */
+    data object NavigateToLogin : AuthEffect()
 }

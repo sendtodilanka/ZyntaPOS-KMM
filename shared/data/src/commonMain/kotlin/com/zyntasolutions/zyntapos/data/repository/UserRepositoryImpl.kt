@@ -9,6 +9,8 @@ import com.zyntasolutions.zyntapos.data.local.SyncEnqueuer
 import com.zyntasolutions.zyntapos.data.local.mapper.UserMapper
 import com.zyntasolutions.zyntapos.domain.port.PasswordHashPort
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
+import com.zyntasolutions.zyntapos.domain.model.QuickSwitchCandidate
+import com.zyntasolutions.zyntapos.domain.model.Role
 import com.zyntasolutions.zyntapos.domain.model.SyncOperation
 import com.zyntasolutions.zyntapos.domain.model.User
 import com.zyntasolutions.zyntapos.domain.repository.UserRepository
@@ -222,6 +224,22 @@ class UserRepositoryImpl(
             }.fold(
                 onSuccess = { Result.Success(Unit) },
                 onFailure = { t -> Result.Error(DatabaseException(t.message ?: "Transfer failed", cause = t)) },
+            )
+        }
+
+    override suspend fun getQuickSwitchCandidates(storeId: String): Result<List<QuickSwitchCandidate>> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                q.getQuickSwitchCandidates(storeId).executeAsList().map { row ->
+                    QuickSwitchCandidate(
+                        id = row.id,
+                        name = row.name,
+                        role = runCatching { Role.valueOf(row.role) }.getOrDefault(Role.CASHIER),
+                    )
+                }
+            }.fold(
+                onSuccess = { Result.Success(it) },
+                onFailure = { t -> Result.Error(DatabaseException(t.message ?: "DB error", cause = t)) },
             )
         }
 }

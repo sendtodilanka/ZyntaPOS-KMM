@@ -133,6 +133,12 @@ data class CloseRegisterFormState(
     val discrepancyThreshold: Double = 10.0,
     val validationErrors: Map<String, String> = emptyMap(),
     val showConfirmation: Boolean = false,
+    /** True when discrepancy exceeds threshold and manager approval is required. */
+    val awaitingManagerApproval: Boolean = false,
+    /** Manager PIN entered for approval. */
+    val managerPin: String = "",
+    /** Error from failed manager approval attempt. */
+    val managerApprovalError: String? = null,
 ) {
     /** Parses [actualBalanceRaw] as a right-to-left price: "12345" → 123.45 */
     val actualBalanceDouble: Double

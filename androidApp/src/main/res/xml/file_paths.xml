@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  FileProvider paths for sharing files with the system camera (TakePicture intent).
+  Used by NativeCameraLauncher to create a content URI for the captured photo.
+-->
+<paths>
+    <external-files-path name="media_images" path="Pictures/" />
+</paths>

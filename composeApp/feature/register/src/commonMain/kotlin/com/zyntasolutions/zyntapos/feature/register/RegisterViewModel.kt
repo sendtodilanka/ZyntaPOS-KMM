@@ -168,9 +168,32 @@ class RegisterViewModel(
                     updateCloseForm { copy(showConfirmation = true, validationErrors = emptyMap()) }
                 }
             }
-            is RegisterIntent.ConfirmCloseRegister -> confirmCloseRegister()
+            is RegisterIntent.ConfirmCloseRegister -> {
+                val form = currentState.closeRegisterForm
+                if (form.isDiscrepancyWarning && !form.awaitingManagerApproval) {
+                    // Large discrepancy requires manager PIN approval
+                    updateCloseForm { copy(showConfirmation = false, awaitingManagerApproval = true, managerPin = "", managerApprovalError = null) }
+                } else {
+                    confirmCloseRegister()
+                }
+            }
             is RegisterIntent.DismissCloseConfirmation -> updateCloseForm {
                 copy(showConfirmation = false)
+            }
+            is RegisterIntent.ManagerApprovalPinChanged -> updateCloseForm {
+                copy(managerPin = intent.pin, managerApprovalError = null)
+            }
+            is RegisterIntent.SubmitManagerApproval -> {
+                val form = currentState.closeRegisterForm
+                if (form.managerPin.length < 4) {
+                    updateCloseForm { copy(managerApprovalError = "Enter manager PIN (4–6 digits)") }
+                } else {
+                    // Validate manager PIN via auth repository
+                    validateManagerPinAndClose(form.managerPin)
+                }
+            }
+            is RegisterIntent.CancelManagerApproval -> updateCloseForm {
+                copy(awaitingManagerApproval = false, managerPin = "", managerApprovalError = null)
             }
 
             // Z-Report (Sprint 21)
@@ -391,6 +414,33 @@ class RegisterViewModel(
             is Result.Error -> sendEffect(
                 RegisterEffect.ShowError(result.exception.message ?: "Failed to close register"),
             )
+            is Result.Loading -> Unit
+        }
+    }
+
+    /**
+     * Validates the manager's PIN for discrepancy approval.
+     * On success, proceeds with the close register operation.
+     * Uses the auth repository to validate PIN against MANAGER/ADMIN role users.
+     */
+    private suspend fun validateManagerPinAndClose(pin: String) {
+        updateState { copy(isLoading = true) }
+        when (val result = authRepository.validateManagerPin(pin)) {
+            is Result.Success -> {
+                if (result.data) {
+                    updateCloseForm { copy(awaitingManagerApproval = false, managerPin = "", managerApprovalError = null) }
+                    updateState { copy(isLoading = false) }
+                    analytics.logEvent("register_discrepancy_approved", mapOf("discrepancy" to currentState.closeRegisterForm.discrepancy.toString()))
+                    confirmCloseRegister()
+                } else {
+                    updateState { copy(isLoading = false) }
+                    updateCloseForm { copy(managerApprovalError = "Invalid manager PIN") }
+                }
+            }
+            is Result.Error -> {
+                updateState { copy(isLoading = false) }
+                updateCloseForm { copy(managerApprovalError = result.exception.message ?: "PIN validation failed") }
+            }
             is Result.Loading -> Unit
         }
     }

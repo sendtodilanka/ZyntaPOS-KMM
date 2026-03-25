@@ -84,4 +84,30 @@ interface AuthRepository {
      *         or the PIN is incorrect. [Result.Error] on a storage-layer failure.
      */
     suspend fun validatePin(userId: String, pin: String): Result<Boolean>
+
+    /**
+     * Quick-switches the active session to a different user via PIN authentication.
+     *
+     * Validates [pin] against the stored hash for [userId]. If valid, replaces the
+     * current session with the target user — no full logout/login cycle required.
+     *
+     * @param userId The user to switch to.
+     * @param pin    The raw 4–6-digit PIN entered by the operator.
+     * @return [Result.Success] wrapping the switched-to [User], or [Result.Error] if
+     *         the PIN is incorrect or the user is inactive.
+     */
+    suspend fun quickSwitch(userId: String, pin: String): Result<User>
+
+    /**
+     * Validates that [pin] belongs to a user with MANAGER or ADMIN role at the current store.
+     *
+     * Used for discrepancy approval workflows where a supervisor must authorize
+     * operations that exceed configurable thresholds (e.g., register close with
+     * large cash discrepancy).
+     *
+     * @param pin Raw 4–6-digit PIN entered by the manager.
+     * @return [Result.Success] with `true` if a MANAGER/ADMIN user's PIN matches;
+     *         `false` if no match found. [Result.Error] on storage failure.
+     */
+    suspend fun validateManagerPin(pin: String): Result<Boolean>
 }

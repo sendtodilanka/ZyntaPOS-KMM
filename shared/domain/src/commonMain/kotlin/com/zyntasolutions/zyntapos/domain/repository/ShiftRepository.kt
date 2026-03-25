@@ -29,6 +29,12 @@ interface ShiftRepository {
     suspend fun getByEmployeeAndDate(employeeId: String, date: String): Result<ShiftSchedule?>
 
     /**
+     * Returns ALL shifts for [employeeId] on [date] across all stores.
+     * Used for cross-store overlap detection.
+     */
+    suspend fun getAllShiftsByEmployeeAndDate(employeeId: String, date: String): Result<List<ShiftSchedule>>
+
+    /**
      * Returns all shifts for [storeId] on a specific [date].
      */
     suspend fun getByStoreAndDate(storeId: String, date: String): Result<List<ShiftSchedule>>

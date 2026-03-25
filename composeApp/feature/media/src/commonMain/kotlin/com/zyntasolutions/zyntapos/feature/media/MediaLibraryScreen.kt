@@ -60,6 +60,11 @@ fun MediaLibraryScreen(
             if (path != null) onIntent(MediaIntent.UpdateFilePath(path))
         }
 
+        // Camera launcher — called unconditionally; returns null on platforms without camera.
+        val takePhoto = rememberNativeCameraLauncher { path ->
+            if (path != null) onIntent(MediaIntent.UpdateFilePath(path))
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -146,6 +151,7 @@ fun MediaLibraryScreen(
                 onConfirm = { onIntent(MediaIntent.ConfirmAddFile) },
                 onDismiss = { onIntent(MediaIntent.HideAddDialog) },
                 onBrowse = pickFile,
+                onTakePhoto = takePhoto,
             )
         }
     }
@@ -360,6 +366,7 @@ private fun AddMediaDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
     onBrowse: () -> Unit = {},
+    onTakePhoto: (() -> Unit)? = null,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -367,18 +374,33 @@ private fun AddMediaDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                 Text(
-                    "Select an image using the file picker or enter its path manually.",
+                    "Select an image using the file picker, take a photo, or enter its path manually.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                // G15: Native file picker button
-                OutlinedButton(
-                    onClick = onBrowse,
+                // G15: Native file picker + camera buttons
+                Row(
                     modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
                 ) {
-                    Icon(Icons.Default.FolderOpen, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(ZyntaSpacing.xs))
-                    Text("Browse…")
+                    OutlinedButton(
+                        onClick = onBrowse,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Icon(Icons.Default.FolderOpen, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(ZyntaSpacing.xs))
+                        Text("Browse\u2026")
+                    }
+                    if (onTakePhoto != null) {
+                        OutlinedButton(
+                            onClick = onTakePhoto,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(ZyntaSpacing.xs))
+                            Text("Take Photo")
+                        }
+                    }
                 }
                 OutlinedTextField(
                     value = filePath,

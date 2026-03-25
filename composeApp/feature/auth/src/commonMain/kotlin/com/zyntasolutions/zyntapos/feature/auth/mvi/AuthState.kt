@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.auth.mvi
 
 import androidx.compose.runtime.Immutable
+import com.zyntasolutions.zyntapos.domain.model.QuickSwitchCandidate
 import com.zyntasolutions.zyntapos.domain.model.Store
 
 /**
@@ -40,4 +41,15 @@ data class AuthState(
      * The UI renders a live countdown from this value.
      */
     val lockedOutUntilMs: Long? = null,
+    // ── PIN Lock / Quick-Switch ────────────────────────────────────────────
+    /** True while validating a PIN on the lock screen. */
+    val isPinValidating: Boolean = false,
+    /** Error message from a failed PIN attempt. */
+    val pinError: String? = null,
+    /** True when the quick-switch user picker is showing. */
+    val isQuickSwitchMode: Boolean = false,
+    /** Available users for quick-switch at the current store. */
+    val quickSwitchCandidates: List<QuickSwitchCandidate> = emptyList(),
+    /** The user selected from the quick-switch picker (PIN entry for this user). */
+    val quickSwitchTargetId: String? = null,
 )

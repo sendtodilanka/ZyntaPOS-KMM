@@ -166,6 +166,63 @@ fun CloseRegisterScreen(
                 onDismiss = { viewModel.dispatch(RegisterIntent.DismissCloseConfirmation) },
             )
         }
+
+        // ── Manager Approval Dialog (G5: discrepancy approval workflow) ──
+        if (closeForm.awaitingManagerApproval) {
+            AlertDialog(
+                onDismissRequest = { viewModel.dispatch(RegisterIntent.CancelManagerApproval) },
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                },
+                title = { Text("Manager Approval Required") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
+                        Text(
+                            text = "Discrepancy of ${fmt(closeForm.discrepancy)} exceeds the ${fmt(closeForm.discrepancyThreshold)} threshold.",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Text(
+                            text = "A manager must enter their PIN to approve this close.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(Modifier.height(ZyntaSpacing.sm))
+                        OutlinedTextField(
+                            value = closeForm.managerPin,
+                            onValueChange = { pin ->
+                                if (pin.length <= 6 && pin.all { it.isDigit() }) {
+                                    viewModel.dispatch(RegisterIntent.ManagerApprovalPinChanged(pin))
+                                }
+                            },
+                            label = { Text("Manager PIN") },
+                            isError = closeForm.managerApprovalError != null,
+                            supportingText = closeForm.managerApprovalError?.let { err ->
+                                { Text(err, color = MaterialTheme.colorScheme.error) }
+                            },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = { viewModel.dispatch(RegisterIntent.SubmitManagerApproval) },
+                        enabled = closeForm.managerPin.length >= 4 && !state.isLoading,
+                    ) {
+                        Text("Approve & Close")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { viewModel.dispatch(RegisterIntent.CancelManagerApproval) }) {
+                        Text("Cancel")
+                    }
+                },
+            )
+        }
     }
 }
 

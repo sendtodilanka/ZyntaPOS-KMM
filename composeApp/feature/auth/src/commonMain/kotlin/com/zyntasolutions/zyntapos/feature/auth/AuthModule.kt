@@ -3,6 +3,7 @@ package com.zyntasolutions.zyntapos.feature.auth
 import com.zyntasolutions.zyntapos.domain.usecase.auth.CheckPermissionUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.auth.LoginUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.auth.LogoutUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.auth.QuickSwitchUserUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.auth.ValidatePinUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.license.ActivateLicenseUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.license.GetLicenseStatusUseCase
@@ -61,6 +62,12 @@ val authModule = module {
      * Depends on [AuthRepository].
      */
     single { ValidatePinUseCase(authRepository = get()) }
+
+    /**
+     * Switches the active session to a different user via PIN (G4 quick-switch).
+     * Depends on [AuthRepository].
+     */
+    single { QuickSwitchUserUseCase(authRepository = get()) }
 
     /**
      * Synchronous RBAC evaluator.

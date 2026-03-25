@@ -51,6 +51,29 @@ class SaveShiftScheduleUseCase(
                 ),
             )
         }
+
+        // Check for overlapping shifts across all stores for this employee on the same date
+        val existingResult = shiftRepository.getAllShiftsByEmployeeAndDate(shift.employeeId, shift.shiftDate)
+        if (existingResult is Result.Error) return existingResult
+
+        val existingShifts = (existingResult as Result.Success).data
+        val overlapping = existingShifts
+            .filter { it.id != shift.id } // exclude the shift being edited
+            .find { existing ->
+                // Two intervals overlap when: existingStart < newEnd AND newStart < existingEnd
+                existing.startTime < shift.endTime && shift.startTime < existing.endTime
+            }
+
+        if (overlapping != null) {
+            return Result.Error(
+                ValidationException(
+                    "Shift overlaps with existing shift (${overlapping.startTime}-${overlapping.endTime}).",
+                    field = "startTime",
+                    rule = "SHIFT_OVERLAP",
+                ),
+            )
+        }
+
         return shiftRepository.upsert(shift)
     }
 }
