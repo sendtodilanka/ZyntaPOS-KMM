@@ -37,9 +37,12 @@ class SyncStatusAdapter(
     private val _newConflictCount = MutableSharedFlow<Int>(extraBufferCapacity = 4)
     override val newConflictCount: SharedFlow<Int> = _newConflictCount.asSharedFlow()
 
+    private val _onSyncComplete = MutableSharedFlow<Unit>(extraBufferCapacity = 8)
+    override val onSyncComplete: SharedFlow<Unit> = _onSyncComplete.asSharedFlow()
+
     /**
-     * Starts observing [SyncEngine.lastSyncResult] to derive [lastSyncFailed] and
-     * to emit [newConflictCount] events when conflicts are detected.
+     * Starts observing [SyncEngine.lastSyncResult] to derive [lastSyncFailed],
+     * emit [newConflictCount] events, and signal [onSyncComplete] after every cycle.
      * Call once during DI initialization.
      */
     fun startObserving(scope: CoroutineScope) {
@@ -49,6 +52,9 @@ class SyncStatusAdapter(
                 if (result is SyncResult.Success && result.conflictCount > 0) {
                     _newConflictCount.tryEmit(result.conflictCount)
                 }
+                // Signal every completed cycle (success or failure) so dashboard/reports
+                // can do a silent refresh and show up-to-date KPIs.
+                _onSyncComplete.tryEmit(Unit)
             }
             .launchIn(scope)
         // Initial pending count refresh

@@ -19,6 +19,7 @@ val dashboardModule = module {
             storeRepository = get(),
             settingsRepository = get(),
             analytics = get(),
+            syncStatusPort = get(),
         )
     }
 }

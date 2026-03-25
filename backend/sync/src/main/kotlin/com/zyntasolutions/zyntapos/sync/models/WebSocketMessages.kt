@@ -104,6 +104,22 @@ data class WsDiagSessionEvent(
     val event: String,
 ) : WsMessage()
 
+// ── Dashboard real-time update (C5.4) ──────────────────────────────────────
+
+/**
+ * Sent to dashboard-subscribed clients when a new order completes at the store.
+ * Clients should silently reload KPI data on receipt.
+ */
+@Serializable
+@SerialName("dashboard_update")
+data class WsDashboardUpdate(
+    val storeId: String,
+    /** Epoch milliseconds of the event that triggered this update (e.g. order completion). */
+    val triggeredAt: Long = System.currentTimeMillis(),
+    /** Which KPI areas are affected — helps clients decide what to reload. */
+    val affectedAreas: List<String> = listOf("sales", "orders"),
+) : WsMessage()
+
 // ── Redis pub/sub payloads ──────────────────────────────────────────────────
 
 /** Redis pub/sub notification payload published by the API service. */
@@ -114,4 +130,15 @@ data class SyncNotification(
     val operationCount: Int,
     val latestSeq: Long,
     val entityTypes: List<String> = emptyList(),
+)
+
+/**
+ * Redis pub/sub payload published by the API service on `dashboard:update:{storeId}`
+ * whenever an order completes. The sync service fans this out to dashboard WebSocket clients.
+ */
+@Serializable
+data class DashboardUpdateNotification(
+    val storeId: String,
+    val triggeredAt: Long = System.currentTimeMillis(),
+    val affectedAreas: List<String> = listOf("sales", "orders"),
 )

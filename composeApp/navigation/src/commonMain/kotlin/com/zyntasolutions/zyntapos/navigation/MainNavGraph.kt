@@ -776,34 +776,69 @@ fun NavGraphBuilder.mainNavGraph(
                 drawerUserRole = currentUserRole,
                     currentRoute = ZyntaRoute.EmployeeList,
                 ) {
-                    screens.staffScreen { navigationController.popBackStack() }
+                    screens.staffScreen(
+                        { navigationController.popBackStack() },
+                        { empId -> navigationController.navigate(ZyntaRoute.EmployeeStoreAssignments(empId)) },
+                    )
                 }
             }
             // All staff sub-routes land on the unified StaffScreen; internal
             // tab/detail state is managed entirely by StaffViewModel.
             composable<ZyntaRoute.EmployeeDetail> {
-                screens.staffScreen { navigationController.popBackStack() }
+                screens.staffScreen(
+                    { navigationController.popBackStack() },
+                    { empId -> navigationController.navigate(ZyntaRoute.EmployeeStoreAssignments(empId)) },
+                )
             }
             composable<ZyntaRoute.AttendanceDashboard> {
-                screens.staffScreen { navigationController.popBackStack() }
+                screens.staffScreen(
+                    { navigationController.popBackStack() },
+                    { empId -> navigationController.navigate(ZyntaRoute.EmployeeStoreAssignments(empId)) },
+                )
             }
             composable<ZyntaRoute.AttendanceHistory> {
-                screens.staffScreen { navigationController.popBackStack() }
+                screens.staffScreen(
+                    { navigationController.popBackStack() },
+                    { empId -> navigationController.navigate(ZyntaRoute.EmployeeStoreAssignments(empId)) },
+                )
             }
             composable<ZyntaRoute.LeaveManagement> {
-                screens.staffScreen { navigationController.popBackStack() }
+                screens.staffScreen(
+                    { navigationController.popBackStack() },
+                    { empId -> navigationController.navigate(ZyntaRoute.EmployeeStoreAssignments(empId)) },
+                )
             }
             composable<ZyntaRoute.SubmitLeave> {
-                screens.staffScreen { navigationController.popBackStack() }
+                screens.staffScreen(
+                    { navigationController.popBackStack() },
+                    { empId -> navigationController.navigate(ZyntaRoute.EmployeeStoreAssignments(empId)) },
+                )
             }
             composable<ZyntaRoute.ShiftScheduler> {
-                screens.staffScreen { navigationController.popBackStack() }
+                screens.staffScreen(
+                    { navigationController.popBackStack() },
+                    { empId -> navigationController.navigate(ZyntaRoute.EmployeeStoreAssignments(empId)) },
+                )
             }
             composable<ZyntaRoute.PayrollDashboard> {
-                screens.staffScreen { navigationController.popBackStack() }
+                screens.staffScreen(
+                    { navigationController.popBackStack() },
+                    { empId -> navigationController.navigate(ZyntaRoute.EmployeeStoreAssignments(empId)) },
+                )
             }
             composable<ZyntaRoute.PayrollDetail> {
-                screens.staffScreen { navigationController.popBackStack() }
+                screens.staffScreen(
+                    { navigationController.popBackStack() },
+                    { empId -> navigationController.navigate(ZyntaRoute.EmployeeStoreAssignments(empId)) },
+                )
+            }
+
+            // C3.4: Employee store assignments
+            composable<ZyntaRoute.EmployeeStoreAssignments> { backStackEntry ->
+                val route = backStackEntry.toRoute<ZyntaRoute.EmployeeStoreAssignments>()
+                screens.employeeStoreAssignments(
+                    route.employeeId,
+                ) { navigationController.popBackStack() }
             }
         }
 
@@ -811,6 +846,13 @@ fun NavGraphBuilder.mainNavGraph(
         composable<ZyntaRoute.NotificationInbox> {
             screens.notificationInbox(
                 { navigationController.popBackStack() },
+            )
+        }
+
+        // ── Click & Collect: FulfillmentQueue (C4.4) ────────────────────────
+        composable<ZyntaRoute.FulfillmentQueue> {
+            screens.fulfillmentQueue(
+                { navigationController.navigateUp(ZyntaRoute.Pos) },
             )
         }
 

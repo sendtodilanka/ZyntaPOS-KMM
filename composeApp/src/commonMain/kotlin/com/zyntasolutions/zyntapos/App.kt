@@ -44,9 +44,14 @@ import com.zyntasolutions.zyntapos.feature.pos.OrderHistoryScreen
 import com.zyntasolutions.zyntapos.feature.pos.PaymentScreen
 import com.zyntasolutions.zyntapos.feature.pos.PosScreen
 import com.zyntasolutions.zyntapos.feature.pos.PosViewModel
+import com.zyntasolutions.zyntapos.feature.pos.fulfillment.FulfillmentQueueScreen
 import com.zyntasolutions.zyntapos.feature.admin.AdminScreen
 import com.zyntasolutions.zyntapos.feature.admin.AdminViewModel
 import com.zyntasolutions.zyntapos.feature.admin.notification.NotificationInboxScreen
+import com.zyntasolutions.zyntapos.feature.staff.EmployeeRoamingIntent
+import com.zyntasolutions.zyntapos.feature.staff.EmployeeRoamingViewModel
+import com.zyntasolutions.zyntapos.feature.staff.EmployeeStoreAssignmentScreen
+import com.zyntasolutions.zyntapos.feature.staff.StaffEffect
 import com.zyntasolutions.zyntapos.feature.staff.StaffScreen
 import com.zyntasolutions.zyntapos.feature.staff.StaffViewModel
 import com.zyntasolutions.zyntapos.feature.coupons.CouponDetailScreen
@@ -639,6 +644,11 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
         )
     },
 
+    // ── Click & Collect: Fulfillment Queue (C4.4) ──────────────────────────
+    fulfillmentQueue = { onNavigateUp ->
+        FulfillmentQueueScreen(onNavigateUp = onNavigateUp)
+    },
+
     // ── Order History ───────────────────────────────────────────────────────
     orderHistory = { _, onNavigateUp ->
         OrderHistoryScreen(
@@ -847,15 +857,39 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
     },
 
     // ── Staff  (Sprint 8-12) ─────────────────────────────────────────────────
-    staffScreen = { _ ->
+    staffScreen = { _, onNavigateToEmployeeStores ->
         val authRepository: AuthRepository = koinInject()
         val session by authRepository.getSession().collectAsState(initial = null)
         val vm: StaffViewModel = koinViewModel()
         val state by vm.state.collectAsState()
+        // Collect one-shot effects for navigation
+        LaunchedEffect(Unit) {
+            vm.effects.collect { effect ->
+                when (effect) {
+                    is StaffEffect.NavigateToEmployeeStores ->
+                        onNavigateToEmployeeStores(effect.employeeId)
+                    else -> Unit
+                }
+            }
+        }
         StaffScreen(
             state = state,
             onIntent = vm::dispatch,
             storeId = session?.storeId ?: "",
+        )
+    },
+
+    // ── Employee Store Assignments  (C3.4) ───────────────────────────────────
+    employeeStoreAssignments = { employeeId, onNavigateUp ->
+        val vm: EmployeeRoamingViewModel = koinViewModel()
+        val state by vm.state.collectAsState()
+        LaunchedEffect(employeeId) {
+            vm.dispatch(EmployeeRoamingIntent.LoadAssignments(employeeId, employeeId))
+        }
+        EmployeeStoreAssignmentScreen(
+            state = state,
+            onIntent = vm::dispatch,
+            onNavigateUp = onNavigateUp,
         )
     },
 

@@ -480,6 +480,14 @@ sealed class ZyntaRoute {
     @Serializable
     data class PayrollDetail(val employeeId: String, val periodStart: String) : ZyntaRoute()
 
+    /**
+     * Employee store assignments — list and manage multi-store roaming (C3.4).
+     *
+     * @param employeeId Employee whose assignments are being managed.
+     */
+    @Serializable
+    data class EmployeeStoreAssignments(val employeeId: String) : ZyntaRoute()
+
     // ─────────────────────────────────────────────────────────────────
     // ADMIN GROUP  (Phase 3 — Sprint 13-15)
     // ─────────────────────────────────────────────────────────────────
@@ -642,6 +650,17 @@ sealed class ZyntaRoute {
      */
     @Serializable
     data class DiagnosticConsent(val token: String) : ZyntaRoute()
+
+    // ─────────────────────────────────────────────────────────────────
+    // CLICK & COLLECT (C4.4)
+    // ─────────────────────────────────────────────────────────────────
+
+    /**
+     * Click & Collect pickup queue — staff view of all active BOPIS orders.
+     * Accessible from the POS screen via the overflow menu or quick-action tile.
+     */
+    @Serializable
+    data object FulfillmentQueue : ZyntaRoute()
 
     // ─────────────────────────────────────────────────────────────────
     // DEEP-LINK TARGETS (not primary nav destinations)

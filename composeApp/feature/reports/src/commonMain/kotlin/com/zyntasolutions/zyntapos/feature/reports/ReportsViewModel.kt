@@ -4,6 +4,7 @@ import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateCustomerReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateExpenseReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateSalesReportUseCase
+import com.zyntasolutions.zyntapos.domain.port.SyncStatusPort
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateStockReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.PrintReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.enterprise.GenerateMultiStoreComparisonReportUseCase
@@ -49,10 +50,26 @@ class ReportsViewModel(
     private val reportExporter: ReportExporter,
     private val generateStoreComparison: GenerateMultiStoreComparisonReportUseCase,
     private val analytics: AnalyticsTracker,
+    private val syncStatusPort: SyncStatusPort,
 ) : BaseViewModel<ReportsState, ReportsIntent, ReportsEffect>(ReportsState()) {
 
     init {
         analytics.logScreenView("Reports", "ReportsViewModel")
+
+        // Refresh active reports on every sync cycle completion (real-time report updates — G6).
+        viewModelScope.launch {
+            syncStatusPort.onSyncComplete.collect { refreshLoadedReports() }
+        }
+    }
+
+    /** Silently reloads whichever report tabs the user has already opened. */
+    private fun refreshLoadedReports() {
+        val s = currentState
+        if (s.salesReport.report != null) loadSalesReport()
+        if (s.stockReport.allProducts.isNotEmpty() || s.stockReport.lowStockItems.isNotEmpty()) loadStockReport()
+        if (s.customerReport.report != null) loadCustomerReport()
+        if (s.expenseReport.report != null) loadExpenseReport()
+        if (s.storeComparison.stores.isNotEmpty()) loadStoreComparison()
     }
 
     private var salesJob: Job? = null

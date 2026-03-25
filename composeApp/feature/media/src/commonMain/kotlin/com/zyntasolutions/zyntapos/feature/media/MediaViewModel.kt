@@ -85,6 +85,12 @@ class MediaViewModel(
             }
             MediaIntent.ClearSelection -> updateState { copy(selectedFile = null) }
 
+            is MediaIntent.ShowFullScreenPreview -> {
+                val file = currentState.mediaFiles.find { it.id == intent.fileId }
+                updateState { copy(previewFile = file) }
+            }
+            MediaIntent.HideFullScreenPreview -> updateState { copy(previewFile = null) }
+
             MediaIntent.ShowAddDialog -> updateState { copy(showAddDialog = true, addFilePath = "", addFileError = null) }
             MediaIntent.HideAddDialog -> updateState { copy(showAddDialog = false, addFilePath = "", addFileError = null) }
             is MediaIntent.UpdateFilePath -> updateState { copy(addFilePath = intent.path, addFileError = null) }

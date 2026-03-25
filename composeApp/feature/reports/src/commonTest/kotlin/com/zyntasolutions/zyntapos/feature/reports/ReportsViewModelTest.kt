@@ -48,6 +48,12 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
+import com.zyntasolutions.zyntapos.domain.port.SyncStatusPort
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlin.test.assertTrue
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -65,6 +71,21 @@ class ReportsViewModelTest {
         override fun logScreenView(screenName: String, screenClass: String) = Unit
         override fun setUserId(userId: String?) = Unit
         override fun setUserProperty(name: String, value: String) = Unit
+    }
+
+    private val fakeSyncStatusPort = object : SyncStatusPort {
+        private val _isSyncing = MutableStateFlow(false)
+        private val _isNetworkConnected = MutableStateFlow(true)
+        private val _lastSyncFailed = MutableStateFlow(false)
+        private val _pendingCount = MutableStateFlow(0)
+        private val _newConflictCount = MutableSharedFlow<Int>()
+        private val _onSyncComplete = MutableSharedFlow<Unit>()
+        override val isSyncing: StateFlow<Boolean> = _isSyncing.asStateFlow()
+        override val isNetworkConnected: StateFlow<Boolean> = _isNetworkConnected.asStateFlow()
+        override val lastSyncFailed: StateFlow<Boolean> = _lastSyncFailed.asStateFlow()
+        override val pendingCount: StateFlow<Int> = _pendingCount.asStateFlow()
+        override val newConflictCount: SharedFlow<Int> = _newConflictCount.asSharedFlow()
+        override val onSyncComplete: SharedFlow<Unit> = _onSyncComplete.asSharedFlow()
     }
 
     // ── Test fixtures ─────────────────────────────────────────────────────────
@@ -344,6 +365,7 @@ class ReportsViewModelTest {
             reportExporter         = fakeReportExporter,
             generateStoreComparison = GenerateMultiStoreComparisonReportUseCase(fakeReportRepository),
             analytics              = noOpAnalytics,
+            syncStatusPort         = fakeSyncStatusPort,
         )
     }
 

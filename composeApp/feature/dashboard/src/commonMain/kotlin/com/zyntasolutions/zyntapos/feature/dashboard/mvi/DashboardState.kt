@@ -24,6 +24,10 @@ data class DashboardState(
     val weeklySalesData: List<ChartDataPoint> = emptyList(),
     val todaySparkline: List<Float> = emptyList(),
     val isLoading: Boolean = true,
+    /** True during a pull-to-refresh user gesture (swipe indicator). Distinct from initial [isLoading]. */
+    val isRefreshing: Boolean = false,
+    /** Epoch milliseconds of the last successful KPI data load. Shown in the header subtitle. */
+    val lastRefreshedAt: Long = 0L,
     /** Daily sales target in currency units. Shown in the hero KPI card progress ring. */
     val dailySalesTarget: Double = 75_000.0,
     /** Pre-computed progress ratio (0f–1f) for the sales target ring. Computed in ViewModel. */

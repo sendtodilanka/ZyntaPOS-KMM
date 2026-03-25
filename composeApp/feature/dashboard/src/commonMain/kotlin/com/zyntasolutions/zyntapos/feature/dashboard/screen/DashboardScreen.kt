@@ -60,6 +60,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
+import com.zyntasolutions.zyntapos.designsystem.components.ChartDataPoint
 import com.zyntasolutions.zyntapos.designsystem.components.ChartSeries
 import com.zyntasolutions.zyntapos.designsystem.components.InfoCardVariant
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaActivityItem
@@ -144,6 +145,7 @@ fun DashboardScreen(
         onNavigateToSettings = onNavigateToSettings,
         onNavigateToNotifications = onNavigateToNotifications,
         onLogout = { viewModel.dispatch(DashboardIntent.Logout) },
+        onRefresh = { viewModel.dispatch(DashboardIntent.Refresh) },
     )
 }
 
@@ -166,6 +168,7 @@ internal fun DashboardScreenContent(
     onNavigateToSettings: () -> Unit,
     onNavigateToNotifications: () -> Unit,
     onLogout: () -> Unit,
+    onRefresh: () -> Unit = {},
 ) {
     ZyntaPageScaffold(
         title = "Dashboard",
@@ -684,6 +687,26 @@ private fun CompactDashboard(
                         modifier = Modifier.weight(1f),
                         rawValue = state.activeRegisters.toFloat(),
                         rawValueDelayMs = 100,
+                    )
+                }
+            }
+        }
+
+        // Hourly sparkline (G7) — shows today's sales by hour for at-a-glance trend
+        if (state.todaySparkline.isNotEmpty()) {
+            item {
+                StaggeredEntrance(delayMs = 75) {
+                    ZyntaLineChart(
+                        title = "Today's Hourly Sales",
+                        series = listOf(
+                            ChartSeries(
+                                "Sales",
+                                state.todaySparkline.mapIndexed { i, v -> ChartDataPoint("${i}h", v) },
+                                MaterialTheme.colorScheme.secondary,
+                            )
+                        ),
+                        chartHeight = 120,
+                        showLegend = false,
                     )
                 }
             }

@@ -166,6 +166,11 @@ data class MainNavScreens(
         onNavigateUp: () -> Unit,
     ) -> Unit = { _, _ -> },
 
+    // ── Click & Collect (C4.4) ────────────────────────────────────────────────
+    val fulfillmentQueue: @Composable (
+        onNavigateUp: () -> Unit,
+    ) -> Unit = { onUp -> },
+
     // ── Deep-link target ──────────────────────────────────────────────────────
     val orderHistory: @Composable (
         orderId: String,
@@ -336,7 +341,14 @@ data class MainNavScreens(
     // ── Staff sub-graph  (Sprint 8-12) ────────────────────────────────────────
     val staffScreen: @Composable (
         onNavigateUp: () -> Unit,
+        onNavigateToEmployeeStores: (employeeId: String) -> Unit,
     ) -> Unit,
+
+    /** Employee store assignments (C3.4 Employee Roaming). */
+    val employeeStoreAssignments: @Composable (
+        employeeId: String,
+        onNavigateUp: () -> Unit,
+    ) -> Unit = { _, onUp -> onUp() },
 
     // ── Notifications ─────────────────────────────────────────────────────────
     val notificationInbox: @Composable (

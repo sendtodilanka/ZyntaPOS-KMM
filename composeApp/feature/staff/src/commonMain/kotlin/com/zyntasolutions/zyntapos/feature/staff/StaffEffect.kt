@@ -18,4 +18,7 @@ sealed interface StaffEffect {
 
     /** Show a transient success Snackbar. */
     data class ShowSuccess(val msg: String) : StaffEffect
+
+    /** Navigate to the Employee Store Assignments screen (C3.4). */
+    data class NavigateToEmployeeStores(val employeeId: String) : StaffEffect
 }

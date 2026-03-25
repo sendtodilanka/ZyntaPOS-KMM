@@ -1,0 +1,15 @@
+-- Migration 20: Allow multi-store shifts for the same employee (C3.4 Employee Roaming).
+--
+-- The original unique index idx_shifts_emp_date prevents an employee from having
+-- shifts scheduled at different stores on the same date.  For multi-store roaming
+-- (C3.4) an employee may work at store A in the morning and store B in the afternoon
+-- on the same day, so the constraint must include store_id.
+--
+-- Steps:
+--   1. Drop the old (employee_id, shift_date) unique index.
+--   2. Create the new (employee_id, store_id, shift_date) unique index.
+
+DROP INDEX IF EXISTS idx_shifts_emp_date;
+
+CREATE UNIQUE INDEX idx_shifts_emp_store_date
+    ON shift_schedules(employee_id, store_id, shift_date);

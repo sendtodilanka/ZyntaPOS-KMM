@@ -31,4 +31,11 @@ interface SyncStatusPort {
      * one or more conflicts. Consumers should show a non-blocking toast on each emission.
      */
     val newConflictCount: SharedFlow<Int>
+
+    /**
+     * Emits `Unit` whenever a sync cycle finishes (success or failure).
+     * Dashboard and report screens collect this to trigger a silent data refresh without
+     * showing a loading spinner, giving real-time KPI updates when connectivity is good.
+     */
+    val onSyncComplete: SharedFlow<Unit>
 }

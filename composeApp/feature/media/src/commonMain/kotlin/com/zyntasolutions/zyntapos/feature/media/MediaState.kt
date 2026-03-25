@@ -24,6 +24,8 @@ data class MediaState(
     val entityId: String = "",
     val mediaFiles: List<MediaFile> = emptyList(),
     val selectedFile: MediaFile? = null,
+    /** File currently shown in full-screen preview. Null when preview is closed. */
+    val previewFile: MediaFile? = null,
     val showAddDialog: Boolean = false,
     val addFilePath: String = "",
     val addFileError: String? = null,

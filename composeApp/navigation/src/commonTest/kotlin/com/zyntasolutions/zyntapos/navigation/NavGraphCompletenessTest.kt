@@ -121,6 +121,15 @@ class NavGraphCompletenessTest {
 
         // Notifications
         "notificationInbox",
+
+        // Settings sub-graph — store user access (C3.2)
+        "storeUserAccess",
+
+        // Click & Collect — fulfillment queue (C4.4)
+        "fulfillmentQueue",
+
+        // Employee Roaming (C3.4)
+        "employeeStoreAssignments",
     )
 
     /**

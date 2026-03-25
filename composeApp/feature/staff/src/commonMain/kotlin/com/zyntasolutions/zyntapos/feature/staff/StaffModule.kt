@@ -2,6 +2,9 @@ package com.zyntasolutions.zyntapos.feature.staff
 
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.PostPayrollJournalEntryUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.ApproveLeaveUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.staff.AssignEmployeeToStoreUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.staff.GetEmployeeStoresUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.staff.RevokeEmployeeStoreAssignmentUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.ClockInUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.ClockOutUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.DeleteEmployeeUseCase
@@ -90,6 +93,20 @@ val staffModule = module {
     factoryOf(::GetPayrollHistoryUseCase)
     factoryOf(::GetAttendanceSummaryUseCase)
     factoryOf(::GetLeaveHistoryUseCase)
+
+    // ── Sprint 16-C3.4: Employee Roaming ──────────────────────────────────
+    factoryOf(::GetEmployeeStoresUseCase)
+    factoryOf(::AssignEmployeeToStoreUseCase)
+    factoryOf(::RevokeEmployeeStoreAssignmentUseCase)
+
+    // ── EmployeeRoamingViewModel (C3.4) ───────────────────────────────────
+    viewModel {
+        EmployeeRoamingViewModel(
+            getEmployeeStoresUseCase = get(),
+            assignEmployeeToStoreUseCase = get(),
+            revokeEmployeeStoreAssignmentUseCase = get(),
+        )
+    }
 
     // ── ViewModel ─────────────────────────────────────────────────────────
     viewModel {

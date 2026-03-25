@@ -2,14 +2,17 @@ package com.zyntasolutions.zyntapos.feature.expenses
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
@@ -29,10 +32,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
+import com.zyntasolutions.zyntapos.feature.media.rememberNativeFilePicker
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -50,6 +57,11 @@ fun ExpenseDetailScreen(
     val state by viewModel.state.collectAsState()
     val form = state.expenseForm
     var showDeleteDialog by remember { mutableStateOf(false) }
+
+    // Native file picker (G13) — must be called unconditionally at the screen level
+    val pickReceipt = rememberNativeFilePicker { path ->
+        if (path != null) viewModel.dispatch(ExpenseIntent.UpdateFormField("receiptUrl", path))
+    }
 
     LaunchedEffect(expenseId) {
         viewModel.dispatch(ExpenseIntent.SelectExpense(expenseId))
@@ -131,13 +143,36 @@ fun ExpenseDetailScreen(
                 singleLine = true,
             )
 
-            OutlinedTextField(
-                value = form.receiptUrl,
-                onValueChange = { viewModel.dispatch(ExpenseIntent.UpdateFormField("receiptUrl", it)) },
-                label = { Text("Receipt URL") },
+            // Receipt attachment: URL text field + native file picker browse button (G13)
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-            )
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedTextField(
+                    value = form.receiptUrl,
+                    onValueChange = { viewModel.dispatch(ExpenseIntent.UpdateFormField("receiptUrl", it)) },
+                    label = { Text("Receipt") },
+                    placeholder = { Text("URL or local path") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                )
+                IconButton(onClick = pickReceipt) {
+                    Icon(Icons.Default.AttachFile, contentDescription = "Browse for receipt")
+                }
+            }
+
+            // Receipt image preview — shown when a path/URL is provided (G13)
+            if (form.receiptUrl.isNotBlank()) {
+                AsyncImage(
+                    model = form.receiptUrl,
+                    contentDescription = "Receipt preview",
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .size(200.dp),
+                )
+            }
 
             // Show current approval status for existing expenses
             state.selectedExpense?.let { expense ->

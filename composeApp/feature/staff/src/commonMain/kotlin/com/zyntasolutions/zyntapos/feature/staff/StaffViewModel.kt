@@ -228,6 +228,10 @@ class StaffViewModel(
             )
             is StaffIntent.LoadLeaveHistory -> loadLeaveHistory(intent.employeeId)
 
+            // C3.4: Employee Roaming
+            is StaffIntent.NavigateToEmployeeStores ->
+                sendEffect(StaffEffect.NavigateToEmployeeStores(intent.employeeId))
+
             // UI
             is StaffIntent.DismissError -> updateState { copy(error = null) }
             is StaffIntent.DismissSuccess -> updateState { copy(successMessage = null) }
