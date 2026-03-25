@@ -1372,9 +1372,11 @@ Backend Tests:
 - No pickup location, fulfillment workflow, or online ordering system
 - Zero references to "pickup", "bopis", "fulfillment" in codebase
 
+**What's DONE (2026-03-25):**
+- [x] Add `CLICK_AND_COLLECT` to `OrderType` enum — ✅ DONE: `OrderType.CLICK_AND_COLLECT` added with full KDoc
+- [x] Add fulfillment statuses: `RECEIVED, PREPARING, READY_FOR_PICKUP, PICKED_UP, EXPIRED` — ✅ DONE: New `FulfillmentStatus` enum in `shared/domain` (separate from `OrderStatus` to avoid breaking existing exhaustive when expressions); includes `CANCELLED` too
+
 **What's MISSING:**
-- [ ] Add `CLICK_AND_COLLECT` to `OrderType` enum
-- [ ] Add fulfillment statuses: `RECEIVED, PREPARING, READY_FOR_PICKUP, PICKED_UP, EXPIRED`
 - [ ] `fulfillment_orders` SQLDelight table (order_id, pickup_store_id, pickup_date, status, customer_notified)
 - [ ] Online ordering API (or integration with external ordering platform)
 - [ ] Push notification to customer: "Your order is ready for pickup"
