@@ -32,8 +32,18 @@ sealed interface OnboardingIntent {
     data class ReceiptFooterChanged(val footer: String) : OnboardingIntent
     data class ReceiptPaperWidthChanged(val widthMm: Int) : OnboardingIntent
     data class ReceiptAutoPrintChanged(val enabled: Boolean) : OnboardingIntent
-    /** Skip receipt format and complete onboarding without saving receipt prefs. */
+    /** Skip receipt format and advance to multi-store setup. */
     data object SkipReceiptFormat : OnboardingIntent
+
+    // ── Step 6: Multi-store setup (optional, G2) ────────────────────────
+    /** Update the name of a new store being added. */
+    data class NewStoreNameChanged(val name: String) : OnboardingIntent
+    /** Add the current new store entry to the list. */
+    data object AddAdditionalStore : OnboardingIntent
+    /** Remove an additional store from the list by index. */
+    data class RemoveAdditionalStore(val index: Int) : OnboardingIntent
+    /** Skip multi-store setup and complete onboarding. */
+    data object SkipMultiStoreSetup : OnboardingIntent
 
     /** Complete the wizard — persists settings and creates the admin account. */
     data object CompleteOnboarding : OnboardingIntent

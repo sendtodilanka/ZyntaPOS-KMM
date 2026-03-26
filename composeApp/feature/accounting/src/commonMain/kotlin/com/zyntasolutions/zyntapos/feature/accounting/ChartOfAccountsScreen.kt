@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.Account
 import com.zyntasolutions.zyntapos.domain.model.AccountType
@@ -163,30 +164,13 @@ fun ChartOfAccountsScreen(
                         CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                     }
                     state.accounts.isEmpty() -> {
-                        Column(
-                            modifier = Modifier.align(Alignment.Center),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
-                        ) {
-                            Icon(
-                                Icons.Default.AccountBalance,
-                                contentDescription = null,
-                                modifier = Modifier.size(56.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Text(
-                                "No accounts found.",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Button(
-                                onClick = { viewModel.dispatch(ChartOfAccountsIntent.SeedDefaultAccounts) },
-                            ) {
-                                Icon(Icons.Default.Download, contentDescription = null)
-                                Spacer(Modifier.width(ZyntaSpacing.sm))
-                                Text("Load Defaults")
-                            }
-                        }
+                        ZyntaEmptyState(
+                            title = "No accounts found",
+                            icon = Icons.Default.AccountBalance,
+                            subtitle = "Seed the default chart of accounts to get started.",
+                            ctaLabel = "Load Defaults",
+                            onCtaClick = { viewModel.dispatch(ChartOfAccountsIntent.SeedDefaultAccounts) },
+                        )
                     }
                     else -> {
                         LazyColumn(

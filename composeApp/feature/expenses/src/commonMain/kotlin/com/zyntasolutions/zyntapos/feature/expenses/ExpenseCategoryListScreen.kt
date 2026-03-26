@@ -38,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -71,17 +72,12 @@ fun ExpenseCategoryListScreen(
         },
     ) { padding ->
         if (state.categories.isEmpty()) {
-            Column(
+            ZyntaEmptyState(
+                title = "No categories yet",
+                icon = Icons.Default.Add,
+                subtitle = "Tap + to create a category.",
                 modifier = Modifier.fillMaxSize().padding(padding),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(
-                    "No categories yet",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            )
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),

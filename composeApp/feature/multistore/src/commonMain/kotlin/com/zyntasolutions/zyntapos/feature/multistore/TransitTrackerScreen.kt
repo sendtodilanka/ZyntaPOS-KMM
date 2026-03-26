@@ -53,6 +53,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.domain.model.StockTransfer
 import com.zyntasolutions.zyntapos.domain.model.TransitEvent
 import kotlinx.datetime.Instant
@@ -156,16 +157,11 @@ fun TransitTrackerScreen(
 
             // ── Timeline ──────────────────────────────────────────────────
             if (state.transitHistory.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        "No transit events recorded yet.\nTap + to log the first update.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                ZyntaEmptyState(
+                    title = "No transit events recorded yet",
+                    icon = Icons.Default.LocationOn,
+                    subtitle = "Tap + to log the first update.",
+                )
             } else {
                 val listState = rememberLazyListState()
                 LazyColumn(

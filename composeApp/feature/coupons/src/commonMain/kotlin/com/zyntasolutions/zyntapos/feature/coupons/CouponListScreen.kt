@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -29,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.domain.model.Coupon
 import com.zyntasolutions.zyntapos.domain.model.DiscountType
 import org.koin.compose.viewmodel.koinViewModel
@@ -82,12 +84,10 @@ fun CouponListScreen(
             }
 
             if (state.coupons.isEmpty() && !state.isLoading) {
-                Spacer(Modifier.height(48.dp))
-                Text(
-                    text = if (state.showActiveOnly) "No active coupons" else "No coupons yet",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                ZyntaEmptyState(
+                    title = if (state.showActiveOnly) "No active coupons" else "No coupons yet",
+                    icon = Icons.Default.LocalOffer,
+                    subtitle = "Tap + to create a coupon.",
                 )
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {

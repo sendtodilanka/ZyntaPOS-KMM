@@ -10,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.ShiftSchedule
 
@@ -83,22 +84,11 @@ fun ShiftSchedulerScreen(
                     CircularProgressIndicator()
                 }
             } else if (state.weeklyShifts.isEmpty()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Default.CalendarMonth,
-                            contentDescription = null,
-                            modifier = Modifier.size(48.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            text = "No shifts scheduled this week",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
+                ZyntaEmptyState(
+                    title = "No shifts scheduled this week",
+                    icon = Icons.Default.CalendarMonth,
+                    subtitle = "Tap + to add a shift.",
+                )
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                     shiftsByDate.forEach { (date, shifts) ->

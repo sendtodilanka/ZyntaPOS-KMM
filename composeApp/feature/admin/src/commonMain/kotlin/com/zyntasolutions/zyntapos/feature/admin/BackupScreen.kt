@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.BackupInfo
 import com.zyntasolutions.zyntapos.domain.model.BackupStatus
@@ -51,25 +52,12 @@ fun BackupScreen(
         },
     ) { innerPadding ->
         if (state.backups.isEmpty() && !state.isLoading) {
-            Box(
+            ZyntaEmptyState(
+                title = "No backups yet",
+                icon = Icons.Default.CloudOff,
+                subtitle = "Tap + to create one.",
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
-                contentAlignment = Alignment.Center,
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Default.CloudOff,
-                        contentDescription = null,
-                        modifier = Modifier.size(48.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "No backups yet. Tap + to create one.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
+            )
         } else {
             LazyColumn(
                 modifier = Modifier

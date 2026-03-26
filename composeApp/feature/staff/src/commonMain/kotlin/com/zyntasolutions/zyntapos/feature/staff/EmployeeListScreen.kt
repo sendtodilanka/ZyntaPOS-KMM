@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSearchBar
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.Employee
@@ -104,14 +105,11 @@ fun EmployeeListScreen(
                     CircularProgressIndicator()
                 }
             } else if (filtered.isEmpty()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(
-                        text = if (state.searchQuery.isBlank()) "No employees found.\nTap + to add one."
-                        else "No results for \"${state.searchQuery}\"",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                ZyntaEmptyState(
+                    title = if (state.searchQuery.isBlank()) "No employees found" else "No results for \"${state.searchQuery}\"",
+                    icon = Icons.Default.PersonAdd,
+                    subtitle = if (state.searchQuery.isBlank()) "Tap + to add one." else null,
+                )
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(filtered, key = { it.id }) { employee ->

@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.PayrollRecord
 import com.zyntasolutions.zyntapos.domain.model.PayrollStatus
@@ -85,22 +86,11 @@ fun PayrollScreen(
                     CircularProgressIndicator()
                 }
             } else if (state.payrollRecords.isEmpty()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Default.Payments,
-                            contentDescription = null,
-                            modifier = Modifier.size(48.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            text = "No payroll records for $period",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
+                ZyntaEmptyState(
+                    title = "No payroll records for $period",
+                    icon = Icons.Default.Payments,
+                    subtitle = "Tap + to generate payroll.",
+                )
             } else {
                 val pending = state.payrollRecords.filter { it.status == PayrollStatus.PENDING }
                 val paid = state.payrollRecords.filter { it.status == PayrollStatus.PAID }

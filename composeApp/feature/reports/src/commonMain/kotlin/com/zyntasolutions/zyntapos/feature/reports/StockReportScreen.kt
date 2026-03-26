@@ -45,9 +45,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
-import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoadingOverlay
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoadingSkeleton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaStatusBadge
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
@@ -239,7 +240,7 @@ fun StockReportScreen(
                 }
             }
 
-            if (s.isLoading) ZyntaLoadingOverlay(isLoading = true)
+            if (s.isLoading) ZyntaLoadingSkeleton(modifier = Modifier.fillMaxSize().padding(16.dp))
         }
     }
 }

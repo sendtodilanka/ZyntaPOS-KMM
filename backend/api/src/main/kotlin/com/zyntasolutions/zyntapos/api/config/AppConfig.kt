@@ -54,9 +54,13 @@ data class AppConfig(
 
             val publicKey = JwtDefaults.parseRsaPublicKey(publicKeyPem)
             val keyFactory = KeyFactory.getInstance("RSA")
-            val privateKey = keyFactory.generatePrivate(
-                PKCS8EncodedKeySpec(Base64.getDecoder().decode(JwtDefaults.stripPemHeaders(privateKeyPem)))
-            )
+            val decodedKeyBytes = Base64.getDecoder().decode(JwtDefaults.stripPemHeaders(privateKeyPem))
+            val privateKey = try {
+                keyFactory.generatePrivate(PKCS8EncodedKeySpec(decodedKeyBytes))
+            } finally {
+                // Zero intermediate key material to reduce exposure window
+                java.util.Arrays.fill(decodedKeyBytes, 0)
+            }
 
             return AppConfig(
                 jwtIssuer = issuer,

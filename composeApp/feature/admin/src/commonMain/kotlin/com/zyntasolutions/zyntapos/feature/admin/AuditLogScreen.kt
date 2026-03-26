@@ -25,6 +25,7 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.AuditEntry
 import com.zyntasolutions.zyntapos.domain.model.AuditEventType
@@ -179,30 +180,17 @@ fun AuditLogScreen(
 
         // ── Entry list ────────────────────────────────────────────────────
         if (filtered.isEmpty()) {
-            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Default.EventNote,
-                        contentDescription = null,
-                        modifier = Modifier.size(48.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        when {
-                            state.auditUserFilter.isBlank() &&
-                            state.auditEventTypeFilter == null &&
-                            state.auditRoleFilter == null &&
-                            state.auditSuccessFilter == null &&
-                            state.auditDateFrom == null &&
-                            state.auditDateTo == null -> "No audit events recorded."
-                            else -> "No events match the current filters."
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
+            val hasFilters = state.auditUserFilter.isNotBlank() ||
+                state.auditEventTypeFilter != null ||
+                state.auditRoleFilter != null ||
+                state.auditSuccessFilter != null ||
+                state.auditDateFrom != null ||
+                state.auditDateTo != null
+            ZyntaEmptyState(
+                title = if (hasFilters) "No events match the current filters" else "No audit events recorded",
+                icon = Icons.Default.EventNote,
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+            )
         } else {
             LazyColumn(
                 modifier = Modifier.weight(1f),

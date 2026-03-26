@@ -10,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.AttendanceRecord
 import kotlin.time.Clock
@@ -92,13 +93,12 @@ fun AttendanceScreen(
         }
 
         if (state.employees.isEmpty()) {
-            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                Text(
-                    text = "No employees found.\nAdd employees in the Employees tab.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            ZyntaEmptyState(
+                title = "No employees found",
+                icon = Icons.Default.Group,
+                subtitle = "Add employees in the Employees tab.",
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+            )
             return@Column
         }
 

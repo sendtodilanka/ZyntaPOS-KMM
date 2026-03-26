@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.JournalEntry
 import kotlin.time.Clock
@@ -171,23 +172,11 @@ fun JournalEntryListScreen(
                         CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                     }
                     state.entries.isEmpty() -> {
-                        Column(
-                            modifier = Modifier.align(Alignment.Center),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
-                        ) {
-                            Icon(
-                                Icons.Default.Book,
-                                contentDescription = null,
-                                modifier = Modifier.size(56.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Text(
-                                "No journal entries found.",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
+                        ZyntaEmptyState(
+                            title = "No journal entries found",
+                            icon = Icons.Default.Book,
+                            subtitle = "Tap + to create a new entry.",
+                        )
                     }
                     else -> {
                         LazyColumn(
