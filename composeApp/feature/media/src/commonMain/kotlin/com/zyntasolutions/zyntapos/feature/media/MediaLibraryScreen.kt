@@ -260,7 +260,7 @@ private fun FileActionBottomSheet(
                 Text("${s[StringResource.COMMON_STATUS]}: ${file.uploadStatus.name}", style = MaterialTheme.typography.bodySmall)
                 Text("${s[StringResource.MEDIA_PRIMARY]}: ${if (file.isPrimary) s[StringResource.COMMON_YES] else s[StringResource.COMMON_NO]}", style = MaterialTheme.typography.bodySmall)
                 file.remoteUrl?.let {
-                    Text("URL: $it", style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text("${s[StringResource.MEDIA_URL_LABEL]}: $it", style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
         },
@@ -598,7 +598,7 @@ private fun AddMediaDialog(
                     ) {
                         Icon(Icons.Default.FolderOpen, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(ZyntaSpacing.xs))
-                        Text("Browse\u2026")
+                        Text(s[StringResource.MEDIA_BROWSE])
                     }
                     if (onTakePhoto != null) {
                         OutlinedButton(
@@ -615,7 +615,7 @@ private fun AddMediaDialog(
                     value = filePath,
                     onValueChange = onPathChange,
                     label = { Text(s[StringResource.MEDIA_FILE_PATH]) },
-                    placeholder = { Text("/storage/emulated/0/DCIM/photo.jpg") },
+                    placeholder = { Text(s[StringResource.MEDIA_FILE_PATH_PLACEHOLDER]) },
                     isError = error != null,
                     supportingText = error?.let { { Text(it, color = MaterialTheme.colorScheme.error) } },
                     singleLine = true,
