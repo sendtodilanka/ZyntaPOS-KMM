@@ -22,6 +22,9 @@ import com.zyntasolutions.zyntapos.domain.usecase.pos.GetEffectiveTaxRateUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.ApplyItemDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.ApplyOrderDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.CalculateOrderTotalsUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.pos.GetCompoundTaxComponentsUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.pos.ResolvePromotionConflictsUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.pos.ValidateStoreDiscountLimitUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.HoldOrderUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.OpenCashDrawerUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.PrintReceiptUseCase
@@ -186,6 +189,13 @@ val posModule = module {
 
     /** Pure use case — evaluates active promotions against cart items and returns total discount. */
     factory { ApplyStorePromotionsUseCase() }
+
+    // ── C2.3: Compound tax components ─────────────────────────────────────────
+    factory { GetCompoundTaxComponentsUseCase(compoundTaxRepository = get()) }
+
+    // ── C2.4: Discount limit validation & promotion conflict resolution ──────
+    factory { ValidateStoreDiscountLimitUseCase() }
+    factory { ResolvePromotionConflictsUseCase() }
 
     /** Auto-posts a balanced double-entry journal entry for each completed sale (Wave 1A). */
     factory {

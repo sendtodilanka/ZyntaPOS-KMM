@@ -2,6 +2,7 @@ package com.zyntasolutions.zyntapos.domain.usecase.pos
 
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.CartItem
+import com.zyntasolutions.zyntapos.domain.model.CompoundTaxComponent
 import com.zyntasolutions.zyntapos.domain.model.DiscountType
 import com.zyntasolutions.zyntapos.domain.model.OrderTotals
 import kotlin.math.roundToInt
@@ -97,7 +98,16 @@ class CalculateOrderTotalsUseCase {
             // Per-item isTaxInclusive takes precedence; fall back to global taxInclusive flag
             val itemTaxInclusive = item.isTaxInclusive || taxInclusive
 
-            val taxAmt = if (itemTaxInclusive && item.taxRate > 0.0) {
+            val taxAmt = if (item.compoundTaxComponents.isNotEmpty()) {
+                // Compound tax (C2.3): apply multiple stacked tax components
+                calculateCompoundTax(baseAmount, item.compoundTaxComponents, itemTaxInclusive).also { compoundTax ->
+                    // For compound taxes, check if any component is exclusive
+                    val hasExclusiveComponent = item.compoundTaxComponents.any { !it.componentIsInclusive }
+                    if (hasExclusiveComponent && !itemTaxInclusive) {
+                        exclusiveTaxTotal += compoundTax
+                    }
+                }
+            } else if (itemTaxInclusive && item.taxRate > 0.0) {
                 // Scenario 3: inclusive — extract tax from gross
                 baseAmount - (baseAmount / (1.0 + item.taxRate / 100.0))
             } else {
@@ -133,6 +143,52 @@ class CalculateOrderTotalsUseCase {
                 itemCount = items.size,
             ),
         )
+    }
+
+    /**
+     * Calculates compound tax for stacked tax components (C2.3).
+     *
+     * Components are applied in [CompoundTaxComponent.applicationOrder] sequence.
+     * - **Compounding (tax-on-tax):** Each rate applies to the running total
+     *   (e.g., Service Charge on VAT-inclusive amount).
+     * - **Additive (parallel):** Each rate applies to the original base amount.
+     *
+     * For inclusive components, tax is extracted from the base (back-calculation).
+     * For exclusive components, tax is added on top.
+     *
+     * @return Total compound tax amount across all components.
+     */
+    private fun calculateCompoundTax(
+        baseAmount: Double,
+        components: List<CompoundTaxComponent>,
+        globalInclusive: Boolean,
+    ): Double {
+        var totalCompoundTax = 0.0
+        var runningAmount = baseAmount
+
+        for (component in components.sortedBy { it.applicationOrder }) {
+            val isInclusive = component.componentIsInclusive || globalInclusive
+
+            val componentTax = if (isInclusive && component.componentRate > 0.0) {
+                // Extract tax from the running amount (inclusive)
+                val taxBase = if (component.isCompounding) runningAmount else baseAmount
+                taxBase - (taxBase / (1.0 + component.componentRate / 100.0))
+            } else {
+                // Add tax on top (exclusive)
+                val taxBase = if (component.isCompounding) runningAmount else baseAmount
+                taxBase * (component.componentRate / 100.0)
+            }
+
+            totalCompoundTax += componentTax
+
+            // For compounding, update the running amount so next component
+            // calculates on the tax-inclusive running total
+            if (component.isCompounding && !isInclusive) {
+                runningAmount += componentTax
+            }
+        }
+
+        return totalCompoundTax
     }
 
     /** Rounds [value] to 2 decimal places using HALF_UP semantics. */

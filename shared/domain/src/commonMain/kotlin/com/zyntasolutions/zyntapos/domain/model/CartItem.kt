@@ -32,6 +32,13 @@ data class CartItem(
     val lineTotal: Double = 0.0,
     /** FK to [Category]. Used for category-targeted promotion evaluation. */
     val categoryId: String = "",
+    /**
+     * Compound tax components for stacked taxes (C2.3).
+     * When non-empty, these replace the single [taxRate] with a multi-component
+     * tax chain (e.g., VAT 15% + Service Charge 10% + Local Surcharge 2%).
+     * Empty list = single tax rate mode (backward compatible).
+     */
+    val compoundTaxComponents: List<CompoundTaxComponent> = emptyList(),
 ) {
     init {
         require(quantity >= 1.0) { "Cart item quantity must be at least 1, got $quantity" }

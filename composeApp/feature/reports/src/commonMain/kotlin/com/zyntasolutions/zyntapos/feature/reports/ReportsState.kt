@@ -34,6 +34,11 @@ data class ReportsState(
     val storeComparison: StoreComparisonState = StoreComparisonState(),
     val availableStores: List<Store> = emptyList(),
     val selectedStoreId: String? = null,
+    // ── C6.3: Timezone ──────────────────────────────────────────────────
+    /** Store timezone for date range conversion (C6.3). Null = system default. */
+    val reportTimezone: String? = null,
+    // ── C5.1: Multi-Currency Consolidation ──────────────────────────────
+    val consolidatedCurrency: CurrencyConsolidationState = CurrencyConsolidationState(),
 ) {
     /** State slice for the reports home tile grid. */
     data class HomeState(
@@ -115,6 +120,18 @@ data class ReportsState(
         val totalOrders: Int = 0,
         val error: String? = null,
     )
+
+    /** State for multi-currency revenue consolidation (C5.1). */
+    data class CurrencyConsolidationState(
+        val isLoading: Boolean = false,
+        /** Base currency for consolidated reporting (e.g., "LKR"). */
+        val baseCurrency: String = "LKR",
+        /** Per-store revenue converted to base currency. */
+        val storeRevenuesInBase: List<StoreRevenueInBase> = emptyList(),
+        /** Total consolidated revenue in base currency across all stores. */
+        val totalConsolidatedRevenue: Double = 0.0,
+        val error: String? = null,
+    )
 }
 
 /** Preset date ranges for the sales and expense reports. */
@@ -136,4 +153,14 @@ data class PaymentBreakdownEntry(
     val method: PaymentMethod,
     val amount: Double,
     val fraction: Float,   // 0f–1f relative to max
+)
+
+/** Per-store revenue converted to base currency (C5.1). */
+data class StoreRevenueInBase(
+    val storeId: String,
+    val storeName: String,
+    val originalCurrency: String,
+    val originalRevenue: Double,
+    val exchangeRate: Double,
+    val revenueInBase: Double,
 )

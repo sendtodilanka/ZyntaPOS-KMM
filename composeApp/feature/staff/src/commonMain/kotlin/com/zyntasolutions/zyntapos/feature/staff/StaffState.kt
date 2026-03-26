@@ -10,6 +10,7 @@ import com.zyntasolutions.zyntapos.domain.model.PayrollRecord
 import com.zyntasolutions.zyntapos.domain.model.PayrollSummary
 import com.zyntasolutions.zyntapos.domain.model.SalaryType
 import com.zyntasolutions.zyntapos.domain.model.ShiftSchedule
+import com.zyntasolutions.zyntapos.domain.model.Store
 
 /** Active section displayed within the Staff feature. */
 enum class StaffTab { EMPLOYEES, ATTENDANCE, LEAVE, SHIFTS, PAYROLL }
@@ -84,6 +85,16 @@ data class StaffState(
     // ── Leave Balance (per-type days used/remaining for selected employee) ──
     val leaveBalance: LeaveBalanceState? = null,
 
+    // ── C3.4: Multi-Store Attendance ──────────────────────────────────────
+    /** Available stores for the clock-in store selector (C3.4). */
+    val availableStores: List<Store> = emptyList(),
+    /** Currently selected store for clock-in. Null = primary store. */
+    val selectedClockInStoreId: String? = null,
+    /** Cross-store attendance records for reporting (C3.4). */
+    val crossStoreAttendance: List<CrossStoreAttendanceRow> = emptyList(),
+    /** True when cross-store attendance data is loading. */
+    val isCrossStoreAttendanceLoading: Boolean = false,
+
     // ── Global ────────────────────────────────────────────────────────────
     val isLoading: Boolean = false,
     val error: String? = null,
@@ -155,3 +166,19 @@ data class LeaveBalanceState(
     val sickRemaining: Int get() = (sickAllowance - sickUsed).coerceAtLeast(0)
     val totalUsed: Int get() = annualUsed + sickUsed + personalUsed + unpaidUsed
 }
+
+/**
+ * Cross-store attendance summary row for reporting (C3.4).
+ *
+ * Aggregates attendance data per employee per store for the selected period.
+ */
+data class CrossStoreAttendanceRow(
+    val employeeId: String,
+    val employeeName: String,
+    val storeId: String,
+    val storeName: String,
+    val totalDays: Int,
+    val totalHoursWorked: Double,
+    val lateArrivals: Int,
+    val earlyDepartures: Int,
+)

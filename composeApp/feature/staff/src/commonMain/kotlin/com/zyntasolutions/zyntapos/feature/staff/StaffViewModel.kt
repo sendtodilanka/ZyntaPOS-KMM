@@ -10,9 +10,11 @@ import com.zyntasolutions.zyntapos.domain.model.AttendanceStatus
 import com.zyntasolutions.zyntapos.domain.model.Employee
 import com.zyntasolutions.zyntapos.domain.model.LeaveRecord
 import com.zyntasolutions.zyntapos.domain.model.ShiftSchedule
+import com.zyntasolutions.zyntapos.domain.repository.AttendanceRepository
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.PayrollRepository
 import com.zyntasolutions.zyntapos.domain.repository.ShiftRepository
+import com.zyntasolutions.zyntapos.domain.repository.StoreRepository
 import com.zyntasolutions.zyntapos.domain.usecase.staff.ApproveLeaveUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.ClockInUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.ClockOutUseCase
@@ -87,6 +89,8 @@ class StaffViewModel(
     private val getPayrollHistoryUseCase: GetPayrollHistoryUseCase,
     private val getAttendanceSummaryUseCase: GetAttendanceSummaryUseCase,
     private val getLeaveHistoryUseCase: GetLeaveHistoryUseCase,
+    private val storeRepository: StoreRepository,
+    private val attendanceRepository: AttendanceRepository,
     private val analytics: AnalyticsTracker,
 ) : BaseViewModel<StaffState, StaffIntent, StaffEffect>(StaffState()) {
 
@@ -236,6 +240,12 @@ class StaffViewModel(
             // C3.4: Employee Roaming
             is StaffIntent.NavigateToEmployeeStores ->
                 sendEffect(StaffEffect.NavigateToEmployeeStores(intent.employeeId))
+
+            // C3.4: Multi-Store Attendance
+            is StaffIntent.LoadAvailableStores -> onLoadAvailableStores()
+            is StaffIntent.SelectClockInStore -> updateState { copy(selectedClockInStoreId = intent.storeId) }
+            is StaffIntent.LoadCrossStoreAttendance ->
+                onLoadCrossStoreAttendance(intent.from, intent.to)
 
             // UI
             is StaffIntent.DismissError -> updateState { copy(error = null) }
@@ -802,6 +812,59 @@ class StaffViewModel(
             (diff + 1).coerceAtLeast(1).toInt()
         } catch (_: Exception) {
             1 // Fallback: assume 1 day if dates can't be parsed
+        }
+    }
+
+    // ── C3.4: Multi-Store Attendance handlers ──────────────────────────────
+
+    private suspend fun onLoadAvailableStores() {
+        storeRepository.getAllStores()
+            .onEach { stores -> updateState { copy(availableStores = stores) } }
+            .launchIn(viewModelScope)
+    }
+
+    private suspend fun onLoadCrossStoreAttendance(from: String, to: String) {
+        updateState { copy(isCrossStoreAttendanceLoading = true) }
+        val stores = currentState.availableStores
+        val employees = currentState.employees
+        val rows = mutableListOf<CrossStoreAttendanceRow>()
+
+        for (store in stores) {
+            for (employee in employees) {
+                val result = attendanceRepository.getByEmployeeForPeriod(
+                    employeeId = employee.id,
+                    from = from,
+                    to = to,
+                )
+                if (result is Result.Success) {
+                    val storeRecords = result.data.filter { it.storeId == store.id }
+                    if (storeRecords.isNotEmpty()) {
+                        val totalHours = storeRecords.sumOf { it.totalHours ?: 0.0 }
+                        val lateCount = storeRecords.count {
+                            it.status == com.zyntasolutions.zyntapos.domain.model.AttendanceStatus.LATE
+                        }
+                        rows.add(
+                            CrossStoreAttendanceRow(
+                                employeeId = employee.id,
+                                employeeName = "${employee.firstName} ${employee.lastName}",
+                                storeId = store.id,
+                                storeName = store.name,
+                                totalDays = storeRecords.size,
+                                totalHoursWorked = totalHours,
+                                lateArrivals = lateCount,
+                                earlyDepartures = 0,
+                            ),
+                        )
+                    }
+                }
+            }
+        }
+
+        updateState {
+            copy(
+                crossStoreAttendance = rows,
+                isCrossStoreAttendanceLoading = false,
+            )
         }
     }
 }

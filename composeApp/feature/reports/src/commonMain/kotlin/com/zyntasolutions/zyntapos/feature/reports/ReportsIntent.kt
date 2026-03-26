@@ -59,4 +59,17 @@ sealed interface ReportsIntent {
     data object StockNextPage : ReportsIntent
     /** Navigate to the previous page of the stock report table. */
     data object StockPreviousPage : ReportsIntent
+
+    // ── C6.3: Timezone-Aware Date Range ──────────────────────────────────
+    /**
+     * Convert "Today"/"This Week"/"This Month" ranges to the selected store's
+     * timezone before querying. Ensures date boundaries match the store's local day.
+     */
+    data class SetReportTimezone(val timezoneId: String) : ReportsIntent
+
+    // ── C5.1: Multi-Currency Consolidation ──────────────────────────────
+    /** Load consolidated multi-currency report (convert all store revenues to base currency). */
+    data object LoadConsolidatedCurrencyReport : ReportsIntent
+    /** Set the base currency for consolidation (e.g., "LKR", "USD"). */
+    data class SetConsolidationBaseCurrency(val currencyCode: String) : ReportsIntent
 }

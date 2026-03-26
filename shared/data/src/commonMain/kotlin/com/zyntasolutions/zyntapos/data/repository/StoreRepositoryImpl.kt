@@ -50,6 +50,8 @@ class StoreRepositoryImpl(
                     currency = store.currency,
                     timezone = store.timezone,
                     is_active = if (store.isActive) 1L else 0L,
+                    max_discount_percent = store.maxDiscountPercent,
+                    max_discount_amount = store.maxDiscountAmount,
                     updated_at = store.updatedAt.toEpochMilliseconds(),
                     sync_status = "SYNCED",
                     id = store.id,
@@ -65,6 +67,8 @@ class StoreRepositoryImpl(
                     timezone = store.timezone,
                     is_active = if (store.isActive) 1L else 0L,
                     is_headquarters = if (store.isHeadquarters) 1L else 0L,
+                    max_discount_percent = store.maxDiscountPercent,
+                    max_discount_amount = store.maxDiscountAmount,
                     created_at = store.createdAt.toEpochMilliseconds(),
                     updated_at = store.updatedAt.toEpochMilliseconds(),
                     sync_status = "SYNCED",
@@ -84,5 +88,7 @@ class StoreRepositoryImpl(
         isHeadquarters = is_headquarters == 1L,
         createdAt = Instant.fromEpochMilliseconds(created_at),
         updatedAt = Instant.fromEpochMilliseconds(updated_at),
+        maxDiscountPercent = max_discount_percent,
+        maxDiscountAmount = max_discount_amount,
     )
 }

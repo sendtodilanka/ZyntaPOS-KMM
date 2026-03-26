@@ -137,6 +137,19 @@ sealed interface StaffIntent {
     /** Navigate to the employee's store assignments screen (C3.4). */
     data class NavigateToEmployeeStores(val employeeId: String) : StaffIntent
 
+    // ── C3.4: Multi-Store Attendance ─────────────────────────────────────
+    /** Load available stores for the clock-in store selector. */
+    data object LoadAvailableStores : StaffIntent
+
+    /** Select a store for clock-in (multi-store employee). */
+    data class SelectClockInStore(val storeId: String?) : StaffIntent
+
+    /** Load cross-store attendance report for all stores. */
+    data class LoadCrossStoreAttendance(
+        val from: String,
+        val to: String,
+    ) : StaffIntent
+
     // ── UI Feedback ────────────────────────────────────────────────────────
     data object DismissError : StaffIntent
     data object DismissSuccess : StaffIntent

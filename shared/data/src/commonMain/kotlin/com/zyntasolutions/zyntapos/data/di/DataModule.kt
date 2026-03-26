@@ -140,8 +140,10 @@ import com.zyntasolutions.zyntapos.domain.repository.WarehouseRepository
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseStockRepository
 import com.zyntasolutions.zyntapos.data.repository.FulfillmentRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.LicenseRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.CompoundTaxRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.RegionalTaxOverrideRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.TransitTrackingRepositoryImpl
+import com.zyntasolutions.zyntapos.domain.repository.CompoundTaxRepository
 import com.zyntasolutions.zyntapos.domain.repository.FulfillmentRepository
 import com.zyntasolutions.zyntapos.domain.repository.LicenseRepository
 import com.zyntasolutions.zyntapos.domain.repository.RegionalTaxOverrideRepository
@@ -250,6 +252,9 @@ val dataModule = module {
     // Regional tax overrides — localized tax (C2.3)
     single<RegionalTaxOverrideRepository> { RegionalTaxOverrideRepositoryImpl(db = get(), syncEnqueuer = get()) }
     single { get<RegionalTaxOverrideRepository>() as RegionalTaxOverrideRepositoryImpl }
+
+    // Compound tax components — stacking multiple tax rates (C2.3)
+    single<CompoundTaxRepository> { CompoundTaxRepositoryImpl(database = get()) }
 
     // Exchange rates — multi-currency support (C2.2)
     single<ExchangeRateRepository> { ExchangeRateRepositoryImpl(db = get()) }
