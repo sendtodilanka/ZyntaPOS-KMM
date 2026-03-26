@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.MediaFile
 
@@ -85,22 +86,12 @@ fun MediaLibraryScreen(
                     CircularProgressIndicator()
                 }
             } else if (state.mediaFiles.isEmpty()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            Icons.Default.PhotoLibrary,
-                            contentDescription = null,
-                            modifier = Modifier.size(56.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            "No media attached yet.\nTap + to add an image.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
+                ZyntaEmptyState(
+                    title = "No media attached yet",
+                    icon = Icons.Default.PhotoLibrary,
+                    subtitle = "Tap + to add an image.",
+                    modifier = Modifier.fillMaxSize(),
+                )
             } else {
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(2),
