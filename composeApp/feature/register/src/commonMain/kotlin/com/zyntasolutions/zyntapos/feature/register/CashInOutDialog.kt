@@ -10,6 +10,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.NumericPadMode
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaNumericPad
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
@@ -58,11 +60,12 @@ fun CashInOutDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val s = LocalStrings.current
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = if (dialogState.type == CashMovement.Type.IN) "Cash In" else "Cash Out",
+                text = if (dialogState.type == CashMovement.Type.IN) s[StringResource.REGISTER_CASH_IN] else s[StringResource.REGISTER_CASH_OUT],
                 fontWeight = FontWeight.Bold,
             )
         },
@@ -90,13 +93,13 @@ fun CashInOutDialog(
                         color = MaterialTheme.colorScheme.onPrimary,
                     )
                 } else {
-                    Text("Confirm")
+                    Text(s[StringResource.COMMON_CONFIRM])
                 }
             }
         },
         dismissButton = {
             OutlinedButton(onClick = onDismiss, enabled = !isLoading) {
-                Text("Cancel")
+                Text(s[StringResource.COMMON_CANCEL])
             }
         },
     )
@@ -157,15 +160,16 @@ private fun CashInOutDialogContent(
         }
 
         // ── Reason text field ─────────────────────────────────────────────
+        val s2 = LocalStrings.current
         OutlinedTextField(
             value = dialogState.reason,
             onValueChange = onReasonChanged,
-            label = { Text("Reason *") },
+            label = { Text(s2[StringResource.REGISTER_REASON_LABEL]) },
             isError = dialogState.validationErrors.containsKey("reason"),
             supportingText = if (dialogState.validationErrors.containsKey("reason")) {
                 { Text(dialogState.validationErrors["reason"]!!) }
             } else null,
-            placeholder = { Text("e.g. Petty cash, bank drop…") },
+            placeholder = { Text(s2[StringResource.REGISTER_REASON_PLACEHOLDER]) },
             modifier = Modifier.fillMaxWidth(),
             maxLines = 2,
         )
@@ -182,6 +186,7 @@ private fun CashTypeSegmentedButtons(
     selectedType: CashMovement.Type,
     onSelect: (CashMovement.Type) -> Unit,
 ) {
+    val s = LocalStrings.current
     SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
         SegmentedButton(
             selected = selectedType == CashMovement.Type.IN,
@@ -197,7 +202,7 @@ private fun CashTypeSegmentedButtons(
                 }
             },
         ) {
-            Text("Cash In")
+            Text(s[StringResource.REGISTER_CASH_IN])
         }
 
         SegmentedButton(
@@ -214,7 +219,7 @@ private fun CashTypeSegmentedButtons(
                 }
             },
         ) {
-            Text("Cash Out")
+            Text(s[StringResource.REGISTER_CASH_OUT])
         }
     }
 }

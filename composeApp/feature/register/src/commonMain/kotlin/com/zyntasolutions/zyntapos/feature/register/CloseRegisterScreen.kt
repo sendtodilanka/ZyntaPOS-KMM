@@ -15,6 +15,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.zyntasolutions.zyntapos.designsystem.components.NumericPadMode
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaNumericPad
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
@@ -56,6 +58,7 @@ fun CloseRegisterScreen(
     onClosed: (sessionId: String) -> Unit = {},
     currencyFormatter: CurrencyFormatter = koinInject(),
 ) {
+    val s = LocalStrings.current
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
     val closeForm = state.closeRegisterForm
@@ -79,7 +82,7 @@ fun CloseRegisterScreen(
     }
 
     val registerName = state.activeRegister?.name
-    val closeTitle = if (registerName != null) "Close Register — $registerName" else "Close Register"
+    val closeTitle = if (registerName != null) s[StringResource.REGISTER_CLOSE_WITH_NAME, registerName] else s[StringResource.REGISTER_CLOSE_REGISTER_TITLE]
 
     ZyntaPageScaffold(
         title = closeTitle,
@@ -178,15 +181,15 @@ fun CloseRegisterScreen(
                         tint = MaterialTheme.colorScheme.error,
                     )
                 },
-                title = { Text("Manager Approval Required") },
+                title = { Text(s[StringResource.REGISTER_MANAGER_APPROVAL_TITLE]) },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                         Text(
-                            text = "Discrepancy of ${fmt(closeForm.discrepancy)} exceeds the ${fmt(closeForm.discrepancyThreshold)} threshold.",
+                            text = s[StringResource.REGISTER_MANAGER_DISCREPANCY_MSG, fmt(closeForm.discrepancy), fmt(closeForm.discrepancyThreshold)],
                             style = MaterialTheme.typography.bodyMedium,
                         )
                         Text(
-                            text = "A manager must enter their PIN to approve this close.",
+                            text = s[StringResource.REGISTER_MANAGER_APPROVAL_BODY],
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -198,7 +201,7 @@ fun CloseRegisterScreen(
                                     viewModel.dispatch(RegisterIntent.ManagerApprovalPinChanged(pin))
                                 }
                             },
-                            label = { Text("Manager PIN") },
+                            label = { Text(s[StringResource.REGISTER_MANAGER_PIN]) },
                             isError = closeForm.managerApprovalError != null,
                             supportingText = closeForm.managerApprovalError?.let { err ->
                                 { Text(err, color = MaterialTheme.colorScheme.error) }
@@ -213,12 +216,12 @@ fun CloseRegisterScreen(
                         onClick = { viewModel.dispatch(RegisterIntent.SubmitManagerApproval) },
                         enabled = closeForm.managerPin.length >= 4 && !state.isLoading,
                     ) {
-                        Text("Approve & Close")
+                        Text(s[StringResource.REGISTER_APPROVE_CLOSE])
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { viewModel.dispatch(RegisterIntent.CancelManagerApproval) }) {
-                        Text("Cancel")
+                        Text(s[StringResource.COMMON_CANCEL])
                     }
                 },
             )
@@ -234,6 +237,7 @@ fun CloseRegisterScreen(
  */
 @Composable
 private fun SessionSummarySection(state: RegisterState, fmt: (Double) -> String) {
+    val s = LocalStrings.current
     val session = state.activeSession ?: return
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -246,16 +250,16 @@ private fun SessionSummarySection(state: RegisterState, fmt: (Double) -> String)
             verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
         ) {
             Text(
-                text = "Session Summary",
+                text = s[StringResource.REGISTER_SESSION_SUMMARY],
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
             )
             HorizontalDivider()
-            SummaryRow("Session ID", session.id.takeLast(8))
-            SummaryRow("Opened At", session.openedAt.toString())
-            SummaryRow("Opening Balance", fmt(session.openingBalance))
+            SummaryRow(s[StringResource.REGISTER_SESSION_ID_LABEL], session.id.takeLast(8))
+            SummaryRow(s[StringResource.REGISTER_OPENED_AT], session.openedAt.toString())
+            SummaryRow(s[StringResource.REGISTER_OPENING_TITLE], fmt(session.openingBalance))
             SummaryRow(
-                label = "Expected Balance",
+                label = s[StringResource.REGISTER_EXPECTED_BALANCE],
                 value = fmt(session.expectedBalance),
                 valueColor = MaterialTheme.colorScheme.primary,
                 isBold = true,
@@ -298,6 +302,7 @@ private fun SummaryRow(
  */
 @Composable
 private fun DiscrepancySection(closeForm: CloseRegisterFormState, fmt: (Double) -> String) {
+    val s = LocalStrings.current
     val discrepancy = closeForm.discrepancy
     val isWarning = closeForm.isDiscrepancyWarning
     val discrepancyColor = if (isWarning) {
@@ -323,7 +328,7 @@ private fun DiscrepancySection(closeForm: CloseRegisterFormState, fmt: (Double) 
         ) {
             Column {
                 Text(
-                    text = "Discrepancy",
+                    text = s[StringResource.REGISTER_DISCREPANCY],
                     style = MaterialTheme.typography.labelLarge,
                     color = if (isWarning) {
                         MaterialTheme.colorScheme.onErrorContainer
@@ -333,9 +338,9 @@ private fun DiscrepancySection(closeForm: CloseRegisterFormState, fmt: (Double) 
                 )
                 Text(
                     text = when {
-                        discrepancy > 0.0 -> "+${fmt(discrepancy)} (over)"
-                        discrepancy < 0.0 -> "${fmt(discrepancy)} (short)"
-                        else -> fmt(0.0) + " (exact)"
+                        discrepancy > 0.0 -> "+${fmt(discrepancy)}${s[StringResource.REGISTER_DISCREPANCY_OVER]}"
+                        discrepancy < 0.0 -> "${fmt(discrepancy)}${s[StringResource.REGISTER_DISCREPANCY_SHORT]}"
+                        else -> fmt(0.0) + s[StringResource.REGISTER_DISCREPANCY_EXACT]
                     },
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
@@ -345,7 +350,7 @@ private fun DiscrepancySection(closeForm: CloseRegisterFormState, fmt: (Double) 
             if (isWarning) {
                 Icon(
                     imageVector = Icons.Default.Warning,
-                    contentDescription = "Discrepancy warning",
+                    contentDescription = s[StringResource.REGISTER_DISCREPANCY_WARNING_DESC],
                     tint = MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(32.dp),
                 )
@@ -359,6 +364,7 @@ private fun DiscrepancySection(closeForm: CloseRegisterFormState, fmt: (Double) 
  */
 @Composable
 private fun ActualBalanceDisplay(actualBalance: Double, fmt: (Double) -> String) {
+    val s = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -370,7 +376,7 @@ private fun ActualBalanceDisplay(actualBalance: Double, fmt: (Double) -> String)
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = "Actual Cash Count",
+                text = s[StringResource.REGISTER_ACTUAL_CASH_COUNT],
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
@@ -413,10 +419,11 @@ private fun ClosingNotesSection(
     notes: String,
     onNotesChanged: (String) -> Unit,
 ) {
+    val s = LocalStrings.current
     OutlinedTextField(
         value = notes,
         onValueChange = onNotesChanged,
-        label = { Text("Closing Notes (optional)") },
+        label = { Text(s[StringResource.REGISTER_CLOSING_NOTES]) },
         modifier = Modifier.fillMaxWidth(),
         minLines = 2,
         maxLines = 4,
@@ -433,6 +440,7 @@ private fun CloseRegisterButton(
     isDiscrepancyWarning: Boolean,
     onClick: () -> Unit,
 ) {
+    val s = LocalStrings.current
     Button(
         onClick = onClick,
         enabled = !isLoading,
@@ -451,9 +459,9 @@ private fun CloseRegisterButton(
         } else {
             Text(
                 text = if (isDiscrepancyWarning) {
-                    "Close Register (Discrepancy!)"
+                    s[StringResource.REGISTER_CLOSE_DISCREPANCY]
                 } else {
-                    "Close Register"
+                    s[StringResource.REGISTER_CLOSE_REGISTER_BUTTON]
                 },
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
@@ -473,6 +481,7 @@ private fun CloseConfirmationDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val s = LocalStrings.current
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = {
@@ -486,23 +495,23 @@ private fun CloseConfirmationDialog(
         },
         title = {
             Text(
-                text = "Confirm Close Register",
+                text = s[StringResource.REGISTER_CONFIRM_CLOSE],
                 style = MaterialTheme.typography.titleLarge,
             )
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
-                Text("Expected: ${fmt(closeForm.expectedBalance)}")
-                Text("Actual: ${fmt(closeForm.actualBalanceDouble)}")
+                Text("${s[StringResource.REGISTER_EXPECTED]}: ${fmt(closeForm.expectedBalance)}")
+                Text("${s[StringResource.REGISTER_ACTUAL]}: ${fmt(closeForm.actualBalanceDouble)}")
 
                 val discrepancy = closeForm.discrepancy
                 val discText = when {
-                    discrepancy > 0.0 -> "+${fmt(discrepancy)} (over)"
-                    discrepancy < 0.0 -> "${fmt(discrepancy)} (short)"
-                    else -> fmt(0.0) + " (exact)"
+                    discrepancy > 0.0 -> "+${fmt(discrepancy)}${s[StringResource.REGISTER_DISCREPANCY_OVER]}"
+                    discrepancy < 0.0 -> "${fmt(discrepancy)}${s[StringResource.REGISTER_DISCREPANCY_SHORT]}"
+                    else -> fmt(0.0) + s[StringResource.REGISTER_DISCREPANCY_EXACT]
                 }
                 Text(
-                    text = "Discrepancy: $discText",
+                    text = s[StringResource.REGISTER_DISCREPANCY_FORMAT, discText],
                     fontWeight = FontWeight.Bold,
                     color = if (closeForm.isDiscrepancyWarning) {
                         MaterialTheme.colorScheme.error
@@ -513,15 +522,14 @@ private fun CloseConfirmationDialog(
 
                 if (closeForm.isDiscrepancyWarning) {
                     Text(
-                        text = "⚠ The discrepancy exceeds the threshold of ${fmt(closeForm.discrepancyThreshold)}. " +
-                            "Manager review may be required.",
+                        text = s[StringResource.REGISTER_CONFIRM_CLOSE_DISCREPANCY, fmt(closeForm.discrepancyThreshold)],
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
 
                 Text(
-                    text = "This action cannot be undone. The register session will be permanently closed.",
+                    text = s[StringResource.REGISTER_CONFIRM_CLOSE_BODY],
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -534,12 +542,12 @@ private fun CloseConfirmationDialog(
                     containerColor = MaterialTheme.colorScheme.error,
                 ),
             ) {
-                Text("Close Register")
+                Text(s[StringResource.REGISTER_CLOSE_REGISTER_BUTTON])
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(s[StringResource.COMMON_CANCEL])
             }
         },
     )

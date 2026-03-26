@@ -14,7 +14,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.CashMovement
@@ -52,6 +54,7 @@ fun ZReportScreen(
     onBack: () -> Unit = {},
     currencyFormatter: CurrencyFormatter = koinInject(),
 ) {
+    val s = LocalStrings.current
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
     val session = state.zReportSession
@@ -69,14 +72,14 @@ fun ZReportScreen(
             when (effect) {
                 is RegisterEffect.ShowSuccess -> snackbarHost.showSnackbar(effect.message)
                 is RegisterEffect.ShowError -> snackbarHost.showSnackbar(effect.message)
-                is RegisterEffect.A4ZReportPrinted -> snackbarHost.showSnackbar("A4 Z-report sent to printer.")
+                is RegisterEffect.A4ZReportPrinted -> snackbarHost.showSnackbar(s[StringResource.REGISTER_ZREPORT_SENT])
                 else -> Unit
             }
         }
     }
 
     ZyntaPageScaffold(
-        title = "Z-Report",
+        title = s[StringResource.REGISTER_ZREPORT_TITLE],
         onNavigateBack = onBack,
         snackbarHostState = snackbarHost,
         actions = {
@@ -93,7 +96,7 @@ fun ZReportScreen(
                 } else {
                     Icon(
                         imageVector = Icons.Default.Print,
-                        contentDescription = "Print Z-Report",
+                        contentDescription = s[StringResource.REGISTER_ZREPORT_PRINT_DESC],
                     )
                 }
             }
@@ -108,7 +111,7 @@ fun ZReportScreen(
                     CircularProgressIndicator()
                 } else {
                     Text(
-                        text = "No Z-report data available.",
+                        text = s[StringResource.REGISTER_NO_ZREPORT],
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -142,7 +145,7 @@ fun ZReportScreen(
                 ReportDivider()
 
                 // ── 3. Opening balance ───────────────────────────────────
-                ReportRow("Opening Balance", fmt(session.openingBalance))
+                ReportRow(s[StringResource.REGISTER_OPENING_TITLE], fmt(session.openingBalance))
 
                 ReportDivider()
 
@@ -190,7 +193,7 @@ fun ZReportScreen(
                                 modifier = Modifier.size(20.dp),
                             )
                             Spacer(Modifier.width(ZyntaSpacing.sm))
-                            Text("Thermal", fontWeight = FontWeight.Bold)
+                            Text(s[StringResource.REGISTER_THERMAL_PRINT], fontWeight = FontWeight.Bold)
                         }
                     }
 
@@ -212,7 +215,7 @@ fun ZReportScreen(
                                 modifier = Modifier.size(20.dp),
                             )
                             Spacer(Modifier.width(ZyntaSpacing.sm))
-                            Text("Print A4 PDF", fontWeight = FontWeight.Bold)
+                            Text(s[StringResource.REGISTER_ZREPORT_A4], fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -230,18 +233,19 @@ fun ZReportScreen(
  */
 @Composable
 private fun ZReportHeader() {
+    val s = LocalStrings.current
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "Z-REPORT",
+            text = s[StringResource.REGISTER_ZREPORT_HEADER],
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
         )
         Text(
-            text = "End of Shift Summary",
+            text = s[StringResource.REGISTER_END_OF_SHIFT],
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -254,18 +258,19 @@ private fun ZReportHeader() {
  */
 @Composable
 private fun ZReportSessionInfo(session: RegisterSession) {
+    val s = LocalStrings.current
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
-            text = "Session Details",
+            text = s[StringResource.REGISTER_SESSION_DETAILS],
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold,
         )
-        ReportRow("Session ID", session.id.takeLast(8))
-        ReportRow("Opened By", session.openedBy.takeLast(16))
-        ReportRow("Opened At", session.openedAt.toString())
-        session.closedBy?.let { ReportRow("Closed By", it.takeLast(16)) }
-        session.closedAt?.let { ReportRow("Closed At", it.toString()) }
-        ReportRow("Status", session.status.name)
+        ReportRow(s[StringResource.REGISTER_SESSION_ID_LABEL], session.id.takeLast(8))
+        ReportRow(s[StringResource.REGISTER_OPENED_BY], session.openedBy.takeLast(16))
+        ReportRow(s[StringResource.REGISTER_OPENED_AT], session.openedAt.toString())
+        session.closedBy?.let { ReportRow(s[StringResource.REGISTER_CLOSED_BY], it.takeLast(16)) }
+        session.closedAt?.let { ReportRow(s[StringResource.REGISTER_CLOSED_AT], it.toString()) }
+        ReportRow(s[StringResource.REGISTER_STATUS], session.status.name)
     }
 }
 
@@ -274,16 +279,17 @@ private fun ZReportSessionInfo(session: RegisterSession) {
  */
 @Composable
 private fun ZReportCashMovements(movements: List<CashMovement>, fmt: (Double) -> String) {
+    val s = LocalStrings.current
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
-            text = "Cash Movements",
+            text = s[StringResource.REGISTER_CASH_MOVEMENTS_TITLE],
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold,
         )
 
         if (movements.isEmpty()) {
             Text(
-                text = "No cash movements recorded.",
+                text = s[StringResource.REGISTER_NO_CASH_MOVEMENTS],
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -298,9 +304,9 @@ private fun ZReportCashMovements(movements: List<CashMovement>, fmt: (Double) ->
             }
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
-            ReportRow("Total Cash In", "+${fmt(totalIn)}")
-            ReportRow("Total Cash Out", "-${fmt(totalOut)}")
-            ReportRow("Net Movement", fmt(totalIn - totalOut))
+            ReportRow(s[StringResource.REGISTER_TOTAL_CASH_IN], "+${fmt(totalIn)}")
+            ReportRow(s[StringResource.REGISTER_TOTAL_CASH_OUT], "-${fmt(totalOut)}")
+            ReportRow(s[StringResource.REGISTER_NET_MOVEMENT], fmt(totalIn - totalOut))
         }
     }
 }
@@ -310,26 +316,27 @@ private fun ZReportCashMovements(movements: List<CashMovement>, fmt: (Double) ->
  */
 @Composable
 private fun ZReportSalesSummary(salesByPayment: Map<String, Double>, fmt: (Double) -> String) {
+    val s = LocalStrings.current
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
-            text = "Sales Summary",
+            text = s[StringResource.REGISTER_SALES_SUMMARY],
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold,
         )
         if (salesByPayment.isEmpty()) {
             Text(
-                text = "No sales recorded during this session.",
+                text = s[StringResource.REGISTER_NO_SALES_RECORDED],
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         } else {
             salesByPayment.forEach { (method, amount) ->
-                val label = method.lowercase().replaceFirstChar { it.uppercase() } + " Sales"
+                val label = method.lowercase().replaceFirstChar { it.uppercase() } + s[StringResource.REGISTER_SALES_SUFFIX]
                 ReportRow(label, fmt(amount))
             }
         }
         HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
-        ReportRow("Total Sales", fmt(salesByPayment.values.sum()))
+        ReportRow(s[StringResource.REGISTER_TOTAL_SALES], fmt(salesByPayment.values.sum()))
     }
 }
 
@@ -338,23 +345,24 @@ private fun ZReportSalesSummary(salesByPayment: Map<String, Double>, fmt: (Doubl
  */
 @Composable
 private fun ZReportBalanceReconciliation(session: RegisterSession, fmt: (Double) -> String) {
+    val s = LocalStrings.current
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
-            text = "Balance Reconciliation",
+            text = s[StringResource.REGISTER_BALANCE_RECONCILIATION],
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold,
         )
-        ReportRow("Expected Balance", fmt(session.expectedBalance))
+        ReportRow(s[StringResource.REGISTER_EXPECTED_BALANCE], fmt(session.expectedBalance))
         session.actualBalance?.let { actual ->
-            ReportRow("Actual Balance", fmt(actual))
+            ReportRow(s[StringResource.REGISTER_ACTUAL_BALANCE], fmt(actual))
 
             val variance = actual - session.expectedBalance
             val isWarning = kotlin.math.abs(variance) > 10.0 // matches default threshold
 
             val varianceText = when {
-                variance > 0.0 -> "+${fmt(variance)} (OVER)"
-                variance < 0.0 -> "${fmt(variance)} (SHORT)"
-                else -> "${fmt(0.0)} (EXACT)"
+                variance > 0.0 -> "+${fmt(variance)}${s[StringResource.REGISTER_DISCREPANCY_OVER]}"
+                variance < 0.0 -> "${fmt(variance)}${s[StringResource.REGISTER_DISCREPANCY_SHORT]}"
+                else -> "${fmt(0.0)}${s[StringResource.REGISTER_DISCREPANCY_EXACT]}"
             }
 
             Row(
@@ -362,7 +370,7 @@ private fun ZReportBalanceReconciliation(session: RegisterSession, fmt: (Double)
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
-                    text = "Discrepancy",
+                    text = s[StringResource.REGISTER_DISCREPANCY],
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                 )
@@ -386,12 +394,13 @@ private fun ZReportBalanceReconciliation(session: RegisterSession, fmt: (Double)
  */
 @Composable
 private fun ZReportSignatureLine() {
+    val s = LocalStrings.current
     Column(
         modifier = Modifier.fillMaxWidth().padding(top = ZyntaSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
     ) {
         Text(
-            text = "Operator Signature",
+            text = s[StringResource.REGISTER_OPERATOR_SIGNATURE],
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -402,7 +411,7 @@ private fun ZReportSignatureLine() {
         )
         Spacer(Modifier.height(ZyntaSpacing.lg))
         Text(
-            text = "Manager Signature",
+            text = s[StringResource.REGISTER_MANAGER_SIGNATURE],
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

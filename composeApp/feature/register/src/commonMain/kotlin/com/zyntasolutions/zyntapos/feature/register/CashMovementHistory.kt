@@ -14,6 +14,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.CashMovement
 import kotlinx.datetime.TimeZone
@@ -44,6 +46,7 @@ fun CashMovementHistory(
     movements: List<CashMovement>,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     Column(modifier = modifier) {
         // ── Header ────────────────────────────────────────────────────────
         Row(
@@ -61,7 +64,7 @@ fun CashMovementHistory(
                     tint = MaterialTheme.colorScheme.primary,
                 )
                 Text(
-                    text = "Cash Movements",
+                    text = s[StringResource.REGISTER_CASH_MOVEMENTS_TITLE],
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -136,7 +139,7 @@ private fun CashMovementRow(movement: CashMovement) {
                     modifier = Modifier.size(14.dp),
                 )
                 Text(
-                    text = if (isIn) "IN" else "OUT",
+                    text = if (isIn) "IN" else "OUT",  // abbreviations not localized
                     style = MaterialTheme.typography.labelSmall,
                     color = typeColor,
                     fontWeight = FontWeight.Bold,
@@ -175,6 +178,7 @@ private fun CashMovementRow(movement: CashMovement) {
 
 @Composable
 private fun EmptyMovementsState(modifier: Modifier = Modifier) {
+    val s = LocalStrings.current
     Column(
         modifier = modifier.padding(ZyntaSpacing.xl),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -187,12 +191,12 @@ private fun EmptyMovementsState(modifier: Modifier = Modifier) {
             tint = MaterialTheme.colorScheme.outlineVariant,
         )
         Text(
-            text = "No cash movements yet",
+            text = s[StringResource.REGISTER_NO_MOVEMENTS],
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
-            text = "Use Cash In / Cash Out buttons to record movements.",
+            text = s[StringResource.REGISTER_NO_MOVEMENTS_HINT],
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
