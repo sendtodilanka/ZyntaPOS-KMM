@@ -646,8 +646,8 @@ Apply the 8 actions in this exact priority order (highest impact / lowest effort
 
 ### Sensitive Data Handling (2 items)
 
-- [ ] `ByteArray.fill(0)` called in a `finally` block after every use of RS256 private key bytes
-- [ ] No `String` type used to hold license key material or JWT secrets — all such values use `ByteArray` or `CharArray`
+- [x] `ByteArray.fill(0)` called in a `finally` block after every use of RS256 private key bytes — ✅ DONE (2026-03-26): `Arrays.fill(decodedKeyBytes, 0)` in `AppConfig.kt` after `PKCS8EncodedKeySpec`; `Arrays.fill(keyBytes, 0)` in `DiagnosticSessionService.kt` after HMAC signing
+- [ ] No `String` type used to hold license key material or JWT secrets — all such values use `ByteArray` or `CharArray` (NOTE: JVM Strings are immutable and cannot be zeroed; PEM env vars are inherently String-based; this is a best-effort hardening item)
 
 ### CI/CD Pipeline (5 items)
 

@@ -1048,7 +1048,7 @@ CREATE TABLE notification_channels (
 - [x] Reports: sales/product/store analytics with CSV and PDF export ✅
 - [x] System health: per-service status with response time, per-store health metrics ✅
 - [x] Alert management: rule CRUD, notification channels, alert history ✅
-- [ ] Support ticket management: create, assign, resolve, comment thread ⬜ (backend done; frontend NOT implemented)
+- [x] Support ticket management: create, assign, resolve, comment thread ✅ (fully implemented — TicketTable, TicketCreateModal, TicketAssignModal, TicketResolveModal, TicketCommentThread, TicketEmailThreadPanel, BulkAssignModal, BulkResolveModal; routes/tickets/index.tsx + $ticketId.tsx; customer portal at routes/ticket-status/$token.tsx)
 
 ### Non-Functional Requirements
 

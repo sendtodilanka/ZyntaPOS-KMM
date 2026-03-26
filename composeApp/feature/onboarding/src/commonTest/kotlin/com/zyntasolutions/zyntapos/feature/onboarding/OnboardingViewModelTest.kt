@@ -567,8 +567,17 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun `isLastStep is true on RECEIPT_FORMAT step`() = runTest {
+    fun `isLastStep is false on RECEIPT_FORMAT step`() = runTest {
         advanceToReceiptFormat()
+        assertFalse(viewModel.state.value.isLastStep)
+    }
+
+    @Test
+    fun `isLastStep is true on MULTI_STORE_SETUP step`() = runTest {
+        advanceToReceiptFormat()
+        viewModel.dispatch(OnboardingIntent.NextStep)
+        advanceUntilIdle()
+        assertEquals(OnboardingState.Step.MULTI_STORE_SETUP, viewModel.state.value.currentStep)
         assertTrue(viewModel.state.value.isLastStep)
     }
 
@@ -779,26 +788,30 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun `SkipReceiptFormat completes onboarding without saving receipt settings`() = runTest {
-        setupForCompletion()
-        viewModel.effects.test {
-            viewModel.dispatch(OnboardingIntent.SkipReceiptFormat)
-            advanceUntilIdle()
+    fun `SkipReceiptFormat advances to MULTI_STORE_SETUP without saving receipt settings`() = runTest {
+        advanceToReceiptFormat()
+        viewModel.dispatch(OnboardingIntent.SkipReceiptFormat)
+        advanceUntilIdle()
 
-            assertEquals(OnboardingEffect.NavigateToLogin, awaitItem())
-            cancelAndIgnoreRemainingEvents()
-        }
-        // Receipt keys should not be persisted
+        assertEquals(OnboardingState.Step.MULTI_STORE_SETUP, viewModel.state.value.currentStep)
+        // Receipt keys should not be persisted yet
         assertNull(settingsStore["pos.receipt_header"])
         assertNull(settingsStore["pos.receipt_footer"])
     }
 
     @Test
-    fun `SkipReceiptFormat still persists business name and admin user`() = runTest {
+    fun `SkipMultiStoreSetup completes onboarding and persists business name`() = runTest {
         setupForCompletion(businessName = "Skip Corp")
         viewModel.dispatch(OnboardingIntent.SkipReceiptFormat)
         advanceUntilIdle()
+        assertEquals(OnboardingState.Step.MULTI_STORE_SETUP, viewModel.state.value.currentStep)
 
+        viewModel.effects.test {
+            viewModel.dispatch(OnboardingIntent.SkipMultiStoreSetup)
+            advanceUntilIdle()
+            assertEquals(OnboardingEffect.NavigateToLogin, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
         assertEquals("Skip Corp", settingsStore["general.business_name"])
         assertEquals(1, createdUsers.size)
     }

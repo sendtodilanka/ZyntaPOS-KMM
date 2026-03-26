@@ -1305,10 +1305,10 @@ and tighten rules for the custom login endpoint:
     - [x] Refresh tokens stored as SHA-256 hashes only (token_hash column)
     - [x] All auth errors return generic messages (no email enumeration)
     - [x] httpOnly cookies set by backend (AdminAuthRoutes)
-    - [ ] bcrypt work factor = 12 — VERIFY (BCrypt.withDefaults() uses 10 by default)
-    - [ ] Password max 128 chars enforced server-side — NOT DONE (GAP)
+    - [x] bcrypt work factor = 12 — ✅ VERIFIED: `BCrypt.withDefaults().hashToString(12, ...)` in AdminAuthService (lines 210, 217, 276, 420) and `BCRYPT_COST = 12` in UserService (line 32). MFA backup codes use cost 10 intentionally (short-lived single-use).
+    - [x] Password max 128 chars enforced server-side — ✅ VERIFIED: `MAX_PASSWORD_LENGTH = 128` in AdminAuthService companion object; enforced in both route-level validation (`requireLength/requireMaxLength`) and service-level check (`password.length > MAX_PASSWORD_LENGTH`).
     - [ ] Google hd= enforced both in OAuth URL and backend token validation — backend ✅, needs live test
-    - [ ] CSRF double-submit cookie on all state-changing endpoints — NOT DONE (GAP)
+    - [x] CSRF double-submit cookie on all state-changing endpoints — ✅ VERIFIED: `Csrf.kt` implements double-submit cookie pattern (`XSRF-TOKEN` cookie + `X-XSRF-Token` header); applied via `withCsrfProtection { }` in Routing.kt for admin auth + data routes; excludes login/bootstrap/refresh.
 ```
 
 ---

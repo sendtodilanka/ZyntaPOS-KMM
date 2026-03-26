@@ -332,11 +332,16 @@ class DiagnosticSessionService(private val config: AppConfig) {
         val random = ByteArray(32).also { SecureRandom().nextBytes(it) }
         val randomHex = random.joinToString("") { "%02x".format(it) }
         val payload = "svt|$sessionId|$hardwareScope|$randomHex"
-        val mac = javax.crypto.Mac.getInstance("HmacSHA256").apply {
-            init(javax.crypto.spec.SecretKeySpec(config.adminJwtPrivateKey.encoded, "HmacSHA256"))
+        val keyBytes = config.adminJwtPrivateKey.encoded
+        try {
+            val mac = javax.crypto.Mac.getInstance("HmacSHA256").apply {
+                init(javax.crypto.spec.SecretKeySpec(keyBytes, "HmacSHA256"))
+            }
+            return mac.doFinal(payload.toByteArray(Charsets.UTF_8))
+                .joinToString("") { "%02x".format(it) }
+        } finally {
+            java.util.Arrays.fill(keyBytes, 0)
         }
-        return mac.doFinal(payload.toByteArray(Charsets.UTF_8))
-            .joinToString("") { "%02x".format(it) }
     }
 
     private fun ResultRow.toResponse() = DiagnosticSessionResponse(
