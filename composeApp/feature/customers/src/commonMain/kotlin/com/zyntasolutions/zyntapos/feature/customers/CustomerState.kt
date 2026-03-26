@@ -64,6 +64,11 @@ data class CustomerState(
     /** Per-store purchase summary for the cross-store customer profile (G10). */
     val storeOrderSummaries: List<StoreOrderSummary> = emptyList(),
 
+    // ── Pagination ──────────────────────────────────────────────────────────
+    val totalCustomerCount: Long = 0,
+    val hasMoreCustomers: Boolean = false,
+    val isLoadingMore: Boolean = false,
+
     // ── Global ────────────────────────────────────────────────────────────
     val isLoading: Boolean = false,
     val isWalletLoading: Boolean = false,

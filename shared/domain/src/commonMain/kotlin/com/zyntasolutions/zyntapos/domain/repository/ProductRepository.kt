@@ -1,5 +1,7 @@
 package com.zyntasolutions.zyntapos.domain.repository
 
+import com.zyntasolutions.zyntapos.core.pagination.PageRequest
+import com.zyntasolutions.zyntapos.core.pagination.PaginatedResult
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.Product
 import kotlinx.coroutines.flow.Flow
@@ -82,4 +84,19 @@ interface ProductRepository {
      * Used for quick diagnostics (e.g., empty-state checks, import previews).
      */
     suspend fun getCount(): Int
+
+    // ── Paginated queries (for infinite-scroll UI) ─────────────────────────
+
+    /**
+     * Returns a page of active products, ordered by name.
+     *
+     * @param pageRequest Offset-based pagination parameters.
+     * @param categoryId Optional category filter. Pass `null` for all categories.
+     * @param searchQuery Optional FTS5 search query. Pass `null` for no filtering.
+     */
+    suspend fun getPage(
+        pageRequest: PageRequest,
+        categoryId: String? = null,
+        searchQuery: String? = null,
+    ): PaginatedResult<Product>
 }

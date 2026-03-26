@@ -44,6 +44,9 @@ sealed interface InventoryIntent {
     /** Toggles between list and grid view. */
     data object ToggleViewMode : InventoryIntent
 
+    /** Loads the next page of products for infinite scroll. */
+    data object LoadMoreProducts : InventoryIntent
+
     /** Sorts the table by the given column key; toggles direction if same column. */
     data class SortByColumn(val columnKey: String) : InventoryIntent
 

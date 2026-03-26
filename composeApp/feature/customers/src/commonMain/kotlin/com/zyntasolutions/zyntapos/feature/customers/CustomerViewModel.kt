@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.customers
 
 import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
+import com.zyntasolutions.zyntapos.core.pagination.PageRequest
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import com.zyntasolutions.zyntapos.core.utils.IdGenerator
@@ -148,7 +149,41 @@ class CustomerViewModel(
             is CustomerIntent.MergeCustomers -> onMergeCustomers(intent.targetId, intent.sourceId)
             is CustomerIntent.LoadPurchaseHistory -> onLoadPurchaseHistory(intent.customerId)
             is CustomerIntent.MakeCustomerGlobal -> onMakeCustomerGlobal(intent.customerId)
+            is CustomerIntent.LoadMoreCustomers -> onLoadMoreCustomers()
         }
+    }
+
+    /**
+     * Loads the next page of customers and appends to the existing list.
+     */
+    private suspend fun onLoadMoreCustomers() {
+        val state = currentState
+        if (state.isLoadingMore || !state.hasMoreCustomers) return
+
+        updateState { copy(isLoadingMore = true) }
+        runCatching {
+            val pageRequest = PageRequest(offset = state.customers.size)
+            customerRepository.getPage(
+                pageRequest = pageRequest,
+                searchQuery = state.searchQuery.ifBlank { null },
+            )
+        }.fold(
+            onSuccess = { result ->
+                val newCustomers = state.customers + result.items
+                val sorted = applySorting(newCustomers, state.sortColumn, state.sortDirection)
+                updateState {
+                    copy(
+                        customers = sorted,
+                        totalCustomerCount = result.totalCount,
+                        hasMoreCustomers = result.hasMore,
+                        isLoadingMore = false,
+                    )
+                }
+            },
+            onFailure = {
+                updateState { copy(isLoadingMore = false) }
+            },
+        )
     }
 
     // ── Customer CRUD ─────────────────────────────────────────────────────────
