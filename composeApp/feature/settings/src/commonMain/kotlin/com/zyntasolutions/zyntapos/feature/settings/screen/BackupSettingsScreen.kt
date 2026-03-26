@@ -72,9 +72,9 @@ fun BackupSettingsScreen(
         effects.collectLatest { effect ->
             when (effect) {
                 is SettingsEffect.BackupComplete ->
-                    snackbarHostState.showSnackbar("Backup saved: ${effect.filePath}")
+                    snackbarHostState.showSnackbar(s[StringResource.SETTINGS_BACKUP_COMPLETE, effect.filePath])
                 SettingsEffect.RestoreComplete ->
-                    snackbarHostState.showSnackbar("Database restored successfully. Please restart the app.")
+                    snackbarHostState.showSnackbar(s[StringResource.SETTINGS_BACKUP_RESTORE_COMPLETE])
                 is SettingsEffect.ShowSnackbar -> snackbarHostState.showSnackbar(effect.message)
                 else -> Unit
             }
@@ -98,7 +98,7 @@ fun BackupSettingsScreen(
         ZyntaDialogContent(
             variant = ZyntaDialogVariant.Confirm(
                 title = s[StringResource.SETTINGS_BACKUP_CONFIRM_RESTORE],
-                message = "Restore from '${state.restoreFilePath}'? All current data will be replaced.",
+                message = s[StringResource.SETTINGS_BACKUP_RESTORE_CONFIRM_MSG, state.restoreFilePath ?: ""],
                 confirmLabel = s[StringResource.SETTINGS_BACKUP_RESTORE_ACTION],
                 cancelLabel = s[StringResource.COMMON_CANCEL],
                 onConfirm = { onIntent(SettingsIntent.ConfirmRestore) },
@@ -127,8 +127,8 @@ fun BackupSettingsScreen(
                 Spacer(Modifier.height(ZyntaSpacing.sm))
                 val lastBackupText = state.lastBackupAt?.let { instant ->
                     val local = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-                    "Last backup: ${local.date} at ${local.hour.toString().padStart(2, '0')}:" +
-                        local.minute.toString().padStart(2, '0')
+                    val timeStr = "${local.hour.toString().padStart(2, '0')}:${local.minute.toString().padStart(2, '0')}"
+                    s[StringResource.SETTINGS_BACKUP_LAST_BACKUP, local.date.toString(), timeStr]
                 } ?: s[StringResource.SETTINGS_BACKUP_NO_BACKUP]
                 Text(
                     text = lastBackupText,

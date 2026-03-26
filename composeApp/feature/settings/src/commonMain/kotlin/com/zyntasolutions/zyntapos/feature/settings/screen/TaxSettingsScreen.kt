@@ -93,7 +93,7 @@ fun TaxSettingsScreen(
         ZyntaDialogContent(
             variant = ZyntaDialogVariant.Confirm(
                 title = s[StringResource.SETTINGS_TAX_DELETE_TITLE],
-                message = "Delete '${target.name}'? This cannot be undone.",
+                message = s[StringResource.SETTINGS_TAX_DELETE_BODY, target.name],
                 confirmLabel = s[StringResource.COMMON_DELETE],
                 cancelLabel = s[StringResource.COMMON_CANCEL],
                 onConfirm = { onIntent(SettingsIntent.ConfirmDeleteTaxGroup) },
@@ -158,7 +158,7 @@ fun TaxSettingsScreen(
                             Text("${"%.2f".format(tg.rate)}%", modifier = Modifier.weight(1f),
                                 style = MaterialTheme.typography.bodyMedium)
                             // Inclusive
-                            Text(if (tg.isInclusive) "Yes" else "No", modifier = Modifier.weight(1f),
+                            Text(if (tg.isInclusive) s[StringResource.COMMON_YES] else s[StringResource.COMMON_NO], modifier = Modifier.weight(1f),
                                 style = MaterialTheme.typography.bodyMedium)
                             // Actions
                             Column(modifier = Modifier.weight(1f),
@@ -203,7 +203,7 @@ fun TaxSettingsScreen(
                         }
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = "Open Regional Tax Overrides",
+                            contentDescription = s[StringResource.SETTINGS_TAX_REGIONAL_OVERRIDES],
                             tint = MaterialTheme.colorScheme.primary,
                         )
                     }

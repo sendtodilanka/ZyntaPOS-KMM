@@ -77,8 +77,8 @@ fun PrinterProfilesScreen(
     LaunchedEffect(effects) {
         effects.collectLatest { effect ->
             when (effect) {
-                SettingsEffect.PrinterProfileSaved   -> snackbarHostState.showSnackbar("Profile saved.")
-                SettingsEffect.PrinterProfileDeleted -> snackbarHostState.showSnackbar("Profile deleted.")
+                SettingsEffect.PrinterProfileSaved   -> snackbarHostState.showSnackbar(s[StringResource.SETTINGS_PRINTER_PROFILE_SAVED])
+                SettingsEffect.PrinterProfileDeleted -> snackbarHostState.showSnackbar(s[StringResource.SETTINGS_PRINTER_PROFILE_DELETED])
                 is SettingsEffect.ShowSnackbar       -> snackbarHostState.showSnackbar(effect.message)
                 else -> Unit
             }
@@ -157,7 +157,7 @@ fun PrinterProfilesScreen(
             AlertDialog(
                 onDismissRequest = { profileToDelete = null },
                 title = { Text(s[StringResource.SETTINGS_PRINTER_PROFILES_DELETE_TITLE]) },
-                text = { Text("Delete \"${target.name}\"? This cannot be undone.") },
+                text = { Text(s[StringResource.SETTINGS_PRINTER_PROFILE_DELETE_BODY, target.name]) },
                 confirmButton = {
                     Button(onClick = {
                         onIntent(SettingsIntent.DeletePrinterProfile(target.id))
@@ -192,7 +192,7 @@ private fun PrinterProfileCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(profile.name, style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    text = "${profile.jobType.name} • ${profile.printerType}${if (profile.isDefault) " • Default" else ""}",
+                    text = "${profile.jobType.name} \u2022 ${profile.printerType}${if (profile.isDefault) s[StringResource.SETTINGS_PRINTER_PROFILE_DEFAULT_BADGE] else ""}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -339,7 +339,7 @@ private fun PrinterProfileForm(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Text("Set as Default for ${form.jobType.name}", style = MaterialTheme.typography.bodyMedium)
+            Text(s[StringResource.SETTINGS_PRINTER_PROFILE_SET_DEFAULT, form.jobType.name], style = MaterialTheme.typography.bodyMedium)
             Switch(
                 checked = form.isDefault,
                 onCheckedChange = { onIntent(SettingsIntent.UpdateProfileIsDefault(it)) },
