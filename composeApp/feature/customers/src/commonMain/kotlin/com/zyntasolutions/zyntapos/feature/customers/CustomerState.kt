@@ -69,11 +69,35 @@ data class CustomerState(
     val hasMoreCustomers: Boolean = false,
     val isLoadingMore: Boolean = false,
 
+    // ── Bulk Import (G10) ──────────────────────────────────────────────────
+    val bulkImport: BulkImportState = BulkImportState(),
+
     // ── Global ────────────────────────────────────────────────────────────
     val isLoading: Boolean = false,
     val isWalletLoading: Boolean = false,
     val error: String? = null,
     val successMessage: String? = null,
+)
+
+/**
+ * State for the CSV bulk customer import workflow (G10).
+ */
+data class BulkImportState(
+    val showDialog: Boolean = false,
+    val fileName: String = "",
+    val csvContent: String = "",
+    /** Parsed customer rows from CSV — each map has column name → value. */
+    val parsedRows: List<Map<String, String>> = emptyList(),
+    /** Column mapping: CSV header → domain field (name, phone, email, address, notes). */
+    val columnMapping: Map<String, String> = emptyMap(),
+    /** Detected CSV headers. */
+    val csvHeaders: List<String> = emptyList(),
+    val isImporting: Boolean = false,
+    val importProgress: Int = 0,
+    val importTotal: Int = 0,
+    val importedCount: Int = 0,
+    val skippedCount: Int = 0,
+    val error: String? = null,
 )
 
 /** Sort direction for table columns. */

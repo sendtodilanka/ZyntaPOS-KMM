@@ -144,6 +144,7 @@ val accountingModule = module {
             getProfitAndLossUseCase  = get(),
             storeRepository          = get(),
             authRepository           = get(),
+            settingsRepository       = get(),
             analytics                = get(),
         )
     }

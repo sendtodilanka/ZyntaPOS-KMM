@@ -1914,7 +1914,7 @@ Backend Tests:
 | ~~**No store comparison charts**~~ — ✅ DONE (C5.2): `StoreComparisonState` + `GenerateMultiStoreComparisonReportUseCase` + `loadStoreComparison()` fully implemented; cross-store revenue/order comparison | ~~HIGH~~ | ✅ DONE (C5.2) |
 | ~~**PDF export buttons present but may be stubbed**~~ — ✅ VERIFIED DONE (2026-03-25): `JvmReportExporter.exportSalesPdf()` + `exportStockPdf()` use PDFBox to write plain-text PDF; `AndroidReportExporter` generates HTML-to-PDF via `PdfDocument`; all 4 report types have PDF export via `PdfBoxRenderer` | ~~HIGH~~ | ✅ DONE |
 | ~~**No drill-down**~~ — ✅ DONE (2026-03-26): `SalesState.drillDownLabel/drillDownOrderIds/isDrillDownLoading`; `DrillDownSalesDataPoint(label)/CloseDrillDown` intents; filters `topProducts` map keys matching label | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
-| **No report scheduling/email** — Can't schedule daily/weekly reports | LOW | Phase 3 |
+| ~~**No report scheduling/email**~~ — ✅ DONE (2026-03-26): `ReportSchedulingState` with frequency (DAILY/WEEKLY/MONTHLY), report type, email recipient, schedule hour; `ShowScheduleDialog/SaveSchedule/ToggleSchedule/DeleteSchedule/LoadSchedules` intents; schedules persisted via SettingsRepository `report.schedule.<type>` key pattern | ~~LOW~~ | ✅ DONE (2026-03-26) |
 | ~~**No pagination for large datasets**~~ — ✅ DONE (2026-03-26): `StockState.currentPage/pageSize/totalItems`; `StockNextPage/StockPreviousPage` intents with bounds checking; `loadStockReport()` sets `totalItems` and resets to page 0 | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
 | ~~**Date formatting doesn't respect GeneralSettings preference**~~ — ✅ DONE (2026-03-25): `ReportsState.dateFormat` loaded from `SettingsRepository` `GeneralSettings.dateFormat` key; passed through to all report screens for consistent formatting | ~~MEDIUM~~ | ✅ DONE (2026-03-25) |
 
@@ -1961,7 +1961,7 @@ Backend Tests:
 | ~~**No date picker dialog**~~ — ✅ DONE: Material 3 `DatePickerDialog` replaces manual text entry across all 4 tabs; `DateInputField` composable + `DatePickerDialogs` composable; `DatePickerField` enum + `ShowDatePicker`/`HideDatePicker` intents; date helpers `toEpochMillisOrNull()`/`toLocalDateString()` (2026-03-25) | ~~HIGH~~ | ✅ DONE (2026-03-25) |
 | ~~**No multi-store P&L consolidation**~~ — ✅ DONE (2026-03-26): `AccountingState.ConsolidatedPnLState` inner class with `storeBreakdowns/consolidatedRevenue/Expenses/Profit`; `StorePnLBreakdown` data class; `LoadConsolidatedPnL` intent; `onLoadConsolidatedPnL()` loads P&L per store and aggregates; `getProfitAndLossUseCase` + `storeRepository` injected into AccountingViewModel | ~~HIGH~~ | ✅ DONE (2026-03-26) |
 | ~~**No export buttons** on any financial statement~~ — ✅ DONE: CSV export button in TopAppBar; `ExportCsv` intent; `ShareExport` effect wired in App.kt with selectable-text dialog; RFC 4180 CSV generation for all 4 statements (2026-03-25) | ~~HIGH~~ | ✅ DONE (2026-03-25) |
-| **No account reconciliation workflow** | MEDIUM | Phase 3 |
+| ~~**No account reconciliation workflow**~~ — ✅ DONE (2026-03-26): `ReconciliationState` with GL vs external balance comparison; `StartReconciliation/UpdateExternalBalance/UpdateReconciliationNotes/SaveReconciliation/DismissReconciliation/LoadReconciliationHistory` intents; auto-detect reconciled status when difference < 0.01; history persisted via SettingsRepository key pattern | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
 | **E-invoice list exists but no IRD submission flow** | MEDIUM | Phase 3 |
 | ~~**Trial Balance "UNBALANCED" error has no remediation path**~~ — ✅ DONE (2026-03-26): `FinancialStatementsState.showRemediationGuide/remediationSuspects`; `ShowRemediationGuide/DismissRemediationGuide` intents; identifies top-10 accounts with largest debit-credit discrepancy sorted by absolute imbalance | ~~LOW~~ | ✅ DONE (2026-03-26) |
 
@@ -1976,7 +1976,7 @@ Backend Tests:
 | ~~**No GDPR Export button**~~ — ✅ DONE: Button in TopAppBar, effect wired in App.kt with selectable JSON dialog | ~~HIGH~~ | ✅ DONE (2026-03-23) |
 | ~~**No cross-store customer profile view**~~ — ✅ DONE (2026-03-26): `CustomerState.storeOrderSummaries: List<StoreOrderSummary>`; `StoreOrderSummary` data class with `storeId/storeName/orderCount/totalSpent/lastOrderAt`; `onLoadPurchaseHistory()` computes per-store summaries grouped by `order.storeId` | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
 | ~~**No loyalty tier display**~~ — ✅ DONE: `ZyntaLoyaltyTierBadge` (Bronze/Silver/Gold/Platinum colors) in CustomerListScreen + CustomerDetailScreen; tier resolved via `loyaltyRepository.getTierForPoints()` in CustomerViewModel (2026-03-24) | ~~MEDIUM~~ | ✅ DONE (2026-03-24) |
-| **No bulk customer import** (CSV) | LOW | Phase 3 |
+| ~~**No bulk customer import**~~ (CSV) — ✅ DONE (2026-03-26): `BulkImportState` with CSV parsing, auto-column mapping (name/phone/email/address/notes), progress tracking; `ShowBulkImportDialog/SetImportCsvContent/MapImportColumn/ExecuteBulkImport` intents; handles quoted CSV fields; skips rows with blank names | ~~LOW~~ | ✅ DONE (2026-03-26) |
 | **No advanced customer segmentation/filtering** | LOW | Phase 3 |
 
 ---
@@ -2035,7 +2035,7 @@ Backend Tests:
 | ~~**No budget tracking per category**~~ — ✅ DONE (2026-03-26): `ExpenseState.categoryBudgets/categorySpend`; `LoadBudgetData/SetCategoryBudget(categoryId, amount)` intents; budgets persisted via `SettingsRepository.set("expense.budget.<categoryId>")` key pattern; monthly spend computed from approved expenses | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
 | ~~**No approval amount thresholds**~~ — ✅ DONE (2026-03-26): `ExpenseState.approvalThreshold: Double`; `UpdateApprovalThreshold(amount)` intent; configurable threshold persisted via `SettingsRepository.set("expense.approval_threshold")`; expenses above threshold require approval | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
 | ~~**No vendor/supplier field**~~ — ✅ DONE (2026-03-26): `ExpenseFormState.vendorId/vendorName` fields added; vendor dropdown can be wired to SupplierRepository | ~~LOW~~ | ✅ DONE (2026-03-26) |
-| **No recurring expense support** | LOW | Phase 3 |
+| ~~**No recurring expense support**~~ — ✅ DONE (2026-03-26): `RecurringExpenseEntry` model with DAILY/WEEKLY/MONTHLY/QUARTERLY/YEARLY frequency; `RecurringExpenseFormState`; `LoadRecurringExpenses/ShowRecurringDialog/SaveRecurringExpense/DeleteRecurringExpense/ToggleRecurringExpense` intents; templates persisted via SettingsRepository `expense.recurring.entry.<N>` key pattern | ~~LOW~~ | ✅ DONE (2026-03-26) |
 
 ---
 

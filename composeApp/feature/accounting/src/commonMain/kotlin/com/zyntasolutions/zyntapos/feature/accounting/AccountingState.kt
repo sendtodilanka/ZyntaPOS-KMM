@@ -18,7 +18,53 @@ data class AccountingState(
     val period: String = "",
     val isLoading: Boolean = false,
     val error: String? = null,
+    val successMessage: String? = null,
     val consolidatedPnL: ConsolidatedPnLState = ConsolidatedPnLState(),
+
+    // ── Account Reconciliation (G9) ─────────────────────────────────────
+    val reconciliation: ReconciliationState = ReconciliationState(),
+)
+
+/**
+ * State for the account reconciliation workflow (G9).
+ *
+ * Reconciliation compares the GL balance of an account against an external
+ * balance (e.g., bank statement) and identifies unmatched entries.
+ */
+data class ReconciliationState(
+    val isLoading: Boolean = false,
+    val showDialog: Boolean = false,
+    /** The account code being reconciled. */
+    val accountCode: String = "",
+    val accountName: String = "",
+    /** GL balance for the account in the selected period. */
+    val glBalance: Double = 0.0,
+    /** External balance entered by the user (e.g., from bank statement). */
+    val externalBalance: String = "",
+    /** Difference: GL balance - external balance. */
+    val difference: Double = 0.0,
+    /** True when the reconciliation is matched (difference == 0). */
+    val isReconciled: Boolean = false,
+    /** Notes about the reconciliation. */
+    val notes: String = "",
+    /** List of recent reconciliation records. */
+    val history: List<ReconciliationRecord> = emptyList(),
+    val error: String? = null,
+)
+
+/**
+ * A single reconciliation record — snapshot of a completed reconciliation.
+ */
+data class ReconciliationRecord(
+    val accountCode: String,
+    val accountName: String,
+    val glBalance: Double,
+    val externalBalance: Double,
+    val difference: Double,
+    val isReconciled: Boolean,
+    val notes: String,
+    val reconciledAt: Long,
+    val reconciledBy: String,
 )
 
 /**

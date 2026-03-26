@@ -105,6 +105,22 @@ class ExpenseViewModel(
             is ExpenseIntent.SetCategoryBudget -> onSetCategoryBudget(intent.categoryId, intent.amount)
             is ExpenseIntent.UpdateApprovalThreshold -> onUpdateApprovalThreshold(intent.amount)
 
+            // ── Recurring Expenses (G13) ─────────────────────────────────────
+            is ExpenseIntent.LoadRecurringExpenses -> onLoadRecurringExpenses()
+            is ExpenseIntent.ShowRecurringDialog -> updateState {
+                copy(showRecurringDialog = true, recurringForm = RecurringExpenseFormState())
+            }
+            is ExpenseIntent.DismissRecurringDialog -> updateState {
+                copy(showRecurringDialog = false, recurringForm = RecurringExpenseFormState())
+            }
+            is ExpenseIntent.UpdateRecurringField -> onUpdateRecurringField(intent.field, intent.value)
+            is ExpenseIntent.SetRecurringFrequency -> updateState {
+                copy(recurringForm = recurringForm.copy(frequency = intent.frequency))
+            }
+            is ExpenseIntent.SaveRecurringExpense -> onSaveRecurringExpense()
+            is ExpenseIntent.DeleteRecurringExpense -> onDeleteRecurringExpense(intent.id)
+            is ExpenseIntent.ToggleRecurringExpense -> onToggleRecurringExpense(intent.id)
+
             is ExpenseIntent.DismissMessage -> updateState { copy(error = null, successMessage = null) }
         }
     }
@@ -393,6 +409,142 @@ class ExpenseViewModel(
         settingsRepository.set("expense.approval_threshold", amount.toString())
         updateState { copy(approvalThreshold = amount) }
         sendEffect(ExpenseEffect.ShowSuccess("Approval threshold updated"))
+    }
+
+    // ── Recurring Expenses (G13) ────────────────────────────────────────────
+
+    private suspend fun onLoadRecurringExpenses() {
+        val entries = mutableListOf<RecurringExpenseEntry>()
+        // Load all recurring expense templates stored via settings key pattern
+        val categories = currentState.categories
+        for (cat in categories) {
+            val key = "expense.recurring.${cat.id}"
+            val raw = settingsRepository.get(key) ?: continue
+            val parts = raw.split("|")
+            if (parts.size < 7) continue
+            entries.add(
+                RecurringExpenseEntry(
+                    id = parts[0],
+                    description = parts[1],
+                    amount = parts[2].toDoubleOrNull() ?: 0.0,
+                    categoryId = cat.id,
+                    categoryName = cat.name,
+                    frequency = runCatching { RecurringFrequency.valueOf(parts[3]) }
+                        .getOrDefault(RecurringFrequency.MONTHLY),
+                    isActive = parts[4].toBooleanStrictOrNull() ?: true,
+                    nextDueDate = parts[5],
+                    vendorName = parts[6],
+                ),
+            )
+        }
+        // Also check for non-category-specific entries
+        for (i in 0 until 50) {
+            val key = "expense.recurring.entry.$i"
+            val raw = settingsRepository.get(key) ?: continue
+            val parts = raw.split("|")
+            if (parts.size < 8) continue
+            entries.add(
+                RecurringExpenseEntry(
+                    id = parts[0],
+                    description = parts[1],
+                    amount = parts[2].toDoubleOrNull() ?: 0.0,
+                    categoryId = parts[3],
+                    categoryName = categories.find { it.id == parts[3] }?.name ?: parts[3],
+                    frequency = runCatching { RecurringFrequency.valueOf(parts[4]) }
+                        .getOrDefault(RecurringFrequency.MONTHLY),
+                    isActive = parts[5].toBooleanStrictOrNull() ?: true,
+                    nextDueDate = parts[6],
+                    vendorName = parts[7],
+                ),
+            )
+        }
+        updateState { copy(recurringExpenses = entries) }
+    }
+
+    private fun onUpdateRecurringField(field: String, value: String) {
+        updateState {
+            copy(
+                recurringForm = when (field) {
+                    "description" -> recurringForm.copy(description = value)
+                    "amount" -> recurringForm.copy(amount = value)
+                    "categoryId" -> recurringForm.copy(categoryId = value)
+                    "startDate" -> recurringForm.copy(startDate = value)
+                    "vendorId" -> recurringForm.copy(vendorId = value)
+                    "vendorName" -> recurringForm.copy(vendorName = value)
+                    else -> recurringForm
+                },
+            )
+        }
+    }
+
+    private suspend fun onSaveRecurringExpense() {
+        val form = currentState.recurringForm
+        val errors = mutableMapOf<String, String>()
+        if (form.description.isBlank()) errors["description"] = "Description is required"
+        val amount = form.amount.toDoubleOrNull()
+        if (amount == null || amount <= 0) errors["amount"] = "Amount must be positive"
+
+        if (errors.isNotEmpty()) {
+            updateState {
+                copy(recurringForm = recurringForm.copy(validationErrors = errors))
+            }
+            return
+        }
+
+        val id = form.id ?: IdGenerator.newId()
+        val entryIndex = currentState.recurringExpenses.size
+        val key = "expense.recurring.entry.$entryIndex"
+        val value = listOf(
+            id,
+            form.description,
+            form.amount,
+            form.categoryId,
+            form.frequency.name,
+            "true",
+            form.startDate.ifBlank { Clock.System.now().toEpochMilliseconds().toString() },
+            form.vendorName,
+        ).joinToString("|")
+
+        settingsRepository.set(key, value)
+
+        updateState {
+            copy(
+                showRecurringDialog = false,
+                recurringForm = RecurringExpenseFormState(),
+                successMessage = "Recurring expense saved",
+            )
+        }
+        onLoadRecurringExpenses()
+    }
+
+    private suspend fun onDeleteRecurringExpense(id: String) {
+        val entries = currentState.recurringExpenses
+        val index = entries.indexOfFirst { it.id == id }
+        if (index >= 0) {
+            settingsRepository.set("expense.recurring.entry.$index", "")
+            onLoadRecurringExpenses()
+            updateState { copy(successMessage = "Recurring expense deleted") }
+        }
+    }
+
+    private suspend fun onToggleRecurringExpense(id: String) {
+        val entries = currentState.recurringExpenses
+        val index = entries.indexOfFirst { it.id == id }
+        if (index < 0) return
+        val entry = entries[index]
+        val key = "expense.recurring.entry.$index"
+        val value = listOf(
+            entry.id,
+            entry.description,
+            entry.amount.toString(),
+            entry.categoryId,
+            entry.frequency.name,
+            (!entry.isActive).toString(),
+            entry.nextDueDate,
+            entry.vendorName,
+        ).joinToString("|")
+        settingsRepository.set(key, value)
+        onLoadRecurringExpenses()
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────
