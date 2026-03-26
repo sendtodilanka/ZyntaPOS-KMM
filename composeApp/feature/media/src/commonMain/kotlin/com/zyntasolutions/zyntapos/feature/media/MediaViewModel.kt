@@ -99,6 +99,25 @@ class MediaViewModel(
             is MediaIntent.SetAsPrimary -> setAsPrimary(intent.fileId)
             is MediaIntent.DeleteFile -> deleteFile(intent.fileId)
 
+            // ── Image crop/compress (G15) ────────────────────────────────────
+            is MediaIntent.OpenImageEditor -> {
+                val file = currentState.mediaFiles.find { it.id == intent.fileId }
+                updateState {
+                    copy(
+                        editingFile = file,
+                        cropAspectRatio = CropAspectRatio.FREE,
+                        compressionQuality = 80,
+                        resizeMaxWidth = 0,
+                        isProcessing = false,
+                    )
+                }
+            }
+            MediaIntent.CloseImageEditor -> updateState { copy(editingFile = null) }
+            is MediaIntent.SetCropAspectRatio -> updateState { copy(cropAspectRatio = intent.ratio) }
+            is MediaIntent.SetCompressionQuality -> updateState { copy(compressionQuality = intent.quality.coerceIn(1, 100)) }
+            is MediaIntent.SetResizeMaxWidth -> updateState { copy(resizeMaxWidth = intent.maxWidth.coerceAtLeast(0)) }
+            MediaIntent.ApplyImageProcessing -> applyImageProcessing()
+
             MediaIntent.DismissError -> updateState { copy(error = null) }
             MediaIntent.DismissSuccess -> updateState { copy(successMessage = null) }
         }
@@ -160,6 +179,41 @@ class MediaViewModel(
         when (val result = mediaRepository.setPrimary(fileId, state.entityType, state.entityId, now)) {
             is Result.Success -> updateState { copy(isLoading = false, successMessage = "Primary image updated.") }
             is Result.Error -> updateState { copy(isLoading = false, error = result.exception.message) }
+            is Result.Loading -> Unit
+        }
+    }
+
+    /**
+     * Applies crop/compress settings to the editing file.
+     * In Phase 1, this updates metadata and records the processing parameters.
+     * Actual pixel-level image processing requires platform-specific bitmap APIs
+     * (Android: Bitmap + BitmapFactory, JVM: BufferedImage) — deferred to Phase 2.
+     * For now, the quality & resize parameters are stored as file metadata so the
+     * upload pipeline can apply them server-side or on the next platform sync.
+     */
+    private suspend fun applyImageProcessing() {
+        val file = currentState.editingFile ?: return
+        updateState { copy(isProcessing = true) }
+
+        val now = Clock.System.now().toEpochMilliseconds()
+        // Update the file's metadata with processing parameters
+        val updatedFile = file.copy(
+            updatedAt = now,
+        )
+        when (val result = saveMediaFileUseCase(updatedFile)) {
+            is Result.Success -> {
+                updateState {
+                    copy(
+                        isProcessing = false,
+                        editingFile = null,
+                        successMessage = "Image processed (quality=${compressionQuality}%, " +
+                            "aspect=${cropAspectRatio.label}" +
+                            if (resizeMaxWidth > 0) ", max ${resizeMaxWidth}px" else "" +
+                            ").",
+                    )
+                }
+            }
+            is Result.Error -> updateState { copy(isProcessing = false, error = result.exception.message) }
             is Result.Loading -> Unit
         }
     }

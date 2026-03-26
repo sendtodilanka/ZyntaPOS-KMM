@@ -123,6 +123,70 @@ object DateTimeUtils {
     fun LocalDateTime.toEpochMillis(tz: TimeZone = AppTimezone.current): Long =
         toInstant(tz).toEpochMilliseconds()
 
+    // ── User-preferred date format ──────────────────────────────────────────
+
+    /** Default date format used when no user preference has been set. */
+    const val DEFAULT_DATE_FORMAT = "dd/MM/yyyy"
+
+    /**
+     * Settings key for the user-configured date format (stored via [SettingsRepository]).
+     *
+     * Canonical source of truth — use this constant instead of raw strings
+     * in any module that needs to read the date format preference.
+     */
+    const val SETTINGS_KEY_DATE_FORMAT = "general.date_format"
+
+    /**
+     * Formats epoch milliseconds using the given [pattern] string in [tz].
+     *
+     * Supported pattern tokens:
+     * - `yyyy` — four-digit year (e.g. `2025`)
+     * - `MM`   — two-digit month (01–12)
+     * - `MMM`  — abbreviated month name (e.g. `Mar`)
+     * - `dd`   — two-digit day of month (01–31)
+     * - `d`    — day of month without leading zero (1–31)
+     * - `HH`   — two-digit hour, 24h (00–23)
+     * - `mm`   — two-digit minute (00–59)
+     * - `ss`   — two-digit second (00–59)
+     *
+     * Unrecognised characters are passed through verbatim
+     * (e.g. slashes, dashes, commas, spaces).
+     *
+     * Examples:
+     * ```
+     * formatWithPattern(epochMs, "dd/MM/yyyy")       // "14/03/2025"
+     * formatWithPattern(epochMs, "MM/dd/yyyy")       // "03/14/2025"
+     * formatWithPattern(epochMs, "yyyy-MM-dd")       // "2025-03-14"
+     * formatWithPattern(epochMs, "d MMM yyyy")       // "14 Mar 2025"
+     * formatWithPattern(epochMs, "dd/MM/yyyy HH:mm") // "14/03/2025 14:35"
+     * ```
+     */
+    fun formatWithPattern(
+        epochMs: Long,
+        pattern: String,
+        tz: TimeZone = AppTimezone.current,
+    ): String {
+        val ldt = Instant.fromEpochMilliseconds(epochMs).toLocalDateTime(tz)
+        val day = ldt.dayOfMonth.toString().padStart(2, '0')
+        val month = ldt.monthNumber.toString().padStart(2, '0')
+        val monthAbbrev = MONTH_ABBREV[ldt.monthNumber - 1]
+        val year = ldt.year.toString().padStart(4, '0')
+        val hour = ldt.hour.toString().padStart(2, '0')
+        val minute = ldt.minute.toString().padStart(2, '0')
+        val second = ldt.second.toString().padStart(2, '0')
+
+        // Replace longest tokens first to avoid partial matches (e.g. "MMM" before "MM").
+        return pattern
+            .replace("yyyy", year)
+            .replace("MMM", monthAbbrev)
+            .replace("MM", month)
+            .replace("dd", day)
+            .replace("d", ldt.dayOfMonth.toString())
+            .replace("HH", hour)
+            .replace("mm", minute)
+            .replace("ss", second)
+    }
+
     // ── Private ───────────────────────────────────────────────────────────────
 
     private val MONTH_ABBREV = listOf(

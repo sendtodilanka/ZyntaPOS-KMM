@@ -5,13 +5,17 @@ import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateCustomerReport
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateExpenseReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateSalesReportUseCase
 import com.zyntasolutions.zyntapos.domain.port.SyncStatusPort
+import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
+import com.zyntasolutions.zyntapos.domain.repository.StoreRepository
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateStockReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.PrintReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.enterprise.GenerateMultiStoreComparisonReportUseCase
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import androidx.lifecycle.viewModelScope
+import com.zyntasolutions.zyntapos.core.utils.DateTimeUtils
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
 import kotlinx.datetime.Instant
@@ -51,10 +55,26 @@ class ReportsViewModel(
     private val generateStoreComparison: GenerateMultiStoreComparisonReportUseCase,
     private val analytics: AnalyticsTracker,
     private val syncStatusPort: SyncStatusPort,
+    private val storeRepository: StoreRepository,
+    private val settingsRepository: SettingsRepository,
 ) : BaseViewModel<ReportsState, ReportsIntent, ReportsEffect>(ReportsState()) {
 
     init {
         analytics.logScreenView("Reports", "ReportsViewModel")
+
+        // Load available stores for the store filter dropdown (G6).
+        viewModelScope.launch {
+            storeRepository.getAllStores().first().let { stores ->
+                updateState { copy(availableStores = stores) }
+            }
+        }
+
+        // Load user-preferred date format from settings (G20).
+        viewModelScope.launch {
+            val fmt = settingsRepository.get(DateTimeUtils.SETTINGS_KEY_DATE_FORMAT)
+                ?: DateTimeUtils.DEFAULT_DATE_FORMAT
+            updateState { copy(dateFormat = fmt) }
+        }
 
         // Refresh active reports on every sync cycle completion (real-time report updates — G6).
         viewModelScope.launch {
@@ -116,6 +136,17 @@ class ReportsViewModel(
             ReportsIntent.ExportStoreComparisonCsv -> exportStoreComparison()
             ReportsIntent.DismissStoreComparisonError -> updateState {
                 copy(storeComparison = storeComparison.copy(error = null))
+            }
+
+            // ── Multi-Store Filter (G6) ──────────────────────────────────────
+            ReportsIntent.LoadAvailableStores -> viewModelScope.launch {
+                storeRepository.getAllStores().first().let { stores ->
+                    updateState { copy(availableStores = stores) }
+                }
+            }
+            is ReportsIntent.SelectReportStore -> {
+                updateState { copy(selectedStoreId = intent.storeId) }
+                refreshLoadedReports()
             }
         }
     }

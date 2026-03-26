@@ -147,6 +147,34 @@ sealed interface RegisterIntent {
     /** Generates and delivers an A4 PDF Z-report for the given session. */
     data class PrintA4ZReport(val sessionId: String) : RegisterIntent
 
+    // ─── Cash Out Approval (G5) ────────────────────────────────────────────
+
+    /** Updates the manager PIN in the cash-out approval form. */
+    data class CashOutApprovalPinChanged(val pin: String) : RegisterIntent
+
+    /** Submits the manager PIN for cash-out approval validation. */
+    data object SubmitCashOutApproval : RegisterIntent
+
+    /** Cancels the cash-out approval flow and returns to the cash in/out dialog. */
+    data object CancelCashOutApproval : RegisterIntent
+
+    // ─── Shift Handoff (G5) ─────────────────────────────────────────────
+
+    /** Opens the shift handoff dialog and loads available candidates. */
+    data object ShowShiftHandoff : RegisterIntent
+
+    /** Dismisses the shift handoff dialog without performing handoff. */
+    data object DismissShiftHandoff : RegisterIntent
+
+    /** Selects a target user for the shift handoff. */
+    data class SelectHandoffTarget(val userId: String) : RegisterIntent
+
+    /** Updates the target user's PIN in the handoff form. */
+    data class HandoffPinChanged(val pin: String) : RegisterIntent
+
+    /** Validates the target user's PIN and performs the shift handoff. */
+    data object ConfirmShiftHandoff : RegisterIntent
+
     // ─── Cash Drawer ─────────────────────────────────────────────────────
 
     /** Manually opens the cash drawer via the printer HAL (ESC p command). */

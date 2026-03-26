@@ -87,6 +87,8 @@ data class PosState(
     val storeName: String = "",
     /** Active store ID for context-aware operations. Populated from auth session on init. */
     val activeStoreId: String = "",
+    /** ISO 4217 currency code from store settings (e.g. "LKR", "USD"). Drives all price formatting in the POS UI. */
+    val storeCurrency: String = "LKR",
     val cartItems: List<CartItem> = emptyList(),
     val selectedCustomer: Customer? = null,
     // ── Customer picker ───────────────────────────────────────────────────────

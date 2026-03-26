@@ -50,13 +50,16 @@ class GenerateSalesReportUseCase(
     )
 
     /**
-     * @param from Start of the reporting window (inclusive).
-     * @param to   End of the reporting window (inclusive).
+     * @param from    Start of the reporting window (inclusive).
+     * @param to      End of the reporting window (inclusive).
+     * @param storeId Optional store filter — null means all stores (G6 multi-store consolidation).
      * @return A [Flow] emitting a new [SalesReport] whenever the underlying order data changes.
      */
-    operator fun invoke(from: Instant, to: Instant): Flow<SalesReport> =
+    operator fun invoke(from: Instant, to: Instant, storeId: String? = null): Flow<SalesReport> =
         orderRepository.getByDateRange(from, to).map { orders ->
-            val completed = orders.filter { it.status == OrderStatus.COMPLETED }
+            val completed = orders
+                .filter { it.status == OrderStatus.COMPLETED }
+                .let { list -> if (storeId != null) list.filter { it.storeId == storeId } else list }
 
             val totalSales = completed.sumOf { it.total }
             val orderCount = completed.size

@@ -33,6 +33,13 @@ sealed interface PosIntent {
      */
     data object LoadProducts : PosIntent
 
+    /**
+     * Loads the store's configured currency code from [SettingsRepository] and
+     * updates [PosState.storeCurrency]. Also sets [CurrencyFormatter.defaultCurrency]
+     * so all price displays use the correct currency symbol.
+     */
+    data object LoadStoreCurrency : PosIntent
+
     // ─── Catalogue Navigation ──────────────────────────────────────────────────
 
     /**

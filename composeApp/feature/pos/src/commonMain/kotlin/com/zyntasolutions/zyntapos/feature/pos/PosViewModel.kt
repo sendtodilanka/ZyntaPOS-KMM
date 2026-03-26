@@ -19,6 +19,7 @@ import com.zyntasolutions.zyntapos.domain.repository.LoyaltyRepository
 import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
 import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
 import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
+import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.domain.repository.StoreRepository
 import com.zyntasolutions.zyntapos.domain.usecase.coupons.ApplyStorePromotionsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.coupons.CalculateCouponDiscountUseCase
@@ -43,6 +44,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.pos.RetrieveHeldOrderUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.UpdateCartItemQuantityUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.PostSaleJournalEntryUseCase
 import com.zyntasolutions.zyntapos.domain.formatter.ReceiptFormatter
+import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
 import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
@@ -151,6 +153,8 @@ class PosViewModel(
     private val lookupOrderForReturnUseCase: LookupOrderForReturnUseCase,
     private val getStorePromotionsUseCase: GetStorePromotionsUseCase,
     private val applyStorePromotionsUseCase: ApplyStorePromotionsUseCase,
+    private val settingsRepository: SettingsRepository,
+    private val currencyFormatter: CurrencyFormatter,
     private val auditLogger: SecurityAuditLogger,
     private val analytics: AnalyticsTracker,
 ) : BaseViewModel<PosState, PosIntent, PosEffect>(PosState()) {
@@ -199,6 +203,8 @@ class PosViewModel(
                 )
             }
             observeStorePromotions()
+            // Load store currency (G8).
+            onLoadStoreCurrency()
         }
         observeCategories()
         observeProducts()
@@ -274,6 +280,7 @@ class PosViewModel(
     override suspend fun handleIntent(intent: PosIntent) {
         when (intent) {
             is PosIntent.LoadProducts       -> onLoadProducts()
+            PosIntent.LoadStoreCurrency     -> onLoadStoreCurrency()
             is PosIntent.SelectCategory     -> onSelectCategory(intent.id)
             is PosIntent.SearchQueryChanged -> onSearchQueryChanged(intent.query)
             is PosIntent.SearchFocusChanged -> updateState { copy(isSearchFocused = intent.focused) }
@@ -334,6 +341,13 @@ class PosViewModel(
     }
 
     // ── Intent handlers ───────────────────────────────────────────────────────
+
+    /** Loads the store's configured currency code and updates CurrencyFormatter default. */
+    private suspend fun onLoadStoreCurrency() {
+        val code = settingsRepository.get("store.currency_code") ?: "LKR"
+        currencyFormatter.defaultCurrency = code
+        updateState { copy(storeCurrency = code) }
+    }
 
     private fun onLoadProducts() {
         updateState { copy(isLoading = true, error = null) }

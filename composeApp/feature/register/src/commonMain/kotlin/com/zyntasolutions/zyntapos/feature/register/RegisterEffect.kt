@@ -28,4 +28,7 @@ sealed interface RegisterEffect {
 
     /** A4 Z-report PDF was sent to the printer/system dialog successfully. */
     data object A4ZReportPrinted : RegisterEffect
+
+    /** Shift handoff completed — UI should refresh session state for the new user. */
+    data class ShiftHandoffCompleted(val newUserName: String) : RegisterEffect
 }

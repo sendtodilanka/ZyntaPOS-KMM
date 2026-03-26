@@ -44,6 +44,20 @@ sealed interface MediaIntent {
     // ── Delete ────────────────────────────────────────────────────────────
     data class DeleteFile(val fileId: String) : MediaIntent
 
+    // ── Image crop/compress (G15) ───────────────────────────────────────────
+    /** Opens the crop/compress editor for the given file. */
+    data class OpenImageEditor(val fileId: String) : MediaIntent
+    /** Closes the crop/compress editor without saving. */
+    data object CloseImageEditor : MediaIntent
+    /** Sets the crop aspect ratio in the editor. */
+    data class SetCropAspectRatio(val ratio: CropAspectRatio) : MediaIntent
+    /** Sets the JPEG compression quality (1–100). */
+    data class SetCompressionQuality(val quality: Int) : MediaIntent
+    /** Sets the max width for resize (0 = no resize). */
+    data class SetResizeMaxWidth(val maxWidth: Int) : MediaIntent
+    /** Applies crop/compress settings and saves the processed image. */
+    data object ApplyImageProcessing : MediaIntent
+
     // ── UI Feedback ────────────────────────────────────────────────────────
     data object DismissError : MediaIntent
     data object DismissSuccess : MediaIntent

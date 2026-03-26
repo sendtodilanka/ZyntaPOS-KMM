@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.feature.staff
 
+import com.zyntasolutions.zyntapos.core.utils.DateTimeUtils
 import com.zyntasolutions.zyntapos.domain.model.AttendanceRecord
 import com.zyntasolutions.zyntapos.domain.model.AttendanceSummary
 import com.zyntasolutions.zyntapos.domain.model.Employee
@@ -24,6 +25,9 @@ enum class StaffTab { EMPLOYEES, ATTENDANCE, LEAVE, SHIFTS, PAYROLL }
  * - **PAYROLL:** period summary, per-employee records, mark-paid
  */
 data class StaffState(
+
+    /** User-preferred date format pattern from GeneralSettings (G20). */
+    val dateFormat: String = DateTimeUtils.DEFAULT_DATE_FORMAT,
 
     val activeTab: StaffTab = StaffTab.EMPLOYEES,
 

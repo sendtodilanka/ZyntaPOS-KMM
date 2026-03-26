@@ -40,4 +40,11 @@ sealed interface ReportsIntent {
     data class SelectStoreComparisonRange(val range: DateRange) : ReportsIntent
     data object ExportStoreComparisonCsv : ReportsIntent
     data object DismissStoreComparisonError : ReportsIntent
+
+    // ── Multi-Store Filter (G6) ─────────────────────────────────────────────
+    /** Load the list of available stores for the store filter dropdown. */
+    data object LoadAvailableStores : ReportsIntent
+
+    /** Select a store to filter all reports by. Pass null for "All Stores". */
+    data class SelectReportStore(val storeId: String?) : ReportsIntent
 }
