@@ -50,6 +50,8 @@ import com.zyntasolutions.zyntapos.feature.settings.SettingsEffect
 import com.zyntasolutions.zyntapos.feature.settings.SettingsIntent
 import com.zyntasolutions.zyntapos.feature.settings.SettingsState
 import com.zyntasolutions.zyntapos.feature.settings.TaxDisplayMode
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
 
@@ -75,9 +77,10 @@ fun PosSettingsScreen(
     onIntent: (SettingsIntent) -> Unit,
     onBack: () -> Unit,
 ) {
+    val s = LocalStrings.current
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedTab by remember { mutableIntStateOf(0) }
-    val tabTitles = listOf("Orders", "Receipts", "Discounts")
+    val tabTitles = listOf(s[StringResource.SETTINGS_POS_TAB_ORDERS], s[StringResource.SETTINGS_POS_TAB_RECEIPTS], s[StringResource.SETTINGS_POS_TAB_DISCOUNTS])
 
     LaunchedEffect(Unit) { onIntent(SettingsIntent.LoadPos) }
 
@@ -92,7 +95,7 @@ fun PosSettingsScreen(
     }
 
     ZyntaPageScaffold(
-        title = "POS Settings",
+        title = s[StringResource.SETTINGS_POS],
         onNavigateBack = onBack,
         snackbarHostState = snackbarHostState,
     ) { innerPadding ->

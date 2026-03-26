@@ -263,7 +263,7 @@ private fun LabelPrinterStatusTab(state: SettingsState.LabelPrinterState) {
         PrinterStatusBadge(isConnected = state.isConnected)
         if (!state.isConnected && state.printerType != LabelPrinterTypeOption.NONE) {
             Text(
-                text = "Configure connection settings and save to connect.",
+                text = s[StringResource.SETTINGS_PRINTER_CONFIGURE_HINT],
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

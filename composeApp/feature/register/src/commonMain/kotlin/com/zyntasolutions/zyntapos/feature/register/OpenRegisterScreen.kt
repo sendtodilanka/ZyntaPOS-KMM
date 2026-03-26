@@ -70,7 +70,7 @@ fun OpenRegisterScreen(
     }
 
     ZyntaPageScaffold(
-        title = "Open Register",
+        title = s[StringResource.REGISTER_OPEN_REGISTER],
         snackbarHostState = snackbarHost,
     ) { innerPadding ->
         val form = state.openRegisterForm
@@ -159,9 +159,10 @@ private fun RegisterSelectorPanel(
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     Column(modifier = modifier) {
         Text(
-            text = "Select Register",
+            text = s[StringResource.REGISTER_SELECT_REGISTER],
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
         )
@@ -183,7 +184,7 @@ private fun RegisterSelectorPanel(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = "No registers available.\nPlease contact your manager.",
+                    text = s[StringResource.REGISTER_NO_REGISTERS_AVAILABLE],
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium,
                 )
