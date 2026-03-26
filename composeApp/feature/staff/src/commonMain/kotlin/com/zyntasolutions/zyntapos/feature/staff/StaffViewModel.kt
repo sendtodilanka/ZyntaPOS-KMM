@@ -511,7 +511,7 @@ class StaffViewModel(
 
     private suspend fun approveLeave(requestId: String, approverId: String, approvedAt: Long) {
         updateState { copy(isLoading = true) }
-        when (val result = approveLeaveUseCase(requestId, approverId, approvedAt, approvedAt)) {
+        when (val result = approveLeaveUseCase(id = requestId, approve = true, approverNotes = null, updatedAt = approvedAt)) {
             is Result.Success -> updateState {
                 copy(isLoading = false, successMessage = "Leave approved.")
             }
