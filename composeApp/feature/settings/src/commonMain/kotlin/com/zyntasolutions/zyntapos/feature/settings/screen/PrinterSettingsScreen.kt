@@ -46,6 +46,8 @@ import com.zyntasolutions.zyntapos.feature.settings.SettingsEffect
 import com.zyntasolutions.zyntapos.feature.settings.SettingsIntent
 import com.zyntasolutions.zyntapos.feature.settings.SettingsState
 import com.zyntasolutions.zyntapos.feature.settings.components.PrinterStatusAlertBanner
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
 
@@ -62,17 +64,22 @@ fun PrinterSettingsScreen(
     onIntent: (SettingsIntent) -> Unit,
     onBack: () -> Unit,
 ) {
+    val s = LocalStrings.current
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedTab by remember { mutableIntStateOf(0) }
-    val tabTitles = listOf("Connection", "Receipt Layout", "Options")
+    val tabTitles = listOf(
+        s[StringResource.SETTINGS_PRINTER_TAB_CONNECTION],
+        s[StringResource.SETTINGS_PRINTER_TAB_RECEIPT_LAYOUT],
+        s[StringResource.SETTINGS_PRINTER_TAB_OPTIONS],
+    )
 
     LaunchedEffect(Unit) { onIntent(SettingsIntent.LoadPrinter) }
 
     LaunchedEffect(effects) {
         effects.collectLatest { effect ->
             when (effect) {
-                SettingsEffect.PrinterSaved -> snackbarHostState.showSnackbar("Printer settings saved.")
-                SettingsEffect.PrintTestPageSent -> snackbarHostState.showSnackbar("Test page sent to printer.")
+                SettingsEffect.PrinterSaved -> snackbarHostState.showSnackbar(s[StringResource.SETTINGS_PRINTER_SAVED])
+                SettingsEffect.PrintTestPageSent -> snackbarHostState.showSnackbar(s[StringResource.SETTINGS_PRINTER_TEST_SENT])
                 is SettingsEffect.ShowSnackbar -> snackbarHostState.showSnackbar(effect.message)
                 else -> Unit
             }
@@ -80,7 +87,7 @@ fun PrinterSettingsScreen(
     }
 
     ZyntaPageScaffold(
-        title = "Printer Settings",
+        title = s[StringResource.SETTINGS_PRINTER_SETTINGS_TITLE],
         onNavigateBack = onBack,
         snackbarHostState = snackbarHostState,
     ) { innerPadding ->
@@ -140,17 +147,17 @@ fun PrinterSettingsScreen(
                                     verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                                 ) {
                                     Text(
-                                        "Printer Connection",
+                                        s[StringResource.SETTINGS_PRINTER_CONNECTION_TITLE],
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.SemiBold,
                                     )
                                     Text(
-                                        "Select how your receipt printer is connected to this device.",
+                                        s[StringResource.SETTINGS_PRINTER_CONNECTION_DESC],
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                     DropdownField(
-                                        label = "Printer Type",
+                                        label = s[StringResource.SETTINGS_PRINTER_TYPE],
                                         options = PrinterType.entries.map { it.name },
                                         selectedIndex = PrinterType.entries.indexOf(state.printerType).coerceAtLeast(0),
                                         onSelect = { onIntent(SettingsIntent.UpdatePrinterType(PrinterType.entries[it])) },
@@ -161,22 +168,22 @@ fun PrinterSettingsScreen(
                                             ZyntaTextField(
                                                 value = state.tcpHost,
                                                 onValueChange = { onIntent(SettingsIntent.UpdateTcpHost(it)) },
-                                                label = "IP Address / Hostname",
+                                                label = s[StringResource.SETTINGS_PRINTER_IP_HOSTNAME],
                                                 modifier = Modifier.fillMaxWidth(),
                                             )
                                             Text(
-                                                "Enter the network address of your receipt printer (e.g. 192.168.1.100).",
+                                                s[StringResource.SETTINGS_PRINTER_IP_DESC],
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             )
                                             ZyntaTextField(
                                                 value = state.tcpPort,
                                                 onValueChange = { onIntent(SettingsIntent.UpdateTcpPort(it)) },
-                                                label = "TCP Port",
+                                                label = s[StringResource.SETTINGS_PRINTER_TCP_PORT],
                                                 modifier = Modifier.fillMaxWidth(),
                                             )
                                             Text(
-                                                "Default ESC/POS port is 9100.",
+                                                s[StringResource.SETTINGS_PRINTER_TCP_PORT_DESC],
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             )
@@ -185,17 +192,17 @@ fun PrinterSettingsScreen(
                                             ZyntaTextField(
                                                 value = state.serialPort,
                                                 onValueChange = { onIntent(SettingsIntent.UpdateSerialPort(it)) },
-                                                label = "COM Port (e.g. COM3, /dev/ttyUSB0)",
+                                                label = s[StringResource.SETTINGS_PRINTER_SERIAL_PORT_LABEL],
                                                 modifier = Modifier.fillMaxWidth(),
                                             )
                                             ZyntaTextField(
                                                 value = state.baudRate,
                                                 onValueChange = { onIntent(SettingsIntent.UpdateBaudRate(it)) },
-                                                label = "Baud Rate",
+                                                label = s[StringResource.SETTINGS_PRINTER_BAUD_RATE],
                                                 modifier = Modifier.fillMaxWidth(),
                                             )
                                             Text(
-                                                "Common baud rates: 9600, 19200, 38400, 115200.",
+                                                s[StringResource.SETTINGS_PRINTER_BAUD_RATE_HINT],
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             )
@@ -204,18 +211,18 @@ fun PrinterSettingsScreen(
                                             ZyntaTextField(
                                                 value = state.btAddress,
                                                 onValueChange = { onIntent(SettingsIntent.UpdateBtAddress(it)) },
-                                                label = "Bluetooth Device Address (XX:XX:XX:XX:XX:XX)",
+                                                label = s[StringResource.SETTINGS_PRINTER_BT_ADDRESS_LABEL],
                                                 modifier = Modifier.fillMaxWidth(),
                                             )
                                             Text(
-                                                "Pair the Bluetooth printer in your system settings before configuring here.",
+                                                s[StringResource.SETTINGS_PRINTER_BT_PAIR_HINT],
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             )
                                         }
                                         PrinterType.USB -> {
                                             Text(
-                                                "USB printer will be auto-detected when connected. No additional configuration needed.",
+                                                s[StringResource.SETTINGS_PRINTER_USB_HINT],
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             )
@@ -237,17 +244,17 @@ fun PrinterSettingsScreen(
                                     verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                                 ) {
                                     Text(
-                                        "Paper Width",
+                                        s[StringResource.SETTINGS_PRINTER_PAPER_WIDTH],
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.SemiBold,
                                     )
                                     Text(
-                                        "Select the paper roll width installed in your printer.",
+                                        s[StringResource.SETTINGS_PRINTER_PAPER_WIDTH_DESC],
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                     DropdownField(
-                                        label = "Paper Width",
+                                        label = s[StringResource.SETTINGS_PRINTER_PAPER_WIDTH],
                                         options = PaperWidthOption.entries.map { "${it.mm}mm" },
                                         selectedIndex = PaperWidthOption.entries.indexOf(state.paperWidth).coerceAtLeast(0),
                                         onSelect = { onIntent(SettingsIntent.UpdatePaperWidth(PaperWidthOption.entries[it])) },
@@ -258,7 +265,7 @@ fun PrinterSettingsScreen(
 
                         item {
                             ZyntaButton(
-                                text = if (state.isTestPrinting) "Printing test page..." else "Send Test Page",
+                                text = if (state.isTestPrinting) s[StringResource.SETTINGS_PRINTER_PRINTING_TEST] else s[StringResource.SETTINGS_PRINTER_SEND_TEST],
                                 onClick = { onIntent(SettingsIntent.TestPrint) },
                                 enabled = !state.isTestPrinting,
                                 variant = ZyntaButtonVariant.Secondary,
@@ -281,12 +288,12 @@ fun PrinterSettingsScreen(
                                     verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                                 ) {
                                     Text(
-                                        "Receipt Header",
+                                        s[StringResource.SETTINGS_PRINTER_RECEIPT_HEADER],
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.SemiBold,
                                     )
                                     Text(
-                                        "Customise the text that appears at the top of each receipt (e.g. store name, address, phone).",
+                                        s[StringResource.SETTINGS_PRINTER_RECEIPT_HEADER_DESC],
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
@@ -294,7 +301,7 @@ fun PrinterSettingsScreen(
                                         ZyntaTextField(
                                             value = line,
                                             onValueChange = { onIntent(SettingsIntent.UpdateHeaderLine(index, it)) },
-                                            label = "Header Line ${index + 1}",
+                                            label = s[StringResource.SETTINGS_PRINTER_HEADER_LINE, index + 1],
                                             modifier = Modifier.fillMaxWidth(),
                                         )
                                     }
@@ -314,12 +321,12 @@ fun PrinterSettingsScreen(
                                     verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                                 ) {
                                     Text(
-                                        "Receipt Footer",
+                                        s[StringResource.SETTINGS_PRINTER_RECEIPT_FOOTER],
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.SemiBold,
                                     )
                                     Text(
-                                        "Customise the text at the bottom of each receipt (e.g. thank-you message, return policy).",
+                                        s[StringResource.SETTINGS_PRINTER_RECEIPT_FOOTER_DESC],
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
@@ -327,7 +334,7 @@ fun PrinterSettingsScreen(
                                         ZyntaTextField(
                                             value = line,
                                             onValueChange = { onIntent(SettingsIntent.UpdateFooterLine(index, it)) },
-                                            label = "Footer Line ${index + 1}",
+                                            label = s[StringResource.SETTINGS_PRINTER_FOOTER_LINE, index + 1],
                                             modifier = Modifier.fillMaxWidth(),
                                         )
                                     }
@@ -350,34 +357,34 @@ fun PrinterSettingsScreen(
                                     verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                                 ) {
                                     Text(
-                                        "Receipt Options",
+                                        s[StringResource.SETTINGS_PRINTER_RECEIPT_OPTIONS],
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.SemiBold,
                                     )
                                     Text(
-                                        "Control what additional elements appear on each printed receipt.",
+                                        s[StringResource.SETTINGS_PRINTER_RECEIPT_OPTIONS_DESC],
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                     ToggleRow(
-                                        label = "Show QR code on receipt",
+                                        label = s[StringResource.SETTINGS_PRINTER_SHOW_QR],
                                         checked = state.showQrCode,
                                         onCheckedChange = { onIntent(SettingsIntent.UpdateShowQrCode(it)) },
                                     )
                                     Text(
-                                        "Prints a QR code linking to the digital receipt for the customer.",
+                                        s[StringResource.SETTINGS_PRINTER_QR_DESC],
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.padding(start = ZyntaSpacing.sm),
                                     )
                                     HorizontalDivider()
                                     ToggleRow(
-                                        label = "Show logo on receipt",
+                                        label = s[StringResource.SETTINGS_PRINTER_SHOW_LOGO],
                                         checked = state.showLogo,
                                         onCheckedChange = { onIntent(SettingsIntent.UpdateShowLogo(it)) },
                                     )
                                     Text(
-                                        "Prints your store logo at the top of each receipt (requires logo upload in General settings).",
+                                        s[StringResource.SETTINGS_PRINTER_LOGO_DESC],
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.padding(start = ZyntaSpacing.sm),
@@ -395,7 +402,7 @@ fun PrinterSettingsScreen(
                         Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                     }
                     ZyntaButton(
-                        text = if (state.isSaving) "Saving..." else "Save Printer Settings",
+                        text = if (state.isSaving) s[StringResource.COMMON_SAVING] else s[StringResource.SETTINGS_PRINTER_SAVE_ACTION],
                         onClick = { onIntent(SettingsIntent.SavePrinter) },
                         enabled = !state.isSaving,
                         modifier = Modifier.fillMaxWidth(),

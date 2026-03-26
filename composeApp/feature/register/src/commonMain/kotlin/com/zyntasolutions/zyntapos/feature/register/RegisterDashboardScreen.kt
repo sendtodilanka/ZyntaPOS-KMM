@@ -15,6 +15,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.CashMovement
@@ -51,6 +53,7 @@ fun RegisterDashboardScreen(
     viewModel: RegisterViewModel = koinViewModel(),
     onNavigateBack: () -> Unit = {},
 ) {
+    val s = LocalStrings.current
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
 
@@ -73,7 +76,7 @@ fun RegisterDashboardScreen(
     val session = state.activeSession
 
     ZyntaPageScaffold(
-        title = "Register",
+        title = s[StringResource.REGISTER_REGISTER_LABEL],
         onNavigateBack = onNavigateBack,
         snackbarHostState = snackbarHost,
         actions = {
@@ -84,7 +87,7 @@ fun RegisterDashboardScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Store,
-                        contentDescription = "Current store",
+                        contentDescription = s[StringResource.REGISTER_STORE_DESC],
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp),
                     )
@@ -134,7 +137,7 @@ fun RegisterDashboardScreen(
                         SessionInfoCard(session = session, registerName = state.activeRegister?.name)
 
                         // Quick Stats Section
-                        SectionCard(title = "Today's Performance", icon = Icons.Default.Insights) {
+                        SectionCard(title = s[StringResource.REGISTER_TODAY_PERFORMANCE], icon = Icons.Default.Insights) {
                             QuickStatsRow(
                                 orderCount = state.todayOrderCount,
                                 revenue = state.todayRevenue,
@@ -148,7 +151,7 @@ fun RegisterDashboardScreen(
                         )
 
                         // Action Buttons Section
-                        SectionCard(title = "Actions", icon = Icons.Default.TouchApp) {
+                        SectionCard(title = s[StringResource.REGISTER_ACTIONS], icon = Icons.Default.TouchApp) {
                             RegisterActionButtons(
                                 isOpen = session.status == RegisterSession.Status.OPEN,
                                 onCashIn = {
@@ -270,6 +273,7 @@ fun RegisterDashboardScreen(
 
 @Composable
 private fun RegisterStatusBanner(session: RegisterSession, registerName: String? = null) {
+    val s = LocalStrings.current
     val isOpen = session.status == RegisterSession.Status.OPEN
 
     val bannerContainerColor: Color
@@ -282,7 +286,7 @@ private fun RegisterStatusBanner(session: RegisterSession, registerName: String?
         bannerContainerColor = MaterialTheme.colorScheme.primaryContainer
         bannerContentColor = MaterialTheme.colorScheme.onPrimaryContainer
         bannerIcon = Icons.Default.CheckCircle
-        bannerTitle = if (registerName != null) "$registerName — OPEN" else "Register is OPEN"
+        bannerTitle = if (registerName != null) s[StringResource.REGISTER_NAME_OPEN, registerName] else s[StringResource.REGISTER_IS_OPEN]
         bannerSubtitle = run {
             val openedLocal = session.openedAt.toLocalDateTime(TimeZone.currentSystemDefault())
             val durationMs = Clock.System.now().toEpochMilliseconds() - session.openedAt.toEpochMilliseconds()
@@ -290,18 +294,18 @@ private fun RegisterStatusBanner(session: RegisterSession, registerName: String?
             val minutes = (durationMs % 3_600_000) / 60_000
             val openedHH = openedLocal.hour.toString().padStart(2, '0')
             val openedMM = openedLocal.minute.toString().padStart(2, '0')
-            "Session active for ${hours}h ${minutes}m  \u2022  Opened $openedHH:$openedMM"
+            s[StringResource.REGISTER_SESSION_DURATION, hours, minutes, openedHH, openedMM]
         }
     } else {
         bannerContainerColor = MaterialTheme.colorScheme.tertiaryContainer
         bannerContentColor = MaterialTheme.colorScheme.onTertiaryContainer
         bannerIcon = Icons.Default.Lock
-        bannerTitle = if (registerName != null) "$registerName — CLOSED" else "Register is CLOSED"
+        bannerTitle = if (registerName != null) s[StringResource.REGISTER_NAME_CLOSED, registerName] else s[StringResource.REGISTER_IS_CLOSED]
         bannerSubtitle = if (session.closedAt != null) {
             val closedLocal = session.closedAt!!.toLocalDateTime(TimeZone.currentSystemDefault())
-            "Last closed: ${closedLocal.date} at ${closedLocal.hour.toString().padStart(2, '0')}:${closedLocal.minute.toString().padStart(2, '0')}"
+            s[StringResource.REGISTER_LAST_CLOSED, closedLocal.date.toString(), "${closedLocal.hour.toString().padStart(2, '0')}:${closedLocal.minute.toString().padStart(2, '0')}"]
         } else {
-            "No active session"
+            s[StringResource.REGISTER_NO_SESSION]
         }
     }
 
@@ -347,6 +351,7 @@ private fun RegisterStatusBanner(session: RegisterSession, registerName: String?
 
 @Composable
 private fun SessionInfoCard(session: RegisterSession, registerName: String? = null) {
+    val s = LocalStrings.current
     val openedAtFormatted = remember(session.openedAt) {
         val local = session.openedAt.toLocalDateTime(TimeZone.currentSystemDefault())
         "${local.date} ${local.hour.toString().padStart(2, '0')}:${local.minute.toString().padStart(2, '0')}"
@@ -383,12 +388,12 @@ private fun SessionInfoCard(session: RegisterSession, registerName: String? = nu
                 }
                 Column {
                     Text(
-                        text = "Active Session",
+                        text = s[StringResource.REGISTER_ACTIVE_SESSION],
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        text = "Current register session details",
+                        text = s[StringResource.REGISTER_CURRENT_SESSION_SUBTITLE],
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -396,11 +401,11 @@ private fun SessionInfoCard(session: RegisterSession, registerName: String? = nu
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             if (registerName != null) {
-                SessionRow(label = "Register", value = registerName)
+                SessionRow(label = s[StringResource.REGISTER_REGISTER_LABEL], value = registerName)
             }
-            SessionRow(label = "Opened at", value = openedAtFormatted)
-            SessionRow(label = "Opened by", value = session.openedBy)
-            SessionRow(label = "Opening balance", value = "%.2f".format(session.openingBalance))
+            SessionRow(label = s[StringResource.REGISTER_OPENED_AT], value = openedAtFormatted)
+            SessionRow(label = s[StringResource.REGISTER_OPENED_BY], value = session.openedBy)
+            SessionRow(label = s[StringResource.REGISTER_OPENING_TITLE], value = "%.2f".format(session.openingBalance))
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -408,7 +413,7 @@ private fun SessionInfoCard(session: RegisterSession, registerName: String? = nu
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Expected balance",
+                    text = s[StringResource.REGISTER_EXPECTED_BALANCE],
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -493,6 +498,7 @@ private fun SectionCard(
 
 @Composable
 private fun QuickStatsRow(orderCount: Int, revenue: Double) {
+    val s = LocalStrings.current
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
@@ -501,17 +507,17 @@ private fun QuickStatsRow(orderCount: Int, revenue: Double) {
             modifier = Modifier.weight(1f),
             icon = Icons.Default.ShoppingCart,
             accentColor = MaterialTheme.colorScheme.primary,
-            title = "Orders Today",
+            title = s[StringResource.REGISTER_ORDERS_TODAY],
             value = orderCount.toString(),
-            helperText = "Total completed orders",
+            helperText = s[StringResource.REGISTER_TOTAL_COMPLETED],
         )
         ProfessionalStatCard(
             modifier = Modifier.weight(1f),
             icon = Icons.Default.AttachMoney,
             accentColor = MaterialTheme.colorScheme.tertiary,
-            title = "Revenue Today",
+            title = s[StringResource.REGISTER_REVENUE_TODAY],
             value = "%.2f".format(revenue),
-            helperText = "Gross sales amount",
+            helperText = s[StringResource.REGISTER_GROSS_SALES],
         )
     }
 }
@@ -593,6 +599,7 @@ private fun CashMovementSummarySection(
     movements: List<CashMovement>,
     expectedBalance: Double,
 ) {
+    val s = LocalStrings.current
     val totalCashIn = remember(movements) {
         movements.filter { it.type == CashMovement.Type.IN }.sumOf { it.amount }
     }
@@ -600,7 +607,7 @@ private fun CashMovementSummarySection(
         movements.filter { it.type == CashMovement.Type.OUT }.sumOf { it.amount }
     }
 
-    SectionCard(title = "Cash Movement Summary", icon = Icons.Default.SwapVert) {
+    SectionCard(title = s[StringResource.REGISTER_CASH_MOVEMENT_SUMMARY], icon = Icons.Default.SwapVert) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
@@ -608,7 +615,7 @@ private fun CashMovementSummarySection(
             // Cash In metric
             CashMetricCard(
                 modifier = Modifier.weight(1f),
-                label = "Total Cash In",
+                label = s[StringResource.REGISTER_TOTAL_CASH_IN],
                 value = "+%.2f".format(totalCashIn),
                 color = MaterialTheme.colorScheme.tertiary,
                 icon = Icons.Default.ArrowUpward,
@@ -616,7 +623,7 @@ private fun CashMovementSummarySection(
             // Cash Out metric
             CashMetricCard(
                 modifier = Modifier.weight(1f),
-                label = "Total Cash Out",
+                label = s[StringResource.REGISTER_TOTAL_CASH_OUT],
                 value = "-%.2f".format(totalCashOut),
                 color = MaterialTheme.colorScheme.error,
                 icon = Icons.Default.ArrowDownward,
@@ -642,12 +649,12 @@ private fun CashMovementSummarySection(
             ) {
                 Column {
                     Text(
-                        text = "Expected Balance",
+                        text = s[StringResource.REGISTER_EXPECTED_BALANCE],
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                     Text(
-                        text = "Based on opening + movements",
+                        text = s[StringResource.REGISTER_BASED_ON_MOVEMENTS],
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
                     )
@@ -715,6 +722,7 @@ private fun RegisterActionButtons(
     onCashOut: () -> Unit,
     onOpenDrawer: () -> Unit = {},
 ) {
+    val s = LocalStrings.current
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
@@ -742,7 +750,7 @@ private fun RegisterActionButtons(
                 )
                 Spacer(Modifier.width(ZyntaSpacing.xs))
                 Text(
-                    text = "Cash In",
+                    text = s[StringResource.REGISTER_CASH_IN],
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -765,7 +773,7 @@ private fun RegisterActionButtons(
                 )
                 Spacer(Modifier.width(ZyntaSpacing.xs))
                 Text(
-                    text = "Cash Out",
+                    text = s[StringResource.REGISTER_CASH_OUT],
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -788,7 +796,7 @@ private fun RegisterActionButtons(
             )
             Spacer(Modifier.width(ZyntaSpacing.xs))
             Text(
-                text = "Open Drawer",
+                text = s[StringResource.REGISTER_OPEN_DRAWER],
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
             )

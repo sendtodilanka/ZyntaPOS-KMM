@@ -212,6 +212,7 @@ private fun RegisterCard(
     isSelected: Boolean,
     onClick: () -> Unit,
 ) {
+    val s = LocalStrings.current
     val isAlreadyOpen = register.currentSessionId != null
     val borderColor = when {
         isAlreadyOpen -> MaterialTheme.colorScheme.error
@@ -247,13 +248,13 @@ private fun RegisterCard(
                 Spacer(Modifier.height(2.dp))
                 if (isAlreadyOpen) {
                     Text(
-                        text = "Already open",
+                        text = s[StringResource.REGISTER_ALREADY_OPEN],
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.error,
                     )
                 } else {
                     Text(
-                        text = "Available",
+                        text = s[StringResource.REGISTER_AVAILABLE],
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
                     )
@@ -262,7 +263,7 @@ private fun RegisterCard(
             if (isSelected && !isAlreadyOpen) {
                 Icon(
                     imageVector = Icons.Default.CheckCircle,
-                    contentDescription = "Selected",
+                    contentDescription = s[StringResource.REGISTER_SELECTED_DESC],
                     tint = MaterialTheme.colorScheme.primary,
                 )
             }
@@ -287,12 +288,13 @@ private fun OpeningBalancePanel(
     onConfirm: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "Opening Balance",
+            text = s[StringResource.REGISTER_OPENING_BALANCE],
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
         )
@@ -323,7 +325,7 @@ private fun OpeningBalancePanel(
         OutlinedTextField(
             value = form.openingNotes,
             onValueChange = onNotesChanged,
-            label = { Text("Opening Notes (optional)") },
+            label = { Text(s[StringResource.REGISTER_OPENING_NOTES]) },
             modifier = Modifier.fillMaxWidth(),
             maxLines = 2,
         )
@@ -343,7 +345,7 @@ private fun OpeningBalancePanel(
                     color = MaterialTheme.colorScheme.onPrimary,
                 )
             } else {
-                Text("Open Register", style = MaterialTheme.typography.labelLarge)
+                Text(s[StringResource.REGISTER_OPEN_REGISTER], style = MaterialTheme.typography.labelLarge)
             }
         }
     }

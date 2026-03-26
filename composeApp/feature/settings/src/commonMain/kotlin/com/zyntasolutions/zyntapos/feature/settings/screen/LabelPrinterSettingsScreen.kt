@@ -67,7 +67,7 @@ fun LabelPrinterSettingsScreen(
         effects.collectLatest { effect ->
             when (effect) {
                 SettingsEffect.LabelPrinterSaved ->
-                    snackbarHostState.showSnackbar("Label printer settings saved.")
+                    snackbarHostState.showSnackbar(s[StringResource.SETTINGS_LABEL_PRINTER_SAVED])
                 is SettingsEffect.ShowSnackbar ->
                     snackbarHostState.showSnackbar(effect.message)
                 else -> Unit

@@ -80,7 +80,7 @@ fun AppearanceSettingsScreen(
         effects.collectLatest { effect ->
             when (effect) {
                 is SettingsEffect.ThemeModeChanged ->
-                    snackbarHostState.showSnackbar("Theme set to ${effect.mode.name.lowercase()}.")
+                    snackbarHostState.showSnackbar(s[StringResource.SETTINGS_APPEARANCE_THEME_SET, effect.mode.name.lowercase()])
                 is SettingsEffect.ShowSnackbar -> snackbarHostState.showSnackbar(effect.message)
                 else -> Unit
             }

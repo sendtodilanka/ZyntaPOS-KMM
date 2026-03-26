@@ -29,6 +29,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.feature.settings.SettingsEffect
@@ -48,6 +50,7 @@ fun ScannerSettingsScreen(
     onIntent: (SettingsIntent) -> Unit,
     onBack: () -> Unit,
 ) {
+    val s = LocalStrings.current
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) { onIntent(SettingsIntent.LoadScannerSettings) }
@@ -56,7 +59,7 @@ fun ScannerSettingsScreen(
         effects.collectLatest { effect ->
             when (effect) {
                 SettingsEffect.ScannerSettingsSaved ->
-                    snackbarHostState.showSnackbar("Scanner settings saved.")
+                    snackbarHostState.showSnackbar(s[StringResource.SETTINGS_SCANNER_SAVED])
                 is SettingsEffect.ShowSnackbar ->
                     snackbarHostState.showSnackbar(effect.message)
                 else -> Unit
@@ -65,7 +68,7 @@ fun ScannerSettingsScreen(
     }
 
     ZyntaPageScaffold(
-        title = "Scanner Settings",
+        title = s[StringResource.SETTINGS_SCANNER_TITLE],
         onNavigateBack = onBack,
         snackbarHostState = snackbarHostState,
     ) { innerPadding ->
@@ -82,7 +85,7 @@ fun ScannerSettingsScreen(
             verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
         ) {
             // ── Live scan display ─────────────────────────────────────────────
-            Text("Live Scanner Test", style = MaterialTheme.typography.titleSmall)
+            Text(s[StringResource.SETTINGS_SCANNER_LIVE_TEST], style = MaterialTheme.typography.titleSmall)
 
             Column(
                 modifier = Modifier
@@ -125,7 +128,7 @@ fun ScannerSettingsScreen(
                     }
                 } else {
                     Text(
-                        text = "Scan a barcode to test the scanner…",
+                        text = s[StringResource.SETTINGS_SCANNER_TEST_HINT],
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -135,12 +138,12 @@ fun ScannerSettingsScreen(
             HorizontalDivider()
 
             // ── Configuration ─────────────────────────────────────────────────
-            Text("Configuration", style = MaterialTheme.typography.titleSmall)
+            Text(s[StringResource.SETTINGS_SCANNER_CONFIGURATION], style = MaterialTheme.typography.titleSmall)
 
             OutlinedTextField(
                 value = state.minBarcodeLength.toString(),
                 onValueChange = { v -> v.toIntOrNull()?.let { onIntent(SettingsIntent.UpdateScannerMinLength(it)) } },
-                label = { Text("Minimum Barcode Length") },
+                label = { Text(s[StringResource.SETTINGS_SCANNER_MIN_LENGTH]) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -148,14 +151,14 @@ fun ScannerSettingsScreen(
             OutlinedTextField(
                 value = state.prefixToStrip,
                 onValueChange = { onIntent(SettingsIntent.UpdateScannerPrefix(it)) },
-                label = { Text("Strip Prefix (e.g. STX character)") },
+                label = { Text(s[StringResource.SETTINGS_SCANNER_STRIP_PREFIX]) },
                 modifier = Modifier.fillMaxWidth(),
             )
 
             OutlinedTextField(
                 value = state.suffixToStrip,
                 onValueChange = { onIntent(SettingsIntent.UpdateScannerSuffix(it)) },
-                label = { Text("Strip Suffix (e.g. ETX character)") },
+                label = { Text(s[StringResource.SETTINGS_SCANNER_STRIP_SUFFIX]) },
                 modifier = Modifier.fillMaxWidth(),
             )
 
@@ -164,7 +167,7 @@ fun ScannerSettingsScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Text("Sound Feedback on Scan", style = MaterialTheme.typography.bodyMedium)
+                Text(s[StringResource.SETTINGS_SCANNER_SOUND_FEEDBACK], style = MaterialTheme.typography.bodyMedium)
                 Switch(
                     checked = state.soundFeedbackEnabled,
                     onCheckedChange = { onIntent(SettingsIntent.UpdateScannerSoundFeedback(it)) },
@@ -176,7 +179,7 @@ fun ScannerSettingsScreen(
                 enabled = !state.isSaving,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(if (state.isSaving) "Saving…" else "Save")
+                Text(if (state.isSaving) s[StringResource.COMMON_SAVING] else s[StringResource.COMMON_SAVE])
             }
         }
     }

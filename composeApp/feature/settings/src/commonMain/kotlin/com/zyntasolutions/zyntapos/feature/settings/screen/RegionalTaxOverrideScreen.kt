@@ -39,6 +39,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTextField
@@ -232,6 +234,7 @@ fun RegionalTaxOverrideScreen(
     onIntent: (RegionalTaxOverrideIntent) -> Unit,
     onBack: () -> Unit,
 ) {
+    val s = LocalStrings.current
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(storeId) {
@@ -252,16 +255,16 @@ fun RegionalTaxOverrideScreen(
     if (state.pendingDeleteId != null) {
         AlertDialog(
             onDismissRequest = { onIntent(RegionalTaxOverrideIntent.CancelDelete) },
-            title = { Text("Delete Tax Override") },
-            text = { Text("Are you sure you want to delete this tax override? The global rate will apply for this tax group.") },
+            title = { Text(s[StringResource.SETTINGS_TAX_OVERRIDE_DELETE_TITLE]) },
+            text = { Text(s[StringResource.SETTINGS_TAX_OVERRIDE_DELETE_MSG]) },
             confirmButton = {
                 TextButton(onClick = { onIntent(RegionalTaxOverrideIntent.ConfirmDelete) }) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                    Text(s[StringResource.COMMON_DELETE], color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { onIntent(RegionalTaxOverrideIntent.CancelDelete) }) {
-                    Text("Cancel")
+                    Text(s[StringResource.COMMON_CANCEL])
                 }
             },
         )
@@ -270,10 +273,10 @@ fun RegionalTaxOverrideScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Regional Tax Overrides") },
+                title = { Text(s[StringResource.SETTINGS_TAX_OVERRIDE_TITLE]) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = s[StringResource.COMMON_BACK])
                     }
                 },
             )
@@ -281,7 +284,7 @@ fun RegionalTaxOverrideScreen(
         floatingActionButton = {
             if (!state.showForm) {
                 FloatingActionButton(onClick = { onIntent(RegionalTaxOverrideIntent.OpenCreateForm) }) {
-                    Icon(Icons.Default.Add, contentDescription = "Add tax override")
+                    Icon(Icons.Default.Add, contentDescription = s[StringResource.SETTINGS_TAX_OVERRIDE_ADD_CD])
                 }
             }
         },
@@ -305,8 +308,8 @@ fun RegionalTaxOverrideScreen(
             if (state.overrides.isEmpty() && !state.isLoading && !state.showForm) {
                 item {
                     ZyntaEmptyState(
-                        title = "No Regional Tax Overrides",
-                        subtitle = "Global tax rates apply. Add an override to customize tax rates for this store's jurisdiction.",
+                        title = s[StringResource.SETTINGS_TAX_OVERRIDE_EMPTY_TITLE],
+                        subtitle = s[StringResource.SETTINGS_TAX_OVERRIDE_EMPTY_DESC],
                     )
                 }
             }
@@ -335,20 +338,20 @@ fun RegionalTaxOverrideScreen(
                                 style = MaterialTheme.typography.titleSmall,
                             )
                             Text(
-                                text = "Override: ${override.effectiveRate}% (Global: ${globalRate}%)",
+                                text = s[StringResource.SETTINGS_TAX_OVERRIDE_RATE_FORMAT, override.effectiveRate, globalRate],
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.primary,
                             )
                             if (override.jurisdictionCode.isNotBlank()) {
                                 Text(
-                                    text = "Jurisdiction: ${override.jurisdictionCode}",
+                                    text = s[StringResource.SETTINGS_TAX_OVERRIDE_JURISDICTION, override.jurisdictionCode],
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                             if (!override.isActive) {
                                 Text(
-                                    text = "Inactive",
+                                    text = s[StringResource.SETTINGS_TAX_OVERRIDE_INACTIVE],
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.error,
                                 )
@@ -357,12 +360,12 @@ fun RegionalTaxOverrideScreen(
                         IconButton(
                             onClick = { onIntent(RegionalTaxOverrideIntent.OpenEditForm(override)) },
                         ) {
-                            Text("Edit", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                            Text(s[StringResource.COMMON_EDIT], style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                         }
                         IconButton(
                             onClick = { onIntent(RegionalTaxOverrideIntent.RequestDelete(override.id)) },
                         ) {
-                            Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                            Icon(Icons.Default.Delete, contentDescription = s[StringResource.COMMON_DELETE], tint = MaterialTheme.colorScheme.error)
                         }
                     }
                 }
@@ -376,6 +379,7 @@ private fun TaxOverrideForm(
     state: RegionalTaxOverrideState,
     onIntent: (RegionalTaxOverrideIntent) -> Unit,
 ) {
+    val s = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)),
@@ -385,12 +389,12 @@ private fun TaxOverrideForm(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = if (state.editingOverrideId != null) "Edit Tax Override" else "New Tax Override",
+                text = if (state.editingOverrideId != null) s[StringResource.SETTINGS_TAX_OVERRIDE_EDIT_TITLE] else s[StringResource.SETTINGS_TAX_OVERRIDE_NEW_TITLE],
                 style = MaterialTheme.typography.titleMedium,
             )
 
             // Tax group selector (simplified — text list for now)
-            Text("Tax Group", style = MaterialTheme.typography.labelMedium)
+            Text(s[StringResource.SETTINGS_TAX_OVERRIDE_TAX_GROUP], style = MaterialTheme.typography.labelMedium)
             state.taxGroups.forEach { group ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -401,37 +405,37 @@ private fun TaxOverrideForm(
                         onClick = { onIntent(RegionalTaxOverrideIntent.UpdateFormTaxGroupId(group.id)) },
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text("${group.name} (${group.rate}%)", style = MaterialTheme.typography.bodyMedium)
+                    Text(s[StringResource.SETTINGS_TAX_OVERRIDE_TAX_RATE_FORMAT, group.name, group.rate], style = MaterialTheme.typography.bodyMedium)
                 }
             }
 
             ZyntaTextField(
                 value = state.formEffectiveRate,
                 onValueChange = { onIntent(RegionalTaxOverrideIntent.UpdateFormEffectiveRate(it)) },
-                label = "Override Rate (%)",
-                placeholder = "e.g., 8.0",
+                label = s[StringResource.SETTINGS_TAX_OVERRIDE_RATE_LABEL],
+                placeholder = s[StringResource.SETTINGS_TAX_OVERRIDE_RATE_PLACEHOLDER],
                 modifier = Modifier.fillMaxWidth(),
             )
 
             ZyntaTextField(
                 value = state.formJurisdictionCode,
                 onValueChange = { onIntent(RegionalTaxOverrideIntent.UpdateFormJurisdictionCode(it)) },
-                label = "Jurisdiction Code (optional)",
-                placeholder = "e.g., WP, CP, SP",
+                label = s[StringResource.SETTINGS_TAX_OVERRIDE_JURISDICTION_LABEL],
+                placeholder = s[StringResource.SETTINGS_TAX_OVERRIDE_JURISDICTION_PLACEHOLDER],
                 modifier = Modifier.fillMaxWidth(),
             )
 
             ZyntaTextField(
                 value = state.formTaxRegistrationNumber,
                 onValueChange = { onIntent(RegionalTaxOverrideIntent.UpdateFormTaxRegistrationNumber(it)) },
-                label = "Tax Registration Number (optional)",
+                label = s[StringResource.SETTINGS_TAX_OVERRIDE_REG_NUMBER],
                 modifier = Modifier.fillMaxWidth(),
             )
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("Active", style = MaterialTheme.typography.bodyMedium)
+                Text(s[StringResource.SETTINGS_TAX_OVERRIDE_ACTIVE], style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.weight(1f))
                 Switch(
                     checked = state.formIsActive,
@@ -443,12 +447,12 @@ private fun TaxOverrideForm(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 ZyntaButton(
-                    text = "Cancel",
+                    text = s[StringResource.COMMON_CANCEL],
                     onClick = { onIntent(RegionalTaxOverrideIntent.DismissForm) },
                     modifier = Modifier.weight(1f),
                 )
                 ZyntaButton(
-                    text = if (state.editingOverrideId != null) "Update" else "Create",
+                    text = if (state.editingOverrideId != null) s[StringResource.SETTINGS_TAX_OVERRIDE_UPDATE] else s[StringResource.SETTINGS_TAX_OVERRIDE_CREATE],
                     onClick = { onIntent(RegionalTaxOverrideIntent.SaveOverride) },
                     modifier = Modifier.weight(1f),
                 )
