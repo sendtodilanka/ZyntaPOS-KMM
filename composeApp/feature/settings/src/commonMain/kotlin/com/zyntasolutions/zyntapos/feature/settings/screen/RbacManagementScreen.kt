@@ -40,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.zyntasolutions.zyntapos.core.i18n.StringResource
 import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
+import com.zyntasolutions.zyntapos.designsystem.components.StringResolver
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaBottomSheet
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButtonVariant
@@ -424,49 +425,49 @@ private fun CustomRoleFormContent(
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-private fun roleName(role: Role, s: (StringResource) -> String): String = when (role) {
-    Role.ADMIN         -> s(StringResource.SETTINGS_RBAC_ROLE_ADMIN)
-    Role.STORE_MANAGER -> s(StringResource.SETTINGS_RBAC_ROLE_STORE_MANAGER)
-    Role.CASHIER       -> s(StringResource.SETTINGS_RBAC_ROLE_CASHIER)
-    Role.ACCOUNTANT    -> s(StringResource.SETTINGS_RBAC_ROLE_ACCOUNTANT)
-    Role.STOCK_MANAGER -> s(StringResource.SETTINGS_RBAC_ROLE_STOCK_MANAGER)
+private fun roleName(role: Role, s: StringResolver): String = when (role) {
+    Role.ADMIN         -> s[StringResource.SETTINGS_RBAC_ROLE_ADMIN]
+    Role.STORE_MANAGER -> s[StringResource.SETTINGS_RBAC_ROLE_STORE_MANAGER]
+    Role.CASHIER       -> s[StringResource.SETTINGS_RBAC_ROLE_CASHIER]
+    Role.ACCOUNTANT    -> s[StringResource.SETTINGS_RBAC_ROLE_ACCOUNTANT]
+    Role.STOCK_MANAGER -> s[StringResource.SETTINGS_RBAC_ROLE_STOCK_MANAGER]
 }
 
-private fun permissionLabel(permission: Permission, s: (StringResource) -> String): String = when (permission) {
-    Permission.VIEW_REPORTS         -> s(StringResource.SETTINGS_RBAC_PERM_VIEW_REPORTS)
-    Permission.EXPORT_REPORTS       -> s(StringResource.SETTINGS_RBAC_PERM_EXPORT_REPORTS)
-    Permission.PROCESS_SALE         -> s(StringResource.SETTINGS_RBAC_PERM_PROCESS_SALE)
-    Permission.VOID_ORDER           -> s(StringResource.SETTINGS_RBAC_PERM_VOID_ORDER)
-    Permission.APPLY_DISCOUNT       -> s(StringResource.SETTINGS_RBAC_PERM_APPLY_DISCOUNT)
-    Permission.HOLD_ORDER           -> s(StringResource.SETTINGS_RBAC_PERM_HOLD_ORDER)
-    Permission.PROCESS_REFUND       -> s(StringResource.SETTINGS_RBAC_PERM_PROCESS_REFUND)
-    Permission.OPEN_REGISTER        -> s(StringResource.SETTINGS_RBAC_PERM_OPEN_REGISTER)
-    Permission.CLOSE_REGISTER       -> s(StringResource.SETTINGS_RBAC_PERM_CLOSE_REGISTER)
-    Permission.RECORD_CASH_MOVEMENT -> s(StringResource.SETTINGS_RBAC_PERM_RECORD_CASH_MOVEMENT)
-    Permission.MANAGE_PRODUCTS      -> s(StringResource.SETTINGS_RBAC_PERM_MANAGE_PRODUCTS)
-    Permission.MANAGE_CATEGORIES    -> s(StringResource.SETTINGS_RBAC_PERM_MANAGE_CATEGORIES)
-    Permission.ADJUST_STOCK         -> s(StringResource.SETTINGS_RBAC_PERM_ADJUST_STOCK)
-    Permission.MANAGE_SUPPLIERS     -> s(StringResource.SETTINGS_RBAC_PERM_MANAGE_SUPPLIERS)
-    Permission.MANAGE_USERS         -> s(StringResource.SETTINGS_RBAC_PERM_MANAGE_USERS)
-    Permission.MANAGE_SETTINGS      -> s(StringResource.SETTINGS_RBAC_PERM_MANAGE_SETTINGS)
-    Permission.MANAGE_TAX           -> s(StringResource.SETTINGS_RBAC_PERM_MANAGE_TAX)
-    Permission.MANAGE_HARDWARE      -> s(StringResource.SETTINGS_RBAC_PERM_MANAGE_HARDWARE)
-    Permission.MANAGE_CUSTOMERS     -> s(StringResource.SETTINGS_RBAC_PERM_MANAGE_CUSTOMERS)
-    Permission.VIEW_AUDIT_LOG       -> s(StringResource.SETTINGS_RBAC_PERM_VIEW_AUDIT_LOG)
-    Permission.MANAGE_BACKUP        -> s(StringResource.SETTINGS_RBAC_PERM_MANAGE_BACKUP)
-    Permission.MANAGE_CUSTOMER_GROUPS -> s(StringResource.SETTINGS_RBAC_PERM_MANAGE_CUSTOMER_GROUPS)
-    Permission.MANAGE_WALLETS       -> s(StringResource.SETTINGS_RBAC_PERM_MANAGE_WALLETS)
-    Permission.MANAGE_LOYALTY       -> s(StringResource.SETTINGS_RBAC_PERM_MANAGE_LOYALTY)
-    Permission.MANAGE_COUPONS       -> s(StringResource.SETTINGS_RBAC_PERM_MANAGE_COUPONS)
-    Permission.MANAGE_EXPENSES      -> s(StringResource.SETTINGS_RBAC_PERM_MANAGE_EXPENSES)
-    Permission.APPROVE_EXPENSES     -> s(StringResource.SETTINGS_RBAC_PERM_APPROVE_EXPENSES)
-    Permission.MANAGE_WAREHOUSES    -> s(StringResource.SETTINGS_RBAC_PERM_MANAGE_WAREHOUSES)
-    Permission.MANAGE_STOCK_TRANSFERS -> s(StringResource.SETTINGS_RBAC_PERM_MANAGE_STOCK_TRANSFERS)
-    Permission.MANAGE_STAFF         -> s(StringResource.SETTINGS_RBAC_PERM_MANAGE_STAFF)
-    Permission.ADMIN_ACCESS         -> s(StringResource.SETTINGS_RBAC_PERM_ADMIN_ACCESS)
-    Permission.MANAGE_ACCOUNTING    -> s(StringResource.SETTINGS_RBAC_PERM_MANAGE_ACCOUNTING)
-    Permission.PRINT_INVOICE        -> s(StringResource.SETTINGS_RBAC_PERM_PRINT_INVOICE)
-    Permission.MANAGE_STOCKTAKE     -> s(StringResource.SETTINGS_RBAC_PERM_MANAGE_STOCKTAKE)
+private fun permissionLabel(permission: Permission, s: StringResolver): String = when (permission) {
+    Permission.VIEW_REPORTS         -> s[StringResource.SETTINGS_RBAC_PERM_VIEW_REPORTS]
+    Permission.EXPORT_REPORTS       -> s[StringResource.SETTINGS_RBAC_PERM_EXPORT_REPORTS]
+    Permission.PROCESS_SALE         -> s[StringResource.SETTINGS_RBAC_PERM_PROCESS_SALE]
+    Permission.VOID_ORDER           -> s[StringResource.SETTINGS_RBAC_PERM_VOID_ORDER]
+    Permission.APPLY_DISCOUNT       -> s[StringResource.SETTINGS_RBAC_PERM_APPLY_DISCOUNT]
+    Permission.HOLD_ORDER           -> s[StringResource.SETTINGS_RBAC_PERM_HOLD_ORDER]
+    Permission.PROCESS_REFUND       -> s[StringResource.SETTINGS_RBAC_PERM_PROCESS_REFUND]
+    Permission.OPEN_REGISTER        -> s[StringResource.SETTINGS_RBAC_PERM_OPEN_REGISTER]
+    Permission.CLOSE_REGISTER       -> s[StringResource.SETTINGS_RBAC_PERM_CLOSE_REGISTER]
+    Permission.RECORD_CASH_MOVEMENT -> s[StringResource.SETTINGS_RBAC_PERM_RECORD_CASH_MOVEMENT]
+    Permission.MANAGE_PRODUCTS      -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_PRODUCTS]
+    Permission.MANAGE_CATEGORIES    -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_CATEGORIES]
+    Permission.ADJUST_STOCK         -> s[StringResource.SETTINGS_RBAC_PERM_ADJUST_STOCK]
+    Permission.MANAGE_SUPPLIERS     -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_SUPPLIERS]
+    Permission.MANAGE_USERS         -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_USERS]
+    Permission.MANAGE_SETTINGS      -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_SETTINGS]
+    Permission.MANAGE_TAX           -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_TAX]
+    Permission.MANAGE_HARDWARE      -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_HARDWARE]
+    Permission.MANAGE_CUSTOMERS     -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_CUSTOMERS]
+    Permission.VIEW_AUDIT_LOG       -> s[StringResource.SETTINGS_RBAC_PERM_VIEW_AUDIT_LOG]
+    Permission.MANAGE_BACKUP        -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_BACKUP]
+    Permission.MANAGE_CUSTOMER_GROUPS -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_CUSTOMER_GROUPS]
+    Permission.MANAGE_WALLETS       -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_WALLETS]
+    Permission.MANAGE_LOYALTY       -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_LOYALTY]
+    Permission.MANAGE_COUPONS       -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_COUPONS]
+    Permission.MANAGE_EXPENSES      -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_EXPENSES]
+    Permission.APPROVE_EXPENSES     -> s[StringResource.SETTINGS_RBAC_PERM_APPROVE_EXPENSES]
+    Permission.MANAGE_WAREHOUSES    -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_WAREHOUSES]
+    Permission.MANAGE_STOCK_TRANSFERS -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_STOCK_TRANSFERS]
+    Permission.MANAGE_STAFF         -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_STAFF]
+    Permission.ADMIN_ACCESS         -> s[StringResource.SETTINGS_RBAC_PERM_ADMIN_ACCESS]
+    Permission.MANAGE_ACCOUNTING    -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_ACCOUNTING]
+    Permission.PRINT_INVOICE        -> s[StringResource.SETTINGS_RBAC_PERM_PRINT_INVOICE]
+    Permission.MANAGE_STOCKTAKE     -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_STOCKTAKE]
 }
 
 @Composable

@@ -49,6 +49,7 @@ import com.zyntasolutions.zyntapos.core.health.OverallStatus
 import com.zyntasolutions.zyntapos.core.health.SystemHealthTracker
 import com.zyntasolutions.zyntapos.core.i18n.StringResource
 import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
+import com.zyntasolutions.zyntapos.designsystem.components.StringResolver
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import org.koin.compose.koinInject
@@ -173,11 +174,11 @@ private fun OverallStatusBanner(status: OverallStatus) {
     }
 }
 
-private fun statusSubtitle(status: OverallStatus, s: (StringResource) -> String): String = when (status) {
-    OverallStatus.HEALTHY -> s(StringResource.SETTINGS_HEALTH_HEALTHY_DESC)
-    OverallStatus.WARNING -> s(StringResource.SETTINGS_HEALTH_WARNING_DESC)
-    OverallStatus.CRITICAL -> s(StringResource.SETTINGS_HEALTH_CRITICAL_DESC)
-    OverallStatus.UNKNOWN -> s(StringResource.SETTINGS_HEALTH_UNKNOWN_DESC)
+private fun statusSubtitle(status: OverallStatus, s: StringResolver): String = when (status) {
+    OverallStatus.HEALTHY -> s[StringResource.SETTINGS_HEALTH_HEALTHY_DESC]
+    OverallStatus.WARNING -> s[StringResource.SETTINGS_HEALTH_WARNING_DESC]
+    OverallStatus.CRITICAL -> s[StringResource.SETTINGS_HEALTH_CRITICAL_DESC]
+    OverallStatus.UNKNOWN -> s[StringResource.SETTINGS_HEALTH_UNKNOWN_DESC]
 }
 
 // ─── Memory Health Card ──────────────────────────────────────────────────────
