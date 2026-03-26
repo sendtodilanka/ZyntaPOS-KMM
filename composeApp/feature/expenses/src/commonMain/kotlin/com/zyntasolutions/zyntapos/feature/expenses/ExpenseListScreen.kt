@@ -30,6 +30,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.domain.model.Expense
 import org.koin.compose.viewmodel.koinViewModel
@@ -45,6 +47,7 @@ fun ExpenseListScreen(
     onNavigateToCategories: () -> Unit,
     viewModel: ExpenseViewModel = koinViewModel(),
 ) {
+    val s = LocalStrings.current
     val state by viewModel.state.collectAsState()
 
     LaunchedEffect(Unit) {
@@ -54,17 +57,17 @@ fun ExpenseListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Expenses") },
+                title = { Text(s[StringResource.EXPENSES_TITLE]) },
                 actions = {
                     IconButton(onClick = onNavigateToCategories) {
-                        Icon(Icons.Outlined.Category, contentDescription = "Categories")
+                        Icon(Icons.Outlined.Category, contentDescription = s[StringResource.EXPENSES_CATEGORIES_TITLE])
                     }
                 },
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { onNavigateToDetail(null) }) {
-                Icon(Icons.Default.Add, contentDescription = "New Expense")
+                Icon(Icons.Default.Add, contentDescription = s[StringResource.EXPENSES_NEW_EXPENSE_TITLE])
             }
         },
     ) { padding ->
@@ -80,7 +83,7 @@ fun ExpenseListScreen(
                     FilterChip(
                         selected = state.statusFilter == null,
                         onClick = { viewModel.dispatch(ExpenseIntent.FilterByStatus(null)) },
-                        label = { Text("All") },
+                        label = { Text(s[StringResource.EXPENSES_ALL_FILTER]) },
                     )
                 }
                 items(Expense.Status.entries) { status ->
@@ -94,9 +97,9 @@ fun ExpenseListScreen(
 
             if (state.expenses.isEmpty() && !state.isLoading) {
                 ZyntaEmptyState(
-                    title = "No expenses found",
+                    title = s[StringResource.EXPENSES_EMPTY_TITLE],
                     icon = Icons.Default.Receipt,
-                    subtitle = "Tap + to record an expense.",
+                    subtitle = s[StringResource.EXPENSES_EMPTY_SUBTITLE],
                 )
             } else {
                 LazyColumn(
@@ -127,6 +130,7 @@ private fun ExpenseListItem(
     onApprove: () -> Unit,
     onReject: () -> Unit,
 ) {
+    val s = LocalStrings.current
     Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -149,7 +153,7 @@ private fun ExpenseListItem(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
-                    text = categoryName ?: "Uncategorized",
+                    text = categoryName ?: s[StringResource.EXPENSES_UNCATEGORIZED],
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -169,8 +173,8 @@ private fun ExpenseListItem(
                         colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
                             contentColor = MaterialTheme.colorScheme.error,
                         ),
-                    ) { Text("Reject") }
-                    TextButton(onClick = onApprove) { Text("Approve") }
+                    ) { Text(s[StringResource.EXPENSES_REJECT]) }
+                    TextButton(onClick = onApprove) { Text(s[StringResource.EXPENSES_APPROVE]) }
                 }
             }
         }
