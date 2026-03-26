@@ -1728,8 +1728,8 @@ Backend Tests:
 - [x] KMM UI: Staff module screens — ✅ VERIFIED: `EmployeeListScreen.kt`, `EmployeeDetailScreen.kt`, `AttendanceScreen.kt`, `ShiftSchedulerScreen.kt`, `LeaveManagementScreen.kt`, `PayrollScreen.kt` + `StaffViewModel.kt` (675L) — 3,006 LOC total, fully implemented
 
 **REMAINING (Phase 3):**
-- [ ] Payroll calculation engine (salary, overtime, deductions) — Phase 3
-- [ ] Leave management workflow (request → approve → track) — Phase 3
+- [x] Payroll calculation engine (salary, overtime, deductions) — ✅ DONE (2026-03-26): PayrollEntry model, CalculatePayrollUseCase, payroll.sq, PayrollEntryRepository + impl, DI wired
+- [x] Leave management workflow (request → approve → track) — ✅ DONE (2026-03-26): LeaveRequest model (7 types, 4 statuses), RequestLeaveUseCase + ApproveLeaveUseCase, leave_requests.sq, LeaveRepository extended + impl, DI wired
 - [ ] Cross-store attendance/shifts (see C3.4) — Phase 3
 
 ---
@@ -1746,8 +1746,8 @@ Backend Tests:
 
 **REMAINING (Phase 3):**
 - [ ] Receipt image attachment — Phase 3
-- [ ] P&L integration (connect expenses to financial statements) — Phase 3
-- [ ] Budget tracking per store/category — Phase 3
+- [x] P&L integration (connect expenses to financial statements) — ✅ DONE (2026-03-26): GenerateProfitAndLossUseCase aggregating sales + expenses, ProfitAndLossReport model, DI wired
+- [x] Budget tracking per store/category — ✅ DONE (2026-03-26): Budget model, budgets.sq, BudgetRepository + impl, TrackBudgetSpendingUseCase, DI wired
 
 ---
 
