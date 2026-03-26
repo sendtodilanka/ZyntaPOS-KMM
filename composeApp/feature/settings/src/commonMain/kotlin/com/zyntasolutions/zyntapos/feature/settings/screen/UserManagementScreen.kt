@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaBottomSheet
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTable
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTableColumn
@@ -130,10 +131,10 @@ fun UserManagementScreen(
                     modifier = Modifier.align(Alignment.Center),
                     style = MaterialTheme.typography.bodyMedium,
                 )
-                state.users.isEmpty() -> Text(
-                    "No users found. Tap + to create one.",
-                    modifier = Modifier.align(Alignment.Center),
-                    style = MaterialTheme.typography.bodyMedium,
+                state.users.isEmpty() -> ZyntaEmptyState(
+                    title = "No users found",
+                    icon = Icons.Filled.Add,
+                    subtitle = "Tap + to create one.",
                 )
                 else -> ZyntaTable(
                     columns = USER_COLUMNS,

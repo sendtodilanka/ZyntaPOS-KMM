@@ -34,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.RackProduct
 
@@ -99,31 +100,12 @@ fun RackProductListScreen(
                 contentAlignment = Alignment.Center,
             ) { CircularProgressIndicator() }
 
-            state.rackProducts.isEmpty() -> Box(
-                Modifier.fillMaxSize().padding(innerPadding),
-                contentAlignment = Alignment.Center,
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = Icons.Default.Inventory2,
-                        contentDescription = null,
-                        modifier = Modifier.size(48.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(Modifier.height(ZyntaSpacing.sm))
-                    Text(
-                        text = "No products in this rack",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(Modifier.height(ZyntaSpacing.xs))
-                    Text(
-                        text = "Tap + to assign a product to this rack",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
+            state.rackProducts.isEmpty() -> ZyntaEmptyState(
+                title = "No products in this rack",
+                icon = Icons.Default.Inventory2,
+                subtitle = "Tap + to assign a product to this rack.",
+                modifier = Modifier.fillMaxSize().padding(innerPadding),
+            )
 
             else -> LazyColumn(
                 Modifier.fillMaxSize().padding(innerPadding),
