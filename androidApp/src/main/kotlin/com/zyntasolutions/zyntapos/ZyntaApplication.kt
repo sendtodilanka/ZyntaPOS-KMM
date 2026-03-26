@@ -40,8 +40,11 @@ import co.touchlab.kermit.Logger
 import com.zyntasolutions.zyntapos.data.local.db.SecurePreferencesKeyMigration
 import com.zyntasolutions.zyntapos.data.job.AuditIntegrityJob
 import com.zyntasolutions.zyntapos.data.job.AuditIntegrityWorker
+import com.zyntasolutions.zyntapos.data.job.FulfillmentExpiryWorker
 import com.zyntasolutions.zyntapos.data.job.LogRetentionJob
 import com.zyntasolutions.zyntapos.data.job.LogRetentionWorker
+import com.zyntasolutions.zyntapos.data.job.LowStockNotificationJob
+import com.zyntasolutions.zyntapos.data.job.SlaAlertJob
 import com.zyntasolutions.zyntapos.data.sync.NetworkMonitor
 import com.zyntasolutions.zyntapos.data.sync.SyncWorker
 import com.zyntasolutions.zyntapos.data.logging.KermitSqliteAdapter
@@ -182,12 +185,17 @@ class ZyntaApplication : Application() {
         // Desktop still uses LogRetentionJob.start() / AuditIntegrityJob.start() coroutine loops.
         LogRetentionWorker.schedule(this)
         AuditIntegrityWorker.schedule(this)
+        FulfillmentExpiryWorker.schedule(this)
 
         // ── C6.2: Offline-first sync bootstrap ─────────────────────────────────
         // Start network monitoring for real-time connectivity state.
         // Schedule WorkManager periodic sync (15-min interval, requires network).
         koin.koin.get<NetworkMonitor>().start()
         SyncWorker.schedule(this, requireWifi = false)
+
+        // ── Cross-store monitoring jobs (coroutine-based, need reactive Flow collection) ──
+        koin.koin.get<LowStockNotificationJob>().start()
+        koin.koin.get<SlaAlertJob>().start()
 
         // ── Tier 7: Debug tools — loaded only in debug builds ─────────────────
         // seedModule    — registers SeedRunner (55+ products, 25 customers, etc.)

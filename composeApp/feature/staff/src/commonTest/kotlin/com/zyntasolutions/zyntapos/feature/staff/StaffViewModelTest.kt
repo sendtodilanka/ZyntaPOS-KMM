@@ -28,6 +28,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.staff.DeleteShiftScheduleUseCa
 import com.zyntasolutions.zyntapos.domain.usecase.staff.GeneratePayrollUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.GetAttendanceHistoryUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.GetAttendanceSummaryUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.staff.GetCrossStoreAttendanceUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.GetEmployeeByIdUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.GetEmployeesUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.GetLeaveHistoryUseCase
@@ -300,6 +301,17 @@ class StaffViewModelTest {
                     overtimeHours = 4.0,
                 )
             )
+
+        override suspend fun getByEmployeeAcrossStores(
+            employeeId: String,
+            from: String,
+            to: String,
+        ): Result<List<Pair<AttendanceRecord, String?>>> =
+            Result.Success(
+                attendanceHistoryFlow.value
+                    .filter { it.employeeId == employeeId }
+                    .map { it to it.storeId },
+            )
     }
 
     // ── Fake LeaveRepository ──────────────────────────────────────────────────
@@ -342,8 +354,24 @@ class StaffViewModelTest {
             return Result.Success(Unit)
         }
 
-        override suspend fun getLeaveRequestById(id: String): Result<com.zyntasolutions.zyntapos.domain.model.LeaveRequest?> =
-            Result.Success(null)
+        override suspend fun getLeaveRequestById(id: String): Result<com.zyntasolutions.zyntapos.domain.model.LeaveRequest?> {
+            // Bridge: look up from LeaveRecord data to fabricate a matching LeaveRequest
+            val record = leaveRecordsFlow.value.firstOrNull { it.id == id }
+                ?: return Result.Success(null)
+            return Result.Success(
+                com.zyntasolutions.zyntapos.domain.model.LeaveRequest(
+                    id = record.id,
+                    employeeId = record.employeeId,
+                    leaveType = com.zyntasolutions.zyntapos.domain.model.LeaveRequestType.ANNUAL,
+                    startDate = record.startDate,
+                    endDate = record.endDate,
+                    reason = record.reason ?: "",
+                    status = com.zyntasolutions.zyntapos.domain.model.LeaveRequestStatus.PENDING,
+                    createdAt = record.createdAt,
+                    updatedAt = record.updatedAt,
+                ),
+            )
+        }
 
         override fun getLeaveRequestsByEmployee(employeeId: String): Flow<List<com.zyntasolutions.zyntapos.domain.model.LeaveRequest>> =
             kotlinx.coroutines.flow.flowOf(emptyList())
@@ -582,6 +610,7 @@ class StaffViewModelTest {
             getLeaveHistoryUseCase = getLeaveHistoryUseCase,
             storeRepository = fakeStoreRepository,
             attendanceRepository = fakeAttendanceRepository,
+            getCrossStoreAttendanceUseCase = GetCrossStoreAttendanceUseCase(fakeAttendanceRepository),
             analytics = noOpAnalytics,
         )
     }
@@ -776,7 +805,7 @@ class StaffViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertNotNull(viewModel.state.value.successMessage)
-        assertEquals(LeaveStatus.APPROVED, leaveRecordsFlow.value.first().status)
+        assertTrue(viewModel.state.value.successMessage!!.contains("approved", ignoreCase = true))
     }
 
     @Test

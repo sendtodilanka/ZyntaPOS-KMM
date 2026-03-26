@@ -192,6 +192,37 @@ class AttendanceRepositoryImpl(
         )
     }
 
+    override suspend fun getByEmployeeAcrossStores(
+        employeeId: String,
+        from: String,
+        to: String,
+    ): Result<List<Pair<AttendanceRecord, String?>>> = withContext(Dispatchers.IO) {
+        runCatching {
+            q.getAttendanceByEmployeeAcrossStores(employeeId, from, to)
+                .executeAsList()
+                .map { row ->
+                    val record = AttendanceRecord(
+                        id = row.id,
+                        employeeId = row.employee_id,
+                        storeId = row.store_id,
+                        clockIn = row.clock_in,
+                        clockOut = row.clock_out,
+                        totalHours = row.total_hours,
+                        overtimeHours = row.overtime_hours,
+                        notes = row.notes,
+                        status = runCatching { AttendanceStatus.valueOf(row.status) }
+                            .getOrDefault(AttendanceStatus.PRESENT),
+                        createdAt = row.created_at,
+                        updatedAt = row.updated_at,
+                    )
+                    record to row.store_name
+                }
+        }.fold(
+            onSuccess = { Result.Success(it) },
+            onFailure = { t -> Result.Error(DatabaseException(t.message ?: "DB error", cause = t)) },
+        )
+    }
+
     // ── Mapping ───────────────────────────────────────────────────────────────
 
     private fun toDomain(row: Attendance_records) = AttendanceRecord(

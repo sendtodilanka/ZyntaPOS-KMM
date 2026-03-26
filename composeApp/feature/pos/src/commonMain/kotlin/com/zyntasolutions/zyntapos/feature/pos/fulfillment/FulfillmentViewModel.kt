@@ -6,6 +6,7 @@ import com.zyntasolutions.zyntapos.domain.model.FulfillmentStatus
 import com.zyntasolutions.zyntapos.domain.repository.FulfillmentRepository
 import androidx.lifecycle.viewModelScope
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
+import kotlin.time.Clock
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -32,6 +33,7 @@ class FulfillmentViewModel(
             is FulfillmentIntent.MarkReady    -> updateStatus(intent.orderId, FulfillmentStatus.READY_FOR_PICKUP, notifyCustomer = intent.notifyCustomer)
             is FulfillmentIntent.MarkPickedUp -> updateStatus(intent.orderId, FulfillmentStatus.PICKED_UP)
             is FulfillmentIntent.CancelOrder  -> updateStatus(intent.orderId, FulfillmentStatus.CANCELLED)
+            is FulfillmentIntent.CheckExpiry -> checkExpiry()
             is FulfillmentIntent.DismissError -> updateState { copy(errorMessage = null) }
         }
     }
@@ -46,6 +48,19 @@ class FulfillmentViewModel(
                 updateState { copy(isLoading = false, errorMessage = e.message ?: "Failed to load pickups") }
             }
             .launchIn(viewModelScope)
+    }
+
+    private suspend fun checkExpiry() {
+        val now = Clock.System.now().toEpochMilliseconds()
+        fulfillmentRepository.expireOverdueOrders(storeId, now)
+            .onSuccess { count ->
+                if (count > 0) {
+                    updateState { copy(errorMessage = "$count overdue order(s) expired") }
+                }
+            }
+            .onError { e ->
+                updateState { copy(errorMessage = e.message ?: "Expiry check failed") }
+            }
     }
 
     private suspend fun updateStatus(

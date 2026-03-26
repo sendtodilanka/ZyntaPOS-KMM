@@ -22,6 +22,17 @@ enum class CrdtStrategy {
 
     /** Append-only: both ops always accepted, no conflict possible. Stock adjustments, audit entries. */
     APPEND_ONLY,
+
+    /**
+     * OR-Set (Observed-Remove Set) for collection-type fields.
+     *
+     * Merges array fields by computing the union of both devices' additions,
+     * preserving all unique items by ID. Removals are tracked via a
+     * tombstone array (`_removed` suffix) and filtered from the final set.
+     *
+     * Used for entities with embedded collections (order items, coupon assignments).
+     */
+    OR_SET,
     ;
 
     companion object {
@@ -29,6 +40,8 @@ enum class CrdtStrategy {
             SyncOperation.EntityType.PRODUCT to FIELD_MERGE,
             SyncOperation.EntityType.STOCK_ADJUSTMENT to APPEND_ONLY,
             SyncOperation.EntityType.ACCOUNTING_ENTRY to APPEND_ONLY,
+            SyncOperation.EntityType.ORDER to OR_SET,
+            SyncOperation.EntityType.COUPON to OR_SET,
         )
 
         /**

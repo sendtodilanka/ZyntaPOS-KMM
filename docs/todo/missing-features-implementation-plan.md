@@ -1195,7 +1195,7 @@ Backend Tests:
 
 **What's REMAINING (deferred):**
 - [x] Real-time WebSocket updates for dashboard KPIs (currently REST polling) — ✅ DONE (2026-03-25): `DashboardViewModel` subscribes to `SyncStatusPort.onSyncComplete` SharedFlow for silent refresh; 30s periodic fallback timer; same pattern as ReportsViewModel (C5.4). Backend: `SyncProcessor.publishDashboardUpdate()` + `RedisPubSubListener` `dashboard:update:*` → `WsDashboardUpdate` push
-- [ ] Cross-store notifications (e.g., "Store B low on Product X")
+- [x] Cross-store notifications (e.g., "Store B low on Product X") — ✅ DONE (2026-03-26): LowStockNotificationJob monitors cross-warehouse low stock via getAllLowStock() Flow, triggered on SyncStatusPort.onSyncComplete; creates IN_APP notifications for STORE_MANAGER role with product shortfall details
 - [ ] Admin panel: Global dashboard enhancements (read-only monitoring — ADR-009 compliant)
 
 ---
@@ -1279,7 +1279,7 @@ Backend Tests:
 - [x] Business rule: Configurable policy — stock goes to return store vs original store
 - [x] KMM POS: Lookup order by ID/receipt from any store for return processing (UI)
 - [ ] Backend: Cross-store order lookup endpoint under `/v1/orders` with POS JWT auth
-- [ ] Sync: Refund propagation to original store for accounting
+- [x] Sync: Refund propagation to original store for accounting — ✅ DONE (2026-03-26): OrderDto now carries originalOrderId/originalStoreId; OrderRepositoryImpl.create() serializes full order payload for sync queue; upsertFromSync() persists refund fields from server deltas
 
 ---
 
@@ -1320,7 +1320,7 @@ Backend Tests:
 - [x] 5 unit tests in `CheckLoyaltyTierProgressionUseCaseTest`
 
 **What's REMAINING (deferred):**
-- [ ] Cross-store points earning/spending (ensure universal acceptance)
+- [x] Cross-store points earning/spending (ensure universal acceptance) — ✅ VERIFIED (2026-03-26): Loyalty is already cross-store by design — reward_points table has no store_id column; balance is SUM(points) per customer_id globally; EarnRewardPointsUseCase and RedeemRewardPointsUseCase are customer-scoped, not store-scoped
 - [x] Points expiry policy (e.g., expire after 12 months inactive) — ✅ DONE (2026-03-25): `getActiveExpirablePointsByCustomer` SQL query; `LoyaltyRepository.expirePointsForCustomer()` interface method; `LoyaltyRepositoryImpl.expirePointsForCustomer()` inserts negative EXPIRED ledger entries (append-only); `ExpireLoyaltyPointsUseCase`; registered in `customersModule`; 7 unit tests in `ExpireLoyaltyPointsUseCaseTest`
 - [x] KMM POS: "Apply Loyalty Points" button Compose UI in payment sheet — ✅ ALREADY DONE: `LoyaltyRedemptionDialog.kt` exists; `CartContent.kt` shows "Redeem Points" button when `loyaltyPointsBalance > 0`; `showLoyaltyRedemptionDialog` state toggles dialog (verified 2026-03-25)
 - [x] KMM: Customer loyalty summary screen — ✅ COVERED: `CustomerWalletScreen` shows `pointsBalance`, `rewardHistory` list, `currentLoyaltyTier` badge; `LoyaltyTierBadge` shown in CustomerDetailScreen TopAppBar (verified 2026-03-25)
@@ -1407,7 +1407,7 @@ Backend Tests:
 - [ ] Push notification to customer: "Your order is ready for pickup"
 - [ ] Push notification to store: "New pickup order received"
 - [ ] Backend: REST Fulfillment endpoints (`GET /v1/fulfillment`, `PATCH /v1/fulfillment/{orderId}/status`)
-- [ ] Timeout: Auto-cancel cron (expireOverdueOrders query already implemented in SQLDelight)
+- [x] Timeout: Auto-cancel cron (expireOverdueOrders query already implemented in SQLDelight) — ✅ DONE (2026-03-26): FulfillmentExpiryJob (commonMain, 15-min coroutine loop) + FulfillmentExpiryWorker (Android WorkManager) + CheckExpiry intent in FulfillmentViewModel + UI button in FulfillmentQueueScreen
 
 ---
 
@@ -1452,7 +1452,7 @@ Backend Tests:
 - [x] Inter-store transaction elimination (remove internal transfers)
 - [ ] Admin panel: Consolidated financial report pages (read-only monitoring — ADR-009 compliant)
 - [x] CSV/PDF export for consolidated reports
-- [ ] `GenerateMultiStoreComparisonReportUseCase` — stub returning empty list (needs backend)
+- [x] `GenerateMultiStoreComparisonReportUseCase` — ✅ DONE: Fully implemented (not a stub), calls ReportRepository.getMultiStoreComparison(); StoreComparisonReportScreen, ReportsViewModel integration, CSV export all working
 
 **Key Files:**
 - `shared/domain/src/commonMain/.../model/FinancialStatement.kt`
@@ -1499,7 +1499,7 @@ Backend Tests:
 - [ ] Backend: Profit/margin comparison (not just revenue/orders)
 - [ ] Backend: Growth trend calculation (currently `growth=0.0` hardcoded)
 - [ ] Admin panel: Interactive comparison dashboard with filters (read-only monitoring — ADR-009 compliant)
-- [ ] Trend analysis: Growth % per store over time
+- [x] Trend analysis: Growth % per store over time — ✅ DONE (2026-03-26): StoreSalesData extended with revenueGrowthPercent/orderGrowthPercent; GenerateMultiStoreComparisonReportUseCase computes growth by comparing current vs previous period of equal duration; StoreComparisonReportScreen shows colored growth arrows per metric
 - [x] CSV/PDF export for store comparison report — ✅ DONE (2026-03-25): exportStoreComparisonCsv() added to ReportExporter interface; implemented in JvmReportExporter (JFileChooser) and AndroidReportExporter (cacheDir + shareFile); isExporting added to StoreComparisonState; ExportStoreComparisonCsv intent + VM handler; FileDownload icon in StoreComparisonReportScreen TopAppBar
 
 ---
@@ -1545,7 +1545,7 @@ Backend Tests:
 
 **Remaining (out of scope / deferred):**
 - [ ] Admin panel: WebSocket connection for live store metrics (read-only monitoring — ADR-009 compliant)
-- [ ] SLA alerting: Notify admin when revenue drops below expected or sync queue grows
+- [x] SLA alerting: Notify admin when revenue drops below expected or sync queue grows — ✅ DONE (2026-03-26): SlaAlertJob monitors sync queue size (threshold: 50 ops) and persistent sync failures via SyncStatusPort; creates SYSTEM notifications for ADMIN role every 5 minutes
 
 ---
 
@@ -1592,7 +1592,7 @@ Backend Tests:
 - Feature flag: `crdt_sync` (disabled, ENTERPRISE)
 
 **What's REMAINING (Phase 3):**
-- [ ] OR-Set CRDT for collection-type fields (order items, coupon assignments)
+- [x] OR-Set CRDT for collection-type fields (order items, coupon assignments) — ✅ DONE (2026-03-26): Added OR_SET to CrdtStrategy enum for ORDER/COUPON entities; mergeOrSet() in ConflictResolver with array union + tombstone-based removals
 - [x] Custom merge value input in Conflict UI (currently Keep Local / Accept Server only) — ✅ DONE (2026-03-25): ConflictDetailDialog now has an OutlinedTextField for custom merge value; "Use Custom Value" button appears when field is non-blank and dispatches ResolveConflictManual(id, value); ViewModel already handled it via ResolveConflictUseCase with Resolution.MANUAL
 
 **Key Files:**
@@ -1730,7 +1730,7 @@ Backend Tests:
 **REMAINING (Phase 3):**
 - [x] Payroll calculation engine (salary, overtime, deductions) — ✅ DONE (2026-03-26): PayrollEntry model, CalculatePayrollUseCase, payroll.sq, PayrollEntryRepository + impl, DI wired
 - [x] Leave management workflow (request → approve → track) — ✅ DONE (2026-03-26): LeaveRequest model (7 types, 4 statuses), RequestLeaveUseCase + ApproveLeaveUseCase, leave_requests.sq, LeaveRepository extended + impl, DI wired
-- [ ] Cross-store attendance/shifts (see C3.4) — Phase 3
+- [x] Cross-store attendance/shifts (see C3.4) — ✅ DONE (2026-03-26): AttendanceRepository.getByEmployeeAcrossStores(), GetCrossStoreAttendanceUseCase (optimized SQL JOIN replacing N×M loop), CrossStoreAttendanceScreen with KPI cards + per-employee-per-store breakdown, DI wired
 
 ---
 
@@ -1745,7 +1745,7 @@ Backend Tests:
 - [x] Expense log CRUD UI — ✅ VERIFIED: `ExpenseListScreen.kt` (182L) + `ExpenseDetailScreen.kt` (185L) + `ExpenseViewModel.kt` (350L) + `ExpenseCategoryListScreen.kt` fully implemented with CRUD, status workflow, category management (1,066 LOC total)
 
 **REMAINING (Phase 3):**
-- [ ] Receipt image attachment — Phase 3
+- [x] Receipt image attachment — ✅ DONE: ExpenseDetailScreen has native file picker (G13), AsyncImage preview, receiptUrl stored in expenses.sq; full pipeline works end-to-end
 - [x] P&L integration (connect expenses to financial statements) — ✅ DONE (2026-03-26): GenerateProfitAndLossUseCase aggregating sales + expenses, ProfitAndLossReport model, DI wired
 - [x] Budget tracking per store/category — ✅ DONE (2026-03-26): Budget model, budgets.sq, BudgetRepository + impl, TrackBudgetSpendingUseCase, DI wired
 
@@ -2277,10 +2277,10 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 - [x] **[INV-10]** TaxGroupScreen exists + "Manage" button wired in ProductDetailScreen — ✅ DONE (2026-03-23)
 
 **Phase 3 Nice-to-Have:**
-- [ ] 3-pane responsive layout for warehouse tablet UI
+- [x] 3-pane responsive layout for warehouse tablet UI — ✅ DONE (2026-03-26): WarehouseAdaptiveLayout composable using WindowSize (COMPACT=1-pane, MEDIUM=2-pane, EXPANDED=3-pane), placeholder panes, VerticalDivider separators
 - [x] High-contrast accessibility theme
 - [x] i18n/locale infrastructure
-- [ ] Receipt template visual editor
+- [x] Receipt template visual editor — ✅ DONE (2026-03-26): ReceiptTemplateConfig domain model (section toggles, paper width, font size), ReceiptTemplateEditorScreen with side-by-side editor + live monospace preview, responsive layout (compact/expanded), custom header/footer lines
 - [x] Conflict resolution UI for CRDT merges — ✅ ConflictListScreen in Admin tab 4 (C6.1 Item 6, 2026-03-19)
 - [x] Customer segmentation/advanced filtering
 - [x] Shift swap/request workflow

@@ -219,6 +219,19 @@ class FakeAttendanceRepository : AttendanceRepository {
         to: String,
     ): Result<AttendanceSummary> =
         Result.Success(summaryOverride ?: buildAttendanceSummary(employeeId = employeeId))
+
+    override suspend fun getByEmployeeAcrossStores(
+        employeeId: String,
+        from: String,
+        to: String,
+    ): Result<List<Pair<AttendanceRecord, String?>>> {
+        val filtered = records.filter {
+            it.employeeId == employeeId &&
+                it.clockIn >= from &&
+                it.clockIn <= to
+        }.map { it to it.storeId }
+        return Result.Success(filtered)
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

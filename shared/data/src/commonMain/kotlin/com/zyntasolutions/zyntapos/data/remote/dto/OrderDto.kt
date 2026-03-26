@@ -23,6 +23,8 @@ data class OrderDto(
     @SerialName("register_session_id") val registerSessionId: String,
     @SerialName("notes")             val notes: String? = null,
     @SerialName("reference")         val reference: String? = null,
+    @SerialName("original_order_id") val originalOrderId: String? = null,
+    @SerialName("original_store_id") val originalStoreId: String? = null,
     @SerialName("created_at")        val createdAt: Long,
     @SerialName("updated_at")        val updatedAt: Long,
     @SerialName("sync_status")       val syncStatus: String = "SYNCED",

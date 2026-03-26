@@ -30,11 +30,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
 import com.zyntasolutions.zyntapos.domain.model.report.StoreSalesData
 import org.koin.compose.koinInject
+import kotlin.math.absoluteValue
 
 /**
  * Store Comparison Report screen (C5.2).
@@ -265,8 +267,8 @@ private fun StoreComparisonCard(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    MetricLabel("Revenue", currencyFormatter.format(store.totalRevenue))
-                    MetricLabel("Orders", store.orderCount.toString())
+                    MetricLabel("Revenue", currencyFormatter.format(store.totalRevenue), store.revenueGrowthPercent)
+                    MetricLabel("Orders", store.orderCount.toString(), store.orderGrowthPercent)
                     MetricLabel("AOV", currencyFormatter.format(store.averageOrderValue))
                     MetricLabel("Share", "${(revenueShare * 100).toInt()}%")
                 }
@@ -276,13 +278,24 @@ private fun StoreComparisonCard(
 }
 
 @Composable
-private fun MetricLabel(label: String, value: String) {
+private fun MetricLabel(label: String, value: String, growthPercent: Double? = null) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = value,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Medium,
         )
+        if (growthPercent != null) {
+            val isPositive = growthPercent >= 0
+            val arrow = if (isPositive) "\u2191" else "\u2193"
+            val color = if (isPositive) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error
+            Text(
+                text = "$arrow${growthPercent.absoluteValue.let { "%.1f".format(it) }}%",
+                style = MaterialTheme.typography.labelSmall,
+                color = color,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
