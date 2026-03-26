@@ -1,8 +1,8 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-26 (All Phase 2 items COMPLETE; G20 dark mode/skeletons ✅; MS-5 warehouse image ✅; G2 multi-store onboarding ✅; ZyntaEmptyState applied across 20 screens ✅; remaining items are Phase 3 deferred)
-**Status:** Approved — Verified against codebase 2026-03-22, updated for ADR-009 compliance
+**Last Updated:** 2026-03-26 (ALL sections A–G COMPLETE; batch upload G15 ✅; crash log viewer G14 ✅; language selector G8 ✅; E-invoice IRD verified ✅; sparkline verified ✅; only blue-green deploy and IRD XML format remain as deferred infrastructure items)
+**Status:** ✅ COMPLETE — All KMM, backend, admin panel, and CI/CD items implemented
 
 ---
 
