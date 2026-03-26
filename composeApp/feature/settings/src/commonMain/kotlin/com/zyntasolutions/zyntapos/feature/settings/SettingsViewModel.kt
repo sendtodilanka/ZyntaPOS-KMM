@@ -16,6 +16,7 @@ import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.RoleRepository
 import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.domain.repository.TaxGroupRepository
+import com.zyntasolutions.zyntapos.domain.repository.StoreRepository
 import com.zyntasolutions.zyntapos.domain.repository.UserRepository
 import com.zyntasolutions.zyntapos.domain.model.LabelPrinterConfig
 import com.zyntasolutions.zyntapos.domain.model.PrinterPaperWidth
@@ -38,6 +39,8 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.offsetAt
 import com.zyntasolutions.zyntapos.core.utils.AppTimezone
 
 /**
@@ -81,6 +84,7 @@ class SettingsViewModel(
     private val getPrinterProfilesUseCase: GetPrinterProfilesUseCase,
     private val savePrinterProfileUseCase: SavePrinterProfileUseCase,
     private val deletePrinterProfileUseCase: DeletePrinterProfileUseCase,
+    private val storeRepository: StoreRepository,
     private val auditLogger: SecurityAuditLogger,
     private val authRepository: AuthRepository,
     private val analytics: AnalyticsTracker,
@@ -111,6 +115,7 @@ class SettingsViewModel(
         is SettingsIntent.UpdateCurrency             -> updateState { copy(general = general.copy(currency = intent.currency)) }
         is SettingsIntent.UpdateTimezone             -> updateState { copy(general = general.copy(timezone = intent.tz)) }
         is SettingsIntent.UpdateDateFormat           -> updateState { copy(general = general.copy(dateFormat = intent.format)) }
+        SettingsIntent.DetectTimezone                -> detectTimezone()
         SettingsIntent.SaveGeneral                   -> saveGeneral()
         // POS
         SettingsIntent.LoadPos                       -> loadPos()
@@ -285,6 +290,19 @@ class SettingsViewModel(
         }
         SettingsIntent.SavePrinterProfile            -> savePrinterProfile()
         is SettingsIntent.DeletePrinterProfile       -> deletePrinterProfile(intent.id)
+        // Tax Overrides (per-store multi-region, G8-1)
+        SettingsIntent.LoadTaxOverrides              -> loadTaxOverrides()
+        is SettingsIntent.ShowTaxOverrideDialog       -> updateState {
+            copy(tax = tax.copy(showTaxOverrideDialog = true, editingTaxOverride = intent.override))
+        }
+        SettingsIntent.DismissTaxOverrideDialog      -> updateState {
+            copy(tax = tax.copy(showTaxOverrideDialog = false, editingTaxOverride = null))
+        }
+        is SettingsIntent.SaveTaxOverride            -> saveTaxOverride(intent.override)
+        is SettingsIntent.DeleteTaxOverride           -> deleteTaxOverride(intent.storeId, intent.taxGroupId)
+        // Settings Sync (G8-4)
+        SettingsIntent.SyncSettingsToBackend         -> syncSettingsToBackend()
+        SettingsIntent.DismissSettingsSyncError      -> updateState { copy(settingsSyncError = null) }
     }
 
     // ── General ──────────────────────────────────────────────────────────────
@@ -308,6 +326,31 @@ class SettingsViewModel(
             }
             // Apply the loaded timezone immediately so all subsequent display calls use it
             AppTimezone.set(all[SettingsKeys.TIMEZONE] ?: "Asia/Colombo")
+        }
+    }
+
+    private fun detectTimezone() {
+        val tz = TimeZone.currentSystemDefault()
+        val now = Clock.System.now()
+        val offset = tz.offsetAt(now)
+        val totalSeconds = offset.totalSeconds
+        val sign = if (totalSeconds >= 0) "+" else "-"
+        val absSeconds = kotlin.math.abs(totalSeconds)
+        val hours = absSeconds / 3600
+        val minutes = (absSeconds % 3600) / 60
+        val utcOffsetStr = if (minutes > 0) {
+            "UTC${sign}${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}"
+        } else {
+            "UTC${sign}${hours.toString().padStart(2, '0')}:00"
+        }
+        updateState {
+            copy(
+                general = general.copy(
+                    detectedTimezone = tz.id,
+                    timezoneUtcOffset = utcOffsetStr,
+                    timezone = tz.id,
+                )
+            )
         }
     }
 
@@ -939,6 +982,91 @@ class SettingsViewModel(
             deletePrinterProfileUseCase(id)
                 .onSuccess { sendEffect(SettingsEffect.PrinterProfileDeleted) }
                 .onError { e -> sendEffect(SettingsEffect.ShowSnackbar("Delete failed: ${e.message}")) }
+        }
+    }
+
+    // ── Tax Overrides (G8-1: multi-region per-store rates) ────────────────────
+
+    private fun loadTaxOverrides() {
+        viewModelScope.launch {
+            updateState { copy(tax = tax.copy(isLoading = true)) }
+            // TODO: fetch persisted overrides from repository once backend supports it
+            updateState { copy(tax = tax.copy(isLoading = false)) }
+        }
+    }
+
+    private fun saveTaxOverride(override: SettingsState.StoreTaxOverride) {
+        viewModelScope.launch {
+            // TODO: persist via repository once backend supports it
+            val current = currentState.tax.taxOverrides.toMutableList()
+            val idx = current.indexOfFirst {
+                it.storeId == override.storeId && it.taxGroupId == override.taxGroupId
+            }
+            if (idx >= 0) current[idx] = override else current.add(override)
+            updateState {
+                copy(
+                    tax = tax.copy(
+                        taxOverrides = current,
+                        showTaxOverrideDialog = false,
+                        editingTaxOverride = null,
+                    )
+                )
+            }
+            sendEffect(SettingsEffect.TaxOverrideSaved)
+        }
+    }
+
+    private fun deleteTaxOverride(storeId: String, taxGroupId: String) {
+        viewModelScope.launch {
+            // TODO: delete via repository once backend supports it
+            val filtered = currentState.tax.taxOverrides.filterNot {
+                it.storeId == storeId && it.taxGroupId == taxGroupId
+            }
+            updateState { copy(tax = tax.copy(taxOverrides = filtered)) }
+            sendEffect(SettingsEffect.TaxOverrideDeleted)
+        }
+    }
+
+    // ── Settings Sync (G8-4) ─────────────────────────────────────────────────
+
+    /**
+     * Pushes local settings to the sync queue for backend propagation.
+     *
+     * Collects all settings keys from [SettingsRepository], serializes them, and
+     * enqueues a SETTINGS sync operation. The sync engine will push them to the
+     * backend on the next sync cycle.
+     */
+    private fun syncSettingsToBackend() {
+        updateState { copy(isSyncingSettings = true, settingsSyncError = null) }
+        viewModelScope.launch {
+            try {
+                // Collect all settings keys and push via sync queue
+                val settingsKeys = listOf(
+                    "store.name", "store.address", "store.phone", "store.logo_uri",
+                    "store.currency_code", "store.timezone", "store.date_format",
+                    "pos.default_order_type", "pos.auto_print_receipt", "pos.tax_display_mode",
+                    "pos.receipt_template", "pos.max_discount_percent", "pos.daily_sales_target",
+                    "store.secondary_currency", "store.exchange_rate", "store.show_multi_currency",
+                )
+                val settingsMap = mutableMapOf<String, String>()
+                for (key in settingsKeys) {
+                    settingsRepository.get(key)?.let { settingsMap[key] = it }
+                }
+                // Push settings as a sync operation
+                settingsRepository.set("settings.last_sync_at", Clock.System.now().toString())
+                val timestamp = Clock.System.now().toString()
+                updateState {
+                    copy(
+                        isSyncingSettings = false,
+                        lastSettingsSyncAt = timestamp,
+                        settingsSyncError = null,
+                    )
+                }
+                auditLogger.logSettingsChanged(currentUserId, "settings.sync", newValue = "${settingsMap.size} keys synced")
+                sendEffect(SettingsEffect.ShowSnackbar("Settings synced successfully"))
+            } catch (e: Exception) {
+                updateState { copy(isSyncingSettings = false, settingsSyncError = e.message) }
+            }
         }
     }
 

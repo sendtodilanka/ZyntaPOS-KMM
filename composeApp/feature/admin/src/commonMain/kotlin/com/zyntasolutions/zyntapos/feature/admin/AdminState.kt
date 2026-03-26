@@ -14,6 +14,13 @@ import kotlinx.datetime.Instant
 /** Active section in the Admin feature tab bar. */
 enum class AdminTab { SYSTEM_HEALTH, BACKUPS, AUDIT_LOG, CONFLICTS }
 
+/** Backup schedule frequency options (G14). */
+enum class BackupFrequency(val label: String) {
+    DAILY("Daily"),
+    WEEKLY("Weekly"),
+    MONTHLY("Monthly"),
+}
+
 /**
  * Immutable UI state for the Admin feature (Sprints 13–15).
  *
@@ -37,6 +44,17 @@ data class AdminState(
     val isCreatingBackup: Boolean = false,
     val showRestoreConfirm: BackupInfo? = null,
     val showDeleteConfirm: BackupInfo? = null,
+    // ── Backup Scheduling (G14) ─────────────────────────────────────────
+    /** Whether automatic backup scheduling is enabled. */
+    val backupScheduleEnabled: Boolean = false,
+    /** Backup frequency: DAILY, WEEKLY, MONTHLY. */
+    val backupFrequency: BackupFrequency = BackupFrequency.DAILY,
+    /** Hour of day (0-23) when scheduled backup should run. */
+    val backupScheduleHour: Int = 2,
+    /** Maximum number of scheduled backups to retain (auto-prune oldest). */
+    val backupRetentionCount: Int = 7,
+    /** Whether the backup schedule settings dialog is shown. */
+    val showBackupScheduleDialog: Boolean = false,
 
     // ── Audit Log ─────────────────────────────────────────────────────────
     val auditEntries: List<AuditEntry> = emptyList(),

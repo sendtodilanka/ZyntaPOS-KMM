@@ -145,4 +145,55 @@ class AuthRepositoryImpl(
             onFailure = { t -> Result.Error(DatabaseException(t.message ?: "Validate PIN failed", cause = t)) },
         )
     }
+
+    override suspend fun quickSwitch(userId: String, pin: String): Result<User> = withContext(Dispatchers.IO) {
+        runCatching {
+            val userRow = db.usersQueries.getUserById(userId).executeAsOneOrNull()
+                ?: return@withContext Result.Error(AuthException("User not found"))
+            if (userRow.is_active != 1L) {
+                return@withContext Result.Error(AuthException("User account is deactivated"))
+            }
+            val storedHash = userRow.pin_hash
+                ?: return@withContext Result.Error(AuthException("User has no PIN set"))
+            if (!passwordHasher.verify(pin, storedHash)) {
+                return@withContext Result.Error(AuthException("Incorrect PIN"))
+            }
+            val user = UserMapper.toDomain(userRow)
+            securePrefs.put(SecureStorageKeys.KEY_USER_ID, user.id)
+            _session.value = user
+            Result.Success(user)
+        }.fold(
+            onSuccess = { it },
+            onFailure = { t ->
+                if (t is AuthException) Result.Error(t)
+                else Result.Error(DatabaseException(t.message ?: "Quick switch failed", cause = t))
+            },
+        )
+    }
+
+    override suspend fun validateManagerPin(pin: String): Result<Boolean> = withContext(Dispatchers.IO) {
+        runCatching {
+            // Get current user's store to scope the manager lookup
+            val currentUser = _session.value
+                ?: return@withContext Result.Error(AuthException("No active session"))
+            // Query all active MANAGER/ADMIN users at this store with a PIN set
+            val candidates = db.usersQueries.getQuickSwitchCandidates(currentUser.storeId)
+                .executeAsList()
+                .filter { it.role == "ADMIN" || it.role == "MANAGER" }
+            // Try each candidate's PIN hash
+            for (candidate in candidates) {
+                val storedHash = db.usersQueries.getUserById(candidate.id).executeAsOneOrNull()?.pin_hash
+                    ?: continue
+                if (passwordHasher.verify(pin, storedHash)) {
+                    return@withContext Result.Success(true)
+                }
+            }
+            Result.Success(false)
+        }.fold(
+            onSuccess = { it },
+            onFailure = { t ->
+                Result.Error(DatabaseException(t.message ?: "Manager PIN validation failed", cause = t))
+            },
+        )
+    }
 }

@@ -61,6 +61,8 @@ data class CustomerState(
     val purchaseHistory: List<Order> = emptyList(),
     val isPurchaseHistoryLoading: Boolean = false,
     val isExporting: Boolean = false,
+    /** Per-store purchase summary for the cross-store customer profile (G10). */
+    val storeOrderSummaries: List<StoreOrderSummary> = emptyList(),
 
     // ── Global ────────────────────────────────────────────────────────────
     val isLoading: Boolean = false,
@@ -71,6 +73,15 @@ data class CustomerState(
 
 /** Sort direction for table columns. */
 enum class SortDir { ASC, DESC }
+
+/** Per-store order summary for the cross-store customer profile view (G10). */
+data class StoreOrderSummary(
+    val storeId: String,
+    val storeName: String,
+    val orderCount: Int,
+    val totalSpent: Double,
+    val lastOrderAt: Long,
+)
 
 /**
  * Mutable form fields for customer create/edit operations.

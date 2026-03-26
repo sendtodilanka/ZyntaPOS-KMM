@@ -87,6 +87,8 @@ data class PosState(
     val storeName: String = "",
     /** Active store ID for context-aware operations. Populated from auth session on init. */
     val activeStoreId: String = "",
+    /** ISO 4217 currency code from store settings (e.g. "LKR", "USD"). Drives all price formatting in the POS UI. */
+    val storeCurrency: String = "LKR",
     val cartItems: List<CartItem> = emptyList(),
     val selectedCustomer: Customer? = null,
     // ── Customer picker ───────────────────────────────────────────────────────
@@ -104,6 +106,8 @@ data class PosState(
     val scannerActive: Boolean = false,
     val error: String? = null,
     // ── Wallet & Loyalty (populated when a customer is selected) ─────────────
+    /** `true` when the wallet payment choice dialog is visible. */
+    val showWalletPaymentDialog: Boolean = false,
     /** Current store-credit balance for [selectedCustomer]. `null` if no customer or not yet loaded. */
     val walletBalance: Double? = null,
     /** Current loyalty points balance for [selectedCustomer]. `null` if no customer or not yet loaded. */
@@ -142,6 +146,15 @@ data class PosState(
     val returnLookupError: String? = null,
     /** `true` while [LookupOrderForReturnUseCase] is running. */
     val isReturnLookupLoading: Boolean = false,
+    // ── Cross-store Return (G3-1) ──────────────────────────────────────────────
+    /** `true` when the cashier has activated cross-store return mode. */
+    val crossStoreReturnMode: Boolean = false,
+    /** The order ID entered by the cashier for cross-store return lookup. */
+    val crossStoreOrderId: String = "",
+    /** Non-null when the cross-store order lookup fails; cleared when the order ID changes. */
+    val crossStoreOrderLookupError: String? = null,
+    /** The order retrieved from another store for return processing. `null` until a successful lookup. */
+    val crossStoreOrder: Order? = null,
     // ── Reprint / A4 Invoice / Email ──────────────────────────────────────────
     /** `true` while a reprint job for a past order is in-flight. */
     val isReprintingReceipt: Boolean = false,
@@ -153,4 +166,29 @@ data class PosState(
     val emailDialogOpen: Boolean = false,
     /** The order ID for which the email dialog was opened. */
     val emailDialogOrderId: String? = null,
+    // ── Card Terminal (G3-3) ─────────────────────────────────────────────────
+    /** `true` when an EMV card terminal is connected and ready for transactions. */
+    val cardTerminalConnected: Boolean = false,
+    /** Display name of the connected card terminal (e.g. "Verifone P400"). Empty when disconnected. */
+    val cardTerminalName: String = "",
+    // ── Gift Card (G3-2) ──────────────────────────────────────────────────────
+    /** `true` when the gift card lookup dialog is visible. */
+    val showGiftCardDialog: Boolean = false,
+    /** Barcode or code entered for gift card lookup. */
+    val giftCardCode: String = "",
+    /** Balance found for the scanned gift card. `null` if not yet looked up or not found. */
+    val giftCardBalance: Double? = null,
+    /** Amount to apply from gift card to current transaction. */
+    val giftCardPaymentAmount: Double = 0.0,
+    /** Error from gift card lookup. */
+    val giftCardError: String? = null,
+    /** `true` while looking up gift card balance. */
+    val isGiftCardLoading: Boolean = false,
+    // ── Multi-Currency Display (G3-5/G8-2) ──────────────────────────────────
+    /** Secondary/display currency code (e.g. "USD"). Empty when multi-currency is disabled. */
+    val secondaryCurrency: String = "",
+    /** Exchange rate: 1 unit of [storeCurrency] = [exchangeRate] units of [secondaryCurrency]. */
+    val exchangeRate: Double = 0.0,
+    /** `true` when multi-currency display is enabled in store settings. */
+    val showMultiCurrency: Boolean = false,
 )

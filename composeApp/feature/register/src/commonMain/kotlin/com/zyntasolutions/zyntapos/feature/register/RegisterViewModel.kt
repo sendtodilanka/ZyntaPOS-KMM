@@ -9,6 +9,7 @@ import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
 import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
 import com.zyntasolutions.zyntapos.domain.repository.StoreRepository
+import com.zyntasolutions.zyntapos.domain.repository.UserRepository
 import com.zyntasolutions.zyntapos.domain.usecase.register.CloseRegisterSessionUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.OpenRegisterSessionUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.register.PrintA4ZReportUseCase
@@ -59,12 +60,18 @@ class RegisterViewModel(
     private val printA4ZReportUseCase: PrintA4ZReportUseCase,
     private val authRepository: AuthRepository,
     private val storeRepository: StoreRepository,
+    private val userRepository: UserRepository,
     private val openCashDrawerUseCase: OpenCashDrawerUseCase,
     private val auditLogger: SecurityAuditLogger,
     private val analytics: AnalyticsTracker,
 ) : BaseViewModel<RegisterState, RegisterIntent, RegisterEffect>(RegisterState()) {
 
     private var currentUserId: String = "unknown"
+
+    companion object {
+        /** Cash-out amounts exceeding this threshold require manager PIN approval. */
+        private const val CASH_OUT_APPROVAL_THRESHOLD = 500.0
+    }
 
     init {
         analytics.logScreenView("Register", "RegisterViewModel")
@@ -168,15 +175,60 @@ class RegisterViewModel(
                     updateCloseForm { copy(showConfirmation = true, validationErrors = emptyMap()) }
                 }
             }
-            is RegisterIntent.ConfirmCloseRegister -> confirmCloseRegister()
+            is RegisterIntent.ConfirmCloseRegister -> {
+                val form = currentState.closeRegisterForm
+                if (form.isDiscrepancyWarning && !form.awaitingManagerApproval) {
+                    // Large discrepancy requires manager PIN approval
+                    updateCloseForm { copy(showConfirmation = false, awaitingManagerApproval = true, managerPin = "", managerApprovalError = null) }
+                } else {
+                    confirmCloseRegister()
+                }
+            }
             is RegisterIntent.DismissCloseConfirmation -> updateCloseForm {
                 copy(showConfirmation = false)
+            }
+            is RegisterIntent.ManagerApprovalPinChanged -> updateCloseForm {
+                copy(managerPin = intent.pin, managerApprovalError = null)
+            }
+            is RegisterIntent.SubmitManagerApproval -> {
+                val form = currentState.closeRegisterForm
+                if (form.managerPin.length < 4) {
+                    updateCloseForm { copy(managerApprovalError = "Enter manager PIN (4–6 digits)") }
+                } else {
+                    // Validate manager PIN via auth repository
+                    validateManagerPinAndClose(form.managerPin)
+                }
+            }
+            is RegisterIntent.CancelManagerApproval -> updateCloseForm {
+                copy(awaitingManagerApproval = false, managerPin = "", managerApprovalError = null)
             }
 
             // Z-Report (Sprint 21)
             is RegisterIntent.LoadZReport -> loadZReport(intent.sessionId)
             is RegisterIntent.PrintZReport -> printZReport(intent.sessionId)
             is RegisterIntent.PrintA4ZReport -> onPrintA4ZReport(intent.sessionId)
+
+            // Cash Out Approval (G5)
+            is RegisterIntent.CashOutApprovalPinChanged -> updateDialog {
+                copy(approvalPin = intent.pin, approvalError = null)
+            }
+            is RegisterIntent.SubmitCashOutApproval -> submitCashOutApproval()
+            is RegisterIntent.CancelCashOutApproval -> updateDialog {
+                copy(awaitingCashOutApproval = false, approvalPin = "", approvalError = null)
+            }
+
+            // Shift Handoff (G5)
+            is RegisterIntent.ShowShiftHandoff -> showShiftHandoff()
+            is RegisterIntent.DismissShiftHandoff -> updateState {
+                copy(showHandoffDialog = false, handoffTargetUserId = null, handoffPin = "", handoffError = null, handoffCandidates = emptyList())
+            }
+            is RegisterIntent.SelectHandoffTarget -> updateState {
+                copy(handoffTargetUserId = intent.userId, handoffPin = "", handoffError = null)
+            }
+            is RegisterIntent.HandoffPinChanged -> updateState {
+                copy(handoffPin = intent.pin, handoffError = null)
+            }
+            is RegisterIntent.ConfirmShiftHandoff -> confirmShiftHandoff()
 
             // Cash drawer
             is RegisterIntent.OpenCashDrawer -> onOpenCashDrawer()
@@ -204,8 +256,9 @@ class RegisterViewModel(
                 if (session != null) {
                     resolveActiveRegister(session.registerId)
                     observeMovements(session.id)
+                    recalculateFloatTracking()
                 } else {
-                    updateState { copy(activeRegister = null) }
+                    updateState { copy(activeRegister = null, floatAmount = 0.0, salesCash = 0.0, totalCashInDrawer = 0.0) }
                 }
             }
             .launchIn(viewModelScope)
@@ -223,7 +276,10 @@ class RegisterViewModel(
 
     private fun observeMovements(sessionId: String) {
         registerRepository.getMovements(sessionId)
-            .onEach { movements -> updateState { copy(movements = movements) } }
+            .onEach { movements ->
+                updateState { copy(movements = movements) }
+                recalculateFloatTracking()
+            }
             .launchIn(viewModelScope)
     }
 
@@ -293,6 +349,7 @@ class RegisterViewModel(
                     )
                 }
             }
+        recalculateFloatTracking()
     }
 
     // ── Cash In/Out ───────────────────────────────────────────────────────
@@ -307,6 +364,22 @@ class RegisterViewModel(
             return
         }
 
+        // Cash-out above threshold requires manager PIN approval (G5)
+        if (dialog.type == CashMovement.Type.OUT &&
+            dialog.amountDouble > CASH_OUT_APPROVAL_THRESHOLD &&
+            !dialog.awaitingCashOutApproval
+        ) {
+            updateDialog { copy(awaitingCashOutApproval = true, approvalPin = "", approvalError = null) }
+            return
+        }
+
+        executeCashMovement(dialog, sessionId)
+    }
+
+    /**
+     * Executes the cash movement after all validation and approval checks have passed.
+     */
+    private suspend fun executeCashMovement(dialog: CashInOutDialogState, sessionId: String) {
         updateState { copy(isLoading = true) }
         val result = recordCashMovementUseCase(
             sessionId = sessionId,
@@ -324,10 +397,44 @@ class RegisterViewModel(
                 } else {
                     auditLogger.logCashOut(currentUserId, sessionId, dialog.amountDouble, dialog.reason.trim())
                 }
+                recalculateFloatTracking()
                 val label = if (dialog.type == CashMovement.Type.IN) "Cash In" else "Cash Out"
                 sendEffect(RegisterEffect.ShowSuccess("$label of ${dialog.amountDouble} recorded."))
             }
             is Result.Error -> sendEffect(RegisterEffect.ShowError(result.exception.message ?: "Cash movement failed"))
+            is Result.Loading -> Unit
+        }
+    }
+
+    /**
+     * Validates the manager PIN for cash-out approval (G5).
+     * On success, proceeds with the cash movement.
+     */
+    private suspend fun submitCashOutApproval() {
+        val dialog = currentState.cashInOutDialog ?: return
+        val sessionId = currentState.activeSession?.id ?: return
+
+        if (dialog.approvalPin.length < 4) {
+            updateDialog { copy(approvalError = "Enter manager PIN (4–6 digits)") }
+            return
+        }
+
+        updateState { copy(isLoading = true) }
+        when (val result = authRepository.validateManagerPin(dialog.approvalPin)) {
+            is Result.Success -> {
+                if (result.data) {
+                    updateState { copy(isLoading = false) }
+                    analytics.logEvent("cash_out_approval_granted", mapOf("amount" to dialog.amountDouble.toString()))
+                    executeCashMovement(dialog, sessionId)
+                } else {
+                    updateState { copy(isLoading = false) }
+                    updateDialog { copy(approvalError = "Invalid manager PIN") }
+                }
+            }
+            is Result.Error -> {
+                updateState { copy(isLoading = false) }
+                updateDialog { copy(approvalError = result.exception.message ?: "PIN validation failed") }
+            }
             is Result.Loading -> Unit
         }
     }
@@ -391,6 +498,33 @@ class RegisterViewModel(
             is Result.Error -> sendEffect(
                 RegisterEffect.ShowError(result.exception.message ?: "Failed to close register"),
             )
+            is Result.Loading -> Unit
+        }
+    }
+
+    /**
+     * Validates the manager's PIN for discrepancy approval.
+     * On success, proceeds with the close register operation.
+     * Uses the auth repository to validate PIN against MANAGER/ADMIN role users.
+     */
+    private suspend fun validateManagerPinAndClose(pin: String) {
+        updateState { copy(isLoading = true) }
+        when (val result = authRepository.validateManagerPin(pin)) {
+            is Result.Success -> {
+                if (result.data) {
+                    updateCloseForm { copy(awaitingManagerApproval = false, managerPin = "", managerApprovalError = null) }
+                    updateState { copy(isLoading = false) }
+                    analytics.logEvent("register_discrepancy_approved", mapOf("discrepancy" to currentState.closeRegisterForm.discrepancy.toString()))
+                    confirmCloseRegister()
+                } else {
+                    updateState { copy(isLoading = false) }
+                    updateCloseForm { copy(managerApprovalError = "Invalid manager PIN") }
+                }
+            }
+            is Result.Error -> {
+                updateState { copy(isLoading = false) }
+                updateCloseForm { copy(managerApprovalError = result.exception.message ?: "PIN validation failed") }
+            }
             is Result.Loading -> Unit
         }
     }
@@ -470,6 +604,119 @@ class RegisterViewModel(
                 sendEffect(RegisterEffect.ShowError(result.exception.message ?: "Failed to print A4 Z-report"))
             }
             is Result.Loading -> Unit
+        }
+    }
+
+    // ── Shift Handoff (G5) ────────────────────────────────────────────────
+
+    /**
+     * Opens the shift handoff dialog and loads quick-switch candidates from [UserRepository].
+     * Excludes the current user from the candidate list.
+     */
+    private suspend fun showShiftHandoff() {
+        val storeId = currentState.activeStoreId
+        if (storeId.isEmpty()) {
+            sendEffect(RegisterEffect.ShowError("No active store — cannot load handoff candidates"))
+            return
+        }
+
+        updateState { copy(isLoading = true) }
+        when (val result = userRepository.getQuickSwitchCandidates(storeId)) {
+            is Result.Success -> {
+                val candidates = result.data.filter { it.id != currentUserId }
+                updateState {
+                    copy(
+                        isLoading = false,
+                        showHandoffDialog = true,
+                        handoffCandidates = candidates,
+                        handoffTargetUserId = null,
+                        handoffPin = "",
+                        handoffError = null,
+                    )
+                }
+            }
+            is Result.Error -> {
+                updateState { copy(isLoading = false) }
+                sendEffect(RegisterEffect.ShowError(result.exception.message ?: "Failed to load handoff candidates"))
+            }
+            is Result.Loading -> Unit
+        }
+    }
+
+    /**
+     * Validates the target user's PIN via [AuthRepository.quickSwitch] and transfers
+     * the active register session to the new user.
+     */
+    private suspend fun confirmShiftHandoff() {
+        val targetUserId = currentState.handoffTargetUserId
+        if (targetUserId == null) {
+            updateState { copy(handoffError = "Select a user to hand off to") }
+            return
+        }
+        val pin = currentState.handoffPin
+        if (pin.length < 4) {
+            updateState { copy(handoffError = "Enter PIN (4–6 digits)") }
+            return
+        }
+
+        updateState { copy(isLoading = true) }
+        when (val result = authRepository.quickSwitch(targetUserId, pin)) {
+            is Result.Success -> {
+                val newUser = result.data
+                auditLogger.logRegisterOpen(newUser.id, currentState.activeSession?.registerId ?: "", 0.0)
+                analytics.logEvent("shift_handoff_completed", mapOf("from" to currentUserId, "to" to newUser.id))
+                currentUserId = newUser.id
+                updateState {
+                    copy(
+                        isLoading = false,
+                        showHandoffDialog = false,
+                        handoffTargetUserId = null,
+                        handoffPin = "",
+                        handoffError = null,
+                        handoffCandidates = emptyList(),
+                    )
+                }
+                sendEffect(RegisterEffect.ShiftHandoffCompleted(newUser.name))
+                sendEffect(RegisterEffect.ShowSuccess("Register handed off to ${newUser.name}"))
+            }
+            is Result.Error -> {
+                updateState { copy(isLoading = false, handoffError = result.exception.message ?: "Handoff failed — invalid PIN?") }
+            }
+            is Result.Loading -> Unit
+        }
+    }
+
+    // ── Float Tracking (G5) ─────────────────────────────────────────────
+
+    /**
+     * Recalculates the float tracking fields based on the active session and movements.
+     *
+     * - [RegisterState.floatAmount]: the opening balance of the session (the "float").
+     * - [RegisterState.salesCash]: today's revenue from completed cash orders.
+     * - [RegisterState.totalCashInDrawer]: float + salesCash + Σ(cashIn) - Σ(cashOut).
+     */
+    private suspend fun recalculateFloatTracking() {
+        val session = currentState.activeSession ?: return
+        val movements = currentState.movements
+
+        val floatAmount = session.openingBalance
+        val cashIn = movements
+            .filter { it.type == CashMovement.Type.IN }
+            .sumOf { it.amount }
+        val cashOut = movements
+            .filter { it.type == CashMovement.Type.OUT }
+            .sumOf { it.amount }
+
+        // salesCash = today's revenue (already tracked in todayRevenue)
+        val salesCash = currentState.todayRevenue
+        val totalCashInDrawer = floatAmount + salesCash + cashIn - cashOut
+
+        updateState {
+            copy(
+                floatAmount = floatAmount,
+                salesCash = salesCash,
+                totalCashInDrawer = totalCashInDrawer,
+            )
         }
     }
 

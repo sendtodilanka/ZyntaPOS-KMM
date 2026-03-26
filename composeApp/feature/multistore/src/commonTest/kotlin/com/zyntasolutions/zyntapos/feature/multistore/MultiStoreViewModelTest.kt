@@ -109,6 +109,10 @@ class MultiStoreViewModelTest {
             Result.Success(Unit)
         override suspend fun validatePin(userId: String, pin: String): Result<Boolean> =
             Result.Success(true)
+        override suspend fun quickSwitch(userId: String, pin: String): Result<User> =
+            Result.Success(_session.value!!)
+        override suspend fun validateManagerPin(pin: String): Result<Boolean> =
+            Result.Success(true)
     }
 
     // ── Fake backing state ────────────────────────────────────────────────────

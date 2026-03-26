@@ -342,6 +342,24 @@ class ReportsViewModelTest {
         override suspend fun exportGdprJson(customerId: String, json: String): String = exportedPath
     }
 
+    // ── Fake StoreRepository ───────────────────────────────────────────────
+
+    private val fakeStoreRepository = object : com.zyntasolutions.zyntapos.domain.repository.StoreRepository {
+        override fun getAllStores(): Flow<List<com.zyntasolutions.zyntapos.domain.model.Store>> = flowOf(emptyList())
+        override suspend fun getById(storeId: String): com.zyntasolutions.zyntapos.domain.model.Store? = null
+        override suspend fun getStoreName(storeId: String): String? = null
+        override suspend fun upsertFromSync(store: com.zyntasolutions.zyntapos.domain.model.Store) = Unit
+    }
+
+    // ── Fake SettingsRepository ─────────────────────────────────────────────
+
+    private val fakeSettingsRepository = object : com.zyntasolutions.zyntapos.domain.repository.SettingsRepository {
+        override suspend fun get(key: String): String? = null
+        override suspend fun set(key: String, value: String): Result<Unit> = Result.Success(Unit)
+        override suspend fun getAll(): Map<String, String> = emptyMap()
+        override fun observe(key: String): Flow<String?> = flowOf(null)
+    }
+
     // ── ViewModel construction ────────────────────────────────────────────────
 
     private lateinit var viewModel: ReportsViewModel
@@ -366,6 +384,8 @@ class ReportsViewModelTest {
             generateStoreComparison = GenerateMultiStoreComparisonReportUseCase(fakeReportRepository),
             analytics              = noOpAnalytics,
             syncStatusPort         = fakeSyncStatusPort,
+            storeRepository        = fakeStoreRepository,
+            settingsRepository     = fakeSettingsRepository,
         )
     }
 

@@ -32,4 +32,27 @@ data class MediaState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val successMessage: String? = null,
+
+    // ── Image crop/compress (G15) ───────────────────────────────────────────
+    /** Non-null when the crop/compress editor is open for a specific file. */
+    val editingFile: MediaFile? = null,
+    /** Crop aspect ratio: FREE, SQUARE, 4:3, 16:9. */
+    val cropAspectRatio: CropAspectRatio = CropAspectRatio.FREE,
+    /** JPEG compression quality 1–100 (default 80). */
+    val compressionQuality: Int = 80,
+    /** Target max width in pixels for resize. 0 = no resize. */
+    val resizeMaxWidth: Int = 0,
+    /** Whether a crop/compress operation is in progress. */
+    val isProcessing: Boolean = false,
 )
+
+/**
+ * Predefined crop aspect ratios for the image editor (G15).
+ */
+enum class CropAspectRatio(val label: String, val widthRatio: Float, val heightRatio: Float) {
+    FREE("Free", 0f, 0f),
+    SQUARE("1:1", 1f, 1f),
+    RATIO_4_3("4:3", 4f, 3f),
+    RATIO_16_9("16:9", 16f, 9f),
+    RATIO_3_4("3:4", 3f, 4f),
+}

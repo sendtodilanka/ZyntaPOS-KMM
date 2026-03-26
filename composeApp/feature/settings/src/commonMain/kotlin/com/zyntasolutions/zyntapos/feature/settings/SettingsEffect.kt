@@ -22,4 +22,6 @@ sealed interface SettingsEffect {
     data object ScannerSettingsSaved : SettingsEffect
     data object PrinterProfileSaved : SettingsEffect
     data object PrinterProfileDeleted : SettingsEffect
+    data object TaxOverrideSaved : SettingsEffect
+    data object TaxOverrideDeleted : SettingsEffect
 }

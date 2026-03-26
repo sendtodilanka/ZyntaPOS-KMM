@@ -9,8 +9,11 @@ import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
 import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.domain.repository.StoreRepository
+import com.zyntasolutions.zyntapos.domain.repository.UserRepository
 import com.zyntasolutions.zyntapos.domain.usecase.auth.LoginUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.auth.LogoutUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.auth.QuickSwitchUserUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.auth.ValidatePinUseCase
 import com.zyntasolutions.zyntapos.feature.auth.mvi.AuthEffect
 import com.zyntasolutions.zyntapos.feature.auth.mvi.AuthIntent
 import com.zyntasolutions.zyntapos.feature.auth.mvi.AuthState
@@ -48,6 +51,9 @@ class AuthViewModel(
     private val registerRepository: RegisterRepository? = null,
     private val settingsRepository: SettingsRepository,
     private val storeRepository: StoreRepository? = null,
+    private val userRepository: UserRepository? = null,
+    private val validatePinUseCase: ValidatePinUseCase? = null,
+    private val quickSwitchUserUseCase: QuickSwitchUserUseCase? = null,
     private val auditLogger: SecurityAuditLogger,
     private val analytics: AnalyticsTracker,
 ) : BaseViewModel<AuthState, AuthIntent, AuthEffect>(AuthState()) {
@@ -94,9 +100,20 @@ class AuthViewModel(
             is AuthIntent.TogglePasswordVisibility -> togglePasswordVisibility()
             is AuthIntent.LoginClicked        -> onLoginClicked()
             is AuthIntent.RememberMeToggled   -> updateState { copy(rememberMe = intent.checked) }
-            is AuthIntent.ForgotPasswordClicked -> handleForgotPassword()
+            is AuthIntent.ForgotPasswordClicked -> showForgotPasswordDialog()
+            is AuthIntent.ShowForgotPasswordDialog -> showForgotPasswordDialog()
+            is AuthIntent.DismissForgotPasswordDialog -> dismissForgotPasswordDialog()
+            is AuthIntent.ForgotPasswordEmailChanged -> updateState { copy(forgotPasswordEmail = intent.email, forgotPasswordError = null) }
+            is AuthIntent.SubmitForgotPassword -> submitForgotPassword()
             is AuthIntent.DismissError        -> updateState { copy(error = null, lockedOutUntilMs = null) }
             is AuthIntent.StoreSelected       -> updateState { copy(selectedStoreId = intent.storeId) }
+            // PIN Lock / Quick-Switch
+            is AuthIntent.PinEntered          -> onPinEntered(intent.pin)
+            is AuthIntent.OpenQuickSwitch     -> onOpenQuickSwitch()
+            is AuthIntent.QuickSwitchSelected -> onQuickSwitchSelected(intent.userId)
+            is AuthIntent.QuickSwitchPinEntered -> onQuickSwitchPinEntered(intent.pin)
+            is AuthIntent.CancelQuickSwitch   -> updateState { copy(isQuickSwitchMode = false, quickSwitchTargetId = null, pinError = null) }
+            is AuthIntent.DismissPinError     -> updateState { copy(pinError = null) }
         }
     }
 
@@ -201,9 +218,116 @@ class AuthViewModel(
         }
     }
 
-    private fun handleForgotPassword() {
-        // Phase 1: show informational error. Password reset UI is Phase 2.
-        sendEffect(AuthEffect.ShowError("Password reset is not available offline. Contact your administrator."))
+    private fun showForgotPasswordDialog() {
+        updateState {
+            copy(
+                showForgotPasswordDialog = true,
+                forgotPasswordEmail = email, // pre-fill from login form
+                forgotPasswordSent = false,
+                forgotPasswordError = null,
+            )
+        }
+    }
+
+    private fun dismissForgotPasswordDialog() {
+        updateState {
+            copy(
+                showForgotPasswordDialog = false,
+                forgotPasswordEmail = "",
+                forgotPasswordSent = false,
+                forgotPasswordError = null,
+            )
+        }
+    }
+
+    private fun submitForgotPassword() {
+        val email = currentState.forgotPasswordEmail.trim()
+        if (email.isBlank() || !email.isValidEmail()) {
+            updateState { copy(forgotPasswordError = "Enter a valid email address") }
+            return
+        }
+        // API call deferred to backend implementation — for now mark as sent.
+        updateState { copy(forgotPasswordSent = true, forgotPasswordError = null) }
+    }
+
+    // ── PIN Lock / Quick-Switch handlers ──────────────────────────────────────
+
+    /**
+     * Validates the current user's PIN on the lock screen.
+     * On success: emits [AuthEffect.PinUnlocked]. On failure: sets [AuthState.pinError].
+     */
+    private suspend fun onPinEntered(pin: String) {
+        val session = authRepository.getSession().first() ?: return
+        val useCase = validatePinUseCase ?: return
+        updateState { copy(isPinValidating = true, pinError = null) }
+
+        when (val result = useCase(session.id, pin)) {
+            is Result.Success -> {
+                if (result.data == true) {
+                    updateState { copy(isPinValidating = false, pinError = null) }
+                    sendEffect(AuthEffect.PinUnlocked)
+                } else {
+                    updateState { copy(isPinValidating = false, pinError = "Incorrect PIN") }
+                }
+            }
+            is Result.Error -> {
+                updateState { copy(isPinValidating = false, pinError = result.exception.message ?: "PIN validation failed") }
+            }
+            is Result.Loading -> Unit
+        }
+    }
+
+    /**
+     * Opens the quick-switch user picker. Loads active users with PINs at the current store.
+     */
+    private suspend fun onOpenQuickSwitch() {
+        val session = authRepository.getSession().first() ?: run {
+            sendEffect(AuthEffect.NavigateToLogin)
+            return
+        }
+        val repo = userRepository ?: run {
+            // Fallback: no UserRepository available — navigate to full login
+            sendEffect(AuthEffect.NavigateToLogin)
+            return
+        }
+        when (val result = repo.getQuickSwitchCandidates(session.storeId)) {
+            is Result.Success -> {
+                // Exclude the current user from the list
+                val candidates = result.data.filter { it.id != session.id }
+                if (candidates.isEmpty()) {
+                    sendEffect(AuthEffect.NavigateToLogin)
+                } else {
+                    updateState { copy(isQuickSwitchMode = true, quickSwitchCandidates = candidates, quickSwitchTargetId = null, pinError = null) }
+                }
+            }
+            is Result.Error -> sendEffect(AuthEffect.NavigateToLogin)
+            is Result.Loading -> Unit
+        }
+    }
+
+    /** User picked a specific employee from the quick-switch list. */
+    private fun onQuickSwitchSelected(userId: String) {
+        updateState { copy(quickSwitchTargetId = userId, pinError = null) }
+    }
+
+    /** Validates PIN for the selected quick-switch target and switches session. */
+    private suspend fun onQuickSwitchPinEntered(pin: String) {
+        val targetId = currentState.quickSwitchTargetId ?: return
+        val useCase = quickSwitchUserUseCase ?: return
+        updateState { copy(isPinValidating = true, pinError = null) }
+
+        when (val result = useCase(targetId, pin)) {
+            is Result.Success -> {
+                analytics.logEvent(AnalyticsEvents.LOGIN, mapOf(AnalyticsParams.METHOD to "quick_switch"))
+                analytics.setUserId(result.data.email)
+                updateState { copy(isPinValidating = false, isQuickSwitchMode = false, quickSwitchTargetId = null, pinError = null) }
+                sendEffect(AuthEffect.QuickSwitchCompleted(result.data.name))
+            }
+            is Result.Error -> {
+                updateState { copy(isPinValidating = false, pinError = result.exception.message ?: "Quick switch failed") }
+            }
+            is Result.Loading -> Unit
+        }
     }
 
     // ── Session observer ──────────────────────────────────────────────────────

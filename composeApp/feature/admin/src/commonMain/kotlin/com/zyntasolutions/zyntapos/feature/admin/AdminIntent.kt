@@ -42,6 +42,18 @@ sealed interface AdminIntent {
     data object ConfirmDelete : AdminIntent
     data object CancelDelete : AdminIntent
 
+    // ── Backup Scheduling (G14) ──────────────────────────────────────────
+    /** Load saved backup schedule settings from preferences. */
+    data object LoadBackupSchedule : AdminIntent
+    data object ShowBackupScheduleDialog : AdminIntent
+    data object DismissBackupScheduleDialog : AdminIntent
+    data class ToggleBackupSchedule(val enabled: Boolean) : AdminIntent
+    data class SetBackupFrequency(val frequency: BackupFrequency) : AdminIntent
+    data class SetBackupScheduleHour(val hour: Int) : AdminIntent
+    data class SetBackupRetentionCount(val count: Int) : AdminIntent
+    /** Persist the current schedule settings. */
+    data object SaveBackupSchedule : AdminIntent
+
     // ── Audit Log ──────────────────────────────────────────────────────────
     data object RefreshAuditLog : AdminIntent
     data class FilterAuditByUser(val userId: String) : AdminIntent

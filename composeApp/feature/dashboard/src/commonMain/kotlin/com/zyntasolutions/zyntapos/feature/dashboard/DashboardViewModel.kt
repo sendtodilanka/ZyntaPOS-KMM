@@ -128,6 +128,28 @@ class DashboardViewModel(
                 weeklyPoints.add(ChartDataPoint(label = dayNames[dayOfWeek], value = daySales.toFloat()))
             }
 
+            // ── Period comparison (G7) — yesterday & last-week-same-day ──────
+            val yesterdayDate = now.toLocalDateTime(tz).date.minus(1L, DateTimeUnit.DAY)
+            val yesterdayStart = yesterdayDate.atStartOfDayIn(tz)
+            val yesterdayEnd = todayStart
+            val yesterdayOrders = orderRepository.getByDateRange(yesterdayStart, yesterdayEnd).first()
+            val yesterdayCompleted = yesterdayOrders.filter { it.status == OrderStatus.COMPLETED }
+            val yesterdaySalesTotal = yesterdayCompleted.sumOf { it.total }
+            val yesterdayOrderCount = yesterdayCompleted.size.toLong()
+
+            val lastWeekDate = now.toLocalDateTime(tz).date.minus(7L, DateTimeUnit.DAY)
+            val lastWeekStart = lastWeekDate.atStartOfDayIn(tz)
+            val lastWeekEnd = lastWeekDate.minus((-1).toLong(), DateTimeUnit.DAY).atStartOfDayIn(tz)
+            val lastWeekOrders = orderRepository.getByDateRange(lastWeekStart, lastWeekEnd).first()
+            val lastWeekSales = lastWeekOrders.filter { it.status == OrderStatus.COMPLETED }.sumOf { it.total }
+
+            fun changePercent(current: Double, previous: Double): Double =
+                if (previous > 0) ((current - previous) / previous) * 100.0 else 0.0
+
+            val salesVsYesterday = changePercent(sales, yesterdaySalesTotal)
+            val ordersVsYesterday = changePercent(orderCount.toDouble(), yesterdayOrderCount.toDouble())
+            val salesVsLastWeek = changePercent(sales, lastWeekSales)
+
             // Low stock
             val allProducts = productRepository.getAll().first()
             val lowStockProducts = allProducts.filter { it.stockQty <= it.minStockQty }
@@ -191,6 +213,12 @@ class DashboardViewModel(
                     userInitials = computedInitials,
                     dailySalesTarget = target,
                     lastRefreshedAt = now.toEpochMilliseconds(),
+                    yesterdaySales = yesterdaySalesTotal,
+                    yesterdayOrders = yesterdayOrderCount,
+                    salesChangePercent = salesVsYesterday,
+                    ordersChangePercent = ordersVsYesterday,
+                    lastWeekSameDaySales = lastWeekSales,
+                    salesChangeVsLastWeek = salesVsLastWeek,
                 )
             }
         } catch (e: Exception) {

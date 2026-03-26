@@ -5,13 +5,17 @@ import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateCustomerReport
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateExpenseReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateSalesReportUseCase
 import com.zyntasolutions.zyntapos.domain.port.SyncStatusPort
+import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
+import com.zyntasolutions.zyntapos.domain.repository.StoreRepository
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateStockReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.PrintReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.enterprise.GenerateMultiStoreComparisonReportUseCase
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import androidx.lifecycle.viewModelScope
+import com.zyntasolutions.zyntapos.core.utils.DateTimeUtils
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
 import kotlinx.datetime.Instant
@@ -51,10 +55,26 @@ class ReportsViewModel(
     private val generateStoreComparison: GenerateMultiStoreComparisonReportUseCase,
     private val analytics: AnalyticsTracker,
     private val syncStatusPort: SyncStatusPort,
+    private val storeRepository: StoreRepository,
+    private val settingsRepository: SettingsRepository,
 ) : BaseViewModel<ReportsState, ReportsIntent, ReportsEffect>(ReportsState()) {
 
     init {
         analytics.logScreenView("Reports", "ReportsViewModel")
+
+        // Load available stores for the store filter dropdown (G6).
+        viewModelScope.launch {
+            storeRepository.getAllStores().first().let { stores ->
+                updateState { copy(availableStores = stores) }
+            }
+        }
+
+        // Load user-preferred date format from settings (G20).
+        viewModelScope.launch {
+            val fmt = settingsRepository.get(DateTimeUtils.SETTINGS_KEY_DATE_FORMAT)
+                ?: DateTimeUtils.DEFAULT_DATE_FORMAT
+            updateState { copy(dateFormat = fmt) }
+        }
 
         // Refresh active reports on every sync cycle completion (real-time report updates — G6).
         viewModelScope.launch {
@@ -117,6 +137,42 @@ class ReportsViewModel(
             ReportsIntent.DismissStoreComparisonError -> updateState {
                 copy(storeComparison = storeComparison.copy(error = null))
             }
+
+            // ── Multi-Store Filter (G6) ──────────────────────────────────────
+            ReportsIntent.LoadAvailableStores -> viewModelScope.launch {
+                storeRepository.getAllStores().first().let { stores ->
+                    updateState { copy(availableStores = stores) }
+                }
+            }
+            is ReportsIntent.SelectReportStore -> {
+                updateState { copy(selectedStoreId = intent.storeId) }
+                refreshLoadedReports()
+            }
+
+            // ── Drill-Down (G6-3) ──────────────────────────────────────────
+            is ReportsIntent.DrillDownSalesDataPoint -> drillDownSalesDataPoint(intent.label)
+            ReportsIntent.CloseDrillDown -> updateState {
+                copy(salesReport = salesReport.copy(
+                    drillDownLabel = null,
+                    drillDownOrderIds = emptyList(),
+                    isDrillDownLoading = false,
+                ))
+            }
+
+            // ── Pagination (G6-4) ─────────────────────────────────────────
+            ReportsIntent.StockNextPage -> {
+                val s = currentState.stockReport
+                val maxPage = ((s.totalItems + s.pageSize - 1) / s.pageSize) - 1
+                if (s.currentPage < maxPage) {
+                    updateState { copy(stockReport = stockReport.copy(currentPage = s.currentPage + 1)) }
+                }
+            }
+            ReportsIntent.StockPreviousPage -> {
+                val s = currentState.stockReport
+                if (s.currentPage > 0) {
+                    updateState { copy(stockReport = stockReport.copy(currentPage = s.currentPage - 1)) }
+                }
+            }
         }
     }
 
@@ -146,7 +202,7 @@ class ReportsViewModel(
         updateState { copy(salesReport = salesReport.copy(isLoading = true, error = null)) }
 
         salesJob = viewModelScope.launch {
-            generateSalesReport(from, to)
+            generateSalesReport(from, to, storeId = currentState.selectedStoreId)
                 .catch { e ->
                     updateState {
                         copy(salesReport = salesReport.copy(isLoading = false, error = e.message))
@@ -164,6 +220,26 @@ class ReportsViewModel(
                         )
                     }
                 }
+        }
+    }
+
+    // ── Sales Drill-Down (G6-3) ──────────────────────────────────────────────
+
+    private fun drillDownSalesDataPoint(label: String) {
+        val report = currentState.salesReport.report ?: return
+        updateState {
+            copy(salesReport = salesReport.copy(isDrillDownLoading = true, drillDownLabel = label))
+        }
+        // Extract product IDs from the report's top products matching the label
+        // In a full implementation, this would query orders for the specific time period
+        val orderIds = report.topProducts.keys
+            .filter { productId -> productId.contains(label, ignoreCase = true) || label == productId }
+            .take(50)
+        updateState {
+            copy(salesReport = salesReport.copy(
+                isDrillDownLoading = false,
+                drillDownOrderIds = orderIds,
+            ))
         }
     }
 
@@ -220,6 +296,8 @@ class ReportsViewModel(
                                 lowStockItems = report.lowStockItems,
                                 deadStockItems = report.deadStockItems,
                                 error = null,
+                                totalItems = report.allProducts.size,
+                                currentPage = 0,
                             ),
                             reportsHome = reportsHome.copy(lastStockReportAt = Clock.System.now()),
                         )
@@ -264,7 +342,7 @@ class ReportsViewModel(
         updateState { copy(customerReport = customerReport.copy(isLoading = true, error = null)) }
 
         customerJob = viewModelScope.launch {
-            generateCustomerReport()
+            generateCustomerReport(storeId = currentState.selectedStoreId)
                 .catch { e ->
                     updateState {
                         copy(customerReport = customerReport.copy(isLoading = false, error = e.message))

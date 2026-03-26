@@ -35,6 +35,13 @@ data class SettingsState(
     /** True while any cross-screen async operation is pending. */
     val isLoading: Boolean = false,
     val error: String? = null,
+    // ── Settings Sync (G8-4) ────────────────────────────────────────────────
+    /** `true` while settings are being synced to the backend. */
+    val isSyncingSettings: Boolean = false,
+    /** Timestamp of the last successful settings sync. `null` if never synced. */
+    val lastSettingsSyncAt: String? = null,
+    /** Error from the last sync attempt. `null` on success. */
+    val settingsSyncError: String? = null,
 ) {
 
     // ── General settings ──────────────────────────────────────────────────────
@@ -48,6 +55,10 @@ data class SettingsState(
         val timezone: String     = "Asia/Colombo",
         val dateFormat: String   = "dd/MM/yyyy",
         val language: String     = "en",
+        /** System-detected timezone ID (e.g., "Asia/Colombo"). */
+        val detectedTimezone: String = "",
+        /** UTC offset string for the detected timezone (e.g., "UTC+05:30"). */
+        val timezoneUtcOffset: String = "",
         val isSaving: Boolean    = false,
         val saveError: String?   = null,
     )
@@ -74,6 +85,25 @@ data class SettingsState(
         val isCreating: Boolean         = false,  // FAB → create sheet
         val deleteTarget: TaxGroup?     = null,   // non-null = confirm dialog shown
         val saveError: String?          = null,
+        /** Per-store tax rate overrides for multi-region support (G8-1). */
+        val taxOverrides: List<StoreTaxOverride>  = emptyList(),
+        val showTaxOverrideDialog: Boolean        = false,
+        val editingTaxOverride: StoreTaxOverride?  = null,
+    )
+
+    /**
+     * A per-store override for a specific [TaxGroup] rate.
+     *
+     * Allows stores in different regions to charge a different tax rate
+     * than the global default defined on the [TaxGroup].
+     */
+    data class StoreTaxOverride(
+        val storeId: String,
+        val storeName: String,
+        val taxGroupId: String,
+        val taxGroupName: String,
+        val overrideRate: Double,
+        val isEnabled: Boolean = true,
     )
 
     // ── Printer settings ──────────────────────────────────────────────────────

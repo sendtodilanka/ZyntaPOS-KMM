@@ -42,6 +42,7 @@ val expensesModule = module {
             approveExpenseUseCase = get(),
             authRepository = get(),
             postExpenseJournalEntryUseCase = get(),
+            settingsRepository = get(),
             auditLogger = get(),
             analytics = get(),
         )

@@ -73,6 +73,10 @@ fun LoginScreen(
                 is AuthEffect.NavigateToRegisterGuard -> onNavigateToRegisterGuard()
                 is AuthEffect.ShowError              -> snackbarHostState.showSnackbar(effect.message)
                 is AuthEffect.ShowPinLock            -> { /* PinLock triggered by SessionManager */ }
+                is AuthEffect.PinUnlocked            -> { /* Handled in App.kt pin lock */ }
+                is AuthEffect.QuickSwitchCompleted   -> { /* Handled in App.kt pin lock */ }
+                is AuthEffect.NavigateToLogin        -> { /* Already on login screen */ }
+                is AuthEffect.SessionTimeoutWarning  -> { /* Not applicable on login screen */ }
             }
         }
     }

@@ -48,10 +48,16 @@ class GenerateCustomerReportUseCase(
     )
 
     /**
+     * @param storeId Optional store filter — null means all stores (G6 multi-store consolidation).
      * @return A [Flow] emitting a fresh [CustomerReport] on every customer table change.
      */
-    operator fun invoke(): Flow<CustomerReport> =
-        customerRepository.getAll().map { customers ->
+    operator fun invoke(storeId: String? = null): Flow<CustomerReport> =
+        customerRepository.getAll().map { allCustomers ->
+            val customers = if (storeId != null) {
+                allCustomers.filter { it.storeId == storeId }
+            } else {
+                allCustomers
+            }
             val registered = customers.count { !it.isWalkIn }
             val walkIn = customers.count { it.isWalkIn }
             val creditEnabled = customers.count { it.creditEnabled }

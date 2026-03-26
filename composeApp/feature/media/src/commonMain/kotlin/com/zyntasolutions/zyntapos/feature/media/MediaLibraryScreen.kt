@@ -60,6 +60,11 @@ fun MediaLibraryScreen(
             if (path != null) onIntent(MediaIntent.UpdateFilePath(path))
         }
 
+        // Camera launcher — called unconditionally; returns null on platforms without camera.
+        val takePhoto = rememberNativeCameraLauncher { path ->
+            if (path != null) onIntent(MediaIntent.UpdateFilePath(path))
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -121,6 +126,7 @@ fun MediaLibraryScreen(
                 file = file,
                 onSetPrimary = { onIntent(MediaIntent.SetAsPrimary(file.id)) },
                 onDelete = { onIntent(MediaIntent.DeleteFile(file.id)) },
+                onEdit = { onIntent(MediaIntent.OpenImageEditor(file.id)) },
                 onDismiss = { onIntent(MediaIntent.ClearSelection) },
             )
         }
@@ -137,6 +143,22 @@ fun MediaLibraryScreen(
             )
         }
 
+        // Image crop/compress editor (G15)
+        state.editingFile?.let { file ->
+            ImageEditorDialog(
+                file = file,
+                aspectRatio = state.cropAspectRatio,
+                compressionQuality = state.compressionQuality,
+                resizeMaxWidth = state.resizeMaxWidth,
+                isProcessing = state.isProcessing,
+                onAspectRatioChange = { onIntent(MediaIntent.SetCropAspectRatio(it)) },
+                onQualityChange = { onIntent(MediaIntent.SetCompressionQuality(it)) },
+                onResizeChange = { onIntent(MediaIntent.SetResizeMaxWidth(it)) },
+                onApply = { onIntent(MediaIntent.ApplyImageProcessing) },
+                onDismiss = { onIntent(MediaIntent.CloseImageEditor) },
+            )
+        }
+
         // Add media dialog
         if (state.showAddDialog) {
             AddMediaDialog(
@@ -146,6 +168,7 @@ fun MediaLibraryScreen(
                 onConfirm = { onIntent(MediaIntent.ConfirmAddFile) },
                 onDismiss = { onIntent(MediaIntent.HideAddDialog) },
                 onBrowse = pickFile,
+                onTakePhoto = takePhoto,
             )
         }
     }
@@ -227,6 +250,7 @@ private fun FileActionBottomSheet(
     file: MediaFile,
     onSetPrimary: () -> Unit,
     onDelete: () -> Unit,
+    onEdit: () -> Unit = {},
     onDismiss: () -> Unit,
 ) {
     AlertDialog(
@@ -245,14 +269,24 @@ private fun FileActionBottomSheet(
             }
         },
         confirmButton = {
-            if (!file.isPrimary) {
+            Row(horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.xs)) {
+                if (!file.isPrimary) {
+                    TextButton(onClick = {
+                        onSetPrimary()
+                        onDismiss()
+                    }) {
+                        Icon(Icons.Default.Star, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Set as Primary")
+                    }
+                }
                 TextButton(onClick = {
-                    onSetPrimary()
+                    onEdit()
                     onDismiss()
                 }) {
-                    Icon(Icons.Default.Star, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Tune, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("Set as Primary")
+                    Text("Edit")
                 }
             }
         },
@@ -352,6 +386,188 @@ private fun FullScreenImagePreview(
     }
 }
 
+/**
+ * Image crop/compress editor dialog (G15).
+ *
+ * Provides controls for:
+ * - Crop aspect ratio selection (Free, 1:1, 4:3, 16:9, 3:4)
+ * - JPEG compression quality slider (1–100)
+ * - Max width resize input
+ * - Preview of the original image
+ *
+ * Actual pixel-level cropping requires platform-specific bitmap APIs and will
+ * be enhanced in Phase 2. This dialog captures the user's intent and stores
+ * parameters for server-side or deferred processing.
+ */
+@Composable
+private fun ImageEditorDialog(
+    file: MediaFile,
+    aspectRatio: CropAspectRatio,
+    compressionQuality: Int,
+    resizeMaxWidth: Int,
+    isProcessing: Boolean,
+    onAspectRatioChange: (CropAspectRatio) -> Unit,
+    onQualityChange: (Int) -> Unit,
+    onResizeChange: (Int) -> Unit,
+    onApply: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .fillMaxHeight(0.85f),
+            shape = MaterialTheme.shapes.extraLarge,
+            tonalElevation = 6.dp,
+        ) {
+            Column(modifier = Modifier.padding(ZyntaSpacing.md)) {
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        "Edit Image",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, contentDescription = "Close")
+                    }
+                }
+
+                Spacer(Modifier.height(ZyntaSpacing.sm))
+
+                // Image preview
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        AsyncImage(
+                            model = file.displayUrl,
+                            contentDescription = file.fileName,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Fit,
+                        )
+                        // Aspect ratio overlay indicator
+                        if (aspectRatio != CropAspectRatio.FREE) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                shape = MaterialTheme.shapes.small,
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(8.dp),
+                            ) {
+                                Text(
+                                    aspectRatio.label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(ZyntaSpacing.md))
+
+                // Crop aspect ratio selector
+                Text("Crop Aspect Ratio", style = MaterialTheme.typography.labelLarge)
+                Spacer(Modifier.height(ZyntaSpacing.xs))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.xs),
+                ) {
+                    CropAspectRatio.entries.forEach { ratio ->
+                        FilterChip(
+                            selected = aspectRatio == ratio,
+                            onClick = { onAspectRatioChange(ratio) },
+                            label = { Text(ratio.label, style = MaterialTheme.typography.labelSmall) },
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(ZyntaSpacing.md))
+
+                // Compression quality slider
+                Text(
+                    "Compression Quality: ${compressionQuality}%",
+                    style = MaterialTheme.typography.labelLarge,
+                )
+                Slider(
+                    value = compressionQuality.toFloat(),
+                    onValueChange = { onQualityChange(it.toInt()) },
+                    valueRange = 10f..100f,
+                    steps = 8,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text("Small file", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Best quality", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+
+                Spacer(Modifier.height(ZyntaSpacing.md))
+
+                // Resize max width
+                Text("Max Width (px)", style = MaterialTheme.typography.labelLarge)
+                Spacer(Modifier.height(ZyntaSpacing.xs))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
+                ) {
+                    listOf(0, 640, 1024, 1920, 2560).forEach { size ->
+                        FilterChip(
+                            selected = resizeMaxWidth == size,
+                            onClick = { onResizeChange(size) },
+                            label = {
+                                Text(
+                                    if (size == 0) "Original" else "${size}px",
+                                    style = MaterialTheme.typography.labelSmall,
+                                )
+                            },
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(ZyntaSpacing.md))
+
+                // Action buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (isProcessing) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                        Spacer(Modifier.width(ZyntaSpacing.sm))
+                    }
+                    TextButton(onClick = onDismiss, enabled = !isProcessing) {
+                        Text("Cancel")
+                    }
+                    Spacer(Modifier.width(ZyntaSpacing.sm))
+                    Button(onClick = onApply, enabled = !isProcessing) {
+                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(ZyntaSpacing.xs))
+                        Text("Apply")
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun AddMediaDialog(
     filePath: String,
@@ -360,6 +576,7 @@ private fun AddMediaDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
     onBrowse: () -> Unit = {},
+    onTakePhoto: (() -> Unit)? = null,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -367,18 +584,33 @@ private fun AddMediaDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                 Text(
-                    "Select an image using the file picker or enter its path manually.",
+                    "Select an image using the file picker, take a photo, or enter its path manually.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                // G15: Native file picker button
-                OutlinedButton(
-                    onClick = onBrowse,
+                // G15: Native file picker + camera buttons
+                Row(
                     modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
                 ) {
-                    Icon(Icons.Default.FolderOpen, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(ZyntaSpacing.xs))
-                    Text("Browse…")
+                    OutlinedButton(
+                        onClick = onBrowse,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Icon(Icons.Default.FolderOpen, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(ZyntaSpacing.xs))
+                        Text("Browse\u2026")
+                    }
+                    if (onTakePhoto != null) {
+                        OutlinedButton(
+                            onClick = onTakePhoto,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(ZyntaSpacing.xs))
+                            Text("Take Photo")
+                        }
+                    }
                 }
                 OutlinedTextField(
                     value = filePath,

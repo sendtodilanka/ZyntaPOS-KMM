@@ -40,4 +40,23 @@ sealed interface ReportsIntent {
     data class SelectStoreComparisonRange(val range: DateRange) : ReportsIntent
     data object ExportStoreComparisonCsv : ReportsIntent
     data object DismissStoreComparisonError : ReportsIntent
+
+    // ── Multi-Store Filter (G6) ─────────────────────────────────────────────
+    /** Load the list of available stores for the store filter dropdown. */
+    data object LoadAvailableStores : ReportsIntent
+
+    /** Select a store to filter all reports by. Pass null for "All Stores". */
+    data class SelectReportStore(val storeId: String?) : ReportsIntent
+
+    // ── Drill-Down (G6-3) ─────────────────────────────────────────────────
+    /** Drill into a chart data point (e.g., click a day's bar to see transactions). */
+    data class DrillDownSalesDataPoint(val label: String) : ReportsIntent
+    /** Close the drill-down view and return to the summary. */
+    data object CloseDrillDown : ReportsIntent
+
+    // ── Pagination (G6-4) ─────────────────────────────────────────────────
+    /** Navigate to the next page of the stock report table. */
+    data object StockNextPage : ReportsIntent
+    /** Navigate to the previous page of the stock report table. */
+    data object StockPreviousPage : ReportsIntent
 }

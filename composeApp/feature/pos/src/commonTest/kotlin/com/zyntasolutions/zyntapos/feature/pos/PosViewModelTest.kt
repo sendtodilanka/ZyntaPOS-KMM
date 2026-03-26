@@ -150,6 +150,10 @@ class PosViewModelTest {
             Result.Success(Unit)
         override suspend fun validatePin(userId: String, pin: String): Result<Boolean> =
             Result.Success(true)
+        override suspend fun quickSwitch(userId: String, pin: String): Result<User> =
+            Result.Success(_session.value!!)
+        override suspend fun validateManagerPin(pin: String): Result<Boolean> =
+            Result.Success(true)
     }
 
     // ── Fake Repositories ──────────────────────────────────────────────────────
@@ -558,6 +562,8 @@ class PosViewModelTest {
             lookupOrderForReturnUseCase = LookupOrderForReturnUseCase(fakeOrderRepository),
             getStorePromotionsUseCase = GetStorePromotionsUseCase(fakeCouponRepository),
             applyStorePromotionsUseCase = ApplyStorePromotionsUseCase(),
+            settingsRepository = fakeSettingsRepository,
+            currencyFormatter = CurrencyFormatter(),
             auditLogger = testAuditLogger,
             analytics = noOpAnalytics,
         )

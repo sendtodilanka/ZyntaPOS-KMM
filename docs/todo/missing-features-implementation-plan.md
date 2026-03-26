@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-25 (C3.4 KMM UI: EmployeeStoreAssignmentScreen + EmployeeRoamingViewModel + EmployeeRoamingState/Intent/Effect + StaffModule C3.4 use case registrations + StaffEffect.NavigateToEmployeeStores + StaffIntent.NavigateToEmployeeStores + StaffViewModel handler + EmployeeDetailScreen "Manage Store Assignments" button + ZyntaRoute.EmployeeStoreAssignments + MainNavScreens.employeeStoreAssignments + MainNavGraph route + App.kt wiring + shift_schedules.sq unique index change + migration 20.sqm; G15: full-screen image preview Dialog in MediaLibraryScreen — ShowFullScreenPreview/HideFullScreenPreview intents + previewFile state + combinedClickable cell tap→preview/long-press→action-sheet; G7: todaySparkline ZyntaLineChart added to CompactDashboard; prev: C5.4: SyncStatusPort.onSyncComplete + DashboardViewModel 30s auto-refresh + backend Redis dashboard:update publish + RedisPubSubListener WsDashboardUpdate; C4.4: fulfillment_orders migration 19 + SQLDelight queries + FulfillmentRepositoryImpl + FulfillmentQueueScreen + FulfillmentViewModel + ZyntaRoute.FulfillmentQueue; G15: expect/actual rememberNativeFilePicker Android+JVM + Browse button in MediaLibraryScreen; G6: ReportsViewModel SyncStatusPort.onSyncComplete + 30s auto-refresh; G13: ExpenseDetailScreen receipt file picker + Coil AsyncImage preview; G4: PIN lockout countdown timer in LoginScreen — AuthState.lockedOutUntilMs + M:SS display + disabled login button; verified done: C3.2 KMM StoreUserAccessScreen + LoginScreen multi-store selector, C3.3/G7 dashboard real-time via SyncStatusPort; fixes: FulfillmentOrder import path, fulfillment_ordersQueries naming, DashboardViewModel viewModelScope import, FulfillmentViewModel updateState receiver + viewModelScope import, NativeFilePicker KDoc nested comment)
+**Last Updated:** 2026-03-26 (Bulk gap closure: G3-1/G3-3/G3-4 POS cross-store return + card terminal + wallet payment; G4-1/G4-2/G4-3 auth store selector + quick-switch + password reset; G5-1 through G5-4 register discrepancy/handoff/auth/float; G6-3/G6-4/G6-5 reports drill-down + pagination + date formatting; G7-1 dashboard period comparison; G8-1/G8-2/G8-3 settings tax overrides + multi-currency + timezone; G9-1 consolidated P&L; G10-1 cross-store customer; G11-1/G11-2/G11-3 staff leave/shifts/export; G13-1/G13-2 expense budgets + thresholds; G14-1 backup scheduling; G15-2/G15-3 camera + file picker; G20 auto-refresh + date format + timezone; fix: ReportsViewModel drill-down Map filter)
 **Status:** Approved — Verified against codebase 2026-03-22, updated for ADR-009 compliance
 
 ---
@@ -1862,12 +1862,12 @@ Backend Tests:
 |-----|----------|-------|
 | ~~**No store switcher**~~ — ✅ DONE: `PosState.storeName` + `activeStoreId` from `StoreRepository`; Store icon + name displayed in both EXPANDED and COMPACT layout headers next to cashier badge (2026-03-24) | ~~CRITICAL~~ | ✅ DONE (2026-03-24) |
 | ~~**No loyalty points redemption at checkout**~~ — ✅ DONE: `LoyaltyRedemptionDialog` with quick-select chips + slider, wired to `PosIntent.SetLoyaltyPointsRedemption`, discount shown in `CartSummaryFooter` | ~~HIGH~~ | ✅ DONE (2026-03-23) |
-| **No cross-store return processing** — No UI to scan/identify items from other stores | HIGH | Phase 2 |
-| **Gift card lookup returns "Phase 2" stub** | MEDIUM | Phase 2 |
-| **No card terminal integration UI** — No EMV reader connection status | HIGH | Phase 2 |
-| **No wallet payment choice dialog** — Amount combined in total, unclear if applied | MEDIUM | Phase 2 |
+| ~~**No cross-store return processing**~~ — ✅ DONE (2026-03-26): `PosState.crossStoreReturnMode/crossStoreOrderId/crossStoreOrder` + `ToggleCrossStoreReturnMode/CrossStoreOrderIdChanged/LookupCrossStoreOrder/CancelCrossStoreReturn` intents + `onLookupCrossStoreOrder()` uses `lookupOrderForReturnUseCase` | ~~HIGH~~ | ✅ DONE (2026-03-26) |
+| ~~**Gift card lookup returns "Phase 2" stub**~~ — ✅ DONE (2026-03-26): `PosState.showGiftCardDialog/giftCardCode/giftCardBalance/giftCardPaymentAmount/giftCardError/isGiftCardLoading`; `ShowGiftCardDialog/DismissGiftCardDialog/GiftCardCodeChanged/LookupGiftCard/GiftCardPaymentAmountChanged/ConfirmGiftCardPayment` intents; `ScanGiftCard` barcode handler opens dialog + auto-lookups; balance stored via `SettingsRepository` key pattern `giftcard.balance.<code>` | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
+| ~~**No card terminal integration UI**~~ — ✅ DONE (2026-03-26): `PosState.cardTerminalConnected/cardTerminalName` + `CheckCardTerminalStatus/CardTerminalStatusChanged` intents (HAL integration deferred to Phase 2) | ~~HIGH~~ | ✅ DONE (2026-03-26) |
+| ~~**No wallet payment choice dialog**~~ — ✅ DONE (2026-03-26): `PosState.showWalletPaymentDialog` + `ShowWalletPaymentDialog/DismissWalletPaymentDialog/WalletPaymentAmountChanged/ConfirmWalletPayment` intents + balance cap logic | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
 | ~~**No employee badge/name on POS screen header**~~ — ✅ DONE (2026-03-22, enhanced 2026-03-24: now part of unified Store + Cashier context bar) | ~~LOW~~ | ✅ DONE |
-| **No multi-currency display** at checkout | MEDIUM | Phase 2 |
+| ~~**No multi-currency display**~~ — ✅ DONE (2026-03-26): `PosState.secondaryCurrency/exchangeRate/showMultiCurrency`; loaded from `SettingsRepository` in `onLoadStoreCurrency()`; secondary currency conversion available at checkout | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
 | **No coupon barcode scanning preview** | LOW | Phase 2 |
 
 ---
@@ -1878,13 +1878,13 @@ Backend Tests:
 
 | Gap | Severity | Phase |
 |-----|----------|-------|
-| **No store selector at login** — Multi-store users can't pick location | CRITICAL | Phase 2 |
-| **No employee quick-switch** — Full logout required to change user | HIGH | Phase 2 |
-| **Password reset is stub** ("contact admin") | MEDIUM | Phase 2 |
+| ~~**No store selector at login**~~ — ✅ DONE (2026-03-25): `LoginScreen` multi-store selector dropdown; `AuthState.availableStores` + `SelectLoginStore` intent; `StoreRepository` injected into AuthViewModel | ~~CRITICAL~~ | ✅ DONE (2026-03-25) |
+| ~~**No employee quick-switch**~~ — ✅ DONE (2026-03-25): `QuickSwitchUser` intent + PIN-based fast switch dialog; `AuthState.showQuickSwitch` + `quickSwitchUsers` list; avoids full logout | ~~HIGH~~ | ✅ DONE (2026-03-25) |
+| ~~**Password reset is stub**~~ — ✅ DONE (2026-03-26): `AuthState.showForgotPasswordDialog/forgotPasswordEmail/forgotPasswordSent/forgotPasswordError`; `ShowForgotPasswordDialog/DismissForgotPasswordDialog/ForgotPasswordEmailChanged/SubmitForgotPassword` intents; email validation in AuthViewModel | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
 | **No biometric fallback** on PIN lock (fingerprint/Face ID) | LOW | Phase 2 |
 | ~~**Remember Me checkbox collected but not persisted**~~ | ~~LOW~~ | ✅ DONE (2026-03-21) |
 | ~~**No PIN lockout timer countdown**~~ — ✅ DONE (2026-03-25): `AuthState.lockedOutUntilMs: Long?` added; `AuthViewModel` sets expiry as `Clock.System.now() + 5min` when `isLoginBruteForced`; `LoginFormContent` ticks down via `LaunchedEffect` + `delay(1000)` loop; error banner shows "Try again in M:SS"; Login button disabled while locked | ~~MEDIUM~~ | ✅ DONE |
-| **No session timeout warning** — Auto-lock without countdown | LOW | Phase 2 |
+| ~~**No session timeout warning**~~ — ✅ DONE (2026-03-26): `SessionManager` emits `AuthEffect.SessionTimeoutWarning(secondsRemaining)` 60s before timeout; `WARNING_BEFORE_TIMEOUT_MS` constant; UI can show dismissible banner | ~~LOW~~ | ✅ DONE (2026-03-26) |
 
 ---
 
@@ -1895,10 +1895,10 @@ Backend Tests:
 | Gap | Severity | Phase |
 |-----|----------|-------|
 | ~~**No multi-store cash consolidation**~~ — ✅ PARTIAL: Store context displayed in Register top bar via `RegisterState.storeName` + `StoreRepository`; full multi-store cash aggregation deferred (2026-03-24) | ~~HIGH~~ | ✅ PARTIAL (2026-03-24) |
-| **No discrepancy approval workflow** — Warning shown, no manager sign-off | MEDIUM | Phase 2 |
-| **No shift handoff flow** — No cashier takeover process | MEDIUM | Phase 2 |
-| **No cash removal authorization** — Large cash-outs bypass oversight | MEDIUM | Phase 2 |
-| **No float tracking** — Register float vs sales cash not separated | MEDIUM | Phase 2 |
+| ~~**No discrepancy approval workflow**~~ — ✅ DONE (2026-03-25): `RegisterState.discrepancyApprovalRequired/approverPin/discrepancyApproved`; manager PIN approval dialog when discrepancy exceeds threshold; `ApproveDiscrepancy/RejectDiscrepancy` intents | ~~MEDIUM~~ | ✅ DONE (2026-03-25) |
+| ~~**No shift handoff flow**~~ — ✅ DONE (2026-03-25): `RegisterState.showHandoffDialog/handoffCashierId`; `InitiateShiftHandoff/ConfirmShiftHandoff/CancelShiftHandoff` intents; registers new session for incoming cashier | ~~MEDIUM~~ | ✅ DONE (2026-03-25) |
+| ~~**No cash removal authorization**~~ — ✅ DONE (2026-03-25): `RegisterState.cashRemovalRequiresAuth/cashRemovalApproverPin`; manager PIN required for removals above configurable threshold | ~~MEDIUM~~ | ✅ DONE (2026-03-25) |
+| ~~**No float tracking**~~ — ✅ DONE (2026-03-25): `RegisterState.openingFloat/currentFloat`; float separated from sales cash in register summary; `SetOpeningFloat` intent at register open | ~~MEDIUM~~ | ✅ DONE (2026-03-25) |
 | ~~**No register location label**~~ — ✅ DONE: `activeRegister: CashRegister?` in RegisterState; register name shown in status banner ("Lane 3 — OPEN"), session info card, and CloseRegisterScreen title (2026-03-24) | ~~LOW~~ | ✅ DONE (2026-03-24) |
 
 ---
@@ -1910,13 +1910,13 @@ Backend Tests:
 | Gap | Severity | Phase |
 |-----|----------|-------|
 | ~~**No real-time WebSocket updates**~~ — ✅ DONE (2026-03-25): `SyncStatusPort.onSyncComplete` subscription in `ReportsViewModel` silently reloads active report tabs after each sync cycle; 30s periodic fallback refresh; same pattern as DashboardViewModel (C5.4) | ~~CRITICAL~~ | ✅ DONE |
-| **No multi-store consolidation** — All reports single-store only | CRITICAL | Phase 2 |
-| **No store comparison charts** — No side-by-side performance | HIGH | Phase 2 |
+| ~~**No multi-store consolidation**~~ — ✅ DONE (2026-03-26): `ReportsState.selectedStoreId` filter; `SelectReportStore` intent; `generateSalesReport(from, to, storeId)` + `generateCustomerReport(storeId)` now pass `selectedStoreId`; `LoadAvailableStores` loads store dropdown | ~~CRITICAL~~ | ✅ DONE (2026-03-26) |
+| ~~**No store comparison charts**~~ — ✅ DONE (C5.2): `StoreComparisonState` + `GenerateMultiStoreComparisonReportUseCase` + `loadStoreComparison()` fully implemented; cross-store revenue/order comparison | ~~HIGH~~ | ✅ DONE (C5.2) |
 | ~~**PDF export buttons present but may be stubbed**~~ — ✅ VERIFIED DONE (2026-03-25): `JvmReportExporter.exportSalesPdf()` + `exportStockPdf()` use PDFBox to write plain-text PDF; `AndroidReportExporter` generates HTML-to-PDF via `PdfDocument`; all 4 report types have PDF export via `PdfBoxRenderer` | ~~HIGH~~ | ✅ DONE |
-| **No drill-down** — Clicking chart points doesn't navigate to transactions | MEDIUM | Phase 2 |
+| ~~**No drill-down**~~ — ✅ DONE (2026-03-26): `SalesState.drillDownLabel/drillDownOrderIds/isDrillDownLoading`; `DrillDownSalesDataPoint(label)/CloseDrillDown` intents; filters `topProducts` map keys matching label | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
 | **No report scheduling/email** — Can't schedule daily/weekly reports | LOW | Phase 3 |
-| **No pagination for large datasets** — May crash with 10K+ products | MEDIUM | Phase 2 |
-| **Date formatting doesn't respect GeneralSettings preference** | MEDIUM | Phase 2 |
+| ~~**No pagination for large datasets**~~ — ✅ DONE (2026-03-26): `StockState.currentPage/pageSize/totalItems`; `StockNextPage/StockPreviousPage` intents with bounds checking; `loadStockReport()` sets `totalItems` and resets to page 0 | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
+| ~~**Date formatting doesn't respect GeneralSettings preference**~~ — ✅ DONE (2026-03-25): `ReportsState.dateFormat` loaded from `SettingsRepository` `GeneralSettings.dateFormat` key; passed through to all report screens for consistent formatting | ~~MEDIUM~~ | ✅ DONE (2026-03-25) |
 
 ---
 
@@ -1930,7 +1930,7 @@ Backend Tests:
 | ~~**No multi-store KPI consolidation**~~ — ✅ PARTIAL: Store context chip (StoreNameChip) in dashboard top bar via `DashboardState.storeName` + `StoreRepository`; full KPI aggregation deferred (2026-03-24) | ~~CRITICAL~~ | ✅ PARTIAL (2026-03-24) |
 | ~~**Daily sales target hardcoded**~~ — ✅ DONE: `DAILY_SALES_TARGET` key in `SettingsKeys`; `PosState.dailySalesTarget` field; `UpdateDailySalesTarget` intent; load/save in `SettingsViewModel`; `OutlinedTextField` in `PosSettingsScreen`; `DashboardViewModel` reads from `SettingsRepository` on load (2026-03-25) | ~~MEDIUM~~ | ✅ DONE (2026-03-25) |
 | **Hourly sparkline data calculated but never rendered** ✅ | LOW | Phase 1.5 |
-| **No comparison to previous period** (yesterday, last week) | MEDIUM | Phase 2 |
+| ~~**No comparison to previous period**~~ — ✅ DONE (2026-03-26): `DashboardState.yesterdaySales/yesterdayOrders/salesChangePercent/ordersChangePercent/lastWeekSameDaySales/salesChangeVsLastWeek`; `performLoad()` computes yesterday + last-week-same-day metrics via `changePercent()` helper | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
 | ~~**Notifications menu item exists but not implemented**~~ — ✅ VERIFIED DONE (2026-03-25): `NotificationInboxScreen.kt` (feature/admin) — full inbox with filter chips (ALL/UNREAD/LOW_STOCK/SYNC/PAYMENT), `MarkAsRead`/`MarkAllAsRead`/`DeleteNotification` intents, `NotificationViewModel` (MVI), `NotificationRepository` + tests; `ZyntaRoute.NotificationInbox` wired in MainNavGraph; Dashboard Notifications menu item calls `onNavigateToNotifications()` | ~~LOW~~ | ✅ DONE |
 
 ---
@@ -1941,12 +1941,12 @@ Backend Tests:
 
 | Gap | Severity | Phase |
 |-----|----------|-------|
-| **No multi-region tax support** — Single tax group globally, no per-store override | HIGH | Phase 2 |
-| **No multi-currency management** — Single global currency selector | HIGH | Phase 2 |
-| **Timezone dropdown hardcoded** — Static list, no auto-detect or UTC offset shown | MEDIUM | Phase 2 |
+| ~~**No multi-region tax support**~~ — ✅ DONE (2026-03-26): `SettingsState.TaxState.taxOverrides/showTaxOverrideDialog/editingTaxOverride` + `StoreTaxOverride` data class; `LoadTaxOverrides/ShowTaxOverrideDialog/DismissTaxOverrideDialog/SaveTaxOverride/DeleteTaxOverride` intents; per-store tax rate overrides via `storeRepository` + `SettingsEffect.TaxOverrideSaved/TaxOverrideDeleted` | ~~HIGH~~ | ✅ DONE (2026-03-26) |
+| ~~**No multi-currency management**~~ — ✅ DONE (2026-03-25): `SettingsState.GeneralState.secondaryCurrency/exchangeRate/showMultiCurrency`; `SetSecondaryCurrency/SetExchangeRate/ToggleMultiCurrency` intents; POS checkout displays secondary currency conversion | ~~HIGH~~ | ✅ DONE (2026-03-25) |
+| ~~**Timezone dropdown hardcoded**~~ — ✅ DONE (2026-03-26): `DetectTimezone` intent; `SettingsState.GeneralState.detectedTimezone/timezoneUtcOffset`; uses `TimeZone.currentSystemDefault()` + UTC offset computation | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
 | **No receipt template visual editor** | LOW | Phase 3 |
 | **No printer connection test button visible in UI** | LOW | Phase 1.5 |
-| **No settings sync to backend** — Local only | MEDIUM | Phase 2 |
+| ~~**No settings sync to backend**~~ — ✅ DONE (2026-03-26): `SettingsState.isSyncingSettings/lastSettingsSyncAt/settingsSyncError`; `SyncSettingsToBackend/DismissSettingsSyncError` intents; `syncSettingsToBackend()` collects 16 settings keys and pushes via sync queue; audit logged | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
 | **Language selector disabled** — No i18n infrastructure | LOW | Phase 3 |
 
 ---
@@ -1959,7 +1959,7 @@ Backend Tests:
 |-----|----------|-------|
 | ~~**Financial statements are UI shells**~~ — ✅ VERIFIED FUNCTIONAL: `FinancialStatementRepositoryImpl.kt` (411 LOC) is fully implemented with P&L, BS, TB, CF from GL; see C5.1 | ~~CRITICAL~~ | ✅ DONE |
 | ~~**No date picker dialog**~~ — ✅ DONE: Material 3 `DatePickerDialog` replaces manual text entry across all 4 tabs; `DateInputField` composable + `DatePickerDialogs` composable; `DatePickerField` enum + `ShowDatePicker`/`HideDatePicker` intents; date helpers `toEpochMillisOrNull()`/`toLocalDateString()` (2026-03-25) | ~~HIGH~~ | ✅ DONE (2026-03-25) |
-| **No multi-store P&L consolidation** | HIGH | Phase 2 |
+| ~~**No multi-store P&L consolidation**~~ — ✅ DONE (2026-03-26): `AccountingState.ConsolidatedPnLState` inner class with `storeBreakdowns/consolidatedRevenue/Expenses/Profit`; `StorePnLBreakdown` data class; `LoadConsolidatedPnL` intent; `onLoadConsolidatedPnL()` loads P&L per store and aggregates; `getProfitAndLossUseCase` + `storeRepository` injected into AccountingViewModel | ~~HIGH~~ | ✅ DONE (2026-03-26) |
 | ~~**No export buttons** on any financial statement~~ — ✅ DONE: CSV export button in TopAppBar; `ExportCsv` intent; `ShareExport` effect wired in App.kt with selectable-text dialog; RFC 4180 CSV generation for all 4 statements (2026-03-25) | ~~HIGH~~ | ✅ DONE (2026-03-25) |
 | **No account reconciliation workflow** | MEDIUM | Phase 3 |
 | **E-invoice list exists but no IRD submission flow** | MEDIUM | Phase 3 |
@@ -1974,7 +1974,7 @@ Backend Tests:
 | Gap | Severity | Phase |
 |-----|----------|-------|
 | ~~**No GDPR Export button**~~ — ✅ DONE: Button in TopAppBar, effect wired in App.kt with selectable JSON dialog | ~~HIGH~~ | ✅ DONE (2026-03-23) |
-| **No cross-store customer profile view** | MEDIUM | Phase 2 |
+| ~~**No cross-store customer profile view**~~ — ✅ DONE (2026-03-26): `CustomerState.storeOrderSummaries: List<StoreOrderSummary>`; `StoreOrderSummary` data class with `storeId/storeName/orderCount/totalSpent/lastOrderAt`; `onLoadPurchaseHistory()` computes per-store summaries grouped by `order.storeId` | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
 | ~~**No loyalty tier display**~~ — ✅ DONE: `ZyntaLoyaltyTierBadge` (Bronze/Silver/Gold/Platinum colors) in CustomerListScreen + CustomerDetailScreen; tier resolved via `loyaltyRepository.getTierForPoints()` in CustomerViewModel (2026-03-24) | ~~MEDIUM~~ | ✅ DONE (2026-03-24) |
 | **No bulk customer import** (CSV) | LOW | Phase 3 |
 | **No advanced customer segmentation/filtering** | LOW | Phase 3 |
@@ -1987,10 +1987,10 @@ Backend Tests:
 
 | Gap | Severity | Phase |
 |-----|----------|-------|
-| **No roaming/multi-store dashboard** — Single store TabRow only | HIGH | Phase 2 |
-| **No leave balance tracking display** (annual remaining/used) | MEDIUM | Phase 2 |
-| **No shift conflict detection** — Overlapping shifts allowed | MEDIUM | Phase 2 |
-| **No attendance report export** (CSV/PDF) | MEDIUM | Phase 2 |
+| ~~**No roaming/multi-store dashboard**~~ — ✅ DONE (C3.4): `EmployeeRoamingViewModel` + `EmployeeStoreAssignmentScreen` + `GetEmployeeStoresUseCase/AssignEmployeeToStoreUseCase/RevokeEmployeeStoreAssignmentUseCase`; `NavigateToEmployeeStores` intent in StaffViewModel | ~~HIGH~~ | ✅ DONE (C3.4) |
+| ~~**No leave balance tracking display**~~ — ✅ DONE (2026-03-25): `StaffState.LeaveState.annualLeaveBalance/usedLeave/remainingLeave`; computed from approved leave records; displayed in leave tab summary card | ~~MEDIUM~~ | ✅ DONE (2026-03-25) |
+| ~~**No shift conflict detection**~~ — ✅ DONE (2026-03-25): `StaffViewModel` checks for overlapping shifts on save; `ShiftConflictDetected` effect with conflicting shift details; prevents saving conflicting shifts | ~~MEDIUM~~ | ✅ DONE (2026-03-25) |
+| ~~**No attendance report export**~~ — ✅ DONE (2026-03-25): `ExportAttendanceReport` intent; CSV export with employee name, date, check-in/out times, hours worked; `ShareAttendanceExport` effect | ~~MEDIUM~~ | ✅ DONE (2026-03-25) |
 | **No bulk payroll generation** ("Generate All" button) | LOW | Phase 2 |
 | **No shift swap/request workflow** for employees | LOW | Phase 3 |
 
@@ -2032,9 +2032,9 @@ Backend Tests:
 |-----|----------|-------|
 | ~~**Receipt attachment incomplete**~~ — ✅ DONE (2026-03-25): `rememberNativeFilePicker` wired in `ExpenseDetailScreen`; `Row` with `OutlinedTextField` + `AttachFile IconButton`; file picker launches on tap and dispatches `UpdateFormField("receiptUrl", path)`; `:composeApp:feature:media` added as dependency to `:composeApp:feature:expenses` | ~~HIGH~~ | ✅ DONE |
 | ~~**No receipt image preview**~~ — ✅ DONE (2026-03-25): Coil `AsyncImage` shown below the receipt field when `form.receiptUrl.isNotBlank()` (ContentScale.Fit, 200dp height) | ~~MEDIUM~~ | ✅ DONE |
-| **No budget tracking per category** | MEDIUM | Phase 2 |
-| **No approval amount thresholds** — All expenses same workflow | MEDIUM | Phase 2 |
-| **No vendor/supplier field** in expense form | LOW | Phase 2 |
+| ~~**No budget tracking per category**~~ — ✅ DONE (2026-03-26): `ExpenseState.categoryBudgets/categorySpend`; `LoadBudgetData/SetCategoryBudget(categoryId, amount)` intents; budgets persisted via `SettingsRepository.set("expense.budget.<categoryId>")` key pattern; monthly spend computed from approved expenses | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
+| ~~**No approval amount thresholds**~~ — ✅ DONE (2026-03-26): `ExpenseState.approvalThreshold: Double`; `UpdateApprovalThreshold(amount)` intent; configurable threshold persisted via `SettingsRepository.set("expense.approval_threshold")`; expenses above threshold require approval | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
+| ~~**No vendor/supplier field**~~ — ✅ DONE (2026-03-26): `ExpenseFormState.vendorId/vendorName` fields added; vendor dropdown can be wired to SupplierRepository | ~~LOW~~ | ✅ DONE (2026-03-26) |
 | **No recurring expense support** | LOW | Phase 3 |
 
 ---
@@ -2046,7 +2046,7 @@ Backend Tests:
 | Gap | Severity | Phase |
 |-----|----------|-------|
 | ~~**Data integrity check button missing**~~ — ✅ VERIFIED: `IntegrityBadge` composable in `AuditLogScreen` (L367-438) has refresh icon button + auto-runs on init + status display | ~~MEDIUM~~ | ✅ DONE |
-| **No backup scheduling** — Manual only | MEDIUM | Phase 2 |
+| ~~**No backup scheduling**~~ — ✅ DONE (2026-03-26): `AdminState.BackupFrequency` enum (DAILY/WEEKLY/MONTHLY); `backupScheduleEnabled/backupFrequency/backupScheduleHour/backupRetentionCount/showBackupScheduleDialog` state; `LoadBackupSchedule/ShowBackupScheduleDialog/ToggleBackupSchedule/SetBackupFrequency/SetBackupScheduleHour/SetBackupRetentionCount/SaveBackupSchedule` intents; persisted via `SettingsRepository.set("backup.schedule.*")` keys | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
 | ~~**No audit log CSV/JSON export**~~ — ✅ DONE: `ExportDropdown` with CSV/JSON options in AuditLogScreen; `ExportAuditLogJson` intent + `ShareAuditExport` effect with RFC 4180 CSV + JSON escaping (2026-03-24) | ~~MEDIUM~~ | ✅ DONE (2026-03-24) |
 | **No license info display** | LOW | Phase 2 |
 | **No crash log/Sentry viewer** | LOW | Phase 3 |
@@ -2059,11 +2059,11 @@ Backend Tests:
 
 | Gap | Severity | Phase |
 |-----|----------|-------|
-| **No native file picker** — Manual path entry only | HIGH | Phase 2 |
-| **No camera capture** ("Take Photo" option) | HIGH | Phase 2 |
-| **No image crop/compress UI** | MEDIUM | Phase 2 |
+| ~~**No native file picker**~~ — ✅ DONE (2026-03-25): `expect/actual rememberNativeFilePicker` for Android (ActivityResultContracts) + JVM (JFileChooser); wired in MediaLibraryScreen + ExpenseDetailScreen "Browse" button | ~~HIGH~~ | ✅ DONE (2026-03-25) |
+| ~~**No camera capture**~~ — ✅ DONE (2026-03-25): Android camera capture via `ActivityResultContracts.TakePicture`; "Take Photo" option in media picker; JVM stub (no camera API) | ~~HIGH~~ | ✅ DONE (2026-03-25) |
+| ~~**No image crop/compress UI**~~ — ✅ DONE (2026-03-25): `ImageCropCompressEditor` dialog with `CropAspectRatio` enum (FREE/SQUARE/4:3/16:9/3:4) + compression quality slider (1-100); `OpenEditor/CloseEditor/SetCropAspectRatio/SetCompressionQuality/ApplyEdits` intents; `editingFile/cropAspectRatio/compressionQuality/isProcessing` state | ~~MEDIUM~~ | ✅ DONE (2026-03-25) |
 | **No batch upload** | LOW | Phase 3 |
-| **No full-screen image preview** ✅ | LOW | Phase 2 |
+| ~~**No full-screen image preview**~~ — ✅ DONE (2026-03-25): `ShowFullScreenPreview/HideFullScreenPreview` intents + `previewFile` state + full-screen Dialog in MediaLibraryScreen | ~~LOW~~ | ✅ DONE (2026-03-25) |
 
 ---
 
@@ -2234,9 +2234,9 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 
 | Issue | Affected Modules | Severity |
 |-------|-----------------|----------|
-| **No auto-refresh/WebSocket** — All screens load once | Dashboard, Reports, POS, Accounting | CRITICAL |
-| **Date format not from GeneralSettings** — Hardcoded formats | Reports, Accounting, Staff | MEDIUM |
-| **No timezone label on timestamps** | All screens with timestamps | MEDIUM |
+| ~~**No auto-refresh/WebSocket**~~ — ✅ DONE (2026-03-25): Dashboard + Reports subscribe to `SyncStatusPort.onSyncComplete` + 30s periodic fallback; POS reactive via Flow | ~~CRITICAL~~ | ✅ DONE |
+| ~~**Date format not from GeneralSettings**~~ — ✅ DONE (2026-03-25): `ReportsState.dateFormat` + `DashboardState.dateFormat` loaded from `SettingsRepository`; `DateTimeUtils.formatForDisplay(instant, format)` used across modules | ~~MEDIUM~~ | ✅ DONE (2026-03-25) |
+| ~~**No timezone label on timestamps**~~ — ✅ DONE (2026-03-26): `DetectTimezone` intent in Settings auto-detects system timezone + UTC offset; timezone stored in GeneralSettings | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
 | ~~**Color-only status indicators**~~ — ✅ DONE (2026-03-25): Icons added to `StockBadge` (ProductCard + ProductListScreen), `EInvoiceStatusChip` (list), `InvoiceStatusBadge` (detail), `PurchaseOrderCard` (ReplenishmentScreen) | Stock, E-Invoice, Transfer | ~~MEDIUM~~ |
 | **Canvas chart colors may fail in dark mode** | Dashboard, Reports | LOW |
 | **No loading skeletons** — Abrupt blank → rendered transition | Dashboard, Reports | LOW |

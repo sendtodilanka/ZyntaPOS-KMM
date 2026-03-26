@@ -3,29 +3,37 @@ package com.zyntasolutions.zyntapos.feature.reports
 import androidx.compose.runtime.Immutable
 import com.zyntasolutions.zyntapos.domain.model.PaymentMethod
 import com.zyntasolutions.zyntapos.domain.model.Product
+import com.zyntasolutions.zyntapos.domain.model.Store
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateCustomerReportUseCase
 import com.zyntasolutions.zyntapos.domain.model.report.StoreSalesData
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateExpenseReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.GenerateSalesReportUseCase
+import com.zyntasolutions.zyntapos.core.utils.DateTimeUtils
 import kotlinx.datetime.Instant
 
 /**
  * MVI — UI state for the reports feature.
  *
+ * @property dateFormat      User-preferred date format pattern from GeneralSettings (G20).
  * @property reportsHome     State for [ReportsHomeScreen] (tile grid).
  * @property salesReport     State for [SalesReportScreen].
  * @property stockReport     State for [StockReportScreen].
  * @property customerReport  State for [CustomerReportScreen].
  * @property expenseReport   State for [ExpenseReportScreen].
+ * @property availableStores Stores available for the store filter dropdown (G6).
+ * @property selectedStoreId Currently selected store filter — null means "All Stores" (G6).
  */
 @Immutable
 data class ReportsState(
+    val dateFormat: String = DateTimeUtils.DEFAULT_DATE_FORMAT,
     val reportsHome: HomeState = HomeState(),
     val salesReport: SalesState = SalesState(),
     val stockReport: StockState = StockState(),
     val customerReport: CustomerReportState = CustomerReportState(),
     val expenseReport: ExpenseReportState = ExpenseReportState(),
     val storeComparison: StoreComparisonState = StoreComparisonState(),
+    val availableStores: List<Store> = emptyList(),
+    val selectedStoreId: String? = null,
 ) {
     /** State slice for the reports home tile grid. */
     data class HomeState(
@@ -47,6 +55,13 @@ data class ReportsState(
         val isPrinting: Boolean = false,
         /** Category filter chip selection for the stock table (not used in sales). */
         val selectedCategory: String? = null,
+        // ── Drill-down (G6-3) ─────────────────────────────────────────────
+        /** When non-null, the user has drilled into a specific chart data point (e.g., a day or product). */
+        val drillDownLabel: String? = null,
+        /** Transaction IDs/order numbers for the drilled-down data point. */
+        val drillDownOrderIds: List<String> = emptyList(),
+        /** True when loading drill-down data. */
+        val isDrillDownLoading: Boolean = false,
     )
 
     /** State slice for the stock report screen. */
@@ -60,6 +75,10 @@ data class ReportsState(
         val isExporting: Boolean = false,
         val sortColumn: StockSortColumn = StockSortColumn.NAME,
         val sortAscending: Boolean = true,
+        // ── Pagination (G6-4) ─────────────────────────────────────────────
+        val currentPage: Int = 0,
+        val pageSize: Int = 50,
+        val totalItems: Int = 0,
     )
 
     /** State slice for the customer report screen. */

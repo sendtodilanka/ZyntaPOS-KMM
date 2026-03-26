@@ -87,6 +87,11 @@ class AuthViewModelTest {
         override suspend fun updatePin(userId: String, pin: String): Result<Unit> = Result.Success(Unit)
 
         override suspend fun validatePin(userId: String, pin: String): Result<Boolean> = Result.Success(true)
+
+        override suspend fun quickSwitch(userId: String, pin: String): Result<User> =
+            Result.Error(AuthException("not used", reason = AuthFailureReason.INVALID_CREDENTIALS))
+
+        override suspend fun validateManagerPin(pin: String): Result<Boolean> = Result.Success(false)
     }
 
     // ── Fake SettingsRepository ────────────────────────────────────────────────

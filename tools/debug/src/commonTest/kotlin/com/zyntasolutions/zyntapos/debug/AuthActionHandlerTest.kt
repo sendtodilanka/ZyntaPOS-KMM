@@ -115,6 +115,8 @@ class AuthActionHandlerTest {
         override suspend fun adminExists(): Result<Boolean> = Result.Success(false)
         override suspend fun transferSystemAdmin(fromUserId: String, toUserId: String): Result<Unit> =
             Result.Success(Unit)
+        override suspend fun getQuickSwitchCandidates(storeId: String): Result<List<com.zyntasolutions.zyntapos.domain.model.QuickSwitchCandidate>> =
+            Result.Success(emptyList())
     }
 
     private inner class StubAuthRepository(
@@ -142,6 +144,12 @@ class AuthActionHandlerTest {
 
         override suspend fun validatePin(userId: String, pin: String): Result<Boolean> =
             Result.Success(true)
+
+        override suspend fun quickSwitch(userId: String, pin: String): Result<User> =
+            Result.Error(AuthException("not used"))
+
+        override suspend fun validateManagerPin(pin: String): Result<Boolean> =
+            Result.Success(false)
     }
 
     // ── SUT builder ───────────────────────────────────────────────────────────

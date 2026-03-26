@@ -32,6 +32,19 @@ data class DashboardState(
     val dailySalesTarget: Double = 75_000.0,
     /** Pre-computed progress ratio (0f–1f) for the sales target ring. Computed in ViewModel. */
     val salesProgress: Float = 0f,
+    // ── Period comparison (G7) ───────────────────────────────────────────────
+    /** Yesterday's completed sales total for period comparison. */
+    val yesterdaySales: Double = 0.0,
+    /** Yesterday's completed order count. */
+    val yesterdayOrders: Long = 0L,
+    /** Sales change % vs yesterday — positive = growth, negative = decline. */
+    val salesChangePercent: Double = 0.0,
+    /** Orders change % vs yesterday. */
+    val ordersChangePercent: Double = 0.0,
+    /** Last week same-day sales for longer-term comparison. */
+    val lastWeekSameDaySales: Double = 0.0,
+    /** Sales change % vs same day last week. */
+    val salesChangeVsLastWeek: Double = 0.0,
     /** Pre-computed user initials (e.g. "JS") for the avatar chip. Computed in ViewModel. */
     val userInitials: String = "M",
     /** Time-aware greeting string e.g. "Good morning," / "Good afternoon,". */

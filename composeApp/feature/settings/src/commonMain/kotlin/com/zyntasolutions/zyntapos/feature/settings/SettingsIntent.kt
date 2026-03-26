@@ -22,6 +22,8 @@ sealed interface SettingsIntent {
     data class UpdateCurrency(val currency: Currency) : SettingsIntent
     data class UpdateTimezone(val tz: String) : SettingsIntent
     data class UpdateDateFormat(val format: String) : SettingsIntent
+    /** Auto-detect the system timezone and compute its UTC offset string. */
+    data object DetectTimezone : SettingsIntent
     data object SaveGeneral : SettingsIntent
 
     // ── POS Settings ──────────────────────────────────────────────────────────
@@ -43,6 +45,13 @@ sealed interface SettingsIntent {
     data class RequestDeleteTaxGroup(val taxGroup: TaxGroup) : SettingsIntent
     data object ConfirmDeleteTaxGroup : SettingsIntent
     data object CancelDeleteTaxGroup : SettingsIntent
+
+    // ── Tax Overrides (per-store multi-region, G8-1) ────────────────────────
+    data object LoadTaxOverrides : SettingsIntent
+    data class ShowTaxOverrideDialog(val override: SettingsState.StoreTaxOverride? = null) : SettingsIntent
+    data object DismissTaxOverrideDialog : SettingsIntent
+    data class SaveTaxOverride(val override: SettingsState.StoreTaxOverride) : SettingsIntent
+    data class DeleteTaxOverride(val storeId: String, val taxGroupId: String) : SettingsIntent
 
     // ── Printer Settings ──────────────────────────────────────────────────────
     data object LoadPrinter : SettingsIntent
@@ -147,4 +156,10 @@ sealed interface SettingsIntent {
     data class UpdateProfileIsDefault(val isDefault: Boolean) : SettingsIntent
     data object SavePrinterProfile : SettingsIntent
     data class DeletePrinterProfile(val id: String) : SettingsIntent
+
+    // ── Settings Sync to Backend (G8-4) ──────────────────────────────────────
+    /** Trigger a sync of all local settings to the backend. */
+    data object SyncSettingsToBackend : SettingsIntent
+    /** Dismiss the settings sync error. */
+    data object DismissSettingsSyncError : SettingsIntent
 }

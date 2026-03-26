@@ -30,6 +30,14 @@ sealed interface ExpenseIntent {
     data class DeleteCategory(val categoryId: String) : ExpenseIntent
     data object DismissCategoryDetail : ExpenseIntent
 
+    // ── Budget Tracking (G13) ──────────────────────────────────────────────
+    /** Load monthly budgets and compute spend per category. */
+    data object LoadBudgetData : ExpenseIntent
+    /** Set/update the monthly budget for a specific category. */
+    data class SetCategoryBudget(val categoryId: String, val amount: Double) : ExpenseIntent
+    /** Update the global approval threshold for high-value expenses. */
+    data class UpdateApprovalThreshold(val amount: Double) : ExpenseIntent
+
     // ── Global ─────────────────────────────────────────────────────────────
     data object DismissMessage : ExpenseIntent
 }

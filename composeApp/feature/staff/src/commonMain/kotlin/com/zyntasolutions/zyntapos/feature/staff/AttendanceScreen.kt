@@ -56,6 +56,7 @@ fun AttendanceScreen(
             Row(
                 modifier = Modifier.padding(ZyntaSpacing.md),
                 horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.lg),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 SummaryChip(
                     label = "Total",
@@ -72,6 +73,14 @@ fun AttendanceScreen(
                     count = openRecordsByEmployee.size,
                     icon = Icons.Default.Login,
                 )
+                Spacer(Modifier.weight(1f))
+                IconButton(onClick = { onIntent(StaffIntent.ExportAttendanceCsv) }) {
+                    Icon(
+                        Icons.Default.Download,
+                        contentDescription = "Export attendance CSV",
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                }
             }
         }
 

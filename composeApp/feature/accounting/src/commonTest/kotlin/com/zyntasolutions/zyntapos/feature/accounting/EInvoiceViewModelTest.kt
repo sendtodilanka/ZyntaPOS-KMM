@@ -104,6 +104,10 @@ class EInvoiceViewModelTest {
             Result.Success(Unit)
         override suspend fun validatePin(userId: String, pin: String): Result<Boolean> =
             Result.Success(true)
+        override suspend fun quickSwitch(userId: String, pin: String): Result<User> =
+            Result.Error(DatabaseException("not used"))
+        override suspend fun validateManagerPin(pin: String): Result<Boolean> =
+            Result.Success(false)
     }
 
     // ── Fake EInvoiceRepository ────────────────────────────────────────────────

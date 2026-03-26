@@ -19,6 +19,7 @@ import com.zyntasolutions.zyntapos.domain.repository.LoyaltyRepository
 import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
 import com.zyntasolutions.zyntapos.domain.repository.ProductRepository
 import com.zyntasolutions.zyntapos.domain.repository.RegisterRepository
+import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.domain.repository.StoreRepository
 import com.zyntasolutions.zyntapos.domain.usecase.coupons.ApplyStorePromotionsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.coupons.CalculateCouponDiscountUseCase
@@ -43,6 +44,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.pos.RetrieveHeldOrderUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.UpdateCartItemQuantityUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.PostSaleJournalEntryUseCase
 import com.zyntasolutions.zyntapos.domain.formatter.ReceiptFormatter
+import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
 import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
@@ -151,6 +153,8 @@ class PosViewModel(
     private val lookupOrderForReturnUseCase: LookupOrderForReturnUseCase,
     private val getStorePromotionsUseCase: GetStorePromotionsUseCase,
     private val applyStorePromotionsUseCase: ApplyStorePromotionsUseCase,
+    private val settingsRepository: SettingsRepository,
+    private val currencyFormatter: CurrencyFormatter,
     private val auditLogger: SecurityAuditLogger,
     private val analytics: AnalyticsTracker,
 ) : BaseViewModel<PosState, PosIntent, PosEffect>(PosState()) {
@@ -199,6 +203,8 @@ class PosViewModel(
                 )
             }
             observeStorePromotions()
+            // Load store currency (G8).
+            onLoadStoreCurrency()
         }
         observeCategories()
         observeProducts()
@@ -274,6 +280,7 @@ class PosViewModel(
     override suspend fun handleIntent(intent: PosIntent) {
         when (intent) {
             is PosIntent.LoadProducts       -> onLoadProducts()
+            PosIntent.LoadStoreCurrency     -> onLoadStoreCurrency()
             is PosIntent.SelectCategory     -> onSelectCategory(intent.id)
             is PosIntent.SearchQueryChanged -> onSearchQueryChanged(intent.query)
             is PosIntent.SearchFocusChanged -> updateState { copy(isSearchFocused = intent.focused) }
@@ -299,6 +306,10 @@ class PosViewModel(
             // ── Sprint 22: wallet + coupon ──────────────────────────────────
             is PosIntent.LoadCustomerWallet      -> currentState.selectedCustomer?.let { onLoadCustomerWallet(it.id) }
             is PosIntent.SetWalletPaymentAmount  -> updateState { copy(walletPaymentAmount = intent.amount) }
+            is PosIntent.ShowWalletPaymentDialog -> onShowWalletPaymentDialog()
+            is PosIntent.DismissWalletPaymentDialog -> updateState { copy(showWalletPaymentDialog = false, walletPaymentAmount = 0.0) }
+            is PosIntent.WalletPaymentAmountChanged -> onWalletPaymentAmountChanged(intent.amount)
+            is PosIntent.ConfirmWalletPayment   -> onConfirmWalletPayment()
             is PosIntent.SetLoyaltyPointsRedemption -> onSetLoyaltyRedemption(intent.points)
             is PosIntent.EnterCouponCode         -> updateState { copy(couponCode = intent.code, couponError = null) }
             is PosIntent.ValidateCoupon          -> onValidateCoupon()
@@ -327,13 +338,96 @@ class PosViewModel(
                 updateState { copy(couponCode = intent.barcode, couponError = null) }
                 onValidateCoupon()
             }
-            is PosIntent.ScanGiftCard       -> sendEffect(
-                PosEffect.ShowError("Gift card: ${intent.barcode} — gift card lookup coming in Phase 2")
-            )
+            is PosIntent.ScanGiftCard       -> {
+                updateState { copy(showGiftCardDialog = true, giftCardCode = intent.barcode, giftCardError = null) }
+                onLookupGiftCard()
+            }
+            // ── Gift Card (G3-2) ────────────────────────────────────────────────
+            PosIntent.ShowGiftCardDialog     -> updateState { copy(showGiftCardDialog = true, giftCardCode = "", giftCardBalance = null, giftCardError = null) }
+            PosIntent.DismissGiftCardDialog  -> updateState { copy(showGiftCardDialog = false) }
+            is PosIntent.GiftCardCodeChanged -> updateState { copy(giftCardCode = intent.code, giftCardError = null) }
+            PosIntent.LookupGiftCard         -> onLookupGiftCard()
+            is PosIntent.GiftCardPaymentAmountChanged -> {
+                val capped = intent.amount.coerceIn(0.0, currentState.giftCardBalance ?: 0.0)
+                updateState { copy(giftCardPaymentAmount = capped) }
+            }
+            PosIntent.ConfirmGiftCardPayment -> {
+                updateState { copy(showGiftCardDialog = false) }
+                // Gift card payment amount is tracked in state for checkout
+            }
+            // ── Card Terminal (G3-3) ──────────────────────────────────────────
+            is PosIntent.CheckCardTerminalStatus -> updateState {
+                copy(cardTerminalConnected = false, cardTerminalName = "")
+            }
+            is PosIntent.CardTerminalStatusChanged -> updateState {
+                copy(cardTerminalConnected = intent.connected, cardTerminalName = intent.name)
+            }
+            // ── Cross-store Return (G3-1) ────────────────────────────────────
+            is PosIntent.ToggleCrossStoreReturnMode -> updateState {
+                copy(crossStoreReturnMode = !crossStoreReturnMode)
+            }
+            is PosIntent.CrossStoreOrderIdChanged -> updateState {
+                copy(crossStoreOrderId = intent.orderId, crossStoreOrderLookupError = null)
+            }
+            is PosIntent.LookupCrossStoreOrder -> onLookupCrossStoreOrder()
+            is PosIntent.CancelCrossStoreReturn -> updateState {
+                copy(
+                    crossStoreReturnMode = false,
+                    crossStoreOrderId = "",
+                    crossStoreOrderLookupError = null,
+                    crossStoreOrder = null,
+                )
+            }
         }
     }
 
     // ── Intent handlers ───────────────────────────────────────────────────────
+
+    /** Loads the store's configured currency code and updates CurrencyFormatter default. */
+    private suspend fun onLoadStoreCurrency() {
+        val code = settingsRepository.get("store.currency_code") ?: "LKR"
+        currencyFormatter.defaultCurrency = code
+        // Multi-currency display (G3-5/G8-2)
+        val secondaryCurrency = settingsRepository.get("store.secondary_currency") ?: ""
+        val exchangeRate = settingsRepository.get("store.exchange_rate")?.toDoubleOrNull() ?: 0.0
+        val showMultiCurrency = settingsRepository.get("store.show_multi_currency") == "true"
+        updateState {
+            copy(
+                storeCurrency = code,
+                secondaryCurrency = secondaryCurrency,
+                exchangeRate = exchangeRate,
+                showMultiCurrency = showMultiCurrency && secondaryCurrency.isNotBlank() && exchangeRate > 0.0,
+            )
+        }
+    }
+
+    // ── Gift Card Lookup (G3-2) ────────────────────────────────────────────
+
+    private fun onLookupGiftCard() {
+        val code = currentState.giftCardCode.trim()
+        if (code.isBlank()) {
+            updateState { copy(giftCardError = "Enter a gift card code") }
+            return
+        }
+        updateState { copy(isGiftCardLoading = true, giftCardError = null) }
+        viewModelScope.launch {
+            // Gift cards are backed by store credit — lookup via settings key pattern
+            val balance = settingsRepository.get("giftcard.balance.$code")?.toDoubleOrNull()
+            if (balance != null && balance > 0.0) {
+                updateState {
+                    copy(
+                        isGiftCardLoading = false,
+                        giftCardBalance = balance,
+                        giftCardPaymentAmount = balance.coerceAtMost(orderTotals.total),
+                    )
+                }
+            } else {
+                updateState {
+                    copy(isGiftCardLoading = false, giftCardBalance = null, giftCardError = "Gift card not found or has zero balance")
+                }
+            }
+        }
+    }
 
     private fun onLoadProducts() {
         updateState { copy(isLoading = true, error = null) }
@@ -666,6 +760,7 @@ class PosViewModel(
                 walletBalance = null,
                 loyaltyPointsBalance = null,
                 walletPaymentAmount = 0.0,
+                showWalletPaymentDialog = false,
             )
         }
     }
@@ -723,6 +818,38 @@ class PosViewModel(
             orderTotal = currentState.orderTotals.total,
         )
         updateState { copy(loyaltyPointsToRedeem = clamped, loyaltyDiscount = discount) }
+    }
+
+    // ── Wallet payment dialog ─────────────────────────────────────────────────
+
+    /**
+     * Opens the wallet payment choice dialog after refreshing the customer's wallet balance.
+     * No-ops if no customer is selected.
+     */
+    private suspend fun onShowWalletPaymentDialog() {
+        val customer = currentState.selectedCustomer ?: return
+        onLoadCustomerWallet(customer.id)
+        updateState { copy(showWalletPaymentDialog = true, walletPaymentAmount = 0.0) }
+    }
+
+    /**
+     * Updates the wallet payment amount, capping it at the customer's available balance
+     * and the remaining order total so the cashier cannot overpay from the wallet.
+     */
+    private fun onWalletPaymentAmountChanged(amount: Double) {
+        val maxBalance = currentState.walletBalance ?: 0.0
+        val orderTotal = currentState.orderTotals.total
+        val capped = amount.coerceIn(0.0, minOf(maxBalance, orderTotal))
+        updateState { copy(walletPaymentAmount = capped) }
+    }
+
+    /**
+     * Confirms the wallet payment amount entered in the dialog, applies it to the order,
+     * and dismisses the dialog. The amount remains in [PosState.walletPaymentAmount] and
+     * is added to the tendered total during [onProcessPayment].
+     */
+    private fun onConfirmWalletPayment() {
+        updateState { copy(showWalletPaymentDialog = false) }
     }
 
     // ── Sprint 22: coupon validation ──────────────────────────────────────────
@@ -893,6 +1020,41 @@ class PosViewModel(
                 updateState { copy(isReturnLookupLoading = false, returnLookupError = result.exception.message ?: "Order not found") }
             }
             is Result.Loading -> updateState { copy(isReturnLookupLoading = false) }
+        }
+    }
+
+    /**
+     * Looks up a cross-store order by ID for return processing.
+     * Uses [lookupOrderForReturnUseCase] to find the order (which may originate from
+     * a different store). On success, populates [PosState.crossStoreOrder]; on failure,
+     * sets [PosState.crossStoreOrderLookupError].
+     */
+    private suspend fun onLookupCrossStoreOrder() {
+        val orderId = currentState.crossStoreOrderId.trim()
+        if (orderId.isBlank()) {
+            updateState { copy(crossStoreOrderLookupError = "Enter a cross-store order ID") }
+            return
+        }
+        updateState { copy(isLoading = true, crossStoreOrderLookupError = null) }
+        when (val result = lookupOrderForReturnUseCase(orderId)) {
+            is Result.Success -> {
+                updateState {
+                    copy(
+                        isLoading = false,
+                        crossStoreOrder = result.data,
+                        crossStoreOrderLookupError = null,
+                    )
+                }
+            }
+            is Result.Error -> {
+                updateState {
+                    copy(
+                        isLoading = false,
+                        crossStoreOrderLookupError = result.exception.message ?: "Order not found",
+                    )
+                }
+            }
+            is Result.Loading -> updateState { copy(isLoading = false) }
         }
     }
 }

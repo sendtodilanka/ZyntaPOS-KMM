@@ -35,6 +35,14 @@ data class ExpenseState(
     val categoryForm: CategoryFormState = CategoryFormState(),
     val showCategoryDetail: Boolean = false,
 
+    // ── Budget Tracking (G13) ──────────────────────────────────────────────
+    /** Monthly budget per category: categoryId → budget amount. */
+    val categoryBudgets: Map<String, Double> = emptyMap(),
+    /** Monthly spend per category: categoryId → total spent this month. */
+    val categorySpend: Map<String, Double> = emptyMap(),
+    /** Manager approval threshold — expenses above this amount require manager sign-off. */
+    val approvalThreshold: Double = 1000.0,
+
     // ── Global ────────────────────────────────────────────────────────────
     val isLoading: Boolean = false,
     val error: String? = null,
@@ -50,6 +58,10 @@ data class ExpenseFormState(
     val expenseDate: String = "",
     val receiptUrl: String = "",
     val notes: String = "",
+    /** Vendor/supplier ID associated with this expense. Empty string = no vendor. */
+    val vendorId: String = "",
+    /** Vendor/supplier display name (read-only, populated from vendorId lookup). */
+    val vendorName: String = "",
     val isEditing: Boolean = false,
     val validationErrors: Map<String, String> = emptyMap(),
 )
@@ -60,6 +72,8 @@ data class CategoryFormState(
     val name: String = "",
     val description: String = "",
     val parentId: String = "",
+    /** Monthly budget limit for this category. Empty string = no budget set. */
+    val monthlyBudget: String = "",
     val isEditing: Boolean = false,
     val validationErrors: Map<String, String> = emptyMap(),
 )

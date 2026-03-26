@@ -3,6 +3,7 @@ package com.zyntasolutions.zyntapos.feature.register
 import androidx.compose.runtime.Immutable
 import com.zyntasolutions.zyntapos.domain.model.CashMovement
 import com.zyntasolutions.zyntapos.domain.model.CashRegister
+import com.zyntasolutions.zyntapos.domain.model.QuickSwitchCandidate
 import com.zyntasolutions.zyntapos.domain.model.RegisterSession
 
 /**
@@ -50,6 +51,14 @@ data class RegisterState(
     val todayOrderCount: Int = 0,
     val todayRevenue: Double = 0.0,
 
+    // ── Float tracking (G5) ─────────────────────────────────────────────
+    /** The opening balance (float) — set at register open time. */
+    val floatAmount: Double = 0.0,
+    /** Cash received from sales only (excludes float and manual cash in/out). */
+    val salesCash: Double = 0.0,
+    /** Computed total: float + salesCash + cashIn - cashOut. */
+    val totalCashInDrawer: Double = 0.0,
+
     // ── Cash movements ────────────────────────────────────────────────────
     val movements: List<CashMovement> = emptyList(),
 
@@ -65,6 +74,18 @@ data class RegisterState(
     val zReportSalesByPayment: Map<String, Double> = emptyMap(),
     val isPrintingZReport: Boolean = false,
     val isPrintingA4ZReport: Boolean = false,
+
+    // ── Shift Handoff (G5) ─────────────────────────────────────────────────
+    /** Whether the shift handoff dialog is visible. */
+    val showHandoffDialog: Boolean = false,
+    /** The user ID selected as the handoff target. */
+    val handoffTargetUserId: String? = null,
+    /** PIN entered by the handoff target to authenticate. */
+    val handoffPin: String = "",
+    /** Error from a failed handoff attempt. */
+    val handoffError: String? = null,
+    /** Available users who can accept the register handoff. */
+    val handoffCandidates: List<QuickSwitchCandidate> = emptyList(),
 
     // ── Global ────────────────────────────────────────────────────────────
     val isLoading: Boolean = false,
@@ -104,6 +125,12 @@ data class CashInOutDialogState(
     val amountRaw: String = "0",
     val reason: String = "",
     val validationErrors: Map<String, String> = emptyMap(),
+    /** True when a cash-out exceeds the threshold and awaits manager PIN approval. */
+    val awaitingCashOutApproval: Boolean = false,
+    /** Manager PIN entered for cash-out approval. */
+    val approvalPin: String = "",
+    /** Error from a failed cash-out approval attempt. */
+    val approvalError: String? = null,
 ) {
     /** Parses [amountRaw] as a right-to-left price: "5000" → 50.00 */
     val amountDouble: Double
@@ -133,6 +160,12 @@ data class CloseRegisterFormState(
     val discrepancyThreshold: Double = 10.0,
     val validationErrors: Map<String, String> = emptyMap(),
     val showConfirmation: Boolean = false,
+    /** True when discrepancy exceeds threshold and manager approval is required. */
+    val awaitingManagerApproval: Boolean = false,
+    /** Manager PIN entered for approval. */
+    val managerPin: String = "",
+    /** Error from failed manager approval attempt. */
+    val managerApprovalError: String? = null,
 ) {
     /** Parses [actualBalanceRaw] as a right-to-left price: "12345" → 123.45 */
     val actualBalanceDouble: Double

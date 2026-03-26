@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.domain.repository
 
 import com.zyntasolutions.zyntapos.core.result.Result
+import com.zyntasolutions.zyntapos.domain.model.QuickSwitchCandidate
 import com.zyntasolutions.zyntapos.domain.model.User
 import kotlinx.coroutines.flow.Flow
 
@@ -107,4 +108,11 @@ interface UserRepository {
      *         if either user is not found or the DB transaction fails.
      */
     suspend fun transferSystemAdmin(fromUserId: String, toUserId: String): Result<Unit>
+
+    /**
+     * Returns active users at [storeId] who have a PIN set, for the quick-switch picker.
+     *
+     * Only lightweight projections are returned — no sensitive hashes are exposed.
+     */
+    suspend fun getQuickSwitchCandidates(storeId: String): Result<List<QuickSwitchCandidate>>
 }

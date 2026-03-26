@@ -124,7 +124,15 @@ class SessionManager(
     private fun restartTimer() {
         timerJob?.cancel()
         timerJob = scope.launch {
-            delay(sessionTimeoutMs)
+            // Emit warning 60s before timeout (only if timeout > warning period)
+            val warningMs = WARNING_BEFORE_TIMEOUT_MS
+            if (sessionTimeoutMs > warningMs) {
+                delay(sessionTimeoutMs - warningMs)
+                _effects.emit(AuthEffect.SessionTimeoutWarning(secondsRemaining = (warningMs / 1000).toInt()))
+                delay(warningMs)
+            } else {
+                delay(sessionTimeoutMs)
+            }
             _effects.emit(AuthEffect.ShowPinLock)
         }
     }
@@ -137,6 +145,9 @@ class SessionManager(
 
         /** 10 minutes — recommended for Cashier role. */
         const val CASHIER_TIMEOUT_MS: Long = 10L * 60L * 1_000L
+
+        /** 60 seconds warning before timeout. */
+        const val WARNING_BEFORE_TIMEOUT_MS: Long = 60L * 1_000L
 
         /** 20 minutes — recommended for Store Manager role. */
         const val MANAGER_TIMEOUT_MS: Long = 20L * 60L * 1_000L

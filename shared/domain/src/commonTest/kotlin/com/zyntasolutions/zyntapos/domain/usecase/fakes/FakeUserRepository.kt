@@ -111,4 +111,7 @@ class FakeUserRepository : UserRepository {
         _usersFlow.value = users.toList()
         return Result.Success(Unit)
     }
+
+    override suspend fun getQuickSwitchCandidates(storeId: String): Result<List<com.zyntasolutions.zyntapos.domain.model.QuickSwitchCandidate>> =
+        Result.Success(emptyList())
 }

@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.feature.staff
 
+import com.zyntasolutions.zyntapos.core.utils.DateTimeUtils
 import com.zyntasolutions.zyntapos.domain.model.AttendanceRecord
 import com.zyntasolutions.zyntapos.domain.model.AttendanceSummary
 import com.zyntasolutions.zyntapos.domain.model.Employee
@@ -24,6 +25,9 @@ enum class StaffTab { EMPLOYEES, ATTENDANCE, LEAVE, SHIFTS, PAYROLL }
  * - **PAYROLL:** period summary, per-employee records, mark-paid
  */
 data class StaffState(
+
+    /** User-preferred date format pattern from GeneralSettings (G20). */
+    val dateFormat: String = DateTimeUtils.DEFAULT_DATE_FORMAT,
 
     val activeTab: StaffTab = StaffTab.EMPLOYEES,
 
@@ -70,6 +74,9 @@ data class StaffState(
 
     // ── Leave History (employee-scoped reactive stream) ───────────────────
     val leaveHistory: List<LeaveRecord> = emptyList(),
+
+    // ── Leave Balance (per-type days used/remaining for selected employee) ──
+    val leaveBalance: LeaveBalanceState? = null,
 
     // ── Global ────────────────────────────────────────────────────────────
     val isLoading: Boolean = false,
@@ -119,3 +126,26 @@ data class ShiftFormState(
     val endTime: String = "17:00",
     val notes: String = "",
 )
+
+/**
+ * Leave balance summary for a specific employee (current calendar year).
+ *
+ * @property annualUsed   Days of ANNUAL leave approved this year.
+ * @property sickUsed     Days of SICK leave approved this year.
+ * @property personalUsed Days of PERSONAL leave approved this year.
+ * @property unpaidUsed   Days of UNPAID leave approved this year.
+ * @property annualAllowance  Annual leave entitlement (configurable per company, default 14).
+ * @property sickAllowance    Sick leave entitlement (default 7).
+ */
+data class LeaveBalanceState(
+    val annualUsed: Int = 0,
+    val sickUsed: Int = 0,
+    val personalUsed: Int = 0,
+    val unpaidUsed: Int = 0,
+    val annualAllowance: Int = 14,
+    val sickAllowance: Int = 7,
+) {
+    val annualRemaining: Int get() = (annualAllowance - annualUsed).coerceAtLeast(0)
+    val sickRemaining: Int get() = (sickAllowance - sickUsed).coerceAtLeast(0)
+    val totalUsed: Int get() = annualUsed + sickUsed + personalUsed + unpaidUsed
+}
