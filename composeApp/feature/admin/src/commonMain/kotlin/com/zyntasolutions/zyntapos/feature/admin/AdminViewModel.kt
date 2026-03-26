@@ -152,6 +152,13 @@ class AdminViewModel(
             // License Info (G14)
             AdminIntent.LoadLicenseInfo -> loadLicenseInfo()
 
+            // Crash Log / Error Viewer (G14)
+            AdminIntent.ShowCrashLogViewer -> updateState { copy(showCrashLogViewer = true) }
+            AdminIntent.DismissCrashLogViewer -> updateState { copy(showCrashLogViewer = false) }
+            AdminIntent.LoadCrashLogs -> loadCrashLogs()
+            is AdminIntent.FilterCrashLogsBySeverity -> updateState { copy(crashLogFilter = intent.severity) }
+            AdminIntent.ClearCrashLogs -> clearCrashLogs()
+
             // UI
             AdminIntent.DismissError -> updateState { copy(error = null) }
             AdminIntent.DismissSuccess -> updateState { copy(successMessage = null) }
@@ -469,5 +476,46 @@ class AdminViewModel(
         settingsRepository.set("backup.schedule.retention", s.backupRetentionCount.toString())
         updateState { copy(showBackupScheduleDialog = false, successMessage = "Backup schedule saved.") }
         auditLogger.logSettingsChanged(currentUserId, "backup.schedule")
+    }
+
+    // ── Crash Log / Error Viewer (G14) ─────────────────────────────────
+
+    private suspend fun loadCrashLogs() {
+        updateState { copy(isCrashLogsLoading = true) }
+        val countStr = settingsRepository.get("crashlog.count")
+        val count = countStr?.toIntOrNull() ?: 0
+        val entries = mutableListOf<CrashLogEntry>()
+        for (i in 0 until count) {
+            val raw = settingsRepository.get("crashlog.entry.$i") ?: continue
+            val parts = raw.split("|")
+            if (parts.size >= 7) {
+                entries.add(
+                    CrashLogEntry(
+                        id = parts[0],
+                        severity = runCatching { CrashLogSeverity.valueOf(parts[1]) }.getOrDefault(CrashLogSeverity.ERROR),
+                        message = parts[2],
+                        stackTrace = parts[3],
+                        timestamp = parts[4].toLongOrNull() ?: 0L,
+                        screenName = parts[5],
+                        appVersion = parts[6],
+                    )
+                )
+            }
+        }
+        updateState {
+            copy(
+                isCrashLogsLoading = false,
+                crashLogs = entries.sortedByDescending { it.timestamp },
+            )
+        }
+    }
+
+    private suspend fun clearCrashLogs() {
+        val count = settingsRepository.get("crashlog.count")?.toIntOrNull() ?: 0
+        for (i in 0 until count) {
+            settingsRepository.set("crashlog.entry.$i", "")
+        }
+        settingsRepository.set("crashlog.count", "0")
+        updateState { copy(crashLogs = emptyList(), successMessage = "Crash logs cleared.") }
     }
 }

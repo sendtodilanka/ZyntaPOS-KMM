@@ -150,6 +150,21 @@ class CustomerViewModel(
             is CustomerIntent.LoadPurchaseHistory -> onLoadPurchaseHistory(intent.customerId)
             is CustomerIntent.MakeCustomerGlobal -> onMakeCustomerGlobal(intent.customerId)
             is CustomerIntent.LoadMoreCustomers -> onLoadMoreCustomers()
+
+            // ── Bulk Import (G10) ──────────────────────────────────────────────
+            is CustomerIntent.ShowBulkImportDialog -> updateState {
+                copy(bulkImport = BulkImportState(showDialog = true))
+            }
+            is CustomerIntent.DismissBulkImportDialog -> updateState {
+                copy(bulkImport = BulkImportState())
+            }
+            is CustomerIntent.SetImportCsvContent -> onSetImportCsvContent(intent.fileName, intent.content)
+            is CustomerIntent.MapImportColumn -> updateState {
+                copy(bulkImport = bulkImport.copy(
+                    columnMapping = bulkImport.columnMapping + (intent.csvHeader to intent.domainField),
+                ))
+            }
+            is CustomerIntent.ExecuteBulkImport -> onExecuteBulkImport()
         }
     }
 
@@ -604,5 +619,127 @@ class CustomerViewModel(
         val creditLimit = form.creditLimit.toDoubleOrNull()
         if (creditLimit == null || creditLimit < 0) errors["creditLimit"] = "Must be 0 or positive"
         return errors
+    }
+
+    // ── Bulk Import (G10) ────────────────────────────────────────────────────
+
+    private fun onSetImportCsvContent(fileName: String, content: String) {
+        val lines = content.lines().filter { it.isNotBlank() }
+        if (lines.isEmpty()) {
+            updateState {
+                copy(bulkImport = bulkImport.copy(error = "CSV file is empty"))
+            }
+            return
+        }
+
+        val headers = lines.first().split(",").map { it.trim().removeSurrounding("\"") }
+
+        // Auto-detect column mapping from common header names
+        val autoMapping = mutableMapOf<String, String>()
+        for (header in headers) {
+            when (header.lowercase()) {
+                "name", "customer_name", "full_name", "customer name" -> autoMapping[header] = "name"
+                "phone", "phone_number", "mobile", "telephone" -> autoMapping[header] = "phone"
+                "email", "email_address", "e-mail" -> autoMapping[header] = "email"
+                "address", "street_address", "location" -> autoMapping[header] = "address"
+                "notes", "note", "comments" -> autoMapping[header] = "notes"
+            }
+        }
+
+        val parsedRows = lines.drop(1).map { line ->
+            val values = parseCsvLine(line)
+            headers.zip(values).toMap()
+        }
+
+        updateState {
+            copy(
+                bulkImport = bulkImport.copy(
+                    fileName = fileName,
+                    csvContent = content,
+                    csvHeaders = headers,
+                    columnMapping = autoMapping,
+                    parsedRows = parsedRows,
+                    importTotal = parsedRows.size,
+                    error = null,
+                ),
+            )
+        }
+    }
+
+    private suspend fun onExecuteBulkImport() {
+        val state = currentState.bulkImport
+        if (state.parsedRows.isEmpty()) return
+        if (!state.columnMapping.containsValue("name")) {
+            updateState {
+                copy(bulkImport = bulkImport.copy(error = "Name column mapping is required"))
+            }
+            return
+        }
+
+        updateState {
+            copy(bulkImport = bulkImport.copy(isImporting = true, importProgress = 0, importedCount = 0, skippedCount = 0))
+        }
+
+        val mapping = state.columnMapping
+        val reversedMapping = mapping.entries.associate { (k, v) -> v to k }
+        var imported = 0
+        var skipped = 0
+
+        for ((index, row) in state.parsedRows.withIndex()) {
+            val name = row[reversedMapping["name"]]?.trim() ?: ""
+            if (name.isBlank()) {
+                skipped++
+                continue
+            }
+
+            val customer = Customer(
+                id = IdGenerator.newId(),
+                name = name,
+                phone = row[reversedMapping["phone"]]?.trim() ?: "",
+                email = row[reversedMapping["email"]]?.trim(),
+                address = row[reversedMapping["address"]]?.trim(),
+                notes = row[reversedMapping["notes"]]?.trim(),
+            )
+
+            when (customerRepository.insert(customer)) {
+                is Result.Success -> imported++
+                is Result.Error -> skipped++
+                is Result.Loading -> {}
+            }
+
+            updateState {
+                copy(bulkImport = bulkImport.copy(importProgress = index + 1))
+            }
+        }
+
+        updateState {
+            copy(
+                bulkImport = bulkImport.copy(
+                    isImporting = false,
+                    importedCount = imported,
+                    skippedCount = skipped,
+                ),
+                successMessage = "$imported customer(s) imported, $skipped skipped",
+            )
+        }
+    }
+
+    /** Parses a single CSV line, handling quoted fields with commas. */
+    private fun parseCsvLine(line: String): List<String> {
+        val result = mutableListOf<String>()
+        var current = StringBuilder()
+        var inQuotes = false
+        for (ch in line) {
+            when {
+                ch == '"' -> inQuotes = !inQuotes
+                ch == ',' && !inQuotes -> {
+                    result.add(current.toString().trim())
+                    current = StringBuilder()
+                }
+                else -> current.append(ch)
+            }
+        }
+        result.add(current.toString().trim())
+        return result
     }
 }

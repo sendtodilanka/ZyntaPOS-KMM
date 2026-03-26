@@ -118,6 +118,21 @@ class MediaViewModel(
             is MediaIntent.SetResizeMaxWidth -> updateState { copy(resizeMaxWidth = intent.maxWidth.coerceAtLeast(0)) }
             MediaIntent.ApplyImageProcessing -> applyImageProcessing()
 
+            // ── Batch Upload (G15) ───────────────────────────────────────────
+            MediaIntent.ShowBatchDialog -> updateState {
+                copy(showBatchDialog = true, batchFilePaths = emptyList(), batchProgress = 0, batchTotal = 0)
+            }
+            MediaIntent.DismissBatchDialog -> updateState {
+                copy(showBatchDialog = false, batchFilePaths = emptyList())
+            }
+            is MediaIntent.AddBatchFiles -> updateState {
+                copy(batchFilePaths = batchFilePaths + intent.paths)
+            }
+            is MediaIntent.RemoveBatchFile -> updateState {
+                copy(batchFilePaths = batchFilePaths.filter { it != intent.path })
+            }
+            MediaIntent.ExecuteBatchUpload -> executeBatchUpload()
+
             MediaIntent.DismissError -> updateState { copy(error = null) }
             MediaIntent.DismissSuccess -> updateState { copy(successMessage = null) }
         }
@@ -233,6 +248,79 @@ class MediaViewModel(
             }
             is Result.Error -> updateState { copy(isLoading = false, error = result.exception.message) }
             is Result.Loading -> Unit
+        }
+    }
+
+    // ── Batch Upload (G15) ─────────────────────────────────────────────────
+
+    private suspend fun executeBatchUpload() {
+        val paths = currentState.batchFilePaths
+        if (paths.isEmpty()) return
+
+        updateState {
+            copy(
+                isBatchUploading = true,
+                batchProgress = 0,
+                batchTotal = paths.size,
+                batchSuccessCount = 0,
+                batchFailCount = 0,
+            )
+        }
+
+        var successCount = 0
+        var failCount = 0
+
+        for ((index, path) in paths.withIndex()) {
+            val extension = path.substringAfterLast('.', "").lowercase()
+            val fileType = when (extension) {
+                "jpg", "jpeg", "png", "webp", "gif", "bmp" -> MediaFileType.IMAGE
+                "pdf" -> MediaFileType.DOCUMENT
+                else -> MediaFileType.IMAGE
+            }
+            val mimeType = when (extension) {
+                "png" -> "image/png"
+                "jpg", "jpeg" -> "image/jpeg"
+                "webp" -> "image/webp"
+                "gif" -> "image/gif"
+                "bmp" -> "image/bmp"
+                "pdf" -> "application/pdf"
+                else -> "image/jpeg"
+            }
+            val now = Clock.System.now().toEpochMilliseconds()
+
+            val mediaFile = MediaFile(
+                id = IdGenerator.newId(),
+                fileName = path.substringAfterLast('/'),
+                filePath = path,
+                fileType = fileType,
+                mimeType = mimeType,
+                fileSize = 0L,
+                entityType = currentState.entityType,
+                entityId = currentState.entityId,
+                isPrimary = currentState.mediaFiles.isEmpty() && index == 0,
+                uploadedBy = currentUserId,
+                uploadStatus = MediaUploadStatus.LOCAL,
+                createdAt = now,
+                updatedAt = now,
+            )
+
+            when (val result = saveMediaFileUseCase(mediaFile)) {
+                is Result.Success -> successCount++
+                is Result.Error -> failCount++
+                is Result.Loading -> Unit
+            }
+
+            updateState {
+                copy(batchProgress = index + 1, batchSuccessCount = successCount, batchFailCount = failCount)
+            }
+        }
+
+        updateState {
+            copy(
+                isBatchUploading = false,
+                showBatchDialog = false,
+                successMessage = "$successCount file(s) uploaded, $failCount failed",
+            )
         }
     }
 }

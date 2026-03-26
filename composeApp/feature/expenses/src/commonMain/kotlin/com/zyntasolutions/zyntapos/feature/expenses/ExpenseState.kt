@@ -43,10 +43,47 @@ data class ExpenseState(
     /** Manager approval threshold — expenses above this amount require manager sign-off. */
     val approvalThreshold: Double = 1000.0,
 
+    // ── Recurring Expenses (G13) ────────────────────────────────────────
+    val recurringExpenses: List<RecurringExpenseEntry> = emptyList(),
+    val showRecurringDialog: Boolean = false,
+    val recurringForm: RecurringExpenseFormState = RecurringExpenseFormState(),
+
     // ── Global ────────────────────────────────────────────────────────────
     val isLoading: Boolean = false,
     val error: String? = null,
     val successMessage: String? = null,
+)
+
+/** Frequency for recurring expenses. */
+enum class RecurringFrequency { DAILY, WEEKLY, MONTHLY, QUARTERLY, YEARLY }
+
+/**
+ * A recurring expense template — auto-generates expense records at the configured frequency.
+ */
+data class RecurringExpenseEntry(
+    val id: String,
+    val description: String,
+    val amount: Double,
+    val categoryId: String,
+    val categoryName: String,
+    val frequency: RecurringFrequency,
+    val isActive: Boolean,
+    val nextDueDate: String,
+    val vendorName: String,
+)
+
+/** Form state for creating/editing a recurring expense template. */
+data class RecurringExpenseFormState(
+    val id: String? = null,
+    val description: String = "",
+    val amount: String = "",
+    val categoryId: String = "",
+    val frequency: RecurringFrequency = RecurringFrequency.MONTHLY,
+    val startDate: String = "",
+    val vendorId: String = "",
+    val vendorName: String = "",
+    val isEditing: Boolean = false,
+    val validationErrors: Map<String, String> = emptyMap(),
 )
 
 /** Mutable form fields for expense create/edit operations. */

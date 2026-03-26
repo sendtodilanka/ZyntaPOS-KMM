@@ -80,4 +80,16 @@ sealed interface CustomerIntent {
 
     /** Promote a store-specific customer to global scope. */
     data class MakeCustomerGlobal(val customerId: String) : CustomerIntent
+
+    // ── Bulk Import (G10) ────────────────────────────────────────────────────
+    /** Show the CSV bulk import dialog. */
+    data object ShowBulkImportDialog : CustomerIntent
+    /** Dismiss the CSV bulk import dialog. */
+    data object DismissBulkImportDialog : CustomerIntent
+    /** Set the CSV file content for parsing. */
+    data class SetImportCsvContent(val fileName: String, val content: String) : CustomerIntent
+    /** Map a CSV column to a domain field. */
+    data class MapImportColumn(val csvHeader: String, val domainField: String) : CustomerIntent
+    /** Execute the bulk import with the current column mapping. */
+    data object ExecuteBulkImport : CustomerIntent
 }

@@ -38,6 +38,24 @@ sealed interface ExpenseIntent {
     /** Update the global approval threshold for high-value expenses. */
     data class UpdateApprovalThreshold(val amount: Double) : ExpenseIntent
 
+    // ── Recurring Expenses (G13) ────────────────────────────────────────────
+    /** Load all recurring expense templates. */
+    data object LoadRecurringExpenses : ExpenseIntent
+    /** Show the recurring expense dialog. */
+    data object ShowRecurringDialog : ExpenseIntent
+    /** Dismiss the recurring expense dialog. */
+    data object DismissRecurringDialog : ExpenseIntent
+    /** Update a field in the recurring expense form. */
+    data class UpdateRecurringField(val field: String, val value: String) : ExpenseIntent
+    /** Set the recurring frequency. */
+    data class SetRecurringFrequency(val frequency: RecurringFrequency) : ExpenseIntent
+    /** Save the recurring expense template. */
+    data object SaveRecurringExpense : ExpenseIntent
+    /** Delete a recurring expense template. */
+    data class DeleteRecurringExpense(val id: String) : ExpenseIntent
+    /** Toggle a recurring expense active/inactive. */
+    data class ToggleRecurringExpense(val id: String) : ExpenseIntent
+
     // ── Global ─────────────────────────────────────────────────────────────
     data object DismissMessage : ExpenseIntent
 }

@@ -24,6 +24,8 @@ sealed interface SettingsIntent {
     data class UpdateDateFormat(val format: String) : SettingsIntent
     /** Auto-detect the system timezone and compute its UTC offset string. */
     data object DetectTimezone : SettingsIntent
+    /** Change the app display language (ISO 639-1 code, e.g. "en", "si", "ta"). */
+    data class SetLanguage(val languageCode: String) : SettingsIntent
     data object SaveGeneral : SettingsIntent
 
     // ── POS Settings ──────────────────────────────────────────────────────────

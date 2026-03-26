@@ -96,8 +96,30 @@ data class AdminState(
     /** True while loading license info from settings. */
     val isLicenseLoading: Boolean = false,
 
+    // ── Crash Log / Error Viewer (G14) ─────────────────────────────────
+    val crashLogs: List<CrashLogEntry> = emptyList(),
+    val showCrashLogViewer: Boolean = false,
+    val isCrashLogsLoading: Boolean = false,
+    val crashLogFilter: CrashLogSeverity? = null,
+
     // ── Global ────────────────────────────────────────────────────────────
     val isLoading: Boolean = false,
     val error: String? = null,
     val successMessage: String? = null,
+)
+
+/** Severity level for crash/error log entries. */
+enum class CrashLogSeverity { INFO, WARNING, ERROR, FATAL }
+
+/**
+ * A crash or error log entry captured from the application.
+ */
+data class CrashLogEntry(
+    val id: String,
+    val severity: CrashLogSeverity,
+    val message: String,
+    val stackTrace: String,
+    val timestamp: Long,
+    val screenName: String,
+    val appVersion: String,
 )

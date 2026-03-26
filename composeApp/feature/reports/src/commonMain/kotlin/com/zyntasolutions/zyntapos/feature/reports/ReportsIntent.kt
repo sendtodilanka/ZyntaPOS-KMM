@@ -72,4 +72,26 @@ sealed interface ReportsIntent {
     data object LoadConsolidatedCurrencyReport : ReportsIntent
     /** Set the base currency for consolidation (e.g., "LKR", "USD"). */
     data class SetConsolidationBaseCurrency(val currencyCode: String) : ReportsIntent
+
+    // ── Report Scheduling (G6) ────────────────────────────────────────────
+    /** Show the report scheduling dialog. */
+    data object ShowScheduleDialog : ReportsIntent
+    /** Dismiss the report scheduling dialog. */
+    data object DismissScheduleDialog : ReportsIntent
+    /** Set the report type for scheduling. */
+    data class SetScheduleReportType(val type: ScheduledReportType) : ReportsIntent
+    /** Set the schedule frequency. */
+    data class SetScheduleFrequency(val frequency: ReportScheduleFrequency) : ReportsIntent
+    /** Set the email recipient for scheduled reports. */
+    data class SetScheduleEmailRecipient(val email: String) : ReportsIntent
+    /** Set the hour of day for scheduled report generation. */
+    data class SetScheduleHour(val hour: Int) : ReportsIntent
+    /** Save the current schedule configuration. */
+    data object SaveSchedule : ReportsIntent
+    /** Toggle a schedule on/off by report type. */
+    data class ToggleSchedule(val reportType: ScheduledReportType) : ReportsIntent
+    /** Load all saved schedules. */
+    data object LoadSchedules : ReportsIntent
+    /** Delete a saved schedule. */
+    data class DeleteSchedule(val reportType: ScheduledReportType) : ReportsIntent
 }

@@ -186,6 +186,30 @@ class ReportsViewModel(
             // ── C5.1: Multi-currency consolidation ──────────────────────────
             ReportsIntent.LoadConsolidatedCurrencyReport -> onLoadConsolidatedCurrencyReport()
             is ReportsIntent.SetConsolidationBaseCurrency -> onSetConsolidationBaseCurrency(intent.currencyCode)
+
+            // ── Report Scheduling (G6) ──────────────────────────────────────
+            ReportsIntent.ShowScheduleDialog -> updateState {
+                copy(scheduling = scheduling.copy(showDialog = true))
+            }
+            ReportsIntent.DismissScheduleDialog -> updateState {
+                copy(scheduling = scheduling.copy(showDialog = false, error = null))
+            }
+            is ReportsIntent.SetScheduleReportType -> updateState {
+                copy(scheduling = scheduling.copy(reportType = intent.type))
+            }
+            is ReportsIntent.SetScheduleFrequency -> updateState {
+                copy(scheduling = scheduling.copy(frequency = intent.frequency))
+            }
+            is ReportsIntent.SetScheduleEmailRecipient -> updateState {
+                copy(scheduling = scheduling.copy(emailRecipient = intent.email))
+            }
+            is ReportsIntent.SetScheduleHour -> updateState {
+                copy(scheduling = scheduling.copy(scheduleHour = intent.hour))
+            }
+            ReportsIntent.SaveSchedule -> onSaveSchedule()
+            is ReportsIntent.ToggleSchedule -> onToggleSchedule(intent.reportType)
+            ReportsIntent.LoadSchedules -> onLoadSchedules()
+            is ReportsIntent.DeleteSchedule -> onDeleteSchedule(intent.reportType)
         }
     }
 
@@ -631,6 +655,64 @@ class ReportsViewModel(
                 }
             }
         }
+    }
+
+    // ── Report Scheduling (G6) ────────────────────────────────────────────
+
+    private suspend fun onSaveSchedule() {
+        val sched = currentState.scheduling
+        if (sched.emailRecipient.isBlank()) {
+            updateState {
+                copy(scheduling = scheduling.copy(error = "Email recipient is required"))
+            }
+            return
+        }
+
+        val key = "report.schedule.${sched.reportType.name}"
+        val value = "${sched.frequency.name}|${sched.emailRecipient}|${sched.scheduleHour}|true"
+        settingsRepository.set(key, value)
+
+        updateState {
+            copy(scheduling = scheduling.copy(showDialog = false, error = null))
+        }
+        onLoadSchedules()
+    }
+
+    private suspend fun onToggleSchedule(reportType: ScheduledReportType) {
+        val key = "report.schedule.${reportType.name}"
+        val existing = settingsRepository.get(key) ?: return
+        val parts = existing.split("|")
+        if (parts.size < 4) return
+        val isEnabled = parts[3].toBooleanStrictOrNull() ?: true
+        val updated = "${parts[0]}|${parts[1]}|${parts[2]}|${!isEnabled}"
+        settingsRepository.set(key, updated)
+        onLoadSchedules()
+    }
+
+    private suspend fun onLoadSchedules() {
+        val schedules = ScheduledReportType.entries.mapNotNull { type ->
+            val key = "report.schedule.${type.name}"
+            val value = settingsRepository.get(key) ?: return@mapNotNull null
+            val parts = value.split("|")
+            if (parts.size < 4) return@mapNotNull null
+            ReportScheduleEntry(
+                reportType = type,
+                frequency = runCatching { ReportScheduleFrequency.valueOf(parts[0]) }
+                    .getOrDefault(ReportScheduleFrequency.DAILY),
+                emailRecipient = parts[1],
+                scheduleHour = parts[2].toIntOrNull() ?: 8,
+                isEnabled = parts[3].toBooleanStrictOrNull() ?: true,
+            )
+        }
+        updateState {
+            copy(scheduling = scheduling.copy(schedules = schedules))
+        }
+    }
+
+    private suspend fun onDeleteSchedule(reportType: ScheduledReportType) {
+        val key = "report.schedule.${reportType.name}"
+        settingsRepository.set(key, "")
+        onLoadSchedules()
     }
 }
 

@@ -39,6 +39,8 @@ data class ReportsState(
     val reportTimezone: String? = null,
     // ── C5.1: Multi-Currency Consolidation ──────────────────────────────
     val consolidatedCurrency: CurrencyConsolidationState = CurrencyConsolidationState(),
+    // ── Report Scheduling (G6) ───────────────────────────────────────────
+    val scheduling: ReportSchedulingState = ReportSchedulingState(),
 ) {
     /** State slice for the reports home tile grid. */
     data class HomeState(
@@ -163,4 +165,38 @@ data class StoreRevenueInBase(
     val originalRevenue: Double,
     val exchangeRate: Double,
     val revenueInBase: Double,
+)
+
+/** Scheduled report frequency. */
+enum class ReportScheduleFrequency { DAILY, WEEKLY, MONTHLY }
+
+/** Which report type is being scheduled. */
+enum class ScheduledReportType { SALES, STOCK, CUSTOMER, EXPENSE, STORE_COMPARISON }
+
+/**
+ * State for report scheduling configuration (G6).
+ *
+ * Allows users to configure periodic report generation and email delivery.
+ */
+data class ReportSchedulingState(
+    val showDialog: Boolean = false,
+    val isEnabled: Boolean = false,
+    val frequency: ReportScheduleFrequency = ReportScheduleFrequency.DAILY,
+    val reportType: ScheduledReportType = ScheduledReportType.SALES,
+    val emailRecipient: String = "",
+    val scheduleHour: Int = 8,
+    val schedules: List<ReportScheduleEntry> = emptyList(),
+    val error: String? = null,
+)
+
+/**
+ * A single report schedule entry.
+ */
+data class ReportScheduleEntry(
+    val reportType: ScheduledReportType,
+    val frequency: ReportScheduleFrequency,
+    val emailRecipient: String,
+    val scheduleHour: Int,
+    val isEnabled: Boolean,
+    val lastRunAt: Long? = null,
 )

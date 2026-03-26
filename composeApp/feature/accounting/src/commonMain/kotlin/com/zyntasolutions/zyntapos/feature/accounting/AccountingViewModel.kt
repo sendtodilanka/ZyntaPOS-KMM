@@ -6,6 +6,7 @@ import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.StoreRepository
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetPeriodSummaryUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetProfitAndLossUseCase
+import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import androidx.lifecycle.viewModelScope
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlinx.coroutines.async
@@ -31,17 +32,21 @@ class AccountingViewModel(
     private val getProfitAndLossUseCase: GetProfitAndLossUseCase,
     private val storeRepository: StoreRepository,
     private val authRepository: AuthRepository,
+    private val settingsRepository: SettingsRepository,
     private val analytics: AnalyticsTracker,
 ) : BaseViewModel<AccountingState, AccountingIntent, AccountingEffect>(
     AccountingState(period = currentFiscalPeriod())
 ) {
     private var storeId: String = "default"
+    private var currentUserId: String = "unknown"
 
     init {
         analytics.logScreenView("Accounting", "AccountingViewModel")
-        // Resolve the store ID from the active session without blocking the main thread.
+        // Resolve the store ID and user from the active session without blocking the main thread.
         viewModelScope.launch {
-            storeId = authRepository.getSession().first()?.storeId ?: "default"
+            val session = authRepository.getSession().first()
+            storeId = session?.storeId ?: "default"
+            currentUserId = session?.id ?: "unknown"
             dispatch(AccountingIntent.LoadPeriod(currentFiscalPeriod()))
         }
     }
@@ -51,6 +56,16 @@ class AccountingViewModel(
             is AccountingIntent.LoadPeriod -> loadPeriod(intent.period)
             is AccountingIntent.DismissError -> updateState { copy(error = null) }
             is AccountingIntent.LoadConsolidatedPnL -> loadConsolidatedPnL()
+            is AccountingIntent.StartReconciliation -> onStartReconciliation(intent.accountCode, intent.accountName)
+            is AccountingIntent.UpdateExternalBalance -> onUpdateExternalBalance(intent.balance)
+            is AccountingIntent.UpdateReconciliationNotes -> updateState {
+                copy(reconciliation = reconciliation.copy(notes = intent.notes))
+            }
+            is AccountingIntent.SaveReconciliation -> onSaveReconciliation()
+            is AccountingIntent.DismissReconciliation -> updateState {
+                copy(reconciliation = ReconciliationState())
+            }
+            is AccountingIntent.LoadReconciliationHistory -> onLoadReconciliationHistory()
         }
     }
 
@@ -157,6 +172,117 @@ class AccountingViewModel(
                     ),
                 )
             }
+        }
+    }
+
+    // ── Account Reconciliation (G9) ─────────────────────────────────────
+
+    private suspend fun onStartReconciliation(accountCode: String, accountName: String) {
+        // Look up the GL balance for this account from the current period summaries.
+        val summary = currentState.summaries.find { it.accountCode == accountCode }
+        val glBalance = summary?.total ?: 0.0
+
+        updateState {
+            copy(
+                reconciliation = ReconciliationState(
+                    showDialog = true,
+                    accountCode = accountCode,
+                    accountName = accountName,
+                    glBalance = glBalance,
+                ),
+            )
+        }
+    }
+
+    private fun onUpdateExternalBalance(balance: String) {
+        val externalValue = balance.toDoubleOrNull() ?: 0.0
+        val glBalance = currentState.reconciliation.glBalance
+        val diff = glBalance - externalValue
+        updateState {
+            copy(
+                reconciliation = reconciliation.copy(
+                    externalBalance = balance,
+                    difference = diff,
+                    isReconciled = kotlin.math.abs(diff) < 0.01,
+                ),
+            )
+        }
+    }
+
+    private suspend fun onSaveReconciliation() {
+        val recon = currentState.reconciliation
+        if (recon.externalBalance.isBlank()) {
+            updateState {
+                copy(reconciliation = reconciliation.copy(error = "External balance is required"))
+            }
+            return
+        }
+
+        val now = Clock.System.now().toEpochMilliseconds()
+        val record = ReconciliationRecord(
+            accountCode = recon.accountCode,
+            accountName = recon.accountName,
+            glBalance = recon.glBalance,
+            externalBalance = recon.externalBalance.toDoubleOrNull() ?: 0.0,
+            difference = recon.difference,
+            isReconciled = recon.isReconciled,
+            notes = recon.notes,
+            reconciledAt = now,
+            reconciledBy = currentUserId,
+        )
+
+        // Persist reconciliation record via settings (key pattern: reconciliation.<period>.<accountCode>)
+        val key = "reconciliation.${currentState.period}.${recon.accountCode}"
+        val value = buildString {
+            append(record.glBalance).append("|")
+            append(record.externalBalance).append("|")
+            append(record.difference).append("|")
+            append(record.isReconciled).append("|")
+            append(record.notes).append("|")
+            append(record.reconciledAt).append("|")
+            append(record.reconciledBy)
+        }
+        settingsRepository.set(key, value)
+
+        updateState {
+            copy(
+                reconciliation = ReconciliationState(),
+                successMessage = if (record.isReconciled) {
+                    "${recon.accountName} reconciled successfully"
+                } else {
+                    "${recon.accountName} saved with variance of ${recon.difference}"
+                },
+            )
+        }
+        sendEffect(AccountingEffect.ShowError(
+            if (record.isReconciled) "Account reconciled" else "Reconciliation saved with variance"
+        ))
+    }
+
+    private suspend fun onLoadReconciliationHistory() {
+        updateState { copy(reconciliation = reconciliation.copy(isLoading = true)) }
+
+        val prefix = "reconciliation.${currentState.period}."
+        val records = currentState.summaries.mapNotNull { summary ->
+            val key = "$prefix${summary.accountCode}"
+            val value = settingsRepository.get(key) ?: return@mapNotNull null
+            val parts = value.split("|")
+            if (parts.size < 7) return@mapNotNull null
+            ReconciliationRecord(
+                accountCode = summary.accountCode,
+                accountName = summary.accountName,
+                glBalance = parts[0].toDoubleOrNull() ?: 0.0,
+                externalBalance = parts[1].toDoubleOrNull() ?: 0.0,
+                difference = parts[2].toDoubleOrNull() ?: 0.0,
+                isReconciled = parts[3].toBooleanStrictOrNull() ?: false,
+                notes = parts[4],
+                reconciledAt = parts[5].toLongOrNull() ?: 0L,
+                reconciledBy = parts[6],
+            )
+        }
+
+        updateState {
+            copy(reconciliation = reconciliation.copy(isLoading = false, history = records))
         }
     }
 

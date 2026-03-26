@@ -58,6 +58,18 @@ sealed interface MediaIntent {
     /** Applies crop/compress settings and saves the processed image. */
     data object ApplyImageProcessing : MediaIntent
 
+    // ── Batch Upload (G15) ─────────────────────────────────────────────────
+    /** Show the batch upload dialog. */
+    data object ShowBatchDialog : MediaIntent
+    /** Dismiss the batch upload dialog. */
+    data object DismissBatchDialog : MediaIntent
+    /** Add file paths to the batch. */
+    data class AddBatchFiles(val paths: List<String>) : MediaIntent
+    /** Remove a file from the batch. */
+    data class RemoveBatchFile(val path: String) : MediaIntent
+    /** Execute the batch upload. */
+    data object ExecuteBatchUpload : MediaIntent
+
     // ── UI Feedback ────────────────────────────────────────────────────────
     data object DismissError : MediaIntent
     data object DismissSuccess : MediaIntent
