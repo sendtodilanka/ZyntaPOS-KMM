@@ -586,7 +586,7 @@ class ReportsViewModel(
                         currentState.salesReport.customTo,
                     )
                     val salesReport = generateSalesReport(from, to, store.id).first()
-                    val storeRevenue = salesReport.totalRevenue
+                    val storeRevenue = salesReport.totalSales
 
                     // Get exchange rate for store's currency to base currency
                     val exchangeRate = if (store.currency == baseCurrency) {
