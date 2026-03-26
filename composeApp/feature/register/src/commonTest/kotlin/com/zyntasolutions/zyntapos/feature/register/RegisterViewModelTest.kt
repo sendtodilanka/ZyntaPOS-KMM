@@ -91,6 +91,10 @@ class RegisterViewModelTest {
             Result.Success(Unit)
         override suspend fun validatePin(userId: String, pin: String): Result<Boolean> =
             Result.Success(true)
+        override suspend fun quickSwitch(userId: String, pin: String): Result<User> =
+            Result.Success(_session.value!!)
+        override suspend fun validateManagerPin(pin: String): Result<Boolean> =
+            Result.Success(true)
     }
     private val sessionId = "sess-001"
 
@@ -199,6 +203,19 @@ class RegisterViewModelTest {
         override fun setUserProperty(name: String, value: String) = Unit
     }
 
+    private val fakeUserRepository = object : com.zyntasolutions.zyntapos.domain.repository.UserRepository {
+        override fun getAll(storeId: String?): Flow<List<User>> = MutableStateFlow(emptyList())
+        override suspend fun getById(id: String): Result<User> = Result.Error(DatabaseException("Not found"))
+        override suspend fun create(user: User, plainPassword: String): Result<Unit> = Result.Success(Unit)
+        override suspend fun update(user: User): Result<Unit> = Result.Success(Unit)
+        override suspend fun updatePassword(userId: String, newPlainPassword: String): Result<Unit> = Result.Success(Unit)
+        override suspend fun deactivate(userId: String): Result<Unit> = Result.Success(Unit)
+        override suspend fun getSystemAdmin(): Result<User?> = Result.Success(null)
+        override suspend fun adminExists(): Result<Boolean> = Result.Success(false)
+        override suspend fun transferSystemAdmin(fromUserId: String, toUserId: String): Result<Unit> = Result.Success(Unit)
+        override suspend fun getQuickSwitchCandidates(storeId: String): Result<List<com.zyntasolutions.zyntapos.domain.model.QuickSwitchCandidate>> = Result.Success(emptyList())
+    }
+
     private val openRegisterSessionUseCase = OpenRegisterSessionUseCase(fakeRegisterRepository)
     private val closeRegisterSessionUseCase = CloseRegisterSessionUseCase(fakeRegisterRepository)
     private val recordCashMovementUseCase = RecordCashMovementUseCase(fakeRegisterRepository)
@@ -243,6 +260,7 @@ class RegisterViewModelTest {
             printA4ZReportUseCase = printA4ZReportUseCase,
             authRepository = fakeAuthRepository,
             storeRepository = fakeStoreRepository,
+            userRepository = fakeUserRepository,
             openCashDrawerUseCase = OpenCashDrawerUseCase(fakeReceiptPrinterPort),
             auditLogger = testAuditLogger,
             analytics = noOpAnalytics,

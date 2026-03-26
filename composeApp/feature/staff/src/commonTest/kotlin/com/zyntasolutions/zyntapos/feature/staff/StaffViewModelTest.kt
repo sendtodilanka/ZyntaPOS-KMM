@@ -112,6 +112,10 @@ class StaffViewModelTest {
             Result.Success(Unit)
         override suspend fun validatePin(userId: String, pin: String): Result<Boolean> =
             Result.Success(true)
+        override suspend fun quickSwitch(userId: String, pin: String): Result<User> =
+            Result.Success(_session.value!!)
+        override suspend fun validateManagerPin(pin: String): Result<Boolean> =
+            Result.Success(true)
     }
     private val now = System.currentTimeMillis()
     private val today = "2026-02-25"

@@ -132,6 +132,8 @@ class SettingsViewModelTest {
         override suspend fun adminExists(): Result<Boolean> = Result.Success(false)
         override suspend fun transferSystemAdmin(fromUserId: String, toUserId: String): Result<Unit> =
             Result.Success(Unit)
+        override suspend fun getQuickSwitchCandidates(storeId: String): Result<List<com.zyntasolutions.zyntapos.domain.model.QuickSwitchCandidate>> =
+            Result.Success(emptyList())
     }
 
     private val fakeSaveTaxGroupUseCase = SaveTaxGroupUseCase(fakeTaxGroupRepository)
@@ -185,6 +187,14 @@ class SettingsViewModelTest {
         override suspend fun refreshToken(): Result<Unit> = Result.Success(Unit)
         override suspend fun updatePin(userId: String, pin: String): Result<Unit> = Result.Success(Unit)
         override suspend fun validatePin(userId: String, pin: String): Result<Boolean> = Result.Success(true)
+        override suspend fun quickSwitch(userId: String, pin: String): Result<User> = Result.Success(
+            User(
+                id = "u1", name = "Test", email = "test@test.com", role = Role.CASHIER,
+                storeId = "store-01", isActive = true, pinHash = null,
+                createdAt = Instant.fromEpochSeconds(0), updatedAt = Instant.fromEpochSeconds(0),
+            )
+        )
+        override suspend fun validateManagerPin(pin: String): Result<Boolean> = Result.Success(true)
     }
 
     // ── Role repository fake ──────────────────────────────────────────────────
@@ -250,6 +260,13 @@ class SettingsViewModelTest {
         override suspend fun delete(id: String): Result<Unit> = Result.Success(Unit)
     }
 
+    private val fakeStoreRepository = object : com.zyntasolutions.zyntapos.domain.repository.StoreRepository {
+        override fun getAllStores(): Flow<List<com.zyntasolutions.zyntapos.domain.model.Store>> = MutableStateFlow(emptyList())
+        override suspend fun getById(storeId: String): com.zyntasolutions.zyntapos.domain.model.Store? = null
+        override suspend fun getStoreName(storeId: String): String? = null
+        override suspend fun upsertFromSync(store: com.zyntasolutions.zyntapos.domain.model.Store) = Unit
+    }
+
     private lateinit var viewModel: SettingsViewModel
 
     @BeforeTest
@@ -285,6 +302,7 @@ class SettingsViewModelTest {
             getPrinterProfilesUseCase    = GetPrinterProfilesUseCase(fakePrinterProfileRepository),
             savePrinterProfileUseCase    = SavePrinterProfileUseCase(fakePrinterProfileRepository),
             deletePrinterProfileUseCase  = DeletePrinterProfileUseCase(fakePrinterProfileRepository),
+            storeRepository              = fakeStoreRepository,
             auditLogger                  = testAuditLogger,
             authRepository               = fakeAuthRepository,
             analytics                    = noOpAnalytics,

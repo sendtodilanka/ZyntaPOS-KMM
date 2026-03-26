@@ -99,6 +99,7 @@ class StoreUserAccessViewModelTest {
         override suspend fun getSystemAdmin(): Result<User?> = Result.Success(null)
         override suspend fun adminExists(): Result<Boolean> = Result.Success(false)
         override suspend fun transferSystemAdmin(fromUserId: String, toUserId: String): Result<Unit> = Result.Success(Unit)
+        override suspend fun getQuickSwitchCandidates(storeId: String): Result<List<com.zyntasolutions.zyntapos.domain.model.QuickSwitchCandidate>> = Result.Success(emptyList())
     }
 
     private val fakeAccessRepo = object : UserStoreAccessRepository {
