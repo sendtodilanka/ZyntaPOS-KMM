@@ -25,6 +25,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.staff.RejectLeaveUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.RequestLeaveUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.SaveEmployeeUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.SaveShiftScheduleUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.staff.GetCrossStoreAttendanceUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.ApproveShiftSwapUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.RequestShiftSwapUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.RespondToShiftSwapUseCase
@@ -106,6 +107,9 @@ val staffModule = module {
     factoryOf(::RespondToShiftSwapUseCase)
     factoryOf(::ApproveShiftSwapUseCase)
 
+    // ── C3.4: Cross-Store Attendance ────────────────────────────────────────
+    factoryOf(::GetCrossStoreAttendanceUseCase)
+
     // ── Sprint 16-C3.4: Employee Roaming ──────────────────────────────────
     factoryOf(::GetEmployeeStoresUseCase)
     factoryOf(::AssignEmployeeToStoreUseCase)
@@ -149,6 +153,7 @@ val staffModule = module {
             getLeaveHistoryUseCase = get(),
             storeRepository = get(),
             attendanceRepository = get(),
+            getCrossStoreAttendanceUseCase = get(),
             analytics = get(),
         )
     }

@@ -60,4 +60,18 @@ interface AttendanceRepository {
      * The implementation may compute this in-DB or in-memory depending on data volume.
      */
     suspend fun getSummary(employeeId: String, from: String, to: String): Result<AttendanceSummary>
+
+    /**
+     * C3.4: Returns attendance records for [employeeId] across ALL stores,
+     * including the store name resolved via JOIN.
+     *
+     * @param from ISO datetime prefix (inclusive).
+     * @param to ISO datetime prefix (inclusive).
+     * @return Pairs of (AttendanceRecord, storeName).
+     */
+    suspend fun getByEmployeeAcrossStores(
+        employeeId: String,
+        from: String,
+        to: String,
+    ): Result<List<Pair<AttendanceRecord, String?>>>
 }

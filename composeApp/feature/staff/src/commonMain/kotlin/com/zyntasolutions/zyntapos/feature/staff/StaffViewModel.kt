@@ -35,6 +35,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.staff.ProcessPayrollPaymentUse
 import com.zyntasolutions.zyntapos.domain.usecase.staff.RejectLeaveUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.SaveEmployeeUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.SaveShiftScheduleUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.staff.GetCrossStoreAttendanceUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.SubmitLeaveRequestUseCase
 import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
@@ -91,6 +92,7 @@ class StaffViewModel(
     private val getLeaveHistoryUseCase: GetLeaveHistoryUseCase,
     private val storeRepository: StoreRepository,
     private val attendanceRepository: AttendanceRepository,
+    private val getCrossStoreAttendanceUseCase: GetCrossStoreAttendanceUseCase,
     private val analytics: AnalyticsTracker,
 ) : BaseViewModel<StaffState, StaffIntent, StaffEffect>(StaffState()) {
 
@@ -825,46 +827,33 @@ class StaffViewModel(
 
     private suspend fun onLoadCrossStoreAttendance(from: String, to: String) {
         updateState { copy(isCrossStoreAttendanceLoading = true) }
-        val stores = currentState.availableStores
         val employees = currentState.employees
-        val rows = mutableListOf<CrossStoreAttendanceRow>()
 
-        for (store in stores) {
-            for (employee in employees) {
-                val result = attendanceRepository.getByEmployeeForPeriod(
-                    employeeId = employee.id,
-                    from = from,
-                    to = to,
-                )
-                if (result is Result.Success) {
-                    val storeRecords = result.data.filter { it.storeId == store.id }
-                    if (storeRecords.isNotEmpty()) {
-                        val totalHours = storeRecords.sumOf { it.totalHours ?: 0.0 }
-                        val lateCount = storeRecords.count {
-                            it.status == com.zyntasolutions.zyntapos.domain.model.AttendanceStatus.LATE
-                        }
-                        rows.add(
-                            CrossStoreAttendanceRow(
-                                employeeId = employee.id,
-                                employeeName = "${employee.firstName} ${employee.lastName}",
-                                storeId = store.id,
-                                storeName = store.name,
-                                totalDays = storeRecords.size,
-                                totalHoursWorked = totalHours,
-                                lateArrivals = lateCount,
-                                earlyDepartures = 0,
-                            ),
+        when (val result = getCrossStoreAttendanceUseCase(employees, from, to)) {
+            is Result.Success -> updateState {
+                copy(
+                    crossStoreAttendance = result.data.map { row ->
+                        CrossStoreAttendanceRow(
+                            employeeId = row.employeeId,
+                            employeeName = row.employeeName,
+                            storeId = row.storeId,
+                            storeName = row.storeName,
+                            totalDays = row.totalDays,
+                            totalHoursWorked = row.totalHoursWorked,
+                            lateArrivals = row.lateArrivals,
+                            earlyDepartures = 0,
                         )
-                    }
-                }
+                    },
+                    isCrossStoreAttendanceLoading = false,
+                )
             }
-        }
-
-        updateState {
-            copy(
-                crossStoreAttendance = rows,
-                isCrossStoreAttendanceLoading = false,
-            )
+            is Result.Error -> updateState {
+                copy(
+                    error = result.exception.message,
+                    isCrossStoreAttendanceLoading = false,
+                )
+            }
+            is Result.Loading -> Unit
         }
     }
 }

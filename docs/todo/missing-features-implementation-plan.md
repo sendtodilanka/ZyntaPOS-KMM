@@ -1452,7 +1452,7 @@ Backend Tests:
 - [x] Inter-store transaction elimination (remove internal transfers)
 - [ ] Admin panel: Consolidated financial report pages (read-only monitoring — ADR-009 compliant)
 - [x] CSV/PDF export for consolidated reports
-- [ ] `GenerateMultiStoreComparisonReportUseCase` — stub returning empty list (needs backend)
+- [x] `GenerateMultiStoreComparisonReportUseCase` — ✅ DONE: Fully implemented (not a stub), calls ReportRepository.getMultiStoreComparison(); StoreComparisonReportScreen, ReportsViewModel integration, CSV export all working
 
 **Key Files:**
 - `shared/domain/src/commonMain/.../model/FinancialStatement.kt`
@@ -1730,7 +1730,7 @@ Backend Tests:
 **REMAINING (Phase 3):**
 - [x] Payroll calculation engine (salary, overtime, deductions) — ✅ DONE (2026-03-26): PayrollEntry model, CalculatePayrollUseCase, payroll.sq, PayrollEntryRepository + impl, DI wired
 - [x] Leave management workflow (request → approve → track) — ✅ DONE (2026-03-26): LeaveRequest model (7 types, 4 statuses), RequestLeaveUseCase + ApproveLeaveUseCase, leave_requests.sq, LeaveRepository extended + impl, DI wired
-- [ ] Cross-store attendance/shifts (see C3.4) — Phase 3
+- [x] Cross-store attendance/shifts (see C3.4) — ✅ DONE (2026-03-26): AttendanceRepository.getByEmployeeAcrossStores(), GetCrossStoreAttendanceUseCase (optimized SQL JOIN replacing N×M loop), CrossStoreAttendanceScreen with KPI cards + per-employee-per-store breakdown, DI wired
 
 ---
 
@@ -1745,7 +1745,7 @@ Backend Tests:
 - [x] Expense log CRUD UI — ✅ VERIFIED: `ExpenseListScreen.kt` (182L) + `ExpenseDetailScreen.kt` (185L) + `ExpenseViewModel.kt` (350L) + `ExpenseCategoryListScreen.kt` fully implemented with CRUD, status workflow, category management (1,066 LOC total)
 
 **REMAINING (Phase 3):**
-- [ ] Receipt image attachment — Phase 3
+- [x] Receipt image attachment — ✅ DONE: ExpenseDetailScreen has native file picker (G13), AsyncImage preview, receiptUrl stored in expenses.sq; full pipeline works end-to-end
 - [x] P&L integration (connect expenses to financial statements) — ✅ DONE (2026-03-26): GenerateProfitAndLossUseCase aggregating sales + expenses, ProfitAndLossReport model, DI wired
 - [x] Budget tracking per store/category — ✅ DONE (2026-03-26): Budget model, budgets.sq, BudgetRepository + impl, TrackBudgetSpendingUseCase, DI wired
 
@@ -2277,10 +2277,10 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 - [x] **[INV-10]** TaxGroupScreen exists + "Manage" button wired in ProductDetailScreen — ✅ DONE (2026-03-23)
 
 **Phase 3 Nice-to-Have:**
-- [ ] 3-pane responsive layout for warehouse tablet UI
+- [x] 3-pane responsive layout for warehouse tablet UI — ✅ DONE (2026-03-26): WarehouseAdaptiveLayout composable using WindowSize (COMPACT=1-pane, MEDIUM=2-pane, EXPANDED=3-pane), placeholder panes, VerticalDivider separators
 - [x] High-contrast accessibility theme
 - [x] i18n/locale infrastructure
-- [ ] Receipt template visual editor
+- [x] Receipt template visual editor — ✅ DONE (2026-03-26): ReceiptTemplateConfig domain model (section toggles, paper width, font size), ReceiptTemplateEditorScreen with side-by-side editor + live monospace preview, responsive layout (compact/expanded), custom header/footer lines
 - [x] Conflict resolution UI for CRDT merges — ✅ ConflictListScreen in Admin tab 4 (C6.1 Item 6, 2026-03-19)
 - [x] Customer segmentation/advanced filtering
 - [x] Shift swap/request workflow
