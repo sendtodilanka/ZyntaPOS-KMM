@@ -127,6 +127,7 @@ class ConflictResolver(
         // Entity-type specific post-processing based on CRDT strategy
         val finalWinner = when (CrdtStrategy.forEntityType(local.entityType)) {
             CrdtStrategy.FIELD_MERGE -> mergeProductFields(winner, loser)
+            CrdtStrategy.OR_SET -> mergeOrSet(winner, loser)
             else -> winner
         }
 
@@ -183,6 +184,144 @@ class ConflictResolver(
             )
             winner
         }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // OR-Set merge for collection-type fields
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * OR-Set merge for entities with embedded collections (order items, coupon assignments).
+     *
+     * Scalar fields use LWW (winner takes all). Array fields (JSON arrays) are merged
+     * using OR-Set semantics:
+     * - Union of all items from both payloads, deduplicated by the `"id"` field.
+     * - Items present in a `"<field>_removed"` tombstone array are filtered out.
+     *
+     * This ensures that additions from both devices are preserved while explicit
+     * removals are respected, matching Observed-Remove Set CRDT behavior.
+     */
+    private fun mergeOrSet(winner: SyncOperation, loser: SyncOperation): SyncOperation {
+        return try {
+            val winnerFields = parseJsonFields(winner.payload)
+            val loserFields = parseJsonFields(loser.payload)
+            val merged = LinkedHashMap<String, String>()
+
+            // Collect all keys from both payloads
+            val allKeys = (winnerFields.keys + loserFields.keys).toSet()
+
+            for (key in allKeys) {
+                // Skip tombstone arrays — they're processed alongside their parent
+                if (key.endsWith("_removed")) continue
+
+                val winnerVal = winnerFields[key]
+                val loserVal = loserFields[key]
+
+                if (isJsonArray(winnerVal) || isJsonArray(loserVal)) {
+                    // OR-Set merge for array fields
+                    val winnerItems = parseArrayItemIds(winnerVal)
+                    val loserItems = parseArrayItemIds(loserVal)
+
+                    // Tombstones: items explicitly removed
+                    val tombstoneKey = "${key}_removed"
+                    val winnerTombstones = parseArrayItemIds(winnerFields[tombstoneKey])
+                    val loserTombstones = parseArrayItemIds(loserFields[tombstoneKey])
+                    val allTombstones = winnerTombstones + loserTombstones
+
+                    // Union of both arrays, minus tombstones
+                    val unionItems = (winnerItems + loserItems) - allTombstones
+
+                    // Rebuild the array — use winner's raw value for surviving items
+                    val winnerArray = parseJsonArrayElements(winnerVal)
+                    val loserArray = parseJsonArrayElements(loserVal)
+                    val allElements = LinkedHashMap<String, String>() // id → raw element
+                    for (elem in loserArray) {
+                        val id = extractIdFromElement(elem)
+                        if (id != null && id in unionItems) allElements[id] = elem
+                    }
+                    // Winner elements override loser elements with same ID
+                    for (elem in winnerArray) {
+                        val id = extractIdFromElement(elem)
+                        if (id != null && id in unionItems) allElements[id] = elem
+                    }
+
+                    merged[key] = "[${allElements.values.joinToString(",")}]"
+
+                    // Persist merged tombstones
+                    if (allTombstones.isNotEmpty()) {
+                        merged[tombstoneKey] = "[${allTombstones.joinToString(",") { "\"$it\"" }}]"
+                    }
+                } else {
+                    // Scalar: LWW — winner takes precedence
+                    merged[key] = winnerVal ?: loserVal ?: "null"
+                }
+            }
+
+            val mergedPayload = buildJsonObject(merged)
+            if (mergedPayload != winner.payload) {
+                log.d(
+                    "OR-Set merge applied for entity/${winner.entityId}: " +
+                        "merged collection fields from both devices"
+                )
+            }
+            winner.copy(payload = mergedPayload)
+        } catch (e: Exception) {
+            log.w(
+                "OR-Set merge failed for entity/${winner.entityId} — " +
+                    "falling back to winner payload: ${e.message}"
+            )
+            winner
+        }
+    }
+
+    /** Returns true if the value looks like a JSON array: starts with `[`. */
+    private fun isJsonArray(value: String?): Boolean =
+        value != null && value.trimStart().startsWith("[")
+
+    /** Extracts the `"id"` field values from a JSON array of objects. */
+    private fun parseArrayItemIds(arrayJson: String?): Set<String> {
+        if (arrayJson == null) return emptySet()
+        val elements = parseJsonArrayElements(arrayJson)
+        return elements.mapNotNull { extractIdFromElement(it) }.toSet()
+    }
+
+    /** Splits a JSON array string into its top-level elements. */
+    private fun parseJsonArrayElements(arrayJson: String?): List<String> {
+        if (arrayJson == null) return emptyList()
+        val trimmed = arrayJson.trim()
+        if (!trimmed.startsWith("[") || !trimmed.endsWith("]")) return emptyList()
+        val inner = trimmed.removePrefix("[").removeSuffix("]").trim()
+        if (inner.isEmpty()) return emptyList()
+
+        val elements = mutableListOf<String>()
+        var depth = 0
+        var inString = false
+        var escape = false
+        var segmentStart = 0
+
+        for (i in inner.indices) {
+            val c = inner[i]
+            when {
+                escape -> escape = false
+                c == '\\' -> if (inString) escape = true
+                c == '"' -> inString = !inString
+                !inString && (c == '{' || c == '[') -> depth++
+                !inString && (c == '}' || c == ']') -> depth--
+                !inString && c == ',' && depth == 0 -> {
+                    elements.add(inner.substring(segmentStart, i).trim())
+                    segmentStart = i + 1
+                }
+            }
+        }
+        elements.add(inner.substring(segmentStart).trim())
+        return elements.filter { it.isNotEmpty() }
+    }
+
+    /** Extracts the `"id"` value from a JSON object element string. */
+    private fun extractIdFromElement(element: String): String? {
+        val fields = parseJsonFields(element)
+        val idVal = fields["id"] ?: return null
+        return idVal.trim().removePrefix("\"").removeSuffix("\"")
     }
 
     /**
@@ -342,4 +481,10 @@ enum class ResolutionStrategy {
      * [ConflictLog.strategy].
      */
     FIELD_MERGE,
+
+    /**
+     * OR-Set merge was applied for collection-type fields (ORDER, COUPON entities).
+     * Array fields are merged using union semantics with tombstone-based removals.
+     */
+    OR_SET,
 }
