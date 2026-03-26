@@ -341,9 +341,7 @@ internal object EnglishStrings {
         StringResource.RBAC_ROLE_NAME to "Role Name",
         StringResource.RBAC_PERMISSIONS to "Permissions",
         StringResource.RBAC_PERMISSION_COUNT to "%1 permissions",
-    )
-}
-        StringResource.ACCOUNTING_ACCOUNT to "Account",
+StringResource.ACCOUNTING_ACCOUNT to "Account",
         StringResource.ACCOUNTING_ACCOUNTING_EQUATION to "Accounting Equation",
         StringResource.ACCOUNTING_ACCOUNT_CODE to "Account Code",
         StringResource.ACCOUNTING_ACCOUNT_CODE_HINT to "Account Code Hint",
@@ -1244,3 +1242,5 @@ internal object EnglishStrings {
         StringResource.STAFF_TOTAL_HOURS to "Total Hours",
         StringResource.STAFF_UPDATE_EMPLOYEE to "Update Employee",
         StringResource.STAFF_VIEW to "View",
+    )
+}
