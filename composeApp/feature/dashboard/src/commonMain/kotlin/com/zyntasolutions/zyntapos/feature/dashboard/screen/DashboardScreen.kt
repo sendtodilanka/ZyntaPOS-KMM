@@ -385,7 +385,7 @@ private fun ExpandedDashboard(
                     value = state.activeRegisters.toString(),
                     accentColor = if (state.activeRegisters > 0) MaterialTheme.colorScheme.tertiary
                     else MaterialTheme.colorScheme.secondary,
-                    subtitle = if (state.activeRegisters > 0) s[StringResource.DASHBOARD_READY_FOR_SALES] else s[StringResource.DASHBOARD_NO_REGISTER_OPEN],
+                    subtitle = if (state.activeRegisters > 0) s[StringResource.DASHBOARD_READY_FOR_SALES] else s[StringResource.DASHBOARD_NO_REGISTER_OPEN_SHORT],
                     modifier = Modifier.fillMaxWidth(),
                     rawValue = state.activeRegisters.toFloat(),
                     rawValueDelayMs = 0,
@@ -439,7 +439,7 @@ private fun ExpandedDashboard(
                     if (state.activeRegisters == 0L) {
                         ZyntaInfoCard(
                             Icons.Default.PointOfSale, s[StringResource.DASHBOARD_NO_REGISTER_OPEN],
-                            description = s[StringResource.DASHBOARD_OPEN_REGISTER_TO_START],
+                            description = s[StringResource.DASHBOARD_OPEN_REGISTER_TO_START_LONG],
                             variant = InfoCardVariant.Info, onClick = onNavigateToRegister,
                         )
                     }
