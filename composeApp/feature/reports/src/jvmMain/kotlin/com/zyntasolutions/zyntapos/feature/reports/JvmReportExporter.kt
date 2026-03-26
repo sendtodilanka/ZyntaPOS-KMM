@@ -141,6 +141,25 @@ class JvmReportExporter : ReportExporter {
             file.absolutePath
         }
 
+    override suspend fun exportConsolidatedRevenueCsv(rows: List<StoreRevenueInBase>): String =
+        withContext(Dispatchers.IO) {
+            val dir = chooseSaveDirectory() ?: throw Exception("Export cancelled by user")
+            val file = File(dir, "consolidated_revenue_$dateStamp.csv")
+            FileWriter(file).use { writer ->
+                writer.appendLine("Consolidated Revenue Report")
+                writer.appendLine("Store ID,Store Name,Original Currency,Original Revenue,Exchange Rate,Revenue In Base Currency")
+                rows.forEach { row ->
+                    writer.appendLine(
+                        "${row.storeId},${row.storeName},${row.originalCurrency}," +
+                            "${"%.2f".format(row.originalRevenue)},${row.exchangeRate},${"%.2f".format(row.revenueInBase)}"
+                    )
+                }
+                writer.appendLine()
+                writer.appendLine("Total Consolidated Revenue,${"%.2f".format(rows.sumOf { it.revenueInBase })}")
+            }
+            file.absolutePath
+        }
+
     override suspend fun exportStoreComparisonCsv(stores: List<StoreSalesData>): String =
         withContext(Dispatchers.IO) {
             val dir = chooseSaveDirectory() ?: throw Exception("Export cancelled by user")

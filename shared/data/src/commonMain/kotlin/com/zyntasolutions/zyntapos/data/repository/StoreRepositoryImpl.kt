@@ -3,6 +3,7 @@ package com.zyntasolutions.zyntapos.data.repository
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
+import com.zyntasolutions.zyntapos.domain.model.ReturnStockPolicy
 import com.zyntasolutions.zyntapos.domain.model.Store
 import com.zyntasolutions.zyntapos.domain.repository.StoreRepository
 import kotlinx.coroutines.Dispatchers
@@ -52,6 +53,7 @@ class StoreRepositoryImpl(
                     is_active = if (store.isActive) 1L else 0L,
                     max_discount_percent = store.maxDiscountPercent,
                     max_discount_amount = store.maxDiscountAmount,
+                    return_stock_policy = store.returnStockPolicy.name,
                     updated_at = store.updatedAt.toEpochMilliseconds(),
                     sync_status = "SYNCED",
                     id = store.id,
@@ -69,6 +71,7 @@ class StoreRepositoryImpl(
                     is_headquarters = if (store.isHeadquarters) 1L else 0L,
                     max_discount_percent = store.maxDiscountPercent,
                     max_discount_amount = store.maxDiscountAmount,
+                    return_stock_policy = store.returnStockPolicy.name,
                     created_at = store.createdAt.toEpochMilliseconds(),
                     updated_at = store.updatedAt.toEpochMilliseconds(),
                     sync_status = "SYNCED",
@@ -90,5 +93,10 @@ class StoreRepositoryImpl(
         updatedAt = Instant.fromEpochMilliseconds(updated_at),
         maxDiscountPercent = max_discount_percent,
         maxDiscountAmount = max_discount_amount,
+        returnStockPolicy = try {
+            ReturnStockPolicy.valueOf(return_stock_policy)
+        } catch (_: IllegalArgumentException) {
+            ReturnStockPolicy.RETURN_TO_CURRENT_STORE
+        },
     )
 }

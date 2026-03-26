@@ -30,4 +30,9 @@ data class Store(
      * Null = no limit. Applied independently from [maxDiscountPercent].
      */
     val maxDiscountAmount: Double? = null,
+    /**
+     * Policy controlling where returned stock goes during a cross-store
+     * refund (C4.2). Defaults to [ReturnStockPolicy.RETURN_TO_CURRENT_STORE].
+     */
+    val returnStockPolicy: ReturnStockPolicy = ReturnStockPolicy.RETURN_TO_CURRENT_STORE,
 )
