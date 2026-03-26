@@ -418,7 +418,7 @@ class PosViewModel(
                     copy(
                         isGiftCardLoading = false,
                         giftCardBalance = balance,
-                        giftCardPaymentAmount = balance.coerceAtMost(orderTotals.grandTotal),
+                        giftCardPaymentAmount = balance.coerceAtMost(orderTotals.total),
                     )
                 }
             } else {

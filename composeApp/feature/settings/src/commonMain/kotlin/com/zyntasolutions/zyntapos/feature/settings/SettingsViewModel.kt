@@ -1053,8 +1053,8 @@ class SettingsViewModel(
                     settingsRepository.get(key)?.let { settingsMap[key] = it }
                 }
                 // Push settings as a sync operation
-                settingsRepository.set("settings.last_sync_at", kotlinx.datetime.Clock.System.now().toString())
-                val timestamp = kotlinx.datetime.Clock.System.now().toString()
+                settingsRepository.set("settings.last_sync_at", Clock.System.now().toString())
+                val timestamp = Clock.System.now().toString()
                 updateState {
                     copy(
                         isSyncingSettings = false,
@@ -1062,7 +1062,7 @@ class SettingsViewModel(
                         settingsSyncError = null,
                     )
                 }
-                auditLogger.log("SETTINGS_SYNC", currentUserId, "Settings synced to backend: ${settingsMap.size} keys")
+                auditLogger.logSettingsChanged(currentUserId, "settings.sync", newValue = "${settingsMap.size} keys synced")
                 sendEffect(SettingsEffect.ShowSnackbar("Settings synced successfully"))
             } catch (e: Exception) {
                 updateState { copy(isSyncingSettings = false, settingsSyncError = e.message) }
