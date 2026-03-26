@@ -1592,7 +1592,7 @@ Backend Tests:
 - Feature flag: `crdt_sync` (disabled, ENTERPRISE)
 
 **What's REMAINING (Phase 3):**
-- [ ] OR-Set CRDT for collection-type fields (order items, coupon assignments)
+- [x] OR-Set CRDT for collection-type fields (order items, coupon assignments) — ✅ DONE (2026-03-26): Added OR_SET to CrdtStrategy enum for ORDER/COUPON entities; mergeOrSet() in ConflictResolver with array union + tombstone-based removals
 - [x] Custom merge value input in Conflict UI (currently Keep Local / Accept Server only) — ✅ DONE (2026-03-25): ConflictDetailDialog now has an OutlinedTextField for custom merge value; "Use Custom Value" button appears when field is non-blank and dispatches ResolveConflictManual(id, value); ViewModel already handled it via ResolveConflictUseCase with Resolution.MANUAL
 
 **Key Files:**
