@@ -345,7 +345,7 @@ private fun PricingRuleEditDialog(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Text("Active", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                    Text(s[StringResource.INVENTORY_ACTIVE], style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                     Switch(checked = state.formIsActive, onCheckedChange = { onSetActive(it) })
                 }
             }
@@ -358,10 +358,10 @@ private fun PricingRuleEditDialog(
                 if (state.isSaving) {
                     CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
                 } else {
-                    Text("Save")
+                    Text(s[StringResource.COMMON_SAVE])
                 }
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(s[StringResource.COMMON_CANCEL]) } },
     )
 }

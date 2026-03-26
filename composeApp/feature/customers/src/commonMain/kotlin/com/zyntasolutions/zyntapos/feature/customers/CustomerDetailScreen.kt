@@ -539,7 +539,7 @@ private fun MergeCustomerDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                if (selectedSource == null) "Merge Customer" else "Confirm Merge",
+                if (selectedSource == null) s[StringResource.CUSTOMERS_MERGE] else s[StringResource.CUSTOMERS_CONFIRM_MERGE],
                 style = MaterialTheme.typography.titleMedium,
             )
         },

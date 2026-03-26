@@ -332,16 +332,16 @@ private fun StorePairGroupCard(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     if (group.pending.isNotEmpty()) {
-                        StatusCount("Pending", group.pending.size, MaterialTheme.colorScheme.tertiary)
+                        StatusCount(s[StringResource.MULTISTORE_PENDING], group.pending.size, MaterialTheme.colorScheme.tertiary)
                     }
                     if (group.approved.isNotEmpty()) {
-                        StatusCount("Approved", group.approved.size, MaterialTheme.colorScheme.secondary)
+                        StatusCount(s[StringResource.MULTISTORE_APPROVED], group.approved.size, MaterialTheme.colorScheme.secondary)
                     }
                     if (group.inTransit.isNotEmpty()) {
-                        StatusCount("In Transit", group.inTransit.size, MaterialTheme.colorScheme.primary)
+                        StatusCount(s[StringResource.MULTISTORE_IN_TRANSIT], group.inTransit.size, MaterialTheme.colorScheme.primary)
                     }
                     if (group.received.isNotEmpty()) {
-                        StatusCount("Received", group.received.size, MaterialTheme.colorScheme.outline)
+                        StatusCount(s[StringResource.MULTISTORE_RECEIVED], group.received.size, MaterialTheme.colorScheme.outline)
                     }
                 }
             }
@@ -365,7 +365,7 @@ private fun StorePairGroupCard(
 
                 if (actionableTransfers.size > 3) {
                     Text(
-                        text = "+${actionableTransfers.size - 3} more transfers",
+                        text = "+${actionableTransfers.size - 3} ${s[StringResource.MULTISTORE_MORE_TRANSFERS]}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(top = 4.dp),

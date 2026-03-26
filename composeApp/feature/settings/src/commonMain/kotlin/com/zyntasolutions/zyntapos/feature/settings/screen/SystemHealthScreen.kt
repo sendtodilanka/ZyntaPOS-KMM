@@ -66,6 +66,7 @@ fun SystemHealthScreen(
     onBack: () -> Unit,
     healthTracker: SystemHealthTracker = koinInject(),
 ) {
+    val s = LocalStrings.current
     val snapshot by healthTracker.snapshot.collectAsState()
     val scope = rememberCoroutineScope()
 
@@ -75,11 +76,11 @@ fun SystemHealthScreen(
     }
 
     ZyntaPageScaffold(
-        title = "System Health",
+        title = s[StringResource.SETTINGS_SYSTEM_HEALTH],
         onNavigateBack = onBack,
         actions = {
             IconButton(onClick = { scope.launch { healthTracker.refresh() } }) {
-                Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
+                Icon(Icons.Filled.Refresh, contentDescription = s[StringResource.COMMON_REFRESH])
             }
         },
     ) { innerPadding ->
