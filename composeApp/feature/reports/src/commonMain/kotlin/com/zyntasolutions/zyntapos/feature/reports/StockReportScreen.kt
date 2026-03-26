@@ -47,6 +47,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoadingSkeleton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaStatusBadge
@@ -58,10 +60,10 @@ import org.koin.compose.viewmodel.koinViewModel
 
 // ─── Tab definitions ─────────────────────────────────────────────────────────
 
-private enum class StockTab(val title: String, val icon: ImageVector) {
-    ALL("All Stock", Icons.Default.Inventory2),
-    LOW("Low Stock", Icons.Default.Warning),
-    DEAD("Dead Stock", Icons.Default.Block),
+private enum class StockTab(val titleKey: StringResource, val icon: ImageVector) {
+    ALL(StringResource.REPORTS_STOCK_ALL, Icons.Default.Inventory2),
+    LOW(StringResource.REPORTS_STOCK_LOW, Icons.Default.Warning),
+    DEAD(StringResource.REPORTS_STOCK_DEAD, Icons.Default.Block),
 }
 
 /**
@@ -87,6 +89,7 @@ fun StockReportScreen(
     viewModel: ReportsViewModel = koinViewModel(),
     formatter: CurrencyFormatter = koinInject(),
 ) {
+    val strings = LocalStrings.current
     val state by viewModel.state.collectAsState()
     val s = state.stockReport
 
@@ -106,14 +109,14 @@ fun StockReportScreen(
         .sortedWith(stockComparator(s.sortColumn, s.sortAscending))
 
     ZyntaPageScaffold(
-        title = "Stock Report",
+        title = strings[StringResource.REPORTS_STOCK_REPORT],
         onNavigateBack = onNavigateUp,
         actions = {
             IconButton(onClick = { viewModel.dispatch(ReportsIntent.ExportStockReportCsv) }) {
-                Icon(Icons.Default.FileDownload, contentDescription = "Export CSV")
+                Icon(Icons.Default.FileDownload, contentDescription = strings[StringResource.REPORTS_EXPORT_CSV_CD])
             }
             IconButton(onClick = { viewModel.dispatch(ReportsIntent.ExportStockReportPdf) }) {
-                Icon(Icons.Default.PictureAsPdf, contentDescription = "Export PDF")
+                Icon(Icons.Default.PictureAsPdf, contentDescription = strings[StringResource.REPORTS_EXPORT_PDF_CD])
             }
         },
     ) { paddingValues ->
@@ -155,7 +158,7 @@ fun StockReportScreen(
                         Tab(
                             selected = selectedTabIndex == index,
                             onClick = { selectedTabIndex = index },
-                            text = { Text(tab.title) },
+                            text = { Text(strings[tab.titleKey]) },
                             icon = {
                                 if (badgeCount > 0) {
                                     BadgedBox(
@@ -163,10 +166,10 @@ fun StockReportScreen(
                                             Badge { Text(badgeCount.toString()) }
                                         },
                                     ) {
-                                        Icon(tab.icon, contentDescription = tab.title)
+                                        Icon(tab.icon, contentDescription = strings[tab.titleKey])
                                     }
                                 } else {
-                                    Icon(tab.icon, contentDescription = tab.title)
+                                    Icon(tab.icon, contentDescription = strings[tab.titleKey])
                                 }
                             },
                         )
@@ -185,8 +188,8 @@ fun StockReportScreen(
                         ) {
                             ZyntaEmptyState(
                                 icon = Icons.Default.Inventory2,
-                                title = "No Stock Data",
-                                subtitle = "Stock data will appear here once products are added to inventory.",
+                                title = strings[StringResource.REPORTS_STOCK_NO_DATA],
+                                subtitle = strings[StringResource.REPORTS_STOCK_NO_DATA_HINT],
                                 modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.xl),
                             )
                         }
@@ -254,6 +257,7 @@ private fun StockSummaryCard(
     deadStockCount: Int,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(
@@ -267,18 +271,18 @@ private fun StockSummaryCard(
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
             SummaryMetric(
-                label = "Total Products",
+                label = s[StringResource.REPORTS_STOCK_TOTAL_PRODUCTS],
                 value = totalProducts.toString(),
                 modifier = Modifier.weight(1f),
             )
             SummaryMetric(
-                label = "Low Stock",
+                label = s[StringResource.REPORTS_STOCK_LOW_LABEL],
                 value = lowStockCount.toString(),
                 valueColor = if (lowStockCount > 0) MaterialTheme.colorScheme.secondary else null,
                 modifier = Modifier.weight(1f),
             )
             SummaryMetric(
-                label = "Dead Stock",
+                label = s[StringResource.REPORTS_STOCK_DEAD_LABEL],
                 value = deadStockCount.toString(),
                 valueColor = if (deadStockCount > 0) MaterialTheme.colorScheme.onSurfaceVariant else null,
                 modifier = Modifier.weight(1f),
@@ -325,6 +329,7 @@ private fun AllStockTabContent(
     onSort: (StockSortColumn) -> Unit,
     formatter: CurrencyFormatter,
 ) {
+    val s = LocalStrings.current
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(ZyntaSpacing.md),
@@ -344,7 +349,7 @@ private fun AllStockTabContent(
         if (filteredProducts.isNotEmpty()) {
             item {
                 Text(
-                    "All Products (${filteredProducts.size})",
+                    s[StringResource.REPORTS_STOCK_ALL_PRODUCTS_FORMAT, filteredProducts.size],
                     style = MaterialTheme.typography.titleSmall,
                 )
             }
@@ -366,8 +371,8 @@ private fun AllStockTabContent(
             item {
                 ZyntaEmptyState(
                     icon = Icons.Default.Inventory2,
-                    title = "No Products Found",
-                    subtitle = "Try adjusting the category filter.",
+                    title = s[StringResource.REPORTS_NO_PRODUCTS_FOUND],
+                    subtitle = s[StringResource.REPORTS_NO_PRODUCTS_FOUND_HINT],
                     modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.xl),
                 )
             }
@@ -380,6 +385,7 @@ private fun LowStockTabContent(
     lowStockItems: List<Product>,
     formatter: CurrencyFormatter,
 ) {
+    val s = LocalStrings.current
     if (lowStockItems.isEmpty()) {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -387,8 +393,8 @@ private fun LowStockTabContent(
         ) {
             ZyntaEmptyState(
                 icon = Icons.Default.Warning,
-                title = "No Low Stock Items",
-                subtitle = "All products are above their minimum stock threshold.",
+                title = s[StringResource.REPORTS_NO_LOW_STOCK_TITLE],
+                subtitle = s[StringResource.REPORTS_NO_LOW_STOCK_HINT],
                 modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.xl),
             )
         }
@@ -409,7 +415,7 @@ private fun LowStockTabContent(
                         tint = MaterialTheme.colorScheme.secondary,
                     )
                     Text(
-                        text = "Low Stock (${lowStockItems.size} items)",
+                        text = s[StringResource.REPORTS_STOCK_LOW_COUNT_FORMAT, lowStockItems.size],
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.secondary,
                     )
@@ -431,6 +437,7 @@ private fun DeadStockTabContent(
     deadStockItems: List<Product>,
     formatter: CurrencyFormatter,
 ) {
+    val s = LocalStrings.current
     if (deadStockItems.isEmpty()) {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -438,8 +445,8 @@ private fun DeadStockTabContent(
         ) {
             ZyntaEmptyState(
                 icon = Icons.Default.Block,
-                title = "No Dead Stock",
-                subtitle = "All products have had movement in the last 30 days.",
+                title = s[StringResource.REPORTS_NO_DEAD_STOCK_TITLE],
+                subtitle = s[StringResource.REPORTS_NO_DEAD_STOCK_HINT],
                 modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.xl),
             )
         }
@@ -451,7 +458,7 @@ private fun DeadStockTabContent(
         ) {
             item {
                 Text(
-                    text = "Dead Stock (${deadStockItems.size} items — no movement in 30 days)",
+                    text = s[StringResource.REPORTS_STOCK_DEAD_COUNT_FORMAT, deadStockItems.size],
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 )
@@ -477,6 +484,7 @@ private fun CategoryFilterRow(
     selectedCategory: String?,
     onCategorySelected: (String?) -> Unit,
 ) {
+    val s = LocalStrings.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -486,7 +494,7 @@ private fun CategoryFilterRow(
         FilterChip(
             selected = selectedCategory == null,
             onClick = { onCategorySelected(null) },
-            label = { Text("All") },
+            label = { Text(s[StringResource.COMMON_ALL]) },
         )
         categories.forEach { cat ->
             FilterChip(
@@ -504,11 +512,12 @@ private fun StockTableHeader(
     sortAscending: Boolean,
     onSort: (StockSortColumn) -> Unit,
 ) {
+    val s = LocalStrings.current
     Row(modifier = Modifier.fillMaxWidth()) {
-        SortableHeader("Product", StockSortColumn.NAME, sortColumn, sortAscending, onSort, Modifier.weight(2f))
-        SortableHeader("Qty",     StockSortColumn.QTY, sortColumn, sortAscending, onSort, Modifier.weight(1f))
-        SortableHeader("Value",   StockSortColumn.VALUE, sortColumn, sortAscending, onSort, Modifier.weight(1f))
-        Text("Status", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
+        SortableHeader(s[StringResource.REPORTS_STOCK_COL_PRODUCT], StockSortColumn.NAME, sortColumn, sortAscending, onSort, Modifier.weight(2f))
+        SortableHeader(s[StringResource.REPORTS_STOCK_COL_QTY],     StockSortColumn.QTY, sortColumn, sortAscending, onSort, Modifier.weight(1f))
+        SortableHeader(s[StringResource.REPORTS_STOCK_COL_VALUE],   StockSortColumn.VALUE, sortColumn, sortAscending, onSort, Modifier.weight(1f))
+        Text(s[StringResource.REPORTS_STOCK_COL_STATUS], style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
     }
 }
 

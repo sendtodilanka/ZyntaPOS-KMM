@@ -178,17 +178,23 @@ private fun rememberSettingsGroups(): List<SettingsGroup> {
  * Debug-only settings group appended when [SettingsHomeScreen] receives `isDebug = true`.
  * Never shown in production builds.
  */
-private val debugGroup = SettingsGroup(
-    title = "Developer Tools",
-    entries = listOf(
-        SettingsEntry(
-            label = "Debug Console",
-            subtitle = "Seeds, database, auth, network & diagnostics tools",
-            icon = Icons.Filled.BugReport,
-            route = SettingsRoute.DEBUG_CONSOLE,
-        ),
-    ),
-)
+@Composable
+private fun rememberDebugGroup(): SettingsGroup {
+    val s = LocalStrings.current
+    return remember(s) {
+        SettingsGroup(
+            title = s[StringResource.SETTINGS_SECTION_DEV_TOOLS],
+            entries = listOf(
+                SettingsEntry(
+                    label = s[StringResource.SETTINGS_DEBUG_CONSOLE],
+                    subtitle = s[StringResource.SETTINGS_DEBUG_CONSOLE_SUBTITLE],
+                    icon = Icons.Filled.BugReport,
+                    route = SettingsRoute.DEBUG_CONSOLE,
+                ),
+            ),
+        )
+    }
+}
 
 // ─── Sub-composables ──────────────────────────────────────────────────────────
 
@@ -223,7 +229,7 @@ private fun SettingsCategoryCard(
                     trailingContent = {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
-                            contentDescription = "Navigate",
+                            contentDescription = null,
                             modifier = Modifier.padding(ZyntaSpacing.xs),
                         )
                     },
