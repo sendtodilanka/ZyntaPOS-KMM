@@ -73,6 +73,8 @@ import com.zyntasolutions.zyntapos.data.repository.WarehouseStockRepositoryImpl
 import com.zyntasolutions.zyntapos.data.job.AuditIntegrityJob
 import com.zyntasolutions.zyntapos.data.job.FulfillmentExpiryJob
 import com.zyntasolutions.zyntapos.data.job.LogRetentionJob
+import com.zyntasolutions.zyntapos.data.job.LowStockNotificationJob
+import com.zyntasolutions.zyntapos.data.job.SlaAlertJob
 import com.zyntasolutions.zyntapos.data.logging.KermitSqliteAdapter
 import com.zyntasolutions.zyntapos.data.sync.ConflictResolver
 import com.zyntasolutions.zyntapos.data.sync.NetworkMonitor
@@ -356,6 +358,12 @@ val dataModule = module {
 
     // Periodic fulfillment expiry job: marks overdue Click & Collect orders as EXPIRED every 15 min
     single { FulfillmentExpiryJob(fulfillmentRepository = get(), storeId = get(named("storeId")), scope = get(named("IO"))) }
+
+    // Cross-store low stock notification generator: triggered on sync completion
+    single { LowStockNotificationJob(warehouseStockRepository = get(), notificationRepository = get(), syncStatusPort = get(), scope = get(named("IO"))) }
+
+    // SLA alerting: monitors sync queue growth and failure persistence
+    single { SlaAlertJob(syncStatusPort = get(), notificationRepository = get(), scope = get(named("IO"))) }
 
     // User accounts: CRUD + password lifecycle.
     // PasswordHashPort injected via securityModule binding — MERGED-F3.

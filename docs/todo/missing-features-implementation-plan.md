@@ -1195,7 +1195,7 @@ Backend Tests:
 
 **What's REMAINING (deferred):**
 - [x] Real-time WebSocket updates for dashboard KPIs (currently REST polling) — ✅ DONE (2026-03-25): `DashboardViewModel` subscribes to `SyncStatusPort.onSyncComplete` SharedFlow for silent refresh; 30s periodic fallback timer; same pattern as ReportsViewModel (C5.4). Backend: `SyncProcessor.publishDashboardUpdate()` + `RedisPubSubListener` `dashboard:update:*` → `WsDashboardUpdate` push
-- [ ] Cross-store notifications (e.g., "Store B low on Product X")
+- [x] Cross-store notifications (e.g., "Store B low on Product X") — ✅ DONE (2026-03-26): LowStockNotificationJob monitors cross-warehouse low stock via getAllLowStock() Flow, triggered on SyncStatusPort.onSyncComplete; creates IN_APP notifications for STORE_MANAGER role with product shortfall details
 - [ ] Admin panel: Global dashboard enhancements (read-only monitoring — ADR-009 compliant)
 
 ---
@@ -1545,7 +1545,7 @@ Backend Tests:
 
 **Remaining (out of scope / deferred):**
 - [ ] Admin panel: WebSocket connection for live store metrics (read-only monitoring — ADR-009 compliant)
-- [ ] SLA alerting: Notify admin when revenue drops below expected or sync queue grows
+- [x] SLA alerting: Notify admin when revenue drops below expected or sync queue grows — ✅ DONE (2026-03-26): SlaAlertJob monitors sync queue size (threshold: 50 ops) and persistent sync failures via SyncStatusPort; creates SYSTEM notifications for ADMIN role every 5 minutes
 
 ---
 
