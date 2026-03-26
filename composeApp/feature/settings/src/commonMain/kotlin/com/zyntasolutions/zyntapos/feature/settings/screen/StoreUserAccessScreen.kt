@@ -44,6 +44,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewModelScope
 import com.zyntasolutions.zyntapos.core.result.onError
 import com.zyntasolutions.zyntapos.core.result.onSuccess
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTextField
@@ -182,6 +184,7 @@ fun StoreUserAccessScreen(
     onIntent: (StoreUserAccessIntent) -> Unit,
     onBack: () -> Unit,
 ) {
+    val s = LocalStrings.current
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(storeId) {
@@ -204,16 +207,16 @@ fun StoreUserAccessScreen(
         val userName = state.allUsers.find { it.id == entry.userId }?.name ?: entry.userId
         AlertDialog(
             onDismissRequest = { onIntent(StoreUserAccessIntent.CancelRevoke) },
-            title = { Text("Revoke Store Access") },
-            text = { Text("Remove $userName's access to this store? Their primary store assignment is not affected.") },
+            title = { Text(s[StringResource.SETTINGS_USER_ACCESS_REVOKE_TITLE]) },
+            text = { Text(s[StringResource.SETTINGS_USER_ACCESS_REVOKE_MSG, userName]) },
             confirmButton = {
                 TextButton(onClick = { onIntent(StoreUserAccessIntent.ConfirmRevoke) }) {
-                    Text("Revoke", color = MaterialTheme.colorScheme.error)
+                    Text(s[StringResource.SETTINGS_USER_ACCESS_REVOKE], color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { onIntent(StoreUserAccessIntent.CancelRevoke) }) {
-                    Text("Cancel")
+                    Text(s[StringResource.COMMON_CANCEL])
                 }
             },
         )
@@ -222,10 +225,10 @@ fun StoreUserAccessScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Store User Access") },
+                title = { Text(s[StringResource.SETTINGS_USER_ACCESS_TITLE]) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = s[StringResource.COMMON_BACK])
                     }
                 },
             )
@@ -233,7 +236,7 @@ fun StoreUserAccessScreen(
         floatingActionButton = {
             if (!state.showGrantForm) {
                 FloatingActionButton(onClick = { onIntent(StoreUserAccessIntent.OpenGrantForm) }) {
-                    Icon(Icons.Default.Add, contentDescription = "Grant access")
+                    Icon(Icons.Default.Add, contentDescription = s[StringResource.SETTINGS_USER_ACCESS_GRANT_CD])
                 }
             }
         },
@@ -257,8 +260,8 @@ fun StoreUserAccessScreen(
             if (state.accessList.isEmpty() && !state.isLoading && !state.showGrantForm) {
                 item {
                     ZyntaEmptyState(
-                        title = "No Additional Access Grants",
-                        subtitle = "Staff access this store via their primary store assignment. Use the + button to grant additional access.",
+                        title = s[StringResource.SETTINGS_USER_ACCESS_EMPTY_TITLE],
+                        subtitle = s[StringResource.SETTINGS_USER_ACCESS_EMPTY_DESC],
                     )
                 }
             }
@@ -267,7 +270,7 @@ fun StoreUserAccessScreen(
             items(state.accessList, key = { it.id }) { entry ->
                 val user = state.allUsers.find { it.id == entry.userId }
                 val userName = user?.name ?: entry.userId
-                val userRole = entry.roleAtStore?.name ?: user?.role?.name ?: "Default role"
+                val userRole = entry.roleAtStore?.name ?: user?.role?.name ?: s[StringResource.SETTINGS_USER_ACCESS_DEFAULT_ROLE]
 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -288,13 +291,13 @@ fun StoreUserAccessScreen(
                                 style = MaterialTheme.typography.titleSmall,
                             )
                             Text(
-                                text = "Role at store: $userRole",
+                                text = s[StringResource.SETTINGS_USER_ACCESS_ROLE_AT_STORE, userRole],
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             if (!entry.isActive) {
                                 Text(
-                                    text = "Inactive",
+                                    text = s[StringResource.SETTINGS_USER_ACCESS_INACTIVE],
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.error,
                                 )
@@ -305,7 +308,7 @@ fun StoreUserAccessScreen(
                         ) {
                             Icon(
                                 Icons.Default.PersonRemove,
-                                contentDescription = "Revoke access",
+                                contentDescription = s[StringResource.SETTINGS_USER_ACCESS_REVOKE_CD],
                                 tint = MaterialTheme.colorScheme.error,
                             )
                         }
@@ -333,15 +336,16 @@ private fun GrantAccessForm(
             containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f),
         ),
     ) {
+        val s = LocalStrings.current
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("Grant Store Access", style = MaterialTheme.typography.titleMedium)
+            Text(s[StringResource.SETTINGS_USER_ACCESS_GRANT_TITLE], style = MaterialTheme.typography.titleMedium)
 
             // User selector
             UserDropdown(
-                label = "Select User",
+                label = s[StringResource.SETTINGS_USER_ACCESS_SELECT_USER],
                 selectedUserId = state.formUserId,
                 users = grantableUsers,
                 onUserSelected = { onIntent(StoreUserAccessIntent.UpdateFormUserId(it)) },
@@ -349,19 +353,19 @@ private fun GrantAccessForm(
 
             // Optional role override
             RoleDropdown(
-                label = "Role at this store (optional)",
+                label = s[StringResource.SETTINGS_USER_ACCESS_ROLE_LABEL],
                 selectedRole = state.formRole,
                 onRoleSelected = { onIntent(StoreUserAccessIntent.UpdateFormRole(it)) },
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 ZyntaButton(
-                    text = "Cancel",
+                    text = s[StringResource.COMMON_CANCEL],
                     onClick = { onIntent(StoreUserAccessIntent.DismissGrantForm) },
                     modifier = Modifier.weight(1f),
                 )
                 ZyntaButton(
-                    text = "Grant",
+                    text = s[StringResource.SETTINGS_USER_ACCESS_GRANT_ACTION],
                     onClick = { onIntent(StoreUserAccessIntent.SubmitGrant) },
                     modifier = Modifier.weight(1f),
                 )
@@ -419,6 +423,7 @@ private fun RoleDropdown(
     selectedRole: Role?,
     onRoleSelected: (Role?) -> Unit,
 ) {
+    val s = LocalStrings.current
     var expanded by remember { mutableStateOf(false) }
     val roleOptions = listOf(null) + Role.entries.toList()
 
@@ -427,7 +432,7 @@ private fun RoleDropdown(
         onExpandedChange = { expanded = it },
     ) {
         ZyntaTextField(
-            value = selectedRole?.name ?: "Default (use user's role)",
+            value = selectedRole?.name ?: s[StringResource.SETTINGS_USER_ACCESS_DEFAULT_ROLE_DISPLAY],
             onValueChange = {},
             label = label,
             readOnly = true,
@@ -442,7 +447,7 @@ private fun RoleDropdown(
         ) {
             roleOptions.forEach { role ->
                 DropdownMenuItem(
-                    text = { Text(role?.name ?: "Default (use user's role)") },
+                    text = { Text(role?.name ?: s[StringResource.SETTINGS_USER_ACCESS_DEFAULT_ROLE_DISPLAY]) },
                     onClick = {
                         onRoleSelected(role)
                         expanded = false

@@ -44,6 +44,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.designsystem.util.WindowSize
 import com.zyntasolutions.zyntapos.designsystem.util.currentWindowSize
@@ -66,6 +68,7 @@ fun ReceiptTemplateEditorScreen(
     onNavigateUp: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     var config by remember { mutableStateOf(ReceiptTemplateConfig()) }
     var showPreview by remember { mutableStateOf(false) }
     val windowSize = currentWindowSize()
@@ -74,20 +77,20 @@ fun ReceiptTemplateEditorScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Receipt Template Editor") },
+                title = { Text(s[StringResource.SETTINGS_RECEIPT_TEMPLATE_TITLE]) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateUp) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = s[StringResource.COMMON_BACK])
                     }
                 },
                 actions = {
                     if (windowSize == WindowSize.COMPACT) {
                         IconButton(onClick = { showPreview = !showPreview }) {
-                            Icon(Icons.Default.Preview, contentDescription = "Toggle Preview")
+                            Icon(Icons.Default.Preview, contentDescription = s[StringResource.SETTINGS_RECEIPT_TEMPLATE_TOGGLE_PREVIEW])
                         }
                     }
                     IconButton(onClick = { /* Save config via SettingsIntent */ }) {
-                        Icon(Icons.Default.Save, contentDescription = "Save")
+                        Icon(Icons.Default.Save, contentDescription = s[StringResource.COMMON_SAVE])
                     }
                 },
             )
@@ -134,55 +137,56 @@ private fun ReceiptEditorPane(
     onConfigChange: (ReceiptTemplateConfig) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     LazyColumn(
         modifier = modifier,
         contentPadding = PaddingValues(ZyntaSpacing.md),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         // Store Info section
-        item { SectionHeader("Store Information") }
-        item { ToggleRow("Store Name", config.showStoreName) { onConfigChange(config.copy(showStoreName = it)) } }
-        item { ToggleRow("Store Address", config.showStoreAddress) { onConfigChange(config.copy(showStoreAddress = it)) } }
-        item { ToggleRow("Store Phone", config.showStorePhone) { onConfigChange(config.copy(showStorePhone = it)) } }
+        item { SectionHeader(s[StringResource.SETTINGS_RECEIPT_TEMPLATE_SECTION_STORE_INFO]) }
+        item { ToggleRow(s[StringResource.SETTINGS_RECEIPT_TEMPLATE_STORE_NAME], config.showStoreName) { onConfigChange(config.copy(showStoreName = it)) } }
+        item { ToggleRow(s[StringResource.SETTINGS_RECEIPT_TEMPLATE_STORE_ADDRESS], config.showStoreAddress) { onConfigChange(config.copy(showStoreAddress = it)) } }
+        item { ToggleRow(s[StringResource.SETTINGS_RECEIPT_TEMPLATE_STORE_PHONE], config.showStorePhone) { onConfigChange(config.copy(showStorePhone = it)) } }
 
         // Order Details
-        item { SectionHeader("Order Details") }
-        item { ToggleRow("Order Number", config.showOrderNumber) { onConfigChange(config.copy(showOrderNumber = it)) } }
-        item { ToggleRow("Date & Time", config.showDateTime) { onConfigChange(config.copy(showDateTime = it)) } }
-        item { ToggleRow("Cashier Name", config.showCashierName) { onConfigChange(config.copy(showCashierName = it)) } }
+        item { SectionHeader(s[StringResource.SETTINGS_RECEIPT_TEMPLATE_SECTION_ORDER]) }
+        item { ToggleRow(s[StringResource.SETTINGS_RECEIPT_TEMPLATE_ORDER_NUMBER], config.showOrderNumber) { onConfigChange(config.copy(showOrderNumber = it)) } }
+        item { ToggleRow(s[StringResource.SETTINGS_RECEIPT_TEMPLATE_DATE_TIME], config.showDateTime) { onConfigChange(config.copy(showDateTime = it)) } }
+        item { ToggleRow(s[StringResource.SETTINGS_RECEIPT_TEMPLATE_CASHIER_NAME], config.showCashierName) { onConfigChange(config.copy(showCashierName = it)) } }
 
         // Items
-        item { SectionHeader("Item List") }
-        item { ToggleRow("Itemized List", config.showItemizedList) { onConfigChange(config.copy(showItemizedList = it)) } }
-        item { ToggleRow("Show SKU", config.showItemSku) { onConfigChange(config.copy(showItemSku = it)) } }
+        item { SectionHeader(s[StringResource.SETTINGS_RECEIPT_TEMPLATE_SECTION_ITEMS]) }
+        item { ToggleRow(s[StringResource.SETTINGS_RECEIPT_TEMPLATE_ITEMIZED_LIST], config.showItemizedList) { onConfigChange(config.copy(showItemizedList = it)) } }
+        item { ToggleRow(s[StringResource.SETTINGS_RECEIPT_TEMPLATE_SHOW_SKU], config.showItemSku) { onConfigChange(config.copy(showItemSku = it)) } }
 
         // Totals
-        item { SectionHeader("Totals & Tax") }
-        item { ToggleRow("Subtotal", config.showSubtotal) { onConfigChange(config.copy(showSubtotal = it)) } }
-        item { ToggleRow("Tax Breakdown", config.showTaxBreakdown) { onConfigChange(config.copy(showTaxBreakdown = it)) } }
-        item { ToggleRow("Discounts", config.showDiscounts) { onConfigChange(config.copy(showDiscounts = it)) } }
+        item { SectionHeader(s[StringResource.SETTINGS_RECEIPT_TEMPLATE_SECTION_TOTALS]) }
+        item { ToggleRow(s[StringResource.SETTINGS_RECEIPT_TEMPLATE_SUBTOTAL], config.showSubtotal) { onConfigChange(config.copy(showSubtotal = it)) } }
+        item { ToggleRow(s[StringResource.SETTINGS_RECEIPT_TEMPLATE_TAX_BREAKDOWN], config.showTaxBreakdown) { onConfigChange(config.copy(showTaxBreakdown = it)) } }
+        item { ToggleRow(s[StringResource.SETTINGS_RECEIPT_TEMPLATE_DISCOUNTS], config.showDiscounts) { onConfigChange(config.copy(showDiscounts = it)) } }
 
         // Payment
-        item { SectionHeader("Payment") }
-        item { ToggleRow("Payment Method", config.showPaymentMethod) { onConfigChange(config.copy(showPaymentMethod = it)) } }
-        item { ToggleRow("Change Given", config.showChangeGiven) { onConfigChange(config.copy(showChangeGiven = it)) } }
+        item { SectionHeader(s[StringResource.SETTINGS_RECEIPT_TEMPLATE_SECTION_PAYMENT]) }
+        item { ToggleRow(s[StringResource.SETTINGS_RECEIPT_TEMPLATE_PAYMENT_METHOD], config.showPaymentMethod) { onConfigChange(config.copy(showPaymentMethod = it)) } }
+        item { ToggleRow(s[StringResource.SETTINGS_RECEIPT_TEMPLATE_CHANGE_GIVEN], config.showChangeGiven) { onConfigChange(config.copy(showChangeGiven = it)) } }
 
         // Extras
-        item { SectionHeader("Extras") }
-        item { ToggleRow("QR Code", config.showQrCode) { onConfigChange(config.copy(showQrCode = it)) } }
-        item { ToggleRow("Barcode", config.showBarcode) { onConfigChange(config.copy(showBarcode = it)) } }
-        item { ToggleRow("Loyalty Points", config.showLoyaltyPoints) { onConfigChange(config.copy(showLoyaltyPoints = it)) } }
-        item { ToggleRow("Thank You Message", config.showThankYouMessage) { onConfigChange(config.copy(showThankYouMessage = it)) } }
+        item { SectionHeader(s[StringResource.SETTINGS_RECEIPT_TEMPLATE_SECTION_EXTRAS]) }
+        item { ToggleRow(s[StringResource.SETTINGS_RECEIPT_TEMPLATE_QR_CODE], config.showQrCode) { onConfigChange(config.copy(showQrCode = it)) } }
+        item { ToggleRow(s[StringResource.SETTINGS_RECEIPT_TEMPLATE_BARCODE], config.showBarcode) { onConfigChange(config.copy(showBarcode = it)) } }
+        item { ToggleRow(s[StringResource.SETTINGS_RECEIPT_TEMPLATE_LOYALTY_POINTS], config.showLoyaltyPoints) { onConfigChange(config.copy(showLoyaltyPoints = it)) } }
+        item { ToggleRow(s[StringResource.SETTINGS_RECEIPT_TEMPLATE_THANK_YOU], config.showThankYouMessage) { onConfigChange(config.copy(showThankYouMessage = it)) } }
 
         // Custom text
-        item { SectionHeader("Custom Footer") }
+        item { SectionHeader(s[StringResource.SETTINGS_RECEIPT_TEMPLATE_SECTION_FOOTER]) }
         item {
             OutlinedTextField(
                 value = config.footerLines.joinToString("\n"),
                 onValueChange = { text ->
                     onConfigChange(config.copy(footerLines = text.lines().filter { it.isNotBlank() }))
                 },
-                label = { Text("Footer Lines") },
+                label = { Text(s[StringResource.SETTINGS_RECEIPT_TEMPLATE_FOOTER_LINES]) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
                 maxLines = 4,
@@ -190,7 +194,7 @@ private fun ReceiptEditorPane(
         }
 
         // Paper width
-        item { SectionHeader("Paper Size") }
+        item { SectionHeader(s[StringResource.SETTINGS_RECEIPT_TEMPLATE_SECTION_PAPER]) }
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -232,8 +236,9 @@ private fun ReceiptPreviewPane(
         modifier = modifier.padding(ZyntaSpacing.md),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        val s = LocalStrings.current
         Text(
-            "Live Preview",
+            s[StringResource.SETTINGS_RECEIPT_TEMPLATE_LIVE_PREVIEW],
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.primary,
         )

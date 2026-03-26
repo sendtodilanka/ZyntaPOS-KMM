@@ -87,7 +87,7 @@ fun PosSettingsScreen(
     LaunchedEffect(effects) {
         effects.collectLatest { effect ->
             when (effect) {
-                SettingsEffect.PosSaved -> snackbarHostState.showSnackbar("POS settings saved.")
+                SettingsEffect.PosSaved -> snackbarHostState.showSnackbar(s[StringResource.SETTINGS_POS_SAVED])
                 is SettingsEffect.ShowSnackbar -> snackbarHostState.showSnackbar(effect.message)
                 else -> Unit
             }
@@ -153,24 +153,23 @@ fun PosSettingsScreen(
                                     verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                                 ) {
                                     Text(
-                                        "Default Order Type",
+                                        s[StringResource.SETTINGS_POS_ORDER_TYPE_TITLE],
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.SemiBold,
                                     )
                                     Text(
-                                        "Choose the order type that is pre-selected when creating a new sale." +
-                                            " Staff can still change it per transaction.",
+                                        s[StringResource.SETTINGS_POS_ORDER_TYPE_DESC],
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                     DropdownField(
-                                        label = "Default Order Type",
+                                        label = s[StringResource.SETTINGS_POS_ORDER_TYPE_TITLE],
                                         options = OrderType.entries.map { it.name },
                                         selectedIndex = OrderType.entries.indexOf(state.defaultOrderType).coerceAtLeast(0),
                                         onSelect = { onIntent(SettingsIntent.UpdateDefaultOrderType(OrderType.entries[it])) },
                                     )
                                     Text(
-                                        "Options include Dine-in, Takeaway, and Delivery depending on your store configuration.",
+                                        s[StringResource.SETTINGS_POS_ORDER_TYPE_HINT],
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
@@ -193,22 +192,22 @@ fun PosSettingsScreen(
                                     verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                                 ) {
                                     Text(
-                                        "Auto-Print",
+                                        s[StringResource.SETTINGS_POS_AUTO_PRINT_TITLE],
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.SemiBold,
                                     )
                                     Text(
-                                        "Automatically send the receipt to the printer when a sale is completed.",
+                                        s[StringResource.SETTINGS_POS_AUTO_PRINT_DESC],
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                     ToggleRow(
-                                        label = "Auto-print receipt after sale",
+                                        label = s[StringResource.SETTINGS_POS_AUTO_PRINT_LABEL],
                                         checked = state.autoPrintReceipt,
                                         onCheckedChange = { onIntent(SettingsIntent.UpdateAutoPrintReceipt(it)) },
                                     )
                                     Text(
-                                        "When enabled, a receipt is printed immediately after each completed transaction without staff interaction.",
+                                        s[StringResource.SETTINGS_POS_AUTO_PRINT_HINT],
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.padding(start = ZyntaSpacing.sm),
@@ -229,17 +228,17 @@ fun PosSettingsScreen(
                                     verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                                 ) {
                                     Text(
-                                        "Tax Display",
+                                        s[StringResource.SETTINGS_POS_TAX_DISPLAY_TITLE],
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.SemiBold,
                                     )
                                     Text(
-                                        "Control how tax amounts are shown on receipts and the POS interface.",
+                                        s[StringResource.SETTINGS_POS_TAX_DISPLAY_DESC],
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                     DropdownField(
-                                        label = "Tax Display Mode",
+                                        label = s[StringResource.SETTINGS_POS_TAX_DISPLAY_MODE],
                                         options = TaxDisplayMode.entries.map {
                                             it.name.lowercase().replaceFirstChar { c -> c.uppercase() }
                                         },
@@ -247,7 +246,7 @@ fun PosSettingsScreen(
                                         onSelect = { onIntent(SettingsIntent.UpdateTaxDisplayMode(TaxDisplayMode.entries[it])) },
                                     )
                                     Text(
-                                        "Inclusive shows prices with tax included; Exclusive shows tax as a separate line item.",
+                                        s[StringResource.SETTINGS_POS_TAX_DISPLAY_HINT],
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
@@ -267,23 +266,23 @@ fun PosSettingsScreen(
                                     verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                                 ) {
                                     Text(
-                                        "Receipt Template",
+                                        s[StringResource.SETTINGS_POS_RECEIPT_TEMPLATE_TITLE],
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.SemiBold,
                                     )
                                     Text(
-                                        "Select the visual template used for printed and digital receipts.",
+                                        s[StringResource.SETTINGS_POS_RECEIPT_TEMPLATE_DESC],
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                     DropdownField(
-                                        label = "Receipt Template",
+                                        label = s[StringResource.SETTINGS_POS_RECEIPT_TEMPLATE_TITLE],
                                         options = ReceiptTemplate.entries.map { it.name.lowercase().replaceFirstChar { c -> c.uppercase() } },
                                         selectedIndex = ReceiptTemplate.entries.indexOf(state.receiptTemplate).coerceAtLeast(0),
                                         onSelect = { onIntent(SettingsIntent.UpdateReceiptTemplate(ReceiptTemplate.entries[it])) },
                                     )
                                     Text(
-                                        "Choose a layout that best fits your brand and paper size. Templates can be previewed in Printer Settings.",
+                                        s[StringResource.SETTINGS_POS_RECEIPT_TEMPLATE_HINT],
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
@@ -306,17 +305,17 @@ fun PosSettingsScreen(
                                     verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                                 ) {
                                     Text(
-                                        "Maximum Discount",
+                                        s[StringResource.SETTINGS_POS_MAX_DISCOUNT_TITLE],
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.SemiBold,
                                     )
                                     Text(
-                                        "Set the highest discount percentage that staff members can apply to an order without manager approval.",
+                                        s[StringResource.SETTINGS_POS_MAX_DISCOUNT_DESC],
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                     Text(
-                                        text = "Max Discount: ${state.maxDiscountPercent.toInt()}%",
+                                        text = s[StringResource.SETTINGS_POS_MAX_DISCOUNT_VALUE, state.maxDiscountPercent.toInt()],
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.SemiBold,
                                     )
@@ -328,7 +327,7 @@ fun PosSettingsScreen(
                                         modifier = Modifier.fillMaxWidth(),
                                     )
                                     Text(
-                                        "Drag the slider to adjust in 5% increments. Discounts above this limit will require manager override.",
+                                        s[StringResource.SETTINGS_POS_MAX_DISCOUNT_HINT],
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
@@ -351,12 +350,12 @@ fun PosSettingsScreen(
                             verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
                         ) {
                             Text(
-                                "Daily Sales Target",
+                                s[StringResource.SETTINGS_POS_DAILY_TARGET_TITLE],
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
                             )
                             Text(
-                                "Set the daily revenue goal used on the dashboard progress bar.",
+                                s[StringResource.SETTINGS_POS_DAILY_TARGET_DESC],
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -371,7 +370,7 @@ fun PosSettingsScreen(
                                         onIntent(SettingsIntent.UpdateDailySalesTarget(v))
                                     }
                                 },
-                                label = { Text("Target Amount") },
+                                label = { Text(s[StringResource.SETTINGS_POS_DAILY_TARGET_AMOUNT]) },
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 modifier = Modifier.fillMaxWidth(),
@@ -387,7 +386,7 @@ fun PosSettingsScreen(
                         Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                     }
                     ZyntaButton(
-                        text = if (state.isSaving) "Saving..." else "Save POS Settings",
+                        text = if (state.isSaving) s[StringResource.COMMON_SAVING] else s[StringResource.SETTINGS_POS_SAVE_ACTION],
                         onClick = { onIntent(SettingsIntent.SavePos) },
                         enabled = !state.isSaving,
                         modifier = Modifier.fillMaxWidth(),
