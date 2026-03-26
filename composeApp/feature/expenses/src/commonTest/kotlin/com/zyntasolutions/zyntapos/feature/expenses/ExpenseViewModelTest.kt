@@ -94,6 +94,21 @@ class ExpenseViewModelTest {
             Result.Success(Unit)
         override suspend fun validatePin(userId: String, pin: String): Result<Boolean> =
             Result.Success(true)
+        override suspend fun quickSwitch(userId: String, pin: String): Result<User> =
+            Result.Error(com.zyntasolutions.zyntapos.core.result.DatabaseException("not used"))
+        override suspend fun validateManagerPin(pin: String): Result<Boolean> =
+            Result.Success(false)
+    }
+
+    private val fakeSettingsRepository = object : com.zyntasolutions.zyntapos.domain.repository.SettingsRepository {
+        private val store = mutableMapOf<String, String>()
+        override suspend fun get(key: String): String? = store[key]
+        override suspend fun set(key: String, value: String): Result<Unit> {
+            store[key] = value
+            return Result.Success(Unit)
+        }
+        override suspend fun getAll(): Map<String, String> = store.toMap()
+        override fun observe(key: String): Flow<String?> = MutableStateFlow(store[key])
     }
 
     // ── Fake ExpenseRepository ────────────────────────────────────────────────
@@ -289,6 +304,7 @@ class ExpenseViewModelTest {
             approveExpenseUseCase = approveExpenseUseCase,
             authRepository = fakeAuthRepository,
             postExpenseJournalEntryUseCase = postExpenseJournalEntryUseCase,
+            settingsRepository = fakeSettingsRepository,
             auditLogger = testAuditLogger,
             analytics = noOpAnalytics,
         )

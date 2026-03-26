@@ -24,10 +24,18 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
+import com.zyntasolutions.zyntapos.domain.repository.FinancialStatementRepository
+import com.zyntasolutions.zyntapos.domain.repository.StoreRepository
+import com.zyntasolutions.zyntapos.domain.model.AccountBalance
+import com.zyntasolutions.zyntapos.domain.model.FinancialStatement
+import com.zyntasolutions.zyntapos.domain.model.GeneralLedgerEntry
+import com.zyntasolutions.zyntapos.domain.model.Store
 import com.zyntasolutions.zyntapos.domain.model.User
 import com.zyntasolutions.zyntapos.domain.model.Role
+import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetProfitAndLossUseCase
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import kotlinx.datetime.Instant
 
@@ -67,7 +75,35 @@ class AccountingViewModelTest {
             Result.Success(Unit)
         override suspend fun validatePin(userId: String, pin: String): Result<Boolean> =
             Result.Success(true)
+        override suspend fun quickSwitch(userId: String, pin: String): Result<User> =
+            Result.Error(DatabaseException("not used"))
+        override suspend fun validateManagerPin(pin: String): Result<Boolean> =
+            Result.Success(false)
     }
+
+    private val fakeStoreRepository = object : StoreRepository {
+        override fun getAllStores(): Flow<List<Store>> = flowOf(emptyList())
+        override suspend fun getById(storeId: String): Store? = null
+        override suspend fun getStoreName(storeId: String): String? = "Test Store"
+        override suspend fun upsertFromSync(store: Store) {}
+    }
+
+    private val fakeFinancialStatementRepository = object : FinancialStatementRepository {
+        override suspend fun getTrialBalance(storeId: String, asOfDate: String): Result<FinancialStatement.TrialBalance> =
+            Result.Error(DatabaseException("not used"))
+        override suspend fun getProfitAndLoss(storeId: String, fromDate: String, toDate: String): Result<FinancialStatement.PAndL> =
+            Result.Error(DatabaseException("not used"))
+        override suspend fun getBalanceSheet(storeId: String, asOfDate: String): Result<FinancialStatement.BalanceSheet> =
+            Result.Error(DatabaseException("not used"))
+        override suspend fun getGeneralLedger(storeId: String, accountId: String, fromDate: String, toDate: String): Result<List<GeneralLedgerEntry>> =
+            Result.Success(emptyList())
+        override suspend fun upsertBalance(balance: AccountBalance): Result<Unit> = Result.Success(Unit)
+        override suspend fun getCashFlowStatement(storeId: String, fromDate: String, toDate: String): Result<FinancialStatement.CashFlow> =
+            Result.Error(DatabaseException("not used"))
+        override suspend fun rebuildAllBalances(storeId: String, periodId: String): Result<Unit> = Result.Success(Unit)
+    }
+
+    private val getProfitAndLossUseCase = GetProfitAndLossUseCase(fakeFinancialStatementRepository)
 
     // ── Fake AccountingRepository ─────────────────────────────────────────────
 
@@ -112,6 +148,8 @@ class AccountingViewModelTest {
         summariesToReturn = Result.Success(emptyList())
         viewModel = AccountingViewModel(
             getPeriodSummaryUseCase = getPeriodSummaryUseCase,
+            getProfitAndLossUseCase = getProfitAndLossUseCase,
+            storeRepository = fakeStoreRepository,
             authRepository = fakeAuthRepository,
             analytics = noOpAnalytics,
         )
@@ -199,6 +237,8 @@ class AccountingViewModelTest {
         }
         val vmWithSlowRepo = AccountingViewModel(
             getPeriodSummaryUseCase = GetPeriodSummaryUseCase(slowRepository),
+            getProfitAndLossUseCase = getProfitAndLossUseCase,
+            storeRepository = fakeStoreRepository,
             authRepository = fakeAuthRepository,
             analytics = noOpAnalytics,
         )

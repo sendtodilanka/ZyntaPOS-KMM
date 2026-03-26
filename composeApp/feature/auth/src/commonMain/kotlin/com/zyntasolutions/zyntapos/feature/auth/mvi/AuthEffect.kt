@@ -38,6 +38,12 @@ sealed class AuthEffect {
      */
     data object ShowPinLock : AuthEffect()
 
+    /**
+     * Session timeout warning — emitted 60s before [ShowPinLock].
+     * UI should show a dismissible banner/snackbar warning the user.
+     */
+    data class SessionTimeoutWarning(val secondsRemaining: Int) : AuthEffect()
+
     /** PIN validated successfully — dismiss the PIN lock screen. */
     data object PinUnlocked : AuthEffect()
 

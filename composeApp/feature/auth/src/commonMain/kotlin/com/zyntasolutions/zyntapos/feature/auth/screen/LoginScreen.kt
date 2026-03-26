@@ -76,6 +76,7 @@ fun LoginScreen(
                 is AuthEffect.PinUnlocked            -> { /* Handled in App.kt pin lock */ }
                 is AuthEffect.QuickSwitchCompleted   -> { /* Handled in App.kt pin lock */ }
                 is AuthEffect.NavigateToLogin        -> { /* Already on login screen */ }
+                is AuthEffect.SessionTimeoutWarning  -> { /* Not applicable on login screen */ }
             }
         }
     }

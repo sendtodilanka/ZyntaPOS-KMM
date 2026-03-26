@@ -13,6 +13,7 @@ import com.zyntasolutions.zyntapos.domain.model.SystemHealth
 import com.zyntasolutions.zyntapos.domain.repository.AuditRepository
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.BackupRepository
+import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.domain.repository.SystemRepository
 import com.zyntasolutions.zyntapos.domain.usecase.admin.CreateBackupUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.DeleteBackupUseCase
@@ -182,6 +183,20 @@ class AdminViewModelTest {
         override suspend fun refreshToken(): Result<Unit> = Result.Success(Unit)
         override suspend fun updatePin(userId: String, pin: String): Result<Unit> = Result.Success(Unit)
         override suspend fun validatePin(userId: String, pin: String): Result<Boolean> = Result.Success(true)
+        override suspend fun quickSwitch(userId: String, pin: String): Result<User> =
+            Result.Error(DatabaseException("not used"))
+        override suspend fun validateManagerPin(pin: String): Result<Boolean> = Result.Success(false)
+    }
+
+    private val fakeSettingsRepository = object : SettingsRepository {
+        private val store = mutableMapOf<String, String>()
+        override suspend fun get(key: String): String? = store[key]
+        override suspend fun set(key: String, value: String): Result<Unit> {
+            store[key] = value
+            return Result.Success(Unit)
+        }
+        override suspend fun getAll(): Map<String, String> = store.toMap()
+        override fun observe(key: String): Flow<String?> = MutableStateFlow(store[key])
     }
 
     // ── Fake ConflictLogRepository ─────────────────────────────────────────────
@@ -241,6 +256,7 @@ class AdminViewModelTest {
             getUnresolvedConflictsUseCase = getUnresolvedConflictsUseCase,
             resolveConflictUseCase = resolveConflictUseCase,
             getConflictCountUseCase = getConflictCountUseCase,
+            settingsRepository = fakeSettingsRepository,
         )
     }
 

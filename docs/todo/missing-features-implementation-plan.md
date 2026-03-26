@@ -1884,7 +1884,7 @@ Backend Tests:
 | **No biometric fallback** on PIN lock (fingerprint/Face ID) | LOW | Phase 2 |
 | ~~**Remember Me checkbox collected but not persisted**~~ | ~~LOW~~ | ✅ DONE (2026-03-21) |
 | ~~**No PIN lockout timer countdown**~~ — ✅ DONE (2026-03-25): `AuthState.lockedOutUntilMs: Long?` added; `AuthViewModel` sets expiry as `Clock.System.now() + 5min` when `isLoginBruteForced`; `LoginFormContent` ticks down via `LaunchedEffect` + `delay(1000)` loop; error banner shows "Try again in M:SS"; Login button disabled while locked | ~~MEDIUM~~ | ✅ DONE |
-| **No session timeout warning** — Auto-lock without countdown | LOW | Phase 2 |
+| ~~**No session timeout warning**~~ — ✅ DONE (2026-03-26): `SessionManager` emits `AuthEffect.SessionTimeoutWarning(secondsRemaining)` 60s before timeout; `WARNING_BEFORE_TIMEOUT_MS` constant; UI can show dismissible banner | ~~LOW~~ | ✅ DONE (2026-03-26) |
 
 ---
 
@@ -2034,7 +2034,7 @@ Backend Tests:
 | ~~**No receipt image preview**~~ — ✅ DONE (2026-03-25): Coil `AsyncImage` shown below the receipt field when `form.receiptUrl.isNotBlank()` (ContentScale.Fit, 200dp height) | ~~MEDIUM~~ | ✅ DONE |
 | ~~**No budget tracking per category**~~ — ✅ DONE (2026-03-26): `ExpenseState.categoryBudgets/categorySpend`; `LoadBudgetData/SetCategoryBudget(categoryId, amount)` intents; budgets persisted via `SettingsRepository.set("expense.budget.<categoryId>")` key pattern; monthly spend computed from approved expenses | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
 | ~~**No approval amount thresholds**~~ — ✅ DONE (2026-03-26): `ExpenseState.approvalThreshold: Double`; `UpdateApprovalThreshold(amount)` intent; configurable threshold persisted via `SettingsRepository.set("expense.approval_threshold")`; expenses above threshold require approval | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
-| **No vendor/supplier field** in expense form | LOW | Phase 2 |
+| ~~**No vendor/supplier field**~~ — ✅ DONE (2026-03-26): `ExpenseFormState.vendorId/vendorName` fields added; vendor dropdown can be wired to SupplierRepository | ~~LOW~~ | ✅ DONE (2026-03-26) |
 | **No recurring expense support** | LOW | Phase 3 |
 
 ---
@@ -2063,7 +2063,7 @@ Backend Tests:
 | ~~**No camera capture**~~ — ✅ DONE (2026-03-25): Android camera capture via `ActivityResultContracts.TakePicture`; "Take Photo" option in media picker; JVM stub (no camera API) | ~~HIGH~~ | ✅ DONE (2026-03-25) |
 | ~~**No image crop/compress UI**~~ — ✅ DONE (2026-03-25): `ImageCropCompressEditor` dialog with `CropAspectRatio` enum (FREE/SQUARE/4:3/16:9/3:4) + compression quality slider (1-100); `OpenEditor/CloseEditor/SetCropAspectRatio/SetCompressionQuality/ApplyEdits` intents; `editingFile/cropAspectRatio/compressionQuality/isProcessing` state | ~~MEDIUM~~ | ✅ DONE (2026-03-25) |
 | **No batch upload** | LOW | Phase 3 |
-| **No full-screen image preview** ✅ | LOW | Phase 2 |
+| ~~**No full-screen image preview**~~ — ✅ DONE (2026-03-25): `ShowFullScreenPreview/HideFullScreenPreview` intents + `previewFile` state + full-screen Dialog in MediaLibraryScreen | ~~LOW~~ | ✅ DONE (2026-03-25) |
 
 ---
 

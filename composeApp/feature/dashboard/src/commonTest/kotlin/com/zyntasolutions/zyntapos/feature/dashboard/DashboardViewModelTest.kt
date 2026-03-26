@@ -138,6 +138,9 @@ class DashboardViewModelTest {
         override suspend fun refreshToken(): Result<Unit> = Result.Success(Unit)
         override suspend fun updatePin(userId: String, pin: String): Result<Unit> = Result.Success(Unit)
         override suspend fun validatePin(userId: String, pin: String): Result<Boolean> = Result.Success(true)
+        override suspend fun quickSwitch(userId: String, pin: String): Result<User> =
+            Result.Error(DatabaseException("not used"))
+        override suspend fun validateManagerPin(pin: String): Result<Boolean> = Result.Success(false)
     }
 
     private val fakeSettingsRepository = object : SettingsRepository {

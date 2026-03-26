@@ -58,6 +58,10 @@ data class ExpenseFormState(
     val expenseDate: String = "",
     val receiptUrl: String = "",
     val notes: String = "",
+    /** Vendor/supplier ID associated with this expense. Empty string = no vendor. */
+    val vendorId: String = "",
+    /** Vendor/supplier display name (read-only, populated from vendorId lookup). */
+    val vendorName: String = "",
     val isEditing: Boolean = false,
     val validationErrors: Map<String, String> = emptyMap(),
 )

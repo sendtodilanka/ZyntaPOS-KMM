@@ -74,5 +74,11 @@ class FakeAuthRepository : AuthRepository {
     override suspend fun validatePin(userId: String, pin: String): Result<Boolean> =
         Result.Success(pin == pinToAccept)
 
+    override suspend fun quickSwitch(userId: String, pin: String): Result<User> =
+        Result.Error(AuthException("Not implemented in fake", reason = AuthFailureReason.INVALID_CREDENTIALS))
+
+    override suspend fun validateManagerPin(pin: String): Result<Boolean> =
+        Result.Success(false)
+
     fun setActiveUser(user: User?) { _session.value = user }
 }
