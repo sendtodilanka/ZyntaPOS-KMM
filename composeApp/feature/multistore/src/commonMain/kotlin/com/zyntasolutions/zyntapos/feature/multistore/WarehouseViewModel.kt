@@ -127,6 +127,9 @@ class WarehouseViewModel(
             is WarehouseIntent.UpdateIsDefault -> updateState {
                 copy(warehouseForm = warehouseForm.copy(isDefault = intent.isDefault))
             }
+            is WarehouseIntent.UpdateWarehouseImage -> updateState {
+                copy(warehouseForm = warehouseForm.copy(imageUrl = intent.imageUrl))
+            }
             is WarehouseIntent.SaveWarehouse -> onSaveWarehouse()
 
             is WarehouseIntent.LoadTransfers -> onLoadTransfers(intent.warehouseId)
@@ -221,6 +224,7 @@ class WarehouseViewModel(
                             name = w.name,
                             address = w.address ?: "",
                             isDefault = w.isDefault,
+                            imageUrl = w.imageUrl,
                             isEditing = true,
                         ),
                     )
@@ -262,6 +266,7 @@ class WarehouseViewModel(
             name = form.name.trim(),
             address = form.address.trim().takeIf { it.isNotBlank() },
             isDefault = form.isDefault,
+            imageUrl = form.imageUrl,
         )
         val result = if (form.isEditing) warehouseRepository.update(warehouse)
                      else warehouseRepository.insert(warehouse)

@@ -67,7 +67,7 @@ class WarehouseRepositoryImpl(
                     manager_id = warehouse.managerId,
                     is_active = if (warehouse.isActive) 1L else 0L,
                     is_default = if (warehouse.isDefault) 1L else 0L,
-                    address = warehouse.address,
+                    address = warehouse.address, image_url = warehouse.imageUrl,
                     created_at = now, updated_at = now, sync_status = "PENDING",
                 )
             }
@@ -89,7 +89,7 @@ class WarehouseRepositoryImpl(
                     name = warehouse.name, manager_id = warehouse.managerId,
                     is_active = if (warehouse.isActive) 1L else 0L,
                     is_default = if (warehouse.isDefault) 1L else 0L,
-                    address = warehouse.address,
+                    address = warehouse.address, image_url = warehouse.imageUrl,
                     updated_at = now, sync_status = "PENDING", id = warehouse.id,
                 )
             }
@@ -450,6 +450,7 @@ class WarehouseRepositoryImpl(
         isActive = row.is_active == 1L,
         isDefault = row.is_default == 1L,
         address = row.address,
+        imageUrl = row.image_url,
     )
 
     private fun toTransferDomain(row: Stock_transfers) = StockTransfer(

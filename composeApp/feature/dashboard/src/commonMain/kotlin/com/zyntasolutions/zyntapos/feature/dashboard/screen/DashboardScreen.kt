@@ -71,7 +71,7 @@ import com.zyntasolutions.zyntapos.designsystem.components.ZyntaDropdownMenuItem
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaHeroStatCard
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaInfoCard
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLineChart
-import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoadingOverlay
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoadingSkeleton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaProgressRing
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSectionHeader
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaStatCard
@@ -190,7 +190,7 @@ internal fun DashboardScreenContent(
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             if (state.isLoading) {
-                ZyntaLoadingOverlay(isLoading = true)
+                ZyntaLoadingSkeleton(modifier = Modifier.fillMaxSize().padding(16.dp))
             } else {
                 when (windowSize) {
                     WindowSize.EXPANDED -> ExpandedDashboard(

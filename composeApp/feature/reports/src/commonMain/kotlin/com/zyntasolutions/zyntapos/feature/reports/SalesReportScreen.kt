@@ -51,7 +51,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
-import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoadingOverlay
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoadingSkeleton
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.designsystem.util.WindowSize
@@ -215,7 +215,7 @@ fun SalesReportScreen(
                 }
             }
 
-            if (s.isLoading) ZyntaLoadingOverlay(isLoading = true)
+            if (s.isLoading) ZyntaLoadingSkeleton(modifier = Modifier.fillMaxSize().padding(16.dp))
         }
     }
 }

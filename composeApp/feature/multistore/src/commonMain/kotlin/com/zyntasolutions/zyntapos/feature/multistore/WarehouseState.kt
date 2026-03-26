@@ -74,6 +74,7 @@ data class WarehouseFormState(
     val name: String = "",
     val address: String = "",
     val isDefault: Boolean = false,
+    val imageUrl: String? = null,
     val isEditing: Boolean = false,
     val validationErrors: Map<String, String> = emptyMap(),
 )

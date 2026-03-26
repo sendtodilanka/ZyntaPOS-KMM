@@ -78,7 +78,16 @@ class OnboardingViewModel(
             is OnboardingIntent.ReceiptFooterChanged -> updateState { copy(receiptFooter = intent.footer) }
             is OnboardingIntent.ReceiptPaperWidthChanged -> updateState { copy(receiptPaperWidthMm = intent.widthMm) }
             is OnboardingIntent.ReceiptAutoPrintChanged -> updateState { copy(receiptAutoPrint = intent.enabled) }
-            is OnboardingIntent.SkipReceiptFormat -> onCompleteOnboarding(saveReceipt = false)
+            is OnboardingIntent.SkipReceiptFormat -> updateState { copy(currentStep = OnboardingState.Step.MULTI_STORE_SETUP) }
+            // ── Step 6: Multi-store setup (G2) ─────────────────────────────
+            is OnboardingIntent.NewStoreNameChanged -> updateState {
+                copy(newStoreName = intent.name, newStoreNameError = null)
+            }
+            is OnboardingIntent.AddAdditionalStore -> onAddAdditionalStore()
+            is OnboardingIntent.RemoveAdditionalStore -> updateState {
+                copy(additionalStores = additionalStores.filterIndexed { i, _ -> i != intent.index })
+            }
+            is OnboardingIntent.SkipMultiStoreSetup -> onCompleteOnboarding(saveReceipt = true)
             is OnboardingIntent.CompleteOnboarding -> onCompleteOnboarding(saveReceipt = true)
             is OnboardingIntent.BackStep -> onBackStep()
             is OnboardingIntent.DismissError -> updateState { copy(error = null) }
@@ -150,7 +159,11 @@ class OnboardingViewModel(
                 updateState { copy(currentStep = OnboardingState.Step.RECEIPT_FORMAT) }
             }
             OnboardingState.Step.RECEIPT_FORMAT -> {
-                // Last step — no-op; user uses CompleteOnboarding or SkipReceiptFormat
+                // Advance to optional multi-store setup step (G2)
+                updateState { copy(currentStep = OnboardingState.Step.MULTI_STORE_SETUP) }
+            }
+            OnboardingState.Step.MULTI_STORE_SETUP -> {
+                // Last step — no-op; user uses CompleteOnboarding or SkipMultiStoreSetup
             }
         }
     }
@@ -161,7 +174,34 @@ class OnboardingViewModel(
             OnboardingState.Step.STORE_SETTINGS -> updateState { copy(currentStep = OnboardingState.Step.ADMIN_ACCOUNT) }
             OnboardingState.Step.TAX_SETUP -> updateState { copy(currentStep = OnboardingState.Step.STORE_SETTINGS) }
             OnboardingState.Step.RECEIPT_FORMAT -> updateState { copy(currentStep = OnboardingState.Step.TAX_SETUP) }
+            OnboardingState.Step.MULTI_STORE_SETUP -> updateState { copy(currentStep = OnboardingState.Step.RECEIPT_FORMAT) }
             OnboardingState.Step.BUSINESS_INFO -> Unit // no-op
+        }
+    }
+
+    // ── Step 6: Multi-store setup (G2) ─────────────────────────────────────
+
+    private fun onAddAdditionalStore() {
+        val name = currentState.newStoreName.trim()
+        if (name.isBlank()) {
+            updateState { copy(newStoreNameError = "Store name is required") }
+            return
+        }
+        if (name.length < 2) {
+            updateState { copy(newStoreNameError = "Store name must be at least 2 characters") }
+            return
+        }
+        if (currentState.additionalStores.any { it.name.equals(name, ignoreCase = true) }) {
+            updateState { copy(newStoreNameError = "Store name already added") }
+            return
+        }
+        val entry = AdditionalStoreEntry(
+            name = name,
+            currencyCode = currentState.currencyCode,
+            timezoneId = currentState.timezoneId,
+        )
+        updateState {
+            copy(additionalStores = additionalStores + entry, newStoreName = "", newStoreNameError = null)
         }
     }
 

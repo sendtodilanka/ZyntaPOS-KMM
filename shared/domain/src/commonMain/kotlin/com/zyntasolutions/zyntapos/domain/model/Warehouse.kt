@@ -10,6 +10,7 @@ package com.zyntasolutions.zyntapos.domain.model
  * @property isActive Whether the warehouse is operational.
  * @property isDefault If true this warehouse is pre-selected for new stock operations.
  * @property address Optional physical address description.
+ * @property imageUrl Optional warehouse photo or logo URL for visual identity.
  */
 data class Warehouse(
     val id: String,
@@ -19,6 +20,7 @@ data class Warehouse(
     val isActive: Boolean = true,
     val isDefault: Boolean = false,
     val address: String? = null,
+    val imageUrl: String? = null,
 )
 
 /**

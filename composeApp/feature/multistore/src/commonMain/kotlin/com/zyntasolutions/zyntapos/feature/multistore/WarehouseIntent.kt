@@ -13,6 +13,8 @@ sealed interface WarehouseIntent {
     data class SelectWarehouse(val warehouseId: String?) : WarehouseIntent
     data class UpdateWarehouseField(val field: String, val value: String) : WarehouseIntent
     data class UpdateIsDefault(val isDefault: Boolean) : WarehouseIntent
+    /** Set or clear the warehouse image URL (MS-5). */
+    data class UpdateWarehouseImage(val imageUrl: String?) : WarehouseIntent
     data object SaveWarehouse : WarehouseIntent
 
     // ── Transfer List ──────────────────────────────────────────────────────

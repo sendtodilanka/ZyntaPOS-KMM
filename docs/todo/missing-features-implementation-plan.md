@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-26 (LOW Phase 2 final: G3 coupon scan preview; G4 biometric fallback; G9 trial balance remediation; G11 bulk payroll; G12 coupon analytics; G14 license info; MS-6 rack capacity enforcement)
+**Last Updated:** 2026-03-26 (Remaining Phase 2: G20 dark mode chart + loading skeletons; MS-5 warehouse image; G2 multi-store onboarding; G8 printer test verified; empty state screens)
 **Status:** Approved — Verified against codebase 2026-03-22, updated for ADR-009 compliance
 
 ---
@@ -1850,7 +1850,7 @@ Backend Tests:
 
 **REMAINING:**
 - [x] **Step 5: Receipt Format** — ✅ DONE (2026-03-25): Optional 5th wizard step; `receiptHeader`, `receiptFooter`, `receiptPaperWidthMm` (58/80mm FilterChip), `receiptAutoPrint` fields; `ReceiptFormatStep` composable; `SkipTaxSetup` now advances to RECEIPT_FORMAT; `SkipReceiptFormat` completes onboarding; `CompleteOnboarding` persists to `pos.receipt_header`, `pos.receipt_footer`, `printer.paper_width_mm`, `pos.auto_print_receipt`; 12 new ViewModel tests
-- [ ] Multi-store setup flow (Phase 2 — additional store creation)
+- [x] Multi-store setup flow — ✅ DONE (2026-03-26): Step 6 `MULTI_STORE_SETUP` added to onboarding wizard; `AdditionalStoreEntry` data class; `NewStoreNameChanged/AddAdditionalStore/RemoveAdditionalStore/SkipMultiStoreSetup` intents; validation (name required, min 2 chars, no duplicates); additional stores inherit primary store currency/timezone
 
 ---
 
@@ -1945,7 +1945,7 @@ Backend Tests:
 | ~~**No multi-currency management**~~ — ✅ DONE (2026-03-25): `SettingsState.GeneralState.secondaryCurrency/exchangeRate/showMultiCurrency`; `SetSecondaryCurrency/SetExchangeRate/ToggleMultiCurrency` intents; POS checkout displays secondary currency conversion | ~~HIGH~~ | ✅ DONE (2026-03-25) |
 | ~~**Timezone dropdown hardcoded**~~ — ✅ DONE (2026-03-26): `DetectTimezone` intent; `SettingsState.GeneralState.detectedTimezone/timezoneUtcOffset`; uses `TimeZone.currentSystemDefault()` + UTC offset computation | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
 | **No receipt template visual editor** | LOW | Phase 3 |
-| **No printer connection test button visible in UI** | LOW | Phase 1.5 |
+| ~~**No printer connection test button visible in UI**~~ — ✅ VERIFIED DONE: "Send Test Page" button in PrinterSettingsScreen Connection tab (line 259-267); `SettingsIntent.TestPrint` dispatched; button disables during print; snackbar on success | ~~LOW~~ | ✅ DONE |
 | ~~**No settings sync to backend**~~ — ✅ DONE (2026-03-26): `SettingsState.isSyncingSettings/lastSettingsSyncAt/settingsSyncError`; `SyncSettingsToBackend/DismissSettingsSyncError` intents; `syncSettingsToBackend()` collects 16 settings keys and pushes via sync queue; audit logged | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
 | **Language selector disabled** — No i18n infrastructure | LOW | Phase 3 |
 
@@ -2105,7 +2105,7 @@ Backend Tests:
 | MS-2 | ~~**No Warehouse Name Display**~~ — ✅ ALREADY DONE: `StockTransferListScreen.kt` line 72 builds `warehouseMap` from `WarehouseState.warehouses`; resolves source/dest names with UUID fallback (verified 2026-03-25) | ~~HIGH~~ | ✅ DONE |
 | MS-3 | ~~**Rack Screen Navigation Missing**~~ — ✅ ALREADY DONE: `WarehouseRackList(warehouseId)` and `WarehouseRackDetail(rackId?, warehouseId)` both in `ZyntaRoute.kt` and wired in `MainNavGraph.kt:622-631` (verified 2026-03-25) | ~~MEDIUM~~ | ✅ DONE |
 | MS-4 | ~~**RackDetailScreen No Back Button**~~ — ✅ ALREADY EXISTS: TopAppBar with ArrowBack icon at lines 39-51 | ~~MEDIUM~~ | ✅ Verified (2026-03-23) |
-| MS-5 | **No Warehouse Metadata** — No image/logo field for visual identity; warehouse cards look plain | LOW | Add optional `imageUrl` field to `Warehouse` domain model + `AsyncImage` in card |
+| MS-5 | ~~**No Warehouse Metadata**~~ — ✅ DONE (2026-03-26): `Warehouse.imageUrl` field added to domain model + SQLDelight schema (`image_url TEXT`); `WarehouseFormState.imageUrl`; `UpdateWarehouseImage` intent; form pre-fills on edit; passed through insert/update/mapper | ~~LOW~~ | ✅ DONE (2026-03-26) |
 | MS-6 | ~~**No Rack Capacity Enforcement**~~ — ✅ DONE (2026-03-26): Capacity enforcement in `WarehouseViewModel.onSaveRackProduct()` — checks `existingTotal + newQty > rackCapacity` using `currentState.rackProducts`; shows validation error with current usage vs limit | ~~LOW~~ | ✅ DONE (2026-03-26) |
 
 **Key Files:**
@@ -2238,8 +2238,8 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 | ~~**Date format not from GeneralSettings**~~ — ✅ DONE (2026-03-25): `ReportsState.dateFormat` + `DashboardState.dateFormat` loaded from `SettingsRepository`; `DateTimeUtils.formatForDisplay(instant, format)` used across modules | ~~MEDIUM~~ | ✅ DONE (2026-03-25) |
 | ~~**No timezone label on timestamps**~~ — ✅ DONE (2026-03-26): `DetectTimezone` intent in Settings auto-detects system timezone + UTC offset; timezone stored in GeneralSettings | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
 | ~~**Color-only status indicators**~~ — ✅ DONE (2026-03-25): Icons added to `StockBadge` (ProductCard + ProductListScreen), `EInvoiceStatusChip` (list), `InvoiceStatusBadge` (detail), `PurchaseOrderCard` (ReplenishmentScreen) | Stock, E-Invoice, Transfer | ~~MEDIUM~~ |
-| **Canvas chart colors may fail in dark mode** | Dashboard, Reports | LOW |
-| **No loading skeletons** — Abrupt blank → rendered transition | Dashboard, Reports | LOW |
+| ~~**Canvas chart colors may fail in dark mode**~~ — ✅ DONE (2026-03-26): Fixed hardcoded `Color.White` marker in `ZyntaLineChart` → `MaterialTheme.colorScheme.surface`; all other charts already theme-aware | ~~Dashboard, Reports~~ | ✅ DONE |
+| ~~**No loading skeletons**~~ — ✅ DONE (2026-03-26): Replaced `ZyntaLoadingOverlay` with `ZyntaLoadingSkeleton` in DashboardScreen + all 4 report screens (Sales, Stock, Customer, Expense); shimmer animation with non-blocking chrome | ~~Dashboard, Reports~~ | ✅ DONE |
 
 ---
 

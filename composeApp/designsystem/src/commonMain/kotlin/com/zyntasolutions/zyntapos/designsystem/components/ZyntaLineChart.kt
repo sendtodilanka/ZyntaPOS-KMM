@@ -85,6 +85,7 @@ fun ZyntaLineChart(
 ) {
     val gridColor = MaterialTheme.colorScheme.outlineVariant
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val markerInnerColor = MaterialTheme.colorScheme.surface
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -199,7 +200,7 @@ fun ZyntaLineChart(
                                 center = point,
                             )
                             drawCircle(
-                                color = Color.White,
+                                color = markerInnerColor,
                                 radius = 2.dp.toPx(),
                                 center = point,
                             )

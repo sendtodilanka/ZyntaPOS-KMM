@@ -52,12 +52,20 @@ data class OnboardingState(
     /** Whether to auto-print receipt after payment completes. */
     val receiptAutoPrint: Boolean = true,
 
+    // ── Step 6: Multi-store setup (optional) ─────────────────────────────
+    /** Additional stores to create during onboarding (beyond the default store). */
+    val additionalStores: List<AdditionalStoreEntry> = emptyList(),
+    /** Temporary name for a new store being added. */
+    val newStoreName: String = "",
+    /** Error for the new store name field. */
+    val newStoreNameError: String? = null,
+
     // ── Async ──────────────────────────────────────────────────────────────
     val isLoading: Boolean = false,
     val error: String? = null,
 ) {
     /** Wizard step identifiers. */
-    enum class Step { BUSINESS_INFO, ADMIN_ACCOUNT, STORE_SETTINGS, TAX_SETUP, RECEIPT_FORMAT }
+    enum class Step { BUSINESS_INFO, ADMIN_ACCOUNT, STORE_SETTINGS, TAX_SETUP, RECEIPT_FORMAT, MULTI_STORE_SETUP }
 
     /** Total number of wizard steps. */
     val totalSteps: Int get() = Step.entries.size
@@ -66,5 +74,12 @@ data class OnboardingState(
     val stepNumber: Int get() = currentStep.ordinal + 1
 
     /** `true` when the user is on the last step of the wizard. */
-    val isLastStep: Boolean get() = currentStep == Step.RECEIPT_FORMAT
+    val isLastStep: Boolean get() = currentStep == Step.MULTI_STORE_SETUP
 }
+
+/** Represents an additional store to be created during onboarding (G2). */
+data class AdditionalStoreEntry(
+    val name: String,
+    val currencyCode: String = "LKR",
+    val timezoneId: String = "Asia/Colombo",
+)
