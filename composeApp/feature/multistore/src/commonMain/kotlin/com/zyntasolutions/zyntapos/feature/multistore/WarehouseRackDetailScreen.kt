@@ -35,17 +35,18 @@ fun WarehouseRackDetailScreen(
     onBack: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     val form = state.rackForm
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (form.isEditing) "Edit Rack" else "New Rack") },
+                title = { Text(if (form.isEditing) s[StringResource.MULTISTORE_EDIT_RACK] else s[StringResource.MULTISTORE_NEW_RACK]) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back to rack list",
+                            contentDescription = s[StringResource.COMMON_BACK],
                         )
                     }
                 },
@@ -65,7 +66,7 @@ fun WarehouseRackDetailScreen(
             OutlinedTextField(
                 value = form.name,
                 onValueChange = { onIntent(WarehouseIntent.UpdateRackField("name", it)) },
-                label = { Text("Rack Name *") },
+                label = { Text(s[StringResource.MULTISTORE_RACK_NAME]) },
                 placeholder = { Text("e.g. A1, Cold-Storage-01") },
                 isError = form.validationErrors.containsKey("name"),
                 supportingText = form.validationErrors["name"]?.let {
@@ -79,8 +80,8 @@ fun WarehouseRackDetailScreen(
             OutlinedTextField(
                 value = form.description,
                 onValueChange = { onIntent(WarehouseIntent.UpdateRackField("description", it)) },
-                label = { Text("Description") },
-                placeholder = { Text("Optional — e.g. Refrigerated shelf for perishables") },
+                label = { Text(s[StringResource.ACCOUNTING_DESCRIPTION]) },
+                placeholder = { Text(s[StringResource.MULTISTORE_RACK_DESC_HINT]) },
                 maxLines = 3,
                 modifier = Modifier.fillMaxWidth(),
             )

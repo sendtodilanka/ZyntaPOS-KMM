@@ -102,10 +102,10 @@ fun AppearanceSettingsScreen(
             verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
         ) {
             item {
-                SectionHeader("Theme")
+                SectionHeader(s[StringResource.SETTINGS_APPEARANCE_THEME])
                 Spacer(Modifier.height(ZyntaSpacing.sm))
                 Text(
-                    text = "Choose how ZyntaPOS looks on this device.",
+                    text = s[StringResource.SETTINGS_APPEARANCE_THEME_DESC],
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = ZyntaSpacing.sm),
@@ -115,7 +115,7 @@ fun AppearanceSettingsScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Column {
-                        THEME_OPTIONS.forEach { option ->
+                        themeOptions().forEach { option ->
                             ThemeModeRow(
                                 option = option,
                                 selected = state.themeMode == option.mode,

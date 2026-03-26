@@ -37,6 +37,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoadingSkeleton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTextField
@@ -59,6 +61,7 @@ fun CustomerWalletScreen(
     onNavigateUp: () -> Unit,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
+    val s = LocalStrings.current
     LaunchedEffect(customerId) {
         onIntent(CustomerIntent.LoadWallet(customerId))
     }
@@ -71,10 +74,10 @@ fun CustomerWalletScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Wallet & Loyalty") },
+                title = { Text(s[StringResource.CUSTOMERS_WALLET_LOYALTY]) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateUp) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Filled.ArrowBack, contentDescription = s[StringResource.COMMON_BACK])
                     }
                 },
             )
@@ -98,7 +101,7 @@ fun CustomerWalletScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     WalletBalanceCard(
-                        label = "Wallet Balance",
+                        label = s[StringResource.CUSTOMERS_WALLET_BALANCE],
                         value = "LKR ${state.wallet?.balance?.let { "%.2f".format(it) } ?: "0.00"}",
                         modifier = Modifier.weight(1f),
                     )
