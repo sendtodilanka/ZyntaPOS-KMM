@@ -81,6 +81,10 @@ sealed interface AdminIntent {
     data class ResolveConflictAcceptServer(val conflictId: String) : AdminIntent
     data class ResolveConflictManual(val conflictId: String, val value: String) : AdminIntent
 
+    // ── License Info (G14) ──────────────────────────────────────────────────
+    /** Load license information from persisted settings. */
+    data object LoadLicenseInfo : AdminIntent
+
     // ── UI Feedback ────────────────────────────────────────────────────────
     data object DismissError : AdminIntent
     data object DismissSuccess : AdminIntent

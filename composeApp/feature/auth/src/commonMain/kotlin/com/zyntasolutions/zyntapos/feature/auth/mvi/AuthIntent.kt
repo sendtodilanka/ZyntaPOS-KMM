@@ -64,4 +64,21 @@ sealed class AuthIntent {
 
     /** Dismiss the PIN error message. */
     data object DismissPinError : AuthIntent()
+
+    // ── Biometric Fallback (G4) ──────────────────────────────────────────
+
+    /** Check if biometric hardware is available and whether the user has enabled biometric. */
+    data object CheckBiometricAvailability : AuthIntent()
+
+    /** Toggle biometric fallback enabled/disabled preference. */
+    data class SetBiometricEnabled(val enabled: Boolean) : AuthIntent()
+
+    /** Request biometric authentication on the PIN lock screen. */
+    data object RequestBiometricAuth : AuthIntent()
+
+    /** Biometric authentication succeeded — unlock the screen. */
+    data object BiometricAuthSuccess : AuthIntent()
+
+    /** Biometric authentication failed (wrong finger, etc.). */
+    data class BiometricAuthFailed(val error: String) : AuthIntent()
 }

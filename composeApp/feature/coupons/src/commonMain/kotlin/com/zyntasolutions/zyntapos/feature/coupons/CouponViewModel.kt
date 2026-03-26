@@ -97,6 +97,7 @@ class CouponViewModel(
             is CouponIntent.DeleteCoupon -> onDeleteCoupon(intent.couponId)
             is CouponIntent.ToggleCouponActive -> onToggleCouponActive(intent.couponId, intent.isActive)
             is CouponIntent.DismissMessage -> updateState { copy(error = null, successMessage = null) }
+            is CouponIntent.LoadAnalytics -> loadCouponAnalytics()
         }
     }
 
@@ -248,6 +249,47 @@ class CouponViewModel(
             }
             is Result.Error -> sendEffect(CouponEffect.ShowError(result.exception.message ?: "Toggle failed"))
             is Result.Loading -> {}
+        }
+    }
+
+    // ── Analytics (G12) ────────────────────────────────────────────────────
+
+    /**
+     * Loads coupon redemption analytics by aggregating usage history across all coupons.
+     * Computes total redemptions, total discount given, and top-5 most redeemed coupons.
+     */
+    private suspend fun loadCouponAnalytics() {
+        updateState { copy(isAnalyticsLoading = true) }
+        val allCoupons = currentState.coupons.ifEmpty {
+            couponRepository.getAll().first()
+        }
+        var totalRedemptions = 0
+        var totalDiscount = 0.0
+        val stats = mutableListOf<CouponRedemptionStat>()
+        for (coupon in allCoupons) {
+            val usage = couponRepository.getUsageByCoupon(coupon.id).first()
+            if (usage.isNotEmpty()) {
+                val couponDiscount = usage.sumOf { it.discountAmount }
+                totalRedemptions += usage.size
+                totalDiscount += couponDiscount
+                stats.add(
+                    CouponRedemptionStat(
+                        couponId = coupon.id,
+                        couponCode = coupon.code,
+                        redemptionCount = usage.size,
+                        totalDiscount = couponDiscount,
+                    )
+                )
+            }
+        }
+        val topRedeemed = stats.sortedByDescending { it.redemptionCount }.take(5)
+        updateState {
+            copy(
+                isAnalyticsLoading = false,
+                totalRedemptions = totalRedemptions,
+                totalDiscountGiven = totalDiscount,
+                topRedeemedCoupons = topRedeemed,
+            )
         }
     }
 

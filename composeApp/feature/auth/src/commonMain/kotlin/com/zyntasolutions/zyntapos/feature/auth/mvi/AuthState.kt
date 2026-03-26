@@ -61,4 +61,11 @@ data class AuthState(
     val forgotPasswordSent: Boolean = false,
     /** Inline validation error inside the forgot-password dialog, or null. */
     val forgotPasswordError: String? = null,
+    // ── Biometric Fallback (G4) ──────────────────────────────────────────
+    /** True when biometric authentication (fingerprint/Face ID) is available on this device. */
+    val isBiometricAvailable: Boolean = false,
+    /** True when the user has opted to use biometric as a PIN lock fallback. */
+    val isBiometricEnabled: Boolean = false,
+    /** True while waiting for biometric authentication result. */
+    val isBiometricAuthenticating: Boolean = false,
 )

@@ -65,6 +65,12 @@ data class StaffState(
     val payrollRecords: List<PayrollRecord> = emptyList(),
     val payrollSummary: PayrollSummary? = null,
     val selectedPayroll: PayrollRecord? = null,
+    /** G11: True when bulk payroll generation is in progress for all employees. */
+    val isBulkPayrollGenerating: Boolean = false,
+    /** G11: Progress counter for bulk payroll generation (employees processed so far). */
+    val bulkPayrollProgress: Int = 0,
+    /** G11: Total number of employees for bulk payroll generation. */
+    val bulkPayrollTotal: Int = 0,
 
     // ── Payroll History (employee-scoped reactive stream) ─────────────────
     val payrollHistory: List<PayrollRecord> = emptyList(),

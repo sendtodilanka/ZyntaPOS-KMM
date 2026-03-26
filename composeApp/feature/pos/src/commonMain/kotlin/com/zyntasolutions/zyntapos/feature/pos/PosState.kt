@@ -129,6 +129,10 @@ data class PosState(
     val couponDiscount: Double = 0.0,
     /** Non-null when coupon validation fails; cleared when a new code is entered or coupon is cleared. */
     val couponError: String? = null,
+    /** G3: True when a coupon barcode was just scanned — shows a brief scan confirmation overlay. */
+    val showCouponScanPreview: Boolean = false,
+    /** G3: The scanned coupon barcode value for the preview animation. */
+    val scannedCouponBarcode: String = "",
     // ── Store Promotions (C2.4) ───────────────────────────────────────────────
     /** Pre-computed monetary discount from auto-applied store promotions (flash sales, BOGO, bundles). */
     val autoPromotionDiscount: Double = 0.0,

@@ -114,6 +114,14 @@ class AuthViewModel(
             is AuthIntent.QuickSwitchPinEntered -> onQuickSwitchPinEntered(intent.pin)
             is AuthIntent.CancelQuickSwitch   -> updateState { copy(isQuickSwitchMode = false, quickSwitchTargetId = null, pinError = null) }
             is AuthIntent.DismissPinError     -> updateState { copy(pinError = null) }
+            // Biometric Fallback (G4)
+            is AuthIntent.CheckBiometricAvailability -> checkBiometricAvailability()
+            is AuthIntent.SetBiometricEnabled -> setBiometricEnabled(intent.enabled)
+            is AuthIntent.RequestBiometricAuth -> updateState { copy(isBiometricAuthenticating = true) }
+            is AuthIntent.BiometricAuthSuccess -> onBiometricAuthSuccess()
+            is AuthIntent.BiometricAuthFailed -> updateState {
+                copy(isBiometricAuthenticating = false, pinError = intent.error)
+            }
         }
     }
 
@@ -342,6 +350,32 @@ class AuthViewModel(
                 }
             }
         }
+    }
+
+    // ── Biometric Fallback (G4) ─────────────────────────────────────────────
+
+    /**
+     * Checks if biometric hardware is available and loads the user's preference.
+     * Called on PIN lock screen init. The actual biometric API call happens in the
+     * platform layer (Android: BiometricPrompt, JVM: no-op) — the ViewModel only
+     * manages state. The UI dispatches BiometricAuthSuccess/Failed after the prompt.
+     */
+    private suspend fun checkBiometricAvailability() {
+        val enabled = settingsRepository.get("auth.biometric_enabled") == "true"
+        // Platform availability is detected by the UI layer and passed via state.
+        // Here we just load the persisted preference.
+        updateState { copy(isBiometricEnabled = enabled) }
+    }
+
+    private suspend fun setBiometricEnabled(enabled: Boolean) {
+        settingsRepository.set("auth.biometric_enabled", enabled.toString())
+        updateState { copy(isBiometricEnabled = enabled) }
+    }
+
+    private suspend fun onBiometricAuthSuccess() {
+        updateState { copy(isBiometricAuthenticating = false, pinError = null) }
+        auditLogger.logLoginAttempt(true, "biometric", "", null)
+        sendEffect(AuthEffect.PinUnlocked)
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

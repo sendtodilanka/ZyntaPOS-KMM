@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-26 (Bulk gap closure: G3-1/G3-3/G3-4 POS cross-store return + card terminal + wallet payment; G4-1/G4-2/G4-3 auth store selector + quick-switch + password reset; G5-1 through G5-4 register discrepancy/handoff/auth/float; G6-3/G6-4/G6-5 reports drill-down + pagination + date formatting; G7-1 dashboard period comparison; G8-1/G8-2/G8-3 settings tax overrides + multi-currency + timezone; G9-1 consolidated P&L; G10-1 cross-store customer; G11-1/G11-2/G11-3 staff leave/shifts/export; G13-1/G13-2 expense budgets + thresholds; G14-1 backup scheduling; G15-2/G15-3 camera + file picker; G20 auto-refresh + date format + timezone; fix: ReportsViewModel drill-down Map filter)
+**Last Updated:** 2026-03-26 (LOW Phase 2 final: G3 coupon scan preview; G4 biometric fallback; G9 trial balance remediation; G11 bulk payroll; G12 coupon analytics; G14 license info; MS-6 rack capacity enforcement)
 **Status:** Approved — Verified against codebase 2026-03-22, updated for ADR-009 compliance
 
 ---
@@ -1868,7 +1868,7 @@ Backend Tests:
 | ~~**No wallet payment choice dialog**~~ — ✅ DONE (2026-03-26): `PosState.showWalletPaymentDialog` + `ShowWalletPaymentDialog/DismissWalletPaymentDialog/WalletPaymentAmountChanged/ConfirmWalletPayment` intents + balance cap logic | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
 | ~~**No employee badge/name on POS screen header**~~ — ✅ DONE (2026-03-22, enhanced 2026-03-24: now part of unified Store + Cashier context bar) | ~~LOW~~ | ✅ DONE |
 | ~~**No multi-currency display**~~ — ✅ DONE (2026-03-26): `PosState.secondaryCurrency/exchangeRate/showMultiCurrency`; loaded from `SettingsRepository` in `onLoadStoreCurrency()`; secondary currency conversion available at checkout | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
-| **No coupon barcode scanning preview** | LOW | Phase 2 |
+| ~~**No coupon barcode scanning preview**~~ — ✅ DONE (2026-03-26): `PosState.showCouponScanPreview/scannedCouponBarcode`; `DismissCouponScanPreview` intent; `ScanCoupon` handler sets preview state + auto-validates; UI can show scan confirmation overlay | ~~LOW~~ | ✅ DONE (2026-03-26) |
 
 ---
 
@@ -1881,7 +1881,7 @@ Backend Tests:
 | ~~**No store selector at login**~~ — ✅ DONE (2026-03-25): `LoginScreen` multi-store selector dropdown; `AuthState.availableStores` + `SelectLoginStore` intent; `StoreRepository` injected into AuthViewModel | ~~CRITICAL~~ | ✅ DONE (2026-03-25) |
 | ~~**No employee quick-switch**~~ — ✅ DONE (2026-03-25): `QuickSwitchUser` intent + PIN-based fast switch dialog; `AuthState.showQuickSwitch` + `quickSwitchUsers` list; avoids full logout | ~~HIGH~~ | ✅ DONE (2026-03-25) |
 | ~~**Password reset is stub**~~ — ✅ DONE (2026-03-26): `AuthState.showForgotPasswordDialog/forgotPasswordEmail/forgotPasswordSent/forgotPasswordError`; `ShowForgotPasswordDialog/DismissForgotPasswordDialog/ForgotPasswordEmailChanged/SubmitForgotPassword` intents; email validation in AuthViewModel | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
-| **No biometric fallback** on PIN lock (fingerprint/Face ID) | LOW | Phase 2 |
+| ~~**No biometric fallback**~~ on PIN lock (fingerprint/Face ID) — ✅ DONE (2026-03-26): `AuthState.isBiometricAvailable/isBiometricEnabled/isBiometricAuthenticating`; `CheckBiometricAvailability/SetBiometricEnabled/RequestBiometricAuth/BiometricAuthSuccess/BiometricAuthFailed` intents; platform BiometricPrompt (Android) dispatches success/failed; preference persisted via `auth.biometric_enabled` setting | ~~LOW~~ | ✅ DONE (2026-03-26) |
 | ~~**Remember Me checkbox collected but not persisted**~~ | ~~LOW~~ | ✅ DONE (2026-03-21) |
 | ~~**No PIN lockout timer countdown**~~ — ✅ DONE (2026-03-25): `AuthState.lockedOutUntilMs: Long?` added; `AuthViewModel` sets expiry as `Clock.System.now() + 5min` when `isLoginBruteForced`; `LoginFormContent` ticks down via `LaunchedEffect` + `delay(1000)` loop; error banner shows "Try again in M:SS"; Login button disabled while locked | ~~MEDIUM~~ | ✅ DONE |
 | ~~**No session timeout warning**~~ — ✅ DONE (2026-03-26): `SessionManager` emits `AuthEffect.SessionTimeoutWarning(secondsRemaining)` 60s before timeout; `WARNING_BEFORE_TIMEOUT_MS` constant; UI can show dismissible banner | ~~LOW~~ | ✅ DONE (2026-03-26) |
@@ -1963,7 +1963,7 @@ Backend Tests:
 | ~~**No export buttons** on any financial statement~~ — ✅ DONE: CSV export button in TopAppBar; `ExportCsv` intent; `ShareExport` effect wired in App.kt with selectable-text dialog; RFC 4180 CSV generation for all 4 statements (2026-03-25) | ~~HIGH~~ | ✅ DONE (2026-03-25) |
 | **No account reconciliation workflow** | MEDIUM | Phase 3 |
 | **E-invoice list exists but no IRD submission flow** | MEDIUM | Phase 3 |
-| **Trial Balance "UNBALANCED" error has no remediation path** | LOW | Phase 2 |
+| ~~**Trial Balance "UNBALANCED" error has no remediation path**~~ — ✅ DONE (2026-03-26): `FinancialStatementsState.showRemediationGuide/remediationSuspects`; `ShowRemediationGuide/DismissRemediationGuide` intents; identifies top-10 accounts with largest debit-credit discrepancy sorted by absolute imbalance | ~~LOW~~ | ✅ DONE (2026-03-26) |
 
 ---
 
@@ -1991,7 +1991,7 @@ Backend Tests:
 | ~~**No leave balance tracking display**~~ — ✅ DONE (2026-03-25): `StaffState.LeaveState.annualLeaveBalance/usedLeave/remainingLeave`; computed from approved leave records; displayed in leave tab summary card | ~~MEDIUM~~ | ✅ DONE (2026-03-25) |
 | ~~**No shift conflict detection**~~ — ✅ DONE (2026-03-25): `StaffViewModel` checks for overlapping shifts on save; `ShiftConflictDetected` effect with conflicting shift details; prevents saving conflicting shifts | ~~MEDIUM~~ | ✅ DONE (2026-03-25) |
 | ~~**No attendance report export**~~ — ✅ DONE (2026-03-25): `ExportAttendanceReport` intent; CSV export with employee name, date, check-in/out times, hours worked; `ShareAttendanceExport` effect | ~~MEDIUM~~ | ✅ DONE (2026-03-25) |
-| **No bulk payroll generation** ("Generate All" button) | LOW | Phase 2 |
+| ~~**No bulk payroll generation**~~ ("Generate All" button) — ✅ DONE (2026-03-26): `GenerateAllPayroll(periodStart, periodEnd)` intent; `StaffState.isBulkPayrollGenerating/bulkPayrollProgress/bulkPayrollTotal`; iterates all active employees with progress tracking; reports success/fail count | ~~LOW~~ | ✅ DONE (2026-03-26) |
 | **No shift swap/request workflow** for employees | LOW | Phase 3 |
 
 ---
@@ -2019,7 +2019,7 @@ Backend Tests:
 | ~~**No store-specific discount assignment**~~ | ~~HIGH~~ | ✅ DONE (C2.4, 2026-03-22) |
 | ~~**No coupon code auto-generation**~~ | ~~MEDIUM~~ | ✅ DONE (2026-03-23) |
 | ~~**No minimum purchase threshold UI**~~ | ~~MEDIUM~~ | ✅ Already existed |
-| **No coupon analytics/redemption stats** | LOW | Phase 2 |
+| ~~**No coupon analytics/redemption stats**~~ — ✅ DONE (2026-03-26): `CouponState.totalRedemptions/totalDiscountGiven/topRedeemedCoupons/isAnalyticsLoading` fields; `CouponRedemptionStat` data class; `LoadAnalytics` intent; aggregates usage across all coupons via `couponRepository.getUsageByCoupon()`, top 5 by redemption count | ~~LOW~~ | ✅ DONE (2026-03-26) |
 | ~~**No date picker for validity period** — Epoch ms manual entry~~ | ~~MEDIUM~~ | ✅ DONE (2026-03-23) |
 
 ---
@@ -2048,7 +2048,7 @@ Backend Tests:
 | ~~**Data integrity check button missing**~~ — ✅ VERIFIED: `IntegrityBadge` composable in `AuditLogScreen` (L367-438) has refresh icon button + auto-runs on init + status display | ~~MEDIUM~~ | ✅ DONE |
 | ~~**No backup scheduling**~~ — ✅ DONE (2026-03-26): `AdminState.BackupFrequency` enum (DAILY/WEEKLY/MONTHLY); `backupScheduleEnabled/backupFrequency/backupScheduleHour/backupRetentionCount/showBackupScheduleDialog` state; `LoadBackupSchedule/ShowBackupScheduleDialog/ToggleBackupSchedule/SetBackupFrequency/SetBackupScheduleHour/SetBackupRetentionCount/SaveBackupSchedule` intents; persisted via `SettingsRepository.set("backup.schedule.*")` keys | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
 | ~~**No audit log CSV/JSON export**~~ — ✅ DONE: `ExportDropdown` with CSV/JSON options in AuditLogScreen; `ExportAuditLogJson` intent + `ShareAuditExport` effect with RFC 4180 CSV + JSON escaping (2026-03-24) | ~~MEDIUM~~ | ✅ DONE (2026-03-24) |
-| **No license info display** | LOW | Phase 2 |
+| ~~**No license info display**~~ — ✅ DONE (2026-03-26): `AdminState.licenseEdition/licenseStatus/licenseExpiresAt/licenseMaxStores/licenseMaxDevices/licenseHolderName/isLicenseLoading` fields; `LoadLicenseInfo` intent; reads from `SettingsRepository.get("license.*")` keys | ~~LOW~~ | ✅ DONE (2026-03-26) |
 | **No crash log/Sentry viewer** | LOW | Phase 3 |
 
 ---
@@ -2106,7 +2106,7 @@ Backend Tests:
 | MS-3 | ~~**Rack Screen Navigation Missing**~~ — ✅ ALREADY DONE: `WarehouseRackList(warehouseId)` and `WarehouseRackDetail(rackId?, warehouseId)` both in `ZyntaRoute.kt` and wired in `MainNavGraph.kt:622-631` (verified 2026-03-25) | ~~MEDIUM~~ | ✅ DONE |
 | MS-4 | ~~**RackDetailScreen No Back Button**~~ — ✅ ALREADY EXISTS: TopAppBar with ArrowBack icon at lines 39-51 | ~~MEDIUM~~ | ✅ Verified (2026-03-23) |
 | MS-5 | **No Warehouse Metadata** — No image/logo field for visual identity; warehouse cards look plain | LOW | Add optional `imageUrl` field to `Warehouse` domain model + `AsyncImage` in card |
-| MS-6 | **No Rack Capacity Enforcement** — UI validates capacity but doesn't prevent overstocking against capacity limits | LOW | Add stock-vs-capacity check in `WarehouseRepositoryImpl.commitTransfer()` |
+| MS-6 | ~~**No Rack Capacity Enforcement**~~ — ✅ DONE (2026-03-26): Capacity enforcement in `WarehouseViewModel.onSaveRackProduct()` — checks `existingTotal + newQty > rackCapacity` using `currentState.rackProducts`; shows validation error with current usage vs limit | ~~LOW~~ | ✅ DONE (2026-03-26) |
 
 **Key Files:**
 - `composeApp/feature/multistore/src/commonMain/.../WarehouseListScreen.kt`

@@ -44,4 +44,7 @@ sealed interface CouponIntent {
 
     /** Dismiss any transient error or success message. */
     data object DismissMessage : CouponIntent
+
+    /** G12: Load coupon analytics — redemption counts, total discount given, top redeemed. */
+    data object LoadAnalytics : CouponIntent
 }
