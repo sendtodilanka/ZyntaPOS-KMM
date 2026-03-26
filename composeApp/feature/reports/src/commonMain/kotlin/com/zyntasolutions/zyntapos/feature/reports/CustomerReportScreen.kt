@@ -32,6 +32,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoadingSkeleton
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
@@ -60,6 +62,7 @@ fun CustomerReportScreen(
     onNavigateUp: () -> Unit,
     viewModel: ReportsViewModel = koinViewModel(),
 ) {
+    val strings = LocalStrings.current
     val state by viewModel.state.collectAsState()
     val s = state.customerReport
 
@@ -70,11 +73,11 @@ fun CustomerReportScreen(
     }
 
     ZyntaPageScaffold(
-        title = "Customer Report",
+        title = strings[StringResource.REPORTS_CUSTOMER_REPORT],
         onNavigateBack = onNavigateUp,
         actions = {
             IconButton(onClick = { viewModel.dispatch(ReportsIntent.ExportCustomerReportCsv) }) {
-                Icon(Icons.Default.FileDownload, contentDescription = "Export CSV")
+                Icon(Icons.Default.FileDownload, contentDescription = strings[StringResource.REPORTS_EXPORT_CSV_CD])
             }
         },
     ) { paddingValues ->
@@ -87,8 +90,8 @@ fun CustomerReportScreen(
                     ) {
                         ZyntaEmptyState(
                             icon = Icons.Default.Group,
-                            title = "No Customer Data",
-                            subtitle = "No customer records found.",
+                            title = strings[StringResource.REPORTS_NO_CUSTOMER_DATA],
+                            subtitle = strings[StringResource.REPORTS_NO_CUSTOMER_HINT],
                             modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.xl),
                         )
                     }
@@ -126,6 +129,7 @@ private fun CustomerReportContent(
     report: GenerateCustomerReportUseCase.CustomerReport,
     paddingValues: PaddingValues,
 ) {
+    val s = LocalStrings.current
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -137,7 +141,7 @@ private fun CustomerReportContent(
 
         item {
             Text(
-                text = "Top Customers by Loyalty Points",
+                text = s[StringResource.REPORTS_TOP_CUSTOMERS],
                 style = MaterialTheme.typography.titleSmall,
             )
         }
@@ -145,7 +149,7 @@ private fun CustomerReportContent(
         if (report.topByLoyaltyPoints.isEmpty()) {
             item {
                 Text(
-                    text = "No customers yet",
+                    text = s[StringResource.REPORTS_NO_CUSTOMERS],
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -160,7 +164,7 @@ private fun CustomerReportContent(
             item {
                 Spacer(Modifier.height(ZyntaSpacing.sm))
                 Text(
-                    text = "By Customer Group",
+                    text = s[StringResource.REPORTS_BY_GROUP],
                     style = MaterialTheme.typography.titleSmall,
                 )
                 Spacer(Modifier.height(ZyntaSpacing.xs))
@@ -179,19 +183,20 @@ private fun CustomerReportContent(
 
 @Composable
 private fun CustomerKpiGrid(report: GenerateCustomerReportUseCase.CustomerReport) {
+    val s = LocalStrings.current
     Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
         ) {
             CustomerKpiCard(
-                label = "Total Customers",
+                label = s[StringResource.REPORTS_TOTAL_CUSTOMERS],
                 value = report.totalCustomers.toString(),
                 isPrimary = true,
                 modifier = Modifier.weight(1f),
             )
             CustomerKpiCard(
-                label = "Registered",
+                label = s[StringResource.REPORTS_REGISTERED],
                 value = report.registeredCustomers.toString(),
                 modifier = Modifier.weight(1f),
             )
@@ -201,12 +206,12 @@ private fun CustomerKpiGrid(report: GenerateCustomerReportUseCase.CustomerReport
             horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
         ) {
             CustomerKpiCard(
-                label = "Walk-In",
+                label = s[StringResource.REPORTS_WALK_IN],
                 value = report.walkInCustomers.toString(),
                 modifier = Modifier.weight(1f),
             )
             CustomerKpiCard(
-                label = "Credit Enabled",
+                label = s[StringResource.REPORTS_CREDIT_ENABLED],
                 value = report.creditEnabledCustomers.toString(),
                 modifier = Modifier.weight(1f),
             )
@@ -222,7 +227,7 @@ private fun CustomerKpiGrid(report: GenerateCustomerReportUseCase.CustomerReport
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
-                    "Total Loyalty Points",
+                    s[StringResource.REPORTS_TOTAL_LOYALTY_POINTS],
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -303,6 +308,7 @@ private fun CustomerLoyaltyRow(customer: Customer) {
 
 @Composable
 private fun GroupCountRow(groupId: String?, count: Int) {
+    val s = LocalStrings.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -311,7 +317,7 @@ private fun GroupCountRow(groupId: String?, count: Int) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = groupId ?: "No Group",
+            text = groupId ?: s[StringResource.REPORTS_NO_GROUP],
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.weight(1f),
         )
