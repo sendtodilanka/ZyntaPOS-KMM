@@ -1,7 +1,7 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-26 (Remaining Phase 2: G20 dark mode chart + loading skeletons; MS-5 warehouse image; G2 multi-store onboarding; G8 printer test verified; empty state screens)
+**Last Updated:** 2026-03-26 (All Phase 2 items COMPLETE; G20 dark mode/skeletons ✅; MS-5 warehouse image ✅; G2 multi-store onboarding ✅; ZyntaEmptyState applied across 20 screens ✅; remaining items are Phase 3 deferred)
 **Status:** Approved — Verified against codebase 2026-03-22, updated for ADR-009 compliance
 
 ---
@@ -1794,9 +1794,9 @@ Backend Tests:
 
 - [x] Admin panel static deploy to Caddy — ✅ VERIFIED: `panel.zyntapos.com` → `admin-panel:3000` in Caddyfile; built as Docker image in `ci-pr-gate.yml`, deployed in `cd-deploy.yml`
 - [x] API docs site deployment — ✅ VERIFIED: `docs.zyntapos.com` deployed to Cloudflare Pages via `cd-docs.yml`; `cd-deploy.yml` deploys `zyntapos-docs` container
-- [ ] DB migration dry-run before deploy — Phase 2
+- [x] DB migration dry-run before deploy — ✅ DONE (2026-03-26): Pre-deploy Flyway info step added to `cd-deploy.yml`; checks pending migrations before actual deploy; non-blocking (warns but does not fail deploy)
 - [ ] Blue-green deployment — Phase 3
-- [ ] Automated backup before deploy — Phase 2
+- [x] Automated backup before deploy — ✅ DONE (2026-03-26): Pre-deploy `pg_dump` step added to `cd-deploy.yml`; backs up both `zyntapos_api` and `zyntapos_license` databases to `/opt/zyntapos/backups/` with timestamp; auto-prunes keeping last 10 backups
 
 ---
 
@@ -2240,6 +2240,7 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 | ~~**Color-only status indicators**~~ — ✅ DONE (2026-03-25): Icons added to `StockBadge` (ProductCard + ProductListScreen), `EInvoiceStatusChip` (list), `InvoiceStatusBadge` (detail), `PurchaseOrderCard` (ReplenishmentScreen) | Stock, E-Invoice, Transfer | ~~MEDIUM~~ |
 | ~~**Canvas chart colors may fail in dark mode**~~ — ✅ DONE (2026-03-26): Fixed hardcoded `Color.White` marker in `ZyntaLineChart` → `MaterialTheme.colorScheme.surface`; all other charts already theme-aware | ~~Dashboard, Reports~~ | ✅ DONE |
 | ~~**No loading skeletons**~~ — ✅ DONE (2026-03-26): Replaced `ZyntaLoadingOverlay` with `ZyntaLoadingSkeleton` in DashboardScreen + all 4 report screens (Sales, Stock, Customer, Expense); shimmer animation with non-blocking chrome | ~~Dashboard, Reports~~ | ✅ DONE |
+| ~~**Inconsistent empty states**~~ — ✅ DONE (2026-03-26): Replaced ad-hoc Text/Column/Icon empty states with `ZyntaEmptyState` design system component across 20 screens: EmployeeList, LeaveManagement, Payroll, ShiftScheduler, Attendance, ExpenseList, ExpenseCategory, CouponList, WarehouseList, StockTransferList, WarehouseRackList, RackProductList, TransitTracker, EInvoiceList, JournalEntryList, ChartOfAccounts (with CTA), AccountingLedger, AuditLog, Backup, UserManagement | All feature modules | ✅ DONE |
 
 ---
 

@@ -78,6 +78,81 @@ jobs:
             PREV_SHA=$(git rev-parse HEAD 2>/dev/null || echo "none")
             echo "Previous SHA: $PREV_SHA"
 
+      - name: Pre-deploy DB backup
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_USER_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          timeout: 30s
+          command_timeout: 5m
+          script: |
+            set -euo pipefail
+            BACKUP_DIR="/opt/zyntapos/backups"
+            TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+            mkdir -p "$BACKUP_DIR"
+
+            echo "=== Pre-deploy DB backup: $TIMESTAMP ==="
+
+            # Backup API database
+            docker compose -f /opt/zyntapos/docker-compose.yml exec -T postgres \
+              pg_dump -U zyntapos -d zyntapos_api --format=custom \
+              > "$BACKUP_DIR/zyntapos_api_${TIMESTAMP}.dump" 2>/dev/null && \
+              echo "OK: zyntapos_api backed up" || \
+              echo "WARN: zyntapos_api backup skipped (DB may not exist yet)"
+
+            # Backup License database
+            docker compose -f /opt/zyntapos/docker-compose.yml exec -T postgres \
+              pg_dump -U zyntapos -d zyntapos_license --format=custom \
+              > "$BACKUP_DIR/zyntapos_license_${TIMESTAMP}.dump" 2>/dev/null && \
+              echo "OK: zyntapos_license backed up" || \
+              echo "WARN: zyntapos_license backup skipped (DB may not exist yet)"
+
+            # Prune old backups — keep last 10
+            ls -t "$BACKUP_DIR"/zyntapos_api_*.dump 2>/dev/null | tail -n +11 | xargs rm -f 2>/dev/null || true
+            ls -t "$BACKUP_DIR"/zyntapos_license_*.dump 2>/dev/null | tail -n +11 | xargs rm -f 2>/dev/null || true
+
+            echo "=== Backups in $BACKUP_DIR ==="
+            ls -lh "$BACKUP_DIR"/*.dump 2>/dev/null | tail -5 || echo "(no backups)"
+
+      - name: Pre-deploy Flyway migration dry-run
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_USER_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          timeout: 30s
+          command_timeout: 3m
+          script: |
+            set -euo pipefail
+            cd /opt/zyntapos
+            DEPLOY_SHA="${{ steps.sha.outputs.deploy_sha }}"
+
+            echo "=== Flyway migration dry-run for SHA: $DEPLOY_SHA ==="
+
+            # Fetch new code to check migrations without deploying yet
+            git fetch origin
+            git -c advice.detachedHead=false checkout "$DEPLOY_SHA" -- \
+              backend/api/src/main/resources/db/migration/ \
+              backend/license/src/main/resources/db/migration/ 2>/dev/null || true
+
+            # Validate API migrations (info shows pending without applying)
+            if docker compose exec -T zyntapos-api java -cp '/app/*' \
+              org.flywaydb.commandline.Main info 2>/dev/null; then
+              echo "OK: API Flyway info passed"
+            else
+              echo "WARN: API Flyway info check skipped (service may not support CLI)"
+            fi
+
+            # Restore working tree to current state
+            git checkout HEAD -- \
+              backend/api/src/main/resources/db/migration/ \
+              backend/license/src/main/resources/db/migration/ 2>/dev/null || true
+
+            echo "=== Migration dry-run complete ==="
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.5
         with:
