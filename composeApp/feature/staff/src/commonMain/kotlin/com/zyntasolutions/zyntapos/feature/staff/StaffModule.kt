@@ -23,6 +23,9 @@ import com.zyntasolutions.zyntapos.domain.usecase.staff.ProcessPayrollPaymentUse
 import com.zyntasolutions.zyntapos.domain.usecase.staff.RejectLeaveUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.SaveEmployeeUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.SaveShiftScheduleUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.staff.ApproveShiftSwapUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.staff.RequestShiftSwapUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.staff.RespondToShiftSwapUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.SubmitLeaveRequestUseCase
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.viewModel
@@ -93,6 +96,11 @@ val staffModule = module {
     factoryOf(::GetPayrollHistoryUseCase)
     factoryOf(::GetAttendanceSummaryUseCase)
     factoryOf(::GetLeaveHistoryUseCase)
+
+    // ── G: Shift Swap Workflow ─────────────────────────────────────────────
+    factoryOf(::RequestShiftSwapUseCase)
+    factoryOf(::RespondToShiftSwapUseCase)
+    factoryOf(::ApproveShiftSwapUseCase)
 
     // ── Sprint 16-C3.4: Employee Roaming ──────────────────────────────────
     factoryOf(::GetEmployeeStoresUseCase)

@@ -141,12 +141,16 @@ import com.zyntasolutions.zyntapos.domain.repository.WarehouseStockRepository
 import com.zyntasolutions.zyntapos.data.repository.FulfillmentRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.LicenseRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.CompoundTaxRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.CustomerSegmentRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.RegionalTaxOverrideRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.ShiftSwapRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.TransitTrackingRepositoryImpl
 import com.zyntasolutions.zyntapos.domain.repository.CompoundTaxRepository
+import com.zyntasolutions.zyntapos.domain.repository.CustomerSegmentRepository
 import com.zyntasolutions.zyntapos.domain.repository.FulfillmentRepository
 import com.zyntasolutions.zyntapos.domain.repository.LicenseRepository
 import com.zyntasolutions.zyntapos.domain.repository.RegionalTaxOverrideRepository
+import com.zyntasolutions.zyntapos.domain.repository.ShiftSwapRepository
 import com.zyntasolutions.zyntapos.domain.repository.TransitTrackingRepository
 import org.koin.dsl.module
 
@@ -255,6 +259,12 @@ val dataModule = module {
 
     // Compound tax components — stacking multiple tax rates (C2.3)
     single<CompoundTaxRepository> { CompoundTaxRepositoryImpl(database = get()) }
+
+    // Customer segments — segmentation/advanced filtering (G)
+    single<CustomerSegmentRepository> { CustomerSegmentRepositoryImpl(database = get(), syncEnqueuer = get()) }
+
+    // Shift swap requests — shift swap/request workflow (G)
+    single<ShiftSwapRepository> { ShiftSwapRepositoryImpl(database = get(), syncEnqueuer = get()) }
 
     // Exchange rates — multi-currency support (C2.2)
     single<ExchangeRateRepository> { ExchangeRateRepositoryImpl(db = get()) }

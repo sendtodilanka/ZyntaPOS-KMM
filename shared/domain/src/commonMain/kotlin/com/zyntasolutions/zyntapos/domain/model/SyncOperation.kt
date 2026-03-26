@@ -116,5 +116,7 @@ data class SyncOperation(
         const val STORE = "store"
         // C3.4 Employee multi-store assignments
         const val EMPLOYEE_STORE_ASSIGNMENT = "employee_store_assignment"
+        // G: Shift swap workflow
+        const val SHIFT_SWAP_REQUEST = "shift_swap_request"
     }
 }

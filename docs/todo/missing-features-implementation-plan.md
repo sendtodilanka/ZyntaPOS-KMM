@@ -1672,10 +1672,10 @@ Backend Tests:
 - [x] Receipt timestamp: `ReceiptFormatter` now uses `DateTimeUtils.formatForDisplay()` which respects `AppTimezone.current` (store's local timezone)
 
 **What's REMAINING (deferred):**
-- [ ] Multi-store timezone handling: When admin views reports from different timezones
+- [x] Multi-store timezone handling: When admin views reports from different timezones
 - [x] Report date range conversion: User selects "Today" → convert to store's timezone for query
-- [ ] Sync timestamp normalization: All sync operations use UTC, display converts to local
-- [ ] DST (Daylight Saving Time) handling for stores in affected regions
+- [x] Sync timestamp normalization: All sync operations use UTC, display converts to local
+- [x] DST (Daylight Saving Time) handling for stores in affected regions
 
 ---
 
@@ -2278,12 +2278,12 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 
 **Phase 3 Nice-to-Have:**
 - [ ] 3-pane responsive layout for warehouse tablet UI
-- [ ] High-contrast accessibility theme
-- [ ] i18n/locale infrastructure
+- [x] High-contrast accessibility theme
+- [x] i18n/locale infrastructure
 - [ ] Receipt template visual editor
 - [x] Conflict resolution UI for CRDT merges — ✅ ConflictListScreen in Admin tab 4 (C6.1 Item 6, 2026-03-19)
-- [ ] Customer segmentation/advanced filtering
-- [ ] Shift swap/request workflow
+- [x] Customer segmentation/advanced filtering
+- [x] Shift swap/request workflow
 
 ---
 

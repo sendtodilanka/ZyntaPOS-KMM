@@ -23,6 +23,9 @@ CREATE INDEX idx_shifts_employee          ON shift_schedules(employee_id);
 
 -- ── Read queries ──────────────────────────────────────────────────────────────
 
+getShiftById:
+SELECT * FROM shift_schedules WHERE id = ?;
+
 getShiftsByStoreAndWeek:
 SELECT ss.*, e.first_name, e.last_name, e.position
 FROM shift_schedules ss JOIN employees e ON ss.employee_id = e.id
@@ -59,6 +62,11 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 updateShift:
 UPDATE shift_schedules
 SET start_time = ?, end_time = ?, notes = ?, updated_at = ?, sync_status = 'PENDING'
+WHERE id = ?;
+
+swapShiftEmployee:
+UPDATE shift_schedules
+SET employee_id = ?, updated_at = ?, sync_status = 'PENDING'
 WHERE id = ?;
 
 upsertShift:

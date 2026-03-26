@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.customers
 
 import com.zyntasolutions.zyntapos.domain.usecase.crm.EarnRewardPointsUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.crm.EvaluateCustomerSegmentUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.ExpireLoyaltyPointsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.ExportCustomerDataUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.GetCustomerPurchaseHistoryUseCase
@@ -41,6 +42,9 @@ val customersModule = module {
     factoryOf(::ExportCustomerDataUseCase)
     factoryOf(::MergeCustomersUseCase)
     factoryOf(::GetCustomerPurchaseHistoryUseCase)
+
+    // ── G: Customer Segmentation ────────────────────────────────────────────
+    factoryOf(::EvaluateCustomerSegmentUseCase)
 
     // ── ViewModel ─────────────────────────────────────────────────────────────
     viewModel {

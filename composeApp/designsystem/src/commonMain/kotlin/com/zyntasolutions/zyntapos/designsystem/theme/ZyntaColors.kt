@@ -173,6 +173,99 @@ fun zentaDarkColorScheme(): ColorScheme = darkColorScheme(
     scrim             = Color.Black,
 )
 
+// ── High-Contrast Light Color Scheme (WCAG AAA) ────────────────────────────
+
+/**
+ * ZyntaPOS high-contrast light [ColorScheme] for accessibility (G).
+ *
+ * Uses maximum contrast ratios (7:1+ foreground-to-background) to meet WCAG AAA.
+ * Primary text is pure black on white backgrounds; colored elements use
+ * darkened, saturated variants for visibility.
+ */
+fun zyntaHighContrastLightColorScheme(): ColorScheme = lightColorScheme(
+    primary             = Blue10,
+    onPrimary           = Color.White,
+    primaryContainer    = Blue95,
+    onPrimaryContainer  = Blue10,
+    inversePrimary      = Blue90,
+
+    secondary             = Amber10,
+    onSecondary           = Color.White,
+    secondaryContainer    = Amber95,
+    onSecondaryContainer  = Amber10,
+
+    tertiary             = Green10,
+    onTertiary           = Color.White,
+    tertiaryContainer    = Green95,
+    onTertiaryContainer  = Green10,
+
+    error             = Red10,
+    onError           = Color.White,
+    errorContainer    = Red95,
+    onErrorContainer  = Red10,
+
+    background        = Color.White,
+    onBackground      = Color.Black,
+
+    surface           = Color.White,
+    onSurface         = Color.Black,
+    surfaceVariant    = Neutral95,
+    onSurfaceVariant  = Color.Black,
+    surfaceTint       = Blue10,
+    inverseSurface    = Color.Black,
+    inverseOnSurface  = Color.White,
+
+    outline           = Color.Black,
+    outlineVariant    = Neutral40,
+    scrim             = Color.Black,
+)
+
+// ── High-Contrast Dark Color Scheme (WCAG AAA) ─────────────────────────────
+
+/**
+ * ZyntaPOS high-contrast dark [ColorScheme] for accessibility (G).
+ *
+ * Uses maximum contrast ratios on dark backgrounds — pure white text,
+ * brightened role colors, and bold outlines for element boundaries.
+ */
+fun zyntaHighContrastDarkColorScheme(): ColorScheme = darkColorScheme(
+    primary             = Blue95,
+    onPrimary           = Blue10,
+    primaryContainer    = Blue30,
+    onPrimaryContainer  = Blue95,
+    inversePrimary      = Blue20,
+
+    secondary             = Amber95,
+    onSecondary           = Amber10,
+    secondaryContainer    = Amber30,
+    onSecondaryContainer  = Amber95,
+
+    tertiary             = Green95,
+    onTertiary           = Green10,
+    tertiaryContainer    = Green30,
+    onTertiaryContainer  = Green95,
+
+    error             = Red95,
+    onError           = Red10,
+    errorContainer    = Red30,
+    onErrorContainer  = Red95,
+
+    background        = Color.Black,
+    onBackground      = Color.White,
+
+    surface           = Color.Black,
+    onSurface         = Color.White,
+    surfaceVariant    = Neutral20,
+    onSurfaceVariant  = Color.White,
+    surfaceTint       = Blue95,
+    inverseSurface    = Color.White,
+    inverseOnSurface  = Color.Black,
+
+    outline           = Color.White,
+    outlineVariant    = Neutral70,
+    scrim             = Color.Black,
+)
+
 // ── Semantic color convenience aliases (for use in documentation / previews) ─
 
 /** Brand primary — Deep Blue. Main CTAs, Pay button. */
