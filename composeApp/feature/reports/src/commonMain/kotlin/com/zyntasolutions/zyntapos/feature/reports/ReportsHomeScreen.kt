@@ -33,6 +33,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.ExperimentalMaterial3Api
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
@@ -63,11 +65,12 @@ fun ReportsHomeScreen(
     onNavigateUp: () -> Unit,
     viewModel: ReportsViewModel = koinViewModel(),
 ) {
+    val s = LocalStrings.current
     val state by viewModel.state.collectAsState()
     val homeState = state.reportsHome
 
     ZyntaPageScaffold(
-        title = "Reports",
+        title = s[StringResource.REPORTS_TITLE],
         onNavigateBack = onNavigateUp,
     ) { paddingValues ->
         LazyVerticalGrid(
@@ -82,7 +85,7 @@ fun ReportsHomeScreen(
             item {
                 ReportTile(
                     icon = Icons.Default.Assessment,
-                    title = "Sales Report",
+                    title = s[StringResource.REPORTS_SALES_REPORT],
                     lastGeneratedAt = homeState.lastSalesReportAt,
                     onClick = onNavigateToSalesReport,
                 )
@@ -90,7 +93,7 @@ fun ReportsHomeScreen(
             item {
                 ReportTile(
                     icon = Icons.Default.Inventory2,
-                    title = "Stock Report",
+                    title = s[StringResource.REPORTS_STOCK_REPORT],
                     lastGeneratedAt = homeState.lastStockReportAt,
                     onClick = onNavigateToStockReport,
                 )
@@ -98,7 +101,7 @@ fun ReportsHomeScreen(
             item {
                 ReportTile(
                     icon = Icons.Default.Group,
-                    title = "Customer Report",
+                    title = s[StringResource.REPORTS_CUSTOMER_REPORT],
                     lastGeneratedAt = homeState.lastCustomerReportAt,
                     onClick = onNavigateToCustomerReport,
                 )
@@ -106,7 +109,7 @@ fun ReportsHomeScreen(
             item {
                 ReportTile(
                     icon = Icons.Default.Receipt,
-                    title = "Expense Report",
+                    title = s[StringResource.REPORTS_EXPENSE_REPORT],
                     lastGeneratedAt = homeState.lastExpenseReportAt,
                     onClick = onNavigateToExpenseReport,
                 )
@@ -132,6 +135,7 @@ private fun ReportTile(
     lastGeneratedAt: Instant?,
     onClick: () -> Unit,
 ) {
+    val s = LocalStrings.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -165,9 +169,10 @@ private fun ReportTile(
             Text(
                 text = if (lastGeneratedAt != null) {
                     val local = lastGeneratedAt.toLocalDateTime(TimeZone.currentSystemDefault())
-                    "Last: ${local.date} ${local.hour.toString().padStart(2, '0')}:${local.minute.toString().padStart(2, '0')}"
+                    val timeStr = "${local.date} ${local.hour.toString().padStart(2, '0')}:${local.minute.toString().padStart(2, '0')}"
+                    s[StringResource.REPORTS_LAST_GENERATED, timeStr]
                 } else {
-                    "Not yet generated"
+                    s[StringResource.REPORTS_NOT_YET_GENERATED]
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),

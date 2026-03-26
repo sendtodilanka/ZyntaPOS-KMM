@@ -13,6 +13,8 @@ import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.util.WindowSize
 import com.zyntasolutions.zyntapos.designsystem.util.currentWindowSize
 
@@ -116,12 +118,13 @@ fun WarehouseAdaptiveLayout(
 
 @Composable
 private fun WarehouseEmptyDetailPlaceholder() {
+    val s = LocalStrings.current
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = androidx.compose.ui.Alignment.Center,
     ) {
         androidx.compose.material3.Text(
-            text = "Select a warehouse or product to view details",
+            text = s[StringResource.MULTISTORE_EMPTY_DETAIL_PLACEHOLDER],
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -130,12 +133,13 @@ private fun WarehouseEmptyDetailPlaceholder() {
 
 @Composable
 private fun WarehouseEmptyActionPlaceholder() {
+    val s = LocalStrings.current
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = androidx.compose.ui.Alignment.Center,
     ) {
         androidx.compose.material3.Text(
-            text = "Actions will appear here",
+            text = s[StringResource.MULTISTORE_EMPTY_ACTION_PLACEHOLDER],
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

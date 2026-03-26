@@ -49,7 +49,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoadingSkeleton
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
@@ -92,6 +94,7 @@ fun SalesReportScreen(
     viewModel: ReportsViewModel = koinViewModel(),
     formatter: CurrencyFormatter = koinInject(),
 ) {
+    val strings = LocalStrings.current
     val state by viewModel.state.collectAsState()
     val s = state.salesReport
     val windowSize = currentWindowSize()
@@ -104,17 +107,17 @@ fun SalesReportScreen(
     }
 
     ZyntaPageScaffold(
-        title = "Sales Report",
+        title = strings[StringResource.REPORTS_SALES_REPORT],
         onNavigateBack = onNavigateUp,
         actions = {
             IconButton(onClick = { viewModel.dispatch(ReportsIntent.ExportSalesReportCsv) }) {
-                Icon(Icons.Default.FileDownload, contentDescription = "Export CSV")
+                Icon(Icons.Default.FileDownload, contentDescription = strings[StringResource.REPORTS_EXPORT_CSV_CD])
             }
             IconButton(onClick = { viewModel.dispatch(ReportsIntent.ExportSalesReportPdf) }) {
-                Icon(Icons.Default.PictureAsPdf, contentDescription = "Export PDF")
+                Icon(Icons.Default.PictureAsPdf, contentDescription = strings[StringResource.REPORTS_EXPORT_PDF_CD])
             }
             IconButton(onClick = { viewModel.dispatch(ReportsIntent.PrintSalesReport) }) {
-                Icon(Icons.Default.Print, contentDescription = "Print")
+                Icon(Icons.Default.Print, contentDescription = strings[StringResource.REPORTS_PRINT_CD])
             }
         },
     ) { paddingValues ->
@@ -146,11 +149,17 @@ fun SalesReportScreen(
                     divider = {},
                 ) {
                     SalesTab.entries.forEachIndexed { index, tab ->
+                        val tabTitle = when (tab) {
+                            SalesTab.OVERVIEW -> strings[StringResource.REPORTS_TAB_OVERVIEW]
+                            SalesTab.TREND -> strings[StringResource.REPORTS_TAB_TREND]
+                            SalesTab.PAYMENT -> strings[StringResource.REPORTS_TAB_PAYMENT]
+                            SalesTab.PRODUCTS -> strings[StringResource.REPORTS_TAB_PRODUCTS]
+                        }
                         Tab(
                             selected = selectedTabIndex == index,
                             onClick = { selectedTabIndex = index },
-                            text = { Text(tab.title) },
-                            icon = { Icon(tab.icon, contentDescription = tab.title) },
+                            text = { Text(tabTitle) },
+                            icon = { Icon(tab.icon, contentDescription = tabTitle) },
                         )
                     }
                 }
@@ -167,8 +176,8 @@ fun SalesReportScreen(
                         ) {
                             ZyntaEmptyState(
                                 icon = Icons.Default.Assessment,
-                                title = "No Report Data",
-                                subtitle = "Select a date range to generate a sales report.",
+                                title = strings[StringResource.REPORTS_NO_DATA],
+                                subtitle = strings[StringResource.REPORTS_SALES_EMPTY_HINT],
                                 modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.xl),
                             )
                         }
@@ -270,12 +279,13 @@ private fun ProductsTabContent(
     report: GenerateSalesReportUseCase.SalesReport,
     formatter: CurrencyFormatter,
 ) {
+    val strings = LocalStrings.current
     LazyColumn(
         contentPadding = PaddingValues(ZyntaSpacing.md),
         verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
     ) {
         item {
-            Text("Per-Product Sales", style = MaterialTheme.typography.titleSmall)
+            Text(strings[StringResource.REPORTS_PER_PRODUCT_SALES], style = MaterialTheme.typography.titleSmall)
         }
         items(
             items = report.topProducts.entries.toList(),
@@ -294,6 +304,7 @@ private fun SalesKpiRow(
     formatter: CurrencyFormatter,
     isExpanded: Boolean,
 ) {
+    val strings = LocalStrings.current
     val topProduct = report.topProducts.entries.firstOrNull()
 
     if (isExpanded) {
@@ -302,28 +313,28 @@ private fun SalesKpiRow(
             horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
         ) {
             KpiCard(
-                label = "Total Sales",
+                label = strings[StringResource.REPORTS_TOTAL_SALES],
                 value = formatter.format(report.totalSales),
-                helper = "Total revenue in the selected period",
+                helper = strings[StringResource.REPORTS_TOTAL_REVENUE_HINT],
                 isPrimary = true,
                 modifier = Modifier.weight(1f),
             )
             KpiCard(
-                label = "Orders",
+                label = strings[StringResource.REPORTS_ORDERS_COUNT],
                 value = report.orderCount.toString(),
-                helper = "Number of completed orders",
+                helper = strings[StringResource.REPORTS_ORDERS_COUNT_HINT],
                 modifier = Modifier.weight(1f),
             )
             KpiCard(
-                label = "Avg Order Value",
+                label = strings[StringResource.REPORTS_AVG_ORDER_VALUE],
                 value = formatter.format(report.avgOrderValue),
-                helper = "Average revenue per order",
+                helper = strings[StringResource.REPORTS_AVG_ORDER_HINT],
                 modifier = Modifier.weight(1f),
             )
             KpiCard(
-                label = "Top Product",
+                label = strings[StringResource.REPORTS_TOP_PRODUCT],
                 value = topProduct?.key ?: "\u2014",
-                helper = if (topProduct != null) formatter.format(topProduct.value) else "No data",
+                helper = if (topProduct != null) formatter.format(topProduct.value) else strings[StringResource.REPORTS_NO_DATA_SHORT],
                 modifier = Modifier.weight(1f),
             )
         }
@@ -335,16 +346,16 @@ private fun SalesKpiRow(
                 horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
             ) {
                 KpiCard(
-                    label = "Total Sales",
+                    label = strings[StringResource.REPORTS_TOTAL_SALES],
                     value = formatter.format(report.totalSales),
-                    helper = "Total revenue in the selected period",
+                    helper = strings[StringResource.REPORTS_TOTAL_REVENUE_HINT],
                     isPrimary = true,
                     modifier = Modifier.weight(1f),
                 )
                 KpiCard(
-                    label = "Orders",
+                    label = strings[StringResource.REPORTS_ORDERS_COUNT],
                     value = report.orderCount.toString(),
-                    helper = "Number of completed orders",
+                    helper = strings[StringResource.REPORTS_ORDERS_COUNT_HINT],
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -353,15 +364,15 @@ private fun SalesKpiRow(
                 horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
             ) {
                 KpiCard(
-                    label = "Avg Order Value",
+                    label = strings[StringResource.REPORTS_AVG_ORDER_VALUE],
                     value = formatter.format(report.avgOrderValue),
-                    helper = "Average revenue per order",
+                    helper = strings[StringResource.REPORTS_AVG_ORDER_HINT],
                     modifier = Modifier.weight(1f),
                 )
                 KpiCard(
-                    label = "Top Product",
+                    label = strings[StringResource.REPORTS_TOP_PRODUCT],
                     value = topProduct?.key ?: "\u2014",
-                    helper = if (topProduct != null) formatter.format(topProduct.value) else "No data",
+                    helper = if (topProduct != null) formatter.format(topProduct.value) else strings[StringResource.REPORTS_NO_DATA_SHORT],
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -425,6 +436,7 @@ private fun KpiCard(
  */
 @Composable
 private fun SalesTrendChart(report: GenerateSalesReportUseCase.SalesReport) {
+    val strings = LocalStrings.current
     val lineColor = MaterialTheme.colorScheme.primary
     val fillColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
 
@@ -433,7 +445,7 @@ private fun SalesTrendChart(report: GenerateSalesReportUseCase.SalesReport) {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
         Column(modifier = Modifier.padding(ZyntaSpacing.md)) {
-            Text("Sales Trend", style = MaterialTheme.typography.titleSmall)
+            Text(strings[StringResource.REPORTS_SALES_TREND], style = MaterialTheme.typography.titleSmall)
             Spacer(Modifier.height(ZyntaSpacing.sm))
             val values = report.topProducts.values.toList().ifEmpty { listOf(0.0) }
             val maxVal = values.max().coerceAtLeast(1.0).toFloat()
@@ -482,6 +494,7 @@ private fun PaymentBreakdownChart(
     report: GenerateSalesReportUseCase.SalesReport,
     formatter: CurrencyFormatter,
 ) {
+    val strings = LocalStrings.current
     if (report.salesByPaymentMethod.isEmpty()) return
     val maxAmount = report.salesByPaymentMethod.values.max().coerceAtLeast(1.0)
 
@@ -490,7 +503,7 @@ private fun PaymentBreakdownChart(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
         Column(modifier = Modifier.padding(ZyntaSpacing.md)) {
-            Text("Payment Breakdown", style = MaterialTheme.typography.titleSmall)
+            Text(strings[StringResource.REPORTS_PAYMENT_BREAKDOWN], style = MaterialTheme.typography.titleSmall)
             Spacer(Modifier.height(ZyntaSpacing.sm))
             report.salesByPaymentMethod.forEach { (method, amount) ->
                 PaymentBar(
