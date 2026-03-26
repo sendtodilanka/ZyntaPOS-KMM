@@ -17,6 +17,8 @@ import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.designsystem.util.WindowSize
 import com.zyntasolutions.zyntapos.designsystem.util.currentWindowSize
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.domain.model.LabelTemplate
 import com.zyntasolutions.zyntapos.domain.model.Product
 
@@ -43,6 +45,7 @@ fun BarcodeLabelPrintScreen(
     onIntent: (BarcodeLabelPrintIntent) -> Unit,
     onNavigateBack: () -> Unit,
 ) {
+    val s = LocalStrings.current
     val windowSize = currentWindowSize()
 
     // ── Template editor dialog ───────────────────────────────────────────────
@@ -72,16 +75,16 @@ fun BarcodeLabelPrintScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Print Labels") },
+                title = { Text(s[StringResource.INVENTORY_PRINT_LABELS]) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = s[StringResource.COMMON_BACK])
                     }
                 },
                 actions = {
                     if (state.queue.isNotEmpty()) {
                         IconButton(onClick = { onIntent(BarcodeLabelPrintIntent.ClearQueue) }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Clear queue")
+                            Icon(Icons.Default.Delete, contentDescription = s[StringResource.INVENTORY_CLEAR_QUEUE])
                         }
                     }
                 },
@@ -217,7 +220,8 @@ private fun TemplateSelectorPanel(
     state: BarcodeLabelPrintState,
     onIntent: (BarcodeLabelPrintIntent) -> Unit,
 ) {
-    Text("Label Template", style = MaterialTheme.typography.titleSmall)
+    val s = LocalStrings.current
+    Text(s[StringResource.INVENTORY_LABEL_TEMPLATE], style = MaterialTheme.typography.titleSmall)
     Spacer(Modifier.height(ZyntaSpacing.xs))
 
     state.templates.forEach { template ->
@@ -257,7 +261,7 @@ private fun TemplateSelectorPanel(
                         onClick = { onIntent(BarcodeLabelPrintIntent.OpenEditTemplateEditor(template)) },
                         modifier = Modifier.size(32.dp),
                     ) {
-                        Icon(Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Edit, contentDescription = s[StringResource.COMMON_EDIT], modifier = Modifier.size(16.dp))
                     }
                 }
             }
@@ -271,7 +275,7 @@ private fun TemplateSelectorPanel(
     ) {
         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(ZyntaSpacing.xs))
-        Text("New Template")
+        Text(s[StringResource.INVENTORY_NEW_TEMPLATE])
     }
 }
 
@@ -281,7 +285,8 @@ private fun ProductSearchPanel(
     onIntent: (BarcodeLabelPrintIntent) -> Unit,
     showPrintButton: Boolean,
 ) {
-    Text("Add Products", style = MaterialTheme.typography.titleSmall)
+    val s = LocalStrings.current
+    Text(s[StringResource.INVENTORY_ADD_PRODUCTS], style = MaterialTheme.typography.titleSmall)
     Spacer(Modifier.height(ZyntaSpacing.xs))
 
     OutlinedTextField(
@@ -289,11 +294,11 @@ private fun ProductSearchPanel(
         onValueChange = {
             onIntent(BarcodeLabelPrintIntent.SearchProducts(it))
         },
-        placeholder = { Text("Search by name, barcode, SKU…") },
+        placeholder = { Text(s[StringResource.INVENTORY_SEARCH_BY_NAME_BARCODE_SKU]) },
         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
         trailingIcon = if (state.searchQuery.isNotBlank()) {{
             IconButton(onClick = { onIntent(BarcodeLabelPrintIntent.SearchProducts("")) }) {
-                Icon(Icons.Default.Clear, contentDescription = "Clear search")
+                Icon(Icons.Default.Clear, contentDescription = s[StringResource.COMMON_CLEAR])
             }
         }} else null,
         modifier = Modifier.fillMaxWidth(),
@@ -318,6 +323,7 @@ private fun ProductSearchPanel(
 
 @Composable
 private fun ProductSearchResultRow(product: Product, onClick: () -> Unit) {
+    val s = LocalStrings.current
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -348,7 +354,7 @@ private fun ProductSearchResultRow(product: Product, onClick: () -> Unit) {
             }
             Icon(
                 Icons.Default.AddShoppingCart,
-                contentDescription = "Add to queue",
+                contentDescription = s[StringResource.INVENTORY_ADD_TO_QUEUE],
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(20.dp),
             )
@@ -361,8 +367,9 @@ private fun PrintQueuePanel(
     state: BarcodeLabelPrintState,
     onIntent: (BarcodeLabelPrintIntent) -> Unit,
 ) {
+    val s = LocalStrings.current
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text("Print Queue", style = MaterialTheme.typography.titleSmall)
+        Text(s[StringResource.INVENTORY_PRINT_QUEUE], style = MaterialTheme.typography.titleSmall)
         if (state.totalLabelCount > 0) {
             Spacer(Modifier.width(ZyntaSpacing.xs))
             Badge { Text("${state.totalLabelCount}") }
@@ -378,7 +385,7 @@ private fun PrintQueuePanel(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                "Queue is empty — search products above",
+                s[StringResource.INVENTORY_QUEUE_EMPTY],
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -401,6 +408,7 @@ private fun PrintQueueItemRow(
     onRemove: () -> Unit,
     onSetQty: (Int) -> Unit,
 ) {
+    val s = LocalStrings.current
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerLow,
         shape = MaterialTheme.shapes.small,
@@ -425,7 +433,7 @@ private fun PrintQueueItemRow(
             }
             // Quantity stepper
             IconButton(onClick = { onSetQty(item.quantity - 1) }, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Default.Remove, contentDescription = "Decrease", modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.Remove, contentDescription = s[StringResource.COMMON_DECREASE], modifier = Modifier.size(16.dp))
             }
             Text(
                 text = "${item.quantity}",
@@ -433,12 +441,12 @@ private fun PrintQueueItemRow(
                 modifier = Modifier.widthIn(min = 24.dp),
             )
             IconButton(onClick = { onSetQty(item.quantity + 1) }, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Default.Add, contentDescription = "Increase", modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.Add, contentDescription = s[StringResource.COMMON_INCREASE], modifier = Modifier.size(16.dp))
             }
             IconButton(onClick = onRemove, modifier = Modifier.size(32.dp)) {
                 Icon(
                     Icons.Default.Close,
-                    contentDescription = "Remove",
+                    contentDescription = s[StringResource.COMMON_REMOVE],
                     tint = MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(16.dp),
                 )
@@ -452,6 +460,7 @@ private fun PrintActionsRow(
     state: BarcodeLabelPrintState,
     onIntent: (BarcodeLabelPrintIntent) -> Unit,
 ) {
+    val s = LocalStrings.current
     val canAct = state.canPrint && !state.isPrinting && !state.isGeneratingPreview
 
     Row(
@@ -469,7 +478,7 @@ private fun PrintActionsRow(
                 Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
             }
             Spacer(Modifier.width(ZyntaSpacing.xs))
-            Text("Preview")
+            Text(s[StringResource.INVENTORY_PREVIEW])
         }
 
         FilledTonalButton(
@@ -483,13 +492,13 @@ private fun PrintActionsRow(
                 Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(16.dp))
             }
             Spacer(Modifier.width(ZyntaSpacing.xs))
-            Text("Print / Export")
+            Text(s[StringResource.INVENTORY_PRINT_EXPORT])
         }
     }
 
     if (state.selectedTemplate == null && state.queue.isNotEmpty()) {
         Text(
-            "Select a template above to enable printing",
+            s[StringResource.INVENTORY_SELECT_TEMPLATE_HINT],
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.error,
         )
@@ -501,7 +510,8 @@ private fun PdfPreviewPanel(
     state: BarcodeLabelPrintState,
     onIntent: (BarcodeLabelPrintIntent) -> Unit,
 ) {
-    Text("PDF Preview", style = MaterialTheme.typography.titleSmall)
+    val s = LocalStrings.current
+    Text(s[StringResource.INVENTORY_PDF_PREVIEW], style = MaterialTheme.typography.titleSmall)
     Spacer(Modifier.height(ZyntaSpacing.xs))
 
     Box(
@@ -533,7 +543,7 @@ private fun PdfPreviewPanel(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
-                        "Click Preview to generate",
+                        s[StringResource.INVENTORY_CLICK_PREVIEW_TO_GENERATE],
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

@@ -16,6 +16,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.EInvoice
 import com.zyntasolutions.zyntapos.domain.model.EInvoiceLineItem
@@ -39,12 +41,13 @@ fun EInvoiceDetailScreen(
     onIntent: (EInvoiceIntent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     val invoice = state.selectedInvoice
 
     if (invoice == null) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             if (state.isLoading) CircularProgressIndicator()
-            else Text("Invoice not found.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            else Text(s[StringResource.EINVOICE_NOT_FOUND], color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         return
     }
@@ -73,11 +76,11 @@ fun EInvoiceDetailScreen(
                     InvoiceStatusBadge(invoice.status)
                 }
                 Spacer(Modifier.height(4.dp))
-                Text("Date: ${invoice.invoiceDate}", style = MaterialTheme.typography.bodySmall)
-                Text("Store: ${invoice.storeId}", style = MaterialTheme.typography.bodySmall)
+                Text("${s[StringResource.COMMON_DATE]}: ${invoice.invoiceDate}", style = MaterialTheme.typography.bodySmall)
+                Text("${s[StringResource.EINVOICE_STORE]}: ${invoice.storeId}", style = MaterialTheme.typography.bodySmall)
                 invoice.irdReferenceNumber?.let { ref ->
                     Text(
-                        "IRD Ref: $ref",
+                        "${s[StringResource.EINVOICE_IRD_REF]}: $ref",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.tertiary,
                         fontWeight = FontWeight.Medium,
@@ -85,7 +88,7 @@ fun EInvoiceDetailScreen(
                 }
                 invoice.rejectionReason?.let { reason ->
                     Text(
-                        "Rejection: $reason",
+                        "${s[StringResource.EINVOICE_REJECTION]}: $reason",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                     )
@@ -96,15 +99,15 @@ fun EInvoiceDetailScreen(
         Column(modifier = Modifier.padding(ZyntaSpacing.md), verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md)) {
 
             // ── Customer ──────────────────────────────────────────────────
-            InvoiceSection(title = "Customer") {
-                InfoRow("Name", invoice.customerName)
-                invoice.customerTaxId?.let { InfoRow("Tax ID / TIN", it) }
+            InvoiceSection(title = s[StringResource.EINVOICE_CUSTOMER]) {
+                InfoRow(s[StringResource.EINVOICE_NAME], invoice.customerName)
+                invoice.customerTaxId?.let { InfoRow(s[StringResource.EINVOICE_TAX_ID], it) }
             }
 
             HorizontalDivider()
 
             // ── Line Items ────────────────────────────────────────────────
-            InvoiceSection(title = "Line Items") {
+            InvoiceSection(title = s[StringResource.EINVOICE_LINE_ITEMS]) {
                 invoice.lineItems.forEachIndexed { idx, item ->
                     LineItemRow(index = idx + 1, item = item, currency = invoice.currency)
                     if (idx < invoice.lineItems.lastIndex) HorizontalDivider(thickness = 0.5.dp)
@@ -114,8 +117,8 @@ fun EInvoiceDetailScreen(
             HorizontalDivider()
 
             // ── Totals ────────────────────────────────────────────────────
-            InvoiceSection(title = "Totals") {
-                InfoRow("Subtotal", "${invoice.currency} ${"%.2f".format(invoice.subtotal)}")
+            InvoiceSection(title = s[StringResource.EINVOICE_TOTALS]) {
+                InfoRow(s[StringResource.EINVOICE_SUBTOTAL], "${invoice.currency} ${"%.2f".format(invoice.subtotal)}")
                 invoice.taxBreakdown.forEach { taxLine ->
                     InfoRow(
                         "${taxLine.taxRate}% Tax on ${"%.2f".format(taxLine.taxablAmount)}",
@@ -126,7 +129,7 @@ fun EInvoiceDetailScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Text("Total", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(s[StringResource.EINVOICE_TOTAL], style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text(
                         "${invoice.currency} ${"%.2f".format(invoice.total)}",
                         style = MaterialTheme.typography.titleMedium,
@@ -153,13 +156,13 @@ fun EInvoiceDetailScreen(
                                 color = MaterialTheme.colorScheme.onPrimary,
                             )
                             Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                            Text("Submitting…")
+                            Text(s[StringResource.EINVOICE_SUBMITTING])
                         } else {
                             Icon(Icons.Default.CloudUpload, contentDescription = null)
                             Spacer(Modifier.width(ButtonDefaults.IconSpacing))
                             Text(
-                                if (invoice.status == EInvoiceStatus.REJECTED) "Resubmit to IRD"
-                                else "Submit to IRD",
+                                if (invoice.status == EInvoiceStatus.REJECTED) s[StringResource.EINVOICE_RESUBMIT_IRD]
+                                else s[StringResource.EINVOICE_SUBMIT_IRD],
                             )
                         }
                     }
@@ -175,7 +178,7 @@ fun EInvoiceDetailScreen(
                     ) {
                         Icon(Icons.Default.Cancel, contentDescription = null)
                         Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                        Text("Cancel Invoice")
+                        Text(s[StringResource.EINVOICE_CANCEL_INVOICE])
                     }
                 }
             }
@@ -186,11 +189,11 @@ fun EInvoiceDetailScreen(
     state.showCancelConfirm?.let { inv ->
         AlertDialog(
             onDismissRequest = { onIntent(EInvoiceIntent.DismissCancel) },
-            title = { Text("Cancel Invoice") },
+            title = { Text(s[StringResource.EINVOICE_CANCEL_INVOICE]) },
             text = {
                 Text(
-                    "Cancel invoice #${inv.invoiceNumber}? " +
-                        "Cancelled invoices cannot be resubmitted.",
+                    "${s[StringResource.EINVOICE_CANCEL_CONFIRM]} #${inv.invoiceNumber}? " +
+                        s[StringResource.EINVOICE_CANCEL_WARNING],
                 )
             },
             confirmButton = {
@@ -198,11 +201,11 @@ fun EInvoiceDetailScreen(
                     onClick = { onIntent(EInvoiceIntent.ConfirmCancel) },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
                 ) {
-                    Text("Cancel Invoice")
+                    Text(s[StringResource.EINVOICE_CANCEL_INVOICE])
                 }
             },
             dismissButton = {
-                TextButton(onClick = { onIntent(EInvoiceIntent.DismissCancel) }) { Text("Keep") }
+                TextButton(onClick = { onIntent(EInvoiceIntent.DismissCancel) }) { Text(s[StringResource.EINVOICE_KEEP]) }
             },
         )
     }

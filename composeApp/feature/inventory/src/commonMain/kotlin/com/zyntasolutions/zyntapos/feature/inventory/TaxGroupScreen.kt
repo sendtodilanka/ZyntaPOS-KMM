@@ -17,6 +17,8 @@ import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.domain.model.TaxGroup
 
 /**
@@ -53,17 +55,18 @@ fun TaxGroupScreen(
     onDeleteTaxGroup: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     var showEditDialog by remember { mutableStateOf(false) }
     var editingGroup by remember { mutableStateOf<TaxGroup?>(null) }
 
     ZyntaPageScaffold(
-        title = "Tax Groups",
+        title = s[StringResource.INVENTORY_TAX_GROUPS],
         modifier = modifier,
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { editingGroup = null; showEditDialog = true },
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("New Tax Group") },
+                text = { Text(s[StringResource.INVENTORY_NEW_TAX_GROUP]) },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
             )
@@ -74,10 +77,10 @@ fun TaxGroupScreen(
                 CircularProgressIndicator()
             }
             taxGroups.isEmpty() -> ZyntaEmptyState(
-                title = "No tax groups configured",
+                title = s[StringResource.INVENTORY_NO_TAX_GROUPS],
                 icon = Icons.Default.Percent,
-                subtitle = "Create your first tax group to assign to products",
-                ctaLabel = "New Tax Group",
+                subtitle = s[StringResource.INVENTORY_NO_TAX_GROUPS_SUBTITLE],
+                ctaLabel = s[StringResource.INVENTORY_NEW_TAX_GROUP],
                 onCtaClick = { editingGroup = null; showEditDialog = true },
                 modifier = Modifier.padding(innerPadding),
             )
@@ -125,6 +128,7 @@ private fun TaxGroupCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
+    val s = LocalStrings.current
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     Card(
@@ -178,7 +182,7 @@ private fun TaxGroupCard(
                         onClick = {},
                         label = {
                             Text(
-                                if (group.isInclusive) "Inclusive" else "Exclusive",
+                                if (group.isInclusive) s[StringResource.INVENTORY_INCLUSIVE] else s[StringResource.INVENTORY_EXCLUSIVE],
                                 style = MaterialTheme.typography.labelSmall,
                             )
                         },
@@ -193,7 +197,7 @@ private fun TaxGroupCard(
                     if (!group.isActive) {
                         AssistChip(
                             onClick = {},
-                            label = { Text("Inactive", style = MaterialTheme.typography.labelSmall) },
+                            label = { Text(s[StringResource.INVENTORY_INACTIVE], style = MaterialTheme.typography.labelSmall) },
                             colors = AssistChipDefaults.assistChipColors(
                                 containerColor = MaterialTheme.colorScheme.errorContainer,
                             ),
@@ -204,11 +208,11 @@ private fun TaxGroupCard(
 
             // Actions
             IconButton(onClick = onEdit, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(18.dp),
+                Icon(Icons.Default.Edit, contentDescription = s[StringResource.COMMON_EDIT], modifier = Modifier.size(18.dp),
                     tint = MaterialTheme.colorScheme.primary)
             }
             IconButton(onClick = { showDeleteDialog = true }, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.Default.Delete, contentDescription = "Delete", modifier = Modifier.size(18.dp),
+                Icon(Icons.Default.Delete, contentDescription = s[StringResource.COMMON_DELETE], modifier = Modifier.size(18.dp),
                     tint = MaterialTheme.colorScheme.error)
             }
         }
@@ -217,7 +221,7 @@ private fun TaxGroupCard(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete Tax Group?") },
+            title = { Text(s[StringResource.INVENTORY_DELETE_TAX_GROUP_TITLE]) },
             text = {
                 Text(
                     "\"${group.name}\" will be removed. Products using this tax group will retain their current rates for historical orders.",
@@ -227,9 +231,9 @@ private fun TaxGroupCard(
                 TextButton(
                     onClick = { showDeleteDialog = false; onDelete() },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                ) { Text("Delete") }
+                ) { Text(s[StringResource.COMMON_DELETE]) }
             },
-            dismissButton = { TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { showDeleteDialog = false }) { Text(s[StringResource.COMMON_CANCEL]) } },
         )
     }
 }
@@ -255,6 +259,7 @@ private fun TaxGroupEditDialog(
     onConfirm: (TaxGroup) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val s = LocalStrings.current
     var name by remember(existingGroup) { mutableStateOf(existingGroup?.name ?: "") }
     var rate by remember(existingGroup) { mutableStateOf(existingGroup?.rate?.let { "%.2f".format(it) } ?: "0.00") }
     var isInclusive by remember(existingGroup) { mutableStateOf(existingGroup?.isInclusive ?: false) }
@@ -265,14 +270,14 @@ private fun TaxGroupEditDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (existingGroup == null) "New Tax Group" else "Edit Tax Group") },
+        title = { Text(if (existingGroup == null) s[StringResource.INVENTORY_NEW_TAX_GROUP] else s[StringResource.INVENTORY_EDIT_TAX_GROUP]) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                 // Name
                 OutlinedTextField(
                     value = name,
-                    onValueChange = { name = it; nameError = if (it.isBlank()) "Required" else null },
-                    label = { Text("Name *") },
+                    onValueChange = { name = it; nameError = if (it.isBlank()) s[StringResource.COMMON_REQUIRED] else null },
+                    label = { Text(s[StringResource.INVENTORY_TAX_NAME_REQUIRED]) },
                     placeholder = { Text("e.g. VAT 15%") },
                     leadingIcon = { Icon(Icons.AutoMirrored.Filled.Label, contentDescription = null) },
                     isError = nameError != null,
@@ -293,7 +298,7 @@ private fun TaxGroupEditDialog(
                             else -> null
                         }
                     },
-                    label = { Text("Rate (%)  *") },
+                    label = { Text(s[StringResource.INVENTORY_TAX_RATE_REQUIRED]) },
                     leadingIcon = { Icon(Icons.Default.Percent, contentDescription = null) },
                     isError = rateError != null,
                     supportingText = { Text(rateError ?: "Enter percentage, e.g. 15.00") },
@@ -309,10 +314,10 @@ private fun TaxGroupEditDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text("Tax Inclusive", style = MaterialTheme.typography.bodyMedium)
+                        Text(s[StringResource.INVENTORY_TAX_INCLUSIVE], style = MaterialTheme.typography.bodyMedium)
                         Text(
-                            if (isInclusive) "Price already includes this tax"
-                            else "Tax added on top of price",
+                            if (isInclusive) s[StringResource.INVENTORY_TAX_INCLUSIVE_HINT]
+                            else s[StringResource.INVENTORY_TAX_EXCLUSIVE_HINT],
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -326,7 +331,7 @@ private fun TaxGroupEditDialog(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Text("Active", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                    Text(s[StringResource.INVENTORY_ACTIVE], style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                     Switch(checked = isActive, onCheckedChange = { isActive = it })
                 }
             }
@@ -334,7 +339,7 @@ private fun TaxGroupEditDialog(
         confirmButton = {
             TextButton(onClick = {
                 var valid = true
-                if (name.isBlank()) { nameError = "Required"; valid = false }
+                if (name.isBlank()) { nameError = s[StringResource.COMMON_REQUIRED]; valid = false }
                 val rateVal = rate.toDoubleOrNull()
                 if (rateVal == null || rateVal < 0.0 || rateVal > 100.0) {
                     rateError = "Rate must be 0–100"; valid = false
@@ -348,9 +353,9 @@ private fun TaxGroupEditDialog(
                         isActive = isActive,
                     ))
                 }
-            }) { Text("Save") }
+            }) { Text(s[StringResource.COMMON_SAVE]) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(s[StringResource.COMMON_CANCEL]) } },
     )
 }
 

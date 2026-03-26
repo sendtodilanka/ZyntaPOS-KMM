@@ -11,6 +11,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.PayrollRecord
@@ -40,6 +42,7 @@ fun PayrollScreen(
     storeId: String,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     // Default period to current month (YYYY-MM) on first composition
     var period by remember {
         val ldt = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
@@ -59,7 +62,7 @@ fun PayrollScreen(
             ExtendedFloatingActionButton(
                 onClick = { showGenerateDialog = true },
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("Generate Payroll") },
+                text = { Text(s[StringResource.STAFF_GENERATE_PAYROLL]) },
             )
         },
     ) { innerPadding ->
@@ -87,9 +90,9 @@ fun PayrollScreen(
                 }
             } else if (state.payrollRecords.isEmpty()) {
                 ZyntaEmptyState(
-                    title = "No payroll records for $period",
+                    title = s[StringResource.STAFF_NO_PAYROLL],
                     icon = Icons.Default.Payments,
-                    subtitle = "Tap + to generate payroll.",
+                    subtitle = s[StringResource.STAFF_TAP_GENERATE_PAYROLL],
                 )
             } else {
                 val pending = state.payrollRecords.filter { it.status == PayrollStatus.PENDING }
@@ -176,7 +179,7 @@ private fun PeriodSelectorRow(
         OutlinedTextField(
             value = period,
             onValueChange = onPeriodChange,
-            label = { Text("Period (YYYY-MM)") },
+            label = { Text(s[StringResource.STAFF_PERIOD]) },
             singleLine = true,
             modifier = Modifier.weight(1f),
         )
@@ -203,10 +206,10 @@ private fun PayrollSummaryCard(summary: com.zyntasolutions.zyntapos.domain.model
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                SummaryMetric("Employees", summary.totalEmployees.toString())
-                SummaryMetric("Gross", "%.2f".format(summary.totalGrossPay))
-                SummaryMetric("Deductions", "%.2f".format(summary.totalDeductions))
-                SummaryMetric("Net", "%.2f".format(summary.totalNetPay))
+                SummaryMetric(s[StringResource.STAFF_EMPLOYEES], summary.totalEmployees.toString())
+                SummaryMetric(s[StringResource.STAFF_GROSS], "%.2f".format(summary.totalGrossPay))
+                SummaryMetric(s[StringResource.STAFF_DEDUCTIONS], "%.2f".format(summary.totalDeductions))
+                SummaryMetric(s[StringResource.STAFF_NET], "%.2f".format(summary.totalNetPay))
             }
             Spacer(Modifier.height(4.dp))
             Text(
@@ -289,7 +292,7 @@ private fun PayrollRecordCard(
             }
             if (onMarkPaid != null) {
                 TextButton(onClick = onMarkPaid) {
-                    Text("Mark Paid")
+                    Text(s[StringResource.STAFF_MARK_PAID])
                 }
             }
         }
@@ -313,6 +316,7 @@ private fun GeneratePayrollDialog(
     onGenerate: (employeeId: String, periodStart: String, periodEnd: String) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val s = LocalStrings.current
     var expanded by remember { mutableStateOf(false) }
     var selectedEmployeeId by remember { mutableStateOf("") }
     var periodStart by remember { mutableStateOf("$currentPeriod-01") }
@@ -332,7 +336,7 @@ private fun GeneratePayrollDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Generate Payroll") },
+        title = { Text(s[StringResource.STAFF_GENERATE_PAYROLL]) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                 ExposedDropdownMenuBox(
@@ -340,10 +344,10 @@ private fun GeneratePayrollDialog(
                     onExpandedChange = { expanded = it },
                 ) {
                     OutlinedTextField(
-                        value = employees.find { it.id == selectedEmployeeId }?.fullName ?: "Select Employee",
+                        value = employees.find { it.id == selectedEmployeeId }?.fullName ?: s[StringResource.STAFF_SELECT_EMPLOYEE],
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Employee *") },
+                        label = { Text(s[StringResource.STAFF_EMPLOYEE_REQUIRED]) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                         modifier = Modifier
                             .menuAnchor()
@@ -364,14 +368,14 @@ private fun GeneratePayrollDialog(
                 OutlinedTextField(
                     value = periodStart,
                     onValueChange = { periodStart = it },
-                    label = { Text("Period Start (YYYY-MM-DD) *") },
+                    label = { Text(s[StringResource.STAFF_PERIOD_START]) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                 )
                 OutlinedTextField(
                     value = periodEnd,
                     onValueChange = { periodEnd = it },
-                    label = { Text("Period End (YYYY-MM-DD) *") },
+                    label = { Text(s[StringResource.STAFF_PERIOD_END]) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                 )
@@ -384,10 +388,10 @@ private fun GeneratePayrollDialog(
                         onGenerate(selectedEmployeeId, periodStart, periodEnd)
                     }
                 },
-            ) { Text("Generate") }
+            ) { Text(s[StringResource.STAFF_GENERATE]) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(s[StringResource.COMMON_CANCEL]) }
         },
     )
 }
@@ -399,11 +403,12 @@ private fun MarkPaidDialog(
     onConfirm: (paidAt: Long, paymentRef: String?) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val s = LocalStrings.current
     var paymentRef by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Mark as Paid") },
+        title = { Text(s[StringResource.STAFF_MARK_AS_PAID]) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                 Text(
@@ -413,10 +418,10 @@ private fun MarkPaidDialog(
                 OutlinedTextField(
                     value = paymentRef,
                     onValueChange = { paymentRef = it },
-                    label = { Text("Payment Reference (optional)") },
+                    label = { Text(s[StringResource.STAFF_PAYMENT_REFERENCE]) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    placeholder = { Text("Bank transfer ID, cheque no., etc.") },
+                    placeholder = { Text(s[StringResource.STAFF_PAYMENT_REFERENCE_HINT]) },
                 )
             }
         },
@@ -426,10 +431,10 @@ private fun MarkPaidDialog(
                     val now = Clock.System.now().toEpochMilliseconds()
                     onConfirm(now, paymentRef.ifBlank { null })
                 },
-            ) { Text("Confirm Payment") }
+            ) { Text(s[StringResource.STAFF_CONFIRM_PAYMENT]) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(s[StringResource.COMMON_CANCEL]) }
         },
     )
 }

@@ -25,6 +25,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.feature.settings.SettingsIntent
@@ -54,10 +56,11 @@ fun SecuritySettingsScreen(
     onBack: () -> Unit,
     onNavigateToRbacManagement: () -> Unit = {},
 ) {
+    val s = LocalStrings.current
     LaunchedEffect(Unit) { onIntent(SettingsIntent.LoadSecuritySettings) }
 
     ZyntaPageScaffold(
-        title = "Security",
+        title = s[StringResource.SETTINGS_SECURITY],
         onNavigateBack = onBack,
     ) { innerPadding ->
         LazyColumn(
@@ -70,7 +73,7 @@ fun SecuritySettingsScreen(
             verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
         ) {
             item {
-                SectionLabel("Session")
+                SectionLabel(s[StringResource.SETTINGS_SECURITY_SESSION])
                 Card(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -79,11 +82,11 @@ fun SecuritySettingsScreen(
                 ) {
                     ListItem(
                         headlineContent = {
-                            Text("Auto-Lock Timeout", style = MaterialTheme.typography.bodyLarge)
+                            Text(s[StringResource.SETTINGS_SECURITY_AUTO_LOCK_TIMEOUT], style = MaterialTheme.typography.bodyLarge)
                         },
                         supportingContent = {
                             Text(
-                                "Screen locks after inactivity. Tap to change.",
+                                s[StringResource.SETTINGS_SECURITY_AUTO_LOCK_DESC],
                                 style = MaterialTheme.typography.bodySmall,
                             )
                         },
@@ -112,7 +115,7 @@ fun SecuritySettingsScreen(
             }
 
             item {
-                SectionLabel("PIN Policy")
+                SectionLabel(s[StringResource.SETTINGS_SECURITY_PIN_POLICY])
                 Card(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -121,12 +124,11 @@ fun SecuritySettingsScreen(
                 ) {
                     ListItem(
                         headlineContent = {
-                            Text("PIN Requirements", style = MaterialTheme.typography.bodyLarge)
+                            Text(s[StringResource.SETTINGS_SECURITY_PIN_REQUIREMENTS], style = MaterialTheme.typography.bodyLarge)
                         },
                         supportingContent = {
                             Text(
-                                "Numeric PIN, hashed with SHA-256 + 16-byte salt. " +
-                                    "Minimum 4 digits. Set via User Management.",
+                                s[StringResource.SETTINGS_SECURITY_PIN_REQUIREMENTS_DESC],
                                 style = MaterialTheme.typography.bodySmall,
                             )
                         },
@@ -139,7 +141,7 @@ fun SecuritySettingsScreen(
                         },
                         trailingContent = {
                             Text(
-                                "Fixed",
+                                s[StringResource.SETTINGS_SECURITY_FIXED],
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -152,7 +154,7 @@ fun SecuritySettingsScreen(
             }
 
             item {
-                SectionLabel("Role-Based Access")
+                SectionLabel(s[StringResource.SETTINGS_SECURITY_RBAC])
                 Card(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -161,11 +163,11 @@ fun SecuritySettingsScreen(
                 ) {
                     ListItem(
                         headlineContent = {
-                            Text("Roles & Permissions", style = MaterialTheme.typography.bodyLarge)
+                            Text(s[StringResource.SETTINGS_SECURITY_ROLES_PERMISSIONS], style = MaterialTheme.typography.bodyLarge)
                         },
                         supportingContent = {
                             Text(
-                                "Manage role definitions and permission assignments",
+                                s[StringResource.SETTINGS_SECURITY_ROLES_PERMISSIONS_DESC],
                                 style = MaterialTheme.typography.bodySmall,
                             )
                         },
@@ -206,15 +208,7 @@ fun SecuritySettingsScreen(
 
 // ── AutoLockTimeoutDialog ─────────────────────────────────────────────────────
 
-private val AUTO_LOCK_OPTIONS: List<Pair<Int, String>> = listOf(
-    0 to "Never",
-    1 to "1 minute",
-    2 to "2 minutes",
-    5 to "5 minutes",
-    10 to "10 minutes",
-    15 to "15 minutes",
-    30 to "30 minutes",
-)
+private val AUTO_LOCK_MINUTES = listOf(0, 1, 2, 5, 10, 15, 30)
 
 /**
  * Dialog for selecting the auto-lock timeout duration.
@@ -229,12 +223,23 @@ private fun AutoLockTimeoutDialog(
     onSelect: (Int) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val s = LocalStrings.current
+    val autoLockLabels = mapOf(
+        0 to s[StringResource.SETTINGS_SECURITY_NEVER],
+        1 to s[StringResource.SETTINGS_SECURITY_1_MINUTE],
+        2 to s[StringResource.SETTINGS_SECURITY_2_MINUTES],
+        5 to s[StringResource.SETTINGS_SECURITY_5_MINUTES],
+        10 to s[StringResource.SETTINGS_SECURITY_10_MINUTES],
+        15 to s[StringResource.SETTINGS_SECURITY_15_MINUTES],
+        30 to s[StringResource.SETTINGS_SECURITY_30_MINUTES],
+    )
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Auto-Lock Timeout") },
+        title = { Text(s[StringResource.SETTINGS_SECURITY_AUTO_LOCK_TIMEOUT]) },
         text = {
             Column {
-                AUTO_LOCK_OPTIONS.forEach { (minutes, label) ->
+                AUTO_LOCK_MINUTES.forEach { minutes ->
+                    val label = autoLockLabels[minutes] ?: "$minutes min"
                     ListItem(
                         headlineContent = {
                             Text(
@@ -255,7 +260,7 @@ private fun AutoLockTimeoutDialog(
         },
         confirmButton = {},
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(s[StringResource.COMMON_CANCEL]) }
         },
     )
 }

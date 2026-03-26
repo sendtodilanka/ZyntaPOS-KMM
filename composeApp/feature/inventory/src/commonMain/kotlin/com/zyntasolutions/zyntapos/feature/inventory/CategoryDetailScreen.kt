@@ -16,6 +16,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.domain.model.Category
 
 /**
@@ -50,6 +52,7 @@ fun CategoryDetailScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     val isEditing = existingCategory != null
 
     // ── Form State ───────────────────────────────────────────────────────────
@@ -72,10 +75,10 @@ fun CategoryDetailScreen(
     }
 
     var parentDropdownExpanded by remember { mutableStateOf(false) }
-    val selectedParentName = parentCandidates.find { it.id == selectedParentId }?.name ?: "None (Root Category)"
+    val selectedParentName = parentCandidates.find { it.id == selectedParentId }?.name ?: s[StringResource.INVENTORY_NONE_ROOT]
 
     ZyntaPageScaffold(
-        title = if (isEditing) "Edit Category" else "New Category",
+        title = if (isEditing) s[StringResource.INVENTORY_EDIT_CATEGORY] else s[StringResource.INVENTORY_NEW_CATEGORY],
         modifier = modifier,
         onNavigateBack = onNavigateBack,
     ) { innerPadding ->
@@ -110,7 +113,7 @@ fun CategoryDetailScreen(
                     name = it
                     nameError = if (it.isBlank()) "Name is required" else null
                 },
-                label = { Text("Category Name *") },
+                label = { Text(s[StringResource.INVENTORY_CATEGORY_NAME_REQUIRED]) },
                 placeholder = { Text("e.g. Beverages") },
                 leadingIcon = { Icon(Icons.AutoMirrored.Filled.Label, contentDescription = null) },
                 isError = nameError != null,
@@ -129,7 +132,7 @@ fun CategoryDetailScreen(
                     value = selectedParentName,
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Parent Category") },
+                    label = { Text(s[StringResource.INVENTORY_PARENT_CATEGORY]) },
                     leadingIcon = { Icon(Icons.Default.AccountTree, contentDescription = null) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = parentDropdownExpanded) },
                     modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
@@ -140,7 +143,7 @@ fun CategoryDetailScreen(
                 ) {
                     // Option: No parent (root)
                     DropdownMenuItem(
-                        text = { Text("None (Root Category)") },
+                        text = { Text(s[StringResource.INVENTORY_NONE_ROOT]) },
                         onClick = {
                             selectedParentId = null
                             parentDropdownExpanded = false
@@ -174,12 +177,12 @@ fun CategoryDetailScreen(
                     displayOrder = v.filter { it.isDigit() }
                     displayOrderError = if (displayOrder.isBlank()) "Required" else null
                 },
-                label = { Text("Display Order") },
+                label = { Text(s[StringResource.INVENTORY_DISPLAY_ORDER]) },
                 placeholder = { Text("0") },
                 leadingIcon = { Icon(Icons.Default.FormatListNumbered, contentDescription = null) },
                 isError = displayOrderError != null,
                 supportingText = {
-                    Text(displayOrderError ?: "Lower number appears first")
+                    Text(displayOrderError ?: s[StringResource.INVENTORY_DISPLAY_ORDER_HINT])
                 },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
                 singleLine = true,
@@ -190,7 +193,7 @@ fun CategoryDetailScreen(
             OutlinedTextField(
                 value = imageUrl,
                 onValueChange = { imageUrl = it },
-                label = { Text("Image URL (optional)") },
+                label = { Text(s[StringResource.INVENTORY_IMAGE_URL_OPTIONAL]) },
                 placeholder = { Text("https://…") },
                 leadingIcon = { Icon(Icons.Default.Image, contentDescription = null) },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
@@ -207,10 +210,10 @@ fun CategoryDetailScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Column {
-                    Text("Active", style = MaterialTheme.typography.bodyLarge)
+                    Text(s[StringResource.INVENTORY_ACTIVE], style = MaterialTheme.typography.bodyLarge)
                     Text(
-                        if (isActive) "Visible in POS and product filters"
-                        else "Hidden from POS and product filters",
+                        if (isActive) s[StringResource.INVENTORY_CATEGORY_VISIBLE]
+                        else s[StringResource.INVENTORY_CATEGORY_HIDDEN],
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -232,7 +235,7 @@ fun CategoryDetailScreen(
                     onClick = onNavigateBack,
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text("Cancel")
+                    Text(s[StringResource.COMMON_CANCEL])
                 }
                 Button(
                     onClick = {
@@ -266,7 +269,7 @@ fun CategoryDetailScreen(
                         CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                         Spacer(Modifier.width(ZyntaSpacing.sm))
                     }
-                    Text(if (isEditing) "Update" else "Create")
+                    Text(if (isEditing) s[StringResource.INVENTORY_UPDATE] else s[StringResource.INVENTORY_CREATE])
                 }
             }
         }

@@ -15,6 +15,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
+import com.zyntasolutions.zyntapos.designsystem.components.StringResolver
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.CashFlowLine
 import com.zyntasolutions.zyntapos.domain.model.FinancialStatement
@@ -44,6 +47,7 @@ fun FinancialStatementsScreen(
     onNavigateBack: () -> Unit,
     onShareExport: (content: String, fileName: String) -> Unit = { _, _ -> },
 ) {
+    val s = LocalStrings.current
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -68,10 +72,10 @@ fun FinancialStatementsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Financial Statements") },
+                title = { Text(s[StringResource.ACCOUNTING_FINANCIAL_STATEMENTS]) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = s[StringResource.COMMON_BACK])
                     }
                 },
                 actions = {
@@ -88,7 +92,7 @@ fun FinancialStatementsScreen(
                     ) {
                         Icon(
                             Icons.Default.Download,
-                            contentDescription = "Export as CSV",
+                            contentDescription = s[StringResource.ACCOUNTING_EXPORT_CSV],
                             tint = if (hasData) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
@@ -108,7 +112,7 @@ fun FinancialStatementsScreen(
                     Tab(
                         selected = state.activeTab == tab,
                         onClick = { viewModel.dispatch(FinancialStatementsIntent.SwitchTab(tab)) },
-                        text = { Text(tab.label()) },
+                        text = { Text(tab.label(s)) },
                     )
                 }
             }
@@ -152,6 +156,7 @@ private fun DatePickerDialogs(
     state: FinancialStatementsState,
     onIntent: (FinancialStatementsIntent) -> Unit,
 ) {
+    val s = LocalStrings.current
     when (state.activeDatePicker) {
         DatePickerField.NONE -> Unit
 
@@ -172,11 +177,11 @@ private fun DatePickerDialogs(
                             )
                         }
                         onIntent(FinancialStatementsIntent.HideDatePicker)
-                    }) { Text("OK") }
+                    }) { Text(s[StringResource.COMMON_OK]) }
                 },
                 dismissButton = {
                     TextButton(onClick = { onIntent(FinancialStatementsIntent.HideDatePicker) }) {
-                        Text("Cancel")
+                        Text(s[StringResource.COMMON_CANCEL])
                     }
                 },
             ) {
@@ -201,11 +206,11 @@ private fun DatePickerDialogs(
                             )
                         }
                         onIntent(FinancialStatementsIntent.HideDatePicker)
-                    }) { Text("OK") }
+                    }) { Text(s[StringResource.COMMON_OK]) }
                 },
                 dismissButton = {
                     TextButton(onClick = { onIntent(FinancialStatementsIntent.HideDatePicker) }) {
-                        Text("Cancel")
+                        Text(s[StringResource.COMMON_CANCEL])
                     }
                 },
             ) {
@@ -225,11 +230,11 @@ private fun DatePickerDialogs(
                             onIntent(FinancialStatementsIntent.SetAsOfDate(millis.toLocalDateString()))
                         }
                         onIntent(FinancialStatementsIntent.HideDatePicker)
-                    }) { Text("OK") }
+                    }) { Text(s[StringResource.COMMON_OK]) }
                 },
                 dismissButton = {
                     TextButton(onClick = { onIntent(FinancialStatementsIntent.HideDatePicker) }) {
-                        Text("Cancel")
+                        Text(s[StringResource.COMMON_CANCEL])
                     }
                 },
             ) {
@@ -248,6 +253,7 @@ private fun PandLTabContent(
     onIntent: (FinancialStatementsIntent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     Column(modifier = modifier.fillMaxSize()) {
         // Date inputs with picker buttons
         Row(
@@ -258,13 +264,13 @@ private fun PandLTabContent(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             DateInputField(
-                label = "From",
+                label = s[StringResource.ACCOUNTING_FROM],
                 value = state.fromDate,
                 onPickerClick = { onIntent(FinancialStatementsIntent.ShowDatePicker(DatePickerField.FROM)) },
                 modifier = Modifier.weight(1f),
             )
             DateInputField(
-                label = "To",
+                label = s[StringResource.ACCOUNTING_TO],
                 value = state.toDate,
                 onPickerClick = { onIntent(FinancialStatementsIntent.ShowDatePicker(DatePickerField.TO)) },
                 modifier = Modifier.weight(1f),
@@ -274,7 +280,7 @@ private fun PandLTabContent(
                     onIntent(FinancialStatementsIntent.LoadPandL(storeId, state.fromDate, state.toDate))
                 },
                 enabled = state.fromDate.isNotBlank() && state.toDate.isNotBlank() && !state.isLoading,
-            ) { Text("Generate") }
+            ) { Text(s[StringResource.ACCOUNTING_GENERATE]) }
         }
 
         if (state.isLoading) {
@@ -287,7 +293,7 @@ private fun PandLTabContent(
         val pAndL = state.pAndL
         if (pAndL == null) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Set a date range and tap Generate.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(s[StringResource.ACCOUNTING_SET_DATE_RANGE], color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             return@Column
         }
@@ -298,52 +304,52 @@ private fun PandLTabContent(
         ) {
             // Revenue
             item {
-                StatementSectionHeader("Revenue", color = MaterialTheme.colorScheme.tertiary)
+                StatementSectionHeader(s[StringResource.ACCOUNTING_REVENUE], color = MaterialTheme.colorScheme.tertiary)
             }
             items(pAndL.revenueLines, key = { it.accountId }) { line ->
                 StatementLineRow(line = line)
             }
             item {
-                StatementSubtotal("Total Revenue", pAndL.totalRevenue, color = MaterialTheme.colorScheme.tertiary)
+                StatementSubtotal(s[StringResource.ACCOUNTING_TOTAL_REVENUE], pAndL.totalRevenue, color = MaterialTheme.colorScheme.tertiary)
                 Spacer(Modifier.height(ZyntaSpacing.sm))
             }
 
             // COGS
             item {
-                StatementSectionHeader("Cost of Goods Sold", color = Color(0xFFE65100))
+                StatementSectionHeader(s[StringResource.ACCOUNTING_COST_OF_GOODS_SOLD], color = Color(0xFFE65100))
             }
             items(pAndL.cogsLines, key = { it.accountId }) { line ->
                 StatementLineRow(line = line)
             }
             item {
-                StatementSubtotal("Total COGS", pAndL.totalCogs, color = Color(0xFFE65100))
+                StatementSubtotal(s[StringResource.ACCOUNTING_TOTAL_COGS], pAndL.totalCogs, color = Color(0xFFE65100))
                 Spacer(Modifier.height(ZyntaSpacing.sm))
             }
 
             // Gross profit
             item {
-                StatementSubtotal("Gross Profit", pAndL.grossProfit, highlight = true)
+                StatementSubtotal(s[StringResource.ACCOUNTING_GROSS_PROFIT], pAndL.grossProfit, highlight = true)
                 Spacer(Modifier.height(ZyntaSpacing.sm))
             }
 
             // Expenses
             item {
-                StatementSectionHeader("Expenses", color = MaterialTheme.colorScheme.error)
+                StatementSectionHeader(s[StringResource.ACCOUNTING_EXPENSES], color = MaterialTheme.colorScheme.error)
             }
             items(pAndL.expenseLines, key = { it.accountId }) { line ->
                 StatementLineRow(line = line)
             }
             item {
-                StatementSubtotal("Total Expenses", pAndL.totalExpenses, color = MaterialTheme.colorScheme.error)
+                StatementSubtotal(s[StringResource.ACCOUNTING_TOTAL_EXPENSES], pAndL.totalExpenses, color = MaterialTheme.colorScheme.error)
                 Spacer(Modifier.height(ZyntaSpacing.sm))
             }
 
             // Net profit
             item {
-                StatementSubtotal("Net Profit", pAndL.netProfit, highlight = true)
+                StatementSubtotal(s[StringResource.ACCOUNTING_NET_PROFIT], pAndL.netProfit, highlight = true)
                 HorizontalDivider(modifier = Modifier.padding(vertical = ZyntaSpacing.sm))
                 Text(
-                    "Gross Margin: ${"%.1f".format(pAndL.grossMarginPct)}%",
+                    "${s[StringResource.ACCOUNTING_GROSS_MARGIN]}: ${"%.1f".format(pAndL.grossMarginPct)}%",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -361,6 +367,7 @@ private fun BalanceSheetTabContent(
     onIntent: (FinancialStatementsIntent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     Column(modifier = modifier.fillMaxSize()) {
         // As-of date input
         Row(
@@ -371,7 +378,7 @@ private fun BalanceSheetTabContent(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             DateInputField(
-                label = "As Of",
+                label = s[StringResource.ACCOUNTING_AS_OF],
                 value = state.asOfDate,
                 onPickerClick = { onIntent(FinancialStatementsIntent.ShowDatePicker(DatePickerField.AS_OF)) },
                 modifier = Modifier.weight(1f),
@@ -379,7 +386,7 @@ private fun BalanceSheetTabContent(
             Button(
                 onClick = { onIntent(FinancialStatementsIntent.LoadBalanceSheet(storeId, state.asOfDate)) },
                 enabled = state.asOfDate.isNotBlank() && !state.isLoading,
-            ) { Text("Generate") }
+            ) { Text(s[StringResource.ACCOUNTING_GENERATE]) }
         }
 
         if (state.isLoading) {
@@ -392,7 +399,7 @@ private fun BalanceSheetTabContent(
         val bs = state.balanceSheet
         if (bs == null) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Set an as-of date and tap Generate.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(s[StringResource.ACCOUNTING_SET_AS_OF_DATE], color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             return@Column
         }
@@ -402,27 +409,27 @@ private fun BalanceSheetTabContent(
             verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
         ) {
             // Assets
-            item { StatementSectionHeader("Assets", color = MaterialTheme.colorScheme.primary) }
+            item { StatementSectionHeader(s[StringResource.ACCOUNTING_ASSETS], color = MaterialTheme.colorScheme.primary) }
             items(bs.assetLines, key = { it.accountId }) { line ->
                 StatementLineRow(line = line)
             }
             item {
-                StatementSubtotal("Total Assets", bs.totalAssets, highlight = true)
+                StatementSubtotal(s[StringResource.ACCOUNTING_TOTAL_ASSETS], bs.totalAssets, highlight = true)
                 Spacer(Modifier.height(ZyntaSpacing.sm))
             }
 
             // Liabilities
-            item { StatementSectionHeader("Liabilities", color = MaterialTheme.colorScheme.error) }
+            item { StatementSectionHeader(s[StringResource.ACCOUNTING_LIABILITIES], color = MaterialTheme.colorScheme.error) }
             items(bs.liabilityLines, key = { it.accountId }) { line ->
                 StatementLineRow(line = line)
             }
             item {
-                StatementSubtotal("Total Liabilities", bs.totalLiabilities, color = MaterialTheme.colorScheme.error)
+                StatementSubtotal(s[StringResource.ACCOUNTING_TOTAL_LIABILITIES], bs.totalLiabilities, color = MaterialTheme.colorScheme.error)
                 Spacer(Modifier.height(ZyntaSpacing.sm))
             }
 
             // Equity
-            item { StatementSectionHeader("Equity", color = MaterialTheme.colorScheme.tertiary) }
+            item { StatementSectionHeader(s[StringResource.ACCOUNTING_EQUITY], color = MaterialTheme.colorScheme.tertiary) }
             items(bs.equityLines, key = { it.accountId }) { line ->
                 StatementLineRow(line = line)
             }
@@ -432,7 +439,7 @@ private fun BalanceSheetTabContent(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
-                        "Retained Earnings",
+                        s[StringResource.ACCOUNTING_RETAINED_EARNINGS],
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -442,7 +449,7 @@ private fun BalanceSheetTabContent(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                StatementSubtotal("Total Equity", bs.totalEquity, color = MaterialTheme.colorScheme.tertiary)
+                StatementSubtotal(s[StringResource.ACCOUNTING_TOTAL_EQUITY], bs.totalEquity, color = MaterialTheme.colorScheme.tertiary)
                 Spacer(Modifier.height(ZyntaSpacing.md))
             }
 
@@ -456,13 +463,13 @@ private fun BalanceSheetTabContent(
                 ) {
                     Column(modifier = Modifier.padding(ZyntaSpacing.md)) {
                         Text(
-                            "Accounting Equation",
+                            s[StringResource.ACCOUNTING_ACCOUNTING_EQUATION],
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            "Assets (${"%.2f".format(bs.totalAssets)}) = Liabilities (${"%.2f".format(bs.totalLiabilities)})" +
-                                " + Equity (${"%.2f".format(bs.totalEquity)})",
+                            "${s[StringResource.ACCOUNTING_ASSETS]} (${"%.2f".format(bs.totalAssets)}) = ${s[StringResource.ACCOUNTING_LIABILITIES]} (${"%.2f".format(bs.totalLiabilities)})" +
+                                " + ${s[StringResource.ACCOUNTING_EQUITY]} (${"%.2f".format(bs.totalEquity)})",
                             style = MaterialTheme.typography.bodyMedium,
                         )
                     }
@@ -480,6 +487,7 @@ private fun TrialBalanceTabContent(
     onIntent: (FinancialStatementsIntent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     Column(modifier = modifier.fillMaxSize()) {
         // As-of date + generate
         Row(
@@ -490,7 +498,7 @@ private fun TrialBalanceTabContent(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             DateInputField(
-                label = "As Of",
+                label = s[StringResource.ACCOUNTING_AS_OF],
                 value = state.asOfDate,
                 onPickerClick = { onIntent(FinancialStatementsIntent.ShowDatePicker(DatePickerField.AS_OF)) },
                 modifier = Modifier.weight(1f),
@@ -498,7 +506,7 @@ private fun TrialBalanceTabContent(
             Button(
                 onClick = { onIntent(FinancialStatementsIntent.LoadTrialBalance(storeId, state.asOfDate)) },
                 enabled = state.asOfDate.isNotBlank() && !state.isLoading,
-            ) { Text("Generate") }
+            ) { Text(s[StringResource.ACCOUNTING_GENERATE]) }
         }
 
         if (state.isLoading) {
@@ -511,7 +519,7 @@ private fun TrialBalanceTabContent(
         val tb = state.trialBalance
         if (tb == null) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Set an as-of date and tap Generate.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(s[StringResource.ACCOUNTING_SET_AS_OF_DATE], color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             return@Column
         }
@@ -523,7 +531,7 @@ private fun TrialBalanceTabContent(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(
-                text = if (tb.isBalanced) "BALANCED" else "UNBALANCED — Ledger has errors",
+                text = if (tb.isBalanced) s[StringResource.ACCOUNTING_BALANCED] else s[StringResource.ACCOUNTING_UNBALANCED_LEDGER],
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 color = if (tb.isBalanced) MaterialTheme.colorScheme.onTertiaryContainer
@@ -538,10 +546,10 @@ private fun TrialBalanceTabContent(
                 .fillMaxWidth()
                 .padding(horizontal = ZyntaSpacing.md, vertical = ZyntaSpacing.sm),
         ) {
-            Text("Code", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, modifier = Modifier.width(60.dp))
-            Text("Account", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-            Text("Debit", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, modifier = Modifier.width(80.dp))
-            Text("Credit", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, modifier = Modifier.width(80.dp))
+            Text(s[StringResource.ACCOUNTING_CODE], style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, modifier = Modifier.width(60.dp))
+            Text(s[StringResource.ACCOUNTING_ACCOUNT], style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            Text(s[StringResource.ACCOUNTING_DEBIT], style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, modifier = Modifier.width(80.dp))
+            Text(s[StringResource.ACCOUNTING_CREDIT], style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, modifier = Modifier.width(80.dp))
         }
         HorizontalDivider()
 
@@ -561,7 +569,7 @@ private fun TrialBalanceTabContent(
                 ) {
                     Text("", modifier = Modifier.width(60.dp))
                     Text(
-                        "TOTALS",
+                        s[StringResource.ACCOUNTING_TOTALS],
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.weight(1f),
@@ -592,6 +600,7 @@ private fun CashFlowTabContent(
     onIntent: (FinancialStatementsIntent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     Column(modifier = modifier.fillMaxSize()) {
         // Date range inputs
         Row(
@@ -602,13 +611,13 @@ private fun CashFlowTabContent(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             DateInputField(
-                label = "From",
+                label = s[StringResource.ACCOUNTING_FROM],
                 value = state.fromDate,
                 onPickerClick = { onIntent(FinancialStatementsIntent.ShowDatePicker(DatePickerField.FROM)) },
                 modifier = Modifier.weight(1f),
             )
             DateInputField(
-                label = "To",
+                label = s[StringResource.ACCOUNTING_TO],
                 value = state.toDate,
                 onPickerClick = { onIntent(FinancialStatementsIntent.ShowDatePicker(DatePickerField.TO)) },
                 modifier = Modifier.weight(1f),
@@ -618,7 +627,7 @@ private fun CashFlowTabContent(
                     onIntent(FinancialStatementsIntent.LoadCashFlow(storeId, state.fromDate, state.toDate))
                 },
                 enabled = state.fromDate.isNotBlank() && state.toDate.isNotBlank() && !state.isLoading,
-            ) { Text("Generate") }
+            ) { Text(s[StringResource.ACCOUNTING_GENERATE]) }
         }
 
         if (state.isLoading) {
@@ -631,7 +640,7 @@ private fun CashFlowTabContent(
         val cf = state.cashFlow
         if (cf == null) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Set a date range and tap Generate.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(s[StringResource.ACCOUNTING_SET_DATE_RANGE], color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             return@Column
         }
@@ -642,38 +651,38 @@ private fun CashFlowTabContent(
         ) {
             // Opening cash
             item {
-                CashFlowSummaryRow("Opening Cash Balance", cf.openingCash, highlight = false)
+                CashFlowSummaryRow(s[StringResource.ACCOUNTING_OPENING_CASH_BALANCE], cf.openingCash, highlight = false)
             }
 
             // Operating activities
-            item { StatementSectionHeader("Operating Activities", color = MaterialTheme.colorScheme.tertiary) }
+            item { StatementSectionHeader(s[StringResource.ACCOUNTING_OPERATING_ACTIVITIES], color = MaterialTheme.colorScheme.tertiary) }
             items(cf.operatingLines, key = { "op-${it.label}" }) { line ->
                 CashFlowLineRow(line)
             }
             item {
-                StatementSubtotal("Net Cash from Operations", cf.netOperating,
+                StatementSubtotal(s[StringResource.ACCOUNTING_NET_CASH_OPERATIONS], cf.netOperating,
                     color = if (cf.netOperating >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error)
                 Spacer(Modifier.height(ZyntaSpacing.sm))
             }
 
             // Investing activities
-            item { StatementSectionHeader("Investing Activities", color = MaterialTheme.colorScheme.primary) }
+            item { StatementSectionHeader(s[StringResource.ACCOUNTING_INVESTING_ACTIVITIES], color = MaterialTheme.colorScheme.primary) }
             items(cf.investingLines, key = { "inv-${it.label}" }) { line ->
                 CashFlowLineRow(line)
             }
             item {
-                StatementSubtotal("Net Cash from Investing", cf.netInvesting,
+                StatementSubtotal(s[StringResource.ACCOUNTING_NET_CASH_INVESTING], cf.netInvesting,
                     color = if (cf.netInvesting >= 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
                 Spacer(Modifier.height(ZyntaSpacing.sm))
             }
 
             // Financing activities
-            item { StatementSectionHeader("Financing Activities", color = Color(0xFF7B1FA2)) }
+            item { StatementSectionHeader(s[StringResource.ACCOUNTING_FINANCING_ACTIVITIES], color = Color(0xFF7B1FA2)) }
             items(cf.financingLines, key = { "fin-${it.label}" }) { line ->
                 CashFlowLineRow(line)
             }
             item {
-                StatementSubtotal("Net Cash from Financing", cf.netFinancing,
+                StatementSubtotal(s[StringResource.ACCOUNTING_NET_CASH_FINANCING], cf.netFinancing,
                     color = if (cf.netFinancing >= 0) Color(0xFF7B1FA2) else MaterialTheme.colorScheme.error)
                 Spacer(Modifier.height(ZyntaSpacing.sm))
             }
@@ -682,9 +691,9 @@ private fun CashFlowTabContent(
             item {
                 HorizontalDivider()
                 Spacer(Modifier.height(ZyntaSpacing.sm))
-                CashFlowSummaryRow("Net Change in Cash", cf.netChange, highlight = true)
+                CashFlowSummaryRow(s[StringResource.ACCOUNTING_NET_CHANGE_CASH], cf.netChange, highlight = true)
                 Spacer(Modifier.height(ZyntaSpacing.xs))
-                CashFlowSummaryRow("Closing Cash Balance", cf.closingCash, highlight = true)
+                CashFlowSummaryRow(s[StringResource.ACCOUNTING_CLOSING_CASH_BALANCE], cf.closingCash, highlight = true)
             }
             item { Spacer(Modifier.height(ZyntaSpacing.xl)) }
         }
@@ -704,6 +713,7 @@ private fun DateInputField(
     onPickerClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     OutlinedTextField(
         value = value,
         onValueChange = {},
@@ -715,7 +725,7 @@ private fun DateInputField(
             IconButton(onClick = onPickerClick) {
                 Icon(
                     Icons.Default.CalendarMonth,
-                    contentDescription = "Pick $label date",
+                    contentDescription = s[StringResource.ACCOUNTING_PICK_DATE],
                 )
             }
         },
@@ -851,9 +861,9 @@ private fun CashFlowSummaryRow(label: String, amount: Double, highlight: Boolean
     }
 }
 
-private fun FinancialStatementTab.label(): String = when (this) {
-    FinancialStatementTab.PROFIT_LOSS -> "P&L"
-    FinancialStatementTab.BALANCE_SHEET -> "Balance Sheet"
-    FinancialStatementTab.TRIAL_BALANCE -> "Trial Balance"
-    FinancialStatementTab.CASH_FLOW -> "Cash Flow"
+private fun FinancialStatementTab.label(s: StringResolver): String = when (this) {
+    FinancialStatementTab.PROFIT_LOSS -> s[StringResource.ACCOUNTING_TAB_PNL]
+    FinancialStatementTab.BALANCE_SHEET -> s[StringResource.ACCOUNTING_TAB_BALANCE_SHEET]
+    FinancialStatementTab.TRIAL_BALANCE -> s[StringResource.ACCOUNTING_TAB_TRIAL_BALANCE]
+    FinancialStatementTab.CASH_FLOW -> s[StringResource.ACCOUNTING_TAB_CASH_FLOW]
 }

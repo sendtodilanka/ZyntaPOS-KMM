@@ -10,6 +10,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -25,6 +27,7 @@ fun LicenseActivationScreen(
     onActivated: () -> Unit,
     viewModel: LicenseViewModel = koinViewModel(),
 ) {
+    val s = LocalStrings.current
     val state by viewModel.state.collectAsState()
 
     LaunchedEffect(Unit) {
@@ -46,18 +49,18 @@ fun LicenseActivationScreen(
             modifier = Modifier.widthIn(max = 400.dp),
         ) {
             Text(
-                text = "Activate ZyntaPOS",
+                text = s[StringResource.AUTH_ACTIVATE_TITLE],
                 style = MaterialTheme.typography.headlineSmall,
             )
             Text(
-                text = "Enter your license key to activate this device.",
+                text = s[StringResource.AUTH_ACTIVATE_SUBTITLE],
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             OutlinedTextField(
                 value = state.licenseKey,
                 onValueChange = { viewModel.dispatch(LicenseIntent.LicenseKeyChanged(it.uppercase())) },
-                label = { Text("License Key") },
+                label = { Text(s[StringResource.AUTH_LICENSE_KEY_LABEL]) },
                 placeholder = { Text("XXXX-XXXX-XXXX-XXXX") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(
@@ -81,11 +84,11 @@ fun LicenseActivationScreen(
                         color = MaterialTheme.colorScheme.onPrimary,
                     )
                 } else {
-                    Text("Activate")
+                    Text(s[StringResource.AUTH_ACTIVATE_BUTTON])
                 }
             }
             Text(
-                text = "Contact support@zyntapos.com if you don't have a license key.",
+                text = s[StringResource.AUTH_LICENSE_SUPPORT_HINT],
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

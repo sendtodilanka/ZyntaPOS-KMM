@@ -19,6 +19,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.MediaFile
@@ -44,13 +46,14 @@ fun MediaLibraryScreen(
     onIntent: (MediaIntent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     Scaffold(
         modifier = modifier,
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { onIntent(MediaIntent.ShowAddDialog) },
                 icon = { Icon(Icons.Default.AddPhotoAlternate, contentDescription = null) },
-                text = { Text("Add Media") },
+                text = { Text(s[StringResource.MEDIA_ADD]) },
             )
         },
     ) { innerPadding ->
@@ -87,9 +90,9 @@ fun MediaLibraryScreen(
                 }
             } else if (state.mediaFiles.isEmpty()) {
                 ZyntaEmptyState(
-                    title = "No media attached yet",
+                    title = s[StringResource.MEDIA_NO_MEDIA],
                     icon = Icons.Default.PhotoLibrary,
-                    subtitle = "Tap + to add an image.",
+                    subtitle = s[StringResource.MEDIA_TAP_ADD],
                     modifier = Modifier.fillMaxSize(),
                 )
             } else {
@@ -204,7 +207,7 @@ private fun MediaFileCell(
                 ) {
                     Icon(
                         Icons.Default.Star,
-                        contentDescription = "Primary",
+                        contentDescription = s[StringResource.MEDIA_PRIMARY],
                         modifier = Modifier.padding(2.dp).size(12.dp),
                         tint = MaterialTheme.colorScheme.onPrimary,
                     )
@@ -244,6 +247,7 @@ private fun FileActionBottomSheet(
     onEdit: () -> Unit = {},
     onDismiss: () -> Unit,
 ) {
+    val s = LocalStrings.current
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -251,9 +255,9 @@ private fun FileActionBottomSheet(
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Size: %.2f MB".format(file.fileSizeMb), style = MaterialTheme.typography.bodySmall)
-                Text("Status: ${file.uploadStatus.name}", style = MaterialTheme.typography.bodySmall)
-                Text("Primary: ${if (file.isPrimary) "Yes" else "No"}", style = MaterialTheme.typography.bodySmall)
+                Text("${s[StringResource.MEDIA_SIZE]}: %.2f MB".format(file.fileSizeMb), style = MaterialTheme.typography.bodySmall)
+                Text("${s[StringResource.COMMON_STATUS]}: ${file.uploadStatus.name}", style = MaterialTheme.typography.bodySmall)
+                Text("${s[StringResource.MEDIA_PRIMARY]}: ${if (file.isPrimary) s[StringResource.COMMON_YES] else s[StringResource.COMMON_NO]}", style = MaterialTheme.typography.bodySmall)
                 file.remoteUrl?.let {
                     Text("URL: $it", style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
@@ -268,7 +272,7 @@ private fun FileActionBottomSheet(
                     }) {
                         Icon(Icons.Default.Star, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Set as Primary")
+                        Text(s[StringResource.MEDIA_SET_PRIMARY])
                     }
                 }
                 TextButton(onClick = {
@@ -277,7 +281,7 @@ private fun FileActionBottomSheet(
                 }) {
                     Icon(Icons.Default.Tune, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("Edit")
+                    Text(s[StringResource.COMMON_EDIT])
                 }
             }
         },
@@ -292,9 +296,9 @@ private fun FileActionBottomSheet(
                 ) {
                     Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("Delete")
+                    Text(s[StringResource.COMMON_DELETE])
                 }
-                TextButton(onClick = onDismiss) { Text("Close") }
+                TextButton(onClick = onDismiss) { Text(s[StringResource.COMMON_CLOSE]) }
             }
         },
     )
@@ -339,7 +343,7 @@ private fun FullScreenImagePreview(
             ) {
                 Icon(
                     Icons.Default.Close,
-                    contentDescription = "Close preview",
+                    contentDescription = s[StringResource.MEDIA_CLOSE_PREVIEW],
                     tint = MaterialTheme.colorScheme.onSurface,
                 )
             }
@@ -369,7 +373,7 @@ private fun FullScreenImagePreview(
                         )
                     }
                     TextButton(onClick = onShowActions) {
-                        Text("Actions")
+                        Text(s[StringResource.COMMON_ACTIONS])
                     }
                 }
             }
@@ -414,6 +418,7 @@ private fun ImageEditorDialog(
             shape = MaterialTheme.shapes.extraLarge,
             tonalElevation = 6.dp,
         ) {
+            val s = LocalStrings.current
             Column(modifier = Modifier.padding(ZyntaSpacing.md)) {
                 // Header
                 Row(
@@ -422,12 +427,12 @@ private fun ImageEditorDialog(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        "Edit Image",
+                        s[StringResource.MEDIA_EDIT_IMAGE],
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.SemiBold,
                     )
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Close")
+                        Icon(Icons.Default.Close, contentDescription = s[StringResource.COMMON_CLOSE])
                     }
                 }
 
@@ -472,7 +477,7 @@ private fun ImageEditorDialog(
                 Spacer(Modifier.height(ZyntaSpacing.md))
 
                 // Crop aspect ratio selector
-                Text("Crop Aspect Ratio", style = MaterialTheme.typography.labelLarge)
+                Text(s[StringResource.MEDIA_CROP_ASPECT_RATIO], style = MaterialTheme.typography.labelLarge)
                 Spacer(Modifier.height(ZyntaSpacing.xs))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -505,14 +510,14 @@ private fun ImageEditorDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Text("Small file", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("Best quality", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(s[StringResource.MEDIA_SMALL_FILE], style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(s[StringResource.MEDIA_BEST_QUALITY], style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
 
                 Spacer(Modifier.height(ZyntaSpacing.md))
 
                 // Resize max width
-                Text("Max Width (px)", style = MaterialTheme.typography.labelLarge)
+                Text(s[StringResource.MEDIA_MAX_WIDTH], style = MaterialTheme.typography.labelLarge)
                 Spacer(Modifier.height(ZyntaSpacing.xs))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -524,7 +529,7 @@ private fun ImageEditorDialog(
                             onClick = { onResizeChange(size) },
                             label = {
                                 Text(
-                                    if (size == 0) "Original" else "${size}px",
+                                    if (size == 0) s[StringResource.MEDIA_ORIGINAL] else "${size}px",
                                     style = MaterialTheme.typography.labelSmall,
                                 )
                             },
@@ -545,13 +550,13 @@ private fun ImageEditorDialog(
                         Spacer(Modifier.width(ZyntaSpacing.sm))
                     }
                     TextButton(onClick = onDismiss, enabled = !isProcessing) {
-                        Text("Cancel")
+                        Text(s[StringResource.COMMON_CANCEL])
                     }
                     Spacer(Modifier.width(ZyntaSpacing.sm))
                     Button(onClick = onApply, enabled = !isProcessing) {
                         Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(ZyntaSpacing.xs))
-                        Text("Apply")
+                        Text(s[StringResource.MEDIA_APPLY])
                     }
                 }
             }
@@ -569,13 +574,14 @@ private fun AddMediaDialog(
     onBrowse: () -> Unit = {},
     onTakePhoto: (() -> Unit)? = null,
 ) {
+    val s = LocalStrings.current
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add Media File") },
+        title = { Text(s[StringResource.MEDIA_ADD_FILE]) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                 Text(
-                    "Select an image using the file picker, take a photo, or enter its path manually.",
+                    s[StringResource.MEDIA_ADD_INSTRUCTIONS],
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -599,14 +605,14 @@ private fun AddMediaDialog(
                         ) {
                             Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(ZyntaSpacing.xs))
-                            Text("Take Photo")
+                            Text(s[StringResource.MEDIA_TAKE_PHOTO])
                         }
                     }
                 }
                 OutlinedTextField(
                     value = filePath,
                     onValueChange = onPathChange,
-                    label = { Text("File path") },
+                    label = { Text(s[StringResource.MEDIA_FILE_PATH]) },
                     placeholder = { Text("/storage/emulated/0/DCIM/photo.jpg") },
                     isError = error != null,
                     supportingText = error?.let { { Text(it, color = MaterialTheme.colorScheme.error) } },
@@ -616,10 +622,10 @@ private fun AddMediaDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onConfirm, enabled = filePath.isNotBlank()) { Text("Add") }
+            TextButton(onClick = onConfirm, enabled = filePath.isNotBlank()) { Text(s[StringResource.MEDIA_ADD]) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(s[StringResource.COMMON_CANCEL]) }
         },
     )
 }

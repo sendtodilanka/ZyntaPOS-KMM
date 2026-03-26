@@ -10,6 +10,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.LeaveRecord
@@ -36,6 +38,7 @@ fun LeaveManagementScreen(
     currentUserId: String,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     LaunchedEffect(storeId) { onIntent(StaffIntent.LoadPendingLeave(storeId)) }
 
     Scaffold(
@@ -44,7 +47,7 @@ fun LeaveManagementScreen(
             ExtendedFloatingActionButton(
                 onClick = { onIntent(StaffIntent.ShowLeaveForm) },
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("Request Leave") },
+                text = { Text(s[StringResource.STAFF_REQUEST_LEAVE]) },
             )
         },
     ) { innerPadding ->
@@ -60,9 +63,9 @@ fun LeaveManagementScreen(
                 }
             } else if (state.pendingLeaveRequests.isEmpty()) {
                 ZyntaEmptyState(
-                    title = "No pending leave requests",
+                    title = s[StringResource.STAFF_NO_PENDING_LEAVE],
                     icon = Icons.Default.EventAvailable,
-                    subtitle = "All caught up!",
+                    subtitle = s[StringResource.STAFF_ALL_CAUGHT_UP],
                 )
             } else {
                 Text(
@@ -111,6 +114,7 @@ private fun LeaveRequestCard(
     onApprove: () -> Unit,
     onReject: (String) -> Unit,
 ) {
+    val s = LocalStrings.current
     var showRejectDialog by remember { mutableStateOf(false) }
     var rejectReason by remember { mutableStateOf("") }
 
@@ -161,7 +165,7 @@ private fun LeaveRequestCard(
                     ) {
                         Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Reject")
+                        Text(s[StringResource.STAFF_REJECT])
                     }
                     Button(
                         onClick = onApprove,
@@ -169,7 +173,7 @@ private fun LeaveRequestCard(
                     ) {
                         Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Approve")
+                        Text(s[StringResource.STAFF_APPROVE])
                     }
                 }
             }
@@ -179,12 +183,12 @@ private fun LeaveRequestCard(
     if (showRejectDialog) {
         AlertDialog(
             onDismissRequest = { showRejectDialog = false },
-            title = { Text("Rejection Reason") },
+            title = { Text(s[StringResource.STAFF_REJECTION_REASON]) },
             text = {
                 OutlinedTextField(
                     value = rejectReason,
                     onValueChange = { rejectReason = it },
-                    label = { Text("Reason *") },
+                    label = { Text(s[StringResource.STAFF_REASON_REQUIRED]) },
                     minLines = 3,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -198,10 +202,10 @@ private fun LeaveRequestCard(
                         }
                     },
                     enabled = rejectReason.isNotBlank(),
-                ) { Text("Reject") }
+                ) { Text(s[StringResource.STAFF_REJECT]) }
             },
             dismissButton = {
-                TextButton(onClick = { showRejectDialog = false }) { Text("Cancel") }
+                TextButton(onClick = { showRejectDialog = false }) { Text(s[StringResource.COMMON_CANCEL]) }
             },
         )
     }
@@ -234,11 +238,12 @@ private fun LeaveRequestDialog(
     employees: List<com.zyntasolutions.zyntapos.domain.model.Employee>,
     onIntent: (StaffIntent) -> Unit,
 ) {
+    val s = LocalStrings.current
     var expanded by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = { onIntent(StaffIntent.HideLeaveForm) },
-        title = { Text("Request Leave") },
+        title = { Text(s[StringResource.STAFF_REQUEST_LEAVE]) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                 // Employee dropdown
@@ -247,10 +252,10 @@ private fun LeaveRequestDialog(
                     onExpandedChange = { expanded = it },
                 ) {
                     OutlinedTextField(
-                        value = employees.find { it.id == form.employeeId }?.fullName ?: "Select Employee",
+                        value = employees.find { it.id == form.employeeId }?.fullName ?: s[StringResource.STAFF_SELECT_EMPLOYEE],
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Employee *") },
+                        label = { Text(s[StringResource.STAFF_EMPLOYEE_REQUIRED]) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                         modifier = Modifier
                             .menuAnchor()
@@ -273,7 +278,7 @@ private fun LeaveRequestDialog(
                 }
 
                 // Leave type chips
-                Text("Type", style = MaterialTheme.typography.labelMedium)
+                Text(s[StringResource.STAFF_LEAVE_TYPE], style = MaterialTheme.typography.labelMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     LeaveType.entries.forEach { type ->
                         FilterChip(
@@ -287,7 +292,7 @@ private fun LeaveRequestDialog(
                 OutlinedTextField(
                     value = form.startDate,
                     onValueChange = { onIntent(StaffIntent.UpdateLeaveFormField("startDate", it)) },
-                    label = { Text("Start Date (YYYY-MM-DD) *") },
+                    label = { Text(s[StringResource.STAFF_START_DATE_REQUIRED]) },
                     isError = form.validationErrors.containsKey("startDate"),
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
@@ -295,7 +300,7 @@ private fun LeaveRequestDialog(
                 OutlinedTextField(
                     value = form.endDate,
                     onValueChange = { onIntent(StaffIntent.UpdateLeaveFormField("endDate", it)) },
-                    label = { Text("End Date (YYYY-MM-DD) *") },
+                    label = { Text(s[StringResource.STAFF_END_DATE_REQUIRED]) },
                     isError = form.validationErrors.containsKey("endDate"),
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
@@ -303,17 +308,17 @@ private fun LeaveRequestDialog(
                 OutlinedTextField(
                     value = form.reason,
                     onValueChange = { onIntent(StaffIntent.UpdateLeaveFormField("reason", it)) },
-                    label = { Text("Reason") },
+                    label = { Text(s[StringResource.STAFF_REASON]) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 2,
                 )
             }
         },
         confirmButton = {
-            TextButton(onClick = { onIntent(StaffIntent.SubmitLeaveRequest) }) { Text("Submit") }
+            TextButton(onClick = { onIntent(StaffIntent.SubmitLeaveRequest) }) { Text(s[StringResource.STAFF_SUBMIT]) }
         },
         dismissButton = {
-            TextButton(onClick = { onIntent(StaffIntent.HideLeaveForm) }) { Text("Cancel") }
+            TextButton(onClick = { onIntent(StaffIntent.HideLeaveForm) }) { Text(s[StringResource.COMMON_CANCEL]) }
         },
     )
 }

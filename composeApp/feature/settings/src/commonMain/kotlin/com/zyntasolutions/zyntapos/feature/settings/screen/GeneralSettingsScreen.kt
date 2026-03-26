@@ -115,9 +115,10 @@ fun GeneralSettingsScreen(
     onIntent: (SettingsIntent) -> Unit,
     onBack: () -> Unit,
 ) {
+    val s = LocalStrings.current
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedTab by remember { mutableIntStateOf(0) }
-    val tabTitles = listOf("Store Identity", "Regional")
+    val tabTitles = listOf(s[StringResource.SETTINGS_GENERAL_TAB_STORE_IDENTITY], s[StringResource.SETTINGS_GENERAL_TAB_REGIONAL])
 
     LaunchedEffect(Unit) { onIntent(SettingsIntent.LoadGeneral) }
 
@@ -132,7 +133,7 @@ fun GeneralSettingsScreen(
     }
 
     ZyntaPageScaffold(
-        title = "General",
+        title = s[StringResource.SETTINGS_GENERAL],
         onNavigateBack = onBack,
         snackbarHostState = snackbarHostState,
     ) { innerPadding ->
@@ -189,47 +190,47 @@ fun GeneralSettingsScreen(
                                     verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                                 ) {
                                     Text(
-                                        "Store Details",
+                                        s[StringResource.SETTINGS_GENERAL_STORE_DETAILS],
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.SemiBold,
                                     )
                                     Text(
-                                        "Enter the core information that identifies your store. This appears on receipts, invoices, and reports.",
+                                        s[StringResource.SETTINGS_GENERAL_STORE_DETAILS_DESC],
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                     ZyntaTextField(
                                         value = state.storeName,
                                         onValueChange = { onIntent(SettingsIntent.UpdateStoreName(it)) },
-                                        label = "Store Name",
+                                        label = s[StringResource.SETTINGS_GENERAL_STORE_NAME],
                                         modifier = Modifier.fillMaxWidth(),
                                     )
                                     Text(
-                                        "The business name displayed on receipts and customer-facing materials.",
+                                        s[StringResource.SETTINGS_GENERAL_STORE_NAME_DESC],
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                     ZyntaTextField(
                                         value = state.storeAddress,
                                         onValueChange = { onIntent(SettingsIntent.UpdateStoreAddress(it)) },
-                                        label = "Store Address",
+                                        label = s[StringResource.SETTINGS_GENERAL_STORE_ADDRESS],
                                         modifier = Modifier.fillMaxWidth(),
                                         singleLine = false,
                                         maxLines = 3,
                                     )
                                     Text(
-                                        "Full street address including city, state/province, and postal code.",
+                                        s[StringResource.SETTINGS_GENERAL_STORE_ADDRESS_DESC],
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                     ZyntaTextField(
                                         value = state.storePhone,
                                         onValueChange = { onIntent(SettingsIntent.UpdateStorePhone(it)) },
-                                        label = "Phone Number",
+                                        label = s[StringResource.SETTINGS_GENERAL_PHONE_NUMBER],
                                         modifier = Modifier.fillMaxWidth(),
                                     )
                                     Text(
-                                        "Contact phone number printed on receipts for customer enquiries.",
+                                        s[StringResource.SETTINGS_GENERAL_PHONE_NUMBER_DESC],
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
@@ -249,12 +250,12 @@ fun GeneralSettingsScreen(
                                     verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                                 ) {
                                     Text(
-                                        "Store Logo",
+                                        s[StringResource.SETTINGS_GENERAL_STORE_LOGO],
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.SemiBold,
                                     )
                                     Text(
-                                        "Upload your store logo to display on receipts and the POS dashboard. Recommended size: 200x200px.",
+                                        s[StringResource.SETTINGS_GENERAL_STORE_LOGO_DESC],
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
@@ -281,23 +282,23 @@ fun GeneralSettingsScreen(
                                     verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                                 ) {
                                     Text(
-                                        "Currency",
+                                        s[StringResource.SETTINGS_GENERAL_CURRENCY],
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.SemiBold,
                                     )
                                     Text(
-                                        "Select the currency used for pricing, transactions, and reports across your store.",
+                                        s[StringResource.SETTINGS_GENERAL_CURRENCY_DESC],
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                     DropdownField(
-                                        label = "Currency",
+                                        label = s[StringResource.SETTINGS_GENERAL_CURRENCY],
                                         options = Currency.entries.map { "${it.code} (${it.symbol})" },
                                         selectedIndex = Currency.entries.indexOf(state.currency).coerceAtLeast(0),
                                         onSelect = { onIntent(SettingsIntent.UpdateCurrency(Currency.entries[it])) },
                                     )
                                     Text(
-                                        "This affects how monetary values are formatted and displayed throughout the application.",
+                                        s[StringResource.SETTINGS_GENERAL_CURRENCY_EFFECT_DESC],
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
@@ -317,34 +318,34 @@ fun GeneralSettingsScreen(
                                     verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                                 ) {
                                     Text(
-                                        "Timezone & Date Format",
+                                        s[StringResource.SETTINGS_GENERAL_TIMEZONE_DATE_FORMAT],
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.SemiBold,
                                     )
                                     Text(
-                                        "Configure how dates and times are displayed across reports, receipts, and order history.",
+                                        s[StringResource.SETTINGS_GENERAL_TIMEZONE_DATE_FORMAT_DESC],
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                     DropdownField(
-                                        label = "Timezone",
+                                        label = s[StringResource.SETTINGS_GENERAL_TIMEZONE],
                                         options = TIMEZONES,
                                         selectedIndex = TIMEZONE_IDS.indexOf(state.timezone).coerceAtLeast(0),
                                         onSelect = { onIntent(SettingsIntent.UpdateTimezone(TIMEZONE_IDS[it])) },
                                     )
                                     Text(
-                                        "All timestamps on receipts, reports, and audit logs use this timezone.",
+                                        s[StringResource.SETTINGS_GENERAL_TIMEZONE_DESC],
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                     DropdownField(
-                                        label = "Date Format",
+                                        label = s[StringResource.SETTINGS_GENERAL_DATE_FORMAT],
                                         options = DATE_FORMATS,
                                         selectedIndex = DATE_FORMATS.indexOf(state.dateFormat).coerceAtLeast(0),
                                         onSelect = { onIntent(SettingsIntent.UpdateDateFormat(DATE_FORMATS[it])) },
                                     )
                                     Text(
-                                        "Controls the order of day, month, and year in all displayed dates.",
+                                        s[StringResource.SETTINGS_GENERAL_DATE_FORMAT_DESC],
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
@@ -364,24 +365,24 @@ fun GeneralSettingsScreen(
                                     verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                                 ) {
                                     Text(
-                                        "Language",
+                                        s[StringResource.SETTINGS_GENERAL_LANGUAGE],
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.SemiBold,
                                     )
                                     Text(
-                                        "Set the display language for the POS interface and printed receipts.",
+                                        s[StringResource.SETTINGS_GENERAL_LANGUAGE_DESC],
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                     ZyntaTextField(
                                         value = state.language,
                                         onValueChange = {},
-                                        label = "Language",
+                                        label = s[StringResource.SETTINGS_GENERAL_LANGUAGE],
                                         modifier = Modifier.fillMaxWidth(),
                                         enabled = false, // English only in Phase 1
                                     )
                                     Text(
-                                        "English only (Phase 1). Additional languages will be available in a future update.",
+                                        s[StringResource.SETTINGS_GENERAL_LANGUAGE_PHASE1_NOTICE],
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
@@ -398,7 +399,7 @@ fun GeneralSettingsScreen(
                         Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                     }
                     ZyntaButton(
-                        text = if (state.isSaving) "Saving..." else "Save General Settings",
+                        text = if (state.isSaving) s[StringResource.COMMON_SAVING] else s[StringResource.SETTINGS_GENERAL_SAVE],
                         onClick = { onIntent(SettingsIntent.SaveGeneral) },
                         enabled = !state.isSaving,
                         modifier = Modifier.fillMaxWidth(),
@@ -463,6 +464,7 @@ internal fun DropdownField(
 
 @Composable
 private fun LogoUriRow(uri: String, onUriChange: (String) -> Unit) {
+    val s = LocalStrings.current
     var showImagePicker by remember { mutableStateOf(false) }
 
     PlatformFilePicker(
@@ -480,7 +482,7 @@ private fun LogoUriRow(uri: String, onUriChange: (String) -> Unit) {
         if (uri.isNotBlank()) {
             Icon(
                 imageVector = Icons.Filled.Store,
-                contentDescription = "Logo preview",
+                contentDescription = s[StringResource.SETTINGS_GENERAL_LOGO_PREVIEW],
                 modifier = Modifier.size(64.dp).align(Alignment.CenterHorizontally),
                 tint = MaterialTheme.colorScheme.primary,
             )
@@ -488,11 +490,11 @@ private fun LogoUriRow(uri: String, onUriChange: (String) -> Unit) {
         ZyntaTextField(
             value = uri,
             onValueChange = onUriChange,
-            label = "Logo URI / Path",
+            label = s[StringResource.SETTINGS_GENERAL_LOGO_URI],
             modifier = Modifier.fillMaxWidth(),
         )
         ZyntaButton(
-            text = "Browse Image",
+            text = s[StringResource.SETTINGS_GENERAL_BROWSE_IMAGE],
             onClick = { showImagePicker = true },
             modifier = Modifier.fillMaxWidth(),
         )

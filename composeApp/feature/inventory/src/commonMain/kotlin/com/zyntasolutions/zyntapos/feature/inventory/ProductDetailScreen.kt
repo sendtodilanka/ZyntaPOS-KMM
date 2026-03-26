@@ -483,7 +483,7 @@ private fun ImageSection(
                     ) {
                         AsyncImage(
                             model = form.imageUrl,
-                            contentDescription = "Product image preview",
+                            contentDescription = s[StringResource.INVENTORY_IMAGE_PREVIEW],
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Fit,
                         )
@@ -492,7 +492,7 @@ private fun ImageSection(
             }
 
             ZyntaButton(
-                text = "Browse Image",
+                text = s[StringResource.INVENTORY_BROWSE_IMAGE],
                 onClick = { showImagePicker = true },
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -508,6 +508,7 @@ private fun VariantSection(
     variants: List<ProductVariant>,
     onIntent: (InventoryIntent) -> Unit,
 ) {
+    val s = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -521,17 +522,17 @@ private fun VariantSection(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("Variations", style = MaterialTheme.typography.titleMedium)
+                Text(s[StringResource.INVENTORY_TAB_VARIANTS], style = MaterialTheme.typography.titleMedium)
                 FilledTonalButton(onClick = { onIntent(InventoryIntent.AddVariant) }) {
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(ZyntaSpacing.xs))
-                    Text("Add Variant")
+                    Text(s[StringResource.INVENTORY_ADD_VARIANT])
                 }
             }
 
             if (variants.isEmpty()) {
                 Text(
-                    "No variations. Add variants for products with different sizes, colors, etc.",
+                    s[StringResource.INVENTORY_NO_VARIANTS],
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -559,6 +560,7 @@ private fun VariantRow(
     onUpdate: (String, String) -> Unit,
     onRemove: () -> Unit,
 ) {
+    val s = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -574,7 +576,7 @@ private fun VariantRow(
             ) {
                 Text("Variant ${index + 1}", style = MaterialTheme.typography.labelLarge)
                 IconButton(onClick = onRemove) {
-                    Icon(Icons.Default.Delete, contentDescription = "Remove variant",
+                    Icon(Icons.Default.Delete, contentDescription = s[StringResource.INVENTORY_REMOVE_VARIANT],
                         tint = MaterialTheme.colorScheme.error)
                 }
             }
@@ -583,13 +585,13 @@ private fun VariantRow(
                 ZyntaTextField(
                     value = variant.name,
                     onValueChange = { onUpdate("name", it) },
-                    label = "Variant Name",
+                    label = s[StringResource.INVENTORY_VARIANT_NAME],
                     modifier = Modifier.weight(1f),
                 )
                 ZyntaTextField(
                     value = variant.price?.toString() ?: "",
                     onValueChange = { onUpdate("price", it) },
-                    label = "Price Override",
+                    label = s[StringResource.INVENTORY_PRICE_OVERRIDE],
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -598,13 +600,13 @@ private fun VariantRow(
                 ZyntaTextField(
                     value = variant.barcode ?: "",
                     onValueChange = { onUpdate("barcode", it) },
-                    label = "Barcode",
+                    label = s[StringResource.INVENTORY_BARCODE],
                     modifier = Modifier.weight(1f),
                 )
                 ZyntaTextField(
                     value = variant.stock.toString(),
                     onValueChange = { onUpdate("stock", it) },
-                    label = "Stock",
+                    label = s[StringResource.INVENTORY_TAB_STOCK],
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -620,6 +622,7 @@ private fun ActiveToggleSection(
     form: ProductFormState,
     onIntent: (InventoryIntent) -> Unit,
 ) {
+    val s = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -632,10 +635,10 @@ private fun ActiveToggleSection(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column {
-                Text("Active", style = MaterialTheme.typography.titleSmall)
+                Text(s[StringResource.INVENTORY_ACTIVE], style = MaterialTheme.typography.titleSmall)
                 Text(
-                    if (form.isActive) "Product visible in POS and search"
-                    else "Product hidden from POS and search",
+                    if (form.isActive) s[StringResource.INVENTORY_PRODUCT_VISIBLE]
+                    else s[StringResource.INVENTORY_PRODUCT_HIDDEN],
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -664,6 +667,7 @@ private fun CategoryDropdown(
     isError: Boolean = false,
     errorText: String? = null,
 ) {
+    val s = LocalStrings.current
     var expanded by remember { mutableStateOf(false) }
     val selectedName = categories.find { it.id == selectedId }?.name ?: ""
 
@@ -675,7 +679,7 @@ private fun CategoryDropdown(
             value = selectedName,
             onValueChange = {},
             readOnly = true,
-            label = { Text("Category *") },
+            label = { Text(s[StringResource.INVENTORY_CATEGORY_REQUIRED]) },
             isError = isError,
             supportingText = errorText?.let { { Text(it) } },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
@@ -707,6 +711,7 @@ private fun UnitDropdown(
     isError: Boolean = false,
     errorText: String? = null,
 ) {
+    val s = LocalStrings.current
     var expanded by remember { mutableStateOf(false) }
     val selectedName = units.find { it.id == selectedId }?.let { "${it.name} (${it.abbreviation})" } ?: ""
 
@@ -718,7 +723,7 @@ private fun UnitDropdown(
             value = selectedName,
             onValueChange = {},
             readOnly = true,
-            label = { Text("Unit *") },
+            label = { Text(s[StringResource.INVENTORY_UNIT_REQUIRED]) },
             isError = isError,
             supportingText = errorText?.let { { Text(it) } },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
@@ -748,8 +753,9 @@ private fun TaxGroupDropdown(
     selectedId: String?,
     onSelect: (String?) -> Unit,
 ) {
+    val s = LocalStrings.current
     var expanded by remember { mutableStateOf(false) }
-    val selectedName = taxGroups.find { it.id == selectedId }?.let { "${it.name} (${it.rate}%)" } ?: "No Tax"
+    val selectedName = taxGroups.find { it.id == selectedId }?.let { "${it.name} (${it.rate}%)" } ?: s[StringResource.INVENTORY_NO_TAX]
 
     ExposedDropdownMenuBox(
         expanded = expanded,
@@ -759,13 +765,13 @@ private fun TaxGroupDropdown(
             value = selectedName,
             onValueChange = {},
             readOnly = true,
-            label = { Text("Tax Group") },
+            label = { Text(s[StringResource.INVENTORY_TAX_GROUP]) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
         )
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             DropdownMenuItem(
-                text = { Text("No Tax") },
+                text = { Text(s[StringResource.INVENTORY_NO_TAX]) },
                 onClick = { onSelect(null); expanded = false },
             )
             taxGroups.filter { it.isActive }.forEach { tg ->

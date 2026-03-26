@@ -47,6 +47,8 @@ import com.zyntasolutions.zyntapos.core.health.DatabaseStatus
 import com.zyntasolutions.zyntapos.core.health.HealthSnapshot
 import com.zyntasolutions.zyntapos.core.health.OverallStatus
 import com.zyntasolutions.zyntapos.core.health.SystemHealthTracker
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import org.koin.compose.koinInject

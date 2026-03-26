@@ -10,6 +10,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.NumericPadMode
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButtonSize
@@ -41,6 +43,7 @@ fun PinLockScreen(
     errorMessage: String? = null,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     // Local pin accumulator — max 6 digits
     var pin by remember { mutableStateOf("") }
 
@@ -83,12 +86,12 @@ fun PinLockScreen(
             Spacer(Modifier.height(ZyntaSpacing.md))
 
             Text(
-                text = currentUser?.name ?: "Unknown User",
+                text = currentUser?.name ?: s[StringResource.AUTH_UNKNOWN_USER],
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
-                text = "Enter your PIN to continue",
+                text = s[StringResource.AUTH_PIN_SUBTITLE],
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -146,7 +149,7 @@ fun PinLockScreen(
             // Submit button (also handles 4-digit PINs explicitly)
             if (pin.length in 4..6 && !isLoading) {
                 ZyntaButton(
-                    text = "Unlock",
+                    text = s[StringResource.AUTH_UNLOCK],
                     onClick = { onPinEntered(pin); pin = "" },
                     size = ZyntaButtonSize.Large,
                     modifier = Modifier.widthIn(max = 320.dp).fillMaxWidth(),
@@ -157,7 +160,7 @@ fun PinLockScreen(
             // ── Different user link ───────────────────────────────────────────
             TextButton(onClick = onDifferentUser) {
                 Text(
-                    text = "Different user? Sign in with password",
+                    text = s[StringResource.AUTH_DIFFERENT_USER],
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )

@@ -54,7 +54,7 @@ fun AccountManagementDetailScreen(
                 is AccountDetailEffect.ShowError ->
                     snackbarHostState.showSnackbar(effect.message, duration = SnackbarDuration.Short)
                 is AccountDetailEffect.SavedSuccessfully -> {
-                    snackbarHostState.showSnackbar("Account saved", duration = SnackbarDuration.Short)
+                    snackbarHostState.showSnackbar(s[StringResource.ACCOUNTING_ACCOUNT_SAVED], duration = SnackbarDuration.Short)
                     onNavigateBack()
                 }
                 is AccountDetailEffect.NavigateBack -> onNavigateBack()
@@ -108,14 +108,14 @@ fun AccountManagementDetailScreen(
                     OutlinedTextField(
                         value = state.accountName,
                         onValueChange = { viewModel.dispatch(AccountDetailIntent.UpdateName(it)) },
-                        label = { Text("Account Name") },
+                        label = { Text(s[StringResource.ACCOUNTING_ACCOUNT_NAME]) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         isError = state.error != null,
                     )
 
                     // Account type
-                    Text("Account Type", style = MaterialTheme.typography.labelMedium)
+                    Text(s[StringResource.ACCOUNTING_ACCOUNT_TYPE], style = MaterialTheme.typography.labelMedium)
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxWidth(),
@@ -133,7 +133,7 @@ fun AccountManagementDetailScreen(
                     OutlinedTextField(
                         value = state.subCategory,
                         onValueChange = { viewModel.dispatch(AccountDetailIntent.UpdateSubCategory(it)) },
-                        label = { Text("Sub-category (optional)") },
+                        label = { Text(s[StringResource.ACCOUNTING_SUB_CATEGORY]) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                     )
@@ -142,7 +142,7 @@ fun AccountManagementDetailScreen(
                     OutlinedTextField(
                         value = state.description,
                         onValueChange = { viewModel.dispatch(AccountDetailIntent.UpdateDescription(it)) },
-                        label = { Text("Description (optional)") },
+                        label = { Text(s[StringResource.ACCOUNTING_DESCRIPTION_OPTIONAL]) },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 2,
                     )

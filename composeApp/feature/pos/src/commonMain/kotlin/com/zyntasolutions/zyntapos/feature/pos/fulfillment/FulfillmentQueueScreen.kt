@@ -43,6 +43,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.domain.model.FulfillmentStatus
 import com.zyntasolutions.zyntapos.domain.repository.FulfillmentOrder
@@ -68,6 +70,7 @@ fun FulfillmentQueueScreen(
     onNavigateUp: () -> Unit,
     viewModel: FulfillmentViewModel = koinViewModel(),
 ) {
+    val s = LocalStrings.current
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -80,15 +83,15 @@ fun FulfillmentQueueScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Pickup Queue") },
+                title = { Text(s[StringResource.POS_PICKUP_QUEUE]) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateUp) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = s[StringResource.COMMON_BACK])
                     }
                 },
                 actions = {
                     IconButton(onClick = { viewModel.dispatch(FulfillmentIntent.CheckExpiry) }) {
-                        Icon(Icons.Default.Schedule, contentDescription = "Check Expiry")
+                        Icon(Icons.Default.Schedule, contentDescription = s[StringResource.POS_CHECK_EXPIRY])
                     }
                 },
             )
@@ -121,10 +124,11 @@ private fun FulfillmentQueueContent(
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             }
             state.pickups.isEmpty() -> {
+                val s = LocalStrings.current
                 ZyntaEmptyState(
                     icon = Icons.Default.CheckCircle,
-                    title = "No pending pickups",
-                    subtitle = "All Click & Collect orders have been processed.",
+                    title = s[StringResource.POS_NO_PENDING_PICKUPS],
+                    subtitle = s[StringResource.POS_ALL_PICKUPS_PROCESSED],
                     modifier = Modifier.align(Alignment.Center),
                 )
             }
@@ -223,6 +227,7 @@ private fun ActionButtons(
     onMarkPickedUp: (String) -> Unit,
     onCancelOrder: (String) -> Unit,
 ) {
+    val s = LocalStrings.current
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier.fillMaxWidth(),
@@ -233,7 +238,7 @@ private fun ActionButtons(
                     onClick = { onMarkPreparing(orderId) },
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text("Start Preparing")
+                    Text(s[StringResource.POS_START_PREPARING])
                 }
                 OutlinedButton(
                     onClick = { onCancelOrder(orderId) },
@@ -241,7 +246,7 @@ private fun ActionButtons(
                         contentColor = MaterialTheme.colorScheme.error,
                     ),
                 ) {
-                    Text("Cancel")
+                    Text(s[StringResource.COMMON_CANCEL])
                 }
             }
             FulfillmentStatus.PREPARING -> {
@@ -249,7 +254,7 @@ private fun ActionButtons(
                     onClick = { onMarkReady(orderId) },
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text("Mark Ready")
+                    Text(s[StringResource.POS_MARK_READY])
                 }
                 OutlinedButton(
                     onClick = { onCancelOrder(orderId) },
@@ -257,7 +262,7 @@ private fun ActionButtons(
                         contentColor = MaterialTheme.colorScheme.error,
                     ),
                 ) {
-                    Text("Cancel")
+                    Text(s[StringResource.COMMON_CANCEL])
                 }
             }
             FulfillmentStatus.READY_FOR_PICKUP -> {
@@ -265,7 +270,7 @@ private fun ActionButtons(
                     onClick = { onMarkPickedUp(orderId) },
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text("Confirm Pickup")
+                    Text(s[StringResource.POS_CONFIRM_PICKUP])
                 }
             }
             else -> Unit
@@ -275,10 +280,11 @@ private fun ActionButtons(
 
 @Composable
 private fun StatusBadge(status: FulfillmentStatus) {
+    val s = LocalStrings.current
     val (label, color) = when (status) {
-        FulfillmentStatus.RECEIVED       -> "Received" to MaterialTheme.colorScheme.tertiary
-        FulfillmentStatus.PREPARING      -> "Preparing" to MaterialTheme.colorScheme.primary
-        FulfillmentStatus.READY_FOR_PICKUP -> "Ready" to MaterialTheme.colorScheme.secondary
+        FulfillmentStatus.RECEIVED       -> s[StringResource.POS_STATUS_RECEIVED] to MaterialTheme.colorScheme.tertiary
+        FulfillmentStatus.PREPARING      -> s[StringResource.POS_STATUS_PREPARING] to MaterialTheme.colorScheme.primary
+        FulfillmentStatus.READY_FOR_PICKUP -> s[StringResource.POS_STATUS_READY] to MaterialTheme.colorScheme.secondary
         else                             -> status.name to MaterialTheme.colorScheme.outline
     }
     Text(
@@ -305,8 +311,8 @@ private fun formatDeadline(epochMillis: Long): String {
     return try {
         val instant = Instant.fromEpochMilliseconds(epochMillis)
         val dt = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-        "Deadline: ${dt.hour.toString().padStart(2, '0')}:${dt.minute.toString().padStart(2, '0')}"
+        "Deadline: ${dt.hour.toString().padStart(2, '0')}:${dt.minute.toString().padStart(2, '0')}" // Non-composable, cannot use LocalStrings
     } catch (_: Exception) {
-        "Deadline: Unknown"
+        "Deadline: --:--"
     }
 }

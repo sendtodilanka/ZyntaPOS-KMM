@@ -50,6 +50,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.domain.model.Coupon
 import com.zyntasolutions.zyntapos.domain.model.DiscountType
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
@@ -73,6 +75,7 @@ fun CouponDetailScreen(
     onNavigateUp: () -> Unit,
     viewModel: CouponViewModel = koinViewModel(),
 ) {
+    val s = LocalStrings.current
     val state by viewModel.state.collectAsState()
     val form = state.formState
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -95,16 +98,16 @@ fun CouponDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (couponId == null) "New Coupon" else "Edit Coupon") },
+                title = { Text(if (couponId == null) s[StringResource.COUPONS_NEW] else s[StringResource.COUPONS_EDIT]) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateUp) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = s[StringResource.COMMON_BACK])
                     }
                 },
                 actions = {
                     if (couponId != null) {
                         IconButton(onClick = { showDeleteDialog = true }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Delete")
+                            Icon(Icons.Default.Delete, contentDescription = s[StringResource.COMMON_DELETE])
                         }
                     }
                 },
@@ -128,7 +131,7 @@ fun CouponDetailScreen(
                 OutlinedTextField(
                     value = form.code,
                     onValueChange = { viewModel.dispatch(CouponIntent.UpdateFormField("code", it)) },
-                    label = { Text("Coupon Code *") },
+                    label = { Text(s[StringResource.COUPONS_CODE_REQUIRED]) },
                     isError = form.validationErrors.containsKey("code"),
                     supportingText = form.validationErrors["code"]?.let { { Text(it) } },
                     modifier = Modifier.weight(1f),
@@ -140,7 +143,7 @@ fun CouponDetailScreen(
                 ) {
                     Icon(
                         Icons.Default.AutoAwesome,
-                        contentDescription = "Auto-generate code",
+                        contentDescription = s[StringResource.COUPONS_AUTO_GENERATE],
                         tint = MaterialTheme.colorScheme.primary,
                     )
                 }
@@ -149,7 +152,7 @@ fun CouponDetailScreen(
             OutlinedTextField(
                 value = form.name,
                 onValueChange = { viewModel.dispatch(CouponIntent.UpdateFormField("name", it)) },
-                label = { Text("Name *") },
+                label = { Text(s[StringResource.COUPONS_NAME_REQUIRED]) },
                 isError = form.validationErrors.containsKey("name"),
                 supportingText = form.validationErrors["name"]?.let { { Text(it) } },
                 modifier = Modifier.fillMaxWidth(),
@@ -166,7 +169,7 @@ fun CouponDetailScreen(
                     value = discountTypeDisplayName(form.discountType),
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Discount Type") },
+                    label = { Text(s[StringResource.COUPONS_DISCOUNT_TYPE]) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(discountTypeExpanded) },
                     modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                 )
@@ -191,7 +194,7 @@ fun CouponDetailScreen(
                 OutlinedTextField(
                     value = form.discountValue,
                     onValueChange = { viewModel.dispatch(CouponIntent.UpdateFormField("discountValue", it)) },
-                    label = { Text("Discount Value *") },
+                    label = { Text(s[StringResource.COUPONS_DISCOUNT_VALUE]) },
                     isError = form.validationErrors.containsKey("discountValue"),
                     supportingText = form.validationErrors["discountValue"]?.let { { Text(it) } },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -203,7 +206,7 @@ fun CouponDetailScreen(
             OutlinedTextField(
                 value = form.minimumPurchase,
                 onValueChange = { viewModel.dispatch(CouponIntent.UpdateFormField("minimumPurchase", it)) },
-                label = { Text("Minimum Purchase (LKR)") },
+                label = { Text(s[StringResource.COUPONS_MIN_ORDER]) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
@@ -213,7 +216,7 @@ fun CouponDetailScreen(
                 OutlinedTextField(
                     value = form.maximumDiscount,
                     onValueChange = { viewModel.dispatch(CouponIntent.UpdateFormField("maximumDiscount", it)) },
-                    label = { Text("Maximum Discount Cap (LKR)") },
+                    label = { Text(s[StringResource.COUPONS_MAX_DISCOUNT]) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
@@ -222,7 +225,7 @@ fun CouponDetailScreen(
 
             // ── Coupon Scope (G12: CART / PRODUCT / CATEGORY / CUSTOMER) ─────
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-            Text("Coupon Scope", style = MaterialTheme.typography.titleSmall)
+            Text(s[StringResource.COUPONS_SCOPE], style = MaterialTheme.typography.titleSmall)
 
             var scopeExpanded by remember { mutableStateOf(false) }
             ExposedDropdownMenuBox(
@@ -233,7 +236,7 @@ fun CouponDetailScreen(
                     value = scopeDisplayName(form.scope),
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Applies To") },
+                    label = { Text(s[StringResource.COUPONS_APPLIES_TO]) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(scopeExpanded) },
                     modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                 )
@@ -256,7 +259,7 @@ fun CouponDetailScreen(
             // ── Category Picker (when scope = CATEGORY) ─────────────────────
             if (form.scope == Coupon.CouponScope.CATEGORY.name && state.availableCategories.isNotEmpty()) {
                 Text(
-                    "Select Categories",
+                    s[StringResource.COUPONS_SELECT_CATEGORIES],
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -304,13 +307,13 @@ fun CouponDetailScreen(
 
             // ── Usage Limits ─────────────────────────────────────────────────
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-            Text("Usage Limits", style = MaterialTheme.typography.titleSmall)
+            Text(s[StringResource.COUPONS_USAGE_LIMITS], style = MaterialTheme.typography.titleSmall)
 
             OutlinedTextField(
                 value = form.usageLimit,
                 onValueChange = { viewModel.dispatch(CouponIntent.UpdateFormField("usageLimit", it)) },
-                label = { Text("Total Usage Limit") },
-                placeholder = { Text("Unlimited") },
+                label = { Text(s[StringResource.COUPONS_USAGE_LIMIT]) },
+                placeholder = { Text(s[StringResource.COUPONS_UNLIMITED]) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
@@ -319,8 +322,8 @@ fun CouponDetailScreen(
             OutlinedTextField(
                 value = form.perCustomerLimit,
                 onValueChange = { viewModel.dispatch(CouponIntent.UpdateFormField("perCustomerLimit", it)) },
-                label = { Text("Per-Customer Limit") },
-                placeholder = { Text("Unlimited") },
+                label = { Text(s[StringResource.COUPONS_PER_CUSTOMER_LIMIT]) },
+                placeholder = { Text(s[StringResource.COUPONS_UNLIMITED]) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
@@ -328,19 +331,19 @@ fun CouponDetailScreen(
 
             // ── Validity Period (date pickers instead of raw epoch ms) ───────
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-            Text("Validity Period", style = MaterialTheme.typography.titleSmall)
+            Text(s[StringResource.COUPONS_VALIDITY_PERIOD], style = MaterialTheme.typography.titleSmall)
 
             // Valid From
             OutlinedTextField(
                 value = formatEpochMillis(form.validFrom),
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Valid From *") },
+                label = { Text(s[StringResource.COUPONS_VALID_FROM]) },
                 isError = form.validationErrors.containsKey("validFrom"),
                 supportingText = form.validationErrors["validFrom"]?.let { { Text(it) } },
                 trailingIcon = {
                     IconButton(onClick = { showFromDatePicker = true }) {
-                        Icon(Icons.Default.CalendarMonth, contentDescription = "Select start date")
+                        Icon(Icons.Default.CalendarMonth, contentDescription = s[StringResource.COUPONS_SELECT_START_DATE])
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -352,12 +355,12 @@ fun CouponDetailScreen(
                 value = formatEpochMillis(form.validTo),
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Valid To *") },
+                label = { Text(s[StringResource.COUPONS_VALID_UNTIL]) },
                 isError = form.validationErrors.containsKey("validTo"),
                 supportingText = form.validationErrors["validTo"]?.let { { Text(it) } },
                 trailingIcon = {
                     IconButton(onClick = { showToDatePicker = true }) {
-                        Icon(Icons.Default.CalendarMonth, contentDescription = "Select end date")
+                        Icon(Icons.Default.CalendarMonth, contentDescription = s[StringResource.COUPONS_SELECT_END_DATE])
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -370,7 +373,7 @@ fun CouponDetailScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Text("Active", style = MaterialTheme.typography.bodyLarge)
+                Text(s[StringResource.COUPONS_ACTIVE], style = MaterialTheme.typography.bodyLarge)
                 Switch(
                     checked = form.isActive,
                     onCheckedChange = { viewModel.dispatch(CouponIntent.UpdateIsActive(it)) },
@@ -380,7 +383,7 @@ fun CouponDetailScreen(
             Spacer(Modifier.height(8.dp))
 
             ZyntaButton(
-                text = if (form.isEditing) "Update Coupon" else "Create Coupon",
+                text = if (form.isEditing) s[StringResource.COUPONS_UPDATE] else s[StringResource.COUPONS_CREATE],
                 onClick = { viewModel.dispatch(CouponIntent.SaveCoupon) },
                 modifier = Modifier.fillMaxWidth(),
                 isLoading = state.isLoading,
@@ -392,7 +395,7 @@ fun CouponDetailScreen(
     if (showDeleteDialog && couponId != null) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete Coupon") },
+            title = { Text(s[StringResource.COUPONS_DELETE]) },
             text = { Text("Delete \"${state.selectedCoupon?.name ?: couponId}\"? This cannot be undone.") },
             confirmButton = {
                 TextButton(
@@ -401,10 +404,10 @@ fun CouponDetailScreen(
                         viewModel.dispatch(CouponIntent.DeleteCoupon(couponId))
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                ) { Text("Delete") }
+                ) { Text(s[StringResource.COMMON_DELETE]) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel") }
+                TextButton(onClick = { showDeleteDialog = false }) { Text(s[StringResource.COMMON_CANCEL]) }
             },
         )
     }
@@ -421,13 +424,13 @@ fun CouponDetailScreen(
                         viewModel.dispatch(CouponIntent.UpdateFormField("validFrom", ms.toString()))
                     }
                     showFromDatePicker = false
-                }) { Text("Confirm") }
+                }) { Text(s[StringResource.COMMON_CONFIRM]) }
             },
             dismissButton = {
-                TextButton(onClick = { showFromDatePicker = false }) { Text("Cancel") }
+                TextButton(onClick = { showFromDatePicker = false }) { Text(s[StringResource.COMMON_CANCEL]) }
             },
         ) {
-            DatePicker(state = dateState, title = { Text("Valid From", modifier = Modifier.padding(16.dp)) })
+            DatePicker(state = dateState, title = { Text(s[StringResource.COUPONS_VALID_FROM], modifier = Modifier.padding(16.dp)) })
         }
     }
 
@@ -442,13 +445,13 @@ fun CouponDetailScreen(
                         viewModel.dispatch(CouponIntent.UpdateFormField("validTo", ms.toString()))
                     }
                     showToDatePicker = false
-                }) { Text("Confirm") }
+                }) { Text(s[StringResource.COMMON_CONFIRM]) }
             },
             dismissButton = {
-                TextButton(onClick = { showToDatePicker = false }) { Text("Cancel") }
+                TextButton(onClick = { showToDatePicker = false }) { Text(s[StringResource.COMMON_CANCEL]) }
             },
         ) {
-            DatePicker(state = dateState, title = { Text("Valid To", modifier = Modifier.padding(16.dp)) })
+            DatePicker(state = dateState, title = { Text(s[StringResource.COUPONS_VALID_UNTIL], modifier = Modifier.padding(16.dp)) })
         }
     }
 }

@@ -51,6 +51,8 @@ import com.zyntasolutions.zyntapos.domain.model.PrinterProfile
 import com.zyntasolutions.zyntapos.feature.settings.SettingsEffect
 import com.zyntasolutions.zyntapos.feature.settings.SettingsIntent
 import com.zyntasolutions.zyntapos.feature.settings.SettingsState
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
 
@@ -65,6 +67,7 @@ fun PrinterProfilesScreen(
     onIntent: (SettingsIntent) -> Unit,
     onBack: () -> Unit,
 ) {
+    val s = LocalStrings.current
     val snackbarHostState = remember { SnackbarHostState() }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var profileToDelete by remember { mutableStateOf<PrinterProfile?>(null) }
@@ -85,12 +88,12 @@ fun PrinterProfilesScreen(
     val showSheet = state.isCreating || state.editingProfile != null
 
     ZyntaPageScaffold(
-        title = "Printer Profiles",
+        title = s[StringResource.SETTINGS_PRINTER_PROFILES],
         onNavigateBack = onBack,
         snackbarHostState = snackbarHostState,
         floatingActionButton = {
             FloatingActionButton(onClick = { onIntent(SettingsIntent.OpenCreatePrinterProfile) }) {
-                Icon(Icons.Filled.Add, contentDescription = "Add profile")
+                Icon(Icons.Filled.Add, contentDescription = s[StringResource.SETTINGS_PRINTER_PROFILES_ADD])
             }
         },
     ) { innerPadding ->
@@ -104,12 +107,12 @@ fun PrinterProfilesScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
-                    text = "No printer profiles yet.",
+                    text = s[StringResource.SETTINGS_PRINTER_PROFILES_EMPTY],
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    text = "Tap + to add a profile.",
+                    text = s[StringResource.SETTINGS_PRINTER_PROFILES_EMPTY_HINT],
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -153,16 +156,16 @@ fun PrinterProfilesScreen(
         profileToDelete?.let { target ->
             AlertDialog(
                 onDismissRequest = { profileToDelete = null },
-                title = { Text("Delete Profile") },
+                title = { Text(s[StringResource.SETTINGS_PRINTER_PROFILES_DELETE_TITLE]) },
                 text = { Text("Delete \"${target.name}\"? This cannot be undone.") },
                 confirmButton = {
                     Button(onClick = {
                         onIntent(SettingsIntent.DeletePrinterProfile(target.id))
                         profileToDelete = null
-                    }) { Text("Delete") }
+                    }) { Text(s[StringResource.COMMON_DELETE]) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { profileToDelete = null }) { Text("Cancel") }
+                    TextButton(onClick = { profileToDelete = null }) { Text(s[StringResource.COMMON_CANCEL]) }
                 },
             )
         }
@@ -175,6 +178,7 @@ private fun PrinterProfileCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
+    val s = LocalStrings.current
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         modifier = Modifier.fillMaxWidth(),
@@ -194,10 +198,10 @@ private fun PrinterProfileCard(
                 )
             }
             IconButton(onClick = onEdit) {
-                Icon(Icons.Filled.Edit, contentDescription = "Edit")
+                Icon(Icons.Filled.Edit, contentDescription = s[StringResource.COMMON_EDIT])
             }
             IconButton(onClick = onDelete) {
-                Icon(Icons.Filled.Delete, contentDescription = "Delete")
+                Icon(Icons.Filled.Delete, contentDescription = s[StringResource.COMMON_DELETE])
             }
         }
     }
@@ -211,6 +215,7 @@ private fun PrinterProfileForm(
     saveError: String?,
     onIntent: (SettingsIntent) -> Unit,
 ) {
+    val s = LocalStrings.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -218,12 +223,12 @@ private fun PrinterProfileForm(
             .padding(ZyntaSpacing.md),
         verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
     ) {
-        Text("Printer Profile", style = MaterialTheme.typography.titleMedium)
+        Text(s[StringResource.SETTINGS_PRINTER_PROFILE], style = MaterialTheme.typography.titleMedium)
 
         OutlinedTextField(
             value = form.name,
             onValueChange = { onIntent(SettingsIntent.UpdateProfileName(it)) },
-            label = { Text("Profile Name") },
+            label = { Text(s[StringResource.SETTINGS_PRINTER_PROFILE_NAME]) },
             modifier = Modifier.fillMaxWidth(),
         )
 
@@ -237,7 +242,7 @@ private fun PrinterProfileForm(
                 value = form.jobType.name,
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Job Type") },
+                label = { Text(s[StringResource.SETTINGS_PRINTER_JOB_TYPE]) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = jobTypeExpanded) },
                 modifier = Modifier.fillMaxWidth().menuAnchor(),
             )
@@ -268,7 +273,7 @@ private fun PrinterProfileForm(
                 value = form.printerType,
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Connection Type") },
+                label = { Text(s[StringResource.SETTINGS_PRINTER_CONNECTION_TYPE]) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = transportExpanded) },
                 modifier = Modifier.fillMaxWidth().menuAnchor(),
             )
@@ -292,13 +297,13 @@ private fun PrinterProfileForm(
             OutlinedTextField(
                 value = form.tcpHost,
                 onValueChange = { onIntent(SettingsIntent.UpdateProfileTcpHost(it)) },
-                label = { Text("IP Address / Hostname") },
+                label = { Text(s[StringResource.SETTINGS_PRINTER_IP_ADDRESS]) },
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = form.tcpPort,
                 onValueChange = { onIntent(SettingsIntent.UpdateProfileTcpPort(it)) },
-                label = { Text("Port") },
+                label = { Text(s[StringResource.SETTINGS_PRINTER_PORT]) },
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -307,13 +312,13 @@ private fun PrinterProfileForm(
             OutlinedTextField(
                 value = form.serialPort,
                 onValueChange = { onIntent(SettingsIntent.UpdateProfileSerialPort(it)) },
-                label = { Text("Serial Port") },
+                label = { Text(s[StringResource.SETTINGS_PRINTER_SERIAL_PORT]) },
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = form.baudRate,
                 onValueChange = { onIntent(SettingsIntent.UpdateProfileBaudRate(it)) },
-                label = { Text("Baud Rate") },
+                label = { Text(s[StringResource.SETTINGS_PRINTER_BAUD_RATE]) },
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -322,7 +327,7 @@ private fun PrinterProfileForm(
             OutlinedTextField(
                 value = form.btAddress,
                 onValueChange = { onIntent(SettingsIntent.UpdateProfileBtAddress(it)) },
-                label = { Text("Bluetooth MAC Address") },
+                label = { Text(s[StringResource.SETTINGS_PRINTER_BT_ADDRESS]) },
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -354,7 +359,7 @@ private fun PrinterProfileForm(
             enabled = !isSaving,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(if (isSaving) "Saving…" else "Save Profile")
+            Text(if (isSaving) s[StringResource.COMMON_SAVING] else s[StringResource.SETTINGS_PRINTER_PROFILE_SAVE])
         }
     }
 }

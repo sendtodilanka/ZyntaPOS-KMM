@@ -14,6 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.Account
@@ -37,6 +39,7 @@ fun ChartOfAccountsScreen(
     onNavigateToAccountDetail: (accountId: String?) -> Unit,
     onNavigateBack: () -> Unit,
 ) {
+    val s = LocalStrings.current
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
@@ -61,12 +64,9 @@ fun ChartOfAccountsScreen(
     showDeactivateDialog?.let { accountId ->
         AlertDialog(
             onDismissRequest = { showDeactivateDialog = null },
-            title = { Text("Deactivate Account") },
+            title = { Text(s[StringResource.ACCOUNTING_DEACTIVATE_ACCOUNT]) },
             text = {
-                Text(
-                    "Are you sure you want to deactivate this account? It will be hidden from" +
-                        " transaction entry but preserved for historical reports.",
-                )
+                Text(s[StringResource.ACCOUNTING_DEACTIVATE_CONFIRM])
             },
             confirmButton = {
                 TextButton(
@@ -74,10 +74,10 @@ fun ChartOfAccountsScreen(
                         viewModel.dispatch(ChartOfAccountsIntent.DeactivateAccount(accountId))
                         showDeactivateDialog = null
                     },
-                ) { Text("Deactivate") }
+                ) { Text(s[StringResource.ACCOUNTING_DEACTIVATE]) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeactivateDialog = null }) { Text("Cancel") }
+                TextButton(onClick = { showDeactivateDialog = null }) { Text(s[StringResource.COMMON_CANCEL]) }
             },
         )
     }
@@ -85,10 +85,10 @@ fun ChartOfAccountsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Chart of Accounts") },
+                title = { Text(s[StringResource.ACCOUNTING_CHART_OF_ACCOUNTS]) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = s[StringResource.COMMON_BACK])
                     }
                 },
             )
@@ -104,7 +104,7 @@ fun ChartOfAccountsScreen(
                     onNavigateToAccountDetail(null)
                 },
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Account")
+                Icon(Icons.Default.Add, contentDescription = s[StringResource.ACCOUNTING_ADD_ACCOUNT])
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -118,12 +118,12 @@ fun ChartOfAccountsScreen(
             OutlinedTextField(
                 value = state.searchQuery,
                 onValueChange = { viewModel.dispatch(ChartOfAccountsIntent.SearchAccounts(it)) },
-                label = { Text("Search accounts") },
+                label = { Text(s[StringResource.ACCOUNTING_SEARCH_ACCOUNTS]) },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 trailingIcon = {
                     if (state.searchQuery.isNotBlank()) {
                         IconButton(onClick = { viewModel.dispatch(ChartOfAccountsIntent.SearchAccounts("")) }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Clear search")
+                            Icon(Icons.Default.Clear, contentDescription = s[StringResource.COMMON_CLEAR])
                         }
                     }
                 },
@@ -143,7 +143,7 @@ fun ChartOfAccountsScreen(
                     FilterChip(
                         selected = state.selectedType == null,
                         onClick = { viewModel.dispatch(ChartOfAccountsIntent.FilterByType(null)) },
-                        label = { Text("ALL") },
+                        label = { Text(s[StringResource.COMMON_ALL]) },
                     )
                 }
                 items(AccountType.entries.toList()) { type ->
@@ -165,10 +165,10 @@ fun ChartOfAccountsScreen(
                     }
                     state.accounts.isEmpty() -> {
                         ZyntaEmptyState(
-                            title = "No accounts found",
+                            title = s[StringResource.ACCOUNTING_NO_ACCOUNTS],
                             icon = Icons.Default.AccountBalance,
-                            subtitle = "Seed the default chart of accounts to get started.",
-                            ctaLabel = "Load Defaults",
+                            subtitle = s[StringResource.ACCOUNTING_SEED_PROMPT],
+                            ctaLabel = s[StringResource.ACCOUNTING_LOAD_DEFAULTS],
                             onCtaClick = { viewModel.dispatch(ChartOfAccountsIntent.SeedDefaultAccounts) },
                         )
                     }
@@ -201,6 +201,7 @@ private fun AccountCard(
     onClick: () -> Unit,
     onDeactivate: () -> Unit,
 ) {
+    val s = LocalStrings.current
     var showMenu by remember { mutableStateOf(false) }
 
     Card(
@@ -258,7 +259,7 @@ private fun AccountCard(
                 shape = MaterialTheme.shapes.extraSmall,
             ) {
                 Text(
-                    text = if (account.isActive) "Active" else "Inactive",
+                    text = if (account.isActive) s[StringResource.COMMON_ACTIVE] else s[StringResource.COMMON_INACTIVE],
                     style = MaterialTheme.typography.labelSmall,
                     color = if (account.isActive) MaterialTheme.colorScheme.onTertiaryContainer
                     else MaterialTheme.colorScheme.onErrorContainer,
@@ -269,14 +270,14 @@ private fun AccountCard(
             // Overflow menu
             Box {
                 IconButton(onClick = { showMenu = true }) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "More options")
+                    Icon(Icons.Default.MoreVert, contentDescription = s[StringResource.COMMON_MORE_OPTIONS])
                 }
                 DropdownMenu(
                     expanded = showMenu,
                     onDismissRequest = { showMenu = false },
                 ) {
                     DropdownMenuItem(
-                        text = { Text("Edit") },
+                        text = { Text(s[StringResource.COMMON_EDIT]) },
                         onClick = {
                             showMenu = false
                             onClick()
@@ -285,7 +286,7 @@ private fun AccountCard(
                     )
                     if (account.isActive && !account.isSystemAccount) {
                         DropdownMenuItem(
-                            text = { Text("Deactivate") },
+                            text = { Text(s[StringResource.ACCOUNTING_DEACTIVATE]) },
                             onClick = {
                                 showMenu = false
                                 onDeactivate()

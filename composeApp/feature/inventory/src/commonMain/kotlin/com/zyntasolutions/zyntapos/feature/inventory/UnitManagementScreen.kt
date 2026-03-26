@@ -15,6 +15,8 @@ import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.domain.model.UnitOfMeasure
 
 /**
@@ -50,16 +52,17 @@ fun UnitManagementScreen(
     onSaveGroup: (group: UnitGroup) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     var showAddGroupDialog by remember { mutableStateOf(false) }
 
     ZyntaPageScaffold(
-        title = "Units of Measure",
+        title = s[StringResource.INVENTORY_UNITS_OF_MEASURE],
         modifier = modifier,
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { showAddGroupDialog = true },
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("New Group") },
+                text = { Text(s[StringResource.INVENTORY_NEW_GROUP]) },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
             )
@@ -71,10 +74,10 @@ fun UnitManagementScreen(
             }
         } else if (unitGroups.isEmpty()) {
             ZyntaEmptyState(
-                title = "No unit groups defined",
+                title = s[StringResource.INVENTORY_NO_UNIT_GROUPS],
                 icon = Icons.Default.Scale,
-                subtitle = "Create a group (e.g. Weight) then add units",
-                ctaLabel = "New Group",
+                subtitle = s[StringResource.INVENTORY_NO_UNIT_GROUPS_SUBTITLE],
+                ctaLabel = s[StringResource.INVENTORY_NEW_GROUP],
                 onCtaClick = { showAddGroupDialog = true },
                 modifier = Modifier.padding(innerPadding),
             )
@@ -140,6 +143,7 @@ private fun UnitGroupCard(
     onDeleteUnit: (String) -> Unit,
     onRenameGroup: (String) -> Unit,
 ) {
+    val s = LocalStrings.current
     var showAddUnitDialog by remember { mutableStateOf(false) }
     var editingUnit by remember { mutableStateOf<UnitOfMeasure?>(null) }
 
@@ -163,7 +167,7 @@ private fun UnitGroupCard(
                 TextButton(onClick = { showAddUnitDialog = true }) {
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("Add Unit", style = MaterialTheme.typography.labelMedium)
+                    Text(s[StringResource.INVENTORY_ADD_UNIT], style = MaterialTheme.typography.labelMedium)
                 }
             }
 
@@ -171,7 +175,7 @@ private fun UnitGroupCard(
 
             if (group.units.isEmpty()) {
                 Box(Modifier.fillMaxWidth().padding(ZyntaSpacing.md), contentAlignment = Alignment.Center) {
-                    Text("No units defined. Add the first unit above.",
+                    Text(s[StringResource.INVENTORY_NO_UNITS_DEFINED],
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -181,16 +185,16 @@ private fun UnitGroupCard(
                     Modifier.fillMaxWidth()
                         .padding(horizontal = ZyntaSpacing.md, vertical = ZyntaSpacing.xs),
                 ) {
-                    Text("Unit Name", style = MaterialTheme.typography.labelSmall,
+                    Text(s[StringResource.INVENTORY_UNIT_NAME], style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.weight(2f),
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("Abbrev.", style = MaterialTheme.typography.labelSmall,
+                    Text(s[StringResource.INVENTORY_ABBREVIATION], style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.weight(1f),
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("Rate", style = MaterialTheme.typography.labelSmall,
+                    Text(s[StringResource.INVENTORY_RATE], style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.weight(1f),
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("Base", style = MaterialTheme.typography.labelSmall,
+                    Text(s[StringResource.INVENTORY_BASE], style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.weight(0.8f),
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.width(72.dp)) // actions
@@ -240,6 +244,7 @@ private fun UnitRow(
     onDelete: () -> Unit,
     onToggleBase: () -> Unit,
 ) {
+    val s = LocalStrings.current
     Row(
         modifier = Modifier.fillMaxWidth()
             .padding(horizontal = ZyntaSpacing.md, vertical = ZyntaSpacing.xs),
@@ -263,11 +268,11 @@ private fun UnitRow(
             )
         }
         IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
-            Icon(Icons.Default.Edit, contentDescription = "Edit unit", modifier = Modifier.size(16.dp),
+            Icon(Icons.Default.Edit, contentDescription = s[StringResource.INVENTORY_EDIT_UNIT], modifier = Modifier.size(16.dp),
                 tint = MaterialTheme.colorScheme.primary)
         }
         IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-            Icon(Icons.Default.Delete, contentDescription = "Delete unit", modifier = Modifier.size(16.dp),
+            Icon(Icons.Default.Delete, contentDescription = s[StringResource.INVENTORY_DELETE_UNIT], modifier = Modifier.size(16.dp),
                 tint = MaterialTheme.colorScheme.error)
         }
     }
@@ -283,6 +288,7 @@ private fun UnitEditDialog(
     onConfirm: (UnitOfMeasure) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val s = LocalStrings.current
     var name by remember { mutableStateOf(existingUnit?.name ?: "") }
     var abbreviation by remember { mutableStateOf(existingUnit?.abbreviation ?: "") }
     var conversionRate by remember { mutableStateOf(existingUnit?.conversionRate?.toString() ?: "1.0") }
@@ -291,33 +297,33 @@ private fun UnitEditDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (existingUnit == null) "Add Unit" else "Edit Unit") },
+        title = { Text(if (existingUnit == null) s[StringResource.INVENTORY_ADD_UNIT] else s[StringResource.INVENTORY_EDIT_UNIT]) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                 OutlinedTextField(value = name, onValueChange = { name = it; nameError = null },
-                    label = { Text("Unit Name *") }, isError = nameError != null,
+                    label = { Text(s[StringResource.INVENTORY_UNIT_NAME_REQUIRED]) }, isError = nameError != null,
                     supportingText = nameError?.let { { Text(it) } }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(value = abbreviation, onValueChange = { abbreviation = it },
-                    label = { Text("Abbreviation") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    label = { Text(s[StringResource.INVENTORY_ABBREVIATION]) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(
                     value = conversionRate,
                     onValueChange = { conversionRate = it },
-                    label = { Text("Conversion Rate") },
+                    label = { Text(s[StringResource.INVENTORY_CONVERSION_RATE]) },
                     enabled = !isBaseUnit,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    supportingText = { Text("Multiplier relative to base unit") },
+                    supportingText = { Text(s[StringResource.INVENTORY_CONVERSION_RATE_HINT]) },
                     singleLine = true, modifier = Modifier.fillMaxWidth(),
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Switch(checked = isBaseUnit, onCheckedChange = { isBaseUnit = it })
                     Spacer(Modifier.width(ZyntaSpacing.sm))
-                    Text("Base Unit", style = MaterialTheme.typography.bodyMedium)
+                    Text(s[StringResource.INVENTORY_BASE_UNIT], style = MaterialTheme.typography.bodyMedium)
                 }
             }
         },
         confirmButton = {
             TextButton(onClick = {
-                if (name.isBlank()) { nameError = "Required"; return@TextButton }
+                if (name.isBlank()) { nameError = s[StringResource.COMMON_REQUIRED]; return@TextButton }
                 val rate = conversionRate.toDoubleOrNull() ?: 1.0
                 onConfirm(UnitOfMeasure(
                     id = existingUnit?.id ?: "",
@@ -326,28 +332,29 @@ private fun UnitEditDialog(
                     isBaseUnit = isBaseUnit,
                     conversionRate = if (isBaseUnit) 1.0 else rate,
                 ))
-            }) { Text("Save") }
+            }) { Text(s[StringResource.COMMON_SAVE]) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(s[StringResource.COMMON_CANCEL]) } },
     )
 }
 
 @Composable
 private fun AddGroupDialog(onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
+    val s = LocalStrings.current
     var name by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("New Unit Group") },
+        title = { Text(s[StringResource.INVENTORY_NEW_UNIT_GROUP]) },
         text = {
             OutlinedTextField(value = name, onValueChange = { name = it },
-                label = { Text("Group Name *") },
-                placeholder = { Text("e.g. Weight, Volume, Count") },
+                label = { Text(s[StringResource.INVENTORY_GROUP_NAME_REQUIRED]) },
+                placeholder = { Text(s[StringResource.INVENTORY_GROUP_NAME_PLACEHOLDER]) },
                 singleLine = true, modifier = Modifier.fillMaxWidth())
         },
         confirmButton = {
-            TextButton(onClick = { if (name.isNotBlank()) onConfirm(name.trim()) }) { Text("Create") }
+            TextButton(onClick = { if (name.isNotBlank()) onConfirm(name.trim()) }) { Text(s[StringResource.INVENTORY_CREATE]) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(s[StringResource.COMMON_CANCEL]) } },
     )
 }
 

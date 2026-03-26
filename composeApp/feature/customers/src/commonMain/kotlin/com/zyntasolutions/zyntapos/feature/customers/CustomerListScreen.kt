@@ -34,6 +34,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoadingSkeleton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoyaltyTierBadge
@@ -57,6 +59,7 @@ fun CustomerListScreen(
     onNavigateToGroups: () -> Unit,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
+    val s = LocalStrings.current
     LaunchedEffect(Unit) {
         onIntent(CustomerIntent.LoadCustomers)
     }
@@ -64,10 +67,10 @@ fun CustomerListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Customers") },
+                title = { Text(s[StringResource.CUSTOMERS_TITLE]) },
                 actions = {
                     IconButton(onClick = onNavigateToGroups) {
-                        Icon(Icons.Filled.Group, contentDescription = "Customer Groups")
+                        Icon(Icons.Filled.Group, contentDescription = s[StringResource.CUSTOMERS_GROUPS])
                     }
                 },
             )
@@ -76,7 +79,7 @@ fun CustomerListScreen(
             ExtendedFloatingActionButton(
                 onClick = { onNavigateToDetail(null) },
                 icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                text = { Text("New Customer") },
+                text = { Text(s[StringResource.CUSTOMERS_NEW]) },
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -107,7 +110,7 @@ fun CustomerListScreen(
                         FilterChip(
                             selected = state.selectedGroupId == null,
                             onClick = { onIntent(CustomerIntent.FilterByGroup(null)) },
-                            label = { Text("All") },
+                            label = { Text(s[StringResource.CUSTOMERS_ALL]) },
                         )
                     }
                     items(state.customerGroups) { group ->
@@ -127,11 +130,11 @@ fun CustomerListScreen(
                     modifier = Modifier.fillMaxSize().padding(16.dp),
                 )
                 state.customers.isEmpty() -> ZyntaEmptyState(
-                    title = "No Customers Found",
+                    title = s[StringResource.CUSTOMERS_NO_CUSTOMERS],
                     subtitle = if (state.searchQuery.isNotBlank()) {
-                        "No results for \"${state.searchQuery}\""
+                        s[StringResource.CUSTOMERS_NO_RESULTS]
                     } else {
-                        "Add your first customer using the + button"
+                        s[StringResource.CUSTOMERS_ADD_FIRST]
                     },
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -198,10 +201,11 @@ private fun CustomerTableHeader(
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        SortableHeaderCell("Name", "name", sortColumn, sortDirection, onSort, Modifier.weight(2f))
-        SortableHeaderCell("Phone", "phone", sortColumn, sortDirection, onSort, Modifier.weight(1.5f))
-        SortableHeaderCell("Points", "points", sortColumn, sortDirection, onSort, Modifier.weight(1f))
-        Text("Group", style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1.5f))
+        val s = LocalStrings.current
+        SortableHeaderCell(s[StringResource.CUSTOMERS_NAME], "name", sortColumn, sortDirection, onSort, Modifier.weight(2f))
+        SortableHeaderCell(s[StringResource.CUSTOMERS_PHONE], "phone", sortColumn, sortDirection, onSort, Modifier.weight(1.5f))
+        SortableHeaderCell(s[StringResource.CUSTOMERS_POINTS], "points", sortColumn, sortDirection, onSort, Modifier.weight(1f))
+        Text(s[StringResource.CUSTOMERS_GROUP], style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1.5f))
     }
 }
 

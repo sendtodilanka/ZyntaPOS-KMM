@@ -18,6 +18,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaDialogContent
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaDialogVariant
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
@@ -77,14 +79,15 @@ fun ReceiptScreen(
     onDismissError: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     // ── Retry error dialog ────────────────────────────────────────────────────
     if (printError != null) {
         ZyntaDialogContent(
             variant = ZyntaDialogVariant.Confirm(
-                title = "Print Failed",
-                message = "$printError\n\nWould you like to try again?",
-                confirmLabel = "Retry",
-                cancelLabel = "Cancel",
+                title = s[StringResource.POS_PRINT_FAILED],
+                message = "$printError\n\n${s[StringResource.POS_RETRY_PROMPT]}",
+                confirmLabel = s[StringResource.COMMON_RETRY],
+                cancelLabel = s[StringResource.COMMON_CANCEL],
                 onConfirm = { onPrint(); onDismissError() },
                 onCancel = onDismissError,
             ),
@@ -92,7 +95,7 @@ fun ReceiptScreen(
     }
 
     ZyntaPageScaffold(
-        title = "Receipt — Order #$orderNumber",
+        title = "${s[StringResource.POS_RECEIPT]} — ${s[StringResource.POS_ORDER_NUMBER_PREFIX]}$orderNumber",
         modifier = modifier,
     ) { innerPadding ->
         Column(
@@ -153,11 +156,11 @@ fun ReceiptScreen(
                             color = MaterialTheme.colorScheme.onPrimary,
                         )
                         Spacer(Modifier.width(ZyntaSpacing.xs))
-                        Text("Printing…")
+                        Text(s[StringResource.POS_PRINTING])
                     } else {
                         Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(ZyntaSpacing.xs))
-                        Text("Print")
+                        Text(s[StringResource.COMMON_PRINT])
                     }
                 }
 
@@ -173,7 +176,7 @@ fun ReceiptScreen(
                         Icon(Icons.Default.Replay, contentDescription = null, modifier = Modifier.size(18.dp))
                     }
                     Spacer(Modifier.width(ZyntaSpacing.xs))
-                    Text("Reprint")
+                    Text(s[StringResource.POS_REPRINT])
                 }
 
                 // A4 Invoice button
@@ -188,7 +191,7 @@ fun ReceiptScreen(
                         Icon(Icons.Default.Description, contentDescription = null, modifier = Modifier.size(18.dp))
                     }
                     Spacer(Modifier.width(ZyntaSpacing.xs))
-                    Text("A4")
+                    Text(s[StringResource.POS_A4])
                 }
 
                 // Email button
@@ -198,7 +201,7 @@ fun ReceiptScreen(
                 ) {
                     Icon(Icons.Default.Email, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(ZyntaSpacing.xs))
-                    Text("Email")
+                    Text(s[StringResource.POS_EMAIL])
                 }
 
                 // Skip button
@@ -208,7 +211,7 @@ fun ReceiptScreen(
                 ) {
                     Icon(Icons.Default.SkipNext, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(ZyntaSpacing.xs))
-                    Text("Skip")
+                    Text(s[StringResource.POS_SKIP])
                 }
             }
         }

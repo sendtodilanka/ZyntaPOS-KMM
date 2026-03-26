@@ -21,6 +21,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.StoreItem
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButtonSize
@@ -183,6 +185,7 @@ private fun LoginFormContent(
     onIntent: (AuthIntent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     // G4: Live countdown when account is locked out after too many failed attempts
     var lockoutSecondsRemaining by remember { mutableStateOf(0) }
     LaunchedEffect(state.lockedOutUntilMs) {
@@ -205,12 +208,12 @@ private fun LoginFormContent(
     Column(modifier = modifier.fillMaxWidth()) {
 
         Text(
-            text = "Welcome Back",
+            text = s[StringResource.AUTH_WELCOME_BACK],
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
         )
         Text(
-            text = "Sign in to your ZyntaPOS account",
+            text = s[StringResource.AUTH_SIGN_IN_SUBTITLE],
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -219,7 +222,7 @@ private fun LoginFormContent(
 
         // Email field
         ZyntaTextField(
-            label = "Email Address",
+            label = s[StringResource.AUTH_EMAIL_LABEL],
             value = state.email,
             onValueChange = { onIntent(AuthIntent.EmailChanged(it)) },
             leadingIcon = Icons.Default.Email,
@@ -233,7 +236,7 @@ private fun LoginFormContent(
 
         // Password field with visibility toggle
         ZyntaTextField(
-            label = "Password",
+            label = s[StringResource.AUTH_PASSWORD_LABEL],
             value = state.password,
             onValueChange = { onIntent(AuthIntent.PasswordChanged(it)) },
             leadingIcon = Icons.Default.Lock,
@@ -241,7 +244,7 @@ private fun LoginFormContent(
                 IconButton(onClick = { onIntent(AuthIntent.TogglePasswordVisibility) }) {
                     Icon(
                         imageVector = if (state.isPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                        contentDescription = if (state.isPasswordVisible) "Hide password" else "Show password",
+                        contentDescription = if (state.isPasswordVisible) s[StringResource.AUTH_HIDE_PASSWORD] else s[StringResource.AUTH_SHOW_PASSWORD],
                     )
                 }
             },
@@ -277,10 +280,10 @@ private fun LoginFormContent(
                     checked = state.rememberMe,
                     onCheckedChange = { onIntent(AuthIntent.RememberMeToggled(it)) },
                 )
-                Text("Remember Me", style = MaterialTheme.typography.bodyMedium)
+                Text(s[StringResource.AUTH_REMEMBER_ME], style = MaterialTheme.typography.bodyMedium)
             }
             TextButton(onClick = { onIntent(AuthIntent.ForgotPasswordClicked) }) {
-                Text("Forgot Password?")
+                Text(s[StringResource.AUTH_FORGOT_PASSWORD])
             }
         }
 
@@ -293,7 +296,7 @@ private fun LoginFormContent(
             ) {
                 Column(modifier = Modifier.padding(ZyntaSpacing.md)) {
                     Text(
-                        text = state.error ?: "Account locked.",
+                        text = state.error ?: s[StringResource.AUTH_ACCOUNT_LOCKED],
                         color = MaterialTheme.colorScheme.onErrorContainer,
                         style = MaterialTheme.typography.bodySmall,
                     )
@@ -314,7 +317,7 @@ private fun LoginFormContent(
         Spacer(Modifier.height(ZyntaSpacing.lg))
 
         ZyntaButton(
-            text = "Login to Dashboard",
+            text = s[StringResource.AUTH_LOGIN_BUTTON],
             onClick = { onIntent(AuthIntent.LoginClicked) },
             isLoading = state.isLoading,
             enabled = !isLockedOut,
@@ -338,6 +341,7 @@ private fun LoginIllustrationPanel(modifier: Modifier = Modifier) {
         ),
     )
 
+    val s = LocalStrings.current
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -350,7 +354,7 @@ private fun LoginIllustrationPanel(modifier: Modifier = Modifier) {
         ) {
             Icon(
                 imageVector = Icons.Filled.PointOfSale,
-                contentDescription = "Point of Sale",
+                contentDescription = s[StringResource.AUTH_POINT_OF_SALE],
                 tint = Color.White,
                 modifier = Modifier.size(120.dp),
             )
@@ -367,7 +371,7 @@ private fun LoginIllustrationPanel(modifier: Modifier = Modifier) {
             Spacer(Modifier.height(ZyntaSpacing.sm))
 
             Text(
-                text = "Enterprise Point of Sale",
+                text = s[StringResource.AUTH_ENTERPRISE_POS],
                 style = MaterialTheme.typography.titleMedium,
                 color = Color.White.copy(alpha = 0.8f),
             )
@@ -375,7 +379,7 @@ private fun LoginIllustrationPanel(modifier: Modifier = Modifier) {
             Spacer(Modifier.height(ZyntaSpacing.md))
 
             Text(
-                text = "Fast. Reliable. Intelligent.",
+                text = s[StringResource.AUTH_TAGLINE],
                 style = MaterialTheme.typography.bodyLarge,
                 color = Color.White.copy(alpha = 0.6f),
             )

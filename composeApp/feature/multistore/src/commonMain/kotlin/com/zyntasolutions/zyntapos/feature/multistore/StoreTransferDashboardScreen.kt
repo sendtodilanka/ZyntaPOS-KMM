@@ -41,6 +41,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.domain.model.StockTransfer
 import com.zyntasolutions.zyntapos.domain.model.Warehouse
 import org.koin.compose.viewmodel.koinViewModel
@@ -88,6 +90,7 @@ fun StoreTransferDashboardScreen(
     onNavigateToPickList: (transferId: String) -> Unit = {},
     viewModel: WarehouseViewModel = koinViewModel(),
 ) {
+    val s = LocalStrings.current
     val state by viewModel.state.collectAsState()
 
     // Load all transfers when screen is shown
@@ -169,17 +172,17 @@ fun StoreTransferDashboardScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Store Transfer Overview") },
+                title = { Text(s[StringResource.MULTISTORE_TRANSFER_OVERVIEW]) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateUp) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = s[StringResource.COMMON_BACK])
                     }
                 },
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { onNavigateToNewTransfer(null) }) {
-                Icon(Icons.Default.Add, contentDescription = "New Transfer")
+                Icon(Icons.Default.Add, contentDescription = s[StringResource.MULTISTORE_NEW_TRANSFER])
             }
         },
     ) { padding ->
@@ -190,12 +193,12 @@ fun StoreTransferDashboardScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
-                    "No active transfers",
+                    s[StringResource.MULTISTORE_NO_ACTIVE_TRANSFERS],
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    "Create a transfer to move stock between stores",
+                    s[StringResource.MULTISTORE_CREATE_TRANSFER_HINT],
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -215,7 +218,7 @@ fun StoreTransferDashboardScreen(
                             FilterChip(
                                 selected = activeFilter == null,
                                 onClick = { activeFilter = null },
-                                label = { Text("All") },
+                                label = { Text(s[StringResource.COMMON_ALL]) },
                             )
                         }
                         item {
@@ -225,7 +228,7 @@ fun StoreTransferDashboardScreen(
                                     activeFilter = if (activeFilter == StockTransfer.Status.PENDING) null
                                     else StockTransfer.Status.PENDING
                                 },
-                                label = { Text("Pending") },
+                                label = { Text(s[StringResource.MULTISTORE_PENDING]) },
                             )
                         }
                         item {
@@ -235,7 +238,7 @@ fun StoreTransferDashboardScreen(
                                     activeFilter = if (activeFilter == StockTransfer.Status.APPROVED) null
                                     else StockTransfer.Status.APPROVED
                                 },
-                                label = { Text("Approved") },
+                                label = { Text(s[StringResource.MULTISTORE_APPROVED]) },
                             )
                         }
                         item {
@@ -245,7 +248,7 @@ fun StoreTransferDashboardScreen(
                                     activeFilter = if (activeFilter == StockTransfer.Status.IN_TRANSIT) null
                                     else StockTransfer.Status.IN_TRANSIT
                                 },
-                                label = { Text("In Transit") },
+                                label = { Text(s[StringResource.MULTISTORE_IN_TRANSIT]) },
                             )
                         }
                     }
@@ -280,6 +283,7 @@ private fun StorePairGroupCard(
     onGeneratePickList: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     Card(
         modifier = modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),

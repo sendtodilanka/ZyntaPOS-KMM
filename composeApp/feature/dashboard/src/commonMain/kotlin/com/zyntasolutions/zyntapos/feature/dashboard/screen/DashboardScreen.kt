@@ -59,7 +59,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ChartDataPoint
 import com.zyntasolutions.zyntapos.designsystem.components.ChartSeries
 import com.zyntasolutions.zyntapos.designsystem.components.InfoCardVariant
@@ -170,8 +172,9 @@ internal fun DashboardScreenContent(
     onLogout: () -> Unit,
     onRefresh: () -> Unit = {},
 ) {
+    val s = LocalStrings.current
     ZyntaPageScaffold(
-        title = "Dashboard",
+        title = s[StringResource.DASHBOARD_TITLE],
         snackbarHostState = snackbarHostState,
         actions = {
             if (state.storeName.isNotEmpty()) {
@@ -226,6 +229,7 @@ private fun ProfileAvatarMenu(
     onNavigateToSettings: () -> Unit,
     onLogout: () -> Unit,
 ) {
+    val s = LocalStrings.current
     var showMenu by remember { mutableStateOf(false) }
 
     Box {
@@ -262,7 +266,7 @@ private fun ProfileAvatarMenu(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    currentUser?.name ?: "Manager",
+                    currentUser?.name ?: s[StringResource.DASHBOARD_DEFAULT_USER],
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -270,7 +274,7 @@ private fun ProfileAvatarMenu(
             HorizontalDivider()
 
             ZyntaDropdownMenuItem(
-                text = { Text("Notifications") },
+                text = { Text(s[StringResource.DASHBOARD_NOTIFICATIONS]) },
                 onClick = { showMenu = false; onNavigateToNotifications() },
                 leadingIcon = {
                     BadgedBox(badge = { Badge() }) {
@@ -279,7 +283,7 @@ private fun ProfileAvatarMenu(
                 },
             )
             ZyntaDropdownMenuItem(
-                text = { Text("Settings") },
+                text = { Text(s[StringResource.DASHBOARD_SETTINGS]) },
                 onClick = { showMenu = false; onNavigateToSettings() },
                 leadingIcon = {
                     Icon(Icons.Default.Settings, null, modifier = Modifier.size(20.dp))
@@ -288,7 +292,7 @@ private fun ProfileAvatarMenu(
             HorizontalDivider()
             ZyntaDropdownMenuItem(
                 text = {
-                    Text("Logout", color = MaterialTheme.colorScheme.error)
+                    Text(s[StringResource.AUTH_LOGOUT], color = MaterialTheme.colorScheme.error)
                 },
                 onClick = { showMenu = false; onLogout() },
                 leadingIcon = {
@@ -313,6 +317,7 @@ private fun ExpandedDashboard(
     onNavigateToRegister: () -> Unit,
     onNavigateToReports: () -> Unit,
 ) {
+    val s = LocalStrings.current
     Column(
         modifier = Modifier.fillMaxSize().padding(ZyntaSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
@@ -325,9 +330,9 @@ private fun ExpandedDashboard(
             StaggeredEntrance(modifier = Modifier.weight(1.4f), delayMs = 0) {
                 ZyntaHeroStatCard(
                     icon = Icons.Default.AttachMoney,
-                    label = "Today's Sales",
+                    label = s[StringResource.DASHBOARD_TODAYS_SALES],
                     value = currencyFormatter.format(state.todaysSales),
-                    subtitle = "of ${currencyFormatter.format(state.dailySalesTarget)} target",
+                    subtitle = "${s[StringResource.DASHBOARD_OF_TARGET_PREFIX]} ${currencyFormatter.format(state.dailySalesTarget)} ${s[StringResource.DASHBOARD_TARGET_SUFFIX]}",
                     modifier = Modifier.fillMaxWidth(),
                     rawValue = state.todaysSales.toFloat(),
                     rawValueFormatter = { currencyFormatter.format(it.toDouble()) },
@@ -352,10 +357,10 @@ private fun ExpandedDashboard(
             }
             StaggeredEntrance(modifier = Modifier.weight(1f), delayMs = 50) {
                 ZyntaStatCard(
-                    icon = Icons.Default.Receipt, label = "Total Orders",
+                    icon = Icons.Default.Receipt, label = s[StringResource.DASHBOARD_TOTAL_ORDERS],
                     value = state.totalOrders.toString(),
                     accentColor = MaterialTheme.colorScheme.tertiary,
-                    subtitle = "Completed today", modifier = Modifier.fillMaxWidth(),
+                    subtitle = s[StringResource.DASHBOARD_COMPLETED_TODAY], modifier = Modifier.fillMaxWidth(),
                     sparklineData = state.todaySparkline,
                     rawValue = state.totalOrders.toFloat(),
                     rawValueDelayMs = 0,
@@ -363,24 +368,24 @@ private fun ExpandedDashboard(
             }
             StaggeredEntrance(modifier = Modifier.weight(1f), delayMs = 100) {
                 ZyntaStatCard(
-                    icon = Icons.Default.Warning, label = "Low Stock",
-                    value = "${state.lowStockCount} items",
+                    icon = Icons.Default.Warning, label = s[StringResource.DASHBOARD_LOW_STOCK],
+                    value = "${state.lowStockCount} ${s[StringResource.DASHBOARD_ITEMS]}",
                     accentColor = if (state.lowStockCount > 0) MaterialTheme.colorScheme.error
                     else MaterialTheme.colorScheme.tertiary,
-                    subtitle = if (state.lowStockCount > 0) "Requires attention" else "All stocked",
+                    subtitle = if (state.lowStockCount > 0) s[StringResource.DASHBOARD_REQUIRES_ATTENTION] else s[StringResource.DASHBOARD_ALL_STOCKED],
                     modifier = Modifier.fillMaxWidth(),
                     rawValue = state.lowStockCount.toFloat(),
-                    rawValueFormatter = { "${it.toLong()} items" },
+                    rawValueFormatter = { "${it.toLong()} ${s[StringResource.DASHBOARD_ITEMS]}" },
                     rawValueDelayMs = 0,
                 )
             }
             StaggeredEntrance(modifier = Modifier.weight(1f), delayMs = 150) {
                 ZyntaStatCard(
-                    icon = Icons.Default.PointOfSale, label = "Active Registers",
+                    icon = Icons.Default.PointOfSale, label = s[StringResource.DASHBOARD_ACTIVE_REGISTERS],
                     value = state.activeRegisters.toString(),
                     accentColor = if (state.activeRegisters > 0) MaterialTheme.colorScheme.tertiary
                     else MaterialTheme.colorScheme.secondary,
-                    subtitle = if (state.activeRegisters > 0) "Ready for sales" else "No register open",
+                    subtitle = if (state.activeRegisters > 0) s[StringResource.DASHBOARD_READY_FOR_SALES] else s[StringResource.DASHBOARD_NO_REGISTER_OPEN],
                     modifier = Modifier.fillMaxWidth(),
                     rawValue = state.activeRegisters.toFloat(),
                     rawValueDelayMs = 0,
@@ -393,10 +398,10 @@ private fun ExpandedDashboard(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.xs),
                 ) {
-                    ZyntaSectionHeader(title = "Quick Actions")
-                    QuickActionCard("New Sale", Icons.Default.ShoppingCart, onNavigateToPos, Modifier.fillMaxWidth())
-                    QuickActionCard("Register", Icons.Default.PointOfSale, onNavigateToRegister, Modifier.fillMaxWidth())
-                    QuickActionCard("Reports", Icons.Default.Assessment, onNavigateToReports, Modifier.fillMaxWidth())
+                    ZyntaSectionHeader(title = s[StringResource.DASHBOARD_QUICK_ACTIONS])
+                    QuickActionCard(s[StringResource.DASHBOARD_NEW_SALE], Icons.Default.ShoppingCart, onNavigateToPos, Modifier.fillMaxWidth())
+                    QuickActionCard(s[StringResource.DASHBOARD_REGISTER], Icons.Default.PointOfSale, onNavigateToRegister, Modifier.fillMaxWidth())
+                    QuickActionCard(s[StringResource.DASHBOARD_REPORTS], Icons.Default.Assessment, onNavigateToReports, Modifier.fillMaxWidth())
                 }
             }
         }
@@ -416,16 +421,16 @@ private fun ExpandedDashboard(
                     verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                 ) {
                     ZyntaLineChart(
-                        title = "Weekly Sales Trend",
+                        title = s[StringResource.DASHBOARD_WEEKLY_TREND],
                         series = listOf(
-                            ChartSeries("Sales", state.weeklySalesData, MaterialTheme.colorScheme.primary),
+                            ChartSeries(s[StringResource.DASHBOARD_SALES], state.weeklySalesData, MaterialTheme.colorScheme.primary),
                         ),
                         chartHeight = 280, showLegend = false,
                     )
 
                     if (state.lowStockCount > 0) {
                         ZyntaInfoCard(
-                            Icons.Default.Warning, "${state.lowStockCount} items running low",
+                            Icons.Default.Warning, "${state.lowStockCount} ${s[StringResource.DASHBOARD_ITEMS_RUNNING_LOW]}",
                             description = state.lowStockNames.joinToString(", ") +
                                 if (state.lowStockCount > 5) ", ..." else "",
                             variant = InfoCardVariant.Warning,
@@ -433,8 +438,8 @@ private fun ExpandedDashboard(
                     }
                     if (state.activeRegisters == 0L) {
                         ZyntaInfoCard(
-                            Icons.Default.PointOfSale, "No register is open",
-                            description = "Open a register to start processing sales",
+                            Icons.Default.PointOfSale, s[StringResource.DASHBOARD_NO_REGISTER_OPEN],
+                            description = s[StringResource.DASHBOARD_OPEN_REGISTER_TO_START],
                             variant = InfoCardVariant.Info, onClick = onNavigateToRegister,
                         )
                     }
@@ -451,8 +456,8 @@ private fun ExpandedDashboard(
                     verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
                 ) {
                     ZyntaSectionHeader(
-                        "Recent Activity",
-                        actionLabel = "See All",
+                        s[StringResource.DASHBOARD_RECENT_ACTIVITY],
+                        actionLabel = s[StringResource.DASHBOARD_SEE_ALL],
                         onAction = onNavigateToReports,
                     )
                     if (state.recentOrders.isEmpty()) {
@@ -476,6 +481,7 @@ private fun MediumDashboard(
     onNavigateToRegister: () -> Unit,
     onNavigateToReports: () -> Unit,
 ) {
+    val s = LocalStrings.current
     Row(
         modifier = Modifier.fillMaxSize().padding(ZyntaSpacing.md),
         horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
@@ -488,9 +494,9 @@ private fun MediumDashboard(
             StaggeredEntrance(delayMs = 0) {
                 ZyntaHeroStatCard(
                     icon = Icons.Default.AttachMoney,
-                    label = "Today's Sales",
+                    label = s[StringResource.DASHBOARD_TODAYS_SALES],
                     value = currencyFormatter.format(state.todaysSales),
-                    subtitle = "of ${currencyFormatter.format(state.dailySalesTarget)} target",
+                    subtitle = "${s[StringResource.DASHBOARD_OF_TARGET_PREFIX]} ${currencyFormatter.format(state.dailySalesTarget)} ${s[StringResource.DASHBOARD_TARGET_SUFFIX]}",
                     modifier = Modifier.fillMaxWidth(),
                     rawValue = state.todaysSales.toFloat(),
                     rawValueFormatter = { currencyFormatter.format(it.toDouble()) },
@@ -520,7 +526,7 @@ private fun MediumDashboard(
                     horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
                 ) {
                     ZyntaStatCard(
-                        Icons.Default.Receipt, "Total Orders",
+                        Icons.Default.Receipt, s[StringResource.DASHBOARD_TOTAL_ORDERS],
                         state.totalOrders.toString(),
                         MaterialTheme.colorScheme.tertiary,
                         modifier = Modifier.weight(1f),
@@ -529,17 +535,17 @@ private fun MediumDashboard(
                         rawValueDelayMs = 0,
                     )
                     ZyntaStatCard(
-                        Icons.Default.Warning, "Low Stock",
-                        "${state.lowStockCount} items",
+                        Icons.Default.Warning, s[StringResource.DASHBOARD_LOW_STOCK],
+                        "${state.lowStockCount} ${s[StringResource.DASHBOARD_ITEMS]}",
                         if (state.lowStockCount > 0) MaterialTheme.colorScheme.error
                         else MaterialTheme.colorScheme.tertiary,
                         modifier = Modifier.weight(1f),
                         rawValue = state.lowStockCount.toFloat(),
-                        rawValueFormatter = { "${it.toLong()} items" },
+                        rawValueFormatter = { "${it.toLong()} ${s[StringResource.DASHBOARD_ITEMS]}" },
                         rawValueDelayMs = 50,
                     )
                     ZyntaStatCard(
-                        Icons.Default.PointOfSale, "Registers",
+                        Icons.Default.PointOfSale, s[StringResource.DASHBOARD_REGISTERS],
                         state.activeRegisters.toString(),
                         if (state.activeRegisters > 0) MaterialTheme.colorScheme.tertiary
                         else MaterialTheme.colorScheme.secondary,
@@ -552,8 +558,8 @@ private fun MediumDashboard(
 
             StaggeredEntrance(delayMs = 100) {
                 ZyntaLineChart(
-                    "Weekly Sales Trend",
-                    listOf(ChartSeries("Sales", state.weeklySalesData, MaterialTheme.colorScheme.primary)),
+                    s[StringResource.DASHBOARD_WEEKLY_TREND],
+                    listOf(ChartSeries(s[StringResource.DASHBOARD_SALES], state.weeklySalesData, MaterialTheme.colorScheme.primary)),
                     chartHeight = 180, showLegend = false,
                 )
             }
@@ -569,17 +575,17 @@ private fun MediumDashboard(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
                 ) {
-                    QuickActionCard("New Sale", Icons.Default.ShoppingCart, onNavigateToPos, Modifier.weight(1f))
-                    QuickActionCard("Register", Icons.Default.PointOfSale, onNavigateToRegister, Modifier.weight(1f))
-                    QuickActionCard("Reports", Icons.Default.Assessment, onNavigateToReports, Modifier.weight(1f))
+                    QuickActionCard(s[StringResource.DASHBOARD_NEW_SALE], Icons.Default.ShoppingCart, onNavigateToPos, Modifier.weight(1f))
+                    QuickActionCard(s[StringResource.DASHBOARD_REGISTER], Icons.Default.PointOfSale, onNavigateToRegister, Modifier.weight(1f))
+                    QuickActionCard(s[StringResource.DASHBOARD_REPORTS], Icons.Default.Assessment, onNavigateToReports, Modifier.weight(1f))
                 }
             }
 
             StaggeredEntrance(delayMs = 100) {
                 Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md)) {
                     ZyntaSectionHeader(
-                        "Recent Activity",
-                        actionLabel = "See All",
+                        s[StringResource.DASHBOARD_RECENT_ACTIVITY],
+                        actionLabel = s[StringResource.DASHBOARD_SEE_ALL],
                         onAction = onNavigateToReports,
                     )
                     if (state.recentOrders.isEmpty()) {
@@ -590,15 +596,15 @@ private fun MediumDashboard(
 
                     if (state.lowStockCount > 0) {
                         ZyntaInfoCard(
-                            Icons.Default.Warning, "${state.lowStockCount} items running low",
+                            Icons.Default.Warning, "${state.lowStockCount} ${s[StringResource.DASHBOARD_ITEMS_RUNNING_LOW]}",
                             description = state.lowStockNames.joinToString(", "),
                             variant = InfoCardVariant.Warning,
                         )
                     }
                     if (state.activeRegisters == 0L) {
                         ZyntaInfoCard(
-                            Icons.Default.PointOfSale, "No register is open",
-                            description = "Open a register to start",
+                            Icons.Default.PointOfSale, s[StringResource.DASHBOARD_NO_REGISTER_OPEN],
+                            description = s[StringResource.DASHBOARD_OPEN_REGISTER_TO_START],
                             variant = InfoCardVariant.Info, onClick = onNavigateToRegister,
                         )
                     }
@@ -618,6 +624,7 @@ private fun CompactDashboard(
     onNavigateToRegister: () -> Unit,
     onNavigateToReports: () -> Unit,
 ) {
+    val s = LocalStrings.current
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(ZyntaSpacing.md),
@@ -628,9 +635,9 @@ private fun CompactDashboard(
             StaggeredEntrance(delayMs = 0) {
                 ZyntaHeroStatCard(
                     icon = Icons.Default.AttachMoney,
-                    label = "Today's Sales",
+                    label = s[StringResource.DASHBOARD_TODAYS_SALES],
                     value = currencyFormatter.format(state.todaysSales),
-                    subtitle = "of ${currencyFormatter.format(state.dailySalesTarget)} target",
+                    subtitle = "${s[StringResource.DASHBOARD_OF_TARGET_PREFIX]} ${currencyFormatter.format(state.dailySalesTarget)} ${s[StringResource.DASHBOARD_TARGET_SUFFIX]}",
                     modifier = Modifier.fillMaxWidth(),
                     rawValue = state.todaysSales.toFloat(),
                     rawValueFormatter = { currencyFormatter.format(it.toDouble()) },
@@ -663,7 +670,7 @@ private fun CompactDashboard(
                     horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
                 ) {
                     ZyntaCompactStatCard(
-                        Icons.Default.Receipt, "Orders",
+                        Icons.Default.Receipt, s[StringResource.DASHBOARD_ORDERS],
                         state.totalOrders.toString(),
                         MaterialTheme.colorScheme.tertiary,
                         modifier = Modifier.weight(1f),
@@ -671,7 +678,7 @@ private fun CompactDashboard(
                         rawValueDelayMs = 0,
                     )
                     ZyntaCompactStatCard(
-                        Icons.Default.Warning, "Low Stock",
+                        Icons.Default.Warning, s[StringResource.DASHBOARD_LOW_STOCK],
                         "${state.lowStockCount}",
                         if (state.lowStockCount > 0) MaterialTheme.colorScheme.error
                         else MaterialTheme.colorScheme.tertiary,
@@ -680,7 +687,7 @@ private fun CompactDashboard(
                         rawValueDelayMs = 50,
                     )
                     ZyntaCompactStatCard(
-                        Icons.Default.PointOfSale, "Registers",
+                        Icons.Default.PointOfSale, s[StringResource.DASHBOARD_REGISTERS],
                         state.activeRegisters.toString(),
                         if (state.activeRegisters > 0) MaterialTheme.colorScheme.tertiary
                         else MaterialTheme.colorScheme.secondary,
@@ -697,10 +704,10 @@ private fun CompactDashboard(
             item {
                 StaggeredEntrance(delayMs = 75) {
                     ZyntaLineChart(
-                        title = "Today's Hourly Sales",
+                        title = s[StringResource.DASHBOARD_TODAYS_HOURLY_SALES],
                         series = listOf(
                             ChartSeries(
-                                "Sales",
+                                s[StringResource.DASHBOARD_SALES],
                                 state.todaySparkline.mapIndexed { i, v -> ChartDataPoint("${i}h", v) },
                                 MaterialTheme.colorScheme.secondary,
                             )
@@ -719,9 +726,9 @@ private fun CompactDashboard(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
                 ) {
-                    QuickActionCard("New Sale", Icons.Default.ShoppingCart, onNavigateToPos, Modifier.weight(1f))
-                    QuickActionCard("Register", Icons.Default.PointOfSale, onNavigateToRegister, Modifier.weight(1f))
-                    QuickActionCard("Reports", Icons.Default.Assessment, onNavigateToReports, Modifier.weight(1f))
+                    QuickActionCard(s[StringResource.DASHBOARD_NEW_SALE], Icons.Default.ShoppingCart, onNavigateToPos, Modifier.weight(1f))
+                    QuickActionCard(s[StringResource.DASHBOARD_REGISTER], Icons.Default.PointOfSale, onNavigateToRegister, Modifier.weight(1f))
+                    QuickActionCard(s[StringResource.DASHBOARD_REPORTS], Icons.Default.Assessment, onNavigateToReports, Modifier.weight(1f))
                 }
             }
         }
@@ -730,7 +737,7 @@ private fun CompactDashboard(
         if (state.lowStockCount > 0) {
             item {
                 ZyntaInfoCard(
-                    Icons.Default.Warning, "${state.lowStockCount} items running low",
+                    Icons.Default.Warning, "${state.lowStockCount} ${s[StringResource.DASHBOARD_ITEMS_RUNNING_LOW]}",
                     description = state.lowStockNames.joinToString(", "),
                     variant = InfoCardVariant.Warning,
                 )
@@ -739,8 +746,8 @@ private fun CompactDashboard(
         if (state.activeRegisters == 0L) {
             item {
                 ZyntaInfoCard(
-                    Icons.Default.PointOfSale, "No register is open",
-                    description = "Open a register to start",
+                    Icons.Default.PointOfSale, s[StringResource.DASHBOARD_NO_REGISTER_OPEN],
+                    description = s[StringResource.DASHBOARD_OPEN_REGISTER_TO_START],
                     variant = InfoCardVariant.Info, onClick = onNavigateToRegister,
                 )
             }
@@ -749,14 +756,14 @@ private fun CompactDashboard(
         // Chart
         item {
             ZyntaLineChart(
-                "Weekly Sales Trend",
-                listOf(ChartSeries("Sales", state.weeklySalesData, MaterialTheme.colorScheme.primary)),
+                s[StringResource.DASHBOARD_WEEKLY_TREND],
+                listOf(ChartSeries(s[StringResource.DASHBOARD_SALES], state.weeklySalesData, MaterialTheme.colorScheme.primary)),
                 chartHeight = 160, showLegend = false,
             )
         }
 
         // Recent Activity
-        item { ZyntaSectionHeader("Recent Activity") }
+        item { ZyntaSectionHeader(s[StringResource.DASHBOARD_RECENT_ACTIVITY]) }
         if (state.recentOrders.isEmpty()) {
             item { EmptyActivityCard() }
         } else {
@@ -837,18 +844,19 @@ private fun EmptyActivityCard() {
             modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.lg),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            val s = LocalStrings.current
             Icon(
                 Icons.Default.Receipt, null, Modifier.size(40.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
             )
             Spacer(Modifier.height(ZyntaSpacing.sm))
             Text(
-                "No orders yet today",
+                s[StringResource.DASHBOARD_NO_ORDERS_YET],
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
-                "Complete your first sale to see activity here",
+                s[StringResource.DASHBOARD_FIRST_SALE_PROMPT],
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
             )
@@ -873,7 +881,7 @@ private fun StoreNameChip(storeName: String) {
         ) {
             Icon(
                 Icons.Default.Store,
-                contentDescription = "Active store",
+                contentDescription = LocalStrings.current[StringResource.DASHBOARD_ACTIVE_STORE],
                 modifier = Modifier.size(14.dp),
                 tint = MaterialTheme.colorScheme.onSecondaryContainer,
             )
