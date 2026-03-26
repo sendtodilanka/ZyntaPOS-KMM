@@ -6,6 +6,7 @@ import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.core.utils.IdGenerator
 import com.zyntasolutions.zyntapos.domain.repository.AuditRepository
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
+import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.domain.usecase.admin.CreateBackupUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.DeleteBackupUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.GetBackupsUseCase
@@ -55,6 +56,7 @@ class AdminViewModel(
     private val getUnresolvedConflictsUseCase: GetUnresolvedConflictsUseCase,
     private val resolveConflictUseCase: ResolveConflictUseCase,
     private val getConflictCountUseCase: GetConflictCountUseCase,
+    private val settingsRepository: SettingsRepository,
 ) : BaseViewModel<AdminState, AdminIntent, AdminEffect>(AdminState()) {
 
     private var currentUserId: String = "unknown"
@@ -114,6 +116,16 @@ class AdminViewModel(
             is AdminIntent.DeleteBackup -> updateState { copy(showDeleteConfirm = intent.backup) }
             AdminIntent.ConfirmDelete -> confirmDelete()
             AdminIntent.CancelDelete -> updateState { copy(showDeleteConfirm = null) }
+
+            // Backup Scheduling (G14)
+            AdminIntent.LoadBackupSchedule -> loadBackupSchedule()
+            AdminIntent.ShowBackupScheduleDialog -> updateState { copy(showBackupScheduleDialog = true) }
+            AdminIntent.DismissBackupScheduleDialog -> updateState { copy(showBackupScheduleDialog = false) }
+            is AdminIntent.ToggleBackupSchedule -> updateState { copy(backupScheduleEnabled = intent.enabled) }
+            is AdminIntent.SetBackupFrequency -> updateState { copy(backupFrequency = intent.frequency) }
+            is AdminIntent.SetBackupScheduleHour -> updateState { copy(backupScheduleHour = intent.hour.coerceIn(0, 23)) }
+            is AdminIntent.SetBackupRetentionCount -> updateState { copy(backupRetentionCount = intent.count.coerceIn(1, 30)) }
+            AdminIntent.SaveBackupSchedule -> saveBackupSchedule()
 
             // Audit Log
             AdminIntent.RefreshAuditLog -> Unit // reactive — driven by observeAuditLog()
@@ -398,5 +410,34 @@ class AdminViewModel(
             is Result.Error -> updateState { copy(error = result.exception.message) }
             is Result.Loading -> Unit
         }
+    }
+
+    // ── Backup Scheduling (G14) ──────────────────────────────────────────
+
+    private suspend fun loadBackupSchedule() {
+        val enabled = settingsRepository.get("backup.schedule.enabled")?.toBooleanStrictOrNull() ?: false
+        val freq = settingsRepository.get("backup.schedule.frequency")?.let {
+            runCatching { BackupFrequency.valueOf(it) }.getOrNull()
+        } ?: BackupFrequency.DAILY
+        val hour = settingsRepository.get("backup.schedule.hour")?.toIntOrNull() ?: 2
+        val retention = settingsRepository.get("backup.schedule.retention")?.toIntOrNull() ?: 7
+        updateState {
+            copy(
+                backupScheduleEnabled = enabled,
+                backupFrequency = freq,
+                backupScheduleHour = hour,
+                backupRetentionCount = retention,
+            )
+        }
+    }
+
+    private suspend fun saveBackupSchedule() {
+        val s = currentState
+        settingsRepository.set("backup.schedule.enabled", s.backupScheduleEnabled.toString())
+        settingsRepository.set("backup.schedule.frequency", s.backupFrequency.name)
+        settingsRepository.set("backup.schedule.hour", s.backupScheduleHour.toString())
+        settingsRepository.set("backup.schedule.retention", s.backupRetentionCount.toString())
+        updateState { copy(showBackupScheduleDialog = false, successMessage = "Backup schedule saved.") }
+        auditLogger.logSettingsChanged(currentUserId, "backup.schedule")
     }
 }

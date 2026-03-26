@@ -503,7 +503,28 @@ class CustomerViewModel(
     private suspend fun onLoadPurchaseHistory(customerId: String) {
         updateState { copy(isPurchaseHistoryLoading = true) }
         val orders = getPurchaseHistoryUseCase(customerId).first()
-        updateState { copy(purchaseHistory = orders, isPurchaseHistoryLoading = false) }
+
+        // G10: Compute per-store order summaries for cross-store profile view
+        val storeSummaries = orders
+            .groupBy { it.storeId }
+            .map { (storeId, storeOrders) ->
+                StoreOrderSummary(
+                    storeId = storeId,
+                    storeName = storeId, // Will be resolved from StoreRepository in UI layer
+                    orderCount = storeOrders.size,
+                    totalSpent = storeOrders.sumOf { it.total },
+                    lastOrderAt = storeOrders.maxOf { it.createdAt.toEpochMilliseconds() },
+                )
+            }
+            .sortedByDescending { it.totalSpent }
+
+        updateState {
+            copy(
+                purchaseHistory = orders,
+                storeOrderSummaries = storeSummaries,
+                isPurchaseHistoryLoading = false,
+            )
+        }
     }
 
     private suspend fun onMakeCustomerGlobal(customerId: String) {

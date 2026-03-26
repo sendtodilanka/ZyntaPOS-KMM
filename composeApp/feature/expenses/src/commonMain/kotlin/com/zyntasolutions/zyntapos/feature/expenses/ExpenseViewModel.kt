@@ -9,6 +9,7 @@ import com.zyntasolutions.zyntapos.domain.model.Expense
 import com.zyntasolutions.zyntapos.domain.model.ExpenseCategory
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.ExpenseRepository
+import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.PostExpenseJournalEntryUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.expenses.ApproveExpenseUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.expenses.SaveExpenseUseCase
@@ -43,6 +44,7 @@ class ExpenseViewModel(
     private val approveExpenseUseCase: ApproveExpenseUseCase,
     private val authRepository: AuthRepository,
     private val postExpenseJournalEntryUseCase: PostExpenseJournalEntryUseCase,
+    private val settingsRepository: SettingsRepository,
     private val auditLogger: SecurityAuditLogger,
     private val analytics: AnalyticsTracker,
 ) : BaseViewModel<ExpenseState, ExpenseIntent, ExpenseEffect>(ExpenseState()) {
@@ -98,6 +100,10 @@ class ExpenseViewModel(
             is ExpenseIntent.DismissCategoryDetail -> updateState {
                 copy(showCategoryDetail = false, selectedCategory = null, categoryForm = CategoryFormState())
             }
+
+            is ExpenseIntent.LoadBudgetData -> onLoadBudgetData()
+            is ExpenseIntent.SetCategoryBudget -> onSetCategoryBudget(intent.categoryId, intent.amount)
+            is ExpenseIntent.UpdateApprovalThreshold -> onUpdateApprovalThreshold(intent.amount)
 
             is ExpenseIntent.DismissMessage -> updateState { copy(error = null, successMessage = null) }
         }
@@ -335,6 +341,58 @@ class ExpenseViewModel(
             is Result.Error -> sendEffect(ExpenseEffect.ShowError(result.exception.message ?: "Delete failed"))
             is Result.Loading -> {}
         }
+    }
+
+    // ── Budget Tracking (G13) ─────────────────────────────────────────────
+
+    private suspend fun onLoadBudgetData() {
+        // Load saved budgets from settings
+        val budgets = mutableMapOf<String, Double>()
+        currentState.categories.forEach { cat ->
+            val key = "expense.budget.${cat.id}"
+            settingsRepository.get(key)?.toDoubleOrNull()?.let { budgets[cat.id] = it }
+        }
+        // Load approval threshold
+        val threshold = settingsRepository.get("expense.approval_threshold")?.toDoubleOrNull() ?: 1000.0
+
+        // Compute monthly spend per category from current expenses
+        val tz = TimeZone.currentSystemDefault()
+        val now = Clock.System.now()
+        val currentMonth = now.toLocalDateTime(tz).monthNumber
+        val currentYear = now.toLocalDateTime(tz).year
+
+        val monthlySpend = mutableMapOf<String, Double>()
+        currentState.expenses
+            .filter { expense ->
+                val dt = Instant.fromEpochMilliseconds(expense.expenseDate).toLocalDateTime(tz)
+                dt.monthNumber == currentMonth && dt.year == currentYear
+            }
+            .forEach { expense ->
+                val catId = expense.categoryId ?: return@forEach
+                monthlySpend[catId] = (monthlySpend[catId] ?: 0.0) + expense.amount
+            }
+
+        updateState {
+            copy(
+                categoryBudgets = budgets,
+                categorySpend = monthlySpend,
+                approvalThreshold = threshold,
+            )
+        }
+    }
+
+    private suspend fun onSetCategoryBudget(categoryId: String, amount: Double) {
+        settingsRepository.set("expense.budget.$categoryId", amount.toString())
+        updateState {
+            copy(categoryBudgets = categoryBudgets + (categoryId to amount))
+        }
+        sendEffect(ExpenseEffect.ShowSuccess("Budget updated"))
+    }
+
+    private suspend fun onUpdateApprovalThreshold(amount: Double) {
+        settingsRepository.set("expense.approval_threshold", amount.toString())
+        updateState { copy(approvalThreshold = amount) }
+        sendEffect(ExpenseEffect.ShowSuccess("Approval threshold updated"))
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────

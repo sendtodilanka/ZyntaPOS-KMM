@@ -44,6 +44,13 @@ sealed interface SettingsIntent {
     data object ConfirmDeleteTaxGroup : SettingsIntent
     data object CancelDeleteTaxGroup : SettingsIntent
 
+    // ── Tax Overrides (per-store multi-region, G8-1) ────────────────────────
+    data object LoadTaxOverrides : SettingsIntent
+    data class ShowTaxOverrideDialog(val override: SettingsState.StoreTaxOverride? = null) : SettingsIntent
+    data object DismissTaxOverrideDialog : SettingsIntent
+    data class SaveTaxOverride(val override: SettingsState.StoreTaxOverride) : SettingsIntent
+    data class DeleteTaxOverride(val storeId: String, val taxGroupId: String) : SettingsIntent
+
     // ── Printer Settings ──────────────────────────────────────────────────────
     data object LoadPrinter : SettingsIntent
     data class UpdatePrinterType(val type: PrinterType) : SettingsIntent

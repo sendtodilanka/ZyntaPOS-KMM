@@ -3,9 +3,14 @@ package com.zyntasolutions.zyntapos.feature.accounting
 import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
+import com.zyntasolutions.zyntapos.domain.repository.StoreRepository
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetPeriodSummaryUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetProfitAndLossUseCase
 import androidx.lifecycle.viewModelScope
 import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
@@ -23,6 +28,8 @@ import kotlinx.datetime.toLocalDateTime
  */
 class AccountingViewModel(
     private val getPeriodSummaryUseCase: GetPeriodSummaryUseCase,
+    private val getProfitAndLossUseCase: GetProfitAndLossUseCase,
+    private val storeRepository: StoreRepository,
     private val authRepository: AuthRepository,
     private val analytics: AnalyticsTracker,
 ) : BaseViewModel<AccountingState, AccountingIntent, AccountingEffect>(
@@ -43,6 +50,7 @@ class AccountingViewModel(
         when (intent) {
             is AccountingIntent.LoadPeriod -> loadPeriod(intent.period)
             is AccountingIntent.DismissError -> updateState { copy(error = null) }
+            is AccountingIntent.LoadConsolidatedPnL -> loadConsolidatedPnL()
         }
     }
 
@@ -55,6 +63,100 @@ class AccountingViewModel(
                 sendEffect(AccountingEffect.ShowError(result.exception.message ?: "Failed to load ledger"))
             }
             is Result.Loading -> {}
+        }
+    }
+
+    /**
+     * Load P&L data for every active store and aggregate into a consolidated view.
+     *
+     * Uses the current fiscal period (first day to last day of current month) to
+     * query [GetProfitAndLossUseCase] per store. Revenue is [PAndL.totalRevenue],
+     * expenses is [PAndL.totalCogs] + [PAndL.totalExpenses], profit is [PAndL.netProfit].
+     */
+    private suspend fun loadConsolidatedPnL() {
+        updateState { copy(consolidatedPnL = consolidatedPnL.copy(isLoading = true, error = null)) }
+
+        try {
+            val stores = storeRepository.getAllStores().first()
+            if (stores.isEmpty()) {
+                updateState {
+                    copy(
+                        consolidatedPnL = consolidatedPnL.copy(
+                            isLoading = false,
+                            error = "No stores available",
+                        ),
+                    )
+                }
+                return
+            }
+
+            // Determine date range for the current fiscal period (full month).
+            val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+            val fromDate = "%04d-%02d-01".format(now.year, now.monthNumber)
+            val lastDay = when (now.monthNumber) {
+                2 -> if (now.year % 4 == 0 && (now.year % 100 != 0 || now.year % 400 == 0)) 29 else 28
+                4, 6, 9, 11 -> 30
+                else -> 31
+            }
+            val toDate = "%04d-%02d-%02d".format(now.year, now.monthNumber, lastDay)
+
+            // Fetch P&L for each store concurrently.
+            val breakdowns = coroutineScope {
+                stores.map { store ->
+                    async {
+                        val result = getProfitAndLossUseCase.execute(store.id, fromDate, toDate)
+                        when (result) {
+                            is Result.Success -> {
+                                val pnl = result.data
+                                StorePnLBreakdown(
+                                    storeId = store.id,
+                                    storeName = store.name,
+                                    revenue = pnl.totalRevenue,
+                                    expenses = pnl.totalCogs + pnl.totalExpenses,
+                                    profit = pnl.netProfit,
+                                )
+                            }
+                            is Result.Error -> {
+                                // Include store with zeroed figures on error so it still appears.
+                                StorePnLBreakdown(
+                                    storeId = store.id,
+                                    storeName = store.name,
+                                    revenue = 0.0,
+                                    expenses = 0.0,
+                                    profit = 0.0,
+                                )
+                            }
+                            is Result.Loading -> null
+                        }
+                    }
+                }.awaitAll().filterNotNull()
+            }
+
+            val totalRevenue = breakdowns.sumOf { it.revenue }
+            val totalExpenses = breakdowns.sumOf { it.expenses }
+            val totalProfit = breakdowns.sumOf { it.profit }
+
+            updateState {
+                copy(
+                    consolidatedPnL = ConsolidatedPnLState(
+                        isLoading = false,
+                        storeBreakdowns = breakdowns,
+                        consolidatedRevenue = totalRevenue,
+                        consolidatedExpenses = totalExpenses,
+                        consolidatedProfit = totalProfit,
+                        error = null,
+                    ),
+                )
+            }
+        } catch (e: Exception) {
+            updateState {
+                copy(
+                    consolidatedPnL = consolidatedPnL.copy(
+                        isLoading = false,
+                        error = e.message ?: "Failed to load consolidated P&L",
+                    ),
+                )
+            }
         }
     }
 

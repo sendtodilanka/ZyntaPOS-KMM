@@ -9,4 +9,7 @@ sealed interface AccountingIntent {
 
     /** Dismiss the current error banner. */
     data object DismissError : AccountingIntent
+
+    /** Load consolidated P&L across all stores for the current fiscal period. */
+    data object LoadConsolidatedPnL : AccountingIntent
 }

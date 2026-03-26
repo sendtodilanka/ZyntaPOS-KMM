@@ -242,6 +242,32 @@ sealed interface PosIntent {
     data class SetWalletPaymentAmount(val amount: Double) : PosIntent
 
     /**
+     * Opens the wallet payment choice dialog. Loads the customer's current wallet
+     * balance from [CustomerWalletRepository] and sets [PosState.showWalletPaymentDialog] to `true`.
+     * Requires [PosState.selectedCustomer] to be non-null; no-ops otherwise.
+     */
+    data object ShowWalletPaymentDialog : PosIntent
+
+    /**
+     * Dismisses the wallet payment choice dialog and resets [PosState.walletPaymentAmount] to 0.
+     */
+    data object DismissWalletPaymentDialog : PosIntent
+
+    /**
+     * Updates [PosState.walletPaymentAmount] from the wallet payment dialog input.
+     * The amount is capped at the customer's available [PosState.walletBalance].
+     *
+     * @param amount Desired wallet payment amount entered by the cashier.
+     */
+    data class WalletPaymentAmountChanged(val amount: Double) : PosIntent
+
+    /**
+     * Confirms the wallet payment amount entered in the dialog and applies it to the
+     * order's payment splits. Dismisses the dialog on completion.
+     */
+    data object ConfirmWalletPayment : PosIntent
+
+    /**
      * Sets the number of loyalty points to redeem for this transaction.
      * The ViewModel converts points to a monetary discount via [CalculateLoyaltyDiscountUseCase]
      * and updates [PosState.loyaltyDiscount].
@@ -342,4 +368,42 @@ sealed interface PosIntent {
      * On success, emits [PosEffect.NavigateToRefund]. On failure, sets [PosState.returnLookupError].
      */
     data object LookupOrderForReturn : PosIntent
+
+    // ─── Card Terminal (G3-3) ────────────────────────────────────────────────
+
+    /**
+     * Polls the current card terminal connection status via the HAL layer.
+     * For now (pre-Phase 2 HAL integration) this sets [PosState.cardTerminalConnected] to `false`.
+     */
+    data object CheckCardTerminalStatus : PosIntent
+
+    /**
+     * Dispatched by the HAL card-terminal listener when the connection state changes.
+     *
+     * @param connected `true` when the terminal is connected and ready.
+     * @param name Display name of the terminal (e.g. "Verifone P400"). Empty when disconnected.
+     */
+    data class CardTerminalStatusChanged(val connected: Boolean, val name: String) : PosIntent
+
+    // ─── Cross-store Return (G3-1) ─────────────────────────────────────────────
+
+    /** Toggles cross-store return mode on/off. When activated, the UI shows the cross-store order lookup panel. */
+    data object ToggleCrossStoreReturnMode : PosIntent
+
+    /**
+     * Updates the order ID text field in the cross-store return lookup panel.
+     * Clears any previous lookup error.
+     *
+     * @param orderId Current text in the cross-store order ID field.
+     */
+    data class CrossStoreOrderIdChanged(val orderId: String) : PosIntent
+
+    /**
+     * Triggers a lookup of [PosState.crossStoreOrderId] via [LookupOrderForReturnUseCase].
+     * On success, populates [PosState.crossStoreOrder]. On failure, sets [PosState.crossStoreOrderLookupError].
+     */
+    data object LookupCrossStoreOrder : PosIntent
+
+    /** Resets all cross-store return state fields and exits cross-store return mode. */
+    data object CancelCrossStoreReturn : PosIntent
 }

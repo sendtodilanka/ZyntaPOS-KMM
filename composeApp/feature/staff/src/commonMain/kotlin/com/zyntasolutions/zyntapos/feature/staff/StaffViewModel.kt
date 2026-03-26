@@ -753,7 +753,7 @@ class StaffViewModel(
             val start = kotlinx.datetime.LocalDate.parse(startDate)
             val end = kotlinx.datetime.LocalDate.parse(endDate)
             val diff = end.toEpochDays() - start.toEpochDays()
-            (diff + 1).coerceAtLeast(1)
+            (diff + 1).coerceAtLeast(1).toInt()
         } catch (_: Exception) {
             1 // Fallback: assume 1 day if dates can't be parsed
         }

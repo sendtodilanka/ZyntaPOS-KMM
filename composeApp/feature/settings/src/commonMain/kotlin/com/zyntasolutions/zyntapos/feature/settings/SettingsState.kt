@@ -74,6 +74,25 @@ data class SettingsState(
         val isCreating: Boolean         = false,  // FAB → create sheet
         val deleteTarget: TaxGroup?     = null,   // non-null = confirm dialog shown
         val saveError: String?          = null,
+        /** Per-store tax rate overrides for multi-region support (G8-1). */
+        val taxOverrides: List<StoreTaxOverride>  = emptyList(),
+        val showTaxOverrideDialog: Boolean        = false,
+        val editingTaxOverride: StoreTaxOverride?  = null,
+    )
+
+    /**
+     * A per-store override for a specific [TaxGroup] rate.
+     *
+     * Allows stores in different regions to charge a different tax rate
+     * than the global default defined on the [TaxGroup].
+     */
+    data class StoreTaxOverride(
+        val storeId: String,
+        val storeName: String,
+        val taxGroupId: String,
+        val taxGroupName: String,
+        val overrideRate: Double,
+        val isEnabled: Boolean = true,
     )
 
     // ── Printer settings ──────────────────────────────────────────────────────

@@ -16,6 +16,7 @@ import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.RoleRepository
 import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.domain.repository.TaxGroupRepository
+import com.zyntasolutions.zyntapos.domain.repository.StoreRepository
 import com.zyntasolutions.zyntapos.domain.repository.UserRepository
 import com.zyntasolutions.zyntapos.domain.model.LabelPrinterConfig
 import com.zyntasolutions.zyntapos.domain.model.PrinterPaperWidth
@@ -81,6 +82,7 @@ class SettingsViewModel(
     private val getPrinterProfilesUseCase: GetPrinterProfilesUseCase,
     private val savePrinterProfileUseCase: SavePrinterProfileUseCase,
     private val deletePrinterProfileUseCase: DeletePrinterProfileUseCase,
+    private val storeRepository: StoreRepository,
     private val auditLogger: SecurityAuditLogger,
     private val authRepository: AuthRepository,
     private val analytics: AnalyticsTracker,
@@ -285,6 +287,16 @@ class SettingsViewModel(
         }
         SettingsIntent.SavePrinterProfile            -> savePrinterProfile()
         is SettingsIntent.DeletePrinterProfile       -> deletePrinterProfile(intent.id)
+        // Tax Overrides (per-store multi-region, G8-1)
+        SettingsIntent.LoadTaxOverrides              -> loadTaxOverrides()
+        is SettingsIntent.ShowTaxOverrideDialog       -> updateState {
+            copy(tax = tax.copy(showTaxOverrideDialog = true, editingTaxOverride = intent.override))
+        }
+        SettingsIntent.DismissTaxOverrideDialog      -> updateState {
+            copy(tax = tax.copy(showTaxOverrideDialog = false, editingTaxOverride = null))
+        }
+        is SettingsIntent.SaveTaxOverride            -> saveTaxOverride(intent.override)
+        is SettingsIntent.DeleteTaxOverride           -> deleteTaxOverride(intent.storeId, intent.taxGroupId)
     }
 
     // ── General ──────────────────────────────────────────────────────────────
@@ -939,6 +951,48 @@ class SettingsViewModel(
             deletePrinterProfileUseCase(id)
                 .onSuccess { sendEffect(SettingsEffect.PrinterProfileDeleted) }
                 .onError { e -> sendEffect(SettingsEffect.ShowSnackbar("Delete failed: ${e.message}")) }
+        }
+    }
+
+    // ── Tax Overrides (G8-1: multi-region per-store rates) ────────────────────
+
+    private fun loadTaxOverrides() {
+        viewModelScope.launch {
+            updateState { copy(tax = tax.copy(isLoading = true)) }
+            // TODO: fetch persisted overrides from repository once backend supports it
+            updateState { copy(tax = tax.copy(isLoading = false)) }
+        }
+    }
+
+    private fun saveTaxOverride(override: SettingsState.StoreTaxOverride) {
+        viewModelScope.launch {
+            // TODO: persist via repository once backend supports it
+            val current = currentState.tax.taxOverrides.toMutableList()
+            val idx = current.indexOfFirst {
+                it.storeId == override.storeId && it.taxGroupId == override.taxGroupId
+            }
+            if (idx >= 0) current[idx] = override else current.add(override)
+            updateState {
+                copy(
+                    tax = tax.copy(
+                        taxOverrides = current,
+                        showTaxOverrideDialog = false,
+                        editingTaxOverride = null,
+                    )
+                )
+            }
+            sendEffect(SettingsEffect.TaxOverrideSaved)
+        }
+    }
+
+    private fun deleteTaxOverride(storeId: String, taxGroupId: String) {
+        viewModelScope.launch {
+            // TODO: delete via repository once backend supports it
+            val filtered = currentState.tax.taxOverrides.filterNot {
+                it.storeId == storeId && it.taxGroupId == taxGroupId
+            }
+            updateState { copy(tax = tax.copy(taxOverrides = filtered)) }
+            sendEffect(SettingsEffect.TaxOverrideDeleted)
         }
     }
 
