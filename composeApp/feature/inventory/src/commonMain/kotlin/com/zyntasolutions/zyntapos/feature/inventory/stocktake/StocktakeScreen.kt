@@ -88,14 +88,14 @@ fun StocktakeScreen(
         viewModel.effects.collectLatest { effect ->
             when (effect) {
                 is StocktakeEffect.ScanSuccess   ->
-                    snackbarHostState.showSnackbar("${effect.productName} — count: ${effect.qty}")
+                    snackbarHostState.showSnackbar(s[StringResource.INVENTORY_SCAN_SUCCESS_MSG, effect.productName, effect.qty])
                 is StocktakeEffect.ScanNotFound  ->
-                    snackbarHostState.showSnackbar("Barcode not found: ${effect.barcode}")
+                    snackbarHostState.showSnackbar(s[StringResource.INVENTORY_SCAN_NOT_FOUND_MSG, effect.barcode])
                 is StocktakeEffect.StocktakeCompleted -> {
                     val msg = if (effect.varianceCount == 0)
-                        "Stocktake complete — no variances found"
+                        s[StringResource.INVENTORY_STOCKTAKE_COMPLETE_NO_VARIANCES]
                     else
-                        "Stocktake complete — ${effect.varianceCount} variance(s) adjusted"
+                        s[StringResource.INVENTORY_STOCKTAKE_COMPLETE_VARIANCES, effect.varianceCount]
                     snackbarHostState.showSnackbar(msg)
                     onNavigateBack()
                 }
@@ -269,7 +269,7 @@ fun StocktakeScreen(
                     if (varianceCount > 0) {
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            text = "$varianceCount product(s) have variances that will be adjusted.",
+                            text = s[StringResource.INVENTORY_STOCKTAKE_VARIANCE_DIALOG_MSG, varianceCount],
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -425,6 +425,7 @@ private fun SummaryChip(
 
 @Composable
 private fun LastScannedChip(barcode: String) {
+    val s = LocalStrings.current
     Card(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -442,7 +443,7 @@ private fun LastScannedChip(barcode: String) {
             )
             Spacer(Modifier.width(6.dp))
             Text(
-                text = "Last scan: $barcode",
+                text = s[StringResource.INVENTORY_LAST_SCAN, barcode],
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )

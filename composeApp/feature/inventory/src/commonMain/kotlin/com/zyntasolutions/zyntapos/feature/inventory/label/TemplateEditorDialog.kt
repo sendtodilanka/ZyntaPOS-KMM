@@ -10,6 +10,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.LabelTemplate
 import kotlin.time.Clock
@@ -33,6 +35,7 @@ fun TemplateEditorDialog(
     onSave: (LabelTemplate) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val s = LocalStrings.current
     val isNew = template == null
     val now   = remember { Clock.System.now().toEpochMilliseconds() }
 
@@ -66,7 +69,7 @@ fun TemplateEditorDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = if (isNew) "New Label Template" else "Edit Template",
+                text = if (isNew) s[StringResource.INVENTORY_TEMPLATE_NEW_TITLE] else s[StringResource.INVENTORY_TEMPLATE_EDIT_TITLE],
                 style = MaterialTheme.typography.titleMedium,
             )
         },
@@ -81,15 +84,15 @@ fun TemplateEditorDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Template Name") },
+                    label = { Text(s[StringResource.INVENTORY_TEMPLATE_NAME_LABEL]) },
                     isError = nameError,
-                    supportingText = if (nameError) {{ Text("Name is required") }} else null,
+                    supportingText = if (nameError) {{ Text(s[StringResource.COMMON_REQUIRED]) }} else null,
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                 )
 
                 // ── Paper type selector ──────────────────────────────────
-                Text("Paper Type", style = MaterialTheme.typography.labelLarge)
+                Text(s[StringResource.INVENTORY_TEMPLATE_PAPER_TYPE], style = MaterialTheme.typography.labelLarge)
                 SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                     LabelTemplate.PaperType.entries.forEachIndexed { idx, type ->
                         SegmentedButton(
@@ -108,27 +111,27 @@ fun TemplateEditorDialog(
                             },
                             shape = SegmentedButtonDefaults.itemShape(idx, LabelTemplate.PaperType.entries.size),
                         ) {
-                            Text(if (type == LabelTemplate.PaperType.CONTINUOUS_ROLL) "Roll" else "A4 Sheet")
+                            Text(if (type == LabelTemplate.PaperType.CONTINUOUS_ROLL) s[StringResource.INVENTORY_TEMPLATE_ROLL] else s[StringResource.INVENTORY_TEMPLATE_A4_SHEET])
                         }
                     }
                 }
 
                 // ── Dimensions ───────────────────────────────────────────
                 HorizontalDivider()
-                Text("Dimensions (mm)", style = MaterialTheme.typography.labelLarge)
+                Text(s[StringResource.INVENTORY_TEMPLATE_DIMENSIONS], style = MaterialTheme.typography.labelLarge)
 
                 Row(horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                     MmTextField(
                         value = paperWidthMm,
                         onValueChange = { paperWidthMm = it },
-                        label = if (isContinuous) "Roll Width" else "Page Width",
+                        label = if (isContinuous) s[StringResource.INVENTORY_TEMPLATE_ROLL_WIDTH] else s[StringResource.INVENTORY_TEMPLATE_PAGE_WIDTH],
                         modifier = Modifier.weight(1f),
                         readOnly = !isContinuous,
                     )
                     MmTextField(
                         value = labelHeightMm,
                         onValueChange = { labelHeightMm = it },
-                        label = "Label Height",
+                        label = s[StringResource.INVENTORY_TEMPLATE_LABEL_HEIGHT],
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -137,14 +140,14 @@ fun TemplateEditorDialog(
                     MmTextField(
                         value = columns,
                         onValueChange = { columns = it },
-                        label = "Columns",
+                        label = s[StringResource.INVENTORY_TEMPLATE_COLUMNS],
                         modifier = Modifier.weight(1f),
                     )
                     if (!isContinuous) {
                         MmTextField(
                             value = rows,
                             onValueChange = { rows = it },
-                            label = "Rows",
+                            label = s[StringResource.INVENTORY_TEMPLATE_ROWS],
                             modifier = Modifier.weight(1f),
                         )
                     }
@@ -152,36 +155,36 @@ fun TemplateEditorDialog(
 
                 // ── Gaps ─────────────────────────────────────────────────
                 HorizontalDivider()
-                Text("Gaps (mm)", style = MaterialTheme.typography.labelLarge)
+                Text(s[StringResource.INVENTORY_TEMPLATE_GAPS], style = MaterialTheme.typography.labelLarge)
                 Row(horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                     MmTextField(
                         value = gapH,
                         onValueChange = { gapH = it },
-                        label = "Horizontal Gap",
+                        label = s[StringResource.INVENTORY_TEMPLATE_H_GAP],
                         modifier = Modifier.weight(1f),
                     )
                     MmTextField(
                         value = gapV,
                         onValueChange = { gapV = it },
-                        label = "Vertical Gap",
+                        label = s[StringResource.INVENTORY_TEMPLATE_V_GAP],
                         modifier = Modifier.weight(1f),
                     )
                 }
 
                 // ── Margins ──────────────────────────────────────────────
                 HorizontalDivider()
-                Text("Margins (mm)", style = MaterialTheme.typography.labelLarge)
+                Text(s[StringResource.INVENTORY_TEMPLATE_MARGINS], style = MaterialTheme.typography.labelLarge)
                 Row(horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                     MmTextField(
                         value = marginTop,
                         onValueChange = { marginTop = it },
-                        label = "Top",
+                        label = s[StringResource.INVENTORY_TEMPLATE_MARGIN_TOP],
                         modifier = Modifier.weight(1f),
                     )
                     MmTextField(
                         value = marginBottom,
                         onValueChange = { marginBottom = it },
-                        label = "Bottom",
+                        label = s[StringResource.INVENTORY_TEMPLATE_MARGIN_BOTTOM],
                         modifier = Modifier.weight(1f),
                         readOnly = isContinuous,
                     )
@@ -190,13 +193,13 @@ fun TemplateEditorDialog(
                     MmTextField(
                         value = marginLeft,
                         onValueChange = { marginLeft = it },
-                        label = "Left",
+                        label = s[StringResource.INVENTORY_TEMPLATE_MARGIN_LEFT],
                         modifier = Modifier.weight(1f),
                     )
                     MmTextField(
                         value = marginRight,
                         onValueChange = { marginRight = it },
-                        label = "Right",
+                        label = s[StringResource.INVENTORY_TEMPLATE_MARGIN_RIGHT],
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -211,9 +214,9 @@ fun TemplateEditorDialog(
                     ) {
                         Text(
                             text = if (heightVal != null) {
-                                "Each label: %.1f × %.1f mm".format(computedWidth, heightVal)
+                                s[StringResource.INVENTORY_TEMPLATE_SIZE_PREVIEW_2D, "%.1f".format(computedWidth), "%.1f".format(heightVal)]
                             } else {
-                                "Label width: %.1f mm".format(computedWidth)
+                                s[StringResource.INVENTORY_TEMPLATE_SIZE_PREVIEW_1D, "%.1f".format(computedWidth)]
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -252,11 +255,11 @@ fun TemplateEditorDialog(
                 },
                 enabled = isValid,
             ) {
-                Text("Save")
+                Text(s[StringResource.COMMON_SAVE])
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(s[StringResource.COMMON_CANCEL]) }
         },
     )
 }

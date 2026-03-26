@@ -11,6 +11,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.DatabaseStats
 import com.zyntasolutions.zyntapos.domain.model.SystemHealth
@@ -31,6 +33,7 @@ fun SystemHealthScreen(
     onIntent: (AdminIntent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     var showPurgeDialog by remember { mutableStateOf(false) }
 
     LazyColumn(
@@ -46,12 +49,12 @@ fun SystemHealthScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("System Health", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(s[StringResource.ADMIN_SYSTEM_HEALTH_TITLE], style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 IconButton(onClick = {
                     onIntent(AdminIntent.RefreshSystemHealth)
                     onIntent(AdminIntent.RefreshDatabaseStats)
                 }) {
-                    Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                    Icon(Icons.Default.Refresh, contentDescription = s[StringResource.ADMIN_REFRESH_CD])
                 }
             }
         }
@@ -79,7 +82,7 @@ fun SystemHealthScreen(
         // ── Maintenance actions ────────────────────────────────────────
         item {
             Text(
-                "Maintenance",
+                s[StringResource.ADMIN_MAINTENANCE],
                 style = MaterialTheme.typography.titleSmall,
                 modifier = Modifier.padding(top = ZyntaSpacing.sm),
             )
@@ -92,7 +95,7 @@ fun SystemHealthScreen(
                 ) {
                     Icon(Icons.Default.CleaningServices, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("VACUUM DB")
+                    Text(s[StringResource.ADMIN_VACUUM_DB])
                 }
                 OutlinedButton(
                     onClick = { showPurgeDialog = true },
@@ -100,7 +103,7 @@ fun SystemHealthScreen(
                 ) {
                     Icon(Icons.Default.DeleteSweep, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("Purge Old Data")
+                    Text(s[StringResource.ADMIN_PURGE_OLD_DATA])
                 }
             }
         }
@@ -109,8 +112,8 @@ fun SystemHealthScreen(
         state.lastVacuumResult?.let { res ->
             item {
                 ResultBanner(
-                    label = "Last Vacuum",
-                    message = "${res.bytesFreed / 1024} KB freed in ${res.durationMs} ms",
+                    label = s[StringResource.ADMIN_LAST_VACUUM],
+                    message = s[StringResource.ADMIN_KB_FREED, res.bytesFreed / 1024, res.durationMs],
                     success = res.success,
                 )
             }
@@ -118,8 +121,8 @@ fun SystemHealthScreen(
         state.lastPurgeResult?.let { res ->
             item {
                 ResultBanner(
-                    label = "Last Purge",
-                    message = "${res.bytesFreed} rows removed in ${res.durationMs} ms",
+                    label = s[StringResource.ADMIN_LAST_PURGE],
+                    message = s[StringResource.ADMIN_ROWS_REMOVED, res.bytesFreed, res.durationMs],
                     success = res.success,
                 )
             }
@@ -143,6 +146,7 @@ fun SystemHealthScreen(
 
 @Composable
 private fun ConnectivityCard(health: SystemHealth) {
+    val s = LocalStrings.current
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.md),
@@ -157,7 +161,7 @@ private fun ConnectivityCard(health: SystemHealth) {
                 )
                 Spacer(Modifier.width(ZyntaSpacing.sm))
                 Text(
-                    text = if (health.isOnline) "Online" else "Offline",
+                    text = if (health.isOnline) s[StringResource.ADMIN_ONLINE] else s[StringResource.ADMIN_OFFLINE],
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                 )
@@ -169,12 +173,13 @@ private fun ConnectivityCard(health: SystemHealth) {
 
 @Composable
 private fun SyncStatusChip(health: SystemHealth) {
+    val s = LocalStrings.current
     val isHealthy = health.isSyncHealthy
     AssistChip(
         onClick = {},
         label = {
             Text(
-                text = if (isHealthy) "Sync OK" else "${health.pendingSyncCount} pending",
+                text = if (isHealthy) s[StringResource.ADMIN_SYNC_OK] else s[StringResource.ADMIN_SYNC_PENDING, health.pendingSyncCount],
                 style = MaterialTheme.typography.labelSmall,
             )
         },
@@ -194,13 +199,14 @@ private fun SyncStatusChip(health: SystemHealth) {
 
 @Composable
 private fun MemoryCard(health: SystemHealth) {
+    val s = LocalStrings.current
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(ZyntaSpacing.md)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Text("Memory", style = MaterialTheme.typography.titleSmall)
+                Text(s[StringResource.ADMIN_MEMORY], style = MaterialTheme.typography.titleSmall)
                 Text(
                     "%.1f%%".format(health.memoryUsagePercent),
                     style = MaterialTheme.typography.bodySmall,
@@ -228,6 +234,7 @@ private fun MemoryCard(health: SystemHealth) {
 
 @Composable
 private fun SyncCard(health: SystemHealth) {
+    val s = LocalStrings.current
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.md),
@@ -235,9 +242,9 @@ private fun SyncCard(health: SystemHealth) {
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Column {
-                Text("Sync Queue", style = MaterialTheme.typography.titleSmall)
+                Text(s[StringResource.ADMIN_SYNC_QUEUE], style = MaterialTheme.typography.titleSmall)
                 Text(
-                    text = "${health.pendingSyncCount} operation(s) pending",
+                    text = s[StringResource.ADMIN_PENDING_OPS, health.pendingSyncCount],
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -255,13 +262,14 @@ private fun SyncCard(health: SystemHealth) {
 
 @Composable
 private fun AppVersionCard(health: SystemHealth) {
+    val s = LocalStrings.current
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.md),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("App Version", style = MaterialTheme.typography.titleSmall)
+            Text(s[StringResource.ADMIN_APP_VERSION], style = MaterialTheme.typography.titleSmall)
             Text(
                 text = "${health.appVersion} (build ${health.buildNumber})",
                 style = MaterialTheme.typography.bodySmall,
@@ -273,9 +281,10 @@ private fun AppVersionCard(health: SystemHealth) {
 
 @Composable
 private fun DatabaseSizeCard(stats: DatabaseStats) {
+    val s = LocalStrings.current
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(ZyntaSpacing.md)) {
-            Text("Database", style = MaterialTheme.typography.titleSmall)
+            Text(s[StringResource.ADMIN_DATABASE], style = MaterialTheme.typography.titleSmall)
             Spacer(Modifier.height(4.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -299,9 +308,10 @@ private fun MetricItem(label: String, value: String) {
 
 @Composable
 private fun TableStatsCard(stats: DatabaseStats) {
+    val s = LocalStrings.current
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(ZyntaSpacing.md)) {
-            Text("Table Row Counts", style = MaterialTheme.typography.titleSmall)
+            Text(s[StringResource.ADMIN_TABLE_ROW_COUNTS], style = MaterialTheme.typography.titleSmall)
             Spacer(Modifier.height(ZyntaSpacing.sm))
             stats.tables.forEach { table ->
                 Row(
@@ -359,30 +369,31 @@ private fun PurgeConfirmDialog(
     onConfirm: (days: Int) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val s = LocalStrings.current
     var days by remember { mutableStateOf("30") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Purge Expired Data") },
+        title = { Text(s[StringResource.ADMIN_PURGE_DIALOG_TITLE]) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                 Text(
-                    "This will permanently delete soft-deleted records older than the specified number of days.",
+                    s[StringResource.ADMIN_PURGE_DIALOG_MSG],
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 OutlinedTextField(
                     value = days,
                     onValueChange = { if (it.all { c -> c.isDigit() }) days = it },
-                    label = { Text("Older than (days)") },
+                    label = { Text(s[StringResource.ADMIN_OLDER_THAN_DAYS]) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(days.toIntOrNull() ?: 30) }) { Text("Purge") }
+            TextButton(onClick = { onConfirm(days.toIntOrNull() ?: 30) }) { Text(s[StringResource.ADMIN_PURGE_ACTION]) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(s[StringResource.COMMON_CANCEL]) }
         },
     )
 }

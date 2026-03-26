@@ -46,10 +46,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoadingOverlay
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
 import com.zyntasolutions.zyntapos.domain.model.Notification
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.datetime.Instant
@@ -75,6 +77,7 @@ fun NotificationInboxScreen(
     onNavigateUp: () -> Unit,
     viewModel: NotificationViewModel = koinViewModel(),
 ) {
+    val s = LocalStrings.current
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -91,12 +94,12 @@ fun NotificationInboxScreen(
     }
 
     ZyntaPageScaffold(
-        title = "Notifications",
+        title = s[StringResource.ADMIN_NOTIFICATION_TITLE],
         onNavigateBack = onNavigateUp,
         actions = {
             if (state.unreadCount > 0) {
                 IconButton(onClick = { viewModel.dispatch(NotificationIntent.MarkAllRead) }) {
-                    Icon(Icons.Default.DoneAll, contentDescription = "Mark all read")
+                    Icon(Icons.Default.DoneAll, contentDescription = s[StringResource.ADMIN_MARK_ALL_READ_CD])
                 }
             }
         },
@@ -121,7 +124,7 @@ fun NotificationInboxScreen(
                                     viewModel.dispatch(NotificationIntent.ToggleUnreadFilter)
                                 }
                             },
-                            label = { Text("All (${state.notifications.size})") },
+                            label = { Text(s[StringResource.ADMIN_ALL_COUNT, state.notifications.size]) },
                         )
                     }
                     item {
@@ -132,7 +135,7 @@ fun NotificationInboxScreen(
                                     viewModel.dispatch(NotificationIntent.ToggleUnreadFilter)
                                 }
                             },
-                            label = { Text("Unread (${state.unreadCount})") },
+                            label = { Text(s[StringResource.ADMIN_UNREAD_COUNT, state.unreadCount]) },
                         )
                     }
                 }
@@ -148,11 +151,11 @@ fun NotificationInboxScreen(
                         ) {
                             ZyntaEmptyState(
                                 icon = Icons.Default.Notifications,
-                                title = if (state.showUnreadOnly) "No Unread Notifications" else "No Notifications",
+                                title = if (state.showUnreadOnly) s[StringResource.ADMIN_NO_UNREAD_TITLE] else s[StringResource.ADMIN_NO_NOTIFICATIONS_TITLE],
                                 subtitle = if (state.showUnreadOnly) {
-                                    "All caught up! Switch to 'All' to see past notifications."
+                                    s[StringResource.ADMIN_ALL_CAUGHT_UP]
                                 } else {
-                                    "You have no notifications."
+                                    s[StringResource.ADMIN_NO_NOTIFICATIONS_MSG]
                                 },
                                 modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.xl),
                             )

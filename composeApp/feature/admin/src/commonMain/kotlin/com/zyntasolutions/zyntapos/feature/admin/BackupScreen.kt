@@ -11,6 +11,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.BackupInfo
@@ -35,6 +37,7 @@ fun BackupScreen(
     onIntent: (AdminIntent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     Scaffold(
         modifier = modifier,
         floatingActionButton = {
@@ -47,15 +50,15 @@ fun BackupScreen(
                         Icon(Icons.Default.Backup, contentDescription = null)
                     }
                 },
-                text = { Text(if (state.isCreatingBackup) "Creating…" else "Create Backup") },
+                text = { Text(if (state.isCreatingBackup) s[StringResource.ADMIN_BACKUP_CREATING] else s[StringResource.ADMIN_CREATE_BACKUP]) },
             )
         },
     ) { innerPadding ->
         if (state.backups.isEmpty() && !state.isLoading) {
             ZyntaEmptyState(
-                title = "No backups yet",
+                title = s[StringResource.ADMIN_NO_BACKUPS_TITLE],
                 icon = Icons.Default.CloudOff,
-                subtitle = "Tap + to create one.",
+                subtitle = s[StringResource.ADMIN_NO_BACKUPS_SUBTITLE],
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
             )
         } else {
@@ -69,7 +72,7 @@ fun BackupScreen(
             ) {
                 item {
                     Text(
-                        "${state.backups.size} backup(s)",
+                        s[StringResource.ADMIN_BACKUP_COUNT, state.backups.size],
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -90,11 +93,10 @@ fun BackupScreen(
             AlertDialog(
                 onDismissRequest = { onIntent(AdminIntent.CancelRestore) },
                 icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
-                title = { Text("Restore Backup?") },
+                title = { Text(s[StringResource.ADMIN_RESTORE_DIALOG_TITLE]) },
                 text = {
                     Text(
-                        "Restoring \"${backup.fileName}\" will replace ALL current data. " +
-                            "The app must restart after restore. This cannot be undone.",
+                        s[StringResource.ADMIN_RESTORE_DIALOG_MSG, backup.fileName],
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 },
@@ -102,10 +104,10 @@ fun BackupScreen(
                     Button(
                         onClick = { onIntent(AdminIntent.ConfirmRestore) },
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                    ) { Text("Restore") }
+                    ) { Text(s[StringResource.ADMIN_RESTORE_ACTION]) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { onIntent(AdminIntent.CancelRestore) }) { Text("Cancel") }
+                    TextButton(onClick = { onIntent(AdminIntent.CancelRestore) }) { Text(s[StringResource.COMMON_CANCEL]) }
                 },
             )
         }
@@ -114,10 +116,10 @@ fun BackupScreen(
         state.showDeleteConfirm?.let { backup ->
             AlertDialog(
                 onDismissRequest = { onIntent(AdminIntent.CancelDelete) },
-                title = { Text("Delete Backup?") },
+                title = { Text(s[StringResource.ADMIN_DELETE_BACKUP_TITLE]) },
                 text = {
                     Text(
-                        "Permanently delete \"${backup.fileName}\"? This cannot be undone.",
+                        s[StringResource.ADMIN_DELETE_BACKUP_MSG, backup.fileName],
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 },
@@ -125,10 +127,10 @@ fun BackupScreen(
                     Button(
                         onClick = { onIntent(AdminIntent.ConfirmDelete) },
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                    ) { Text("Delete") }
+                    ) { Text(s[StringResource.ADMIN_DELETE_ACTION]) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { onIntent(AdminIntent.CancelDelete) }) { Text("Cancel") }
+                    TextButton(onClick = { onIntent(AdminIntent.CancelDelete) }) { Text(s[StringResource.COMMON_CANCEL]) }
                 },
             )
         }
@@ -143,6 +145,7 @@ private fun BackupCard(
     onRestore: () -> Unit,
     onDelete: () -> Unit,
 ) {
+    val s = LocalStrings.current
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(ZyntaSpacing.md)) {
             Row(
@@ -201,7 +204,7 @@ private fun BackupCard(
                     OutlinedButton(onClick = onRestore, modifier = Modifier.weight(1f)) {
                         Icon(Icons.Default.Restore, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Restore")
+                        Text(s[StringResource.ADMIN_RESTORE_ACTION])
                     }
                     OutlinedButton(
                         onClick = onDelete,
@@ -212,7 +215,7 @@ private fun BackupCard(
                     ) {
                         Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Delete")
+                        Text(s[StringResource.ADMIN_DELETE_ACTION])
                     }
                 }
             }
