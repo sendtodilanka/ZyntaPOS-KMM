@@ -719,7 +719,7 @@ private fun DateInputField(
         onValueChange = {},
         readOnly = true,
         label = { Text(label) },
-        placeholder = { Text("YYYY-MM-DD") },
+        placeholder = { Text(s[StringResource.COMMON_DATE_FORMAT_PLACEHOLDER]) },
         singleLine = true,
         trailingIcon = {
             IconButton(onClick = onPickerClick) {

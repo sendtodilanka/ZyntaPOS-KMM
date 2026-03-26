@@ -12,6 +12,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -53,6 +54,7 @@ fun ZyntaNumericPad(
     mode: NumericPadMode = NumericPadMode.PRICE,
     buttonSize: Dp = 64.dp,
 ) {
+    val s = LocalStrings.current
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -103,7 +105,7 @@ fun ZyntaNumericPad(
                 modifier = Modifier.size(buttonSize),
                 shape = RoundedCornerShape(12.dp),
             ) {
-                Icon(Icons.AutoMirrored.Filled.Backspace, contentDescription = "Backspace")
+                Icon(Icons.AutoMirrored.Filled.Backspace, contentDescription = s[StringResource.COMMON_BACKSPACE_CD])
             }
             Spacer(Modifier.size(buttonSize))
             FilledTonalButton(
@@ -116,7 +118,7 @@ fun ZyntaNumericPad(
                 ),
                 contentPadding = PaddingValues(0.dp),
             ) {
-                Text("C", fontWeight = FontWeight.Bold)
+                Text(s[StringResource.COMMON_NUMERIC_CLEAR_LABEL], fontWeight = FontWeight.Bold)
             }
         }
     }

@@ -125,7 +125,7 @@ fun GeneralSettingsScreen(
     LaunchedEffect(effects) {
         effects.collectLatest { effect ->
             when (effect) {
-                SettingsEffect.GeneralSaved -> snackbarHostState.showSnackbar("General settings saved.")
+                SettingsEffect.GeneralSaved -> snackbarHostState.showSnackbar(s[StringResource.SETTINGS_GENERAL_SAVED])
                 is SettingsEffect.ShowSnackbar -> snackbarHostState.showSnackbar(effect.message)
                 else -> Unit
             }

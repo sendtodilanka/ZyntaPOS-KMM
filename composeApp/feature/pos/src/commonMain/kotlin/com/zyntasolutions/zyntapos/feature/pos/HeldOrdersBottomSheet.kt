@@ -183,7 +183,7 @@ private fun HeldOrderRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    text = "•",
+                    text = s[StringResource.COMMON_BULLET],
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -193,12 +193,12 @@ private fun HeldOrderRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    text = "•",
+                    text = s[StringResource.COMMON_BULLET],
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    text = "$%.2f".format(order.total),
+                    text = s[StringResource.POS_HELD_ORDER_TOTAL_FORMAT, "%.2f".format(order.total)],
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.primary,

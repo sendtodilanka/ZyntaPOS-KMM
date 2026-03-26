@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -74,8 +75,9 @@ fun <T> ZyntaTable(
         }
     },
     emptyContent: @Composable ColumnScope.() -> Unit = {
+        val s = LocalStrings.current
         Box(Modifier.fillMaxWidth().padding(ZyntaSpacing.xl), contentAlignment = Alignment.Center) {
-            Text("No data available", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(s[StringResource.COMMON_NO_DATA], style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     },
     paginationFooter: @Composable (ColumnScope.() -> Unit)? = null,
@@ -112,7 +114,7 @@ fun <T> ZyntaTable(
                             }
                             Icon(
                                 imageVector = icon,
-                                contentDescription = "Sort by ${col.header}",
+                                contentDescription = LocalStrings.current[StringResource.COMMON_SORT_BY_FORMAT, col.header],
                                 modifier = Modifier.size(16.dp),
                                 tint = if (col.key == sortColumnKey)
                                     MaterialTheme.colorScheme.primary

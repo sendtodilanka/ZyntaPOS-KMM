@@ -304,7 +304,7 @@ private fun LoginFormContent(
                         val minutes = lockoutSecondsRemaining / 60
                         val seconds = lockoutSecondsRemaining % 60
                         Text(
-                            text = "Try again in %d:%02d".format(minutes, seconds),
+                            text = s[StringResource.AUTH_LOCKOUT_COUNTDOWN_FORMAT, minutes, "%02d".format(seconds)],
                             color = MaterialTheme.colorScheme.onErrorContainer,
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
@@ -362,7 +362,7 @@ private fun LoginIllustrationPanel(modifier: Modifier = Modifier) {
             Spacer(Modifier.height(ZyntaSpacing.xl))
 
             Text(
-                text = "ZyntaPOS",
+                text = s[StringResource.COMMON_APP_NAME],
                 style = MaterialTheme.typography.displaySmall,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
@@ -393,6 +393,7 @@ private fun LoginIllustrationPanel(modifier: Modifier = Modifier) {
 
 @Composable
 private fun ZyntaLogoHeader(modifier: Modifier = Modifier) {
+    val s = LocalStrings.current
     // TODO: Replace with SVG vector asset in Sprint 9 design-system polish pass.
     // For now, render a text-based logotype consistent with Material 3 brand guidance.
     Row(
@@ -416,7 +417,7 @@ private fun ZyntaLogoHeader(modifier: Modifier = Modifier) {
         }
         Spacer(Modifier.width(ZyntaSpacing.sm))
         Text(
-            text = "ZyntaPOS",
+            text = s[StringResource.COMMON_APP_NAME],
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
         )

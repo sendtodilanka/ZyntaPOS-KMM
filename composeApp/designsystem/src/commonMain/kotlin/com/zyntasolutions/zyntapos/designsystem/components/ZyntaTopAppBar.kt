@@ -7,6 +7,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
 import com.zyntasolutions.zyntapos.designsystem.layouts.LocalZyntaDrawerController
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -60,14 +61,14 @@ fun ZyntaTopAppBar(
                 onNavigateBack != null -> IconButton(onClick = onNavigateBack) {
                     Icon(
                         imageVector = navigationIcon ?: Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Navigate back",
+                        contentDescription = LocalStrings.current[StringResource.COMMON_NAVIGATE_BACK_CD],
                     )
                 }
                 // Hamburger trigger for COMPACT modal drawer (top-level screens only)
                 drawerController != null -> IconButton(onClick = drawerController) {
                     Icon(
                         imageVector = Icons.Filled.Menu,
-                        contentDescription = "Open navigation drawer",
+                        contentDescription = LocalStrings.current[StringResource.COMMON_OPEN_DRAWER_CD],
                     )
                 }
             }
@@ -105,7 +106,7 @@ fun ZyntaLargeTopAppBar(
                 IconButton(onClick = onNavigateBack) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Navigate back",
+                        contentDescription = LocalStrings.current[StringResource.COMMON_NAVIGATE_BACK_CD],
                     )
                 }
             }

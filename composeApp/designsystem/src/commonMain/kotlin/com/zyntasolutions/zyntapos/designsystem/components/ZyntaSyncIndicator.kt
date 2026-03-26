@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ZyntaSyncIndicator — Maps SyncStatus enum to visual dot/spinner indicator.
@@ -41,6 +42,7 @@ fun ZyntaSyncIndicator(
     modifier: Modifier = Modifier,
     showLabel: Boolean = true,
 ) {
+    val s = LocalStrings.current
     val syncedColor = MaterialTheme.colorScheme.tertiary
     val syncingColor = MaterialTheme.colorScheme.primary
     val offlineColor = MaterialTheme.colorScheme.secondary
@@ -55,12 +57,12 @@ fun ZyntaSyncIndicator(
             SyncStatus.SYNCED -> {
                 Icon(
                     imageVector = Icons.Default.CloudDone,
-                    contentDescription = "Synced",
+                    contentDescription = s[StringResource.SYNC_STATUS_SYNCED],
                     tint = syncedColor,
                     modifier = Modifier.size(16.dp),
                 )
                 if (showLabel) Text(
-                    "Synced",
+                    s[StringResource.SYNC_STATUS_SYNCED],
                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
                     color = syncedColor,
                 )
@@ -85,13 +87,13 @@ fun ZyntaSyncIndicator(
                     }
                     Icon(
                         imageVector = Icons.Default.Sync,
-                        contentDescription = "Syncing",
+                        contentDescription = s[StringResource.SYNC_STATUS_SYNCING],
                         tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
                 if (showLabel) Text(
-                    "Syncing…",
+                    s[StringResource.SYNC_STATUS_SYNCING],
                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
                     color = syncingColor,
                 )
@@ -100,22 +102,22 @@ fun ZyntaSyncIndicator(
             SyncStatus.OFFLINE -> {
                 Icon(
                     imageVector = Icons.Default.CloudOff,
-                    contentDescription = "Offline",
+                    contentDescription = s[StringResource.SYNC_STATUS_OFFLINE],
                     tint = offlineColor,
                     modifier = Modifier.size(16.dp),
                 )
-                if (showLabel) Text("Offline", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium), color = offlineColor)
+                if (showLabel) Text(s[StringResource.SYNC_STATUS_OFFLINE], style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium), color = offlineColor)
             }
 
             SyncStatus.FAILED -> {
                 Icon(
                     imageVector = Icons.Default.ErrorOutline,
-                    contentDescription = "Sync failed",
+                    contentDescription = s[StringResource.SYNC_STATUS_FAILED],
                     tint = failedColor,
                     modifier = Modifier.size(16.dp),
                 )
                 if (showLabel) Text(
-                    "Sync Failed",
+                    s[StringResource.SYNC_STATUS_FAILED],
                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
                     color = failedColor,
                 )
