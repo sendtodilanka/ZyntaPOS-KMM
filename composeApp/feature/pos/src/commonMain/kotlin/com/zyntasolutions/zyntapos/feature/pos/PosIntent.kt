@@ -348,6 +348,21 @@ sealed interface PosIntent {
     /** Barcode detected as a gift card — look up the balance and apply to payment. */
     data class ScanGiftCard(val barcode: String) : PosIntent
 
+    // ─── Gift Card (G3-2) ─────────────────────────────────────────────────────
+
+    /** Show the gift card lookup dialog. */
+    data object ShowGiftCardDialog : PosIntent
+    /** Dismiss the gift card dialog. */
+    data object DismissGiftCardDialog : PosIntent
+    /** Update the gift card code text field. */
+    data class GiftCardCodeChanged(val code: String) : PosIntent
+    /** Lookup the gift card balance by code. */
+    data object LookupGiftCard : PosIntent
+    /** Set the amount to apply from gift card to transaction. */
+    data class GiftCardPaymentAmountChanged(val amount: Double) : PosIntent
+    /** Apply the gift card payment and close the dialog. */
+    data object ConfirmGiftCardPayment : PosIntent
+
     // ─── Return / Lookup ───────────────────────────────────────────────────────
 
     /** Opens the manual order lookup dialog for return processing. */

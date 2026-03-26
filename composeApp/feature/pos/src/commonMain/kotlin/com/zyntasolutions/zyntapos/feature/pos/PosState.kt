@@ -171,6 +171,19 @@ data class PosState(
     val cardTerminalConnected: Boolean = false,
     /** Display name of the connected card terminal (e.g. "Verifone P400"). Empty when disconnected. */
     val cardTerminalName: String = "",
+    // ── Gift Card (G3-2) ──────────────────────────────────────────────────────
+    /** `true` when the gift card lookup dialog is visible. */
+    val showGiftCardDialog: Boolean = false,
+    /** Barcode or code entered for gift card lookup. */
+    val giftCardCode: String = "",
+    /** Balance found for the scanned gift card. `null` if not yet looked up or not found. */
+    val giftCardBalance: Double? = null,
+    /** Amount to apply from gift card to current transaction. */
+    val giftCardPaymentAmount: Double = 0.0,
+    /** Error from gift card lookup. */
+    val giftCardError: String? = null,
+    /** `true` while looking up gift card balance. */
+    val isGiftCardLoading: Boolean = false,
     // ── Multi-Currency Display (G3-5/G8-2) ──────────────────────────────────
     /** Secondary/display currency code (e.g. "USD"). Empty when multi-currency is disabled. */
     val secondaryCurrency: String = "",

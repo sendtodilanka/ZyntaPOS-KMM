@@ -156,4 +156,10 @@ sealed interface SettingsIntent {
     data class UpdateProfileIsDefault(val isDefault: Boolean) : SettingsIntent
     data object SavePrinterProfile : SettingsIntent
     data class DeletePrinterProfile(val id: String) : SettingsIntent
+
+    // ── Settings Sync to Backend (G8-4) ──────────────────────────────────────
+    /** Trigger a sync of all local settings to the backend. */
+    data object SyncSettingsToBackend : SettingsIntent
+    /** Dismiss the settings sync error. */
+    data object DismissSettingsSyncError : SettingsIntent
 }

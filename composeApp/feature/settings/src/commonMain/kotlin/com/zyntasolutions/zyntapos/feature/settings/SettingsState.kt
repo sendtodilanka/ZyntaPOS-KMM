@@ -35,6 +35,13 @@ data class SettingsState(
     /** True while any cross-screen async operation is pending. */
     val isLoading: Boolean = false,
     val error: String? = null,
+    // ── Settings Sync (G8-4) ────────────────────────────────────────────────
+    /** `true` while settings are being synced to the backend. */
+    val isSyncingSettings: Boolean = false,
+    /** Timestamp of the last successful settings sync. `null` if never synced. */
+    val lastSettingsSyncAt: String? = null,
+    /** Error from the last sync attempt. `null` on success. */
+    val settingsSyncError: String? = null,
 ) {
 
     // ── General settings ──────────────────────────────────────────────────────

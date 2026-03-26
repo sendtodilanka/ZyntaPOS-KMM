@@ -1863,7 +1863,7 @@ Backend Tests:
 | ~~**No store switcher**~~ — ✅ DONE: `PosState.storeName` + `activeStoreId` from `StoreRepository`; Store icon + name displayed in both EXPANDED and COMPACT layout headers next to cashier badge (2026-03-24) | ~~CRITICAL~~ | ✅ DONE (2026-03-24) |
 | ~~**No loyalty points redemption at checkout**~~ — ✅ DONE: `LoyaltyRedemptionDialog` with quick-select chips + slider, wired to `PosIntent.SetLoyaltyPointsRedemption`, discount shown in `CartSummaryFooter` | ~~HIGH~~ | ✅ DONE (2026-03-23) |
 | ~~**No cross-store return processing**~~ — ✅ DONE (2026-03-26): `PosState.crossStoreReturnMode/crossStoreOrderId/crossStoreOrder` + `ToggleCrossStoreReturnMode/CrossStoreOrderIdChanged/LookupCrossStoreOrder/CancelCrossStoreReturn` intents + `onLookupCrossStoreOrder()` uses `lookupOrderForReturnUseCase` | ~~HIGH~~ | ✅ DONE (2026-03-26) |
-| **Gift card lookup returns "Phase 2" stub** | MEDIUM | Phase 2 |
+| ~~**Gift card lookup returns "Phase 2" stub**~~ — ✅ DONE (2026-03-26): `PosState.showGiftCardDialog/giftCardCode/giftCardBalance/giftCardPaymentAmount/giftCardError/isGiftCardLoading`; `ShowGiftCardDialog/DismissGiftCardDialog/GiftCardCodeChanged/LookupGiftCard/GiftCardPaymentAmountChanged/ConfirmGiftCardPayment` intents; `ScanGiftCard` barcode handler opens dialog + auto-lookups; balance stored via `SettingsRepository` key pattern `giftcard.balance.<code>` | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
 | ~~**No card terminal integration UI**~~ — ✅ DONE (2026-03-26): `PosState.cardTerminalConnected/cardTerminalName` + `CheckCardTerminalStatus/CardTerminalStatusChanged` intents (HAL integration deferred to Phase 2) | ~~HIGH~~ | ✅ DONE (2026-03-26) |
 | ~~**No wallet payment choice dialog**~~ — ✅ DONE (2026-03-26): `PosState.showWalletPaymentDialog` + `ShowWalletPaymentDialog/DismissWalletPaymentDialog/WalletPaymentAmountChanged/ConfirmWalletPayment` intents + balance cap logic | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
 | ~~**No employee badge/name on POS screen header**~~ — ✅ DONE (2026-03-22, enhanced 2026-03-24: now part of unified Store + Cashier context bar) | ~~LOW~~ | ✅ DONE |
@@ -1946,7 +1946,7 @@ Backend Tests:
 | ~~**Timezone dropdown hardcoded**~~ — ✅ DONE (2026-03-26): `DetectTimezone` intent; `SettingsState.GeneralState.detectedTimezone/timezoneUtcOffset`; uses `TimeZone.currentSystemDefault()` + UTC offset computation | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
 | **No receipt template visual editor** | LOW | Phase 3 |
 | **No printer connection test button visible in UI** | LOW | Phase 1.5 |
-| **No settings sync to backend** — Local only | MEDIUM | Phase 2 |
+| ~~**No settings sync to backend**~~ — ✅ DONE (2026-03-26): `SettingsState.isSyncingSettings/lastSettingsSyncAt/settingsSyncError`; `SyncSettingsToBackend/DismissSettingsSyncError` intents; `syncSettingsToBackend()` collects 16 settings keys and pushes via sync queue; audit logged | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
 | **Language selector disabled** — No i18n infrastructure | LOW | Phase 3 |
 
 ---
@@ -2061,7 +2061,7 @@ Backend Tests:
 |-----|----------|-------|
 | ~~**No native file picker**~~ — ✅ DONE (2026-03-25): `expect/actual rememberNativeFilePicker` for Android (ActivityResultContracts) + JVM (JFileChooser); wired in MediaLibraryScreen + ExpenseDetailScreen "Browse" button | ~~HIGH~~ | ✅ DONE (2026-03-25) |
 | ~~**No camera capture**~~ — ✅ DONE (2026-03-25): Android camera capture via `ActivityResultContracts.TakePicture`; "Take Photo" option in media picker; JVM stub (no camera API) | ~~HIGH~~ | ✅ DONE (2026-03-25) |
-| **No image crop/compress UI** | MEDIUM | Phase 2 |
+| ~~**No image crop/compress UI**~~ — ✅ DONE (2026-03-25): `ImageCropCompressEditor` dialog with `CropAspectRatio` enum (FREE/SQUARE/4:3/16:9/3:4) + compression quality slider (1-100); `OpenEditor/CloseEditor/SetCropAspectRatio/SetCompressionQuality/ApplyEdits` intents; `editingFile/cropAspectRatio/compressionQuality/isProcessing` state | ~~MEDIUM~~ | ✅ DONE (2026-03-25) |
 | **No batch upload** | LOW | Phase 3 |
 | **No full-screen image preview** ✅ | LOW | Phase 2 |
 

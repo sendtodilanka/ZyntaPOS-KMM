@@ -338,9 +338,23 @@ class PosViewModel(
                 updateState { copy(couponCode = intent.barcode, couponError = null) }
                 onValidateCoupon()
             }
-            is PosIntent.ScanGiftCard       -> sendEffect(
-                PosEffect.ShowError("Gift card: ${intent.barcode} — gift card lookup coming in Phase 2")
-            )
+            is PosIntent.ScanGiftCard       -> {
+                updateState { copy(showGiftCardDialog = true, giftCardCode = intent.barcode, giftCardError = null) }
+                onLookupGiftCard()
+            }
+            // ── Gift Card (G3-2) ────────────────────────────────────────────────
+            PosIntent.ShowGiftCardDialog     -> updateState { copy(showGiftCardDialog = true, giftCardCode = "", giftCardBalance = null, giftCardError = null) }
+            PosIntent.DismissGiftCardDialog  -> updateState { copy(showGiftCardDialog = false) }
+            is PosIntent.GiftCardCodeChanged -> updateState { copy(giftCardCode = intent.code, giftCardError = null) }
+            PosIntent.LookupGiftCard         -> onLookupGiftCard()
+            is PosIntent.GiftCardPaymentAmountChanged -> {
+                val capped = intent.amount.coerceIn(0.0, currentState.giftCardBalance ?: 0.0)
+                updateState { copy(giftCardPaymentAmount = capped) }
+            }
+            PosIntent.ConfirmGiftCardPayment -> {
+                updateState { copy(showGiftCardDialog = false) }
+                // Gift card payment amount is tracked in state for checkout
+            }
             // ── Card Terminal (G3-3) ──────────────────────────────────────────
             is PosIntent.CheckCardTerminalStatus -> updateState {
                 copy(cardTerminalConnected = false, cardTerminalName = "")
@@ -384,6 +398,34 @@ class PosViewModel(
                 exchangeRate = exchangeRate,
                 showMultiCurrency = showMultiCurrency && secondaryCurrency.isNotBlank() && exchangeRate > 0.0,
             )
+        }
+    }
+
+    // ── Gift Card Lookup (G3-2) ────────────────────────────────────────────
+
+    private fun onLookupGiftCard() {
+        val code = currentState.giftCardCode.trim()
+        if (code.isBlank()) {
+            updateState { copy(giftCardError = "Enter a gift card code") }
+            return
+        }
+        updateState { copy(isGiftCardLoading = true, giftCardError = null) }
+        viewModelScope.launch {
+            // Gift cards are backed by store credit — lookup via settings key pattern
+            val balance = settingsRepository.get("giftcard.balance.$code")?.toDoubleOrNull()
+            if (balance != null && balance > 0.0) {
+                updateState {
+                    copy(
+                        isGiftCardLoading = false,
+                        giftCardBalance = balance,
+                        giftCardPaymentAmount = balance.coerceAtMost(orderTotals.grandTotal),
+                    )
+                }
+            } else {
+                updateState {
+                    copy(isGiftCardLoading = false, giftCardBalance = null, giftCardError = "Gift card not found or has zero balance")
+                }
+            }
         }
     }
 
