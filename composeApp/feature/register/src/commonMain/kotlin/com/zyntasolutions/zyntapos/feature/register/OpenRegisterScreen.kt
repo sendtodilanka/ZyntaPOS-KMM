@@ -212,6 +212,7 @@ private fun RegisterCard(
     isSelected: Boolean,
     onClick: () -> Unit,
 ) {
+    val s = LocalStrings.current
     val isAlreadyOpen = register.currentSessionId != null
     val borderColor = when {
         isAlreadyOpen -> MaterialTheme.colorScheme.error
@@ -245,7 +246,6 @@ private fun RegisterCard(
                     fontWeight = FontWeight.Medium,
                 )
                 Spacer(Modifier.height(2.dp))
-                val s = LocalStrings.current
                 if (isAlreadyOpen) {
                     Text(
                         text = s[StringResource.REGISTER_ALREADY_OPEN],
