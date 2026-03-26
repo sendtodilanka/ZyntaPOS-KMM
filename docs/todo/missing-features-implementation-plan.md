@@ -1867,7 +1867,7 @@ Backend Tests:
 | ~~**No card terminal integration UI**~~ — ✅ DONE (2026-03-26): `PosState.cardTerminalConnected/cardTerminalName` + `CheckCardTerminalStatus/CardTerminalStatusChanged` intents (HAL integration deferred to Phase 2) | ~~HIGH~~ | ✅ DONE (2026-03-26) |
 | ~~**No wallet payment choice dialog**~~ — ✅ DONE (2026-03-26): `PosState.showWalletPaymentDialog` + `ShowWalletPaymentDialog/DismissWalletPaymentDialog/WalletPaymentAmountChanged/ConfirmWalletPayment` intents + balance cap logic | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
 | ~~**No employee badge/name on POS screen header**~~ — ✅ DONE (2026-03-22, enhanced 2026-03-24: now part of unified Store + Cashier context bar) | ~~LOW~~ | ✅ DONE |
-| **No multi-currency display** at checkout | MEDIUM | Phase 2 |
+| ~~**No multi-currency display**~~ — ✅ DONE (2026-03-26): `PosState.secondaryCurrency/exchangeRate/showMultiCurrency`; loaded from `SettingsRepository` in `onLoadStoreCurrency()`; secondary currency conversion available at checkout | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
 | **No coupon barcode scanning preview** | LOW | Phase 2 |
 
 ---
@@ -1910,8 +1910,8 @@ Backend Tests:
 | Gap | Severity | Phase |
 |-----|----------|-------|
 | ~~**No real-time WebSocket updates**~~ — ✅ DONE (2026-03-25): `SyncStatusPort.onSyncComplete` subscription in `ReportsViewModel` silently reloads active report tabs after each sync cycle; 30s periodic fallback refresh; same pattern as DashboardViewModel (C5.4) | ~~CRITICAL~~ | ✅ DONE |
-| **No multi-store consolidation** — All reports single-store only | CRITICAL | Phase 2 |
-| **No store comparison charts** — No side-by-side performance | HIGH | Phase 2 |
+| ~~**No multi-store consolidation**~~ — ✅ DONE (2026-03-26): `ReportsState.selectedStoreId` filter; `SelectReportStore` intent; `generateSalesReport(from, to, storeId)` + `generateCustomerReport(storeId)` now pass `selectedStoreId`; `LoadAvailableStores` loads store dropdown | ~~CRITICAL~~ | ✅ DONE (2026-03-26) |
+| ~~**No store comparison charts**~~ — ✅ DONE (C5.2): `StoreComparisonState` + `GenerateMultiStoreComparisonReportUseCase` + `loadStoreComparison()` fully implemented; cross-store revenue/order comparison | ~~HIGH~~ | ✅ DONE (C5.2) |
 | ~~**PDF export buttons present but may be stubbed**~~ — ✅ VERIFIED DONE (2026-03-25): `JvmReportExporter.exportSalesPdf()` + `exportStockPdf()` use PDFBox to write plain-text PDF; `AndroidReportExporter` generates HTML-to-PDF via `PdfDocument`; all 4 report types have PDF export via `PdfBoxRenderer` | ~~HIGH~~ | ✅ DONE |
 | ~~**No drill-down**~~ — ✅ DONE (2026-03-26): `SalesState.drillDownLabel/drillDownOrderIds/isDrillDownLoading`; `DrillDownSalesDataPoint(label)/CloseDrillDown` intents; filters `topProducts` map keys matching label | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
 | **No report scheduling/email** — Can't schedule daily/weekly reports | LOW | Phase 3 |
@@ -1987,7 +1987,7 @@ Backend Tests:
 
 | Gap | Severity | Phase |
 |-----|----------|-------|
-| **No roaming/multi-store dashboard** — Single store TabRow only | HIGH | Phase 2 |
+| ~~**No roaming/multi-store dashboard**~~ — ✅ DONE (C3.4): `EmployeeRoamingViewModel` + `EmployeeStoreAssignmentScreen` + `GetEmployeeStoresUseCase/AssignEmployeeToStoreUseCase/RevokeEmployeeStoreAssignmentUseCase`; `NavigateToEmployeeStores` intent in StaffViewModel | ~~HIGH~~ | ✅ DONE (C3.4) |
 | ~~**No leave balance tracking display**~~ — ✅ DONE (2026-03-25): `StaffState.LeaveState.annualLeaveBalance/usedLeave/remainingLeave`; computed from approved leave records; displayed in leave tab summary card | ~~MEDIUM~~ | ✅ DONE (2026-03-25) |
 | ~~**No shift conflict detection**~~ — ✅ DONE (2026-03-25): `StaffViewModel` checks for overlapping shifts on save; `ShiftConflictDetected` effect with conflicting shift details; prevents saving conflicting shifts | ~~MEDIUM~~ | ✅ DONE (2026-03-25) |
 | ~~**No attendance report export**~~ — ✅ DONE (2026-03-25): `ExportAttendanceReport` intent; CSV export with employee name, date, check-in/out times, hours worked; `ShareAttendanceExport` effect | ~~MEDIUM~~ | ✅ DONE (2026-03-25) |

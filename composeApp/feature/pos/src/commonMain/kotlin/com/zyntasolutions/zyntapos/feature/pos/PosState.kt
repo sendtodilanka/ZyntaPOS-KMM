@@ -171,4 +171,11 @@ data class PosState(
     val cardTerminalConnected: Boolean = false,
     /** Display name of the connected card terminal (e.g. "Verifone P400"). Empty when disconnected. */
     val cardTerminalName: String = "",
+    // ── Multi-Currency Display (G3-5/G8-2) ──────────────────────────────────
+    /** Secondary/display currency code (e.g. "USD"). Empty when multi-currency is disabled. */
+    val secondaryCurrency: String = "",
+    /** Exchange rate: 1 unit of [storeCurrency] = [exchangeRate] units of [secondaryCurrency]. */
+    val exchangeRate: Double = 0.0,
+    /** `true` when multi-currency display is enabled in store settings. */
+    val showMultiCurrency: Boolean = false,
 )

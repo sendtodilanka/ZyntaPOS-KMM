@@ -373,7 +373,18 @@ class PosViewModel(
     private suspend fun onLoadStoreCurrency() {
         val code = settingsRepository.get("store.currency_code") ?: "LKR"
         currencyFormatter.defaultCurrency = code
-        updateState { copy(storeCurrency = code) }
+        // Multi-currency display (G3-5/G8-2)
+        val secondaryCurrency = settingsRepository.get("store.secondary_currency") ?: ""
+        val exchangeRate = settingsRepository.get("store.exchange_rate")?.toDoubleOrNull() ?: 0.0
+        val showMultiCurrency = settingsRepository.get("store.show_multi_currency") == "true"
+        updateState {
+            copy(
+                storeCurrency = code,
+                secondaryCurrency = secondaryCurrency,
+                exchangeRate = exchangeRate,
+                showMultiCurrency = showMultiCurrency && secondaryCurrency.isNotBlank() && exchangeRate > 0.0,
+            )
+        }
     }
 
     private fun onLoadProducts() {

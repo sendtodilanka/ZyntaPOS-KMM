@@ -202,7 +202,7 @@ class ReportsViewModel(
         updateState { copy(salesReport = salesReport.copy(isLoading = true, error = null)) }
 
         salesJob = viewModelScope.launch {
-            generateSalesReport(from, to)
+            generateSalesReport(from, to, storeId = currentState.selectedStoreId)
                 .catch { e ->
                     updateState {
                         copy(salesReport = salesReport.copy(isLoading = false, error = e.message))
@@ -342,7 +342,7 @@ class ReportsViewModel(
         updateState { copy(customerReport = customerReport.copy(isLoading = true, error = null)) }
 
         customerJob = viewModelScope.launch {
-            generateCustomerReport()
+            generateCustomerReport(storeId = currentState.selectedStoreId)
                 .catch { e ->
                     updateState {
                         copy(customerReport = customerReport.copy(isLoading = false, error = e.message))
