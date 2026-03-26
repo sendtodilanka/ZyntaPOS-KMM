@@ -25,6 +25,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import com.zyntasolutions.zyntapos.domain.repository.AuthRepository
 import com.zyntasolutions.zyntapos.domain.repository.FinancialStatementRepository
+import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.domain.repository.StoreRepository
 import com.zyntasolutions.zyntapos.domain.model.AccountBalance
 import com.zyntasolutions.zyntapos.domain.model.FinancialStatement
@@ -55,6 +56,17 @@ class AccountingViewModelTest {
         override fun logScreenView(screenName: String, screenClass: String) = Unit
         override fun setUserId(userId: String?) = Unit
         override fun setUserProperty(name: String, value: String) = Unit
+    }
+
+    private val fakeSettingsRepository = object : SettingsRepository {
+        private val store = mutableMapOf<String, String>()
+        override suspend fun get(key: String): String? = store[key]
+        override suspend fun set(key: String, value: String): com.zyntasolutions.zyntapos.core.result.Result<Unit> {
+            store[key] = value
+            return com.zyntasolutions.zyntapos.core.result.Result.Success(Unit)
+        }
+        override suspend fun getAll(): Map<String, String> = store.toMap()
+        override fun observe(key: String): Flow<String?> = flowOf(store[key])
     }
 
     private val fakeAuthRepository = object : AuthRepository {
@@ -152,6 +164,7 @@ class AccountingViewModelTest {
             storeRepository = fakeStoreRepository,
             authRepository = fakeAuthRepository,
             analytics = noOpAnalytics,
+            settingsRepository = fakeSettingsRepository,
         )
     }
 
@@ -241,6 +254,7 @@ class AccountingViewModelTest {
             storeRepository = fakeStoreRepository,
             authRepository = fakeAuthRepository,
             analytics = noOpAnalytics,
+            settingsRepository = fakeSettingsRepository,
         )
         vmRef = vmWithSlowRepo
 
