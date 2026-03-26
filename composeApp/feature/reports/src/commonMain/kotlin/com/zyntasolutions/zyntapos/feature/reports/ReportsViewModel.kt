@@ -585,11 +585,8 @@ class ReportsViewModel(
                         currentState.salesReport.customFrom,
                         currentState.salesReport.customTo,
                     )
-                    val report = generateSalesReport(from, to, store.id)
-                    val storeRevenue = when (report) {
-                        is com.zyntasolutions.zyntapos.core.result.Result.Success -> report.data.totalRevenue
-                        else -> 0.0
-                    }
+                    val salesReport = generateSalesReport(from, to, store.id).first()
+                    val storeRevenue = salesReport.totalRevenue
 
                     // Get exchange rate for store's currency to base currency
                     val exchangeRate = if (store.currency == baseCurrency) {
