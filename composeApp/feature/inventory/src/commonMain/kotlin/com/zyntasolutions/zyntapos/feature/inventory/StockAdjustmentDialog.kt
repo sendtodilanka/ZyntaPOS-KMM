@@ -9,6 +9,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.NumericPadMode
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaNumericPad
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
@@ -45,6 +47,7 @@ fun StockAdjustmentDialog(
     product: Product,
     onIntent: (InventoryIntent) -> Unit,
 ) {
+    val s = LocalStrings.current
     var adjustmentType by remember { mutableStateOf(StockAdjustment.Type.INCREASE) }
     var quantityText by remember { mutableStateOf("0") }
     var reason by remember { mutableStateOf("") }
@@ -63,7 +66,7 @@ fun StockAdjustmentDialog(
                 horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
             ) {
                 Icon(Icons.Default.Inventory, contentDescription = null)
-                Text("Adjust Stock", style = MaterialTheme.typography.titleMedium)
+                Text(s[StringResource.INVENTORY_ADJUST_STOCK], style = MaterialTheme.typography.titleMedium)
             }
         },
         text = {
@@ -77,7 +80,7 @@ fun StockAdjustmentDialog(
                 HorizontalDivider()
 
                 // ── Adjustment type selector ─────────────────────────────
-                Text("Adjustment Type", style = MaterialTheme.typography.labelLarge)
+                Text(s[StringResource.INVENTORY_ADJUSTMENT_TYPE], style = MaterialTheme.typography.labelLarge)
                 Row(horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                     StockAdjustment.Type.entries.forEach { type ->
                         FilterChip(
@@ -96,7 +99,7 @@ fun StockAdjustmentDialog(
                 }
 
                 // ── Quantity input ───────────────────────────────────────
-                Text("Quantity", style = MaterialTheme.typography.labelLarge)
+                Text(s[StringResource.COMMON_QUANTITY], style = MaterialTheme.typography.labelLarge)
                 ZyntaNumericPad(
                     displayValue = quantityText,
                     onDigit = { digit ->
@@ -120,7 +123,7 @@ fun StockAdjustmentDialog(
                 // ── Quantity validation hint ─────────────────────────────
                 if (showValidation && !isQuantityValid) {
                     Text(
-                        text = "Quantity must be greater than zero.",
+                        text = s[StringResource.INVENTORY_QTY_GT_ZERO_ERROR],
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.error,
                     )
@@ -130,11 +133,11 @@ fun StockAdjustmentDialog(
                 OutlinedTextField(
                     value = reason,
                     onValueChange = { reason = it },
-                    label = { Text("Reason *") },
-                    placeholder = { Text("e.g., Received delivery, Damaged goods, Shrinkage") },
+                    label = { Text(s[StringResource.INVENTORY_REASON_REQUIRED_LABEL]) },
+                    placeholder = { Text(s[StringResource.INVENTORY_REASON_PLACEHOLDER]) },
                     isError = showValidation && !isReasonValid,
                     supportingText = if (showValidation && !isReasonValid) {
-                        { Text("Reason is required for the audit trail.") }
+                        { Text(s[StringResource.INVENTORY_REASON_REQUIRED_ERROR]) }
                     } else null,
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 2,
@@ -162,13 +165,13 @@ fun StockAdjustmentDialog(
                             modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.sm),
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
-                            Text("Current: ${product.stockQty}", style = MaterialTheme.typography.bodySmall)
+                            Text(s[StringResource.INVENTORY_CURRENT_QTY_FORMAT, product.stockQty], style = MaterialTheme.typography.bodySmall)
                             Text(
                                 "${adjustmentType.symbol()} $quantity",
                                 style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
                             )
                             Text(
-                                "New: $newStock",
+                                s[StringResource.INVENTORY_NEW_QTY_FORMAT, newStock],
                                 style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
                                 color = color,
                             )
@@ -194,12 +197,12 @@ fun StockAdjustmentDialog(
             ) {
                 Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(ZyntaSpacing.xs))
-                Text("Confirm Adjustment")
+                Text(s[StringResource.INVENTORY_CONFIRM_ADJUSTMENT])
             }
         },
         dismissButton = {
             TextButton(onClick = { onIntent(InventoryIntent.DismissStockAdjustment) }) {
-                Text("Cancel")
+                Text(s[StringResource.COMMON_CANCEL])
             }
         },
     )
@@ -214,6 +217,7 @@ fun StockAdjustmentDialog(
  */
 @Composable
 private fun ProductInfoCard(product: Product) {
+    val s = LocalStrings.current
     Card(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -232,14 +236,14 @@ private fun ProductInfoCard(product: Product) {
                 )
                 if (!product.sku.isNullOrBlank()) {
                     Text(
-                        text = "SKU: ${product.sku}",
+                        text = s[StringResource.COMMON_SKU_FORMAT, product.sku!!],
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 if (!product.barcode.isNullOrBlank()) {
                     Text(
-                        text = "Barcode: ${product.barcode}",
+                        text = s[StringResource.COMMON_BARCODE_FORMAT, product.barcode!!],
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -248,7 +252,7 @@ private fun ProductInfoCard(product: Product) {
             // Current stock badge
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = "In Stock",
+                    text = s[StringResource.INVENTORY_IN_STOCK],
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -271,10 +275,14 @@ private fun ProductInfoCard(product: Product) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** User-friendly label for the adjustment type chip. */
-private fun StockAdjustment.Type.displayLabel(): String = when (this) {
-    StockAdjustment.Type.INCREASE -> "Increase"
-    StockAdjustment.Type.DECREASE -> "Decrease"
-    StockAdjustment.Type.TRANSFER -> "Transfer"
+@Composable
+private fun StockAdjustment.Type.displayLabel(): String {
+    val s = LocalStrings.current
+    return when (this) {
+        StockAdjustment.Type.INCREASE -> s[StringResource.INVENTORY_ADJUST_INCREASE]
+        StockAdjustment.Type.DECREASE -> s[StringResource.INVENTORY_ADJUST_DECREASE]
+        StockAdjustment.Type.TRANSFER -> s[StringResource.INVENTORY_ADJUST_TRANSFER]
+    }
 }
 
 /** Icon for the adjustment type chip. */

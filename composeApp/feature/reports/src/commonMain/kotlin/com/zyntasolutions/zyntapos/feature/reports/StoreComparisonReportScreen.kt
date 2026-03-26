@@ -33,7 +33,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.domain.model.report.StoreSalesData
 import org.koin.compose.koinInject
 import kotlin.math.absoluteValue
@@ -55,6 +57,8 @@ fun StoreComparisonReportScreen(
     onNavigateUp: () -> Unit,
     currencyFormatter: CurrencyFormatter = koinInject(),
 ) {
+    val s = LocalStrings.current
+
     LaunchedEffect(Unit) {
         onIntent(ReportsIntent.LoadStoreComparison)
     }
@@ -62,10 +66,10 @@ fun StoreComparisonReportScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Store Comparison") },
+                title = { Text(s[StringResource.REPORTS_STORE_COMPARISON_TITLE]) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateUp) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = s[StringResource.COMMON_BACK])
                     }
                 },
                 actions = {
@@ -73,7 +77,7 @@ fun StoreComparisonReportScreen(
                         onClick = { onIntent(ReportsIntent.ExportStoreComparisonCsv) },
                         enabled = !state.isExporting && state.stores.isNotEmpty(),
                     ) {
-                        Icon(Icons.Default.FileDownload, contentDescription = "Export CSV")
+                        Icon(Icons.Default.FileDownload, contentDescription = s[StringResource.REPORTS_EXPORT_CSV_CD])
                     }
                 },
             )
@@ -97,10 +101,10 @@ fun StoreComparisonReportScreen(
                         label = {
                             Text(
                                 when (range) {
-                                    DateRange.TODAY -> "Today"
-                                    DateRange.THIS_WEEK -> "This Week"
-                                    DateRange.THIS_MONTH -> "This Month"
-                                    DateRange.CUSTOM -> "Custom"
+                                    DateRange.TODAY -> s[StringResource.REPORTS_TODAY]
+                                    DateRange.THIS_WEEK -> s[StringResource.REPORTS_THIS_WEEK]
+                                    DateRange.THIS_MONTH -> s[StringResource.REPORTS_THIS_MONTH]
+                                    DateRange.CUSTOM -> s[StringResource.REPORTS_CUSTOM]
                                 },
                             )
                         },
@@ -117,17 +121,17 @@ fun StoreComparisonReportScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     SummaryCard(
-                        label = "Total Revenue",
+                        label = s[StringResource.REPORTS_TOTAL_REVENUE],
                         value = currencyFormatter.format(state.totalRevenue),
                         modifier = Modifier.weight(1f),
                     )
                     SummaryCard(
-                        label = "Total Orders",
+                        label = s[StringResource.REPORTS_TOTAL_ORDERS],
                         value = state.totalOrders.toString(),
                         modifier = Modifier.weight(1f),
                     )
                     SummaryCard(
-                        label = "Stores",
+                        label = s[StringResource.REPORTS_STORES],
                         value = state.stores.size.toString(),
                         modifier = Modifier.weight(1f),
                     )
@@ -151,7 +155,7 @@ fun StoreComparisonReportScreen(
 
                 state.stores.isEmpty() -> {
                     Text(
-                        text = "No store data available for the selected period.",
+                        text = s[StringResource.REPORTS_NO_STORE_DATA_PERIOD],
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -159,7 +163,7 @@ fun StoreComparisonReportScreen(
 
                 else -> {
                     Text(
-                        text = "Ranked by Revenue",
+                        text = s[StringResource.REPORTS_RANKED_BY_REVENUE],
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -267,10 +271,11 @@ private fun StoreComparisonCard(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    MetricLabel("Revenue", currencyFormatter.format(store.totalRevenue), store.revenueGrowthPercent)
-                    MetricLabel("Orders", store.orderCount.toString(), store.orderGrowthPercent)
-                    MetricLabel("AOV", currencyFormatter.format(store.averageOrderValue))
-                    MetricLabel("Share", "${(revenueShare * 100).toInt()}%")
+                    val s = LocalStrings.current
+                    MetricLabel(s[StringResource.REPORTS_METRIC_REVENUE], currencyFormatter.format(store.totalRevenue), store.revenueGrowthPercent)
+                    MetricLabel(s[StringResource.REPORTS_METRIC_ORDERS], store.orderCount.toString(), store.orderGrowthPercent)
+                    MetricLabel(s[StringResource.REPORTS_METRIC_AOV], currencyFormatter.format(store.averageOrderValue))
+                    MetricLabel(s[StringResource.REPORTS_METRIC_SHARE], "${(revenueShare * 100).toInt()}%")
                 }
             }
         }
