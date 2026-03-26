@@ -16,6 +16,7 @@ import com.zyntasolutions.zyntapos.domain.model.Order
 import com.zyntasolutions.zyntapos.domain.model.OrderStatus
 import com.zyntasolutions.zyntapos.domain.model.OrderType
 import com.zyntasolutions.zyntapos.domain.model.PaymentMethod
+import com.zyntasolutions.zyntapos.data.remote.dto.OrderItemDto
 import com.zyntasolutions.zyntapos.domain.model.SyncOperation
 import com.zyntasolutions.zyntapos.domain.model.SyncStatus
 import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
@@ -23,6 +24,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlin.time.Clock
 import kotlinx.datetime.Instant
@@ -77,7 +79,7 @@ class OrderRepositoryImpl(
                     payment_splits_json = null,
                     amount_tendered = dto.amountTendered, change_amount = dto.changeAmount,
                     notes = dto.notes, reference = dto.reference,
-                    original_order_id = null, original_store_id = null,
+                    original_order_id = dto.originalOrderId, original_store_id = dto.originalStoreId,
                     created_at = dto.createdAt, updated_at = dto.updatedAt,
                     sync_status = "SYNCED",
                 )
@@ -178,7 +180,12 @@ class OrderRepositoryImpl(
                         id         = item.productId,
                     )
                 }
-                syncEnqueuer.enqueue(SyncOperation.EntityType.ORDER, order.id, SyncOperation.Operation.INSERT)
+                syncEnqueuer.enqueue(
+                    SyncOperation.EntityType.ORDER,
+                    order.id,
+                    SyncOperation.Operation.INSERT,
+                    payload = serializeOrderPayload(order, now),
+                )
             }
         }.fold(
             onSuccess = { Result.Success(order) },
@@ -321,6 +328,54 @@ class OrderRepositoryImpl(
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
+
+    /**
+     * Serializes an [Order] to JSON for the sync queue payload.
+     * Includes refund fields (originalOrderId, originalStoreId) so the server
+     * can propagate refund records to the original store.
+     */
+    private fun serializeOrderPayload(order: Order, now: Long): String =
+        syncJson.encodeToString(
+            OrderDto(
+                id = order.id,
+                orderNumber = order.orderNumber,
+                type = order.type.name,
+                status = order.status.name,
+                items = order.items.map { item ->
+                    OrderItemDto(
+                        id = item.id,
+                        orderId = order.id,
+                        productId = item.productId,
+                        productName = item.productName,
+                        unitPrice = item.unitPrice,
+                        quantity = item.quantity,
+                        discount = item.discount,
+                        discountType = item.discountType.name,
+                        taxRate = item.taxRate,
+                        taxAmount = item.taxAmount,
+                        lineTotal = item.lineTotal,
+                    )
+                },
+                subtotal = order.subtotal,
+                taxAmount = order.taxAmount,
+                discountAmount = order.discountAmount,
+                total = order.total,
+                paymentMethod = order.paymentMethod.name,
+                amountTendered = order.amountTendered,
+                changeAmount = order.changeAmount,
+                customerId = order.customerId,
+                cashierId = order.cashierId,
+                storeId = order.storeId,
+                registerSessionId = order.registerSessionId,
+                notes = order.notes,
+                reference = order.reference,
+                originalOrderId = order.originalOrderId,
+                originalStoreId = order.originalStoreId,
+                createdAt = now,
+                updatedAt = now,
+                syncStatus = "PENDING",
+            )
+        )
 
     private fun matchesFilters(row: com.zyntasolutions.zyntapos.db.Orders, filters: Map<String, String>): Boolean {
         if (filters.isEmpty()) return true

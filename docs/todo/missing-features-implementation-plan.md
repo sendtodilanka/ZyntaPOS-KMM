@@ -1279,7 +1279,7 @@ Backend Tests:
 - [x] Business rule: Configurable policy — stock goes to return store vs original store
 - [x] KMM POS: Lookup order by ID/receipt from any store for return processing (UI)
 - [ ] Backend: Cross-store order lookup endpoint under `/v1/orders` with POS JWT auth
-- [ ] Sync: Refund propagation to original store for accounting
+- [x] Sync: Refund propagation to original store for accounting — ✅ DONE (2026-03-26): OrderDto now carries originalOrderId/originalStoreId; OrderRepositoryImpl.create() serializes full order payload for sync queue; upsertFromSync() persists refund fields from server deltas
 
 ---
 
