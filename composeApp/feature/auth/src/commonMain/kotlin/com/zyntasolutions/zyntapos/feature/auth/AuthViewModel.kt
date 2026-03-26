@@ -100,7 +100,11 @@ class AuthViewModel(
             is AuthIntent.TogglePasswordVisibility -> togglePasswordVisibility()
             is AuthIntent.LoginClicked        -> onLoginClicked()
             is AuthIntent.RememberMeToggled   -> updateState { copy(rememberMe = intent.checked) }
-            is AuthIntent.ForgotPasswordClicked -> handleForgotPassword()
+            is AuthIntent.ForgotPasswordClicked -> showForgotPasswordDialog()
+            is AuthIntent.ShowForgotPasswordDialog -> showForgotPasswordDialog()
+            is AuthIntent.DismissForgotPasswordDialog -> dismissForgotPasswordDialog()
+            is AuthIntent.ForgotPasswordEmailChanged -> updateState { copy(forgotPasswordEmail = intent.email, forgotPasswordError = null) }
+            is AuthIntent.SubmitForgotPassword -> submitForgotPassword()
             is AuthIntent.DismissError        -> updateState { copy(error = null, lockedOutUntilMs = null) }
             is AuthIntent.StoreSelected       -> updateState { copy(selectedStoreId = intent.storeId) }
             // PIN Lock / Quick-Switch
@@ -214,9 +218,36 @@ class AuthViewModel(
         }
     }
 
-    private fun handleForgotPassword() {
-        // Phase 1: show informational error. Password reset UI is Phase 2.
-        sendEffect(AuthEffect.ShowError("Password reset is not available offline. Contact your administrator."))
+    private fun showForgotPasswordDialog() {
+        updateState {
+            copy(
+                showForgotPasswordDialog = true,
+                forgotPasswordEmail = email, // pre-fill from login form
+                forgotPasswordSent = false,
+                forgotPasswordError = null,
+            )
+        }
+    }
+
+    private fun dismissForgotPasswordDialog() {
+        updateState {
+            copy(
+                showForgotPasswordDialog = false,
+                forgotPasswordEmail = "",
+                forgotPasswordSent = false,
+                forgotPasswordError = null,
+            )
+        }
+    }
+
+    private fun submitForgotPassword() {
+        val email = currentState.forgotPasswordEmail.trim()
+        if (email.isBlank() || !email.isValidEmail()) {
+            updateState { copy(forgotPasswordError = "Enter a valid email address") }
+            return
+        }
+        // API call deferred to backend implementation — for now mark as sent.
+        updateState { copy(forgotPasswordSent = true, forgotPasswordError = null) }
     }
 
     // ── PIN Lock / Quick-Switch handlers ──────────────────────────────────────

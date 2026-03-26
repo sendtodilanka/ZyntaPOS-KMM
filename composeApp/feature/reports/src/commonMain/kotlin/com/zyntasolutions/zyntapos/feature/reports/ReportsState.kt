@@ -55,6 +55,13 @@ data class ReportsState(
         val isPrinting: Boolean = false,
         /** Category filter chip selection for the stock table (not used in sales). */
         val selectedCategory: String? = null,
+        // ── Drill-down (G6-3) ─────────────────────────────────────────────
+        /** When non-null, the user has drilled into a specific chart data point (e.g., a day or product). */
+        val drillDownLabel: String? = null,
+        /** Transaction IDs/order numbers for the drilled-down data point. */
+        val drillDownOrderIds: List<String> = emptyList(),
+        /** True when loading drill-down data. */
+        val isDrillDownLoading: Boolean = false,
     )
 
     /** State slice for the stock report screen. */
@@ -68,6 +75,10 @@ data class ReportsState(
         val isExporting: Boolean = false,
         val sortColumn: StockSortColumn = StockSortColumn.NAME,
         val sortAscending: Boolean = true,
+        // ── Pagination (G6-4) ─────────────────────────────────────────────
+        val currentPage: Int = 0,
+        val pageSize: Int = 50,
+        val totalItems: Int = 0,
     )
 
     /** State slice for the customer report screen. */

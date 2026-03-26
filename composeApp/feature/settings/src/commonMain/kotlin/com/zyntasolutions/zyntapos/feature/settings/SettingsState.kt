@@ -48,6 +48,10 @@ data class SettingsState(
         val timezone: String     = "Asia/Colombo",
         val dateFormat: String   = "dd/MM/yyyy",
         val language: String     = "en",
+        /** System-detected timezone ID (e.g., "Asia/Colombo"). */
+        val detectedTimezone: String = "",
+        /** UTC offset string for the detected timezone (e.g., "UTC+05:30"). */
+        val timezoneUtcOffset: String = "",
         val isSaving: Boolean    = false,
         val saveError: String?   = null,
     )

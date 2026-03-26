@@ -39,6 +39,8 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.offsetAt
 import com.zyntasolutions.zyntapos.core.utils.AppTimezone
 
 /**
@@ -113,6 +115,7 @@ class SettingsViewModel(
         is SettingsIntent.UpdateCurrency             -> updateState { copy(general = general.copy(currency = intent.currency)) }
         is SettingsIntent.UpdateTimezone             -> updateState { copy(general = general.copy(timezone = intent.tz)) }
         is SettingsIntent.UpdateDateFormat           -> updateState { copy(general = general.copy(dateFormat = intent.format)) }
+        SettingsIntent.DetectTimezone                -> detectTimezone()
         SettingsIntent.SaveGeneral                   -> saveGeneral()
         // POS
         SettingsIntent.LoadPos                       -> loadPos()
@@ -320,6 +323,31 @@ class SettingsViewModel(
             }
             // Apply the loaded timezone immediately so all subsequent display calls use it
             AppTimezone.set(all[SettingsKeys.TIMEZONE] ?: "Asia/Colombo")
+        }
+    }
+
+    private fun detectTimezone() {
+        val tz = TimeZone.currentSystemDefault()
+        val now = Clock.System.now()
+        val offset = tz.offsetAt(now)
+        val totalSeconds = offset.totalSeconds
+        val sign = if (totalSeconds >= 0) "+" else "-"
+        val absSeconds = kotlin.math.abs(totalSeconds)
+        val hours = absSeconds / 3600
+        val minutes = (absSeconds % 3600) / 60
+        val utcOffsetStr = if (minutes > 0) {
+            "UTC${sign}${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}"
+        } else {
+            "UTC${sign}${hours.toString().padStart(2, '0')}:00"
+        }
+        updateState {
+            copy(
+                general = general.copy(
+                    detectedTimezone = tz.id,
+                    timezoneUtcOffset = utcOffsetStr,
+                    timezone = tz.id,
+                )
+            )
         }
     }
 

@@ -52,4 +52,13 @@ data class AuthState(
     val quickSwitchCandidates: List<QuickSwitchCandidate> = emptyList(),
     /** The user selected from the quick-switch picker (PIN entry for this user). */
     val quickSwitchTargetId: String? = null,
+    // ── Forgot Password Dialog ───────────────────────────────────────────
+    /** True when the forgot-password dialog is visible. */
+    val showForgotPasswordDialog: Boolean = false,
+    /** Current value of the email field inside the forgot-password dialog. */
+    val forgotPasswordEmail: String = "",
+    /** True after the reset request was accepted (shows confirmation message). */
+    val forgotPasswordSent: Boolean = false,
+    /** Inline validation error inside the forgot-password dialog, or null. */
+    val forgotPasswordError: String? = null,
 )

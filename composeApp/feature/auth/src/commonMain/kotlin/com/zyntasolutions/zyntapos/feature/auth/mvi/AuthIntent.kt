@@ -24,8 +24,20 @@ sealed class AuthIntent {
     /** The "Remember Me" checkbox was toggled. */
     data class RememberMeToggled(val checked: Boolean) : AuthIntent()
 
-    /** The user tapped "Forgot Password?" link. */
+    /** The user tapped "Forgot Password?" link — opens the dialog. */
     data object ForgotPasswordClicked : AuthIntent()
+
+    /** Opens the forgot-password dialog explicitly. */
+    data object ShowForgotPasswordDialog : AuthIntent()
+
+    /** Dismisses the forgot-password dialog and resets its fields. */
+    data object DismissForgotPasswordDialog : AuthIntent()
+
+    /** Fired on every keystroke in the forgot-password email field. */
+    data class ForgotPasswordEmailChanged(val email: String) : AuthIntent()
+
+    /** Submits the forgot-password request with the current email. */
+    data object SubmitForgotPassword : AuthIntent()
 
     /** Dismisses the current top-level error banner. */
     data object DismissError : AuthIntent()

@@ -22,6 +22,8 @@ sealed interface SettingsIntent {
     data class UpdateCurrency(val currency: Currency) : SettingsIntent
     data class UpdateTimezone(val tz: String) : SettingsIntent
     data class UpdateDateFormat(val format: String) : SettingsIntent
+    /** Auto-detect the system timezone and compute its UTC offset string. */
+    data object DetectTimezone : SettingsIntent
     data object SaveGeneral : SettingsIntent
 
     // ── POS Settings ──────────────────────────────────────────────────────────
