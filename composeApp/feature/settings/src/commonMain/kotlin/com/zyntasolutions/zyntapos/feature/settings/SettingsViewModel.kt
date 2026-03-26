@@ -116,6 +116,7 @@ class SettingsViewModel(
         is SettingsIntent.UpdateTimezone             -> updateState { copy(general = general.copy(timezone = intent.tz)) }
         is SettingsIntent.UpdateDateFormat           -> updateState { copy(general = general.copy(dateFormat = intent.format)) }
         SettingsIntent.DetectTimezone                -> detectTimezone()
+        is SettingsIntent.SetLanguage                -> updateState { copy(general = general.copy(language = intent.languageCode)) }
         SettingsIntent.SaveGeneral                   -> saveGeneral()
         // POS
         SettingsIntent.LoadPos                       -> loadPos()

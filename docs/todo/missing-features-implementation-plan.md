@@ -1929,7 +1929,7 @@ Backend Tests:
 | ~~**No real-time updates**~~ — ✅ DONE (2026-03-25): `DashboardViewModel` subscribes to `SyncStatusPort.onSyncComplete` SharedFlow; `Refresh` intent + `isRefreshing`/`lastRefreshedAt` state; 30s periodic fallback timer (C5.4) | ~~CRITICAL~~ | ✅ DONE |
 | ~~**No multi-store KPI consolidation**~~ — ✅ PARTIAL: Store context chip (StoreNameChip) in dashboard top bar via `DashboardState.storeName` + `StoreRepository`; full KPI aggregation deferred (2026-03-24) | ~~CRITICAL~~ | ✅ PARTIAL (2026-03-24) |
 | ~~**Daily sales target hardcoded**~~ — ✅ DONE: `DAILY_SALES_TARGET` key in `SettingsKeys`; `PosState.dailySalesTarget` field; `UpdateDailySalesTarget` intent; load/save in `SettingsViewModel`; `OutlinedTextField` in `PosSettingsScreen`; `DashboardViewModel` reads from `SettingsRepository` on load (2026-03-25) | ~~MEDIUM~~ | ✅ DONE (2026-03-25) |
-| **Hourly sparkline data calculated but never rendered** ✅ | LOW | Phase 1.5 |
+| ~~**Hourly sparkline data calculated but never rendered**~~ — ✅ VERIFIED DONE: `DashboardViewModel.performLoad()` computes `sparkline` from hourly buckets; `DashboardScreen` renders via `ZyntaBarChart` at L695-704 (compact) + `sparklineData` passed to KPI cards at L359/L527 | ~~LOW~~ | ✅ DONE |
 | ~~**No comparison to previous period**~~ — ✅ DONE (2026-03-26): `DashboardState.yesterdaySales/yesterdayOrders/salesChangePercent/ordersChangePercent/lastWeekSameDaySales/salesChangeVsLastWeek`; `performLoad()` computes yesterday + last-week-same-day metrics via `changePercent()` helper | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
 | ~~**Notifications menu item exists but not implemented**~~ — ✅ VERIFIED DONE (2026-03-25): `NotificationInboxScreen.kt` (feature/admin) — full inbox with filter chips (ALL/UNREAD/LOW_STOCK/SYNC/PAYMENT), `MarkAsRead`/`MarkAllAsRead`/`DeleteNotification` intents, `NotificationViewModel` (MVI), `NotificationRepository` + tests; `ZyntaRoute.NotificationInbox` wired in MainNavGraph; Dashboard Notifications menu item calls `onNavigateToNotifications()` | ~~LOW~~ | ✅ DONE |
 
@@ -1947,7 +1947,7 @@ Backend Tests:
 | ~~**No receipt template visual editor**~~ — ✅ DONE (2026-03-26): ReceiptTemplateConfig domain model, ReceiptTemplateEditorScreen with side-by-side editor + live monospace preview, responsive layout | ~~LOW~~ | ✅ DONE (2026-03-26) |
 | ~~**No printer connection test button visible in UI**~~ — ✅ VERIFIED DONE: "Send Test Page" button in PrinterSettingsScreen Connection tab (line 259-267); `SettingsIntent.TestPrint` dispatched; button disables during print; snackbar on success | ~~LOW~~ | ✅ DONE |
 | ~~**No settings sync to backend**~~ — ✅ DONE (2026-03-26): `SettingsState.isSyncingSettings/lastSettingsSyncAt/settingsSyncError`; `SyncSettingsToBackend/DismissSettingsSyncError` intents; `syncSettingsToBackend()` collects 16 settings keys and pushes via sync queue; audit logged | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
-| **Language selector disabled** — No i18n infrastructure | LOW | Phase 3 |
+| ~~**Language selector disabled**~~ — ✅ DONE (2026-03-26): `SupportedLanguage` enum (EN/SI/TA/HI/JA/ZH/FR/ES/AR/PT) with code/displayName/nativeName; `SetLanguage(languageCode)` intent; persisted via `SettingsKeys.LANGUAGE`; loaded in `loadGeneral()`, saved in `saveGeneral()` | ~~LOW~~ | ✅ DONE (2026-03-26) |
 
 ---
 
@@ -1962,7 +1962,7 @@ Backend Tests:
 | ~~**No multi-store P&L consolidation**~~ — ✅ DONE (2026-03-26): `AccountingState.ConsolidatedPnLState` inner class with `storeBreakdowns/consolidatedRevenue/Expenses/Profit`; `StorePnLBreakdown` data class; `LoadConsolidatedPnL` intent; `onLoadConsolidatedPnL()` loads P&L per store and aggregates; `getProfitAndLossUseCase` + `storeRepository` injected into AccountingViewModel | ~~HIGH~~ | ✅ DONE (2026-03-26) |
 | ~~**No export buttons** on any financial statement~~ — ✅ DONE: CSV export button in TopAppBar; `ExportCsv` intent; `ShareExport` effect wired in App.kt with selectable-text dialog; RFC 4180 CSV generation for all 4 statements (2026-03-25) | ~~HIGH~~ | ✅ DONE (2026-03-25) |
 | ~~**No account reconciliation workflow**~~ — ✅ DONE (2026-03-26): `ReconciliationState` with GL vs external balance comparison; `StartReconciliation/UpdateExternalBalance/UpdateReconciliationNotes/SaveReconciliation/DismissReconciliation/LoadReconciliationHistory` intents; auto-detect reconciled status when difference < 0.01; history persisted via SettingsRepository key pattern | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
-| **E-invoice list exists but no IRD submission flow** | MEDIUM | Phase 3 |
+| ~~**E-invoice list exists but no IRD submission flow**~~ — ✅ VERIFIED DONE: `EInvoiceViewModel.onSubmitToIrd()` calls `SubmitEInvoiceToIrdUseCase` → `EInvoiceRepository.submitToIrd()`; handles DRAFT/REJECTED validation, `IrdSubmissionResult` with referenceNumber, status updates, error handling; `EInvoiceDetailScreen` has Submit button; `CancelEInvoiceUseCase` for cancellation | ~~MEDIUM~~ | ✅ DONE |
 | ~~**Trial Balance "UNBALANCED" error has no remediation path**~~ — ✅ DONE (2026-03-26): `FinancialStatementsState.showRemediationGuide/remediationSuspects`; `ShowRemediationGuide/DismissRemediationGuide` intents; identifies top-10 accounts with largest debit-credit discrepancy sorted by absolute imbalance | ~~LOW~~ | ✅ DONE (2026-03-26) |
 
 ---

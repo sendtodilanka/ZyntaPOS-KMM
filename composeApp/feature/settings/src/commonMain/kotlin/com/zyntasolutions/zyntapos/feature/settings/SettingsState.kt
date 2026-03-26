@@ -276,6 +276,20 @@ enum class PaperWidthOption(val mm: Int, val halValue: String) {
 /** Application theme mode. */
 enum class ThemeMode { LIGHT, DARK, SYSTEM }
 
+/** Supported display languages for the POS application. */
+enum class SupportedLanguage(val code: String, val displayName: String, val nativeName: String) {
+    ENGLISH("en", "English", "English"),
+    SINHALA("si", "Sinhala", "සිංහල"),
+    TAMIL("ta", "Tamil", "தமிழ்"),
+    HINDI("hi", "Hindi", "हिन्दी"),
+    JAPANESE("ja", "Japanese", "日本語"),
+    CHINESE_SIMPLIFIED("zh", "Chinese (Simplified)", "简体中文"),
+    FRENCH("fr", "French", "Français"),
+    SPANISH("es", "Spanish", "Español"),
+    ARABIC("ar", "Arabic", "العربية"),
+    PORTUGUESE("pt", "Portuguese", "Português"),
+}
+
 /** Label printer hardware type / language. */
 enum class LabelPrinterTypeOption(val displayName: String, val domainKey: String) {
     NONE("None (PDF only)",      "NONE"),
