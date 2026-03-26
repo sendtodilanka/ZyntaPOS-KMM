@@ -34,6 +34,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.RackProduct
@@ -56,6 +58,7 @@ fun RackProductListScreen(
     rackId: String,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     LaunchedEffect(rackId) {
         onIntent(WarehouseIntent.LoadRackProducts(rackId))
     }
@@ -64,21 +67,18 @@ fun RackProductListScreen(
     state.showDeleteRackProductConfirm?.let { entry ->
         AlertDialog(
             onDismissRequest = { onIntent(WarehouseIntent.CancelDeleteRackProduct) },
-            title = { Text("Remove from rack?") },
+            title = { Text(s[StringResource.MULTISTORE_REMOVE_FROM_RACK_TITLE]) },
             text = {
-                Text(
-                    "Remove \"${entry.productName ?: entry.productId}\" from this rack? " +
-                        "The product will no longer be associated with this bin location."
-                )
+                Text(s[StringResource.MULTISTORE_REMOVE_FROM_RACK_MSG_FORMAT, entry.productName ?: entry.productId])
             },
             confirmButton = {
                 TextButton(onClick = { onIntent(WarehouseIntent.ConfirmDeleteRackProduct) }) {
-                    Text("Remove", color = MaterialTheme.colorScheme.error)
+                    Text(s[StringResource.COMMON_REMOVE], color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { onIntent(WarehouseIntent.CancelDeleteRackProduct) }) {
-                    Text("Cancel")
+                    Text(s[StringResource.COMMON_CANCEL])
                 }
             },
         )
@@ -90,7 +90,7 @@ fun RackProductListScreen(
             FloatingActionButton(
                 onClick = { onIntent(WarehouseIntent.OpenRackProductEntry(rackId, null)) },
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Product to Rack")
+                Icon(Icons.Default.Add, contentDescription = s[StringResource.MULTISTORE_ADD_PRODUCT_CD])
             }
         },
     ) { innerPadding ->
@@ -101,9 +101,9 @@ fun RackProductListScreen(
             ) { CircularProgressIndicator() }
 
             state.rackProducts.isEmpty() -> ZyntaEmptyState(
-                title = "No products in this rack",
+                title = s[StringResource.MULTISTORE_NO_PRODUCTS_IN_RACK],
                 icon = Icons.Default.Inventory2,
-                subtitle = "Tap + to assign a product to this rack.",
+                subtitle = s[StringResource.MULTISTORE_TAP_ASSIGN_PRODUCT],
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
             )
 
@@ -130,6 +130,7 @@ private fun RackProductRow(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -145,14 +146,14 @@ private fun RackProductRow(
             )
             if (!entry.productSku.isNullOrBlank()) {
                 Text(
-                    text = "SKU: ${entry.productSku}",
+                    text = s[StringResource.MULTISTORE_SKU_FORMAT, entry.productSku!!],
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             if (!entry.binLocation.isNullOrBlank()) {
                 Text(
-                    text = "Bin: ${entry.binLocation}",
+                    text = s[StringResource.MULTISTORE_BIN_FORMAT, entry.binLocation!!],
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -169,7 +170,7 @@ private fun RackProductRow(
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                text = "units",
+                text = s[StringResource.MULTISTORE_UNITS],
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -177,7 +178,7 @@ private fun RackProductRow(
         IconButton(onClick = onDelete) {
             Icon(
                 imageVector = Icons.Default.Delete,
-                contentDescription = "Remove from rack",
+                contentDescription = s[StringResource.MULTISTORE_REMOVE_FROM_RACK_CD],
                 tint = MaterialTheme.colorScheme.error,
             )
         }

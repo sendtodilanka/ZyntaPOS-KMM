@@ -21,6 +21,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 
 /**
@@ -38,6 +40,7 @@ fun RackProductDetailScreen(
     onIntent: (WarehouseIntent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     val form = state.rackProductForm
 
     Column(
@@ -48,7 +51,7 @@ fun RackProductDetailScreen(
         verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
     ) {
         Text(
-            text = if (form.isEditing) "Edit Bin Location" else "Assign Product to Rack",
+            text = if (form.isEditing) s[StringResource.MULTISTORE_EDIT_BIN] else s[StringResource.MULTISTORE_ASSIGN_PRODUCT],
             style = MaterialTheme.typography.headlineSmall,
         )
 
@@ -67,8 +70,8 @@ fun RackProductDetailScreen(
             value = form.binLocation,
             onValueChange = { onIntent(WarehouseIntent.UpdateRackProductField("binLocation", it)) },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Bin Location (optional)") },
-            placeholder = { Text("e.g. A3, Row-2-Bin-4") },
+            label = { Text(s[StringResource.MULTISTORE_BIN_LOCATION_LABEL]) },
+            placeholder = { Text(s[StringResource.MULTISTORE_BIN_LOCATION_HINT]) },
             singleLine = true,
         )
 
@@ -77,8 +80,8 @@ fun RackProductDetailScreen(
             value = form.quantity,
             onValueChange = { onIntent(WarehouseIntent.UpdateRackProductField("quantity", it)) },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Quantity at this bin") },
-            placeholder = { Text("e.g. 50") },
+            label = { Text(s[StringResource.MULTISTORE_QTY_AT_BIN]) },
+            placeholder = { Text(s[StringResource.MULTISTORE_QTY_AT_BIN_HINT]) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             isError = form.validationErrors.containsKey("quantity"),
             supportingText = form.validationErrors["quantity"]?.let { { Text(it) } },
@@ -94,7 +97,7 @@ fun RackProductDetailScreen(
             OutlinedButton(
                 onClick = { onIntent(WarehouseIntent.CancelRackProductEntry) },
                 modifier = Modifier.weight(1f),
-            ) { Text("Cancel") }
+            ) { Text(s[StringResource.COMMON_CANCEL]) }
             Button(
                 onClick = { onIntent(WarehouseIntent.SaveRackProduct) },
                 modifier = Modifier.weight(1f),
@@ -106,7 +109,7 @@ fun RackProductDetailScreen(
                         strokeWidth = 2.dp,
                     )
                 } else {
-                    Text(if (form.isEditing) "Update" else "Assign")
+                    Text(if (form.isEditing) s[StringResource.COMMON_UPDATE] else s[StringResource.MULTISTORE_ASSIGN])
                 }
             }
         }

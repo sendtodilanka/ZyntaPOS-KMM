@@ -67,7 +67,7 @@ fun WarehouseRackDetailScreen(
                 value = form.name,
                 onValueChange = { onIntent(WarehouseIntent.UpdateRackField("name", it)) },
                 label = { Text(s[StringResource.MULTISTORE_RACK_NAME]) },
-                placeholder = { Text("e.g. A1, Cold-Storage-01") },
+                placeholder = { Text(s[StringResource.MULTISTORE_RACK_NAME_HINT]) },
                 isError = form.validationErrors.containsKey("name"),
                 supportingText = form.validationErrors["name"]?.let {
                     { Text(it, color = MaterialTheme.colorScheme.error) }

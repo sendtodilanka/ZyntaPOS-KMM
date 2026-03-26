@@ -51,7 +51,7 @@ fun CategoryFilterRow(
             FilterChip(
                 selected = selectedCategoryId == null,
                 onClick = { onSelectCategory(null) },
-                label = { Text(s[StringResource.POS_ALL_CATEGORIES]) },
+                label = { Text(s[StringResource.COMMON_ALL]) },
             )
         }
 
