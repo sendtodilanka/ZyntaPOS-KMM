@@ -150,6 +150,7 @@ private fun AttendanceCard(
     onClockIn: () -> Unit,
     onClockOut: () -> Unit,
 ) {
+    val s = LocalStrings.current
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier

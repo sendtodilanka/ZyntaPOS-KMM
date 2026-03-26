@@ -298,6 +298,7 @@ private fun JournalLineRow(
     line: JournalEntryLine,
     onDelete: (() -> Unit)?,
 ) {
+    val s = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),

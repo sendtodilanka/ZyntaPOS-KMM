@@ -389,6 +389,7 @@ private fun HistoryTab(
     orders: List<Order>,
     isLoading: Boolean,
 ) {
+    val s = LocalStrings.current
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,

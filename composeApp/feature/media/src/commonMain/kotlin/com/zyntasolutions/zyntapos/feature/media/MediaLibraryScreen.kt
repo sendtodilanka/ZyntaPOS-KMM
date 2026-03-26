@@ -178,6 +178,7 @@ private fun MediaFileCell(
     onClick: () -> Unit,
     onLongClick: () -> Unit = {},
 ) {
+    val s = LocalStrings.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -310,6 +311,7 @@ private fun FullScreenImagePreview(
     onDismiss: () -> Unit,
     onShowActions: () -> Unit,
 ) {
+    val s = LocalStrings.current
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),

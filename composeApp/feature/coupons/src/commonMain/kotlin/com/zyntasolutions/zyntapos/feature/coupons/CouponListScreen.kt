@@ -116,6 +116,7 @@ private fun CouponListItem(
     onEdit: () -> Unit,
     onToggleActive: (Boolean) -> Unit,
 ) {
+    val s = LocalStrings.current
     Card(
         onClick = onEdit,
         modifier = Modifier.fillMaxWidth(),

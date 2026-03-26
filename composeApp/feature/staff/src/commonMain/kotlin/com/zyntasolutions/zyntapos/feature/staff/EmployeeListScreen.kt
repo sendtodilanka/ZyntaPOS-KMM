@@ -141,6 +141,7 @@ private fun EmployeeListItem(
     employee: Employee,
     onClick: () -> Unit,
 ) {
+    val s = LocalStrings.current
     Card(
         modifier = Modifier
             .fillMaxWidth()

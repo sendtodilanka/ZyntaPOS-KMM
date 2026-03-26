@@ -154,6 +154,7 @@ private fun AssignmentCard(
     assignment: EmployeeStoreAssignment,
     onRevoke: () -> Unit,
 ) {
+    val s = LocalStrings.current
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.padding(ZyntaSpacing.md),

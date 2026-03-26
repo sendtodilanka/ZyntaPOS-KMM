@@ -168,6 +168,7 @@ private fun PeriodSelectorRow(
     period: String,
     onPeriodChange: (String) -> Unit,
 ) {
+    val s = LocalStrings.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -188,6 +189,7 @@ private fun PeriodSelectorRow(
 
 @Composable
 private fun PayrollSummaryCard(summary: com.zyntasolutions.zyntapos.domain.model.PayrollSummary) {
+    val s = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -245,6 +247,7 @@ private fun PayrollRecordCard(
     employeeName: String,
     onMarkPaid: (() -> Unit)?,
 ) {
+    val s = LocalStrings.current
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier

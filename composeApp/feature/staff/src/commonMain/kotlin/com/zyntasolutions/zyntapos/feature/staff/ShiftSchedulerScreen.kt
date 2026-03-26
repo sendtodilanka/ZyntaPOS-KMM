@@ -153,6 +153,7 @@ private fun ShiftRow(
     onDelete: () -> Unit,
     onEdit: () -> Unit,
 ) {
+    val s = LocalStrings.current
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
