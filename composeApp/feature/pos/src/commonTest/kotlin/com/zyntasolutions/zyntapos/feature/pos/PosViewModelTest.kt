@@ -465,6 +465,8 @@ class PosViewModelTest {
         override fun getGlobalCustomers(): Flow<List<Customer>> = flowOf(emptyList())
         override suspend fun makeGlobal(customerId: String): Result<Unit> = Result.Success(Unit)
         override suspend fun updateLoyaltyPoints(customerId: String, points: Int): Result<Unit> = Result.Success(Unit)
+        override suspend fun getPage(pageRequest: PageRequest, searchQuery: String?): PaginatedResult<Customer> =
+            PaginatedResult(items = emptyList(), totalCount = 0L, hasMore = false)
     }
 
     // ── Fake RegisterRepository ───────────────────────────────────────────────
