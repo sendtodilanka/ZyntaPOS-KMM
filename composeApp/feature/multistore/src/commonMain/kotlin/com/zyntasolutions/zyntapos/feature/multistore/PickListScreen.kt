@@ -241,7 +241,7 @@ private fun PickListColumnHeader() {
             .padding(horizontal = 8.dp, vertical = 8.dp),
     ) {
         Text(
-            text = "#",
+            text = s[StringResource.COMMON_NUMBER_SYMBOL],
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.width(28.dp),

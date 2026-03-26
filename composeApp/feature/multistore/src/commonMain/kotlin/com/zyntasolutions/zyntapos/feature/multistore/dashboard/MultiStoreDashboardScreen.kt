@@ -41,6 +41,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.StoreItem
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaStoreSelectorCompact
@@ -59,6 +61,7 @@ fun MultiStoreDashboardScreen(
     viewModel: MultiStoreDashboardViewModel,
     onNavigateBack: () -> Unit,
 ) {
+    val s = LocalStrings.current
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -69,19 +72,19 @@ fun MultiStoreDashboardScreen(
                     snackbarHostState.showSnackbar(effect.message)
                 is MultiStoreDashboardEffect.NavigateToStoreDashboard -> { /* handled by parent */ }
                 is MultiStoreDashboardEffect.StoreSwitched ->
-                    snackbarHostState.showSnackbar("Switched to ${effect.storeName}")
+                    snackbarHostState.showSnackbar(s[StringResource.MULTISTORE_STORE_SWITCHED_FORMAT, effect.storeName])
             }
         }
     }
 
     ZyntaPageScaffold(
-        title = "Multi-Store Dashboard",
+        title = s[StringResource.MULTISTORE_DASHBOARD_TITLE],
         onNavigateBack = onNavigateBack,
         snackbarHostState = snackbarHostState,
         actions = {
             if (state.stores.size > 1) {
                 ZyntaStoreSelectorCompact(
-                    currentStoreName = state.activeStore?.name ?: "Select Store",
+                    currentStoreName = state.activeStore?.name ?: s[StringResource.MULTISTORE_SELECT_STORE],
                     availableStores = state.stores.map { s ->
                         StoreItem(id = s.id, name = s.name, address = s.address)
                     },
@@ -148,16 +151,18 @@ private fun MultiStoreDashboardContent(
         // Per-store comparison section
         if (state.storeComparison.isEmpty() && !state.isLoading) {
             item {
+                val s = LocalStrings.current
                 ZyntaEmptyState(
                     icon = Icons.Default.Store,
-                    title = "No store data available",
-                    subtitle = "Store comparison data will appear here once orders are synced.",
+                    title = s[StringResource.MULTISTORE_NO_STORE_DATA],
+                    subtitle = s[StringResource.MULTISTORE_NO_STORE_DATA_HINT],
                 )
             }
         } else {
             item {
+                val s = LocalStrings.current
                 Text(
-                    text = "Store Comparison",
+                    text = s[StringResource.MULTISTORE_STORE_COMPARISON],
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
@@ -214,30 +219,31 @@ private fun AggregateKPIRow(
     averageOrderValue: Double,
     storeCount: Int,
 ) {
+    val s = LocalStrings.current
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         KPICard(
-            title = "Total Revenue",
+            title = s[StringResource.MULTISTORE_TOTAL_REVENUE],
             value = formatCurrency(totalRevenue),
             icon = Icons.Default.AttachMoney,
             modifier = Modifier.weight(1f),
         )
         KPICard(
-            title = "Total Orders",
+            title = s[StringResource.MULTISTORE_TOTAL_ORDERS],
             value = totalOrders.toString(),
             icon = Icons.Default.ShoppingCart,
             modifier = Modifier.weight(1f),
         )
         KPICard(
-            title = "Avg Order Value",
+            title = s[StringResource.MULTISTORE_AVG_ORDER_VALUE],
             value = formatCurrency(averageOrderValue),
             icon = Icons.Default.Receipt,
             modifier = Modifier.weight(1f),
         )
         KPICard(
-            title = "Active Stores",
+            title = s[StringResource.MULTISTORE_ACTIVE_STORES],
             value = storeCount.toString(),
             icon = Icons.Default.Store,
             modifier = Modifier.weight(1f),
@@ -290,6 +296,7 @@ private fun StoreComparisonCard(
     data: StoreSalesData,
     totalRevenue: Double,
 ) {
+    val s = LocalStrings.current
     val revenueShare = if (totalRevenue > 0) (data.totalRevenue / totalRevenue).toFloat() else 0f
 
     Card(
@@ -340,17 +347,17 @@ private fun StoreComparisonCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
-                    text = "${data.orderCount} orders",
+                    text = s[StringResource.MULTISTORE_ORDERS_COUNT_FORMAT, data.orderCount],
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    text = "AOV: ${formatCurrency(data.averageOrderValue)}",
+                    text = s[StringResource.MULTISTORE_AOV_FORMAT, formatCurrency(data.averageOrderValue)],
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    text = "${(revenueShare * 100).toInt()}% share",
+                    text = s[StringResource.MULTISTORE_REVENUE_SHARE_FORMAT, (revenueShare * 100).toInt()],
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
