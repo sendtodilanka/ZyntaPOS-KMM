@@ -198,7 +198,7 @@ fun RegisterDashboardScreen(
                     RegisterStatusBanner(session = session, registerName = state.activeRegister?.name)
                     SessionInfoCard(session = session, registerName = state.activeRegister?.name)
 
-                    SectionCard(title = "Today's Performance", icon = Icons.Default.Insights) {
+                    SectionCard(title = s[StringResource.REGISTER_TODAY_PERFORMANCE], icon = Icons.Default.Insights) {
                         QuickStatsRow(
                             orderCount = state.todayOrderCount,
                             revenue = state.todayRevenue,
@@ -210,7 +210,7 @@ fun RegisterDashboardScreen(
                         expectedBalance = session.expectedBalance,
                     )
 
-                    SectionCard(title = "Actions", icon = Icons.Default.TouchApp) {
+                    SectionCard(title = s[StringResource.REGISTER_ACTIONS], icon = Icons.Default.TouchApp) {
                         RegisterActionButtons(
                             isOpen = session.status == RegisterSession.Status.OPEN,
                             onCashIn = {

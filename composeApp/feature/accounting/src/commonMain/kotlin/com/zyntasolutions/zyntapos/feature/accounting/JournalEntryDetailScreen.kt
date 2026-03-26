@@ -91,7 +91,7 @@ fun JournalEntryDetailScreen(
                         value = reversalDate,
                         onValueChange = { reversalDate = it },
                         label = { Text(s[StringResource.ACCOUNTING_REVERSAL_DATE]) },
-                        placeholder = { Text("YYYY-MM-DD") },
+                        placeholder = { Text(s[StringResource.COMMON_DATE_FORMAT_PLACEHOLDER]) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -192,7 +192,7 @@ fun JournalEntryDetailScreen(
                                 value = state.entryDate,
                                 onValueChange = { viewModel.dispatch(JournalEntryDetailIntent.UpdateDate(it)) },
                                 label = { Text(s[StringResource.COMMON_DATE]) },
-                                placeholder = { Text("YYYY-MM-DD") },
+                                placeholder = { Text(s[StringResource.COMMON_DATE_FORMAT_PLACEHOLDER]) },
                                 singleLine = true,
                                 enabled = state.entry?.isPosted != true,
                                 modifier = Modifier.weight(1f),

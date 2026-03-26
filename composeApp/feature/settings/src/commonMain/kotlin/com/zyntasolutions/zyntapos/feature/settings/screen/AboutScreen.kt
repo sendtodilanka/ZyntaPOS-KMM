@@ -87,7 +87,7 @@ fun AboutScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(
-                        text = "ZyntaPOS",
+                        text = s[StringResource.COMMON_APP_NAME],
                         style = MaterialTheme.typography.headlineMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.lg),
@@ -117,26 +117,26 @@ fun AboutScreen(
                     HorizontalDivider(modifier = Modifier.padding(horizontal = ZyntaSpacing.md))
                     InfoRow(label = s[StringResource.SETTINGS_ABOUT_PLATFORM], value = appInfo.platformName)
                     HorizontalDivider(modifier = Modifier.padding(horizontal = ZyntaSpacing.md))
-                    InfoRow(label = s[StringResource.SETTINGS_ABOUT_UI_FRAMEWORK], value = "Compose Multiplatform")
+                    InfoRow(label = s[StringResource.SETTINGS_ABOUT_UI_FRAMEWORK], value = s[StringResource.SETTINGS_ABOUT_COMPOSE_MULTIPLATFORM])
                 }
             }
 
             // ── Support contact ───────────────────────────────────────────────
             item {
-                SectionHeader("Support")
+                SectionHeader(s[StringResource.SETTINGS_ABOUT_SUPPORT])
                 Spacer(Modifier.height(ZyntaSpacing.sm))
                 Card(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    InfoRow(label = "Email", value = "support@zyntapos.com")
+                    InfoRow(label = s[StringResource.SETTINGS_ABOUT_EMAIL_LABEL], value = s[StringResource.SETTINGS_ABOUT_SUPPORT_EMAIL])
                     HorizontalDivider(modifier = Modifier.padding(horizontal = ZyntaSpacing.md))
-                    InfoRow(label = "Website", value = "https://zyntapos.com")
+                    InfoRow(label = s[StringResource.SETTINGS_ABOUT_WEBSITE_LABEL], value = s[StringResource.SETTINGS_ABOUT_WEBSITE_URL])
                 }
             }
 
             // ── Open-source licences ──────────────────────────────────────────
-            item { SectionHeader("Open-Source Licences") }
+            item { SectionHeader(s[StringResource.SETTINGS_ABOUT_OPEN_SOURCE_LICENCES]) }
 
             items(OPEN_SOURCE_LICENCES) { licence ->
                 LicenceRow(licence)

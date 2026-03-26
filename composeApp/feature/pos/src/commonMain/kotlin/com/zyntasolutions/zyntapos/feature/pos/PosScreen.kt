@@ -90,7 +90,7 @@ fun PosScreen(
                 is PosEffect.NavigateToPayment  -> onNavigateToPayment(effect.orderId)
                 is PosEffect.ShowReceiptScreen  -> { /* handled inside PaymentScreen overlay */ }
                 is PosEffect.ShowError          -> snackbarHostState.showSnackbar(effect.msg)
-                is PosEffect.BarcodeNotFound    -> snackbarHostState.showSnackbar("Barcode not found: ${effect.barcode}")
+                is PosEffect.BarcodeNotFound    -> snackbarHostState.showSnackbar(s[StringResource.POS_BARCODE_NOT_FOUND_FORMAT, effect.barcode])
                 is PosEffect.PrintReceipt       -> { /* handled by print service */ }
                 is PosEffect.OpenCashDrawer     -> { /* handled by HAL */ }
                 is PosEffect.ShowEmailDialog    -> { /* email dialog handled by state.emailDialogOpen */ }
@@ -155,7 +155,7 @@ fun PosScreen(
                                 }
                                 if (state.storeName.isNotBlank() && state.cashierName.isNotBlank()) {
                                     Text(
-                                        text = " · ",
+                                        text = s[StringResource.COMMON_SEPARATOR_MIDDLE_DOT],
                                         style = MaterialTheme.typography.labelMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
@@ -243,7 +243,7 @@ fun PosScreen(
                                 }
                                 if (state.storeName.isNotBlank() && state.cashierName.isNotBlank()) {
                                     Text(
-                                        text = " · ",
+                                        text = s[StringResource.COMMON_SEPARATOR_MIDDLE_DOT],
                                         style = MaterialTheme.typography.labelMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )

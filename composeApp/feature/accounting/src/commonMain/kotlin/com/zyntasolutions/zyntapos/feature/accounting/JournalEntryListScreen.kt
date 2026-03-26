@@ -131,7 +131,7 @@ fun JournalEntryListScreen(
                         viewModel.dispatch(JournalEntryListIntent.SetDateRange(it, state.toDate))
                     },
                     label = { Text(s[StringResource.ACCOUNTING_FROM]) },
-                    placeholder = { Text("YYYY-MM-DD") },
+                    placeholder = { Text(s[StringResource.COMMON_DATE_FORMAT_PLACEHOLDER]) },
                     singleLine = true,
                     modifier = Modifier.weight(1f),
                 )
@@ -141,7 +141,7 @@ fun JournalEntryListScreen(
                         viewModel.dispatch(JournalEntryListIntent.SetDateRange(state.fromDate, it))
                     },
                     label = { Text(s[StringResource.ACCOUNTING_TO]) },
-                    placeholder = { Text("YYYY-MM-DD") },
+                    placeholder = { Text(s[StringResource.COMMON_DATE_FORMAT_PLACEHOLDER]) },
                     singleLine = true,
                     modifier = Modifier.weight(1f),
                 )

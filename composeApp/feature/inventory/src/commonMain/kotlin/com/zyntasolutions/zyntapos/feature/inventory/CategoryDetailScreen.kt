@@ -178,7 +178,7 @@ fun CategoryDetailScreen(
                     displayOrderError = if (displayOrder.isBlank()) s[StringResource.COMMON_REQUIRED] else null
                 },
                 label = { Text(s[StringResource.INVENTORY_DISPLAY_ORDER]) },
-                placeholder = { Text("0") },
+                placeholder = { Text(s[StringResource.COMMON_DISPLAY_ORDER_PLACEHOLDER]) },
                 leadingIcon = { Icon(Icons.Default.FormatListNumbered, contentDescription = null) },
                 isError = displayOrderError != null,
                 supportingText = {
@@ -194,7 +194,7 @@ fun CategoryDetailScreen(
                 value = imageUrl,
                 onValueChange = { imageUrl = it },
                 label = { Text(s[StringResource.INVENTORY_IMAGE_URL_OPTIONAL]) },
-                placeholder = { Text("https://…") },
+                placeholder = { Text(s[StringResource.COMMON_IMAGE_URL_PLACEHOLDER]) },
                 leadingIcon = { Icon(Icons.Default.Image, contentDescription = null) },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 singleLine = true,
