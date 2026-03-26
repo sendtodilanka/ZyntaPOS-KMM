@@ -90,8 +90,8 @@ fun WarehouseRackDetailScreen(
             OutlinedTextField(
                 value = form.capacity,
                 onValueChange = { onIntent(WarehouseIntent.UpdateRackField("capacity", it)) },
-                label = { Text("Capacity (units)") },
-                placeholder = { Text("Leave blank for unlimited") },
+                label = { Text(s[StringResource.MULTISTORE_CAPACITY]) },
+                placeholder = { Text(s[StringResource.MULTISTORE_CAPACITY_HINT]) },
                 isError = form.validationErrors.containsKey("capacity"),
                 supportingText = form.validationErrors["capacity"]?.let {
                     { Text(it, color = MaterialTheme.colorScheme.error) }
@@ -115,7 +115,7 @@ fun WarehouseRackDetailScreen(
                         strokeWidth = ButtonDefaults.IconSize / 5,
                     )
                 } else {
-                    Text(if (form.isEditing) "Update Rack" else "Create Rack")
+                    Text(if (form.isEditing) s[StringResource.MULTISTORE_UPDATE_RACK] else s[StringResource.MULTISTORE_CREATE_RACK])
                 }
             }
         }
