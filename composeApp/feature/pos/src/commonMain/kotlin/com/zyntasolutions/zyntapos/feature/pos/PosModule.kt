@@ -31,6 +31,8 @@ import com.zyntasolutions.zyntapos.domain.usecase.pos.RetrieveHeldOrderUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.UpdateCartItemQuantityUseCase
 import com.zyntasolutions.zyntapos.feature.pos.printer.PrinterManagerReceiptAdapter
 import com.zyntasolutions.zyntapos.hal.printer.PrinterManager
+import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
+import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
 
 import org.koin.core.module.dsl.viewModel
@@ -269,6 +271,8 @@ val posModule = module {
             lookupOrderForReturnUseCase = get(),
             getStorePromotionsUseCase = get(),
             applyStorePromotionsUseCase = get(),
+            settingsRepository = get(),
+            currencyFormatter = get(),
             auditLogger = get(),
             analytics = get(),
         )
