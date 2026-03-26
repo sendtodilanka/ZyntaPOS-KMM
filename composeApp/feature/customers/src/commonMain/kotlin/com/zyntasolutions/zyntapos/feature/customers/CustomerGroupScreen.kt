@@ -35,6 +35,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTextField
@@ -53,16 +55,17 @@ fun CustomerGroupScreen(
     onNavigateUp: () -> Unit,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
+    val s = LocalStrings.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var pendingDeleteGroupId by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Customer Groups") },
+                title = { Text(s[StringResource.CUSTOMERS_GROUPS]) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateUp) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Filled.ArrowBack, contentDescription = s[StringResource.COMMON_BACK])
                     }
                 },
             )
@@ -71,15 +74,15 @@ fun CustomerGroupScreen(
             ExtendedFloatingActionButton(
                 onClick = { onIntent(CustomerIntent.SelectGroup(null)) },
                 icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                text = { Text("New Group") },
+                text = { Text(s[StringResource.CUSTOMERS_NEW_GROUP]) },
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
         if (state.customerGroups.isEmpty()) {
             ZyntaEmptyState(
-                title = "No Customer Groups",
-                subtitle = "Create groups to organise customers and apply bulk discounts",
+                title = s[StringResource.CUSTOMERS_NO_GROUPS],
+                subtitle = s[StringResource.CUSTOMERS_NO_GROUPS_HINT],
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
             )
         } else {
@@ -115,8 +118,8 @@ fun CustomerGroupScreen(
     pendingDeleteGroupId?.let { groupId ->
         AlertDialog(
             onDismissRequest = { pendingDeleteGroupId = null },
-            title = { Text("Delete Group") },
-            text = { Text("Delete this group? Customers assigned to it will lose their group assignment.") },
+            title = { Text(s[StringResource.CUSTOMERS_DELETE_GROUP]) },
+            text = { Text(s[StringResource.CUSTOMERS_DELETE_GROUP_MESSAGE]) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -124,11 +127,11 @@ fun CustomerGroupScreen(
                         pendingDeleteGroupId = null
                     },
                 ) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                    Text(s[StringResource.COMMON_DELETE], color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDeleteGroupId = null }) { Text("Cancel") }
+                TextButton(onClick = { pendingDeleteGroupId = null }) { Text(s[StringResource.COMMON_CANCEL]) }
             },
         )
     }
@@ -140,6 +143,7 @@ private fun GroupListItem(
     onClick: () -> Unit,
     onDelete: () -> Unit,
 ) {
+    val s = LocalStrings.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -155,7 +159,7 @@ private fun GroupListItem(
             }
         }
         Text(
-            text = "${group.priceType.name} · ${if (group.discountValue > 0) "${group.discountValue}% off" else "No discount"}",
+            text = "${group.priceType.name} · ${if (group.discountValue > 0) "${group.discountValue}% ${s[StringResource.COUPONS_OFF]}" else s[StringResource.CUSTOMERS_NO_DISCOUNT]}",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.primary,
         )
@@ -167,6 +171,7 @@ private fun GroupDetailSheet(
     state: CustomerState,
     onIntent: (CustomerIntent) -> Unit,
 ) {
+    val s = LocalStrings.current
     val form = state.groupFormState
     Column(
         modifier = Modifier
@@ -175,33 +180,33 @@ private fun GroupDetailSheet(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
-            text = if (form.isEditing) "Edit Group" else "New Group",
+            text = if (form.isEditing) s[StringResource.CUSTOMERS_EDIT_GROUP] else s[StringResource.CUSTOMERS_NEW_GROUP],
             style = MaterialTheme.typography.titleMedium,
         )
 
         ZyntaTextField(
             value = form.name,
             onValueChange = { onIntent(CustomerIntent.UpdateGroupField("name", it)) },
-            label = "Group Name *",
+            label = s[StringResource.CUSTOMERS_GROUP_NAME_REQUIRED],
             error = form.validationErrors["name"],            modifier = Modifier.fillMaxWidth(),
         )
 
         ZyntaTextField(
             value = form.description,
             onValueChange = { onIntent(CustomerIntent.UpdateGroupField("description", it)) },
-            label = "Description",
+            label = s[StringResource.CUSTOMERS_DESCRIPTION],
             modifier = Modifier.fillMaxWidth(),
         )
 
         ZyntaTextField(
             value = form.discountValue,
             onValueChange = { onIntent(CustomerIntent.UpdateGroupField("discountValue", it)) },
-            label = "Discount %",
+            label = s[StringResource.CUSTOMERS_DISCOUNT_PERCENT],
             modifier = Modifier.fillMaxWidth(),
         )
 
         ZyntaButton(
-            text = if (form.isEditing) "Update Group" else "Create Group",
+            text = if (form.isEditing) s[StringResource.CUSTOMERS_UPDATE_GROUP] else s[StringResource.CUSTOMERS_CREATE_GROUP],
             onClick = { onIntent(CustomerIntent.SaveGroup) },
             modifier = Modifier.fillMaxWidth(),
         )

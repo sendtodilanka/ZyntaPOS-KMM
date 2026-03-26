@@ -386,6 +386,7 @@ private fun TransferActionRow(
     onReceive:  () -> Unit,
     onGeneratePickList: () -> Unit,
 ) {
+    val s = LocalStrings.current
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -393,7 +394,7 @@ private fun TransferActionRow(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "Qty: ${transfer.quantity}",
+                text = "${s[StringResource.MULTISTORE_QTY]}: ${transfer.quantity}",
                 style = MaterialTheme.typography.bodySmall,
             )
             transfer.notes?.let {
@@ -409,7 +410,7 @@ private fun TransferActionRow(
         // Pick List action — only for APPROVED transfers (P3-B1)
         if (transfer.status == StockTransfer.Status.APPROVED) {
             Text(
-                text = "Pick List",
+                text = s[StringResource.MULTISTORE_PICK_LIST],
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
@@ -419,9 +420,9 @@ private fun TransferActionRow(
         }
 
         val (actionLabel, actionColor) = when (transfer.status) {
-            StockTransfer.Status.PENDING    -> "Approve"  to MaterialTheme.colorScheme.secondary
-            StockTransfer.Status.APPROVED   -> "Dispatch" to MaterialTheme.colorScheme.primary
-            StockTransfer.Status.IN_TRANSIT -> "Receive"  to MaterialTheme.colorScheme.tertiary
+            StockTransfer.Status.PENDING    -> s[StringResource.MULTISTORE_APPROVE]  to MaterialTheme.colorScheme.secondary
+            StockTransfer.Status.APPROVED   -> s[StringResource.MULTISTORE_DISPATCH] to MaterialTheme.colorScheme.primary
+            StockTransfer.Status.IN_TRANSIT -> s[StringResource.MULTISTORE_RECEIVE]  to MaterialTheme.colorScheme.tertiary
             else                            -> null
         } ?: return
 

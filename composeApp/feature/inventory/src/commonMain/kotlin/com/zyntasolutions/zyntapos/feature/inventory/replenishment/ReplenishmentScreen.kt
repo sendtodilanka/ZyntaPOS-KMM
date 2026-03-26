@@ -21,6 +21,8 @@ import com.zyntasolutions.zyntapos.designsystem.components.ZyntaStatusChip
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTextField
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.domain.model.PurchaseOrder
 import com.zyntasolutions.zyntapos.domain.model.ReplenishmentRule
 import com.zyntasolutions.zyntapos.domain.model.report.StockReorderData
@@ -40,6 +42,7 @@ fun ReplenishmentScreen(
     modifier: Modifier = Modifier,
     viewModel: ReplenishmentViewModel = koinViewModel(),
 ) {
+    val s = LocalStrings.current
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -55,13 +58,13 @@ fun ReplenishmentScreen(
     }
 
     ZyntaPageScaffold(
-        title = "Replenishment",
+        title = s[StringResource.INVENTORY_REPLENISHMENT],
         modifier = modifier,
         snackbarHostState = snackbarHostState,
         actions = {
             if (state.activeTab == ReplenishmentTab.PURCHASE_ORDERS) {
                 IconButton(onClick = { viewModel.dispatch(ReplenishmentIntent.OpenCreatePoDialog) }) {
-                    Icon(Icons.Default.Add, contentDescription = "Create Purchase Order")
+                    Icon(Icons.Default.Add, contentDescription = s[StringResource.INVENTORY_CREATE_PURCHASE_ORDER])
                 }
             }
             IconButton(
@@ -71,7 +74,7 @@ fun ReplenishmentScreen(
                 if (state.isRunningAutoReplenishment) {
                     CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                 } else {
-                    Icon(Icons.Default.Refresh, contentDescription = "Run Auto-Replenishment")
+                    Icon(Icons.Default.Refresh, contentDescription = s[StringResource.INVENTORY_RUN_AUTO_REPLENISHMENT])
                 }
             }
         },
@@ -128,6 +131,7 @@ private fun ReplenishmentTab.label(): String = when (this) {
 
 @Composable
 private fun ReorderAlertsTab(state: ReplenishmentState, viewModel: ReplenishmentViewModel) {
+    val s = LocalStrings.current
     if (state.isLoadingAlerts) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
@@ -137,8 +141,8 @@ private fun ReorderAlertsTab(state: ReplenishmentState, viewModel: Replenishment
     if (state.reorderAlerts.isEmpty()) {
         ZyntaEmptyState(
             icon     = Icons.Default.CheckCircle,
-            title    = "All stock levels are healthy",
-            subtitle = "No products are below their reorder threshold.",
+            title    = s[StringResource.INVENTORY_STOCK_HEALTHY],
+            subtitle = s[StringResource.INVENTORY_STOCK_HEALTHY_SUBTITLE],
         )
         return
     }
@@ -158,6 +162,7 @@ private fun ReorderAlertsTab(state: ReplenishmentState, viewModel: Replenishment
 
 @Composable
 private fun ReorderAlertCard(alert: StockReorderData, onCreate: () -> Unit) {
+    val s = LocalStrings.current
     Card(Modifier.fillMaxWidth()) {
         Row(
             modifier              = Modifier.padding(ZyntaSpacing.md),
@@ -177,7 +182,7 @@ private fun ReorderAlertCard(alert: StockReorderData, onCreate: () -> Unit) {
             FilledTonalButton(onClick = onCreate) {
                 Icon(Icons.Default.ShoppingCart, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("Create PO")
+                Text(s[StringResource.INVENTORY_CREATE_PO])
             }
         }
     }
@@ -187,6 +192,7 @@ private fun ReorderAlertCard(alert: StockReorderData, onCreate: () -> Unit) {
 
 @Composable
 private fun PurchaseOrdersTab(state: ReplenishmentState, viewModel: ReplenishmentViewModel) {
+    val s = LocalStrings.current
     if (state.isLoadingOrders) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
@@ -196,8 +202,8 @@ private fun PurchaseOrdersTab(state: ReplenishmentState, viewModel: Replenishmen
     if (state.purchaseOrders.isEmpty()) {
         ZyntaEmptyState(
             icon     = Icons.Default.ShoppingCart,
-            title    = "No purchase orders",
-            subtitle = "Create a PO from a reorder alert or using the + button.",
+            title    = s[StringResource.INVENTORY_NO_PURCHASE_ORDERS],
+            subtitle = s[StringResource.INVENTORY_NO_PURCHASE_ORDERS_SUBTITLE],
         )
         return
     }
@@ -231,6 +237,7 @@ private fun PurchaseOrderCard(
     onSelect: () -> Unit,
     onCancel: (() -> Unit)?,
 ) {
+    val s = LocalStrings.current
     val (chipVariant, chipIcon) = when (order.status) {
         PurchaseOrder.Status.PENDING  -> StatusChipVariant.Warning to Icons.Default.HourglassEmpty
         PurchaseOrder.Status.PARTIAL  -> StatusChipVariant.Info to Icons.Default.LocalShipping
@@ -258,7 +265,7 @@ private fun PurchaseOrderCard(
                 ZyntaStatusChip(label = order.status.name, variant = chipVariant, icon = chipIcon)
                 if (onCancel != null) {
                     TextButton(onClick = onCancel, contentPadding = PaddingValues(0.dp)) {
-                        Text("Cancel", style = MaterialTheme.typography.labelSmall)
+                        Text(s[StringResource.COMMON_CANCEL], style = MaterialTheme.typography.labelSmall)
                     }
                 }
             }
@@ -273,6 +280,7 @@ private fun PurchaseOrderDetailSheet(
     onDismiss: () -> Unit,
     onCancel: (() -> Unit)?,
 ) {
+    val s = LocalStrings.current
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(modifier = Modifier.padding(ZyntaSpacing.md)) {
             Text("Purchase Order: ${order.orderNumber}", style = MaterialTheme.typography.titleMedium)
@@ -283,7 +291,7 @@ private fun PurchaseOrderDetailSheet(
             Spacer(Modifier.height(ZyntaSpacing.md))
 
             if (order.items.isNotEmpty()) {
-                Text("Line Items", style = MaterialTheme.typography.labelMedium)
+                Text(s[StringResource.INVENTORY_LINE_ITEMS], style = MaterialTheme.typography.labelMedium)
                 Spacer(Modifier.height(4.dp))
                 order.items.forEach { item ->
                     Row(
@@ -300,7 +308,7 @@ private fun PurchaseOrderDetailSheet(
             if (onCancel != null) {
                 Spacer(Modifier.height(ZyntaSpacing.md))
                 ZyntaButton(
-                    text    = "Cancel Order",
+                    text    = s[StringResource.INVENTORY_CANCEL_ORDER],
                     onClick = { onCancel(); onDismiss() },
                     modifier = Modifier.fillMaxWidth(),
                     variant = ZyntaButtonVariant.Danger,
@@ -315,14 +323,15 @@ private fun PurchaseOrderDetailSheet(
 
 @Composable
 private fun ReplenishmentRulesTab(state: ReplenishmentState, viewModel: ReplenishmentViewModel) {
+    val s = LocalStrings.current
     Box(Modifier.fillMaxSize()) {
         if (state.isLoadingRules) {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
         } else if (state.replenishmentRules.isEmpty()) {
             ZyntaEmptyState(
                 icon     = Icons.Default.Settings,
-                title    = "No replenishment rules",
-                subtitle = "Add rules to automate purchase order creation when stock is low.",
+                title    = s[StringResource.INVENTORY_NO_REPLENISHMENT_RULES],
+                subtitle = s[StringResource.INVENTORY_NO_REPLENISHMENT_RULES_SUBTITLE],
             )
         } else {
             LazyColumn(
@@ -344,7 +353,7 @@ private fun ReplenishmentRulesTab(state: ReplenishmentState, viewModel: Replenis
             onClick  = { viewModel.dispatch(ReplenishmentIntent.OpenRuleDialog(null)) },
             modifier = Modifier.align(Alignment.BottomEnd).padding(ZyntaSpacing.md),
         ) {
-            Icon(Icons.Default.Add, contentDescription = "Add Rule")
+            Icon(Icons.Default.Add, contentDescription = s[StringResource.INVENTORY_ADD_RULE])
         }
     }
 }
@@ -355,6 +364,7 @@ private fun ReplenishmentRuleCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
+    val s = LocalStrings.current
     Card(Modifier.fillMaxWidth()) {
         Row(
             modifier              = Modifier.padding(ZyntaSpacing.md),
@@ -380,15 +390,15 @@ private fun ReplenishmentRuleCard(
                 )
                 if (rule.autoApprove) {
                     Text(
-                        "Auto-approve enabled",
+                        s[StringResource.INVENTORY_AUTO_APPROVE_ENABLED],
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
                     )
                 }
             }
             Column {
-                IconButton(onClick = onEdit)   { Icon(Icons.Default.Edit, contentDescription = "Edit") }
-                IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, contentDescription = "Delete") }
+                IconButton(onClick = onEdit)   { Icon(Icons.Default.Edit, contentDescription = s[StringResource.COMMON_EDIT]) }
+                IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, contentDescription = s[StringResource.COMMON_DELETE]) }
             }
         }
     }
@@ -399,9 +409,10 @@ private fun ReplenishmentRuleCard(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CreatePoDialog(state: ReplenishmentState, viewModel: ReplenishmentViewModel) {
+    val s = LocalStrings.current
     AlertDialog(
         onDismissRequest = { viewModel.dispatch(ReplenishmentIntent.DismissCreatePoDialog) },
-        title = { Text("Create Purchase Order") },
+        title = { Text(s[StringResource.INVENTORY_CREATE_PURCHASE_ORDER]) },
         text  = {
             Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                 state.createPoSourceAlert?.let { alert ->
@@ -464,10 +475,10 @@ private fun CreatePoDialog(state: ReplenishmentState, viewModel: ReplenishmentVi
             TextButton(
                 onClick  = { viewModel.dispatch(ReplenishmentIntent.SubmitCreatePo) },
                 enabled  = state.createPoSupplierId.isNotBlank() && !state.isCreatingPo,
-            ) { Text("Create") }
+            ) { Text(s[StringResource.INVENTORY_CREATE]) }
         },
         dismissButton = {
-            TextButton(onClick = { viewModel.dispatch(ReplenishmentIntent.DismissCreatePoDialog) }) { Text("Cancel") }
+            TextButton(onClick = { viewModel.dispatch(ReplenishmentIntent.DismissCreatePoDialog) }) { Text(s[StringResource.COMMON_CANCEL]) }
         },
     )
 }
@@ -477,10 +488,11 @@ private fun CreatePoDialog(state: ReplenishmentState, viewModel: ReplenishmentVi
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RuleEditDialog(state: ReplenishmentState, viewModel: ReplenishmentViewModel) {
+    val s = LocalStrings.current
     val isEdit = state.selectedRule != null
     AlertDialog(
         onDismissRequest = { viewModel.dispatch(ReplenishmentIntent.DismissRuleDialog) },
-        title = { Text(if (isEdit) "Edit Replenishment Rule" else "New Replenishment Rule") },
+        title = { Text(if (isEdit) s[StringResource.INVENTORY_EDIT_REPLENISHMENT_RULE] else s[StringResource.INVENTORY_NEW_REPLENISHMENT_RULE]) },
         text  = {
             Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                 ZyntaTextField(
@@ -575,7 +587,7 @@ private fun RuleEditDialog(state: ReplenishmentState, viewModel: ReplenishmentVi
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier              = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Auto-approve PO", style = MaterialTheme.typography.bodyMedium)
+                    Text(s[StringResource.INVENTORY_AUTO_APPROVE_PO], style = MaterialTheme.typography.bodyMedium)
                     Switch(
                         checked         = state.ruleFormAutoApprove,
                         onCheckedChange = { viewModel.dispatch(ReplenishmentIntent.SetRuleAutoApprove(it)) },
@@ -587,7 +599,7 @@ private fun RuleEditDialog(state: ReplenishmentState, viewModel: ReplenishmentVi
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier              = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Rule active", style = MaterialTheme.typography.bodyMedium)
+                    Text(s[StringResource.INVENTORY_RULE_ACTIVE], style = MaterialTheme.typography.bodyMedium)
                     Switch(
                         checked         = state.ruleFormIsActive,
                         onCheckedChange = { viewModel.dispatch(ReplenishmentIntent.SetRuleActive(it)) },
@@ -599,10 +611,10 @@ private fun RuleEditDialog(state: ReplenishmentState, viewModel: ReplenishmentVi
             TextButton(
                 onClick = { viewModel.dispatch(ReplenishmentIntent.SaveRule) },
                 enabled = !state.isSavingRule,
-            ) { Text(if (isEdit) "Save" else "Add") }
+            ) { Text(if (isEdit) s[StringResource.COMMON_SAVE] else s[StringResource.COMMON_ADD]) }
         },
         dismissButton = {
-            TextButton(onClick = { viewModel.dispatch(ReplenishmentIntent.DismissRuleDialog) }) { Text("Cancel") }
+            TextButton(onClick = { viewModel.dispatch(ReplenishmentIntent.DismissRuleDialog) }) { Text(s[StringResource.COMMON_CANCEL]) }
         },
     )
 }
@@ -614,6 +626,7 @@ private fun AutoReplenishmentResultDialog(
     result: ReplenishmentResult,
     onDismiss: () -> Unit,
 ) {
+    val s = LocalStrings.current
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = {
@@ -622,7 +635,7 @@ private fun AutoReplenishmentResultDialog(
                 contentDescription = null,
             )
         },
-        title  = { Text("Auto-Replenishment Complete") },
+        title  = { Text(s[StringResource.INVENTORY_AUTO_REPLENISHMENT_COMPLETE]) },
         text   = {
             Column {
                 Text("Rules evaluated: ${result.rulesEvaluated}")

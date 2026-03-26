@@ -587,7 +587,7 @@ private fun MergeCustomerDialog(
                             contentAlignment = Alignment.Center,
                         ) { CircularProgressIndicator() }
                         filtered.isEmpty() -> Text(
-                            "No matching customers",
+                            s[StringResource.CUSTOMERS_NO_MATCHING],
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -632,7 +632,7 @@ private fun MergeCustomerDialog(
                 TextButton(
                     onClick = { onMerge(selectedSource!!.id) },
                 ) {
-                    Text("Merge", color = MaterialTheme.colorScheme.error)
+                    Text(s[StringResource.CUSTOMERS_MERGE], color = MaterialTheme.colorScheme.error)
                 }
             }
         },
@@ -643,7 +643,7 @@ private fun MergeCustomerDialog(
                     else onDismiss()
                 },
             ) {
-                Text(if (selectedSource != null) "Back" else "Cancel")
+                Text(if (selectedSource != null) s[StringResource.COMMON_BACK] else s[StringResource.COMMON_CANCEL])
             }
         },
     )

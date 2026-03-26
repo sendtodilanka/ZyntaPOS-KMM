@@ -27,6 +27,8 @@ import com.zyntasolutions.zyntapos.feature.settings.SettingsEffect
 import com.zyntasolutions.zyntapos.feature.settings.SettingsIntent
 import com.zyntasolutions.zyntapos.feature.settings.SettingsState
 import com.zyntasolutions.zyntapos.feature.settings.ThemeMode
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
 
@@ -43,10 +45,11 @@ private data class ThemeModeOption(
     val description: String,
 )
 
-private val THEME_OPTIONS = listOf(
-    ThemeModeOption(ThemeMode.LIGHT,  "Light",  "Always use the light colour scheme"),
-    ThemeModeOption(ThemeMode.DARK,   "Dark",   "Always use the dark colour scheme"),
-    ThemeModeOption(ThemeMode.SYSTEM, "System", "Follow the device / OS preference"),
+@Composable
+private fun themeOptions() = listOf(
+    ThemeModeOption(ThemeMode.LIGHT,  LocalStrings.current[StringResource.SETTINGS_APPEARANCE_LIGHT],  LocalStrings.current[StringResource.SETTINGS_APPEARANCE_LIGHT_DESC]),
+    ThemeModeOption(ThemeMode.DARK,   LocalStrings.current[StringResource.SETTINGS_APPEARANCE_DARK],   LocalStrings.current[StringResource.SETTINGS_APPEARANCE_DARK_DESC]),
+    ThemeModeOption(ThemeMode.SYSTEM, LocalStrings.current[StringResource.SETTINGS_APPEARANCE_SYSTEM], LocalStrings.current[StringResource.SETTINGS_APPEARANCE_SYSTEM_DESC]),
 )
 
 /**
@@ -68,6 +71,7 @@ fun AppearanceSettingsScreen(
     onIntent: (SettingsIntent) -> Unit,
     onBack: () -> Unit,
 ) {
+    val s = LocalStrings.current
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) { onIntent(SettingsIntent.LoadAppearance) }
@@ -84,7 +88,7 @@ fun AppearanceSettingsScreen(
     }
 
     ZyntaPageScaffold(
-        title = "Appearance",
+        title = s[StringResource.SETTINGS_APPEARANCE],
         onNavigateBack = onBack,
         snackbarHostState = snackbarHostState,
     ) { innerPadding ->

@@ -34,6 +34,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.domain.model.StockTransfer
 import com.zyntasolutions.zyntapos.domain.model.Warehouse
@@ -50,6 +52,7 @@ fun StockTransferListScreen(
     onNavigateUp: () -> Unit,
     viewModel: WarehouseViewModel = koinViewModel(),
 ) {
+    val s = LocalStrings.current
     val state by viewModel.state.collectAsState()
     var pendingCommitId by remember { mutableStateOf<String?>(null) }
     var pendingCancelId by remember { mutableStateOf<String?>(null) }
@@ -57,17 +60,17 @@ fun StockTransferListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Stock Transfers") },
+                title = { Text(s[StringResource.MULTISTORE_STOCK_TRANSFERS]) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateUp) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = s[StringResource.COMMON_BACK])
                     }
                 },
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { onNavigateToNewTransfer(null) }) {
-                Icon(Icons.Default.Add, contentDescription = "New Transfer")
+                Icon(Icons.Default.Add, contentDescription = s[StringResource.MULTISTORE_NEW_TRANSFER])
             }
         },
     ) { padding ->
@@ -76,9 +79,9 @@ fun StockTransferListScreen(
 
         if (state.transfers.isEmpty() && !state.isLoading) {
             ZyntaEmptyState(
-                title = "No transfers found",
+                title = s[StringResource.MULTISTORE_NO_TRANSFERS],
                 icon = Icons.Default.SwapHoriz,
-                subtitle = "Tap + to create a stock transfer.",
+                subtitle = s[StringResource.MULTISTORE_TAP_NEW_TRANSFER],
                 modifier = Modifier.fillMaxSize().padding(padding),
             )
         } else {
@@ -101,16 +104,16 @@ fun StockTransferListScreen(
     pendingCommitId?.let { id ->
         AlertDialog(
             onDismissRequest = { pendingCommitId = null },
-            title = { Text("Commit Transfer") },
-            text = { Text("Confirm stock transfer? This will adjust product stock quantities.") },
+            title = { Text(s[StringResource.MULTISTORE_COMMIT_TRANSFER]) },
+            text = { Text(s[StringResource.MULTISTORE_COMMIT_CONFIRM]) },
             confirmButton = {
                 TextButton(onClick = {
                     pendingCommitId = null
                     viewModel.dispatch(WarehouseIntent.CommitTransfer(id))
-                }) { Text("Confirm") }
+                }) { Text(s[StringResource.COMMON_CONFIRM]) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingCommitId = null }) { Text("Cancel") }
+                TextButton(onClick = { pendingCommitId = null }) { Text(s[StringResource.COMMON_CANCEL]) }
             },
         )
     }
@@ -118,8 +121,8 @@ fun StockTransferListScreen(
     pendingCancelId?.let { id ->
         AlertDialog(
             onDismissRequest = { pendingCancelId = null },
-            title = { Text("Cancel Transfer") },
-            text = { Text("Cancel this stock transfer? No stock will be moved.") },
+            title = { Text(s[StringResource.MULTISTORE_CANCEL_TRANSFER]) },
+            text = { Text(s[StringResource.MULTISTORE_CANCEL_TRANSFER_CONFIRM]) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -127,10 +130,10 @@ fun StockTransferListScreen(
                         viewModel.dispatch(WarehouseIntent.CancelTransfer(id))
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                ) { Text("Cancel Transfer") }
+                ) { Text(s[StringResource.MULTISTORE_CANCEL_TRANSFER]) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingCancelId = null }) { Text("Keep") }
+                TextButton(onClick = { pendingCancelId = null }) { Text(s[StringResource.MULTISTORE_KEEP]) }
             },
         )
     }
@@ -143,6 +146,7 @@ private fun StockTransferCard(
     onCommit: () -> Unit,
     onCancel: () -> Unit,
 ) {
+    val s = LocalStrings.current
     // MS-2: Resolve warehouse names, fall back to truncated ID
     val sourceName = warehouseMap[transfer.sourceWarehouseId]?.name
         ?: transfer.sourceWarehouseId.take(8) + "..."
@@ -157,7 +161,7 @@ private fun StockTransferCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Qty: ${transfer.quantity}",
+                    text = "${s[StringResource.MULTISTORE_QTY]}: ${transfer.quantity}",
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Text(
@@ -189,8 +193,8 @@ private fun StockTransferCard(
                     TextButton(
                         onClick = onCancel,
                         colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                    ) { Text("Cancel") }
-                    TextButton(onClick = onCommit) { Text("Commit") }
+                    ) { Text(s[StringResource.COMMON_CANCEL]) }
+                    TextButton(onClick = onCommit) { Text(s[StringResource.MULTISTORE_COMMIT]) }
                 }
             }
         }

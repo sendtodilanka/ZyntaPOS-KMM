@@ -30,6 +30,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.domain.model.Warehouse
 import org.koin.compose.viewmodel.koinViewModel
@@ -45,6 +47,7 @@ fun WarehouseListScreen(
     onNavigateToTransfers: () -> Unit,
     viewModel: WarehouseViewModel = koinViewModel(),
 ) {
+    val s = LocalStrings.current
     val state by viewModel.state.collectAsState()
 
     LaunchedEffect(Unit) {
@@ -54,7 +57,7 @@ fun WarehouseListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Warehouses") },
+                title = { Text(s[StringResource.MULTISTORE_WAREHOUSES]) },
                 actions = {
                     BadgedBox(
                         badge = {
@@ -64,7 +67,7 @@ fun WarehouseListScreen(
                         },
                     ) {
                         IconButton(onClick = onNavigateToTransfers) {
-                            Icon(Icons.Default.SwapHoriz, contentDescription = "Transfers")
+                            Icon(Icons.Default.SwapHoriz, contentDescription = s[StringResource.MULTISTORE_TRANSFERS])
                         }
                     }
                 },
@@ -72,15 +75,15 @@ fun WarehouseListScreen(
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { onNavigateToDetail(null) }) {
-                Icon(Icons.Default.Add, contentDescription = "New Warehouse")
+                Icon(Icons.Default.Add, contentDescription = s[StringResource.MULTISTORE_NEW_WAREHOUSE])
             }
         },
     ) { padding ->
         if (state.warehouses.isEmpty() && !state.isLoading) {
             ZyntaEmptyState(
-                title = "No warehouses configured",
+                title = s[StringResource.MULTISTORE_NO_WAREHOUSES],
                 icon = Icons.Default.Inventory2,
-                subtitle = "Tap + to add a warehouse.",
+                subtitle = s[StringResource.MULTISTORE_TAP_ADD_WAREHOUSE],
                 modifier = Modifier.fillMaxSize().padding(padding),
             )
         } else {
@@ -105,6 +108,7 @@ private fun WarehouseCard(
     warehouse: Warehouse,
     onClick: () -> Unit,
 ) {
+    val s = LocalStrings.current
     Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -117,11 +121,11 @@ private fun WarehouseCard(
                 ) {
                     Text(warehouse.name, style = MaterialTheme.typography.titleMedium)
                     if (warehouse.isDefault) {
-                        Badge { Text("Default") }
+                        Badge { Text(s[StringResource.COMMON_DEFAULT]) }
                     }
                     if (!warehouse.isActive) {
                         Text(
-                            "Inactive",
+                            s[StringResource.COMMON_INACTIVE],
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.error,
                         )
