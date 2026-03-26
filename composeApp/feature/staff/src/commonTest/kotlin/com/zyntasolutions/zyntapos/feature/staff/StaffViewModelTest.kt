@@ -352,6 +352,9 @@ class StaffViewModelTest {
         override suspend fun getByEmployeeAndDate(employeeId: String, date: String): Result<ShiftSchedule?> =
             Result.Success(shiftsFlow.value.firstOrNull { it.employeeId == employeeId && it.shiftDate == date })
 
+        override suspend fun getAllShiftsByEmployeeAndDate(employeeId: String, date: String): Result<List<ShiftSchedule>> =
+            Result.Success(shiftsFlow.value.filter { it.employeeId == employeeId && it.shiftDate == date })
+
         override suspend fun getByStoreAndDate(storeId: String, date: String): Result<List<ShiftSchedule>> =
             Result.Success(shiftsFlow.value.filter { it.storeId == storeId && it.shiftDate == date })
 
