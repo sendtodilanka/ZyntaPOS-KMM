@@ -1320,7 +1320,7 @@ Backend Tests:
 - [x] 5 unit tests in `CheckLoyaltyTierProgressionUseCaseTest`
 
 **What's REMAINING (deferred):**
-- [ ] Cross-store points earning/spending (ensure universal acceptance)
+- [x] Cross-store points earning/spending (ensure universal acceptance) — ✅ VERIFIED (2026-03-26): Loyalty is already cross-store by design — reward_points table has no store_id column; balance is SUM(points) per customer_id globally; EarnRewardPointsUseCase and RedeemRewardPointsUseCase are customer-scoped, not store-scoped
 - [x] Points expiry policy (e.g., expire after 12 months inactive) — ✅ DONE (2026-03-25): `getActiveExpirablePointsByCustomer` SQL query; `LoyaltyRepository.expirePointsForCustomer()` interface method; `LoyaltyRepositoryImpl.expirePointsForCustomer()` inserts negative EXPIRED ledger entries (append-only); `ExpireLoyaltyPointsUseCase`; registered in `customersModule`; 7 unit tests in `ExpireLoyaltyPointsUseCaseTest`
 - [x] KMM POS: "Apply Loyalty Points" button Compose UI in payment sheet — ✅ ALREADY DONE: `LoyaltyRedemptionDialog.kt` exists; `CartContent.kt` shows "Redeem Points" button when `loyaltyPointsBalance > 0`; `showLoyaltyRedemptionDialog` state toggles dialog (verified 2026-03-25)
 - [x] KMM: Customer loyalty summary screen — ✅ COVERED: `CustomerWalletScreen` shows `pointsBalance`, `rewardHistory` list, `currentLoyaltyTier` badge; `LoyaltyTierBadge` shown in CustomerDetailScreen TopAppBar (verified 2026-03-25)
@@ -1499,7 +1499,7 @@ Backend Tests:
 - [ ] Backend: Profit/margin comparison (not just revenue/orders)
 - [ ] Backend: Growth trend calculation (currently `growth=0.0` hardcoded)
 - [ ] Admin panel: Interactive comparison dashboard with filters (read-only monitoring — ADR-009 compliant)
-- [ ] Trend analysis: Growth % per store over time
+- [x] Trend analysis: Growth % per store over time — ✅ DONE (2026-03-26): StoreSalesData extended with revenueGrowthPercent/orderGrowthPercent; GenerateMultiStoreComparisonReportUseCase computes growth by comparing current vs previous period of equal duration; StoreComparisonReportScreen shows colored growth arrows per metric
 - [x] CSV/PDF export for store comparison report — ✅ DONE (2026-03-25): exportStoreComparisonCsv() added to ReportExporter interface; implemented in JvmReportExporter (JFileChooser) and AndroidReportExporter (cacheDir + shareFile); isExporting added to StoreComparisonState; ExportStoreComparisonCsv intent + VM handler; FileDownload icon in StoreComparisonReportScreen TopAppBar
 
 ---

@@ -173,6 +173,10 @@ data class StoreSalesData(
     val totalRevenue: Double,
     val orderCount: Int,
     val averageOrderValue: Double,
+    /** Revenue growth % compared to previous period. Null when no previous data. */
+    val revenueGrowthPercent: Double? = null,
+    /** Order count growth % compared to previous period. Null when no previous data. */
+    val orderGrowthPercent: Double? = null,
 )
 
 data class StockTransferRecord(
