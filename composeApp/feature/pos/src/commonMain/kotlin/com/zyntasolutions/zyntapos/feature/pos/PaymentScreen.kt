@@ -320,6 +320,7 @@ private fun NonCashSummary(
     method: PaymentMethod?,
     formatter: CurrencyFormatter,
 ) {
+    val s = LocalStrings.current
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.secondaryContainer,
@@ -339,12 +340,12 @@ private fun NonCashSummary(
                 )
             }
             Text(
-                text = "Charge ${formatter.format(orderTotal)}",
+                text = "${s[StringResource.POS_CHARGE]} ${formatter.format(orderTotal)}",
                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
             )
             Text(
-                text = "via ${method?.label ?: ""}",
+                text = "${s[StringResource.POS_VIA]} ${method?.label ?: ""}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f),
             )
@@ -494,7 +495,7 @@ private fun CollapsibleOrderSummary(
                     IconButton(onClick = onToggle) {
                         Icon(
                             imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                            contentDescription = if (isExpanded) "Collapse" else "Expand",
+                            contentDescription = if (isExpanded) s[StringResource.POS_COLLAPSE] else s[StringResource.POS_EXPAND],
                         )
                     }
                 }

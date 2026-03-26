@@ -142,7 +142,7 @@ fun ProductDetailScreen(
             ) {
                 Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(ZyntaSpacing.xs))
-                Text(if (isNew) "Create" else "Save")
+                Text(if (isNew) s[StringResource.INVENTORY_CREATE] else s[StringResource.COMMON_SAVE])
             }
         },
     ) { innerPadding ->
@@ -226,6 +226,7 @@ private fun CoreFieldsSection(
     state: InventoryState,
     onIntent: (InventoryIntent) -> Unit,
 ) {
+    val s = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -234,13 +235,13 @@ private fun CoreFieldsSection(
             modifier = Modifier.padding(ZyntaSpacing.md),
             verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
         ) {
-            Text("Product Details", style = MaterialTheme.typography.titleMedium)
+            Text(s[StringResource.INVENTORY_PRODUCT_DETAILS], style = MaterialTheme.typography.titleMedium)
 
             // Name (required)
             ZyntaTextField(
                 value = form.name,
                 onValueChange = { onIntent(InventoryIntent.UpdateFormField("name", it)) },
-                label = "Product Name *",
+                label = s[StringResource.INVENTORY_PRODUCT_NAME_REQUIRED],
                 error = form.validationErrors["name"],
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -250,7 +251,7 @@ private fun CoreFieldsSection(
                 ZyntaTextField(
                     value = form.barcode,
                     onValueChange = { onIntent(InventoryIntent.UpdateFormField("barcode", it)) },
-                    label = "Barcode (EAN-13 / Code128)",
+                    label = s[StringResource.INVENTORY_BARCODE_LABEL],
                     error = form.validationErrors["barcode"],
                     modifier = Modifier.weight(1f),
                 )
@@ -266,7 +267,7 @@ private fun CoreFieldsSection(
                 ) {
                     Icon(
                         Icons.Default.QrCodeScanner,
-                        contentDescription = if (state.isScannerActive) "Stop scanner" else "Scan barcode",
+                        contentDescription = if (state.isScannerActive) s[StringResource.INVENTORY_STOP_SCANNER] else s[StringResource.INVENTORY_SCAN_BARCODE],
                         tint = if (state.isScannerActive) MaterialTheme.colorScheme.primary else LocalContentColor.current,
                     )
                 }
@@ -276,7 +277,7 @@ private fun CoreFieldsSection(
             ZyntaTextField(
                 value = form.sku,
                 onValueChange = { onIntent(InventoryIntent.UpdateFormField("sku", it)) },
-                label = "SKU",
+                label = s[StringResource.INVENTORY_SKU],
                 error = form.validationErrors["sku"],
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -305,7 +306,7 @@ private fun CoreFieldsSection(
                     )
                 }
                 TextButton(onClick = { onIntent(InventoryIntent.OpenUnitManagement) }) {
-                    Text("Manage", style = MaterialTheme.typography.labelMedium)
+                    Text(s[StringResource.INVENTORY_MANAGE], style = MaterialTheme.typography.labelMedium)
                 }
             }
 
@@ -313,7 +314,7 @@ private fun CoreFieldsSection(
             ZyntaTextField(
                 value = form.description,
                 onValueChange = { onIntent(InventoryIntent.UpdateFormField("description", it)) },
-                label = "Description",
+                label = s[StringResource.INVENTORY_DESCRIPTION],
                 modifier = Modifier.fillMaxWidth().heightIn(min = 80.dp),
                 singleLine = false,
                 maxLines = 4,

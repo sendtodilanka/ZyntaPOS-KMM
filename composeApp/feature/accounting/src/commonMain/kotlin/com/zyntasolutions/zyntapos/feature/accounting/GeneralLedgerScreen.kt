@@ -13,6 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.Account
 import com.zyntasolutions.zyntapos.domain.model.GeneralLedgerEntry
@@ -38,6 +40,7 @@ fun GeneralLedgerScreen(
     viewModel: GeneralLedgerViewModel = koinViewModel(),
     onNavigateBack: () -> Unit,
 ) {
+    val s = LocalStrings.current
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var accountDropdownExpanded by remember { mutableStateOf(false) }
@@ -68,10 +71,10 @@ fun GeneralLedgerScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("General Ledger") },
+                title = { Text(s[StringResource.ACCOUNTING_GENERAL_LEDGER]) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = s[StringResource.COMMON_BACK])
                     }
                 },
                 actions = {
@@ -79,7 +82,7 @@ fun GeneralLedgerScreen(
                         onClick = { viewModel.dispatch(GeneralLedgerIntent.Refresh) },
                         enabled = state.selectedAccountId != null && !state.isLoading,
                     ) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = s[StringResource.COMMON_REFRESH])
                     }
                 },
             )
@@ -101,10 +104,10 @@ fun GeneralLedgerScreen(
             ) {
                 OutlinedTextField(
                     value = selectedAccount?.let { "${it.accountCode} — ${it.accountName}" }
-                        ?: if (state.isLoading) "Loading accounts..." else "Select an account",
+                        ?: if (state.isLoading) s[StringResource.COMMON_LOADING] else s[StringResource.ACCOUNTING_SELECT_ACCOUNT],
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Account") },
+                    label = { Text(s[StringResource.ACCOUNTING_ACCOUNT]) },
                     trailingIcon = {
                         ExposedDropdownMenuDefaults.TrailingIcon(expanded = accountDropdownExpanded)
                     },
@@ -118,7 +121,7 @@ fun GeneralLedgerScreen(
                 ) {
                     if (state.accounts.isEmpty()) {
                         DropdownMenuItem(
-                            text = { Text("No accounts available") },
+                            text = { Text(s[StringResource.ACCOUNTING_NO_ACCOUNTS]) },
                             onClick = { accountDropdownExpanded = false },
                         )
                     } else {
