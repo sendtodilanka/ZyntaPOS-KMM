@@ -16,6 +16,8 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaBottomSheet
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
@@ -74,6 +76,7 @@ fun HeldOrdersBottomSheet(
                 } else false
             },
     ) {
+        val s = LocalStrings.current
         Column(modifier = Modifier.fillMaxWidth()) {
 
             // ── Header ───────────────────────────────────────────────────────
@@ -84,14 +87,14 @@ fun HeldOrdersBottomSheet(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Held Orders",
+                    text = s[StringResource.POS_HELD_ORDERS_TITLE],
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f),
                 )
                 AssistChip(
                     onClick = {},
-                    label = { Text("F9") },
+                    label = { Text(s[StringResource.POS_HELD_ORDERS_SHORTCUT]) },
                     leadingIcon = null,
                     modifier = Modifier.height(28.dp),
                 )
@@ -103,8 +106,8 @@ fun HeldOrdersBottomSheet(
             if (heldOrders.isEmpty()) {
                 ZyntaEmptyState(
                     icon = Icons.Default.ShoppingCart,
-                    title = "No Held Orders",
-                    subtitle = "Hold the current order using F8 or the Hold button to save it here.",
+                    title = s[StringResource.POS_NO_HELD_ORDERS],
+                    subtitle = s[StringResource.POS_NO_HELD_ORDERS_HINT],
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(ZyntaSpacing.xl),
@@ -150,6 +153,7 @@ private fun HeldOrderRow(
     order: Order,
     onRetrieve: () -> Unit,
 ) {
+    val s = LocalStrings.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -168,7 +172,7 @@ private fun HeldOrderRow(
         // Order info
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "Order #${order.orderNumber}",
+                text = s[StringResource.POS_ORDER_NUMBER_FORMAT, order.orderNumber],
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -184,7 +188,7 @@ private fun HeldOrderRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    text = "${order.items.size} item${if (order.items.size != 1) "s" else ""}",
+                    text = s[StringResource.POS_ITEMS_COUNT_FORMAT, order.items.size, if (order.items.size != 1) "s" else ""],
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -207,7 +211,7 @@ private fun HeldOrderRow(
             onClick = onRetrieve,
             contentPadding = PaddingValues(horizontal = ZyntaSpacing.md, vertical = ZyntaSpacing.xs),
         ) {
-            Text("Retrieve", style = MaterialTheme.typography.labelMedium)
+            Text(s[StringResource.POS_RETRIEVE], style = MaterialTheme.typography.labelMedium)
         }
     }
 }

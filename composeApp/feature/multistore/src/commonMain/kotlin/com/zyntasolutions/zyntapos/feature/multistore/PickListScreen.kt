@@ -35,6 +35,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.domain.model.PickList
 import com.zyntasolutions.zyntapos.domain.model.PickListItem
@@ -57,6 +59,7 @@ fun PickListScreen(
     onNavigateUp: () -> Unit,
     viewModel: WarehouseViewModel = koinViewModel(),
 ) {
+    val s = LocalStrings.current
     val state by viewModel.state.collectAsState()
     val pickList = state.pickList
 
@@ -70,13 +73,13 @@ fun PickListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Pick List") },
+                title = { Text(s[StringResource.MULTISTORE_PICK_LIST]) },
                 navigationIcon = {
                     IconButton(onClick = {
                         viewModel.dispatch(WarehouseIntent.DismissPickList)
                         onNavigateUp()
                     }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = s[StringResource.COMMON_BACK])
                     }
                 },
                 actions = {
@@ -85,7 +88,7 @@ fun PickListScreen(
                             onClick = { viewModel.dispatch(WarehouseIntent.PrintPickList) },
                             enabled = !state.isLoading,
                         ) {
-                            Icon(Icons.Default.Print, contentDescription = "Print Pick List")
+                            Icon(Icons.Default.Print, contentDescription = s[StringResource.MULTISTORE_PRINT_PICK_LIST_CD])
                         }
                     }
                 },
@@ -100,13 +103,13 @@ fun PickListScreen(
             ) {
                 if (state.isLoading) {
                     Text(
-                        "Generating pick list...",
+                        s[StringResource.MULTISTORE_GENERATING_PICK_LIST],
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else {
                     ZyntaEmptyState(
-                        title = "No pick list available",
+                        title = s[StringResource.MULTISTORE_NO_PICK_LIST],
                         icon = Icons.Default.Print,
                     )
                 }
@@ -158,13 +161,14 @@ private fun PickListContent(
 
         // Footer
         item {
+            val s = LocalStrings.current
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
             Row(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
-                    "Total items",
+                    s[StringResource.MULTISTORE_TOTAL_ITEMS],
                     style = MaterialTheme.typography.titleSmall,
                 )
                 Text(
@@ -180,13 +184,14 @@ private fun PickListContent(
 
 @Composable
 private fun PickListHeaderCard(pickList: PickList) {
+    val s = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "PICK LIST",
+                text = s[StringResource.MULTISTORE_PICK_LIST_HEADER],
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.fillMaxWidth(),
@@ -195,13 +200,13 @@ private fun PickListHeaderCard(pickList: PickList) {
 
             Spacer(Modifier.height(12.dp))
 
-            PickListHeaderRow("Transfer", pickList.transferId.take(20))
-            PickListHeaderRow("From", pickList.sourceStoreName)
-            PickListHeaderRow("To", pickList.destinationStoreName)
-            PickListHeaderRow("Date", formatPickListDate(pickList.generatedAt))
+            PickListHeaderRow(s[StringResource.MULTISTORE_TRANSFER_LABEL], pickList.transferId.take(20))
+            PickListHeaderRow(s[StringResource.MULTISTORE_FROM_LABEL], pickList.sourceStoreName)
+            PickListHeaderRow(s[StringResource.MULTISTORE_TO_LABEL], pickList.destinationStoreName)
+            PickListHeaderRow(s[StringResource.COMMON_DATE], formatPickListDate(pickList.generatedAt))
 
             pickList.notes?.let { notes ->
-                PickListHeaderRow("Notes", notes)
+                PickListHeaderRow(s[StringResource.MULTISTORE_NOTES], notes)
             }
         }
     }
@@ -228,6 +233,7 @@ private fun PickListHeaderRow(label: String, value: String) {
 
 @Composable
 private fun PickListColumnHeader() {
+    val s = LocalStrings.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -241,27 +247,27 @@ private fun PickListColumnHeader() {
             modifier = Modifier.width(28.dp),
         )
         Text(
-            text = "Product",
+            text = s[StringResource.MULTISTORE_PRODUCT],
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.weight(1f),
         )
         Text(
-            text = "Qty",
+            text = s[StringResource.MULTISTORE_QTY],
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.width(50.dp),
             textAlign = TextAlign.End,
         )
         Text(
-            text = "Rack",
+            text = s[StringResource.MULTISTORE_RACK_LABEL],
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.width(72.dp),
             textAlign = TextAlign.End,
         )
         Text(
-            text = "Bin",
+            text = s[StringResource.MULTISTORE_BIN_LABEL],
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.width(72.dp),
@@ -272,6 +278,7 @@ private fun PickListColumnHeader() {
 
 @Composable
 private fun PickListItemRow(index: Int, item: PickListItem) {
+    val s = LocalStrings.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -292,7 +299,7 @@ private fun PickListItemRow(index: Int, item: PickListItem) {
             )
             if (item.sku.isNotBlank()) {
                 Text(
-                    text = "SKU: ${item.sku}",
+                    text = s[StringResource.MULTISTORE_SKU_FORMAT, item.sku],
                     style = MaterialTheme.typography.labelSmall,
                     fontFamily = FontFamily.Monospace,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

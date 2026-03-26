@@ -5,6 +5,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -33,6 +35,7 @@ fun OrderNotesDialog(
     val prefixPattern = Regex("""^\[([^\]]+)\]\s*(.*)$""", RegexOption.DOT_MATCHES_ALL)
     val match = prefixPattern.matchEntire(currentNotes)
 
+    val s = LocalStrings.current
     var referenceNumber by remember { mutableStateOf(match?.groupValues?.get(1) ?: "") }
     var noteText by remember { mutableStateOf(match?.groupValues?.get(2) ?: currentNotes) }
 
@@ -40,7 +43,7 @@ fun OrderNotesDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "Order Notes",
+                text = s[StringResource.POS_ORDER_NOTES_TITLE],
                 style = MaterialTheme.typography.titleLarge,
             )
         },
@@ -53,8 +56,8 @@ fun OrderNotesDialog(
                 OutlinedTextField(
                     value = referenceNumber,
                     onValueChange = { referenceNumber = it },
-                    label = { Text("Reference Number (optional)") },
-                    placeholder = { Text("e.g. PO-2026-001") },
+                    label = { Text(s[StringResource.POS_REFERENCE_NUMBER_LABEL]) },
+                    placeholder = { Text(s[StringResource.POS_REFERENCE_NUMBER_PLACEHOLDER]) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -63,8 +66,8 @@ fun OrderNotesDialog(
                 OutlinedTextField(
                     value = noteText,
                     onValueChange = { noteText = it },
-                    label = { Text("Notes (optional)") },
-                    placeholder = { Text("e.g. Customer requests gift wrapping") },
+                    label = { Text(s[StringResource.POS_NOTES_LABEL]) },
+                    placeholder = { Text(s[StringResource.POS_NOTES_PLACEHOLDER]) },
                     minLines = 3,
                     maxLines = 6,
                     modifier = Modifier
@@ -78,11 +81,11 @@ fun OrderNotesDialog(
                 val combined = buildCombinedNotes(referenceNumber.trim(), noteText.trim())
                 onConfirm(combined)
             }) {
-                Text("Confirm")
+                Text(s[StringResource.COMMON_CONFIRM])
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(s[StringResource.COMMON_CANCEL]) }
         },
     )
 }

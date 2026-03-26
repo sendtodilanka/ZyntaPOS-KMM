@@ -17,6 +17,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import kotlinx.coroutines.delay
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -55,6 +57,7 @@ fun PaymentSuccessOverlay(
     dismissDelayMs: Long = 1_500L,
     successContainerColor: Color = MaterialTheme.colorScheme.tertiaryContainer,
 ) {
+    val s = LocalStrings.current
     // ── Animation state ────────────────────────────────────────────────────────
     var visible by remember { mutableStateOf(false) }
 
@@ -120,7 +123,7 @@ fun PaymentSuccessOverlay(
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Check,
-                        contentDescription = "Payment Successful",
+                        contentDescription = s[StringResource.POS_PAYMENT_SUCCESSFUL_CD],
                         modifier = Modifier
                             .size(72.dp)
                             .alpha(iconAlpha),
@@ -134,13 +137,13 @@ fun PaymentSuccessOverlay(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
-                        text = "Payment Successful",
+                        text = s[StringResource.POS_PAYMENT_SUCCESSFUL],
                         style = MaterialTheme.typography.headlineMedium,
                         color = MaterialTheme.colorScheme.onTertiaryContainer,
                         modifier = Modifier.alpha(iconAlpha),
                     )
                     Text(
-                        text = "Preparing receipt…",
+                        text = s[StringResource.POS_PREPARING_RECEIPT],
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f),
                         modifier = Modifier.alpha(iconAlpha),

@@ -11,6 +11,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSearchBar
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.Customer
@@ -52,6 +54,7 @@ fun CustomerSelectorDialog(
     customerRepository: CustomerRepository,
     onQuickAdd: () -> Unit,
 ) {
+    val s = LocalStrings.current
     var query by remember { mutableStateOf("") }
 
     // Debounced customer search flow
@@ -72,14 +75,14 @@ fun CustomerSelectorDialog(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
-                    text = "Select Customer",
+                    text = s[StringResource.POS_SELECT_CUSTOMER_TITLE],
                     modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.titleLarge,
                 )
                 IconButton(onClick = onQuickAdd) {
                     Icon(
                         imageVector = Icons.Default.PersonAdd,
-                        contentDescription = "Add new customer",
+                        contentDescription = s[StringResource.POS_ADD_NEW_CUSTOMER_CD],
                         tint = MaterialTheme.colorScheme.primary,
                     )
                 }
@@ -93,7 +96,7 @@ fun CustomerSelectorDialog(
                     onQueryChange = { query = it },
                     onClear = { query = "" },
                     onScanToggle = {}, // Customer search dialog has no scanner toggle
-                    placeholder = "Search by name, phone or email",
+                    placeholder = s[StringResource.POS_SEARCH_CUSTOMER_PLACEHOLDER],
                     modifier = Modifier.fillMaxWidth(),
                 )
 
@@ -107,8 +110,8 @@ fun CustomerSelectorDialog(
                     // Walk-in (always first)
                     item {
                         CustomerRow(
-                            name = "Walk-in Customer",
-                            subtitle = "Anonymous sale",
+                            name = s[StringResource.POS_WALK_IN_CUSTOMER],
+                            subtitle = s[StringResource.POS_ANONYMOUS_SALE],
                             icon = Icons.Default.PersonOutline,
                             onClick = { onCustomerSelected(null) },
                         )
@@ -132,7 +135,7 @@ fun CustomerSelectorDialog(
                     if (customers.isEmpty() && query.isNotBlank()) {
                         item {
                             Text(
-                                text = "No customers found for \"$query\"",
+                                text = s[StringResource.POS_NO_CUSTOMERS_FOR_QUERY_FORMAT, query],
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(ZyntaSpacing.md),
@@ -144,7 +147,7 @@ fun CustomerSelectorDialog(
         },
         confirmButton = {},
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(s[StringResource.COMMON_CANCEL]) }
         },
     )
 }

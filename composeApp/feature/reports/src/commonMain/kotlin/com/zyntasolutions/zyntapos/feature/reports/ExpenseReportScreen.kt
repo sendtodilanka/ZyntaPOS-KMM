@@ -34,7 +34,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoadingSkeleton
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
@@ -61,6 +63,7 @@ fun ExpenseReportScreen(
     viewModel: ReportsViewModel = koinViewModel(),
     formatter: CurrencyFormatter = koinInject(),
 ) {
+    val strings = LocalStrings.current
     val state by viewModel.state.collectAsState()
     val s = state.expenseReport
 
@@ -71,11 +74,11 @@ fun ExpenseReportScreen(
     }
 
     ZyntaPageScaffold(
-        title = "Expense Report",
+        title = strings[StringResource.REPORTS_EXPENSE_REPORT],
         onNavigateBack = onNavigateUp,
         actions = {
             IconButton(onClick = { viewModel.dispatch(ReportsIntent.ExportExpenseReportCsv) }) {
-                Icon(Icons.Default.FileDownload, contentDescription = "Export CSV")
+                Icon(Icons.Default.FileDownload, contentDescription = strings[StringResource.REPORTS_EXPORT_CSV_CD])
             }
         },
     ) { paddingValues ->
@@ -111,8 +114,8 @@ fun ExpenseReportScreen(
                         ) {
                             ZyntaEmptyState(
                                 icon = Icons.Default.Receipt,
-                                title = "No Expense Data",
-                                subtitle = "Select a date range to generate an expense report.",
+                                title = strings[StringResource.REPORTS_NO_EXPENSE_DATA],
+                                subtitle = strings[StringResource.REPORTS_EXPENSE_EMPTY_HINT],
                                 modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.xl),
                             )
                         }
@@ -162,8 +165,9 @@ private fun ExpenseReportContent(
                 ExpenseCategoryChart(report = report, formatter = formatter)
             }
             item {
+                val s = LocalStrings.current
                 Text(
-                    "Category Breakdown (Approved)",
+                    s[StringResource.REPORTS_CATEGORY_BREAKDOWN],
                     style = MaterialTheme.typography.titleSmall,
                 )
             }
@@ -186,27 +190,28 @@ private fun ExpenseKpiRow(
     report: GenerateExpenseReportUseCase.ExpenseReport,
     formatter: CurrencyFormatter,
 ) {
+    val s = LocalStrings.current
     Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
         ) {
             ExpenseKpiCard(
-                label = "Approved",
+                label = s[StringResource.REPORTS_APPROVED],
                 value = formatter.format(report.totalApproved),
                 count = report.approvedCount,
                 isPrimary = true,
                 modifier = Modifier.weight(1f),
             )
             ExpenseKpiCard(
-                label = "Pending",
+                label = s[StringResource.REPORTS_PENDING],
                 value = formatter.format(report.totalPending),
                 count = report.pendingCount,
                 modifier = Modifier.weight(1f),
             )
         }
         ExpenseKpiCard(
-            label = "Rejected",
+            label = s[StringResource.REPORTS_REJECTED],
             value = formatter.format(report.totalRejected),
             count = report.rejectedCount,
             modifier = Modifier.fillMaxWidth(),
@@ -245,8 +250,9 @@ private fun ExpenseKpiCard(
                         else MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
             )
+            val s = LocalStrings.current
             Text(
-                text = "$count records",
+                text = s[StringResource.REPORTS_RECORDS_COUNT, count],
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -268,15 +274,16 @@ private fun ExpenseCategoryChart(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
+        val s = LocalStrings.current
         Column(modifier = Modifier.padding(ZyntaSpacing.md)) {
-            Text("Spend by Category", style = MaterialTheme.typography.titleSmall)
+            Text(s[StringResource.REPORTS_SPEND_BY_CATEGORY], style = MaterialTheme.typography.titleSmall)
             Spacer(Modifier.height(ZyntaSpacing.sm))
             report.byCategory.entries
                 .sortedByDescending { it.value }
                 .take(8)
                 .forEach { (categoryId, amount) ->
                     ExpenseCategoryBar(
-                        label = categoryId ?: "Uncategorised",
+                        label = categoryId ?: s[StringResource.REPORTS_UNCATEGORISED],
                         amount = amount,
                         fraction = (amount / maxAmount).toFloat(),
                         formatter = formatter,
@@ -324,6 +331,7 @@ private fun ExpenseCategoryRow(
     amount: Double,
     formatter: CurrencyFormatter,
 ) {
+    val s = LocalStrings.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -332,7 +340,7 @@ private fun ExpenseCategoryRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = categoryId ?: "Uncategorised",
+            text = categoryId ?: s[StringResource.REPORTS_UNCATEGORISED],
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.weight(1f),
         )

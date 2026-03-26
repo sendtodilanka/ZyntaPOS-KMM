@@ -208,10 +208,11 @@ private fun ProductSearchDropdown(
                     text = {
                         Column {
                             Text(product.name, style = MaterialTheme.typography.bodyMedium)
+                            val s = LocalStrings.current
                             Text(
                                 buildString {
-                                    product.sku?.let { append("SKU: $it") }
-                                    append(" | Stock: ${product.stockQty.toInt()}")
+                                    product.sku?.let { append(s[StringResource.MULTISTORE_SKU_FORMAT, it]) }
+                                    append(" | ${s[StringResource.MULTISTORE_STOCK_SHORT_FORMAT, product.stockQty.toInt()]}")
                                 },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,

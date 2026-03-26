@@ -43,6 +43,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.WarehouseStock
@@ -73,6 +75,7 @@ fun WarehouseStockScreen(
         onIntent(WarehouseIntent.LoadWarehouseStock(warehouseId))
     }
 
+    val s = LocalStrings.current
     var selectedTab by remember { mutableIntStateOf(0) }
 
     Scaffold(
@@ -81,7 +84,7 @@ fun WarehouseStockScreen(
             FloatingActionButton(
                 onClick = { onIntent(WarehouseIntent.OpenStockEntry(warehouseId, null)) },
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Set Stock")
+                Icon(Icons.Default.Add, contentDescription = s[StringResource.MULTISTORE_SET_STOCK])
             }
         },
     ) { innerPadding ->
@@ -94,7 +97,7 @@ fun WarehouseStockScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = ZyntaSpacing.md, vertical = ZyntaSpacing.sm),
-                placeholder = { Text("Search by product name, SKU, barcode") },
+                placeholder = { Text(s[StringResource.MULTISTORE_SEARCH_STOCK_PLACEHOLDER]) },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 singleLine = true,
             )
@@ -104,7 +107,7 @@ fun WarehouseStockScreen(
                 Tab(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
-                    text = { Text("All Stock (${state.warehouseStock.size})") },
+                    text = { Text(s[StringResource.MULTISTORE_ALL_STOCK_TAB_FORMAT, state.warehouseStock.size]) },
                 )
                 Tab(
                     selected = selectedTab == 1,
@@ -117,7 +120,7 @@ fun WarehouseStockScreen(
                                 }
                             },
                         ) {
-                            Text("Low Stock")
+                            Text(s[StringResource.MULTISTORE_LOW_STOCK])
                         }
                     },
                 )
@@ -151,6 +154,7 @@ private fun StockList(
     isLowStockTab: Boolean = false,
     onItemClick: (WarehouseStock) -> Unit,
 ) {
+    val s = LocalStrings.current
     when {
         isLoading && items.isEmpty() -> Box(
             Modifier.fillMaxSize(),
@@ -158,7 +162,7 @@ private fun StockList(
         ) { CircularProgressIndicator() }
 
         items.isEmpty() -> ZyntaEmptyState(
-            title = if (isLowStockTab) "No low-stock items" else "No stock entries yet",
+            title = if (isLowStockTab) s[StringResource.MULTISTORE_NO_LOW_STOCK] else s[StringResource.MULTISTORE_NO_STOCK_YET],
             icon = if (isLowStockTab) Icons.Default.Warning else Icons.Default.Inventory2,
             modifier = Modifier.fillMaxSize(),
         )
@@ -178,6 +182,7 @@ private fun StockItemRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -194,7 +199,7 @@ private fun StockItemRow(
             )
             if (!entry.productSku.isNullOrBlank()) {
                 Text(
-                    text = "SKU: ${entry.productSku}",
+                    text = s[StringResource.MULTISTORE_SKU_FORMAT, entry.productSku!!],
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -224,7 +229,7 @@ private fun StockItemRow(
                     entry.minQuantity.toString()
                 }
                 Text(
-                    text = "Min: $minText",
+                    text = s[StringResource.MULTISTORE_MIN_QTY_FORMAT, minText],
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -235,7 +240,7 @@ private fun StockItemRow(
             Spacer(Modifier.width(ZyntaSpacing.sm))
             Icon(
                 imageVector = Icons.Default.Warning,
-                contentDescription = "Low Stock",
+                contentDescription = s[StringResource.MULTISTORE_LOW_STOCK],
                 tint = MaterialTheme.colorScheme.error,
                 modifier = Modifier.size(16.dp),
             )

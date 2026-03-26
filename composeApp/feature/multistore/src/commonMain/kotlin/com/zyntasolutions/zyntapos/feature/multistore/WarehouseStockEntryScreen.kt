@@ -21,6 +21,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 
 /**
@@ -39,6 +41,7 @@ fun WarehouseStockEntryScreen(
     onIntent: (WarehouseIntent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     val form = state.stockEntryForm
 
     Column(
@@ -49,7 +52,7 @@ fun WarehouseStockEntryScreen(
         verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
     ) {
         Text(
-            text = if (form.isEditing) "Update Stock Level" else "Set Stock Level",
+            text = if (form.isEditing) s[StringResource.MULTISTORE_UPDATE_STOCK_LEVEL] else s[StringResource.MULTISTORE_SET_STOCK_LEVEL],
             style = MaterialTheme.typography.headlineSmall,
         )
 
@@ -68,8 +71,8 @@ fun WarehouseStockEntryScreen(
             value = form.quantity,
             onValueChange = { onIntent(WarehouseIntent.UpdateStockField("quantity", it)) },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("On-Hand Quantity") },
-            placeholder = { Text("e.g. 100") },
+            label = { Text(s[StringResource.MULTISTORE_ON_HAND_QTY]) },
+            placeholder = { Text(s[StringResource.MULTISTORE_QTY_HINT]) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             isError = form.validationErrors.containsKey("quantity"),
             supportingText = form.validationErrors["quantity"]?.let { { Text(it) } },
@@ -81,8 +84,8 @@ fun WarehouseStockEntryScreen(
             value = form.minQuantity,
             onValueChange = { onIntent(WarehouseIntent.UpdateStockField("minQuantity", it)) },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Reorder Point (Min Quantity)") },
-            placeholder = { Text("e.g. 10 — leave 0 for no threshold") },
+            label = { Text(s[StringResource.MULTISTORE_REORDER_POINT]) },
+            placeholder = { Text(s[StringResource.MULTISTORE_REORDER_POINT_HINT]) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             isError = form.validationErrors.containsKey("minQuantity"),
             supportingText = form.validationErrors["minQuantity"]?.let { { Text(it) } },
@@ -99,7 +102,7 @@ fun WarehouseStockEntryScreen(
                 onClick = { onIntent(WarehouseIntent.CancelStockEntry) },
                 modifier = Modifier.weight(1f),
             ) {
-                Text("Cancel")
+                Text(s[StringResource.COMMON_CANCEL])
             }
             Button(
                 onClick = { onIntent(WarehouseIntent.SaveStockEntry) },
@@ -112,7 +115,7 @@ fun WarehouseStockEntryScreen(
                         strokeWidth = 2.dp,
                     )
                 } else {
-                    Text(if (form.isEditing) "Update" else "Set Stock")
+                    Text(if (form.isEditing) s[StringResource.COMMON_UPDATE] else s[StringResource.MULTISTORE_SET_STOCK])
                 }
             }
         }

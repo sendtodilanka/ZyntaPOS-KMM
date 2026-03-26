@@ -8,7 +8,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButtonSize
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
@@ -43,6 +45,7 @@ fun CartSummaryFooter(
     isLoading: Boolean = false,
     loyaltyDiscount: Double = 0.0,
 ) {
+    val s = LocalStrings.current
     Surface(
         modifier = modifier.fillMaxWidth(),
         tonalElevation = 4.dp,
@@ -55,20 +58,20 @@ fun CartSummaryFooter(
         ) {
             // ── Subtotal ────────────────────────────────────────────────────
             SummaryRow(
-                label = "Subtotal",
+                label = s[StringResource.COMMON_SUBTOTAL],
                 amount = formatter.format(orderTotals.subtotal),
             )
 
             // ── Tax ─────────────────────────────────────────────────────────
             SummaryRow(
-                label = "Tax",
+                label = s[StringResource.COMMON_TAX],
                 amount = formatter.format(orderTotals.taxAmount),
             )
 
             // ── Discount (shown only when > 0) ───────────────────────────────
             if (orderTotals.discountAmount > 0.0) {
                 SummaryRow(
-                    label = "Discount",
+                    label = s[StringResource.COMMON_DISCOUNT],
                     amount = "- ${formatter.format(orderTotals.discountAmount)}",
                     amountColor = MaterialTheme.colorScheme.error,
                 )
@@ -77,7 +80,7 @@ fun CartSummaryFooter(
             // ── Loyalty discount (shown only when > 0) ──────────────────────
             if (loyaltyDiscount > 0.0) {
                 SummaryRow(
-                    label = "Loyalty Points",
+                    label = s[StringResource.POS_LOYALTY_POINTS_LABEL],
                     amount = "- ${formatter.format(loyaltyDiscount)}",
                     amountColor = MaterialTheme.colorScheme.tertiary,
                 )
@@ -95,7 +98,7 @@ fun CartSummaryFooter(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "TOTAL",
+                    text = s[StringResource.POS_CART_TOTAL_LABEL],
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold,
                     ),
@@ -114,7 +117,7 @@ fun CartSummaryFooter(
 
             // ── PAY Button ──────────────────────────────────────────────────
             ZyntaButton(
-                text = "PAY  ${formatter.format(orderTotals.total)}",
+                text = s[StringResource.POS_PAY_AMOUNT_FORMAT, formatter.format(orderTotals.total)],
                 onClick = onPayClicked,
                 size = ZyntaButtonSize.Large,
                 isLoading = isLoading,
