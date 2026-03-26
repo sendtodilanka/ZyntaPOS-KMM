@@ -261,10 +261,10 @@ val dataModule = module {
     single<CompoundTaxRepository> { CompoundTaxRepositoryImpl(database = get()) }
 
     // Customer segments — segmentation/advanced filtering (G)
-    single<CustomerSegmentRepository> { CustomerSegmentRepositoryImpl(database = get(), syncEnqueuer = get()) }
+    single<CustomerSegmentRepository> { CustomerSegmentRepositoryImpl(db = get(), syncEnqueuer = get()) }
 
     // Shift swap requests — shift swap/request workflow (G)
-    single<ShiftSwapRepository> { ShiftSwapRepositoryImpl(database = get(), syncEnqueuer = get()) }
+    single<ShiftSwapRepository> { ShiftSwapRepositoryImpl(db = get(), syncEnqueuer = get()) }
 
     // Exchange rates — multi-currency support (C2.2)
     single<ExchangeRateRepository> { ExchangeRateRepositoryImpl(db = get()) }
