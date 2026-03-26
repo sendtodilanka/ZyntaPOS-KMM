@@ -69,6 +69,17 @@ class ShiftRepositoryImpl(
         )
     }
 
+    override suspend fun getById(id: String): Result<ShiftSchedule?> = withContext(Dispatchers.IO) {
+        runCatching {
+            q.getShiftById(id)
+                .executeAsOneOrNull()
+                ?.let(::toDomain)
+        }.fold(
+            onSuccess = { Result.Success(it) },
+            onFailure = { t -> Result.Error(DatabaseException(t.message ?: "DB error", cause = t)) },
+        )
+    }
+
     override suspend fun getAllShiftsByEmployeeAndDate(
         employeeId: String,
         date: String,

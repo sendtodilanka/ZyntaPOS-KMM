@@ -55,20 +55,37 @@ class ApproveShiftSwapUseCase(
         }
 
         // 2. Look up both shifts — they must still exist
-        val requestingShift = when (val r = shiftRepository.getByEmployeeAndDate("", "")) {
-            // We need the shift by ID but the repository only has getByEmployeeAndDate.
-            // We'll rely on the swap's employee+date info after looking up shifts by employee.
-            else -> null
-        }
+        val requestingShift = when (val r = shiftRepository.getById(existing.requestingShiftId)) {
+            is Result.Success -> r.data
+            is Result.Error -> return r
+        } ?: return Result.Error(
+            ValidationException("Requesting shift no longer exists.", field = "requestingShiftId", rule = "EXISTS"),
+        )
 
-        // Swap employee IDs on both shifts by updating each shift
-        // Requesting employee gets the target shift, target employee gets the requesting shift.
-        // Since ShiftRepository.update only changes time/notes, we upsert with swapped employee IDs.
+        val targetShift = when (val r = shiftRepository.getById(existing.targetShiftId)) {
+            is Result.Success -> r.data
+            is Result.Error -> return r
+        } ?: return Result.Error(
+            ValidationException("Target shift no longer exists.", field = "targetShiftId", rule = "EXISTS"),
+        )
 
-        // Look up the requesting shift by employee and find it from the flow.
-        // For a transactional swap, we update the swap status and rely on the shift repository.
+        // 3. Swap employee assignments — requesting employee takes target's shift and vice versa
+        val swappedRequesting = requestingShift.copy(
+            employeeId = existing.targetEmployeeId,
+            updatedAt = updatedAt,
+        )
+        val swappedTarget = targetShift.copy(
+            employeeId = existing.requestingEmployeeId,
+            updatedAt = updatedAt,
+        )
 
-        // 3. Approve the swap request
+        val updateReq = shiftRepository.update(swappedRequesting)
+        if (updateReq is Result.Error) return updateReq
+
+        val updateTgt = shiftRepository.update(swappedTarget)
+        if (updateTgt is Result.Error) return updateTgt
+
+        // 4. Approve the swap request
         val approveResult = shiftSwapRepository.updateStatus(
             id = id,
             status = ShiftSwapStatus.MANAGER_APPROVED,
