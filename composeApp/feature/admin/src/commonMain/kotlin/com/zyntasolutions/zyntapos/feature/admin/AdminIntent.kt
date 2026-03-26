@@ -85,6 +85,18 @@ sealed interface AdminIntent {
     /** Load license information from persisted settings. */
     data object LoadLicenseInfo : AdminIntent
 
+    // ── Crash Log / Error Viewer (G14) ──────────────────────────────────
+    /** Open the crash log viewer panel. */
+    data object ShowCrashLogViewer : AdminIntent
+    /** Close the crash log viewer panel. */
+    data object DismissCrashLogViewer : AdminIntent
+    /** Load crash logs from persisted storage. */
+    data object LoadCrashLogs : AdminIntent
+    /** Filter crash logs by severity (null = show all). */
+    data class FilterCrashLogsBySeverity(val severity: CrashLogSeverity?) : AdminIntent
+    /** Clear all crash logs from storage. */
+    data object ClearCrashLogs : AdminIntent
+
     // ── UI Feedback ────────────────────────────────────────────────────────
     data object DismissError : AdminIntent
     data object DismissSuccess : AdminIntent

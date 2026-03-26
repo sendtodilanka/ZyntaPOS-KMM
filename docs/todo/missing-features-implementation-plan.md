@@ -1944,7 +1944,7 @@ Backend Tests:
 | ~~**No multi-region tax support**~~ — ✅ DONE (2026-03-26): `SettingsState.TaxState.taxOverrides/showTaxOverrideDialog/editingTaxOverride` + `StoreTaxOverride` data class; `LoadTaxOverrides/ShowTaxOverrideDialog/DismissTaxOverrideDialog/SaveTaxOverride/DeleteTaxOverride` intents; per-store tax rate overrides via `storeRepository` + `SettingsEffect.TaxOverrideSaved/TaxOverrideDeleted` | ~~HIGH~~ | ✅ DONE (2026-03-26) |
 | ~~**No multi-currency management**~~ — ✅ DONE (2026-03-25): `SettingsState.GeneralState.secondaryCurrency/exchangeRate/showMultiCurrency`; `SetSecondaryCurrency/SetExchangeRate/ToggleMultiCurrency` intents; POS checkout displays secondary currency conversion | ~~HIGH~~ | ✅ DONE (2026-03-25) |
 | ~~**Timezone dropdown hardcoded**~~ — ✅ DONE (2026-03-26): `DetectTimezone` intent; `SettingsState.GeneralState.detectedTimezone/timezoneUtcOffset`; uses `TimeZone.currentSystemDefault()` + UTC offset computation | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
-| **No receipt template visual editor** | LOW | Phase 3 |
+| ~~**No receipt template visual editor**~~ — ✅ DONE (2026-03-26): ReceiptTemplateConfig domain model, ReceiptTemplateEditorScreen with side-by-side editor + live monospace preview, responsive layout | ~~LOW~~ | ✅ DONE (2026-03-26) |
 | ~~**No printer connection test button visible in UI**~~ — ✅ VERIFIED DONE: "Send Test Page" button in PrinterSettingsScreen Connection tab (line 259-267); `SettingsIntent.TestPrint` dispatched; button disables during print; snackbar on success | ~~LOW~~ | ✅ DONE |
 | ~~**No settings sync to backend**~~ — ✅ DONE (2026-03-26): `SettingsState.isSyncingSettings/lastSettingsSyncAt/settingsSyncError`; `SyncSettingsToBackend/DismissSettingsSyncError` intents; `syncSettingsToBackend()` collects 16 settings keys and pushes via sync queue; audit logged | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
 | **Language selector disabled** — No i18n infrastructure | LOW | Phase 3 |
@@ -1977,7 +1977,7 @@ Backend Tests:
 | ~~**No cross-store customer profile view**~~ — ✅ DONE (2026-03-26): `CustomerState.storeOrderSummaries: List<StoreOrderSummary>`; `StoreOrderSummary` data class with `storeId/storeName/orderCount/totalSpent/lastOrderAt`; `onLoadPurchaseHistory()` computes per-store summaries grouped by `order.storeId` | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
 | ~~**No loyalty tier display**~~ — ✅ DONE: `ZyntaLoyaltyTierBadge` (Bronze/Silver/Gold/Platinum colors) in CustomerListScreen + CustomerDetailScreen; tier resolved via `loyaltyRepository.getTierForPoints()` in CustomerViewModel (2026-03-24) | ~~MEDIUM~~ | ✅ DONE (2026-03-24) |
 | ~~**No bulk customer import**~~ (CSV) — ✅ DONE (2026-03-26): `BulkImportState` with CSV parsing, auto-column mapping (name/phone/email/address/notes), progress tracking; `ShowBulkImportDialog/SetImportCsvContent/MapImportColumn/ExecuteBulkImport` intents; handles quoted CSV fields; skips rows with blank names | ~~LOW~~ | ✅ DONE (2026-03-26) |
-| **No advanced customer segmentation/filtering** | LOW | Phase 3 |
+| ~~**No advanced customer segmentation/filtering**~~ — ✅ DONE (2026-03-26): Implemented in G21 | ~~LOW~~ | ✅ DONE (2026-03-26) |
 
 ---
 
@@ -1992,7 +1992,7 @@ Backend Tests:
 | ~~**No shift conflict detection**~~ — ✅ DONE (2026-03-25): `StaffViewModel` checks for overlapping shifts on save; `ShiftConflictDetected` effect with conflicting shift details; prevents saving conflicting shifts | ~~MEDIUM~~ | ✅ DONE (2026-03-25) |
 | ~~**No attendance report export**~~ — ✅ DONE (2026-03-25): `ExportAttendanceReport` intent; CSV export with employee name, date, check-in/out times, hours worked; `ShareAttendanceExport` effect | ~~MEDIUM~~ | ✅ DONE (2026-03-25) |
 | ~~**No bulk payroll generation**~~ ("Generate All" button) — ✅ DONE (2026-03-26): `GenerateAllPayroll(periodStart, periodEnd)` intent; `StaffState.isBulkPayrollGenerating/bulkPayrollProgress/bulkPayrollTotal`; iterates all active employees with progress tracking; reports success/fail count | ~~LOW~~ | ✅ DONE (2026-03-26) |
-| **No shift swap/request workflow** for employees | LOW | Phase 3 |
+| ~~**No shift swap/request workflow**~~ for employees — ✅ DONE (2026-03-26): Implemented in G21 | ~~LOW~~ | ✅ DONE (2026-03-26) |
 
 ---
 
@@ -2049,7 +2049,7 @@ Backend Tests:
 | ~~**No backup scheduling**~~ — ✅ DONE (2026-03-26): `AdminState.BackupFrequency` enum (DAILY/WEEKLY/MONTHLY); `backupScheduleEnabled/backupFrequency/backupScheduleHour/backupRetentionCount/showBackupScheduleDialog` state; `LoadBackupSchedule/ShowBackupScheduleDialog/ToggleBackupSchedule/SetBackupFrequency/SetBackupScheduleHour/SetBackupRetentionCount/SaveBackupSchedule` intents; persisted via `SettingsRepository.set("backup.schedule.*")` keys | ~~MEDIUM~~ | ✅ DONE (2026-03-26) |
 | ~~**No audit log CSV/JSON export**~~ — ✅ DONE: `ExportDropdown` with CSV/JSON options in AuditLogScreen; `ExportAuditLogJson` intent + `ShareAuditExport` effect with RFC 4180 CSV + JSON escaping (2026-03-24) | ~~MEDIUM~~ | ✅ DONE (2026-03-24) |
 | ~~**No license info display**~~ — ✅ DONE (2026-03-26): `AdminState.licenseEdition/licenseStatus/licenseExpiresAt/licenseMaxStores/licenseMaxDevices/licenseHolderName/isLicenseLoading` fields; `LoadLicenseInfo` intent; reads from `SettingsRepository.get("license.*")` keys | ~~LOW~~ | ✅ DONE (2026-03-26) |
-| **No crash log/Sentry viewer** | LOW | Phase 3 |
+| ~~**No crash log/Sentry viewer**~~ — ✅ DONE (2026-03-26): `CrashLogEntry` data class + `CrashLogSeverity` enum (INFO/WARNING/ERROR/FATAL) in AdminState; `crashLogs/showCrashLogViewer/isCrashLogsLoading/crashLogFilter` state fields; `ShowCrashLogViewer/DismissCrashLogViewer/LoadCrashLogs/FilterCrashLogsBySeverity/ClearCrashLogs` intents; persisted via `SettingsRepository.get("crashlog.*")` keys with pipe-delimited format | ~~LOW~~ | ✅ DONE (2026-03-26) |
 
 ---
 
@@ -2062,7 +2062,7 @@ Backend Tests:
 | ~~**No native file picker**~~ — ✅ DONE (2026-03-25): `expect/actual rememberNativeFilePicker` for Android (ActivityResultContracts) + JVM (JFileChooser); wired in MediaLibraryScreen + ExpenseDetailScreen "Browse" button | ~~HIGH~~ | ✅ DONE (2026-03-25) |
 | ~~**No camera capture**~~ — ✅ DONE (2026-03-25): Android camera capture via `ActivityResultContracts.TakePicture`; "Take Photo" option in media picker; JVM stub (no camera API) | ~~HIGH~~ | ✅ DONE (2026-03-25) |
 | ~~**No image crop/compress UI**~~ — ✅ DONE (2026-03-25): `ImageCropCompressEditor` dialog with `CropAspectRatio` enum (FREE/SQUARE/4:3/16:9/3:4) + compression quality slider (1-100); `OpenEditor/CloseEditor/SetCropAspectRatio/SetCompressionQuality/ApplyEdits` intents; `editingFile/cropAspectRatio/compressionQuality/isProcessing` state | ~~MEDIUM~~ | ✅ DONE (2026-03-25) |
-| **No batch upload** | LOW | Phase 3 |
+| ~~**No batch upload**~~ — ✅ DONE (2026-03-26): `showBatchDialog/batchFilePaths/isBatchUploading/batchProgress/batchTotal/batchSuccessCount/batchFailCount` state fields; `ShowBatchDialog/DismissBatchDialog/AddBatchFiles/RemoveBatchFile/ExecuteBatchUpload` intents; sequential upload with per-file progress tracking and MIME type detection | ~~LOW~~ | ✅ DONE (2026-03-26) |
 | ~~**No full-screen image preview**~~ — ✅ DONE (2026-03-25): `ShowFullScreenPreview/HideFullScreenPreview` intents + `previewFile` state + full-screen Dialog in MediaLibraryScreen | ~~LOW~~ | ✅ DONE (2026-03-25) |
 
 ---
@@ -2226,7 +2226,7 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 |-----|----------|-------|
 | ~~**Deep-linking not wired**~~ — ✅ DONE (2026-03-25): Added `intent-filter` with `android:scheme="zyntapos"` to MainActivity in AndroidManifest; `NavDeepLink` already registered in `ZyntaNavGraph.kt` for `zyntapos://product/{barcode}` and `zyntapos://order/{orderId}` | ~~MEDIUM~~ | ✅ DONE |
 | ~~**EditionManagementScreen is placeholder**~~ — ✅ VERIFIED DONE (2026-03-25): Full feature-flag toggle UI — 23 `ZyntaFeature` rows grouped by edition (Standard/Premium/Enterprise); Standard switches disabled; Premium/Enterprise dispatch `ToggleFeature` intent; `EditionManagementViewModel` + `SetFeatureEnabledUseCase` + `GetFeaturesForEditionUseCase` fully implemented with tests | ~~MEDIUM~~ | ✅ DONE |
-| **No 3-pane layout** for tablet warehouse management | LOW | Phase 3 |
+| ~~**No 3-pane layout**~~ for tablet warehouse management — ✅ DONE (2026-03-26): WarehouseAdaptiveLayout in G21 | ~~LOW~~ | ✅ DONE (2026-03-26) |
 
 ---
 
