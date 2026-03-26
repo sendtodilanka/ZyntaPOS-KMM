@@ -44,6 +44,15 @@ data class MediaState(
     val resizeMaxWidth: Int = 0,
     /** Whether a crop/compress operation is in progress. */
     val isProcessing: Boolean = false,
+
+    // ── Batch Upload (G15) ───────────────────────────────────────────────
+    val showBatchDialog: Boolean = false,
+    val batchFilePaths: List<String> = emptyList(),
+    val isBatchUploading: Boolean = false,
+    val batchProgress: Int = 0,
+    val batchTotal: Int = 0,
+    val batchSuccessCount: Int = 0,
+    val batchFailCount: Int = 0,
 )
 
 /**
