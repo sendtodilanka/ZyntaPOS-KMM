@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.data.repository
 
+import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
 import com.zyntasolutions.zyntapos.domain.model.CompoundTaxComponent
@@ -37,7 +38,7 @@ class CompoundTaxRepositoryImpl(
                 }
             Result.Success(components)
         } catch (e: Exception) {
-            Result.Error(e)
+            Result.Error(DatabaseException(e.message ?: "Failed to get compound tax components", operation = "getComponentsForTaxGroup", cause = e))
         }
     }
 
@@ -47,7 +48,7 @@ class CompoundTaxRepositoryImpl(
                 val ids = queries.getAllCompoundTaxGroups().executeAsList()
                 Result.Success(ids)
             } catch (e: Exception) {
-                Result.Error(e)
+                Result.Error(DatabaseException(e.message ?: "Failed to get compound tax group IDs", operation = "getAllCompoundTaxGroups", cause = e))
             }
         }
 
@@ -67,7 +68,7 @@ class CompoundTaxRepositoryImpl(
                 )
                 Result.Success(Unit)
             } catch (e: Exception) {
-                Result.Error(e)
+                Result.Error(DatabaseException(e.message ?: "Failed to insert compound tax component", operation = "insertComponent", cause = e))
             }
         }
 
@@ -77,7 +78,7 @@ class CompoundTaxRepositoryImpl(
                 queries.deleteComponent(componentId)
                 Result.Success(Unit)
             } catch (e: Exception) {
-                Result.Error(e)
+                Result.Error(DatabaseException(e.message ?: "Failed to delete compound tax component", operation = "deleteComponent", cause = e))
             }
         }
 
@@ -87,7 +88,7 @@ class CompoundTaxRepositoryImpl(
                 queries.deleteComponentsForTaxGroup(parentTaxGroupId)
                 Result.Success(Unit)
             } catch (e: Exception) {
-                Result.Error(e)
+                Result.Error(DatabaseException(e.message ?: "Failed to delete compound tax components", operation = "deleteComponentsForTaxGroup", cause = e))
             }
         }
 }
