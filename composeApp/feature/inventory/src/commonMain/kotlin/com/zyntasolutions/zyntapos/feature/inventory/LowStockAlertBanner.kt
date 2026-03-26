@@ -10,6 +10,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 
 /**
@@ -46,6 +48,7 @@ fun LowStockAlertBanner(
     onNavigateToLowStockList: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     // Dismissed state: banner can be dismissed per composition lifetime
     var dismissed by remember { mutableStateOf(false) }
 
@@ -81,7 +84,7 @@ fun LowStockAlertBanner(
                 // Warning icon
                 Icon(
                     imageVector = Icons.Default.Warning,
-                    contentDescription = "Low stock warning",
+                    contentDescription = s[StringResource.INVENTORY_LOW_STOCK_WARNING_CD],
                     tint = MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(22.dp),
                 )
@@ -91,7 +94,7 @@ fun LowStockAlertBanner(
                 Column(Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "Low Stock Alert",
+                            text = s[StringResource.INVENTORY_LOW_STOCK_ALERT_TITLE],
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.onErrorContainer,
                         )
@@ -108,9 +111,9 @@ fun LowStockAlertBanner(
                     }
                     Text(
                         text = if (lowStockCount == 1)
-                            "1 product is below its minimum stock level"
+                            s[StringResource.INVENTORY_LOW_STOCK_MSG_SINGLE]
                         else
-                            "$lowStockCount products are below their minimum stock levels",
+                            s[StringResource.INVENTORY_LOW_STOCK_MSG_PLURAL, lowStockCount],
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onErrorContainer,
                     )
@@ -123,7 +126,7 @@ fun LowStockAlertBanner(
                         contentColor = MaterialTheme.colorScheme.error,
                     ),
                 ) {
-                    Text("View", style = MaterialTheme.typography.labelMedium)
+                    Text(s[StringResource.COMMON_VIEW], style = MaterialTheme.typography.labelMedium)
                     Spacer(Modifier.width(2.dp))
                     Icon(Icons.Default.ChevronRight, contentDescription = null, modifier = Modifier.size(16.dp))
                 }
@@ -135,7 +138,7 @@ fun LowStockAlertBanner(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Dismiss alert",
+                        contentDescription = s[StringResource.COMMON_DISMISS],
                         tint = MaterialTheme.colorScheme.onErrorContainer,
                         modifier = Modifier.size(16.dp),
                     )

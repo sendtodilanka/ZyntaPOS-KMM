@@ -264,7 +264,7 @@ private fun CategoryRow(
         IconButton(onClick = onEdit, modifier = Modifier.size(36.dp)) {
             Icon(
                 Icons.Default.Edit,
-                contentDescription = "Edit ${category.name}",
+                contentDescription = s[StringResource.INVENTORY_EDIT_CD, category.name],
                 modifier = Modifier.size(18.dp),
                 tint = MaterialTheme.colorScheme.primary,
             )
@@ -274,7 +274,7 @@ private fun CategoryRow(
         IconButton(onClick = { showDeleteDialog = true }, modifier = Modifier.size(36.dp)) {
             Icon(
                 Icons.Default.Delete,
-                contentDescription = "Delete ${category.name}",
+                contentDescription = s[StringResource.INVENTORY_DELETE_CD, category.name],
                 modifier = Modifier.size(18.dp),
                 tint = MaterialTheme.colorScheme.error,
             )
@@ -285,7 +285,7 @@ private fun CategoryRow(
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text(s[StringResource.INVENTORY_DELETE_CATEGORY_TITLE]) },
-            text = { Text("\"${category.name}\" will be deactivated. Active products in this category will be unaffected.") },
+            text = { Text(s[StringResource.INVENTORY_DEACTIVATE_CATEGORY_MSG, category.name]) },
             confirmButton = {
                 TextButton(
                     onClick = {

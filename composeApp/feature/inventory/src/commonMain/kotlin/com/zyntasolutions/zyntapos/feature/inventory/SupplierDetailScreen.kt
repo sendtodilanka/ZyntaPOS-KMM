@@ -102,9 +102,9 @@ fun SupplierDetailScreen(
                 // Name
                 OutlinedTextField(
                     value = name,
-                    onValueChange = { name = it; nameError = if (it.isBlank()) "Name is required" else null },
+                    onValueChange = { name = it; nameError = if (it.isBlank()) s[StringResource.COMMON_REQUIRED] else null },
                     label = { Text(s[StringResource.INVENTORY_SUPPLIER_NAME_REQUIRED]) },
-                    placeholder = { Text("e.g. Lanka Distributors Ltd.") },
+                    placeholder = { Text(s[StringResource.INVENTORY_SUPPLIER_NAME_PLACEHOLDER]) },
                     leadingIcon = { Icon(Icons.Default.Business, contentDescription = null) },
                     isError = nameError != null,
                     supportingText = nameError?.let { { Text(it) } },
@@ -121,7 +121,7 @@ fun SupplierDetailScreen(
                     value = contactPerson,
                     onValueChange = { contactPerson = it },
                     label = { Text(s[StringResource.INVENTORY_CONTACT_PERSON]) },
-                    placeholder = { Text("e.g. Kamal Perera") },
+                    placeholder = { Text(s[StringResource.INVENTORY_SUPPLIER_CONTACT_PLACEHOLDER]) },
                     leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.Words,
@@ -136,7 +136,7 @@ fun SupplierDetailScreen(
                     value = phone,
                     onValueChange = { phone = it },
                     label = { Text(s[StringResource.INVENTORY_PHONE]) },
-                    placeholder = { Text("+94 11 234 5678") },
+                    placeholder = { Text(s[StringResource.INVENTORY_SUPPLIER_PHONE_PLACEHOLDER]) },
                     leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null) },
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Phone,
@@ -151,7 +151,7 @@ fun SupplierDetailScreen(
                     value = email,
                     onValueChange = { email = it },
                     label = { Text(s[StringResource.INVENTORY_EMAIL]) },
-                    placeholder = { Text("supplier@example.com") },
+                    placeholder = { Text(s[StringResource.INVENTORY_SUPPLIER_EMAIL_PLACEHOLDER]) },
                     leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Email,
@@ -166,7 +166,7 @@ fun SupplierDetailScreen(
                     value = address,
                     onValueChange = { address = it },
                     label = { Text(s[StringResource.INVENTORY_ADDRESS]) },
-                    placeholder = { Text("Street, City, Province") },
+                    placeholder = { Text(s[StringResource.INVENTORY_SUPPLIER_ADDRESS_PLACEHOLDER]) },
                     leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null) },
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.Sentences,
@@ -182,7 +182,7 @@ fun SupplierDetailScreen(
                     value = notes,
                     onValueChange = { notes = it },
                     label = { Text(s[StringResource.INVENTORY_NOTES_INTERNAL]) },
-                    placeholder = { Text("Payment terms, lead time, special instructions…") },
+                    placeholder = { Text(s[StringResource.INVENTORY_SUPPLIER_NOTES_PLACEHOLDER]) },
                     leadingIcon = { Icon(Icons.AutoMirrored.Filled.Notes, contentDescription = null) },
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.Sentences,
@@ -217,7 +217,7 @@ fun SupplierDetailScreen(
                     OutlinedButton(onClick = onNavigateBack, modifier = Modifier.weight(1f)) { Text(s[StringResource.COMMON_CANCEL]) }
                     Button(
                         onClick = {
-                            if (name.isBlank()) { nameError = "Name is required"; return@Button }
+                            if (name.isBlank()) { nameError = s[StringResource.COMMON_REQUIRED]; return@Button }
                             onConfirm(
                                 Supplier(
                                     id = existingSupplier?.id ?: "",

@@ -16,6 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 /**
  * Bulk product import dialog via CSV files (Sprint 18, task 10.1.5).
@@ -49,6 +51,7 @@ fun BulkImportDialog(
     onIntent: (InventoryIntent) -> Unit,
 ) {
     if (!state.isVisible) return
+    val s = LocalStrings.current
     AlertDialog(
         onDismissRequest = { onIntent(InventoryIntent.DismissBulkImport) },
         title = {
@@ -57,7 +60,7 @@ fun BulkImportDialog(
                 horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
             ) {
                 Icon(Icons.Default.UploadFile, contentDescription = null)
-                Text("Bulk Import Products", style = MaterialTheme.typography.titleMedium)
+                Text(s[StringResource.INVENTORY_BULK_IMPORT_TITLE], style = MaterialTheme.typography.titleMedium)
             }
         },
         text = {
@@ -94,13 +97,13 @@ fun BulkImportDialog(
                 ) {
                     Icon(Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(ZyntaSpacing.xs))
-                    Text("Import ${state.parsedRows.size} Products")
+                    Text(s[StringResource.INVENTORY_IMPORT_N_PRODUCTS, state.parsedRows.size])
                 }
             }
         },
         dismissButton = {
             TextButton(onClick = { onIntent(InventoryIntent.DismissBulkImport) }) {
-                Text(if (state.isImporting) "Cancel" else "Close")
+                Text(if (state.isImporting) s[StringResource.COMMON_CANCEL] else s[StringResource.COMMON_CLOSE])
             }
         },
     )
@@ -111,7 +114,9 @@ fun BulkImportDialog(
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun FileSelectionStep(onIntent: (InventoryIntent) -> Unit) {    Column(
+private fun FileSelectionStep(onIntent: (InventoryIntent) -> Unit) {
+    val s = LocalStrings.current
+    Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
@@ -130,15 +135,15 @@ private fun FileSelectionStep(onIntent: (InventoryIntent) -> Unit) {    Column(
             ) {
                 Icon(
                     Icons.Default.CloudUpload,
-                    contentDescription = "Upload CSV",
+                    contentDescription = s[StringResource.INVENTORY_UPLOAD_CSV_CD],
                     modifier = Modifier.size(48.dp),
                     tint = MaterialTheme.colorScheme.primary,
                 )
                 Text(
-                    "Select a CSV file to import products",
+                    s[StringResource.INVENTORY_SELECT_CSV_HINT],
                     style = MaterialTheme.typography.bodyMedium,
                 )
-                Text(                    "Supported format: .csv with header row",
+                Text(s[StringResource.INVENTORY_CSV_FORMAT_HINT],
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -158,14 +163,14 @@ private fun FileSelectionStep(onIntent: (InventoryIntent) -> Unit) {    Column(
                 }) {
                     Icon(Icons.Default.FolderOpen, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(ZyntaSpacing.xs))
-                    Text("Choose File")
+                    Text(s[StringResource.INVENTORY_CHOOSE_FILE])
                 }
             }
         }
 
         // ── Expected CSV format hint ─────────────────────────────────
         Text(
-            "Required columns: Name, Price, Category, Unit",
+            s[StringResource.INVENTORY_REQUIRED_COLUMNS_HINT],
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -196,6 +201,7 @@ private fun ColumnMappingStep(
     state: BulkImportState,
     onIntent: (InventoryIntent) -> Unit,
 ) {
+    val s = LocalStrings.current
     Column(
         verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
         modifier = Modifier.fillMaxWidth(),
@@ -227,7 +233,7 @@ private fun ColumnMappingStep(
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("Map CSV Columns to Product Fields", style = MaterialTheme.typography.labelLarge)
+            Text(s[StringResource.INVENTORY_MAP_CSV_COLUMNS], style = MaterialTheme.typography.labelLarge)
             if (missingRequired.isNotEmpty()) {
                 val labels = mapOf("name" to "Name", "price" to "Price", "categoryId" to "Category", "unitId" to "Unit")
                 Text(
@@ -257,7 +263,7 @@ private fun ColumnMappingStep(
         // ── Preview table (first 10 rows) ────────────────────────────
         if (state.parsedRows.isNotEmpty()) {
             HorizontalDivider()
-            Text("Preview (first ${state.parsedRows.size.coerceAtMost(10)} rows)", style = MaterialTheme.typography.labelLarge)
+            Text(s[StringResource.INVENTORY_PREVIEW_ROWS, state.parsedRows.size.coerceAtMost(10)], style = MaterialTheme.typography.labelLarge)
 
             val mappedFields = state.columnMapping.entries
                 .filter { it.value.isNotBlank() }
@@ -332,8 +338,9 @@ private fun ColumnMappingRow(
     requiredFields: Set<String> = emptySet(),
     onMappingChanged: (String) -> Unit,
 ) {
+    val s = LocalStrings.current
     var expanded by remember { mutableStateOf(false) }
-    val selectedLabel = productFieldOptions.firstOrNull { it.first == currentMapping }?.second ?: "— Skip —"
+    val selectedLabel = productFieldOptions.firstOrNull { it.first == currentMapping }?.second ?: s[StringResource.INVENTORY_SKIP_COLUMN]
     val isRequired = currentMapping in requiredFields
 
     Row(
@@ -352,7 +359,7 @@ private fun ColumnMappingRow(
 
         Icon(
             Icons.AutoMirrored.Filled.ArrowForward,
-            contentDescription = "maps to",
+            contentDescription = s[StringResource.INVENTORY_MAPS_TO_CD],
             modifier = Modifier.size(16.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -417,6 +424,7 @@ private fun ColumnMappingRow(
  */
 @Composable
 private fun ImportProgressStep(state: BulkImportState) {
+    val s = LocalStrings.current
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -425,7 +433,7 @@ private fun ImportProgressStep(state: BulkImportState) {
         CircularProgressIndicator()
 
         Text(
-            text = "Importing products…",
+            text = s[StringResource.INVENTORY_IMPORTING_PRODUCTS],
             style = MaterialTheme.typography.bodyMedium,
         )
 
@@ -453,6 +461,7 @@ private fun ImportProgressStep(state: BulkImportState) {
  */
 @Composable
 private fun ImportErrorsStep(state: BulkImportState) {
+    val s = LocalStrings.current
     Column(
         verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
         modifier = Modifier.fillMaxWidth(),
@@ -507,7 +516,7 @@ private fun ImportErrorsStep(state: BulkImportState) {
 
         // Informational hint
         Text(
-            text = "Successfully imported rows are already saved. Fix the errors above and re-import the failed rows.",
+            text = s[StringResource.INVENTORY_IMPORT_SUCCESS_MSG],
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

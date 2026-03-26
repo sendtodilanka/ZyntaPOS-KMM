@@ -223,9 +223,7 @@ private fun TaxGroupCard(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text(s[StringResource.INVENTORY_DELETE_TAX_GROUP_TITLE]) },
             text = {
-                Text(
-                    "\"${group.name}\" will be removed. Products using this tax group will retain their current rates for historical orders.",
-                )
+                Text(s[StringResource.INVENTORY_TAX_GROUP_DEACTIVATE_MSG, group.name])
             },
             confirmButton = {
                 TextButton(
@@ -278,7 +276,7 @@ private fun TaxGroupEditDialog(
                     value = name,
                     onValueChange = { name = it; nameError = if (it.isBlank()) s[StringResource.COMMON_REQUIRED] else null },
                     label = { Text(s[StringResource.INVENTORY_TAX_NAME_REQUIRED]) },
-                    placeholder = { Text("e.g. VAT 15%") },
+                    placeholder = { Text(s[StringResource.INVENTORY_TAX_GROUP_NAME_PLACEHOLDER]) },
                     leadingIcon = { Icon(Icons.AutoMirrored.Filled.Label, contentDescription = null) },
                     isError = nameError != null,
                     supportingText = nameError?.let { { Text(it) } },
@@ -293,15 +291,15 @@ private fun TaxGroupEditDialog(
                         rate = it
                         val d = it.toDoubleOrNull()
                         rateError = when {
-                            d == null -> "Must be a valid number"
-                            d < 0.0 || d > 100.0 -> "Rate must be 0–100"
+                            d == null -> s[StringResource.COMMON_REQUIRED]
+                            d < 0.0 || d > 100.0 -> s[StringResource.INVENTORY_TAX_RATE_REQUIRED]
                             else -> null
                         }
                     },
                     label = { Text(s[StringResource.INVENTORY_TAX_RATE_REQUIRED]) },
                     leadingIcon = { Icon(Icons.Default.Percent, contentDescription = null) },
                     isError = rateError != null,
-                    supportingText = { Text(rateError ?: "Enter percentage, e.g. 15.00") },
+                    supportingText = { Text(rateError ?: s[StringResource.INVENTORY_TAX_RATE_HINT]) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
@@ -342,7 +340,7 @@ private fun TaxGroupEditDialog(
                 if (name.isBlank()) { nameError = s[StringResource.COMMON_REQUIRED]; valid = false }
                 val rateVal = rate.toDoubleOrNull()
                 if (rateVal == null || rateVal < 0.0 || rateVal > 100.0) {
-                    rateError = "Rate must be 0–100"; valid = false
+                    rateError = s[StringResource.INVENTORY_TAX_RATE_REQUIRED]; valid = false
                 }
                 if (valid) {
                     onConfirm(TaxGroup(

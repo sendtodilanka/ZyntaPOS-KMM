@@ -111,10 +111,10 @@ fun CategoryDetailScreen(
                 value = name,
                 onValueChange = {
                     name = it
-                    nameError = if (it.isBlank()) "Name is required" else null
+                    nameError = if (it.isBlank()) s[StringResource.COMMON_REQUIRED] else null
                 },
                 label = { Text(s[StringResource.INVENTORY_CATEGORY_NAME_REQUIRED]) },
-                placeholder = { Text("e.g. Beverages") },
+                placeholder = { Text(s[StringResource.INVENTORY_CATEGORY_NAME_PLACEHOLDER]) },
                 leadingIcon = { Icon(Icons.AutoMirrored.Filled.Label, contentDescription = null) },
                 isError = nameError != null,
                 supportingText = nameError?.let { { Text(it) } },
@@ -150,7 +150,7 @@ fun CategoryDetailScreen(
                         },
                         leadingIcon = {
                             if (selectedParentId == null)
-                                Icon(Icons.Default.Check, contentDescription = "Selected", tint = MaterialTheme.colorScheme.primary)
+                                Icon(Icons.Default.Check, contentDescription = s[StringResource.INVENTORY_SELECTED_CD], tint = MaterialTheme.colorScheme.primary)
                         },
                     )
                     HorizontalDivider()
@@ -163,7 +163,7 @@ fun CategoryDetailScreen(
                             },
                             leadingIcon = {
                                 if (selectedParentId == parent.id)
-                                    Icon(Icons.Default.Check, contentDescription = "Selected", tint = MaterialTheme.colorScheme.primary)
+                                    Icon(Icons.Default.Check, contentDescription = s[StringResource.INVENTORY_SELECTED_CD], tint = MaterialTheme.colorScheme.primary)
                             },
                         )
                     }
@@ -175,7 +175,7 @@ fun CategoryDetailScreen(
                 value = displayOrder,
                 onValueChange = { v ->
                     displayOrder = v.filter { it.isDigit() }
-                    displayOrderError = if (displayOrder.isBlank()) "Required" else null
+                    displayOrderError = if (displayOrder.isBlank()) s[StringResource.COMMON_REQUIRED] else null
                 },
                 label = { Text(s[StringResource.INVENTORY_DISPLAY_ORDER]) },
                 placeholder = { Text("0") },
@@ -242,11 +242,11 @@ fun CategoryDetailScreen(
                         // Validate before submitting
                         var valid = true
                         if (name.isBlank()) {
-                            nameError = "Name is required"
+                            nameError = s[StringResource.COMMON_REQUIRED]
                             valid = false
                         }
                         val orderInt = displayOrder.toIntOrNull() ?: run {
-                            displayOrderError = "Must be a valid number"
+                            displayOrderError = s[StringResource.COMMON_REQUIRED]
                             valid = false
                             0
                         }

@@ -17,6 +17,8 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.Product
 import kotlin.random.Random
@@ -68,6 +70,7 @@ fun BarcodeGeneratorDialog(
     onPrint: (barcode: String, productName: String) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val s = LocalStrings.current
     var barcodeType by remember { mutableStateOf(BarcodeType.EAN_13) }
     var barcodeValue by remember { mutableStateOf(product?.barcode ?: "") }
     var validationError by remember { mutableStateOf<String?>(null) }
@@ -76,7 +79,7 @@ fun BarcodeGeneratorDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = if (product != null) "Generate Barcode — ${product.name}" else "Generate Barcode",
+                text = if (product != null) s[StringResource.INVENTORY_BARCODE_GENERATOR_TITLE_PRODUCT, product.name] else s[StringResource.INVENTORY_BARCODE_GENERATOR_TITLE],
                 style = MaterialTheme.typography.titleMedium,
             )
         },
@@ -86,7 +89,7 @@ fun BarcodeGeneratorDialog(
                 modifier = Modifier.widthIn(min = 320.dp),
             ) {
                 // ── Barcode type selector ────────────────────────────────
-                Text("Barcode Type", style = MaterialTheme.typography.labelLarge)
+                Text(s[StringResource.INVENTORY_BARCODE_TYPE_LABEL], style = MaterialTheme.typography.labelLarge)
                 Row(horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                     BarcodeType.entries.forEach { type ->
                         FilterChip(
@@ -107,7 +110,7 @@ fun BarcodeGeneratorDialog(
                         barcodeValue = it
                         validationError = validateBarcodeInput(it, barcodeType)
                     },
-                    label = { Text("Barcode Value") },
+                    label = { Text(s[StringResource.INVENTORY_BARCODE_VALUE_LABEL]) },
                     isError = validationError != null,
                     supportingText = validationError?.let { { Text(it) } },
                     trailingIcon = {
@@ -115,7 +118,7 @@ fun BarcodeGeneratorDialog(
                             barcodeValue = generateBarcode(barcodeType)
                             validationError = null
                         }) {
-                            Icon(Icons.Default.Autorenew, contentDescription = "Auto-generate")
+                            Icon(Icons.Default.Autorenew, contentDescription = s[StringResource.INVENTORY_BARCODE_AUTO_GENERATE_CD])
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
@@ -135,7 +138,7 @@ fun BarcodeGeneratorDialog(
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
                             Text(
-                                "Preview",
+                                s[StringResource.INVENTORY_PREVIEW],
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -159,7 +162,7 @@ fun BarcodeGeneratorDialog(
                     ) {
                         Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(ZyntaSpacing.xs))
-                        Text("Print Label")
+                        Text(s[StringResource.INVENTORY_BARCODE_PRINT_LABEL])
                     }
                 }
             }
@@ -169,11 +172,11 @@ fun BarcodeGeneratorDialog(
                 onClick = { onApply(barcodeValue) },
                 enabled = barcodeValue.isNotBlank() && validationError == null,
             ) {
-                Text("Apply to Product")
+                Text(s[StringResource.INVENTORY_BARCODE_APPLY_TO_PRODUCT])
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(s[StringResource.COMMON_CANCEL]) }
         },
     )
 }
