@@ -12,6 +12,7 @@ import com.zyntasolutions.zyntapos.data.di.desktopDataModule
 import co.touchlab.kermit.Logger
 import com.zyntasolutions.zyntapos.data.local.db.SecurePreferencesKeyMigration
 import com.zyntasolutions.zyntapos.data.job.AuditIntegrityJob
+import com.zyntasolutions.zyntapos.data.job.FulfillmentExpiryJob
 import com.zyntasolutions.zyntapos.data.job.LogRetentionJob
 import com.zyntasolutions.zyntapos.data.sync.NetworkMonitor
 import com.zyntasolutions.zyntapos.data.sync.SyncEngine
@@ -145,6 +146,7 @@ fun main() {
     // AuditIntegrityJob: daily SHA-256 hash chain verification of audit_entries
     koin.koin.get<LogRetentionJob>().start()
     koin.koin.get<AuditIntegrityJob>().start()
+    koin.koin.get<FulfillmentExpiryJob>().start()
 
     // ── C6.2: Offline-first sync bootstrap ─────────────────────────────────
     // Start network monitoring and periodic sync loop for desktop.

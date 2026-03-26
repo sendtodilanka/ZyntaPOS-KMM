@@ -40,6 +40,7 @@ import co.touchlab.kermit.Logger
 import com.zyntasolutions.zyntapos.data.local.db.SecurePreferencesKeyMigration
 import com.zyntasolutions.zyntapos.data.job.AuditIntegrityJob
 import com.zyntasolutions.zyntapos.data.job.AuditIntegrityWorker
+import com.zyntasolutions.zyntapos.data.job.FulfillmentExpiryWorker
 import com.zyntasolutions.zyntapos.data.job.LogRetentionJob
 import com.zyntasolutions.zyntapos.data.job.LogRetentionWorker
 import com.zyntasolutions.zyntapos.data.sync.NetworkMonitor
@@ -182,6 +183,7 @@ class ZyntaApplication : Application() {
         // Desktop still uses LogRetentionJob.start() / AuditIntegrityJob.start() coroutine loops.
         LogRetentionWorker.schedule(this)
         AuditIntegrityWorker.schedule(this)
+        FulfillmentExpiryWorker.schedule(this)
 
         // ── C6.2: Offline-first sync bootstrap ─────────────────────────────────
         // Start network monitoring for real-time connectivity state.

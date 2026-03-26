@@ -20,6 +20,9 @@ sealed class FulfillmentIntent {
     /** Cancel an order before pickup. */
     data class CancelOrder(val orderId: String) : FulfillmentIntent()
 
+    /** Manually trigger expiry check for overdue orders. */
+    data object CheckExpiry : FulfillmentIntent()
+
     /** Dismiss any visible error snack-bar. */
     data object DismissError : FulfillmentIntent()
 }

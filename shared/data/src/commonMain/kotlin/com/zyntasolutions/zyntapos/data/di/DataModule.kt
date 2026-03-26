@@ -71,6 +71,7 @@ import com.zyntasolutions.zyntapos.data.repository.WarehouseRackRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.WarehouseRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.WarehouseStockRepositoryImpl
 import com.zyntasolutions.zyntapos.data.job.AuditIntegrityJob
+import com.zyntasolutions.zyntapos.data.job.FulfillmentExpiryJob
 import com.zyntasolutions.zyntapos.data.job.LogRetentionJob
 import com.zyntasolutions.zyntapos.data.logging.KermitSqliteAdapter
 import com.zyntasolutions.zyntapos.data.sync.ConflictResolver
@@ -352,6 +353,9 @@ val dataModule = module {
 
     // Daily audit integrity job: walks SHA-256 hash chain and reports violations
     single { AuditIntegrityJob(verifyUseCase = get(), scope = get(named("IO"))) }
+
+    // Periodic fulfillment expiry job: marks overdue Click & Collect orders as EXPIRED every 15 min
+    single { FulfillmentExpiryJob(fulfillmentRepository = get(), storeId = get(named("storeId")), scope = get(named("IO"))) }
 
     // User accounts: CRUD + password lifecycle.
     // PasswordHashPort injected via securityModule binding — MERGED-F3.

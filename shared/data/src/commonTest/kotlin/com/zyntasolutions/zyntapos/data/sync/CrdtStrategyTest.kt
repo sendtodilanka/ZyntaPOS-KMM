@@ -25,8 +25,13 @@ class CrdtStrategyTest {
     }
 
     @Test
-    fun order_usesLww() {
-        assertEquals(CrdtStrategy.LWW, CrdtStrategy.forEntityType(SyncOperation.EntityType.ORDER))
+    fun order_usesOrSet() {
+        assertEquals(CrdtStrategy.OR_SET, CrdtStrategy.forEntityType(SyncOperation.EntityType.ORDER))
+    }
+
+    @Test
+    fun coupon_usesOrSet() {
+        assertEquals(CrdtStrategy.OR_SET, CrdtStrategy.forEntityType(SyncOperation.EntityType.COUPON))
     }
 
     @Test

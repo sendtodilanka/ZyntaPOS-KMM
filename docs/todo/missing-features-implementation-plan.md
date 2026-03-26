@@ -1407,7 +1407,7 @@ Backend Tests:
 - [ ] Push notification to customer: "Your order is ready for pickup"
 - [ ] Push notification to store: "New pickup order received"
 - [ ] Backend: REST Fulfillment endpoints (`GET /v1/fulfillment`, `PATCH /v1/fulfillment/{orderId}/status`)
-- [ ] Timeout: Auto-cancel cron (expireOverdueOrders query already implemented in SQLDelight)
+- [x] Timeout: Auto-cancel cron (expireOverdueOrders query already implemented in SQLDelight) — ✅ DONE (2026-03-26): FulfillmentExpiryJob (commonMain, 15-min coroutine loop) + FulfillmentExpiryWorker (Android WorkManager) + CheckExpiry intent in FulfillmentViewModel + UI button in FulfillmentQueueScreen
 
 ---
 
