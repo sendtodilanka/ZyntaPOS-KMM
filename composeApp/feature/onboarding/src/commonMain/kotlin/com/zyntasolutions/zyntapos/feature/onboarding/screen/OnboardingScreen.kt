@@ -19,11 +19,13 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Business
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Percent
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Store
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.FilterChip
@@ -57,6 +59,7 @@ import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTimezonePicker
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.feature.onboarding.OnboardingViewModel
+import com.zyntasolutions.zyntapos.feature.onboarding.mvi.AdditionalStoreEntry
 import com.zyntasolutions.zyntapos.feature.onboarding.mvi.OnboardingEffect
 import com.zyntasolutions.zyntapos.feature.onboarding.mvi.OnboardingIntent
 import com.zyntasolutions.zyntapos.feature.onboarding.mvi.OnboardingState
@@ -152,6 +155,11 @@ fun OnboardingScreen(
                         onIntent = viewModel::dispatch,
                         modifier = Modifier.widthIn(max = 480.dp).fillMaxWidth(),
                     )
+                    OnboardingState.Step.MULTI_STORE_SETUP -> MultiStoreSetupStep(
+                        state = state,
+                        onIntent = viewModel::dispatch,
+                        modifier = Modifier.widthIn(max = 480.dp).fillMaxWidth(),
+                    )
                 }
             }
         }
@@ -185,6 +193,7 @@ private fun StepProgress(currentStep: OnboardingState.Step, modifier: Modifier =
                     OnboardingState.Step.STORE_SETTINGS -> "Store Settings"
                     OnboardingState.Step.TAX_SETUP -> "Tax Setup"
                     OnboardingState.Step.RECEIPT_FORMAT -> "Receipt Format"
+                    OnboardingState.Step.MULTI_STORE_SETUP -> "Multi-Store"
                 },
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
@@ -654,14 +663,123 @@ private fun ReceiptFormatStep(
         Spacer(Modifier.height(ZyntaSpacing.sm))
 
         ZyntaButton(
-            text = "Complete Setup",
-            onClick = { onIntent(OnboardingIntent.CompleteOnboarding) },
+            text = "Next",
+            onClick = { onIntent(OnboardingIntent.NextStep) },
             modifier = Modifier.fillMaxWidth(),
         )
 
         ZyntaButton(
             text = "Skip Receipt Setup",
             onClick = { onIntent(OnboardingIntent.SkipReceiptFormat) },
+            variant = ZyntaButtonVariant.Secondary,
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        ZyntaButton(
+            text = "Back",
+            onClick = { onIntent(OnboardingIntent.BackStep) },
+            variant = ZyntaButtonVariant.Secondary,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+// ── Step 6: Multi-Store Setup (optional) ─────────────────────────────────
+
+@Composable
+private fun MultiStoreSetupStep(
+    state: OnboardingState,
+    onIntent: (OnboardingIntent) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
+    ) {
+        Icon(
+            Icons.Default.Store, null,
+            modifier = Modifier.size(56.dp).align(Alignment.CenterHorizontally),
+            tint = MaterialTheme.colorScheme.primary,
+        )
+
+        Text(
+            "Multi-store setup (optional)",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+        )
+        Text(
+            "Add additional stores now, or skip and add them later in Settings.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+        )
+
+        Spacer(Modifier.height(ZyntaSpacing.sm))
+
+        // Add store input
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
+            verticalAlignment = Alignment.Top,
+        ) {
+            ZyntaTextField(
+                value = state.newStoreName,
+                onValueChange = { onIntent(OnboardingIntent.NewStoreNameChanged(it)) },
+                label = "Store Name",
+                placeholder = "e.g. Branch 2",
+                error = state.newStoreNameError,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                modifier = Modifier.weight(1f),
+            )
+            ZyntaButton(
+                text = "Add",
+                onClick = { onIntent(OnboardingIntent.AddAdditionalStore) },
+                modifier = Modifier.padding(top = ZyntaSpacing.md),
+            )
+        }
+
+        // Added stores list
+        state.additionalStores.forEachIndexed { index, store ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    store.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(onClick = { onIntent(OnboardingIntent.RemoveAdditionalStore(index)) }) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = "Remove ${store.name}",
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
+        }
+
+        if (state.error != null) {
+            Text(
+                state.error,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+
+        Spacer(Modifier.height(ZyntaSpacing.sm))
+
+        ZyntaButton(
+            text = "Complete Setup",
+            onClick = { onIntent(OnboardingIntent.CompleteOnboarding) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        ZyntaButton(
+            text = "Skip Multi-Store Setup",
+            onClick = { onIntent(OnboardingIntent.SkipMultiStoreSetup) },
             variant = ZyntaButtonVariant.Secondary,
             modifier = Modifier.fillMaxWidth(),
         )
