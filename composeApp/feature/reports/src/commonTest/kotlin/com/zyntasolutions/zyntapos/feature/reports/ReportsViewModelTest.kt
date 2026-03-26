@@ -346,6 +346,7 @@ class ReportsViewModelTest {
         }
         override suspend fun exportStoreComparisonCsv(stores: List<com.zyntasolutions.zyntapos.domain.model.report.StoreSalesData>): String = exportedPath
         override suspend fun exportGdprJson(customerId: String, json: String): String = exportedPath
+        override suspend fun exportConsolidatedRevenueCsv(rows: List<StoreRevenueInBase>): String = exportedPath
     }
 
     // ── Fake StoreRepository ───────────────────────────────────────────────
