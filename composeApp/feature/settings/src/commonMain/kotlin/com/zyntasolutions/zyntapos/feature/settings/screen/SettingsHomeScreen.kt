@@ -38,9 +38,12 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.ExperimentalMaterial3Api
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 
@@ -67,10 +70,11 @@ fun SettingsHomeScreen(
     onNavigate: (SettingsRoute) -> Unit,
     onBack: () -> Unit,
 ) {
-    val groups = if (isDebug) settingsGroups + debugGroup else settingsGroups
+    val s = LocalStrings.current
+    val groups = if (isDebug) rememberSettingsGroups() + rememberDebugGroup() else rememberSettingsGroups()
 
     ZyntaPageScaffold(
-        title = "Settings",
+        title = s[StringResource.SETTINGS_TITLE],
         onNavigateBack = onBack,
     ) { innerPadding ->
         LazyColumn(
@@ -120,58 +124,55 @@ enum class SettingsRoute {
     DEBUG_CONSOLE,
 }
 
-private val settingsGroups: List<SettingsGroup> = listOf(
-    SettingsGroup(
-        title = "Store",
-        entries = listOf(
-            SettingsEntry("General", "Store name, address, logo & currency", Icons.Filled.Store, SettingsRoute.GENERAL),
-        ),
-    ),
-    SettingsGroup(
-        title = "Point of Sale",
-        entries = listOf(
-            SettingsEntry("POS", "Order type, receipts & discounts", Icons.Filled.Receipt, SettingsRoute.POS),
-            SettingsEntry("Tax", "Tax groups & rates", Icons.Filled.Payment, SettingsRoute.TAX),
-            SettingsEntry("Printer", "Printer type, connection & receipt format", Icons.Filled.Print, SettingsRoute.PRINTER),
-            SettingsEntry("Label Printer", "ZPL/TSPL label printer connection & calibration", Icons.Filled.Label, SettingsRoute.LABEL_PRINTER),
-            SettingsEntry("Printer Profiles", "Named RECEIPT/KITCHEN/LABEL/REPORT profiles", Icons.Filled.Tune, SettingsRoute.PRINTER_PROFILES),
-            SettingsEntry("Scanner", "Barcode scanner test & configuration", Icons.Filled.QrCodeScanner, SettingsRoute.SCANNER_SETTINGS),
-        ),
-    ),
-    SettingsGroup(
-        title = "Administration",
-        entries = listOf(
-            SettingsEntry("Users", "Create and manage staff accounts", Icons.Filled.PersonOutline, SettingsRoute.USERS),
-            SettingsEntry(
-                "Store User Access", "Grant or revoke staff access to stores (multi-store)",
-                Icons.Filled.SupervisedUserCircle, SettingsRoute.STORE_USER_ACCESS,
+@Composable
+private fun rememberSettingsGroups(): List<SettingsGroup> {
+    val s = LocalStrings.current
+    return remember(s) {
+        listOf(
+            SettingsGroup(
+                title = s[StringResource.SETTINGS_SECTION_STORE],
+                entries = listOf(
+                    SettingsEntry(s[StringResource.SETTINGS_GENERAL], s[StringResource.SETTINGS_GENERAL_SUBTITLE], Icons.Filled.Store, SettingsRoute.GENERAL),
+                ),
             ),
-            SettingsEntry("Security", "PIN policy, session timeout & RBAC", Icons.Filled.Security, SettingsRoute.SECURITY),
-            SettingsEntry(
-                "Roles & Permissions", "Manage role definitions and RBAC permission matrix",
-                Icons.Filled.AdminPanelSettings, SettingsRoute.RBAC_MANAGEMENT,
+            SettingsGroup(
+                title = s[StringResource.SETTINGS_SECTION_POS],
+                entries = listOf(
+                    SettingsEntry(s[StringResource.SETTINGS_POS], s[StringResource.SETTINGS_POS_SUBTITLE], Icons.Filled.Receipt, SettingsRoute.POS),
+                    SettingsEntry(s[StringResource.SETTINGS_TAX], s[StringResource.SETTINGS_TAX_SUBTITLE], Icons.Filled.Payment, SettingsRoute.TAX),
+                    SettingsEntry(s[StringResource.SETTINGS_PRINTER], s[StringResource.SETTINGS_PRINTER_SUBTITLE], Icons.Filled.Print, SettingsRoute.PRINTER),
+                    SettingsEntry(s[StringResource.SETTINGS_LABEL_PRINTER], s[StringResource.SETTINGS_LABEL_PRINTER_SUBTITLE], Icons.Filled.Label, SettingsRoute.LABEL_PRINTER),
+                    SettingsEntry(s[StringResource.SETTINGS_PRINTER_PROFILES], s[StringResource.SETTINGS_PRINTER_PROFILES_SUBTITLE], Icons.Filled.Tune, SettingsRoute.PRINTER_PROFILES),
+                    SettingsEntry(s[StringResource.SETTINGS_SCANNER_TITLE], s[StringResource.SETTINGS_SCANNER_SUBTITLE], Icons.Filled.QrCodeScanner, SettingsRoute.SCANNER_SETTINGS),
+                ),
             ),
-            SettingsEntry(
-                "Edition Management", "Features enabled for your store edition",
-                Icons.Filled.WorkspacePremium, SettingsRoute.EDITION_MANAGEMENT,
+            SettingsGroup(
+                title = s[StringResource.SETTINGS_SECTION_ADMINISTRATION],
+                entries = listOf(
+                    SettingsEntry(s[StringResource.SETTINGS_USER_MANAGEMENT], s[StringResource.SETTINGS_USER_MANAGEMENT_SUBTITLE], Icons.Filled.PersonOutline, SettingsRoute.USERS),
+                    SettingsEntry(s[StringResource.SETTINGS_STORE_USER_ACCESS], s[StringResource.SETTINGS_STORE_USER_ACCESS_SUBTITLE], Icons.Filled.SupervisedUserCircle, SettingsRoute.STORE_USER_ACCESS),
+                    SettingsEntry(s[StringResource.SETTINGS_SECURITY], s[StringResource.SETTINGS_SECURITY_SUBTITLE], Icons.Filled.Security, SettingsRoute.SECURITY),
+                    SettingsEntry(s[StringResource.SETTINGS_ROLES_PERMISSIONS], s[StringResource.SETTINGS_ROLES_PERMISSIONS_SUBTITLE], Icons.Filled.AdminPanelSettings, SettingsRoute.RBAC_MANAGEMENT),
+                    SettingsEntry(s[StringResource.SETTINGS_EDITION_MANAGEMENT], s[StringResource.SETTINGS_EDITION_MANAGEMENT_SUBTITLE], Icons.Filled.WorkspacePremium, SettingsRoute.EDITION_MANAGEMENT),
+                    SettingsEntry(s[StringResource.SETTINGS_BACKUP], s[StringResource.SETTINGS_BACKUP_SUBTITLE], Icons.Filled.Backup, SettingsRoute.BACKUP),
+                ),
             ),
-            SettingsEntry("Backup", "Manual backup & restore", Icons.Filled.Backup, SettingsRoute.BACKUP),
-        ),
-    ),
-    SettingsGroup(
-        title = "Customisation",
-        entries = listOf(
-            SettingsEntry("Appearance", "Light, dark or system theme", Icons.Filled.ColorLens, SettingsRoute.APPEARANCE),
-        ),
-    ),
-    SettingsGroup(
-        title = "Support",
-        entries = listOf(
-            SettingsEntry("System Health", "Memory, disk, database & runtime diagnostics", Icons.Filled.HealthAndSafety, SettingsRoute.SYSTEM_HEALTH),
-            SettingsEntry("About", "Version, build info & licences", Icons.Filled.Info, SettingsRoute.ABOUT),
-        ),
-    ),
-)
+            SettingsGroup(
+                title = s[StringResource.SETTINGS_SECTION_CUSTOMISATION],
+                entries = listOf(
+                    SettingsEntry(s[StringResource.SETTINGS_APPEARANCE], s[StringResource.SETTINGS_APPEARANCE_SUBTITLE], Icons.Filled.ColorLens, SettingsRoute.APPEARANCE),
+                ),
+            ),
+            SettingsGroup(
+                title = s[StringResource.SETTINGS_SECTION_SUPPORT],
+                entries = listOf(
+                    SettingsEntry(s[StringResource.SETTINGS_SYSTEM_HEALTH], s[StringResource.SETTINGS_SYSTEM_HEALTH_SUBTITLE], Icons.Filled.HealthAndSafety, SettingsRoute.SYSTEM_HEALTH),
+                    SettingsEntry(s[StringResource.SETTINGS_ABOUT], s[StringResource.SETTINGS_ABOUT_SUBTITLE], Icons.Filled.Info, SettingsRoute.ABOUT),
+                ),
+            ),
+        )
+    }
+}
 
 /**
  * Debug-only settings group appended when [SettingsHomeScreen] receives `isDebug = true`.
