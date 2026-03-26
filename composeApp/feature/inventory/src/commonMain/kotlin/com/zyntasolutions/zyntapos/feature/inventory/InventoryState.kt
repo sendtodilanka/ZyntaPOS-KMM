@@ -72,6 +72,14 @@ data class InventoryState(
     /** True while the HAL barcode scanner is actively listening. */
     val isScannerActive: Boolean = false,
 
+    // ── Pagination ──────────────────────────────────────────────────────────
+    /** Total number of products matching current filters (for pagination). */
+    val totalProductCount: Long = 0,
+    /** Whether more pages of products are available. */
+    val hasMoreProducts: Boolean = false,
+    /** True while an additional page is being fetched (infinite scroll). */
+    val isLoadingMore: Boolean = false,
+
     // ── Global ────────────────────────────────────────────────────────────
     val isLoading: Boolean = false,
     val error: String? = null,

@@ -20,6 +20,9 @@ sealed interface CustomerIntent {
     /** Sort the customer list by a column key. */
     data class SortByColumn(val columnKey: String) : CustomerIntent
 
+    /** Loads the next page of customers for infinite scroll. */
+    data object LoadMoreCustomers : CustomerIntent
+
     // ── Detail / Edit ─────────────────────────────────────────────────────────
     /** Load an existing customer for detail/edit; null = start create flow. */
     data class SelectCustomer(val customerId: String?) : CustomerIntent

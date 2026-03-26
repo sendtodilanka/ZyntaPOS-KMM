@@ -2,9 +2,11 @@ package com.zyntasolutions.zyntapos.domain.usecase.staff
 
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.core.result.ValidationException
+import com.zyntasolutions.zyntapos.domain.model.LeaveRequestStatus
 import com.zyntasolutions.zyntapos.domain.model.LeaveStatus
 import com.zyntasolutions.zyntapos.domain.usecase.fakes.FakeLeaveRepository
 import com.zyntasolutions.zyntapos.domain.usecase.fakes.buildLeaveRecord
+import com.zyntasolutions.zyntapos.domain.usecase.fakes.buildLeaveRequest
 import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -117,44 +119,44 @@ class LeaveManagementUseCasesTest {
 
     @Test
     fun `approveLeave delegates to repository with APPROVED status`() = runTest {
+        fakeLeaveRepo.leaveRequests.add(buildLeaveRequest(id = "leave-01"))
+
         val result = approveLeaveUseCase(
             id = "leave-01",
-            approvedBy = "manager-01",
-            approvedAt = 1_500_000L,
+            approve = true,
+            approverNotes = null,
             updatedAt = 1_500_001L,
         )
 
         assertIs<Result.Success<Unit>>(result)
-        assertEquals(1, fakeLeaveRepo.updateStatusCalls.size)
-        val call = fakeLeaveRepo.updateStatusCalls.first()
-        assertEquals("leave-01", call.id)
-        assertEquals(LeaveStatus.APPROVED, call.status)
-        assertEquals("manager-01", call.decidedBy)
-        assertEquals(1_500_000L, call.decidedAt)
-        assertEquals(1_500_001L, call.updatedAt)
+        val req = fakeLeaveRepo.leaveRequests.first()
+        assertEquals("leave-01", req.id)
+        assertEquals(LeaveRequestStatus.APPROVED, req.status)
+        assertEquals(1_500_001L, req.updatedAt)
     }
 
     @Test
-    fun `approveLeave passes null rejectionReason`() = runTest {
+    fun `approveLeave passes null approverNotes`() = runTest {
+        fakeLeaveRepo.leaveRequests.add(buildLeaveRequest(id = "leave-01"))
+
         approveLeaveUseCase(
             id = "leave-01",
-            approvedBy = "manager-01",
-            approvedAt = 1_500_000L,
+            approve = true,
+            approverNotes = null,
             updatedAt = 1_500_001L,
         )
 
-        val call = fakeLeaveRepo.updateStatusCalls.first()
-        assertEquals(null, call.rejectionReason)
+        val req = fakeLeaveRepo.leaveRequests.first()
+        assertEquals(null, req.approverNotes)
     }
 
     @Test
-    fun `approveLeave propagates repository error`() = runTest {
-        fakeLeaveRepo.shouldFailUpdateStatus = true
-
+    fun `approveLeave propagates repository error for missing request`() = runTest {
+        // No leave request added — getLeaveRequestById returns null
         val result = approveLeaveUseCase(
             id = "leave-01",
-            approvedBy = "manager-01",
-            approvedAt = 1_500_000L,
+            approve = true,
+            approverNotes = null,
             updatedAt = 1_500_001L,
         )
 
@@ -162,20 +164,18 @@ class LeaveManagementUseCasesTest {
     }
 
     @Test
-    fun `approveLeave updates record status in fake repository`() = runTest {
-        val record = buildLeaveRecord(id = "leave-01", status = LeaveStatus.PENDING)
-        fakeLeaveRepo.leaveRecords.add(record)
+    fun `approveLeave updates request status in fake repository`() = runTest {
+        fakeLeaveRepo.leaveRequests.add(buildLeaveRequest(id = "leave-01"))
 
         approveLeaveUseCase(
             id = "leave-01",
-            approvedBy = "manager-01",
-            approvedAt = 1_500_000L,
+            approve = true,
+            approverNotes = null,
             updatedAt = 1_500_001L,
         )
 
-        val updated = fakeLeaveRepo.leaveRecords.first()
-        assertEquals(LeaveStatus.APPROVED, updated.status)
-        assertEquals("manager-01", updated.approvedBy)
+        val updated = fakeLeaveRepo.leaveRequests.first()
+        assertEquals(LeaveRequestStatus.APPROVED, updated.status)
     }
 
     // ─── RejectLeaveUseCase ───────────────────────────────────────────────────

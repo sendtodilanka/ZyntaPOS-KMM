@@ -1,5 +1,7 @@
 package com.zyntasolutions.zyntapos.domain.repository
 
+import com.zyntasolutions.zyntapos.core.pagination.PageRequest
+import com.zyntasolutions.zyntapos.core.pagination.PaginatedResult
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.Customer
 import kotlinx.coroutines.flow.Flow
@@ -74,4 +76,17 @@ interface CustomerRepository {
      * Used during customer merge operations.
      */
     suspend fun updateLoyaltyPoints(customerId: String, points: Int): Result<Unit>
+
+    // ── Paginated queries (for infinite-scroll UI) ─────────────────────────
+
+    /**
+     * Returns a page of active customers, ordered by name.
+     *
+     * @param pageRequest Offset-based pagination parameters.
+     * @param searchQuery Optional FTS5 search query. Pass `null` for no filtering.
+     */
+    suspend fun getPage(
+        pageRequest: PageRequest,
+        searchQuery: String? = null,
+    ): PaginatedResult<Customer>
 }

@@ -76,6 +76,12 @@ class ReportsViewModel(
             updateState { copy(dateFormat = fmt) }
         }
 
+        // C6.3: Load store timezone for date range conversion.
+        viewModelScope.launch {
+            val tz = settingsRepository.get("general.timezone")
+            if (tz != null) updateState { copy(reportTimezone = tz) }
+        }
+
         // Refresh active reports on every sync cycle completion (real-time report updates — G6).
         viewModelScope.launch {
             syncStatusPort.onSyncComplete.collect { refreshLoadedReports() }
@@ -173,6 +179,13 @@ class ReportsViewModel(
                     updateState { copy(stockReport = stockReport.copy(currentPage = s.currentPage - 1)) }
                 }
             }
+
+            // ── C6.3: Timezone-aware date range ─────────────────────────────
+            is ReportsIntent.SetReportTimezone -> onSetReportTimezone(intent.timezoneId)
+
+            // ── C5.1: Multi-currency consolidation ──────────────────────────
+            ReportsIntent.LoadConsolidatedCurrencyReport -> onLoadConsolidatedCurrencyReport()
+            is ReportsIntent.SetConsolidationBaseCurrency -> onSetConsolidationBaseCurrency(intent.currencyCode)
         }
     }
 
@@ -521,7 +534,14 @@ class ReportsViewModel(
         customFrom: Instant?,
         customTo: Instant?,
     ): Pair<Instant, Instant> {
-        val tz    = TimeZone.currentSystemDefault()
+        // C6.3: Use the report timezone (store's local timezone) for date range boundaries.
+        // This ensures "Today" means today in the store's timezone, not the device's timezone.
+        val tzId = currentState.reportTimezone
+        val tz = if (tzId != null) {
+            runCatching { TimeZone.of(tzId) }.getOrDefault(TimeZone.currentSystemDefault())
+        } else {
+            TimeZone.currentSystemDefault()
+        }
         val now   = Clock.System.now()
         val today = now.toLocalDateTime(tz).date
 
@@ -530,6 +550,86 @@ class ReportsViewModel(
             DateRange.THIS_WEEK  -> (today - today.dayOfWeek.ordinal.toLong().days).atStartOfDayIn(tz) to now
             DateRange.THIS_MONTH -> kotlinx.datetime.LocalDate(today.year, today.monthNumber, 1).atStartOfDayIn(tz) to now
             DateRange.CUSTOM     -> (customFrom ?: now) to (customTo ?: now)
+        }
+    }
+
+    // ── C6.3: Timezone handlers ──────────────────────────────────────────
+
+    private fun onSetReportTimezone(timezoneId: String) {
+        updateState { copy(reportTimezone = timezoneId) }
+    }
+
+    // ── C5.1: Multi-Currency Consolidation handlers ─────────────────────
+
+    private fun onSetConsolidationBaseCurrency(currencyCode: String) {
+        updateState {
+            copy(consolidatedCurrency = consolidatedCurrency.copy(baseCurrency = currencyCode))
+        }
+        onLoadConsolidatedCurrencyReport()
+    }
+
+    private fun onLoadConsolidatedCurrencyReport() {
+        updateState {
+            copy(consolidatedCurrency = consolidatedCurrency.copy(isLoading = true, error = null))
+        }
+        viewModelScope.launch {
+            runCatching {
+                val stores = currentState.availableStores
+                val baseCurrency = currentState.consolidatedCurrency.baseCurrency
+                val storeRevenues = mutableListOf<StoreRevenueInBase>()
+
+                for (store in stores) {
+                    // Get the store's sales report to determine revenue
+                    val (from, to) = resolveDateRange(
+                        currentState.salesReport.selectedRange,
+                        currentState.salesReport.customFrom,
+                        currentState.salesReport.customTo,
+                    )
+                    val salesReport = generateSalesReport(from, to, store.id).first()
+                    val storeRevenue = salesReport.totalSales
+
+                    // Get exchange rate for store's currency to base currency
+                    val exchangeRate = if (store.currency == baseCurrency) {
+                        1.0
+                    } else {
+                        // Look up exchange rate from settings
+                        val rateKey = "exchange_rate.${store.currency}_$baseCurrency"
+                        settingsRepository.get(rateKey)?.toDoubleOrNull() ?: 1.0
+                    }
+
+                    storeRevenues.add(
+                        StoreRevenueInBase(
+                            storeId = store.id,
+                            storeName = store.name,
+                            originalCurrency = store.currency,
+                            originalRevenue = storeRevenue,
+                            exchangeRate = exchangeRate,
+                            revenueInBase = storeRevenue * exchangeRate,
+                        ),
+                    )
+                }
+
+                val totalConsolidated = storeRevenues.sumOf { it.revenueInBase }
+
+                updateState {
+                    copy(
+                        consolidatedCurrency = consolidatedCurrency.copy(
+                            isLoading = false,
+                            storeRevenuesInBase = storeRevenues,
+                            totalConsolidatedRevenue = totalConsolidated,
+                        ),
+                    )
+                }
+            }.onFailure { e ->
+                updateState {
+                    copy(
+                        consolidatedCurrency = consolidatedCurrency.copy(
+                            isLoading = false,
+                            error = e.message ?: "Consolidation failed",
+                        ),
+                    )
+                }
+            }
         }
     }
 }

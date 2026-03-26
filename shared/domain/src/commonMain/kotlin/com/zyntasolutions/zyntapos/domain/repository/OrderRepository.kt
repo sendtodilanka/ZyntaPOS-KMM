@@ -1,5 +1,7 @@
 package com.zyntasolutions.zyntapos.domain.repository
 
+import com.zyntasolutions.zyntapos.core.pagination.PageRequest
+import com.zyntasolutions.zyntapos.core.pagination.PaginatedResult
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.CartItem
 import com.zyntasolutions.zyntapos.domain.model.Order
@@ -92,6 +94,23 @@ interface OrderRepository {
      *         if no held order with that ID exists.
      */
     suspend fun retrieveHeld(holdId: String): Result<Order>
+
+    // ── Paginated queries (for infinite-scroll UI) ─────────────────────────
+
+    /**
+     * Returns a page of orders, most recent first.
+     *
+     * @param pageRequest Offset-based pagination parameters.
+     * @param from Optional lower bound (inclusive) for date filtering.
+     * @param to Optional upper bound (inclusive) for date filtering.
+     * @param customerId Optional customer filter.
+     */
+    suspend fun getPage(
+        pageRequest: PageRequest,
+        from: Instant? = null,
+        to: Instant? = null,
+        customerId: String? = null,
+    ): PaginatedResult<Order>
 }
 
 /** Predicate key constants for use with [OrderRepository.getAll]. */

@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.inventory
 
 import androidx.lifecycle.viewModelScope
+import com.zyntasolutions.zyntapos.core.pagination.PageRequest
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.core.utils.IdGenerator
 import com.zyntasolutions.zyntapos.domain.model.Category
@@ -149,6 +150,7 @@ class InventoryViewModel(
             is InventoryIntent.SelectCategory -> onSelectCategory(intent.categoryId)
             is InventoryIntent.SetStockFilter -> onSetStockFilter(intent.filter)
             is InventoryIntent.ToggleViewMode -> onToggleViewMode()
+            is InventoryIntent.LoadMoreProducts -> onLoadMoreProducts()
             is InventoryIntent.SortByColumn -> onSortByColumn(intent.columnKey)
             is InventoryIntent.SelectProduct -> onSelectProduct(intent.productId)
             is InventoryIntent.BackToList -> onBackToList()
@@ -222,6 +224,44 @@ class InventoryViewModel(
         updateState { copy(isLoading = true, error = null) }
         _searchQuery.value = currentState.searchQuery
         _selectedCategoryId.value = currentState.selectedCategoryId
+    }
+
+    /**
+     * Loads the next page of products and appends to the existing list.
+     * Uses the paginated repository method to avoid loading the entire catalog.
+     */
+    private fun onLoadMoreProducts() {
+        val state = currentState
+        if (state.isLoadingMore || !state.hasMoreProducts) return
+
+        updateState { copy(isLoadingMore = true) }
+        viewModelScope.launch {
+            runCatching {
+                val pageRequest = PageRequest(offset = state.products.size)
+                productRepository.getPage(
+                    pageRequest = pageRequest,
+                    categoryId = state.selectedCategoryId,
+                    searchQuery = state.searchQuery.ifBlank { null },
+                )
+            }.fold(
+                onSuccess = { result ->
+                    val newProducts = state.products + result.items
+                    val filtered = applyLocalFilters(newProducts)
+                    val sorted = applySort(filtered)
+                    updateState {
+                        copy(
+                            products = sorted,
+                            totalProductCount = result.totalCount,
+                            hasMoreProducts = result.hasMore,
+                            isLoadingMore = false,
+                        )
+                    }
+                },
+                onFailure = {
+                    updateState { copy(isLoadingMore = false) }
+                },
+            )
+        }
     }
 
     private fun onSearchQueryChanged(query: String) {

@@ -70,4 +70,11 @@ interface ReportExporter {
      * @return Absolute path of the written file.
      */
     suspend fun exportGdprJson(customerId: String, json: String): String
+
+    /**
+     * Export consolidated multi-currency revenue as a CSV file (C5.1).
+     * @param rows Per-store revenue rows converted to base currency.
+     * @return Absolute path of the written file.
+     */
+    suspend fun exportConsolidatedRevenueCsv(rows: List<StoreRevenueInBase>): String
 }

@@ -2,6 +2,8 @@ package com.zyntasolutions.zyntapos.data.repository
 
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
+import com.zyntasolutions.zyntapos.core.pagination.PageRequest
+import com.zyntasolutions.zyntapos.core.pagination.PaginatedResult
 import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.core.utils.IdGenerator
@@ -272,6 +274,49 @@ class OrderRepositoryImpl(
         }.fold(
             onSuccess = { Result.Success(it) },
             onFailure = { t -> Result.Error(DatabaseException(t.message ?: "DB error", cause = t)) },
+        )
+    }
+
+    // ── Paginated ──────────────────────────────────────────────────────────────
+
+    override suspend fun getPage(
+        pageRequest: PageRequest,
+        from: Instant?,
+        to: Instant?,
+        customerId: String?,
+    ): PaginatedResult<Order> = withContext(Dispatchers.IO) {
+        val limit = pageRequest.limit.toLong()
+        val offset = pageRequest.offset.toLong()
+
+        val (rows, totalCount) = when {
+            customerId != null -> {
+                val items = q.getOrdersByCustomerPage(customerId, limit, offset).executeAsList()
+                val count = q.countOrdersByCustomer(customerId).executeAsOne()
+                items to count
+            }
+            from != null && to != null -> {
+                val fromMs = from.toEpochMilliseconds()
+                val toMs = to.toEpochMilliseconds()
+                val items = q.getOrdersByDateRangePage(fromMs, toMs, limit, offset).executeAsList()
+                val count = q.countOrdersByDateRange(fromMs, toMs).executeAsOne()
+                items to count
+            }
+            else -> {
+                val items = q.getOrdersPage(limit, offset).executeAsList()
+                val count = q.countOrders().executeAsOne()
+                items to count
+            }
+        }
+
+        val orders = rows.map { row ->
+            val orderItems = q.getItemsByOrderId(row.id).executeAsList()
+            OrderMapper.toDomain(row, orderItems)
+        }
+
+        PaginatedResult(
+            items = orders,
+            totalCount = totalCount,
+            hasMore = (pageRequest.offset + orders.size) < totalCount,
         )
     }
 

@@ -6,6 +6,8 @@ import com.zyntasolutions.zyntapos.domain.model.AttendanceRecord
 import com.zyntasolutions.zyntapos.domain.model.AttendanceSummary
 import com.zyntasolutions.zyntapos.domain.model.Employee
 import com.zyntasolutions.zyntapos.domain.model.LeaveRecord
+import com.zyntasolutions.zyntapos.domain.model.LeaveRequest
+import com.zyntasolutions.zyntapos.domain.model.LeaveRequestStatus
 import com.zyntasolutions.zyntapos.domain.model.LeaveStatus
 import com.zyntasolutions.zyntapos.domain.model.PayrollRecord
 import com.zyntasolutions.zyntapos.domain.model.PayrollStatus
@@ -362,7 +364,67 @@ class FakeLeaveRepository : LeaveRepository {
         updateStatusCalls.add(UpdateStatusCall(id, status, decidedBy, decidedAt, rejectionReason, updatedAt))
         return Result.Success(Unit)
     }
+
+    // ── LeaveRequest workflow stubs ─────────────────────────────────────────
+
+    val leaveRequests = mutableListOf<LeaveRequest>()
+
+    override suspend fun getLeaveRequestById(id: String): Result<LeaveRequest?> =
+        Result.Success(leaveRequests.firstOrNull { it.id == id })
+
+    override fun getLeaveRequestsByEmployee(employeeId: String): Flow<List<LeaveRequest>> =
+        flowOf(leaveRequests.filter { it.employeeId == employeeId })
+
+    override fun getPendingLeaveRequests(): Flow<List<LeaveRequest>> =
+        flowOf(leaveRequests.filter { it.status == LeaveRequestStatus.PENDING })
+
+    override suspend fun insertLeaveRequest(request: LeaveRequest): Result<Unit> {
+        leaveRequests.add(request)
+        return Result.Success(Unit)
+    }
+
+    override suspend fun updateLeaveRequestStatus(
+        id: String,
+        status: LeaveRequestStatus,
+        approverNotes: String?,
+        updatedAt: Long,
+    ): Result<Unit> {
+        val index = leaveRequests.indexOfFirst { it.id == id }
+        if (index != -1) {
+            leaveRequests[index] = leaveRequests[index].copy(
+                status = status,
+                approverNotes = approverNotes,
+                updatedAt = updatedAt,
+            )
+        }
+        return Result.Success(Unit)
+    }
 }
+
+/** Builds a [LeaveRequest] with sensible defaults. */
+fun buildLeaveRequest(
+    id: String = "leave-01",
+    employeeId: String = "emp-01",
+    leaveType: com.zyntasolutions.zyntapos.domain.model.LeaveRequestType = com.zyntasolutions.zyntapos.domain.model.LeaveRequestType.ANNUAL,
+    startDate: String = "2026-03-01",
+    endDate: String = "2026-03-05",
+    reason: String = "Family trip",
+    status: LeaveRequestStatus = LeaveRequestStatus.PENDING,
+    approverNotes: String? = null,
+    createdAt: Long = 1_000_000L,
+    updatedAt: Long = 1_000_000L,
+) = LeaveRequest(
+    id = id,
+    employeeId = employeeId,
+    leaveType = leaveType,
+    startDate = startDate,
+    endDate = endDate,
+    reason = reason,
+    status = status,
+    approverNotes = approverNotes,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FakePayrollRepository

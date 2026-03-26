@@ -2,6 +2,8 @@ package com.zyntasolutions.zyntapos.data.repository
 
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
+import com.zyntasolutions.zyntapos.core.pagination.PageRequest
+import com.zyntasolutions.zyntapos.core.pagination.PaginatedResult
 import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.data.local.SyncEnqueuer
@@ -190,6 +192,46 @@ class ProductRepositoryImpl(
             .split("\\s+".toRegex())
             .filter { it.isNotBlank() }
             .joinToString(" ") { "$it*" }
+
+    // ── Paginated ──────────────────────────────────────────────────────────────
+
+    override suspend fun getPage(
+        pageRequest: PageRequest,
+        categoryId: String?,
+        searchQuery: String?,
+    ): PaginatedResult<Product> = withContext(Dispatchers.IO) {
+        val limit = pageRequest.limit.toLong()
+        val offset = pageRequest.offset.toLong()
+
+        val (rows, totalCount) = when {
+            searchQuery != null && searchQuery.isNotBlank() -> {
+                val ftsQuery = toFtsQuery(searchQuery)
+                val items = q.searchProductsPage(ftsQuery, limit, offset).executeAsList()
+                    .map(ProductMapper::toDomain)
+                    .filter { p -> categoryId == null || p.categoryId == categoryId }
+                val count = q.countSearchProducts(ftsQuery).executeAsOne()
+                items to count
+            }
+            categoryId != null -> {
+                val items = q.getProductsByCategoryPage(categoryId, limit, offset).executeAsList()
+                    .map(ProductMapper::toDomain)
+                val count = q.countProductsByCategory(categoryId).executeAsOne()
+                items to count
+            }
+            else -> {
+                val items = q.getProductsPage(limit, offset).executeAsList()
+                    .map(ProductMapper::toDomain)
+                val count = q.countProducts().executeAsOne()
+                items to count
+            }
+        }
+
+        PaginatedResult(
+            items = rows,
+            totalCount = totalCount,
+            hasMore = (pageRequest.offset + rows.size) < totalCount,
+        )
+    }
 
     // ── Delete ────────────────────────────────────────────────────────────────
 

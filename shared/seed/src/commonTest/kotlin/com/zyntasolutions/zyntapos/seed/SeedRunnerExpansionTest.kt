@@ -1,5 +1,7 @@
 package com.zyntasolutions.zyntapos.seed
 
+import com.zyntasolutions.zyntapos.core.pagination.PageRequest
+import com.zyntasolutions.zyntapos.core.pagination.PaginatedResult
 import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.Account
@@ -129,6 +131,8 @@ class SeedRunnerExpansionTest {
         }
         override suspend fun update(p: Product) = Result.Success(Unit)
         override suspend fun delete(id: String) = Result.Success(Unit)
+        override suspend fun getPage(pageRequest: PageRequest, categoryId: String?, searchQuery: String?): PaginatedResult<Product> =
+            PaginatedResult(items = emptyList(), totalCount = 0L, hasMore = false)
     }
 
     private val fakeCustomerRepo = object : CustomerRepository {
@@ -147,6 +151,8 @@ class SeedRunnerExpansionTest {
         override fun getGlobalCustomers() = flowOf(emptyList<Customer>())
         override suspend fun makeGlobal(customerId: String) = Result.Success(Unit)
         override suspend fun updateLoyaltyPoints(customerId: String, points: Int) = Result.Success(Unit)
+        override suspend fun getPage(pageRequest: PageRequest, searchQuery: String?): PaginatedResult<Customer> =
+            PaginatedResult(items = emptyList(), totalCount = 0L, hasMore = false)
     }
 
     // ── New entity fakes ────────────────────────────────────────────────────

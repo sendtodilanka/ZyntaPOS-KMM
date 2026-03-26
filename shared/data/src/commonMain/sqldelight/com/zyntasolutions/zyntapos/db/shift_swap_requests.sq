@@ -1,0 +1,61 @@
+-- ============================================================
+-- shift_swap_requests.sq — Shift swap workflow between employees
+-- Phase 3 — Staff module (G: Shift Swap/Request Workflow)
+-- ============================================================
+
+CREATE TABLE shift_swap_requests (
+    id                      TEXT NOT NULL PRIMARY KEY,
+    requesting_employee_id  TEXT NOT NULL REFERENCES employees(id),
+    target_employee_id      TEXT NOT NULL REFERENCES employees(id),
+    requesting_shift_id     TEXT NOT NULL REFERENCES shift_schedules(id),
+    target_shift_id         TEXT NOT NULL REFERENCES shift_schedules(id),
+    status                  TEXT NOT NULL DEFAULT 'PENDING',
+    reason                  TEXT NOT NULL DEFAULT '',
+    manager_notes           TEXT,
+    created_at              INTEGER NOT NULL,
+    updated_at              INTEGER NOT NULL,
+    sync_status             TEXT NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE INDEX idx_swap_requesting_emp ON shift_swap_requests(requesting_employee_id);
+CREATE INDEX idx_swap_target_emp     ON shift_swap_requests(target_employee_id);
+CREATE INDEX idx_swap_status         ON shift_swap_requests(status);
+
+-- ── Read queries ──────────────────────────────────────────────────────────────
+
+getById:
+SELECT * FROM shift_swap_requests WHERE id = ?;
+
+getPendingForEmployee:
+SELECT * FROM shift_swap_requests
+WHERE (requesting_employee_id = ? OR target_employee_id = ?)
+  AND status IN ('PENDING', 'TARGET_ACCEPTED')
+ORDER BY created_at DESC;
+
+getPendingForManager:
+SELECT * FROM shift_swap_requests
+WHERE status = 'TARGET_ACCEPTED'
+ORDER BY created_at ASC;
+
+getByRequestingEmployee:
+SELECT * FROM shift_swap_requests
+WHERE requesting_employee_id = ?
+ORDER BY created_at DESC;
+
+-- ── Write queries ──────────────────────────────────────────────────────────────
+
+insertSwapRequest:
+INSERT INTO shift_swap_requests(
+    id, requesting_employee_id, target_employee_id,
+    requesting_shift_id, target_shift_id,
+    status, reason, manager_notes,
+    created_at, updated_at, sync_status
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateStatus:
+UPDATE shift_swap_requests
+SET status = ?, manager_notes = ?, updated_at = ?, sync_status = 'PENDING'
+WHERE id = ?;
+
+markSynced:
+UPDATE shift_swap_requests SET sync_status = 'SYNCED' WHERE id = ?;

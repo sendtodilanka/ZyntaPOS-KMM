@@ -1,0 +1,58 @@
+-- Compound tax components — supports stacking multiple taxes on a single product.
+--
+-- Example: VAT 15% + Service Charge 10% + Local Surcharge 2%
+-- Each component references a tax_group and has an application_order.
+-- When a product's tax group has compound components, all component rates
+-- are applied in sequence (stacked or parallel, controlled by is_stacked).
+--
+-- Resolution order:
+-- 1. Look up product's primary tax_group_id
+-- 2. Query compound_tax_components WHERE parent_tax_group_id = primary
+-- 3. If results exist → apply all component rates in application_order
+-- 4. If no results → apply the single primary tax rate (backward compatible)
+
+CREATE TABLE IF NOT EXISTS compound_tax_components (
+    id                    TEXT    NOT NULL PRIMARY KEY,
+    parent_tax_group_id   TEXT    NOT NULL,
+    component_tax_group_id TEXT   NOT NULL,
+    application_order     INTEGER NOT NULL DEFAULT 0,
+    is_compounding        INTEGER NOT NULL DEFAULT 0,
+    created_at            INTEGER NOT NULL DEFAULT 0,
+    updated_at            INTEGER NOT NULL DEFAULT 0,
+    sync_status           TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE INDEX IF NOT EXISTS idx_compound_tax_parent
+    ON compound_tax_components(parent_tax_group_id, application_order);
+
+-- ── Read queries ─────────────────────────────────────────────────────────
+
+getComponentsForTaxGroup:
+SELECT ctc.*, tg.name AS component_name, tg.rate AS component_rate, tg.is_inclusive AS component_is_inclusive
+FROM compound_tax_components ctc
+INNER JOIN tax_groups tg ON tg.id = ctc.component_tax_group_id
+WHERE ctc.parent_tax_group_id = ?
+  AND tg.is_active = 1
+  AND tg.deleted_at IS NULL
+ORDER BY ctc.application_order ASC;
+
+getAllCompoundTaxGroups:
+SELECT DISTINCT parent_tax_group_id FROM compound_tax_components;
+
+getComponentById:
+SELECT * FROM compound_tax_components WHERE id = ?;
+
+-- ── Write queries ────────────────────────────────────────────────────────
+
+insertComponent:
+INSERT OR REPLACE INTO compound_tax_components(
+    id, parent_tax_group_id, component_tax_group_id,
+    application_order, is_compounding,
+    created_at, updated_at, sync_status
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+deleteComponent:
+DELETE FROM compound_tax_components WHERE id = ?;
+
+deleteComponentsForTaxGroup:
+DELETE FROM compound_tax_components WHERE parent_tax_group_id = ?;

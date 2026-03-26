@@ -43,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.WarehouseStock
 
@@ -156,25 +157,11 @@ private fun StockList(
             contentAlignment = Alignment.Center,
         ) { CircularProgressIndicator() }
 
-        items.isEmpty() -> Box(
-            Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center,
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(
-                    imageVector = if (isLowStockTab) Icons.Default.Warning else Icons.Default.Inventory2,
-                    contentDescription = null,
-                    modifier = Modifier.size(48.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(ZyntaSpacing.sm))
-                Text(
-                    text = if (isLowStockTab) "No low-stock items" else "No stock entries yet",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
+        items.isEmpty() -> ZyntaEmptyState(
+            title = if (isLowStockTab) "No low-stock items" else "No stock entries yet",
+            icon = if (isLowStockTab) Icons.Default.Warning else Icons.Default.Inventory2,
+            modifier = Modifier.fillMaxSize(),
+        )
 
         else -> LazyColumn(Modifier.fillMaxSize()) {
             items(items, key = { it.id }) { entry ->

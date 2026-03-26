@@ -70,6 +70,7 @@ class AttendanceRepositoryImpl(
                     AttendanceRecord(
                         id = row.id,
                         employeeId = row.employee_id,
+                        storeId = row.store_id,
                         clockIn = row.clock_in,
                         clockOut = row.clock_out,
                         totalHours = row.total_hours,
@@ -94,7 +95,7 @@ class AttendanceRepositoryImpl(
                 q.insertAttendance(
                     id = record.id,
                     employee_id = record.employeeId,
-                    store_id = null,  // C3.4: null = primary store; set when roaming
+                    store_id = record.storeId,  // C3.4: null = primary store
                     clock_in = record.clockIn,
                     clock_out = record.clockOut,
                     total_hours = record.totalHours,
@@ -196,6 +197,7 @@ class AttendanceRepositoryImpl(
     private fun toDomain(row: Attendance_records) = AttendanceRecord(
         id = row.id,
         employeeId = row.employee_id,
+        storeId = row.store_id,
         clockIn = row.clock_in,
         clockOut = row.clock_out,
         totalHours = row.total_hours,

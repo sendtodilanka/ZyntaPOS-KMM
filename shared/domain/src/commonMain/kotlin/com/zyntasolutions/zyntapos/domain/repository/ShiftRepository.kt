@@ -39,6 +39,9 @@ interface ShiftRepository {
      */
     suspend fun getByStoreAndDate(storeId: String, date: String): Result<List<ShiftSchedule>>
 
+    /** Returns a single shift by its [id], or null if not found. */
+    suspend fun getById(id: String): Result<ShiftSchedule?>
+
     /**
      * Inserts a new shift. Fails if a shift already exists for the same employee+date.
      */

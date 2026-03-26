@@ -125,6 +125,8 @@ class RegisterViewModelTest {
         override suspend fun void(id: String, reason: String): Result<Unit> = Result.Error(DatabaseException("not used"))
         override suspend fun holdOrder(cart: List<com.zyntasolutions.zyntapos.domain.model.CartItem>): Result<String> = Result.Error(DatabaseException("not used"))
         override suspend fun retrieveHeld(holdId: String): Result<Order> = Result.Error(DatabaseException("not used"))
+        override suspend fun getPage(pageRequest: com.zyntasolutions.zyntapos.core.pagination.PageRequest, from: Instant?, to: Instant?, customerId: String?): com.zyntasolutions.zyntapos.core.pagination.PaginatedResult<Order> =
+            com.zyntasolutions.zyntapos.core.pagination.PaginatedResult(items = emptyList(), totalCount = 0L, hasMore = false)
     }
 
     private val fakeRegisterRepository = object : RegisterRepository {

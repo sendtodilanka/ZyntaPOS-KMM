@@ -1,6 +1,8 @@
 package com.zyntasolutions.zyntapos.feature.customers
 
 import app.cash.turbine.test
+import com.zyntasolutions.zyntapos.core.pagination.PageRequest
+import com.zyntasolutions.zyntapos.core.pagination.PaginatedResult
 import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.Customer
@@ -148,6 +150,8 @@ class CustomerViewModelTest {
             customersFlow.value = updated
             return Result.Success(Unit)
         }
+        override suspend fun getPage(pageRequest: PageRequest, searchQuery: String?): PaginatedResult<Customer> =
+            PaginatedResult(items = emptyList(), totalCount = 0L, hasMore = false)
     }
 
     // ── Fake CustomerGroupRepository ──────────────────────────────────────────
@@ -253,6 +257,8 @@ class CustomerViewModelTest {
         override fun getByDateRange(from: kotlinx.datetime.Instant, to: kotlinx.datetime.Instant): Flow<List<Order>> = flowOf(emptyList())
         override suspend fun holdOrder(cart: List<com.zyntasolutions.zyntapos.domain.model.CartItem>): Result<String> = error("not needed")
         override suspend fun retrieveHeld(holdId: String): Result<Order> = error("not needed")
+        override suspend fun getPage(pageRequest: PageRequest, from: kotlinx.datetime.Instant?, to: kotlinx.datetime.Instant?, customerId: String?): PaginatedResult<Order> =
+            PaginatedResult(items = emptyList(), totalCount = 0L, hasMore = false)
     }
     private val exportCustomerDataUseCase = ExportCustomerDataUseCase(fakeCustomerRepository, fakeOrderRepository)
     private val mergeCustomersUseCase = MergeCustomersUseCase(fakeCustomerRepository, fakeWalletRepository, fakeLoyaltyRepository)

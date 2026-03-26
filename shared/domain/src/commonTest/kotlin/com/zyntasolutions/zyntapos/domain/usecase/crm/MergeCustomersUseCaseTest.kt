@@ -1,5 +1,7 @@
 package com.zyntasolutions.zyntapos.domain.usecase.crm
 
+import com.zyntasolutions.zyntapos.core.pagination.PageRequest
+import com.zyntasolutions.zyntapos.core.pagination.PaginatedResult
 import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.Customer
@@ -285,6 +287,8 @@ class MergeCustomersUseCaseTest {
             customers[customerId] = c.copy(loyaltyPoints = points)
             return Result.Success(Unit)
         }
+        override suspend fun getPage(pageRequest: PageRequest, searchQuery: String?): PaginatedResult<Customer> =
+            PaginatedResult(items = emptyList(), totalCount = 0L, hasMore = false)
     }
 
     private class FakeWalletRepo(

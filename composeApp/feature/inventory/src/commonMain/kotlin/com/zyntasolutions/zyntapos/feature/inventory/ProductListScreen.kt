@@ -22,6 +22,7 @@ import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTable
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTableColumn
 import org.koin.compose.koinInject
 import com.zyntasolutions.zyntapos.designsystem.components.StockIndicator
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.designsystem.util.WindowSize
 import com.zyntasolutions.zyntapos.designsystem.util.currentWindowSize
@@ -419,17 +420,12 @@ private fun ProductTableView(
         modifier = Modifier.fillMaxSize(),
         rowKey = { it.id },
         emptyContent = {
-            Box(Modifier.fillMaxWidth().padding(ZyntaSpacing.xl), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.Inventory2, contentDescription = null, modifier = Modifier.size(48.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(Modifier.height(ZyntaSpacing.sm))
-                    Text("No products found", style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("Add your first product or adjust filters", style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
+            ZyntaEmptyState(
+                title = "No products found",
+                icon = Icons.Default.Inventory2,
+                subtitle = "Add your first product or adjust filters",
+                modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.xl),
+            )
         },
         rowContent = { product: Product ->
         // INV-7: Checkbox column in selection mode
@@ -532,15 +528,12 @@ private fun ProductGridView(
     }
 
     if (products.isEmpty()) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(Icons.Default.Inventory2, contentDescription = null, modifier = Modifier.size(48.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.height(ZyntaSpacing.sm))
-                Text("No products found", style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
+        ZyntaEmptyState(
+            title = "No products found",
+            icon = Icons.Default.Inventory2,
+            subtitle = "Add your first product or adjust filters",
+            modifier = Modifier.fillMaxSize(),
+        )
         return
     }
 

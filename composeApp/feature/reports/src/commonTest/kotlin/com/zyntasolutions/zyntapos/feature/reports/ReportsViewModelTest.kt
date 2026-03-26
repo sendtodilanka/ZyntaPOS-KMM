@@ -197,6 +197,8 @@ class ReportsViewModelTest {
         override suspend fun void(id: String, reason: String): Result<Unit> = error("not used in test")
         override suspend fun holdOrder(cart: List<com.zyntasolutions.zyntapos.domain.model.CartItem>): Result<String> = error("not used in test")
         override suspend fun retrieveHeld(holdId: String): Result<Order> = error("not used in test")
+        override suspend fun getPage(pageRequest: com.zyntasolutions.zyntapos.core.pagination.PageRequest, from: kotlinx.datetime.Instant?, to: kotlinx.datetime.Instant?, customerId: String?): com.zyntasolutions.zyntapos.core.pagination.PaginatedResult<Order> =
+            com.zyntasolutions.zyntapos.core.pagination.PaginatedResult(items = emptyList(), totalCount = 0L, hasMore = false)
     }
 
     // ── Fake ProductRepository ────────────────────────────────────────────────
@@ -210,6 +212,8 @@ class ReportsViewModelTest {
         override suspend fun delete(id: String): Result<Unit> = error("not used in test")
         override suspend fun getByBarcode(barcode: String): Result<Product> = error("not used in test")
         override suspend fun getCount(): Int = 0
+        override suspend fun getPage(pageRequest: com.zyntasolutions.zyntapos.core.pagination.PageRequest, categoryId: String?, searchQuery: String?): com.zyntasolutions.zyntapos.core.pagination.PaginatedResult<Product> =
+            com.zyntasolutions.zyntapos.core.pagination.PaginatedResult(items = emptyList(), totalCount = 0L, hasMore = false)
     }
 
     // ── Fake StockRepository ──────────────────────────────────────────────────
@@ -234,6 +238,8 @@ class ReportsViewModelTest {
         override fun getGlobalCustomers(): Flow<List<Customer>> = flowOf(emptyList())
         override suspend fun makeGlobal(customerId: String): Result<Unit> = error("not used in test")
         override suspend fun updateLoyaltyPoints(customerId: String, points: Int): Result<Unit> = error("not used in test")
+        override suspend fun getPage(pageRequest: com.zyntasolutions.zyntapos.core.pagination.PageRequest, searchQuery: String?): com.zyntasolutions.zyntapos.core.pagination.PaginatedResult<Customer> =
+            com.zyntasolutions.zyntapos.core.pagination.PaginatedResult(items = emptyList(), totalCount = 0L, hasMore = false)
     }
 
     // ── Fake ExpenseRepository ────────────────────────────────────────────────
@@ -340,6 +346,7 @@ class ReportsViewModelTest {
         }
         override suspend fun exportStoreComparisonCsv(stores: List<com.zyntasolutions.zyntapos.domain.model.report.StoreSalesData>): String = exportedPath
         override suspend fun exportGdprJson(customerId: String, json: String): String = exportedPath
+        override suspend fun exportConsolidatedRevenueCsv(rows: List<StoreRevenueInBase>): String = exportedPath
     }
 
     // ── Fake StoreRepository ───────────────────────────────────────────────

@@ -39,7 +39,9 @@ import com.zyntasolutions.zyntapos.security.di.securityModule
 import co.touchlab.kermit.Logger
 import com.zyntasolutions.zyntapos.data.local.db.SecurePreferencesKeyMigration
 import com.zyntasolutions.zyntapos.data.job.AuditIntegrityJob
+import com.zyntasolutions.zyntapos.data.job.AuditIntegrityWorker
 import com.zyntasolutions.zyntapos.data.job.LogRetentionJob
+import com.zyntasolutions.zyntapos.data.job.LogRetentionWorker
 import com.zyntasolutions.zyntapos.data.sync.NetworkMonitor
 import com.zyntasolutions.zyntapos.data.sync.SyncWorker
 import com.zyntasolutions.zyntapos.data.logging.KermitSqliteAdapter
@@ -173,11 +175,13 @@ class ZyntaApplication : Application() {
         // queries via the Admin debug console. Must run after dataModule is loaded.
         Logger.addLogWriter(koin.koin.get<KermitSqliteAdapter>())
 
-        // ── Background jobs ──────────────────────────────────────────────────────
-        // LogRetentionJob: daily purge of expired operational_logs (3/14/30/90-day policy)
-        // AuditIntegrityJob: daily SHA-256 hash chain verification of audit_entries
-        koin.koin.get<LogRetentionJob>().start()
-        koin.koin.get<AuditIntegrityJob>().start()
+        // ── Background jobs (WorkManager — battery-efficient, survives process death) ──
+        // LogRetentionWorker: daily purge of expired operational_logs (3/14/30/90-day policy)
+        // AuditIntegrityWorker: daily SHA-256 hash chain verification of audit_entries
+        // On Android, WorkManager replaces coroutine while-loops for reliable scheduling.
+        // Desktop still uses LogRetentionJob.start() / AuditIntegrityJob.start() coroutine loops.
+        LogRetentionWorker.schedule(this)
+        AuditIntegrityWorker.schedule(this)
 
         // ── C6.2: Offline-first sync bootstrap ─────────────────────────────────
         // Start network monitoring for real-time connectivity state.

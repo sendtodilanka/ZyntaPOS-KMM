@@ -1,5 +1,7 @@
 package com.zyntasolutions.zyntapos.domain.usecase.fakes
 
+import com.zyntasolutions.zyntapos.core.pagination.PageRequest
+import com.zyntasolutions.zyntapos.core.pagination.PaginatedResult
 import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.Customer
@@ -60,6 +62,8 @@ class FakeCustomerRepository : CustomerRepository {
         _flow.value = customers.toList()
         return Result.Success(Unit)
     }
+    override suspend fun getPage(pageRequest: PageRequest, searchQuery: String?): PaginatedResult<Customer> =
+        PaginatedResult(items = emptyList(), totalCount = 0L, hasMore = false)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

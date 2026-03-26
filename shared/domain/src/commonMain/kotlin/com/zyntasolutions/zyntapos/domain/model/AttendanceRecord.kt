@@ -17,6 +17,8 @@ package com.zyntasolutions.zyntapos.domain.model
 data class AttendanceRecord(
     val id: String,
     val employeeId: String,
+    /** C3.4: Store where the employee clocked in. Null = primary store. */
+    val storeId: String? = null,
     val clockIn: String,
     val clockOut: String? = null,
     val totalHours: Double? = null,

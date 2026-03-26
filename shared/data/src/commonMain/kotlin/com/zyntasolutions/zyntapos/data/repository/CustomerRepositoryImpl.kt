@@ -2,6 +2,8 @@ package com.zyntasolutions.zyntapos.data.repository
 
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
+import com.zyntasolutions.zyntapos.core.pagination.PageRequest
+import com.zyntasolutions.zyntapos.core.pagination.PaginatedResult
 import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.data.local.SyncEnqueuer
@@ -222,6 +224,35 @@ class CustomerRepositoryImpl(
             onFailure = { t -> Result.Error(DatabaseException(t.message ?: "Update points failed", cause = t)) },
         )
     }
+
+    // ── Paginated ──────────────────────────────────────────────────────────────
+
+    override suspend fun getPage(
+        pageRequest: PageRequest,
+        searchQuery: String?,
+    ): PaginatedResult<Customer> = withContext(Dispatchers.IO) {
+        val limit = pageRequest.limit.toLong()
+        val offset = pageRequest.offset.toLong()
+
+        val (rows, totalCount) = if (searchQuery != null && searchQuery.isNotBlank()) {
+            val ftsQuery = toFtsQuery(searchQuery)
+            val items = q.searchCustomersPage(ftsQuery, limit, offset).executeAsList()
+            val count = q.countSearchCustomers(ftsQuery).executeAsOne()
+            items to count
+        } else {
+            val items = q.getCustomersPage(limit, offset).executeAsList()
+            val count = q.countCustomers().executeAsOne()
+            items to count
+        }
+
+        PaginatedResult(
+            items = rows.map(CustomerMapper::toDomain),
+            totalCount = totalCount,
+            hasMore = (pageRequest.offset + rows.size) < totalCount,
+        )
+    }
+
+    // ── Delete ──────────────────────────────────────────────────────────────
 
     override suspend fun delete(id: String): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {

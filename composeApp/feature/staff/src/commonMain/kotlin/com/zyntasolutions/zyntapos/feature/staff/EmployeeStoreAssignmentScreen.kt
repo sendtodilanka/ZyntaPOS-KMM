@@ -40,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.EmployeeStoreAssignment
 
@@ -106,22 +107,12 @@ fun EmployeeStoreAssignmentScreen(
                 CircularProgressIndicator()
             }
         } else if (state.assignments.isEmpty()) {
-            Box(Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Default.Store,
-                        contentDescription = null,
-                        modifier = Modifier.size(56.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        "No additional stores assigned.\nTap + to add one.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = ZyntaSpacing.sm),
-                    )
-                }
-            }
+            ZyntaEmptyState(
+                title = "No additional stores assigned",
+                subtitle = "Tap + to add one.",
+                icon = Icons.Default.Store,
+                modifier = Modifier.fillMaxSize().padding(innerPadding),
+            )
         } else {
             LazyColumn(
                 modifier = Modifier

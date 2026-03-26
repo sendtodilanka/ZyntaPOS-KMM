@@ -2,6 +2,8 @@ package com.zyntasolutions.zyntapos.feature.pos
 
 import app.cash.turbine.test
 import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
+import com.zyntasolutions.zyntapos.core.pagination.PageRequest
+import com.zyntasolutions.zyntapos.core.pagination.PaginatedResult
 import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
@@ -188,6 +190,8 @@ class PosViewModelTest {
         override suspend fun update(product: Product): Result<Unit> = Result.Success(Unit)
         override suspend fun delete(id: String): Result<Unit> = Result.Success(Unit)
         override suspend fun getCount(): Int = productsMap.size
+        override suspend fun getPage(pageRequest: PageRequest, categoryId: String?, searchQuery: String?): PaginatedResult<Product> =
+            PaginatedResult(items = emptyList(), totalCount = 0L, hasMore = false)
     }
 
     private val categoriesFlow = MutableStateFlow<List<Category>>(emptyList())
@@ -251,6 +255,8 @@ class PosViewModelTest {
 
         override suspend fun retrieveHeld(holdId: String): Result<Order> =
             Result.Error(DatabaseException("Not implemented"))
+        override suspend fun getPage(pageRequest: PageRequest, from: Instant?, to: Instant?, customerId: String?): PaginatedResult<Order> =
+            PaginatedResult(items = emptyList(), totalCount = 0L, hasMore = false)
     }
 
     private val fakeStockRepository = object : StockRepository {
@@ -459,6 +465,8 @@ class PosViewModelTest {
         override fun getGlobalCustomers(): Flow<List<Customer>> = flowOf(emptyList())
         override suspend fun makeGlobal(customerId: String): Result<Unit> = Result.Success(Unit)
         override suspend fun updateLoyaltyPoints(customerId: String, points: Int): Result<Unit> = Result.Success(Unit)
+        override suspend fun getPage(pageRequest: PageRequest, searchQuery: String?): PaginatedResult<Customer> =
+            PaginatedResult(items = emptyList(), totalCount = 0L, hasMore = false)
     }
 
     // ── Fake RegisterRepository ───────────────────────────────────────────────

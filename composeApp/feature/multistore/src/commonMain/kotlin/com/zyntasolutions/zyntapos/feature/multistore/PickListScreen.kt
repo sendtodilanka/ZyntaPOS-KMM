@@ -35,6 +35,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.domain.model.PickList
 import com.zyntasolutions.zyntapos.domain.model.PickListItem
 import org.koin.compose.viewmodel.koinViewModel
@@ -104,10 +105,9 @@ fun PickListScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else {
-                    Text(
-                        "No pick list available",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    ZyntaEmptyState(
+                        title = "No pick list available",
+                        icon = Icons.Default.Print,
                     )
                 }
             }

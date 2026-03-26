@@ -1,5 +1,7 @@
 package com.zyntasolutions.zyntapos.domain.usecase.fakes
 
+import com.zyntasolutions.zyntapos.core.pagination.PageRequest
+import com.zyntasolutions.zyntapos.core.pagination.PaginatedResult
 import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.ValidationException
 import com.zyntasolutions.zyntapos.core.result.Result
@@ -171,6 +173,8 @@ class FakeOrderRepository : OrderRepository {
             ?: return Result.Error(DatabaseException("Hold '$holdId' not found"))
         return Result.Success(order)
     }
+    override suspend fun getPage(pageRequest: PageRequest, from: Instant?, to: Instant?, customerId: String?): PaginatedResult<Order> =
+        PaginatedResult(items = emptyList(), totalCount = 0L, hasMore = false)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

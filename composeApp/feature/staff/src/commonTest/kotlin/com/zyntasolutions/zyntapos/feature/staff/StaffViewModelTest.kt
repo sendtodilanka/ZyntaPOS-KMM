@@ -71,6 +71,9 @@ import com.zyntasolutions.zyntapos.domain.repository.AccountingPeriodRepository
 import com.zyntasolutions.zyntapos.domain.repository.JournalRepository
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.PostPayrollJournalEntryUseCase
 import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
+import com.zyntasolutions.zyntapos.domain.model.Store
+import com.zyntasolutions.zyntapos.domain.repository.StoreRepository
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.datetime.Instant
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -338,6 +341,25 @@ class StaffViewModelTest {
             leaveRecordsFlow.value = updated
             return Result.Success(Unit)
         }
+
+        override suspend fun getLeaveRequestById(id: String): Result<com.zyntasolutions.zyntapos.domain.model.LeaveRequest?> =
+            Result.Success(null)
+
+        override fun getLeaveRequestsByEmployee(employeeId: String): Flow<List<com.zyntasolutions.zyntapos.domain.model.LeaveRequest>> =
+            kotlinx.coroutines.flow.flowOf(emptyList())
+
+        override fun getPendingLeaveRequests(): Flow<List<com.zyntasolutions.zyntapos.domain.model.LeaveRequest>> =
+            kotlinx.coroutines.flow.flowOf(emptyList())
+
+        override suspend fun insertLeaveRequest(request: com.zyntasolutions.zyntapos.domain.model.LeaveRequest): Result<Unit> =
+            Result.Success(Unit)
+
+        override suspend fun updateLeaveRequestStatus(
+            id: String,
+            status: com.zyntasolutions.zyntapos.domain.model.LeaveRequestStatus,
+            approverNotes: String?,
+            updatedAt: Long,
+        ): Result<Unit> = Result.Success(Unit)
     }
 
     // ── Fake ShiftRepository ──────────────────────────────────────────────────
@@ -357,6 +379,9 @@ class StaffViewModelTest {
 
         override suspend fun getByStoreAndDate(storeId: String, date: String): Result<List<ShiftSchedule>> =
             Result.Success(shiftsFlow.value.filter { it.storeId == storeId && it.shiftDate == date })
+
+        override suspend fun getById(id: String): Result<ShiftSchedule?> =
+            Result.Success(shiftsFlow.value.firstOrNull { it.id == id })
 
         override suspend fun insert(shift: ShiftSchedule): Result<Unit> {
             shiftsFlow.value = shiftsFlow.value + shift
@@ -507,6 +532,13 @@ class StaffViewModelTest {
         periodRepository = fakeAccountingPeriodRepository,
     )
 
+    private val fakeStoreRepository = object : StoreRepository {
+        override fun getAllStores(): Flow<List<Store>> = flowOf(emptyList())
+        override suspend fun getById(storeId: String): Store? = null
+        override suspend fun getStoreName(storeId: String): String? = null
+        override suspend fun upsertFromSync(store: Store) = Unit
+    }
+
     private lateinit var viewModel: StaffViewModel
 
     @BeforeTest
@@ -548,6 +580,8 @@ class StaffViewModelTest {
             getPayrollHistoryUseCase = getPayrollHistoryUseCase,
             getAttendanceSummaryUseCase = getAttendanceSummaryUseCase,
             getLeaveHistoryUseCase = getLeaveHistoryUseCase,
+            storeRepository = fakeStoreRepository,
+            attendanceRepository = fakeAttendanceRepository,
             analytics = noOpAnalytics,
         )
     }

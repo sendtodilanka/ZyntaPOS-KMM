@@ -38,6 +38,7 @@ androidx-security-crypto       = "1.1.0-alpha06"
 androidx-sqlite                = "2.5.2"
 datastore                      = "1.1.7"
 androidx-work                  = "2.10.1"
+cashapp-paging                 = "3.3.2-0.8.0"
 
 # ── Dependency Injection ─────────────────────────────────────
 koin                           = "4.1.1"
@@ -112,6 +113,8 @@ androidx-espresso-core                 = { module = "androidx.test.espresso:espr
 androidx-security-crypto               = { module = "androidx.security:security-crypto",               version.ref = "androidx-security-crypto" }
 androidx-sqlite                        = { module = "androidx.sqlite:sqlite",                           version.ref = "androidx-sqlite" }
 androidx-work-runtime                  = { module = "androidx.work:work-runtime-ktx",                  version.ref = "androidx-work" }
+paging-common                          = { module = "app.cash.paging:paging-common",                    version.ref = "cashapp-paging" }
+paging-compose-common                  = { module = "app.cash.paging:paging-compose-common",            version.ref = "cashapp-paging" }
 
 # ── Lifecycle / ViewModel ─────────────────────────────────────
 androidx-lifecycle-viewmodelCompose    = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "androidx-lifecycle" }

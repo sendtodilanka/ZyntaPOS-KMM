@@ -46,6 +46,12 @@ enum class ThemeMode {
 
     /** Force dark mode. */
     DARK,
+
+    /** High-contrast light mode for accessibility (WCAG AAA). */
+    HIGH_CONTRAST_LIGHT,
+
+    /** High-contrast dark mode for accessibility (WCAG AAA). */
+    HIGH_CONTRAST_DARK,
 }
 
 /**
@@ -99,17 +105,24 @@ fun ZyntaTheme(
 ) {
     val isSystemDark = isSystemInDarkTheme()
 
+    val isHighContrast = themeMode == ThemeMode.HIGH_CONTRAST_LIGHT ||
+        themeMode == ThemeMode.HIGH_CONTRAST_DARK
+
     val isDark = when (themeMode) {
-        ThemeMode.LIGHT  -> false
-        ThemeMode.DARK   -> true
-        ThemeMode.SYSTEM -> isSystemDark
+        ThemeMode.LIGHT               -> false
+        ThemeMode.DARK                -> true
+        ThemeMode.HIGH_CONTRAST_LIGHT -> false
+        ThemeMode.HIGH_CONTRAST_DARK  -> true
+        ThemeMode.SYSTEM              -> isSystemDark
     }
 
-    // Resolve color scheme: prefer dynamic (Material You) if enabled,
-    // fall back to static ZyntaPOS brand palette.
-    val dynamicScheme  = if (dynamicColor) zyntaDynamicColorScheme(isDark) else null
-    val colorScheme    = dynamicScheme
-        ?: if (isDark) zentaDarkColorScheme() else zentaLightColorScheme()
+    // Resolve color scheme: high-contrast overrides dynamic color.
+    val colorScheme = if (isHighContrast) {
+        if (isDark) zyntaHighContrastDarkColorScheme() else zyntaHighContrastLightColorScheme()
+    } else {
+        val dynamicScheme = if (dynamicColor) zyntaDynamicColorScheme(isDark) else null
+        dynamicScheme ?: if (isDark) zentaDarkColorScheme() else zentaLightColorScheme()
+    }
 
     CompositionLocalProvider(
         LocalThemeMode provides themeMode,
@@ -142,8 +155,16 @@ object ZyntaTheme {
     val isDark: Boolean
         @Composable @ReadOnlyComposable
         get() = when (themeMode) {
-            ThemeMode.LIGHT  -> false
-            ThemeMode.DARK   -> true
-            ThemeMode.SYSTEM -> isSystemInDarkTheme()
+            ThemeMode.LIGHT               -> false
+            ThemeMode.DARK                -> true
+            ThemeMode.HIGH_CONTRAST_LIGHT -> false
+            ThemeMode.HIGH_CONTRAST_DARK  -> true
+            ThemeMode.SYSTEM              -> isSystemInDarkTheme()
         }
+
+    /** Whether the current theme uses high-contrast colors for accessibility. */
+    val isHighContrast: Boolean
+        @Composable @ReadOnlyComposable
+        get() = themeMode == ThemeMode.HIGH_CONTRAST_LIGHT ||
+            themeMode == ThemeMode.HIGH_CONTRAST_DARK
 }

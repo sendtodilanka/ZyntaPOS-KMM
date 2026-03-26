@@ -1,6 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.staff
 
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.PostPayrollJournalEntryUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.staff.CalculatePayrollUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.ApproveLeaveUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.AssignEmployeeToStoreUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.GetEmployeeStoresUseCase
@@ -21,8 +22,12 @@ import com.zyntasolutions.zyntapos.domain.usecase.staff.GetShiftScheduleUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.GetTodayAttendanceUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.ProcessPayrollPaymentUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.RejectLeaveUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.staff.RequestLeaveUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.SaveEmployeeUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.SaveShiftScheduleUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.staff.ApproveShiftSwapUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.staff.RequestShiftSwapUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.staff.RespondToShiftSwapUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.staff.SubmitLeaveRequestUseCase
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.viewModel
@@ -72,6 +77,7 @@ val staffModule = module {
     factoryOf(::ApproveLeaveUseCase)
     factoryOf(::RejectLeaveUseCase)
     factoryOf(::GetPendingLeaveRequestsUseCase)
+    factoryOf(::RequestLeaveUseCase)
 
     // ── Sprint 11: Shift scheduling ───────────────────────────────────────
     factoryOf(::GetShiftScheduleUseCase)
@@ -80,6 +86,7 @@ val staffModule = module {
 
     // ── Sprint 12: Payroll ────────────────────────────────────────────────
     factoryOf(::GeneratePayrollUseCase)
+    factory { CalculatePayrollUseCase() }
     factoryOf(::ProcessPayrollPaymentUseCase)
     factory {
         PostPayrollJournalEntryUseCase(
@@ -93,6 +100,11 @@ val staffModule = module {
     factoryOf(::GetPayrollHistoryUseCase)
     factoryOf(::GetAttendanceSummaryUseCase)
     factoryOf(::GetLeaveHistoryUseCase)
+
+    // ── G: Shift Swap Workflow ─────────────────────────────────────────────
+    factoryOf(::RequestShiftSwapUseCase)
+    factoryOf(::RespondToShiftSwapUseCase)
+    factoryOf(::ApproveShiftSwapUseCase)
 
     // ── Sprint 16-C3.4: Employee Roaming ──────────────────────────────────
     factoryOf(::GetEmployeeStoresUseCase)
@@ -135,6 +147,8 @@ val staffModule = module {
             getPayrollHistoryUseCase = get(),
             getAttendanceSummaryUseCase = get(),
             getLeaveHistoryUseCase = get(),
+            storeRepository = get(),
+            attendanceRepository = get(),
             analytics = get(),
         )
     }

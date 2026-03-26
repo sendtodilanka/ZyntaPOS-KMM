@@ -1,5 +1,7 @@
 package com.zyntasolutions.zyntapos.domain.usecase.fakes
 
+import com.zyntasolutions.zyntapos.core.pagination.PageRequest
+import com.zyntasolutions.zyntapos.core.pagination.PaginatedResult
 import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.ValidationException
 import com.zyntasolutions.zyntapos.core.result.Result
@@ -132,6 +134,8 @@ class FakeProductRepository : ProductRepository {
     }
 
     override suspend fun getCount(): Int = products.size
+    override suspend fun getPage(pageRequest: PageRequest, categoryId: String?, searchQuery: String?): PaginatedResult<Product> =
+        PaginatedResult(items = emptyList(), totalCount = 0L, hasMore = false)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

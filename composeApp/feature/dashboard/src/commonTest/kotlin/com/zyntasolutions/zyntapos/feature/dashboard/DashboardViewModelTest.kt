@@ -1,6 +1,8 @@
 package com.zyntasolutions.zyntapos.feature.dashboard
 
 import app.cash.turbine.test
+import com.zyntasolutions.zyntapos.core.pagination.PageRequest
+import com.zyntasolutions.zyntapos.core.pagination.PaginatedResult
 import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.CartItem
@@ -101,6 +103,8 @@ class DashboardViewModelTest {
         }
         override suspend fun holdOrder(cart: List<CartItem>): Result<String> = Result.Success("hold-id")
         override suspend fun retrieveHeld(holdId: String): Result<Order> = Result.Error(DatabaseException("Not found"))
+        override suspend fun getPage(pageRequest: PageRequest, from: Instant?, to: Instant?, customerId: String?): PaginatedResult<Order> =
+            PaginatedResult(items = emptyList(), totalCount = 0L, hasMore = false)
     }
 
     private val fakeProductRepository = object : ProductRepository {
@@ -112,6 +116,8 @@ class DashboardViewModelTest {
         override suspend fun update(product: Product): Result<Unit> = Result.Success(Unit)
         override suspend fun delete(id: String): Result<Unit> = Result.Success(Unit)
         override suspend fun getCount(): Int = allProducts.size
+        override suspend fun getPage(pageRequest: PageRequest, categoryId: String?, searchQuery: String?): PaginatedResult<Product> =
+            PaginatedResult(items = emptyList(), totalCount = 0L, hasMore = false)
     }
 
     private val fakeRegisterRepository = object : RegisterRepository {

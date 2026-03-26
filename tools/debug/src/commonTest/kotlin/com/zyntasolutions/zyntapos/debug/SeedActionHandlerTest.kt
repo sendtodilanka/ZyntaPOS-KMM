@@ -1,5 +1,7 @@
 package com.zyntasolutions.zyntapos.debug
 
+import com.zyntasolutions.zyntapos.core.pagination.PageRequest
+import com.zyntasolutions.zyntapos.core.pagination.PaginatedResult
 import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.debug.actions.SeedActionHandlerImpl
@@ -102,6 +104,8 @@ class SeedActionHandlerTest {
         override suspend fun update(product: Product): Result<Unit> = Result.Success(Unit)
         override suspend fun delete(id: String): Result<Unit> = Result.Success(Unit)
         override suspend fun getCount(): Int = inserted.size
+        override suspend fun getPage(pageRequest: PageRequest, categoryId: String?, searchQuery: String?): PaginatedResult<Product> =
+            PaginatedResult(items = emptyList(), totalCount = 0L, hasMore = false)
     }
 
     private open class StubCustomerRepository : CustomerRepository {
@@ -122,6 +126,8 @@ class SeedActionHandlerTest {
         override fun getGlobalCustomers(): Flow<List<Customer>> = MutableStateFlow(emptyList())
         override suspend fun makeGlobal(customerId: String): Result<Unit> = Result.Success(Unit)
         override suspend fun updateLoyaltyPoints(customerId: String, points: Int): Result<Unit> = Result.Success(Unit)
+        override suspend fun getPage(pageRequest: PageRequest, searchQuery: String?): PaginatedResult<Customer> =
+            PaginatedResult(items = emptyList(), totalCount = 0L, hasMore = false)
     }
 
     // ── SUT builder ───────────────────────────────────────────────────────────

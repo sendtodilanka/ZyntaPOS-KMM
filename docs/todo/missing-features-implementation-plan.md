@@ -1023,7 +1023,7 @@ Backend Tests:
   - `TaxSettingsScreen` — "Regional Tax Overrides" action card navigates to override screen
 
 **What's REMAINING (deferred):**
-- [ ] Support for compound taxes (VAT + service charge + local surcharge stacked)
+- [x] Support for compound taxes (VAT + service charge + local surcharge stacked)
 - [ ] Backend: REST endpoint `GET/POST /v1/taxes/overrides` with POS JWT auth (store operation per ADR-009)
 
 **Key Files:**
@@ -1080,8 +1080,8 @@ Backend Tests:
 - [x] `CouponRepositoryImpl` concrete binding added to `DataModule.kt`; `couponRepository` passed to `SyncEngine`
 
 **What's REMAINING (deferred to Phase 3):**
-- [ ] Store-specific discount limits (e.g., max 20% at store A, max 30% at store B)
-- [ ] Promotion conflict resolution when multiple promotion types match simultaneously
+- [x] Store-specific discount limits (e.g., max 20% at store A, max 30% at store B)
+- [x] Promotion conflict resolution when multiple promotion types match simultaneously
 - [ ] `PromotionConfig` backend write (admin panel promotion management — ADR-009 Phase 3)
 
 **Key Files:**
@@ -1237,8 +1237,8 @@ Backend Tests:
 **What's REMAINING (deferred):**
 - [x] Modify `shift_schedules.sq` — allow shifts across different stores for same employee (migration `20.sqm`, index `idx_shifts_emp_store_date`)
 - [x] KMM UI: Employee store assignment management (`EmployeeStoreAssignmentScreen` + `EmployeeRoamingViewModel` + `EmployeeRoamingState/Intent/Effect`; wired in `ZyntaRoute.EmployeeStoreAssignments`, `MainNavScreens`, `MainNavGraph`, `App.kt`; "Manage Store Assignments" button in `EmployeeDetailScreen`)
-- [ ] KMM UI: Store selector on clock-in screen (if employee has multi-store access)
-- [ ] Cross-store attendance reports
+- [x] KMM UI: Store selector on clock-in screen (if employee has multi-store access)
+- [x] Cross-store attendance reports
 
 ---
 
@@ -1275,8 +1275,8 @@ Backend Tests:
 - [x] 11 unit tests (CrossStoreReturnUseCaseTest)
 
 **What's REMAINING (deferred):**
-- [ ] Cross-store inventory adjustment (return stock to original or current store?)
-- [ ] Business rule: Configurable policy — stock goes to return store vs original store
+- [x] Cross-store inventory adjustment (return stock to original or current store?)
+- [x] Business rule: Configurable policy — stock goes to return store vs original store
 - [x] KMM POS: Lookup order by ID/receipt from any store for return processing (UI)
 - [ ] Backend: Cross-store order lookup endpoint under `/v1/orders` with POS JWT auth
 - [ ] Sync: Refund propagation to original store for accounting
@@ -1448,10 +1448,10 @@ Backend Tests:
 - [x] `ConsolidatedFinancialReportUseCase` — ✅ DONE: aggregates P&L across multiple stores; merges lines by accountId, sums totals; registered in `accountingModule`
 
 **What's REMAINING (deferred):**
-- [ ] Multi-currency consolidation (convert all store revenues to base currency)
-- [ ] Inter-store transaction elimination (remove internal transfers)
+- [x] Multi-currency consolidation (convert all store revenues to base currency)
+- [x] Inter-store transaction elimination (remove internal transfers)
 - [ ] Admin panel: Consolidated financial report pages (read-only monitoring — ADR-009 compliant)
-- [ ] CSV/PDF export for consolidated reports
+- [x] CSV/PDF export for consolidated reports
 - [ ] `GenerateMultiStoreComparisonReportUseCase` — stub returning empty list (needs backend)
 
 **Key Files:**
@@ -1672,10 +1672,10 @@ Backend Tests:
 - [x] Receipt timestamp: `ReceiptFormatter` now uses `DateTimeUtils.formatForDisplay()` which respects `AppTimezone.current` (store's local timezone)
 
 **What's REMAINING (deferred):**
-- [ ] Multi-store timezone handling: When admin views reports from different timezones
-- [ ] Report date range conversion: User selects "Today" → convert to store's timezone for query
-- [ ] Sync timestamp normalization: All sync operations use UTC, display converts to local
-- [ ] DST (Daylight Saving Time) handling for stores in affected regions
+- [x] Multi-store timezone handling: When admin views reports from different timezones
+- [x] Report date range conversion: User selects "Today" → convert to store's timezone for query
+- [x] Sync timestamp normalization: All sync operations use UTC, display converts to local
+- [x] DST (Daylight Saving Time) handling for stores in affected regions
 
 ---
 
@@ -1728,8 +1728,8 @@ Backend Tests:
 - [x] KMM UI: Staff module screens — ✅ VERIFIED: `EmployeeListScreen.kt`, `EmployeeDetailScreen.kt`, `AttendanceScreen.kt`, `ShiftSchedulerScreen.kt`, `LeaveManagementScreen.kt`, `PayrollScreen.kt` + `StaffViewModel.kt` (675L) — 3,006 LOC total, fully implemented
 
 **REMAINING (Phase 3):**
-- [ ] Payroll calculation engine (salary, overtime, deductions) — Phase 3
-- [ ] Leave management workflow (request → approve → track) — Phase 3
+- [x] Payroll calculation engine (salary, overtime, deductions) — ✅ DONE (2026-03-26): PayrollEntry model, CalculatePayrollUseCase, payroll.sq, PayrollEntryRepository + impl, DI wired
+- [x] Leave management workflow (request → approve → track) — ✅ DONE (2026-03-26): LeaveRequest model (7 types, 4 statuses), RequestLeaveUseCase + ApproveLeaveUseCase, leave_requests.sq, LeaveRepository extended + impl, DI wired
 - [ ] Cross-store attendance/shifts (see C3.4) — Phase 3
 
 ---
@@ -1746,8 +1746,8 @@ Backend Tests:
 
 **REMAINING (Phase 3):**
 - [ ] Receipt image attachment — Phase 3
-- [ ] P&L integration (connect expenses to financial statements) — Phase 3
-- [ ] Budget tracking per store/category — Phase 3
+- [x] P&L integration (connect expenses to financial statements) — ✅ DONE (2026-03-26): GenerateProfitAndLossUseCase aggregating sales + expenses, ProfitAndLossReport model, DI wired
+- [x] Budget tracking per store/category — ✅ DONE (2026-03-26): Budget model, budgets.sq, BudgetRepository + impl, TrackBudgetSpendingUseCase, DI wired
 
 ---
 
@@ -2278,12 +2278,12 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 
 **Phase 3 Nice-to-Have:**
 - [ ] 3-pane responsive layout for warehouse tablet UI
-- [ ] High-contrast accessibility theme
-- [ ] i18n/locale infrastructure
+- [x] High-contrast accessibility theme
+- [x] i18n/locale infrastructure
 - [ ] Receipt template visual editor
 - [x] Conflict resolution UI for CRDT merges — ✅ ConflictListScreen in Admin tab 4 (C6.1 Item 6, 2026-03-19)
-- [ ] Customer segmentation/advanced filtering
-- [ ] Shift swap/request workflow
+- [x] Customer segmentation/advanced filtering
+- [x] Shift swap/request workflow
 
 ---
 

@@ -1,5 +1,7 @@
 package com.zyntasolutions.zyntapos.domain.usecase.pos
 
+import com.zyntasolutions.zyntapos.core.pagination.PageRequest
+import com.zyntasolutions.zyntapos.core.pagination.PaginatedResult
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.CartItem
 import com.zyntasolutions.zyntapos.domain.model.DiscountType
@@ -274,4 +276,6 @@ private class FakeOrderRepository : OrderRepository {
 
     override suspend fun retrieveHeld(holdId: String): Result<Order> =
         Result.Error(com.zyntasolutions.zyntapos.core.result.DatabaseException("Not implemented"))
+    override suspend fun getPage(pageRequest: PageRequest, from: Instant?, to: Instant?, customerId: String?): PaginatedResult<Order> =
+        PaginatedResult(items = emptyList(), totalCount = 0L, hasMore = false)
 }

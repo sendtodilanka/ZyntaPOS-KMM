@@ -52,6 +52,25 @@ END;
 getAllCustomers:
 SELECT * FROM customers WHERE is_active = 1 ORDER BY name ASC;
 
+-- ── Paginated queries (for Paging3 / infinite-scroll UI) ────────────────────
+
+getCustomersPage:
+SELECT * FROM customers WHERE is_active = 1 ORDER BY name ASC LIMIT :limit OFFSET :offset;
+
+countCustomers:
+SELECT COUNT(*) FROM customers WHERE is_active = 1;
+
+searchCustomersPage:
+SELECT c.* FROM customers c
+INNER JOIN customers_fts fts ON fts.customer_id = c.id
+WHERE customers_fts MATCH :query AND c.is_active = 1
+LIMIT :limit OFFSET :offset;
+
+countSearchCustomers:
+SELECT COUNT(*) FROM customers c
+INNER JOIN customers_fts fts ON fts.customer_id = c.id
+WHERE customers_fts MATCH :query AND c.is_active = 1;
+
 getCustomerById:
 SELECT * FROM customers WHERE id = ?;
 

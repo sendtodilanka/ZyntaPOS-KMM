@@ -1,5 +1,7 @@
 package com.zyntasolutions.zyntapos.seed
 
+import com.zyntasolutions.zyntapos.core.pagination.PageRequest
+import com.zyntasolutions.zyntapos.core.pagination.PaginatedResult
 import com.zyntasolutions.zyntapos.core.result.DatabaseException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.Category
@@ -103,6 +105,8 @@ class SeedRunnerTest {
         }
         override suspend fun update(product: Product): Result<Unit> = Result.Success(Unit)
         override suspend fun delete(id: String): Result<Unit> = Result.Success(Unit)
+        override suspend fun getPage(pageRequest: PageRequest, categoryId: String?, searchQuery: String?): PaginatedResult<Product> =
+            PaginatedResult(items = emptyList(), totalCount = 0L, hasMore = false)
     }
 
     private val fakeCustomerRepository = object : CustomerRepository {
@@ -125,6 +129,8 @@ class SeedRunnerTest {
         override fun getGlobalCustomers(): Flow<List<Customer>> = flowOf(emptyList())
         override suspend fun makeGlobal(customerId: String): Result<Unit> = Result.Success(Unit)
         override suspend fun updateLoyaltyPoints(customerId: String, points: Int): Result<Unit> = Result.Success(Unit)
+        override suspend fun getPage(pageRequest: PageRequest, searchQuery: String?): PaginatedResult<Customer> =
+            PaginatedResult(items = emptyList(), totalCount = 0L, hasMore = false)
     }
 
     private fun runner() = SeedRunner(
