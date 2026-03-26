@@ -36,6 +36,8 @@ import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTable
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTableColumn
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTextField
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.CustomRole
@@ -52,13 +54,19 @@ import kotlinx.coroutines.flow.collectLatest
 // Sprint 23 — Step 13.1.6
 // ─────────────────────────────────────────────────────────────────────────────
 
-private val USER_COLUMNS = listOf(
-    ZyntaTableColumn(key = "name",   header = "Name",   weight = 2f),
-    ZyntaTableColumn(key = "email",  header = "Email",  weight = 2f),
-    ZyntaTableColumn(key = "role",   header = "Role",   weight = 1f),
-    ZyntaTableColumn(key = "status", header = "Status", weight = 1f),
-    ZyntaTableColumn(key = "action", header = "",       weight = 1f, sortable = false),
-)
+@Composable
+private fun userColumns(): List<ZyntaTableColumn> {
+    val s = LocalStrings.current
+    return remember(s) {
+        listOf(
+            ZyntaTableColumn(key = "name",   header = s[StringResource.COMMON_NAME],   weight = 2f),
+            ZyntaTableColumn(key = "email",  header = s[StringResource.SETTINGS_EMAIL],  weight = 2f),
+            ZyntaTableColumn(key = "role",   header = s[StringResource.COMMON_ROLE],   weight = 1f),
+            ZyntaTableColumn(key = "status", header = s[StringResource.COMMON_STATUS], weight = 1f),
+            ZyntaTableColumn(key = "action", header = "",                              weight = 1f, sortable = false),
+        )
+    }
+}
 
 /**
  * User management screen — list, create, edit and deactivate staff accounts.
@@ -78,6 +86,7 @@ fun UserManagementScreen(
     onIntent: (SettingsIntent) -> Unit,
     onBack: () -> Unit,
 ) {
+    val s = LocalStrings.current
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) { onIntent(SettingsIntent.LoadUsers) }
@@ -85,7 +94,7 @@ fun UserManagementScreen(
     LaunchedEffect(effects) {
         effects.collectLatest { effect ->
             when (effect) {
-                SettingsEffect.UserSaved -> snackbarHostState.showSnackbar("User saved.")
+                SettingsEffect.UserSaved -> snackbarHostState.showSnackbar(s[StringResource.SETTINGS_USER_SAVED])
                 is SettingsEffect.ShowSnackbar -> snackbarHostState.showSnackbar(effect.message)
                 else -> Unit
             }
@@ -106,12 +115,12 @@ fun UserManagementScreen(
     }
 
     ZyntaPageScaffold(
-        title = "User Management",
+        title = s[StringResource.SETTINGS_USER_MANAGEMENT],
         onNavigateBack = onBack,
         snackbarHostState = snackbarHostState,
         floatingActionButton = {
             FloatingActionButton(onClick = { onIntent(SettingsIntent.OpenCreateUser) }) {
-                Icon(Icons.Filled.Add, contentDescription = "Add User")
+                Icon(Icons.Filled.Add, contentDescription = s[StringResource.SETTINGS_ADD_USER])
             }
         },
     ) { innerPadding ->
@@ -127,17 +136,17 @@ fun UserManagementScreen(
         ) {
             when {
                 state.isLoading -> Text(
-                    "Loading users…",
+                    s[StringResource.SETTINGS_LOADING_USERS],
                     modifier = Modifier.align(Alignment.Center),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 state.users.isEmpty() -> ZyntaEmptyState(
-                    title = "No users found",
+                    title = s[StringResource.SETTINGS_NO_USERS_TITLE],
                     icon = Icons.Filled.Add,
-                    subtitle = "Tap + to create one.",
+                    subtitle = s[StringResource.SETTINGS_NO_USERS_HINT],
                 )
                 else -> ZyntaTable(
-                    columns = USER_COLUMNS,
+                    columns = userColumns(),
                     items = state.users,
                     rowKey = { it.id },
                     modifier = Modifier.fillMaxSize(),
@@ -148,11 +157,11 @@ fun UserManagementScreen(
                             style = MaterialTheme.typography.bodyMedium)
                         Text(u.role.name, modifier = Modifier.weight(1f),
                             style = MaterialTheme.typography.bodyMedium)
-                        Text(if (u.isActive) "Active" else "Inactive",
+                        Text(if (u.isActive) s[StringResource.COMMON_ACTIVE] else s[StringResource.COMMON_INACTIVE],
                             modifier = Modifier.weight(1f),
                             style = MaterialTheme.typography.bodyMedium)
                         ZyntaButton(
-                            text = "Edit",
+                            text = s[StringResource.COMMON_EDIT],
                             onClick = { onIntent(SettingsIntent.OpenEditUser(u)) },
                             modifier = Modifier.weight(1f),
                         )
@@ -175,6 +184,7 @@ private fun UserFormSheet(
     onIntent: (SettingsIntent) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val s = LocalStrings.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     ZyntaBottomSheet(
@@ -189,20 +199,20 @@ private fun UserFormSheet(
                 .padding(bottom = ZyntaSpacing.lg),
         ) {
             Text(
-                text = if (isCreating) "Create User" else "Edit User",
+                text = if (isCreating) s[StringResource.SETTINGS_CREATE_USER] else s[StringResource.SETTINGS_EDIT_USER],
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(bottom = ZyntaSpacing.sm),
             )
             ZyntaTextField(
                 value = form.name,
                 onValueChange = { onIntent(SettingsIntent.UpdateUserFormName(it)) },
-                label = "Full Name",
+                label = s[StringResource.SETTINGS_FULL_NAME],
                 modifier = Modifier.fillMaxWidth(),
             )
             ZyntaTextField(
                 value = form.email,
                 onValueChange = { onIntent(SettingsIntent.UpdateUserFormEmail(it)) },
-                label = "Email Address",
+                label = s[StringResource.SETTINGS_EMAIL_ADDRESS],
                 modifier = Modifier.fillMaxWidth(),
                 enabled = isCreating, // email is immutable once created
             )
@@ -210,7 +220,7 @@ private fun UserFormSheet(
                 ZyntaTextField(
                     value = form.password,
                     onValueChange = { onIntent(SettingsIntent.UpdateUserFormPassword(it)) },
-                    label = "Password",
+                    label = s[StringResource.COMMON_PASSWORD],
                     modifier = Modifier.fillMaxWidth(),
                     visualTransformation = PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -230,7 +240,7 @@ private fun UserFormSheet(
                 ZyntaTextField(
                     value = selectedRoleLabel,
                     onValueChange = {},
-                    label = "Role",
+                    label = s[StringResource.COMMON_ROLE],
                     readOnly = true,
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = roleDropdownExpanded) },
                     modifier = Modifier
@@ -262,25 +272,25 @@ private fun UserFormSheet(
                 }
             }
             ToggleRow(
-                label = "Account Active",
+                label = s[StringResource.SETTINGS_ACCOUNT_ACTIVE],
                 checked = form.isActive,
                 onCheckedChange = { onIntent(SettingsIntent.UpdateUserFormActive(it)) },
             )
             // ── Quick-Switch PIN section ──────────────────────────────────────
             Text(
-                text = "Quick-Switch PIN",
+                text = s[StringResource.SETTINGS_QUICK_SWITCH_PIN],
                 style = MaterialTheme.typography.labelLarge,
                 modifier = Modifier.padding(top = ZyntaSpacing.md),
             )
             Text(
-                text = "Leave blank to keep existing PIN",
+                text = s[StringResource.SETTINGS_KEEP_PIN_HINT],
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             ZyntaTextField(
                 value = form.newPin,
                 onValueChange = { onIntent(SettingsIntent.UpdateUserFormPin(it)) },
-                label = "New PIN (4–6 digits)",
+                label = s[StringResource.SETTINGS_NEW_PIN],
                 modifier = Modifier.fillMaxWidth(),
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
@@ -288,7 +298,7 @@ private fun UserFormSheet(
             ZyntaTextField(
                 value = form.confirmPin,
                 onValueChange = { onIntent(SettingsIntent.UpdateUserFormConfirmPin(it)) },
-                label = "Confirm PIN",
+                label = s[StringResource.SETTINGS_CONFIRM_PIN],
                 modifier = Modifier.fillMaxWidth(),
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
@@ -305,7 +315,7 @@ private fun UserFormSheet(
                     style = MaterialTheme.typography.bodySmall)
             }
             ZyntaButton(
-                text = "Save User",
+                text = s[StringResource.SETTINGS_SAVE_USER],
                 onClick = { onIntent(SettingsIntent.SaveUser) },
                 modifier = Modifier.fillMaxWidth(),
             )
