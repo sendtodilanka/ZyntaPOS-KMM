@@ -94,6 +94,7 @@ data class SyncOperation(
         const val EMPLOYEE = "employee"
         const val ATTENDANCE_RECORD = "attendance_record"
         const val LEAVE_RECORD = "leave_record"
+        const val LEAVE_REQUEST = "leave_request"
         const val PAYROLL_RECORD = "payroll_record"
         const val SHIFT_SCHEDULE = "shift_schedule"
         const val MEDIA_FILE = "media_file"
@@ -118,5 +119,9 @@ data class SyncOperation(
         const val EMPLOYEE_STORE_ASSIGNMENT = "employee_store_assignment"
         // G: Shift swap workflow
         const val SHIFT_SWAP_REQUEST = "shift_swap_request"
+        // Phase 3: Payroll calculation engine
+        const val PAYROLL = "payroll"
+        // Phase 3: Budget tracking per store/category
+        const val BUDGET = "budget"
     }
 }

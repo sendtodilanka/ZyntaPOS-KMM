@@ -11,6 +11,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetAccountBalancesU
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetAccountingPeriodsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetAccountsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetBalanceSheetUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.accounting.GenerateProfitAndLossUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetCashFlowStatementUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetGeneralLedgerUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetJournalEntriesUseCase
@@ -27,6 +28,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.accounting.ReopenAccountingPer
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.ReverseJournalEntryUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.SaveAccountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.SaveDraftJournalEntryUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.accounting.TrackBudgetSpendingUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.SeedDefaultChartOfAccountsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.einvoice.CancelEInvoiceUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.einvoice.CreateEInvoiceUseCase
@@ -117,6 +119,10 @@ val accountingModule = module {
     factoryOf(::GetTrialBalanceUseCase)
     factoryOf(::GetGeneralLedgerUseCase)
     factoryOf(::GetCashFlowStatementUseCase)
+
+    // ── Budget & P&L Integration Use Cases (Phase 3) ────────────────────────
+    factoryOf(::TrackBudgetSpendingUseCase)
+    factoryOf(::GenerateProfitAndLossUseCase)
 
     // ── ViewModels ────────────────────────────────────────────────────────────
     // AuthRepository is injected directly into legacy VMs; storeId is resolved

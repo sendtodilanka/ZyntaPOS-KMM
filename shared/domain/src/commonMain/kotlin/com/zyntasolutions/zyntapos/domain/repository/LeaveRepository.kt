@@ -2,6 +2,8 @@ package com.zyntasolutions.zyntapos.domain.repository
 
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.LeaveRecord
+import com.zyntasolutions.zyntapos.domain.model.LeaveRequest
+import com.zyntasolutions.zyntapos.domain.model.LeaveRequestStatus
 import com.zyntasolutions.zyntapos.domain.model.LeaveStatus
 import kotlinx.coroutines.flow.Flow
 
@@ -49,6 +51,35 @@ interface LeaveRepository {
         decidedBy: String,
         decidedAt: Long,
         rejectionReason: String? = null,
+        updatedAt: Long,
+    ): Result<Unit>
+
+    // ── LeaveRequest workflow (Phase 3 extended leave types) ─────────────────
+
+    /** Returns a single leave request by [id], or null if not found. */
+    suspend fun getLeaveRequestById(id: String): Result<LeaveRequest?>
+
+    /** Emits all leave requests for [employeeId], most recent first. Re-emits on change. */
+    fun getLeaveRequestsByEmployee(employeeId: String): Flow<List<LeaveRequest>>
+
+    /** Emits all pending leave requests. Re-emits on change. */
+    fun getPendingLeaveRequests(): Flow<List<LeaveRequest>>
+
+    /** Inserts a new leave request with status PENDING. */
+    suspend fun insertLeaveRequest(request: LeaveRequest): Result<Unit>
+
+    /**
+     * Updates the status of a leave request.
+     *
+     * @param id Leave request ID.
+     * @param status New status (APPROVED, REJECTED, or CANCELLED).
+     * @param approverNotes Optional notes from the approver.
+     * @param updatedAt Epoch millis for the record update timestamp.
+     */
+    suspend fun updateLeaveRequestStatus(
+        id: String,
+        status: LeaveRequestStatus,
+        approverNotes: String?,
         updatedAt: Long,
     ): Result<Unit>
 }

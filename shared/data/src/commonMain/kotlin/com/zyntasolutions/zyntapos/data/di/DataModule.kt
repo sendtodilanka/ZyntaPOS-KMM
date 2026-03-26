@@ -17,6 +17,7 @@ import com.zyntasolutions.zyntapos.data.repository.DiagnosticConsentRepositoryIm
 import com.zyntasolutions.zyntapos.data.repository.CustomerGroupRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.CustomerRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.CustomerWalletRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.BudgetRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.ExpenseRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.InstallmentRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.LoyaltyRepositoryImpl
@@ -52,6 +53,7 @@ import com.zyntasolutions.zyntapos.data.repository.EmployeeRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.FeatureRegistryRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.LeaveRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.MediaRepositoryImpl
+import com.zyntasolutions.zyntapos.data.repository.PayrollEntryRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.PayrollRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.LabelPrinterConfigRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.LabelTemplateRepositoryImpl
@@ -91,6 +93,7 @@ import com.zyntasolutions.zyntapos.domain.repository.CustomerGroupRepository
 import com.zyntasolutions.zyntapos.domain.repository.DiagnosticConsentRepository
 import com.zyntasolutions.zyntapos.domain.repository.CustomerRepository
 import com.zyntasolutions.zyntapos.domain.repository.CustomerWalletRepository
+import com.zyntasolutions.zyntapos.domain.repository.BudgetRepository
 import com.zyntasolutions.zyntapos.domain.repository.ExpenseRepository
 import com.zyntasolutions.zyntapos.domain.repository.InstallmentRepository
 import com.zyntasolutions.zyntapos.domain.repository.LoyaltyRepository
@@ -121,6 +124,7 @@ import com.zyntasolutions.zyntapos.domain.repository.EmployeeStoreAssignmentRepo
 import com.zyntasolutions.zyntapos.domain.repository.FeatureRegistryRepository
 import com.zyntasolutions.zyntapos.domain.repository.LeaveRepository
 import com.zyntasolutions.zyntapos.domain.repository.MediaRepository
+import com.zyntasolutions.zyntapos.domain.repository.PayrollEntryRepository
 import com.zyntasolutions.zyntapos.domain.repository.PayrollRepository
 import com.zyntasolutions.zyntapos.domain.repository.LabelPrinterConfigRepository
 import com.zyntasolutions.zyntapos.domain.repository.LabelTemplateRepository
@@ -265,6 +269,9 @@ val dataModule = module {
 
     // Shift swap requests — shift swap/request workflow (G)
     single<ShiftSwapRepository> { ShiftSwapRepositoryImpl(db = get(), syncEnqueuer = get()) }
+
+    // Payroll entries — payroll calculation engine (Phase 3)
+    single<PayrollEntryRepository> { PayrollEntryRepositoryImpl(db = get(), syncEnqueuer = get()) }
 
     // Exchange rates — multi-currency support (C2.2)
     single<ExchangeRateRepository> { ExchangeRateRepositoryImpl(db = get()) }
@@ -412,6 +419,9 @@ val dataModule = module {
 
     // Expenses: CRUD, approval workflow, categories, recurring schedules
     single<ExpenseRepository> { ExpenseRepositoryImpl(db = get(), syncEnqueuer = get()) }
+
+    // Budgets: per-store/category budget tracking (Phase 3)
+    single<BudgetRepository> { BudgetRepositoryImpl(db = get(), syncEnqueuer = get()) }
 
     // ─────────────────────────────────────────────────────────────────────────
     // ── Phase 2 Multi-Store / Warehouses ─────────────────────────────────────

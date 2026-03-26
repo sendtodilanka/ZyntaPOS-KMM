@@ -1,0 +1,48 @@
+-- ============================================================
+-- budgets.sq — Per-store/category budget tracking
+-- ============================================================
+
+CREATE TABLE budgets (
+    id            TEXT    NOT NULL PRIMARY KEY,
+    store_id      TEXT    NOT NULL,
+    category_id   TEXT,
+    period_start  TEXT    NOT NULL,
+    period_end    TEXT    NOT NULL,
+    budget_amount REAL    NOT NULL,
+    spent_amount  REAL    NOT NULL DEFAULT 0.0,
+    name          TEXT    NOT NULL,
+    created_at    INTEGER NOT NULL,
+    updated_at    INTEGER NOT NULL,
+    sync_status   TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE INDEX idx_budgets_store       ON budgets(store_id);
+CREATE INDEX idx_budgets_store_period ON budgets(store_id, period_start, period_end);
+CREATE INDEX idx_budgets_category    ON budgets(category_id);
+
+-- ── Read queries ────────────────────────────────────────────────────────────
+
+getBudgetById:
+SELECT * FROM budgets WHERE id = ?;
+
+getBudgetsByStore:
+SELECT * FROM budgets WHERE store_id = ? ORDER BY period_start DESC;
+
+getBudgetsByStoreAndPeriod:
+SELECT * FROM budgets
+WHERE store_id = ?
+  AND period_start <= ?
+  AND period_end >= ?
+ORDER BY name ASC;
+
+-- ── Write queries ───────────────────────────────────────────────────────────
+
+insertBudget:
+INSERT INTO budgets(id, store_id, category_id, period_start, period_end, budget_amount, spent_amount, name, created_at, updated_at, sync_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateBudgetSpent:
+UPDATE budgets SET spent_amount = ?, updated_at = ?, sync_status = 'PENDING' WHERE id = ?;
+
+deleteBudget:
+DELETE FROM budgets WHERE id = ?;

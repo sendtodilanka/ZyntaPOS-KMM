@@ -1,0 +1,53 @@
+-- ============================================================
+-- payroll.sq — Payroll calculation entries (Phase 3)
+-- Detailed overtime-hours/rate breakdown per employee per period
+-- ============================================================
+
+CREATE TABLE payroll_entries (
+    id               TEXT    NOT NULL PRIMARY KEY,
+    employee_id      TEXT    NOT NULL REFERENCES employees(id),
+    period_start     TEXT    NOT NULL,                          -- ISO date: YYYY-MM-DD
+    period_end       TEXT    NOT NULL,                          -- ISO date: YYYY-MM-DD
+    base_salary      REAL    NOT NULL,
+    overtime_hours   REAL    NOT NULL DEFAULT 0.0,
+    overtime_rate    REAL    NOT NULL DEFAULT 0.0,
+    overtime_pay     REAL    NOT NULL DEFAULT 0.0,
+    deductions       REAL    NOT NULL DEFAULT 0.0,
+    deduction_notes  TEXT,
+    net_pay          REAL    NOT NULL,
+    status           TEXT    NOT NULL DEFAULT 'DRAFT',          -- 'DRAFT', 'APPROVED', 'PAID'
+    created_at       INTEGER NOT NULL,
+    updated_at       INTEGER NOT NULL,
+    sync_status      TEXT    NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE INDEX idx_payroll_entries_employee ON payroll_entries(employee_id);
+CREATE INDEX idx_payroll_entries_period   ON payroll_entries(period_start, period_end);
+CREATE INDEX idx_payroll_entries_status   ON payroll_entries(status);
+
+-- ── Read queries ──────────────────────────────────────────────────────────────
+
+getPayrollById:
+SELECT * FROM payroll_entries WHERE id = ?;
+
+getPayrollByEmployee:
+SELECT * FROM payroll_entries WHERE employee_id = ? ORDER BY period_start DESC;
+
+getPayrollByPeriod:
+SELECT * FROM payroll_entries
+WHERE period_start = ? AND period_end = ?
+ORDER BY employee_id ASC;
+
+-- ── Write queries ─────────────────────────────────────────────────────────────
+
+insertPayroll:
+INSERT INTO payroll_entries(
+    id, employee_id, period_start, period_end, base_salary,
+    overtime_hours, overtime_rate, overtime_pay, deductions, deduction_notes,
+    net_pay, status, created_at, updated_at, sync_status
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updatePayrollStatus:
+UPDATE payroll_entries
+SET status = ?, updated_at = ?, sync_status = 'PENDING'
+WHERE id = ?;
