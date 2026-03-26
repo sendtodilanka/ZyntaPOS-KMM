@@ -15,7 +15,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButtonSize
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
@@ -74,6 +77,7 @@ fun PaymentScreen(
     modifier: Modifier = Modifier,
     formatter: CurrencyFormatter = CurrencyFormatter(),
 ) {
+    val s = LocalStrings.current
     // ── Local UI state ─────────────────────────────────────────────────────────
     var selectedMethod by remember { mutableStateOf<PaymentMethod?>(PaymentMethod.CASH) }
     var tenderedRaw by remember { mutableStateOf("0") }
@@ -122,7 +126,7 @@ fun PaymentScreen(
 
     // ── Scaffold ───────────────────────────────────────────────────────────────
     ZyntaPageScaffold(
-        title = "Payment",
+        title = s[StringResource.POS_PAYMENT_TITLE],
         modifier = modifier,
         onNavigateBack = onDismiss,
     ) { innerPadding ->
@@ -225,6 +229,7 @@ private fun PaymentInputPane(
     onPayClicked: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -233,7 +238,7 @@ private fun PaymentInputPane(
         verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
     ) {
         Text(
-            "Select Payment Method",
+            s[StringResource.POS_SELECT_PAYMENT_METHOD],
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
         )
 
@@ -251,7 +256,7 @@ private fun PaymentInputPane(
                     formatter = formatter,
                 )
                 ZyntaButton(
-                    text = if (isLoading) "Processing…" else "PAY  ${formatter.format(orderTotal)}",
+                    text = if (isLoading) s[StringResource.POS_PROCESSING] else "${s[StringResource.POS_PAY]}  ${formatter.format(orderTotal)}",
                     onClick = onPayClicked,
                     size = ZyntaButtonSize.Large,
                     enabled = isPayEnabled && !isLoading,
@@ -274,7 +279,7 @@ private fun PaymentInputPane(
             PaymentMethod.CARD, PaymentMethod.MOBILE, PaymentMethod.BANK_TRANSFER -> {
                 NonCashSummary(orderTotal = orderTotal, method = selectedMethod, formatter = formatter)
                 ZyntaButton(
-                    text = if (isLoading) "Processing…" else "PAY  ${formatter.format(orderTotal)}",
+                    text = if (isLoading) s[StringResource.POS_PROCESSING] else "${s[StringResource.POS_PAY]}  ${formatter.format(orderTotal)}",
                     onClick = onPayClicked,
                     size = ZyntaButtonSize.Large,
                     enabled = !isLoading,
@@ -294,7 +299,7 @@ private fun PaymentInputPane(
                         modifier = Modifier.padding(ZyntaSpacing.lg),
                     ) {
                         Text(
-                            "Please select a payment method above",
+                            s[StringResource.POS_SELECT_PAYMENT_METHOD_PROMPT],
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -365,7 +370,8 @@ private fun OrderSummaryPane(
         shape = MaterialTheme.shapes.medium,
     ) {
         Column(modifier = Modifier.padding(ZyntaSpacing.md)) {
-            Text("Order Summary", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+            val s = LocalStrings.current
+            Text(s[StringResource.POS_ORDER_SUMMARY], style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
 
             if (selectedCustomer != null) {
                 Spacer(Modifier.height(ZyntaSpacing.xs))
@@ -420,10 +426,11 @@ private fun OrderSummaryItem(item: CartItem, formatter: CurrencyFormatter) {
 @Composable
 private fun OrderSummaryTotals(orderTotals: OrderTotals, formatter: CurrencyFormatter) {
     Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.xs)) {
-        SummaryLine("Subtotal", formatter.format(orderTotals.subtotal))
-        SummaryLine("Tax", formatter.format(orderTotals.taxAmount))
+        val s = LocalStrings.current
+        SummaryLine(s[StringResource.COMMON_SUBTOTAL], formatter.format(orderTotals.subtotal))
+        SummaryLine(s[StringResource.COMMON_TAX], formatter.format(orderTotals.taxAmount))
         if (orderTotals.discountAmount > 0) {
-            SummaryLine("Discount", "− ${formatter.format(orderTotals.discountAmount)}", MaterialTheme.colorScheme.error)
+            SummaryLine(s[StringResource.COMMON_DISCOUNT], "− ${formatter.format(orderTotals.discountAmount)}", MaterialTheme.colorScheme.error)
         }
         Spacer(Modifier.height(ZyntaSpacing.xs))
         Row(
@@ -431,7 +438,7 @@ private fun OrderSummaryTotals(orderTotals: OrderTotals, formatter: CurrencyForm
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("TOTAL", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+            Text(s[StringResource.COMMON_TOTAL], style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
             Text(
                 formatter.format(orderTotals.total),
                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold, fontSize = 22.sp),
@@ -465,6 +472,7 @@ private fun CollapsibleOrderSummary(
     onToggle: () -> Unit,
     formatter: CurrencyFormatter,
 ) {
+    val s = LocalStrings.current
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(ZyntaSpacing.sm)) {
             Row(
@@ -473,7 +481,7 @@ private fun CollapsibleOrderSummary(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    "Order (${cartItems.size} items)",
+                    "${s[StringResource.POS_ORDER_ITEMS_COUNT]} (${cartItems.size})",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {

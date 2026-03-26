@@ -4174,3 +4174,44 @@ B1 Admin Panel Enhancements confirmed end-to-end complete. VPS deployment pipeli
 ### OTA Update Management Page — Deferred
 
 The OTA update management page remains deferred. It requires a device management backend (remote command dispatch, binary artifact storage, update manifest API, OTA installation agent on device). This is tracked under TODO-006 / Phase 3 Enterprise scope.
+
+## Phase 3 — Enterprise (Months 13–18) ✅ COMPLETE
+
+| Sprint | Goal | Status | Date |
+|--------|------|--------|------|
+| Sprint 1  | Staff & HR SQLDelight schema (5 tables + migration v5) | ✅ | Week 1 |
+| Sprint 2  | Media + Accounting + Infrastructure schema (4 tables + migration v6) | ✅ | Week 2 |
+| Sprint 3  | Staff & HR domain models + 18 use case interfaces | ✅ | Week 3 |
+| Sprint 4  | Media + Admin + E-Invoice domain models + 24 use case interfaces | ✅ | Week 4 |
+| Sprint 5  | Staff & HR repository implementations + use cases | ✅ | Week 5 |
+| Sprint 6  | Media repository + ImageProcessor HAL (Android/Desktop) | ✅ | Week 6 |
+| Sprint 7  | Admin + Accounting repos + Phase 3 navigation (30 routes) | ✅ | Week 7 |
+| Sprint 8  | Staff feature: Employee CRUD screens + MVI scaffold | ✅ | Week 8 |
+| Sprint 9  | Staff feature: Attendance clock-in/out + daily log | ✅ | Week 9 |
+| Sprint 10 | Staff feature: Leave management + approval workflow | ✅ | Week 10 |
+| Sprint 11 | Staff feature: Shift scheduling + ZyntaWeekCalendar | ✅ | Week 11 |
+| Sprint 12 | Staff feature: Payroll + payslip view + commission | ✅ | Week 12 |
+| Sprint 13 | Admin feature: System health dashboard + audit log viewer | ✅ | Week 13 |
+| Sprint 14 | Admin feature: Database management + backup/restore | ✅ | Week 14 |
+| Sprint 15 | Admin feature: Module control + developer console | ✅ | Week 15 |
+| Sprint 16 | Media feature: Image picker + crop + compression | ✅ | Week 16 |
+| Sprint 17 | Media feature: Media library + entity assignment | ✅ | Week 17 |
+| Sprint 18 | E-Invoice: IRD API client + certificate management | ✅ | Week 18 |
+| Sprint 19 | E-Invoice: Generation engine + SHA-256 signature | ✅ | Week 19 |
+| Sprint 20 | E-Invoice: IRD submission + compliance reports + POS integration | ✅ | Week 20 |
+| Sprint 21 | Warehouse racks CRUD + pick list generation | ✅ | Week 21 |
+| Sprint 22 | Advanced analytics: trend, heatmap, product performance | ✅ | Week 22 |
+| Sprint 23 | Custom RBAC role editor + i18n infrastructure + advanced settings | ✅ | Week 23 |
+| Sprint 24 | Integration QA + version bump to 2.0.0 | ✅ | Week 24 |
+
+**Phase 3 Deliverables:**
+- M17 :composeApp:feature:staff — Employee management, attendance, leave, shifts, payroll ✅
+- M19 :composeApp:feature:admin — System health, audit log, backup/restore, module control ✅
+- M20 :composeApp:feature:media — Image picker, crop, compression, media library ✅
+- E-Invoicing — IRD API client, generation engine, digital signature, compliance reports ✅
+- Warehouse Racks Manager — CRUD, product location, pick list generation ✅
+- Advanced Analytics — Sales trend (linear regression), hourly heatmap, product performance ✅
+- Custom RBAC — Role editor with permission tree, tri-state module toggles ✅
+- i18n Infrastructure — LocalizationManager, 350+ string resources, SupportedLocale enum ✅
+- DB Migrations: v5 (Staff), v6 (Media+Accounting+Racks), v7 (rack_id column) ✅
+- Version: 2.0.0 / BUILD=3 ✅

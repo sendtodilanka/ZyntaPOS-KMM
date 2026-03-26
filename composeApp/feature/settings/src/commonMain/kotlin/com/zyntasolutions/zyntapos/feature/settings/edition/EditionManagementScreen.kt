@@ -31,6 +31,8 @@ import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.domain.model.FeatureConfig
 import com.zyntasolutions.zyntapos.domain.model.ZyntaEdition
 import com.zyntasolutions.zyntapos.domain.model.ZyntaFeature
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import kotlinx.coroutines.flow.collectLatest
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -58,6 +60,7 @@ fun EditionManagementScreen(
     onNavigateBack: () -> Unit,
     viewModel: EditionManagementViewModel = koinViewModel(),
 ) {
+    val s = LocalStrings.current
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -79,12 +82,12 @@ fun EditionManagementScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Edition Management") },
+                title = { Text(s[StringResource.SETTINGS_EDITION_MANAGEMENT]) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = s[StringResource.COMMON_BACK],
                         )
                     }
                 },
@@ -107,14 +110,14 @@ fun EditionManagementScreen(
                 ),
             ) {
                 // ── Standard ─────────────────────────────────────────────────
-                item { EditionSectionHeader(title = "Standard") }
+                item { EditionSectionHeader(title = s[StringResource.SETTINGS_EDITION_STANDARD]) }
                 items(standardFeatures, key = { it.feature.name }) { config ->
                     // STANDARD features have their switch disabled (always enabled)
                     FeatureToggleRow(config = config, onToggle = { _, _ -> })
                 }
 
                 // ── Premium ──────────────────────────────────────────────────
-                item { EditionSectionHeader(title = "Premium") }
+                item { EditionSectionHeader(title = s[StringResource.SETTINGS_EDITION_PREMIUM]) }
                 items(premiumFeatures, key = { it.feature.name }) { config ->
                     FeatureToggleRow(config = config) { feature, enabled ->
                         viewModel.dispatch(EditionManagementIntent.ToggleFeature(feature, enabled))
@@ -122,7 +125,7 @@ fun EditionManagementScreen(
                 }
 
                 // ── Enterprise ───────────────────────────────────────────────
-                item { EditionSectionHeader(title = "Enterprise") }
+                item { EditionSectionHeader(title = s[StringResource.SETTINGS_EDITION_ENTERPRISE]) }
                 items(enterpriseFeatures, key = { it.feature.name }) { config ->
                     FeatureToggleRow(config = config) { feature, enabled ->
                         viewModel.dispatch(EditionManagementIntent.ToggleFeature(feature, enabled))

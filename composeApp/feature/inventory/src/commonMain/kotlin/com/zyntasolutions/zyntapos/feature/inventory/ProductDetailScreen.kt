@@ -21,6 +21,8 @@ import com.zyntasolutions.zyntapos.designsystem.util.WindowSize
 import com.zyntasolutions.zyntapos.designsystem.util.currentWindowSize
 import androidx.compose.ui.layout.ContentScale
 import coil3.compose.AsyncImage
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.domain.model.Category
 import com.zyntasolutions.zyntapos.domain.model.ProductVariant
 import com.zyntasolutions.zyntapos.domain.model.TaxGroup
@@ -53,10 +55,17 @@ fun ProductDetailScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     val form = state.editFormState
     val isNew = form.id == null
     var selectedTab by remember { mutableIntStateOf(0) }
-    val tabTitles = listOf("Identification", "Pricing", "Stock", "Variants", "Images")
+    val tabTitles = listOf(
+        s[StringResource.INVENTORY_TAB_IDENTIFICATION],
+        s[StringResource.INVENTORY_TAB_PRICING],
+        s[StringResource.INVENTORY_TAB_STOCK],
+        s[StringResource.INVENTORY_TAB_VARIANTS],
+        s[StringResource.INVENTORY_TAB_IMAGES],
+    )
 
     // INV-9: Track initial form state to detect unsaved changes
     val initialForm = remember(state.selectedProduct) { form }
@@ -66,8 +75,8 @@ fun ProductDetailScreen(
     if (showDiscardDialog) {
         AlertDialog(
             onDismissRequest = { showDiscardDialog = false },
-            title = { Text("Discard changes?") },
-            text = { Text("You have unsaved changes. Are you sure you want to go back?") },
+            title = { Text(s[StringResource.INVENTORY_DISCARD_CHANGES_TITLE]) },
+            text = { Text(s[StringResource.INVENTORY_DISCARD_CHANGES_MESSAGE]) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -75,10 +84,10 @@ fun ProductDetailScreen(
                         onBack()
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                ) { Text("Discard") }
+                ) { Text(s[StringResource.INVENTORY_DISCARD]) }
             },
             dismissButton = {
-                TextButton(onClick = { showDiscardDialog = false }) { Text("Keep editing") }
+                TextButton(onClick = { showDiscardDialog = false }) { Text(s[StringResource.INVENTORY_KEEP_EDITING]) }
             },
         )
     }
@@ -121,7 +130,7 @@ fun ProductDetailScreen(
     }
 
     ZyntaPageScaffold(
-        title = if (isNew) "New Product" else "Edit Product",
+        title = if (isNew) s[StringResource.INVENTORY_NEW_PRODUCT] else s[StringResource.INVENTORY_EDIT_PRODUCT],
         modifier = modifier,
         onNavigateBack = {
             if (isDirty) showDiscardDialog = true else onBack()

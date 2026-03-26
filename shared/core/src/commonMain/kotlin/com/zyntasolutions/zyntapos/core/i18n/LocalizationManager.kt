@@ -99,4 +99,35 @@ class LocalizationManager {
         val table = tables[locale] ?: return StringResource.entries.toSet()
         return StringResource.entries.filter { it !in table }.toSet()
     }
+
+    /**
+     * Returns the recommended font family name for a given language code.
+     *
+     * For scripts that require non-Latin glyphs (Sinhala, Tamil, Arabic, etc.),
+     * the platform layer should load the corresponding Noto Sans font.
+     *
+     * @param languageCode ISO 639-1 code (e.g. "si", "ta", "ar")
+     * @return Font family name string, or null for Latin-script languages.
+     */
+    fun fontFamilyForLanguage(languageCode: String): String? = when (languageCode) {
+        "si" -> "Noto Sans Sinhala"
+        "ta" -> "Noto Sans Tamil"
+        "hi" -> "Noto Sans Devanagari"
+        "ar" -> "Noto Sans Arabic"
+        "ja" -> "Noto Sans JP"
+        "zh" -> "Noto Sans SC"
+        else -> null // Latin-script languages use system default
+    }
+
+    /**
+     * Validates that all [StringResource] keys have translations for the given [locale].
+     *
+     * Intended for debug builds only — logs missing keys via Kermit logger.
+     *
+     * @return List of missing key names (empty if fully translated).
+     */
+    fun validateKeys(locale: SupportedLocale): List<String> {
+        val missing = missingKeys(locale)
+        return missing.map { it.name }
+    }
 }

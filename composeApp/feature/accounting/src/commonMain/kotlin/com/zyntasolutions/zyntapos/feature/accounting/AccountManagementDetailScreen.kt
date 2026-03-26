@@ -9,6 +9,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.domain.model.AccountType
 import kotlinx.coroutines.flow.collectLatest
 import org.koin.compose.viewmodel.koinViewModel
@@ -32,6 +34,7 @@ fun AccountManagementDetailScreen(
     viewModel: AccountDetailViewModel = koinViewModel(),
     onNavigateBack: () -> Unit,
 ) {
+    val s = LocalStrings.current
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -63,17 +66,17 @@ fun AccountManagementDetailScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(if (accountId != null) "Edit Account" else "New Account")
+                    Text(if (accountId != null) s[StringResource.ACCOUNTING_EDIT_ACCOUNT] else s[StringResource.ACCOUNTING_NEW_ACCOUNT])
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = s[StringResource.COMMON_BACK])
                     }
                 },
                 actions = {
                     if (!state.isSaving) {
                         TextButton(onClick = { viewModel.dispatch(AccountDetailIntent.Save(storeId)) }) {
-                            Text("Save")
+                            Text(s[StringResource.COMMON_SAVE])
                         }
                     }
                 },
@@ -95,7 +98,7 @@ fun AccountManagementDetailScreen(
                     OutlinedTextField(
                         value = state.accountCode,
                         onValueChange = { viewModel.dispatch(AccountDetailIntent.UpdateCode(it)) },
-                        label = { Text("Account Code") },
+                        label = { Text(s[StringResource.ACCOUNTING_ACCOUNT_CODE]) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         isError = state.error != null,

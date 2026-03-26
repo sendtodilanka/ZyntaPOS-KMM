@@ -11,6 +11,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.AccountType
 import kotlinx.coroutines.flow.collectLatest
@@ -35,6 +37,7 @@ fun AccountDetailScreen(
     viewModel: AccountDetailViewModel = koinViewModel(),
     onNavigateBack: () -> Unit,
 ) {
+    val s = LocalStrings.current
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -65,10 +68,10 @@ fun AccountDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (accountId == null) "New Account" else "Edit Account") },
+                title = { Text(if (accountId == null) s[StringResource.ACCOUNTING_NEW_ACCOUNT] else s[StringResource.ACCOUNTING_EDIT_ACCOUNT]) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = s[StringResource.COMMON_BACK])
                     }
                 },
                 actions = {
@@ -76,7 +79,7 @@ fun AccountDetailScreen(
                         onClick = { viewModel.dispatch(AccountDetailIntent.Save(storeId)) },
                         enabled = !state.isSaving,
                     ) {
-                        Icon(Icons.Default.Check, contentDescription = "Save")
+                        Icon(Icons.Default.Check, contentDescription = s[StringResource.COMMON_SAVE])
                     }
                 },
             )
@@ -99,8 +102,8 @@ fun AccountDetailScreen(
                 OutlinedTextField(
                     value = state.accountCode,
                     onValueChange = { viewModel.dispatch(AccountDetailIntent.UpdateCode(it)) },
-                    label = { Text("Account Code") },
-                    placeholder = { Text("e.g. 1010") },
+                    label = { Text(s[StringResource.ACCOUNTING_ACCOUNT_CODE]) },
+                    placeholder = { Text(s[StringResource.ACCOUNTING_ACCOUNT_CODE_HINT]) },
                     singleLine = true,
                     isError = state.error != null && state.accountCode.isBlank(),
                     modifier = Modifier.fillMaxWidth(),
@@ -110,8 +113,8 @@ fun AccountDetailScreen(
                 OutlinedTextField(
                     value = state.accountName,
                     onValueChange = { viewModel.dispatch(AccountDetailIntent.UpdateName(it)) },
-                    label = { Text("Account Name") },
-                    placeholder = { Text("e.g. Cash") },
+                    label = { Text(s[StringResource.ACCOUNTING_ACCOUNT_NAME]) },
+                    placeholder = { Text(s[StringResource.ACCOUNTING_ACCOUNT_NAME_HINT]) },
                     singleLine = true,
                     isError = state.error != null && state.accountName.isBlank(),
                     modifier = Modifier.fillMaxWidth(),
@@ -126,7 +129,7 @@ fun AccountDetailScreen(
                         value = state.accountType.name,
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Account Type") },
+                        label = { Text(s[StringResource.ACCOUNTING_ACCOUNT_TYPE]) },
                         trailingIcon = {
                             ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeDropdownExpanded)
                         },
@@ -154,8 +157,8 @@ fun AccountDetailScreen(
                 OutlinedTextField(
                     value = state.subCategory,
                     onValueChange = { viewModel.dispatch(AccountDetailIntent.UpdateSubCategory(it)) },
-                    label = { Text("Sub Category") },
-                    placeholder = { Text("e.g. Current Assets") },
+                    label = { Text(s[StringResource.ACCOUNTING_SUB_CATEGORY]) },
+                    placeholder = { Text(s[StringResource.ACCOUNTING_SUB_CATEGORY_HINT]) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -164,8 +167,8 @@ fun AccountDetailScreen(
                 OutlinedTextField(
                     value = state.description,
                     onValueChange = { viewModel.dispatch(AccountDetailIntent.UpdateDescription(it)) },
-                    label = { Text("Description (optional)") },
-                    placeholder = { Text("Extended description for this account...") },
+                    label = { Text(s[StringResource.ACCOUNTING_DESCRIPTION_OPTIONAL]) },
+                    placeholder = { Text(s[StringResource.ACCOUNTING_DESCRIPTION_HINT]) },
                     minLines = 3,
                     maxLines = 5,
                     modifier = Modifier.fillMaxWidth(),
@@ -194,7 +197,7 @@ fun AccountDetailScreen(
                         )
                         Spacer(Modifier.width(ZyntaSpacing.sm))
                     }
-                    Text(if (accountId == null) "Create Account" else "Save Changes")
+                    Text(if (accountId == null) s[StringResource.ACCOUNTING_CREATE_ACCOUNT] else s[StringResource.ACCOUNTING_SAVE_CHANGES])
                 }
             }
 
