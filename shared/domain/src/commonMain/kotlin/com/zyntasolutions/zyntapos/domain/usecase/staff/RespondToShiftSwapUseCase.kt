@@ -30,6 +30,7 @@ class RespondToShiftSwapUseCase(
         val existing = when (val result = shiftSwapRepository.getById(id)) {
             is Result.Success -> result.data
             is Result.Error -> return result
+            is Result.Loading -> return Result.Loading
         }
 
         if (existing == null) {

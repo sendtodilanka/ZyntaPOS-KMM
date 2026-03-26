@@ -32,6 +32,7 @@ class ApproveShiftSwapUseCase(
         val existing = when (val result = shiftSwapRepository.getById(id)) {
             is Result.Success -> result.data
             is Result.Error -> return result
+            is Result.Loading -> return Result.Loading
         }
 
         if (existing == null) {
@@ -58,6 +59,7 @@ class ApproveShiftSwapUseCase(
         val requestingShift = when (val r = shiftRepository.getById(existing.requestingShiftId)) {
             is Result.Success -> r.data
             is Result.Error -> return r
+            is Result.Loading -> return Result.Loading
         } ?: return Result.Error(
             ValidationException("Requesting shift no longer exists.", field = "requestingShiftId", rule = "EXISTS"),
         )
@@ -65,6 +67,7 @@ class ApproveShiftSwapUseCase(
         val targetShift = when (val r = shiftRepository.getById(existing.targetShiftId)) {
             is Result.Success -> r.data
             is Result.Error -> return r
+            is Result.Loading -> return Result.Loading
         } ?: return Result.Error(
             ValidationException("Target shift no longer exists.", field = "targetShiftId", rule = "EXISTS"),
         )
