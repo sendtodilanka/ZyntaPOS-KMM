@@ -6,7 +6,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.NumericPadMode
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaNumericPad
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
@@ -65,16 +67,18 @@ fun ItemDiscountDialog(
         permission = Permission.APPLY_DISCOUNT,
         checkPermissionUseCase = checkPermissionUseCase,
         unauthorizedContent = {
+            val s = LocalStrings.current
             AlertDialog(
                 onDismissRequest = onDismiss,
-                title = { Text("Access Denied") },
-                text = { Text("You do not have permission to apply discounts.") },
-                confirmButton = { TextButton(onClick = onDismiss) { Text("OK") } },
+                title = { Text(s[StringResource.COMMON_ACCESS_DENIED]) },
+                text = { Text(s[StringResource.POS_ITEM_DISCOUNT_NO_PERMISSION]) },
+                confirmButton = { TextButton(onClick = onDismiss) { Text(s[StringResource.COMMON_OK]) } },
             )
         },
     ) {
+        val s = LocalStrings.current
         DiscountDialogContent(
-            title = "Item Discount",
+            title = s[StringResource.POS_ITEM_DISCOUNT],
             subtitle = productName,
             lineTotal = lineTotal,
             currentDiscount = currentDiscount,
@@ -116,6 +120,7 @@ internal fun DiscountDialogContent(
     onApply: (Double, DiscountType) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val s = LocalStrings.current
     var selectedType by remember { mutableStateOf(currentDiscountType) }
     var rawInput by remember { mutableStateOf(
         if (currentDiscount == 0.0) "" else formatter.formatPlain(currentDiscount)
@@ -126,12 +131,12 @@ internal fun DiscountDialogContent(
 
     // Validate on every change
     validationError = when {
-        discountValue < 0.0 -> "Discount cannot be negative"
+        discountValue < 0.0 -> s[StringResource.POS_DISCOUNT_NEGATIVE_ERROR]
         selectedType == DiscountType.PERCENT && discountValue > maxDiscountPercent ->
-            "Max discount is $maxDiscountPercent%"
+            s[StringResource.POS_DISCOUNT_MAX_PERCENT_FORMAT, maxDiscountPercent]
         selectedType == DiscountType.FIXED && lineTotal > 0 &&
                 discountValue > lineTotal * (maxDiscountPercent / 100) ->
-            "Exceeds max ${maxDiscountPercent.toInt()}% cap (${formatter.format(lineTotal * maxDiscountPercent / 100)})"
+            s[StringResource.POS_DISCOUNT_EXCEEDS_CAP_FORMAT, maxDiscountPercent.toInt(), formatter.format(lineTotal * maxDiscountPercent / 100)]
         else -> null
     }
 
@@ -167,7 +172,7 @@ internal fun DiscountDialogContent(
                                 count = DiscountType.values().size,
                             ),
                         ) {
-                            Text(if (type == DiscountType.FIXED) "Flat (LKR)" else "Percent (%)")
+                            Text(if (type == DiscountType.FIXED) s[StringResource.POS_FLAT_LKR] else s[StringResource.POS_PERCENT_LABEL])
                         }
                     }
                 }
@@ -201,11 +206,11 @@ internal fun DiscountDialogContent(
                 onClick = { onApply(discountValue, selectedType) },
                 enabled = validationError == null && discountValue >= 0.0,
             ) {
-                Text("Apply", fontWeight = FontWeight.Bold)
+                Text(s[StringResource.COMMON_APPLY], fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(s[StringResource.COMMON_CANCEL]) }
         },
     )
 }

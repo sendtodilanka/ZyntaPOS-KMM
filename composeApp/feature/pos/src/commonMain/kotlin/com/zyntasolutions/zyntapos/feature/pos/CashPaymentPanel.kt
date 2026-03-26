@@ -8,7 +8,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.NumericPadMode
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButtonSize
@@ -52,6 +54,7 @@ fun CashPaymentPanel(
     modifier: Modifier = Modifier,
     formatter: CurrencyFormatter = CurrencyFormatter(),
 ) {
+    val s = LocalStrings.current
     // Convert raw cent-string to display dollars
     val tenderedAmount: Double = (tenderedRaw.toLongOrNull() ?: 0L) / 100.0
     val change: Double = tenderedAmount - orderTotal
@@ -76,7 +79,7 @@ fun CashPaymentPanel(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Amount Due",
+                    text = s[StringResource.POS_AMOUNT_DUE],
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
@@ -136,7 +139,7 @@ fun CashPaymentPanel(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = if (isChangePositive) "Change" else "Remaining",
+                    text = if (isChangePositive) s[StringResource.POS_CHANGE] else s[StringResource.POS_REMAINING],
                     style = MaterialTheme.typography.titleSmall,
                     color = if (isChangePositive)
                         MaterialTheme.colorScheme.onTertiaryContainer
@@ -168,6 +171,7 @@ private fun QuickAmountRow(
     orderTotal: Double,
     onAmountSelected: (Double) -> Unit,
 ) {
+    val s = LocalStrings.current
     // Generate shortcuts: round-up to nearest $50/$100, then Exact
     val rounded50 = (kotlin.math.ceil(orderTotal / 50.0) * 50.0)
     val rounded100 = (kotlin.math.ceil(orderTotal / 100.0) * 100.0)
@@ -183,7 +187,7 @@ private fun QuickAmountRow(
     ) {
         shortcuts.forEach { amount ->
             ZyntaButton(
-                text = if (amount == orderTotal) "Exact" else "$${"%.0f".format(amount)}",
+                text = if (amount == orderTotal) s[StringResource.POS_EXACT] else "$${"%.0f".format(amount)}",
                 onClick = { onAmountSelected(amount) },
                 variant = ZyntaButtonVariant.Secondary,
                 size = ZyntaButtonSize.Small,

@@ -2,7 +2,9 @@ package com.zyntasolutions.zyntapos.feature.pos
 
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.domain.model.DiscountType
 import com.zyntasolutions.zyntapos.domain.model.Permission
 import com.zyntasolutions.zyntapos.domain.usecase.auth.CheckPermissionUseCase
@@ -48,17 +50,19 @@ fun OrderDiscountDialog(
         permission = Permission.APPLY_DISCOUNT,
         checkPermissionUseCase = checkPermissionUseCase,
         unauthorizedContent = {
+            val s = LocalStrings.current
             AlertDialog(
                 onDismissRequest = onDismiss,
-                title = { Text("Access Denied") },
-                text = { Text("You do not have permission to apply order discounts.") },
-                confirmButton = { TextButton(onClick = onDismiss) { Text("OK") } },
+                title = { Text(s[StringResource.COMMON_ACCESS_DENIED]) },
+                text = { Text(s[StringResource.POS_ORDER_DISCOUNT_NO_PERMISSION]) },
+                confirmButton = { TextButton(onClick = onDismiss) { Text(s[StringResource.COMMON_OK]) } },
             )
         },
     ) {
+        val s = LocalStrings.current
         DiscountDialogContent(
-            title = "Order Discount",
-            subtitle = "Applied to the entire order total",
+            title = s[StringResource.POS_ORDER_DISCOUNT_TITLE],
+            subtitle = s[StringResource.POS_ORDER_DISCOUNT_SUBTITLE],
             lineTotal = orderSubtotal,
             currentDiscount = currentDiscount,
             currentDiscountType = currentDiscountType,

@@ -11,7 +11,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.NumericPadMode
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButtonSize
@@ -59,6 +61,7 @@ fun SplitPaymentPanel(
     modifier: Modifier = Modifier,
     formatter: CurrencyFormatter = CurrencyFormatter(),
 ) {
+    val s = LocalStrings.current
     val totalPaid = splits.sumOf { it.amount }
     val remaining = orderTotal - totalPaid
     val isBalanced = kotlin.math.abs(remaining) < 0.01
@@ -81,7 +84,7 @@ fun SplitPaymentPanel(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    "Amount Due",
+                    s[StringResource.POS_AMOUNT_DUE],
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
@@ -137,7 +140,7 @@ fun SplitPaymentPanel(
             ) {
                 Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(6.dp))
-                Text("Add Payment Method")
+                Text(s[StringResource.POS_ADD_PAYMENT_METHOD])
             }
         }
 
@@ -158,7 +161,7 @@ fun SplitPaymentPanel(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = if (isBalanced) "Balanced ✓" else "Remaining",
+                    text = if (isBalanced) s[StringResource.POS_BALANCED] else s[StringResource.POS_REMAINING],
                     style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
                     color = if (isBalanced)
                         MaterialTheme.colorScheme.onTertiaryContainer
@@ -178,7 +181,7 @@ fun SplitPaymentPanel(
 
         // ── PAY button ────────────────────────────────────────────────────────
         ZyntaButton(
-            text = "PAY  ${formatter.format(orderTotal)}",
+            text = s[StringResource.POS_PAY_AMOUNT_FORMAT, formatter.format(orderTotal)],
             onClick = onPayClicked,
             size = ZyntaButtonSize.Large,
             enabled = isBalanced && splits.isNotEmpty(),
@@ -200,6 +203,7 @@ private fun PaymentSplitRow(
     onRemove: (() -> Unit)?,
     formatter: CurrencyFormatter,
 ) {
+    val s = LocalStrings.current
     var showMethodMenu by remember { mutableStateOf(false) }
     var _amountInput by remember(split) {
         mutableStateOf("%.2f".format(split.amount))
@@ -278,7 +282,7 @@ private fun PaymentSplitRow(
                     IconButton(onClick = onRemove, modifier = Modifier.size(36.dp)) {
                         Icon(
                             Icons.Filled.Delete,
-                            contentDescription = "Remove",
+                            contentDescription = s[StringResource.POS_REMOVE_PAYMENT_CD],
                             tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(20.dp),
                         )

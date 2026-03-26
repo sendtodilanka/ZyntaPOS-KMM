@@ -13,6 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.PaymentMethod
 
@@ -87,6 +89,14 @@ private fun PaymentMethodTile(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
+    val label = when (method) {
+        PaymentMethod.CASH -> s[StringResource.POS_PAYMENT_CASH]
+        PaymentMethod.CARD -> s[StringResource.POS_PAYMENT_CARD]
+        PaymentMethod.MOBILE -> s[StringResource.POS_PAYMENT_MOBILE]
+        PaymentMethod.BANK_TRANSFER -> s[StringResource.POS_PAYMENT_BANK_TRANSFER]
+        PaymentMethod.SPLIT -> s[StringResource.POS_PAYMENT_SPLIT]
+    }
     val containerColor = if (isSelected) {
         MaterialTheme.colorScheme.primaryContainer
     } else {
@@ -124,12 +134,12 @@ private fun PaymentMethodTile(
         ) {
             Icon(
                 imageVector = method.icon,
-                contentDescription = method.label,
+                contentDescription = label,
                 modifier = Modifier.size(24.dp),
                 tint = contentColor,
             )
             Text(
-                text = method.label,
+                text = label,
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                 color = contentColor,
             )

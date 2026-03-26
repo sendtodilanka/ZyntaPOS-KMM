@@ -9,7 +9,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaCartItemRow
 import com.zyntasolutions.zyntapos.domain.model.CartItem
 
@@ -46,6 +48,7 @@ fun CartItemList(
     modifier: Modifier = Modifier,
     formatter: CurrencyFormatter = CurrencyFormatter(),
 ) {
+    val s = LocalStrings.current
     if (cartItems.isEmpty()) {
         // Empty state
         Box(
@@ -53,7 +56,7 @@ fun CartItemList(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = "Cart is empty\nAdd products from the grid",
+                text = s[StringResource.POS_CART_EMPTY_HINT],
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,

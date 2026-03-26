@@ -5,6 +5,8 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HoldOrderDialog — Confirmation dialog before holding the current order.
@@ -48,6 +50,7 @@ fun HoldOrderConfirmDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val s = LocalStrings.current
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = {
@@ -57,18 +60,17 @@ fun HoldOrderConfirmDialog(
                 tint = MaterialTheme.colorScheme.primary,
             )
         },
-        title = { Text("Hold Order?") },
+        title = { Text(s[StringResource.POS_HOLD_ORDER]) },
         text = {
             Text(
-                "The current order ($itemCount item${if (itemCount != 1) "s" else ""}) will be " +
-                    "parked. You can retrieve it from the Held Orders panel (F9) at any time.",
+                s[StringResource.POS_HOLD_ORDER_DIALOG_MSG_FORMAT, itemCount, if (itemCount != 1) "s" else ""],
             )
         },
         confirmButton = {
-            Button(onClick = onConfirm) { Text("Hold Order") }
+            Button(onClick = onConfirm) { Text(s[StringResource.POS_HOLD_ORDER]) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(s[StringResource.COMMON_CANCEL]) }
         },
     )
 }

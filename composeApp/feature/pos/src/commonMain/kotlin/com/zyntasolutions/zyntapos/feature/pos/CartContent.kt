@@ -8,7 +8,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.CartItem
 import com.zyntasolutions.zyntapos.domain.model.Customer
@@ -45,6 +47,7 @@ internal fun CartContent(
     loyaltyPointsToRedeem: Int = 0,
     loyaltyDiscount: Double = 0.0,
 ) {
+    val s = LocalStrings.current
     var showNotesDialog by remember { mutableStateOf(false) }
     var showVoidDialog by remember { mutableStateOf(false) }
     var showOrderDiscountDialog by remember { mutableStateOf(false) }
@@ -76,18 +79,18 @@ internal fun CartContent(
     if (showVoidDialog) {
         AlertDialog(
             onDismissRequest = { showVoidDialog = false },
-            title = { Text("Void Order?") },
-            text = { Text("This will remove all items from the cart. This action cannot be undone.") },
+            title = { Text(s[StringResource.POS_VOID_ORDER_TITLE]) },
+            text = { Text(s[StringResource.POS_VOID_ORDER_MSG]) },
             confirmButton = {
                 TextButton(onClick = {
                     onIntent(PosIntent.ClearCart)
                     showVoidDialog = false
                 }) {
-                    Text("Void", color = MaterialTheme.colorScheme.error)
+                    Text(s[StringResource.POS_VOID_ACTION], color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showVoidDialog = false }) { Text("Cancel") }
+                TextButton(onClick = { showVoidDialog = false }) { Text(s[StringResource.COMMON_CANCEL]) }
             },
         )
     }
@@ -164,13 +167,13 @@ internal fun CartContent(
                 label = {
                     Text(
                         if (loyaltyPointsToRedeem > 0) {
-                            "Redeeming $loyaltyPointsToRedeem pts (-${formatter.format(loyaltyDiscount)})"
+                            s[StringResource.POS_LOYALTY_REDEEMING_FORMAT, loyaltyPointsToRedeem, formatter.format(loyaltyDiscount)]
                         } else {
-                            "Points: $loyaltyPointsBalance available"
+                            s[StringResource.POS_LOYALTY_BALANCE_FORMAT, loyaltyPointsBalance]
                         },
                     )
                 },
-                leadingIcon = { Icon(Icons.Default.Stars, contentDescription = "Loyalty points") },
+                leadingIcon = { Icon(Icons.Default.Stars, contentDescription = s[StringResource.POS_LOYALTY_POINTS_CD]) },
                 modifier = Modifier.padding(horizontal = ZyntaSpacing.md, vertical = ZyntaSpacing.xs),
             )
         }
@@ -195,6 +198,7 @@ private fun CustomerRow(
     onClearCustomer: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     Row(
         modifier = modifier,
         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
@@ -211,7 +215,7 @@ private fun CustomerRow(
             modifier = Modifier.weight(1f),
         ) {
             Text(
-                text = selectedCustomer?.name ?: "Walk-in Customer ▼",
+                text = selectedCustomer?.name ?: s[StringResource.POS_WALK_IN_CUSTOMER] + " \u25bc",
                 style = MaterialTheme.typography.bodyMedium,
             )
         }
@@ -219,7 +223,7 @@ private fun CustomerRow(
             IconButton(onClick = onClearCustomer) {
                 Icon(
                     Icons.Default.Close,
-                    contentDescription = "Remove customer",
+                    contentDescription = s[StringResource.POS_REMOVE_CUSTOMER_CD],
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -235,28 +239,29 @@ private fun CartActionRow(
     onClearClicked: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.xs),
     ) {
         IconButton(onClick = onNotesClicked) {
-            Icon(Icons.AutoMirrored.Filled.Notes, contentDescription = "Order notes")
+            Icon(Icons.AutoMirrored.Filled.Notes, contentDescription = s[StringResource.POS_ORDER_NOTES_CD])
         }
         IconButton(onClick = onDiscountClicked) {
-            Icon(Icons.Default.LocalOffer, contentDescription = "Order discount")
+            Icon(Icons.Default.LocalOffer, contentDescription = s[StringResource.POS_ORDER_DISCOUNT_CD])
         }
         Spacer(Modifier.weight(1f))
         IconButton(onClick = onVoidClicked) {
             Icon(
                 Icons.Default.Block,
-                contentDescription = "Void order",
+                contentDescription = s[StringResource.POS_VOID_ORDER_CD],
                 tint = MaterialTheme.colorScheme.error,
             )
         }
         IconButton(onClick = onClearClicked) {
             Icon(
                 Icons.Default.DeleteSweep,
-                contentDescription = "Clear cart",
+                contentDescription = s[StringResource.POS_CLEAR_CART_CD],
                 tint = MaterialTheme.colorScheme.error,
             )
         }
@@ -271,15 +276,16 @@ private fun OrderDiscountDialog(
     var discountInput by remember { mutableStateOf("") }
     var discountType by remember { mutableStateOf(DiscountType.PERCENT) }
 
+    val s = LocalStrings.current
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Apply Order Discount") },
+        title = { Text(s[StringResource.POS_APPLY_ORDER_DISCOUNT_TITLE]) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                 OutlinedTextField(
                     value = discountInput,
                     onValueChange = { discountInput = it.filter { c -> c.isDigit() || c == '.' } },
-                    label = { Text("Amount") },
+                    label = { Text(s[StringResource.POS_AMOUNT_LABEL]) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -287,13 +293,13 @@ private fun OrderDiscountDialog(
                     FilterChip(
                         selected = discountType == DiscountType.PERCENT,
                         onClick = { discountType = DiscountType.PERCENT },
-                        label = { Text("Percentage (%)") },
+                        label = { Text(s[StringResource.POS_PERCENTAGE_LABEL]) },
                         modifier = Modifier.weight(1f),
                     )
                     FilterChip(
                         selected = discountType == DiscountType.FIXED,
                         onClick = { discountType = DiscountType.FIXED },
-                        label = { Text("Fixed Amount") },
+                        label = { Text(s[StringResource.POS_FIXED_AMOUNT_LABEL]) },
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -306,11 +312,11 @@ private fun OrderDiscountDialog(
                     onConfirm(value, discountType)
                 },
             ) {
-                Text("Apply")
+                Text(s[StringResource.COMMON_APPLY])
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(s[StringResource.COMMON_CANCEL]) }
         },
     )
 }

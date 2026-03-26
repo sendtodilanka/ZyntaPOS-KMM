@@ -10,6 +10,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.Category
 
@@ -38,6 +40,7 @@ fun CategoryFilterRow(
     onSelectCategory: (String?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     LazyRow(
         modifier = modifier.fillMaxWidth(),
         contentPadding = PaddingValues(horizontal = ZyntaSpacing.md),
@@ -48,7 +51,7 @@ fun CategoryFilterRow(
             FilterChip(
                 selected = selectedCategoryId == null,
                 onClick = { onSelectCategory(null) },
-                label = { Text("All") },
+                label = { Text(s[StringResource.POS_ALL_CATEGORIES]) },
             )
         }
 

@@ -9,7 +9,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -40,6 +42,7 @@ internal fun LoyaltyRedemptionDialog(
     onClear: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val s = LocalStrings.current
     var selectedPoints by remember { mutableIntStateOf(currentRedemption) }
 
     // Quick-select amounts: 25%, 50%, 75%, 100% of available
@@ -64,14 +67,14 @@ internal fun LoyaltyRedemptionDialog(
                 tint = MaterialTheme.colorScheme.primary,
             )
         },
-        title = { Text("Redeem Loyalty Points") },
+        title = { Text(s[StringResource.POS_REDEEM_LOYALTY_TITLE]) },
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
             ) {
                 // ── Available balance ────────────────────────────────────────
                 Text(
-                    text = "$availablePoints points available",
+                    text = s[StringResource.POS_LOYALTY_AVAILABLE_FORMAT, availablePoints],
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -110,13 +113,13 @@ internal fun LoyaltyRedemptionDialog(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text = "$selectedPoints points",
+                        text = s[StringResource.POS_LOYALTY_POINTS_SELECTED_FORMAT, selectedPoints],
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
                         ),
                     )
                     Text(
-                        text = "≈ ${formatter.format(estimatedDiscount)} discount",
+                        text = s[StringResource.POS_LOYALTY_ESTIMATED_DISCOUNT_FORMAT, formatter.format(estimatedDiscount)],
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.tertiary,
                     )
@@ -128,18 +131,18 @@ internal fun LoyaltyRedemptionDialog(
                 onClick = { onConfirm(selectedPoints) },
                 enabled = selectedPoints > 0,
             ) {
-                Text("Apply")
+                Text(s[StringResource.COMMON_APPLY])
             }
         },
         dismissButton = {
             Row {
                 if (currentRedemption > 0) {
                     TextButton(onClick = onClear) {
-                        Text("Clear", color = MaterialTheme.colorScheme.error)
+                        Text(s[StringResource.COMMON_CLEAR], color = MaterialTheme.colorScheme.error)
                     }
                 }
                 TextButton(onClick = onDismiss) {
-                    Text("Cancel")
+                    Text(s[StringResource.COMMON_CANCEL])
                 }
             }
         },
