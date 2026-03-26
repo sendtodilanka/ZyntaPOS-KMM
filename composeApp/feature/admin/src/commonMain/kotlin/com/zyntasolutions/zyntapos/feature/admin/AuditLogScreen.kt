@@ -25,6 +25,8 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.AuditEntry
@@ -83,6 +85,7 @@ fun AuditLogScreen(
         filtered.drop(currentPage * pageSize).take(pageSize)
     }
 
+    val s = LocalStrings.current
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -99,12 +102,12 @@ fun AuditLogScreen(
         OutlinedTextField(
             value = state.auditUserFilter,
             onValueChange = { onIntent(AdminIntent.FilterAuditByUser(it)) },
-            label = { Text("Filter by user ID") },
+            label = { Text(s[StringResource.ADMIN_AUDIT_FILTER_USER_LABEL]) },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
             trailingIcon = {
                 if (state.auditUserFilter.isNotBlank()) {
                     IconButton(onClick = { onIntent(AdminIntent.FilterAuditByUser("")) }) {
-                        Icon(Icons.Default.Clear, contentDescription = "Clear filter")
+                        Icon(Icons.Default.Clear, contentDescription = s[StringResource.ADMIN_AUDIT_CLEAR_FILTER_CD])
                     }
                 }
             },
@@ -155,24 +158,27 @@ fun AuditLogScreen(
             FilterChip(
                 selected = state.auditSuccessFilter == null,
                 onClick = { onIntent(AdminIntent.FilterAuditBySuccess(null)) },
-                label = { Text("All", style = MaterialTheme.typography.labelSmall) },
+                label = { Text(s[StringResource.COMMON_ALL], style = MaterialTheme.typography.labelSmall) },
             )
             FilterChip(
                 selected = state.auditSuccessFilter == true,
                 onClick = { onIntent(AdminIntent.FilterAuditBySuccess(true)) },
-                label = { Text("OK", style = MaterialTheme.typography.labelSmall) },
+                label = { Text(s[StringResource.ADMIN_AUDIT_FILTER_OK], style = MaterialTheme.typography.labelSmall) },
             )
             FilterChip(
                 selected = state.auditSuccessFilter == false,
                 onClick = { onIntent(AdminIntent.FilterAuditBySuccess(false)) },
-                label = { Text("FAIL", style = MaterialTheme.typography.labelSmall) },
+                label = { Text(s[StringResource.ADMIN_AUDIT_FILTER_FAIL], style = MaterialTheme.typography.labelSmall) },
             )
             Spacer(Modifier.weight(1f))
             ExportDropdown(onIntent = onIntent)
         }
 
         Text(
-            "${filtered.size} event(s)${if (totalFilteredPages > 1) " · Page ${currentPage + 1} of $totalFilteredPages" else ""}",
+            if (totalFilteredPages > 1)
+                s[StringResource.ADMIN_AUDIT_EVENTS_COUNT_PAGED, filtered.size, currentPage + 1, totalFilteredPages]
+            else
+                s[StringResource.ADMIN_AUDIT_EVENTS_COUNT, filtered.size],
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = ZyntaSpacing.sm),
@@ -187,7 +193,7 @@ fun AuditLogScreen(
                 state.auditDateFrom != null ||
                 state.auditDateTo != null
             ZyntaEmptyState(
-                title = if (hasFilters) "No events match the current filters" else "No audit events recorded",
+                title = if (hasFilters) s[StringResource.ADMIN_AUDIT_NO_MATCH] else s[StringResource.ADMIN_AUDIT_NO_EVENTS],
                 icon = Icons.Default.EventNote,
                 modifier = Modifier.weight(1f).fillMaxWidth(),
             )
@@ -216,9 +222,9 @@ fun AuditLogScreen(
                     onClick = { onIntent(AdminIntent.PrevAuditPage) },
                     enabled = currentPage > 0,
                 ) {
-                    Icon(Icons.Default.ChevronLeft, contentDescription = "Previous page", modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.ChevronLeft, contentDescription = s[StringResource.ADMIN_AUDIT_PREV_CD], modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("Prev", style = MaterialTheme.typography.labelMedium)
+                    Text(s[StringResource.ADMIN_AUDIT_PREV], style = MaterialTheme.typography.labelMedium)
                 }
                 Text(
                     "${currentPage + 1} / $totalFilteredPages",
@@ -229,9 +235,9 @@ fun AuditLogScreen(
                     onClick = { onIntent(AdminIntent.NextAuditPage) },
                     enabled = currentPage < totalFilteredPages - 1,
                 ) {
-                    Text("Next", style = MaterialTheme.typography.labelMedium)
+                    Text(s[StringResource.ADMIN_AUDIT_NEXT], style = MaterialTheme.typography.labelMedium)
                     Spacer(Modifier.width(4.dp))
-                    Icon(Icons.Default.ChevronRight, contentDescription = "Next page", modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.ChevronRight, contentDescription = s[StringResource.ADMIN_AUDIT_NEXT_CD], modifier = Modifier.size(16.dp))
                 }
             }
         }
@@ -245,12 +251,13 @@ fun AuditLogScreen(
  */
 @Composable
 private fun ExportDropdown(onIntent: (AdminIntent) -> Unit) {
+    val s = LocalStrings.current
     var expanded by remember { mutableStateOf(false) }
     Box {
         IconButton(onClick = { expanded = true }) {
             Icon(
                 Icons.Default.Download,
-                contentDescription = "Export audit log",
+                contentDescription = s[StringResource.ADMIN_AUDIT_EXPORT_CD],
                 tint = MaterialTheme.colorScheme.primary,
             )
         }
@@ -259,7 +266,7 @@ private fun ExportDropdown(onIntent: (AdminIntent) -> Unit) {
             onDismissRequest = { expanded = false },
         ) {
             DropdownMenuItem(
-                text = { Text("Export as CSV", style = MaterialTheme.typography.bodyMedium) },
+                text = { Text(s[StringResource.ADMIN_AUDIT_EXPORT_CSV], style = MaterialTheme.typography.bodyMedium) },
                 onClick = {
                     expanded = false
                     onIntent(AdminIntent.ExportAuditLogCsv)
@@ -267,7 +274,7 @@ private fun ExportDropdown(onIntent: (AdminIntent) -> Unit) {
                 leadingIcon = { Icon(Icons.Default.Description, contentDescription = null, modifier = Modifier.size(20.dp)) },
             )
             DropdownMenuItem(
-                text = { Text("Export as JSON", style = MaterialTheme.typography.bodyMedium) },
+                text = { Text(s[StringResource.ADMIN_AUDIT_EXPORT_JSON], style = MaterialTheme.typography.bodyMedium) },
                 onClick = {
                     expanded = false
                     onIntent(AdminIntent.ExportAuditLogJson)
@@ -295,11 +302,12 @@ private fun EventTypeDropdown(
         onExpandedChange = { expanded = it },
         modifier = modifier,
     ) {
+        val s = LocalStrings.current
         OutlinedTextField(
-            value = selected?.name?.replace('_', ' ') ?: "All event types",
+            value = selected?.name?.replace('_', ' ') ?: s[StringResource.ADMIN_AUDIT_ALL_EVENTS],
             onValueChange = {},
             readOnly = true,
-            label = { Text("Event type") },
+            label = { Text(s[StringResource.ADMIN_AUDIT_EVENT_TYPE_LABEL]) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
             colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
             modifier = Modifier
@@ -313,7 +321,7 @@ private fun EventTypeDropdown(
             modifier = Modifier.heightIn(max = 300.dp),
         ) {
             DropdownMenuItem(
-                text = { Text("All event types", style = MaterialTheme.typography.bodyMedium) },
+                text = { Text(s[StringResource.ADMIN_AUDIT_ALL_EVENTS], style = MaterialTheme.typography.bodyMedium) },
                 onClick = { onSelected(null); expanded = false },
             )
             AuditEventType.entries.forEach { type ->
@@ -348,11 +356,12 @@ private fun RoleFilterDropdown(
         onExpandedChange = { expanded = it },
         modifier = modifier,
     ) {
+        val s = LocalStrings.current
         OutlinedTextField(
-            value = selected?.name?.replace('_', ' ') ?: "All roles",
+            value = selected?.name?.replace('_', ' ') ?: s[StringResource.ADMIN_AUDIT_ALL_ROLES],
             onValueChange = {},
             readOnly = true,
-            label = { Text("User role") },
+            label = { Text(s[StringResource.ADMIN_AUDIT_ROLE_LABEL]) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
             colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
             modifier = Modifier
@@ -365,7 +374,7 @@ private fun RoleFilterDropdown(
             onDismissRequest = { expanded = false },
         ) {
             DropdownMenuItem(
-                text = { Text("All roles", style = MaterialTheme.typography.bodyMedium) },
+                text = { Text(s[StringResource.ADMIN_AUDIT_ALL_ROLES], style = MaterialTheme.typography.bodyMedium) },
                 onClick = { onSelected(null); expanded = false },
             )
             Role.entries.forEach { role ->
@@ -389,6 +398,7 @@ private fun IntegrityBadge(
     isVerifying: Boolean,
     onRefresh: () -> Unit,
 ) {
+    val s = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth().padding(vertical = ZyntaSpacing.xs),
         colors = CardDefaults.cardColors(
@@ -403,7 +413,7 @@ private fun IntegrityBadge(
         if (isVerifying) {
             Column(modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.sm)) {
                 Text(
-                    "Verifying audit chain…",
+                    s[StringResource.ADMIN_AUDIT_VERIFYING],
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -432,9 +442,9 @@ private fun IntegrityBadge(
                     )
                     Text(
                         text = when {
-                            report == null -> "Integrity not verified"
-                            report.isIntact -> "Chain intact · ${report.totalEntries} entries"
-                            else -> "⚠ ${report.violations} violation(s) · ${report.totalEntries} entries"
+                            report == null -> s[StringResource.ADMIN_AUDIT_NOT_VERIFIED]
+                            report.isIntact -> s[StringResource.ADMIN_AUDIT_INTACT, report.totalEntries]
+                            else -> s[StringResource.ADMIN_AUDIT_VIOLATIONS, report.violations, report.totalEntries]
                         },
                         style = MaterialTheme.typography.labelSmall,
                         color = when {
@@ -447,7 +457,7 @@ private fun IntegrityBadge(
                 IconButton(onClick = onRefresh, modifier = Modifier.size(32.dp)) {
                     Icon(
                         Icons.Default.Refresh,
-                        contentDescription = "Re-verify",
+                        contentDescription = s[StringResource.ADMIN_AUDIT_REVERIFY_CD],
                         modifier = Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -459,6 +469,7 @@ private fun IntegrityBadge(
 
 @Composable
 private fun AuditEntryCard(entry: AuditEntry) {
+    val s = LocalStrings.current
     var expanded by remember { mutableStateOf(false) }
 
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -482,7 +493,7 @@ private fun AuditEntryCard(entry: AuditEntry) {
                         fontWeight = FontWeight.Medium,
                     )
                     Text(
-                        "User: ${entry.userId}  ·  Device: ${entry.deviceId}",
+                        s[StringResource.ADMIN_AUDIT_USER_DEVICE, entry.userId, entry.deviceId],
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -503,7 +514,7 @@ private fun AuditEntryCard(entry: AuditEntry) {
                     contentPadding = PaddingValues(0.dp),
                 ) {
                     Text(
-                        if (expanded) "Hide payload" else "Show payload",
+                        if (expanded) s[StringResource.ADMIN_AUDIT_HIDE_PAYLOAD] else s[StringResource.ADMIN_AUDIT_SHOW_PAYLOAD],
                         style = MaterialTheme.typography.labelSmall,
                     )
                 }
@@ -527,13 +538,14 @@ private fun AuditEntryCard(entry: AuditEntry) {
 
 @Composable
 private fun SuccessBadge(success: Boolean) {
+    val s = LocalStrings.current
     Surface(
         color = if (success) MaterialTheme.colorScheme.secondaryContainer
         else MaterialTheme.colorScheme.errorContainer,
         shape = MaterialTheme.shapes.extraSmall,
     ) {
         Text(
-            text = if (success) "OK" else "FAIL",
+            text = if (success) s[StringResource.ADMIN_AUDIT_BADGE_OK] else s[StringResource.ADMIN_AUDIT_BADGE_FAIL],
             style = MaterialTheme.typography.labelSmall,
             color = if (success) MaterialTheme.colorScheme.onSecondaryContainer
             else MaterialTheme.colorScheme.onErrorContainer,
@@ -563,6 +575,7 @@ private fun DateRangeFilter(
     onDateRangeChanged: (Instant?, Instant?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     val tz = TimeZone.currentSystemDefault()
     var showFromPicker by remember { mutableStateOf(false) }
     var showToPicker by remember { mutableStateOf(false) }
@@ -588,7 +601,7 @@ private fun DateRangeFilter(
                     text = dateFrom?.let {
                         val ld = it.toLocalDateTime(tz).date
                         "${ld.year}-%02d-%02d".format(ld.monthNumber, ld.dayOfMonth)
-                    } ?: "From",
+                    } ?: s[StringResource.ADMIN_AUDIT_DATE_FROM],
                     style = MaterialTheme.typography.labelSmall,
                 )
             },
@@ -598,7 +611,7 @@ private fun DateRangeFilter(
                         onClick = { onDateRangeChanged(null, dateTo) },
                         modifier = Modifier.size(16.dp),
                     ) {
-                        Icon(Icons.Default.Clear, contentDescription = "Clear from date", modifier = Modifier.size(12.dp))
+                        Icon(Icons.Default.Clear, contentDescription = s[StringResource.ADMIN_AUDIT_CLEAR_FROM_CD], modifier = Modifier.size(12.dp))
                     }
                 }
             } else null,
@@ -613,7 +626,7 @@ private fun DateRangeFilter(
                     text = dateTo?.let {
                         val ld = it.toLocalDateTime(tz).date
                         "${ld.year}-%02d-%02d".format(ld.monthNumber, ld.dayOfMonth)
-                    } ?: "To",
+                    } ?: s[StringResource.ADMIN_AUDIT_DATE_TO],
                     style = MaterialTheme.typography.labelSmall,
                 )
             },
@@ -623,7 +636,7 @@ private fun DateRangeFilter(
                         onClick = { onDateRangeChanged(dateFrom, null) },
                         modifier = Modifier.size(16.dp),
                     ) {
-                        Icon(Icons.Default.Clear, contentDescription = "Clear to date", modifier = Modifier.size(12.dp))
+                        Icon(Icons.Default.Clear, contentDescription = s[StringResource.ADMIN_AUDIT_CLEAR_TO_CD], modifier = Modifier.size(12.dp))
                     }
                 }
             } else null,
@@ -641,10 +654,10 @@ private fun DateRangeFilter(
                     datePickerState.selectedDateMillis?.let { millis ->
                         onDateRangeChanged(Instant.fromEpochMilliseconds(millis), dateTo)
                     }
-                }) { Text("OK") }
+                }) { Text(s[StringResource.COMMON_OK]) }
             },
             dismissButton = {
-                TextButton(onClick = { showFromPicker = false }) { Text("Cancel") }
+                TextButton(onClick = { showFromPicker = false }) { Text(s[StringResource.COMMON_CANCEL]) }
             },
         ) {
             DatePicker(state = datePickerState)
@@ -664,10 +677,10 @@ private fun DateRangeFilter(
                         val endOfDay = Instant.fromEpochMilliseconds(millis + 86_400_000L - 1L)
                         onDateRangeChanged(dateFrom, endOfDay)
                     }
-                }) { Text("OK") }
+                }) { Text(s[StringResource.COMMON_OK]) }
             },
             dismissButton = {
-                TextButton(onClick = { showToPicker = false }) { Text("Cancel") }
+                TextButton(onClick = { showToPicker = false }) { Text(s[StringResource.COMMON_CANCEL]) }
             },
         ) {
             DatePicker(state = datePickerState)
