@@ -50,6 +50,19 @@ internal object EnglishStrings {
         StringResource.COMMON_DATE_FORMAT_PLACEHOLDER to "YYYY-MM-DD",
         StringResource.COMMON_DISPLAY_ORDER_PLACEHOLDER to "0",
         StringResource.COMMON_IMAGE_URL_PLACEHOLDER to "https://…",
+        StringResource.COMMON_NAVIGATE_BACK_CD to "Navigate back",
+        StringResource.COMMON_OPEN_DRAWER_CD to "Open navigation drawer",
+        StringResource.COMMON_CLEAR_SEARCH_CD to "Clear search",
+        StringResource.COMMON_ENABLE_SCAN_CD to "Enable scan mode",
+        StringResource.COMMON_DISABLE_SCAN_CD to "Disable scan mode",
+        StringResource.COMMON_BACKSPACE_CD to "Backspace",
+        StringResource.COMMON_NUMERIC_CLEAR_LABEL to "C",
+        StringResource.COMMON_SELECT_DATE_RANGE to "Select Date Range",
+        StringResource.COMMON_SELECT_DATE_RANGE_CD to "Select date range",
+        StringResource.COMMON_TODAY to "Today",
+        StringResource.COMMON_THIS_WEEK to "This Week",
+        StringResource.COMMON_THIS_MONTH to "This Month",
+        StringResource.COMMON_SORT_BY_FORMAT to "Sort by %1",
 
         // ── Auth ────────────────────────────────────────────────────────────
         StringResource.AUTH_LOGIN_TITLE to "Sign In",
@@ -2003,5 +2016,17 @@ StringResource.ACCOUNTING_ACCOUNT to "Account",
         StringResource.REPORTS_STOCK_COL_QTY to "Qty",
         StringResource.REPORTS_STOCK_COL_VALUE to "Value",
         StringResource.REPORTS_STOCK_COL_STATUS to "Status",
+
+        // ── SYNC STATUS ──────────────────────────────────────────────────────
+        StringResource.SYNC_STATUS_SYNCED to "Synced",
+        StringResource.SYNC_STATUS_SYNCING to "Syncing\u2026",
+        StringResource.SYNC_STATUS_OFFLINE to "Offline",
+        StringResource.SYNC_STATUS_FAILED to "Sync Failed",
+
+        // ── DESIGN SYSTEM ────────────────────────────────────────────────────
+        StringResource.DESIGNSYSTEM_FEATURE_LOCKED to "Feature Locked",
+        StringResource.DESIGNSYSTEM_FEATURE_LOCKED_DESC_FORMAT to "%1 is available on the %2 plan.\nContact your administrator to upgrade.",
+        StringResource.DESIGNSYSTEM_GO_BACK to "Go Back",
+        StringResource.DESIGNSYSTEM_LOCKED_CD to "Locked",
     )
 }

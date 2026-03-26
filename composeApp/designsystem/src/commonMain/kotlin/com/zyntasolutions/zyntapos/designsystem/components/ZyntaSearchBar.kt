@@ -14,6 +14,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ZyntaSearchBar — Stateless; debounce handled by caller.
@@ -45,6 +46,7 @@ fun ZyntaSearchBar(
     focusRequester: FocusRequester = remember { FocusRequester() },
     onSearch: (() -> Unit)? = null,
 ) {
+    val s = LocalStrings.current
     OutlinedTextField(
         value = query,
         onValueChange = onQueryChange,
@@ -54,7 +56,7 @@ fun ZyntaSearchBar(
         leadingIcon = {
             Icon(
                 imageVector = Icons.Default.Search,
-                contentDescription = "Search",
+                contentDescription = s[StringResource.COMMON_SEARCH],
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         },
@@ -64,7 +66,7 @@ fun ZyntaSearchBar(
                 IconButton(onClick = onScanToggle) {
                     Icon(
                         imageVector = Icons.Default.QrCodeScanner,
-                        contentDescription = if (isScanActive) "Disable scan mode" else "Enable scan mode",
+                        contentDescription = if (isScanActive) s[StringResource.COMMON_DISABLE_SCAN_CD] else s[StringResource.COMMON_ENABLE_SCAN_CD],
                         tint = if (isScanActive) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -74,7 +76,7 @@ fun ZyntaSearchBar(
                     IconButton(onClick = onClear) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "Clear search",
+                            contentDescription = s[StringResource.COMMON_CLEAR_SEARCH_CD],
                         )
                     }
                 }

@@ -18,6 +18,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 
 /**
  * Full-screen placeholder shown when a feature is not enabled for the current store.
@@ -38,6 +40,7 @@ fun FeatureLockedScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -47,25 +50,25 @@ fun FeatureLockedScreen(
     ) {
         Icon(
             imageVector = Icons.Outlined.Lock,
-            contentDescription = "Locked",
+            contentDescription = s[StringResource.DESIGNSYSTEM_LOCKED_CD],
             modifier = Modifier.size(72.dp),
             tint = MaterialTheme.colorScheme.primary,
         )
         Spacer(Modifier.height(24.dp))
         Text(
-            text = "Feature Locked",
+            text = s[StringResource.DESIGNSYSTEM_FEATURE_LOCKED],
             style = MaterialTheme.typography.headlineMedium,
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "$featureName is available on the $requiredEdition plan.\nContact your administrator to upgrade.",
+            text = s[StringResource.DESIGNSYSTEM_FEATURE_LOCKED_DESC_FORMAT, featureName, requiredEdition],
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(32.dp))
         OutlinedButton(onClick = onNavigateBack) {
-            Text("Go Back")
+            Text(s[StringResource.DESIGNSYSTEM_GO_BACK])
         }
     }
 }

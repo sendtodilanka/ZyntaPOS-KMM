@@ -30,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import kotlin.time.Clock
 import kotlinx.datetime.Instant
@@ -45,11 +46,11 @@ import kotlinx.datetime.toLocalDateTime
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Preset date range options. */
-enum class DateRangePreset(val label: String) {
-    TODAY("Today"),
-    THIS_WEEK("This Week"),
-    THIS_MONTH("This Month"),
-    CUSTOM("Custom"),
+enum class DateRangePreset(val labelKey: StringResource) {
+    TODAY(StringResource.COMMON_TODAY),
+    THIS_WEEK(StringResource.COMMON_THIS_WEEK),
+    THIS_MONTH(StringResource.COMMON_THIS_MONTH),
+    CUSTOM(StringResource.REPORTS_CUSTOM),
 }
 
 /**
@@ -72,6 +73,7 @@ fun ZyntaDateRangePicker(
     onCustomRangeSelected: (from: Instant, to: Instant) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     var showCalendar by remember { mutableStateOf(false) }
 
     Column(modifier = modifier) {
@@ -90,7 +92,7 @@ fun ZyntaDateRangePicker(
                             onPresetSelected(preset)
                         }
                     },
-                    label = { Text(preset.label) },
+                    label = { Text(s[preset.labelKey]) },
                 )
             }
 
@@ -100,7 +102,7 @@ fun ZyntaDateRangePicker(
             IconButton(onClick = { showCalendar = true }) {
                 Icon(
                     imageVector = Icons.Default.CalendarMonth,
-                    contentDescription = "Select date range",
+                    contentDescription = s[StringResource.COMMON_SELECT_DATE_RANGE_CD],
                     tint = MaterialTheme.colorScheme.primary,
                 )
             }
@@ -155,16 +157,16 @@ fun ZyntaDateRangePicker(
                         )
                     }
                     showCalendar = false
-                }) { Text("Confirm") }
+                }) { Text(s[StringResource.COMMON_CONFIRM]) }
             },
             dismissButton = {
-                TextButton(onClick = { showCalendar = false }) { Text("Cancel") }
+                TextButton(onClick = { showCalendar = false }) { Text(s[StringResource.COMMON_CANCEL]) }
             },
         ) {
             DateRangePicker(
                 state = state,
                 modifier = Modifier.padding(ZyntaSpacing.md),
-                title = { Text("Select Date Range", style = MaterialTheme.typography.titleMedium) },
+                title = { Text(s[StringResource.COMMON_SELECT_DATE_RANGE], style = MaterialTheme.typography.titleMedium) },
             )
         }
     }
