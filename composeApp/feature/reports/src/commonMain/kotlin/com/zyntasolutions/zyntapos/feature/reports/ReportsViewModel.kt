@@ -230,11 +230,10 @@ class ReportsViewModel(
         updateState {
             copy(salesReport = salesReport.copy(isDrillDownLoading = true, drillDownLabel = label))
         }
-        // Extract order IDs from the report's top products matching the label
+        // Extract product IDs from the report's top products matching the label
         // In a full implementation, this would query orders for the specific time period
-        val orderIds = report.topProducts
-            .filter { it.productName.contains(label, ignoreCase = true) || label == it.productId }
-            .map { it.productId }
+        val orderIds = report.topProducts.keys
+            .filter { productId -> productId.contains(label, ignoreCase = true) || label == productId }
             .take(50)
         updateState {
             copy(salesReport = salesReport.copy(
