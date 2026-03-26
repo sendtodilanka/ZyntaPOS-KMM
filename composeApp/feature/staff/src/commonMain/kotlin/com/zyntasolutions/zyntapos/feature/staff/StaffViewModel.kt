@@ -221,6 +221,9 @@ class StaffViewModel(
             is StaffIntent.ProcessPayment -> processPayment(
                 intent.payrollId, intent.paidAt, intent.paymentRef
             )
+            is StaffIntent.GenerateAllPayroll -> generateAllPayroll(
+                intent.periodStart, intent.periodEnd
+            )
 
             // History / Summary
             is StaffIntent.LoadPayrollHistory -> loadPayrollHistory(intent.employeeId)
@@ -620,6 +623,49 @@ class StaffViewModel(
             is Result.Error -> updateState { copy(isLoading = false, error = result.exception.message) }
             is Result.Loading -> Unit
         }
+    }
+
+    /**
+     * G11: Generate payroll for all active employees for the given period.
+     * Iterates each employee and calls [generatePayrollUseCase], tracking progress.
+     */
+    private suspend fun generateAllPayroll(periodStart: String, periodEnd: String) {
+        val activeEmployees = currentState.employees.filter { it.isActive }
+        if (activeEmployees.isEmpty()) {
+            updateState { copy(error = "No active employees found.") }
+            return
+        }
+        updateState {
+            copy(
+                isBulkPayrollGenerating = true,
+                bulkPayrollProgress = 0,
+                bulkPayrollTotal = activeEmployees.size,
+            )
+        }
+        var successCount = 0
+        var failCount = 0
+        val now = Clock.System.now().toEpochMilliseconds()
+        for ((index, employee) in activeEmployees.withIndex()) {
+            when (generatePayrollUseCase(
+                employee = employee,
+                periodStart = periodStart,
+                periodEnd = periodEnd,
+                recordId = IdGenerator.newId(),
+                createdAt = now,
+            )) {
+                is Result.Success -> successCount++
+                is Result.Error -> failCount++
+                is Result.Loading -> Unit
+            }
+            updateState { copy(bulkPayrollProgress = index + 1) }
+        }
+        updateState {
+            copy(
+                isBulkPayrollGenerating = false,
+                successMessage = "Payroll generated: $successCount succeeded, $failCount failed.",
+            )
+        }
+        loadPayroll(storeId, currentState.payrollPeriod)
     }
 
     private suspend fun processPayment(payrollId: String, paidAt: Long, paymentRef: String?) {

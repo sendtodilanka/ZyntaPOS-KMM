@@ -335,9 +335,17 @@ class PosViewModel(
             is PosIntent.SetReturnLookupQuery    -> updateState { copy(returnLookupQuery = intent.query, returnLookupError = null) }
             is PosIntent.LookupOrderForReturn    -> onLookupOrderForReturn()
             is PosIntent.ScanCoupon         -> {
-                updateState { copy(couponCode = intent.barcode, couponError = null) }
+                updateState {
+                    copy(
+                        couponCode = intent.barcode,
+                        couponError = null,
+                        showCouponScanPreview = true,
+                        scannedCouponBarcode = intent.barcode,
+                    )
+                }
                 onValidateCoupon()
             }
+            PosIntent.DismissCouponScanPreview -> updateState { copy(showCouponScanPreview = false) }
             is PosIntent.ScanGiftCard       -> {
                 updateState { copy(showGiftCardDialog = true, giftCardCode = intent.barcode, giftCardError = null) }
                 onLookupGiftCard()

@@ -348,6 +348,9 @@ sealed interface PosIntent {
     /** Barcode detected as a gift card — look up the balance and apply to payment. */
     data class ScanGiftCard(val barcode: String) : PosIntent
 
+    /** G3: Dismiss the coupon scan preview overlay after it has been shown. */
+    data object DismissCouponScanPreview : PosIntent
+
     // ─── Gift Card (G3-2) ─────────────────────────────────────────────────────
 
     /** Show the gift card lookup dialog. */

@@ -80,6 +80,22 @@ data class AdminState(
     val selectedConflict: SyncConflict? = null,
     val unresolvedConflictCount: Int = 0,
 
+    // ── License Info (G14) ──────────────────────────────────────────────
+    /** Current license edition (e.g., "Standard", "Premium", "Enterprise"). */
+    val licenseEdition: String = "",
+    /** License status (e.g., "ACTIVE", "TRIAL", "EXPIRED"). */
+    val licenseStatus: String = "",
+    /** License expiry date as ISO string, or empty if perpetual. */
+    val licenseExpiresAt: String = "",
+    /** Maximum number of stores allowed under this license. */
+    val licenseMaxStores: Int = 0,
+    /** Maximum number of devices allowed under this license. */
+    val licenseMaxDevices: Int = 0,
+    /** License holder company name. */
+    val licenseHolderName: String = "",
+    /** True while loading license info from settings. */
+    val isLicenseLoading: Boolean = false,
+
     // ── Global ────────────────────────────────────────────────────────────
     val isLoading: Boolean = false,
     val error: String? = null,

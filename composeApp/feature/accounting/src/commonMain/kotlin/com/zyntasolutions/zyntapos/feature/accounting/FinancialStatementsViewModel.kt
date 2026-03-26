@@ -2,6 +2,7 @@ package com.zyntasolutions.zyntapos.feature.accounting
 
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.FinancialStatement
+import com.zyntasolutions.zyntapos.domain.model.TrialBalanceLine
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetBalanceSheetUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetCashFlowStatementUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.GetProfitAndLossUseCase
@@ -66,6 +67,11 @@ data class FinancialStatementsState(
     val asOfDate: String = "",
     val activeDatePicker: DatePickerField = DatePickerField.NONE,
     val error: String? = null,
+    // ── Trial Balance Remediation (G9) ────────────────────────────────────
+    /** True when the trial balance is unbalanced and remediation guide is shown. */
+    val showRemediationGuide: Boolean = false,
+    /** Accounts with the largest debit-credit discrepancy (sorted by |balance|). */
+    val remediationSuspects: List<TrialBalanceLine> = emptyList(),
 )
 
 // ── Intent ────────────────────────────────────────────────────────────────────
@@ -125,6 +131,12 @@ sealed class FinancialStatementsIntent {
 
     /** Export the currently visible statement as CSV. */
     data object ExportCsv : FinancialStatementsIntent()
+
+    /** Show remediation guide when trial balance is unbalanced (G9). */
+    data object ShowRemediationGuide : FinancialStatementsIntent()
+
+    /** Dismiss the trial balance remediation guide (G9). */
+    data object DismissRemediationGuide : FinancialStatementsIntent()
 }
 
 // ── Effect ────────────────────────────────────────────────────────────────────
@@ -232,6 +244,21 @@ class FinancialStatementsViewModel(
 
             is FinancialStatementsIntent.ExportCsv -> {
                 exportCurrentTab()
+            }
+
+            is FinancialStatementsIntent.ShowRemediationGuide -> {
+                val tb = currentState.trialBalance
+                if (tb != null && !tb.isBalanced) {
+                    // Sort accounts by absolute balance discrepancy (largest first)
+                    val suspects = tb.lines
+                        .sortedByDescending { kotlin.math.abs(it.totalDebits - it.totalCredits) }
+                        .take(10)
+                    updateState { copy(showRemediationGuide = true, remediationSuspects = suspects) }
+                }
+            }
+
+            is FinancialStatementsIntent.DismissRemediationGuide -> {
+                updateState { copy(showRemediationGuide = false) }
             }
         }
     }

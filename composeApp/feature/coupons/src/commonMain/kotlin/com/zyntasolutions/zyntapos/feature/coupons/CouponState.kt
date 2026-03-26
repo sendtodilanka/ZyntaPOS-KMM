@@ -32,10 +32,35 @@ data class CouponState(
     // ── Picker Data (loaded for category/product scope selectors) ─────────
     val availableCategories: List<Category> = emptyList(),
 
+    // ── Analytics (G12) ──────────────────────────────────────────────────
+    /** Total number of times all coupons have been redeemed. */
+    val totalRedemptions: Int = 0,
+    /** Total discount value given across all coupon redemptions. */
+    val totalDiscountGiven: Double = 0.0,
+    /** Top 5 most redeemed coupons with their redemption count. */
+    val topRedeemedCoupons: List<CouponRedemptionStat> = emptyList(),
+    /** True while analytics data is loading. */
+    val isAnalyticsLoading: Boolean = false,
+
     // ── Global ────────────────────────────────────────────────────────────
     val isLoading: Boolean = false,
     val error: String? = null,
     val successMessage: String? = null,
+)
+
+/**
+ * G12: Redemption statistics for a single coupon.
+ *
+ * @property couponId The coupon's unique ID.
+ * @property couponCode The coupon's human-readable code.
+ * @property redemptionCount Number of times this coupon was used.
+ * @property totalDiscount Total discount value given through this coupon.
+ */
+data class CouponRedemptionStat(
+    val couponId: String,
+    val couponCode: String,
+    val redemptionCount: Int,
+    val totalDiscount: Double,
 )
 
 /**

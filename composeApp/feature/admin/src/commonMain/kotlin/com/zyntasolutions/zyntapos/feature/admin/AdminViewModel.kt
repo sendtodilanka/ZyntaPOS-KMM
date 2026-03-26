@@ -149,6 +149,9 @@ class AdminViewModel(
             is AdminIntent.ResolveConflictAcceptServer -> resolveConflict(intent.conflictId, SyncConflict.Resolution.SERVER)
             is AdminIntent.ResolveConflictManual -> resolveConflictManual(intent.conflictId, intent.value)
 
+            // License Info (G14)
+            AdminIntent.LoadLicenseInfo -> loadLicenseInfo()
+
             // UI
             AdminIntent.DismissError -> updateState { copy(error = null) }
             AdminIntent.DismissSuccess -> updateState { copy(successMessage = null) }
@@ -427,6 +430,33 @@ class AdminViewModel(
                 backupFrequency = freq,
                 backupScheduleHour = hour,
                 backupRetentionCount = retention,
+            )
+        }
+    }
+
+    // ── License Info (G14) ──────────────────────────────────────────────
+
+    /**
+     * Loads license information from persisted settings.
+     * License data is cached locally by the license validation client after server check.
+     */
+    private suspend fun loadLicenseInfo() {
+        updateState { copy(isLicenseLoading = true) }
+        val edition = settingsRepository.get("license.edition") ?: "Standard"
+        val status = settingsRepository.get("license.status") ?: "ACTIVE"
+        val expiresAt = settingsRepository.get("license.expires_at") ?: ""
+        val maxStores = settingsRepository.get("license.max_stores")?.toIntOrNull() ?: 1
+        val maxDevices = settingsRepository.get("license.max_devices")?.toIntOrNull() ?: 5
+        val holderName = settingsRepository.get("license.holder_name") ?: ""
+        updateState {
+            copy(
+                isLicenseLoading = false,
+                licenseEdition = edition,
+                licenseStatus = status,
+                licenseExpiresAt = expiresAt,
+                licenseMaxStores = maxStores,
+                licenseMaxDevices = maxDevices,
+                licenseHolderName = holderName,
             )
         }
     }

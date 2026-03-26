@@ -700,6 +700,20 @@ class WarehouseViewModel(
         val qty = form.quantity.toDoubleOrNull()
         if (qty == null || qty < 0) errors["quantity"] = "Quantity must be 0 or more"
 
+        // MS-6: Rack capacity enforcement — check total stock vs capacity limit
+        if (qty != null && qty > 0) {
+            val rack = currentState.racks.find { it.id == form.rackId }
+            val rackCapacity = rack?.capacity
+            if (rackCapacity != null && rackCapacity > 0) {
+                val existingProducts = currentState.rackProducts
+                    .filter { it.rackId == form.rackId && it.productId != form.productId }
+                val existingTotal = existingProducts.sumOf { it.quantity }
+                if (existingTotal + qty > rackCapacity) {
+                    errors["quantity"] = "Exceeds rack capacity ($rackCapacity). Current usage: ${existingTotal.toInt()}"
+                }
+            }
+        }
+
         if (errors.isNotEmpty()) {
             updateState { copy(rackProductForm = rackProductForm.copy(validationErrors = errors)) }
             return

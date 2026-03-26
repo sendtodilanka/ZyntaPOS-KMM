@@ -106,6 +106,12 @@ sealed interface StaffIntent {
         val paymentRef: String?,
     ) : StaffIntent
 
+    /** Generate payroll for ALL active employees for the given period (G11 — "Generate All"). */
+    data class GenerateAllPayroll(
+        val periodStart: String,
+        val periodEnd: String,
+    ) : StaffIntent
+
     // ── History / Summary ──────────────────────────────────────────────────
     /** Load the full payroll history for a specific employee (reactive stream). */
     data class LoadPayrollHistory(val employeeId: String) : StaffIntent
